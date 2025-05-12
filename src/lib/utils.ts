@@ -1,4 +1,3 @@
-
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { FIXED_COLUMN_IDS } from "@/types/kanban"
@@ -30,3 +29,13 @@ document.documentElement.style.setProperty(
   "--scrollbar-track", 
   "rgba(229, 231, 235, 0.1)"
 );
+
+/**
+ * Format a number as currency (BRL)
+ */
+export function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value);
+}

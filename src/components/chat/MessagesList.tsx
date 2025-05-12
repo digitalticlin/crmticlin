@@ -18,13 +18,13 @@ export const MessagesList = ({ messages }: MessagesListProps) => {
               "max-w-[80%] rounded-lg p-3",
               message.isIncoming 
                 ? "bg-white dark:bg-gray-800 self-start rounded-tl-none" 
-                : "bg-ticlin/90 text-black self-end rounded-tr-none"
+                : "bg-primary text-primary-foreground self-end rounded-tr-none"
             )}
           >
             <p>{message.text}</p>
             <div className={cn(
               "text-right text-xs mt-1",
-              message.isIncoming ? "text-muted-foreground" : "text-black/70"
+              message.isIncoming ? "text-muted-foreground" : "text-primary-foreground/70"
             )}>
               {message.time}
               {!message.isIncoming && message.status && (
