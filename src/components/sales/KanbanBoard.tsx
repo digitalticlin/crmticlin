@@ -3,7 +3,7 @@ import { KanbanColumn as IKanbanColumn, KanbanLead, FIXED_COLUMN_IDS } from "@/t
 import { KanbanColumn } from "./KanbanColumn";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useRef, useEffect } from "react";
-import { CheckCircle, XCircle, WhatsappIcon } from "lucide-react";
+import { CheckCircle, XCircle, Whatsapp } from "lucide-react";
 
 interface KanbanBoardProps {
   columns: IKanbanColumn[];
