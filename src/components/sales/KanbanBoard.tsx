@@ -1,9 +1,10 @@
 
-import { DragDropContext, DropResult } from "react-beautiful-dnd";
+import { DragDropContext, Droppable, DropResult } from "react-beautiful-dnd";
 import { KanbanColumn as IKanbanColumn, KanbanLead, FIXED_COLUMN_IDS } from "@/types/kanban";
 import { KanbanColumn } from "./KanbanColumn";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useRef, useEffect } from "react";
+import { CheckCircle, XCircle } from "lucide-react";
 
 interface KanbanBoardProps {
   columns: IKanbanColumn[];
@@ -149,7 +150,7 @@ export const KanbanBoard = ({
   return (
     <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
       <div className="relative w-full h-full flex flex-col">
-        <ScrollArea orientation="horizontal" className="w-full h-full">
+        <ScrollArea className="w-full h-full">
           <div className="flex gap-4 pb-6 min-w-max h-full">
             {visibleColumns.map((column) => (
               <KanbanColumn
