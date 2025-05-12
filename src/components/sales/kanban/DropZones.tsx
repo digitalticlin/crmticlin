@@ -7,8 +7,12 @@ interface DropZonesProps {
 }
 
 export const DropZones = ({ showDropZones }: DropZonesProps) => {
+  if (!showDropZones) {
+    return null;
+  }
+  
   return (
-    <div className="fixed bottom-6 left-0 right-0 flex justify-center gap-6 z-50 px-6">
+    <div className="fixed bottom-6 left-0 right-0 flex justify-center gap-6 z-50 px-6 animate-fade-in">
       {/* Won drop zone */}
       <Droppable droppableId="drop-zone-won">
         {(provided, snapshot) => (

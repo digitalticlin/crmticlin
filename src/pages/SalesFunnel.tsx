@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import { useSalesFunnel } from "@/hooks/useSalesFunnel";
@@ -10,9 +9,11 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
 import { FIXED_COLUMN_IDS, KanbanLead } from "@/types/kanban";
+import { useNavigate } from "react-router-dom";
 
 export default function SalesFunnel() {
   const [activeTab, setActiveTab] = useState("funnel");
+  const navigate = useNavigate();
   
   const {
     columns,
@@ -31,10 +32,8 @@ export default function SalesFunnel() {
   } = useSalesFunnel();
 
   const handleOpenChat = (lead: KanbanLead) => {
-    // In a real application, this would navigate to the chat page with this contact
-    toast.info(`Abrindo chat com ${lead.name}...`, {
-      description: "Essa funcionalidade conectará com o WhatsApp em breve."
-    });
+    // Navigate to the chat page
+    navigate('/chat');
   };
 
   // Function to move a lead to the won or lost column
