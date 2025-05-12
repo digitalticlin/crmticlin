@@ -12,7 +12,8 @@ import {
   User,
   Image,
   File,
-  Mic
+  Mic,
+  MessageSquare
 } from "lucide-react";
 import Sidebar from "@/components/layout/Sidebar";
 import { Input } from "@/components/ui/input";
