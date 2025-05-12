@@ -7,19 +7,20 @@ interface DropZonesProps {
 }
 
 export const DropZones = ({ showDropZones }: DropZonesProps) => {
+  // Se não estiver mostrando as drop zones, não renderize nada
   if (!showDropZones) {
     return null;
   }
   
   return (
-    <div className="fixed bottom-6 left-0 right-0 flex justify-center gap-6 z-50 px-6 animate-fade-in">
+    <div className="fixed bottom-6 left-0 right-0 flex justify-center gap-6 z-50 px-6 animate-scale-in">
       {/* Won drop zone */}
       <Droppable droppableId="drop-zone-won">
         {(provided, snapshot) => (
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`bg-green-500/20 backdrop-blur-lg border-2 border-green-500 rounded-lg p-4 w-full max-w-xs h-24 flex items-center justify-center transition-all ${snapshot.isDraggingOver ? 'bg-green-500/40 scale-105' : ''}`}
+            className={`glass bg-green-500/10 border-2 border-green-500 rounded-lg p-4 w-full max-w-xs h-24 flex items-center justify-center transition-all transform ${snapshot.isDraggingOver ? 'bg-green-500/30 scale-105 shadow-lg' : ''}`}
           >
             <div className="text-center">
               <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-1" />
@@ -36,7 +37,7 @@ export const DropZones = ({ showDropZones }: DropZonesProps) => {
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`bg-red-500/20 backdrop-blur-lg border-2 border-red-500 rounded-lg p-4 w-full max-w-xs h-24 flex items-center justify-center transition-all ${snapshot.isDraggingOver ? 'bg-red-500/40 scale-105' : ''}`}
+            className={`glass bg-red-500/10 border-2 border-red-500 rounded-lg p-4 w-full max-w-xs h-24 flex items-center justify-center transition-all transform ${snapshot.isDraggingOver ? 'bg-red-500/30 scale-105 shadow-lg' : ''}`}
           >
             <div className="text-center">
               <XCircle className="h-8 w-8 text-red-500 mx-auto mb-1" />

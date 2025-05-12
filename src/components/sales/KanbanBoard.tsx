@@ -57,7 +57,7 @@ export const KanbanBoard = ({
           isWonLostView={isWonLostView}
         />
         
-        {/* Fixed Won/Lost drop zones at the bottom of the screen */}
+        {/* Fixed Won/Lost drop zones that appear during drag */}
         {!isWonLostView && <DropZones showDropZones={showDropZones} />}
       </div>
     </DragDropContext>

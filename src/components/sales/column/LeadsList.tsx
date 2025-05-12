@@ -28,12 +28,12 @@ export const LeadsList = ({
   
   return (
     <Droppable droppableId={droppableId} key={droppableId}>
-      {(provided) => (
+      {(provided, snapshot) => (
         <ScrollArea className="flex-1 p-3">
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className="min-h-full"
+            className={`min-h-full transition-colors duration-300 ${snapshot.isDraggingOver ? 'bg-slate-100/50 dark:bg-slate-800/50 rounded-lg' : ''}`}
           >
             {leads.map((lead, index) => (
               <Draggable
@@ -41,7 +41,7 @@ export const LeadsList = ({
                 draggableId={lead.id}
                 index={index}
               >
-                {(provided) => (
+                {(provided, snapshot) => (
                   <LeadCard 
                     lead={lead} 
                     provided={provided} 
@@ -51,6 +51,7 @@ export const LeadsList = ({
                     onMoveToLost={onMoveToWonLost ? () => onMoveToWonLost(lead, "lost") : undefined}
                     onReturnToFunnel={onReturnToFunnel ? () => onReturnToFunnel(lead) : undefined}
                     isWonLostView={isWonLostView}
+                    isDragging={snapshot.isDragging}
                   />
                 )}
               </Draggable>

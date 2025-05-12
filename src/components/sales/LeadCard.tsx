@@ -15,6 +15,7 @@ interface LeadCardProps {
   onMoveToLost?: () => void;
   onReturnToFunnel?: () => void;
   isWonLostView?: boolean;
+  isDragging?: boolean;
 }
 
 export const LeadCard = ({ 
@@ -25,7 +26,8 @@ export const LeadCard = ({
   onMoveToWon, 
   onMoveToLost,
   onReturnToFunnel,
-  isWonLostView = false
+  isWonLostView = false,
+  isDragging = false
 }: LeadCardProps) => {
   const isWon = isWonLostView && lead.columnId === FIXED_COLUMN_IDS.WON;
   const isLost = isWonLostView && lead.columnId === FIXED_COLUMN_IDS.LOST;
@@ -45,7 +47,9 @@ export const LeadCard = ({
       {...provided.draggableProps}
       {...provided.dragHandleProps}
       className={cn(
-        "bg-white dark:bg-gray-800 mb-3 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow p-3 cursor-pointer animate-fade-in",
+        "bg-white dark:bg-gray-800 mb-3 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm transition-all p-3 cursor-pointer",
+        isDragging && "shadow-xl scale-105 rotate-1 border-primary z-50",
+        !isDragging && "hover:shadow-md animate-fade-in",
         isWon && "border-l-4 border-l-green-500",
         isLost && "border-l-4 border-l-red-500"
       )}
