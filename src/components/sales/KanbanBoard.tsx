@@ -46,8 +46,7 @@ export const KanbanBoard = ({
   return (
     <DragDropContext 
       onDragStart={onDragStart} 
-      onDragEnd={onDragEnd} 
-      key={boardKey}
+      onDragEnd={onDragEnd}
     >
       <div className="relative w-full h-full flex flex-col">
         <BoardContent 

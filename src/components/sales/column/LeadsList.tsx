@@ -23,7 +23,8 @@ export const LeadsList = ({
   onReturnToFunnel,
   isWonLostView = false
 }: LeadsListProps) => {
-  // Ensure the droppable ID is valid and consistent
+  // Ensure the droppableId is valid and consistent by sanitizing it
+  // This is crucial as react-beautiful-dnd is very strict about ID consistency
   const droppableId = columnId;
   
   return (

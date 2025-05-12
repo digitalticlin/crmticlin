@@ -6,9 +6,33 @@ interface DropZonesProps {
 }
 
 export const DropZones = ({ showDropZones }: DropZonesProps) => {
-  // If not showing the drop zones, don't render anything
+  // If not showing the drop zones, render empty droppables to maintain registry
   if (!showDropZones) {
-    return null;
+    return (
+      <div style={{ display: 'none' }}>
+        <Droppable droppableId="drop-zone-won">
+          {(provided) => (
+            <div
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+            >
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+        
+        <Droppable droppableId="drop-zone-lost">
+          {(provided) => (
+            <div
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+            >
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </div>
+    );
   }
   
   // These droppable areas will be invisible but still functional
