@@ -25,36 +25,9 @@ export const useSalesFunnel = () => {
     isLeadDetailOpen, 
     setIsLeadDetailOpen,
     openLeadDetail,
-    toggleTagOnLead: toggleTagOnLeadBase,
+    toggleTagOnLead,
     updateLeadNotes 
   } = useLeadManagement(setColumns);
-
-  // Create a wrapper for toggleTagOnLead that provides availableTags
-  const toggleTagOnLead = (tagId: string) => {
-    if (!selectedLead) return;
-
-    const tag = availableTags.find(t => t.id === tagId);
-    if (!tag) return;
-
-    const hasTag = selectedLead.tags.some(t => t.id === tagId);
-    
-    const updatedLead = {
-      ...selectedLead,
-      tags: hasTag
-        ? selectedLead.tags.filter(t => t.id !== tagId)
-        : [...selectedLead.tags, tag]
-    };
-    
-    // Update selected lead
-    if (selectedLead) {
-      setColumns(columns => columns.map(col => ({
-        ...col,
-        leads: col.leads.map(l => 
-          l.id === selectedLead.id ? updatedLead : l
-        )
-      })));
-    }
-  };
 
   // Create a wrapper for createTag that adds the tag to the selected lead
   const createTag = (name: string, color: string) => {
