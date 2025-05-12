@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Contact, Message } from "@/types/chat";
@@ -11,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DealHistory } from "./DealHistory";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { CheckCircle, XCircle, User, Mail, Phone, Tag, StickyNote, MessageSquare, Plus } from "lucide-react";
+import { CheckCircle, XCircle, User, Mail, Phone, Tag, StickyNote, MessageSquare, Plus, X } from "lucide-react";
 
 // Mock deal history data
 const mockDeals = [
