@@ -3,16 +3,25 @@ import { KanbanLead } from "@/types/kanban";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { DraggableProvided } from "react-beautiful-dnd";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, CheckCircle, XCircle } from "lucide-react";
 
 interface LeadCardProps {
   lead: KanbanLead;
   provided: DraggableProvided;
   onClick: () => void;
   onOpenChat?: () => void;
+  onMoveToWon?: () => void;
+  onMoveToLost?: () => void;
 }
 
-export const LeadCard = ({ lead, provided, onClick, onOpenChat }: LeadCardProps) => {
+export const LeadCard = ({ 
+  lead, 
+  provided, 
+  onClick, 
+  onOpenChat, 
+  onMoveToWon, 
+  onMoveToLost 
+}: LeadCardProps) => {
   return (
     <div
       ref={provided.innerRef}
@@ -34,17 +43,44 @@ export const LeadCard = ({ lead, provided, onClick, onOpenChat }: LeadCardProps)
             </Badge>
           ))}
         </div>
-        {onOpenChat && (
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenChat();
-            }}
-            className="ml-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-          >
-            <MessageSquare className="h-4 w-4 text-ticlin" />
-          </button>
-        )}
+        <div className="flex items-center space-x-1">
+          {onMoveToWon && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onMoveToWon();
+              }}
+              title="Marcar como ganho"
+              className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <CheckCircle className="h-4 w-4 text-green-500" />
+            </button>
+          )}
+          {onMoveToLost && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onMoveToLost();
+              }}
+              title="Marcar como perdido"
+              className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <XCircle className="h-4 w-4 text-red-500" />
+            </button>
+          )}
+          {onOpenChat && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onOpenChat();
+              }}
+              title="Abrir chat"
+              className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <MessageSquare className="h-4 w-4 text-ticlin" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

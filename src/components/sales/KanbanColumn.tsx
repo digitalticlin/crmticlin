@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Droppable, Draggable } from "react-beautiful-dnd";
 import { MoreVertical, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
+import { KanbanColumn as IKanbanColumn, KanbanLead, FIXED_COLUMN_IDS } from "@/types/kanban";
 import { cn } from "@/lib/utils";
 import { LeadCard } from "./LeadCard";
 import {
@@ -29,6 +29,7 @@ interface KanbanColumnProps {
   onColumnUpdate: (updatedColumn: IKanbanColumn) => void;
   onColumnDelete: (columnId: string) => void;
   onOpenChat?: (lead: KanbanLead) => void;
+  onMoveToWonLost?: (lead: KanbanLead, status: "won" | "lost") => void;
 }
 
 export const KanbanColumn = ({ 
@@ -36,7 +37,8 @@ export const KanbanColumn = ({
   onOpenLeadDetail, 
   onColumnUpdate,
   onColumnDelete,
-  onOpenChat
+  onOpenChat,
+  onMoveToWonLost
 }: KanbanColumnProps) => {
   const [editingColumn, setEditingColumn] = useState<IKanbanColumn | null>(null);
   
@@ -47,6 +49,9 @@ export const KanbanColumn = ({
   };
 
   const isFixed = column.isFixed === true;
+  
+  // Updated column title display
+  const displayTitle = column.id === FIXED_COLUMN_IDS.NEW_LEAD ? "Entrada de leads" : column.title;
 
   return (
     <div 
@@ -57,7 +62,7 @@ export const KanbanColumn = ({
       )}
     >
       <div className="p-3 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
-        <h3 className={cn("font-medium", isFixed && "text-ticlin")}>{column.title}</h3>
+        <h3 className={cn("font-medium", isFixed && "text-ticlin")}>{displayTitle}</h3>
         <div className="flex items-center gap-1">
           <span className="bg-gray-100 dark:bg-gray-800 rounded-full px-2 py-0.5 text-xs">
             {column.leads.length}
@@ -169,6 +174,8 @@ export const KanbanColumn = ({
                     provided={provided} 
                     onClick={() => onOpenLeadDetail(lead)} 
                     onOpenChat={onOpenChat ? () => onOpenChat(lead) : undefined}
+                    onMoveToWon={onMoveToWonLost ? () => onMoveToWonLost(lead, "won") : undefined}
+                    onMoveToLost={onMoveToWonLost ? () => onMoveToWonLost(lead, "lost") : undefined}
                   />
                 )}
               </Draggable>

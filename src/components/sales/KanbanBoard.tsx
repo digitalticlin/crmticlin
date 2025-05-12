@@ -10,6 +10,7 @@ interface KanbanBoardProps {
   onColumnUpdate: (updatedColumn: IKanbanColumn) => void;
   onColumnDelete: (columnId: string) => void;
   onOpenChat?: (lead: KanbanLead) => void;
+  onMoveToWonLost?: (lead: KanbanLead, status: "won" | "lost") => void;
 }
 
 export const KanbanBoard = ({
@@ -18,7 +19,8 @@ export const KanbanBoard = ({
   onOpenLeadDetail,
   onColumnUpdate,
   onColumnDelete,
-  onOpenChat
+  onOpenChat,
+  onMoveToWonLost
 }: KanbanBoardProps) => {
   const onDragEnd = (result: any) => {
     const { destination, source, draggableId } = result;
@@ -97,6 +99,7 @@ export const KanbanBoard = ({
             onColumnUpdate={onColumnUpdate}
             onColumnDelete={onColumnDelete}
             onOpenChat={onOpenChat}
+            onMoveToWonLost={onMoveToWonLost}
           />
         ))}
       </div>
