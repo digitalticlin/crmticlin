@@ -23,8 +23,11 @@ export const LeadsList = ({
   onReturnToFunnel,
   isWonLostView = false
 }: LeadsListProps) => {
+  // Ensure the droppable ID is valid and consistent
+  const droppableId = columnId;
+  
   return (
-    <Droppable droppableId={columnId}>
+    <Droppable droppableId={droppableId} key={droppableId}>
       {(provided) => (
         <ScrollArea className="flex-1 p-3">
           <div

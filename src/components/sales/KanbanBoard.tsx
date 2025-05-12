@@ -39,8 +39,12 @@ export const KanbanBoard = ({
     isWonLostView 
   });
 
+  // Create a key to force remount when columns change
+  // This ensures droppable contexts are correctly recreated
+  const boardKey = columns.map(col => col.id).join('-');
+
   return (
-    <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
+    <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd} key={boardKey}>
       <div className="relative w-full h-full flex flex-col">
         <BoardContent 
           columns={columns}

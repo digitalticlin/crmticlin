@@ -1,7 +1,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { DropResult } from "react-beautiful-dnd";
-import { KanbanColumn, KanbanLead } from "@/types/kanban";
+import { KanbanColumn, KanbanLead, FIXED_COLUMN_IDS } from "@/types/kanban";
 
 interface UseDragAndDropProps {
   columns: KanbanColumn[];
@@ -75,10 +75,19 @@ export const useDragAndDrop = ({
       return;
     }
 
-    const sourceColumn = columns.find(col => col.id === source.droppableId);
-    const destColumn = columns.find(col => col.id === destination.droppableId);
+    // Ensure the destination column exists
+    const destColumnId = destination.droppableId;
+    const sourceColumnId = source.droppableId;
+    
+    // Find the source and destination columns
+    const sourceColumn = columns.find(col => col.id === sourceColumnId);
+    const destColumn = columns.find(col => col.id === destColumnId);
 
-    if (!sourceColumn || !destColumn) return;
+    // Safety check to prevent errors
+    if (!sourceColumn || !destColumn) {
+      console.error(`Column not found: source=${sourceColumnId}, dest=${destColumnId}`);
+      return;
+    }
 
     // If moving within the same column
     if (source.droppableId === destination.droppableId) {
