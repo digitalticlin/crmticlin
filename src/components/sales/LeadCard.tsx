@@ -1,9 +1,10 @@
 
 import { KanbanLead, FIXED_COLUMN_IDS } from "@/types/kanban";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { DraggableProvided } from "react-beautiful-dnd";
-import { CheckCircle, XCircle, ArrowLeft } from "lucide-react";
+import { LeadCardContent } from "./lead/LeadCardContent";
+import { LeadCardTags } from "./lead/LeadCardTags";
+import { LeadCardActions } from "./lead/LeadCardActions";
 
 interface LeadCardProps {
   lead: KanbanLead;
@@ -30,7 +31,7 @@ export const LeadCard = ({
   const isLost = isWonLostView && lead.columnId === FIXED_COLUMN_IDS.LOST;
 
   // Now the entire card opens chat by default when clicked
-  const handleCardClick = (e: React.MouseEvent) => {
+  const handleCardClick = () => {
     if (onOpenChat) {
       onOpenChat();
     } else {
@@ -50,64 +51,15 @@ export const LeadCard = ({
       )}
       onClick={handleCardClick}
     >
-      <div className="flex justify-between items-start mb-2">
-        <div className="flex items-center gap-2">
-          <h4 className="font-medium">{lead.name}</h4>
-          {isWonLostView && (
-            <Badge className={isWon ? "bg-green-500" : "bg-red-500"}>
-              {isWon ? "Ganho" : "Perdido"}
-            </Badge>
-          )}
-        </div>
-        <span className="text-xs text-muted-foreground">{lead.lastMessageTime}</span>
-      </div>
-      <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{lead.lastMessage}</p>
+      <LeadCardContent lead={lead} isWonLostView={isWonLostView} />
+      
       <div className="flex justify-between items-center">
-        <div className="flex flex-wrap gap-1">
-          {lead.tags.map((tag) => (
-            <Badge key={tag.id} className={cn("text-black", tag.color)}>
-              {tag.name}
-            </Badge>
-          ))}
-        </div>
-        <div className="flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
-          {onReturnToFunnel && (
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                onReturnToFunnel();
-              }}
-              title="Retornar ao funil"
-              className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              <ArrowLeft className="h-4 w-4 text-blue-500" />
-            </button>
-          )}
-          {onMoveToWon && (
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                onMoveToWon();
-              }}
-              title="Marcar como ganho"
-              className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              <CheckCircle className="h-4 w-4 text-green-500" />
-            </button>
-          )}
-          {onMoveToLost && (
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                onMoveToLost();
-              }}
-              title="Marcar como perdido"
-              className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              <XCircle className="h-4 w-4 text-red-500" />
-            </button>
-          )}
-        </div>
+        <LeadCardTags tags={lead.tags} />
+        <LeadCardActions 
+          onMoveToWon={onMoveToWon}
+          onMoveToLost={onMoveToLost}
+          onReturnToFunnel={onReturnToFunnel}
+        />
       </div>
     </div>
   );
