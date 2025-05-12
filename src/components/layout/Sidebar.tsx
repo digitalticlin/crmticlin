@@ -11,7 +11,8 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
-  Kanban
+  Kanban,
+  ListPlus
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -109,6 +110,12 @@ export default function Sidebar() {
           icon={MessageSquare}
           label="WhatsApp"
           href="/whatsapp"
+          isCollapsed={isCollapsed}
+        />
+        <NavItem
+          icon={ListPlus}
+          label="Automação"
+          href="/automation"
           isCollapsed={isCollapsed}
         />
         <NavItem

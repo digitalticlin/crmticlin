@@ -15,6 +15,7 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import SalesFunnel from "./pages/SalesFunnel";
 import Chat from "./pages/Chat";
+import Automation from "./pages/Automation";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/sales-funnel" element={<SalesFunnel />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/whatsapp" element={<WhatsApp />} />
+            <Route path="/automation" element={<Automation />} />
             <Route path="/team" element={<Team />} />
             <Route path="/plans" element={<Plans />} />
             <Route path="/ai-agents" element={<AIAgents />} />
