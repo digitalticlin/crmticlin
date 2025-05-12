@@ -32,7 +32,7 @@ export const LeadCard = ({
       {...provided.draggableProps}
       {...provided.dragHandleProps}
       className="bg-black/40 dark:bg-gray-800/70 mb-3 rounded-lg border border-gray-600/30 
-                backdrop-blur-lg shadow-md hover:shadow-lg transition-shadow p-3 cursor-pointer animate-fade-in"
+                backdrop-blur-lg shadow-md hover:shadow-lg transition-all duration-200 p-3 cursor-pointer animate-fade-in"
       onClick={onClick}
     >
       <div className="flex justify-between items-start mb-2">
@@ -69,7 +69,7 @@ export const LeadCard = ({
                 onMoveToWon();
               }}
               title="Marcar como ganho"
-              className="p-1 rounded-full hover:bg-gray-700"
+              className="p-1 rounded-full hover:bg-gray-700 transition-colors"
             >
               <CheckCircle className="h-4 w-4 text-green-500" />
             </button>
@@ -81,7 +81,7 @@ export const LeadCard = ({
                 onMoveToLost();
               }}
               title="Marcar como perdido"
-              className="p-1 rounded-full hover:bg-gray-700"
+              className="p-1 rounded-full hover:bg-gray-700 transition-colors"
             >
               <XCircle className="h-4 w-4 text-red-500" />
             </button>
@@ -93,7 +93,7 @@ export const LeadCard = ({
                 onOpenChat();
               }}
               title="Abrir chat"
-              className="p-1 rounded-full hover:bg-gray-700"
+              className="p-1 rounded-full hover:bg-gray-700 transition-colors"
             >
               <MessageSquare className="h-4 w-4 text-ticlin" />
             </button>

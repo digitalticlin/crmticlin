@@ -22,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface KanbanColumnProps {
   column: IKanbanColumn;
@@ -68,11 +69,11 @@ export const KanbanColumn = ({
     <div 
       key={column.id} 
       className={cn(
-        "flex-shrink-0 w-[260px] backdrop-blur-lg rounded-lg border overflow-hidden flex flex-col",
-        isFixed ? "border-gray-600/30 bg-black/30 shadow-lg" : "border-gray-600/30 bg-black/30 shadow-lg"
+        "h-full flex flex-col backdrop-blur-xl border overflow-hidden rounded-lg",
+        isFixed ? "border-gray-600/40 bg-black/40 shadow-xl" : "border-gray-600/40 bg-black/40 shadow-xl"
       )}
     >
-      <div className="p-3 flex items-center justify-between border-b border-gray-600/30">
+      <div className="p-3 flex items-center justify-between border-b border-gray-600/40 bg-black/50">
         <div className="flex items-center">
           <Circle className={cn("h-3 w-3 mr-2", getColumnColor())} fill={getColumnColor()} />
           <h3 className={cn("font-semibold text-white", isFixed && "text-white")}>{displayTitle}</h3>
@@ -175,31 +176,35 @@ export const KanbanColumn = ({
       
       <Droppable droppableId={column.id}>
         {(provided) => (
-          <div
-            ref={provided.innerRef}
-            {...provided.droppableProps}
-            className="flex-1 p-2 overflow-y-auto max-h-[calc(100vh-220px)]"
+          <ScrollArea
+            className="flex-1 overflow-y-auto max-h-[calc(100vh-220px)] kanban-scroll"
           >
-            {column.leads.map((lead, index) => (
-              <Draggable
-                key={lead.id}
-                draggableId={lead.id}
-                index={index}
-              >
-                {(provided) => (
-                  <LeadCard 
-                    lead={lead} 
-                    provided={provided} 
-                    onClick={() => onOpenLeadDetail(lead)} 
-                    onOpenChat={onOpenChat ? () => onOpenChat(lead) : undefined}
-                    onMoveToWon={onMoveToWonLost ? () => onMoveToWonLost(lead, "won") : undefined}
-                    onMoveToLost={onMoveToWonLost ? () => onMoveToWonLost(lead, "lost") : undefined}
-                  />
-                )}
-              </Draggable>
-            ))}
-            {provided.placeholder}
-          </div>
+            <div
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+              className="p-2 min-h-[100px]"
+            >
+              {column.leads.map((lead, index) => (
+                <Draggable
+                  key={lead.id}
+                  draggableId={lead.id}
+                  index={index}
+                >
+                  {(provided) => (
+                    <LeadCard 
+                      lead={lead} 
+                      provided={provided} 
+                      onClick={() => onOpenLeadDetail(lead)} 
+                      onOpenChat={onOpenChat ? () => onOpenChat(lead) : undefined}
+                      onMoveToWon={onMoveToWonLost ? () => onMoveToWonLost(lead, "won") : undefined}
+                      onMoveToLost={onMoveToWonLost ? () => onMoveToWonLost(lead, "lost") : undefined}
+                    />
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </div>
+          </ScrollArea>
         )}
       </Droppable>
     </div>

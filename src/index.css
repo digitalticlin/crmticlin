@@ -124,9 +124,9 @@
     background-image: linear-gradient(135deg, #d3d800 0%, #e4e833 100%);
   }
 
-  /* New glassmorphism styles */
+  /* Enhanced glassmorphism styles */
   .neo-glass {
-    @apply backdrop-blur-xl bg-black/40 border border-gray-600/30 shadow-lg;
+    @apply backdrop-blur-xl bg-black/40 border border-gray-600/40 shadow-lg;
   }
 
   .kanban-scroll::-webkit-scrollbar {
@@ -135,59 +135,49 @@
   }
 
   .kanban-scroll::-webkit-scrollbar-track {
-    @apply bg-black/20;
-    border-radius: 10px;
+    @apply bg-black/20 rounded-full;
   }
 
   .kanban-scroll::-webkit-scrollbar-thumb {
-    @apply bg-ticlin/70;
-    border-radius: 10px;
+    @apply bg-ticlin/70 rounded-full;
   }
 
   .kanban-scroll::-webkit-scrollbar-thumb:hover {
     @apply bg-ticlin;
   }
+  
+  /* Full-width container utilities */
+  .full-width-container {
+    @apply w-full max-w-none px-4;
+  }
+  
+  /* Card hover effects */
+  .card-hover {
+    @apply transition-all duration-200 hover:shadow-xl hover:scale-[1.01] hover:border-gray-500/50;
+  }
+  
+  /* Column animations */
+  .column-enter {
+    animation: column-fade-in 0.3s ease-out forwards;
+  }
+  
+  @keyframes column-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
 #root {
-  max-width: 1280px;
+  max-width: none;
   margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  padding: 0;
+  text-align: left;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
+/* ... keep existing code (for logo animations and other styles) */

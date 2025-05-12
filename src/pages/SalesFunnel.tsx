@@ -74,7 +74,7 @@ export default function SalesFunnel() {
       <Sidebar />
       
       <main className="flex-1 overflow-auto">
-        <div className="p-6">
+        <div className="p-4 w-full h-full">
           {/* Header */}
           <div className="flex justify-between items-center mb-6">
             <div>
@@ -126,123 +126,125 @@ export default function SalesFunnel() {
           </Tabs>
 
           {/* Kanban Board with conditional rendering based on active tab */}
-          {activeTab === "funnel" && (
-            <KanbanBoard 
-              columns={columns}
-              onColumnsChange={setColumns}
-              onOpenLeadDetail={openLeadDetail}
-              onColumnUpdate={updateColumn}
-              onColumnDelete={deleteColumn}
-              onOpenChat={handleOpenChat}
-              onMoveToWonLost={moveLeadToStatus}
-            />
-          )}
+          <div className="w-full h-[calc(100vh-220px)]">
+            {activeTab === "funnel" && (
+              <KanbanBoard 
+                columns={columns}
+                onColumnsChange={setColumns}
+                onOpenLeadDetail={openLeadDetail}
+                onColumnUpdate={updateColumn}
+                onColumnDelete={deleteColumn}
+                onOpenChat={handleOpenChat}
+                onMoveToWonLost={moveLeadToStatus}
+              />
+            )}
 
-          {activeTab === "won-lost" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Won Leads */}
-              <Card className="bg-black/30 backdrop-blur-lg border-gray-600/30 shadow-xl">
-                <CardHeader className="border-b border-gray-600/30">
-                  <CardTitle className="text-xl font-medium text-green-500">Leads Ganhos</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  {columns.find(col => col.id === FIXED_COLUMN_IDS.WON)?.leads.length ? (
-                    <div className="grid grid-cols-1 gap-3">
-                      {columns.find(col => col.id === FIXED_COLUMN_IDS.WON)?.leads.map(lead => (
-                        <div 
-                          key={lead.id} 
-                          className="bg-black/40 backdrop-blur-lg p-3 rounded-lg border border-gray-600/30 cursor-pointer"
-                          onClick={() => openLeadDetail(lead)}
-                        >
-                          <div className="flex justify-between">
-                            <h3 className="font-medium text-white">{lead.name}</h3>
-                            <span className="text-sm font-semibold text-green-400">R$ {Math.floor(Math.random() * 50000)}</span>
-                          </div>
-                          <div className="flex items-center text-gray-400 mt-1 mb-2">
-                            <Phone className="h-3 w-3 mr-1" />
-                            <span className="text-xs">{lead.phone || "(11) 98765-4321"}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <div className="flex flex-wrap gap-1">
-                              {lead.tags.slice(0, 2).map((tag) => (
-                                <Badge key={tag.id} className={cn("text-black text-xs", tag.color)}>
-                                  {tag.name}
-                                </Badge>
-                              ))}
+            {activeTab === "won-lost" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Won Leads */}
+                <Card className="bg-black/40 backdrop-blur-xl border-gray-600/40 shadow-xl">
+                  <CardHeader className="border-b border-gray-600/40">
+                    <CardTitle className="text-xl font-medium text-green-500">Leads Ganhos</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    {columns.find(col => col.id === FIXED_COLUMN_IDS.WON)?.leads.length ? (
+                      <div className="grid grid-cols-1 gap-3">
+                        {columns.find(col => col.id === FIXED_COLUMN_IDS.WON)?.leads.map(lead => (
+                          <div 
+                            key={lead.id} 
+                            className="bg-black/40 backdrop-blur-xl p-3 rounded-lg border border-gray-600/40 cursor-pointer"
+                            onClick={() => openLeadDetail(lead)}
+                          >
+                            <div className="flex justify-between">
+                              <h3 className="font-medium text-white">{lead.name}</h3>
+                              <span className="text-sm font-semibold text-green-400">R$ {Math.floor(Math.random() * 50000)}</span>
                             </div>
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenChat(lead);
-                              }}
-                              className="text-white hover:bg-gray-700"
-                            >
-                              <MessageSquare className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center text-gray-400 mt-1 mb-2">
+                              <Phone className="h-3 w-3 mr-1" />
+                              <span className="text-xs">{lead.phone || "(11) 98765-4321"}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <div className="flex flex-wrap gap-1">
+                                {lead.tags.slice(0, 2).map((tag) => (
+                                  <Badge key={tag.id} className={cn("text-black text-xs", tag.color)}>
+                                    {tag.name}
+                                  </Badge>
+                                ))}
+                              </div>
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenChat(lead);
+                                }}
+                                className="text-white hover:bg-gray-700"
+                              >
+                                <MessageSquare className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-400">Nenhum lead ganho no momento.</p>
-                  )}
-                </CardContent>
-              </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-400">Nenhum lead ganho no momento.</p>
+                    )}
+                  </CardContent>
+                </Card>
 
-              {/* Lost Leads */}
-              <Card className="bg-black/30 backdrop-blur-lg border-gray-600/30 shadow-xl">
-                <CardHeader className="border-b border-gray-600/30">
-                  <CardTitle className="text-xl font-medium text-red-500">Leads Perdidos</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  {columns.find(col => col.id === FIXED_COLUMN_IDS.LOST)?.leads.length ? (
-                    <div className="grid grid-cols-1 gap-3">
-                      {columns.find(col => col.id === FIXED_COLUMN_IDS.LOST)?.leads.map(lead => (
-                        <div 
-                          key={lead.id} 
-                          className="bg-black/40 backdrop-blur-lg p-3 rounded-lg border border-gray-600/30 cursor-pointer"
-                          onClick={() => openLeadDetail(lead)}
-                        >
-                          <div className="flex justify-between">
-                            <h3 className="font-medium text-white">{lead.name}</h3>
-                            <span className="text-sm font-semibold text-red-400">R$ {Math.floor(Math.random() * 50000)}</span>
-                          </div>
-                          <div className="flex items-center text-gray-400 mt-1 mb-2">
-                            <Phone className="h-3 w-3 mr-1" />
-                            <span className="text-xs">{lead.phone || "(11) 98765-4321"}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <div className="flex flex-wrap gap-1">
-                              {lead.tags.slice(0, 2).map((tag) => (
-                                <Badge key={tag.id} className={cn("text-black text-xs", tag.color)}>
-                                  {tag.name}
-                                </Badge>
-                              ))}
+                {/* Lost Leads */}
+                <Card className="bg-black/40 backdrop-blur-xl border-gray-600/40 shadow-xl">
+                  <CardHeader className="border-b border-gray-600/40">
+                    <CardTitle className="text-xl font-medium text-red-500">Leads Perdidos</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    {columns.find(col => col.id === FIXED_COLUMN_IDS.LOST)?.leads.length ? (
+                      <div className="grid grid-cols-1 gap-3">
+                        {columns.find(col => col.id === FIXED_COLUMN_IDS.LOST)?.leads.map(lead => (
+                          <div 
+                            key={lead.id} 
+                            className="bg-black/40 backdrop-blur-xl p-3 rounded-lg border border-gray-600/40 cursor-pointer"
+                            onClick={() => openLeadDetail(lead)}
+                          >
+                            <div className="flex justify-between">
+                              <h3 className="font-medium text-white">{lead.name}</h3>
+                              <span className="text-sm font-semibold text-red-400">R$ {Math.floor(Math.random() * 50000)}</span>
                             </div>
-                            <Button 
-                              size="sm" 
-                              variant="ghost" 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenChat(lead);
-                              }}
-                              className="text-white hover:bg-gray-700"
-                            >
-                              <MessageSquare className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center text-gray-400 mt-1 mb-2">
+                              <Phone className="h-3 w-3 mr-1" />
+                              <span className="text-xs">{lead.phone || "(11) 98765-4321"}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <div className="flex flex-wrap gap-1">
+                                {lead.tags.slice(0, 2).map((tag) => (
+                                  <Badge key={tag.id} className={cn("text-black text-xs", tag.color)}>
+                                    {tag.name}
+                                  </Badge>
+                                ))}
+                              </div>
+                              <Button 
+                                size="sm" 
+                                variant="ghost" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenChat(lead);
+                                }}
+                                className="text-white hover:bg-gray-700"
+                              >
+                                <MessageSquare className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-400">Nenhum lead perdido no momento.</p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-          )}
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-400">Nenhum lead perdido no momento.</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
         </div>
       </main>
       
