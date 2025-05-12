@@ -9,6 +9,7 @@ interface KanbanBoardProps {
   onOpenLeadDetail: (lead: KanbanLead) => void;
   onColumnUpdate: (updatedColumn: IKanbanColumn) => void;
   onColumnDelete: (columnId: string) => void;
+  onOpenChat?: (lead: KanbanLead) => void;
 }
 
 export const KanbanBoard = ({
@@ -16,7 +17,8 @@ export const KanbanBoard = ({
   onColumnsChange,
   onOpenLeadDetail,
   onColumnUpdate,
-  onColumnDelete
+  onColumnDelete,
+  onOpenChat
 }: KanbanBoardProps) => {
   const onDragEnd = (result: any) => {
     const { destination, source, draggableId } = result;
@@ -81,16 +83,20 @@ export const KanbanBoard = ({
     }
   };
 
+  // Filter out hidden columns (GANHO and PERDIDO) for main display
+  const visibleColumns = columns.filter(column => !column.isHidden);
+
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <div className="flex gap-4 overflow-x-auto pb-6">
-        {columns.map((column) => (
+        {visibleColumns.map((column) => (
           <KanbanColumn
             key={column.id}
             column={column}
             onOpenLeadDetail={onOpenLeadDetail}
             onColumnUpdate={onColumnUpdate}
             onColumnDelete={onColumnDelete}
+            onOpenChat={onOpenChat}
           />
         ))}
       </div>

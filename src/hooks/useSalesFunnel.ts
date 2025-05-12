@@ -1,13 +1,15 @@
 
 import { useState } from "react";
-import { KanbanColumn, KanbanLead, KanbanTag } from "@/types/kanban";
+import { KanbanColumn, KanbanLead, KanbanTag, FIXED_COLUMN_IDS } from "@/types/kanban";
+import { toast } from "sonner";
 
 export const useSalesFunnel = () => {
-  // State for the Kanban board
+  // State for the Kanban board with fixed columns
   const [columns, setColumns] = useState<KanbanColumn[]>([
     {
-      id: "column-1",
-      title: "Novos Leads",
+      id: FIXED_COLUMN_IDS.NEW_LEAD,
+      title: "ENTRADA DE LEAD",
+      isFixed: true,
       leads: [
         {
           id: "lead-1",
@@ -67,9 +69,42 @@ export const useSalesFunnel = () => {
       ],
     },
     {
-      id: "column-4",
-      title: "Convertidos",
-      leads: [],
+      id: FIXED_COLUMN_IDS.WON,
+      title: "GANHO",
+      isFixed: true,
+      isHidden: true,
+      leads: [
+        {
+          id: "lead-5",
+          name: "Carlos Mendes",
+          phone: "+55 11 99876-5432",
+          lastMessage: "Fechado! Vou efetuar o pagamento hoje.",
+          lastMessageTime: "3d",
+          tags: [
+            { id: "tag-6", name: "VIP", color: "bg-yellow-400" },
+            { id: "tag-7", name: "2ª Compra", color: "bg-emerald-400" },
+          ],
+        }
+      ],
+    },
+    {
+      id: FIXED_COLUMN_IDS.LOST,
+      title: "PERDIDO",
+      isFixed: true,
+      isHidden: true,
+      leads: [
+        {
+          id: "lead-6",
+          name: "Lucia Ferreira",
+          phone: "+55 11 91111-2222",
+          lastMessage: "Obrigada, mas optei por outro serviço.",
+          lastMessageTime: "5d",
+          tags: [
+            { id: "tag-8", name: "Preço Alto", color: "bg-orange-400" },
+          ],
+          notes: "Cliente achou o valor acima do orçamento, talvez retornar com promoção futura."
+        }
+      ],
     },
   ]);
   
@@ -86,6 +121,7 @@ export const useSalesFunnel = () => {
     { id: "tag-5", name: "Desconto", color: "bg-amber-400" },
     { id: "tag-6", name: "VIP", color: "bg-yellow-400" },
     { id: "tag-7", name: "2ª Compra", color: "bg-emerald-400" },
+    { id: "tag-8", name: "Preço Alto", color: "bg-orange-400" },
   ]);
 
   // Add a new column
@@ -98,12 +134,22 @@ export const useSalesFunnel = () => {
       leads: [],
     };
     
-    setColumns([...columns, newColumn]);
+    // Add the new column before the fixed hidden columns
+    const visibleColumns = columns.filter(col => !col.isHidden);
+    const hiddenColumns = columns.filter(col => col.isHidden);
+    
+    setColumns([...visibleColumns, newColumn, ...hiddenColumns]);
   };
 
   // Update a column
   const updateColumn = (updatedColumn: KanbanColumn) => {
     if (!updatedColumn || !updatedColumn.title.trim()) return;
+    
+    // Don't allow updating fixed columns
+    if (updatedColumn.isFixed) {
+      toast.error("Não é possível editar etapas padrão do sistema.");
+      return;
+    }
     
     setColumns(columns.map(col => 
       col.id === updatedColumn.id ? { ...col, title: updatedColumn.title } : col
@@ -112,7 +158,34 @@ export const useSalesFunnel = () => {
 
   // Delete a column
   const deleteColumn = (columnId: string) => {
-    setColumns(columns.filter(col => col.id !== columnId));
+    const columnToDelete = columns.find(col => col.id === columnId);
+    
+    // Don't allow deleting fixed columns
+    if (columnToDelete?.isFixed) {
+      toast.error("Não é possível excluir etapas padrão do sistema.");
+      return;
+    }
+    
+    // Move any leads in this column to the first column (NEW_LEAD)
+    const columnLeads = columnToDelete?.leads || [];
+    
+    if (columnLeads.length > 0) {
+      const newColumns = columns.map(col => {
+        if (col.id === FIXED_COLUMN_IDS.NEW_LEAD) {
+          return {
+            ...col,
+            leads: [...col.leads, ...columnLeads]
+          };
+        }
+        return col;
+      });
+      
+      setColumns(newColumns.filter(col => col.id !== columnId));
+      toast.success("Coluna excluída e leads movidos para Entrada de Lead");
+    } else {
+      setColumns(columns.filter(col => col.id !== columnId));
+      toast.success("Coluna excluída com sucesso");
+    }
   };
 
   // Open lead detail
@@ -184,6 +257,23 @@ export const useSalesFunnel = () => {
     })));
   };
 
+  // Simulate receiving a new lead from WhatsApp API
+  const receiveNewLead = (lead: KanbanLead) => {
+    setColumns(columns.map(col => {
+      if (col.id === FIXED_COLUMN_IDS.NEW_LEAD) {
+        return {
+          ...col,
+          leads: [lead, ...col.leads]
+        };
+      }
+      return col;
+    }));
+    
+    toast.success(`Novo lead recebido: ${lead.name}`, {
+      description: "Lead adicionado automaticamente à etapa de entrada."
+    });
+  };
+
   return {
     columns,
     setColumns,
@@ -198,5 +288,6 @@ export const useSalesFunnel = () => {
     toggleTagOnLead,
     createTag,
     updateLeadNotes,
+    receiveNewLead
   };
 };

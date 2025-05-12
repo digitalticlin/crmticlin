@@ -28,13 +28,15 @@ interface KanbanColumnProps {
   onOpenLeadDetail: (lead: KanbanLead) => void;
   onColumnUpdate: (updatedColumn: IKanbanColumn) => void;
   onColumnDelete: (columnId: string) => void;
+  onOpenChat?: (lead: KanbanLead) => void;
 }
 
 export const KanbanColumn = ({ 
   column, 
   onOpenLeadDetail, 
   onColumnUpdate,
-  onColumnDelete 
+  onColumnDelete,
+  onOpenChat
 }: KanbanColumnProps) => {
   const [editingColumn, setEditingColumn] = useState<IKanbanColumn | null>(null);
   
@@ -44,100 +46,107 @@ export const KanbanColumn = ({
     setEditingColumn(null);
   };
 
+  const isFixed = column.isFixed === true;
+
   return (
     <div 
       key={column.id} 
-      className="flex-shrink-0 w-80 bg-white/10 dark:bg-black/10 backdrop-blur-lg rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col"
+      className={cn(
+        "flex-shrink-0 w-80 bg-white/10 dark:bg-black/10 backdrop-blur-lg rounded-lg border overflow-hidden flex flex-col",
+        isFixed ? "border-ticlin" : "border-gray-200 dark:border-gray-700"
+      )}
     >
       <div className="p-3 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
-        <h3 className="font-medium">{column.title}</h3>
+        <h3 className={cn("font-medium", isFixed && "text-ticlin")}>{column.title}</h3>
         <div className="flex items-center gap-1">
           <span className="bg-gray-100 dark:bg-gray-800 rounded-full px-2 py-0.5 text-xs">
             {column.leads.length}
           </span>
           
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                    <Edit className="h-4 w-4 mr-2" />
-                    Editar
-                  </DropdownMenuItem>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Editar Etapa</DialogTitle>
-                  </DialogHeader>
-                  <Input
-                    placeholder="Nome da etapa"
-                    value={editingColumn?.title || column.title}
-                    onChange={(e) => setEditingColumn({
-                      ...column,
-                      title: e.target.value
-                    })}
-                    className="mt-4"
-                  />
-                  <DialogFooter className="mt-4">
-                    <DialogClose asChild>
-                      <Button variant="outline" onClick={() => setEditingColumn(null)}>
-                        Cancelar
-                      </Button>
-                    </DialogClose>
-                    <DialogClose asChild>
-                      <Button 
-                        className="bg-ticlin hover:bg-ticlin/90 text-black"
-                        onClick={updateColumn}
-                      >
-                        Salvar
-                      </Button>
-                    </DialogClose>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-              
-              <Dialog>
-                <DialogTrigger asChild>
-                  <DropdownMenuItem 
-                    className="text-destructive focus:text-destructive"
-                    onSelect={(e) => e.preventDefault()}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Excluir
-                  </DropdownMenuItem>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Excluir Etapa</DialogTitle>
-                  </DialogHeader>
-                  <p className="mt-4">
-                    Tem certeza que deseja excluir a etapa "{column.title}"? 
-                    Todos os leads nesta etapa também serão excluídos.
-                  </p>
-                  <DialogFooter className="mt-4">
-                    <DialogClose asChild>
-                      <Button variant="outline">
-                        Cancelar
-                      </Button>
-                    </DialogClose>
-                    <DialogClose asChild>
-                      <Button 
-                        variant="destructive"
-                        onClick={() => onColumnDelete(column.id)}
-                      >
-                        Excluir
-                      </Button>
-                    </DialogClose>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {!isFixed && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Editar
+                    </DropdownMenuItem>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Editar Etapa</DialogTitle>
+                    </DialogHeader>
+                    <Input
+                      placeholder="Nome da etapa"
+                      value={editingColumn?.title || column.title}
+                      onChange={(e) => setEditingColumn({
+                        ...column,
+                        title: e.target.value
+                      })}
+                      className="mt-4"
+                    />
+                    <DialogFooter className="mt-4">
+                      <DialogClose asChild>
+                        <Button variant="outline" onClick={() => setEditingColumn(null)}>
+                          Cancelar
+                        </Button>
+                      </DialogClose>
+                      <DialogClose asChild>
+                        <Button 
+                          className="bg-ticlin hover:bg-ticlin/90 text-black"
+                          onClick={updateColumn}
+                        >
+                          Salvar
+                        </Button>
+                      </DialogClose>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+                
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <DropdownMenuItem 
+                      className="text-destructive focus:text-destructive"
+                      onSelect={(e) => e.preventDefault()}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Excluir
+                    </DropdownMenuItem>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Excluir Etapa</DialogTitle>
+                    </DialogHeader>
+                    <p className="mt-4">
+                      Tem certeza que deseja excluir a etapa "{column.title}"? 
+                      Todos os leads nesta etapa também serão excluídos.
+                    </p>
+                    <DialogFooter className="mt-4">
+                      <DialogClose asChild>
+                        <Button variant="outline">
+                          Cancelar
+                        </Button>
+                      </DialogClose>
+                      <DialogClose asChild>
+                        <Button 
+                          variant="destructive"
+                          onClick={() => onColumnDelete(column.id)}
+                        >
+                          Excluir
+                        </Button>
+                      </DialogClose>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
       
@@ -159,6 +168,7 @@ export const KanbanColumn = ({
                     lead={lead} 
                     provided={provided} 
                     onClick={() => onOpenLeadDetail(lead)} 
+                    onOpenChat={onOpenChat ? () => onOpenChat(lead) : undefined}
                   />
                 )}
               </Draggable>

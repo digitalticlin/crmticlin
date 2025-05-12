@@ -21,4 +21,14 @@ export interface KanbanColumn {
   id: string;
   title: string;
   leads: KanbanLead[];
+  isFixed?: boolean;
+  isHidden?: boolean;
 }
+
+export type ColumnType = "new_lead" | "won" | "lost" | "custom";
+
+export const FIXED_COLUMN_IDS = {
+  NEW_LEAD: "column-new-lead",
+  WON: "column-won",
+  LOST: "column-lost"
+};
