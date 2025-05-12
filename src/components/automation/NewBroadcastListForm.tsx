@@ -252,7 +252,7 @@ export function NewBroadcastListForm({ onSuccess }: NewBroadcastListFormProps) {
           </div>
         </CardContent>
         <CardFooter className="flex justify-between">
-          <Button variant="outline" type="button" onClick={() => setActiveTab("lists")}>
+          <Button variant="outline" type="button" onClick={() => onSuccess()}>
             Cancelar
           </Button>
           <Button 

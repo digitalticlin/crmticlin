@@ -30,7 +30,7 @@ export default function Automation() {
             </AlertDescription>
           </Alert>
           
-          <Tabs defaultValue="lists" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList>
               <TabsTrigger value="lists">Listas de Transmissão</TabsTrigger>
               <TabsTrigger value="new">Nova Transmissão</TabsTrigger>
