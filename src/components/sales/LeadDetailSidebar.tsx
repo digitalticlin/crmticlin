@@ -20,6 +20,7 @@ interface LeadDetailSidebarProps {
   availableTags: KanbanTag[];
   onToggleTag: (tagId: string) => void;
   onUpdateNotes: (notes: string) => void;
+  onCreateTag?: (name: string, color: string) => void;
 }
 
 export const LeadDetailSidebar = ({
@@ -29,6 +30,7 @@ export const LeadDetailSidebar = ({
   availableTags,
   onToggleTag,
   onUpdateNotes,
+  onCreateTag,
 }: LeadDetailSidebarProps) => {
   if (!selectedLead) return null;
 
@@ -46,6 +48,7 @@ export const LeadDetailSidebar = ({
             availableTags={availableTags}
             selectedTags={selectedLead.tags}
             onToggleTag={onToggleTag}
+            onCreateTag={onCreateTag}
           />
           
           {/* Notes */}

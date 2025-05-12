@@ -148,6 +148,22 @@ export const useSalesFunnel = () => {
     })));
   };
 
+  // Create a new tag
+  const createTag = (name: string, color: string) => {
+    const newTag: KanbanTag = {
+      id: `tag-${Date.now()}`,
+      name,
+      color,
+    };
+    
+    setAvailableTags([...availableTags, newTag]);
+    
+    // If a lead is selected, add the new tag to the lead
+    if (selectedLead) {
+      toggleTagOnLead(newTag.id);
+    }
+  };
+
   // Update lead notes
   const updateLeadNotes = (notes: string) => {
     if (!selectedLead) return;
@@ -180,6 +196,7 @@ export const useSalesFunnel = () => {
     deleteColumn,
     openLeadDetail,
     toggleTagOnLead,
+    createTag,
     updateLeadNotes,
   };
 };

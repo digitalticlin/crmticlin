@@ -18,6 +18,7 @@ export default function SalesFunnel() {
     deleteColumn,
     openLeadDetail,
     toggleTagOnLead,
+    createTag,
     updateLeadNotes,
   } = useSalesFunnel();
 
@@ -56,6 +57,7 @@ export default function SalesFunnel() {
         availableTags={availableTags}
         onToggleTag={toggleTagOnLead}
         onUpdateNotes={updateLeadNotes}
+        onCreateTag={createTag}
       />
     </div>
   );
