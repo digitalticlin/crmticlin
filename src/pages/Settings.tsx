@@ -26,7 +26,7 @@ import {
   Sun, 
   Bot, 
   Shield,
-  WhatsApp
+  MessagesSquare
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useTheme } from "@/hooks/use-theme";
@@ -70,7 +70,7 @@ export default function Settings() {
                 <span className="hidden sm:inline">Aparência</span>
               </TabsTrigger>
               <TabsTrigger value="whatsapp" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 rounded-lg py-2">
-                <WhatsApp className="h-4 w-4 mr-2" /> 
+                <MessagesSquare className="h-4 w-4 mr-2" /> 
                 <span className="hidden sm:inline">WhatsApp</span>
               </TabsTrigger>
               <TabsTrigger value="ai" className="data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 rounded-lg py-2">
