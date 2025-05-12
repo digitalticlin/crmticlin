@@ -17,6 +17,11 @@ export default function LoginForm() {
   
   const navigate = useNavigate();
   
+  // Função para extrair o nome de usuário do email
+  const generateUsernameFromEmail = (email: string): string => {
+    return email.split('@')[0];
+  };
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -30,6 +35,12 @@ export default function LoginForm() {
         toast.success("Login realizado com sucesso!");
         navigate("/dashboard");
       } else if (formType === "register") {
+        // Gera o nome de usuário baseado no email para uso na API WhatsApp
+        const username = generateUsernameFromEmail(email);
+        
+        // Na implementação real, o username seria armazenado no perfil do usuário
+        console.log("Nome de usuário gerado:", username);
+        
         toast.success("Cadastro realizado! Verifique seu e-mail.");
         setFormType("login");
       } else if (formType === "forgot") {
