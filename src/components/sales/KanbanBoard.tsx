@@ -1,4 +1,3 @@
-
 import { DragDropContext } from "react-beautiful-dnd";
 import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
 import { KanbanColumn } from "./KanbanColumn";
