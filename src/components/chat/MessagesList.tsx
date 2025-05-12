@@ -9,7 +9,7 @@ interface MessagesListProps {
 
 export const MessagesList = ({ messages }: MessagesListProps) => {
   return (
-    <ScrollArea className="flex-1 p-4 bg-[url('/lovable-uploads/ae7ddc52-d3ed-478f-af96-603a69278f3b.png')] bg-opacity-5 bg-contain">
+    <ScrollArea className="flex-1 p-4">
       <div className="space-y-3 min-h-full flex flex-col justify-end">
         {messages.map((message) => (
           <div
