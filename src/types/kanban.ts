@@ -24,6 +24,7 @@ export interface KanbanColumn {
   leads: KanbanLead[];
   isFixed?: boolean;
   isHidden?: boolean;
+  color?: string; // Added color property for column customization
 }
 
 export type ColumnType = "new_lead" | "won" | "lost" | "custom";

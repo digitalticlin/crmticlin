@@ -3,7 +3,7 @@ import { KanbanLead, FIXED_COLUMN_IDS } from "@/types/kanban";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { DraggableProvided } from "react-beautiful-dnd";
-import { MessageSquare, CheckCircle, XCircle, ArrowLeft } from "lucide-react";
+import { CheckCircle, XCircle, ArrowLeft } from "lucide-react";
 
 interface LeadCardProps {
   lead: KanbanLead;
@@ -29,6 +29,15 @@ export const LeadCard = ({
   const isWon = isWonLostView && lead.columnId === FIXED_COLUMN_IDS.WON;
   const isLost = isWonLostView && lead.columnId === FIXED_COLUMN_IDS.LOST;
 
+  // Now the entire card opens chat by default when clicked
+  const handleCardClick = (e: React.MouseEvent) => {
+    if (onOpenChat) {
+      onOpenChat();
+    } else {
+      onClick(); // Fallback to the default onClick behavior if onOpenChat isn't provided
+    }
+  };
+
   return (
     <div
       ref={provided.innerRef}
@@ -39,7 +48,7 @@ export const LeadCard = ({
         isWon && "border-l-4 border-l-green-500",
         isLost && "border-l-4 border-l-red-500"
       )}
-      onClick={onClick}
+      onClick={handleCardClick}
     >
       <div className="flex justify-between items-start mb-2">
         <div className="flex items-center gap-2">
@@ -61,7 +70,7 @@ export const LeadCard = ({
             </Badge>
           ))}
         </div>
-        <div className="flex items-center space-x-1">
+        <div className="flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
           {onReturnToFunnel && (
             <button 
               onClick={(e) => {
@@ -96,18 +105,6 @@ export const LeadCard = ({
               className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
             >
               <XCircle className="h-4 w-4 text-red-500" />
-            </button>
-          )}
-          {onOpenChat && (
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                onOpenChat();
-              }}
-              title="Abrir chat"
-              className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              <MessageSquare className="h-4 w-4 text-ticlin" />
             </button>
           )}
         </div>

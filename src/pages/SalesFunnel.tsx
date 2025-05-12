@@ -7,7 +7,7 @@ import { LeadDetailSidebar } from "@/components/sales/LeadDetailSidebar";
 import { AddColumnDialog } from "@/components/sales/AddColumnDialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, ChevronLeft } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { toast } from "sonner";
 import { FIXED_COLUMN_IDS, KanbanLead } from "@/types/kanban";
 

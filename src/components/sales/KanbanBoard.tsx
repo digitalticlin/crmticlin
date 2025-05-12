@@ -1,10 +1,9 @@
-
 import { DragDropContext, Droppable, DropResult } from "react-beautiful-dnd";
 import { KanbanColumn as IKanbanColumn, KanbanLead, FIXED_COLUMN_IDS } from "@/types/kanban";
 import { KanbanColumn } from "./KanbanColumn";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useRef, useEffect } from "react";
-import { CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, XCircle, WhatsappIcon } from "lucide-react";
 
 interface KanbanBoardProps {
   columns: IKanbanColumn[];
@@ -168,20 +167,20 @@ export const KanbanBoard = ({
           </div>
         </ScrollArea>
         
-        {/* Drop zones for Won/Lost that appear when dragging */}
-        {!isWonLostView && showDropZones && (
-          <div className="fixed right-6 top-1/2 -translate-y-1/2 flex flex-col gap-4 z-50">
+        {/* Fixed Won/Lost drop zones at the bottom of the screen */}
+        {!isWonLostView && (
+          <div className="fixed bottom-6 left-0 right-0 flex justify-center gap-6 z-50 px-6">
             {/* Won drop zone */}
             <Droppable droppableId="drop-zone-won">
               {(provided, snapshot) => (
                 <div
                   ref={provided.innerRef}
                   {...provided.droppableProps}
-                  className={`bg-green-500/20 backdrop-blur-lg border-2 border-green-500 rounded-lg p-4 w-40 h-40 flex items-center justify-center transition-all ${snapshot.isDraggingOver ? 'bg-green-500/40 scale-105' : ''}`}
+                  className={`bg-green-500/20 backdrop-blur-lg border-2 border-green-500 rounded-lg p-4 w-full max-w-xs h-24 flex items-center justify-center transition-all ${snapshot.isDraggingOver ? 'bg-green-500/40 scale-105' : ''}`}
                 >
                   <div className="text-center">
-                    <CheckCircle className="h-10 w-10 text-green-500 mx-auto mb-2" />
-                    <p className="font-medium text-green-700 dark:text-green-300">Soltar para Ganhos</p>
+                    <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-1" />
+                    <p className="font-medium text-green-700 dark:text-green-300">GANHO</p>
                     {provided.placeholder}
                   </div>
                 </div>
@@ -194,11 +193,11 @@ export const KanbanBoard = ({
                 <div
                   ref={provided.innerRef}
                   {...provided.droppableProps}
-                  className={`bg-red-500/20 backdrop-blur-lg border-2 border-red-500 rounded-lg p-4 w-40 h-40 flex items-center justify-center transition-all ${snapshot.isDraggingOver ? 'bg-red-500/40 scale-105' : ''}`}
+                  className={`bg-red-500/20 backdrop-blur-lg border-2 border-red-500 rounded-lg p-4 w-full max-w-xs h-24 flex items-center justify-center transition-all ${snapshot.isDraggingOver ? 'bg-red-500/40 scale-105' : ''}`}
                 >
                   <div className="text-center">
-                    <XCircle className="h-10 w-10 text-red-500 mx-auto mb-2" />
-                    <p className="font-medium text-red-700 dark:text-red-300">Soltar para Perdidos</p>
+                    <XCircle className="h-8 w-8 text-red-500 mx-auto mb-1" />
+                    <p className="font-medium text-red-700 dark:text-red-300">PERDIDO</p>
                     {provided.placeholder}
                   </div>
                 </div>

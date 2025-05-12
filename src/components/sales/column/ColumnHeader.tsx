@@ -72,16 +72,53 @@ export const ColumnHeader = ({
                   <DialogHeader>
                     <DialogTitle>Editar Etapa</DialogTitle>
                   </DialogHeader>
-                  <Input
-                    placeholder="Nome da etapa"
-                    value={editingColumn?.title || column.title}
-                    onChange={(e) => setEditingColumn({
-                      ...column,
-                      title: e.target.value
-                    })}
-                    className="mt-4"
-                  />
-                  <DialogFooter className="mt-4">
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <label htmlFor="column-title" className="text-sm font-medium block mb-2">
+                        Nome da etapa
+                      </label>
+                      <Input
+                        id="column-title"
+                        placeholder="Nome da etapa"
+                        value={editingColumn?.title || column.title}
+                        onChange={(e) => setEditingColumn({
+                          ...(editingColumn || column),
+                          title: e.target.value
+                        })}
+                      />
+                    </div>
+                    
+                    <div>
+                      <label htmlFor="column-color" className="text-sm font-medium block mb-2">
+                        Cor da etapa
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <Input
+                          id="column-color"
+                          type="color"
+                          className="w-12 h-10 p-1 cursor-pointer"
+                          value={editingColumn?.color || column.color || "#e5e7eb"}
+                          onChange={(e) => setEditingColumn({
+                            ...(editingColumn || column),
+                            color: e.target.value
+                          })}
+                        />
+                        <div className="flex-1">
+                          <Input
+                            type="text"
+                            placeholder="#RRGGBB"
+                            value={editingColumn?.color || column.color || "#e5e7eb"}
+                            onChange={(e) => setEditingColumn({
+                              ...(editingColumn || column),
+                              color: e.target.value
+                            })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <DialogFooter className="mt-6">
                     <DialogClose asChild>
                       <Button variant="outline" onClick={() => setEditingColumn(null)}>
                         Cancelar
