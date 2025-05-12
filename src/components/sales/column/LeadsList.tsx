@@ -33,7 +33,10 @@ export const LeadsList = ({
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`min-h-full transition-colors duration-300 ${snapshot.isDraggingOver ? 'bg-slate-100/50 dark:bg-slate-800/50 rounded-lg' : ''}`}
+            className={`min-h-full transition-colors duration-300 ${snapshot.isDraggingOver ? 'bg-slate-100/50 dark:bg-slate-800/50 rounded-lg scale-[1.01] border border-primary/20' : ''}`}
+            style={{
+              transition: 'background-color 0.2s ease, transform 0.2s ease, border 0.2s ease',
+            }}
           >
             {leads.map((lead, index) => (
               <Draggable

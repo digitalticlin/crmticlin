@@ -31,6 +31,7 @@ export const useDragAndDrop = ({
   const onDragStart = () => {
     setIsDragging(true);
     if (!isWonLostView) {
+      // Show drop zones after a short delay to make the interaction smoother
       dropZoneTimeoutRef.current = setTimeout(() => {
         setShowDropZones(true);
       }, 300);

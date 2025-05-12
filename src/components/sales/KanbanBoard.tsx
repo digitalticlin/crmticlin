@@ -44,7 +44,11 @@ export const KanbanBoard = ({
   const boardKey = columns.map(col => col.id).join('-');
 
   return (
-    <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd} key={boardKey}>
+    <DragDropContext 
+      onDragStart={onDragStart} 
+      onDragEnd={onDragEnd} 
+      key={boardKey}
+    >
       <div className="relative w-full h-full flex flex-col">
         <BoardContent 
           columns={columns}
