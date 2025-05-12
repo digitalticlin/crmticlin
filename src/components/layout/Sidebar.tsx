@@ -10,7 +10,8 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  LogOut
+  LogOut,
+  Kanban
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -90,6 +91,18 @@ export default function Sidebar() {
           icon={LayoutDashboard}
           label="Dashboard"
           href="/dashboard"
+          isCollapsed={isCollapsed}
+        />
+        <NavItem
+          icon={Kanban}
+          label="Funil de Vendas"
+          href="/sales-funnel"
+          isCollapsed={isCollapsed}
+        />
+        <NavItem
+          icon={MessageSquare}
+          label="Chat"
+          href="/chat"
           isCollapsed={isCollapsed}
         />
         <NavItem
