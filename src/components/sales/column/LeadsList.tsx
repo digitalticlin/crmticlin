@@ -33,9 +33,12 @@ export const LeadsList = ({
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`min-h-full transition-colors duration-300 ${snapshot.isDraggingOver ? 'bg-slate-100/50 dark:bg-slate-800/50 rounded-lg scale-[1.01] border border-primary/20' : ''}`}
+            className={`min-h-full transition-colors duration-200 ${
+              snapshot.isDraggingOver ? 'bg-slate-100/50 dark:bg-slate-800/50 rounded-lg scale-[1.005] border border-primary/20' : ''
+            }`}
             style={{
               transition: 'background-color 0.2s ease, transform 0.2s ease, border 0.2s ease',
+              minHeight: '100px' // Ensure min height for empty columns
             }}
           >
             {leads.map((lead, index) => (

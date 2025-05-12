@@ -31,10 +31,10 @@ export const useDragAndDrop = ({
   const onDragStart = () => {
     setIsDragging(true);
     if (!isWonLostView) {
-      // Show drop zones after a short delay to make the interaction smoother
+      // Show drop zones after a short delay to reduce interface flickering
       dropZoneTimeoutRef.current = setTimeout(() => {
         setShowDropZones(true);
-      }, 300);
+      }, 250);
     }
   };
 
@@ -76,11 +76,10 @@ export const useDragAndDrop = ({
       return;
     }
 
-    // Ensure the destination column exists
-    const destColumnId = destination.droppableId;
-    const sourceColumnId = source.droppableId;
-    
     // Find the source and destination columns
+    const sourceColumnId = source.droppableId;
+    const destColumnId = destination.droppableId;
+    
     const sourceColumn = columns.find(col => col.id === sourceColumnId);
     const destColumn = columns.find(col => col.id === destColumnId);
 
@@ -90,54 +89,58 @@ export const useDragAndDrop = ({
       return;
     }
 
-    // If moving within the same column
-    if (source.droppableId === destination.droppableId) {
-      const newLeads = Array.from(sourceColumn.leads);
-      const [removed] = newLeads.splice(source.index, 1);
-      newLeads.splice(destination.index, 0, removed);
+    try {
+      // If moving within the same column
+      if (source.droppableId === destination.droppableId) {
+        const newLeads = Array.from(sourceColumn.leads);
+        const [removed] = newLeads.splice(source.index, 1);
+        newLeads.splice(destination.index, 0, removed);
 
-      const newColumns = columns.map(col => {
-        if (col.id === source.droppableId) {
-          return {
-            ...col,
-            leads: newLeads,
-          };
-        }
-        return col;
-      });
+        const newColumns = columns.map(col => {
+          if (col.id === source.droppableId) {
+            return {
+              ...col,
+              leads: newLeads,
+            };
+          }
+          return col;
+        });
 
-      onColumnsChange(newColumns);
-    } else {
-      // Moving from one column to another
-      const sourceLeads = Array.from(sourceColumn.leads);
-      const [removed] = sourceLeads.splice(source.index, 1);
-      
-      // Update the lead with its new column ID
-      const movedLead = {
-        ...removed,
-        columnId: destColumn.id
-      };
-      
-      const destLeads = Array.from(destColumn.leads);
-      destLeads.splice(destination.index, 0, movedLead);
+        onColumnsChange(newColumns);
+      } else {
+        // Moving from one column to another
+        const sourceLeads = Array.from(sourceColumn.leads);
+        const [removed] = sourceLeads.splice(source.index, 1);
+        
+        // Update the lead with its new column ID
+        const movedLead = {
+          ...removed,
+          columnId: destColumn.id
+        };
+        
+        const destLeads = Array.from(destColumn.leads);
+        destLeads.splice(destination.index, 0, movedLead);
 
-      const newColumns = columns.map(col => {
-        if (col.id === source.droppableId) {
-          return {
-            ...col,
-            leads: sourceLeads,
-          };
-        }
-        if (col.id === destination.droppableId) {
-          return {
-            ...col,
-            leads: destLeads,
-          };
-        }
-        return col;
-      });
+        const newColumns = columns.map(col => {
+          if (col.id === source.droppableId) {
+            return {
+              ...col,
+              leads: sourceLeads,
+            };
+          }
+          if (col.id === destination.droppableId) {
+            return {
+              ...col,
+              leads: destLeads,
+            };
+          }
+          return col;
+        });
 
-      onColumnsChange(newColumns);
+        onColumnsChange(newColumns);
+      }
+    } catch (error) {
+      console.error("Error during drag and drop operation:", error);
     }
   };
 

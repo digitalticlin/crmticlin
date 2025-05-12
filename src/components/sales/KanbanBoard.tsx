@@ -39,8 +39,8 @@ export const KanbanBoard = ({
     isWonLostView 
   });
 
-  // Create a key to force remount when columns change
-  // This ensures droppable contexts are correctly recreated
+  // Create a key based on columns that will force remount when columns change
+  // This ensures proper reset of the drag and drop context
   const boardKey = columns.map(col => col.id).join('-');
 
   return (
