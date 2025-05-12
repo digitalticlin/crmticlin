@@ -1,10 +1,8 @@
 
 import { KanbanLead, KanbanTag } from "@/types/kanban";
-import { MessageSquare, Tag, Save } from "lucide-react";
+import { MessageSquare, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
 import {
   Sheet,
   SheetContent,
@@ -13,6 +11,7 @@ import {
   SheetDescription,
   SheetFooter,
 } from "@/components/ui/sheet";
+import { TagSelector } from "./TagSelector";
 
 interface LeadDetailSidebarProps {
   isOpen: boolean;
@@ -42,26 +41,12 @@ export const LeadDetailSidebar = ({
         </SheetHeader>
         
         <div className="mt-6 space-y-6">
-          {/* Tags */}
-          <div>
-            <h3 className="text-sm font-medium mb-2 flex items-center">
-              <Tag className="h-4 w-4 mr-1" /> Etiquetas
-            </h3>
-            <div className="flex flex-wrap gap-1.5">
-              {availableTags.map((tag) => (
-                <Badge 
-                  key={tag.id} 
-                  className={cn(
-                    "cursor-pointer text-black",
-                    selectedLead.tags.some(t => t.id === tag.id) ? tag.color : "bg-gray-200 dark:bg-gray-700 hover:bg-gray-300"
-                  )}
-                  onClick={() => onToggleTag(tag.id)}
-                >
-                  {tag.name}
-                </Badge>
-              ))}
-            </div>
-          </div>
+          {/* Tags Selector */}
+          <TagSelector
+            availableTags={availableTags}
+            selectedTags={selectedLead.tags}
+            onToggleTag={onToggleTag}
+          />
           
           {/* Notes */}
           <div>
