@@ -15,6 +15,7 @@ export interface KanbanLead {
   lastMessageTime: string;
   tags: KanbanTag[];
   notes?: string;
+  columnId?: string; // Add columnId to track which column a lead belongs to
 }
 
 export interface KanbanColumn {

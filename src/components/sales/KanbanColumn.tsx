@@ -11,6 +11,8 @@ interface KanbanColumnProps {
   onColumnDelete: (columnId: string) => void;
   onOpenChat?: (lead: KanbanLead) => void;
   onMoveToWonLost?: (lead: KanbanLead, status: "won" | "lost") => void;
+  isWonLostView?: boolean;
+  onReturnToFunnel?: (lead: KanbanLead) => void;
 }
 
 export const KanbanColumn = ({ 
@@ -19,13 +21,15 @@ export const KanbanColumn = ({
   onColumnUpdate,
   onColumnDelete,
   onOpenChat,
-  onMoveToWonLost
+  onMoveToWonLost,
+  isWonLostView = false,
+  onReturnToFunnel
 }: KanbanColumnProps) => {
   const isFixed = column.isFixed === true;
   
   return (
     <div 
-      className={`relative bg-white/10 dark:bg-black/10 backdrop-blur-lg rounded-lg border border-slate-200/20 shadow-xl overflow-hidden flex flex-col min-w-[18rem] ${getColumnColorClass(column.id)}`}
+      className={`relative bg-white/10 dark:bg-black/10 backdrop-blur-lg rounded-lg border border-slate-200/20 shadow-xl overflow-hidden flex flex-col min-w-[18rem] h-[calc(100vh-220px)] ${getColumnColorClass(column.id)}`}
     >
       <ColumnHeader 
         column={column}
@@ -38,7 +42,9 @@ export const KanbanColumn = ({
         leads={column.leads}
         onOpenLeadDetail={onOpenLeadDetail}
         onOpenChat={onOpenChat}
-        onMoveToWonLost={onMoveToWonLost}
+        onMoveToWonLost={!isWonLostView ? onMoveToWonLost : undefined}
+        onReturnToFunnel={isWonLostView ? onReturnToFunnel : undefined}
+        isWonLostView={isWonLostView}
       />
     </div>
   );

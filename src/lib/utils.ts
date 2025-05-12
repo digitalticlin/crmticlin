@@ -20,3 +20,13 @@ export function getColumnColorClass(columnId: string) {
       return ""; // Default, no special color for custom columns
   }
 }
+
+// Add custom scrollbar styling to the global css
+document.documentElement.style.setProperty(
+  "--scrollbar-thumb", 
+  "rgba(156, 163, 175, 0.5)"
+);
+document.documentElement.style.setProperty(
+  "--scrollbar-track", 
+  "rgba(229, 231, 235, 0.1)"
+);

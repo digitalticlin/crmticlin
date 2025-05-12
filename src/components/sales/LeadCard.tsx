@@ -1,9 +1,9 @@
 
-import { KanbanLead } from "@/types/kanban";
+import { KanbanLead, FIXED_COLUMN_IDS } from "@/types/kanban";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { DraggableProvided } from "react-beautiful-dnd";
-import { MessageSquare, CheckCircle, XCircle } from "lucide-react";
+import { MessageSquare, CheckCircle, XCircle, ArrowLeft } from "lucide-react";
 
 interface LeadCardProps {
   lead: KanbanLead;
@@ -12,6 +12,8 @@ interface LeadCardProps {
   onOpenChat?: () => void;
   onMoveToWon?: () => void;
   onMoveToLost?: () => void;
+  onReturnToFunnel?: () => void;
+  isWonLostView?: boolean;
 }
 
 export const LeadCard = ({ 
@@ -20,18 +22,34 @@ export const LeadCard = ({
   onClick, 
   onOpenChat, 
   onMoveToWon, 
-  onMoveToLost 
+  onMoveToLost,
+  onReturnToFunnel,
+  isWonLostView = false
 }: LeadCardProps) => {
+  const isWon = isWonLostView && lead.columnId === FIXED_COLUMN_IDS.WON;
+  const isLost = isWonLostView && lead.columnId === FIXED_COLUMN_IDS.LOST;
+
   return (
     <div
       ref={provided.innerRef}
       {...provided.draggableProps}
       {...provided.dragHandleProps}
-      className="bg-white dark:bg-gray-800 mb-3 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow p-3 cursor-pointer animate-fade-in"
+      className={cn(
+        "bg-white dark:bg-gray-800 mb-3 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow p-3 cursor-pointer animate-fade-in",
+        isWon && "border-l-4 border-l-green-500",
+        isLost && "border-l-4 border-l-red-500"
+      )}
       onClick={onClick}
     >
       <div className="flex justify-between items-start mb-2">
-        <h4 className="font-medium">{lead.name}</h4>
+        <div className="flex items-center gap-2">
+          <h4 className="font-medium">{lead.name}</h4>
+          {isWonLostView && (
+            <Badge className={isWon ? "bg-green-500" : "bg-red-500"}>
+              {isWon ? "Ganho" : "Perdido"}
+            </Badge>
+          )}
+        </div>
         <span className="text-xs text-muted-foreground">{lead.lastMessageTime}</span>
       </div>
       <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{lead.lastMessage}</p>
@@ -44,6 +62,18 @@ export const LeadCard = ({
           ))}
         </div>
         <div className="flex items-center space-x-1">
+          {onReturnToFunnel && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onReturnToFunnel();
+              }}
+              title="Retornar ao funil"
+              className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+            >
+              <ArrowLeft className="h-4 w-4 text-blue-500" />
+            </button>
+          )}
           {onMoveToWon && (
             <button 
               onClick={(e) => {

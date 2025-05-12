@@ -30,7 +30,7 @@ export default function SalesFunnel() {
     updateLeadNotes,
   } = useSalesFunnel();
 
-  const handleOpenChat = (lead: any) => {
+  const handleOpenChat = (lead: KanbanLead) => {
     // In a real application, this would navigate to the chat page with this contact
     toast.info(`Abrindo chat com ${lead.name}...`, {
       description: "Essa funcionalidade conectará com o WhatsApp em breve."
@@ -47,12 +47,12 @@ export default function SalesFunnel() {
       leads: col.leads.filter(l => l.id !== lead.id)
     }));
     
-    // Add the lead to the target column
+    // Add the lead to the target column with updated columnId
     const finalColumns = updatedColumns.map(col => {
       if (col.id === targetColumnId) {
         return {
           ...col,
-          leads: [lead, ...col.leads]
+          leads: [{...lead, columnId: targetColumnId}, ...col.leads]
         };
       }
       return col;
@@ -63,14 +63,50 @@ export default function SalesFunnel() {
     toast.success(`Lead movido para ${status === "won" ? "Ganhos" : "Perdidos"}`);
   };
 
+  // Function to return a lead from won/lost back to the funnel
+  const returnLeadToFunnel = (lead: KanbanLead) => {
+    // Remove lead from current column (won or lost)
+    const updatedColumns = columns.map(col => ({
+      ...col,
+      leads: col.leads.filter(l => l.id !== lead.id)
+    }));
+    
+    // Add lead to first non-hidden, non-fixed column or to NEW_LEAD column as fallback
+    const targetColumn = columns.find(col => !col.isHidden && !col.isFixed) || 
+                         columns.find(col => col.id === FIXED_COLUMN_IDS.NEW_LEAD);
+    
+    if (!targetColumn) {
+      toast.error("Não foi possível mover o lead de volta para o funil");
+      return;
+    }
+    
+    const finalColumns = updatedColumns.map(col => {
+      if (col.id === targetColumn.id) {
+        return {
+          ...col,
+          leads: [{...lead, columnId: targetColumn.id}, ...col.leads]
+        };
+      }
+      return col;
+    });
+    
+    setColumns(finalColumns);
+    toast.success("Lead retornado para o funil");
+  };
+
+  // Filter columns for won/lost view
+  const wonLostColumns = columns.filter(col => 
+    col.id === FIXED_COLUMN_IDS.WON || col.id === FIXED_COLUMN_IDS.LOST
+  );
+
   return (
     <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 overflow-hidden">
       <Sidebar />
       
-      <main className="flex-1 overflow-auto">
-        <div className="p-6">
+      <main className="flex-1 overflow-hidden">
+        <div className="p-6 h-full flex flex-col">
           {/* Header */}
-          <div className="flex justify-between items-center mb-8">
+          <div className="flex justify-between items-center mb-4">
             <div>
               <h1 className="text-2xl font-bold">Funil de Vendas</h1>
               <p className="text-muted-foreground">Gerencie seus leads e oportunidades de vendas</p>
@@ -92,95 +128,39 @@ export default function SalesFunnel() {
           </div>
           
           {/* Tabs for switching between funnel and won/lost leads */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
             <TabsList>
               <TabsTrigger value="funnel">Funil Principal</TabsTrigger>
               <TabsTrigger value="won-lost">Ganhos e Perdidos</TabsTrigger>
             </TabsList>
           </Tabs>
 
-          {/* Kanban Board with conditional rendering based on active tab */}
-          {activeTab === "funnel" && (
-            <KanbanBoard 
-              columns={columns}
-              onColumnsChange={setColumns}
-              onOpenLeadDetail={openLeadDetail}
-              onColumnUpdate={updateColumn}
-              onColumnDelete={deleteColumn}
-              onOpenChat={handleOpenChat}
-              onMoveToWonLost={moveLeadToStatus}
-            />
-          )}
-
-          {activeTab === "won-lost" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Won Leads */}
-              <div className="bg-white/10 dark:bg-black/10 backdrop-blur-lg rounded-lg border border-green-200 p-4">
-                <h2 className="text-xl font-medium mb-4 text-green-600">Leads Ganhos</h2>
-                {columns.find(col => col.id === FIXED_COLUMN_IDS.WON)?.leads.length ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {columns.find(col => col.id === FIXED_COLUMN_IDS.WON)?.leads.map(lead => (
-                      <div 
-                        key={lead.id} 
-                        className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 cursor-pointer"
-                        onClick={() => openLeadDetail(lead)}
-                      >
-                        <div className="flex justify-between">
-                          <h3 className="font-medium">{lead.name}</h3>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenChat(lead);
-                            }}
-                          >
-                            <MessageSquare className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-2">{lead.lastMessage}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">Nenhum lead ganho no momento.</p>
-                )}
-              </div>
-
-              {/* Lost Leads */}
-              <div className="bg-white/10 dark:bg-black/10 backdrop-blur-lg rounded-lg border border-red-200 p-4">
-                <h2 className="text-xl font-medium mb-4 text-red-600">Leads Perdidos</h2>
-                {columns.find(col => col.id === FIXED_COLUMN_IDS.LOST)?.leads.length ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {columns.find(col => col.id === FIXED_COLUMN_IDS.LOST)?.leads.map(lead => (
-                      <div 
-                        key={lead.id} 
-                        className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 cursor-pointer"
-                        onClick={() => openLeadDetail(lead)}
-                      >
-                        <div className="flex justify-between">
-                          <h3 className="font-medium">{lead.name}</h3>
-                          <Button 
-                            size="sm" 
-                            variant="ghost" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenChat(lead);
-                            }}
-                          >
-                            <MessageSquare className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-2">{lead.lastMessage}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">Nenhum lead perdido no momento.</p>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Main content area - adjusted to take up remaining height */}
+          <div className="flex-1 overflow-hidden">
+            {/* Kanban Board with conditional rendering based on active tab */}
+            {activeTab === "funnel" ? (
+              <KanbanBoard 
+                columns={columns}
+                onColumnsChange={setColumns}
+                onOpenLeadDetail={openLeadDetail}
+                onColumnUpdate={updateColumn}
+                onColumnDelete={deleteColumn}
+                onOpenChat={handleOpenChat}
+                onMoveToWonLost={moveLeadToStatus}
+              />
+            ) : (
+              <KanbanBoard 
+                columns={wonLostColumns}
+                onColumnsChange={setColumns}
+                onOpenLeadDetail={openLeadDetail}
+                onColumnUpdate={updateColumn}
+                onColumnDelete={deleteColumn}
+                onOpenChat={handleOpenChat}
+                onReturnToFunnel={returnLeadToFunnel}
+                isWonLostView={true}
+              />
+            )}
+          </div>
         </div>
       </main>
       
