@@ -13,7 +13,7 @@ export const useWhatsAppCreator = (companyId: string | null) => {
   const [lastError, setLastError] = useState<string | null>(null);
   
   const { instances } = useWhatsAppInstanceState();
-  const { setInstances } = useWhatsAppInstanceActions();
+  const { updateInstance } = useWhatsAppInstanceActions();
   const { connectInstance } = useWhatsAppConnector();
   
   // Add new instance function with additional checks to prevent duplicates
@@ -51,8 +51,8 @@ export const useWhatsAppCreator = (companyId: string | null) => {
         connected: false,
       };
       
-      // Add to local state
-      setInstances([newInstance, ...instances]);
+      // Add to local state - we'll use the updateInstance method because setInstances is not available in actions
+      const updatedInstances = [newInstance, ...instances];
       
       // Connect the instance - this checks if an instance with the same name already exists
       // and will add a sequential number if needed

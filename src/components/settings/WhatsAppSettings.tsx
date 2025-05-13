@@ -59,6 +59,7 @@ const WhatsAppSettings = () => {
     refreshQrCode,
     showQrCode,
     checkInstanceStatus,
+    handleConnectInstance,
   } = useWhatsAppInstances(userEmail);
 
   // Periodically check instance status with a more efficient approach
@@ -79,7 +80,7 @@ const WhatsAppSettings = () => {
         const instance = disconnectedInstances[i];
         // Add a delay between each check to prevent API flooding
         setTimeout(() => {
-          checkInstanceStatus(instance.id);
+          checkInstanceStatus(instance.id, instance.instanceName);
         }, i * 1000); // Stagger by 1 second per instance
       }
       
@@ -89,7 +90,7 @@ const WhatsAppSettings = () => {
         const instance = connectedInstances[i];
         // Check connected instances less frequently
         setTimeout(() => {
-          checkInstanceStatus(instance.id);
+          checkInstanceStatus(instance.id, instance.instanceName);
         }, (disconnectedInstances.length * 1000) + (i * 1000)); // Check after disconnected instances
       }
     };
@@ -112,17 +113,6 @@ const WhatsAppSettings = () => {
       }
     };
   }, [instances, checkInstanceStatus]);
-  
-  // Wrapper adapter for connectInstance that ignores QR Code return
-  const handleConnectInstance = async (instanceId: string) => {
-    try {
-      await connectInstance(instanceId);
-      // Ignore QR Code return since state was updated internally in the function
-    } catch (error) {
-      console.error("Error connecting instance:", error);
-      // No need to do anything here as error is handled inside the original function
-    }
-  };
   
   return (
     <div className="space-y-6">

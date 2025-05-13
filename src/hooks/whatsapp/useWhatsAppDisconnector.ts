@@ -14,20 +14,24 @@ export const useWhatsAppDisconnector = () => {
   const { updateInstance, setLoading, setError } = useWhatsAppInstanceActions();
   
   // Delete a WhatsApp instance
-  const deleteInstance = async (instance: WhatsAppInstance) => {
-    const instanceId = instance.id;
+  const deleteInstance = async (instanceIdOrInstance: string | WhatsAppInstance) => {
+    // Determine if we received an ID or an instance object
+    const isInstanceObject = typeof instanceIdOrInstance !== 'string';
+    const instanceId = isInstanceObject ? instanceIdOrInstance.id : instanceIdOrInstance;
+    const instanceName = isInstanceObject ? instanceIdOrInstance.instanceName : undefined;
+    
     setLoading(instanceId, true);
     setError(null);
     
     try {
-      if (!instance || !instance.instanceName) {
+      if (!instanceName) {
         throw new Error("Instância não encontrada ou nome da instância inválido");
       }
       
-      console.log(`Deleting WhatsApp instance: ${instance.instanceName} (ID: ${instanceId})`);
+      console.log(`Deleting WhatsApp instance: ${instanceName} (ID: ${instanceId})`);
       
       // Make API call to delete instance using the correct URL format
-      const success = await evolutionApiService.deleteInstance(instance.instanceName);
+      const success = await evolutionApiService.deleteInstance(instanceName);
       
       if (!success) {
         throw new Error("Falha ao remover instância na API");

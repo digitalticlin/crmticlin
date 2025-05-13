@@ -95,14 +95,18 @@ export const useWhatsAppInstances = (userEmail: string) => {
     };
   }, [instances, setupPeriodicStatusCheck]);
   
-  // Wrapper adapter for connectInstance that ignores QR Code return
+  // Handle connecting to an instance with proper type checks
   const handleConnectInstance = async (instanceId: string) => {
     try {
-      await connectInstance(instanceId);
-      // Ignore QR Code return since state was updated internally in the function
+      // Find the instance from the instances array
+      const instanceToConnect = instances.find(instance => instance.id === instanceId);
+      if (!instanceToConnect) {
+        throw new Error("Instance not found");
+      }
+      
+      await connectInstance(instanceToConnect);
     } catch (error) {
       console.error("Error connecting instance:", error);
-      // No need to do anything here as error is handled inside the original function
     }
   };
 
