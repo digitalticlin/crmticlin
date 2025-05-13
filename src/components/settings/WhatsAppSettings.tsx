@@ -50,7 +50,6 @@ const WhatsAppSettings = () => {
   const {
     instances,
     isLoading: instanceLoading,
-    instanceName,
     lastError,
     connectInstance,
     deleteInstance,

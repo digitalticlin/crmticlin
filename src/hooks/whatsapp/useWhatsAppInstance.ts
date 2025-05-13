@@ -61,8 +61,8 @@ export const useWhatsAppInstances = (userEmail: string) => {
   }, [companyId, setInstances]);
   
   // Função para adicionar nova instância
-  const addNewInstance = async () => {
-    if (!instanceName.trim()) {
+  const addNewInstance = async (newInstanceName: string) => {
+    if (!newInstanceName.trim()) {
       toast.error("Nome da instância não pode estar vazio");
       return;
     }
@@ -77,22 +77,22 @@ export const useWhatsAppInstances = (userEmail: string) => {
       const newInstanceId = crypto.randomUUID();
       const newInstance: WhatsAppInstance = {
         id: newInstanceId,
-        instanceName,
+        instanceName: newInstanceName,
         connected: false,
       };
       
       // Adicionar ao estado local
       setInstances([newInstance, ...instances]);
       
-      // Limpar o campo de nome
-      setInstanceName("");
-      
       // Conectar a instância
-      await connectInstance(newInstance);
+      await connectInstance(newInstance.id);
+      
+      return newInstance;
     } catch (error) {
       console.error("Erro ao adicionar nova instância:", error);
       toast.error("Não foi possível adicionar a nova instância");
       setLastError("Erro ao adicionar nova instância");
+      throw error;
     }
   };
   
