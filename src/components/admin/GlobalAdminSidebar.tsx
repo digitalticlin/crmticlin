@@ -1,8 +1,12 @@
+
 import { useState } from "react";
-import { Building2, Users, CreditCard, MessageSquare, FileText, LifeBuoy, Settings, ChevronRight, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
-import SidebarLogo from "@/components/layout/SidebarLogo";
-import { Separator } from "@/components/ui/separator";
+import { usePermissions } from "@/hooks/usePermissions";
+
+import AdminSidebarHeader from "./sidebar/AdminSidebarHeader";
+import AdminSidebarFooter from "./sidebar/AdminSidebarFooter";
+import AdminNavItem from "./sidebar/AdminNavItem";
+import { getAdminNavItems } from "./sidebar/AdminNavItems";
 
 interface GlobalAdminSidebarProps {
   activeTab: string;
@@ -11,44 +15,9 @@ interface GlobalAdminSidebarProps {
 
 const GlobalAdminSidebar = ({ activeTab, setActiveTab }: GlobalAdminSidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isSuperAdmin } = usePermissions();
   
-  const adminNavItems = [
-    {
-      id: "companies",
-      icon: Building2,
-      label: "Empresas",
-    },
-    {
-      id: "users",
-      icon: Users,
-      label: "Usuários",
-    },
-    {
-      id: "plans",
-      icon: CreditCard,
-      label: "Planos",
-    },
-    {
-      id: "whatsapp",
-      icon: MessageSquare,
-      label: "WhatsApp",
-    },
-    {
-      id: "logs",
-      icon: FileText,
-      label: "Logs",
-    },
-    {
-      id: "support",
-      icon: LifeBuoy,
-      label: "Suporte",
-    },
-    {
-      id: "config",
-      icon: Settings,
-      label: "Configurações",
-    },
-  ];
+  const adminNavItems = getAdminNavItems(isSuperAdmin);
 
   return (
     <div
@@ -57,43 +26,26 @@ const GlobalAdminSidebar = ({ activeTab, setActiveTab }: GlobalAdminSidebarProps
         isCollapsed ? "w-[80px]" : "w-[250px]"
       )}
     >
-      <div className="p-4 flex items-center justify-center">
-        <SidebarLogo isCollapsed={isCollapsed} />
-        {!isCollapsed && <span className="ml-2 text-xl font-bold text-ticlin">Admin</span>}
-      </div>
-
-      <Separator />
+      <AdminSidebarHeader isCollapsed={isCollapsed} />
 
       <div className="flex flex-col flex-1 py-6 px-2 gap-1">
         {adminNavItems.map((item) => (
-          <button
+          <AdminNavItem
             key={item.id}
-            onClick={() => setActiveTab(item.id)}
-            className={cn(
-              "w-full flex items-center px-3 py-2 rounded-lg transition-colors",
-              activeTab === item.id 
-                ? "bg-[#d3d800]/20 text-[#d3d800] font-medium" 
-                : "hover:bg-gray-100 dark:hover:bg-gray-800"
-            )}
-          >
-            <item.icon className="h-5 w-5" />
-            {!isCollapsed && <span className="ml-3">{item.label}</span>}
-          </button>
+            id={item.id}
+            icon={item.icon}
+            label={item.label}
+            isActive={activeTab === item.id}
+            onClick={setActiveTab}
+            isCollapsed={isCollapsed}
+          />
         ))}
       </div>
 
-      <div className="p-4 border-t">
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="w-full p-2 flex justify-center rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
-        >
-          {isCollapsed ? (
-            <ChevronRight className="h-5 w-5" />
-          ) : (
-            <ChevronLeft className="h-5 w-5" />
-          )}
-        </button>
-      </div>
+      <AdminSidebarFooter 
+        isCollapsed={isCollapsed} 
+        toggleCollapse={() => setIsCollapsed(!isCollapsed)} 
+      />
     </div>
   );
 };

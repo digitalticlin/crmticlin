@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import PermissionGate from "@/components/auth/PermissionGate";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Team from "./pages/Team";
@@ -45,18 +46,62 @@ const App = () => (
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               
-              {/* Rotas protegidas */}
+              {/* Rotas protegidas básicas - todos usuários autenticados podem acessar */}
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/sales-funnel" element={<ProtectedRoute><SalesFunnel /></ProtectedRoute>} />
               <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
               <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
-              <Route path="/automation" element={<ProtectedRoute><Automation /></ProtectedRoute>} />
-              <Route path="/integration" element={<ProtectedRoute><Integration /></ProtectedRoute>} />
-              <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
-              <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
-              <Route path="/ai-agents" element={<ProtectedRoute><AIAgents /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
-              <Route path="/admin" element={<ProtectedRoute><GlobalAdmin /></ProtectedRoute>} />
+              
+              {/* Rotas protegidas avançadas - apenas com permissões específicas */}
+              <Route path="/automation" element={
+                <ProtectedRoute>
+                  <PermissionGate requiredPermission="canManageWhatsApp">
+                    <Automation />
+                  </PermissionGate>
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/integration" element={
+                <ProtectedRoute>
+                  <PermissionGate requiredPermission="canConfigureSystem">
+                    <Integration />
+                  </PermissionGate>
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/team" element={
+                <ProtectedRoute>
+                  <PermissionGate requiredPermission="canManageTeams">
+                    <Team />
+                  </PermissionGate>
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/plans" element={
+                <ProtectedRoute>
+                  <PermissionGate requiredPermission="canConfigureSystem">
+                    <Plans />
+                  </PermissionGate>
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/ai-agents" element={
+                <ProtectedRoute>
+                  <PermissionGate requiredPermission="canConfigureSystem">
+                    <AIAgents />
+                  </PermissionGate>
+                </ProtectedRoute>
+              } />
+              
+              {/* Rota de administração global - apenas para super admins */}
+              <Route path="/admin" element={
+                <ProtectedRoute>
+                  <PermissionGate requiredPermission="isSuperAdmin">
+                    <GlobalAdmin />
+                  </PermissionGate>
+                </ProtectedRoute>
+              } />
               
               {/* Rota de fallback */}
               <Route path="*" element={<NotFound />} />

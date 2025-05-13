@@ -24,11 +24,61 @@ export const useWhatsAppFetcher = (userEmail: string) => {
       console.log(`Buscando instâncias WhatsApp para usuário: ${userEmail}, nome base da instância: ${instanceName}`);
       setError(null);
       
-      // Busca instâncias do usuário do Supabase
-      const { data, error } = await supabase
-        .from('whatsapp_numbers')
-        .select('*')
-        .eq('instance_name', instanceName);
+      // Get the current user's session to check permissions
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Usuário não autenticado");
+      
+      // Check if user is super admin (can see all instances)
+      const { data: isSuperAdmin } = await supabase.rpc('is_super_admin');
+      
+      let query;
+      
+      if (isSuperAdmin) {
+        // Super admins can see all WhatsApp numbers
+        query = supabase
+          .from('whatsapp_numbers')
+          .select('*');
+      } else {
+        // Check if user is company admin (can see all instances within company)
+        const { data: isCompanyAdmin } = await supabase.rpc('is_company_admin');
+        
+        if (isCompanyAdmin) {
+          // Company admins can see all WhatsApp numbers for their company
+          const { data: userCompanyId } = await supabase.rpc('get_user_company_id');
+          
+          query = supabase
+            .from('whatsapp_numbers')
+            .select('*')
+            .eq('company_id', userCompanyId);
+        } else {
+          // Regular users can only see WhatsApp numbers assigned to them
+          // Fix: Use correct approach to fetch user's WhatsApp numbers
+          const { data: userWhatsappNumbers, error: whatsappError } = await supabase
+            .from('user_whatsapp_numbers')
+            .select('whatsapp_number_id')
+            .eq('profile_id', session.user.id);
+            
+          if (whatsappError) throw whatsappError;
+          
+          if (!userWhatsappNumbers || userWhatsappNumbers.length === 0) {
+            // No WhatsApp numbers assigned to the user
+            setInstances([
+              { id: "1", instanceName, connected: false }
+            ]);
+            return;
+          }
+          
+          // Get the WhatsApp numbers that are assigned to the user
+          const whatsappNumberIds = userWhatsappNumbers.map(num => num.whatsapp_number_id);
+          
+          query = supabase
+            .from('whatsapp_numbers')
+            .select('*')
+            .in('id', whatsappNumberIds);
+        }
+      }
+      
+      const { data, error } = await query;
 
       if (error) {
         throw error;

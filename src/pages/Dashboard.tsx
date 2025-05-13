@@ -4,7 +4,6 @@ import Sidebar from "@/components/layout/Sidebar";
 import KPICard from "@/components/dashboard/KPICard";
 import StatCard from "@/components/dashboard/StatCard";
 import ChartCard from "@/components/dashboard/ChartCard";
-import SystemStatusPanel from "@/components/admin/SystemStatusPanel";
 import { Button } from "@/components/ui/button";
 import { 
   Users, 
@@ -103,85 +102,133 @@ export default function Dashboard() {
               value="1,234"
               trend={{ value: 8, isPositive: true }}
               icon={<MessageSquare className="h-5 w-5" />}
+              variant="primary"
+            />
+            <KPICard
+              title="Leads Ganhos"
+              value="72"
+              trend={{ value: 5, isPositive: true }}
+              icon={<Zap className="h-5 w-5" />}
+              variant="highlight"
             />
             <KPICard
               title="Taxa de Conversão"
-              value="12.5%"
-              trend={{ value: 3.2, isPositive: true }}
-              icon={<Zap className="h-5 w-5" />}
-            />
-            <KPICard
-              title="Vendas"
-              value="R$ 45.678"
-              trend={{ value: 2.5, isPositive: false }}
+              value="38.9%"
+              trend={{ value: 2, isPositive: false }}
               icon={<TrendingUp className="h-5 w-5" />}
             />
           </div>
-          
-          {/* System Status Panel */}
-          <div className="mb-6">
-            <SystemStatusPanel />
-          </div>
-          
-          {/* Charts Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          {/* Charts Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             <ChartCard 
-              title="Funil de Vendas" 
-              description="Desempenho do funil de vendas no período selecionado"
+              title="Visão Geral de Leads" 
+              description="Leads recebidos vs. convertidos nos últimos 6 meses"
+              className="lg:col-span-2"
             >
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart
                     data={areaData}
-                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                    margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                    <defs>
+                      <linearGradient id="colorLeads" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#d3d800" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#d3d800" stopOpacity={0.1} />
+                      </linearGradient>
+                      <linearGradient id="colorConverted" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0088FE" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#0088FE" stopOpacity={0.1} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                     <XAxis dataKey="name" />
                     <YAxis />
-                    <RechartsTooltip />
-                    <Area 
-                      type="monotone" 
-                      dataKey="leads" 
-                      stackId="1"
-                      stroke="var(--ticlin)" 
-                      fill="var(--ticlin)" 
-                      fillOpacity={0.6} 
+                    <RechartsTooltip 
+                      contentStyle={{ 
+                        backgroundColor: "rgba(255, 255, 255, 0.8)", 
+                        borderRadius: "8px",
+                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                        border: "none"
+                      }} 
                     />
-                    <Area 
-                      type="monotone" 
-                      dataKey="converted" 
-                      stackId="1"
-                      stroke="#4caf50" 
-                      fill="#4caf50" 
-                      fillOpacity={0.6} 
+                    <Area
+                      type="monotone"
+                      dataKey="leads"
+                      name="Leads Recebidos"
+                      stroke="#d3d800"
+                      fillOpacity={1}
+                      fill="url(#colorLeads)"
+                      strokeWidth={2}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="converted"
+                      name="Leads Convertidos"
+                      stroke="#0088FE"
+                      fillOpacity={1}
+                      fill="url(#colorConverted)"
+                      strokeWidth={2}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
             </ChartCard>
-            
+
             <ChartCard 
-              title="Canais de Comunicação" 
-              description="Distribuição de atendimentos por canal"
+              title="Atendimentos por Canal" 
+              description="Últimos 5 dias"
             >
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={barData}
-                    margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                    margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
                     <XAxis dataKey="name" />
                     <YAxis />
-                    <RechartsTooltip />
+                    <RechartsTooltip 
+                      contentStyle={{ 
+                        backgroundColor: "rgba(255, 255, 255, 0.8)", 
+                        borderRadius: "8px",
+                        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+                        border: "none"
+                      }} 
+                    />
                     <Legend />
-                    <Bar dataKey="whatsapp" fill="var(--ticlin)" name="WhatsApp" />
-                    <Bar dataKey="calls" fill="#4caf50" name="Ligações" />
-                    <Bar dataKey="email" fill="#2196f3" name="Email" />
+                    <Bar dataKey="whatsapp" name="WhatsApp" fill="#25D366" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="calls" name="Ligações" fill="#0088FE" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="email" name="E-mail" fill="#d3d800" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </ChartCard>
+          </div>
+
+          {/* Stats Section */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <StatCard 
+              title="Total de Contas"
+              value="12"
+              description="Contas conectadas ao WhatsApp"
+              icon={<MessageSquare className="h-5 w-5" />}
+            />
+            <StatCard 
+              title="Membros da Equipe"
+              value="8"
+              description="Ativos na plataforma"
+              icon={<Users className="h-5 w-5" />}
+              color="bg-blue-500"
+            />
+            <StatCard 
+              title="Agentes de IA"
+              value="3"
+              description="Configurados e ativos"
+              icon={<Zap className="h-5 w-5" />}
+              color="bg-purple-500"
+            />
           </div>
         </div>
       </main>

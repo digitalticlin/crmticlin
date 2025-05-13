@@ -1,96 +1,78 @@
 
 import { useState } from "react";
-import { 
-  Tabs, TabsContent, TabsList, TabsTrigger 
-} from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GeneralSettingsTab } from "./config/GeneralSettingsTab";
 import { SecuritySettingsTab } from "./config/SecuritySettingsTab";
 import { IntegrationsSettingsTab } from "./config/IntegrationsSettingsTab";
-import { ApiSettingsTab } from "./config/ApiSettingsTab";
-import { PerformanceSettingsTab } from "./config/PerformanceSettingsTab";
-import { ConfigProps } from "./config/types";
+import SystemChecklistPanel from "./SystemChecklistPanel";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export default function ConfigPanel() {
-  const [activeTab, setActiveTab] = useState("general");
+  const { isSuperAdmin } = usePermissions();
+  
+  // Add configuration state
   const [config, setConfig] = useState({
-    systemName: "CRM Ticlin",
-    apiUrl: "https://api.evolution.com",
-    maxInstances: "200",
-    maxUsers: "1000",
+    // General settings
+    systemName: "Ticlin CRM",
+    maxInstances: "10",
+    maxUsers: "50",
+    logRetention: "30",
     debugMode: false,
     maintenanceMode: false,
-    logRetention: "30",
-    webhookUrl: "https://ticlin.com.br/api/webhook/evolution",
-    aiModel: "gpt-4o",
-    aiBotLimit: "100",
-    termsText: "Termos e condições para uso da plataforma CRM Ticlin...",
-    apiMaxRetries: "3",
-    apiTimeout: "30000",
-    apiAuthHeader: "apikey",
-    useHttps: true,
-    apiCaching: false,
-    cacheStrategy: "memory",
-    maxQueriesPerMinute: "1000"
+    termsText: "Termos de uso padrão da plataforma Ticlin CRM.",
+    
+    // Integration settings
+    apiUrl: "https://api.evolution.com",
+    webhookUrl: "https://webhook.ticlin.com.br/evolution",
+    aiModel: "gpt-4",
+    aiBotLimit: "5"
   });
-  
+
+  // Handle configuration changes
   const handleConfigChange = (field: string, value: any) => {
-    setConfig({
-      ...config,
+    setConfig(prev => ({
+      ...prev,
       [field]: value
-    });
+    }));
   };
 
-  const saveChanges = () => {
-    // Aqui seria implementada a lógica para salvar as configurações no backend
-    toast.success("Configurações salvas com sucesso!");
-  };
-
-  // Criamos um objeto de configuração que corresponde à interface ConfigProps
-  const configProps: ConfigProps = {
-    config: config,
-    onConfigChange: handleConfigChange
-  };
-  
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold mb-1">Painel de Configuração</h2>
-          <p className="text-muted-foreground">Configure o sistema para ambiente de produção</p>
-        </div>
-        <Button onClick={saveChanges}>Salvar Alterações</Button>
-      </div>
-      
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid grid-cols-5 w-full">
+      <Tabs defaultValue="general">
+        <TabsList className="grid grid-cols-4">
           <TabsTrigger value="general">Geral</TabsTrigger>
           <TabsTrigger value="security">Segurança</TabsTrigger>
-          <TabsTrigger value="api">API</TabsTrigger>
-          <TabsTrigger value="performance">Performance</TabsTrigger>
           <TabsTrigger value="integrations">Integrações</TabsTrigger>
+          {isSuperAdmin && (
+            <TabsTrigger value="checklist">Homologação</TabsTrigger>
+          )}
         </TabsList>
         
-        <TabsContent value="general" className="space-y-4">
-          <GeneralSettingsTab {...configProps} />
-        </TabsContent>
-        
-        <TabsContent value="security" className="space-y-4">
-          <SecuritySettingsTab config={config} onConfigChange={handleConfigChange} />
-        </TabsContent>
-        
-        <TabsContent value="api" className="space-y-4">
-          <ApiSettingsTab {...configProps} />
-        </TabsContent>
-        
-        <TabsContent value="performance" className="space-y-4">
-          <PerformanceSettingsTab {...configProps} />
-        </TabsContent>
-        
-        <TabsContent value="integrations" className="space-y-4">
-          <IntegrationsSettingsTab {...configProps} />
-        </TabsContent>
+        <div className="mt-6">
+          <TabsContent value="general">
+            <GeneralSettingsTab 
+              config={config} 
+              onConfigChange={handleConfigChange} 
+            />
+          </TabsContent>
+          
+          <TabsContent value="security">
+            <SecuritySettingsTab />
+          </TabsContent>
+          
+          <TabsContent value="integrations">
+            <IntegrationsSettingsTab 
+              config={config} 
+              onConfigChange={handleConfigChange} 
+            />
+          </TabsContent>
+          
+          {isSuperAdmin && (
+            <TabsContent value="checklist">
+              <SystemChecklistPanel />
+            </TabsContent>
+          )}
+        </div>
       </Tabs>
     </div>
   );

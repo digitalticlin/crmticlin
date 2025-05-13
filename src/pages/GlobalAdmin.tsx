@@ -9,6 +9,7 @@ import WhatsAppPanel from "@/components/admin/WhatsAppPanel";
 import LogsPanel from "@/components/admin/LogsPanel";
 import SupportPanel from "@/components/admin/SupportPanel";
 import ConfigPanel from "@/components/admin/ConfigPanel";
+import DeploymentGuidePanel from "@/components/admin/DeploymentGuidePanel";
 
 export default function GlobalAdmin() {
   const [activeTab, setActiveTab] = useState("companies");
@@ -26,7 +27,7 @@ export default function GlobalAdmin() {
           </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid grid-cols-7 w-full">
+            <TabsList className="grid grid-cols-8 w-full">
               <TabsTrigger value="companies">Empresas</TabsTrigger>
               <TabsTrigger value="users">Usuários</TabsTrigger>
               <TabsTrigger value="plans">Planos</TabsTrigger>
@@ -34,6 +35,7 @@ export default function GlobalAdmin() {
               <TabsTrigger value="logs">Logs</TabsTrigger>
               <TabsTrigger value="support">Suporte</TabsTrigger>
               <TabsTrigger value="config">Configurações</TabsTrigger>
+              <TabsTrigger value="deployment">Produção</TabsTrigger>
             </TabsList>
             
             <TabsContent value="companies">
@@ -62,6 +64,10 @@ export default function GlobalAdmin() {
             
             <TabsContent value="config">
               <ConfigPanel />
+            </TabsContent>
+
+            <TabsContent value="deployment">
+              <DeploymentGuidePanel />
             </TabsContent>
           </Tabs>
         </div>
