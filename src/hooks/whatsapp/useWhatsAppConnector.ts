@@ -48,7 +48,8 @@ export const useWhatsAppConnector = () => {
         console.log(`Instância já existe com nome ${instance.instanceName}, tentando obter QR Code`);
         let qrCodeUrl;
         try {
-          qrCodeUrl = await evolutionApiService.refreshQrCode(instance.instanceName);
+          // Usar o novo método connectInstance ao invés de refreshQrCode
+          qrCodeUrl = await evolutionApiService.connectInstance(instance.instanceName);
           
           if (!qrCodeUrl) {
             throw new Error("QR Code não disponível");
@@ -126,10 +127,10 @@ export const useWhatsAppConnector = () => {
       
       console.log(`Atualizando QR code para instância: ${instance.instanceName} (ID: ${instanceId})`);
       
-      // Buscar novo QR Code da Evolution API com melhor tratamento de erro
+      // Buscar novo QR Code usando o método connectInstance
       let qrCodeUrl;
       try {
-        qrCodeUrl = await evolutionApiService.refreshQrCode(instance.instanceName);
+        qrCodeUrl = await evolutionApiService.connectInstance(instance.instanceName);
         
         if (!qrCodeUrl) {
           throw new Error("QR Code não disponível na resposta da API");
@@ -158,6 +159,22 @@ export const useWhatsAppConnector = () => {
     }
   };
 
+  // Verificar status de conexão de uma instância
+  const checkConnectionStatus = async (instance: WhatsAppInstance) => {
+    if (!instance || !instance.instanceName) return false;
+    
+    try {
+      const status = await evolutionApiService.checkInstanceStatus(instance.instanceName);
+      const connected = status === 'connected';
+      
+      updateInstance(instance.id, { connected });
+      return connected;
+    } catch (error) {
+      console.error(`Erro ao verificar status de conexão para ${instance.instanceName}:`, error);
+      return false;
+    }
+  };
+
   // Manipula erros de operação e exibe toast
   const handleOperationError = (error: any, operation: string) => {
     const errorMessage = error?.message || "Erro desconhecido";
@@ -169,6 +186,7 @@ export const useWhatsAppConnector = () => {
   return {
     connectInstance,
     refreshQrCode,
+    checkConnectionStatus,
     handleOperationError
   };
 };

@@ -4,16 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Smile, Paperclip, Send, Image, File, Mic } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/spinner";
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
+  isSending?: boolean;
 }
 
-export const MessageInput = ({ onSendMessage }: MessageInputProps) => {
+export const MessageInput = ({ onSendMessage, isSending = false }: MessageInputProps) => {
   const [newMessage, setNewMessage] = useState("");
 
   const handleSendMessage = () => {
-    if (newMessage.trim()) {
+    if (newMessage.trim() && !isSending) {
       onSendMessage(newMessage);
       setNewMessage("");
     }
@@ -72,6 +74,7 @@ export const MessageInput = ({ onSendMessage }: MessageInputProps) => {
         value={newMessage}
         onChange={(e) => setNewMessage(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+        disabled={isSending}
       />
       
       <Button
@@ -79,9 +82,13 @@ export const MessageInput = ({ onSendMessage }: MessageInputProps) => {
         size="icon"
         className="shrink-0 text-ticlin"
         onClick={handleSendMessage}
-        disabled={!newMessage.trim()}
+        disabled={!newMessage.trim() || isSending}
       >
-        <Send className="h-5 w-5" />
+        {isSending ? (
+          <LoadingSpinner size="sm" />
+        ) : (
+          <Send className="h-5 w-5" />
+        )}
       </Button>
     </div>
   );

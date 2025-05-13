@@ -20,13 +20,13 @@ export const useWhatsAppDisconnector = () => {
     setError(null);
     
     try {
-      if (!instance) {
-        throw new Error("Instância não encontrada");
+      if (!instance || !instance.instanceName) {
+        throw new Error("Instância não encontrada ou nome da instância inválido");
       }
       
       console.log(`Deleting WhatsApp instance: ${instance.instanceName} (ID: ${instanceId})`);
       
-      // Delete from Evolution API
+      // Make API call to delete instance using the correct URL format
       const success = await evolutionApiService.deleteInstance(instance.instanceName);
       
       if (!success) {

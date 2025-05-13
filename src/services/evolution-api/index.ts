@@ -2,6 +2,7 @@
 import { API_URL, API_KEY } from "./config";
 import { ApiClient } from "./api-client";
 import { InstanceService } from "./instance-service";
+import { ChatService } from "./chat-service";
 import { EvolutionInstance } from "./types";
 
 // Export the types for use in other files
@@ -10,6 +11,7 @@ export type { EvolutionInstance };
 // Create and export the service instance
 const apiClient = new ApiClient(API_URL, API_KEY);
 const instanceService = new InstanceService(apiClient);
+const chatService = new ChatService(apiClient);
 
 // Export a simplified service API
 export const evolutionApiService = {
@@ -37,4 +39,24 @@ export const evolutionApiService = {
    * Checks the connection status of an instance
    */
   checkInstanceStatus: (instanceName: string) => instanceService.checkInstanceStatus(instanceName),
+  
+  /**
+   * Finds all chats for an instance
+   */
+  findChats: (instanceName: string) => chatService.findChats(instanceName),
+  
+  /**
+   * Finds messages for a specific chat
+   */
+  findMessages: (instanceName: string, remoteJid?: string) => chatService.findMessages(instanceName, remoteJid),
+  
+  /**
+   * Sends a message to a WhatsApp contact
+   */
+  sendMessage: (instanceName: string, phoneNumber: string, text: string) => chatService.sendMessage(instanceName, phoneNumber, text),
+  
+  /**
+   * Connects to an instance and generates a QR code
+   */
+  connectInstance: (instanceName: string) => chatService.connectInstance(instanceName)
 };
