@@ -1,18 +1,40 @@
 
-import { QrCode } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { PlusCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-const PlaceholderInstanceCard = () => {
+interface PlaceholderInstanceCardProps {
+  isSuperAdmin?: boolean; // Indica se o usuário é SuperAdmin e não tem restrições de plano
+}
+
+const PlaceholderInstanceCard = ({ isSuperAdmin = false }: PlaceholderInstanceCardProps) => {
   return (
-    <Card className="overflow-hidden glass-card border-0 border-dashed border-gray-300 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/50">
-      <CardContent className="p-6 flex flex-col items-center justify-center text-center h-full">
-        <QrCode className="w-8 h-8 text-gray-400 mb-2" />
-        <h4 className="font-medium">Adicional WhatsApp</h4>
-        <p className="text-sm text-muted-foreground mb-3">
-          Disponível em planos superiores
-        </p>
-        <Button variant="outline" disabled>Upgrade de Plano</Button>
+    <Card className="overflow-hidden glass-card border-0 flex flex-col items-center justify-center p-6 border-dashed border-2 border-gray-200 dark:border-gray-700 bg-transparent">
+      <CardContent className="p-0 flex flex-col items-center text-center space-y-2">
+        <div className="mb-2">
+          <PlusCircle className="h-12 w-12 text-muted-foreground" />
+        </div>
+        
+        <h3 className="font-medium">Adicionar número</h3>
+        
+        {!isSuperAdmin ? (
+          <p className="text-sm text-muted-foreground">
+            Disponível em planos superiores. Atualize seu plano para adicionar mais números de WhatsApp.
+          </p>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Como SuperAdmin, você pode adicionar quantos números quiser.
+          </p>
+        )}
+        
+        <Button 
+          variant="outline"
+          size="sm"
+          className="mt-2"
+          disabled={!isSuperAdmin}
+        >
+          {isSuperAdmin ? "Adicionar WhatsApp" : "Atualizar plano"}
+        </Button>
       </CardContent>
     </Card>
   );

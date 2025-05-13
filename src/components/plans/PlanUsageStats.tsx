@@ -1,5 +1,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Plan {
   id: string;
@@ -20,16 +22,39 @@ interface PlanUsageStatsProps {
 }
 
 const PlanUsageStats = ({ currentPlan, plans }: PlanUsageStatsProps) => {
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const activePlan = plans.find(p => p.id === currentPlan);
   
+  useEffect(() => {
+    const checkSuperAdmin = async () => {
+      try {
+        const { data: superAdmin, error } = await supabase.rpc('is_super_admin');
+        if (!error) {
+          setIsSuperAdmin(superAdmin || false);
+        }
+      } catch (error) {
+        console.error("Erro ao verificar SuperAdmin:", error);
+      }
+    };
+    
+    checkSuperAdmin();
+  }, []);
+  
   if (!activePlan) return null;
+  
+  // Determinar limites a serem exibidos (ilimitado para SuperAdmin)
+  const whatsappLimit = isSuperAdmin ? "∞" : activePlan.limits.whatsappNumbers;
+  const teamMembersLimit = isSuperAdmin ? "∞" : activePlan.limits.teamMembers;
+  const aiAgentsLimit = isSuperAdmin ? "∞" : activePlan.limits.aiAgents;
   
   return (
     <Card className="glass-card border-0">
       <CardHeader>
         <CardTitle>Detalhes do Plano Atual</CardTitle>
         <CardDescription>
-          Seu plano {activePlan.name} inclui os seguintes limites
+          {isSuperAdmin 
+            ? "Você é um SuperAdmin com acesso ilimitado" 
+            : `Seu plano ${activePlan.name} inclui os seguintes limites`}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -37,34 +62,40 @@ const PlanUsageStats = ({ currentPlan, plans }: PlanUsageStatsProps) => {
           <div>
             <div className="flex justify-between mb-1">
               <span>Números de WhatsApp</span>
-              <span>{activePlan.limits.whatsappNumbers}</span>
+              <span>{whatsappLimit}</span>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-              <div className="bg-ticlin h-2 rounded-full" style={{ width: "60%" }}></div>
+              <div className="bg-ticlin h-2 rounded-full" style={{ width: isSuperAdmin ? "100%" : "60%" }}></div>
             </div>
-            <div className="text-xs text-right mt-1">3 de {activePlan.limits.whatsappNumbers} utilizados</div>
+            <div className="text-xs text-right mt-1">
+              {isSuperAdmin ? "Acesso ilimitado" : `3 de ${activePlan.limits.whatsappNumbers} utilizados`}
+            </div>
           </div>
           
           <div>
             <div className="flex justify-between mb-1">
               <span>Membros da Equipe</span>
-              <span>{activePlan.limits.teamMembers}</span>
+              <span>{teamMembersLimit}</span>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-              <div className="bg-ticlin h-2 rounded-full" style={{ width: "30%" }}></div>
+              <div className="bg-ticlin h-2 rounded-full" style={{ width: isSuperAdmin ? "100%" : "30%" }}></div>
             </div>
-            <div className="text-xs text-right mt-1">3 de {activePlan.limits.teamMembers} utilizados</div>
+            <div className="text-xs text-right mt-1">
+              {isSuperAdmin ? "Acesso ilimitado" : `3 de ${activePlan.limits.teamMembers} utilizados`}
+            </div>
           </div>
           
           <div>
             <div className="flex justify-between mb-1">
               <span>Agentes de IA</span>
-              <span>{activePlan.limits.aiAgents}</span>
+              <span>{aiAgentsLimit}</span>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-              <div className="bg-ticlin h-2 rounded-full" style={{ width: "33%" }}></div>
+              <div className="bg-ticlin h-2 rounded-full" style={{ width: isSuperAdmin ? "100%" : "33%" }}></div>
             </div>
-            <div className="text-xs text-right mt-1">1 de {activePlan.limits.aiAgents} utilizados</div>
+            <div className="text-xs text-right mt-1">
+              {isSuperAdmin ? "Acesso ilimitado" : `1 de ${activePlan.limits.aiAgents} utilizados`}
+            </div>
           </div>
         </div>
       </CardContent>

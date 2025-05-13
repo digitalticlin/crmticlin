@@ -13,6 +13,7 @@ const WhatsAppSettings = () => {
   // Estado para armazenar o email do usuário atual
   const [userEmail, setUserEmail] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   
   // Carregar dados do usuário atual
   useEffect(() => {
@@ -28,6 +29,12 @@ const WhatsAppSettings = () => {
         
         if (user) {
           setUserEmail(user.email || "");
+          
+          // Verificar se o usuário é um SuperAdmin
+          const { data: superAdmin, error: superAdminError } = await supabase.rpc('is_super_admin');
+          if (!superAdminError) {
+            setIsSuperAdmin(superAdmin || false);
+          }
         }
       } catch (error) {
         console.error("Erro ao buscar usuário:", error);
@@ -84,8 +91,8 @@ const WhatsAppSettings = () => {
           />
         ))}
         
-        {/* Placeholder para adicionar nova instância em planos superiores */}
-        <PlaceholderInstanceCard />
+        {/* Placeholder para adicionar nova instância - mostrado para SuperAdmin ou usuários com plano adequado */}
+        <PlaceholderInstanceCard isSuperAdmin={isSuperAdmin} />
       </div>
     </div>
   );
