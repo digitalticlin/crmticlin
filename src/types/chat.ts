@@ -11,8 +11,9 @@ export interface Contact {
   email?: string;
   tags?: string[];
   notes?: string;
-  purchaseValue?: number; // Add purchase value
-  assignedUser?: string; // Add assigned user
+  address?: string; // Add address property
+  purchaseValue?: number;
+  assignedUser?: string;
 }
 
 export interface Message {
