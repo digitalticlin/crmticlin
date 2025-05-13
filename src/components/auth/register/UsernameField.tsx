@@ -21,7 +21,7 @@ export const UsernameField = ({ form }: UsernameFieldProps) => {
             <div className="relative">
               <User className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                className="pl-8 bg-gray-100"
+                className="pl-8"
                 readOnly
                 {...field}
               />
