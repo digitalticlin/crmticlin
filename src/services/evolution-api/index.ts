@@ -1,62 +1,31 @@
 
-import { API_URL, API_KEY } from "./config";
 import { ApiClient } from "./api-client";
 import { InstanceService } from "./instance-service";
 import { ChatService } from "./chat-service";
-import { EvolutionInstance } from "./types";
 
-// Export the types for use in other files
-export type { EvolutionInstance };
+// URL da API e chave são carregados de variáveis de ambiente ou valores padrão
+const apiUrl = import.meta.env.VITE_EVOLUTION_API_URL || "https://ticlin-evolution-api.eirfpl.easypanel.host";
+const apiKey = import.meta.env.VITE_EVOLUTION_API_KEY || "your-api-key";
 
-// Create and export the service instance
-const apiClient = new ApiClient(API_URL, API_KEY);
+// Criar cliente API e serviços
+const apiClient = new ApiClient(apiUrl, apiKey);
 const instanceService = new InstanceService(apiClient);
 const chatService = new ChatService(apiClient);
 
-// Export a simplified service API
+// Exportar serviço Evolution API com métodos simplificados
 export const evolutionApiService = {
-  /**
-   * Fetches all existing instances
-   */
+  // Métodos de gerenciamento de instâncias
   fetchInstances: () => instanceService.fetchInstances(),
-  
-  /**
-   * Creates a new WhatsApp instance
-   */
   createInstance: (instanceName: string) => instanceService.createInstance(instanceName),
-  
-  /**
-   * Refreshes the QR code for an instance
-   */
-  refreshQrCode: (instanceName: string) => instanceService.refreshQrCode(instanceName),
-  
-  /**
-   * Deletes an instance
-   */
   deleteInstance: (instanceName: string) => instanceService.deleteInstance(instanceName),
-  
-  /**
-   * Checks the connection status of an instance
-   */
+  refreshQrCode: (instanceName: string) => instanceService.refreshQrCode(instanceName),
   checkInstanceStatus: (instanceName: string) => instanceService.checkInstanceStatus(instanceName),
+  connectInstance: (instanceName: string) => instanceService.connectInstance(instanceName),
   
-  /**
-   * Finds all chats for an instance
-   */
-  findChats: (instanceName: string) => chatService.findChats(instanceName),
-  
-  /**
-   * Finds messages for a specific chat
-   */
-  findMessages: (instanceName: string, remoteJid?: string) => chatService.findMessages(instanceName, remoteJid),
-  
-  /**
-   * Sends a message to a WhatsApp contact
-   */
-  sendMessage: (instanceName: string, phoneNumber: string, text: string) => chatService.sendMessage(instanceName, phoneNumber, text),
-  
-  /**
-   * Connects to an instance and generates a QR code
-   */
-  connectInstance: (instanceName: string) => chatService.connectInstance(instanceName)
+  // Métodos de chat e mensagens
+  fetchContacts: (instanceName: string) => chatService.fetchContacts(instanceName),
+  fetchMessages: (instanceName: string, phone: string) => chatService.fetchMessages(instanceName, phone),
+  sendMessage: (instanceName: string, to: string, message: string) => chatService.sendMessage(instanceName, to, message),
+  sendMediaMessage: (instanceName: string, to: string, mediaUrl: string, caption: string, mediaType: string) => 
+    chatService.sendMediaMessage(instanceName, to, mediaUrl, caption, mediaType)
 };

@@ -1,4 +1,3 @@
-
 import { ApiClient } from "./api-client";
 import { EvolutionInstance, FetchInstancesResponse, CreateInstanceResponse } from "./types";
 import { 
@@ -154,6 +153,33 @@ export class InstanceService {
     } catch (error) {
       console.error("Error details for instance creation:", error);
       handleApiError(error, "Não foi possível criar a instância de WhatsApp");
+      return null;
+    }
+  }
+
+  /**
+   * Forcefully connect to WhatsApp and get a fresh QR code
+   * This uses the specified endpoint for direct connection
+   */
+  async connectInstance(instanceName: string): Promise<string | null> {
+    try {
+      console.log(`Forçando conexão para a instância: "${instanceName}"`);
+      const data = await this.apiClient.fetchWithHeaders(`/instance/connect/${instanceName}`, {
+        method: "GET"
+      });
+      
+      console.log("Resposta da conexão forçada:", data);
+      
+      if (!data || !data.qrcode || !data.qrcode.base64) {
+        console.error("QR code ausente na resposta da API de conexão:", data);
+        throw new Error("QR Code não disponível na resposta da API");
+      }
+      
+      console.log(`QR code obtido com sucesso via conexão forçada para "${instanceName}"`);
+      return data.qrcode.base64;
+    } catch (error) {
+      console.error("Erro ao forçar conexão e obter QR code:", error);
+      handleApiError(error, "Não foi possível conectar e obter o QR Code");
       return null;
     }
   }
