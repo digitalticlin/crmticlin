@@ -10,6 +10,12 @@ export interface EvolutionInstance {
     base64: string | null;
     count: number;
   };
+  hash?: string;
+  webhook?: Record<string, any>;
+  websocket?: Record<string, any>;
+  rabbitmq?: Record<string, any>;
+  sqs?: Record<string, any>;
+  settings?: Record<string, any>;
 }
 
 export interface CreateInstanceResponse {
@@ -58,11 +64,21 @@ export interface EvolutionApiResult {
   instance: {
     instanceId: string;
     instanceName: string;
+    integration: string;
+    status: string;
     [key: string]: any;
   };
   hash: string;
   qrcode?: {
     base64?: string;
+    code?: string | null;
+    pairingCode?: string | null;
+    count?: number;
   };
+  webhook?: Record<string, any>;
+  websocket?: Record<string, any>;
+  rabbitmq?: Record<string, any>;
+  sqs?: Record<string, any>;
+  settings?: Record<string, any>;
   [key: string]: any;
 }

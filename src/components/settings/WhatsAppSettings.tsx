@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
 import WhatsAppInstanceCard from "./whatsapp/WhatsAppInstanceCard";
@@ -115,7 +114,7 @@ const WhatsAppSettings = () => {
   }, [instances, checkInstanceStatus]);
   
   // Handle showing QR code by updating state
-  const handleShowQrCode = async (instanceId: string) => {
+  const handleShowQrCode = (instanceId: string) => {
     setShowQrCode(instanceId);
   };
   

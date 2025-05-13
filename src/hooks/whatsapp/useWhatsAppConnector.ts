@@ -34,15 +34,15 @@ export const useWhatsAppConnector = () => {
       const qrCodeUrl = result.qrcode.base64;
       console.log("QR code received (first 50 chars):", qrCodeUrl.substring(0, 50));
       
-      // Create an EvolutionApiResult from the CreateInstanceResponse
+      // Create an EvolutionApiResult from the response
       const apiResult: EvolutionApiResult = {
         instance: {
-          instanceId: result.instance.instanceId,
-          instanceName: result.instance.instanceName,
-          integration: result.instance.integration,
-          status: result.instance.status
+          instanceId: result.instanceId,
+          instanceName: result.instanceName,
+          integration: result.integration,
+          status: result.status
         },
-        hash: result.hash,
+        hash: result.hash || "",
         qrcode: result.qrcode,
         webhook: result.webhook || {},
         websocket: result.websocket || {},
