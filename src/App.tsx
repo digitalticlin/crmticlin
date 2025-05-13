@@ -16,6 +16,9 @@ import NotFound from "./pages/NotFound";
 import SalesFunnel from "./pages/SalesFunnel";
 import Chat from "./pages/Chat";
 import Automation from "./pages/Automation";
+import Register from "./pages/Register";
+import ConfirmEmailInstructions from "./pages/ConfirmEmailInstructions";
+import ConfirmEmail from "./pages/ConfirmEmail";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +31,9 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/confirm-email-instructions" element={<ConfirmEmailInstructions />} />
+            <Route path="/confirm-email/:token" element={<ConfirmEmail />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/sales-funnel" element={<SalesFunnel />} />
             <Route path="/chat" element={<Chat />} />
