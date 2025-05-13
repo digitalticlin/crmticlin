@@ -4,6 +4,8 @@ import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
 import WhatsAppInstanceCard from "./whatsapp/WhatsAppInstanceCard";
 import PlaceholderInstanceCard from "./whatsapp/PlaceholderInstanceCard";
 import WhatsAppInfoAlert from "./whatsapp/WhatsAppInfoAlert";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 const WhatsAppSettings = () => {
   // Usuário atual (mock - em uma aplicação real viria do contexto de autenticação)
@@ -13,6 +15,7 @@ const WhatsAppSettings = () => {
     instances,
     isLoading,
     instanceName,
+    lastError,
     connectInstance,
     deleteInstance,
     refreshQrCode
@@ -65,6 +68,15 @@ const WhatsAppSettings = () => {
       </div>
       
       <WhatsAppInfoAlert />
+      
+      {lastError && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {lastError}
+          </AlertDescription>
+        </Alert>
+      )}
       
       <div className="grid gap-4 sm:grid-cols-2">
         {instances.map(instance => (

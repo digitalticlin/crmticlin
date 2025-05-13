@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { QrCode, Trash2, RefreshCw, Link } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,39 @@ const WhatsAppInstanceCard = ({
   onDelete,
   onRefreshQrCode
 }: WhatsAppInstanceCardProps) => {
+  // Estado local para rastrear quando o QR code foi obtido com sucesso
+  const [qrCodeSuccess, setQrCodeSuccess] = useState(false);
+
+  // Detecta quando um QR code é recebido para mostrar automaticamente
+  useEffect(() => {
+    if (instance.qrCodeUrl && !qrCodeSuccess) {
+      setQrCodeSuccess(true);
+    }
+  }, [instance.qrCodeUrl]);
+
+  // Função de clique para conectar o WhatsApp
+  const handleConnect = async () => {
+    try {
+      setQrCodeSuccess(false);
+      await onConnect(instance.id);
+    } catch (error) {
+      console.error("Erro ao conectar:", error);
+    }
+  };
+
+  // Função para atualizar o QR code
+  const handleRefreshQrCode = async () => {
+    try {
+      setQrCodeSuccess(false);
+      await onRefreshQrCode(instance.id);
+    } catch (error) {
+      console.error("Erro ao atualizar QR code:", error);
+    }
+  };
+
+  // Determinar se deve mostrar o QR code (quando está disponível e mostrado)
+  const shouldShowQrCode = (showQrCode === instance.id || qrCodeSuccess) && instance.qrCodeUrl;
+
   return (
     <Card className="overflow-hidden glass-card border-0">
       <CardContent className="p-0">
@@ -39,13 +72,16 @@ const WhatsAppInstanceCard = ({
             </Badge>
           </div>
           
-          {showQrCode === instance.id && instance.qrCodeUrl && (
-            <div className="flex justify-center mb-4 p-4 bg-white dark:bg-black rounded-md">
+          {shouldShowQrCode && (
+            <div className="flex flex-col items-center mb-4 p-4 bg-white dark:bg-black rounded-md">
               <img 
                 src={instance.qrCodeUrl} 
                 alt="QR Code para conexão do WhatsApp" 
                 className="w-48 h-48"
               />
+              <p className="text-xs text-center mt-2 text-muted-foreground">
+                Escaneie o QR code com seu aplicativo WhatsApp. O QR code expira após alguns minutos.
+              </p>
             </div>
           )}
           
@@ -55,7 +91,7 @@ const WhatsAppInstanceCard = ({
                 <Button 
                   variant="whatsapp" 
                   className="flex-1"
-                  onClick={() => onConnect(instance.id)}
+                  onClick={handleConnect}
                   disabled={isLoading}
                 >
                   {instance.qrCodeUrl ? (
@@ -74,11 +110,13 @@ const WhatsAppInstanceCard = ({
                 {instance.qrCodeUrl && (
                   <Button 
                     variant="outline" 
-                    onClick={() => onRefreshQrCode(instance.id)}
+                    onClick={handleRefreshQrCode}
                     disabled={isLoading}
                   >
                     <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
-                    {isLoading ? "Gerando..." : "Gerar novo QR Code"}
+                    <span className="ml-2 hidden sm:inline">
+                      {isLoading ? "Gerando..." : "Gerar novo QR Code"}
+                    </span>
                   </Button>
                 )}
               </>
