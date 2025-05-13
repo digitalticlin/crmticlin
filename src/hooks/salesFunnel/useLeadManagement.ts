@@ -49,10 +49,60 @@ export function useLeadManagement(setColumns: React.Dispatch<React.SetStateActio
     setSelectedLead(updatedLead);
     
     // Update the lead in the columns
+    updateLeadInColumns(updatedLead);
+  };
+
+  // Update lead purchase value
+  const updateLeadPurchaseValue = (purchaseValue: number | undefined) => {
+    if (!selectedLead) return;
+    
+    const updatedLead = {
+      ...selectedLead,
+      purchaseValue
+    };
+    
+    setSelectedLead(updatedLead);
+    
+    // Update the lead in the columns
+    updateLeadInColumns(updatedLead);
+  };
+
+  // Update lead assigned user
+  const updateLeadAssignedUser = (assignedUser: string) => {
+    if (!selectedLead) return;
+    
+    const updatedLead = {
+      ...selectedLead,
+      assignedUser
+    };
+    
+    setSelectedLead(updatedLead);
+    
+    // Update the lead in the columns
+    updateLeadInColumns(updatedLead);
+  };
+
+  // Update lead name
+  const updateLeadName = (name: string) => {
+    if (!selectedLead) return;
+    
+    const updatedLead = {
+      ...selectedLead,
+      name
+    };
+    
+    setSelectedLead(updatedLead);
+    
+    // Update the lead in the columns
+    updateLeadInColumns(updatedLead);
+  };
+
+  // Helper function to update lead in columns
+  const updateLeadInColumns = (updatedLead: KanbanLead) => {
     setColumns(columns => columns.map(col => ({
       ...col,
       leads: col.leads.map(l => 
-        l.id === selectedLead.id ? updatedLead : l
+        l.id === updatedLead.id ? updatedLead : l
       )
     })));
   };
@@ -63,6 +113,9 @@ export function useLeadManagement(setColumns: React.Dispatch<React.SetStateActio
     setIsLeadDetailOpen,
     openLeadDetail,
     toggleTagOnLead,
-    updateLeadNotes
+    updateLeadNotes,
+    updateLeadPurchaseValue,
+    updateLeadAssignedUser,
+    updateLeadName
   };
 }

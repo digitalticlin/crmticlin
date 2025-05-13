@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import { useSalesFunnel } from "@/hooks/useSalesFunnel";
@@ -29,6 +30,10 @@ export default function SalesFunnel() {
     toggleTagOnLead,
     createTag,
     updateLeadNotes,
+    updateLeadPurchaseValue,
+    updateLeadAssignedUser,
+    updateLeadName,
+    receiveNewLead
   } = useSalesFunnel();
 
   const handleOpenChat = (lead: KanbanLead) => {
@@ -172,6 +177,9 @@ export default function SalesFunnel() {
         onToggleTag={toggleTagOnLead}
         onUpdateNotes={updateLeadNotes}
         onCreateTag={createTag}
+        onUpdatePurchaseValue={updateLeadPurchaseValue}
+        onUpdateAssignedUser={updateLeadAssignedUser}
+        onUpdateName={updateLeadName}
       />
     </div>
   );

@@ -1,90 +1,75 @@
 
 import { useState } from "react";
-import { KanbanColumn, FIXED_COLUMN_IDS } from "@/types/kanban";
-import { toast } from "sonner";
+import { KanbanColumn, KanbanLead, FIXED_COLUMN_IDS } from "@/types/kanban";
+import { generateLeadId } from "@/lib/utils";
 
 export function useColumnManagement(initialColumns: KanbanColumn[]) {
   const [columns, setColumns] = useState<KanbanColumn[]>(initialColumns);
 
   // Add a new column
-  const addColumn = (title: string) => {
-    if (!title.trim()) return;
-    
+  const addColumn = (title: string, color?: string) => {
     const newColumn: KanbanColumn = {
       id: `column-${Date.now()}`,
       title,
       leads: [],
+      color
     };
     
-    // Add the new column before the fixed hidden columns
-    const visibleColumns = columns.filter(col => !col.isHidden);
-    const hiddenColumns = columns.filter(col => col.isHidden);
-    
-    setColumns([...visibleColumns, newColumn, ...hiddenColumns]);
+    setColumns([...columns, newColumn]);
   };
 
-  // Update a column
+  // Update a column's title or other properties
   const updateColumn = (updatedColumn: KanbanColumn) => {
-    if (!updatedColumn || !updatedColumn.title.trim()) return;
-    
-    // Don't allow updating fixed columns
-    if (updatedColumn.isFixed) {
-      toast.error("Não é possível editar etapas padrão do sistema.");
-      return;
-    }
-    
-    setColumns(columns.map(col => 
-      col.id === updatedColumn.id ? { ...col, title: updatedColumn.title } : col
+    setColumns(columns.map(column =>
+      column.id === updatedColumn.id
+        ? updatedColumn
+        : column
     ));
   };
 
   // Delete a column
   const deleteColumn = (columnId: string) => {
+    // Find the column to be deleted
     const columnToDelete = columns.find(col => col.id === columnId);
     
-    // Don't allow deleting fixed columns
-    if (columnToDelete?.isFixed) {
-      toast.error("Não é possível excluir etapas padrão do sistema.");
-      return;
+    if (!columnToDelete) return;
+    
+    // Find the first non-hidden column to move leads to
+    const firstVisibleColumn = columns.find(col => !col.isHidden && col.id !== columnId);
+    
+    if (firstVisibleColumn && columnToDelete.leads.length > 0) {
+      // Move leads to the first visible column
+      firstVisibleColumn.leads = [
+        ...firstVisibleColumn.leads,
+        ...columnToDelete.leads.map(lead => ({
+          ...lead,
+          columnId: firstVisibleColumn.id
+        }))
+      ];
     }
     
-    // Move any leads in this column to the first column (NEW_LEAD)
-    const columnLeads = columnToDelete?.leads || [];
-    
-    if (columnLeads.length > 0) {
-      const newColumns = columns.map(col => {
-        if (col.id === FIXED_COLUMN_IDS.NEW_LEAD) {
-          return {
-            ...col,
-            leads: [...col.leads, ...columnLeads]
-          };
-        }
-        return col;
-      });
-      
-      setColumns(newColumns.filter(col => col.id !== columnId));
-      toast.success("Coluna excluída e leads movidos para Entrada de Lead");
-    } else {
-      setColumns(columns.filter(col => col.id !== columnId));
-      toast.success("Coluna excluída com sucesso");
-    }
+    // Remove the column
+    setColumns(columns.filter(column => column.id !== columnId));
   };
 
-  // Simulate receiving a new lead from WhatsApp API
-  const receiveNewLead = (lead: any) => {
-    setColumns(columns.map(col => {
-      if (col.id === FIXED_COLUMN_IDS.NEW_LEAD) {
-        return {
-          ...col,
-          leads: [lead, ...col.leads]
-        };
-      }
-      return col;
-    }));
+  // Receive a new lead into the NEW_LEAD column
+  const receiveNewLead = (lead: Omit<KanbanLead, 'id' | 'name' | 'columnId'>) => {
+    const newLeadColumn = columns.find(col => col.id === FIXED_COLUMN_IDS.NEW_LEAD);
     
-    toast.success(`Novo lead recebido: ${lead.name}`, {
-      description: "Lead adicionado automaticamente à etapa de entrada."
-    });
+    if (!newLeadColumn) return;
+    
+    const newLead: KanbanLead = {
+      id: `lead-${Date.now()}`,
+      name: generateLeadId(), // Use ID as name initially for new leads
+      columnId: FIXED_COLUMN_IDS.NEW_LEAD,
+      ...lead
+    };
+    
+    setColumns(columns.map(col => 
+      col.id === FIXED_COLUMN_IDS.NEW_LEAD
+        ? { ...col, leads: [newLead, ...col.leads] }
+        : col
+    ));
   };
 
   return {

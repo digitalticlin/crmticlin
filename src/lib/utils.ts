@@ -1,3 +1,4 @@
+
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { FIXED_COLUMN_IDS } from "@/types/kanban"
@@ -38,4 +39,14 @@ export function formatCurrency(value: number): string {
     style: 'currency',
     currency: 'BRL',
   }).format(value);
+}
+
+// Generate a lead ID in the format "ID: XXXXXXXX"
+export function generateLeadId(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let id = 'ID: ';
+  for (let i = 0; i < 8; i++) {
+    id += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return id;
 }

@@ -26,7 +26,10 @@ export const useSalesFunnel = () => {
     setIsLeadDetailOpen,
     openLeadDetail,
     toggleTagOnLead,
-    updateLeadNotes 
+    updateLeadNotes,
+    updateLeadPurchaseValue,
+    updateLeadAssignedUser,
+    updateLeadName
   } = useLeadManagement(setColumns);
 
   // Create a wrapper for createTag that adds the tag to the selected lead
@@ -64,6 +67,9 @@ export const useSalesFunnel = () => {
     toggleTagOnLead,
     createTag,
     updateLeadNotes,
+    updateLeadPurchaseValue,
+    updateLeadAssignedUser,
+    updateLeadName,
     receiveNewLead
   };
 };

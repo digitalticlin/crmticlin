@@ -1,8 +1,10 @@
 
 import { KanbanLead, KanbanTag } from "@/types/kanban";
-import { MessageSquare, Save } from "lucide-react";
+import { MessageSquare, Save, DollarSign, User, Phone, PencilLine } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Sheet,
   SheetContent,
@@ -12,6 +14,9 @@ import {
   SheetFooter,
 } from "@/components/ui/sheet";
 import { TagSelector } from "./TagSelector";
+import { formatCurrency } from "@/lib/utils";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface LeadDetailSidebarProps {
   isOpen: boolean;
@@ -20,6 +25,9 @@ interface LeadDetailSidebarProps {
   availableTags: KanbanTag[];
   onToggleTag: (tagId: string) => void;
   onUpdateNotes: (notes: string) => void;
+  onUpdatePurchaseValue?: (purchaseValue: number | undefined) => void;
+  onUpdateAssignedUser?: (assignedUser: string) => void;
+  onUpdateName?: (name: string) => void;
   onCreateTag?: (name: string, color: string) => void;
 }
 
@@ -30,19 +38,158 @@ export const LeadDetailSidebar = ({
   availableTags,
   onToggleTag,
   onUpdateNotes,
+  onUpdatePurchaseValue,
+  onUpdateAssignedUser,
+  onUpdateName,
   onCreateTag,
 }: LeadDetailSidebarProps) => {
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameValue, setNameValue] = useState("");
+  const [purchaseValueStr, setPurchaseValueStr] = useState("");
+  const [assignedUser, setAssignedUser] = useState("");
+  
+  // Initialize values when lead changes
+  const resetValues = () => {
+    if (selectedLead) {
+      setNameValue(selectedLead.name);
+      setPurchaseValueStr(selectedLead.purchaseValue !== undefined ? selectedLead.purchaseValue.toString() : "");
+      setAssignedUser(selectedLead.assignedUser || "");
+      setIsEditingName(selectedLead.name.startsWith("ID:"));
+    }
+  };
+
+  // Reset values when lead changes or modal opens
+  if (isOpen && selectedLead && 
+      (nameValue !== selectedLead.name || 
+       (selectedLead.purchaseValue !== undefined ? selectedLead.purchaseValue.toString() : "") !== purchaseValueStr ||
+       (selectedLead.assignedUser || "") !== assignedUser)) {
+    resetValues();
+  }
+
+  const handleSave = () => {
+    if (isEditingName && onUpdateName) {
+      onUpdateName(nameValue);
+      setIsEditingName(false);
+      toast.success("Nome do lead atualizado");
+    }
+  };
+
+  const handlePurchaseValueChange = () => {
+    if (!onUpdatePurchaseValue) return;
+    
+    const numberValue = purchaseValueStr ? parseFloat(purchaseValueStr) : undefined;
+    onUpdatePurchaseValue(numberValue);
+    toast.success("Valor de compra atualizado");
+  };
+
+  const handleAssignedUserChange = () => {
+    if (!onUpdateAssignedUser) return;
+    
+    onUpdateAssignedUser(assignedUser);
+    toast.success("Responsável atualizado");
+  };
+
   if (!selectedLead) return null;
+
+  const isNewLead = selectedLead.name.startsWith("ID:");
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-md overflow-y-auto">
         <SheetHeader>
-          <SheetTitle className="text-xl font-semibold">{selectedLead.name}</SheetTitle>
-          <SheetDescription>{selectedLead.phone}</SheetDescription>
+          <div className="flex items-center justify-between">
+            {isEditingName ? (
+              <div className="flex gap-2 items-center w-full">
+                <Input
+                  value={nameValue}
+                  onChange={(e) => setNameValue(e.target.value)}
+                  placeholder="Nome do lead"
+                  className="text-xl font-semibold w-full"
+                  autoFocus
+                />
+                <Button 
+                  size="sm" 
+                  variant="default" 
+                  onClick={handleSave}
+                  disabled={!nameValue.trim()}
+                >
+                  Salvar
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <SheetTitle className="text-xl font-semibold">
+                  {selectedLead.name}
+                </SheetTitle>
+                {isNewLead && (
+                  <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300">
+                    Editar nome
+                  </Badge>
+                )}
+                <Button 
+                  size="icon" 
+                  variant="ghost"
+                  className="h-8 w-8"
+                  onClick={() => setIsEditingName(true)}
+                >
+                  <PencilLine className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+          <SheetDescription className="flex items-center gap-1">
+            <Phone className="h-4 w-4" />
+            {selectedLead.phone}
+          </SheetDescription>
         </SheetHeader>
         
         <div className="mt-6 space-y-6">
+          {/* Purchase Value */}
+          {onUpdatePurchaseValue && (
+            <div>
+              <h3 className="text-sm font-medium mb-2 flex items-center">
+                <DollarSign className="h-4 w-4 mr-1" /> Valor da Compra
+              </h3>
+              <div className="flex items-center gap-2">
+                <Input 
+                  type="number" 
+                  placeholder="0.00"
+                  value={purchaseValueStr}
+                  onChange={(e) => setPurchaseValueStr(e.target.value)}
+                  className="w-full"
+                />
+                <Button size="sm" onClick={handlePurchaseValueChange}>
+                  Salvar
+                </Button>
+              </div>
+              {selectedLead.purchaseValue !== undefined && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Valor atual: {formatCurrency(selectedLead.purchaseValue)}
+                </p>
+              )}
+            </div>
+          )}
+          
+          {/* Assigned User */}
+          {onUpdateAssignedUser && (
+            <div>
+              <h3 className="text-sm font-medium mb-2 flex items-center">
+                <User className="h-4 w-4 mr-1" /> Responsável
+              </h3>
+              <div className="flex items-center gap-2">
+                <Input 
+                  placeholder="Atribuir responsável"
+                  value={assignedUser}
+                  onChange={(e) => setAssignedUser(e.target.value)}
+                  className="w-full"
+                />
+                <Button size="sm" onClick={handleAssignedUserChange}>
+                  Salvar
+                </Button>
+              </div>
+            </div>
+          )}
+          
           {/* Tags Selector */}
           <TagSelector
             availableTags={availableTags}

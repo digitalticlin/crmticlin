@@ -1,5 +1,7 @@
+
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import { Contact, Message } from "@/types/chat";
 import { ChatHeader } from "./ChatHeader";
 import { MessagesList } from "./MessagesList";
@@ -10,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { DealHistory } from "./DealHistory";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { CheckCircle, XCircle, User, Mail, Phone, Tag, StickyNote, MessageSquare, Plus, X } from "lucide-react";
+import { CheckCircle, XCircle, User, Mail, Phone, Tag, StickyNote, MessageSquare, Plus, X, DollarSign } from "lucide-react";
 
 // Mock deal history data
 const mockDeals = [
@@ -57,7 +59,9 @@ export const ChatArea = ({
     email: selectedContact.email || "",
     phone: selectedContact.phone,
     tags: selectedContact.tags || [],
-    notes: selectedContact.notes || ""
+    notes: selectedContact.notes || "",
+    purchaseValue: selectedContact.purchaseValue || 0,
+    assignedUser: selectedContact.assignedUser || ""
   });
 
   const [panelSize, setPanelSize] = useState({
@@ -65,7 +69,7 @@ export const ChatArea = ({
     info: 35
   });
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: any) => {
     setContactData({
       ...contactData,
       [field]: value
@@ -157,6 +161,34 @@ export const ChatArea = ({
                 <Input 
                   value={contactData.phone} 
                   onChange={(e) => handleInputChange("phone", e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-1 flex items-center">
+                  <DollarSign className="h-4 w-4 mr-1" /> Valor da Compra
+                </label>
+                <Input 
+                  type="number"
+                  value={contactData.purchaseValue} 
+                  onChange={(e) => handleInputChange("purchaseValue", parseFloat(e.target.value) || 0)}
+                  placeholder="0.00"
+                />
+                {contactData.purchaseValue > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {formatCurrency(contactData.purchaseValue)}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-1 flex items-center">
+                  <User className="h-4 w-4 mr-1" /> Responsável
+                </label>
+                <Input 
+                  value={contactData.assignedUser} 
+                  onChange={(e) => handleInputChange("assignedUser", e.target.value)}
+                  placeholder="Atribuir responsável"
                 />
               </div>
               
