@@ -15,6 +15,7 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import SalesFunnel from "./pages/SalesFunnel";
 import Chat from "./pages/Chat";
+import Clients from "./pages/Clients";
 import Automation from "./pages/Automation";
 import Register from "./pages/Register";
 import ConfirmEmailInstructions from "./pages/ConfirmEmailInstructions";
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/sales-funnel" element={<SalesFunnel />} />
             <Route path="/chat" element={<Chat />} />
+            <Route path="/clients" element={<Clients />} />
             <Route path="/whatsapp" element={<WhatsApp />} />
             <Route path="/automation" element={<Automation />} />
             <Route path="/team" element={<Team />} />
