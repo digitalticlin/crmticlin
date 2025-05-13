@@ -23,9 +23,10 @@ export interface Contact {
   lastMessage?: string;
   unreadCount?: number;
   avatar?: string;
-  company?: string;  // New field for company name
-  createdAt?: string; // New field for creation date
-  deals?: Deal[]; // New field for deal history
+  company?: string;  // Field for company name
+  createdAt?: string; // Field for creation date
+  deals?: Deal[]; // Field for deal history
+  isOnline?: boolean; // New field for online status
 }
 
 export interface Message {
@@ -34,6 +35,8 @@ export interface Message {
   sender: "user" | "contact";
   time: string;
   status?: "sent" | "delivered" | "read";
+  isIncoming?: boolean; // New field to indicate if the message is incoming
+  fromMe?: boolean; // Alternative field for compatibility
 }
 
 export interface ChatMessage {
@@ -50,4 +53,3 @@ export interface ChatMessage {
     mimetype: string;
   };
 }
-

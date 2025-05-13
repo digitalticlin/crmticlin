@@ -84,39 +84,45 @@ export default function Chat() {
         text: "Olá, como posso ajudar você hoje?",
         time: "09:30",
         isIncoming: false,
+        sender: "user",
         status: "read"
       },
       {
         id: "msg2",
         text: "Estou interessado nos seus serviços. Pode me dar mais informações?",
         time: "09:32",
-        isIncoming: true
+        isIncoming: true,
+        sender: "contact"
       },
       {
         id: "msg3",
         text: "Claro! Temos vários planos disponíveis. O básico custa R$99/mês e inclui 1000 mensagens.",
         time: "09:34",
         isIncoming: false,
+        sender: "user",
         status: "read"
       },
       {
         id: "msg4",
         text: "Esse valor cabe no meu orçamento. Como funciona a integração?",
         time: "09:37",
-        isIncoming: true
+        isIncoming: true,
+        sender: "contact"
       },
       {
         id: "msg5",
         text: "A integração é simples! Depois da contratação, você recebe um link para conectar seu WhatsApp através de um QR Code.",
         time: "09:40",
         isIncoming: false,
+        sender: "user",
         status: "delivered"
       },
       {
         id: "msg6",
-        text: contact.lastMessage,
-        time: contact.lastMessageTime,
-        isIncoming: true
+        text: contact.lastMessage || "",
+        time: contact.lastMessageTime || "",
+        isIncoming: true,
+        sender: "contact"
       },
     ];
     
@@ -139,6 +145,7 @@ export default function Chat() {
       text: newMessageText,
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isIncoming: false,
+      sender: "user",
       status: "sent"
     };
     
