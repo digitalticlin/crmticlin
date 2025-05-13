@@ -25,12 +25,10 @@ const ProfileForm = ({
   companyName,
   documentId,
   whatsapp,
-  position,
   handleEmailChange,
   setFullName,
   setDocumentId,
-  setWhatsapp,
-  setPosition
+  setWhatsapp
 }: ProfileFormProps) => {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
@@ -91,15 +89,6 @@ const ProfileForm = ({
             onChange={(e) => setWhatsapp(e.target.value)}
           />
         </div>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="position">Cargo</Label>
-        <Input 
-          id="position" 
-          value={position}
-          onChange={(e) => setPosition(e.target.value)}
-        />
       </div>
     </div>
   );

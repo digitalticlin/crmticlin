@@ -1,7 +1,5 @@
 
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 
 interface SecuritySectionProps {
   email: string;
@@ -22,16 +20,6 @@ const SecuritySection = ({ email, onChangePassword }: SecuritySectionProps) => {
         <p className="text-sm text-muted-foreground">
           Um email será enviado com instruções para alterar sua senha
         </p>
-      </div>
-      
-      <div className="flex items-center justify-between">
-        <div className="space-y-0.5">
-          <Label>Autenticação de dois fatores</Label>
-          <p className="text-sm text-muted-foreground">
-            Adicione uma camada extra de segurança à sua conta
-          </p>
-        </div>
-        <Switch />
       </div>
     </div>
   );
