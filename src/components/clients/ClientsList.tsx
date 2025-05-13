@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Contact } from "@/types/chat";
 import { Input } from "@/components/ui/input";
-import { Search, Building } from "lucide-react";
+import { Search, Edit } from "lucide-react";
 import { 
   Table, 
   TableBody, 
@@ -11,8 +11,6 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { formatCurrency } from "@/lib/utils";
-import { TagBadge } from "@/components/sales/tags/TagBadge";
 
 interface ClientsListProps {
   clients: Contact[];
@@ -26,8 +24,7 @@ export const ClientsList = ({ clients, onSelectClient }: ClientsListProps) => {
   const filteredClients = clients.filter(client => 
     client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     client.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (client.email && client.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (client.company && client.company.toLowerCase().includes(searchQuery.toLowerCase()))
+    (client.email && client.email.toLowerCase().includes(searchQuery.toLowerCase()))
   );
   
   return (
@@ -35,7 +32,7 @@ export const ClientsList = ({ clients, onSelectClient }: ClientsListProps) => {
       <div className="p-4 flex gap-2 items-center">
         <Search className="w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar cliente por nome, telefone, email ou empresa..."
+          placeholder="Buscar cliente por nome, telefone ou email..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="flex-1"
@@ -47,12 +44,10 @@ export const ClientsList = ({ clients, onSelectClient }: ClientsListProps) => {
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
-              <TableHead>Empresa</TableHead>
               <TableHead>Telefone</TableHead>
               <TableHead>Email</TableHead>
-              <TableHead>Tags</TableHead>
-              <TableHead>Valor de Compra</TableHead>
-              <TableHead>Responsável</TableHead>
+              <TableHead>Etapa do Funil</TableHead>
+              <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -60,38 +55,33 @@ export const ClientsList = ({ clients, onSelectClient }: ClientsListProps) => {
               <TableRow 
                 key={client.id} 
                 className="cursor-pointer hover:bg-muted/50"
-                onClick={() => onSelectClient(client)}
               >
                 <TableCell className="font-medium">{client.name}</TableCell>
-                <TableCell>
-                  {client.company ? (
-                    <div className="flex items-center gap-1">
-                      <Building className="h-3 w-3 text-muted-foreground" />
-                      <span>{client.company}</span>
-                    </div>
-                  ) : "-"}
-                </TableCell>
                 <TableCell>{client.phone}</TableCell>
                 <TableCell>{client.email || "-"}</TableCell>
                 <TableCell>
-                  <div className="flex gap-1 flex-wrap">
-                    {client.tags ? client.tags.map(tag => (
-                      <TagBadge 
-                        key={tag} 
-                        tag={{ id: tag, name: tag, color: "bg-blue-100" }} 
-                      />
-                    )) : "-"}
-                  </div>
+                  {client.deals && client.deals.length > 0 
+                    ? client.deals[0].status === "won" 
+                      ? "Ganho" 
+                      : "Em andamento" 
+                    : "Novo Lead"}
                 </TableCell>
                 <TableCell>
-                  {client.purchaseValue ? formatCurrency(client.purchaseValue) : "-"}
+                  <div 
+                    className="flex items-center justify-center cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onSelectClient(client);
+                    }}
+                  >
+                    <Edit className="h-4 w-4 text-muted-foreground hover:text-primary" />
+                  </div>
                 </TableCell>
-                <TableCell>{client.assignedUser || "-"}</TableCell>
               </TableRow>
             ))}
             {filteredClients.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell colSpan={5} className="h-24 text-center">
                   Nenhum cliente encontrado.
                 </TableCell>
               </TableRow>
