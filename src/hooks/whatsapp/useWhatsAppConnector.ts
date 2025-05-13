@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { toast } from "sonner";
 import { useWhatsAppInstanceState, WhatsAppInstance } from "./whatsappInstanceStore";
@@ -13,32 +14,45 @@ export const useWhatsAppConnector = () => {
   /**
    * Connects a WhatsApp instance and returns a QR code
    */
-  const connectInstance = async (instanceId: string | WhatsAppInstance): Promise<string> => {
+  const connectInstance = async (instanceIdOrInstance: string | WhatsAppInstance): Promise<string> => {
     try {
       // Check if instanceId is a string or a WhatsAppInstance object
-      const instanceName = typeof instanceId === 'string' 
-        ? instances.find(i => i.id === instanceId)?.instanceName 
-        : instanceId.instanceName;
+      const instance = typeof instanceIdOrInstance === 'string' 
+        ? instances.find(i => i.id === instanceIdOrInstance)
+        : instanceIdOrInstance;
       
-      if (!instanceName) {
+      if (!instance) {
         throw new Error("Invalid instance");
       }
+
+      const instanceName = instance.instanceName;
+      const instanceId = typeof instanceIdOrInstance === 'string' 
+        ? instanceIdOrInstance 
+        : instance.id;
       
-      setIsLoading(prev => ({ ...prev, [instanceName]: true }));
+      console.log(`Connecting instance ${instanceId}: ${instanceName}`);
+      setIsLoading(prev => ({ ...prev, [instanceId]: true }));
       setLastError(null);
       
       // Connect to Evolution API
+      console.log(`Calling Evolution API to connect instance: ${instanceName}`);
       const qrCode = await evolutionApiService.connectInstance(instanceName);
       
       if (!qrCode) {
+        console.error("Failed to get QR code from Evolution API");
         throw new Error("Failed to get QR code from Evolution API");
       }
       
+      console.log(`QR Code received for ${instanceName} (first 50 chars): ${qrCode.substring(0, 50)}`);
+      
       // Save QR code to database
-      if (typeof instanceId === 'string') {
+      try {
+        console.log(`Saving QR code to database for instance ID: ${instanceId}`);
         await updateQrCodeInDatabase(instanceId, qrCode);
-      } else {
-        await updateQrCodeInDatabase(instanceId.id, qrCode);
+        console.log(`QR code saved to database for ${instanceName}`);
+      } catch (dbError) {
+        console.error("Error updating QR code in database:", dbError);
+        // Continue even if DB update fails
       }
       
       // Return the QR code
@@ -49,11 +63,10 @@ export const useWhatsAppConnector = () => {
       setLastError(error?.message || "Error connecting WhatsApp instance");
       throw error;
     } finally {
-      if (typeof instanceId === 'string') {
-        setIsLoading(prev => ({ ...prev, [instanceId]: false }));
-      } else {
-        setIsLoading(prev => ({ ...prev, [instanceId.instanceName]: false }));
-      }
+      const instanceId = typeof instanceIdOrInstance === 'string' 
+        ? instanceIdOrInstance 
+        : instanceIdOrInstance.id;
+      setIsLoading(prev => ({ ...prev, [instanceId]: false }));
     }
   };
 

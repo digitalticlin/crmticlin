@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { useWhatsAppInstanceActions, useWhatsAppInstanceState, WhatsAppInstance } from "./whatsappInstanceStore";
 import { useWhatsAppConnector } from "./useWhatsAppConnector";
 import { supabase } from "@/integrations/supabase/client";
+import { evolutionApiService } from "@/services/evolution-api";
 
 /**
  * Hook for creating new WhatsApp instances
@@ -92,24 +93,56 @@ export const useWhatsAppCreator = (companyId: string | null) => {
       // Connect the instance - this will create it in Evolution API
       // and generate a QR code
       console.log("Calling connectInstance with new instance:", newInstance);
-      const qrCodeUrl = await connectInstance(newInstance);
       
-      if (!qrCodeUrl) {
-        throw new Error("Failed to get QR code from Evolution API");
+      try {
+        // Direct call to Evolution API service to create instance
+        console.log("Attempting direct call to Evolution API create instance");
+        const createdInstance = await evolutionApiService.createInstance(uniqueInstanceName);
+        
+        if (!createdInstance || !createdInstance.qrcode?.base64) {
+          throw new Error("Failed to create instance or get QR code");
+        }
+        
+        console.log("Instance created successfully in Evolution API");
+        const qrCodeUrl = `data:image/png;base64,${createdInstance.qrcode.base64}`;
+        
+        // Update the instance with QR code
+        updateInstance(newInstanceId, {
+          qrCodeUrl,
+          status: 'connecting'
+        });
+        
+        console.log("QR code set in instance");
+        
+        // Return the instance with QR Code
+        return {
+          ...newInstance,
+          qrCodeUrl
+        };
+      } catch (apiError) {
+        console.error("Error calling Evolution API directly:", apiError);
+        
+        // Fallback to connectInstance method
+        console.log("Falling back to connectInstance method");
+        const qrCodeUrl = await connectInstance(newInstance);
+        
+        if (!qrCodeUrl) {
+          throw new Error("Failed to get QR code from Evolution API");
+        }
+        
+        // Update the instance with the QR code
+        updateInstance(newInstanceId, {
+          qrCodeUrl
+        });
+        
+        console.log("QR code received from fallback method");
+        
+        // Return the instance with QR Code
+        return {
+          ...newInstance,
+          qrCodeUrl
+        };
       }
-      
-      console.log("QR code received, updating instance");
-      
-      // Update the instance with the QR code
-      updateInstance(newInstanceId, {
-        qrCodeUrl
-      });
-      
-      // Return the instance with QR Code
-      return {
-        ...newInstance,
-        qrCodeUrl
-      };
     } catch (error) {
       console.error("Erro ao adicionar nova instância:", error);
       toast.error("Não foi possível adicionar nova instância");

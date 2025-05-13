@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
-import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
+import { useWhatsAppInstances } from "@/hooks/whatsapp/useWhatsAppInstanceCore";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {

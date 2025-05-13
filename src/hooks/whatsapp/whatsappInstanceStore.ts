@@ -4,54 +4,53 @@ import { create } from 'zustand';
 export interface WhatsAppInstance {
   id: string;
   instanceName: string;
-  connected: boolean;
+  connected?: boolean;
+  status?: 'connected' | 'connecting' | 'disconnected';
   qrCodeUrl?: string;
   phoneNumber?: string;
+  lastUpdated?: Date;
 }
 
-interface WhatsAppInstanceState {
+export interface WhatsAppInstanceState {
   instances: WhatsAppInstance[];
-  isLoading: Record<string, boolean>;
-  lastError: string | null;
   setInstances: (instances: WhatsAppInstance[]) => void;
 }
 
-interface WhatsAppInstanceActions {
-  setLoading: (instanceId: string, isLoading: boolean) => void;
-  setError: (error: string | null) => void;
-  updateInstance: (instanceId: string, instance: Partial<WhatsAppInstance>) => void;
+export interface WhatsAppInstanceActions {
+  updateInstance: (id: string, updates: Partial<WhatsAppInstance>) => void;
+  removeInstance: (id: string) => void;
   addInstance: (instance: WhatsAppInstance) => void;
 }
 
-const useWhatsAppInstanceStore = create<WhatsAppInstanceState & { actions: WhatsAppInstanceActions }>((set) => ({
+export const useWhatsAppInstanceState = create<WhatsAppInstanceState>((set) => ({
   instances: [],
-  isLoading: {},
-  lastError: null,
   setInstances: (instances) => set({ instances }),
-  actions: {
-    setLoading: (instanceId, isLoading) => set((state) => ({
-      isLoading: { ...state.isLoading, [instanceId]: isLoading }
-    })),
-    setError: (error) => set({ lastError: error }),
-    updateInstance: (instanceId, updatedInstance) => set((state) => ({
-      instances: state.instances.map(instance => 
-        instance.id === instanceId ? { ...instance, ...updatedInstance } : instance
-      )
-    })),
-    addInstance: (instance) => set((state) => ({
-      instances: [...state.instances, instance]
-    }))
-  }
 }));
 
-// Make store available globally for status updates
-if (typeof window !== 'undefined') {
-  window._whatsAppInstancesStore = useWhatsAppInstanceStore;
-}
-
-export const useWhatsAppInstanceState = () => {
-  const { instances, isLoading, lastError, setInstances } = useWhatsAppInstanceStore();
-  return { instances, isLoading, lastError, setInstances };
-};
-
-export const useWhatsAppInstanceActions = () => useWhatsAppInstanceStore((state) => state.actions);
+export const useWhatsAppInstanceActions = create<WhatsAppInstanceActions>((set, get) => ({
+  updateInstance: (id, updates) => {
+    const { instances } = useWhatsAppInstanceState.getState();
+    const updatedInstances = instances.map(instance => 
+      instance.id === id ? { ...instance, ...updates } : instance
+    );
+    useWhatsAppInstanceState.setState({ instances: updatedInstances });
+  },
+  
+  removeInstance: (id) => {
+    const { instances } = useWhatsAppInstanceState.getState();
+    const filteredInstances = instances.filter(instance => instance.id !== id);
+    useWhatsAppInstanceState.setState({ instances: filteredInstances });
+  },
+  
+  addInstance: (instance) => {
+    const { instances } = useWhatsAppInstanceState.getState();
+    // Check if instance already exists to prevent duplicates
+    if (instances.some(i => i.id === instance.id)) {
+      console.log("Instância já existe, não adicionando duplicata:", instance.id);
+      return;
+    }
+    const updatedInstances = [...instances, instance];
+    useWhatsAppInstanceState.setState({ instances: updatedInstances });
+    console.log("Instance added to store:", instance);
+  }
+}));
