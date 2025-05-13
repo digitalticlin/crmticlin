@@ -52,3 +52,17 @@ export interface FetchInstancesResponse {
     status: "connected" | "connecting" | "disconnected";
   }>;
 }
+
+// Type for Evolution API result - needed for database operations
+export interface EvolutionApiResult {
+  instance: {
+    instanceId: string;
+    instanceName: string;
+    [key: string]: any;
+  };
+  hash: string;
+  qrcode?: {
+    base64?: string;
+  };
+  [key: string]: any;
+}

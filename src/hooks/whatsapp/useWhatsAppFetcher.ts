@@ -11,13 +11,46 @@ import {
 /**
  * Hook para buscar instâncias WhatsApp do banco de dados
  */
-export const useWhatsAppFetcher = (userEmail: string) => {
+export const useWhatsAppFetcher = (userEmail: string = "") => {
   const { setInstances } = useWhatsAppInstanceState();
   const { setError } = useWhatsAppInstanceActions();
   
   // Gera o nome da instância com base no email (parte antes do @)
   const instanceName = userEmail ? userEmail.split('@')[0] : "";
   
+  // Fetch instances from the database for a specific company
+  const fetchInstances = async (companyId: string) => {
+    try {
+      console.log(`Fetching WhatsApp instances for company: ${companyId}`);
+      setError(null);
+      
+      // Fetch instances from Supabase
+      const { data, error } = await supabase
+        .from('whatsapp_numbers')
+        .select('*')
+        .eq('company_id', companyId);
+
+      if (error) {
+        throw error;
+      }
+
+      if (data && data.length > 0) {
+        console.log(`Found ${data.length} WhatsApp instances for company ${companyId}`);
+        const mappedInstances = mapDatabaseInstancesToState(data);
+        setInstances(mappedInstances);
+        return mappedInstances;
+      } else {
+        console.log(`No WhatsApp instances found for company ${companyId}`);
+        return [];
+      }
+    } catch (error) {
+      console.error(`Error fetching WhatsApp instances for company ${companyId}:`, error);
+      setError("Error loading WhatsApp instances");
+      toast.error("Error loading WhatsApp instances");
+      return [];
+    }
+  };
+
   // Busca as instâncias do usuário no banco de dados
   const fetchUserInstances = async () => {
     try {
@@ -66,6 +99,7 @@ export const useWhatsAppFetcher = (userEmail: string) => {
   };
 
   return {
+    fetchInstances,
     fetchUserInstances,
     instanceName
   };

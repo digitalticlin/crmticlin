@@ -17,15 +17,15 @@ export const useWhatsAppInstances = (userEmail: string | null) => {
   const [showQrCode, setShowQrCode] = useState<string | null>(null);
   
   // Get company ID from user email
-  const { companyId } = useCompanyResolver(userEmail || "");
+  const companyId = useCompanyResolver(userEmail || "");
   
   // Pull in specialized hooks for different aspects of WhatsApp management
   const { instances, isLoading, setInstances } = useWhatsAppInstanceState();
   const { setLoading, setError, updateInstance } = useWhatsAppInstanceActions();
-  const { fetchInstances, fetchUserInstances } = useWhatsAppFetcher();
+  const { fetchInstances, fetchUserInstances } = useWhatsAppFetcher(userEmail || "");
   const { connectInstance, refreshQrCode, checkConnectionStatus } = useWhatsAppConnector();
   const { deleteInstance: disconnectInstance } = useWhatsAppDisconnector();
-  const { addNewInstance: createInstance } = useWhatsAppCreator(companyId);
+  const { addNewInstance: createInstance } = useWhatsAppCreator(companyId || "");
   
   // Load instances on component mount
   useEffect(() => {
