@@ -1,6 +1,6 @@
 
 import { Card, CardContent } from "@/components/ui/card";
-import { WhatsApp } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -59,7 +59,7 @@ const PlaceholderInstanceCard = ({ isSuperAdmin = false }: PlaceholderInstanceCa
       <Card className="overflow-hidden glass-card border-0 flex flex-col items-center justify-center p-6 border-dashed border-2 border-gray-200 dark:border-gray-700 bg-transparent">
         <CardContent className="p-0 flex flex-col items-center text-center space-y-2">
           <div className="mb-2">
-            <WhatsApp className="h-12 w-12 text-green-500" />
+            <MessageSquare className="h-12 w-12 text-green-500" />
           </div>
           
           <h3 className="font-medium">Adicionar número</h3>

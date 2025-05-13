@@ -85,7 +85,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
       setInstances([newInstance, ...instances]);
       
       // Conectar a instância
-      await connectInstance(newInstance.id);
+      await connectInstance(newInstance);
       
       return newInstance;
     } catch (error) {
@@ -107,23 +107,31 @@ export const useWhatsAppInstances = (userEmail: string) => {
     setLastError,
     
     // Funções
-    connectInstance: async (instanceId: string) => {
+    connectInstance: async (instanceId: string | WhatsAppInstance) => {
       try {
-        setIsLoading(prev => ({ ...prev, [instanceId]: true }));
-        setLastError(null);
-        
-        const instance = instances.find(i => i.id === instanceId);
-        if (!instance) {
+        // Verificar se instanceId é uma string ou um objeto WhatsAppInstance
+        const instanceToConnect = typeof instanceId === 'string' 
+          ? instances.find(i => i.id === instanceId) 
+          : instanceId;
+          
+        if (!instanceToConnect) {
           throw new Error("Instância não encontrada");
         }
         
-        await connectInstance(instance);
-        setShowQrCode(instanceId);
+        setIsLoading(prev => ({ ...prev, [instanceToConnect.id]: true }));
+        setLastError(null);
+        
+        await connectInstance(instanceToConnect);
+        setShowQrCode(instanceToConnect.id);
       } catch (error: any) {
         console.error("Erro ao conectar instância:", error);
         setLastError(error?.message || "Erro ao conectar instância WhatsApp");
       } finally {
-        setIsLoading(prev => ({ ...prev, [instanceId]: false }));
+        if (typeof instanceId === 'string') {
+          setIsLoading(prev => ({ ...prev, [instanceId]: false }));
+        } else {
+          setIsLoading(prev => ({ ...prev, [instanceId.id]: false }));
+        }
       }
     },
     
