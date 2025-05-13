@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function ConfirmEmail() {
   const { token } = useParams();
@@ -10,22 +11,34 @@ export default function ConfirmEmail() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    // Aqui seria a lógica para verificar o token com o backend
-    // Por enquanto, vamos apenas simular
     const verifyToken = async () => {
       try {
-        // Simulando uma chamada de API
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // Na realidade, o processo de verificação do token é automático
+        // pelo Supabase quando o usuário clica no link enviado por e-mail.
+        // Aqui, apenas verificamos se há um token e se o usuário está autenticado.
         
-        // Simulando sucesso (em um caso real, isso seria baseado na resposta do backend)
-        if (token && token.length > 5) {
+        // Como o token é passado via URL, podemos verificar se ele existe
+        if (!token) {
+          setStatus("error");
+          setMessage("Token de confirmação não encontrado. Por favor, solicite um novo e-mail de confirmação.");
+          return;
+        }
+        
+        // Verificar se o usuário já está autenticado
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          // Se o usuário já está autenticado, a confirmação foi bem-sucedida
           setStatus("success");
           setMessage("Seu e-mail foi confirmado com sucesso!");
         } else {
+          // O Supabase deve ter direcionado o usuário para esta página,
+          // mas o processo de confirmação não foi concluído por algum motivo
           setStatus("error");
-          setMessage("O link é inválido ou expirou. Por favor, solicite um novo e-mail de confirmação.");
+          setMessage("Não foi possível verificar seu e-mail. O link pode ter expirado ou ser inválido.");
         }
       } catch (error) {
+        console.error("Erro na verificação do token:", error);
         setStatus("error");
         setMessage("Ocorreu um erro ao confirmar seu e-mail. Por favor, tente novamente.");
       }
@@ -33,6 +46,23 @@ export default function ConfirmEmail() {
 
     verifyToken();
   }, [token]);
+
+  const handleResendEmail = async () => {
+    try {
+      // Para reenviar o email, precisaríamos do email do usuário
+      // Por simplicidade, redirecionamos para a página de recuperação de senha
+      // onde o usuário pode informar o email novamente
+      setMessage("Redirecionando para recuperação de senha...");
+      
+      setTimeout(() => {
+        window.location.href = "/forgot-password";
+      }, 2000);
+    } catch (error) {
+      console.error("Erro ao reenviar email:", error);
+      setStatus("error");
+      setMessage("Erro ao reenviar e-mail de confirmação. Tente novamente.");
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
@@ -78,7 +108,7 @@ export default function ConfirmEmail() {
               <h1 className="text-2xl font-bold">Erro na confirmação</h1>
               <p className="text-gray-600 dark:text-gray-400">{message}</p>
               <div className="space-y-2">
-                <Button variant="outline" className="w-full">
+                <Button variant="outline" className="w-full" onClick={handleResendEmail}>
                   Reenviar e-mail de confirmação
                 </Button>
                 <Link to="/">

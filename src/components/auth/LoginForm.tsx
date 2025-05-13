@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ArrowRight, Eye, EyeOff, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +15,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
   email: z.string().email("E-mail inválido"),
@@ -27,7 +27,7 @@ type FormValues = z.infer<typeof formSchema>;
 const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
+  const { signIn } = useAuth();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -41,15 +41,11 @@ const LoginForm = () => {
     setIsLoading(true);
     
     try {
-      console.log("Login com:", values);
-      // Simulando uma chamada de API
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      toast.success("Login realizado com sucesso!");
-      navigate("/dashboard");
+      await signIn(values.email, values.password);
+      // Redirecionamento é feito no AuthContext após login bem-sucedido
     } catch (error) {
-      console.error("Erro no login:", error);
-      toast.error("Credenciais inválidas. Tente novamente.");
+      // Erros são tratados no AuthContext
+      console.error("Erro de login:", error);
     } finally {
       setIsLoading(false);
     }

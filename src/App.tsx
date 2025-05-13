@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/use-theme";
+import { AuthProvider } from "@/contexts/AuthContext";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Team from "./pages/Team";
@@ -21,6 +23,8 @@ import Register from "./pages/Register";
 import ConfirmEmailInstructions from "./pages/ConfirmEmailInstructions";
 import ConfirmEmail from "./pages/ConfirmEmail";
 import GlobalAdmin from "./pages/GlobalAdmin";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -31,25 +35,33 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/confirm-email-instructions" element={<ConfirmEmailInstructions />} />
-            <Route path="/confirm-email/:token" element={<ConfirmEmail />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/sales-funnel" element={<SalesFunnel />} />
-            <Route path="/chat" element={<Chat />} />
-            <Route path="/clients" element={<Clients />} />
-            <Route path="/automation" element={<Automation />} />
-            <Route path="/integration" element={<Integration />} />
-            <Route path="/team" element={<Team />} />
-            <Route path="/plans" element={<Plans />} />
-            <Route path="/ai-agents" element={<AIAgents />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/admin" element={<GlobalAdmin />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AuthProvider>
+            <Routes>
+              {/* Rotas públicas */}
+              <Route path="/" element={<Index />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/confirm-email-instructions" element={<ConfirmEmailInstructions />} />
+              <Route path="/confirm-email/:token" element={<ConfirmEmail />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              
+              {/* Rotas protegidas */}
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/sales-funnel" element={<ProtectedRoute><SalesFunnel /></ProtectedRoute>} />
+              <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+              <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
+              <Route path="/automation" element={<ProtectedRoute><Automation /></ProtectedRoute>} />
+              <Route path="/integration" element={<ProtectedRoute><Integration /></ProtectedRoute>} />
+              <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
+              <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
+              <Route path="/ai-agents" element={<ProtectedRoute><AIAgents /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute><GlobalAdmin /></ProtectedRoute>} />
+              
+              {/* Rota de fallback */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>

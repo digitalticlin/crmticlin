@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, Eye, EyeOff, Mail, Phone, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import {
   Form,
@@ -16,6 +15,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Schema de validação do formulário
 const registerSchema = z.object({
@@ -37,6 +37,7 @@ export default function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { signUp } = useAuth();
   
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -71,20 +72,20 @@ export default function RegisterForm() {
     setIsLoading(true);
     
     try {
-      // Aqui seria implementada a lógica de registro com backend
-      // Por enquanto, apenas simulamos o sucesso
-      console.log("Dados de registro:", data);
+      // Preparar os dados do usuário para o Supabase
+      const userData = {
+        full_name: data.fullName,
+        username: data.username,
+        document_id: data.documentId,
+        whatsapp: data.whatsapp
+      };
       
-      // Simulando uma chamada de API
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      toast.success("Cadastro realizado com sucesso! Verifique seu email para confirmar sua conta.");
-      
-      // Redirecionaria para a página de confirmação
-      window.location.href = "/confirm-email-instructions";
+      // Registrar o usuário usando o AuthContext
+      await signUp(data.email, data.password, userData);
+      // Redirecionamento é feito pelo AuthContext após o registro
     } catch (error) {
-      console.error("Erro no cadastro:", error);
-      toast.error("Erro ao criar conta. Por favor, tente novamente.");
+      // Erros são tratados no AuthContext
+      console.error("Erro de registro:", error);
     } finally {
       setIsLoading(false);
     }
