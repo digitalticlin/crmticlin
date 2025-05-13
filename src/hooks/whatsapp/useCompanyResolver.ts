@@ -11,9 +11,13 @@ export const useCompanyResolver = (userEmail: string) => {
   // Fetch company ID for the current user
   useEffect(() => {
     const fetchCompanyId = async () => {
-      if (!userEmail) return;
+      if (!userEmail) {
+        console.error("No user email provided to useCompanyResolver");
+        return;
+      }
       
       try {
+        console.log("useCompanyResolver: Fetching company ID for email:", userEmail);
         const { data: userData } = await supabase.auth.getUser();
         
         if (!userData?.user) {
@@ -21,13 +25,19 @@ export const useCompanyResolver = (userEmail: string) => {
           return;
         }
         
-        const { data: profile } = await supabase
+        const { data: profile, error } = await supabase
           .from('profiles')
           .select('company_id')
           .eq('id', userData.user.id)
           .single();
         
+        if (error) {
+          console.error("Error fetching profile:", error);
+          return;
+        }
+        
         if (profile && profile.company_id) {
+          console.log("useCompanyResolver: Found company ID:", profile.company_id);
           setCompanyId(profile.company_id);
         } else {
           console.error("User has no associated company");

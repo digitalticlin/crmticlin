@@ -16,16 +16,20 @@ import {
 
 interface PlaceholderInstanceCardProps {
   isSuperAdmin?: boolean; // Indica se o usuário é SuperAdmin e não tem restrições de plano
+  userEmail: string; // Add userEmail prop to receive the user's email
 }
 
-const PlaceholderInstanceCard = ({ isSuperAdmin = false }: PlaceholderInstanceCardProps) => {
+const PlaceholderInstanceCard = ({ 
+  isSuperAdmin = false,
+  userEmail  // Receive userEmail as a prop
+}: PlaceholderInstanceCardProps) => {
   const [isCreating, setIsCreating] = useState(false);
   const [username, setUsername] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   
-  // Hook para gerenciar instâncias de WhatsApp
-  const { addNewInstance } = useWhatsAppInstances("");
+  // Hook para gerenciar instâncias de WhatsApp - Pass the userEmail
+  const { addNewInstance } = useWhatsAppInstances(userEmail);
 
   // Buscar informações do usuário atual
   useEffect(() => {

@@ -91,7 +91,10 @@ const WhatsAppSettings = () => {
         ))}
         
         {/* Placeholder para adicionar nova instância - mostrado para SuperAdmin ou usuários com plano adequado */}
-        <PlaceholderInstanceCard isSuperAdmin={isSuperAdmin} />
+        <PlaceholderInstanceCard 
+          isSuperAdmin={isSuperAdmin} 
+          userEmail={userEmail} // Pass the user email to the PlaceholderInstanceCard
+        />
       </div>
     </div>
   );
