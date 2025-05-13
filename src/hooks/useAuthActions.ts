@@ -12,6 +12,11 @@ export const useAuthActions = () => {
    */
   const handleChangePassword = async (email: string) => {
     try {
+      if (!email || !email.trim()) {
+        toast.error("Email não informado");
+        return;
+      }
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });

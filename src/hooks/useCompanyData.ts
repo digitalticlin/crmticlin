@@ -16,11 +16,13 @@ export const useCompanyData = () => {
    */
   const fetchCompanyData = async (id: string) => {
     try {
-      const { data: company } = await supabase
+      const { data: company, error } = await supabase
         .from('companies')
         .select('name')
         .eq('id', id)
         .single();
+        
+      if (error) throw error;
         
       if (company) {
         setCompanyName(company.name);
