@@ -24,6 +24,7 @@ import {
   ServerCog, AlertTriangle, Save
 } from "lucide-react";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
 
 export default function ConfigPanel() {
   const [activeTab, setActiveTab] = useState("general");
@@ -39,6 +40,28 @@ export default function ConfigPanel() {
     aiModel: "gpt-4o",
     aiBotLimit: "100",
     termsText: "Termos e condições para uso da plataforma CRM Ticlin..."
+  });
+  
+  // Create forms for different sections
+  const generalForm = useForm({
+    defaultValues: {
+      systemName: config.systemName,
+      maxInstances: config.maxInstances,
+      maxUsers: config.maxUsers,
+      logRetention: config.logRetention,
+      debugMode: config.debugMode,
+      maintenanceMode: config.maintenanceMode,
+      termsText: config.termsText
+    }
+  });
+
+  const integrationsForm = useForm({
+    defaultValues: {
+      apiUrl: config.apiUrl,
+      webhookUrl: config.webhookUrl,
+      aiModel: config.aiModel,
+      aiBotLimit: config.aiBotLimit
+    }
   });
   
   const handleConfigChange = (field: string, value: any) => {
@@ -72,18 +95,22 @@ export default function ConfigPanel() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Form>
+                <Form {...generalForm}>
                   <div className="space-y-4">
                     <FormField
+                      control={generalForm.control}
                       name="systemName"
-                      render={() => (
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>Nome do Sistema</FormLabel>
                           <FormControl>
                             <Input 
                               placeholder="CRM Ticlin" 
-                              value={config.systemName}
-                              onChange={(e) => handleConfigChange('systemName', e.target.value)}
+                              {...field}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                handleConfigChange('systemName', e.target.value);
+                              }}
                             />
                           </FormControl>
                           <FormDescription>
@@ -94,15 +121,19 @@ export default function ConfigPanel() {
                     />
                     
                     <FormField
+                      control={generalForm.control}
                       name="maxInstances"
-                      render={() => (
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>Limite Máximo de Instâncias WhatsApp</FormLabel>
                           <FormControl>
                             <Input 
                               type="number"
-                              value={config.maxInstances}
-                              onChange={(e) => handleConfigChange('maxInstances', e.target.value)}
+                              {...field}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                handleConfigChange('maxInstances', e.target.value);
+                              }}
                             />
                           </FormControl>
                           <FormDescription>
@@ -113,15 +144,19 @@ export default function ConfigPanel() {
                     />
                     
                     <FormField
+                      control={generalForm.control}
                       name="maxUsers"
-                      render={() => (
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>Limite Máximo de Usuários</FormLabel>
                           <FormControl>
                             <Input 
                               type="number"
-                              value={config.maxUsers}
-                              onChange={(e) => handleConfigChange('maxUsers', e.target.value)}
+                              {...field}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                handleConfigChange('maxUsers', e.target.value);
+                              }}
                             />
                           </FormControl>
                           <FormDescription>
@@ -132,15 +167,19 @@ export default function ConfigPanel() {
                     />
                     
                     <FormField
+                      control={generalForm.control}
                       name="logRetention"
-                      render={() => (
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>Retenção de Logs (dias)</FormLabel>
                           <FormControl>
                             <Input 
                               type="number"
-                              value={config.logRetention}
-                              onChange={(e) => handleConfigChange('logRetention', e.target.value)}
+                              {...field}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                handleConfigChange('logRetention', e.target.value);
+                              }}
                             />
                           </FormControl>
                           <FormDescription>
@@ -152,11 +191,12 @@ export default function ConfigPanel() {
                   </div>
                 </Form>
                 
-                <Form>
+                <Form {...generalForm}>
                   <div className="space-y-4">
                     <FormField
+                      control={generalForm.control}
                       name="debugMode"
-                      render={() => (
+                      render={({ field }) => (
                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                           <div className="space-y-0.5">
                             <FormLabel className="text-base">Modo de Depuração</FormLabel>
@@ -166,8 +206,11 @@ export default function ConfigPanel() {
                           </div>
                           <FormControl>
                             <Switch 
-                              checked={config.debugMode}
-                              onCheckedChange={(checked) => handleConfigChange('debugMode', checked)}
+                              checked={field.value}
+                              onCheckedChange={(checked) => {
+                                field.onChange(checked);
+                                handleConfigChange('debugMode', checked);
+                              }}
                             />
                           </FormControl>
                         </FormItem>
@@ -175,8 +218,9 @@ export default function ConfigPanel() {
                     />
                     
                     <FormField
+                      control={generalForm.control}
                       name="maintenanceMode"
-                      render={() => (
+                      render={({ field }) => (
                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                           <div className="space-y-0.5">
                             <FormLabel className="text-base">Modo de Manutenção</FormLabel>
@@ -186,8 +230,11 @@ export default function ConfigPanel() {
                           </div>
                           <FormControl>
                             <Switch 
-                              checked={config.maintenanceMode}
-                              onCheckedChange={(checked) => handleConfigChange('maintenanceMode', checked)}
+                              checked={field.value}
+                              onCheckedChange={(checked) => {
+                                field.onChange(checked);
+                                handleConfigChange('maintenanceMode', checked);
+                              }}
                             />
                           </FormControl>
                         </FormItem>
@@ -195,15 +242,19 @@ export default function ConfigPanel() {
                     />
                     
                     <FormField
+                      control={generalForm.control}
                       name="termsText"
-                      render={() => (
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>Termos de Uso e Política de Privacidade</FormLabel>
                           <FormControl>
                             <Textarea 
-                              value={config.termsText}
-                              onChange={(e) => handleConfigChange('termsText', e.target.value)}
+                              {...field}
                               className="min-h-[150px]"
+                              onChange={(e) => {
+                                field.onChange(e);
+                                handleConfigChange('termsText', e.target.value);
+                              }}
                             />
                           </FormControl>
                           <FormDescription>
@@ -217,7 +268,10 @@ export default function ConfigPanel() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button className="ml-auto bg-[#d3d800] hover:bg-[#b8bc00]">
+              <Button 
+                className="ml-auto bg-[#d3d800] hover:bg-[#b8bc00]"
+                onClick={() => generalForm.handleSubmit((data) => console.log("Form submitted:", data))()}
+              >
                 <Save className="h-4 w-4 mr-1" /> Salvar Configurações
               </Button>
             </CardFooter>
@@ -265,90 +319,141 @@ export default function ConfigPanel() {
                 <h3 className="text-lg font-medium mb-4 flex items-center">
                   <Database className="h-5 w-5 mr-2" /> Integração Evolution API
                 </h3>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">URL da API</label>
-                      <Input 
-                        placeholder="https://api.evolution.com"
-                        value={config.apiUrl}
-                        onChange={(e) => handleConfigChange('apiUrl', e.target.value)}
+                <Form {...integrationsForm}>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={integrationsForm.control}
+                        name="apiUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>URL da API</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="https://api.evolution.com"
+                                {...field}
+                                onChange={(e) => {
+                                  field.onChange(e);
+                                  handleConfigChange('apiUrl', e.target.value);
+                                }}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Endereço da Evolution API para comunicação
+                            </FormDescription>
+                          </FormItem>
+                        )}
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Endereço da Evolution API para comunicação
-                      </p>
+                      
+                      <FormField
+                        control={integrationsForm.control}
+                        name="webhookUrl"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>URL do Webhook</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="https://ticlin.com.br/api/webhook/evolution"
+                                {...field}
+                                onChange={(e) => {
+                                  field.onChange(e);
+                                  handleConfigChange('webhookUrl', e.target.value);
+                                }}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              URL para recebimento de eventos da Evolution API
+                            </FormDescription>
+                          </FormItem>
+                        )}
+                      />
                     </div>
                     
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">URL do Webhook</label>
-                      <Input 
-                        placeholder="https://ticlin.com.br/api/webhook/evolution"
-                        value={config.webhookUrl}
-                        onChange={(e) => handleConfigChange('webhookUrl', e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        URL para recebimento de eventos da Evolution API
-                      </p>
+                    <div className="flex justify-between items-center p-4 border rounded-lg">
+                      <div className="flex items-center">
+                        <div className="h-3 w-3 rounded-full bg-green-500 mr-2"></div>
+                        <span>Status da Integração</span>
+                      </div>
+                      <span className="text-sm text-green-600">Conectado e Operacional</span>
                     </div>
                   </div>
-                  
-                  <div className="flex justify-between items-center p-4 border rounded-lg">
-                    <div className="flex items-center">
-                      <div className="h-3 w-3 rounded-full bg-green-500 mr-2"></div>
-                      <span>Status da Integração</span>
-                    </div>
-                    <span className="text-sm text-green-600">Conectado e Operacional</span>
-                  </div>
-                </div>
+                </Form>
               </div>
               
               <div>
                 <h3 className="text-lg font-medium mb-4 flex items-center">
                   <Bot className="h-5 w-5 mr-2" /> Configurações de IA
                 </h3>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Modelo de IA</label>
-                      <Input 
-                        placeholder="gpt-4o"
-                        value={config.aiModel}
-                        onChange={(e) => handleConfigChange('aiModel', e.target.value)}
+                <Form {...integrationsForm}>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={integrationsForm.control}
+                        name="aiModel"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Modelo de IA</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="gpt-4o"
+                                {...field}
+                                onChange={(e) => {
+                                  field.onChange(e);
+                                  handleConfigChange('aiModel', e.target.value);
+                                }}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Modelo utilizado para agentes de IA
+                            </FormDescription>
+                          </FormItem>
+                        )}
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Modelo utilizado para agentes de IA
-                      </p>
+                      
+                      <FormField
+                        control={integrationsForm.control}
+                        name="aiBotLimit"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Limite de Agentes IA</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number"
+                                placeholder="100"
+                                {...field}
+                                onChange={(e) => {
+                                  field.onChange(e);
+                                  handleConfigChange('aiBotLimit', e.target.value);
+                                }}
+                              />
+                            </FormControl>
+                            <FormDescription>
+                              Limite máximo de agentes IA simultâneos no sistema
+                            </FormDescription>
+                          </FormItem>
+                        )}
+                      />
                     </div>
                     
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Limite de Agentes IA</label>
-                      <Input 
-                        type="number"
-                        placeholder="100"
-                        value={config.aiBotLimit}
-                        onChange={(e) => handleConfigChange('aiBotLimit', e.target.value)}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Limite máximo de agentes IA simultâneos no sistema
-                      </p>
+                    <div className="flex justify-between items-center p-4 border rounded-lg bg-yellow-50 border-yellow-200">
+                      <div className="flex items-center">
+                        <AlertTriangle className="h-4 w-4 text-yellow-600 mr-2" />
+                        <span className="text-yellow-700">Aviso</span>
+                      </div>
+                      <span className="text-sm text-yellow-700">Alto uso de recursos (85% do limite)</span>
                     </div>
                   </div>
-                  
-                  <div className="flex justify-between items-center p-4 border rounded-lg bg-yellow-50 border-yellow-200">
-                    <div className="flex items-center">
-                      <AlertTriangle className="h-4 w-4 text-yellow-600 mr-2" />
-                      <span className="text-yellow-700">Aviso</span>
-                    </div>
-                    <span className="text-sm text-yellow-700">Alto uso de recursos (85% do limite)</span>
-                  </div>
-                </div>
+                </Form>
               </div>
             </CardContent>
             <CardFooter>
               <Button variant="outline" className="mr-auto">
                 Testar Conexões
               </Button>
-              <Button className="bg-[#d3d800] hover:bg-[#b8bc00]">
+              <Button 
+                className="bg-[#d3d800] hover:bg-[#b8bc00]"
+                onClick={() => integrationsForm.handleSubmit((data) => console.log("Integrations form submitted:", data))()}
+              >
                 <Save className="h-4 w-4 mr-1" /> Salvar Configurações
               </Button>
             </CardFooter>
