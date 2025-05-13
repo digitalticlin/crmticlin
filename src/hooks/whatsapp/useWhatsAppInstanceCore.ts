@@ -64,7 +64,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
     
     // Functions
     checkInstanceStatus,
-    connectInstance: async (instanceId: string | WhatsAppInstance) => {
+    connectInstance: async (instanceId: string | WhatsAppInstance): Promise<void> => {
       try {
         // Check if instanceId is a string or a WhatsAppInstance object
         const instanceToConnect = typeof instanceId === 'string' 
@@ -78,9 +78,9 @@ export const useWhatsAppInstances = (userEmail: string) => {
         setIsLoading(prev => ({ ...prev, [instanceToConnect.id]: true }));
         setLastError(null);
         
-        const qrCodeUrl = await connectInstance(instanceToConnect);
+        // Connect instance but don't return the QR code
+        await connectInstance(instanceToConnect);
         setShowQrCode(instanceToConnect.id);
-        return qrCodeUrl;
       } catch (error: any) {
         console.error("Error connecting instance:", error);
         setLastError(error?.message || "Error connecting WhatsApp instance");
@@ -93,7 +93,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
       }
     },
     
-    refreshQrCode: async (instanceId: string) => {
+    refreshQrCode: async (instanceId: string): Promise<void> => {
       try {
         setIsLoading(prev => ({ ...prev, [instanceId]: true }));
         setLastError(null);
@@ -114,7 +114,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
       }
     },
     
-    deleteInstance: async (instanceId: string) => {
+    deleteInstance: async (instanceId: string): Promise<void> => {
       try {
         setIsLoading(prev => ({ ...prev, [instanceId]: true }));
         setLastError(null);

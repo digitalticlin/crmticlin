@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
 import WhatsAppInstanceCard from "./whatsapp/WhatsAppInstanceCard";
@@ -145,7 +146,11 @@ const WhatsAppSettings = () => {
             instance={instance}
             isLoading={instanceLoading[instance.id] || false}
             showQrCode={showQrCode === instance.id}
-            onConnect={() => connectInstance(instance.id)}
+            onConnect={() => {
+              // Here's the fix: consume the returned Promise<string> but don't return it
+              connectInstance(instance.id);
+              return Promise.resolve();
+            }}
             onDelete={deleteInstance}
             onRefreshQrCode={refreshQrCode}
           />
