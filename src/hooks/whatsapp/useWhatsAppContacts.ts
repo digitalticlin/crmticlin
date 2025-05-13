@@ -21,6 +21,7 @@ export const useWhatsAppContacts = (activeInstance: any, companyId: string | nul
     setIsLoadingContacts(true);
     
     try {
+      // Usando findChats em vez de fetchContacts para corresponder ao método disponível
       const chats = await evolutionApiService.findChats(activeInstance.instanceName);
       
       if (chats && chats.length > 0) {

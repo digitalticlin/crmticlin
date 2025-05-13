@@ -22,10 +22,14 @@ export const evolutionApiService = {
   checkInstanceStatus: (instanceName: string) => instanceService.checkInstanceStatus(instanceName),
   connectInstance: (instanceName: string) => instanceService.connectInstance(instanceName),
   
-  // Métodos de chat e mensagens
-  fetchContacts: (instanceName: string) => chatService.fetchContacts(instanceName),
-  fetchMessages: (instanceName: string, phone: string) => chatService.fetchMessages(instanceName, phone),
+  // Métodos de chat e mensagens - alterados para corresponder aos nomes reais dos métodos em ChatService
+  findChats: (instanceName: string) => chatService.findChats(instanceName),
+  findMessages: (instanceName: string, phone: string) => chatService.findMessages(instanceName, phone),
   sendMessage: (instanceName: string, to: string, message: string) => chatService.sendMessage(instanceName, to, message),
-  sendMediaMessage: (instanceName: string, to: string, mediaUrl: string, caption: string, mediaType: string) => 
-    chatService.sendMediaMessage(instanceName, to, mediaUrl, caption, mediaType)
+  
+  // Método para envio de mensagens com mídia - precisa ser implementado em ChatService
+  sendMediaMessage: (instanceName: string, to: string, mediaUrl: string, caption: string, mediaType: string) => {
+    console.log("sendMediaMessage chamado, mas ainda não foi implementado completamente");
+    return chatService.sendMessage(instanceName, to, caption);
+  }
 };

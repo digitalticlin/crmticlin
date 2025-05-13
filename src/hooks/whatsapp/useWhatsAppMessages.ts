@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { Message } from '@/types/chat';
 import { evolutionApiService } from '@/services/evolution-api';
@@ -33,6 +32,7 @@ export const useWhatsAppMessages = (activeInstance: any, selectedContact: any) =
       }
       
       const jid = `${phone}@s.whatsapp.net`;
+      // Usando findMessages em vez de fetchMessages para corresponder ao método disponível
       const whatsAppMessages = await evolutionApiService.findMessages(activeInstance.instanceName, jid);
       
       if (whatsAppMessages && whatsAppMessages.length > 0) {
