@@ -1,5 +1,7 @@
+
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
 import { 
   LayoutDashboard, 
   MessageSquare, 
@@ -7,58 +9,70 @@ import {
   CreditCard, 
   Bot, 
   Settings,
-  ChevronLeft,
-  ChevronRight,
-  LogOut,
   Kanban,
   ListPlus,
   Cable
 } from "lucide-react";
-
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
-type NavItemProps = {
-  icon: React.ElementType;
-  label: string;
-  href: string;
-  isCollapsed: boolean;
-};
-
-const NavItem = ({ icon: Icon, label, href, isCollapsed }: NavItemProps) => {
-  const location = useLocation();
-  const isActive = location.pathname === href;
-
-  return (
-    <TooltipProvider delayDuration={0}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Link to={href} className="w-full">
-            <Button
-              variant="ghost"
-              size="lg"
-              className={cn(
-                "w-full flex items-center justify-start gap-3 px-3 py-2 rounded-lg",
-                isActive 
-                  ? "bg-sidebar-accent text-sidebar-primary font-medium" 
-                  : "hover:bg-sidebar-accent/50 text-sidebar-foreground"
-              )}
-            >
-              <Icon className={cn("h-5 w-5", isActive ? "text-ticlin" : "")} />
-              {!isCollapsed && <span>{label}</span>}
-            </Button>
-          </Link>
-        </TooltipTrigger>
-        {isCollapsed && <TooltipContent side="right">{label}</TooltipContent>}
-      </Tooltip>
-    </TooltipProvider>
-  );
-};
+import SidebarLogo from "./SidebarLogo";
+import SidebarNavGroup from "./SidebarNavGroup";
+import SidebarFooter from "./SidebarFooter";
 
 export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const mainNavItems = [
+    {
+      icon: LayoutDashboard,
+      label: "Dashboard",
+      href: "/dashboard",
+    },
+    {
+      icon: Kanban,
+      label: "Funil de Vendas",
+      href: "/sales-funnel",
+    },
+    {
+      icon: MessageSquare,
+      label: "Chat",
+      href: "/chat",
+    }
+  ];
+
+  const featureNavItems = [
+    {
+      icon: Users,
+      label: "Clientes",
+      href: "/clients",
+    },
+    {
+      icon: ListPlus,
+      label: "Automação",
+      href: "/automation",
+    },
+    {
+      icon: Cable,
+      label: "Integração",
+      href: "/integration",
+    },
+    {
+      icon: Bot,
+      label: "Agentes IA",
+      href: "/ai-agents",
+    }
+  ];
+
+  const systemNavItems = [
+    {
+      icon: CreditCard,
+      label: "Planos",
+      href: "/plans",
+    },
+    {
+      icon: Settings,
+      label: "Configurações",
+      href: "/settings",
+    }
+  ];
 
   return (
     <div
@@ -67,134 +81,29 @@ export default function Sidebar() {
         isCollapsed ? "w-[80px]" : "w-[250px]"
       )}
     >
-      <div className="flex items-center justify-center h-16 p-4">
-        {!isCollapsed ? (
-          <div className="flex items-center">
-            <img 
-              src="/lovable-uploads/ae7ddc52-d3ed-478f-af96-603a69278f3b.png" 
-              alt="Ticlin Logo" 
-              className="h-8" 
-            />
-          </div>
-        ) : (
-          <img 
-            src="/lovable-uploads/ae7ddc52-d3ed-478f-af96-603a69278f3b.png" 
-            alt="Ticlin Logo" 
-            className="h-8" 
-          />
-        )}
-      </div>
+      <SidebarLogo isCollapsed={isCollapsed} />
 
       <Separator />
 
       <div className="flex flex-col flex-1 py-6 px-2 gap-1">
-        {/* First group */}
-        <NavItem
-          icon={LayoutDashboard}
-          label="Dashboard"
-          href="/dashboard"
-          isCollapsed={isCollapsed}
-        />
-        <NavItem
-          icon={Kanban}
-          label="Funil de Vendas"
-          href="/sales-funnel"
-          isCollapsed={isCollapsed}
-        />
-        <NavItem
-          icon={MessageSquare}
-          label="Chat"
-          href="/chat"
-          isCollapsed={isCollapsed}
-        />
+        {/* Main navigation group */}
+        <SidebarNavGroup items={mainNavItems} isCollapsed={isCollapsed} />
         
-        {/* First separator */}
-        <div className="my-2">
-          <Separator />
-        </div>
+        {/* Features navigation group */}
+        <SidebarNavGroup items={featureNavItems} isCollapsed={isCollapsed} />
         
-        {/* Second group */}
-        <NavItem
-          icon={Users}
-          label="Clientes"
-          href="/clients"
-          isCollapsed={isCollapsed}
-        />
-        <NavItem
-          icon={ListPlus}
-          label="Automação"
-          href="/automation"
-          isCollapsed={isCollapsed}
-        />
-        <NavItem
-          icon={Cable}
-          label="Integração"
-          href="/integration"
-          isCollapsed={isCollapsed}
-        />
-        <NavItem
-          icon={Bot}
-          label="Agentes IA"
-          href="/ai-agents"
-          isCollapsed={isCollapsed}
-        />
-        
-        {/* Second separator */}
-        <div className="my-2">
-          <Separator />
-        </div>
-        
-        {/* Third group */}
-        <NavItem
-          icon={CreditCard}
-          label="Planos"
-          href="/plans"
-          isCollapsed={isCollapsed}
-        />
-        <NavItem
-          icon={Settings}
-          label="Configurações"
-          href="/settings"
-          isCollapsed={isCollapsed}
+        {/* System navigation group */}
+        <SidebarNavGroup 
+          items={systemNavItems} 
+          isCollapsed={isCollapsed} 
+          className="mb-0" // No bottom margin for the last group
         />
       </div>
 
-      <div className="mt-auto mb-6 px-2">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="w-full flex justify-center items-center h-10"
-        >
-          {isCollapsed ? (
-            <ChevronRight className="h-5 w-5" />
-          ) : (
-            <ChevronLeft className="h-5 w-5" />
-          )}
-        </Button>
-        
-        <Separator className="my-2" />
-        
-        <TooltipProvider delayDuration={0}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Link to="/">
-                <Button
-                  variant="ghost"
-                  size={isCollapsed ? "icon" : "default"}
-                  className={cn(
-                    "w-full flex items-center justify-start gap-3 px-3 py-2 mt-2 rounded-lg text-destructive hover:bg-destructive/10"
-                  )}
-                >
-                  <LogOut className="h-5 w-5" />
-                  {!isCollapsed && <span>Sair</span>}
-                </Button>
-              </Link>
-            </TooltipTrigger>
-            {isCollapsed && <TooltipContent side="right">Sair</TooltipContent>}
-          </Tooltip>
-        </TooltipProvider>
-      </div>
+      <SidebarFooter 
+        isCollapsed={isCollapsed} 
+        toggleCollapse={() => setIsCollapsed(!isCollapsed)} 
+      />
     </div>
   );
 }
