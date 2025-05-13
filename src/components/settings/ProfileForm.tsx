@@ -63,12 +63,19 @@ const ProfileForm = ({
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="company">RAZAO SOCIAL ou NOME</Label>
+        <Label htmlFor="company" className="flex items-center">
+          RAZAO SOCIAL ou NOME
+          <span className="ml-1 text-red-500">*</span>
+        </Label>
         <Input 
           id="company" 
           value={companyName}
           onChange={(e) => setCompanyName(e.target.value)}
+          required
         />
+        <p className="text-xs text-muted-foreground">
+          Campo obrigatório para conexão de WhatsApp
+        </p>
       </div>
       
       <div className="space-y-2">

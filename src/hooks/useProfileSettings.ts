@@ -93,8 +93,47 @@ export const useProfileSettings = () => {
   const handleSaveChanges = async () => {
     if (!user) return;
     
+    if (!companyName.trim()) {
+      toast.error("O campo RAZAO SOCIAL ou NOME é obrigatório");
+      return;
+    }
+    
     try {
       setSaving(true);
+      
+      // Se não tiver companyId, criar uma nova empresa
+      if (!companyId && companyName.trim()) {
+        const { data: newCompany, error: newCompanyError } = await supabase
+          .from('companies')
+          .insert({
+            name: companyName.trim(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+          
+        if (newCompanyError) {
+          throw newCompanyError;
+        }
+        
+        if (newCompany) {
+          setCompanyId(newCompany.id);
+          
+          // Atualizar o perfil com o novo company_id
+          const { error: updateProfileError } = await supabase
+            .from('profiles')
+            .update({
+              company_id: newCompany.id,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', user.id);
+            
+          if (updateProfileError) {
+            throw updateProfileError;
+          }
+        }
+      }
       
       // Atualizar o perfil do usuário
       const { error: profileError } = await supabase
