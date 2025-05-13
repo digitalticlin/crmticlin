@@ -22,7 +22,7 @@ export class ApiClient {
     }
     
     console.log(`ApiClient initialized with URL: ${apiUrl}`);
-    // Log parcial da API KEY para debugging (apenas primeiros 4 caracteres)
+    // Log partial API KEY for debugging (only first and last 4 characters)
     console.log(`Using API key: ${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`);
   }
 
@@ -30,6 +30,7 @@ export class ApiClient {
    * Performs HTTP requests with standard headers for the API with retry logic
    */
   async fetchWithHeaders(endpoint: string, options: RequestInit = {}, retries = 0): Promise<any> {
+    // Create headers with API key
     const headers = {
       "Content-Type": "application/json",
       "apikey": this.apiKey,
@@ -41,8 +42,8 @@ export class ApiClient {
       method: options.method || 'GET',
     });
     
-    // Log para debugging - verificar se a API key está sendo enviada corretamente
-    console.log(`Request usando API key: ${this.apiKey.substring(0, 4)}...${this.apiKey.substring(this.apiKey.length - 4)}`);
+    // Debug log to verify API key is being sent correctly
+    console.log(`Request using API key: ${this.apiKey.substring(0, 4)}...${this.apiKey.substring(this.apiKey.length - 4)}`);
     
     if (options.body) {
       console.log("Request body:", options.body);
@@ -66,11 +67,11 @@ export class ApiClient {
           errorMessage = `Error with request: ${response.status}`;
         }
         
-        // Log detalhado para depuração de erros de autenticação
+        // Detailed logging for auth errors
         if (response.status === 401 || response.status === 403) {
-          console.error(`Erro de autenticação (${response.status}) ao acessar ${endpoint}`);
-          console.error(`API Key usada: ${this.apiKey.substring(0, 4)}...${this.apiKey.substring(this.apiKey.length - 4)}`);
-          errorMessage = `Erro de autenticação: Verifique se a API Key está correta (${response.status})`;
+          console.error(`Authentication error (${response.status}) accessing ${endpoint}`);
+          console.error(`API Key used: ${this.apiKey.substring(0, 4)}...${this.apiKey.substring(this.apiKey.length - 4)}`);
+          errorMessage = `Authentication error: Please verify the API Key is correct (${response.status})`;
         }
         
         console.error(`API error on ${endpoint}:`, errorMessage);

@@ -23,66 +23,66 @@ const WhatsAppInstanceCard = ({
   onDelete,
   onRefreshQrCode
 }: WhatsAppInstanceCardProps) => {
-  // Estado local para rastrear quando o QR code foi obtido com sucesso
+  // Local state to track when QR code was successfully obtained
   const [qrCodeSuccess, setQrCodeSuccess] = useState(false);
   const [actionInProgress, setActionInProgress] = useState(false);
 
-  // Detecta quando um QR code é recebido para mostrar automaticamente
+  // Detect when a QR code is received to show automatically
   useEffect(() => {
     if (instance.qrCodeUrl && !qrCodeSuccess) {
-      console.log(`QR Code recebido para instância ${instance.id}: ${instance.instanceName}`);
-      console.log("QR code URL existe:", !!instance.qrCodeUrl);
-      console.log("QR code URL (primeiros 50 caracteres):", 
-        instance.qrCodeUrl ? instance.qrCodeUrl.substring(0, 50) : "NULO");
+      console.log(`QR Code received for instance ${instance.id}: ${instance.instanceName}`);
+      console.log("QR code URL exists:", !!instance.qrCodeUrl);
+      console.log("QR code URL (first 50 characters):", 
+        instance.qrCodeUrl ? instance.qrCodeUrl.substring(0, 50) : "NULL");
       setQrCodeSuccess(true);
     }
   }, [instance.qrCodeUrl, qrCodeSuccess, instance.id, instance.instanceName]);
 
-  // Função de clique para conectar o WhatsApp
+  // Click function to connect WhatsApp
   const handleConnect = async () => {
     try {
-      console.log(`Iniciando conexão para instância ${instance.id}: ${instance.instanceName}`);
+      console.log(`Starting connection for instance ${instance.id}: ${instance.instanceName}`);
       setActionInProgress(true);
       setQrCodeSuccess(false);
       await onConnect(instance.id);
-      console.log(`Conexão iniciada para ${instance.instanceName}`);
+      console.log(`Connection started for ${instance.instanceName}`);
     } catch (error) {
-      console.error("Erro ao conectar:", error);
+      console.error("Error connecting:", error);
     } finally {
       setActionInProgress(false);
     }
   };
 
-  // Função para atualizar o QR code
+  // Function to update QR code
   const handleRefreshQrCode = async () => {
     try {
-      console.log(`Atualizando QR code para instância ${instance.id}: ${instance.instanceName}`);
+      console.log(`Updating QR code for instance ${instance.id}: ${instance.instanceName}`);
       setActionInProgress(true);
       setQrCodeSuccess(false);
       await onRefreshQrCode(instance.id);
-      console.log(`QR code atualizado para ${instance.instanceName}`);
+      console.log(`QR code updated for ${instance.instanceName}`);
     } catch (error) {
-      console.error("Erro ao atualizar QR code:", error);
+      console.error("Error updating QR code:", error);
     } finally {
       setActionInProgress(false);
     }
   };
 
-  // Função para deletar o número de WhatsApp
+  // Function to delete WhatsApp number
   const handleDelete = async () => {
     try {
-      console.log(`Deletando instância ${instance.id}: ${instance.instanceName}`);
+      console.log(`Deleting instance ${instance.id}: ${instance.instanceName}`);
       setActionInProgress(true);
       await onDelete(instance.id);
-      console.log(`Instância ${instance.instanceName} deletada`);
+      console.log(`Instance ${instance.instanceName} deleted`);
     } catch (error) {
-      console.error("Erro ao deletar:", error);
+      console.error("Error deleting:", error);
     } finally {
       setActionInProgress(false);
     }
   };
 
-  // Determinar se deve mostrar o QR code (quando está disponível e mostrado)
+  // Determine if QR code should be shown (when available and shown)
   const shouldShowQrCode = (showQrCode === instance.id || qrCodeSuccess) && instance.qrCodeUrl;
 
   return (
@@ -92,7 +92,7 @@ const WhatsAppInstanceCard = ({
           <div className="flex justify-between items-center mb-3">
             <div>
               <h4 className="font-medium">WhatsApp</h4>
-              <p className="text-sm text-muted-foreground">Instância: {instance.instanceName}</p>
+              <p className="text-sm text-muted-foreground">Instance: {instance.instanceName}</p>
               {instance.connected && instance.phoneNumber && (
                 <div className="flex items-center mt-1 gap-1 text-green-600 dark:text-green-400">
                   <Phone className="w-3 h-3" />
@@ -103,14 +103,14 @@ const WhatsAppInstanceCard = ({
             <Badge variant="outline" className={instance.connected ? 
               "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400" : 
               "bg-gray-50 text-gray-600 dark:bg-gray-900/20 dark:text-gray-400"}>
-              {instance.connected ? "Conectado" : "Desconectado"}
+              {instance.connected ? "Connected" : "Disconnected"}
             </Badge>
           </div>
           
           {instance.connected && (
             <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
               <p className="text-sm text-green-700 dark:text-green-400">
-                WhatsApp conectado com sucesso. Você pode agora gerenciar suas conversas na página de chats.
+                WhatsApp successfully connected. You can now manage your conversations in the chats page.
               </p>
             </div>
           )}
@@ -119,11 +119,11 @@ const WhatsAppInstanceCard = ({
             <div className="flex flex-col items-center mb-4 p-4 bg-white dark:bg-black rounded-md">
               <img 
                 src={instance.qrCodeUrl} 
-                alt="QR Code para conexão do WhatsApp" 
+                alt="QR Code for WhatsApp connection" 
                 className="w-48 h-48"
               />
               <p className="text-xs text-center mt-2 text-muted-foreground">
-                Escaneie o QR code com seu aplicativo WhatsApp. O QR code expira após alguns minutos.
+                Scan the QR code with your WhatsApp application. The QR code expires after a few minutes.
               </p>
             </div>
           )}
@@ -140,12 +140,12 @@ const WhatsAppInstanceCard = ({
                   {instance.qrCodeUrl ? (
                     <>
                       <QrCode className="w-4 h-4 mr-2" />
-                      {isLoading || actionInProgress ? "Gerando QR..." : "Mostrar QR Code"}
+                      {isLoading || actionInProgress ? "Generating QR..." : "Show QR Code"}
                     </>
                   ) : (
                     <>
                       <Link className="w-4 h-4 mr-2" />
-                      {isLoading || actionInProgress ? "Conectando..." : "Conectar WhatsApp"}
+                      {isLoading || actionInProgress ? "Connecting..." : "Connect WhatsApp"}
                     </>
                   )}
                 </Button>
@@ -158,7 +158,7 @@ const WhatsAppInstanceCard = ({
                   >
                     <RefreshCw className={`w-4 h-4 ${(isLoading || actionInProgress) ? "animate-spin" : ""}`} />
                     <span className="ml-2 hidden sm:inline">
-                      {isLoading || actionInProgress ? "Gerando..." : "Gerar novo QR Code"}
+                      {isLoading || actionInProgress ? "Generating..." : "Generate new QR Code"}
                     </span>
                   </Button>
                 )}
@@ -171,7 +171,7 @@ const WhatsAppInstanceCard = ({
                 disabled={isLoading || actionInProgress}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                {isLoading || actionInProgress ? "Desconectando..." : "Desconectar WhatsApp"}
+                {isLoading || actionInProgress ? "Disconnecting..." : "Disconnect WhatsApp"}
               </Button>
             )}
           </div>

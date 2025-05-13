@@ -21,7 +21,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
   const { connectInstance, refreshQrCode } = useWhatsAppConnector();
   const { deleteInstance } = useWhatsAppDisconnector();
   
-  // Carregar instâncias do WhatsApp
+  // Load WhatsApp instances
   useEffect(() => {
     const fetchWhatsAppInstances = async () => {
       if (!companyId) return;
@@ -29,7 +29,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
       try {
         setIsLoading(prev => ({ ...prev, fetch: true }));
         
-        // Buscar números de WhatsApp da empresa
+        // Fetch WhatsApp numbers for company
         const { data: whatsappNumbers, error } = await supabase
           .from('whatsapp_numbers')
           .select('*')
@@ -37,12 +37,12 @@ export const useWhatsAppInstances = (userEmail: string) => {
           .order('created_at', { ascending: false });
           
         if (error) {
-          console.error("Erro ao buscar números de WhatsApp:", error);
-          toast.error("Não foi possível carregar os números de WhatsApp");
+          console.error("Error fetching WhatsApp numbers:", error);
+          toast.error("Could not load WhatsApp numbers");
           return;
         }
         
-        // Converter para o formato de instância
+        // Convert to instance format
         const fetchedInstances: WhatsAppInstance[] = whatsappNumbers.map(item => ({
           id: item.id,
           instanceName: item.instance_name,
@@ -52,9 +52,16 @@ export const useWhatsAppInstances = (userEmail: string) => {
         }));
         
         setInstances(fetchedInstances);
+        
+        // Check status of all instances after loading
+        if (fetchedInstances.length > 0) {
+          for (const instance of fetchedInstances) {
+            checkInstanceStatus(instance.id);
+          }
+        }
       } catch (error) {
-        console.error("Erro ao buscar instâncias de WhatsApp:", error);
-        toast.error("Ocorreu um erro ao carregar as instâncias de WhatsApp");
+        console.error("Error fetching WhatsApp instances:", error);
+        toast.error("An error occurred while loading WhatsApp instances");
       } finally {
         setIsLoading(prev => ({ ...prev, fetch: false }));
       }
@@ -63,20 +70,20 @@ export const useWhatsAppInstances = (userEmail: string) => {
     fetchWhatsAppInstances();
   }, [companyId, setInstances]);
 
-  // Verificar o status da instância e atualizar no banco de dados
+  // Check instance status and update in database
   const checkInstanceStatus = async (instanceId: string) => {
     try {
       const instance = instances.find(i => i.id === instanceId);
       if (!instance || !instance.instanceName) return;
       
-      console.log(`Verificando status da instância: ${instance.instanceName}`);
+      console.log(`Checking status of instance: ${instance.instanceName}`);
       setIsLoading(prev => ({ ...prev, [instanceId]: true }));
       
-      // Obter status atual da instância via Evolution API
+      // Get current instance status via Evolution API
       const status = await evolutionApiService.checkInstanceStatus(instance.instanceName);
-      console.log(`Status da instância ${instance.instanceName}: ${status}`);
+      console.log(`Status of instance ${instance.instanceName}: ${status}`);
       
-      // Atualizar status no banco de dados
+      // Update status in database
       if (instanceId !== "1") {
         const { error } = await supabase
           .from('whatsapp_numbers')
@@ -84,11 +91,32 @@ export const useWhatsAppInstances = (userEmail: string) => {
           .eq('id', instanceId);
           
         if (error) {
-          console.error("Erro ao atualizar status no banco:", error);
+          console.error("Error updating status in database:", error);
+        }
+        
+        // If the instance is now connected, get the phone number
+        if (status === 'connected') {
+          try {
+            // Here we would implement a method to get the phone number from the Evolution API
+            // For now we'll just use a placeholder
+            const phoneNumber = instance.phoneNumber || "Connected";
+            
+            // Update phone number in database
+            const { error: phoneError } = await supabase
+              .from('whatsapp_numbers')
+              .update({ phone: phoneNumber })
+              .eq('id', instanceId);
+              
+            if (phoneError) {
+              console.error("Error updating phone number in database:", phoneError);
+            }
+          } catch (phoneError) {
+            console.error("Error getting phone number:", phoneError);
+          }
         }
       }
       
-      // Atualizar estado local
+      // Update local state
       const updatedInstances = instances.map(i => {
         if (i.id === instanceId) {
           return { 
@@ -103,27 +131,27 @@ export const useWhatsAppInstances = (userEmail: string) => {
       
       return status;
     } catch (error) {
-      console.error(`Erro ao verificar status da instância ${instanceId}:`, error);
+      console.error(`Error checking status of instance ${instanceId}:`, error);
       return "disconnected";
     } finally {
       setIsLoading(prev => ({ ...prev, [instanceId]: false }));
     }
   };
   
-  // Função para adicionar nova instância
+  // Add new instance function
   const addNewInstance = async (username: string) => {
     if (!username.trim()) {
-      toast.error("Nome de usuário não pode estar vazio");
+      toast.error("Username cannot be empty");
       return;
     }
     
     if (!companyId) {
-      toast.error("Nenhuma empresa associada ao usuário");
+      toast.error("No company associated with user");
       return;
     }
     
     try {
-      // Criar nova instância local
+      // Create new local instance
       const newInstanceId = crypto.randomUUID();
       const newInstance: WhatsAppInstance = {
         id: newInstanceId,
@@ -131,22 +159,22 @@ export const useWhatsAppInstances = (userEmail: string) => {
         connected: false,
       };
       
-      // Adicionar ao estado local
+      // Add to local state
       setInstances([newInstance, ...instances]);
       
-      // Conectar a instância - isso verifica se já existe uma instância com o mesmo nome
-      // e irá adicionar um número sequencial se necessário
+      // Connect the instance - this checks if an instance with the same name already exists
+      // and will add a sequential number if needed
       const qrCodeUrl = await connectInstance(newInstance);
       
-      // Retorna a instância com o QR Code
+      // Return the instance with QR Code
       return {
         ...newInstance,
         qrCodeUrl
       };
     } catch (error) {
-      console.error("Erro ao adicionar nova instância:", error);
-      toast.error("Não foi possível adicionar a nova instância");
-      setLastError("Erro ao adicionar nova instância");
+      console.error("Error adding new instance:", error);
+      toast.error("Could not add new instance");
+      setLastError("Error adding new instance");
       throw error;
     }
   };
@@ -161,17 +189,17 @@ export const useWhatsAppInstances = (userEmail: string) => {
     lastError,
     setLastError,
     
-    // Funções
+    // Functions
     checkInstanceStatus,
     connectInstance: async (instanceId: string | WhatsAppInstance) => {
       try {
-        // Verificar se instanceId é uma string ou um objeto WhatsAppInstance
+        // Check if instanceId is a string or a WhatsAppInstance object
         const instanceToConnect = typeof instanceId === 'string' 
           ? instances.find(i => i.id === instanceId) 
           : instanceId;
           
         if (!instanceToConnect) {
-          throw new Error("Instância não encontrada");
+          throw new Error("Instance not found");
         }
         
         setIsLoading(prev => ({ ...prev, [instanceToConnect.id]: true }));
@@ -181,8 +209,8 @@ export const useWhatsAppInstances = (userEmail: string) => {
         setShowQrCode(instanceToConnect.id);
         return qrCodeUrl;
       } catch (error: any) {
-        console.error("Erro ao conectar instância:", error);
-        setLastError(error?.message || "Erro ao conectar instância WhatsApp");
+        console.error("Error connecting instance:", error);
+        setLastError(error?.message || "Error connecting WhatsApp instance");
       } finally {
         if (typeof instanceId === 'string') {
           setIsLoading(prev => ({ ...prev, [instanceId]: false }));
@@ -199,15 +227,15 @@ export const useWhatsAppInstances = (userEmail: string) => {
         
         const instance = instances.find(i => i.id === instanceId);
         if (!instance) {
-          throw new Error("Instância não encontrada");
+          throw new Error("Instance not found");
         }
         
-        // Usando o connectInstance em vez de refreshQrCode para obter um código completamente novo
+        // Using connectInstance instead of refreshQrCode to get a completely new code
         await connectInstance(instance);
         setShowQrCode(instanceId);
       } catch (error: any) {
-        console.error("Erro ao atualizar QR code:", error);
-        setLastError(error?.message || "Erro ao atualizar QR code");
+        console.error("Error updating QR code:", error);
+        setLastError(error?.message || "Error updating QR code");
       } finally {
         setIsLoading(prev => ({ ...prev, [instanceId]: false }));
       }
@@ -220,17 +248,17 @@ export const useWhatsAppInstances = (userEmail: string) => {
         
         const instance = instances.find(i => i.id === instanceId);
         if (!instance) {
-          throw new Error("Instância não encontrada");
+          throw new Error("Instance not found");
         }
         
         await deleteInstance(instance);
         
-        // Remover do estado local após sucesso
+        // Remove from local state after success
         setInstances(instances.filter(i => i.id !== instanceId));
-        toast.success("WhatsApp desconectado com sucesso!");
+        toast.success("WhatsApp successfully disconnected!");
       } catch (error: any) {
-        console.error("Erro ao deletar instância:", error);
-        setLastError(error?.message || "Erro ao deletar instância WhatsApp");
+        console.error("Error deleting instance:", error);
+        setLastError(error?.message || "Error deleting WhatsApp instance");
       } finally {
         setIsLoading(prev => ({ ...prev, [instanceId]: false }));
       }

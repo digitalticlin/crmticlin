@@ -164,26 +164,26 @@ export class InstanceService {
    */
   async connectInstance(instanceName: string): Promise<string | null> {
     try {
-      console.log(`Forçando conexão para a instância: "${instanceName}"`);
+      console.log(`Forcing connection for instance: "${instanceName}"`);
       
-      // Registre o cabeçalho para debug
-      console.log("Fazendo requisição para /instance/connect com cabeçalhos:");
+      // Log header for debugging
+      console.log("Making request to /instance/connect with headers:");
       
       const data = await this.apiClient.fetchWithHeaders(`/instance/connect/${instanceName}`, {
         method: "GET"
       });
       
-      console.log("Resposta da conexão forçada:", data);
+      console.log("Response from forced connection:", data);
       
       if (!data || !data.qrcode || !data.qrcode.base64) {
-        console.error("QR code ausente na resposta da API de conexão:", data);
-        throw new Error("QR Code não disponível na resposta da API");
+        console.error("QR code missing in connection API response:", data);
+        throw new Error("QR Code not available in API response");
       }
       
-      console.log(`QR code obtido com sucesso via conexão forçada para "${instanceName}"`);
+      console.log(`QR code successfully obtained via forced connection for "${instanceName}"`);
       return data.qrcode.base64;
     } catch (error) {
-      console.error("Erro ao forçar conexão e obter QR code:", error);
+      console.error("Error when forcing connection and getting QR code:", error);
       handleApiError(error, "Não foi possível conectar e obter o QR Code");
       return null;
     }
@@ -196,24 +196,24 @@ export class InstanceService {
     try {
       console.log(`Refreshing QR code for instance: "${instanceName}"`);
       
-      // Log detalhado para depuração
-      console.log("Fazendo requisição para /instance/qrcode com cabeçalhos completos");
+      // Detailed logging for debugging
+      console.log("Making request to /instance/qrcode with full headers");
       
       const data = await this.apiClient.fetchWithHeaders(`/instance/qrcode?instanceName=${instanceName}`, {
         method: "GET"
       });
       
-      console.log("Resposta completa da requisição de QR code:", data);
+      console.log("Complete response from QR code request:", data);
       
       if (!data || !data.qrcode || !data.qrcode.base64) {
-        console.error("Resposta inválida de QR code:", data);
-        throw new Error("QR code não encontrado na resposta");
+        console.error("Invalid QR code response:", data);
+        throw new Error("QR code not found in response");
       }
       
-      console.log(`QR code atualizado com sucesso para "${instanceName}"`);
+      console.log(`QR code successfully updated for "${instanceName}"`);
       return data.qrcode.base64;
     } catch (error) {
-      console.error("Erro ao atualizar QR code:", error);
+      console.error("Error refreshing QR code:", error);
       handleApiError(error, "Não foi possível obter o QR Code");
       return null;
     }
@@ -254,7 +254,7 @@ export class InstanceService {
       });
       
       if (!data || !data.state) {
-        throw new Error("Estado da instância não disponível na resposta");
+        throw new Error("Instance state not available in response");
       }
       
       console.log(`Status for "${instanceName}": ${data.state}`);

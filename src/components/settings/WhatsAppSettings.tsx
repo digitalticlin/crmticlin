@@ -9,38 +9,38 @@ import { AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const STATUS_CHECK_INTERVAL = 15000; // Verificar status a cada 15 segundos
+const STATUS_CHECK_INTERVAL = 15000; // Check status every 15 seconds
 
 const WhatsAppSettings = () => {
-  // Estado para armazenar o email do usuário atual
+  // State to store current user's email
   const [userEmail, setUserEmail] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   
-  // Carregar dados do usuário atual
+  // Load current user data
   useEffect(() => {
     const getUser = async () => {
       try {
         setIsLoading(true);
         const { data: { user }, error } = await supabase.auth.getUser();
         if (error) {
-          console.error("Erro ao obter usuário:", error);
-          toast.error("Não foi possível carregar os dados do usuário");
+          console.error("Error getting user:", error);
+          toast.error("Could not load user data");
           return;
         }
         
         if (user) {
           setUserEmail(user.email || "");
           
-          // Verificar se o usuário é um SuperAdmin
+          // Check if user is a SuperAdmin
           const { data: superAdmin, error: superAdminError } = await supabase.rpc('is_super_admin');
           if (!superAdminError) {
             setIsSuperAdmin(superAdmin || false);
           }
         }
       } catch (error) {
-        console.error("Erro ao buscar usuário:", error);
-        toast.error("Ocorreu um erro ao carregar dados do usuário");
+        console.error("Error fetching user:", error);
+        toast.error("An error occurred while loading user data");
       } finally {
         setIsLoading(false);
       }
@@ -60,15 +60,15 @@ const WhatsAppSettings = () => {
     checkInstanceStatus,
   } = useWhatsAppInstances(userEmail);
 
-  // Verificar periodicamente o status das instâncias
+  // Periodically check instance status
   useEffect(() => {
     if (!instances.length) return;
 
-    console.log("Iniciando verificação periódica de status para", instances.length, "instâncias");
+    console.log("Starting periodic status check for", instances.length, "instances");
     
-    // Primeira verificação imediata
+    // First immediate check
     const checkAllInstances = async () => {
-      console.log("Verificando status de todas as instâncias...");
+      console.log("Checking status of all instances...");
       for (const instance of instances) {
         if (!instance.connected) {
           await checkInstanceStatus(instance.id);
@@ -78,29 +78,29 @@ const WhatsAppSettings = () => {
     
     checkAllInstances();
     
-    // Configurar verificação periódica
+    // Set up periodic check
     const intervalId = setInterval(checkAllInstances, STATUS_CHECK_INTERVAL);
     
     return () => clearInterval(intervalId);
   }, [instances, checkInstanceStatus]);
   
-  // Wrapper de adaptação para o connectInstance que ignora o retorno do QR Code
+  // Wrapper adapter for connectInstance that ignores QR Code return
   const handleConnectInstance = async (instanceId: string) => {
     try {
       await connectInstance(instanceId);
-      // Ignoramos o retorno do QR Code aqui, já que o estado foi atualizado internamente na função
+      // Ignore QR Code return since state was updated internally in the function
     } catch (error) {
-      console.error("Erro ao conectar instância:", error);
-      // Não precisamos fazer nada aqui, pois o erro já é tratado dentro da função original
+      console.error("Error connecting instance:", error);
+      // No need to do anything here as error is handled inside the original function
     }
   };
   
   return (
     <div className="space-y-6">
       <div className="flex flex-col space-y-1.5">
-        <h3 className="text-xl font-semibold">Gerenciamento de WhatsApp</h3>
+        <h3 className="text-xl font-semibold">WhatsApp Management</h3>
         <p className="text-sm text-muted-foreground">
-          Conecte e gerencie suas instâncias de WhatsApp
+          Connect and manage your WhatsApp instances
         </p>
       </div>
       
@@ -128,7 +128,7 @@ const WhatsAppSettings = () => {
           />
         ))}
         
-        {/* Placeholder para adicionar nova instância - mostrado para SuperAdmin ou usuários com plano adequado */}
+        {/* Placeholder for adding new instance - shown for SuperAdmin or users with appropriate plan */}
         <PlaceholderInstanceCard 
           isSuperAdmin={isSuperAdmin} 
           userEmail={userEmail}
