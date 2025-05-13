@@ -1,23 +1,15 @@
 
 import { useState } from "react";
 import { 
-  Table, TableHeader, TableRow, TableHead, 
-  TableBody, TableCell
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { 
   Card, CardContent, CardDescription, 
   CardHeader, CardTitle, CardFooter 
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { 
-  Plus, Search, Edit, Trash2, Ban, 
-  CheckCircle2, RefreshCcw, ArrowUpDown, 
-  Download
-} from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import CompanyForm from "./CompanyForm";
+import { Button } from "@/components/ui/button";
+import { Plus, Download, RefreshCcw } from "lucide-react";
+import { CompanyTable } from "./companies/CompanyTable";
+import { CompanySearchBar } from "./companies/CompanySearchBar";
+import { CompanyDialogs } from "./companies/CompanyDialogs";
+import { getStatusBadge } from "./companies/CompanyStatusBadge";
 
 // Mock data for companies
 const mockCompanies = [
@@ -106,19 +98,6 @@ export default function CompaniesPanel() {
     setCompanies(companies.filter(c => c.id !== selectedCompany.id));
     setIsDeleteDialogOpen(false);
   };
-  
-  const getStatusBadge = (status: string) => {
-    switch(status) {
-      case 'active':
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Ativo</Badge>;
-      case 'suspended':
-        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Suspenso</Badge>;
-      case 'pending':
-        return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">Pendente</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -140,69 +119,18 @@ export default function CompaniesPanel() {
               </Button>
             </div>
           </div>
-          <div className="relative mt-4">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome, CNPJ ou email..."
-              className="pl-10"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+          <CompanySearchBar 
+            searchTerm={searchTerm} 
+            setSearchTerm={setSearchTerm} 
+          />
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome <ArrowUpDown className="ml-1 h-4 w-4 inline-block" /></TableHead>
-                  <TableHead>CNPJ</TableHead>
-                  <TableHead>Email Admin</TableHead>
-                  <TableHead>Plano</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Usuários</TableHead>
-                  <TableHead>WhatsApp</TableHead>
-                  <TableHead>Data Cadastro</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredCompanies.map((company) => (
-                  <TableRow key={company.id}>
-                    <TableCell className="font-medium">{company.name}</TableCell>
-                    <TableCell>{company.cnpj}</TableCell>
-                    <TableCell>{company.email}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{company.plan}</Badge>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(company.status)}</TableCell>
-                    <TableCell>{company.users}</TableCell>
-                    <TableCell>{company.whatsapp}</TableCell>
-                    <TableCell>{company.createdAt}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleEdit(company)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        {company.status === 'active' ? (
-                          <Button variant="ghost" size="icon" className="text-amber-500">
-                            <Ban className="h-4 w-4" />
-                          </Button>
-                        ) : (
-                          <Button variant="ghost" size="icon" className="text-green-500">
-                            <CheckCircle2 className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button variant="ghost" size="icon" className="text-red-500" onClick={() => handleDelete(company)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <CompanyTable 
+            filteredCompanies={filteredCompanies}
+            getStatusBadge={getStatusBadge}
+            handleEdit={handleEdit}
+            handleDelete={handleDelete}
+          />
         </CardContent>
         <CardFooter className="flex justify-between">
           <div className="text-sm text-muted-foreground">
@@ -214,55 +142,16 @@ export default function CompaniesPanel() {
         </CardFooter>
       </Card>
       
-      {/* Add Company Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Adicionar Nova Empresa</DialogTitle>
-            <DialogDescription>
-              Preencha os dados para cadastrar uma nova empresa cliente na plataforma.
-            </DialogDescription>
-          </DialogHeader>
-          <CompanyForm onSubmit={() => setIsAddDialogOpen(false)} />
-          <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancelar</Button>
-            <Button type="submit" form="company-form" className="bg-[#d3d800] hover:bg-[#b8bc00]">Salvar Empresa</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Edit Company Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Editar Empresa</DialogTitle>
-            <DialogDescription>
-              Atualize os dados da empresa selecionada.
-            </DialogDescription>
-          </DialogHeader>
-          <CompanyForm company={selectedCompany} onSubmit={() => setIsEditDialogOpen(false)} />
-          <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>Cancelar</Button>
-            <Button type="submit" form="company-form" className="bg-[#d3d800] hover:bg-[#b8bc00]">Atualizar Empresa</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Delete Company Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar Exclusão</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja excluir a empresa {selectedCompany?.name}? Esta ação não pode ser desfeita.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="mt-4">
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>Cancelar</Button>
-            <Button variant="destructive" onClick={confirmDelete}>Excluir Empresa</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CompanyDialogs 
+        isAddDialogOpen={isAddDialogOpen}
+        setIsAddDialogOpen={setIsAddDialogOpen}
+        isEditDialogOpen={isEditDialogOpen}
+        setIsEditDialogOpen={setIsEditDialogOpen}
+        isDeleteDialogOpen={isDeleteDialogOpen}
+        setIsDeleteDialogOpen={setIsDeleteDialogOpen}
+        selectedCompany={selectedCompany}
+        confirmDelete={confirmDelete}
+      />
     </div>
   );
 }
