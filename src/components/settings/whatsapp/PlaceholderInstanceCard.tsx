@@ -3,7 +3,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect, useRef } from "react";
-import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -29,9 +28,6 @@ const PlaceholderInstanceCard = ({
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const isAddingRef = useRef(false);
   
-  // Hook para gerenciar instâncias de WhatsApp - Pass the userEmail
-  const { addNewInstance } = useWhatsAppInstances(userEmail);
-
   // Extrair nome de usuário do email quando o componente montar
   useEffect(() => {
     if (userEmail) {
@@ -53,13 +49,25 @@ const PlaceholderInstanceCard = ({
       toast.error("Não foi possível obter seu nome de usuário");
       return;
     }
+    
+    if (!isSuperAdmin) {
+      toast.error("Disponível apenas em planos superiores. Atualize seu plano.");
+      return;
+    }
 
     try {
       isAddingRef.current = true;
       setIsCreating(true);
       console.log("Iniciando conexão de nova instância WhatsApp com username:", username);
       
+      // Importing the hook here to prevent it from running during component initialization
+      const { useWhatsAppInstances } = await import("@/hooks/useWhatsAppInstances");
+      
+      // Only initialize the hook when we need it
+      const { addNewInstance } = useWhatsAppInstances(userEmail);
+      
       // Conectar WhatsApp usando o username como nome da instância
+      console.log("Chamando addNewInstance para", username);
       const result = await addNewInstance(username);
       console.log("Resultado da adição de nova instância:", result);
       
@@ -69,12 +77,11 @@ const PlaceholderInstanceCard = ({
           result.qrCodeUrl.substring(0, 50));
         setQrCodeUrl(result.qrCodeUrl);
         setIsDialogOpen(true);
+        toast.success("Solicitação de conexão enviada com sucesso!");
       } else {
         console.log("Nenhum QR code retornado do addNewInstance");
         toast.error("QR code não recebido. Tente novamente.");
       }
-      
-      toast.success("Solicitação de conexão enviada com sucesso!");
     } catch (error) {
       console.error("Erro completo ao criar instância:", error);
       toast.error("Não foi possível criar a instância de WhatsApp");
