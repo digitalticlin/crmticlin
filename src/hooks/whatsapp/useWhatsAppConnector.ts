@@ -80,13 +80,20 @@ export const useWhatsAppConnector = () => {
       
       // Salva no Supabase
       console.log("Salvando instância no banco de dados com QR code...");
-      const updatedInstance = await saveInstanceToDatabase(instance, qrCodeUrl, result);
-      console.log("Instância salva no banco de dados:", updatedInstance);
+      let updatedInstance;
       
-      // Atualiza o estado local com o novo QR code
+      try {
+        updatedInstance = await saveInstanceToDatabase(instance, qrCodeUrl, result);
+        console.log("Instância salva no banco de dados:", updatedInstance);
+      } catch (dbError) {
+        console.error("Erro ao salvar no banco, mas continuando com o QR code:", dbError);
+        // Mesmo em caso de erro no banco, ainda retorna o QR code para exibição
+      }
+      
+      // Atualiza o estado local com o novo QR code, mesmo em caso de falha no BD
       updateInstance(instanceId, {
-        id: updatedInstance.id,
-        instanceName: updatedInstance.instance_name,
+        id: updatedInstance?.id || instanceId,
+        instanceName: updatedInstance?.instance_name || instance.instanceName,
         connected: false,
         qrCodeUrl
       });
@@ -128,8 +135,13 @@ export const useWhatsAppConnector = () => {
       console.log("Novo QR code obtido (primeiros 50 caracteres):", qrCodeUrl.substring(0, 50));
       
       // Atualiza no Supabase
-      console.log("Atualizando QR code no banco de dados...");
-      await updateQrCodeInDatabase(instanceId, qrCodeUrl);
+      try {
+        console.log("Atualizando QR code no banco de dados...");
+        await updateQrCodeInDatabase(instanceId, qrCodeUrl);
+      } catch (dbError) {
+        console.error("Erro ao atualizar QR code no banco, mas continuando com exibição:", dbError);
+        // Continua mesmo em caso de erro no banco
+      }
       
       // Atualiza o estado local com o novo QR code
       updateInstance(instanceId, {

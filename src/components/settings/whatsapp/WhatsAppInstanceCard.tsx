@@ -106,7 +106,7 @@ const WhatsAppInstanceCard = ({
             </Badge>
           </div>
           
-          {shouldShowQrCode && (
+          {shouldShowQrCode && instance.qrCodeUrl && (
             <div className="flex flex-col items-center mb-4 p-4 bg-white dark:bg-black rounded-md">
               <img 
                 src={instance.qrCodeUrl} 

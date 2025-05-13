@@ -86,12 +86,12 @@ export const useWhatsAppInstances = (userEmail: string) => {
       
       // Conectar a instância - isso verifica se já existe uma instância com o mesmo nome
       // e irá adicionar um número sequencial se necessário
-      const result = await connectInstance(newInstance);
+      const qrCodeUrl = await connectInstance(newInstance);
       
       // Retorna a instância com o QR Code
       return {
         ...newInstance,
-        qrCodeUrl: result
+        qrCodeUrl
       };
     } catch (error) {
       console.error("Erro ao adicionar nova instância:", error);

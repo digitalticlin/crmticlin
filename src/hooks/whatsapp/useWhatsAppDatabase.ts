@@ -69,6 +69,7 @@ export const saveInstanceToDatabase = async (
     
     console.log("Dados a serem salvos no banco:", whatsappData);
     
+    // Modificando onConflict para especificar coluna corretamente
     const { error, data } = await supabase
       .from('whatsapp_numbers')
       .upsert(whatsappData, { onConflict: 'instance_name' })
