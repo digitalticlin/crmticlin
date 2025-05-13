@@ -1,135 +1,62 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { QrCode, Trash2, RefreshCw, Link } from "lucide-react";
-import { toast } from "sonner";
+import { QrCode, Trash2, RefreshCw, Link, AlertCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-
-interface WhatsAppInstance {
-  id: string;
-  instanceName: string;
-  connected: boolean;
-  qrCodeUrl?: string;
-}
+import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const WhatsAppSettings = () => {
-  // Estado para armazenar as instâncias de WhatsApp do usuário
-  const [instances, setInstances] = useState<WhatsAppInstance[]>([
-    // Dados de exemplo - na implementação real viriam do banco de dados
-    { id: "1", instanceName: "digitalticlin", connected: false }
-  ]);
-  const [showQrCode, setShowQrCode] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
-  
-  // Função para gerar o nome da instância com base no email
-  const getUsernameFromEmail = (email: string) => {
-    return email.split('@')[0];
-  };
-  
-  // Exemplo de email do usuário atual - na implementação real viria do contexto de autenticação
+  // Usuário atual (mock - em uma aplicação real viria do contexto de autenticação)
   const currentUserEmail = "digitalticlin@gmail.com";
-  const instanceName = getUsernameFromEmail(currentUserEmail);
+  
+  const {
+    instances,
+    isLoading,
+    instanceName,
+    connectInstance,
+    deleteInstance,
+    refreshQrCode
+  } = useWhatsAppInstances(currentUserEmail);
+  
+  const [showQrCode, setShowQrCode] = useState<string | null>(null);
 
-  // Simula a conexão de uma nova instância WhatsApp
+  // Mostrar automaticamente o QR code quando estiver disponível
+  useEffect(() => {
+    const instanceWithQr = instances.find(instance => instance.qrCodeUrl);
+    if (instanceWithQr) {
+      setShowQrCode(instanceWithQr.id);
+    }
+  }, [instances]);
+
   const handleConnect = async (instanceId: string) => {
-    setIsLoading({...isLoading, [instanceId]: true});
-    
     try {
-      // Aqui seria a chamada real à API da Evolution para criar instância
-      // const response = await fetch('https://api.evolution.com/create-instance', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ instanceName })
-      // });
-      // const data = await response.json();
-      
-      // Simulação de resposta da API
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      const mockQrCodeUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==";
-      
-      setInstances(prev => 
-        prev.map(instance => 
-          instance.id === instanceId 
-            ? {...instance, qrCodeUrl: mockQrCodeUrl} 
-            : instance
-        )
-      );
-      
+      await connectInstance(instanceId);
       setShowQrCode(instanceId);
-      toast.success("QR Code gerado com sucesso!");
     } catch (error) {
-      toast.error("Erro ao conectar WhatsApp. Tente novamente.");
-      console.error(error);
-    } finally {
-      setIsLoading({...isLoading, [instanceId]: false});
+      console.error("Erro ao conectar:", error);
     }
   };
 
-  // Simula a desconexão/deleção de uma instância WhatsApp
   const handleDelete = async (instanceId: string) => {
-    setIsLoading({...isLoading, [instanceId]: true});
-    
     try {
-      // Aqui seria a chamada real à API da Evolution para deletar instância
-      // const response = await fetch(`https://api.evolution.com/delete-instance/${instanceName}`, {
-      //   method: 'DELETE'
-      // });
-      
-      // Simulação de resposta da API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setInstances(prev => 
-        prev.map(instance => 
-          instance.id === instanceId 
-            ? {...instance, connected: false, qrCodeUrl: undefined} 
-            : instance
-        )
-      );
-      
+      await deleteInstance(instanceId);
       setShowQrCode(null);
-      toast.success("WhatsApp desconectado com sucesso!");
     } catch (error) {
-      toast.error("Erro ao desconectar WhatsApp. Tente novamente.");
-      console.error(error);
-    } finally {
-      setIsLoading({...isLoading, [instanceId]: false});
+      console.error("Erro ao deletar:", error);
     }
   };
 
-  // Simula a geração de um novo QR Code para uma instância existente
   const handleRefreshQrCode = async (instanceId: string) => {
-    setIsLoading({...isLoading, [instanceId]: true});
-    
     try {
-      // Aqui seria a chamada real à API da Evolution para gerar novo QR Code
-      // const response = await fetch(`https://api.evolution.com/refresh-qr/${instanceName}`, {
-      //   method: 'GET'
-      // });
-      // const data = await response.json();
-      
-      // Simulação de resposta da API
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      const mockQrCodeUrl = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==";
-      
-      setInstances(prev => 
-        prev.map(instance => 
-          instance.id === instanceId 
-            ? {...instance, qrCodeUrl: mockQrCodeUrl} 
-            : instance
-        )
-      );
-      
+      await refreshQrCode(instanceId);
       setShowQrCode(instanceId);
-      toast.success("QR Code atualizado com sucesso!");
     } catch (error) {
-      toast.error("Erro ao atualizar QR Code. Tente novamente.");
-      console.error(error);
-    } finally {
-      setIsLoading({...isLoading, [instanceId]: false});
+      console.error("Erro ao atualizar QR code:", error);
     }
   };
-
+  
   return (
     <div className="space-y-6">
       <div className="flex flex-col space-y-1.5">
@@ -139,6 +66,15 @@ const WhatsAppSettings = () => {
         </p>
       </div>
       
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Importante</AlertTitle>
+        <AlertDescription>
+          Para conectar seu WhatsApp, escaneie o QR code com seu aplicativo WhatsApp. 
+          O QR code expira após alguns minutos. Se expirar, clique em "Gerar novo QR Code".
+        </AlertDescription>
+      </Alert>
+      
       <div className="grid gap-4 sm:grid-cols-2">
         {instances.map(instance => (
           <Card key={instance.id} className="overflow-hidden glass-card border-0">
@@ -147,7 +83,7 @@ const WhatsAppSettings = () => {
                 <div className="flex justify-between items-center mb-3">
                   <div>
                     <h4 className="font-medium">WhatsApp</h4>
-                    <p className="text-sm text-muted-foreground">Instância: {instanceName}</p>
+                    <p className="text-sm text-muted-foreground">Instância: {instance.instanceName}</p>
                   </div>
                   <Badge variant="outline" className={instance.connected ? 
                     "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400" : 
@@ -157,7 +93,7 @@ const WhatsAppSettings = () => {
                 </div>
                 
                 {showQrCode === instance.id && instance.qrCodeUrl && (
-                  <div className="flex justify-center mb-4 p-4 bg-white rounded-md">
+                  <div className="flex justify-center mb-4 p-4 bg-white dark:bg-black rounded-md">
                     <img 
                       src={instance.qrCodeUrl} 
                       alt="QR Code para conexão do WhatsApp" 
@@ -175,8 +111,17 @@ const WhatsAppSettings = () => {
                         onClick={() => handleConnect(instance.id)}
                         disabled={isLoading[instance.id]}
                       >
-                        <Link className="w-4 h-4" />
-                        {isLoading[instance.id] ? "Conectando..." : "Conectar WhatsApp"}
+                        {instance.qrCodeUrl ? (
+                          <>
+                            <QrCode className="w-4 h-4 mr-2" />
+                            {isLoading[instance.id] ? "Gerando QR..." : "Mostrar QR Code"}
+                          </>
+                        ) : (
+                          <>
+                            <Link className="w-4 h-4 mr-2" />
+                            {isLoading[instance.id] ? "Conectando..." : "Conectar WhatsApp"}
+                          </>
+                        )}
                       </Button>
                       
                       {instance.qrCodeUrl && (
@@ -185,7 +130,7 @@ const WhatsAppSettings = () => {
                           onClick={() => handleRefreshQrCode(instance.id)}
                           disabled={isLoading[instance.id]}
                         >
-                          <RefreshCw className="w-4 h-4" />
+                          <RefreshCw className={`w-4 h-4 ${isLoading[instance.id] ? "animate-spin" : ""}`} />
                           {isLoading[instance.id] ? "Gerando..." : "Gerar novo QR Code"}
                         </Button>
                       )}
@@ -197,7 +142,7 @@ const WhatsAppSettings = () => {
                       onClick={() => handleDelete(instance.id)}
                       disabled={isLoading[instance.id]}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4 mr-2" />
                       {isLoading[instance.id] ? "Desconectando..." : "Deletar WhatsApp"}
                     </Button>
                   )}

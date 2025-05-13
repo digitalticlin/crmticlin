@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import NotificationToggleItem from "./NotificationToggleItem";
 
 interface NotificationsState {
@@ -8,6 +7,8 @@ interface NotificationsState {
   marketing: boolean;
   security: boolean;
   whatsapp: boolean;
+  whatsapp_instant?: boolean;
+  whatsapp_digest?: boolean;
 }
 
 interface NotificationTogglesListProps {
@@ -20,7 +21,19 @@ const NotificationTogglesList = ({
   setNotifications 
 }: NotificationTogglesListProps) => {
   const handleToggle = (key: keyof NotificationsState) => (checked: boolean) => {
-    setNotifications({ ...notifications, [key]: checked });
+    setNotifications(prev => {
+      // Caso especial para o toggle principal do WhatsApp
+      if (key === 'whatsapp') {
+        return {
+          ...prev,
+          [key]: checked,
+          // Se desativar WhatsApp, desativa todas as opções relacionadas
+          ...(checked ? {} : { whatsapp_instant: false, whatsapp_digest: false })
+        };
+      }
+      
+      return { ...prev, [key]: checked };
+    });
   };
 
   return (
@@ -52,6 +65,25 @@ const NotificationTogglesList = ({
         checked={notifications.whatsapp}
         onCheckedChange={handleToggle("whatsapp")}
       />
+      
+      {/* Sub-opções de WhatsApp - visíveis apenas quando WhatsApp está ativado */}
+      {notifications.whatsapp && (
+        <div className="pl-6 border-l-2 border-gray-200 dark:border-gray-700 space-y-4">
+          <NotificationToggleItem
+            title="Notificações instantâneas"
+            description="Receba notificações imediatas para cada nova mensagem"
+            checked={notifications.whatsapp_instant || false}
+            onCheckedChange={handleToggle("whatsapp_instant")}
+          />
+          
+          <NotificationToggleItem
+            title="Resumo diário"
+            description="Receba um resumo diário de todas as conversas"
+            checked={notifications.whatsapp_digest || false}
+            onCheckedChange={handleToggle("whatsapp_digest")}
+          />
+        </div>
+      )}
       
       <NotificationToggleItem
         title="Comunicações de Marketing"

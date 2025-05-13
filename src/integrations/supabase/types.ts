@@ -1027,8 +1027,10 @@ export type Database = {
           created_at: string | null
           date_connected: string | null
           date_disconnected: string | null
+          evolution_instance_name: string | null
           evolution_token: string | null
           id: string
+          instance_id: string | null
           instance_name: string
           phone: string
           qr_code: string | null
@@ -1040,8 +1042,10 @@ export type Database = {
           created_at?: string | null
           date_connected?: string | null
           date_disconnected?: string | null
+          evolution_instance_name?: string | null
           evolution_token?: string | null
           id?: string
+          instance_id?: string | null
           instance_name: string
           phone: string
           qr_code?: string | null
@@ -1053,8 +1057,10 @@ export type Database = {
           created_at?: string | null
           date_connected?: string | null
           date_disconnected?: string | null
+          evolution_instance_name?: string | null
           evolution_token?: string | null
           id?: string
+          instance_id?: string | null
           instance_name?: string
           phone?: string
           qr_code?: string | null
