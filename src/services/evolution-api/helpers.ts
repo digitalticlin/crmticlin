@@ -101,6 +101,7 @@ export const mapInstanceResponse = (data: any): EvolutionInstance => {
   return {
     instanceName: data.instance.instanceName,
     instanceId: data.instance.instanceId,
+    integration: data.instance.integration || 'WHATSAPP-BAILEYS',
     qrcode: data.qrcode,
     status: data.instance.status || 'created'
   };

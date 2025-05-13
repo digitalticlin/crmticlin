@@ -28,7 +28,7 @@ export function ApiSettingsTab({ config, onConfigChange }: ConfigProps) {
       
       <Separator />
 
-      <Alert variant="warning" className="mb-6">
+      <Alert variant="destructive" className="mb-6">
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
           Alterar estas configurações pode afetar a operação do sistema. Certifique-se de que a API Evolution esteja corretamente configurada.

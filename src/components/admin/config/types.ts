@@ -23,3 +23,8 @@ export interface ConfigProps {
   };
   onConfigChange: (field: string, value: any) => void;
 }
+
+export interface SecuritySettingsTabProps {
+  config: Record<string, any>;
+  onConfigChange: (field: string, value: any) => void;
+}
