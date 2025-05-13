@@ -20,6 +20,8 @@ export interface WhatsAppInstanceActions {
   updateInstance: (id: string, updates: Partial<WhatsAppInstance>) => void;
   removeInstance: (id: string) => void;
   addInstance: (instance: WhatsAppInstance) => void;
+  setLoading: (instanceId: string, loading: boolean) => void;
+  setError: (error: string | null) => void;
 }
 
 export const useWhatsAppInstanceState = create<WhatsAppInstanceState>((set) => ({
@@ -52,5 +54,19 @@ export const useWhatsAppInstanceActions = create<WhatsAppInstanceActions>((set, 
     const updatedInstances = [...instances, instance];
     useWhatsAppInstanceState.setState({ instances: updatedInstances });
     console.log("Instance added to store:", instance);
+  },
+
+  setLoading: (instanceId, loading) => {
+    // This doesn't directly modify the instances but would be used
+    // to track loading state in components using this hook
+    console.log(`Setting loading state for instance ${instanceId}: ${loading}`);
+    // Implementation would depend on how loading states are tracked
+  },
+  
+  setError: (error) => {
+    // This doesn't directly modify the instances but would be used
+    // to track error state in components using this hook
+    console.log(`Setting error state: ${error}`);
+    // Implementation would depend on how error states are tracked
   }
 }));
