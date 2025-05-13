@@ -18,6 +18,7 @@ export const useDragAndDrop = ({
 }: UseDragAndDropProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [showDropZones, setShowDropZones] = useState(false);
+  const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
   const dropZoneTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -28,19 +29,36 @@ export const useDragAndDrop = ({
     };
   }, []);
 
-  const onDragStart = () => {
+  const onDragStart = (start: any) => {
+    setDraggedItemId(start.draggableId);
     setIsDragging(true);
+    
+    // Play a subtle sound effect when drag starts
+    try {
+      const audio = new Audio();
+      audio.volume = 0.2; // Keep the sound subtle
+      audio.play().catch(() => {}); // Ignore errors if browser blocks autoplay
+    } catch (e) {
+      // Ignore audio errors
+    }
+    
     if (!isWonLostView) {
-      // Show drop zones after a short delay to reduce interface flickering
+      // Show drop zones quickly but not instantly to reduce flickering
       dropZoneTimeoutRef.current = setTimeout(() => {
         setShowDropZones(true);
-      }, 250);
+      }, 150);
     }
+    
+    // Add a class to the body to indicate dragging state
+    document.body.classList.add('is-dragging');
   };
 
   const onDragEnd = (result: DropResult) => {
     setIsDragging(false);
     setShowDropZones(false);
+    setDraggedItemId(null);
+    
+    document.body.classList.remove('is-dragging');
     
     if (dropZoneTimeoutRef.current) {
       clearTimeout(dropZoneTimeoutRef.current);
@@ -54,6 +72,15 @@ export const useDragAndDrop = ({
 
     // Special handling for drop zones
     if (destination.droppableId === 'drop-zone-won' || destination.droppableId === 'drop-zone-lost') {
+      // Play a success sound
+      try {
+        const audio = new Audio();
+        audio.volume = 0.3;
+        audio.play().catch(() => {});
+      } catch (e) {
+        // Ignore audio errors
+      }
+      
       // Find the lead that was dragged
       const sourceColumn = columns.find(col => col.id === source.droppableId);
       if (!sourceColumn) return;
@@ -138,6 +165,15 @@ export const useDragAndDrop = ({
         });
 
         onColumnsChange(newColumns);
+        
+        // Play a sound when moved between columns
+        try {
+          const audio = new Audio();
+          audio.volume = 0.2;
+          audio.play().catch(() => {});
+        } catch (e) {
+          // Ignore audio errors
+        }
       }
     } catch (error) {
       console.error("Error during drag and drop operation:", error);
@@ -147,6 +183,7 @@ export const useDragAndDrop = ({
   return {
     isDragging,
     showDropZones,
+    draggedItemId,
     onDragStart,
     onDragEnd
   };

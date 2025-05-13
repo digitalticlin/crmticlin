@@ -4,6 +4,7 @@ import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
 import { useDragAndDrop } from "@/hooks/kanban/useDragAndDrop";
 import { BoardContent } from "./kanban/BoardContent";
 import { DropZones } from "./kanban/DropZones";
+import { useEffect, useState } from "react";
 
 interface KanbanBoardProps {
   columns: IKanbanColumn[];
@@ -30,6 +31,7 @@ export const KanbanBoard = ({
 }: KanbanBoardProps) => {
   const { 
     showDropZones, 
+    isDragging,
     onDragStart, 
     onDragEnd 
   } = useDragAndDrop({ 
@@ -38,10 +40,19 @@ export const KanbanBoard = ({
     onMoveToWonLost, 
     isWonLostView 
   });
-
-  // Create a key based on columns that will force remount when columns change
-  // This ensures proper reset of the drag and drop context
-  const boardKey = columns.map(col => col.id).join('-');
+  
+  // Add a class to the body when dragging to customize the cursor
+  useEffect(() => {
+    if (isDragging) {
+      document.body.classList.add('grabbing');
+    } else {
+      document.body.classList.remove('grabbing');
+    }
+    
+    return () => {
+      document.body.classList.remove('grabbing');
+    };
+  }, [isDragging]);
 
   return (
     <DragDropContext 
@@ -58,6 +69,7 @@ export const KanbanBoard = ({
           onMoveToWonLost={!isWonLostView ? onMoveToWonLost : undefined}
           onReturnToFunnel={isWonLostView ? onReturnToFunnel : undefined}
           isWonLostView={isWonLostView}
+          isDragging={isDragging}
         />
         
         {/* Fixed Won/Lost drop zones that appear during drag */}
