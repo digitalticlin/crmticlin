@@ -10,12 +10,10 @@ interface ProfileFormProps {
   companyName: string;
   documentId: string;
   whatsapp: string;
-  position: string;
   handleEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setFullName: (value: string) => void;
   setDocumentId: (value: string) => void;
   setWhatsapp: (value: string) => void;
-  setPosition: (value: string) => void;
 }
 
 const ProfileForm = ({
@@ -55,6 +53,7 @@ const ProfileForm = ({
         <Input 
           id="username" 
           value={username} 
+          readOnly
         />
         <p className="text-xs text-muted-foreground">
           Gerado automaticamente com base no email
@@ -66,6 +65,7 @@ const ProfileForm = ({
         <Input 
           id="company" 
           value={companyName}
+          readOnly
         />
       </div>
       

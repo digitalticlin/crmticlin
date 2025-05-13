@@ -10,9 +10,9 @@ interface WhatsAppInstanceCardProps {
   instance: WhatsAppInstance;
   isLoading: boolean;
   showQrCode: string | null;
-  onConnect: (instanceId: string) => void;
-  onDelete: (instanceId: string) => void;
-  onRefreshQrCode: (instanceId: string) => void;
+  onConnect: (instanceId: string) => Promise<void>;
+  onDelete: (instanceId: string) => Promise<void>;
+  onRefreshQrCode: (instanceId: string) => Promise<void>;
 }
 
 const WhatsAppInstanceCard = ({
@@ -25,6 +25,7 @@ const WhatsAppInstanceCard = ({
 }: WhatsAppInstanceCardProps) => {
   // Estado local para rastrear quando o QR code foi obtido com sucesso
   const [qrCodeSuccess, setQrCodeSuccess] = useState(false);
+  const [actionInProgress, setActionInProgress] = useState(false);
 
   // Detecta quando um QR code é recebido para mostrar automaticamente
   useEffect(() => {
@@ -36,20 +37,38 @@ const WhatsAppInstanceCard = ({
   // Função de clique para conectar o WhatsApp
   const handleConnect = async () => {
     try {
+      setActionInProgress(true);
       setQrCodeSuccess(false);
       await onConnect(instance.id);
     } catch (error) {
       console.error("Erro ao conectar:", error);
+    } finally {
+      setActionInProgress(false);
     }
   };
 
   // Função para atualizar o QR code
   const handleRefreshQrCode = async () => {
     try {
+      setActionInProgress(true);
       setQrCodeSuccess(false);
       await onRefreshQrCode(instance.id);
     } catch (error) {
       console.error("Erro ao atualizar QR code:", error);
+    } finally {
+      setActionInProgress(false);
+    }
+  };
+
+  // Função para deletar o número de WhatsApp
+  const handleDelete = async () => {
+    try {
+      setActionInProgress(true);
+      await onDelete(instance.id);
+    } catch (error) {
+      console.error("Erro ao deletar:", error);
+    } finally {
+      setActionInProgress(false);
     }
   };
 
@@ -92,17 +111,17 @@ const WhatsAppInstanceCard = ({
                   variant="whatsapp" 
                   className="flex-1"
                   onClick={handleConnect}
-                  disabled={isLoading}
+                  disabled={isLoading || actionInProgress}
                 >
                   {instance.qrCodeUrl ? (
                     <>
                       <QrCode className="w-4 h-4 mr-2" />
-                      {isLoading ? "Gerando QR..." : "Mostrar QR Code"}
+                      {isLoading || actionInProgress ? "Gerando QR..." : "Mostrar QR Code"}
                     </>
                   ) : (
                     <>
                       <Link className="w-4 h-4 mr-2" />
-                      {isLoading ? "Conectando..." : "Conectar WhatsApp"}
+                      {isLoading || actionInProgress ? "Conectando..." : "Conectar WhatsApp"}
                     </>
                   )}
                 </Button>
@@ -111,11 +130,11 @@ const WhatsAppInstanceCard = ({
                   <Button 
                     variant="outline" 
                     onClick={handleRefreshQrCode}
-                    disabled={isLoading}
+                    disabled={isLoading || actionInProgress}
                   >
-                    <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+                    <RefreshCw className={`w-4 h-4 ${(isLoading || actionInProgress) ? "animate-spin" : ""}`} />
                     <span className="ml-2 hidden sm:inline">
-                      {isLoading ? "Gerando..." : "Gerar novo QR Code"}
+                      {isLoading || actionInProgress ? "Gerando..." : "Gerar novo QR Code"}
                     </span>
                   </Button>
                 )}
@@ -124,11 +143,11 @@ const WhatsAppInstanceCard = ({
               <Button 
                 variant="destructive" 
                 className="flex-1"
-                onClick={() => onDelete(instance.id)}
-                disabled={isLoading}
+                onClick={handleDelete}
+                disabled={isLoading || actionInProgress}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                {isLoading ? "Desconectando..." : "Deletar WhatsApp"}
+                {isLoading || actionInProgress ? "Desconectando..." : "Deletar WhatsApp"}
               </Button>
             )}
           </div>

@@ -12,7 +12,6 @@ export const useProfileSettings = () => {
   const [companyName, setCompanyName] = useState("");
   const [documentId, setDocumentId] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
-  const [position, setPosition] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
 
@@ -51,7 +50,6 @@ export const useProfileSettings = () => {
           setFullName(profile.full_name || "");
           setDocumentId(profile.document_id || "");
           setWhatsapp(profile.whatsapp || "");
-          setPosition(profile.position || "");
           setAvatarUrl(profile.avatar_url);
           
           // Buscar dados da empresa do usuário
@@ -103,7 +101,6 @@ export const useProfileSettings = () => {
           full_name: fullName,
           document_id: documentId,
           whatsapp: whatsapp,
-          position: position,
           updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
@@ -148,13 +145,11 @@ export const useProfileSettings = () => {
     companyName,
     documentId,
     whatsapp,
-    position,
     avatarUrl,
     user,
     setFullName,
     setDocumentId,
     setWhatsapp,
-    setPosition,
     handleEmailChange,
     handleSaveChanges,
     handleChangePassword

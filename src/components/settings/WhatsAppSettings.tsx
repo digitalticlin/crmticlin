@@ -7,22 +7,33 @@ import WhatsAppInfoAlert from "./whatsapp/WhatsAppInfoAlert";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const WhatsAppSettings = () => {
   // Estado para armazenar o email do usuário atual
   const [userEmail, setUserEmail] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
   
   // Carregar dados do usuário atual
   useEffect(() => {
     const getUser = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error) {
-        console.error("Erro ao obter usuário:", error);
-        return;
-      }
-      
-      if (user) {
-        setUserEmail(user.email || "");
+      try {
+        setIsLoading(true);
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error) {
+          console.error("Erro ao obter usuário:", error);
+          toast.error("Não foi possível carregar os dados do usuário");
+          return;
+        }
+        
+        if (user) {
+          setUserEmail(user.email || "");
+        }
+      } catch (error) {
+        console.error("Erro ao buscar usuário:", error);
+        toast.error("Ocorreu um erro ao carregar dados do usuário");
+      } finally {
+        setIsLoading(false);
       }
     };
     
@@ -31,7 +42,7 @@ const WhatsAppSettings = () => {
   
   const {
     instances,
-    isLoading,
+    isLoading: instanceLoading,
     instanceName,
     lastError,
     connectInstance,
@@ -65,7 +76,7 @@ const WhatsAppSettings = () => {
           <WhatsAppInstanceCard 
             key={instance.id}
             instance={instance}
-            isLoading={isLoading[instance.id] || false}
+            isLoading={instanceLoading[instance.id] || false}
             showQrCode={showQrCode}
             onConnect={connectInstance}
             onDelete={deleteInstance}
@@ -73,7 +84,7 @@ const WhatsAppSettings = () => {
           />
         ))}
         
-        {/* Placeholder para adicional instância em planos superiores */}
+        {/* Placeholder para adicionar nova instância em planos superiores */}
         <PlaceholderInstanceCard />
       </div>
     </div>
