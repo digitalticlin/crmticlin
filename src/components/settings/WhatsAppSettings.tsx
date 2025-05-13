@@ -17,9 +17,13 @@ const WhatsAppSettings = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const userDataLoadedRef = useRef(false);
   
   // Load current user data
   useEffect(() => {
+    // Evitar múltiplas chamadas carregando os dados apenas uma vez
+    if (userDataLoadedRef.current) return;
+    
     const getUser = async () => {
       try {
         setIsLoading(true);
@@ -32,6 +36,7 @@ const WhatsAppSettings = () => {
         
         if (user) {
           setUserEmail(user.email || "");
+          userDataLoadedRef.current = true;
           
           // Check if user is a SuperAdmin
           const { data: superAdmin, error: superAdminError } = await supabase.rpc('is_super_admin');
@@ -50,6 +55,7 @@ const WhatsAppSettings = () => {
     getUser();
   }, []);
   
+  // Só inicializar o hook quando o email do usuário estiver disponível
   const {
     instances,
     isLoading: instanceLoading,

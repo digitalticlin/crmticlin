@@ -15,6 +15,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
   const [showQrCode, setShowQrCode] = useState<string | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
+  const loadingRef = useRef(false);
   
   // Resolvers
   const companyId = useCompanyResolver(userEmail);
@@ -24,12 +25,13 @@ export const useWhatsAppInstances = (userEmail: string) => {
   const { fetchInstances } = useWhatsAppFetcher();
   const { addNewInstance } = useWhatsAppCreator(companyId);
   
-  // Load WhatsApp instances when company ID is available
+  // Load WhatsApp instances when company ID is available, only once
   useEffect(() => {
-    if (!companyId) return;
+    if (!companyId || loadingRef.current) return;
     
     const loadInstances = async () => {
       try {
+        loadingRef.current = true;
         setIsLoading(prev => ({ ...prev, fetch: true }));
         await fetchInstances(companyId);
       } catch (error) {
@@ -41,6 +43,9 @@ export const useWhatsAppInstances = (userEmail: string) => {
     };
     
     loadInstances();
+    
+    // O cleanup não deve resetar loadingRef para permitir que o componente
+    // evite fazer múltiplas chamadas durante seu ciclo de vida
   }, [companyId, fetchInstances]);
 
   // Initial status check for all instances after loading

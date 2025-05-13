@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { 
@@ -14,11 +14,19 @@ import {
 export const useWhatsAppFetcher = () => {
   const { setInstances } = useWhatsAppInstanceState();
   const { setError } = useWhatsAppInstanceActions();
+  const fetchingRef = useRef<Record<string, boolean>>({});
   
   // Fetch instances from the database for a specific company
   const fetchInstances = async (companyId: string) => {
+    // Evitar múltiplas chamadas simultâneas para o mesmo companyId
+    if (fetchingRef.current[companyId]) {
+      console.log(`Already fetching instances for company ${companyId}, skipping redundant call`);
+      return [];
+    }
+    
     try {
       console.log(`Fetching WhatsApp instances for company: ${companyId}`);
+      fetchingRef.current[companyId] = true;
       setError(null);
       
       // Fetch instances from Supabase
@@ -38,6 +46,7 @@ export const useWhatsAppFetcher = () => {
         return mappedInstances;
       } else {
         console.log(`No WhatsApp instances found for company ${companyId}`);
+        setInstances([]);
         return [];
       }
     } catch (error) {
@@ -45,16 +54,30 @@ export const useWhatsAppFetcher = () => {
       setError("Error loading WhatsApp instances");
       toast.error("Error loading WhatsApp instances");
       return [];
+    } finally {
+      fetchingRef.current[companyId] = false;
     }
   };
 
   // Busca as instâncias do usuário no banco de dados
   const fetchUserInstances = async (userEmail: string) => {
+    if (!userEmail) {
+      console.log("User email is empty, skipping fetch");
+      return;
+    }
+    
+    // Evitar múltiplas chamadas para o mesmo usuário
+    if (fetchingRef.current[userEmail]) {
+      console.log(`Already fetching instances for user ${userEmail}, skipping redundant call`);
+      return;
+    }
+    
     // Gera o nome da instância com base no email (parte antes do @)
     const instanceName = userEmail ? userEmail.split('@')[0] : "";
     
     try {
       console.log(`Buscando instâncias WhatsApp para usuário: ${userEmail}, nome base da instância: ${instanceName}`);
+      fetchingRef.current[userEmail] = true;
       setError(null);
       
       // Busca instâncias do usuário do Supabase
@@ -85,6 +108,8 @@ export const useWhatsAppFetcher = () => {
       setInstances([
         { id: "1", instanceName, connected: false }
       ]);
+    } finally {
+      fetchingRef.current[userEmail] = false;
     }
   };
 
