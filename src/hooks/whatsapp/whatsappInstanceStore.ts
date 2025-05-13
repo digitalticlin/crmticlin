@@ -7,6 +7,14 @@ export interface WhatsAppInstance {
   connected: boolean;
   qrCodeUrl?: string;
   phoneNumber?: string;
+  // Device information fields
+  deviceInfo?: {
+    batteryLevel?: number;
+    deviceModel?: string;
+    whatsappVersion?: string;
+    lastConnectionTime?: string;
+    platformType?: string;
+  };
 }
 
 interface WhatsAppInstanceState {

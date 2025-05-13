@@ -18,6 +18,7 @@ export const evolutionApiService = {
   refreshQrCode: (instanceName: string) => instanceService.refreshQrCode(instanceName),
   checkInstanceStatus: (instanceName: string) => instanceService.checkInstanceStatus(instanceName),
   connectInstance: (instanceName: string) => instanceService.connectInstance(instanceName),
+  getDeviceInfo: (instanceName: string) => instanceService.getDeviceInfo(instanceName),
   
   // Métodos de chat e mensagens - alterados para corresponder aos nomes reais dos métodos em ChatService
   findChats: (instanceName: string) => chatService.findChats(instanceName),

@@ -15,8 +15,10 @@ export class InstanceService {
   private creationService: InstanceCreationService;
   private connectionService: InstanceConnectionService;
   private deletionService: InstanceDeletionService;
+  private apiClient: ApiClient;
 
   constructor(apiClient: ApiClient) {
+    this.apiClient = apiClient;
     this.fetchService = new InstanceFetchService(apiClient);
     this.creationService = new InstanceCreationService(apiClient);
     this.connectionService = new InstanceConnectionService(apiClient);
@@ -75,5 +77,18 @@ export class InstanceService {
       this.fetchService.invalidateCache();
     }
     return result;
+  }
+  
+  /**
+   * Gets device information for a connected instance
+   */
+  async getDeviceInfo(instanceName: string): Promise<any | null> {
+    try {
+      const response = await this.apiClient.fetchWithHeaders(`/instance/deviceInfo/${instanceName}`);
+      return response;
+    } catch (error) {
+      console.error("Error getting device info:", error);
+      return null;
+    }
   }
 }

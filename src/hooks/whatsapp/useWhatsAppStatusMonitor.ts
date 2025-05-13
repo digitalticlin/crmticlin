@@ -52,6 +52,31 @@ export const useWhatsAppStatusMonitor = () => {
       const status = await evolutionApiService.checkInstanceStatus(instanceName);
       console.log(`Status of instance ${instanceName}: ${status}`);
       
+      // If device is connected, get additional device info
+      if (status === 'connected') {
+        try {
+          const deviceInfo = await evolutionApiService.getDeviceInfo(instanceName);
+          if (deviceInfo && deviceInfo.status === 'success') {
+            // Update device info in store
+            if (window._whatsAppInstancesStore) {
+              const updateInstance = window._whatsAppInstancesStore.getState().actions.updateInstance;
+              updateInstance(instanceId, { 
+                connected: true,
+                deviceInfo: {
+                  batteryLevel: deviceInfo.device?.battery?.value || 0,
+                  deviceModel: deviceInfo.device?.phone?.device_model || "Unknown device",
+                  whatsappVersion: deviceInfo.device?.wa_version || "Unknown version",
+                  lastConnectionTime: new Date().toISOString(),
+                  platformType: deviceInfo.device?.platform || "Unknown platform"
+                }
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Error getting device information:", error);
+        }
+      }
+      
       // Update status in database
       if (instanceId !== "1") {
         try {
