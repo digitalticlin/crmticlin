@@ -22,14 +22,18 @@ export const useWhatsAppInstances = (userEmail: string) => {
   const { deleteInstance } = useWhatsAppDisconnector();
   const { checkInstanceStatus, setupPeriodicStatusCheck } = useWhatsAppStatusMonitor();
   const { fetchInstances } = useWhatsAppFetcher();
-  const { addNewInstance } = useWhatsAppCreator(companyId);
+  const { addNewInstance: creatorAddNewInstance } = useWhatsAppCreator(companyId);
   
   // Load WhatsApp instances when company ID is available
   useEffect(() => {
-    if (!companyId) return;
+    if (!companyId) {
+      console.log("No company ID available, skipping instance fetch");
+      return;
+    }
     
     const loadInstances = async () => {
       try {
+        console.log(`Loading instances for company ${companyId}`);
         setIsLoading(prev => ({ ...prev, fetch: true }));
         await fetchInstances(companyId);
       } catch (error) {
@@ -54,6 +58,24 @@ export const useWhatsAppInstances = (userEmail: string) => {
       if (cleanupStatusCheck) cleanupStatusCheck();
     };
   }, [instances, setupPeriodicStatusCheck]);
+
+  // Wrapper for addNewInstance to handle QR code display
+  const addNewInstance = async (username: string) => {
+    try {
+      console.log(`Adding new WhatsApp instance for username: ${username}`);
+      const result = await creatorAddNewInstance(username);
+      
+      if (!result) {
+        throw new Error("Failed to create WhatsApp instance");
+      }
+      
+      // Return the result with QR code
+      return result;
+    } catch (error) {
+      console.error("Error in addNewInstance wrapper:", error);
+      throw error;
+    }
+  };
   
   return {
     instances,

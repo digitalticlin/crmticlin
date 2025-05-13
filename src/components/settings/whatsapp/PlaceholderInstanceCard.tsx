@@ -59,6 +59,9 @@ const PlaceholderInstanceCard = ({
       setIsCreating(true);
       console.log("Iniciando conexão de nova instância WhatsApp com username:", username);
       
+      // Add extra logging to trace the execution flow
+      console.log("Chamando addNewInstance com username:", username);
+      
       // Conectar WhatsApp usando o username como nome da instância
       const result = await addNewInstance(username);
       console.log("Resultado da adição de nova instância:", result);
@@ -69,12 +72,11 @@ const PlaceholderInstanceCard = ({
           result.qrCodeUrl.substring(0, 50));
         setQrCodeUrl(result.qrCodeUrl);
         setIsDialogOpen(true);
+        toast.success("WhatsApp conectado com sucesso!");
       } else {
         console.log("Nenhum QR code retornado do addNewInstance");
         toast.error("QR code não recebido. Tente novamente.");
       }
-      
-      toast.success("Solicitação de conexão enviada com sucesso!");
     } catch (error) {
       console.error("Erro completo ao criar instância:", error);
       toast.error("Não foi possível criar a instância de WhatsApp");
@@ -92,6 +94,15 @@ const PlaceholderInstanceCard = ({
       toast.error("Disponível apenas em planos superiores. Atualize seu plano.");
       return;
     }
+    
+    // Log the current state before attempting to create an instance
+    console.log("Status antes de criar instância:", { 
+      isSuperAdmin, 
+      userEmail,
+      username,
+      isCreating: isCreating,
+      isAddingRef: isAddingRef.current 
+    });
     
     // Iniciar processo de conexão diretamente
     handleAddWhatsApp();

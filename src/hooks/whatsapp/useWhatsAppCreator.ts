@@ -14,7 +14,7 @@ export const useWhatsAppCreator = (companyId: string | null) => {
   const [lastError, setLastError] = useState<string | null>(null);
   
   const { instances } = useWhatsAppInstanceState();
-  const { updateInstance } = useWhatsAppInstanceActions();
+  const { updateInstance, addInstance } = useWhatsAppInstanceActions();
   const { connectInstance } = useWhatsAppConnector();
   
   /**
@@ -60,20 +60,22 @@ export const useWhatsAppCreator = (companyId: string | null) => {
   // Add new instance function with additional checks to prevent duplicates
   const addNewInstance = async (username: string) => {
     if (!username.trim()) {
+      console.error("Empty username provided");
       toast.error("Nome de usuário não pode ser vazio");
-      return;
+      return null;
     }
     
     if (!companyId) {
+      console.error("No company ID associated with user");
       toast.error("Nenhuma empresa associada ao usuário");
-      return;
+      return null;
     }
 
-    // Generate a unique name based on the username
-    const uniqueInstanceName = generateUniqueInstanceName(username);
-    console.log(`Tentando criar instância com nome único: ${uniqueInstanceName}`);
-    
     try {
+      // Generate a unique name based on the username
+      const uniqueInstanceName = generateUniqueInstanceName(username);
+      console.log(`Tentando criar instância com nome único: ${uniqueInstanceName}`);
+      
       // Create new local instance
       const newInstanceId = crypto.randomUUID();
       const newInstance: WhatsAppInstance = {
@@ -82,9 +84,27 @@ export const useWhatsAppCreator = (companyId: string | null) => {
         connected: false,
       };
       
+      setIsLoading(prev => ({ ...prev, create: true }));
+      
+      // Add the instance to local state first so it appears in the UI
+      addInstance(newInstance);
+      
       // Connect the instance - this will create it in Evolution API
       // and generate a QR code
+      console.log("Calling connectInstance with new instance:", newInstance);
       const qrCodeUrl = await connectInstance(newInstance);
+      
+      if (!qrCodeUrl) {
+        throw new Error("Failed to get QR code from Evolution API");
+      }
+      
+      console.log("QR code received, updating instance");
+      
+      // Update the instance with the QR code
+      updateInstance({
+        ...newInstance,
+        qrCodeUrl
+      });
       
       // Return the instance with QR Code
       return {
@@ -96,6 +116,8 @@ export const useWhatsAppCreator = (companyId: string | null) => {
       toast.error("Não foi possível adicionar nova instância");
       setLastError("Erro ao adicionar nova instância");
       throw error;
+    } finally {
+      setIsLoading(prev => ({ ...prev, create: false }));
     }
   };
 
