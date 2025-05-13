@@ -1,41 +1,23 @@
 
 import { useState, ChangeEvent } from "react";
-import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowRight, Eye, EyeOff, Mail, Phone, User } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form } from "@/components/ui/form";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Schema de validação do formulário
-const registerSchema = z.object({
-  fullName: z.string().min(3, "Nome completo deve ter pelo menos 3 caracteres"),
-  email: z.string().email("Email inválido"),
-  username: z.string().min(3, "Nome de usuário deve ter pelo menos 3 caracteres"),
-  documentId: z.string().min(11, "CPF/CNPJ inválido"),
-  whatsapp: z.string().min(10, "WhatsApp inválido"),
-  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
-  confirmPassword: z.string().min(6, "Confirme sua senha"),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "As senhas não coincidem",
-  path: ["confirmPassword"],
-});
+// Import schema
+import { registerSchema, RegisterFormValues } from "./register/registerSchema";
 
-type RegisterFormValues = z.infer<typeof registerSchema>;
+// Import component parts
+import { FullNameField } from "./register/FullNameField";
+import { EmailField } from "./register/EmailField";
+import { UsernameField } from "./register/UsernameField";
+import { ContactInfoFields } from "./register/ContactInfoFields";
+import { PasswordFields } from "./register/PasswordFields";
+import { SubmitButton } from "./register/SubmitButton";
 
 export default function RegisterForm() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signUp } = useAuth();
   
@@ -104,195 +86,12 @@ export default function RegisterForm() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <FormField
-            control={form.control}
-            name="fullName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nome completo</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <User className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      className="pl-8"
-                      type="text"
-                      placeholder="Seu nome completo"
-                      {...field}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Mail className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      className="pl-8"
-                      type="email"
-                      placeholder="seu.email@exemplo.com"
-                      {...field}
-                      onChange={handleEmailChange}
-                    />
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <FormField
-            control={form.control}
-            name="username"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nome de usuário</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <User className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      className="pl-8 bg-gray-100"
-                      readOnly
-                      {...field}
-                    />
-                  </div>
-                </FormControl>
-                <p className="text-xs text-muted-foreground">
-                  Gerado automaticamente com base no email
-                </p>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="documentId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>CPF/CNPJ</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Seu CPF ou CNPJ"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="whatsapp"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>WhatsApp</FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <Phone className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        className="pl-8"
-                        placeholder="(00) 00000-0000"
-                        {...field}
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Senha</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Input
-                      type={showPassword ? "text" : "password"}
-                      placeholder="******"
-                      {...field}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                      <span className="sr-only">
-                        {showPassword ? "Esconder senha" : "Mostrar senha"}
-                      </span>
-                    </Button>
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <FormField
-            control={form.control}
-            name="confirmPassword"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Confirmar senha</FormLabel>
-                <FormControl>
-                  <div className="relative">
-                    <Input
-                      type={showConfirmPassword ? "text" : "password"}
-                      placeholder="******"
-                      {...field}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                      <span className="sr-only">
-                        {showConfirmPassword ? "Esconder senha" : "Mostrar senha"}
-                      </span>
-                    </Button>
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <Button 
-            type="submit" 
-            className="w-full"
-            disabled={isLoading}
-          >
-            {isLoading ? "Processando..." : "Criar conta"}
-            {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
-          </Button>
+          <FullNameField form={form} />
+          <EmailField form={form} onEmailChange={handleEmailChange} />
+          <UsernameField form={form} />
+          <ContactInfoFields form={form} />
+          <PasswordFields form={form} />
+          <SubmitButton isLoading={isLoading} />
         </form>
       </Form>
       
