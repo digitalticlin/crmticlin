@@ -84,10 +84,44 @@ export class InstanceService {
    */
   async getDeviceInfo(instanceName: string): Promise<any | null> {
     try {
-      const response = await this.apiClient.fetchWithHeaders(`/instance/deviceInfo/${instanceName}`);
+      console.log(`Obtendo informações do dispositivo para: "${instanceName}"`);
+      // Endpoint corrigido para obter informações do dispositivo
+      const response = await this.apiClient.fetchWithHeaders(`/instance/deviceInfo/${instanceName}`, {
+        method: "GET"
+      });
+      
+      console.log("Resposta de deviceInfo:", response);
+      
+      if (!response || response.status === 'error') {
+        console.log("Erro ao obter informações do dispositivo, tentando fallback");
+        
+        // Fallback: use /instance/info endpoint que também pode conter informações do dispositivo
+        try {
+          const infoResponse = await this.apiClient.fetchWithHeaders(`/instance/info/${instanceName}`, {
+            method: "GET"
+          });
+          
+          if (infoResponse && infoResponse.instance && infoResponse.instance.phone) {
+            return {
+              status: 'success',
+              device: {
+                phone: infoResponse.instance.phone,
+                battery: infoResponse.instance.battery || { value: 0 },
+                wa_version: infoResponse.instance.waVersion || "Desconhecido",
+                platform: infoResponse.instance.platform || "Unknown"
+              }
+            };
+          }
+        } catch (fallbackError) {
+          console.error("Erro no fallback para obter informações do dispositivo:", fallbackError);
+        }
+        
+        return null;
+      }
+      
       return response;
     } catch (error) {
-      console.error("Error getting device info:", error);
+      console.error("Erro ao obter informações do dispositivo:", error);
       return null;
     }
   }

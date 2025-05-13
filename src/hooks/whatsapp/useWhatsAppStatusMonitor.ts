@@ -2,7 +2,7 @@
 import { useState, useRef } from "react";
 import { WhatsAppInstance } from "./whatsappInstanceStore";
 import { evolutionApiService } from "@/services/evolution-api";
-import { updateInstanceStatusAndPhone, updateQrCodeInDatabase } from "./database";
+import { updateInstanceStatusAndPhone, updateQrCodeInDatabase, updateConnectionAttempt } from "./database";
 
 /**
  * Hook for monitoring WhatsApp instance status with throttling and priority checking
@@ -12,6 +12,38 @@ export const useWhatsAppStatusMonitor = () => {
   const instanceCheckInProgress = useRef<Record<string, boolean>>({});
   const lastCheckTime = useRef<Record<string, number>>({});
   const connectingInstances = useRef<Set<string>>(new Set());
+  const lastConnectionError = useRef<Record<string, { timestamp: number, count: number }>>({});
+  
+  // Função auxiliar para registrar erros e decidir se devemos continuar com verificações frequentes
+  const trackConnectionError = (instanceId: string): boolean => {
+    const now = Date.now();
+    const errorState = lastConnectionError.current[instanceId] || { timestamp: 0, count: 0 };
+    
+    // Se o último erro foi há mais de 5 minutos, resetamos o contador
+    if (now - errorState.timestamp > 5 * 60 * 1000) {
+      lastConnectionError.current[instanceId] = { timestamp: now, count: 1 };
+      return true; // Continuar verificações
+    }
+    
+    // Incrementar contador de erros
+    const newCount = errorState.count + 1;
+    lastConnectionError.current[instanceId] = { timestamp: now, count: newCount };
+    
+    // Se tivemos muitos erros consecutivos em um curto período, reduzimos a frequência
+    if (newCount > 5) {
+      console.log(`Muitos erros consecutivos para instância ${instanceId}, reduzindo frequência de verificação`);
+      return false; // Parar verificações frequentes
+    }
+    
+    return true;
+  };
+  
+  // Limpa os registros de erros de uma instância quando ela conecta com sucesso
+  const clearErrorTracking = (instanceId: string) => {
+    if (lastConnectionError.current[instanceId]) {
+      delete lastConnectionError.current[instanceId];
+    }
+  };
   
   // Check instance status with throttling and concurrency protection
   const checkInstanceStatus = async (instanceId: string, forceFresh: boolean = false) => {
@@ -71,9 +103,32 @@ export const useWhatsAppStatusMonitor = () => {
                 }
               });
             }
+            
+            // Limpar rastreamento de erros já que conectamos com sucesso
+            clearErrorTracking(instanceId);
           }
         } catch (error) {
           console.error("Error getting device information:", error);
+          
+          // Tente um fallback para obter pelo menos o número de telefone
+          try {
+            const infoData = await evolutionApiService.apiClient.fetchWithHeaders(`/instance/info/${instanceName}`, {
+              method: "GET"
+            });
+            
+            if (infoData && infoData.instance && infoData.instance.phone) {
+              console.log(`Obtido número de telefone via fallback: ${infoData.instance.phone}`);
+              // Atualizar telefone no store
+              if (window._whatsAppInstancesStore) {
+                const updateInstance = window._whatsAppInstancesStore.getState().actions.updateInstance;
+                updateInstance(instanceId, { 
+                  phoneNumber: infoData.instance.phone,
+                });
+              }
+            }
+          } catch (fallbackError) {
+            console.error("Erro também no fallback para info:", fallbackError);
+          }
         }
       }
       
@@ -86,6 +141,9 @@ export const useWhatsAppStatusMonitor = () => {
           if (status === 'connected' && connectingInstances.current.has(instanceId)) {
             console.log(`Instance ${instanceName} is now connected, removing from connecting instances`);
             connectingInstances.current.delete(instanceId);
+            
+            // Registrar conexão bem sucedida
+            await updateConnectionAttempt(instanceId, true);
           }
           
           // Update global state (this is handled by store updates in our new architecture)
@@ -96,12 +154,22 @@ export const useWhatsAppStatusMonitor = () => {
           
         } catch (error) {
           console.error("Error updating status in database:", error);
+          await updateConnectionAttempt(instanceId, false, error instanceof Error ? error.message : String(error));
         }
       }
       
       return status;
     } catch (error) {
       console.error(`Error checking status of instance ${instanceId}:`, error);
+      
+      // Rastrear erro e verificar se devemos continuar com verificações frequentes
+      const shouldContinue = trackConnectionError(instanceId);
+      if (!shouldContinue && connectingInstances.current.has(instanceId)) {
+        console.log(`Removendo instância ${instanceId} do monitoramento frequente devido a erros repetidos`);
+        connectingInstances.current.delete(instanceId);
+      }
+      
+      await updateConnectionAttempt(instanceId, false, error instanceof Error ? error.message : String(error));
       return "disconnected";
     } finally {
       setIsLoading(prev => ({ ...prev, [instanceId]: false }));
