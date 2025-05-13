@@ -32,7 +32,12 @@ import { toast } from "sonner";
 // Define a type for user roles to ensure type safety
 type UserRole = "admin" | "seller" | "custom";
 
-export function SecuritySettingsTab() {
+interface SecuritySettingsTabProps {
+  config?: any;
+  onConfigChange?: (field: string, value: any) => void;
+}
+
+export function SecuritySettingsTab({ config, onConfigChange }: SecuritySettingsTabProps) {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<any[]>([]);
   const [email, setEmail] = useState("");

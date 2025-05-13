@@ -44,7 +44,7 @@ export default function ConfigPanel() {
         </TabsContent>
         
         <TabsContent value="security" className="space-y-4">
-          <SecuritySettingsTab />
+          <SecuritySettingsTab config={config} onConfigChange={handleConfigChange} />
         </TabsContent>
         
         <TabsContent value="integrations" className="space-y-4">
