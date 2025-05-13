@@ -26,6 +26,7 @@ const ProfileSettings = () => {
     whatsapp,
     avatarUrl,
     setFullName,
+    setCompanyName,
     setDocumentId,
     setWhatsapp,
     handleEmailChange,
@@ -75,6 +76,7 @@ const ProfileSettings = () => {
           setFullName={setFullName}
           setDocumentId={setDocumentId}
           setWhatsapp={setWhatsapp}
+          setCompanyName={setCompanyName}
         />
         
         <Separator />

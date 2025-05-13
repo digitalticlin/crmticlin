@@ -14,6 +14,7 @@ export const useProfileSettings = () => {
   const [whatsapp, setWhatsapp] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [companyId, setCompanyId] = useState<string | null>(null);
 
   // Função para extrair o nome de usuário do email
   const generateUsername = (email: string) => {
@@ -54,6 +55,7 @@ export const useProfileSettings = () => {
           
           // Buscar dados da empresa do usuário
           if (profile.company_id) {
+            setCompanyId(profile.company_id);
             const { data: company } = await supabase
               .from('companies')
               .select('name')
@@ -95,7 +97,7 @@ export const useProfileSettings = () => {
       setSaving(true);
       
       // Atualizar o perfil do usuário
-      const { error } = await supabase
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({
           full_name: fullName,
@@ -105,8 +107,23 @@ export const useProfileSettings = () => {
         })
         .eq('id', user.id);
         
-      if (error) {
-        throw error;
+      if (profileError) {
+        throw profileError;
+      }
+
+      // Se tiver companyId, atualiza o nome da empresa
+      if (companyId) {
+        const { error: companyError } = await supabase
+          .from('companies')
+          .update({
+            name: companyName,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', companyId);
+
+        if (companyError) {
+          throw companyError;
+        }
       }
       
       toast.success("Perfil atualizado com sucesso!");
@@ -148,6 +165,7 @@ export const useProfileSettings = () => {
     avatarUrl,
     user,
     setFullName,
+    setCompanyName,
     setDocumentId,
     setWhatsapp,
     handleEmailChange,

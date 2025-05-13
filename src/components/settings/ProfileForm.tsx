@@ -14,6 +14,7 @@ interface ProfileFormProps {
   setFullName: (value: string) => void;
   setDocumentId: (value: string) => void;
   setWhatsapp: (value: string) => void;
+  setCompanyName: (value: string) => void;
 }
 
 const ProfileForm = ({
@@ -26,7 +27,8 @@ const ProfileForm = ({
   handleEmailChange,
   setFullName,
   setDocumentId,
-  setWhatsapp
+  setWhatsapp,
+  setCompanyName
 }: ProfileFormProps) => {
   return (
     <div className="grid gap-4 sm:grid-cols-2">
@@ -61,11 +63,11 @@ const ProfileForm = ({
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="company">Empresa</Label>
+        <Label htmlFor="company">RAZAO SOCIAL ou NOME</Label>
         <Input 
           id="company" 
           value={companyName}
-          readOnly
+          onChange={(e) => setCompanyName(e.target.value)}
         />
       </div>
       
