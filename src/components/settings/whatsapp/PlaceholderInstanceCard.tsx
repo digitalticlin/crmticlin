@@ -13,6 +13,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { evolutionApiService } from "@/services/evolution-api";
+import { WhatsAppStatus } from "@/hooks/whatsapp/database";
 
 interface PlaceholderInstanceCardProps {
   isSuperAdmin?: boolean; // Indica se o usuário é SuperAdmin e não tem restrições de plano
@@ -145,14 +146,15 @@ const PlaceholderInstanceCard = ({
       console.log("QR code recebido (primeiros 50 caracteres):", qrCode.substring(0, 50));
       
       // Salvar a instância no banco de dados
+      // Corrigindo os erros de tipo aqui
       const whatsappData = {
         instance_name: uniqueInstanceName,
         phone: "", // Será atualizado quando conectado
         company_id: companyId,
-        status: "connecting",
+        status: "connecting" as WhatsAppStatus, // Especificando o tipo correto
         qr_code: qrCode,
-        instance_id: response.instance.instanceId,
-        evolution_instance_name: response.instance.instanceName,
+        instance_id: response.instanceId, // Corrigido de response.instance.instanceId
+        evolution_instance_name: response.instanceName, // Corrigido de response.instance.instanceName
         evolution_token: response.hash || ""
       };
       
