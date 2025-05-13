@@ -29,11 +29,14 @@ import { Loader2, Plus, Shield, Trash2, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+// Define a type for user roles to ensure type safety
+type UserRole = "admin" | "seller" | "custom";
+
 export function SecuritySettingsTab() {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<any[]>([]);
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("seller");
+  const [role, setRole] = useState<UserRole>("seller");
   const [inviting, setInviting] = useState(false);
 
   useEffect(() => {
@@ -113,7 +116,7 @@ export function SecuritySettingsTab() {
     }
   };
 
-  const handleChangeRole = async (userId: string, newRole: string) => {
+  const handleChangeRole = async (userId: string, newRole: UserRole) => {
     try {
       const { error } = await supabase
         .from('profiles')
@@ -160,7 +163,7 @@ export function SecuritySettingsTab() {
               />
               <Select 
                 value={role} 
-                onValueChange={setRole}
+                onValueChange={(value: UserRole) => setRole(value)}
               >
                 <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Função" />
@@ -219,7 +222,7 @@ export function SecuritySettingsTab() {
                           <TableCell>
                             <Select 
                               defaultValue={user.role} 
-                              onValueChange={(value) => handleChangeRole(user.id, value)}
+                              onValueChange={(value: UserRole) => handleChangeRole(user.id, value)}
                             >
                               <SelectTrigger className="h-8 w-[140px]">
                                 <SelectValue placeholder="Função" />

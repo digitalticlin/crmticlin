@@ -118,7 +118,7 @@ const ProfileSettings = () => {
           document_id: documentId,
           whatsapp: whatsapp,
           position: position,
-          updated_at: new Date()
+          updated_at: new Date().toISOString() // Convert Date to string
         })
         .eq('id', user.id);
         
