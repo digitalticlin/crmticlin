@@ -4,7 +4,7 @@ import { QrCode, Trash2, RefreshCw, Link } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { WhatsAppInstance } from "@/hooks/useWhatsAppInstances";
+import { WhatsAppInstance } from "@/hooks/whatsapp/whatsappInstanceStore";
 
 interface WhatsAppInstanceCardProps {
   instance: WhatsAppInstance;

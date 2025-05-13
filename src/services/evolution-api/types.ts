@@ -1,0 +1,54 @@
+
+export interface EvolutionInstance {
+  instanceName: string;
+  instanceId: string;
+  integration: string;
+  status: "connected" | "connecting" | "disconnected";
+  qrcode?: {
+    pairingCode: string | null;
+    code: string | null;
+    base64: string | null;
+    count: number;
+  };
+}
+
+export interface CreateInstanceResponse {
+  instance: {
+    instanceName: string;
+    instanceId: string;
+    integration: string;
+    webhookWaBusiness: string | null;
+    accessTokenWaBusiness: string;
+    status: "connected" | "connecting" | "disconnected";
+  };
+  hash: string;
+  webhook: Record<string, any>;
+  websocket: Record<string, any>;
+  rabbitmq: Record<string, any>;
+  sqs: Record<string, any>;
+  settings: {
+    rejectCall: boolean;
+    msgCall: string;
+    groupsIgnore: boolean;
+    alwaysOnline: boolean;
+    readMessages: boolean;
+    readStatus: boolean;
+    syncFullHistory: boolean;
+    wavoipToken: string;
+  };
+  qrcode: {
+    pairingCode: string | null;
+    code: string | null;
+    base64: string | null;
+    count: number;
+  };
+}
+
+export interface FetchInstancesResponse {
+  instances: Array<{
+    instanceName: string;
+    instanceId: string;
+    integration: string;
+    status: "connected" | "connecting" | "disconnected";
+  }>;
+}
