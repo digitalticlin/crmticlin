@@ -94,7 +94,8 @@ export const useWhatsAppFetcher = (userEmail: string = "") => {
       id: instance.id,
       instanceName: instance.instance_name,
       connected: instance.status === 'connected',
-      qrCodeUrl: instance.qr_code
+      qrCodeUrl: instance.qr_code,
+      phoneNumber: instance.phone
     }));
   };
 

@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 /**
  * Hook to resolve the company ID for the current user
  */
-export const useCompanyResolver = (userEmail: string) => {
+export const useCompanyResolver = (userEmail: string): string | null => {
   const [companyId, setCompanyId] = useState<string | null>(null);
 
   // Fetch company ID for the current user

@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { WhatsAppInstance } from "./whatsappInstanceStore";
 import { evolutionApiService } from "@/services/evolution-api";
 import { saveInstanceToDatabase, updateQrCodeInDatabase } from "./database";
-import { EvolutionApiResult, EvolutionInstance, CreateInstanceResponse } from "@/services/evolution-api/types";
+import { EvolutionApiResult, CreateInstanceResponse } from "@/services/evolution-api/types";
 
 /**
  * Hook to manage WhatsApp connection operations
@@ -34,16 +34,21 @@ export const useWhatsAppConnector = () => {
       const qrCodeUrl = result.qrcode.base64;
       console.log("QR code received (first 50 chars):", qrCodeUrl.substring(0, 50));
       
-      // Convert the CreateInstanceResponse to EvolutionApiResult format
+      // Create an EvolutionApiResult from the CreateInstanceResponse
       const apiResult: EvolutionApiResult = {
         instance: {
           instanceId: result.instance.instanceId,
           instanceName: result.instance.instanceName,
-          ...result.instance
+          integration: result.instance.integration,
+          status: result.instance.status
         },
         hash: result.hash,
         qrcode: result.qrcode,
-        ...result
+        webhook: result.webhook || {},
+        websocket: result.websocket || {},
+        rabbitmq: result.rabbitmq || {},
+        sqs: result.sqs || {},
+        settings: result.settings || {}
       };
       
       // Save instance and QR code to database

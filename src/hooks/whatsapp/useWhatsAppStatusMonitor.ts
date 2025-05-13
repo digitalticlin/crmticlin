@@ -1,9 +1,8 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { WhatsAppInstance } from "./whatsappInstanceStore";
 import { evolutionApiService } from "@/services/evolution-api";
-import { supabase } from "@/integrations/supabase/client";
-import { updateInstanceStatusAndPhone } from "./useWhatsAppDatabase";
+import { updateInstanceStatusAndPhone } from "./database";
 
 /**
  * Hook for monitoring WhatsApp instance status with throttling
@@ -14,7 +13,16 @@ export const useWhatsAppStatusMonitor = () => {
   const lastCheckTime = useRef<Record<string, number>>({});
   
   // Check instance status with throttling and concurrency protection
-  const checkInstanceStatus = async (instanceId: string, instanceName: string) => {
+  const checkInstanceStatus = async (instanceId: string) => {
+    // Find instance by ID
+    const instance = window._whatsAppInstancesState?.instances?.find(i => i.id === instanceId);
+    if (!instance || !instance.instanceName) {
+      console.error(`Instance not found for ID: ${instanceId}`);
+      return "unknown";
+    }
+    
+    const instanceName = instance.instanceName;
+    
     // Prevent concurrent checks for the same instance
     if (instanceCheckInProgress.current[instanceId]) {
       console.log(`Status check already in progress for instance ${instanceId}, skipping`);
@@ -30,8 +38,6 @@ export const useWhatsAppStatusMonitor = () => {
     }
     
     try {
-      if (!instanceName) return;
-      
       console.log(`Checking status of instance: ${instanceName}`);
       
       // Mark this instance as being checked
@@ -47,29 +53,15 @@ export const useWhatsAppStatusMonitor = () => {
       if (instanceId !== "1") {
         try {
           await updateInstanceStatusAndPhone(instanceId, status);
+          
+          // Update global state (this is handled by store updates in our new architecture)
+          if (window._whatsAppInstancesStore) {
+            const updateInstance = window._whatsAppInstancesStore.getState().actions.updateInstance;
+            updateInstance(instanceId, { connected: status === 'connected' });
+          }
+          
         } catch (error) {
           console.error("Error updating status in database:", error);
-        }
-        
-        // If the instance is now connected, get the phone number
-        if (status === 'connected') {
-          try {
-            // Here we would implement a method to get the phone number from the Evolution API
-            // For now we'll just use a placeholder
-            const phoneNumber = "Connected";
-            
-            // Update phone number in database
-            const { error: phoneError } = await supabase
-              .from('whatsapp_numbers')
-              .update({ phone: phoneNumber })
-              .eq('id', instanceId);
-              
-            if (phoneError) {
-              console.error("Error updating phone number in database:", phoneError);
-            }
-          } catch (phoneError) {
-            console.error("Error getting phone number:", phoneError);
-          }
         }
       }
       
@@ -93,6 +85,13 @@ export const useWhatsAppStatusMonitor = () => {
   ) => {
     if (!instances.length) return null;
     
+    // Add to window for access by other components
+    if (!window._whatsAppInstancesState) {
+      window._whatsAppInstancesState = { instances };
+    } else {
+      window._whatsAppInstancesState.instances = instances;
+    }
+    
     console.log("Starting periodic status check for", instances.length, "instances");
     
     // First immediate check with staggered timing to prevent API flooding
@@ -107,7 +106,7 @@ export const useWhatsAppStatusMonitor = () => {
         const instance = disconnectedInstances[i];
         // Add a delay between each check to prevent API flooding
         setTimeout(() => {
-          checkInstanceStatus(instance.id, instance.instanceName);
+          checkInstanceStatus(instance.id);
         }, i * 1000); // Stagger by 1 second per instance
       }
       
@@ -117,7 +116,7 @@ export const useWhatsAppStatusMonitor = () => {
         const instance = connectedInstances[i];
         // Check connected instances less frequently
         setTimeout(() => {
-          checkInstanceStatus(instance.id, instance.instanceName);
+          checkInstanceStatus(instance.id);
         }, (disconnectedInstances.length * 1000) + (i * 1000)); // Check after disconnected instances
       }
     };
@@ -139,3 +138,13 @@ export const useWhatsAppStatusMonitor = () => {
     isLoading
   };
 };
+
+// Declare global window types
+declare global {
+  interface Window {
+    _whatsAppInstancesState?: {
+      instances: WhatsAppInstance[];
+    };
+    _whatsAppInstancesStore?: any;
+  }
+}
