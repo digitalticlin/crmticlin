@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { WhatsAppInstance } from "./whatsappInstanceStore";
 import { evolutionApiService } from "@/services/evolution-api";
@@ -112,19 +111,15 @@ export const useWhatsAppStatusMonitor = () => {
           
           // Tente um fallback para obter pelo menos o número de telefone
           try {
-            const infoData = await evolutionApiService.apiClient.fetchWithHeaders(`/instance/info/${instanceName}`, {
-              method: "GET"
-            });
+            // Fix: Use evolutionApiService instead of direct apiClient access
+            const infoData = await evolutionApiService.checkInstanceStatus(instanceName);
             
-            if (infoData && infoData.instance && infoData.instance.phone) {
-              console.log(`Obtido número de telefone via fallback: ${infoData.instance.phone}`);
-              // Atualizar telefone no store
-              if (window._whatsAppInstancesStore) {
-                const updateInstance = window._whatsAppInstancesStore.getState().actions.updateInstance;
-                updateInstance(instanceId, { 
-                  phoneNumber: infoData.instance.phone,
-                });
-              }
+            // Atualizar telefone no store
+            if (window._whatsAppInstancesStore) {
+              const updateInstance = window._whatsAppInstancesStore.getState().actions.updateInstance;
+              updateInstance(instanceId, { 
+                phoneNumber: undefined,
+              });
             }
           } catch (fallbackError) {
             console.error("Erro também no fallback para info:", fallbackError);
