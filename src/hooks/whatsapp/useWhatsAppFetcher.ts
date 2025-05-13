@@ -9,21 +9,21 @@ import {
 } from "./whatsappInstanceStore";
 
 /**
- * Hook for fetching WhatsApp instances from the database
+ * Hook para buscar instâncias WhatsApp do banco de dados
  */
 export const useWhatsAppFetcher = (userEmail: string) => {
   const { setInstances, setError } = useWhatsAppInstanceActions();
   
-  // Generate instance name based on email (part before @)
+  // Gera o nome da instância com base no email (parte antes do @)
   const instanceName = userEmail ? userEmail.split('@')[0] : "";
   
-  // Fetch user instances from database
+  // Busca as instâncias do usuário no banco de dados
   const fetchUserInstances = async () => {
     try {
-      console.log(`Fetching WhatsApp instances for user: ${userEmail}, base instance name: ${instanceName}`);
+      console.log(`Buscando instâncias WhatsApp para usuário: ${userEmail}, nome base da instância: ${instanceName}`);
       setError(null);
       
-      // Fetch user instances from Supabase
+      // Busca instâncias do usuário do Supabase
       const { data, error } = await supabase
         .from('whatsapp_numbers')
         .select('*')
@@ -34,18 +34,18 @@ export const useWhatsAppFetcher = (userEmail: string) => {
       }
 
       if (data && data.length > 0) {
-        console.log(`Found ${data.length} WhatsApp instances for user ${userEmail}`);
+        console.log(`Encontradas ${data.length} instâncias WhatsApp para usuário ${userEmail}`);
         const mappedInstances = mapDatabaseInstancesToState(data);
         setInstances(mappedInstances);
       } else {
-        console.log(`No WhatsApp instances found for user ${userEmail}, creating placeholder`);
-        // If no instances found, create a placeholder
+        console.log(`Nenhuma instância WhatsApp encontrada para usuário ${userEmail}, criando placeholder`);
+        // Se não encontrar instâncias, crie um placeholder
         setInstances([
           { id: "1", instanceName, connected: false }
         ]);
       }
     } catch (error) {
-      console.error(`Error fetching WhatsApp instances for ${userEmail}:`, error);
+      console.error(`Erro ao buscar instâncias WhatsApp para ${userEmail}:`, error);
       setError("Erro ao carregar instâncias WhatsApp");
       toast.error("Erro ao carregar instâncias WhatsApp");
       setInstances([
@@ -54,7 +54,7 @@ export const useWhatsAppFetcher = (userEmail: string) => {
     }
   };
 
-  // Map database data to application state format
+  // Mapeia os dados do banco para o formato do estado da aplicação
   const mapDatabaseInstancesToState = (data: any[]): WhatsAppInstance[] => {
     return data.map(instance => ({
       id: instance.id,

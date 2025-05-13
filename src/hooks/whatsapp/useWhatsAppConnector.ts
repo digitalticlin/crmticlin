@@ -11,12 +11,12 @@ import {
 } from "./useWhatsAppDatabase";
 
 /**
- * Hook for connecting and refreshing WhatsApp instances
+ * Hook para conectar e atualizar instâncias WhatsApp
  */
 export const useWhatsAppConnector = () => {
   const { updateInstance, setLoading, setError } = useWhatsAppInstanceActions();
 
-  // Connect a new WhatsApp instance
+  // Conectar uma nova instância WhatsApp
   const connectInstance = async (instance: WhatsAppInstance) => {
     const instanceId = instance.id;
     setLoading(instanceId, true);
@@ -27,10 +27,37 @@ export const useWhatsAppConnector = () => {
         throw new Error("Instância não encontrada");
       }
       
-      console.log(`Connecting WhatsApp instance ${instance.instanceName} (ID: ${instanceId})`);
+      console.log(`Conectando instância WhatsApp ${instance.instanceName} (ID: ${instanceId})`);
       
-      // Create instance in Evolution API
-      const result = await evolutionApiService.createInstance(instance.instanceName);
+      // Verifica primeiro se já existe uma instância com esse nome
+      const existingInstances = await evolutionApiService.instanceService.fetchInstances();
+      const existingInstance = existingInstances.find(i => 
+        i.instanceName.toLowerCase() === instance.instanceName.toLowerCase()
+      );
+      
+      if (existingInstance) {
+        console.log(`Instância já existe com nome ${instance.instanceName}, tentando obter QR Code`);
+        const qrCodeUrl = await evolutionApiService.instanceService.refreshQrCode(instance.instanceName);
+        
+        if (!qrCodeUrl) {
+          throw new Error("Não foi possível obter o QR Code para instância existente");
+        }
+        
+        // Atualiza no Supabase
+        await updateQrCodeInDatabase(instanceId, qrCodeUrl);
+        
+        // Atualiza o estado local com o novo QR code
+        updateInstance(instanceId, {
+          connected: false,
+          qrCodeUrl
+        });
+        
+        toast.success("QR Code atualizado com sucesso!");
+        return qrCodeUrl;
+      }
+      
+      // Cria instância na Evolution API
+      const result = await evolutionApiService.instanceService.createInstance(instance.instanceName);
       
       if (!result) {
         throw new Error("Não foi possível criar a instância");
@@ -41,12 +68,12 @@ export const useWhatsAppConnector = () => {
       }
       
       const qrCodeUrl = result.qrcode.base64;
-      console.log(`Successfully generated QR code for ${result.instanceName}`);
+      console.log(`QR code gerado com sucesso para ${result.instanceName}`);
       
-      // Save to Supabase
+      // Salva no Supabase
       const updatedInstance = await saveInstanceToDatabase(instance, qrCodeUrl, result);
       
-      // Update local state with the new QR code
+      // Atualiza o estado local com o novo QR code
       updateInstance(instanceId, {
         id: updatedInstance.id,
         instanceName: updatedInstance.instance_name,
@@ -65,7 +92,7 @@ export const useWhatsAppConnector = () => {
     }
   };
 
-  // Refresh QR Code for an instance
+  // Atualizar QR Code de uma instância
   const refreshQrCode = async (instance: WhatsAppInstance) => {
     const instanceId = instance.id;
     setLoading(instanceId, true);
@@ -76,21 +103,19 @@ export const useWhatsAppConnector = () => {
         throw new Error("Instância não encontrada");
       }
       
-      console.log(`Refreshing QR code for instance: ${instance.instanceName} (ID: ${instanceId})`);
+      console.log(`Atualizando QR code para instância: ${instance.instanceName} (ID: ${instanceId})`);
       
-      // Get new QR Code from Evolution API
-      const result = await evolutionApiService.createInstance(instance.instanceName);
+      // Buscar novo QR Code da Evolution API
+      const qrCodeUrl = await evolutionApiService.instanceService.refreshQrCode(instance.instanceName);
       
-      if (!result || !result.qrcode || !result.qrcode.base64) {
+      if (!qrCodeUrl) {
         throw new Error("Não foi possível obter um novo QR Code");
       }
       
-      const qrCodeUrl = result.qrcode.base64;
-      
-      // Update in Supabase
+      // Atualiza no Supabase
       await updateQrCodeInDatabase(instanceId, qrCodeUrl);
       
-      // Update local state with the new QR code
+      // Atualiza o estado local com o novo QR code
       updateInstance(instanceId, {
         connected: false,
         qrCodeUrl
@@ -106,10 +131,10 @@ export const useWhatsAppConnector = () => {
     }
   };
 
-  // Handle operation errors and show toast
+  // Manipula erros de operação e exibe toast
   const handleOperationError = (error: any, operation: string) => {
     const errorMessage = error?.message || "Erro desconhecido";
-    console.error(`Error during operation: ${operation}:`, error);
+    console.error(`Erro durante operação: ${operation}:`, error);
     toast.error(`Erro ao ${operation}. ${errorMessage}`);
     setError(`Erro ao ${operation}. ${errorMessage}`);
   };

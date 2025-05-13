@@ -1,14 +1,33 @@
+
 import { useState, useEffect } from "react";
-import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
+import { useWhatsAppInstances } from "@/hooks/whatsapp/useWhatsAppInstance";
 import WhatsAppInstanceCard from "./whatsapp/WhatsAppInstanceCard";
 import PlaceholderInstanceCard from "./whatsapp/PlaceholderInstanceCard";
 import WhatsAppInfoAlert from "./whatsapp/WhatsAppInfoAlert";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const WhatsAppSettings = () => {
-  // Usuário atual (mock - em uma aplicação real viria do contexto de autenticação)
-  const currentUserEmail = "digitalticlin@gmail.com";
+  // Estado para armazenar o email do usuário atual
+  const [userEmail, setUserEmail] = useState<string>("");
+  
+  // Carregar dados do usuário atual
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Erro ao obter usuário:", error);
+        return;
+      }
+      
+      if (user) {
+        setUserEmail(user.email || "");
+      }
+    };
+    
+    getUser();
+  }, []);
   
   const {
     instances,
@@ -17,45 +36,9 @@ const WhatsAppSettings = () => {
     lastError,
     connectInstance,
     deleteInstance,
-    refreshQrCode
-  } = useWhatsAppInstances(currentUserEmail);
-  
-  const [showQrCode, setShowQrCode] = useState<string | null>(null);
-
-  // Mostrar automaticamente o QR code quando estiver disponível
-  useEffect(() => {
-    const instanceWithQr = instances.find(instance => instance.qrCodeUrl);
-    if (instanceWithQr) {
-      setShowQrCode(instanceWithQr.id);
-    }
-  }, [instances]);
-
-  const handleConnect = async (instanceId: string) => {
-    try {
-      await connectInstance(instanceId);
-      setShowQrCode(instanceId);
-    } catch (error) {
-      console.error("Erro ao conectar:", error);
-    }
-  };
-
-  const handleDelete = async (instanceId: string) => {
-    try {
-      await deleteInstance(instanceId);
-      setShowQrCode(null);
-    } catch (error) {
-      console.error("Erro ao deletar:", error);
-    }
-  };
-
-  const handleRefreshQrCode = async (instanceId: string) => {
-    try {
-      await refreshQrCode(instanceId);
-      setShowQrCode(instanceId);
-    } catch (error) {
-      console.error("Erro ao atualizar QR code:", error);
-    }
-  };
+    refreshQrCode,
+    showQrCode
+  } = useWhatsAppInstances(userEmail);
   
   return (
     <div className="space-y-6">
@@ -84,9 +67,9 @@ const WhatsAppSettings = () => {
             instance={instance}
             isLoading={isLoading[instance.id] || false}
             showQrCode={showQrCode}
-            onConnect={handleConnect}
-            onDelete={handleDelete}
-            onRefreshQrCode={handleRefreshQrCode}
+            onConnect={connectInstance}
+            onDelete={deleteInstance}
+            onRefreshQrCode={refreshQrCode}
           />
         ))}
         

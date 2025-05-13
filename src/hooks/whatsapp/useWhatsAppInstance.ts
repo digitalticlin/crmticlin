@@ -16,18 +16,18 @@ export const useWhatsAppInstances = (userEmail: string) => {
   
   const [showQrCode, setShowQrCode] = useState<string | null>(null);
   
-  // Load user instances from Supabase
+  // Carrega instâncias do usuário do Supabase
   useEffect(() => {
     if (!userEmail) return;
     fetchUserInstances();
   }, [userEmail, instanceName]);
   
-  // Find instance by ID
+  // Encontra instância pelo ID
   const findInstanceById = (instanceId: string) => {
     return instances.find(i => i.id === instanceId);
   };
   
-  // Handle connect instance
+  // Manipula conexão de instância
   const handleConnectInstance = async (instanceId: string) => {
     const instance = findInstanceById(instanceId);
     if (!instance) {
@@ -39,7 +39,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
     return result;
   };
   
-  // Handle refresh QR code
+  // Manipula atualização de QR code
   const handleRefreshQrCode = async (instanceId: string) => {
     const instance = findInstanceById(instanceId);
     if (!instance) {
@@ -51,7 +51,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
     return result;
   };
   
-  // Handle delete instance
+  // Manipula exclusão de instância
   const handleDeleteInstance = async (instanceId: string) => {
     const instance = findInstanceById(instanceId);
     if (!instance) {
@@ -69,6 +69,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
     lastError,
     connectInstance: handleConnectInstance,
     deleteInstance: handleDeleteInstance,
-    refreshQrCode: handleRefreshQrCode
+    refreshQrCode: handleRefreshQrCode,
+    showQrCode
   };
 };

@@ -2,39 +2,65 @@
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppInstance } from "./whatsappInstanceStore";
 
-// Save instance to database
+// Salva instância no banco de dados
 export const saveInstanceToDatabase = async (
   instance: WhatsAppInstance, 
   qrCodeUrl: string, 
   result: any
 ) => {
-  console.log(`Saving instance to database: ${instance.instanceName}`);
+  console.log(`Salvando instância no banco de dados: ${instance.instanceName}`);
   
   try {
     // Gere um UUID aleatório para novas instâncias
     const instanceId = instance.id === "1" ? undefined : instance.id;
     
+    // Obter o ID da empresa do usuário atual
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      throw new Error("Erro ao obter dados do usuário atual");
+    }
+    
+    const userId = userData.user?.id;
+    
+    // Obter o company_id do perfil do usuário
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', userId)
+      .single();
+    
+    if (profileError || !profileData) {
+      throw new Error("Erro ao obter perfil do usuário");
+    }
+    
+    const companyId = profileData.company_id;
+    
+    if (!companyId) {
+      throw new Error("Usuário não está associado a uma empresa");
+    }
+    
     const { error, data } = await supabase
       .from('whatsapp_numbers')
       .upsert({
-        id: instanceId, // Let Supabase generate ID for new records
+        id: instanceId, // Deixa o Supabase gerar ID para novos registros
         instance_name: instance.instanceName,
-        phone: "", // Will be updated when connected
-        company_id: "your_company_id", // Replace with user's company ID
+        phone: "", // Será atualizado quando conectado
+        company_id: companyId,
         status: "connecting",
         qr_code: qrCodeUrl,
         instance_id: result.instanceId,
         evolution_instance_name: result.instanceName
       }, { onConflict: 'instance_name' })
-      .select();  // Return the inserted/updated data
+      .select();  // Retorna os dados inseridos/atualizados
   
     if (error) {
-      console.error("Error saving instance to database:", error);
+      console.error("Erro ao salvar instância no banco de dados:", error);
       throw error;
     }
     
     if (!data || data.length === 0) {
-      // Fetch the inserted/updated record if select didn't return it
+      // Busca o registro inserido/atualizado se select não o retornou
       const { data: fetchedData, error: fetchError } = await supabase
         .from('whatsapp_numbers')
         .select('*')
@@ -42,7 +68,7 @@ export const saveInstanceToDatabase = async (
         .limit(1);
         
       if (fetchError || !fetchedData || fetchedData.length === 0) {
-        throw new Error("Error retrieving instance after saving");
+        throw new Error("Erro ao recuperar instância após salvamento");
       }
       
       return fetchedData[0];
@@ -50,16 +76,16 @@ export const saveInstanceToDatabase = async (
     
     return data[0];
   } catch (error) {
-    console.error("Failed to save instance to database:", error);
+    console.error("Falha ao salvar instância no banco de dados:", error);
     throw new Error("Erro ao salvar a instância no banco de dados");
   }
 };
 
-// Update instance status to disconnected in database
+// Atualiza status da instância para desconectado no banco de dados
 export const updateInstanceDisconnectedStatus = async (instanceId: string) => {
-  if (instanceId === "1") return; // Skip DB update for placeholder ID
+  if (instanceId === "1") return; // Pula atualização de BD para ID placeholder
   
-  console.log(`Updating instance ${instanceId} to disconnected status in database`);
+  console.log(`Atualizando instância ${instanceId} para status desconectado no banco de dados`);
   
   const { error } = await supabase
     .from('whatsapp_numbers')
@@ -71,12 +97,12 @@ export const updateInstanceDisconnectedStatus = async (instanceId: string) => {
     .eq('id', instanceId);
     
   if (error) {
-    console.error("Error updating instance status:", error);
+    console.error("Erro ao atualizar status da instância:", error);
     throw error;
   }
 };
 
-// Update local instance state
+// Atualiza estado local da instância
 export const updateLocalInstanceState = (
   instance: WhatsAppInstance | string,
   updatedDbInstance: any = null,
@@ -85,7 +111,7 @@ export const updateLocalInstanceState = (
   const instanceId = typeof instance === 'string' ? instance : instance.id;
   const oldInstance = typeof instance === 'string' ? null : instance;
   
-  // If we have both the old instance and updated database record
+  // Se tivermos tanto a instância antiga quanto o registro atualizado do banco
   if (oldInstance && updatedDbInstance) {
     return {
       id: updatedDbInstance.id,
@@ -95,26 +121,29 @@ export const updateLocalInstanceState = (
     };
   }
   
-  // If we're just updating connection state or QR code of an existing instance
+  // Se estivermos apenas atualizando o estado de conexão ou QR code de uma instância existente
   return {
     connected: false,
     qrCodeUrl
   };
 };
 
-// Update QR code in database
+// Atualiza QR code no banco de dados
 export const updateQrCodeInDatabase = async (instanceId: string, qrCodeUrl: string) => {
-  if (instanceId === "1") return; // Skip DB update for placeholder ID
+  if (instanceId === "1") return; // Pula atualização de BD para ID placeholder
   
-  console.log(`Updating QR code in database for instance ID: ${instanceId}`);
+  console.log(`Atualizando QR code no banco de dados para ID de instância: ${instanceId}`);
   
   const { error } = await supabase
     .from('whatsapp_numbers')
-    .update({ qr_code: qrCodeUrl })
+    .update({ 
+      qr_code: qrCodeUrl,
+      status: 'connecting'
+    })
     .eq('id', instanceId);
     
   if (error) {
-    console.error("Error updating QR code in database:", error);
+    console.error("Erro ao atualizar QR code no banco de dados:", error);
     throw error;
   }
 };
