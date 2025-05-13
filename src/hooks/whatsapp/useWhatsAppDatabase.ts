@@ -2,6 +2,9 @@
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppInstance } from "./whatsappInstanceStore";
 
+// Define a type for the allowed status values to match the database enum
+type WhatsAppStatus = "connected" | "connecting" | "disconnected";
+
 // Salva instância no banco de dados
 export const saveInstanceToDatabase = async (
   instance: WhatsAppInstance, 
@@ -52,12 +55,13 @@ export const saveInstanceToDatabase = async (
     }
     
     // Preparar dados para inserção/atualização
+    // Explicitamente tipar o status como WhatsAppStatus para garantir compatibilidade com o enum do banco de dados
     const whatsappData = {
       id: instanceId, // Deixa o Supabase gerar ID para novos registros
       instance_name: instance.instanceName,
       phone: "", // Será atualizado quando conectado
       company_id: companyId,
-      status: "connecting",
+      status: "connecting" as WhatsAppStatus, // Explicitamente definido como um dos valores permitidos
       qr_code: qrCodeUrl,
       instance_id: result.instanceId,
       evolution_instance_name: result.instanceName
@@ -117,7 +121,7 @@ export const updateInstanceDisconnectedStatus = async (instanceId: string) => {
   const { error } = await supabase
     .from('whatsapp_numbers')
     .update({
-      status: 'disconnected',
+      status: 'disconnected' as WhatsAppStatus,
       date_disconnected: new Date().toISOString(),
       qr_code: null
     })
@@ -166,7 +170,7 @@ export const updateQrCodeInDatabase = async (instanceId: string, qrCodeUrl: stri
     .from('whatsapp_numbers')
     .update({ 
       qr_code: qrCodeUrl,
-      status: 'connecting'
+      status: 'connecting' as WhatsAppStatus
     })
     .eq('id', instanceId);
     

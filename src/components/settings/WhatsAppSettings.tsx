@@ -57,6 +57,17 @@ const WhatsAppSettings = () => {
     showQrCode
   } = useWhatsAppInstances(userEmail);
   
+  // Wrapper de adaptação para o connectInstance que ignora o retorno do QR Code
+  const handleConnectInstance = async (instanceId: string) => {
+    try {
+      await connectInstance(instanceId);
+      // Ignoramos o retorno do QR Code aqui, já que o estado foi atualizado internamente na função
+    } catch (error) {
+      console.error("Erro ao conectar instância:", error);
+      // Não precisamos fazer nada aqui, pois o erro já é tratado dentro da função original
+    }
+  };
+  
   return (
     <div className="space-y-6">
       <div className="flex flex-col space-y-1.5">
@@ -84,7 +95,7 @@ const WhatsAppSettings = () => {
             instance={instance}
             isLoading={instanceLoading[instance.id] || false}
             showQrCode={showQrCode}
-            onConnect={connectInstance}
+            onConnect={handleConnectInstance}
             onDelete={deleteInstance}
             onRefreshQrCode={refreshQrCode}
           />
@@ -93,7 +104,7 @@ const WhatsAppSettings = () => {
         {/* Placeholder para adicionar nova instância - mostrado para SuperAdmin ou usuários com plano adequado */}
         <PlaceholderInstanceCard 
           isSuperAdmin={isSuperAdmin} 
-          userEmail={userEmail} // Pass the user email to the PlaceholderInstanceCard
+          userEmail={userEmail}
         />
       </div>
     </div>
