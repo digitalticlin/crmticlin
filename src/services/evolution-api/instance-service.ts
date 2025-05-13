@@ -1,3 +1,4 @@
+
 import { ApiClient } from "./api-client";
 import { EvolutionInstance, FetchInstancesResponse, CreateInstanceResponse } from "./types";
 import { 
@@ -164,6 +165,10 @@ export class InstanceService {
   async connectInstance(instanceName: string): Promise<string | null> {
     try {
       console.log(`Forçando conexão para a instância: "${instanceName}"`);
+      
+      // Registre o cabeçalho para debug
+      console.log("Fazendo requisição para /instance/connect com cabeçalhos:");
+      
       const data = await this.apiClient.fetchWithHeaders(`/instance/connect/${instanceName}`, {
         method: "GET"
       });
@@ -190,21 +195,25 @@ export class InstanceService {
   async refreshQrCode(instanceName: string): Promise<string | null> {
     try {
       console.log(`Refreshing QR code for instance: "${instanceName}"`);
+      
+      // Log detalhado para depuração
+      console.log("Fazendo requisição para /instance/qrcode com cabeçalhos completos");
+      
       const data = await this.apiClient.fetchWithHeaders(`/instance/qrcode?instanceName=${instanceName}`, {
         method: "GET"
       });
       
-      console.log("QR code response:", data);
+      console.log("Resposta completa da requisição de QR code:", data);
       
       if (!data || !data.qrcode || !data.qrcode.base64) {
-        console.error("Invalid QR code response:", data);
-        throw new Error("QR code not found in response");
+        console.error("Resposta inválida de QR code:", data);
+        throw new Error("QR code não encontrado na resposta");
       }
       
-      console.log(`Successfully refreshed QR code for "${instanceName}"`);
+      console.log(`QR code atualizado com sucesso para "${instanceName}"`);
       return data.qrcode.base64;
     } catch (error) {
-      console.error("Error refreshing QR code:", error);
+      console.error("Erro ao atualizar QR code:", error);
       handleApiError(error, "Não foi possível obter o QR Code");
       return null;
     }

@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { evolutionApiService } from "@/services/evolution-api";
 import { 
@@ -122,16 +123,17 @@ export const useWhatsAppConnector = () => {
       
       console.log(`Atualizando QR code para instância: ${instance.instanceName} (ID: ${instanceId})`);
       
-      // Usar o novo método de conexão forçada para obter QR code
-      console.log(`Usando conexão forçada para gerar novo QR code para: ${instance.instanceName}`);
+      // Usar o método connectInstance para gerar novo QR code (em vez de refreshQrCode)
+      // Esta mudança é crucial, pois o endpoint connect força uma nova conexão e QR code
+      console.log(`Usando método connectInstance para gerar novo QR code para: ${instance.instanceName}`);
       const qrCodeUrl = await evolutionApiService.connectInstance(instance.instanceName);
       
       if (!qrCodeUrl) {
-        console.error("API não retornou QR code na conexão forçada");
+        console.error("API não retornou QR code na atualização");
         throw new Error("QR Code não disponível na resposta da API");
       }
       
-      console.log("Novo QR code obtido via conexão forçada (primeiros 50 caracteres):", qrCodeUrl.substring(0, 50));
+      console.log("Novo QR code obtido (primeiros 50 caracteres):", qrCodeUrl.substring(0, 50));
       
       // Atualiza no Supabase
       try {

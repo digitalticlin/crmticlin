@@ -1,5 +1,5 @@
 
-import { MAX_RETRIES, RETRY_DELAY } from "./config";
+import { MAX_RETRIES, RETRY_DELAY, API_KEY } from "./config";
 
 /**
  * Class to handle HTTP requests with Evolution API
@@ -22,6 +22,8 @@ export class ApiClient {
     }
     
     console.log(`ApiClient initialized with URL: ${apiUrl}`);
+    // Log parcial da API KEY para debugging (apenas primeiros 4 caracteres)
+    console.log(`Using API key: ${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`);
   }
 
   /**
@@ -38,6 +40,9 @@ export class ApiClient {
     console.log(`Making API request to: ${url}`, {
       method: options.method || 'GET',
     });
+    
+    // Log para debugging - verificar se a API key está sendo enviada corretamente
+    console.log(`Request usando API key: ${this.apiKey.substring(0, 4)}...${this.apiKey.substring(this.apiKey.length - 4)}`);
     
     if (options.body) {
       console.log("Request body:", options.body);
@@ -59,6 +64,13 @@ export class ApiClient {
           errorMessage = errorData?.error || `HTTP error: ${response.status} ${response.statusText}`;
         } catch (e) {
           errorMessage = `Error with request: ${response.status}`;
+        }
+        
+        // Log detalhado para depuração de erros de autenticação
+        if (response.status === 401 || response.status === 403) {
+          console.error(`Erro de autenticação (${response.status}) ao acessar ${endpoint}`);
+          console.error(`API Key usada: ${this.apiKey.substring(0, 4)}...${this.apiKey.substring(this.apiKey.length - 4)}`);
+          errorMessage = `Erro de autenticação: Verifique se a API Key está correta (${response.status})`;
         }
         
         console.error(`API error on ${endpoint}:`, errorMessage);
