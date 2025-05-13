@@ -2,7 +2,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { evolutionApiService } from "@/services/evolution-api";
 
 interface PlaceholderInstanceCardProps {
   isSuperAdmin?: boolean; // Indica se o usuário é SuperAdmin e não tem restrições de plano
@@ -26,7 +27,6 @@ const PlaceholderInstanceCard = ({
   const [username, setUsername] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
-  const isAddingRef = useRef(false);
   
   // Extrair nome de usuário do email quando o componente montar
   useEffect(() => {
@@ -34,13 +34,52 @@ const PlaceholderInstanceCard = ({
       // Extrai o nome de usuário do email (parte antes do @)
       const extractedUsername = userEmail.split('@')[0].replace(/[^a-z0-9]/gi, '');
       setUsername(extractedUsername);
-      console.log("Nome de usuário extraído:", extractedUsername);
     }
   }, [userEmail]);
 
+  // Função para gerar um nome único com sequencial numérico
+  const generateUniqueInstanceName = async (baseUsername: string): Promise<string> => {
+    try {
+      // Buscar instâncias existentes no banco
+      const { data: existingInstances, error } = await supabase
+        .from('whatsapp_numbers')
+        .select('instance_name')
+        .filter('instance_name', 'ilike', `${baseUsername}%`);
+
+      if (error) {
+        console.error("Erro ao verificar nomes existentes:", error);
+        return `${baseUsername}1`; // Fallback
+      }
+
+      if (!existingInstances || existingInstances.length === 0) {
+        return baseUsername; // Usar o nome base se não houver instâncias
+      }
+
+      // Encontrar o maior número sequencial
+      let highestSeq = 0;
+      existingInstances.forEach(instance => {
+        const name = instance.instance_name.toLowerCase();
+        if (name === baseUsername.toLowerCase()) {
+          highestSeq = Math.max(highestSeq, 1);
+        } else {
+          const regex = new RegExp(`^${baseUsername.toLowerCase()}(\\d+)$`);
+          const match = name.match(regex);
+          if (match && match[1]) {
+            const seq = parseInt(match[1], 10);
+            highestSeq = Math.max(highestSeq, seq + 1);
+          }
+        }
+      });
+
+      return highestSeq > 0 ? `${baseUsername}${highestSeq}` : baseUsername;
+    } catch (error) {
+      console.error("Erro ao gerar nome único:", error);
+      return `${baseUsername}1`; // Fallback em caso de erro
+    }
+  };
+
   const handleAddWhatsApp = async () => {
-    // Prevent double clicks or multiple submissions
-    if (isAddingRef.current) {
+    if (isCreating) {
       console.log("Já processando uma solicitação de adição, ignorando");
       return;
     }
@@ -56,52 +95,88 @@ const PlaceholderInstanceCard = ({
     }
 
     try {
-      isAddingRef.current = true;
       setIsCreating(true);
-      console.log("Iniciando conexão de nova instância WhatsApp com username:", username);
       
-      // Importing the hook here to prevent it from running during component initialization
-      const { useWhatsAppInstances } = await import("@/hooks/useWhatsAppInstances");
+      // Gerar nome de instância único
+      const uniqueInstanceName = await generateUniqueInstanceName(username);
+      console.log("Nome de instância único gerado:", uniqueInstanceName);
       
-      // Only initialize the hook when we need it
-      const { addNewInstance } = useWhatsAppInstances(userEmail);
-      
-      // Conectar WhatsApp usando o username como nome da instância
-      console.log("Chamando addNewInstance para", username);
-      const result = await addNewInstance(username);
-      console.log("Resultado da adição de nova instância:", result);
-      
-      // Se houver um QR Code retornado, exibir para o usuário
-      if (result?.qrCodeUrl) {
-        console.log("QR code recebido (primeiros 50 caracteres):", 
-          result.qrCodeUrl.substring(0, 50));
-        setQrCodeUrl(result.qrCodeUrl);
-        setIsDialogOpen(true);
-        toast.success("Solicitação de conexão enviada com sucesso!");
-      } else {
-        console.log("Nenhum QR code retornado do addNewInstance");
-        toast.error("QR code não recebido. Tente novamente.");
+      // Obter o ID da empresa do usuário atual
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        throw new Error("Erro ao obter dados do usuário");
       }
-    } catch (error) {
+      
+      const userId = userData.user?.id;
+      console.log("ID do usuário atual:", userId);
+      
+      // Obter o company_id do perfil do usuário
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', userId)
+        .single();
+      
+      if (profileError || !profileData?.company_id) {
+        throw new Error("Erro ao obter a empresa do usuário");
+      }
+      
+      const companyId = profileData.company_id;
+      console.log("ID da empresa:", companyId);
+      
+      // Configurar o corpo da requisição para a Evolution API
+      const requestBody = {
+        instanceName: uniqueInstanceName,
+        qrcode: true,
+        integration: "WHATSAPP-BAILEYS"
+      };
+      
+      console.log("Enviando requisição para a Evolution API:", requestBody);
+      
+      // Fazer a requisição diretamente para a Evolution API
+      const response = await evolutionApiService.createInstance(uniqueInstanceName);
+      
+      if (!response || !response.qrcode || !response.qrcode.base64) {
+        throw new Error("QR code não recebido da API");
+      }
+      
+      // Extrair o QR code da resposta
+      const qrCode = response.qrcode.base64;
+      console.log("QR code recebido (primeiros 50 caracteres):", qrCode.substring(0, 50));
+      
+      // Salvar a instância no banco de dados
+      const whatsappData = {
+        instance_name: uniqueInstanceName,
+        phone: "", // Será atualizado quando conectado
+        company_id: companyId,
+        status: "connecting",
+        qr_code: qrCode,
+        instance_id: response.instance.instanceId,
+        evolution_instance_name: response.instance.instanceName,
+        evolution_token: response.hash || ""
+      };
+      
+      // Inserir no banco de dados
+      const { error: dbError } = await supabase
+        .from('whatsapp_numbers')
+        .insert(whatsappData);
+    
+      if (dbError) {
+        console.error("Erro ao salvar instância no banco de dados:", dbError);
+        throw new Error("Erro ao salvar a instância");
+      }
+      
+      // Exibir o QR code para o usuário
+      setQrCodeUrl(qrCode);
+      setIsDialogOpen(true);
+      toast.success("Solicitação de conexão enviada com sucesso!");
+      
+    } catch (error: any) {
       console.error("Erro completo ao criar instância:", error);
       toast.error("Não foi possível criar a instância de WhatsApp");
     } finally {
       setIsCreating(false);
-      // Reset the ref after a small delay to prevent accidental double-clicking
-      setTimeout(() => {
-        isAddingRef.current = false;
-      }, 1000);
     }
-  };
-
-  const handleOpenDialog = () => {
-    if (!isSuperAdmin) {
-      toast.error("Disponível apenas em planos superiores. Atualize seu plano.");
-      return;
-    }
-    
-    // Iniciar processo de conexão diretamente
-    handleAddWhatsApp();
   };
 
   return (
@@ -128,8 +203,8 @@ const PlaceholderInstanceCard = ({
             variant="whatsapp"
             size="sm"
             className="mt-2"
-            disabled={!isSuperAdmin || isCreating || isAddingRef.current}
-            onClick={handleOpenDialog}
+            disabled={!isSuperAdmin || isCreating}
+            onClick={handleAddWhatsApp}
           >
             {isCreating ? "Conectando..." : isSuperAdmin ? "Adicionar WhatsApp" : "Atualizar plano"}
           </Button>
