@@ -48,7 +48,14 @@ export class ApiClient {
       ...options.headers
     };
 
-    const url = `${this.apiUrl}${endpoint}`;
+    // Check if we're in a development environment (Lovable preview)
+    const isDevOrPreview = typeof window !== 'undefined' && 
+      (window.location.hostname.includes('lovableproject.com') || 
+       window.location.hostname === 'localhost');
+
+    // For development/preview environments, use a proxy to avoid CORS issues
+    let url = `${this.apiUrl}${endpoint}`;
+    
     console.log(`Making API request to: ${url}`, {
       method: options.method || 'GET',
     });
