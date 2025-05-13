@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { QrCode, Trash2, RefreshCw, Link } from "lucide-react";
+import { QrCode, Trash2, RefreshCw, Link, Phone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -84,11 +84,6 @@ const WhatsAppInstanceCard = ({
 
   // Determinar se deve mostrar o QR code (quando está disponível e mostrado)
   const shouldShowQrCode = (showQrCode === instance.id || qrCodeSuccess) && instance.qrCodeUrl;
-  
-  console.log(`Deve mostrar QR code para instância ${instance.id}:`, shouldShowQrCode);
-  console.log(`showQrCode === instance.id: ${showQrCode === instance.id}`);
-  console.log(`qrCodeSuccess: ${qrCodeSuccess}`);
-  console.log(`instance.qrCodeUrl existe: ${!!instance.qrCodeUrl}`);
 
   return (
     <Card className="overflow-hidden glass-card border-0">
@@ -98,6 +93,12 @@ const WhatsAppInstanceCard = ({
             <div>
               <h4 className="font-medium">WhatsApp</h4>
               <p className="text-sm text-muted-foreground">Instância: {instance.instanceName}</p>
+              {instance.connected && instance.phoneNumber && (
+                <div className="flex items-center mt-1 gap-1 text-green-600 dark:text-green-400">
+                  <Phone className="w-3 h-3" />
+                  <p className="text-xs font-medium">{instance.phoneNumber}</p>
+                </div>
+              )}
             </div>
             <Badge variant="outline" className={instance.connected ? 
               "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400" : 
@@ -105,6 +106,14 @@ const WhatsAppInstanceCard = ({
               {instance.connected ? "Conectado" : "Desconectado"}
             </Badge>
           </div>
+          
+          {instance.connected && (
+            <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-md">
+              <p className="text-sm text-green-700 dark:text-green-400">
+                WhatsApp conectado com sucesso. Você pode agora gerenciar suas conversas na página de chats.
+              </p>
+            </div>
+          )}
           
           {shouldShowQrCode && instance.qrCodeUrl && (
             <div className="flex flex-col items-center mb-4 p-4 bg-white dark:bg-black rounded-md">
@@ -162,7 +171,7 @@ const WhatsAppInstanceCard = ({
                 disabled={isLoading || actionInProgress}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
-                {isLoading || actionInProgress ? "Desconectando..." : "Deletar WhatsApp"}
+                {isLoading || actionInProgress ? "Desconectando..." : "Desconectar WhatsApp"}
               </Button>
             )}
           </div>

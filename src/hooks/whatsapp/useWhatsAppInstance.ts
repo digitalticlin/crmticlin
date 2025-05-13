@@ -6,6 +6,7 @@ import { useWhatsAppInstanceState, WhatsAppInstance } from './whatsappInstanceSt
 import { useWhatsAppConnector } from './useWhatsAppConnector';
 import { useWhatsAppDisconnector } from './useWhatsAppDisconnector';
 import { useCompanyResolver } from './useCompanyResolver';
+import { evolutionApiService } from '@/services/evolution-api';
 
 export const useWhatsAppInstances = (userEmail: string) => {
   const { instances, setInstances } = useWhatsAppInstanceState();
@@ -13,6 +14,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
   const [showQrCode, setShowQrCode] = useState<string | null>(null);
   const [instanceName, setInstanceName] = useState<string>("");
   const [lastError, setLastError] = useState<string | null>(null);
+  const [statusCheckInterval, setStatusCheckInterval] = useState<NodeJS.Timeout | null>(null);
   
   // Resolvers
   const companyId = useCompanyResolver(userEmail);
@@ -46,6 +48,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
           instanceName: item.instance_name,
           connected: item.status === 'connected',
           qrCodeUrl: item.qr_code || undefined,
+          phoneNumber: item.phone || undefined,
         }));
         
         setInstances(fetchedInstances);
@@ -59,6 +62,53 @@ export const useWhatsAppInstances = (userEmail: string) => {
     
     fetchWhatsAppInstances();
   }, [companyId, setInstances]);
+
+  // Verificar o status da instância e atualizar no banco de dados
+  const checkInstanceStatus = async (instanceId: string) => {
+    try {
+      const instance = instances.find(i => i.id === instanceId);
+      if (!instance || !instance.instanceName) return;
+      
+      console.log(`Verificando status da instância: ${instance.instanceName}`);
+      setIsLoading(prev => ({ ...prev, [instanceId]: true }));
+      
+      // Obter status atual da instância via Evolution API
+      const status = await evolutionApiService.checkInstanceStatus(instance.instanceName);
+      console.log(`Status da instância ${instance.instanceName}: ${status}`);
+      
+      // Atualizar status no banco de dados
+      if (instanceId !== "1") {
+        const { error } = await supabase
+          .from('whatsapp_numbers')
+          .update({ status })
+          .eq('id', instanceId);
+          
+        if (error) {
+          console.error("Erro ao atualizar status no banco:", error);
+        }
+      }
+      
+      // Atualizar estado local
+      const updatedInstances = instances.map(i => {
+        if (i.id === instanceId) {
+          return { 
+            ...i, 
+            connected: status === 'connected'
+          };
+        }
+        return i;
+      });
+      
+      setInstances(updatedInstances);
+      
+      return status;
+    } catch (error) {
+      console.error(`Erro ao verificar status da instância ${instanceId}:`, error);
+      return "disconnected";
+    } finally {
+      setIsLoading(prev => ({ ...prev, [instanceId]: false }));
+    }
+  };
   
   // Função para adicionar nova instância
   const addNewInstance = async (username: string) => {
@@ -112,6 +162,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
     setLastError,
     
     // Funções
+    checkInstanceStatus,
     connectInstance: async (instanceId: string | WhatsAppInstance) => {
       try {
         // Verificar se instanceId é uma string ou um objeto WhatsAppInstance
@@ -151,7 +202,8 @@ export const useWhatsAppInstances = (userEmail: string) => {
           throw new Error("Instância não encontrada");
         }
         
-        await refreshQrCode(instance);
+        // Usando o connectInstance em vez de refreshQrCode para obter um código completamente novo
+        await connectInstance(instance);
         setShowQrCode(instanceId);
       } catch (error: any) {
         console.error("Erro ao atualizar QR code:", error);
@@ -175,7 +227,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
         
         // Remover do estado local após sucesso
         setInstances(instances.filter(i => i.id !== instanceId));
-        toast.success("WhatsApp desconectado com sucesso");
+        toast.success("WhatsApp desconectado com sucesso!");
       } catch (error: any) {
         console.error("Erro ao deletar instância:", error);
         setLastError(error?.message || "Erro ao deletar instância WhatsApp");

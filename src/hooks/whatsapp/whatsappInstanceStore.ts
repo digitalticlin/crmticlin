@@ -6,6 +6,7 @@ export interface WhatsAppInstance {
   instanceName: string;
   connected: boolean;
   qrCodeUrl?: string;
+  phoneNumber?: string;
 }
 
 interface WhatsAppInstanceState {

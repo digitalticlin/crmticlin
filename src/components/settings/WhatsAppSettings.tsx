@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { useWhatsAppInstances } from "@/hooks/whatsapp/useWhatsAppInstance";
+import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
 import WhatsAppInstanceCard from "./whatsapp/WhatsAppInstanceCard";
 import PlaceholderInstanceCard from "./whatsapp/PlaceholderInstanceCard";
 import WhatsAppInfoAlert from "./whatsapp/WhatsAppInfoAlert";
@@ -8,6 +8,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+const STATUS_CHECK_INTERVAL = 15000; // Verificar status a cada 15 segundos
 
 const WhatsAppSettings = () => {
   // Estado para armazenar o email do usuário atual
@@ -54,8 +56,33 @@ const WhatsAppSettings = () => {
     connectInstance,
     deleteInstance,
     refreshQrCode,
-    showQrCode
+    showQrCode,
+    checkInstanceStatus,
   } = useWhatsAppInstances(userEmail);
+
+  // Verificar periodicamente o status das instâncias
+  useEffect(() => {
+    if (!instances.length) return;
+
+    console.log("Iniciando verificação periódica de status para", instances.length, "instâncias");
+    
+    // Primeira verificação imediata
+    const checkAllInstances = async () => {
+      console.log("Verificando status de todas as instâncias...");
+      for (const instance of instances) {
+        if (!instance.connected) {
+          await checkInstanceStatus(instance.id);
+        }
+      }
+    };
+    
+    checkAllInstances();
+    
+    // Configurar verificação periódica
+    const intervalId = setInterval(checkAllInstances, STATUS_CHECK_INTERVAL);
+    
+    return () => clearInterval(intervalId);
+  }, [instances, checkInstanceStatus]);
   
   // Wrapper de adaptação para o connectInstance que ignora o retorno do QR Code
   const handleConnectInstance = async (instanceId: string) => {

@@ -59,7 +59,7 @@ export const saveInstanceToDatabase = async (
     const whatsappData = {
       id: instanceId, // Deixa o Supabase gerar ID para novos registros
       instance_name: instance.instanceName,
-      phone: "", // Será atualizado quando conectado
+      phone: instance.phoneNumber || "", // Será atualizado quando conectado
       company_id: companyId,
       status: "connecting" as WhatsAppStatus, // Explicitamente definido como um dos valores permitidos
       qr_code: qrCodeUrl,
@@ -148,7 +148,8 @@ export const updateLocalInstanceState = (
     return {
       id: updatedDbInstance.id,
       instanceName: updatedDbInstance.instance_name,
-      connected: false,
+      connected: updatedDbInstance.status === 'connected',
+      phoneNumber: updatedDbInstance.phone,
       qrCodeUrl
     };
   }
@@ -156,6 +157,7 @@ export const updateLocalInstanceState = (
   // Se estivermos apenas atualizando o estado de conexão ou QR code de uma instância existente
   return {
     connected: false,
+    phoneNumber: updatedDbInstance?.phone,
     qrCodeUrl
   };
 };
@@ -181,4 +183,32 @@ export const updateQrCodeInDatabase = async (instanceId: string, qrCodeUrl: stri
   }
   
   console.log("QR code atualizado com sucesso no banco de dados");
+};
+
+// Atualizar o status e número de telefone na base de dados
+export const updateInstanceStatusAndPhone = async (instanceId: string, status: WhatsAppStatus, phone?: string) => {
+  if (instanceId === "1") return; // Pula atualização de BD para ID placeholder
+  
+  console.log(`Atualizando status e telefone da instância ${instanceId} no banco de dados`);
+  
+  const updateData: any = { 
+    status,
+    ...(status === 'connected' ? { date_connected: new Date().toISOString() } : {})
+  };
+  
+  if (phone) {
+    updateData.phone = phone;
+  }
+  
+  const { error } = await supabase
+    .from('whatsapp_numbers')
+    .update(updateData)
+    .eq('id', instanceId);
+    
+  if (error) {
+    console.error("Erro ao atualizar status e telefone da instância:", error);
+    throw error;
+  }
+  
+  console.log("Status e telefone da instância atualizados com sucesso");
 };
