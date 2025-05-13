@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
@@ -12,7 +11,8 @@ import {
   ChevronRight,
   LogOut,
   Kanban,
-  ListPlus
+  ListPlus,
+  Cable
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -88,6 +88,7 @@ export default function Sidebar() {
       <Separator />
 
       <div className="flex flex-col flex-1 py-6 px-2 gap-1">
+        {/* First group */}
         <NavItem
           icon={LayoutDashboard}
           label="Dashboard"
@@ -106,6 +107,13 @@ export default function Sidebar() {
           href="/chat"
           isCollapsed={isCollapsed}
         />
+        
+        {/* First separator */}
+        <div className="my-2">
+          <Separator />
+        </div>
+        
+        {/* Second group */}
         <NavItem
           icon={Users}
           label="Clientes"
@@ -119,21 +127,28 @@ export default function Sidebar() {
           isCollapsed={isCollapsed}
         />
         <NavItem
-          icon={Users}
-          label="Equipe"
-          href="/team"
-          isCollapsed={isCollapsed}
-        />
-        <NavItem
-          icon={CreditCard}
-          label="Planos"
-          href="/plans"
+          icon={Cable}
+          label="Integração"
+          href="/integration"
           isCollapsed={isCollapsed}
         />
         <NavItem
           icon={Bot}
           label="Agentes IA"
           href="/ai-agents"
+          isCollapsed={isCollapsed}
+        />
+        
+        {/* Second separator */}
+        <div className="my-2">
+          <Separator />
+        </div>
+        
+        {/* Third group */}
+        <NavItem
+          icon={CreditCard}
+          label="Planos"
+          href="/plans"
           isCollapsed={isCollapsed}
         />
         <NavItem

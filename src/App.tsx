@@ -16,6 +16,7 @@ import SalesFunnel from "./pages/SalesFunnel";
 import Chat from "./pages/Chat";
 import Clients from "./pages/Clients";
 import Automation from "./pages/Automation";
+import Integration from "./pages/Integration";
 import Register from "./pages/Register";
 import ConfirmEmailInstructions from "./pages/ConfirmEmailInstructions";
 import ConfirmEmail from "./pages/ConfirmEmail";
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/chat" element={<Chat />} />
             <Route path="/clients" element={<Clients />} />
             <Route path="/automation" element={<Automation />} />
+            <Route path="/integration" element={<Integration />} />
             <Route path="/team" element={<Team />} />
             <Route path="/plans" element={<Plans />} />
             <Route path="/ai-agents" element={<AIAgents />} />
