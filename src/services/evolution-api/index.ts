@@ -2,13 +2,10 @@
 import { ApiClient } from "./api-client";
 import { InstanceService } from "./instance-service";
 import { ChatService } from "./chat-service";
+import { API_URL, API_KEY } from "./config";
 
-// URL da API e chave são carregados de variáveis de ambiente ou valores padrão
-const apiUrl = import.meta.env.VITE_EVOLUTION_API_URL || "https://ticlin-evolution-api.eirfpl.easypanel.host";
-const apiKey = import.meta.env.VITE_EVOLUTION_API_KEY || "your-api-key";
-
-// Criar cliente API e serviços
-const apiClient = new ApiClient(apiUrl, apiKey);
+// Criar cliente API e serviços usando os valores das configurações
+const apiClient = new ApiClient(API_URL, API_KEY);
 const instanceService = new InstanceService(apiClient);
 const chatService = new ChatService(apiClient);
 
