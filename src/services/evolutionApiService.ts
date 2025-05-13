@@ -1,6 +1,7 @@
 
 import { toast } from "sonner";
 
+// Interfaces
 export interface EvolutionInstance {
   instanceName: string;
   instanceId: string;
@@ -55,10 +56,14 @@ interface FetchInstancesResponse {
   }>;
 }
 
+// Configuração da API
 const API_URL = "https://ticlin-evolution-api.eirfpl.easypanel.host";
 const API_KEY = "JTZZDXMpymy7RETTvXdA9VxKdD0Mdj7t";
 
-class EvolutionApiService {
+/**
+ * Classe para gerenciar requisições HTTP para a Evolution API
+ */
+class ApiClient {
   private apiUrl: string;
   private apiKey: string;
 
@@ -67,7 +72,10 @@ class EvolutionApiService {
     this.apiKey = apiKey;
   }
 
-  private async fetchWithHeaders(endpoint: string, options: RequestInit = {}) {
+  /**
+   * Realiza requisições HTTP com cabeçalhos padrão para a API
+   */
+  async fetchWithHeaders(endpoint: string, options: RequestInit = {}): Promise<any> {
     const headers = {
       "Content-Type": "application/json",
       "apikey": this.apiKey,
@@ -91,56 +99,93 @@ class EvolutionApiService {
       throw error;
     }
   }
+}
 
-  // Buscar todas as instâncias existentes
+/**
+ * Classe para gerenciar instâncias da Evolution API
+ */
+class EvolutionApiService {
+  private apiClient: ApiClient;
+
+  constructor(apiUrl: string, apiKey: string) {
+    this.apiClient = new ApiClient(apiUrl, apiKey);
+  }
+
+  /**
+   * Busca todas as instâncias existentes
+   */
   async fetchInstances(): Promise<EvolutionInstance[]> {
     try {
-      const data = await this.fetchWithHeaders("/instance/fetchInstances", {
+      const data = await this.apiClient.fetchWithHeaders("/instance/fetchInstances", {
         method: "GET"
       }) as FetchInstancesResponse;
       
       return data.instances;
     } catch (error) {
-      console.error("Erro ao buscar instâncias:", error);
-      toast.error("Não foi possível obter as instâncias existentes");
+      this.handleApiError(error, "Não foi possível obter as instâncias existentes");
       return [];
     }
   }
 
-  // Verificar se um nome de instância já existe e gerar um novo se necessário
+  /**
+   * Verifica se um nome de instância já existe e gera um novo se necessário
+   */
   async getUniqueInstanceName(baseName: string): Promise<string> {
     try {
       const instances = await this.fetchInstances();
-      const existingNames = instances.map(instance => instance.instanceName);
-      
-      // Verificar se o nome base já existe
-      if (!existingNames.includes(baseName)) {
-        return baseName;
-      }
-      
-      // Se já existe, adicionar um número sequencial
-      let counter = 1;
-      let newName = `${baseName}${counter}`;
-      
-      while (existingNames.includes(newName)) {
-        counter++;
-        newName = `${baseName}${counter}`;
-      }
-      
-      return newName;
+      return this.generateUniqueNameFromExisting(baseName, instances);
     } catch (error) {
-      console.error("Erro ao verificar nome de instância:", error);
+      this.handleApiError(error, "Erro ao verificar nome de instância");
       // Em caso de erro, adiciona um timestamp para garantir unicidade
-      return `${baseName}_${Date.now().toString().slice(-6)}`;
+      return this.generateFallbackName(baseName);
     }
   }
 
-  // Criar uma nova instância de WhatsApp
+  /**
+   * Gera um nome único baseado nas instâncias existentes
+   */
+  private generateUniqueNameFromExisting(baseName: string, instances: EvolutionInstance[]): string {
+    const existingNames = instances.map(instance => instance.instanceName);
+    
+    // Verificar se o nome base já existe
+    if (!existingNames.includes(baseName)) {
+      return baseName;
+    }
+    
+    // Se já existe, adicionar um número sequencial
+    return this.appendSequentialNumber(baseName, existingNames);
+  }
+
+  /**
+   * Adiciona um número sequencial ao nome base até encontrar um nome único
+   */
+  private appendSequentialNumber(baseName: string, existingNames: string[]): string {
+    let counter = 1;
+    let newName = `${baseName}${counter}`;
+    
+    while (existingNames.includes(newName)) {
+      counter++;
+      newName = `${baseName}${counter}`;
+    }
+    
+    return newName;
+  }
+
+  /**
+   * Gera um nome de fallback com timestamp para garantir unicidade
+   */
+  private generateFallbackName(baseName: string): string {
+    return `${baseName}_${Date.now().toString().slice(-6)}`;
+  }
+
+  /**
+   * Criar uma nova instância de WhatsApp
+   */
   async createInstance(instanceName: string): Promise<EvolutionInstance | null> {
     try {
       const uniqueName = await this.getUniqueInstanceName(instanceName);
       
-      const data = await this.fetchWithHeaders("/instance/create", {
+      const data = await this.apiClient.fetchWithHeaders("/instance/create", {
         method: "POST",
         body: JSON.stringify({
           instanceName: uniqueName,
@@ -149,43 +194,59 @@ class EvolutionApiService {
         })
       }) as CreateInstanceResponse;
       
-      return {
-        instanceName: data.instance.instanceName,
-        instanceId: data.instance.instanceId,
-        integration: data.instance.integration,
-        status: data.instance.status,
-        qrcode: data.qrcode
-      };
+      return this.mapInstanceResponse(data);
     } catch (error) {
-      console.error("Erro ao criar instância:", error);
-      toast.error("Não foi possível criar a instância de WhatsApp");
+      this.handleApiError(error, "Não foi possível criar a instância de WhatsApp");
       return null;
     }
   }
 
-  // Obter o QR Code de uma instância
+  /**
+   * Mapeia a resposta da API para o formato da interface EvolutionInstance
+   */
+  private mapInstanceResponse(data: CreateInstanceResponse): EvolutionInstance {
+    return {
+      instanceName: data.instance.instanceName,
+      instanceId: data.instance.instanceId,
+      integration: data.instance.integration,
+      status: data.instance.status,
+      qrcode: data.qrcode
+    };
+  }
+
+  /**
+   * Obter o QR Code de uma instância
+   */
   async refreshQrCode(instanceName: string): Promise<string | null> {
     try {
-      const data = await this.fetchWithHeaders(`/instance/qrcode?instanceName=${instanceName}`, {
+      const data = await this.apiClient.fetchWithHeaders(`/instance/qrcode?instanceName=${instanceName}`, {
         method: "GET"
       });
       
-      if (data && data.qrcode && data.qrcode.base64) {
-        return data.qrcode.base64;
-      }
+      this.validateQrCodeResponse(data);
       
-      throw new Error("QR Code não disponível");
+      return data.qrcode.base64;
     } catch (error) {
-      console.error("Erro ao obter QR Code:", error);
-      toast.error("Não foi possível obter o QR Code");
+      this.handleApiError(error, "Não foi possível obter o QR Code");
       return null;
     }
   }
 
-  // Deletar uma instância
+  /**
+   * Valida a resposta da API contendo o QR Code
+   */
+  private validateQrCodeResponse(data: any): void {
+    if (!data || !data.qrcode || !data.qrcode.base64) {
+      throw new Error("QR Code não disponível");
+    }
+  }
+
+  /**
+   * Deletar uma instância
+   */
   async deleteInstance(instanceName: string): Promise<boolean> {
     try {
-      await this.fetchWithHeaders(`/instance/delete`, {
+      await this.apiClient.fetchWithHeaders(`/instance/delete`, {
         method: "DELETE",
         body: JSON.stringify({
           instanceName
@@ -195,23 +256,34 @@ class EvolutionApiService {
       toast.success(`Instância ${instanceName} removida com sucesso`);
       return true;
     } catch (error) {
-      console.error("Erro ao deletar instância:", error);
-      toast.error("Não foi possível remover a instância");
+      this.handleApiError(error, "Não foi possível remover a instância");
       return false;
     }
   }
 
-  // Verificar o status de uma instância
+  /**
+   * Verificar o status de uma instância
+   */
   async checkInstanceStatus(instanceName: string): Promise<"connected" | "connecting" | "disconnected"> {
     try {
-      const data = await this.fetchWithHeaders(`/instance/connectionState?instanceName=${instanceName}`, {
+      const data = await this.apiClient.fetchWithHeaders(`/instance/connectionState?instanceName=${instanceName}`, {
         method: "GET"
       });
       
       return data.state || "disconnected";
     } catch (error) {
-      console.error("Erro ao verificar status da instância:", error);
+      this.handleApiError(error, "Erro ao verificar status da instância", false);
       return "disconnected";
+    }
+  }
+
+  /**
+   * Trata erros da API de maneira padronizada
+   */
+  private handleApiError(error: any, message: string, showToast: boolean = true): void {
+    console.error(message, error);
+    if (showToast) {
+      toast.error(message);
     }
   }
 }
