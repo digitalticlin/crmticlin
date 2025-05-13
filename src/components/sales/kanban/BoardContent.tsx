@@ -2,7 +2,6 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
 import { KanbanColumn } from "../KanbanColumn";
-import { cn } from "@/lib/utils";
 
 interface BoardContentProps {
   columns: IKanbanColumn[];
@@ -13,7 +12,6 @@ interface BoardContentProps {
   onMoveToWonLost?: (lead: KanbanLead, status: "won" | "lost") => void;
   isWonLostView?: boolean;
   onReturnToFunnel?: (lead: KanbanLead) => void;
-  isDragging?: boolean;
 }
 
 export const BoardContent = ({
@@ -24,17 +22,13 @@ export const BoardContent = ({
   onOpenChat,
   onMoveToWonLost,
   isWonLostView = false,
-  onReturnToFunnel,
-  isDragging = false
+  onReturnToFunnel
 }: BoardContentProps) => {
   // Filter out hidden columns
   const visibleColumns = columns.filter(column => !column.isHidden);
   
   return (
-    <ScrollArea className={cn(
-      "w-full h-full transition-all duration-300",
-      isDragging && "bg-gray-50/50 dark:bg-gray-900/50 backdrop-blur-sm"
-    )}>
+    <ScrollArea className="w-full h-full">
       <div className="flex gap-4 pb-6 min-w-max h-full">
         {visibleColumns.map((column) => (
           <KanbanColumn
@@ -47,7 +41,6 @@ export const BoardContent = ({
             onMoveToWonLost={onMoveToWonLost}
             isWonLostView={isWonLostView}
             onReturnToFunnel={onReturnToFunnel}
-            isDragging={isDragging}
           />
         ))}
       </div>

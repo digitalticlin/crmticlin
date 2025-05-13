@@ -3,7 +3,6 @@ import { Droppable, Draggable } from "react-beautiful-dnd";
 import { KanbanLead } from "@/types/kanban";
 import { LeadCard } from "@/components/sales/LeadCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
 
 interface LeadsListProps {
   columnId: string;
@@ -35,15 +34,11 @@ export const LeadsList = ({
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={cn(
-              "min-h-full transition-all duration-300",
-              "rounded-lg",
-              snapshot.isDraggingOver && "bg-slate-100/80 dark:bg-slate-800/50",
-              snapshot.isDraggingOver && "scale-[1.01] border border-primary/30",
-              snapshot.isDraggingOver && "ring-2 ring-primary/10"
-            )}
+            className={`min-h-full transition-colors duration-200 ${
+              snapshot.isDraggingOver ? 'bg-slate-100/50 dark:bg-slate-800/50 rounded-lg scale-[1.005] border border-primary/20' : ''
+            }`}
             style={{
-              transition: 'all 0.3s ease-out',
+              transition: 'background-color 0.2s ease, transform 0.2s ease, border 0.2s ease',
               minHeight: '100px' // Ensure min height for empty columns
             }}
           >

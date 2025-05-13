@@ -131,36 +131,6 @@
     @apply text-transparent bg-clip-text;
     background-image: linear-gradient(135deg, #d3d800 0%, #e4e833 100%);
   }
-
-  /* Drag and drop utilities */
-  .is-dragging {
-    @apply cursor-grabbing;
-  }
-  
-  .grabbing {
-    cursor: grabbing !important;
-  }
-
-  /* Enhanced card effects */
-  .card-shadow-hover {
-    @apply transition-all duration-300 hover:shadow-lg hover:shadow-primary/10;
-  }
-  
-  .card-border-hover {
-    @apply transition-all duration-300 hover:border-primary/30;
-  }
-  
-  .card-scaling {
-    @apply transition-transform duration-200 hover:scale-[1.01];
-  }
-  
-  .column-highlight {
-    @apply transition-all duration-300;
-  }
-  
-  .column-highlight:hover {
-    @apply border-primary/20 shadow-lg shadow-primary/5;
-  }
   
   /* Custom scrollbar styling */
   ::-webkit-scrollbar {
@@ -200,33 +170,5 @@
       opacity: 1;
       transform: translateY(0);
     }
-  }
-  
-  /* Add pulse animation for drag indicators */
-  @keyframes pulseBorder {
-    0%, 100% {
-      border-color: rgba(79, 70, 229, 0.2);
-    }
-    50% {
-      border-color: rgba(79, 70, 229, 0.8);
-    }
-  }
-  
-  .animate-pulse-border {
-    animation: pulseBorder 2s infinite;
-  }
-  
-  /* Animation for drag glow effect */
-  @keyframes cardGlow {
-    0%, 100% {
-      box-shadow: 0 0 5px 0 rgba(79, 70, 229, 0.3);
-    }
-    50% {
-      box-shadow: 0 0 15px 5px rgba(79, 70, 229, 0.6);
-    }
-  }
-  
-  .animate-card-glow {
-    animation: cardGlow 1.5s infinite;
   }
 }

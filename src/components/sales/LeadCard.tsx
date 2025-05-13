@@ -47,11 +47,8 @@ export const LeadCard = ({
       {...provided.draggableProps}
       {...provided.dragHandleProps}
       className={cn(
-        "bg-white dark:bg-gray-800 mb-3 rounded-lg border border-gray-200 dark:border-gray-700",
-        "shadow-sm transition-all duration-200 p-3 cursor-pointer",
-        "hover:border-primary/40 hover:shadow-md hover:scale-[1.01]",
-        isDragging && "shadow-lg scale-[1.03] border-primary border-2 z-50 opacity-100",
-        isDragging && "ring-4 ring-primary/20 ring-offset-1",
+        "bg-white dark:bg-gray-800 mb-3 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm transition-all p-3 cursor-pointer",
+        isDragging && "shadow-lg scale-[1.02] border-primary z-50 opacity-95",
         !isDragging && "hover:shadow-md animate-fade-in",
         isWon && "border-l-4 border-l-green-500",
         isLost && "border-l-4 border-l-red-500"
@@ -62,9 +59,7 @@ export const LeadCard = ({
         // Fix DnD issues by ensuring proper positioning during drag
         ...(isDragging ? {
           transformOrigin: 'center',
-          transition: 'all 0.15s ease-out',
-          boxShadow: '0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-          zIndex: 9999
+          transition: 'transform 0.1s ease, opacity 0.1s ease, box-shadow 0.1s ease',
         } : {})
       }}
     >
