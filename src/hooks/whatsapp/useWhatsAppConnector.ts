@@ -29,18 +29,33 @@ export const useWhatsAppConnector = () => {
       
       console.log(`Conectando instância WhatsApp ${instance.instanceName} (ID: ${instanceId})`);
       
-      // Verifica primeiro se já existe uma instância com esse nome
-      const existingInstances = await evolutionApiService.fetchInstances();
+      // Implementação mais robusta para lidar com erros de API
+      let existingInstances = [];
+      try {
+        existingInstances = await evolutionApiService.fetchInstances();
+      } catch (fetchError) {
+        console.log("Erro ao buscar instâncias, continuando com lista vazia:", fetchError);
+        // Continuamos com lista vazia se não conseguir buscar as instâncias
+      }
+      
+      // Verifica se já existe uma instância com esse nome
       const existingInstance = existingInstances.find(i => 
+        i.instanceName && instance.instanceName &&
         i.instanceName.toLowerCase() === instance.instanceName.toLowerCase()
       );
       
       if (existingInstance) {
         console.log(`Instância já existe com nome ${instance.instanceName}, tentando obter QR Code`);
-        const qrCodeUrl = await evolutionApiService.refreshQrCode(instance.instanceName);
-        
-        if (!qrCodeUrl) {
-          throw new Error("Não foi possível obter o QR Code para instância existente");
+        let qrCodeUrl;
+        try {
+          qrCodeUrl = await evolutionApiService.refreshQrCode(instance.instanceName);
+          
+          if (!qrCodeUrl) {
+            throw new Error("QR Code não disponível");
+          }
+        } catch (qrError) {
+          console.error("Erro ao obter QR code de instância existente:", qrError);
+          throw new Error("Não foi possível atualizar o QR code para instância existente. Tente novamente mais tarde.");
         }
         
         // Atualiza no Supabase
@@ -57,14 +72,20 @@ export const useWhatsAppConnector = () => {
       }
       
       // Cria instância na Evolution API
-      const result = await evolutionApiService.createInstance(instance.instanceName);
-      
-      if (!result) {
-        throw new Error("Não foi possível criar a instância");
+      let result;
+      try {
+        result = await evolutionApiService.createInstance(instance.instanceName);
+        
+        if (!result) {
+          throw new Error("Resposta inválida da API");
+        }
+      } catch (createError) {
+        console.error("Erro ao criar instância:", createError);
+        throw new Error("Não foi possível criar a instância do WhatsApp. Verifique a conexão com o servidor.");
       }
       
       if (!result.qrcode || !result.qrcode.base64) {
-        throw new Error("QR Code não disponível");
+        throw new Error("QR Code não disponível na resposta da API");
       }
       
       const qrCodeUrl = result.qrcode.base64;
@@ -105,11 +126,17 @@ export const useWhatsAppConnector = () => {
       
       console.log(`Atualizando QR code para instância: ${instance.instanceName} (ID: ${instanceId})`);
       
-      // Buscar novo QR Code da Evolution API
-      const qrCodeUrl = await evolutionApiService.refreshQrCode(instance.instanceName);
-      
-      if (!qrCodeUrl) {
-        throw new Error("Não foi possível obter um novo QR Code");
+      // Buscar novo QR Code da Evolution API com melhor tratamento de erro
+      let qrCodeUrl;
+      try {
+        qrCodeUrl = await evolutionApiService.refreshQrCode(instance.instanceName);
+        
+        if (!qrCodeUrl) {
+          throw new Error("QR Code não disponível na resposta da API");
+        }
+      } catch (refreshError) {
+        console.error("Erro ao atualizar QR code:", refreshError);
+        throw new Error("Não foi possível obter um novo QR Code. Tente novamente mais tarde.");
       }
       
       // Atualiza no Supabase
