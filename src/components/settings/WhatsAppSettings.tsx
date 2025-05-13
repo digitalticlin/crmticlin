@@ -57,9 +57,9 @@ const WhatsAppSettings = () => {
     connectInstance,
     deleteInstance,
     refreshQrCode,
-    showQrCode,
     checkInstanceStatus,
-    handleConnectInstance,
+    showQrCode,
+    setShowQrCode,
   } = useWhatsAppInstances(userEmail);
 
   // Periodically check instance status with a more efficient approach
@@ -80,7 +80,7 @@ const WhatsAppSettings = () => {
         const instance = disconnectedInstances[i];
         // Add a delay between each check to prevent API flooding
         setTimeout(() => {
-          checkInstanceStatus(instance.id, instance.instanceName);
+          checkInstanceStatus(instance.id);
         }, i * 1000); // Stagger by 1 second per instance
       }
       
@@ -90,7 +90,7 @@ const WhatsAppSettings = () => {
         const instance = connectedInstances[i];
         // Check connected instances less frequently
         setTimeout(() => {
-          checkInstanceStatus(instance.id, instance.instanceName);
+          checkInstanceStatus(instance.id);
         }, (disconnectedInstances.length * 1000) + (i * 1000)); // Check after disconnected instances
       }
     };
@@ -113,6 +113,11 @@ const WhatsAppSettings = () => {
       }
     };
   }, [instances, checkInstanceStatus]);
+  
+  // Handle showing QR code by updating state
+  const handleShowQrCode = (instanceId: string) => {
+    setShowQrCode(instanceId);
+  };
   
   return (
     <div className="space-y-6">
@@ -140,8 +145,8 @@ const WhatsAppSettings = () => {
             key={instance.id}
             instance={instance}
             isLoading={instanceLoading[instance.id] || false}
-            showQrCode={showQrCode}
-            onConnect={() => handleConnectInstance(instance.id)}
+            showQrCode={showQrCode === instance.id}
+            onConnect={() => connectInstance(instance.id)}
             onDelete={deleteInstance}
             onRefreshQrCode={refreshQrCode}
           />

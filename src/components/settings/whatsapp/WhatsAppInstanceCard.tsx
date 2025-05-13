@@ -9,7 +9,7 @@ import { WhatsAppInstance } from "@/hooks/whatsapp/whatsappInstanceStore";
 interface WhatsAppInstanceCardProps {
   instance: WhatsAppInstance;
   isLoading: boolean;
-  showQrCode: string | null;
+  showQrCode: boolean;
   onConnect: (instanceId: string) => Promise<void>;
   onDelete: (instanceId: string) => Promise<void>;
   onRefreshQrCode: (instanceId: string) => Promise<void>;
@@ -83,7 +83,7 @@ const WhatsAppInstanceCard = ({
   };
 
   // Determine if QR code should be shown (when available and shown)
-  const shouldShowQrCode = (showQrCode === instance.id || qrCodeSuccess) && instance.qrCodeUrl;
+  const shouldShowQrCode = (showQrCode || qrCodeSuccess) && instance.qrCodeUrl;
 
   return (
     <Card className="overflow-hidden glass-card border-0">

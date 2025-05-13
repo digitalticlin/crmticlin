@@ -14,15 +14,15 @@ import { useCompanyResolver } from "./useCompanyResolver";
  */
 export const useWhatsAppInstances = (userEmail: string | null) => {
   const [lastError, setLastError] = useState<string | null>(null);
-  const [showQrCode, setShowQrCode] = useState<Record<string, boolean>>({});
+  const [showQrCode, setShowQrCode] = useState<string | null>(null);
   
   // Get company ID from user email
-  const { companyId } = useCompanyResolver(userEmail);
+  const { companyId } = useCompanyResolver(userEmail || "");
   
   // Pull in specialized hooks for different aspects of WhatsApp management
   const { instances, isLoading, setInstances } = useWhatsAppInstanceState();
   const { setLoading, setError, updateInstance } = useWhatsAppInstanceActions();
-  const { fetchInstances } = useWhatsAppFetcher();
+  const { fetchInstances, fetchUserInstances } = useWhatsAppFetcher();
   const { connectInstance, refreshQrCode, checkConnectionStatus } = useWhatsAppConnector();
   const { deleteInstance: disconnectInstance } = useWhatsAppDisconnector();
   const { addNewInstance: createInstance } = useWhatsAppCreator(companyId);
@@ -53,14 +53,6 @@ export const useWhatsAppInstances = (userEmail: string | null) => {
       console.error("Error loading WhatsApp instances:", error);
       setError(error instanceof Error ? error.message : "Error loading instances");
     }
-  };
-  
-  // Handle showing QR code for an instance
-  const handleShowQrCode = (instanceId: string) => {
-    setShowQrCode(prev => ({
-      ...prev,
-      [instanceId]: !prev[instanceId]
-    }));
   };
   
   // Handle connection for an instance
@@ -116,11 +108,17 @@ export const useWhatsAppInstances = (userEmail: string | null) => {
   };
   
   // Check instance status
-  const checkInstanceStatus = useCallback(async (instanceId: string, instanceName: string) => {
+  const checkInstanceStatus = useCallback(async (instanceId: string) => {
     try {
-      console.log(`Checking status of ${instanceName} (${instanceId})`);
-      const status = await evolutionApiService.checkInstanceStatus(instanceName);
-      console.log(`Status of ${instanceName}: ${status}`);
+      const instance = instances.find(inst => inst.id === instanceId);
+      if (!instance) {
+        console.log(`Instance not found for ID: ${instanceId}`);
+        return false;
+      }
+      
+      console.log(`Checking status of ${instance.instanceName} (${instanceId})`);
+      const status = await evolutionApiService.checkInstanceStatus(instance.instanceName);
+      console.log(`Status of ${instance.instanceName}: ${status}`);
       
       // Update instance status in local state
       updateInstance(instanceId, { 
@@ -129,10 +127,10 @@ export const useWhatsAppInstances = (userEmail: string | null) => {
       
       return status === "connected";
     } catch (error) {
-      console.error(`Error checking status for ${instanceName}:`, error);
+      console.error(`Error checking status for instance ${instanceId}:`, error);
       return false;
     }
-  }, [updateInstance]);
+  }, [instances, updateInstance]);
   
   return {
     instances,
@@ -140,10 +138,10 @@ export const useWhatsAppInstances = (userEmail: string | null) => {
     lastError,
     loadInstances,
     connectInstance: handleConnectInstance,
-    handleConnectInstance,
     deleteInstance: disconnectInstance,
     refreshQrCode,
-    showQrCode: handleShowQrCode,
+    showQrCode,
+    setShowQrCode,
     checkInstanceStatus,
     addNewInstance,
   };
