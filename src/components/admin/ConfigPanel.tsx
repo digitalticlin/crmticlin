@@ -10,6 +10,7 @@ import { SecuritySettingsTab } from "./config/SecuritySettingsTab";
 import { IntegrationsSettingsTab } from "./config/IntegrationsSettingsTab";
 import { ApiSettingsTab } from "./config/ApiSettingsTab";
 import { PerformanceSettingsTab } from "./config/PerformanceSettingsTab";
+import { ConfigProps } from "./config/types";
 
 export default function ConfigPanel() {
   const [activeTab, setActiveTab] = useState("general");
@@ -45,6 +46,12 @@ export default function ConfigPanel() {
     // Aqui seria implementada a lógica para salvar as configurações no backend
     toast.success("Configurações salvas com sucesso!");
   };
+
+  // Criamos um objeto de configuração que corresponde à interface ConfigProps
+  const configProps: ConfigProps = {
+    config: config,
+    onConfigChange: handleConfigChange
+  };
   
   return (
     <div className="space-y-6">
@@ -66,7 +73,7 @@ export default function ConfigPanel() {
         </TabsList>
         
         <TabsContent value="general" className="space-y-4">
-          <GeneralSettingsTab config={config} onConfigChange={handleConfigChange} />
+          <GeneralSettingsTab {...configProps} />
         </TabsContent>
         
         <TabsContent value="security" className="space-y-4">
@@ -74,15 +81,15 @@ export default function ConfigPanel() {
         </TabsContent>
         
         <TabsContent value="api" className="space-y-4">
-          <ApiSettingsTab config={config} onConfigChange={handleConfigChange} />
+          <ApiSettingsTab {...configProps} />
         </TabsContent>
         
         <TabsContent value="performance" className="space-y-4">
-          <PerformanceSettingsTab config={config} onConfigChange={handleConfigChange} />
+          <PerformanceSettingsTab {...configProps} />
         </TabsContent>
         
         <TabsContent value="integrations" className="space-y-4">
-          <IntegrationsSettingsTab config={config} onConfigChange={handleConfigChange} />
+          <IntegrationsSettingsTab {...configProps} />
         </TabsContent>
       </Tabs>
     </div>
