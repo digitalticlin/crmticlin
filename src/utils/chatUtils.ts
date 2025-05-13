@@ -1,4 +1,3 @@
-
 import { Contact, Message } from "@/types/chat";
 
 // Select a contact and generate dummy messages
@@ -122,5 +121,7 @@ export function updateContactNotes(
       : contact
   ));
   
-  setSelectedContact(prev => prev ? { ...prev, notes: contactNotes } : null);
+  // Fix the TypeScript error by updating the contact directly instead of using a callback
+  const updatedContact = { ...selectedContact, notes: contactNotes };
+  setSelectedContact(updatedContact);
 }
