@@ -39,21 +39,18 @@ export class InstanceCreationService extends BaseService {
           instances = this.cachedInstances;
         } else {
           // Fetch instances if needed
-          console.log("Fetching instances from API for name check");
           instances = await this.apiClient.fetchWithHeaders("/instance/fetchInstances", {
             method: "GET"
           }).then(data => {
             if (data && Array.isArray(data.instances)) {
               return data.instances;
             }
-            console.log("No instances returned or invalid format from API");
             return [];
           });
           
           // Update cache
           this.cachedInstances = instances;
           this.lastFetchTime = Date.now();
-          console.log(`Cached ${instances.length} instances`);
         }
       } catch (error) {
         console.error("Error fetching instances for name check:", error);
@@ -61,9 +58,7 @@ export class InstanceCreationService extends BaseService {
         return `${baseName}1`;
       }
       
-      const uniqueName = generateUniqueNameFromExisting(baseName, instances);
-      console.log(`Generated unique name: ${uniqueName}`);
-      return uniqueName;
+      return generateUniqueNameFromExisting(baseName, instances);
     } catch (error) {
       console.error("Error when checking instance name:", error);
       // Try again with a lighter approach - don't show toast on this internal error
@@ -93,8 +88,6 @@ export class InstanceCreationService extends BaseService {
       };
       console.log("Request body:", requestBody);
       
-      // Make the API call to create the instance
-      console.log("Sending POST request to /instance/create");
       const response = await this.apiClient.fetchWithHeaders("/instance/create", {
         method: "POST",
         body: JSON.stringify(requestBody)

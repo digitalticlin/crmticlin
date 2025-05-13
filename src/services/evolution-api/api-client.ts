@@ -63,7 +63,6 @@ export class ApiClient {
     // Create the promise for this request
     const requestPromise = (async () => {
       try {
-        console.log(`Executing fetch to ${url} with method ${options.method || 'GET'}`);
         const response = await fetch(url, {
           ...options,
           headers

@@ -22,18 +22,14 @@ export const useWhatsAppInstances = (userEmail: string) => {
   const { deleteInstance } = useWhatsAppDisconnector();
   const { checkInstanceStatus, setupPeriodicStatusCheck } = useWhatsAppStatusMonitor();
   const { fetchInstances } = useWhatsAppFetcher();
-  const { addNewInstance: creatorAddNewInstance } = useWhatsAppCreator(companyId);
+  const { addNewInstance } = useWhatsAppCreator(companyId);
   
   // Load WhatsApp instances when company ID is available
   useEffect(() => {
-    if (!companyId) {
-      console.log("No company ID available, skipping instance fetch");
-      return;
-    }
+    if (!companyId) return;
     
     const loadInstances = async () => {
       try {
-        console.log(`Loading instances for company ${companyId}`);
         setIsLoading(prev => ({ ...prev, fetch: true }));
         await fetchInstances(companyId);
       } catch (error) {
@@ -58,24 +54,6 @@ export const useWhatsAppInstances = (userEmail: string) => {
       if (cleanupStatusCheck) cleanupStatusCheck();
     };
   }, [instances, setupPeriodicStatusCheck]);
-
-  // Wrapper for addNewInstance to handle QR code display
-  const addNewInstance = async (username: string) => {
-    try {
-      console.log(`Adding new WhatsApp instance for username: ${username}`);
-      const result = await creatorAddNewInstance(username);
-      
-      if (!result) {
-        throw new Error("Failed to create WhatsApp instance");
-      }
-      
-      // Return the result with QR code
-      return result;
-    } catch (error) {
-      console.error("Error in addNewInstance wrapper:", error);
-      throw error;
-    }
-  };
   
   return {
     instances,
@@ -86,7 +64,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
     
     // Functions
     checkInstanceStatus,
-    connectInstance: async (instanceId: string | WhatsAppInstance): Promise<void> => {
+    connectInstance: async (instanceId: string | WhatsAppInstance) => {
       try {
         // Check if instanceId is a string or a WhatsAppInstance object
         const instanceToConnect = typeof instanceId === 'string' 
@@ -100,9 +78,9 @@ export const useWhatsAppInstances = (userEmail: string) => {
         setIsLoading(prev => ({ ...prev, [instanceToConnect.id]: true }));
         setLastError(null);
         
-        // Connect instance but don't return the QR code
-        await connectInstance(instanceToConnect);
+        const qrCodeUrl = await connectInstance(instanceToConnect);
         setShowQrCode(instanceToConnect.id);
+        return qrCodeUrl;
       } catch (error: any) {
         console.error("Error connecting instance:", error);
         setLastError(error?.message || "Error connecting WhatsApp instance");
@@ -115,7 +93,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
       }
     },
     
-    refreshQrCode: async (instanceId: string): Promise<void> => {
+    refreshQrCode: async (instanceId: string) => {
       try {
         setIsLoading(prev => ({ ...prev, [instanceId]: true }));
         setLastError(null);
@@ -136,7 +114,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
       }
     },
     
-    deleteInstance: async (instanceId: string): Promise<void> => {
+    deleteInstance: async (instanceId: string) => {
       try {
         setIsLoading(prev => ({ ...prev, [instanceId]: true }));
         setLastError(null);
