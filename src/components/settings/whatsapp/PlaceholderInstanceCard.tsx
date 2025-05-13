@@ -2,7 +2,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +27,7 @@ const PlaceholderInstanceCard = ({
   const [username, setUsername] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  const isAddingRef = useRef(false);
   
   // Hook para gerenciar instâncias de WhatsApp - Pass the userEmail
   const { addNewInstance } = useWhatsAppInstances(userEmail);
@@ -57,13 +58,20 @@ const PlaceholderInstanceCard = ({
   }, []);
 
   const handleAddWhatsApp = async () => {
+    // Prevent double clicks or multiple submissions
+    if (isAddingRef.current) {
+      console.log("Already processing an add request, ignoring");
+      return;
+    }
+    
     if (!username) {
       toast.error("Não foi possível obter seu nome de usuário");
       return;
     }
 
-    setIsCreating(true);
     try {
+      isAddingRef.current = true;
+      setIsCreating(true);
       console.log("Iniciando conexão de nova instância WhatsApp com username:", username);
       
       // Conectar WhatsApp usando o username como nome da instância
@@ -87,6 +95,10 @@ const PlaceholderInstanceCard = ({
       toast.error("Não foi possível criar a instância de WhatsApp");
     } finally {
       setIsCreating(false);
+      // Reset the ref after a small delay to prevent accidental double-clicking
+      setTimeout(() => {
+        isAddingRef.current = false;
+      }, 1000);
     }
   };
 
@@ -124,7 +136,7 @@ const PlaceholderInstanceCard = ({
             variant="whatsapp"
             size="sm"
             className="mt-2"
-            disabled={!isSuperAdmin || isCreating}
+            disabled={!isSuperAdmin || isCreating || isAddingRef.current}
             onClick={handleOpenDialog}
           >
             {isCreating ? "Conectando..." : isSuperAdmin ? "Adicionar WhatsApp" : "Atualizar plano"}

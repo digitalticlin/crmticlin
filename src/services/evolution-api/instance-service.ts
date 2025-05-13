@@ -18,28 +18,33 @@ export class InstanceService {
   private lastFetchTime: number = 0;
   private fetchPromise: Promise<EvolutionInstance[]> | null = null;
   private cacheTTL = CACHE_TTL;
+  private connectionPromises: Map<string, Promise<string | null>> = new Map();
+  private statusCheckPromises: Map<string, Promise<"connected" | "connecting" | "disconnected">> = new Map();
 
   constructor(apiClient: ApiClient) {
     this.apiClient = apiClient;
   }
 
   /**
-   * Fetches all existing instances with improved reliability
+   * Fetches all existing instances with improved reliability and caching
    */
   async fetchInstances(): Promise<EvolutionInstance[]> {
     const now = Date.now();
     
     // Return cached instances if available and fresh
     if (this.cachedInstances && (now - this.lastFetchTime < this.cacheTTL)) {
+      console.log(`Using cached instances (age: ${(now - this.lastFetchTime) / 1000}s)`);
       return this.cachedInstances;
     }
     
     // If a fetch is already in progress, return that promise
     if (this.fetchPromise) {
+      console.log("Using existing fetch promise for instances");
       return this.fetchPromise;
     }
     
     // Start a new fetch
+    console.log("Starting new fetch for instances");
     this.fetchPromise = this.doFetchInstances();
     
     try {
@@ -83,11 +88,21 @@ export class InstanceService {
 
   /**
    * Checks if an instance name already exists and generates a unique one if needed
+   * Uses cache when possible to reduce API calls
    */
   async getUniqueInstanceName(baseName: string): Promise<string> {
     try {
       console.log(`Generating unique instance name from base: "${baseName}"`);
-      const instances = await this.fetchInstances();
+      
+      // Use cached instances if available instead of fetching again
+      let instances: EvolutionInstance[];
+      if (this.cachedInstances && (Date.now() - this.lastFetchTime < this.cacheTTL)) {
+        console.log("Using cached instances for name check");
+        instances = this.cachedInstances;
+      } else {
+        instances = await this.fetchInstances();
+      }
+      
       return generateUniqueNameFromExisting(baseName, instances);
     } catch (error) {
       console.error("Error when checking instance name:", error);
@@ -161,62 +176,61 @@ export class InstanceService {
   /**
    * Forcefully connect to WhatsApp and get a fresh QR code
    * This uses the specified endpoint for direct connection
+   * Deduplicates concurrent requests for the same instance
    */
   async connectInstance(instanceName: string): Promise<string | null> {
-    try {
-      console.log(`Forcing connection for instance: "${instanceName}"`);
-      
-      // Log header for debugging
-      console.log("Making request to /instance/connect with headers:");
-      
-      const data = await this.apiClient.fetchWithHeaders(`/instance/connect/${instanceName}`, {
-        method: "GET"
-      });
-      
-      console.log("Response from forced connection:", data);
-      
-      if (!data || !data.qrcode || !data.qrcode.base64) {
-        console.error("QR code missing in connection API response:", data);
-        throw new Error("QR Code not available in API response");
-      }
-      
-      console.log(`QR code successfully obtained via forced connection for "${instanceName}"`);
-      return data.qrcode.base64;
-    } catch (error) {
-      console.error("Error when forcing connection and getting QR code:", error);
-      handleApiError(error, "Não foi possível conectar e obter o QR Code");
-      return null;
+    // Check if a connection request is already in progress for this instance
+    const existingPromise = this.connectionPromises.get(instanceName);
+    if (existingPromise) {
+      console.log(`Connection already in progress for "${instanceName}", reusing existing promise`);
+      return existingPromise;
     }
+    
+    // Create a new connection promise
+    const connectionPromise = (async () => {
+      try {
+        console.log(`Forcing connection for instance: "${instanceName}"`);
+        
+        // Log header for debugging
+        console.log("Making request to /instance/connect with headers:");
+        
+        const data = await this.apiClient.fetchWithHeaders(`/instance/connect/${instanceName}`, {
+          method: "GET"
+        });
+        
+        console.log("Response from forced connection:", data);
+        
+        if (!data || !data.qrcode || !data.qrcode.base64) {
+          console.error("QR code missing in connection API response:", data);
+          throw new Error("QR Code not available in API response");
+        }
+        
+        console.log(`QR code successfully obtained via forced connection for "${instanceName}"`);
+        return data.qrcode.base64;
+      } catch (error) {
+        console.error("Error when forcing connection and getting QR code:", error);
+        handleApiError(error, "Não foi possível conectar e obter o QR Code");
+        return null;
+      } finally {
+        // Remove the promise from the map after a delay
+        setTimeout(() => {
+          this.connectionPromises.delete(instanceName);
+        }, 1000);
+      }
+    })();
+    
+    // Store the promise
+    this.connectionPromises.set(instanceName, connectionPromise);
+    
+    return connectionPromise;
   }
 
   /**
    * Gets or refreshes the QR Code for an instance
    */
   async refreshQrCode(instanceName: string): Promise<string | null> {
-    try {
-      console.log(`Refreshing QR code for instance: "${instanceName}"`);
-      
-      // Detailed logging for debugging
-      console.log("Making request to /instance/qrcode with full headers");
-      
-      const data = await this.apiClient.fetchWithHeaders(`/instance/qrcode?instanceName=${instanceName}`, {
-        method: "GET"
-      });
-      
-      console.log("Complete response from QR code request:", data);
-      
-      if (!data || !data.qrcode || !data.qrcode.base64) {
-        console.error("Invalid QR code response:", data);
-        throw new Error("QR code not found in response");
-      }
-      
-      console.log(`QR code successfully updated for "${instanceName}"`);
-      return data.qrcode.base64;
-    } catch (error) {
-      console.error("Error refreshing QR code:", error);
-      handleApiError(error, "Não foi possível obter o QR Code");
-      return null;
-    }
+    // Use connectInstance instead for more reliable QR code generation
+    return this.connectInstance(instanceName);
   }
 
   /**
@@ -244,24 +258,44 @@ export class InstanceService {
   }
 
   /**
-   * Checks the connection status of an instance
+   * Checks the connection status of an instance with deduplication
    */
   async checkInstanceStatus(instanceName: string): Promise<"connected" | "connecting" | "disconnected"> {
-    try {
-      console.log(`Checking status for instance: "${instanceName}"`);
-      const data = await this.apiClient.fetchWithHeaders(`/instance/connectionState?instanceName=${instanceName}`, {
-        method: "GET"
-      });
-      
-      if (!data || !data.state) {
-        throw new Error("Instance state not available in response");
-      }
-      
-      console.log(`Status for "${instanceName}": ${data.state}`);
-      return data.state || "disconnected";
-    } catch (error) {
-      handleApiError(error, "Erro ao verificar status da instância", false);
-      return "disconnected";
+    // Check if a status check is already in progress for this instance
+    const existingPromise = this.statusCheckPromises.get(instanceName);
+    if (existingPromise) {
+      console.log(`Status check already in progress for "${instanceName}", reusing existing promise`);
+      return existingPromise;
     }
+    
+    // Create a new status check promise
+    const statusPromise = (async () => {
+      try {
+        console.log(`Checking status for instance: "${instanceName}"`);
+        const data = await this.apiClient.fetchWithHeaders(`/instance/connectionState?instanceName=${instanceName}`, {
+          method: "GET"
+        });
+        
+        if (!data || !data.state) {
+          throw new Error("Instance state not available in response");
+        }
+        
+        console.log(`Status for "${instanceName}": ${data.state}`);
+        return data.state || "disconnected";
+      } catch (error) {
+        handleApiError(error, "Erro ao verificar status da instância", false);
+        return "disconnected";
+      } finally {
+        // Remove the promise from the map after a short delay
+        setTimeout(() => {
+          this.statusCheckPromises.delete(instanceName);
+        }, 1000);
+      }
+    })();
+    
+    // Store the promise
+    this.statusCheckPromises.set(instanceName, statusPromise);
+    
+    return statusPromise;
   }
 }

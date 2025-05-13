@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useWhatsAppInstanceState, WhatsAppInstance } from './whatsappInstanceStore';
@@ -15,6 +15,8 @@ export const useWhatsAppInstances = (userEmail: string) => {
   const [instanceName, setInstanceName] = useState<string>("");
   const [lastError, setLastError] = useState<string | null>(null);
   const [statusCheckInterval, setStatusCheckInterval] = useState<NodeJS.Timeout | null>(null);
+  const instanceCheckInProgress = useRef<Record<string, boolean>>({});
+  const lastCheckTime = useRef<Record<string, number>>({});
   
   // Resolvers
   const companyId = useCompanyResolver(userEmail);
@@ -53,11 +55,14 @@ export const useWhatsAppInstances = (userEmail: string) => {
         
         setInstances(fetchedInstances);
         
-        // Check status of all instances after loading
+        // Check status of all instances after loading once, not repeatedly
         if (fetchedInstances.length > 0) {
-          for (const instance of fetchedInstances) {
-            checkInstanceStatus(instance.id);
-          }
+          // Initial status check with a small delay between each instance
+          fetchedInstances.forEach((instance, index) => {
+            setTimeout(() => {
+              checkInstanceStatus(instance.id);
+            }, index * 1000); // 1 second delay between each instance check
+          });
         }
       } catch (error) {
         console.error("Error fetching WhatsApp instances:", error);
@@ -70,13 +75,31 @@ export const useWhatsAppInstances = (userEmail: string) => {
     fetchWhatsAppInstances();
   }, [companyId, setInstances]);
 
-  // Check instance status and update in database
+  // Check instance status and update in database with throttling
   const checkInstanceStatus = async (instanceId: string) => {
+    // Prevent concurrent checks for the same instance
+    if (instanceCheckInProgress.current[instanceId]) {
+      console.log(`Status check already in progress for instance ${instanceId}, skipping`);
+      return;
+    }
+    
+    // Throttle requests - only check if 5 seconds have passed since last check
+    const now = Date.now();
+    const lastCheck = lastCheckTime.current[instanceId] || 0;
+    if (now - lastCheck < 5000) {
+      console.log(`Throttling status check for instance ${instanceId} - too soon`);
+      return;
+    }
+    
     try {
       const instance = instances.find(i => i.id === instanceId);
       if (!instance || !instance.instanceName) return;
       
       console.log(`Checking status of instance: ${instance.instanceName}`);
+      
+      // Mark this instance as being checked
+      instanceCheckInProgress.current[instanceId] = true;
+      lastCheckTime.current[instanceId] = now;
       setIsLoading(prev => ({ ...prev, [instanceId]: true }));
       
       // Get current instance status via Evolution API
@@ -135,10 +158,14 @@ export const useWhatsAppInstances = (userEmail: string) => {
       return "disconnected";
     } finally {
       setIsLoading(prev => ({ ...prev, [instanceId]: false }));
+      // Release the lock after a short delay to prevent immediate rechecking
+      setTimeout(() => {
+        instanceCheckInProgress.current[instanceId] = false;
+      }, 500);
     }
   };
   
-  // Add new instance function
+  // Add new instance function with additional checks to prevent duplicates
   const addNewInstance = async (username: string) => {
     if (!username.trim()) {
       toast.error("Username cannot be empty");
@@ -148,6 +175,20 @@ export const useWhatsAppInstances = (userEmail: string) => {
     if (!companyId) {
       toast.error("No company associated with user");
       return;
+    }
+
+    // Check if we already have an instance with this name in our local state
+    const existingLocalInstance = instances.find(
+      i => i.instanceName.toLowerCase() === username.toLowerCase() ||
+           i.instanceName.toLowerCase().startsWith(username.toLowerCase())
+    );
+    
+    if (existingLocalInstance) {
+      console.log(`Instance with similar name already exists locally: ${existingLocalInstance.instanceName}`);
+      toast.info("An instance with this name already exists. Modifying name to create a new one.");
+      
+      // Append a number to make it unique
+      username = `${username}1`;
     }
     
     try {

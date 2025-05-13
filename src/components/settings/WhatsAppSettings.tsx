@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
 import WhatsAppInstanceCard from "./whatsapp/WhatsAppInstanceCard";
 import PlaceholderInstanceCard from "./whatsapp/PlaceholderInstanceCard";
@@ -16,6 +16,7 @@ const WhatsAppSettings = () => {
   const [userEmail, setUserEmail] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Load current user data
   useEffect(() => {
@@ -60,28 +61,56 @@ const WhatsAppSettings = () => {
     checkInstanceStatus,
   } = useWhatsAppInstances(userEmail);
 
-  // Periodically check instance status
+  // Periodically check instance status with a more efficient approach
   useEffect(() => {
     if (!instances.length) return;
 
     console.log("Starting periodic status check for", instances.length, "instances");
     
-    // First immediate check
+    // First immediate check with staggered timing to prevent API flooding
     const checkAllInstances = async () => {
       console.log("Checking status of all instances...");
-      for (const instance of instances) {
-        if (!instance.connected) {
-          await checkInstanceStatus(instance.id);
-        }
+      
+      // Check instances that are not connected first
+      const disconnectedInstances = instances.filter(instance => !instance.connected);
+      
+      // Stagger the checks to avoid hammering the API
+      for (let i = 0; i < disconnectedInstances.length; i++) {
+        const instance = disconnectedInstances[i];
+        // Add a delay between each check to prevent API flooding
+        setTimeout(() => {
+          checkInstanceStatus(instance.id);
+        }, i * 1000); // Stagger by 1 second per instance
+      }
+      
+      // Only periodically check connected instances to make sure they're still connected
+      const connectedInstances = instances.filter(instance => instance.connected);
+      for (let i = 0; i < connectedInstances.length; i++) {
+        const instance = connectedInstances[i];
+        // Check connected instances less frequently
+        setTimeout(() => {
+          checkInstanceStatus(instance.id);
+        }, (disconnectedInstances.length * 1000) + (i * 1000)); // Check after disconnected instances
       }
     };
     
+    // Run the first check immediately
     checkAllInstances();
     
-    // Set up periodic check
-    const intervalId = setInterval(checkAllInstances, STATUS_CHECK_INTERVAL);
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
     
-    return () => clearInterval(intervalId);
+    // Set up periodic check
+    intervalRef.current = setInterval(checkAllInstances, STATUS_CHECK_INTERVAL);
+    
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
   }, [instances, checkInstanceStatus]);
   
   // Wrapper adapter for connectInstance that ignores QR Code return
