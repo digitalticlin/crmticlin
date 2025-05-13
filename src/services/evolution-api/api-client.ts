@@ -8,8 +8,13 @@ export class ApiClient {
   private apiUrl: string;
   private apiKey: string;
   private requestQueue: Map<string, Promise<any>> = new Map();
+  private useProxy: boolean;
 
   constructor(apiUrl: string, apiKey: string) {
+    // Determine if we should use the proxy based on environment
+    this.useProxy = window.location.hostname.includes('lovableproject.com');
+    
+    // Store original API URL
     this.apiUrl = apiUrl;
     this.apiKey = apiKey;
 
@@ -22,7 +27,7 @@ export class ApiClient {
       console.error("Invalid API key provided");
     }
     
-    console.log(`ApiClient initialized with URL: ${apiUrl}`);
+    console.log(`ApiClient initialized with URL: ${this.useProxy ? 'proxy' : apiUrl}`);
     // Log partial API KEY for debugging (only first and last 4 characters)
     console.log(`Using API key: ${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`);
   }
@@ -48,7 +53,11 @@ export class ApiClient {
       ...options.headers
     };
 
-    const url = `${this.apiUrl}${endpoint}`;
+    // Determine URL based on whether we should use the proxy
+    const url = this.useProxy ? 
+      `/evolution-api${endpoint}` : 
+      `${this.apiUrl}${endpoint}`;
+    
     console.log(`Making API request to: ${url}`, {
       method: options.method || 'GET',
     });
@@ -66,7 +75,9 @@ export class ApiClient {
         console.log(`Executing fetch to ${url} with method ${options.method || 'GET'}`);
         const response = await fetch(url, {
           ...options,
-          headers
+          headers,
+          // Set credentials to 'include' to send cookies with cross-origin requests
+          credentials: 'include'
         });
 
         console.log(`Response status: ${response.status} ${response.statusText}`);
