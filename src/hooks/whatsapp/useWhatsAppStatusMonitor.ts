@@ -2,18 +2,19 @@
 import { useState, useRef } from "react";
 import { WhatsAppInstance } from "./whatsappInstanceStore";
 import { evolutionApiService } from "@/services/evolution-api";
-import { updateInstanceStatusAndPhone } from "./database";
+import { updateInstanceStatusAndPhone, updateQrCodeInDatabase } from "./database";
 
 /**
- * Hook for monitoring WhatsApp instance status with throttling
+ * Hook for monitoring WhatsApp instance status with throttling and priority checking
  */
 export const useWhatsAppStatusMonitor = () => {
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
   const instanceCheckInProgress = useRef<Record<string, boolean>>({});
   const lastCheckTime = useRef<Record<string, number>>({});
+  const connectingInstances = useRef<Set<string>>(new Set());
   
   // Check instance status with throttling and concurrency protection
-  const checkInstanceStatus = async (instanceId: string) => {
+  const checkInstanceStatus = async (instanceId: string, forceFresh: boolean = false) => {
     // Find instance by ID
     const instance = window._whatsAppInstancesState?.instances?.find(i => i.id === instanceId);
     if (!instance || !instance.instanceName) {
@@ -29,10 +30,12 @@ export const useWhatsAppStatusMonitor = () => {
       return;
     }
     
-    // Throttle requests - only check if 5 seconds have passed since last check
+    // Throttle requests - but allow forced checks to bypass throttle
     const now = Date.now();
     const lastCheck = lastCheckTime.current[instanceId] || 0;
-    if (now - lastCheck < 5000) {
+    const minInterval = connectingInstances.current.has(instanceId) ? 2000 : 5000; // More frequent checks for connecting instances
+    
+    if (!forceFresh && now - lastCheck < minInterval) {
       console.log(`Throttling status check for instance ${instanceId} - too soon`);
       return;
     }
@@ -53,6 +56,12 @@ export const useWhatsAppStatusMonitor = () => {
       if (instanceId !== "1") {
         try {
           await updateInstanceStatusAndPhone(instanceId, status);
+          
+          // If the instance was in connecting state and is now connected, remove from connecting set
+          if (status === 'connected' && connectingInstances.current.has(instanceId)) {
+            console.log(`Instance ${instanceName} is now connected, removing from connecting instances`);
+            connectingInstances.current.delete(instanceId);
+          }
           
           // Update global state (this is handled by store updates in our new architecture)
           if (window._whatsAppInstancesStore) {
@@ -98,8 +107,23 @@ export const useWhatsAppStatusMonitor = () => {
     const checkAllInstances = async () => {
       console.log("Checking status of all instances...");
       
-      // Check instances that are not connected first
-      const disconnectedInstances = instances.filter(instance => !instance.connected);
+      // First, check instances that are connecting (higher priority)
+      const connectingInstanceIds = Array.from(connectingInstances.current);
+      console.log(`${connectingInstanceIds.length} instances are in connecting state with higher priority checking`);
+      
+      for (let i = 0; i < connectingInstanceIds.length; i++) {
+        const instanceId = connectingInstanceIds[i];
+        // Add a slight delay between each check to prevent API flooding
+        setTimeout(() => {
+          // Force fresh checks for connecting instances
+          checkInstanceStatus(instanceId, true);
+        }, i * 500); 
+      }
+      
+      // Then check disconnected instances (medium priority)
+      const disconnectedInstances = instances.filter(
+        instance => !instance.connected && !connectingInstances.current.has(instance.id)
+      );
       
       // Stagger the checks to avoid hammering the API
       for (let i = 0; i < disconnectedInstances.length; i++) {
@@ -107,17 +131,17 @@ export const useWhatsAppStatusMonitor = () => {
         // Add a delay between each check to prevent API flooding
         setTimeout(() => {
           checkInstanceStatus(instance.id);
-        }, i * 1000); // Stagger by 1 second per instance
+        }, (connectingInstanceIds.length * 500) + (i * 1000)); // Stagger after connecting instances
       }
       
-      // Only periodically check connected instances to make sure they're still connected
+      // Finally check connected instances (lowest priority)
       const connectedInstances = instances.filter(instance => instance.connected);
       for (let i = 0; i < connectedInstances.length; i++) {
         const instance = connectedInstances[i];
         // Check connected instances less frequently
         setTimeout(() => {
           checkInstanceStatus(instance.id);
-        }, (disconnectedInstances.length * 1000) + (i * 1000)); // Check after disconnected instances
+        }, (connectingInstanceIds.length * 500) + (disconnectedInstances.length * 1000) + (i * 1000));
       }
     };
     
@@ -132,9 +156,18 @@ export const useWhatsAppStatusMonitor = () => {
     };
   };
 
+  // Add an instance to the priority-checking list
+  const addConnectingInstance = (instanceId: string) => {
+    console.log(`Adding instance ${instanceId} to connecting instances for priority checking`);
+    connectingInstances.current.add(instanceId);
+    // Immediately check status
+    checkInstanceStatus(instanceId, true);
+  };
+
   return {
     checkInstanceStatus,
     setupPeriodicStatusCheck,
+    addConnectingInstance,
     isLoading
   };
 };

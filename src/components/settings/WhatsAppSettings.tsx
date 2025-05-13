@@ -16,7 +16,6 @@ const WhatsAppSettings = () => {
   const [userEmail, setUserEmail] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const userDataLoadedRef = useRef(false);
   
   // Load current user data
@@ -64,62 +63,11 @@ const WhatsAppSettings = () => {
     deleteInstance,
     refreshQrCode,
     checkInstanceStatus,
+    addConnectingInstance,
     showQrCode,
     setShowQrCode,
   } = useWhatsAppInstances(userEmail);
 
-  // Periodically check instance status with a more efficient approach
-  useEffect(() => {
-    if (!instances.length) return;
-
-    console.log("Starting periodic status check for", instances.length, "instances");
-    
-    // First immediate check with staggered timing to prevent API flooding
-    const checkAllInstances = async () => {
-      console.log("Checking status of all instances...");
-      
-      // Check instances that are not connected first
-      const disconnectedInstances = instances.filter(instance => !instance.connected);
-      
-      // Stagger the checks to avoid hammering the API
-      for (let i = 0; i < disconnectedInstances.length; i++) {
-        const instance = disconnectedInstances[i];
-        // Add a delay between each check to prevent API flooding
-        setTimeout(() => {
-          checkInstanceStatus(instance.id);
-        }, i * 1000); // Stagger by 1 second per instance
-      }
-      
-      // Only periodically check connected instances to make sure they're still connected
-      const connectedInstances = instances.filter(instance => instance.connected);
-      for (let i = 0; i < connectedInstances.length; i++) {
-        const instance = connectedInstances[i];
-        // Check connected instances less frequently
-        setTimeout(() => {
-          checkInstanceStatus(instance.id);
-        }, (disconnectedInstances.length * 1000) + (i * 1000)); // Check after disconnected instances
-      }
-    };
-    
-    // Run the first check immediately
-    checkAllInstances();
-    
-    // Clear any existing interval
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
-    
-    // Set up periodic check
-    intervalRef.current = setInterval(checkAllInstances, STATUS_CHECK_INTERVAL);
-    
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [instances, checkInstanceStatus]);
-  
   // Handle showing QR code by updating state
   const handleShowQrCode = (instanceId: string) => {
     setShowQrCode(instanceId);
@@ -129,10 +77,16 @@ const WhatsAppSettings = () => {
   const handleConnectInstance = async (instanceId: string) => {
     try {
       await connectInstance(instanceId);
-      // We explicitly ignore the returned string (QR code URL)
+      // After connection is initiated, add instance to priority checking
+      addConnectingInstance(instanceId);
     } catch (error) {
       console.error("Error in handleConnectInstance:", error);
     }
+  };
+  
+  // Handle explicit status check request from component
+  const handleStatusCheck = (instanceId: string) => {
+    addConnectingInstance(instanceId);
   };
   
   return (
@@ -165,10 +119,11 @@ const WhatsAppSettings = () => {
             onConnect={handleConnectInstance}
             onDelete={deleteInstance}
             onRefreshQrCode={refreshQrCode}
+            onStatusCheck={handleStatusCheck}
           />
         ))}
         
-        {/* Placeholder for adding new instance - shown for SuperAdmin or users with appropriate plan */}
+        {/* Placeholder for adding new instance - always shown for SuperAdmin or users with appropriate plan */}
         <PlaceholderInstanceCard 
           isSuperAdmin={isSuperAdmin} 
           userEmail={userEmail}

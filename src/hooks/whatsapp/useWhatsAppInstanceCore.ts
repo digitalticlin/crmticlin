@@ -21,7 +21,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
   const companyId = useCompanyResolver(userEmail);
   const { connectInstance, refreshQrCode } = useWhatsAppConnector();
   const { deleteInstance } = useWhatsAppDisconnector();
-  const { checkInstanceStatus, setupPeriodicStatusCheck } = useWhatsAppStatusMonitor();
+  const { checkInstanceStatus, setupPeriodicStatusCheck, addConnectingInstance } = useWhatsAppStatusMonitor();
   const { fetchInstances } = useWhatsAppFetcher();
   const { addNewInstance } = useWhatsAppCreator(companyId);
   
@@ -69,6 +69,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
     
     // Functions
     checkInstanceStatus,
+    addConnectingInstance,
     connectInstance: async (instanceId: string | WhatsAppInstance): Promise<string | undefined> => {
       try {
         // Check if instanceId is a string or a WhatsAppInstance object
@@ -85,6 +86,10 @@ export const useWhatsAppInstances = (userEmail: string) => {
         
         const qrCodeUrl = await connectInstance(instanceToConnect);
         setShowQrCode(instanceToConnect.id);
+        
+        // Mark this instance as connecting to trigger more frequent status checks
+        addConnectingInstance(instanceToConnect.id);
+        
         return qrCodeUrl;
       } catch (error: any) {
         console.error("Error connecting instance:", error);
@@ -112,6 +117,9 @@ export const useWhatsAppInstances = (userEmail: string) => {
         // Using connectInstance instead of refreshQrCode to get a completely new code
         await connectInstance(instance);
         setShowQrCode(instanceId);
+        
+        // Mark this instance for priority status checking
+        addConnectingInstance(instanceId);
       } catch (error: any) {
         console.error("Error updating QR code:", error);
         setLastError(error?.message || "Error updating QR code");

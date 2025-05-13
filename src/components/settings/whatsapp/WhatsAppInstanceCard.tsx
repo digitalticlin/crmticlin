@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { QrCode, Trash2, RefreshCw, Link, Phone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,7 @@ interface WhatsAppInstanceCardProps {
   onConnect: (instanceId: string) => Promise<void>;
   onDelete: (instanceId: string) => Promise<void>;
   onRefreshQrCode: (instanceId: string) => Promise<void>;
+  onStatusCheck?: (instanceId: string) => void;
 }
 
 const WhatsAppInstanceCard = ({
@@ -20,7 +22,8 @@ const WhatsAppInstanceCard = ({
   showQrCode,
   onConnect,
   onDelete,
-  onRefreshQrCode
+  onRefreshQrCode,
+  onStatusCheck
 }: WhatsAppInstanceCardProps) => {
   // Local state to track when QR code was successfully obtained
   const [qrCodeSuccess, setQrCodeSuccess] = useState(false);
@@ -34,8 +37,32 @@ const WhatsAppInstanceCard = ({
       console.log("QR code URL (first 50 characters):", 
         instance.qrCodeUrl ? instance.qrCodeUrl.substring(0, 50) : "NULL");
       setQrCodeSuccess(true);
+      
+      // Start frequent status checks when QR code is shown
+      if (onStatusCheck) {
+        onStatusCheck(instance.id);
+      }
+      
+      // Set up more frequent status checks while QR code is showing
+      const statusCheckInterval = setInterval(() => {
+        if (onStatusCheck) {
+          onStatusCheck(instance.id);
+        }
+      }, 2000);
+      
+      // Clear interval if component unmounts or status changes to connected
+      return () => {
+        clearInterval(statusCheckInterval);
+      };
     }
-  }, [instance.qrCodeUrl, qrCodeSuccess, instance.id, instance.instanceName]);
+  }, [instance.qrCodeUrl, qrCodeSuccess, instance.id, instance.instanceName, onStatusCheck]);
+
+  // Stop frequent checking when instance gets connected
+  useEffect(() => {
+    if (instance.connected) {
+      setQrCodeSuccess(false); // Reset QR code success state
+    }
+  }, [instance.connected]);
 
   // Click function to connect WhatsApp
   const handleConnect = async () => {
@@ -45,6 +72,11 @@ const WhatsAppInstanceCard = ({
       setQrCodeSuccess(false);
       await onConnect(instance.id);
       console.log(`Connection started for ${instance.instanceName}`);
+      
+      // Trigger more frequent status checks after connection is initiated
+      if (onStatusCheck) {
+        onStatusCheck(instance.id);
+      }
     } catch (error) {
       console.error("Error connecting:", error);
     } finally {
@@ -60,6 +92,11 @@ const WhatsAppInstanceCard = ({
       setQrCodeSuccess(false);
       await onRefreshQrCode(instance.id);
       console.log(`QR code updated for ${instance.instanceName}`);
+      
+      // Trigger more frequent status checks after QR code refresh
+      if (onStatusCheck) {
+        onStatusCheck(instance.id);
+      }
     } catch (error) {
       console.error("Error updating QR code:", error);
     } finally {
