@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { QrCode, Trash2, RefreshCw, Link, Phone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";

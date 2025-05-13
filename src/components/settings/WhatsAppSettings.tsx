@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
 import WhatsAppInstanceCard from "./whatsapp/WhatsAppInstanceCard";
@@ -118,6 +119,16 @@ const WhatsAppSettings = () => {
     setShowQrCode(instanceId);
   };
   
+  // Modified to handle the Promise<string> return properly
+  const handleConnectInstance = async (instanceId: string) => {
+    try {
+      await connectInstance(instanceId);
+      // We explicitly ignore the returned string (QR code URL)
+    } catch (error) {
+      console.error("Error in handleConnectInstance:", error);
+    }
+  };
+  
   return (
     <div className="space-y-6">
       <div className="flex flex-col space-y-1.5">
@@ -145,7 +156,7 @@ const WhatsAppSettings = () => {
             instance={instance}
             isLoading={instanceLoading[instance.id] || false}
             showQrCode={showQrCode === instance.id}
-            onConnect={() => connectInstance(instance.id)}
+            onConnect={handleConnectInstance}
             onDelete={deleteInstance}
             onRefreshQrCode={refreshQrCode}
           />

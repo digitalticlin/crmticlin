@@ -64,7 +64,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
     
     // Functions
     checkInstanceStatus,
-    connectInstance: async (instanceId: string | WhatsAppInstance) => {
+    connectInstance: async (instanceId: string | WhatsAppInstance): Promise<string | undefined> => {
       try {
         // Check if instanceId is a string or a WhatsAppInstance object
         const instanceToConnect = typeof instanceId === 'string' 
@@ -84,6 +84,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
       } catch (error: any) {
         console.error("Error connecting instance:", error);
         setLastError(error?.message || "Error connecting WhatsApp instance");
+        return undefined;
       } finally {
         if (typeof instanceId === 'string') {
           setIsLoading(prev => ({ ...prev, [instanceId]: false }));
