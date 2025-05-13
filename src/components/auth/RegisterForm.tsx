@@ -1,4 +1,3 @@
-
 import { useState, ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,19 +34,13 @@ export default function RegisterForm() {
   });
   
   // Função para gerar nome de usuário a partir do email
-  const generateUsername = (email: string) => {
-    return email.split("@")[0];
-  };
-  
-  // Atualiza o campo de nome de usuário quando o email muda
   const handleEmailChange = (e: ChangeEvent<HTMLInputElement>) => {
     const email = e.target.value;
     form.setValue("email", email);
     
-    if (email.includes("@")) {
-      const username = generateUsername(email);
-      form.setValue("username", username);
-    }
+    // Generate username from whatever is typed, but only up to the @ symbol if present
+    const usernameValue = email.includes("@") ? email.split("@")[0] : email;
+    form.setValue("username", usernameValue);
   };
 
   async function onSubmit(data: RegisterFormValues) {
