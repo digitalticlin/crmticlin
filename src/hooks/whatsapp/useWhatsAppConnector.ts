@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { evolutionApiService } from "@/services/evolution-api";
 import { 
@@ -29,53 +28,38 @@ export const useWhatsAppConnector = () => {
       
       console.log(`Conectando instância WhatsApp ${instance.instanceName} (ID: ${instanceId})`);
       
-      // Implementação mais robusta para lidar com erros de API
+      // Verificar se já existem instâncias com o mesmo nome
       let existingInstances = [];
       try {
         existingInstances = await evolutionApiService.fetchInstances();
+        console.log("Instâncias existentes:", existingInstances);
       } catch (fetchError) {
         console.log("Erro ao buscar instâncias, continuando com lista vazia:", fetchError);
         // Continuamos com lista vazia se não conseguir buscar as instâncias
       }
       
-      // Verifica se já existe uma instância com esse nome
-      const existingInstance = existingInstances.find(i => 
-        i.instanceName && instance.instanceName &&
-        i.instanceName.toLowerCase() === instance.instanceName.toLowerCase()
-      );
+      // Verificar se já existe uma instância com esse nome e ajustar se necessário
+      let finalInstanceName = instance.instanceName;
+      let counter = 1;
       
-      if (existingInstance) {
-        console.log(`Instância já existe com nome ${instance.instanceName}, tentando obter QR Code`);
-        let qrCodeUrl;
-        try {
-          // Usar o novo método connectInstance ao invés de refreshQrCode
-          qrCodeUrl = await evolutionApiService.connectInstance(instance.instanceName);
-          
-          if (!qrCodeUrl) {
-            throw new Error("QR Code não disponível");
-          }
-        } catch (qrError) {
-          console.error("Erro ao obter QR code de instância existente:", qrError);
-          throw new Error("Não foi possível atualizar o QR code para instância existente. Tente novamente mais tarde.");
-        }
-        
-        // Atualiza no Supabase
-        await updateQrCodeInDatabase(instanceId, qrCodeUrl);
-        
-        // Atualiza o estado local com o novo QR code
-        updateInstance(instanceId, {
-          connected: false,
-          qrCodeUrl
-        });
-        
-        toast.success("QR Code atualizado com sucesso!");
-        return qrCodeUrl;
+      // Verifica se já existe instância com o mesmo nome e adiciona um número sequencial se necessário
+      while(existingInstances.some(i => i.instanceName.toLowerCase() === finalInstanceName.toLowerCase())) {
+        finalInstanceName = `${instance.instanceName}${counter}`;
+        counter++;
+        console.log(`Nome já existe, tentando novo nome: ${finalInstanceName}`);
+      }
+      
+      // Se o nome foi alterado, atualiza a instância
+      if (finalInstanceName !== instance.instanceName) {
+        console.log(`Nome da instância ajustado de ${instance.instanceName} para ${finalInstanceName}`);
+        instance.instanceName = finalInstanceName;
+        updateInstance(instanceId, { instanceName: finalInstanceName });
       }
       
       // Cria instância na Evolution API
       let result;
       try {
-        result = await evolutionApiService.createInstance(instance.instanceName);
+        result = await evolutionApiService.createInstance(finalInstanceName);
         
         if (!result) {
           throw new Error("Resposta inválida da API");

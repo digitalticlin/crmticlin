@@ -61,9 +61,9 @@ export const useWhatsAppInstances = (userEmail: string) => {
   }, [companyId, setInstances]);
   
   // Função para adicionar nova instância
-  const addNewInstance = async (newInstanceName: string) => {
-    if (!newInstanceName.trim()) {
-      toast.error("Nome da instância não pode estar vazio");
+  const addNewInstance = async (username: string) => {
+    if (!username.trim()) {
+      toast.error("Nome de usuário não pode estar vazio");
       return;
     }
     
@@ -77,17 +77,22 @@ export const useWhatsAppInstances = (userEmail: string) => {
       const newInstanceId = crypto.randomUUID();
       const newInstance: WhatsAppInstance = {
         id: newInstanceId,
-        instanceName: newInstanceName,
+        instanceName: username.trim(),
         connected: false,
       };
       
       // Adicionar ao estado local
       setInstances([newInstance, ...instances]);
       
-      // Conectar a instância
-      await connectInstance(newInstance);
+      // Conectar a instância - isso verifica se já existe uma instância com o mesmo nome
+      // e irá adicionar um número sequencial se necessário
+      const result = await connectInstance(newInstance);
       
-      return newInstance;
+      // Retorna a instância com o QR Code
+      return {
+        ...newInstance,
+        qrCodeUrl: result
+      };
     } catch (error) {
       console.error("Erro ao adicionar nova instância:", error);
       toast.error("Não foi possível adicionar a nova instância");
@@ -121,8 +126,9 @@ export const useWhatsAppInstances = (userEmail: string) => {
         setIsLoading(prev => ({ ...prev, [instanceToConnect.id]: true }));
         setLastError(null);
         
-        await connectInstance(instanceToConnect);
+        const qrCodeUrl = await connectInstance(instanceToConnect);
         setShowQrCode(instanceToConnect.id);
+        return qrCodeUrl;
       } catch (error: any) {
         console.error("Erro ao conectar instância:", error);
         setLastError(error?.message || "Erro ao conectar instância WhatsApp");

@@ -2,42 +2,73 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
+import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { useState } from "react";
-import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
-import { toast } from "sonner";
 
 interface PlaceholderInstanceCardProps {
   isSuperAdmin?: boolean; // Indica se o usuário é SuperAdmin e não tem restrições de plano
 }
 
 const PlaceholderInstanceCard = ({ isSuperAdmin = false }: PlaceholderInstanceCardProps) => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [instanceName, setInstanceName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
-
+  const [username, setUsername] = useState<string>("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  
+  // Hook para gerenciar instâncias de WhatsApp
   const { addNewInstance } = useWhatsAppInstances("");
 
+  // Buscar informações do usuário atual
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (error) {
+          console.error("Erro ao obter usuário:", error);
+          return;
+        }
+        
+        if (user?.email) {
+          // Extrai o nome de usuário do email (parte antes do @)
+          const extractedUsername = user.email.split('@')[0];
+          setUsername(extractedUsername);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar dados do usuário:", error);
+      }
+    };
+    
+    fetchCurrentUser();
+  }, []);
+
   const handleAddWhatsApp = async () => {
-    if (!instanceName.trim()) {
-      toast.error("Por favor, informe um nome para a instância");
+    if (!username) {
+      toast.error("Não foi possível obter seu nome de usuário");
       return;
     }
 
     setIsCreating(true);
     try {
-      await addNewInstance(instanceName.trim());
+      // Conectar WhatsApp usando o username como nome da instância
+      const result = await addNewInstance(username);
+      
+      // Se houver um QR Code retornado, exibir para o usuário
+      if (result?.qrCodeUrl) {
+        setQrCodeUrl(result.qrCodeUrl);
+        setIsDialogOpen(true);
+      }
+      
       toast.success("Solicitação de conexão enviada com sucesso!");
-      setIsDialogOpen(false);
-      setInstanceName("");
     } catch (error) {
       console.error("Erro ao criar instância:", error);
       toast.error("Não foi possível criar a instância de WhatsApp");
@@ -51,7 +82,9 @@ const PlaceholderInstanceCard = ({ isSuperAdmin = false }: PlaceholderInstanceCa
       toast.error("Disponível apenas em planos superiores. Atualize seu plano.");
       return;
     }
-    setIsDialogOpen(true);
+    
+    // Iniciar processo de conexão diretamente
+    handleAddWhatsApp();
   };
 
   return (
@@ -78,49 +111,46 @@ const PlaceholderInstanceCard = ({ isSuperAdmin = false }: PlaceholderInstanceCa
             variant="whatsapp"
             size="sm"
             className="mt-2"
-            disabled={!isSuperAdmin}
+            disabled={!isSuperAdmin || isCreating}
             onClick={handleOpenDialog}
           >
-            {isSuperAdmin ? "Adicionar WhatsApp" : "Atualizar plano"}
+            {isCreating ? "Conectando..." : isSuperAdmin ? "Adicionar WhatsApp" : "Atualizar plano"}
           </Button>
         </CardContent>
       </Card>
 
+      {/* Dialog para exibir QR Code */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Adicionar novo número de WhatsApp</DialogTitle>
+            <DialogTitle>Conecte seu WhatsApp</DialogTitle>
             <DialogDescription>
-              Digite um nome para identificar este número. Este nome será usado para criar a instância no Evolution API.
+              Escaneie este código QR com seu WhatsApp para conectar sua conta.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="py-4">
-            <Input
-              placeholder="Ex: Vendas, Suporte, Atendimento..."
-              value={instanceName}
-              onChange={(e) => setInstanceName(e.target.value)}
-              disabled={isCreating}
-              autoFocus
-            />
+          <div className="flex flex-col items-center justify-center py-4">
+            {qrCodeUrl && (
+              <img 
+                src={qrCodeUrl} 
+                alt="QR Code para conexão do WhatsApp" 
+                className="w-full max-w-[250px] h-auto mb-4"
+              />
+            )}
+            <p className="text-sm text-center text-muted-foreground">
+              Abra o WhatsApp no seu celular, vá em Configurações &gt; Aparelhos conectados &gt; Conectar um aparelho
+            </p>
           </div>
           
-          <DialogFooter>
+          <div className="flex justify-center">
             <Button 
               variant="outline" 
               onClick={() => setIsDialogOpen(false)}
-              disabled={isCreating}
+              className="w-full"
             >
-              Cancelar
+              Fechar
             </Button>
-            <Button 
-              variant="whatsapp"
-              onClick={handleAddWhatsApp}
-              disabled={isCreating || !instanceName.trim()}
-            >
-              {isCreating ? "Criando..." : "Criar instância"}
-            </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </>
