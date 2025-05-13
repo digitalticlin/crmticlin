@@ -1,8 +1,10 @@
+
 import { useState } from "react";
 import { Building2, Users, CreditCard, MessageSquare, FileText, LifeBuoy, Settings, ChevronRight, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SidebarLogo from "@/components/layout/SidebarLogo";
 import { Separator } from "@/components/ui/separator";
+import { usePermissions } from "@/hooks/usePermissions";
 
 interface GlobalAdminSidebarProps {
   activeTab: string;
@@ -11,44 +13,52 @@ interface GlobalAdminSidebarProps {
 
 const GlobalAdminSidebar = ({ activeTab, setActiveTab }: GlobalAdminSidebarProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isSuperAdmin } = usePermissions();
   
   const adminNavItems = [
     {
       id: "companies",
       icon: Building2,
       label: "Empresas",
+      visible: isSuperAdmin
     },
     {
       id: "users",
       icon: Users,
       label: "Usuários",
+      visible: isSuperAdmin
     },
     {
       id: "plans",
       icon: CreditCard,
       label: "Planos",
+      visible: isSuperAdmin
     },
     {
       id: "whatsapp",
       icon: MessageSquare,
       label: "WhatsApp",
+      visible: isSuperAdmin
     },
     {
       id: "logs",
       icon: FileText,
       label: "Logs",
+      visible: isSuperAdmin
     },
     {
       id: "support",
       icon: LifeBuoy,
       label: "Suporte",
+      visible: isSuperAdmin
     },
     {
       id: "config",
       icon: Settings,
       label: "Configurações",
+      visible: isSuperAdmin
     },
-  ];
+  ].filter(item => item.visible);
 
   return (
     <div
