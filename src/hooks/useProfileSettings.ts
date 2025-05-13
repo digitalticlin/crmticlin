@@ -2,24 +2,36 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { generateUsername } from "@/utils/userUtils";
+import { useProfileData } from "./useProfileData";
+import { useCompanyData } from "./useCompanyData";
+import { useAuthActions } from "./useAuthActions";
 
 export const useProfileSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [documentId, setDocumentId] = useState("");
-  const [whatsapp, setWhatsapp] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
-  const [companyId, setCompanyId] = useState<string | null>(null);
-
-  // Função para extrair o nome de usuário do email
-  const generateUsername = (email: string) => {
-    return email.split("@")[0];
-  };
+  
+  // Import functionality from modular hooks
+  const { 
+    fullName, setFullName, 
+    documentId, setDocumentId, 
+    whatsapp, setWhatsapp, 
+    avatarUrl,
+    loadProfileData, 
+    saveProfileData 
+  } = useProfileData();
+  
+  const { 
+    companyName, setCompanyName, 
+    companyId, setCompanyId, 
+    fetchCompanyData, 
+    saveCompany 
+  } = useCompanyData();
+  
+  const { handleChangePassword } = useAuthActions();
 
   // Carregar os dados do perfil quando o componente é montado
   useEffect(() => {
@@ -37,35 +49,12 @@ export const useProfileSettings = () => {
         setEmail(session.user.email || "");
         setUsername(generateUsername(session.user.email || ""));
         
-        // Buscar os dados do perfil do usuário
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
+        const foundCompanyId = await loadProfileData(session.user.id);
         
-        if (error) {
-          console.error("Erro ao carregar perfil:", error);
-          toast.error("Não foi possível carregar os dados do perfil");
-        } else if (profile) {
-          setFullName(profile.full_name || "");
-          setDocumentId(profile.document_id || "");
-          setWhatsapp(profile.whatsapp || "");
-          setAvatarUrl(profile.avatar_url);
-          
-          // Buscar dados da empresa do usuário
-          if (profile.company_id) {
-            setCompanyId(profile.company_id);
-            const { data: company } = await supabase
-              .from('companies')
-              .select('name')
-              .eq('id', profile.company_id)
-              .single();
-              
-            if (company) {
-              setCompanyName(company.name);
-            }
-          }
+        // Buscar dados da empresa do usuário
+        if (foundCompanyId) {
+          setCompanyId(foundCompanyId);
+          await fetchCompanyData(foundCompanyId);
         }
       } catch (error) {
         console.error("Erro:", error);
@@ -101,94 +90,19 @@ export const useProfileSettings = () => {
     try {
       setSaving(true);
       
-      // Se não tiver companyId, criar uma nova empresa
-      if (!companyId && companyName.trim()) {
-        const { data: newCompany, error: newCompanyError } = await supabase
-          .from('companies')
-          .insert({
-            name: companyName.trim(),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .select()
-          .single();
-          
-        if (newCompanyError) {
-          throw newCompanyError;
-        }
-        
-        if (newCompany) {
-          setCompanyId(newCompany.id);
-          
-          // Atualizar o perfil com o novo company_id
-          const { error: updateProfileError } = await supabase
-            .from('profiles')
-            .update({
-              company_id: newCompany.id,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', user.id);
-            
-          if (updateProfileError) {
-            throw updateProfileError;
-          }
-        }
-      }
+      // Save company data first
+      const newCompanyId = await saveCompany(companyName);
       
-      // Atualizar o perfil do usuário
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          full_name: fullName,
-          document_id: documentId,
-          whatsapp: whatsapp,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
-        
-      if (profileError) {
-        throw profileError;
+      // Then save profile data
+      if (newCompanyId) {
+        await saveProfileData(user.id, newCompanyId);
+        toast.success("Perfil atualizado com sucesso!");
       }
-
-      // Se tiver companyId, atualiza o nome da empresa
-      if (companyId) {
-        const { error: companyError } = await supabase
-          .from('companies')
-          .update({
-            name: companyName,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', companyId);
-
-        if (companyError) {
-          throw companyError;
-        }
-      }
-      
-      toast.success("Perfil atualizado com sucesso!");
     } catch (error: any) {
       console.error("Erro ao atualizar perfil:", error);
       toast.error(error.message || "Não foi possível atualizar o perfil");
     } finally {
       setSaving(false);
-    }
-  };
-
-  // Função para lidar com alteração de senha
-  const handleChangePassword = async () => {
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      toast.success("Email para redefinição de senha enviado!");
-    } catch (error: any) {
-      console.error("Erro ao solicitar redefinição de senha:", error);
-      toast.error(error.message || "Não foi possível solicitar redefinição de senha");
     }
   };
 
@@ -209,6 +123,6 @@ export const useProfileSettings = () => {
     setWhatsapp,
     handleEmailChange,
     handleSaveChanges,
-    handleChangePassword
+    handleChangePassword: () => handleChangePassword(email)
   };
 };
