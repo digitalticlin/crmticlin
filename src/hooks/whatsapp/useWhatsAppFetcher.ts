@@ -52,10 +52,29 @@ export const useWhatsAppFetcher = (userEmail: string) => {
             .eq('company_id', userCompanyId);
         } else {
           // Regular users can only see WhatsApp numbers assigned to them
+          // Fix: Use correct approach to fetch user's WhatsApp numbers
+          const { data: userWhatsappNumbers, error: whatsappError } = await supabase
+            .from('user_whatsapp_numbers')
+            .select('whatsapp_number_id')
+            .eq('profile_id', session.user.id);
+            
+          if (whatsappError) throw whatsappError;
+          
+          if (!userWhatsappNumbers || userWhatsappNumbers.length === 0) {
+            // No WhatsApp numbers assigned to the user
+            setInstances([
+              { id: "1", instanceName, connected: false }
+            ]);
+            return;
+          }
+          
+          // Get the WhatsApp numbers that are assigned to the user
+          const whatsappNumberIds = userWhatsappNumbers.map(num => num.whatsapp_number_id);
+          
           query = supabase
             .from('whatsapp_numbers')
             .select('*')
-            .eq('id', supabase.rpc('user_whatsapp_numbers', { user_id: session.user.id }));
+            .in('id', whatsappNumberIds);
         }
       }
       
