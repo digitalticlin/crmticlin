@@ -34,51 +34,29 @@ export const useWhatsAppConnector = () => {
       setIsLoading(prev => ({ ...prev, [instanceId]: true }));
       setLastError(null);
       
-      // Connect to Evolution API with enhanced error handling
+      // Connect to Evolution API
       console.log(`Calling Evolution API to connect instance: ${instanceName}`);
+      const qrCode = await evolutionApiService.connectInstance(instanceName);
       
-      try {
-        const qrCode = await evolutionApiService.connectInstance(instanceName);
-        
-        if (!qrCode) {
-          console.error("Failed to get QR code from Evolution API");
-          throw new Error("Failed to get QR code from Evolution API");
-        }
-        
-        console.log(`QR Code received for ${instanceName} (first 50 chars): ${qrCode.substring(0, 50)}`);
-        
-        // Save QR code to database
-        try {
-          console.log(`Saving QR code to database for instance ID: ${instanceId}`);
-          await updateQrCodeInDatabase(instanceId, qrCode);
-          console.log(`QR code saved to database for ${instanceName}`);
-        } catch (dbError) {
-          console.error("Error updating QR code in database:", dbError);
-          // Continue even if DB update fails
-        }
-        
-        // Return the QR code
-        return qrCode;
-      } catch (apiError: any) {
-        // Enhanced error logging for API issues
-        console.error("Detailed API error:", apiError);
-        
-        if (apiError.message && apiError.message.includes("CORS")) {
-          console.error("CORS error detected. This suggests the API is not accessible from the current origin.");
-          setLastError("Erro de CORS ao acessar a API. Por favor, verifique as configurações do servidor.");
-          throw new Error("CORS error accessing Evolution API");
-        }
-        
-        if (apiError.message && apiError.message.includes("Failed to fetch") || 
-            apiError.message && apiError.message.includes("NetworkError")) {
-          console.error("Network error detected. The API may be down or inaccessible.");
-          setLastError("Erro de rede ao acessar a API. Verifique sua conexão ou se o servidor está disponível.");
-          throw new Error("Network error accessing Evolution API");
-        }
-        
-        // Re-throw the original error after logging
-        throw apiError;
+      if (!qrCode) {
+        console.error("Failed to get QR code from Evolution API");
+        throw new Error("Failed to get QR code from Evolution API");
       }
+      
+      console.log(`QR Code received for ${instanceName} (first 50 chars): ${qrCode.substring(0, 50)}`);
+      
+      // Save QR code to database
+      try {
+        console.log(`Saving QR code to database for instance ID: ${instanceId}`);
+        await updateQrCodeInDatabase(instanceId, qrCode);
+        console.log(`QR code saved to database for ${instanceName}`);
+      } catch (dbError) {
+        console.error("Error updating QR code in database:", dbError);
+        // Continue even if DB update fails
+      }
+      
+      // Return the QR code
+      return qrCode;
     } catch (error: any) {
       console.error("Error connecting instance:", error);
       toast.error("Error connecting WhatsApp instance");
