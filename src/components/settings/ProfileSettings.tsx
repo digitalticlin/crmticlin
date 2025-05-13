@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -217,8 +216,6 @@ const ProfileSettings = () => {
             <Input 
               id="username" 
               value={username} 
-              className="bg-gray-100" 
-              readOnly 
             />
             <p className="text-xs text-muted-foreground">
               Gerado automaticamente com base no email
@@ -229,9 +226,7 @@ const ProfileSettings = () => {
             <Label htmlFor="company">Empresa</Label>
             <Input 
               id="company" 
-              value={companyName} 
-              disabled={true}
-              className="bg-gray-100"
+              value={companyName}
             />
           </div>
           

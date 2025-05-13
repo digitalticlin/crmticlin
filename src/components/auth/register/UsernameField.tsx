@@ -22,7 +22,6 @@ export const UsernameField = ({ form }: UsernameFieldProps) => {
               <User className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 className="pl-8"
-                readOnly
                 {...field}
               />
             </div>
