@@ -12,10 +12,10 @@ interface WhatsAppInstanceState {
   instances: WhatsAppInstance[];
   isLoading: Record<string, boolean>;
   lastError: string | null;
+  setInstances: (instances: WhatsAppInstance[]) => void;
 }
 
 interface WhatsAppInstanceActions {
-  setInstances: (instances: WhatsAppInstance[]) => void;
   setLoading: (instanceId: string, isLoading: boolean) => void;
   setError: (error: string | null) => void;
   updateInstance: (instanceId: string, instance: Partial<WhatsAppInstance>) => void;
@@ -25,8 +25,8 @@ const useWhatsAppInstanceStore = create<WhatsAppInstanceState & { actions: Whats
   instances: [],
   isLoading: {},
   lastError: null,
+  setInstances: (instances) => set({ instances }),
   actions: {
-    setInstances: (instances) => set({ instances }),
     setLoading: (instanceId, isLoading) => set((state) => ({
       isLoading: { ...state.isLoading, [instanceId]: isLoading }
     })),
@@ -40,8 +40,8 @@ const useWhatsAppInstanceStore = create<WhatsAppInstanceState & { actions: Whats
 }));
 
 export const useWhatsAppInstanceState = () => {
-  const { instances, isLoading, lastError } = useWhatsAppInstanceStore();
-  return { instances, isLoading, lastError };
+  const { instances, isLoading, lastError, setInstances } = useWhatsAppInstanceStore();
+  return { instances, isLoading, lastError, setInstances };
 };
 
 export const useWhatsAppInstanceActions = () => useWhatsAppInstanceStore((state) => state.actions);

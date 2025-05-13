@@ -24,12 +24,10 @@ const ProfileSettings = () => {
     companyName,
     documentId,
     whatsapp,
-    position,
     avatarUrl,
     setFullName,
     setDocumentId,
     setWhatsapp,
-    setPosition,
     handleEmailChange,
     handleSaveChanges,
     handleChangePassword
@@ -73,12 +71,10 @@ const ProfileSettings = () => {
           companyName={companyName}
           documentId={documentId}
           whatsapp={whatsapp}
-          position={position}
           handleEmailChange={handleEmailChange}
           setFullName={setFullName}
           setDocumentId={setDocumentId}
           setWhatsapp={setWhatsapp}
-          setPosition={setPosition}
         />
         
         <Separator />
