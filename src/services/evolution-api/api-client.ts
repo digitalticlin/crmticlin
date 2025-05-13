@@ -20,6 +20,8 @@ export class ApiClient {
     if (!apiKey || apiKey.trim() === "") {
       console.error("Invalid API key provided");
     }
+    
+    console.log(`ApiClient initialized with URL: ${apiUrl}`);
   }
 
   /**
@@ -32,18 +34,33 @@ export class ApiClient {
       ...options.headers
     };
 
+    const url = `${this.apiUrl}${endpoint}`;
+    console.log(`Making API request to: ${url}`, {
+      method: options.method || 'GET',
+    });
+    
+    if (options.body) {
+      console.log("Request body:", options.body);
+    }
+
     try {
-      const response = await fetch(`${this.apiUrl}${endpoint}`, {
+      const response = await fetch(url, {
         ...options,
         headers
       });
 
+      console.log(`Response status: ${response.status} ${response.statusText}`);
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({
-          error: `HTTP error: ${response.status} ${response.statusText}`
-        }));
+        let errorMessage;
+        try {
+          const errorData = await response.json();
+          console.log("Error response body:", errorData);
+          errorMessage = errorData?.error || `HTTP error: ${response.status} ${response.statusText}`;
+        } catch (e) {
+          errorMessage = `Error with request: ${response.status}`;
+        }
         
-        const errorMessage = errorData?.error || `Error with request: ${response.status}`;
         console.error(`API error on ${endpoint}:`, errorMessage);
         
         // Implement retry logic for server errors (5xx)
@@ -56,7 +73,25 @@ export class ApiClient {
         throw new Error(errorMessage);
       }
 
-      const data = await response.json();
+      let data;
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+        console.log("Response data:", data);
+      } else {
+        const text = await response.text();
+        try {
+          // Try to parse as JSON anyway
+          data = JSON.parse(text);
+          console.log("Response parsed as JSON:", data);
+        } catch (e) {
+          // If it's not JSON, return the text
+          console.log("Response is not JSON, returning text");
+          data = text;
+        }
+      }
+
       return data;
     } catch (error: any) {
       // Only retry network errors or timeouts

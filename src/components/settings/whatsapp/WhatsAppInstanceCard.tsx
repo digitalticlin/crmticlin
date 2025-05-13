@@ -30,16 +30,22 @@ const WhatsAppInstanceCard = ({
   // Detecta quando um QR code é recebido para mostrar automaticamente
   useEffect(() => {
     if (instance.qrCodeUrl && !qrCodeSuccess) {
+      console.log(`QR Code recebido para instância ${instance.id}: ${instance.instanceName}`);
+      console.log("QR code URL existe:", !!instance.qrCodeUrl);
+      console.log("QR code URL (primeiros 50 caracteres):", 
+        instance.qrCodeUrl ? instance.qrCodeUrl.substring(0, 50) : "NULO");
       setQrCodeSuccess(true);
     }
-  }, [instance.qrCodeUrl]);
+  }, [instance.qrCodeUrl, qrCodeSuccess, instance.id, instance.instanceName]);
 
   // Função de clique para conectar o WhatsApp
   const handleConnect = async () => {
     try {
+      console.log(`Iniciando conexão para instância ${instance.id}: ${instance.instanceName}`);
       setActionInProgress(true);
       setQrCodeSuccess(false);
       await onConnect(instance.id);
+      console.log(`Conexão iniciada para ${instance.instanceName}`);
     } catch (error) {
       console.error("Erro ao conectar:", error);
     } finally {
@@ -50,9 +56,11 @@ const WhatsAppInstanceCard = ({
   // Função para atualizar o QR code
   const handleRefreshQrCode = async () => {
     try {
+      console.log(`Atualizando QR code para instância ${instance.id}: ${instance.instanceName}`);
       setActionInProgress(true);
       setQrCodeSuccess(false);
       await onRefreshQrCode(instance.id);
+      console.log(`QR code atualizado para ${instance.instanceName}`);
     } catch (error) {
       console.error("Erro ao atualizar QR code:", error);
     } finally {
@@ -63,8 +71,10 @@ const WhatsAppInstanceCard = ({
   // Função para deletar o número de WhatsApp
   const handleDelete = async () => {
     try {
+      console.log(`Deletando instância ${instance.id}: ${instance.instanceName}`);
       setActionInProgress(true);
       await onDelete(instance.id);
+      console.log(`Instância ${instance.instanceName} deletada`);
     } catch (error) {
       console.error("Erro ao deletar:", error);
     } finally {
@@ -74,6 +84,11 @@ const WhatsAppInstanceCard = ({
 
   // Determinar se deve mostrar o QR code (quando está disponível e mostrado)
   const shouldShowQrCode = (showQrCode === instance.id || qrCodeSuccess) && instance.qrCodeUrl;
+  
+  console.log(`Deve mostrar QR code para instância ${instance.id}:`, shouldShowQrCode);
+  console.log(`showQrCode === instance.id: ${showQrCode === instance.id}`);
+  console.log(`qrCodeSuccess: ${qrCodeSuccess}`);
+  console.log(`instance.qrCodeUrl existe: ${!!instance.qrCodeUrl}`);
 
   return (
     <Card className="overflow-hidden glass-card border-0">

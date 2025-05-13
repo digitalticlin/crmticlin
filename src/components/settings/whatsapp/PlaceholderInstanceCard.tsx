@@ -44,8 +44,9 @@ const PlaceholderInstanceCard = ({
         
         if (user?.email) {
           // Extrai o nome de usuário do email (parte antes do @)
-          const extractedUsername = user.email.split('@')[0];
+          const extractedUsername = user.email.split('@')[0].replace(/[^a-z0-9]/gi, '');
           setUsername(extractedUsername);
+          console.log("Nome de usuário extraído:", extractedUsername);
         }
       } catch (error) {
         console.error("Erro ao buscar dados do usuário:", error);
@@ -63,18 +64,26 @@ const PlaceholderInstanceCard = ({
 
     setIsCreating(true);
     try {
+      console.log("Iniciando conexão de nova instância WhatsApp com username:", username);
+      
       // Conectar WhatsApp usando o username como nome da instância
       const result = await addNewInstance(username);
+      console.log("Resultado da adição de nova instância:", result);
       
       // Se houver um QR Code retornado, exibir para o usuário
       if (result?.qrCodeUrl) {
+        console.log("QR code recebido (primeiros 50 caracteres):", 
+          result.qrCodeUrl.substring(0, 50));
         setQrCodeUrl(result.qrCodeUrl);
         setIsDialogOpen(true);
+      } else {
+        console.log("Nenhum QR code retornado do addNewInstance");
+        toast.error("QR code não recebido. Tente novamente.");
       }
       
       toast.success("Solicitação de conexão enviada com sucesso!");
     } catch (error) {
-      console.error("Erro ao criar instância:", error);
+      console.error("Erro completo ao criar instância:", error);
       toast.error("Não foi possível criar a instância de WhatsApp");
     } finally {
       setIsCreating(false);
@@ -134,16 +143,22 @@ const PlaceholderInstanceCard = ({
           </DialogHeader>
           
           <div className="flex flex-col items-center justify-center py-4">
-            {qrCodeUrl && (
-              <img 
-                src={qrCodeUrl} 
-                alt="QR Code para conexão do WhatsApp" 
-                className="w-full max-w-[250px] h-auto mb-4"
-              />
+            {qrCodeUrl ? (
+              <>
+                <img 
+                  src={qrCodeUrl} 
+                  alt="QR Code para conexão do WhatsApp" 
+                  className="w-full max-w-[250px] h-auto mb-4"
+                />
+                <p className="text-sm text-center text-muted-foreground">
+                  Abra o WhatsApp no seu celular, vá em Configurações &gt; Aparelhos conectados &gt; Conectar um aparelho
+                </p>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8">
+                <p>QR Code não disponível. Tente novamente.</p>
+              </div>
             )}
-            <p className="text-sm text-center text-muted-foreground">
-              Abra o WhatsApp no seu celular, vá em Configurações &gt; Aparelhos conectados &gt; Conectar um aparelho
-            </p>
           </div>
           
           <div className="flex justify-center">
