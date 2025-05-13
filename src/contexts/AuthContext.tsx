@@ -70,6 +70,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signUp = async (email: string, password: string, userData: any) => {
     try {
+      // Certifique-se de que userData não contém nenhum campo company_id vazio
+      if (userData.company_id === "") {
+        delete userData.company_id;
+      }
+      
       const { error } = await supabase.auth.signUp({
         email,
         password,

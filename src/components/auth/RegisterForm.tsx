@@ -1,3 +1,4 @@
+
 import { useState, ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -47,12 +48,13 @@ export default function RegisterForm() {
     setIsLoading(true);
     
     try {
-      // Preparar os dados do usuário para o Supabase
+      // Preparar os dados do usuário para o Supabase - removendo o campo company_id
       const userData = {
         full_name: data.fullName,
         username: data.username,
         document_id: data.documentId,
         whatsapp: data.whatsapp
+        // Não enviamos company_id, pois isso está causando o erro
       };
       
       // Registrar o usuário usando o AuthContext
