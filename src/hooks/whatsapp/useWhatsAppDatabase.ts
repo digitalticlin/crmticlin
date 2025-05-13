@@ -15,9 +15,6 @@ export const saveInstanceToDatabase = async (
   console.log("QR Code a ser salvo (primeiros 50 caracteres):", qrCodeUrl.substring(0, 50));
   
   try {
-    // Gere um UUID aleatório para novas instâncias
-    const instanceId = instance.id === "1" ? undefined : instance.id;
-    
     // Obter o ID da empresa do usuário atual
     const { data: userData, error: userError } = await supabase.auth.getUser();
     
@@ -55,25 +52,24 @@ export const saveInstanceToDatabase = async (
     }
     
     // Preparar dados para inserção/atualização
-    // Explicitamente tipar o status como WhatsAppStatus para garantir compatibilidade com o enum do banco de dados
     const whatsappData = {
-      id: instanceId, // Deixa o Supabase gerar ID para novos registros
       instance_name: instance.instanceName,
       phone: instance.phoneNumber || "", // Será atualizado quando conectado
       company_id: companyId,
-      status: "connecting" as WhatsAppStatus, // Explicitamente definido como um dos valores permitidos
+      status: "connecting" as WhatsAppStatus,
       qr_code: qrCodeUrl,
-      instance_id: result.instanceId,
-      evolution_instance_name: result.instanceName
+      instance_id: result.instance.instanceId,
+      evolution_instance_name: result.instance.instanceName,
+      evolution_token: result.hash // Salvar o hash retornado para uso futuro
     };
     
     console.log("Dados a serem salvos no banco:", whatsappData);
     
-    // Modificando onConflict para especificar coluna corretamente
+    // Inserir ou atualizar no banco de dados
     const { error, data } = await supabase
       .from('whatsapp_numbers')
       .upsert(whatsappData, { onConflict: 'instance_name' })
-      .select();  // Retorna os dados inseridos/atualizados
+      .select();
   
     if (error) {
       console.error("Erro ao salvar instância no banco de dados:", error);
@@ -115,8 +111,6 @@ export const saveInstanceToDatabase = async (
 
 // Atualiza status da instância para desconectado no banco de dados
 export const updateInstanceDisconnectedStatus = async (instanceId: string) => {
-  if (instanceId === "1") return; // Pula atualização de BD para ID placeholder
-  
   console.log(`Atualizando instância ${instanceId} para status desconectado no banco de dados`);
   
   const { error } = await supabase
@@ -134,38 +128,8 @@ export const updateInstanceDisconnectedStatus = async (instanceId: string) => {
   }
 };
 
-// Atualiza estado local da instância
-export const updateLocalInstanceState = (
-  instance: WhatsAppInstance | string,
-  updatedDbInstance: any = null,
-  qrCodeUrl?: string
-) => {
-  const instanceId = typeof instance === 'string' ? instance : instance.id;
-  const oldInstance = typeof instance === 'string' ? null : instance;
-  
-  // Se tivermos tanto a instância antiga quanto o registro atualizado do banco
-  if (oldInstance && updatedDbInstance) {
-    return {
-      id: updatedDbInstance.id,
-      instanceName: updatedDbInstance.instance_name,
-      connected: updatedDbInstance.status === 'connected',
-      phoneNumber: updatedDbInstance.phone,
-      qrCodeUrl
-    };
-  }
-  
-  // Se estivermos apenas atualizando o estado de conexão ou QR code de uma instância existente
-  return {
-    connected: false,
-    phoneNumber: updatedDbInstance?.phone,
-    qrCodeUrl
-  };
-};
-
 // Atualiza QR code no banco de dados
 export const updateQrCodeInDatabase = async (instanceId: string, qrCodeUrl: string) => {
-  if (instanceId === "1") return; // Pula atualização de BD para ID placeholder
-  
   console.log(`Atualizando QR code no banco de dados para ID de instância: ${instanceId}`);
   console.log("Novo QR code (primeiros 50 caracteres):", qrCodeUrl.substring(0, 50));
   
@@ -187,8 +151,6 @@ export const updateQrCodeInDatabase = async (instanceId: string, qrCodeUrl: stri
 
 // Atualizar o status e número de telefone na base de dados
 export const updateInstanceStatusAndPhone = async (instanceId: string, status: WhatsAppStatus, phone?: string) => {
-  if (instanceId === "1") return; // Pula atualização de BD para ID placeholder
-  
   console.log(`Atualizando status e telefone da instância ${instanceId} no banco de dados`);
   
   const updateData: any = { 

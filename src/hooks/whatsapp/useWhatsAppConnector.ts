@@ -33,13 +33,13 @@ export const useWhatsAppConnector = () => {
       let existingInstances = [];
       try {
         existingInstances = await evolutionApiService.fetchInstances();
-        console.log("Existing instances:", existingInstances);
+        console.log("Existing Evolution API instances:", existingInstances);
       } catch (fetchError) {
         console.log("Error fetching instances, continuing with empty list:", fetchError);
-        // Continue with empty list if unable to fetch instances
       }
       
-      // Check if an instance with this name already exists and adjust if needed
+      // Check if an instance with this name already exists in Evolution API
+      // and adjust the name if needed
       let finalInstanceName = instance.instanceName;
       let counter = 1;
       
@@ -47,7 +47,7 @@ export const useWhatsAppConnector = () => {
       while(existingInstances.some(i => i.instanceName.toLowerCase() === finalInstanceName.toLowerCase())) {
         finalInstanceName = `${instance.instanceName}${counter}`;
         counter++;
-        console.log(`Name already exists, trying new name: ${finalInstanceName}`);
+        console.log(`Name already exists in Evolution API, trying new name: ${finalInstanceName}`);
       }
       
       // If name was changed, update the instance
@@ -62,46 +62,59 @@ export const useWhatsAppConnector = () => {
       const result = await evolutionApiService.createInstance(finalInstanceName);
       
       if (!result) {
-        console.error("API returned null or empty result");
+        console.error("API returned null or undefined result");
         throw new Error("Invalid API response");
       }
       
       console.log("Instance creation result:", result);
-      console.log("QR code in response:", result.qrcode);
+      console.log("QR code in response:", !!result.qrcode);
       
       if (!result.qrcode || !result.qrcode.base64) {
         console.error("QR code missing in API response");
-        throw new Error("QR Code not available in API response");
+        throw new Error("QR Code not found in response");
       }
       
       const qrCodeUrl = result.qrcode.base64;
       console.log(`QR code successfully generated for ${result.instanceName}`);
-      console.log("QR code URL base64 (first 50 characters):", qrCodeUrl.substring(0, 50));
+      console.log("QR code available (first 50 chars):", qrCodeUrl.substring(0, 50));
       
-      // Save to Supabase
-      console.log("Saving instance in database with QR code...");
-      let updatedInstance;
-      
+      // Save instance to database
       try {
-        updatedInstance = await saveInstanceToDatabase(instance, qrCodeUrl, result);
-        console.log("Instance saved in database:", updatedInstance);
+        console.log("Saving instance in database with QR code...");
+        const updatedDbInstance = await saveInstanceToDatabase(instance, qrCodeUrl, result);
+        console.log("Instance saved in database:", updatedDbInstance);
+        
+        // Update the instance with database ID and any other returned fields
+        if (updatedDbInstance && updatedDbInstance.id) {
+          updateInstance(instanceId, {
+            id: updatedDbInstance.id,
+            instanceName: updatedDbInstance.instance_name || instance.instanceName,
+            connected: updatedDbInstance.status === 'connected',
+            phoneNumber: updatedDbInstance.phone,
+            qrCodeUrl
+          });
+        } else {
+          // If database operation didn't return data, just update with QR code
+          updateInstance(instanceId, {
+            instanceName: finalInstanceName,
+            connected: false,
+            qrCodeUrl
+          });
+        }
       } catch (dbError) {
         console.error("Error saving to database, but continuing with QR code:", dbError);
-        // Even in case of database error, still return QR code for display
+        // Even in case of database error, still update local state with QR code
+        updateInstance(instanceId, {
+          instanceName: finalInstanceName,
+          connected: false,
+          qrCodeUrl
+        });
       }
       
-      // Update local state with new QR code, even in case of database failure
-      updateInstance(instanceId, {
-        id: updatedInstance?.id || instanceId,
-        instanceName: updatedInstance?.instance_name || instance.instanceName,
-        connected: false,
-        qrCodeUrl
-      });
-      
-      toast.success("QR Code generated successfully!");
+      toast.success("QR Code gerado com sucesso!");
       return qrCodeUrl;
     } catch (error: any) {
-      const errorMessage = error?.message || "Unknown error";
+      const errorMessage = error?.message || "Erro desconhecido";
       console.error(`Complete error connecting WhatsApp:`, error);
       handleOperationError(error, `connect WhatsApp: ${errorMessage}`);
       throw error;
@@ -110,7 +123,7 @@ export const useWhatsAppConnector = () => {
     }
   };
 
-  // Update QR Code for an instance using forced connection
+  // Update QR Code for an instance
   const refreshQrCode = async (instance: WhatsAppInstance) => {
     const instanceId = instance.id;
     setLoading(instanceId, true);
@@ -123,9 +136,7 @@ export const useWhatsAppConnector = () => {
       
       console.log(`Updating QR code for instance: ${instance.instanceName} (ID: ${instanceId})`);
       
-      // Use connectInstance method to generate new QR code (instead of refreshQrCode)
-      // This change is crucial, as the connect endpoint forces a new connection and QR code
-      console.log(`Using connectInstance method to generate new QR code for: ${instance.instanceName}`);
+      // Use connectInstance method to generate new QR code
       const qrCodeUrl = await evolutionApiService.connectInstance(instance.instanceName);
       
       if (!qrCodeUrl) {
@@ -133,15 +144,14 @@ export const useWhatsAppConnector = () => {
         throw new Error("QR Code not available in API response");
       }
       
-      console.log("New QR code obtained (first 50 characters):", qrCodeUrl.substring(0, 50));
+      console.log("New QR code obtained (first 50 chars):", qrCodeUrl.substring(0, 50));
       
-      // Update in Supabase
+      // Update in database
       try {
         console.log("Updating QR code in database...");
         await updateQrCodeInDatabase(instanceId, qrCodeUrl);
       } catch (dbError) {
         console.error("Error updating QR code in database, but continuing with display:", dbError);
-        // Continue even in case of database error
       }
       
       // Update local state with new QR code
@@ -150,7 +160,7 @@ export const useWhatsAppConnector = () => {
         qrCodeUrl
       });
       
-      toast.success("QR Code updated successfully!");
+      toast.success("QR Code atualizado com sucesso!");
       return qrCodeUrl;
     } catch (error) {
       handleOperationError(error, "update QR Code");
@@ -178,10 +188,10 @@ export const useWhatsAppConnector = () => {
 
   // Handle operation errors and display toast
   const handleOperationError = (error: any, operation: string) => {
-    const errorMessage = error?.message || "Unknown error";
+    const errorMessage = error?.message || "Erro desconhecido";
     console.error(`Error during operation: ${operation}:`, error);
-    toast.error(`Error ${operation}. ${errorMessage}`);
-    setError(`Error ${operation}. ${errorMessage}`);
+    toast.error(`Erro ao ${operation}. ${errorMessage}`);
+    setError(`Erro ao ${operation}. ${errorMessage}`);
   };
 
   return {

@@ -1,179 +1,150 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { useWhatsAppInstanceState, WhatsAppInstance } from "./whatsappInstanceStore";
+import { useWhatsAppInstanceState, useWhatsAppInstanceActions, WhatsAppInstance } from "./whatsappInstanceStore";
+import { useWhatsAppFetcher } from "./useWhatsAppFetcher";
 import { useWhatsAppConnector } from "./useWhatsAppConnector";
 import { useWhatsAppDisconnector } from "./useWhatsAppDisconnector";
-import { useCompanyResolver } from "./useCompanyResolver";
-import { useWhatsAppStatusMonitor } from "./useWhatsAppStatusMonitor";
+import { evolutionApiService } from "@/services/evolution-api";
 import { useWhatsAppCreator } from "./useWhatsAppCreator";
+import { useCompanyResolver } from "./useCompanyResolver";
 
-const STATUS_CHECK_INTERVAL = 15000; // Check status every 15 seconds
-
-export const useWhatsAppInstances = (userEmail: string) => {
-  const [showQrCode, setShowQrCode] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+/**
+ * Main hook for managing WhatsApp instances
+ */
+export const useWhatsAppInstances = (userEmail: string | null) => {
+  const [lastError, setLastError] = useState<string | null>(null);
+  const [showQrCode, setShowQrCode] = useState<Record<string, boolean>>({});
   
-  // Resolvers
-  const companyId = useCompanyResolver(userEmail);
-  const { instances, setInstances } = useWhatsAppInstanceState();
-  const { connectInstance, refreshQrCode } = useWhatsAppConnector();
-  const { deleteInstance } = useWhatsAppDisconnector();
-  const { checkInstanceStatus, setupPeriodicStatusCheck } = useWhatsAppStatusMonitor();
-  const { 
-    instanceName, 
-    setInstanceName,
-    lastError, 
-    setLastError,
-    addNewInstance
-  } = useWhatsAppCreator(companyId);
-
-  // Load WhatsApp instances
-  useEffect(() => {
-    const fetchWhatsAppInstances = async () => {
-      if (!companyId) return;
-      
-      try {
-        setIsLoading(prev => ({ ...prev, fetch: true }));
-        
-        // Fetch WhatsApp numbers for company
-        const { data: whatsappNumbers, error } = await supabase
-          .from('whatsapp_numbers')
-          .select('*')
-          .eq('company_id', companyId)
-          .order('created_at', { ascending: false });
-          
-        if (error) {
-          console.error("Error fetching WhatsApp numbers:", error);
-          toast.error("Could not load WhatsApp numbers");
-          return;
-        }
-        
-        // Convert to instance format
-        const fetchedInstances: WhatsAppInstance[] = whatsappNumbers.map(item => ({
-          id: item.id,
-          instanceName: item.instance_name,
-          connected: item.status === 'connected',
-          qrCodeUrl: item.qr_code || undefined,
-          phoneNumber: item.phone || undefined,
-        }));
-        
-        setInstances(fetchedInstances);
-        
-        // Check status of all instances after loading once, not repeatedly
-        if (fetchedInstances.length > 0) {
-          // Initial status check with a small delay between each instance
-          fetchedInstances.forEach((instance, index) => {
-            setTimeout(() => {
-              checkInstanceStatus(instance.id, instance.instanceName);
-            }, index * 1000); // 1 second delay between each instance check
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching WhatsApp instances:", error);
-        toast.error("An error occurred while loading WhatsApp instances");
-      } finally {
-        setIsLoading(prev => ({ ...prev, fetch: false }));
-      }
-    };
-    
-    fetchWhatsAppInstances();
-  }, [companyId, setInstances, checkInstanceStatus]);
-
-  // Periodically check instance status
-  useEffect(() => {
-    if (!instances.length) return;
-    
-    // Setup periodic checks and store cleanup function
-    const cleanup = setupPeriodicStatusCheck(instances, STATUS_CHECK_INTERVAL);
-    
-    // Return cleanup function
-    return () => {
-      if (cleanup) cleanup();
-    };
-  }, [instances, setupPeriodicStatusCheck]);
+  // Get company ID from user email
+  const { companyId } = useCompanyResolver(userEmail);
   
-  // Handle connecting to an instance with proper type checks
-  const handleConnectInstance = async (instanceId: string) => {
+  // Pull in specialized hooks for different aspects of WhatsApp management
+  const { instances, isLoading, setInstances } = useWhatsAppInstanceState();
+  const { setLoading, setError, updateInstance } = useWhatsAppInstanceActions();
+  const { fetchInstances } = useWhatsAppFetcher();
+  const { connectInstance, refreshQrCode, checkConnectionStatus } = useWhatsAppConnector();
+  const { deleteInstance: disconnectInstance } = useWhatsAppDisconnector();
+  const { addNewInstance: createInstance } = useWhatsAppCreator(companyId);
+  
+  // Load instances on component mount
+  useEffect(() => {
+    if (companyId) {
+      loadInstances();
+    }
+  }, [companyId]);
+  
+  // Load instances from database
+  const loadInstances = async () => {
     try {
-      // Find the instance from the instances array
-      const instanceToConnect = instances.find(instance => instance.id === instanceId);
-      if (!instanceToConnect) {
-        throw new Error("Instance not found");
+      setError(null);
+      
+      if (!companyId) {
+        console.log("No company ID available, skipping instance fetch");
+        return;
       }
       
-      await connectInstance(instanceToConnect);
+      console.log(`Loading WhatsApp instances for company: ${companyId}`);
+      const fetchedInstances = await fetchInstances(companyId);
+      
+      console.log(`Loaded ${fetchedInstances.length} WhatsApp instances`);
+      setInstances(fetchedInstances);
     } catch (error) {
-      console.error("Error connecting instance:", error);
+      console.error("Error loading WhatsApp instances:", error);
+      setError(error instanceof Error ? error.message : "Error loading instances");
     }
   };
-
+  
+  // Handle showing QR code for an instance
+  const handleShowQrCode = (instanceId: string) => {
+    setShowQrCode(prev => ({
+      ...prev,
+      [instanceId]: !prev[instanceId]
+    }));
+  };
+  
+  // Handle connection for an instance
+  const handleConnectInstance = async (instanceId: string) => {
+    try {
+      setError(null);
+      setLoading(instanceId, true);
+      
+      const instance = instances.find(instance => instance.id === instanceId);
+      if (!instance) {
+        throw new Error("WhatsApp instance not found");
+      }
+      
+      await connectInstance(instance);
+      toast.success("WhatsApp conectado com sucesso!");
+    } catch (error) {
+      console.error("Error connecting WhatsApp:", error);
+      setError(error instanceof Error ? error.message : "Error connecting WhatsApp");
+      toast.error("Erro ao conectar WhatsApp");
+    } finally {
+      setLoading(instanceId, false);
+    }
+  };
+  
+  // Add new instance
+  const addNewInstance = async (username: string) => {
+    try {
+      setError(null);
+      
+      if (!username) {
+        throw new Error("Username is required");
+      }
+      
+      if (!companyId) {
+        throw new Error("No company associated with this user");
+      }
+      
+      console.log(`Adding new WhatsApp instance for ${username} in company ${companyId}`);
+      
+      // Create and connect instance
+      const result = await createInstance(username);
+      
+      // Refresh instances list
+      await loadInstances();
+      
+      return result;
+    } catch (error) {
+      console.error("Error adding new WhatsApp instance:", error);
+      setError(error instanceof Error ? error.message : "Error adding new instance");
+      toast.error("Erro ao adicionar nova instância de WhatsApp");
+      throw error;
+    }
+  };
+  
+  // Check instance status
+  const checkInstanceStatus = useCallback(async (instanceId: string, instanceName: string) => {
+    try {
+      console.log(`Checking status of ${instanceName} (${instanceId})`);
+      const status = await evolutionApiService.checkInstanceStatus(instanceName);
+      console.log(`Status of ${instanceName}: ${status}`);
+      
+      // Update instance status in local state
+      updateInstance(instanceId, { 
+        connected: status === "connected"
+      });
+      
+      return status === "connected";
+    } catch (error) {
+      console.error(`Error checking status for ${instanceName}:`, error);
+      return false;
+    }
+  }, [updateInstance]);
+  
   return {
     instances,
     isLoading,
-    instanceName,
-    setInstanceName,
-    showQrCode,
-    setShowQrCode,
     lastError,
-    setLastError,
-    
-    // Functions
+    loadInstances,
+    connectInstance: handleConnectInstance,
+    handleConnectInstance,
+    deleteInstance: disconnectInstance,
+    refreshQrCode,
+    showQrCode: handleShowQrCode,
     checkInstanceStatus,
-    connectInstance: async (instanceId: string | WhatsAppInstance) => {
-      try {
-        // Check if instanceId is a string or a WhatsAppInstance object
-        const instanceToConnect = typeof instanceId === 'string' 
-          ? instances.find(i => i.id === instanceId) 
-          : instanceId;
-          
-        if (!instanceToConnect) {
-          throw new Error("Instance not found");
-        }
-        
-        setIsLoading(prev => ({ ...prev, [instanceToConnect.id]: true }));
-        setLastError(null);
-        
-        const qrCodeUrl = await connectInstance(instanceToConnect);
-        setShowQrCode(instanceToConnect.id);
-        return qrCodeUrl;
-      } catch (error: any) {
-        console.error("Error connecting instance:", error);
-        setLastError(error?.message || "Error connecting WhatsApp instance");
-      } finally {
-        if (typeof instanceId === 'string') {
-          setIsLoading(prev => ({ ...prev, [instanceId]: false }));
-        } else {
-          setIsLoading(prev => ({ ...prev, [instanceId.id]: false }));
-        }
-      }
-    },
-    
-    refreshQrCode: async (instanceId: string) => {
-      try {
-        setIsLoading(prev => ({ ...prev, [instanceId]: true }));
-        setLastError(null);
-        
-        const instance = instances.find(i => i.id === instanceId);
-        if (!instance) {
-          throw new Error("Instance not found");
-        }
-        
-        // Using connectInstance instead of refreshQrCode to get a completely new code
-        await refreshQrCode(instance);
-        setShowQrCode(instanceId);
-      } catch (error: any) {
-        console.error("Error updating QR code:", error);
-        setLastError(error?.message || "Error updating QR code");
-      } finally {
-        setIsLoading(prev => ({ ...prev, [instanceId]: false }));
-      }
-    },
-    
-    deleteInstance,
     addNewInstance,
-    handleConnectInstance
   };
 };

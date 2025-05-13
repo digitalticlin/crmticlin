@@ -141,7 +141,7 @@ const WhatsAppSettings = () => {
             instance={instance}
             isLoading={instanceLoading[instance.id] || false}
             showQrCode={showQrCode}
-            onConnect={handleConnectInstance}
+            onConnect={() => handleConnectInstance(instance.id)}
             onDelete={deleteInstance}
             onRefreshQrCode={refreshQrCode}
           />

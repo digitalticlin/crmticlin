@@ -16,7 +16,7 @@ import {
 
 interface PlaceholderInstanceCardProps {
   isSuperAdmin?: boolean; // Indica se o usuário é SuperAdmin e não tem restrições de plano
-  userEmail: string; // Add userEmail prop to receive the user's email
+  userEmail: string; // Email do usuário para usar como base do nome da instância
 }
 
 const PlaceholderInstanceCard = ({ 
@@ -32,35 +32,20 @@ const PlaceholderInstanceCard = ({
   // Hook para gerenciar instâncias de WhatsApp - Pass the userEmail
   const { addNewInstance } = useWhatsAppInstances(userEmail);
 
-  // Buscar informações do usuário atual
+  // Extrair nome de usuário do email quando o componente montar
   useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const { data: { user }, error } = await supabase.auth.getUser();
-        
-        if (error) {
-          console.error("Erro ao obter usuário:", error);
-          return;
-        }
-        
-        if (user?.email) {
-          // Extrai o nome de usuário do email (parte antes do @)
-          const extractedUsername = user.email.split('@')[0].replace(/[^a-z0-9]/gi, '');
-          setUsername(extractedUsername);
-          console.log("Nome de usuário extraído:", extractedUsername);
-        }
-      } catch (error) {
-        console.error("Erro ao buscar dados do usuário:", error);
-      }
-    };
-    
-    fetchCurrentUser();
-  }, []);
+    if (userEmail) {
+      // Extrai o nome de usuário do email (parte antes do @)
+      const extractedUsername = userEmail.split('@')[0].replace(/[^a-z0-9]/gi, '');
+      setUsername(extractedUsername);
+      console.log("Nome de usuário extraído:", extractedUsername);
+    }
+  }, [userEmail]);
 
   const handleAddWhatsApp = async () => {
     // Prevent double clicks or multiple submissions
     if (isAddingRef.current) {
-      console.log("Already processing an add request, ignoring");
+      console.log("Já processando uma solicitação de adição, ignorando");
       return;
     }
     
