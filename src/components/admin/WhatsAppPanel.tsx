@@ -1,24 +1,15 @@
 
 import { useState } from "react";
-import { 
-  Table, TableHeader, TableRow, TableHead, 
-  TableBody, TableCell
-} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { 
   Card, CardContent, CardDescription, 
   CardHeader, CardTitle, CardFooter 
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Search, RefreshCcw, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { RefreshCcw } from "lucide-react";
+import { WhatsAppFilters } from "./whatsapp/WhatsAppFilters";
+import { WhatsAppInstanceTable } from "./whatsapp/WhatsAppInstanceTable";
+import { SystemDiagnostic } from "./whatsapp/SystemDiagnostic";
+import { getStatusBadge } from "./whatsapp/StatusBadge";
 
 // Mock data for WhatsApp instances
 const mockWhatsAppInstances = [
@@ -106,37 +97,6 @@ export default function WhatsAppPanel() {
     return matchesSearch && matchesStatus && matchesCompany;
   });
   
-  const getStatusBadge = (status: string) => {
-    switch(status) {
-      case 'connected':
-        return (
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-            <CheckCircle className="h-3 w-3 mr-1" /> Conectado
-          </Badge>
-        );
-      case 'disconnected':
-        return (
-          <Badge variant="outline" className="bg-gray-50 text-gray-500 border-gray-200">
-            <XCircle className="h-3 w-3 mr-1" /> Desconectado
-          </Badge>
-        );
-      case 'error':
-        return (
-          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-            <AlertTriangle className="h-3 w-3 mr-1" /> Erro
-          </Badge>
-        );
-      case 'connecting':
-        return (
-          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
-            <RefreshCcw className="h-3 w-3 mr-1 animate-spin" /> Conectando
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-  
   return (
     <div className="space-y-6">
       <Card>
@@ -154,86 +114,22 @@ export default function WhatsAppPanel() {
               </Button>
             </div>
           </div>
-          <div className="flex flex-col md:flex-row gap-4 mt-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome, telefone ou empresa..."
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col md:flex-row gap-4 w-full md:w-auto">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Filtrar por status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos os status</SelectItem>
-                  <SelectItem value="connected">Conectados</SelectItem>
-                  <SelectItem value="disconnected">Desconectados</SelectItem>
-                  <SelectItem value="error">Com erro</SelectItem>
-                  <SelectItem value="connecting">Conectando</SelectItem>
-                </SelectContent>
-              </Select>
-              
-              <Select value={companyFilter} onValueChange={setCompanyFilter}>
-                <SelectTrigger className="w-full md:w-[180px]">
-                  <SelectValue placeholder="Filtrar por empresa" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todas as empresas</SelectItem>
-                  {companies.map(company => (
-                    <SelectItem key={company.id} value={company.id}>
-                      {company.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          
+          <WhatsAppFilters 
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            companyFilter={companyFilter}
+            setCompanyFilter={setCompanyFilter}
+            companies={companies}
+          />
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Instância</TableHead>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Última Atividade</TableHead>
-                  <TableHead>Mensagens 24h</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredInstances.map((instance) => (
-                  <TableRow key={instance.id}>
-                    <TableCell className="font-medium">{instance.name}</TableCell>
-                    <TableCell>{instance.phone}</TableCell>
-                    <TableCell className="font-mono text-xs">{instance.instanceName}</TableCell>
-                    <TableCell>{instance.company}</TableCell>
-                    <TableCell>{getStatusBadge(instance.status)}</TableCell>
-                    <TableCell>{instance.lastActivity}</TableCell>
-                    <TableCell>{instance.messages}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="sm" className="h-8 px-2 text-xs">
-                          Reconectar
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-8 px-2 text-xs">
-                          Logs
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <WhatsAppInstanceTable
+            filteredInstances={filteredInstances}
+            getStatusBadge={getStatusBadge}
+          />
         </CardContent>
         <CardFooter className="flex justify-between">
           <div className="text-sm text-muted-foreground">
@@ -245,49 +141,7 @@ export default function WhatsAppPanel() {
         </CardFooter>
       </Card>
       
-      <Card>
-        <CardHeader>
-          <CardTitle>Diagnóstico do Sistema Evolution API</CardTitle>
-          <CardDescription>
-            Estado atual da integração com a Evolution API
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex justify-between items-center p-4 border rounded-lg">
-              <div className="flex items-center">
-                <div className="h-3 w-3 rounded-full bg-green-500 mr-2"></div>
-                <span>API Server</span>
-              </div>
-              <span className="text-sm text-green-600">Operacional</span>
-            </div>
-            
-            <div className="flex justify-between items-center p-4 border rounded-lg">
-              <div className="flex items-center">
-                <div className="h-3 w-3 rounded-full bg-green-500 mr-2"></div>
-                <span>WebHook Receptor</span>
-              </div>
-              <span className="text-sm text-green-600">Operacional</span>
-            </div>
-            
-            <div className="flex justify-between items-center p-4 border rounded-lg">
-              <div className="flex items-center">
-                <div className="h-3 w-3 rounded-full bg-green-500 mr-2"></div>
-                <span>Processador de Mensagens</span>
-              </div>
-              <span className="text-sm text-green-600">Operacional</span>
-            </div>
-            
-            <div className="flex justify-between items-center p-4 border rounded-lg">
-              <div className="flex items-center">
-                <div className="h-3 w-3 rounded-full bg-amber-500 mr-2"></div>
-                <span>Serviço de QR Code</span>
-              </div>
-              <span className="text-sm text-amber-600">Degradado (80% funcionando)</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <SystemDiagnostic />
     </div>
   );
 }
