@@ -20,6 +20,7 @@ import Integration from "./pages/Integration";
 import Register from "./pages/Register";
 import ConfirmEmailInstructions from "./pages/ConfirmEmailInstructions";
 import ConfirmEmail from "./pages/ConfirmEmail";
+import GlobalAdmin from "./pages/GlobalAdmin";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,7 @@ const App = () => (
             <Route path="/plans" element={<Plans />} />
             <Route path="/ai-agents" element={<AIAgents />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/admin" element={<GlobalAdmin />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

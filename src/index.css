@@ -45,6 +45,12 @@
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 68 100% 41%;
     
+    /* Admin sidebar variables */
+    --admin-sidebar-background: 220 30% 10%;
+    --admin-sidebar-foreground: 210 40% 98%;
+    --admin-sidebar-accent: 220 20% 16%;
+    --admin-sidebar-border: 220 20% 16%;
+    
     /* Scrollbar variables */
     --scrollbar-thumb: rgba(156, 163, 175, 0.5);
     --scrollbar-track: rgba(229, 231, 235, 0.1);
@@ -89,6 +95,12 @@
     --sidebar-border: 240 4% 16%;
     --sidebar-ring: 68 100% 41%;
     
+    /* Admin sidebar dark mode variables */
+    --admin-sidebar-background: 220 30% 10%;
+    --admin-sidebar-foreground: 210 40% 98%;
+    --admin-sidebar-accent: 220 20% 16%;
+    --admin-sidebar-border: 220 20% 16%;
+    
     /* Scrollbar dark mode variables */
     --scrollbar-thumb: rgba(75, 85, 99, 0.5);
     --scrollbar-track: rgba(31, 41, 55, 0.1);
@@ -130,6 +142,15 @@
   .ticlin-text-gradient {
     @apply text-transparent bg-clip-text;
     background-image: linear-gradient(135deg, #d3d800 0%, #e4e833 100%);
+  }
+  
+  /* Admin panel specific */
+  .bg-admin-sidebar {
+    background-color: hsl(var(--admin-sidebar-background));
+  }
+  
+  .text-ticlin {
+    color: #d3d800;
   }
   
   /* Custom scrollbar styling */
