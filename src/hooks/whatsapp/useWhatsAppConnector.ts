@@ -1,133 +1,132 @@
-
 import { useState } from "react";
 import { toast } from "sonner";
-import { WhatsAppInstance } from "./whatsappInstanceStore";
+import { useWhatsAppInstanceState, WhatsAppInstance } from "./whatsappInstanceStore";
 import { evolutionApiService } from "@/services/evolution-api";
-import { saveInstanceToDatabase, updateQrCodeInDatabase } from "./database";
-import { EvolutionApiResult } from "@/services/evolution-api/types";
+import { updateQrCodeInDatabase } from "./database/updateQrCode";
+import { updateInstanceStatusAndPhone } from "./database/updateInstanceStatus";
 
-/**
- * Hook to manage WhatsApp connection operations
- */
 export const useWhatsAppConnector = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [lastError, setLastError] = useState<Error | null>(null);
-  
+  const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
+  const [lastError, setLastError] = useState<string | null>(null);
+  const { instances } = useWhatsAppInstanceState();
+
   /**
-   * Connect a WhatsApp instance
+   * Connects a WhatsApp instance and returns a QR code
    */
-  const connectInstance = async (instance: WhatsAppInstance): Promise<string> => {
+  const connectInstance = async (instanceId: string | WhatsAppInstance): Promise<string> => {
     try {
-      setIsLoading(true);
-      setLastError(null);
+      // Check if instanceId is a string or a WhatsAppInstance object
+      const instanceName = typeof instanceId === 'string' 
+        ? instances.find(i => i.id === instanceId)?.instanceName 
+        : instanceId.instanceName;
       
-      console.log(`Connecting instance: ${instance.instanceName}`);
-      
-      // Request QR code from Evolution API
-      const result = await evolutionApiService.createInstance(instance.instanceName);
-      
-      if (!result || !result.qrcode || !result.qrcode.base64) {
-        console.error("No QR code in result:", result);
-        throw new Error("QR code not received from Evolution API");
+      if (!instanceName) {
+        throw new Error("Invalid instance");
       }
       
-      // Extract QR code from response
-      const qrCodeUrl = result.qrcode.base64;
-      console.log("QR code received (first 50 chars):", qrCodeUrl.substring(0, 50));
-      
-      // Create an EvolutionApiResult from the response
-      const apiResult: EvolutionApiResult = {
-        instance: {
-          instanceId: result.instanceId,
-          instanceName: result.instanceName,
-          integration: result.integration,
-          status: result.status
-        },
-        hash: result.hash || "",
-        qrcode: result.qrcode,
-        webhook: result.webhook || {},
-        websocket: result.websocket || {},
-        rabbitmq: result.rabbitmq || {},
-        sqs: result.sqs || {},
-        settings: result.settings || {}
-      };
-      
-      // Save instance and QR code to database
-      try {
-        const savedInstance = await saveInstanceToDatabase(instance, qrCodeUrl, apiResult);
-        console.log("Instance saved to database:", savedInstance);
-      } catch (dbError) {
-        console.error("Could not save to database but continuing:", dbError);
-        // Continue even if database save fails
-      }
-      
-      // Return the QR code URL for display
-      return qrCodeUrl;
-    } catch (error) {
-      console.error("Error connecting WhatsApp instance:", error);
-      setLastError(error instanceof Error ? error : new Error("Unknown error connecting WhatsApp"));
-      toast.error("Erro ao conectar WhatsApp");
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  /**
-   * Refresh QR code for an instance
-   */
-  const refreshQrCode = async (instanceId: string): Promise<void> => {
-    try {
-      setIsLoading(true);
+      setIsLoading(prev => ({ ...prev, [instanceName]: true }));
       setLastError(null);
       
-      console.log(`Refreshing QR code for instance ID: ${instanceId}`);
+      // Connect to Evolution API
+      const qrCode = await evolutionApiService.connectInstance(instanceName);
       
-      // TODO: Implement refresh QR code logic
-      // This would typically call Evolution API to get a new QR code
-      // and then update it in the database
+      if (!qrCode) {
+        throw new Error("Failed to get QR code from Evolution API");
+      }
       
-      // For now, we'll just log this action
-      console.log("QR code refresh not fully implemented");
+      // Save QR code to database
+      if (typeof instanceId === 'string') {
+        await updateQrCodeInDatabase(instanceId, qrCode);
+      } else {
+        await updateQrCodeInDatabase(instanceId.id, qrCode);
+      }
       
-      // Simulate updating QR code in database
-      // In a real implementation, you would get a new QR code from Evolution API
-      // const newQrCode = await evolutionApiService.refreshQrCode(instanceName);
-      // await updateQrCodeInDatabase(instanceId, newQrCode);
-      
-    } catch (error) {
-      console.error("Error refreshing QR code:", error);
-      setLastError(error instanceof Error ? error : new Error("Unknown error refreshing QR code"));
-      toast.error("Erro ao atualizar QR code");
+      // Return the QR code
+      return qrCode;
+    } catch (error: any) {
+      console.error("Error connecting instance:", error);
+      toast.error("Error connecting WhatsApp instance");
+      setLastError(error?.message || "Error connecting WhatsApp instance");
       throw error;
     } finally {
-      setIsLoading(false);
+      if (typeof instanceId === 'string') {
+        setIsLoading(prev => ({ ...prev, [instanceId]: false }));
+      } else {
+        setIsLoading(prev => ({ ...prev, [instanceId.instanceName]: false }));
+      }
     }
   };
-  
+
   /**
-   * Check connection status of an instance
+   * Refreshes the QR code for a WhatsApp instance
    */
-  const checkConnectionStatus = async (instanceName: string): Promise<string> => {
+  const refreshQrCode = async (instanceName: string): Promise<string | null> => {
     try {
-      console.log(`Checking connection status for instance: ${instanceName}`);
+      setIsLoading(prev => ({ ...prev, [instanceName]: true }));
+      setLastError(null);
       
-      // Get instance status from Evolution API
-      const status = await evolutionApiService.checkInstanceStatus(instanceName);
-      console.log(`Status for instance ${instanceName}: ${status}`);
+      // Refresh QR code from Evolution API
+      const qrCode = await evolutionApiService.refreshQrCode(instanceName);
+      
+      if (!qrCode) {
+        throw new Error("Failed to refresh QR code from Evolution API");
+      }
+      
+      // Save QR code to database
+      const instance = instances.find(i => i.instanceName === instanceName);
+      if (instance) {
+        await updateQrCodeInDatabase(instance.id, qrCode);
+      }
+      
+      return qrCode;
+    } catch (error: any) {
+      console.error("Error updating QR code:", error);
+      toast.error("Error updating QR code");
+      setLastError(error?.message || "Error updating QR code");
+      return null;
+    } finally {
+      setIsLoading(prev => ({ ...prev, [instanceName]: false }));
+    }
+  };
+
+  /**
+   * Checks the connection status of a WhatsApp instance
+   */
+  const checkInstanceStatus = async (instanceId: string): Promise<"connected" | "connecting" | "disconnected"> => {
+    try {
+      setIsLoading(prev => ({ ...prev, [instanceId]: true }));
+      setLastError(null);
+      
+      const instance = instances.find(i => i.id === instanceId);
+      if (!instance) {
+        throw new Error("Instance not found");
+      }
+      
+      // Check status from Evolution API
+      const status = await evolutionApiService.checkInstanceStatus(instance.instanceName);
+      
+      // Update status and phone number in database
+      if (status === 'connected') {
+        await updateInstanceStatusAndPhone(instanceId, status, instance.phoneNumber);
+      } else {
+        await updateInstanceStatusAndPhone(instanceId, status);
+      }
       
       return status;
-    } catch (error) {
-      console.error(`Error checking connection status for ${instanceName}:`, error);
+    } catch (error: any) {
+      console.error("Error checking instance status:", error);
+      setLastError(error?.message || "Error checking WhatsApp instance status");
       return "disconnected";
+    } finally {
+      setIsLoading(prev => ({ ...prev, [instanceId]: false }));
     }
   };
-  
+
   return {
+    isLoading,
+    lastError,
     connectInstance,
     refreshQrCode,
-    checkConnectionStatus,
-    isLoading,
-    lastError
+    checkInstanceStatus
   };
 };

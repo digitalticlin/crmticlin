@@ -20,6 +20,7 @@ interface WhatsAppInstanceActions {
   setLoading: (instanceId: string, isLoading: boolean) => void;
   setError: (error: string | null) => void;
   updateInstance: (instanceId: string, instance: Partial<WhatsAppInstance>) => void;
+  addInstance: (instance: WhatsAppInstance) => void;
 }
 
 const useWhatsAppInstanceStore = create<WhatsAppInstanceState & { actions: WhatsAppInstanceActions }>((set) => ({
@@ -36,6 +37,9 @@ const useWhatsAppInstanceStore = create<WhatsAppInstanceState & { actions: Whats
       instances: state.instances.map(instance => 
         instance.id === instanceId ? { ...instance, ...updatedInstance } : instance
       )
+    })),
+    addInstance: (instance) => set((state) => ({
+      instances: [...state.instances, instance]
     }))
   }
 }));

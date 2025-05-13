@@ -101,8 +101,7 @@ export const useWhatsAppCreator = (companyId: string | null) => {
       console.log("QR code received, updating instance");
       
       // Update the instance with the QR code
-      updateInstance({
-        ...newInstance,
+      updateInstance(newInstanceId, {
         qrCodeUrl
       });
       
