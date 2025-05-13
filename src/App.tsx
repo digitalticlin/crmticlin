@@ -7,7 +7,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/use-theme";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
-import WhatsApp from "./pages/WhatsApp";
 import Team from "./pages/Team";
 import Plans from "./pages/Plans";
 import AIAgents from "./pages/AIAgents";
@@ -39,7 +38,6 @@ const App = () => (
             <Route path="/sales-funnel" element={<SalesFunnel />} />
             <Route path="/chat" element={<Chat />} />
             <Route path="/clients" element={<Clients />} />
-            <Route path="/whatsapp" element={<WhatsApp />} />
             <Route path="/automation" element={<Automation />} />
             <Route path="/team" element={<Team />} />
             <Route path="/plans" element={<Plans />} />

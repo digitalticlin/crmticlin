@@ -113,12 +113,6 @@ export default function Sidebar() {
           isCollapsed={isCollapsed}
         />
         <NavItem
-          icon={MessageSquare}
-          label="WhatsApp"
-          href="/whatsapp"
-          isCollapsed={isCollapsed}
-        />
-        <NavItem
           icon={ListPlus}
           label="Automação"
           href="/automation"
