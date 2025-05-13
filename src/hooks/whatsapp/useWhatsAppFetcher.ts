@@ -12,7 +12,8 @@ import {
  * Hook para buscar instâncias WhatsApp do banco de dados
  */
 export const useWhatsAppFetcher = (userEmail: string) => {
-  const { setInstances, setError } = useWhatsAppInstanceActions();
+  const { setInstances } = useWhatsAppInstanceState();
+  const { setError } = useWhatsAppInstanceActions();
   
   // Gera o nome da instância com base no email (parte antes do @)
   const instanceName = userEmail ? userEmail.split('@')[0] : "";
