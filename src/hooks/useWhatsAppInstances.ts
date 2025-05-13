@@ -15,10 +15,10 @@ export const useWhatsAppInstances = (userEmail: string) => {
   const [instances, setInstances] = useState<WhatsAppInstance[]>([]);
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
   
-  // Gerar nome de instância com base no email (parte antes do @)
+  // Generate instance name based on email (part before @)
   const instanceName = userEmail ? userEmail.split('@')[0] : "";
   
-  // Carrega as instâncias do usuário do Supabase
+  // Load user instances from Supabase
   useEffect(() => {
     if (!userEmail) return;
     fetchUserInstances();
@@ -26,7 +26,9 @@ export const useWhatsAppInstances = (userEmail: string) => {
   
   const fetchUserInstances = async () => {
     try {
-      // Buscar instâncias do usuário atual do Supabase
+      console.log(`Fetching WhatsApp instances for user: ${userEmail}, base instance name: ${instanceName}`);
+      
+      // Fetch user instances from Supabase
       const { data, error } = await supabase
         .from('whatsapp_numbers')
         .select('*')
@@ -37,16 +39,18 @@ export const useWhatsAppInstances = (userEmail: string) => {
       }
 
       if (data && data.length > 0) {
+        console.log(`Found ${data.length} WhatsApp instances for user ${userEmail}`);
         const mappedInstances = mapDatabaseInstancesToState(data);
         setInstances(mappedInstances);
       } else {
-        // Se não encontrar nenhuma instância, cria um placeholder
+        console.log(`No WhatsApp instances found for user ${userEmail}, creating placeholder`);
+        // If no instances found, create a placeholder
         setInstances([
           { id: "1", instanceName, connected: false }
         ]);
       }
     } catch (error) {
-      console.error("Erro ao buscar instâncias:", error);
+      console.error(`Error fetching WhatsApp instances for ${userEmail}:`, error);
       toast.error("Erro ao carregar instâncias WhatsApp");
       setInstances([
         { id: "1", instanceName, connected: false }
@@ -54,7 +58,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
     }
   };
 
-  // Mapeia os dados do banco para o formato de estado da aplicação
+  // Map database data to application state format
   const mapDatabaseInstancesToState = (data: any[]): WhatsAppInstance[] => {
     return data.map(instance => ({
       id: instance.id,
@@ -64,16 +68,20 @@ export const useWhatsAppInstances = (userEmail: string) => {
     }));
   };
   
-  // Função para conectar uma nova instância WhatsApp
+  // Connect a new WhatsApp instance
   const connectInstance = async (instanceId: string) => {
     setLoadingState(instanceId, true);
     
     try {
-      // Obter a instância que queremos conectar
+      // Find the instance to connect
       const instance = findInstanceById(instanceId);
-      if (!instance) throw new Error("Instância não encontrada");
+      if (!instance) {
+        throw new Error("Instância não encontrada");
+      }
       
-      // Criar a instância na API Evolution
+      console.log(`Connecting WhatsApp instance ${instance.instanceName} (ID: ${instanceId})`);
+      
+      // Create instance in Evolution API
       const result = await evolutionApiService.createInstance(instance.instanceName);
       
       if (!result || !result.qrcode || !result.qrcode.base64) {
@@ -81,46 +89,53 @@ export const useWhatsAppInstances = (userEmail: string) => {
       }
       
       const qrCodeUrl = result.qrcode.base64;
+      console.log(`Successfully generated QR code for ${result.instanceName}`);
       
-      // Salvar no Supabase
+      // Save to Supabase
       const updatedInstance = await saveInstanceToDatabase(instance, qrCodeUrl, result);
       
-      // Atualizar o estado local
+      // Update local state
       updateLocalInstanceState(instance, updatedInstance, qrCodeUrl);
       
       toast.success("QR Code gerado com sucesso!");
       return qrCodeUrl;
-    } catch (error) {
-      handleOperationError(error, "conectar WhatsApp");
+    } catch (error: any) {
+      const errorMessage = error?.message || "Erro desconhecido";
+      handleOperationError(error, `conectar WhatsApp: ${errorMessage}`);
       throw error;
     } finally {
       setLoadingState(instanceId, false);
     }
   };
 
-  // Função auxiliar para encontrar uma instância pelo ID
+  // Find instance by ID
   const findInstanceById = (instanceId: string): WhatsAppInstance | undefined => {
     return instances.find(i => i.id === instanceId);
   };
 
-  // Função para salvar a instância no banco de dados
+  // Save instance to database
   const saveInstanceToDatabase = async (instance: WhatsAppInstance, qrCodeUrl: string, result: any) => {
+    console.log(`Saving instance to database: ${instance.instanceName}`);
+    
     const { error } = await supabase
       .from('whatsapp_numbers')
       .upsert({
-        id: instance.id === "1" ? undefined : instance.id, // Se for um novo registro, deixe o Supabase gerar o ID
+        id: instance.id === "1" ? undefined : instance.id, // Let Supabase generate ID for new records
         instance_name: instance.instanceName,
-        phone: "", // Será atualizado quando conectar
-        company_id: "your_company_id", // Substitua pelo ID da empresa do usuário
+        phone: "", // Will be updated when connected
+        company_id: "your_company_id", // Replace with user's company ID
         status: "connecting",
         qr_code: qrCodeUrl,
         instance_id: result.instanceId,
         evolution_instance_name: result.instanceName
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error saving instance to database:", error);
+      throw error;
+    }
     
-    // Buscar o registro inserido/atualizado para obter o ID gerado
+    // Fetch the inserted/updated record to get generated ID
     const { data } = await supabase
       .from('whatsapp_numbers')
       .select('*')
@@ -128,13 +143,13 @@ export const useWhatsAppInstances = (userEmail: string) => {
       .limit(1);
       
     if (!data || data.length === 0) {
-      throw new Error("Erro ao recuperar instância após salvar");
+      throw new Error("Error retrieving instance after saving");
     }
     
     return data[0];
   };
 
-  // Atualiza o estado local da instância
+  // Update local instance state
   const updateLocalInstanceState = (oldInstance: WhatsAppInstance, databaseInstance: any, qrCodeUrl: string) => {
     setInstances(prev => 
       prev.map(i => 
@@ -150,29 +165,35 @@ export const useWhatsAppInstances = (userEmail: string) => {
     );
   };
 
-  // Define o estado de carregamento para uma instância específica
+  // Set loading state for a specific instance
   const setLoadingState = (instanceId: string, isLoadingState: boolean) => {
     setIsLoading(prev => ({...prev, [instanceId]: isLoadingState}));
   };
   
-  // Função para deletar uma instância WhatsApp
+  // Delete a WhatsApp instance
   const deleteInstance = async (instanceId: string) => {
     setLoadingState(instanceId, true);
     
     try {
-      // Encontrar a instância no estado local
+      // Find instance in local state
       const instance = findInstanceById(instanceId);
-      if (!instance) throw new Error("Instância não encontrada");
+      if (!instance) {
+        throw new Error("Instância não encontrada");
+      }
       
-      // Deletar na API Evolution
+      console.log(`Deleting WhatsApp instance: ${instance.instanceName} (ID: ${instanceId})`);
+      
+      // Delete from Evolution API
       const success = await evolutionApiService.deleteInstance(instance.instanceName);
       
-      if (!success) throw new Error("Falha ao remover instância na API");
+      if (!success) {
+        throw new Error("Falha ao remover instância na API");
+      }
       
-      // Atualizar no Supabase
+      // Update in Supabase
       await updateInstanceDisconnectedStatus(instanceId);
       
-      // Atualizar estado local
+      // Update local state
       updateInstanceLocalState(instanceId, false);
       
       toast.success("WhatsApp desconectado com sucesso!");
@@ -184,9 +205,11 @@ export const useWhatsAppInstances = (userEmail: string) => {
     }
   };
 
-  // Atualiza o status da instância para desconectado no banco
+  // Update instance status to disconnected in database
   const updateInstanceDisconnectedStatus = async (instanceId: string) => {
-    if (instanceId === "1") return; // Se for o ID placeholder, não precisa atualizar no banco
+    if (instanceId === "1") return; // Skip DB update for placeholder ID
+    
+    console.log(`Updating instance ${instanceId} to disconnected status in database`);
     
     const { error } = await supabase
       .from('whatsapp_numbers')
@@ -197,10 +220,13 @@ export const useWhatsAppInstances = (userEmail: string) => {
       })
       .eq('id', instanceId);
       
-    if (error) throw error;
+    if (error) {
+      console.error("Error updating instance status:", error);
+      throw error;
+    }
   };
 
-  // Atualiza o estado local de uma instância
+  // Update local instance state
   const updateInstanceLocalState = (instanceId: string, connected: boolean, qrCodeUrl?: string) => {
     setInstances(prev => 
       prev.map(i => 
@@ -211,24 +237,30 @@ export const useWhatsAppInstances = (userEmail: string) => {
     );
   };
   
-  // Função para atualizar o QR Code de uma instância
+  // Refresh QR Code for an instance
   const refreshQrCode = async (instanceId: string) => {
     setLoadingState(instanceId, true);
     
     try {
-      // Encontrar a instância no estado local
+      // Find instance in local state
       const instance = findInstanceById(instanceId);
-      if (!instance) throw new Error("Instância não encontrada");
+      if (!instance) {
+        throw new Error("Instância não encontrada");
+      }
       
-      // Obter novo QR Code da API Evolution
+      console.log(`Refreshing QR code for instance: ${instance.instanceName} (ID: ${instanceId})`);
+      
+      // Get new QR Code from Evolution API
       const qrCodeUrl = await evolutionApiService.refreshQrCode(instance.instanceName);
       
-      if (!qrCodeUrl) throw new Error("Não foi possível obter um novo QR Code");
+      if (!qrCodeUrl) {
+        throw new Error("Não foi possível obter um novo QR Code");
+      }
       
-      // Atualizar no Supabase
+      // Update in Supabase
       await updateQrCodeInDatabase(instanceId, qrCodeUrl);
       
-      // Atualizar estado local
+      // Update local state
       updateInstanceLocalState(instanceId, false, qrCodeUrl);
       
       toast.success("QR Code atualizado com sucesso!");
@@ -241,22 +273,28 @@ export const useWhatsAppInstances = (userEmail: string) => {
     }
   };
 
-  // Atualiza o QR code no banco de dados
+  // Update QR code in database
   const updateQrCodeInDatabase = async (instanceId: string, qrCodeUrl: string) => {
-    if (instanceId === "1") return; // Se for o ID placeholder, não precisa atualizar no banco
+    if (instanceId === "1") return; // Skip DB update for placeholder ID
+    
+    console.log(`Updating QR code in database for instance ID: ${instanceId}`);
     
     const { error } = await supabase
       .from('whatsapp_numbers')
       .update({ qr_code: qrCodeUrl })
       .eq('id', instanceId);
       
-    if (error) throw error;
+    if (error) {
+      console.error("Error updating QR code in database:", error);
+      throw error;
+    }
   };
 
-  // Trata erros de operação e exibe toast para o usuário
+  // Handle operation errors and show toast
   const handleOperationError = (error: any, operation: string) => {
-    console.error(error);
-    toast.error(`Erro ao ${operation}. Tente novamente.`);
+    const errorMessage = error?.message || "Erro desconhecido";
+    console.error(`Error during operation: ${operation}:`, error);
+    toast.error(`Erro ao ${operation}. ${errorMessage}`);
   };
   
   return {
