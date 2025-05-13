@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GeneralSettingsTab } from "./config/GeneralSettingsTab";
 import { SecuritySettingsTab } from "./config/SecuritySettingsTab";
@@ -8,6 +9,32 @@ import { usePermissions } from "@/hooks/usePermissions";
 
 export default function ConfigPanel() {
   const { isSuperAdmin } = usePermissions();
+  
+  // Add configuration state
+  const [config, setConfig] = useState({
+    // General settings
+    systemName: "Ticlin CRM",
+    maxInstances: "10",
+    maxUsers: "50",
+    logRetention: "30",
+    debugMode: false,
+    maintenanceMode: false,
+    termsText: "Termos de uso padrão da plataforma Ticlin CRM.",
+    
+    // Integration settings
+    apiUrl: "https://api.evolution.com",
+    webhookUrl: "https://webhook.ticlin.com.br/evolution",
+    aiModel: "gpt-4",
+    aiBotLimit: "5"
+  });
+
+  // Handle configuration changes
+  const handleConfigChange = (field: string, value: any) => {
+    setConfig(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
 
   return (
     <div className="space-y-6">
@@ -23,7 +50,10 @@ export default function ConfigPanel() {
         
         <div className="mt-6">
           <TabsContent value="general">
-            <GeneralSettingsTab />
+            <GeneralSettingsTab 
+              config={config} 
+              onConfigChange={handleConfigChange} 
+            />
           </TabsContent>
           
           <TabsContent value="security">
@@ -31,7 +61,10 @@ export default function ConfigPanel() {
           </TabsContent>
           
           <TabsContent value="integrations">
-            <IntegrationsSettingsTab />
+            <IntegrationsSettingsTab 
+              config={config} 
+              onConfigChange={handleConfigChange} 
+            />
           </TabsContent>
           
           {isSuperAdmin && (
