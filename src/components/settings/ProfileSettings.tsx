@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   Card, 
@@ -16,6 +16,25 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Phone } from "lucide-react";
 
 const ProfileSettings = () => {
+  const [email, setEmail] = useState("admin@example.com");
+  const [username, setUsername] = useState("admin");
+
+  // Função para extrair o nome de usuário do email
+  const generateUsername = (email: string) => {
+    return email.split("@")[0];
+  };
+
+  // Atualizar o nome de usuário quando o email mudar
+  useEffect(() => {
+    const newUsername = generateUsername(email);
+    setUsername(newUsername);
+  }, [email]);
+
+  // Função para lidar com a mudança de email
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+  };
+
   return (
     <Card className="glass-card border-0">
       <CardHeader>
@@ -50,14 +69,18 @@ const ProfileSettings = () => {
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" defaultValue="admin@example.com" />
+            <Input 
+              id="email" 
+              value={email} 
+              onChange={handleEmailChange} 
+            />
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="username">Nome de usuário</Label>
             <Input 
               id="username" 
-              defaultValue="admin" 
+              value={username} 
               className="bg-gray-100" 
               readOnly 
             />
