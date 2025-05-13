@@ -11,12 +11,9 @@ import {
 /**
  * Hook para buscar instâncias WhatsApp do banco de dados
  */
-export const useWhatsAppFetcher = (userEmail: string = "") => {
+export const useWhatsAppFetcher = () => {
   const { setInstances } = useWhatsAppInstanceState();
   const { setError } = useWhatsAppInstanceActions();
-  
-  // Gera o nome da instância com base no email (parte antes do @)
-  const instanceName = userEmail ? userEmail.split('@')[0] : "";
   
   // Fetch instances from the database for a specific company
   const fetchInstances = async (companyId: string) => {
@@ -52,7 +49,10 @@ export const useWhatsAppFetcher = (userEmail: string = "") => {
   };
 
   // Busca as instâncias do usuário no banco de dados
-  const fetchUserInstances = async () => {
+  const fetchUserInstances = async (userEmail: string) => {
+    // Gera o nome da instância com base no email (parte antes do @)
+    const instanceName = userEmail ? userEmail.split('@')[0] : "";
+    
     try {
       console.log(`Buscando instâncias WhatsApp para usuário: ${userEmail}, nome base da instância: ${instanceName}`);
       setError(null);
@@ -102,6 +102,5 @@ export const useWhatsAppFetcher = (userEmail: string = "") => {
   return {
     fetchInstances,
     fetchUserInstances,
-    instanceName
   };
 };

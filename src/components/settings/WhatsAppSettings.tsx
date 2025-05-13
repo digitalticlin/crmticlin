@@ -115,7 +115,7 @@ const WhatsAppSettings = () => {
   }, [instances, checkInstanceStatus]);
   
   // Handle showing QR code by updating state
-  const handleShowQrCode = (instanceId: string) => {
+  const handleShowQrCode = async (instanceId: string) => {
     setShowQrCode(instanceId);
   };
   
