@@ -11,7 +11,8 @@ import {
 import { NotesField } from "@/components/sales/leadDetail/NotesField";
 import { AssignedUserField } from "@/components/sales/leadDetail/AssignedUserField";
 import { PurchaseValueField } from "@/components/sales/leadDetail/PurchaseValueField";
-import { Pencil, Phone, Mail, MapPin } from "lucide-react";
+import { DealHistory } from "./DealHistory";
+import { Pencil, Phone, Mail, MapPin, Building, Calendar } from "lucide-react";
 import { toast } from "sonner";
 
 interface ClientDetailsProps {
@@ -33,6 +34,24 @@ export const ClientDetails = ({
   onUpdateAssignedUser,
   onUpdatePurchaseValue
 }: ClientDetailsProps) => {
+  // Mock deals data - in a real app, this would come from the client object
+  const mockDeals = [
+    {
+      id: "deal1",
+      status: "won" as const,
+      value: 3500,
+      date: "15/05/2025",
+      note: "Cliente adquiriu o plano premium"
+    },
+    {
+      id: "deal2",
+      status: "lost" as const,
+      value: 1800,
+      date: "03/03/2025",
+      note: "Optou por concorrente mais barato"
+    }
+  ];
+
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-md overflow-y-auto">
@@ -69,6 +88,20 @@ export const ClientDetails = ({
                 <span>{client.address}</span>
               </div>
             )}
+            
+            {client.company && (
+              <div className="flex items-center gap-2">
+                <Building className="h-4 w-4 text-muted-foreground" />
+                <span>{client.company}</span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 mt-1">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">
+                Criado em: {client.createdAt || "Não disponível"}
+              </span>
+            </div>
           </SheetDescription>
         </SheetHeader>
         
@@ -90,6 +123,12 @@ export const ClientDetails = ({
               toast.success("Responsável atualizado");
             }}
           />
+          
+          {/* Deal History */}
+          <div>
+            <h3 className="text-sm font-medium mb-2">Histórico de Negociações</h3>
+            <DealHistory deals={client.deals || mockDeals} />
+          </div>
           
           {/* Notes Field */}
           <NotesField 

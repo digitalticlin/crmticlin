@@ -1,164 +1,135 @@
 
-import { useForm } from "react-hook-form";
+import { useState } from "react";
 import { Contact } from "@/types/chat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { DialogFooter } from "@/components/ui/dialog";
-import { useState } from "react";
-
-// Define the form validation schema
-const formSchema = z.object({
-  name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
-  phone: z.string().min(8, "Telefone inválido"),
-  email: z.string().email("Email inválido").optional().or(z.literal("")),
-  notes: z.string().optional(),
-  address: z.string().optional().or(z.literal("")),
-  assignedUser: z.string().optional().or(z.literal("")),
-});
-
-type ClientFormValues = z.infer<typeof formSchema>;
+import { Label } from "@/components/ui/label";
+import { Building } from "lucide-react";
 
 interface ClientFormProps {
   client?: Contact;
-  onSubmit: (data: ClientFormValues) => void;
+  onSubmit: (data: any) => void;
   onCancel: () => void;
 }
 
 export const ClientForm = ({ client, onSubmit, onCancel }: ClientFormProps) => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const form = useForm<ClientFormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: client?.name || "",
-      phone: client?.phone || "",
-      email: client?.email || "",
-      notes: client?.notes || "",
-      address: client?.address || "",
-      assignedUser: client?.assignedUser || "",
-    },
+  const [formData, setFormData] = useState({
+    name: client?.name || "",
+    phone: client?.phone || "",
+    email: client?.email || "",
+    address: client?.address || "",
+    company: client?.company || "", // Added company field
+    notes: client?.notes || "",
   });
-  
-  const handleSubmit = async (data: ClientFormValues) => {
-    setIsSubmitting(true);
-    try {
-      await onSubmit(data);
-    } finally {
-      setIsSubmitting(false);
-    }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
   };
-  
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Basic validation
+    if (!formData.name.trim() || !formData.phone.trim()) {
+      alert("Nome e telefone são campos obrigatórios");
+      return;
+    }
+    
+    // Format data and add creation date for new clients
+    const data = {
+      ...formData,
+      createdAt: client?.createdAt || new Date().toLocaleDateString('pt-BR'),
+    };
+    
+    onSubmit(data);
+  };
+
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
+    <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+      <div className="space-y-2">
+        <Label htmlFor="name">Nome*</Label>
+        <Input
+          id="name"
           name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nome do Cliente</FormLabel>
-              <FormControl>
-                <Input placeholder="Nome completo" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          value={formData.name}
+          onChange={handleChange}
+          placeholder="Nome do cliente"
+          required
         />
-        
-        <FormField
-          control={form.control}
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="company">Empresa</Label>
+        <div className="relative">
+          <Input
+            id="company"
+            name="company"
+            value={formData.company}
+            onChange={handleChange}
+            placeholder="Nome da empresa"
+            className="pl-8"
+          />
+          <Building className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        </div>
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="phone">Telefone*</Label>
+        <Input
+          id="phone"
           name="phone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Telefone</FormLabel>
-              <FormControl>
-                <Input placeholder="+55 (11) 98765-4321" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          value={formData.phone}
+          onChange={handleChange}
+          placeholder="(00) 00000-0000"
+          required
         />
-        
-        <FormField
-          control={form.control}
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="email">Email</Label>
+        <Input
+          id="email"
           name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input placeholder="email@exemplo.com" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          value={formData.email}
+          onChange={handleChange}
+          type="email"
+          placeholder="email@exemplo.com"
         />
-        
-        <FormField
-          control={form.control}
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="address">Endereço</Label>
+        <Input
+          id="address"
           name="address"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Endereço</FormLabel>
-              <FormControl>
-                <Input placeholder="Endereço do cliente" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          value={formData.address}
+          onChange={handleChange}
+          placeholder="Endereço do cliente"
         />
-        
-        <FormField
-          control={form.control}
-          name="assignedUser"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Responsável</FormLabel>
-              <FormControl>
-                <Input placeholder="Nome do responsável" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="notes">Observações</Label>
+        <Textarea
+          id="notes"
           name="notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Observações</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="Observações sobre o cliente" 
-                  className="min-h-[100px]"
-                  {...field} 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+          value={formData.notes}
+          onChange={handleChange}
+          placeholder="Observações sobre o cliente"
+          className="min-h-[100px]"
         />
-        
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancelar
-          </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {client ? "Atualizar" : "Adicionar"} Cliente
-          </Button>
-        </DialogFooter>
-      </form>
-    </Form>
+      </div>
+      
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancelar
+        </Button>
+        <Button type="submit">
+          {client ? "Atualizar" : "Adicionar"}
+        </Button>
+      </div>
+    </form>
   );
 };

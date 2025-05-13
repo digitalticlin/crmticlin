@@ -1,9 +1,8 @@
 
 import { useState } from "react";
 import { Contact } from "@/types/chat";
-import { KanbanTag } from "@/types/kanban";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Building } from "lucide-react";
 import { 
   Table, 
   TableBody, 
@@ -27,7 +26,8 @@ export const ClientsList = ({ clients, onSelectClient }: ClientsListProps) => {
   const filteredClients = clients.filter(client => 
     client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     client.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (client.email && client.email.toLowerCase().includes(searchQuery.toLowerCase()))
+    (client.email && client.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (client.company && client.company.toLowerCase().includes(searchQuery.toLowerCase()))
   );
   
   return (
@@ -35,7 +35,7 @@ export const ClientsList = ({ clients, onSelectClient }: ClientsListProps) => {
       <div className="p-4 flex gap-2 items-center">
         <Search className="w-4 h-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar cliente por nome, telefone ou email..."
+          placeholder="Buscar cliente por nome, telefone, email ou empresa..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="flex-1"
@@ -47,6 +47,7 @@ export const ClientsList = ({ clients, onSelectClient }: ClientsListProps) => {
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
+              <TableHead>Empresa</TableHead>
               <TableHead>Telefone</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Tags</TableHead>
@@ -62,6 +63,14 @@ export const ClientsList = ({ clients, onSelectClient }: ClientsListProps) => {
                 onClick={() => onSelectClient(client)}
               >
                 <TableCell className="font-medium">{client.name}</TableCell>
+                <TableCell>
+                  {client.company ? (
+                    <div className="flex items-center gap-1">
+                      <Building className="h-3 w-3 text-muted-foreground" />
+                      <span>{client.company}</span>
+                    </div>
+                  ) : "-"}
+                </TableCell>
                 <TableCell>{client.phone}</TableCell>
                 <TableCell>{client.email || "-"}</TableCell>
                 <TableCell>
@@ -82,7 +91,7 @@ export const ClientsList = ({ clients, onSelectClient }: ClientsListProps) => {
             ))}
             {filteredClients.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                   Nenhum cliente encontrado.
                 </TableCell>
               </TableRow>

@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Contact } from "@/types/chat";
+import { v4 as uuidv4 } from "uuid";
 import Sidebar from "@/components/layout/Sidebar";
 import { ClientsHeader } from "@/components/clients/ClientsHeader";
 import { ClientsList } from "@/components/clients/ClientsList";
@@ -8,7 +9,6 @@ import { ClientDetails } from "@/components/clients/ClientDetails";
 import { ClientForm } from "@/components/clients/ClientForm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { v4 as uuidv4 } from "uuid";
 
 export default function Clients() {
   // State for clients list
@@ -30,7 +30,18 @@ export default function Clients() {
         tags: ["Cliente VIP", "Proposta Enviada"],
         notes: "Cliente interessado no plano premium. Agendar demonstração.",
         purchaseValue: 1500,
-        assignedUser: "Ana Costa"
+        assignedUser: "Ana Costa",
+        createdAt: "10/04/2025",
+        company: "Tech Solutions Ltda.",
+        deals: [
+          {
+            id: "deal1",
+            status: "won",
+            value: 1500,
+            date: "12/05/2025",
+            note: "Cliente aceitou proposta do plano básico"
+          }
+        ]
       },
       {
         id: "2",
@@ -39,6 +50,8 @@ export default function Clients() {
         email: "maria.oliveira@email.com",
         tags: ["Potencial Cliente"],
         address: "Av. Paulista, 1000 - São Paulo, SP",
+        createdAt: "15/03/2025",
+        company: "Oliveira Consultoria"
       },
       {
         id: "3",
@@ -46,13 +59,17 @@ export default function Clients() {
         phone: "+55 11 97777-8888",
         email: "pedro.almeida@email.com",
         purchaseValue: 750,
+        createdAt: "22/02/2025",
+        company: "Tech Solutions Ltda."
       },
       {
         id: "4",
         name: "Ana Santos",
         phone: "+55 11 96666-5555",
         tags: ["Aguardando Proposta"],
-        assignedUser: "Carlos Ferreira"
+        assignedUser: "Carlos Ferreira",
+        createdAt: "05/01/2025",
+        company: "Construções Santos"
       },
       {
         id: "5",
@@ -60,6 +77,7 @@ export default function Clients() {
         phone: "+55 11 95555-4444",
         email: "carlos.mendes@email.com",
         notes: "Cliente indicado pelo João Silva",
+        createdAt: "30/04/2025"
       },
     ];
     
