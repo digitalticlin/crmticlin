@@ -1,3 +1,3 @@
 
-import { useWhatsAppInstances } from "./whatsapp/useWhatsAppInstance";
+import { useWhatsAppInstances } from "./whatsapp/useWhatsAppInstances";
 export { useWhatsAppInstances };
