@@ -72,11 +72,7 @@ const QrCodeActionCard = ({
       const json = await res.json();
       if (json?.state === "open") {
         toast({
-          title: (
-            <span className="flex items-center gap-2">
-              <CircleCheck className="w-4 h-4 text-green-500" /> Instância conectada!
-            </span>
-          ),
+          title: "Instância conectada!",
           description: "Seu WhatsApp foi conectado com sucesso.",
         });
         onScanned();
