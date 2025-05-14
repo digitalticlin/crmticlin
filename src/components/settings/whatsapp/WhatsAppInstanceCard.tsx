@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { WhatsAppInstance } from "@/hooks/whatsapp/whatsappInstanceStore";
@@ -76,6 +75,10 @@ const WhatsAppInstanceCard = ({
       return () => clearInterval(syncInterval);
     }
   }, [showQrCode, qrCodeSuccess, instance.id, instance.instanceName, forceSyncConnectionStatus]);
+
+  // Removido: useEffect que faz polling via interval próprio quando QRCode está sendo exibido
+  // Vamos confiar APENAS no periodic checker central já corrigido
+  // O único check imediato permitido é um status manual (usuário clica); status ao montar o QR code/dispositivo é centralizado.
 
   // Click function to connect WhatsApp
   const handleConnect = async () => {

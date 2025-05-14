@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { evolutionApiService } from "@/services/evolution-api";
 import { useErrorTracker } from "./useErrorTracker";
@@ -30,17 +29,15 @@ export const useInstanceStatusChecker = () => {
     
     // Prevent concurrent checks for the same instance
     if (instanceCheckInProgress.current[instanceId]) {
-      console.log(`Status check already in progress for instance ${instanceId}, skipping`);
+      console.log(`Status check já em andamento para ${instanceId}, ignorando`);
       return;
     }
-    
-    // Throttle requests - but allow forced checks to bypass throttle
+    // Throttle: máximo 1x a cada 5 segundos 
     const now = Date.now();
     const lastCheck = lastCheckTime.current[instanceId] || 0;
-    const minInterval = 5000; // Default check interval
-    
+    const minInterval = 5000; // 5s Default para todos
     if (!forceFresh && now - lastCheck < minInterval) {
-      console.log(`Throttling status check for instance ${instanceId} - too soon`);
+      console.log(`Throttling status check para ${instanceId} < 5s`);
       return;
     }
     
