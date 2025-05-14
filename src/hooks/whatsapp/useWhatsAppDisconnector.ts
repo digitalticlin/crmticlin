@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { evolutionApiService } from "@/services/evolution-api";
 import { 
@@ -5,7 +6,7 @@ import {
   WhatsAppInstance 
 } from "./whatsappInstanceStore";
 import { updateInstanceDisconnectedStatus } from "./database";
-import { supabase } from "@/services/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Hook for disconnecting WhatsApp instances
