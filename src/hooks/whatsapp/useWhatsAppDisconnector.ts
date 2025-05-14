@@ -32,24 +32,40 @@ export const useWhatsAppDisconnector = () => {
       
       // Make API call to delete instance using the correct URL format
       const success = await evolutionApiService.deleteInstance(instanceName);
-      
+
       if (!success) {
         throw new Error("Falha ao remover instância na API");
       }
-      
+
       // Update in Supabase
       await updateInstanceDisconnectedStatus(instanceId);
-      
+
       // Update local state
       updateInstance(instanceId, {
         connected: false,
         qrCodeUrl: undefined
       });
-      
+
       toast.success("WhatsApp desconectado com sucesso!");
-    } catch (error) {
-      handleOperationError(error, "desconectar WhatsApp");
-      throw error;
+    } catch (error: any) {
+      // Verifica se é erro "Not Found" (404) na Evolution API
+      const message = error?.message?.toLowerCase() || "";
+      if (
+        message.includes("not found") ||
+        (error?.value && (error.value.message || "").toLowerCase().includes("not found"))
+      ) {
+        // Se o erro for "Not Found", remove localmente mesmo assim
+        await updateInstanceDisconnectedStatus(instanceId);
+        updateInstance(instanceId, {
+          connected: false,
+          qrCodeUrl: undefined
+        });
+        toast.success("Instância já não existe na Evolution. Removida localmente do painel.");
+        setError(null);
+      } else {
+        handleOperationError(error, "desconectar WhatsApp");
+        throw error;
+      }
     } finally {
       setLoading(instanceId, false);
     }
