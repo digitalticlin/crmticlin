@@ -1,4 +1,3 @@
-
 import { ApiClient } from "./api-client";
 import { BaseService } from "./base-service";
 import { handleApiError, validateQrCodeResponse } from "./helpers";
@@ -90,59 +89,21 @@ export class InstanceConnectionService extends BaseService {
       try {
         console.log(`Checking status for instance: "${instanceName}"`);
         
-        // Corrigido: Usando o formato correto de URL para o endpoint de status
-        // Alterado de query parameter para path parameter conforme documentação Evolution API
+        // Sempre usar connectionState para status!
         const data = await this.apiClient.fetchWithHeaders(`/instance/connectionState/${instanceName}`, {
           method: "GET"
         });
         
         if (!data || !data.state) {
-          console.log("Resposta de connectionState sem state, tentando fallback:", data);
-          
-          // Implementação de fallback usando /instance/info
-          try {
-            const infoData = await this.apiClient.fetchWithHeaders(`/instance/info/${instanceName}`, {
-              method: "GET"
-            });
-            
-            console.log("Resposta do fallback info:", infoData);
-            if (infoData && infoData.instance) {
-              // Se o número está conectado ao WhatsApp, a instância geralmente tem status 'connected'
-              const isConnected = infoData.instance.status === 'connected' || 
-                                 (infoData.instance.connected === true);
-                                 
-              return isConnected ? "connected" : "disconnected";
-            }
-          } catch (fallbackError) {
-            console.error("Erro no fallback de verificação de status:", fallbackError);
-          }
-          
-          throw new Error("Estado da instância não disponível na resposta");
+          console.error("Resposta de connectionState sem campo 'state'. Verifique se a Evolution API está correta.", data);
+          throw new Error("Estado da instância não disponível na resposta de connectionState");
         }
         
         console.log(`Status para "${instanceName}": ${data.state}`);
         return data.state || "disconnected";
       } catch (error) {
         console.error("Erro ao verificar status da instância:", error);
-        
-        // Tente o fallback de info se o connectionState falhar
-        try {
-          console.log("Tentando fallback via /instance/info após falha em connectionState");
-          const infoData = await this.apiClient.fetchWithHeaders(`/instance/info/${instanceName}`, {
-            method: "GET"
-          });
-          
-          if (infoData && infoData.instance) {
-            const statusFromInfo = infoData.instance.status === 'connected' || 
-                                 (infoData.instance.connected === true) ? 
-                                  "connected" : "disconnected";
-            console.log(`Status obtido via fallback para "${instanceName}": ${statusFromInfo}`);
-            return statusFromInfo;
-          }
-        } catch (fallbackError) {
-          console.error("Erro também no fallback:", fallbackError);
-        }
-        
+        // Se der erro aqui, retorna "disconnected" (mas não faz fallback para /info/)
         handleApiError(error, "Erro ao verificar status da instância", false);
         return "disconnected";
       } finally {
