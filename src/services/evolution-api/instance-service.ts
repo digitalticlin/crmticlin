@@ -1,128 +1,141 @@
-
 import { ApiClient } from "./api-client";
-import { EvolutionInstance } from "./types";
-import { InstanceFetchService } from "./instance-fetch-service";
-import { InstanceCreationService } from "./instance-creation-service";
-import { InstanceConnectionService } from "./instance-connection-service";
-import { InstanceDeletionService } from "./instance-deletion-service";
+
+export interface EvolutionInstance {
+  instanceName: string;
+  qrcode: string;
+  status: string;
+}
 
 /**
- * Main service that coordinates Evolution API instance operations
- * Acts as a facade for specialized services
+ * Class for managing WhatsApp instances
  */
 export class InstanceService {
-  private fetchService: InstanceFetchService;
-  private creationService: InstanceCreationService;
-  private connectionService: InstanceConnectionService;
-  private deletionService: InstanceDeletionService;
   private apiClient: ApiClient;
 
   constructor(apiClient: ApiClient) {
     this.apiClient = apiClient;
-    this.fetchService = new InstanceFetchService(apiClient);
-    this.creationService = new InstanceCreationService(apiClient);
-    this.connectionService = new InstanceConnectionService(apiClient);
-    this.deletionService = new InstanceDeletionService(apiClient);
   }
 
   /**
-   * Fetches all existing instances
+   * Fetch all instances
+   * @returns Array of instances
    */
   async fetchInstances(): Promise<EvolutionInstance[]> {
-    return this.fetchService.fetchInstances();
-  }
-
-  /**
-   * Generates a unique instance name
-   */
-  async getUniqueInstanceName(baseName: string): Promise<string> {
-    return this.creationService.getUniqueInstanceName(baseName);
-  }
-
-  /**
-   * Creates a new WhatsApp instance
-   */
-  async createInstance(instanceName: string): Promise<EvolutionInstance | null> {
-    return this.creationService.createInstance(instanceName);
-  }
-
-  /**
-   * Forcefully connects to WhatsApp and gets a fresh QR code
-   */
-  async connectInstance(instanceName: string): Promise<string | null> {
-    return this.connectionService.connectInstance(instanceName);
-  }
-
-  /**
-   * Gets or refreshes the QR Code for an instance
-   */
-  async refreshQrCode(instanceName: string): Promise<string | null> {
-    return this.connectionService.refreshQrCode(instanceName);
-  }
-
-  /**
-   * Checks the connection status of an instance
-   */
-  async checkInstanceStatus(instanceName: string): Promise<"connected" | "connecting" | "disconnected"> {
-    return this.connectionService.checkInstanceStatus(instanceName);
-  }
-
-  /**
-   * Deletes an instance
-   */
-  async deleteInstance(instanceName: string): Promise<boolean> {
-    const result = await this.deletionService.deleteInstance(instanceName);
-    if (result) {
-      // Invalidate cache after successful deletion
-      this.fetchService.invalidateCache();
-    }
-    return result;
-  }
-  
-  /**
-   * Gets device information for a connected instance
-   */
-  async getDeviceInfo(instanceName: string): Promise<any | null> {
     try {
-      console.log(`Obtendo informações do dispositivo para: "${instanceName}"`);
-      // Endpoint corrigido para obter informações do dispositivo
-      const response = await this.apiClient.fetchWithHeaders(`/instance/deviceInfo/${instanceName}`, {
-        method: "GET"
-      });
-      
-      console.log("Resposta de deviceInfo:", response);
-      
-      if (!response || response.status === 'error') {
-        console.log("Erro ao obter informações do dispositivo, tentando fallback");
-        
-        // Fallback: use /instance/info endpoint que também pode conter informações do dispositivo
-        try {
-          const infoResponse = await this.apiClient.fetchWithHeaders(`/instance/info/${instanceName}`, {
-            method: "GET"
-          });
-          
-          if (infoResponse && infoResponse.instance && infoResponse.instance.phone) {
-            return {
-              status: 'success',
-              device: {
-                phone: infoResponse.instance.phone,
-                battery: infoResponse.instance.battery || { value: 0 },
-                wa_version: infoResponse.instance.waVersion || "Desconhecido",
-                platform: infoResponse.instance.platform || "Unknown"
-              }
-            };
-          }
-        } catch (fallbackError) {
-          console.error("Erro no fallback para obter informações do dispositivo:", fallbackError);
-        }
-        
-        return null;
-      }
-      
+      console.log("Fetching instances...");
+      const response = await this.apiClient.fetchWithHeaders("/instance/all", { method: "GET" });
       return response;
     } catch (error) {
-      console.error("Erro ao obter informações do dispositivo:", error);
-      return null;
+      console.error("Error fetching instances:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Create a new instance
+   * @param instanceName Name of the instance to create
+   */
+  async createInstance(instanceName: string): Promise<EvolutionInstance> {
+    try {
+      console.log(`Creating instance: ${instanceName}`);
+      const response = await this.apiClient.fetchWithHeaders(`/instance/create/${instanceName}`, { method: "GET" });
+      return response;
+    } catch (error) {
+      console.error(`Error creating instance ${instanceName}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete an instance
+   * @param instanceName Name of the instance to delete
+   */
+  async deleteInstance(instanceName: string): Promise<EvolutionInstance> {
+    try {
+      console.log(`Deleting instance: ${instanceName}`);
+      const response = await this.apiClient.fetchWithHeaders(`/instance/delete/${instanceName}`, { method: "GET" });
+      return response;
+    } catch (error) {
+      console.error(`Error deleting instance ${instanceName}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Refresh the QR code for an instance
+   * @param instanceName Name of the instance to refresh the QR code for
+   */
+  async refreshQrCode(instanceName: string): Promise<EvolutionInstance> {
+    try {
+      console.log(`Refreshing QR code for instance: ${instanceName}`);
+      const response = await this.apiClient.fetchWithHeaders(`/instance/qrcode/${instanceName}`, { method: "GET" });
+      return response;
+    } catch (error) {
+      console.error(`Error refreshing QR code for instance ${instanceName}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check instance connection status
+   * @param instanceName Name of the instance to check
+   * @returns Status string
+   */
+  async connectInstance(instanceName: string): Promise<string> {
+    try {
+      console.log(`Connecting instance: ${instanceName}`);
+      const response = await this.apiClient.fetchWithHeaders(`/instance/connect/${instanceName}`, { method: "GET" });
+      return response?.qrcode;
+    } catch (error) {
+      console.error(`Error connecting instance ${instanceName}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get device information for an instance
+   * @param instanceName Name of the instance to get device info for
+   */
+  async getDeviceInfo(instanceName: string): Promise<any> {
+    try {
+      console.log(`Getting device info for instance: ${instanceName}`);
+      const response = await this.apiClient.fetchWithHeaders(`/instance/device/${instanceName}`, { method: "GET" });
+      return response;
+    } catch (error) {
+      console.error(`Error getting device info for instance ${instanceName}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check instance connection status
+   * @param instanceName Name of the instance to check
+   * @param detailed Whether to return detailed information
+   * @returns Status string or detailed info object
+   */
+  async checkInstanceStatus(instanceName: string, detailed: boolean = false): Promise<string | any> {
+    try {
+      console.log(`Checking instance status: ${instanceName}, detailed: ${detailed}`);
+      
+      if (detailed) {
+        // Get full instance information
+        const response = await this.apiClient.fetchWithHeaders(
+          `/instance/info/${instanceName}`, 
+          { method: "GET" }
+        );
+        return response;
+      } else {
+        // Get simple connection status
+        const response = await this.apiClient.fetchWithHeaders(
+          `/instance/connectionState/${instanceName}`, 
+          { method: "GET" }
+        );
+        
+        return response?.state || 'disconnected';
+      }
+    } catch (error) {
+      console.error(`Error checking instance status for ${instanceName}:`, error);
+      return 'disconnected';
     }
   }
 }

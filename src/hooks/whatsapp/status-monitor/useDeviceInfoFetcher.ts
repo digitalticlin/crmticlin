@@ -61,13 +61,11 @@ export const useDeviceInfoFetcher = () => {
       if (infoData === 'connected' && window._whatsAppInstancesStore) {
         // Try to get phone info using another endpoint
         try {
-          // Use instance info endpoint through the service
-          const instanceInfo = await evolutionApiService.apiClient.fetchWithHeaders(
-            `/instance/info/${instanceName}`, 
-            { method: "GET" }
-          );
+          // Use the checkInstanceStatus method first to get instance info
+          // If we need more detailed info, we could add a dedicated method to evolutionApiService
+          const instanceInfo = await evolutionApiService.checkInstanceStatus(instanceName, true);
           
-          if (instanceInfo?.instance?.phone) {
+          if (instanceInfo && typeof instanceInfo === 'object' && instanceInfo.instance?.phone) {
             const updateInstance = window._whatsAppInstancesStore.getState().actions.updateInstance;
             updateInstance(instanceId, { 
               phoneNumber: instanceInfo.instance.phone,

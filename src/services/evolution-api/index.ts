@@ -16,7 +16,7 @@ export const evolutionApiService = {
   createInstance: (instanceName: string) => instanceService.createInstance(instanceName),
   deleteInstance: (instanceName: string) => instanceService.deleteInstance(instanceName),
   refreshQrCode: (instanceName: string) => instanceService.refreshQrCode(instanceName),
-  checkInstanceStatus: (instanceName: string) => instanceService.checkInstanceStatus(instanceName),
+  checkInstanceStatus: (instanceName: string, detailed: boolean = false) => instanceService.checkInstanceStatus(instanceName, detailed),
   connectInstance: (instanceName: string) => instanceService.connectInstance(instanceName),
   getDeviceInfo: (instanceName: string) => instanceService.getDeviceInfo(instanceName),
   
