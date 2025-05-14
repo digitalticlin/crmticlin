@@ -1,4 +1,4 @@
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
 import { KanbanColumn } from "../KanbanColumn";
 
@@ -24,9 +24,43 @@ export const BoardContent = ({
   onReturnToFunnel
 }: BoardContentProps) => {
   const visibleColumns = columns.filter(column => !column.isHidden);
+
+  // Adiciona drag-to-scroll horizontal
+  // (mouse down para arrastar o board inteiro)
+  let isDragging = false;
+  let startX = 0;
+  let scrollLeft = 0;
+
+  const mouseDown = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+    isDragging = true;
+    startX = e.pageX - (e.currentTarget.scrollLeft ?? 0);
+    scrollLeft = e.currentTarget.scrollLeft;
+    e.currentTarget.classList.add("cursor-grabbing");
+    window.addEventListener("mousemove", mouseMove);
+    window.addEventListener("mouseup", mouseUp);
+  };
+  const mouseMove = (e: MouseEvent) => {
+    if (!isDragging) return;
+    const board = document.getElementById("kanban-board-scroll");
+    if (!board) return;
+    board.scrollLeft = scrollLeft - (startX - e.pageX);
+  };
+  const mouseUp = (e: MouseEvent) => {
+    isDragging = false;
+    const board = document.getElementById("kanban-board-scroll");
+    if (board) board.classList.remove("cursor-grabbing");
+    window.removeEventListener("mousemove", mouseMove);
+    window.removeEventListener("mouseup", mouseUp);
+  };
+
   return (
-    <ScrollArea className="w-full h-full">
-      <div className="flex gap-8 md:gap-10 px-2 md:px-8 pb-10 md:pb-12 min-w-max justify-center">
+    <div
+      id="kanban-board-scroll"
+      className="w-full h-full overflow-x-auto flex"
+      style={{ WebkitOverflowScrolling: "touch", cursor: "grab" }}
+      onMouseDown={mouseDown}
+    >
+      <div className="flex gap-8 md:gap-10 px-2 md:px-8 pb-10 md:pb-12 min-w-max justify-center w-full">
         {visibleColumns.map((column) => (
           <KanbanColumn
             key={column.id}
@@ -41,6 +75,6 @@ export const BoardContent = ({
           />
         ))}
       </div>
-    </ScrollArea>
+    </div>
   );
 };

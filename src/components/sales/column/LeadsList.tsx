@@ -1,7 +1,7 @@
+
 import { Droppable, Draggable } from "react-beautiful-dnd";
 import { KanbanLead } from "@/types/kanban";
 import { LeadCard } from "@/components/sales/LeadCard";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
 interface LeadsListProps {
@@ -28,44 +28,42 @@ export const LeadsList = ({
   return (
     <Droppable droppableId={droppableId} key={droppableId}>
       {(provided, snapshot) => (
-        <ScrollArea className="flex-1 p-3 min-h-[200px]">
-          <div
-            ref={provided.innerRef}
-            {...provided.droppableProps}
-            className={cn(
-              "min-h-full transition-all duration-200 rounded-3xl",
-              snapshot.isDraggingOver &&
-                "ring-2 ring-ticlin/80 bg-[#fffde8] dark:bg-neutral-900/80 shadow-lg scale-[1.02]"
-            )}
-            style={{
-              transition: "background-color 0.3s, transform 0.25s, border 0.2s",
-              minHeight: "120px",
-            }}
-          >
-            {leads.map((lead, index) => (
-              <Draggable key={lead.id} draggableId={lead.id} index={index}>
-                {(provided, snapshot) => (
-                  <LeadCard
-                    lead={lead}
-                    provided={provided}
-                    onClick={() => onOpenLeadDetail(lead)}
-                    onOpenChat={onOpenChat ? () => onOpenChat(lead) : undefined}
-                    onMoveToWon={
-                      onMoveToWonLost ? () => onMoveToWonLost(lead, "won") : undefined
-                    }
-                    onMoveToLost={
-                      onMoveToWonLost ? () => onMoveToWonLost(lead, "lost") : undefined
-                    }
-                    onReturnToFunnel={onReturnToFunnel ? () => onReturnToFunnel(lead) : undefined}
-                    isWonLostView={isWonLostView}
-                    isDragging={snapshot.isDragging}
-                  />
-                )}
-              </Draggable>
-            ))}
-            {provided.placeholder}
-          </div>
-        </ScrollArea>
+        <div
+          ref={provided.innerRef}
+          {...provided.droppableProps}
+          className={cn(
+            "min-h-full transition-all duration-200 rounded-3xl",
+            snapshot.isDraggingOver &&
+              "ring-2 ring-ticlin/80 bg-[#fffde8] dark:bg-neutral-900/80 shadow-lg scale-[1.02]"
+          )}
+          style={{
+            transition: "background-color 0.3s, transform 0.25s, border 0.2s",
+            minHeight: "120px",
+          }}
+        >
+          {leads.map((lead, index) => (
+            <Draggable key={lead.id} draggableId={lead.id} index={index}>
+              {(provided, snapshot) => (
+                <LeadCard
+                  lead={lead}
+                  provided={provided}
+                  onClick={() => onOpenLeadDetail(lead)}
+                  onOpenChat={onOpenChat ? () => onOpenChat(lead) : undefined}
+                  onMoveToWon={
+                    onMoveToWonLost ? () => onMoveToWonLost(lead, "won") : undefined
+                  }
+                  onMoveToLost={
+                    onMoveToWonLost ? () => onMoveToWonLost(lead, "lost") : undefined
+                  }
+                  onReturnToFunnel={onReturnToFunnel ? () => onReturnToFunnel(lead) : undefined}
+                  isWonLostView={isWonLostView}
+                  isDragging={snapshot.isDragging}
+                />
+              )}
+            </Draggable>
+          ))}
+          {provided.placeholder}
+        </div>
       )}
     </Droppable>
   );

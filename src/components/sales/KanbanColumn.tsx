@@ -1,3 +1,4 @@
+
 import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
 import { ColumnHeader } from "./column/ColumnHeader";
 import { ColumnContent } from "./column/ColumnContent";
@@ -28,7 +29,7 @@ export const KanbanColumn = ({
 
   return (
     <div
-      className="relative glass bg-white/50 dark:bg-black/30 rounded-3xl border-none shadow-glass-lg overflow-hidden flex flex-col min-w-[300px] max-w-[350px] w-full h-[calc(100vh-300px)] md:h-[72vh] backdrop-blur-2xl transition-all duration-300 group"
+      className="relative glass bg-white/50 dark:bg-black/30 rounded-3xl border-none shadow-glass-lg overflow-hidden flex flex-col min-w-[300px] max-w-[350px] w-full md:h-[72vh] h-[540px]"
       style={{
         boxShadow: "0 8px 40px 0 rgba(31,38,135,0.13)",
         border: "1.5px solid rgba(255,255,255,0.15)",
@@ -41,15 +42,18 @@ export const KanbanColumn = ({
         onColumnUpdate={onColumnUpdate}
         onColumnDelete={onColumnDelete}
       />
-      <ColumnContent
-        columnId={column.id}
-        leads={column.leads}
-        onOpenLeadDetail={onOpenLeadDetail}
-        onOpenChat={onOpenChat}
-        onMoveToWonLost={!isWonLostView ? onMoveToWonLost : undefined}
-        onReturnToFunnel={isWonLostView ? onReturnToFunnel : undefined}
-        isWonLostView={isWonLostView}
-      />
+      {/* Limite de altura, ativando scroll apenas no conteúdo dos cards */}
+      <div className="flex-1 overflow-y-auto px-1 pb-1">
+        <ColumnContent
+          columnId={column.id}
+          leads={column.leads}
+          onOpenLeadDetail={onOpenLeadDetail}
+          onOpenChat={onOpenChat}
+          onMoveToWonLost={!isWonLostView ? onMoveToWonLost : undefined}
+          onReturnToFunnel={isWonLostView ? onReturnToFunnel : undefined}
+          isWonLostView={isWonLostView}
+        />
+      </div>
     </div>
   );
 };
