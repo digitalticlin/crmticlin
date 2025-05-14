@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -79,7 +78,7 @@ export default {
                     800: '#5f6200',
                     900: '#424400',
                     950: '#252600',
-                }
+                },
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -129,7 +128,18 @@ export default {
 				'accordion-up': 'accordion-up 0.2s ease-out',
                 'fade-in': 'fade-in 0.4s ease-out',
                 'scale-in': 'scale-in 0.3s ease-out'
-			}
+			},
+			fontFamily: {
+				inter: ['Inter', 'sans-serif'],
+			},
+			boxShadow: {
+				glass: "0 4px 32px 0 rgba(31, 38, 135, 0.07)",
+				'glass-lg': "0 8px 40px 0 rgba(31, 38, 135, 0.12)",
+			},
+			backgroundImage: {
+				'glass-light': "linear-gradient(135deg, rgba(255,255,255,0.60) 80%, rgba(245,245,245,0.76) 100%)",
+				'glass-dark': "linear-gradient(135deg, rgba(30,30,30,0.76) 80%, rgba(18,18,18,0.9) 100%)",
+			},
 		}
 	},
 	plugins: [require("tailwindcss-animate")],

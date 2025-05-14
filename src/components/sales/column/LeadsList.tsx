@@ -1,8 +1,8 @@
-
 import { Droppable, Draggable } from "react-beautiful-dnd";
 import { KanbanLead } from "@/types/kanban";
 import { LeadCard } from "@/components/sales/LeadCard";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 interface LeadsListProps {
   columnId: string;
@@ -23,8 +23,6 @@ export const LeadsList = ({
   onReturnToFunnel,
   isWonLostView = false
 }: LeadsListProps) => {
-  // Ensure the droppableId is valid and consistent by sanitizing it
-  // This is crucial as react-beautiful-dnd is very strict about ID consistency
   const droppableId = columnId;
   
   return (
@@ -34,12 +32,13 @@ export const LeadsList = ({
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`min-h-full transition-colors duration-200 ${
-              snapshot.isDraggingOver ? 'bg-slate-100/50 dark:bg-slate-800/50 rounded-lg scale-[1.005] border border-primary/20' : ''
-            }`}
+            className={cn(
+              "min-h-full transition-all duration-200 rounded-2xl",
+              snapshot.isDraggingOver && "ring-2 ring-[#d3d800] bg-[#f5f5f5]/70 dark:bg-neutral-800/70 shadow-glass border-[#d3d800]/50"
+            )}
             style={{
-              transition: 'background-color 0.2s ease, transform 0.2s ease, border 0.2s ease',
-              minHeight: '100px' // Ensure min height for empty columns
+              transition: 'background-color 0.2s, transform 0.2s, border 0.2s',
+              minHeight: '100px'
             }}
           >
             {leads.map((lead, index) => (

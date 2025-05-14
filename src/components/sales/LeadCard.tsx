@@ -1,4 +1,3 @@
-
 import { KanbanLead, FIXED_COLUMN_IDS } from "@/types/kanban";
 import { cn } from "@/lib/utils";
 import { DraggableProvided } from "react-beautiful-dnd";
@@ -31,40 +30,32 @@ export const LeadCard = ({
 }: LeadCardProps) => {
   const isWon = isWonLostView && lead.columnId === FIXED_COLUMN_IDS.WON;
   const isLost = isWonLostView && lead.columnId === FIXED_COLUMN_IDS.LOST;
-
-  // Now the entire card opens chat by default when clicked
   const handleCardClick = () => {
-    if (onOpenChat) {
-      onOpenChat();
-    } else {
-      onClick(); // Fallback to the default onClick behavior if onOpenChat isn't provided
-    }
+    if (onOpenChat) onOpenChat();
+    else onClick();
   };
-
   return (
     <div
       ref={provided.innerRef}
       {...provided.draggableProps}
       {...provided.dragHandleProps}
       className={cn(
-        "bg-white dark:bg-gray-800 mb-3 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm transition-all p-3 cursor-pointer",
-        isDragging && "shadow-lg scale-[1.02] border-primary z-50 opacity-95",
-        !isDragging && "hover:shadow-md animate-fade-in",
+        "glass bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl mb-3 rounded-2xl border-2 border-transparent shadow-glass-lg transition-all duration-200 p-3 cursor-pointer font-inter",
+        isDragging && "shadow-glass scale-105 opacity-90 border-[#d3d800] z-50",
+        !isDragging && "hover:shadow-glass-lg hover:scale-[1.02] hover:border-[#d3d800]",
         isWon && "border-l-4 border-l-green-500",
         isLost && "border-l-4 border-l-red-500"
       )}
-      onClick={handleCardClick}
       style={{
         ...provided.draggableProps.style,
-        // Fix DnD issues by ensuring proper positioning during drag
         ...(isDragging ? {
           transformOrigin: 'center',
-          transition: 'transform 0.1s ease, opacity 0.1s ease, box-shadow 0.1s ease',
+          transition: 'transform 0.16s cubic-bezier(.25,.8,.25,1), opacity 0.1s, box-shadow 0.16s',
         } : {})
       }}
+      onClick={handleCardClick}
     >
       <LeadCardContent lead={lead} isWonLostView={isWonLostView} />
-      
       <div className="flex justify-between items-center">
         <LeadCardTags tags={lead.tags} />
         <LeadCardActions 

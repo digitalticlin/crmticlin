@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import { useSalesFunnel } from "@/hooks/useSalesFunnel";
@@ -104,7 +103,7 @@ export default function SalesFunnel() {
   );
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 overflow-hidden">
+    <div className="flex h-screen bg-[linear-gradient(135deg,#f5f5f5_0%,#e0e0e0_100%)] dark:bg-[linear-gradient(135deg,#121212_0%,#222_100%)] font-inter overflow-hidden">
       <Sidebar />
       
       <main className="flex-1 overflow-hidden">
@@ -112,14 +111,15 @@ export default function SalesFunnel() {
           {/* Header */}
           <div className="flex justify-between items-center mb-4">
             <div>
-              <h1 className="text-2xl font-bold">Funil de Vendas</h1>
-              <p className="text-muted-foreground">Gerencie seus leads e oportunidades de vendas</p>
+              <h1 className="text-2xl font-bold font-inter mb-1 dark:text-white">Funil de Vendas</h1>
+              <p className="text-muted-foreground font-inter">Gerencie seus leads e oportunidades de vendas</p>
             </div>
             
             <div className="flex gap-2">
               {activeTab === "won-lost" ? (
                 <Button 
                   variant="outline" 
+                  className="glass border-none shadow-glass-lg font-inter"
                   onClick={() => setActiveTab("funnel")}
                 >
                   <ChevronLeft className="h-4 w-4 mr-2" />
@@ -133,9 +133,19 @@ export default function SalesFunnel() {
           
           {/* Tabs for switching between funnel and won/lost leads */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
-            <TabsList>
-              <TabsTrigger value="funnel">Funil Principal</TabsTrigger>
-              <TabsTrigger value="won-lost">Ganhos e Perdidos</TabsTrigger>
+            <TabsList className="bg-white/60 dark:bg-neutral-900/70 glass shadow-glass border-none backdrop-blur-xl">
+              <TabsTrigger
+                value="funnel"
+                className={`font-semibold font-inter px-6 transition-all ${activeTab==="funnel" ? "text-black dark:text-ticlin bg-[#d3d800]/80" : ""}`}
+              >
+                Funil Principal
+              </TabsTrigger>
+              <TabsTrigger
+                value="won-lost"
+                className={`font-semibold font-inter px-6 transition-all ${activeTab==="won-lost" ? "text-black dark:text-ticlin bg-[#d3d800]/80" : ""}`}
+              >
+                Ganhos e Perdidos
+              </TabsTrigger>
             </TabsList>
           </Tabs>
 
