@@ -128,16 +128,22 @@ export const useWhatsAppInstances = (userEmail: string) => {
       try {
         setIsLoading(prev => ({ ...prev, [instanceId]: true }));
         setLastError(null);
-        
+
         const instance = instances.find(i => i.id === instanceId);
         if (!instance) {
           throw new Error("Instance not found");
         }
-        
+
         await deleteInstance(instance);
-        
-        // Remove from local state after success
-        setInstances(instances.filter(i => i.id !== instanceId));
+
+        // Após deletar, faz um fetch atualizado do banco ao invés de só remover do estado local
+        if (companyId) {
+          const latestInstances = await fetchInstances(companyId);
+          setInstances(latestInstances);
+        } else {
+          setInstances(instances.filter(i => i.id !== instanceId));
+        }
+
         toast.success("WhatsApp successfully disconnected!");
       } catch (error: any) {
         console.error("Error deleting instance:", error);

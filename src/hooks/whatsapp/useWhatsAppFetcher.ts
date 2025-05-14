@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -115,13 +114,15 @@ export const useWhatsAppFetcher = () => {
 
   // Mapeia os dados do banco para o formato do estado da aplicação
   const mapDatabaseInstancesToState = (data: any[]): WhatsAppInstance[] => {
-    return data.map(instance => ({
-      id: instance.id,
-      instanceName: instance.instance_name,
-      connected: instance.status === 'connected',
-      qrCodeUrl: instance.qr_code,
-      phoneNumber: instance.phone
-    }));
+    return data
+      .filter(instance => instance && instance.id !== "1") // Remove qualquer resquício de placeholder
+      .map(instance => ({
+        id: instance.id,
+        instanceName: instance.instance_name,
+        connected: instance.status === 'connected',
+        qrCodeUrl: instance.qr_code,
+        phoneNumber: instance.phone
+      }));
   };
 
   return {

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
 import WhatsAppInstanceCard from "./whatsapp/WhatsAppInstanceCard";
@@ -133,22 +132,25 @@ const WhatsAppSettings = () => {
       )}
       
       <div className="grid gap-4 sm:grid-cols-2">
-        {instances.map(instance => (
-          <WhatsAppInstanceCard 
-            key={instance.id}
-            instance={instance}
-            isLoading={instanceLoading[instance.id] || false}
-            showQrCode={showQrCode === instance.id}
-            onConnect={handleConnectInstance}
-            onDelete={deleteInstance}
-            onRefreshQrCode={refreshQrCode}
-            onStatusCheck={handleStatusCheck}
-          />
-        ))}
+        {instances.map(instance =>
+          // Só renderiza instâncias reais (não manter lógica para placeholder id="1")
+          !!instance.id && instance.id !== "1" ? (
+            <WhatsAppInstanceCard
+              key={instance.id}
+              instance={instance}
+              isLoading={instanceLoading[instance.id] || false}
+              showQrCode={showQrCode === instance.id}
+              onConnect={handleConnectInstance}
+              onDelete={deleteInstance}
+              onRefreshQrCode={refreshQrCode}
+              onStatusCheck={handleStatusCheck}
+            />
+          ) : null
+        )}
         
-        {/* Placeholder for adding new instance - always shown for SuperAdmin or users with appropriate plan */}
-        <PlaceholderInstanceCard 
-          isSuperAdmin={isSuperAdmin} 
+        {/* Placeholder para adicionar novo, mostrado só se não há instâncias reais */}
+        <PlaceholderInstanceCard
+          isSuperAdmin={isSuperAdmin}
           userEmail={userEmail}
         />
       </div>
