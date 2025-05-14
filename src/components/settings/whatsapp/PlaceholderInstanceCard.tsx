@@ -166,7 +166,7 @@ const PlaceholderInstanceCard = ({
         await supabase.from('whatsapp_numbers').delete().eq('id', instanceId);
         toast("Instância cancelada.");
       } catch {
-        toast({ description: "Erro ao remover instância.", variant: "destructive" });
+        toast("Erro ao remover instância.");
       }
     }
     await syncInstanceWithEvolution();
