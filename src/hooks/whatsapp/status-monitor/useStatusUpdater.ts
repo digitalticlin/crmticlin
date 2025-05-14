@@ -1,6 +1,7 @@
 
 import { useState } from "react";
-import { updateInstanceStatusAndPhone, updateConnectionAttempt } from "../database";
+import { updateInstanceStatusAndPhone } from "../database";
+import { updateConnectionAttempt } from "../database/updateConnectionAttempt";
 import { WhatsAppStatus } from "../database/whatsappDatabaseTypes";
 
 /**
