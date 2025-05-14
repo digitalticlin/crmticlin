@@ -1,7 +1,7 @@
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Tag, Plus, ArrowsUpDown } from "lucide-react";
+import { Tag, Plus, ArrowUpDown } from "lucide-react";
 
 interface FunnelActionsBarProps {
   activeTab: string;
@@ -56,7 +56,7 @@ export function FunnelActionsBar({
           className="ml-2 hidden sm:flex gap-1 items-center"
           onClick={onSwitchFunnel}
         >
-          <ArrowsUpDown className="w-4 h-4" />
+          <ArrowUpDown className="w-4 h-4" />
           <span className="hidden md:inline">Alternar Funil</span>
         </Button>
         

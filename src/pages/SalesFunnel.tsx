@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import { useSalesFunnel } from "@/hooks/useSalesFunnel";
@@ -7,7 +6,7 @@ import { LeadDetailSidebar } from "@/components/sales/LeadDetailSidebar";
 import { AddColumnDialog } from "@/components/sales/AddColumnDialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Tag, Plus, ArrowsUpDown } from "lucide-react";
+import { ChevronLeft, Tag, Plus, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { FIXED_COLUMN_IDS, KanbanLead } from "@/types/kanban";
 import { useNavigate } from "react-router-dom";
