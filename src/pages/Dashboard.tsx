@@ -72,7 +72,7 @@ export default function Dashboard() {
                 <h1 className="text-2xl font-bold">{greeting}, Admin</h1>
                 <p className="text-muted-foreground">Bem-vindo de volta ao seu dashboard</p>
               </div>
-              {/* Remover avatar estático pois agora está na Topbar */}
+              {/* Removido qualquer avatar estático ou usuário extra */}
             </div>
             
             {/* KPI Cards */}
