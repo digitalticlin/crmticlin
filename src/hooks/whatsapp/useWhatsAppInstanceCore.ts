@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,7 +27,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
   // Load WhatsApp instances when company ID is available, only once
   useEffect(() => {
     if (!companyId || loadingRef.current) return;
-    
+
     const loadInstances = async () => {
       try {
         loadingRef.current = true;
@@ -41,25 +40,22 @@ export const useWhatsAppInstances = (userEmail: string) => {
         setIsLoading(prev => ({ ...prev, fetch: false }));
       }
     };
-    
+
     loadInstances();
-    
-    // O cleanup não deve resetar loadingRef para permitir que o componente
-    // evite fazer múltiplas chamadas durante seu ciclo de vida
   }, [companyId, fetchInstances]);
 
-  // Initial status check for all instances after loading
+  // Checagem única do status das instâncias logo após carregá-las
   useEffect(() => {
     if (!instances.length) return;
-    
-    // Create cleanup function for periodic status check
-    const cleanupStatusCheck = setupPeriodicStatusCheck(instances);
-    
-    return () => {
-      if (cleanupStatusCheck) cleanupStatusCheck();
-    };
-  }, [instances, setupPeriodicStatusCheck]);
-  
+
+    // Checar status de cada instância apenas uma vez ao abrir a página
+    instances.forEach((instance) => {
+      checkInstanceStatus(instance.id, true);
+    });
+
+    // Não retorna cleanup — nenhuma checagem periódica!
+  }, [instances, checkInstanceStatus]);
+
   return {
     instances,
     isLoading,
