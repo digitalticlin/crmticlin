@@ -11,6 +11,10 @@ interface ColumnContentProps {
   onReturnToFunnel?: (lead: KanbanLead) => void;
   isWonLostView?: boolean;
   renderClone?: any;
+
+  // Corrigindo - adiciona handlers de hover
+  onAnyCardMouseEnter?: () => void;
+  onAnyCardMouseLeave?: () => void;
 }
 
 export const ColumnContent = ({
@@ -21,7 +25,9 @@ export const ColumnContent = ({
   onMoveToWonLost,
   onReturnToFunnel,
   isWonLostView = false,
-  renderClone
+  renderClone,
+  onAnyCardMouseEnter,
+  onAnyCardMouseLeave
 }: ColumnContentProps) => {
   return (
     <LeadsList 
@@ -33,6 +39,9 @@ export const ColumnContent = ({
       onReturnToFunnel={onReturnToFunnel}
       isWonLostView={isWonLostView}
       renderClone={renderClone}
+      // Propaga os novos handlers de hover para LeadsList
+      onAnyCardMouseEnter={onAnyCardMouseEnter}
+      onAnyCardMouseLeave={onAnyCardMouseLeave}
     />
   );
 };
