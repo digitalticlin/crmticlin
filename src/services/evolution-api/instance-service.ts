@@ -30,15 +30,50 @@ export class InstanceService {
    * Create a new instance
    * @param instanceName Name of the instance to create
    */
-  async createInstance(instanceName: string): Promise<EvolutionInstance> {
-    try {
-      console.log(`Creating instance: ${instanceName}`);
-      const response = await this.apiClient.fetchWithHeaders(`/instance/create/${instanceName}`, { method: "GET" });
-      return response;
-    } catch (error) {
-      console.error(`Error creating instance ${instanceName}:`, error);
-      throw error;
+  async createInstance(instanceName: string): Promise<any> {
+    const url = `/instance/create`;
+
+    // Garantir body, headers e endpoint perfeito
+    const body = {
+      instanceName: instanceName,
+      qrcode: true,
+      integration: "WHATSAPP-BAILEYS",
+    };
+
+    // API KEY e Content-Type sempre no header, método sempre POST
+    const response = await this.apiClient.fetchWithHeaders(
+      url,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // ApiClient já insere a chave da API, mas se usar fetch direto, inclua aqui!
+        },
+        body: JSON.stringify(body),
+      }
+    );
+
+    // Checagem dos campos essenciais
+    if (
+      !response ||
+      !response.qrcode ||
+      !response.qrcode.base64 ||
+      !response.instance ||
+      !response.instance.instanceId ||
+      !response.instance.instanceName
+    ) {
+      throw new Error("QR code ou dados ausentes na resposta da Evolution API");
     }
+
+    return {
+      instanceId: response.instance.instanceId,
+      instanceName: response.instance.instanceName,
+      evolutionInstanceName: response.instance.instanceName,
+      qrcode: response.qrcode,
+      hash: response.hash || "",
+      integration: response.instance.integration,
+      status: response.instance.status,
+    };
   }
 
   /**
