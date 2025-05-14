@@ -162,17 +162,17 @@ const PlaceholderInstanceCard = ({
         </CardContent>
       </Card>
 
-      {/* Card/modal para QR code com ações */}
+      {/* Card/modal para QR code com ações e visual aprimorado */}
       {qrCodeDialog.isOpen && qrCodeDialog.qrCodeUrl && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center">
-          <QrCodeActionCard
-            qrCodeUrl={qrCodeDialog.qrCodeUrl}
-            isLoading={isCreating}
-            onScanned={handleScanned}
-            onRegenerate={handleRegenerate}
-            onCancel={handleCancel}
-          />
-        </div>
+        <QrCodeActionCard
+          qrCodeUrl={qrCodeDialog.qrCodeUrl}
+          isLoading={isCreating}
+          onScanned={handleScanned}
+          onRegenerate={handleRegenerate}
+          // Passa o instanceName criado para o Card, para possibilitar o delete correto
+          onCancel={handleCancel}
+          instanceName={instanceName}
+        />
       )}
     </>
   );
