@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { evolutionApiService } from "@/services/evolution-api";
 import { WhatsAppStatus } from "@/hooks/whatsapp/database";
@@ -14,78 +15,123 @@ export const createWhatsAppInstance = async (username: string): Promise<{
   instanceId?: string;
   error?: string;
 }> => {
+  // Novo: função auxiliar interna para tentar nomes sucessivos em caso de erro de nome em uso
+  const tryCreateInstanceWithRetries = async (
+    baseInstanceName: string,
+    maxTries = 10
+  ) => {
+    let attempt = 0;
+    let instanceName = baseInstanceName;
+    let lastError: any = null;
+    while (attempt < maxTries) {
+      try {
+        // Chama Evolution API para criar instância
+        const response = await evolutionApiService.createInstance(instanceName);
+
+        // Corrige: acessar as propriedades com base no que EvolutionInstance retorna (não .instance!)
+        if (
+          !response ||
+          !response.qrcode ||
+          !response.qrcode.base64 ||
+          !response.instanceId
+        ) {
+          throw new Error("QR code ou dados ausentes na resposta da API");
+        }
+
+        // Extrai QR e IDs necessários
+        const qrCode = response.qrcode.base64;
+        const instanceIdFromEvolution = response.instanceId;
+        const evolutionInstanceName = response.instanceName;
+
+        // Salva no Supabase
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError) throw new Error("Erro ao obter dados do usuário");
+        const userId = userData.user?.id;
+
+        // Busca perfil do usuário p/ company_id
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('id', userId)
+          .single();
+
+        if (profileError || !profileData?.company_id)
+          throw new Error("Erro ao obter a empresa do usuário");
+
+        const companyId = profileData.company_id;
+
+        // Salva (insert) no banco
+        const whatsappData = {
+          instance_name: instanceName,
+          phone: "",
+          company_id: companyId,
+          status: "connecting" as WhatsAppStatus,
+          qr_code: qrCode,
+          instance_id: instanceIdFromEvolution,
+          evolution_instance_name: evolutionInstanceName,
+          evolution_token: response.hash || "",
+        };
+
+        const { data: insertData, error: dbError } = await supabase
+          .from('whatsapp_numbers')
+          .insert(whatsappData)
+          .select();
+
+        if (dbError) {
+          throw new Error("Erro ao salvar a instância no banco");
+        }
+
+        const saved = insertData && Array.isArray(insertData) && insertData.length > 0 ? insertData[0] : null;
+
+        return {
+          success: true,
+          qrCode,
+          instanceName,
+          instanceId: saved?.id || instanceIdFromEvolution,
+        };
+      } catch (error: any) {
+        lastError = error;
+        // Analisa se o erro é de nome já em uso pela Evolution API
+        if (error && error.response && error.response.status === 403) {
+          const respMessage = Array.isArray(error.response?.response?.message)
+            ? error.response?.response?.message[0] || ""
+            : error.response?.response?.message || "";
+
+          if (
+            typeof respMessage === "string" &&
+            respMessage.includes("already in use")
+          ) {
+            // Incrementa o sufixo e tenta novamente
+            attempt += 1;
+            instanceName =
+              attempt === 1
+                ? `${baseInstanceName}1`
+                : `${baseInstanceName}${attempt}`;
+            continue; // tenta novamente
+          }
+        }
+        // Para outros erros, retorna imediatamente
+        break;
+      }
+    }
+    // Se saiu do laço, retorna erro
+    return {
+      success: false,
+      error:
+        lastError?.message ||
+        "Não foi possível criar uma instância disponível (nomes já em uso)",
+    };
+  };
+
   try {
-    // Gera nome único para a instância
+    // Gera nome único para a instância inicialmente
     const uniqueInstanceName = await generateUniqueInstanceName(username);
     console.log("Unique instance name generated:", uniqueInstanceName);
 
-    // Busca company_id do usuário atual
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError) throw new Error("Erro ao obter dados do usuário");
-    const userId = userData.user?.id;
+    // Tenta criar a instância, incrementando se necessário
+    const result = await tryCreateInstanceWithRetries(uniqueInstanceName, 10);
 
-    // Busca perfil do usuário p/ company_id
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('company_id')
-      .eq('id', userId)
-      .single();
-
-    if (profileError || !profileData?.company_id)
-      throw new Error("Erro ao obter a empresa do usuário");
-
-    const companyId = profileData.company_id;
-
-    // Chama Evolution API para criar instância via service
-    const response = await evolutionApiService.createInstance(uniqueInstanceName);
-
-    // Corrige: acessar as propriedades com base no que EvolutionInstance retorna (não .instance!)
-    if (
-      !response ||
-      !response.qrcode ||
-      !response.qrcode.base64 ||
-      !response.instanceId
-    ) {
-      throw new Error("QR code ou dados ausentes na resposta da API");
-    }
-
-    // Extrai QR e IDs necessários
-    const qrCode = response.qrcode.base64;
-    const instanceIdFromEvolution = response.instanceId;
-    const evolutionInstanceName = response.instanceName;
-
-    // Salva no Supabase
-    const whatsappData = {
-      instance_name: uniqueInstanceName,
-      phone: "", // Atualiza depois se precisar
-      company_id: companyId,
-      status: "connecting" as WhatsAppStatus,
-      qr_code: qrCode,
-      instance_id: instanceIdFromEvolution,
-      evolution_instance_name: evolutionInstanceName,
-      evolution_token: response.hash || ""
-    };
-
-    // Salva (insert) no banco
-    const { data: insertData, error: dbError } = await supabase
-      .from('whatsapp_numbers')
-      .insert(whatsappData)
-      .select();
-
-    if (dbError) {
-      console.error("Erro ao salvar instância no banco:", dbError);
-      throw new Error("Erro ao salvar a instância no banco");
-    }
-
-    // Retorna info para UI consumir (id do registro salvo)
-    const saved = insertData && Array.isArray(insertData) && insertData.length > 0 ? insertData[0] : null;
-
-    return {
-      success: true,
-      qrCode,
-      instanceName: uniqueInstanceName,
-      instanceId: saved?.id || instanceIdFromEvolution,
-    };
+    return result;
   } catch (error: any) {
     console.error("Erro completo ao criar instância:", error);
     return {
