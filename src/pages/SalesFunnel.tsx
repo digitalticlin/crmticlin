@@ -103,23 +103,28 @@ export default function SalesFunnel() {
   );
 
   return (
-    <div className="flex h-screen bg-[linear-gradient(135deg,#f5f5f5_0%,#e0e0e0_100%)] dark:bg-[linear-gradient(135deg,#121212_0%,#222_100%)] font-inter overflow-hidden">
+    <div
+      className="flex h-screen overflow-hidden font-inter"
+      style={{
+        background: "linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%)",
+      }}
+    >
       <Sidebar />
-      
-      <main className="flex-1 overflow-hidden">
-        <div className="p-6 h-full flex flex-col">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h1 className="text-2xl font-bold font-inter mb-1 dark:text-white">Funil de Vendas</h1>
-              <p className="text-muted-foreground font-inter">Gerencie seus leads e oportunidades de vendas</p>
+      <main className="flex-1 flex flex-col overflow-hidden">
+        {/* CABEÇALHO COM GLASS + BARRA DE FUNDO TRANSLÚCIDO */}
+        <div className="sticky top-0 z-30 w-full flex flex-col gap-4 pb-2">
+          <div className="backdrop-blur-md glass bg-white/60 dark:bg-black/40 rounded-b-3xl shadow-glass-lg px-10 py-6 flex flex-col md:flex-row justify-between items-center border-b transition-all">
+            <div className="flex flex-col items-center md:items-start">
+              <h1 className="text-3xl font-bold mb-1 text-neutral-900 dark:text-white tracking-tight">
+                Funil de Vendas
+              </h1>
+              <p className="text-muted-foreground font-medium">Gerencie seus leads e oportunidades de vendas</p>
             </div>
-            
-            <div className="flex gap-2">
+            <div className="mt-6 md:mt-0 flex gap-2">
               {activeTab === "won-lost" ? (
-                <Button 
-                  variant="outline" 
-                  className="glass border-none shadow-glass-lg font-inter"
+                <Button
+                  variant="outline"
+                  className="rounded-full bg-white/60 dark:bg-black/30 border-none shadow glass text-neutral-800 dark:text-white font-inter hover:ring-2 hover:ring-ticlin"
                   onClick={() => setActiveTab("funnel")}
                 >
                   <ChevronLeft className="h-4 w-4 mr-2" />
@@ -130,56 +135,62 @@ export default function SalesFunnel() {
               )}
             </div>
           </div>
-          
-          {/* Tabs for switching between funnel and won/lost leads */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
-            <TabsList className="bg-white/60 dark:bg-neutral-900/70 glass shadow-glass border-none backdrop-blur-xl">
-              <TabsTrigger
-                value="funnel"
-                className={`font-semibold font-inter px-6 transition-all ${activeTab==="funnel" ? "text-black dark:text-ticlin bg-[#d3d800]/80" : ""}`}
-              >
-                Funil Principal
-              </TabsTrigger>
-              <TabsTrigger
-                value="won-lost"
-                className={`font-semibold font-inter px-6 transition-all ${activeTab==="won-lost" ? "text-black dark:text-ticlin bg-[#d3d800]/80" : ""}`}
-              >
-                Ganhos e Perdidos
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          {/* Main content area - adjusted to take up remaining height */}
-          <div className="flex-1 overflow-hidden">
-            {/* Kanban Board with conditional rendering based on active tab */}
-            {activeTab === "funnel" ? (
-              <KanbanBoard 
-                columns={columns}
-                onColumnsChange={setColumns}
-                onOpenLeadDetail={openLeadDetail}
-                onColumnUpdate={updateColumn}
-                onColumnDelete={deleteColumn}
-                onOpenChat={handleOpenChat}
-                onMoveToWonLost={moveLeadToStatus}
-              />
-            ) : (
-              <KanbanBoard 
-                columns={wonLostColumns}
-                onColumnsChange={setColumns}
-                onOpenLeadDetail={openLeadDetail}
-                onColumnUpdate={updateColumn}
-                onColumnDelete={deleteColumn}
-                onOpenChat={handleOpenChat}
-                onReturnToFunnel={returnLeadToFunnel}
-                isWonLostView={true}
-              />
-            )}
+          {/* TABS reformuladas estilo "pill" glassmorphism */}
+          <div className="flex w-full justify-center">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
+              <TabsList className="shadow glass bg-white/40 dark:bg-black/20 border-none flex px-2 gap-2 rounded-full py-1">
+                <TabsTrigger
+                  value="funnel"
+                  className={`px-8 py-2 rounded-full font-semibold font-inter text-base transition-all
+                   ${activeTab==="funnel"
+                    ? "bg-ticlin text-black shadow-md"
+                    : "text-neutral-700 dark:text-neutral-200 hover:bg-ticlin/30"}
+                  `}
+                >
+                  Funil Principal
+                </TabsTrigger>
+                <TabsTrigger
+                  value="won-lost"
+                  className={`px-8 py-2 rounded-full font-semibold font-inter text-base transition-all
+                   ${activeTab==="won-lost"
+                    ? "bg-ticlin text-black shadow-md"
+                    : "text-neutral-700 dark:text-neutral-200 hover:bg-ticlin/30"}
+                  `}
+                >
+                  Ganhos e Perdidos
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
         </div>
+        {/* MAIN CONTENT COM BOARD CENTRALIZADO */}
+        <div className="flex-1 w-full min-w-0 max-w-full flex flex-col items-center justify-center px-0 md:px-10 pt-0">
+          {activeTab === "funnel" ? (
+            <KanbanBoard
+              columns={columns}
+              onColumnsChange={setColumns}
+              onOpenLeadDetail={openLeadDetail}
+              onColumnUpdate={updateColumn}
+              onColumnDelete={deleteColumn}
+              onOpenChat={handleOpenChat}
+              onMoveToWonLost={moveLeadToStatus}
+            />
+          ) : (
+            <KanbanBoard
+              columns={wonLostColumns}
+              onColumnsChange={setColumns}
+              onOpenLeadDetail={openLeadDetail}
+              onColumnUpdate={updateColumn}
+              onColumnDelete={deleteColumn}
+              onOpenChat={handleOpenChat}
+              onReturnToFunnel={returnLeadToFunnel}
+              isWonLostView={true}
+            />
+          )}
+        </div>
       </main>
-      
-      {/* Lead Detail Sidebar */}
-      <LeadDetailSidebar 
+      {/* Sidebar de Detalhes */}
+      <LeadDetailSidebar
         isOpen={isLeadDetailOpen}
         onOpenChange={setIsLeadDetailOpen}
         selectedLead={selectedLead}

@@ -6,27 +6,19 @@ interface DropZonesProps {
 }
 
 export const DropZones = ({ showDropZones }: DropZonesProps) => {
-  // If not showing the drop zones, render empty droppables to maintain registry
   if (!showDropZones) {
     return (
-      <div style={{ display: 'none' }}>
+      <div style={{ display: "none" }}>
         <Droppable droppableId="drop-zone-won">
           {(provided) => (
-            <div
-              ref={provided.innerRef}
-              {...provided.droppableProps}
-            >
+            <div ref={provided.innerRef} {...provided.droppableProps}>
               {provided.placeholder}
             </div>
           )}
         </Droppable>
-        
         <Droppable droppableId="drop-zone-lost">
           {(provided) => (
-            <div
-              ref={provided.innerRef}
-              {...provided.droppableProps}
-            >
+            <div ref={provided.innerRef} {...provided.droppableProps}>
               {provided.placeholder}
             </div>
           )}
@@ -34,32 +26,49 @@ export const DropZones = ({ showDropZones }: DropZonesProps) => {
       </div>
     );
   }
-  
-  // These droppable areas will be invisible but still functional
   return (
-    <div className="fixed bottom-6 left-0 right-0 flex justify-center gap-6 z-50 px-6">
-      {/* Won drop zone - invisible but functional */}
+    <div className="fixed bottom-10 left-0 right-0 flex justify-center gap-10 z-50 pointer-events-none">
+      {/* Dropzone GANHO */}
       <Droppable droppableId="drop-zone-won">
         {(provided) => (
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className="invisible"
-            style={{ width: '200px', height: '100px' }}
+            className="pointer-events-auto flex flex-col items-center justify-end"
+            style={{
+              width: "180px",
+              height: "100px",
+              borderRadius: "32px",
+              background: "linear-gradient(135deg, #fffbe0cc 30%, #e7e8be90 100%)",
+              filter: "blur(2px)",
+              boxShadow: "0 2px 24px #d3d80033",
+              border: "2px solid #d3d80066",
+              opacity: 0.95,
+              transition: "all 0.16s"
+            }}
           >
             {provided.placeholder}
           </div>
         )}
       </Droppable>
-
-      {/* Lost drop zone - invisible but functional */}
+      {/* Dropzone PERDIDO */}
       <Droppable droppableId="drop-zone-lost">
         {(provided) => (
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className="invisible"
-            style={{ width: '200px', height: '100px' }}
+            className="pointer-events-auto flex flex-col items-center justify-end"
+            style={{
+              width: "180px",
+              height: "100px",
+              borderRadius: "32px",
+              background: "linear-gradient(135deg, #fffbe0cc 30%, #e7e8be90 100%)",
+              filter: "blur(2px)",
+              boxShadow: "0 2px 24px #d3d80033",
+              border: "2px solid #d3d80066",
+              opacity: 0.95,
+              transition: "all 0.16s"
+            }}
           >
             {provided.placeholder}
           </div>

@@ -17,12 +17,12 @@ interface LeadCardProps {
   isDragging?: boolean;
 }
 
-export const LeadCard = ({ 
-  lead, 
-  provided, 
-  onClick, 
-  onOpenChat, 
-  onMoveToWon, 
+export const LeadCard = ({
+  lead,
+  provided,
+  onClick,
+  onOpenChat,
+  onMoveToWon,
   onMoveToLost,
   onReturnToFunnel,
   isWonLostView = false,
@@ -40,25 +40,30 @@ export const LeadCard = ({
       {...provided.draggableProps}
       {...provided.dragHandleProps}
       className={cn(
-        "glass bg-white/70 dark:bg-neutral-900/60 backdrop-blur-xl mb-3 rounded-2xl border-2 border-transparent shadow-glass-lg transition-all duration-200 p-3 cursor-pointer font-inter",
-        isDragging && "shadow-glass scale-105 opacity-90 border-[#d3d800] z-50",
-        !isDragging && "hover:shadow-glass-lg hover:scale-[1.02] hover:border-[#d3d800]",
-        isWon && "border-l-4 border-l-green-500",
-        isLost && "border-l-4 border-l-red-500"
+        "glass bg-white/70 dark:bg-black/30 backdrop-blur-xl mb-5 rounded-3xl border-2 border-transparent shadow-glass-lg transition-all duration-300 p-4 cursor-pointer font-inter group",
+        isDragging
+          ? "scale-105 z-50 opacity-80 shadow-glass-lg border-ticlin border-2"
+          : "hover:scale-105 hover:shadow-2xl hover:border-ticlin hover:border-2",
+        isWon && "border-l-[4px] border-l-green-500",
+        isLost && "border-l-[4px] border-l-red-500"
       )}
       style={{
         ...provided.draggableProps.style,
-        ...(isDragging ? {
-          transformOrigin: 'center',
-          transition: 'transform 0.16s cubic-bezier(.25,.8,.25,1), opacity 0.1s, box-shadow 0.16s',
-        } : {})
+        ...(isDragging
+          ? {
+              transformOrigin: "center",
+              boxShadow: "0 12px 36px 0 rgba(211,216,0,.18)",
+              transition:
+                "transform 0.18s cubic-bezier(.16,.83,.81,1), opacity 0.13s, box-shadow 0.18s"
+            }
+          : {})
       }}
       onClick={handleCardClick}
     >
       <LeadCardContent lead={lead} isWonLostView={isWonLostView} />
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center mt-2">
         <LeadCardTags tags={lead.tags} />
-        <LeadCardActions 
+        <LeadCardActions
           onMoveToWon={onMoveToWon}
           onMoveToLost={onMoveToLost}
           onReturnToFunnel={onReturnToFunnel}

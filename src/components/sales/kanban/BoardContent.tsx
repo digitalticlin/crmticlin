@@ -26,7 +26,7 @@ export const BoardContent = ({
   const visibleColumns = columns.filter(column => !column.isHidden);
   return (
     <ScrollArea className="w-full h-full">
-      <div className="flex gap-6 pb-6 min-w-max h-full">
+      <div className="flex gap-8 md:gap-10 px-2 md:px-8 pb-10 md:pb-12 min-w-max justify-center">
         {visibleColumns.map((column) => (
           <KanbanColumn
             key={column.id}

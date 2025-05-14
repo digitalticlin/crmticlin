@@ -14,47 +14,48 @@ interface LeadsListProps {
   isWonLostView?: boolean;
 }
 
-export const LeadsList = ({ 
-  columnId, 
-  leads, 
-  onOpenLeadDetail, 
-  onOpenChat, 
+export const LeadsList = ({
+  columnId,
+  leads,
+  onOpenLeadDetail,
+  onOpenChat,
   onMoveToWonLost,
   onReturnToFunnel,
   isWonLostView = false
 }: LeadsListProps) => {
   const droppableId = columnId;
-  
+
   return (
     <Droppable droppableId={droppableId} key={droppableId}>
       {(provided, snapshot) => (
-        <ScrollArea className="flex-1 p-3">
+        <ScrollArea className="flex-1 p-3 min-h-[200px]">
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={cn(
-              "min-h-full transition-all duration-200 rounded-2xl",
-              snapshot.isDraggingOver && "ring-2 ring-[#d3d800] bg-[#f5f5f5]/70 dark:bg-neutral-800/70 shadow-glass border-[#d3d800]/50"
+              "min-h-full transition-all duration-200 rounded-3xl",
+              snapshot.isDraggingOver &&
+                "ring-2 ring-ticlin/80 bg-[#fffde8] dark:bg-neutral-900/80 shadow-lg scale-[1.02]"
             )}
             style={{
-              transition: 'background-color 0.2s, transform 0.2s, border 0.2s',
-              minHeight: '100px'
+              transition: "background-color 0.3s, transform 0.25s, border 0.2s",
+              minHeight: "120px",
             }}
           >
             {leads.map((lead, index) => (
-              <Draggable
-                key={lead.id}
-                draggableId={lead.id}
-                index={index}
-              >
+              <Draggable key={lead.id} draggableId={lead.id} index={index}>
                 {(provided, snapshot) => (
-                  <LeadCard 
-                    lead={lead} 
-                    provided={provided} 
-                    onClick={() => onOpenLeadDetail(lead)} 
+                  <LeadCard
+                    lead={lead}
+                    provided={provided}
+                    onClick={() => onOpenLeadDetail(lead)}
                     onOpenChat={onOpenChat ? () => onOpenChat(lead) : undefined}
-                    onMoveToWon={onMoveToWonLost ? () => onMoveToWonLost(lead, "won") : undefined}
-                    onMoveToLost={onMoveToWonLost ? () => onMoveToWonLost(lead, "lost") : undefined}
+                    onMoveToWon={
+                      onMoveToWonLost ? () => onMoveToWonLost(lead, "won") : undefined
+                    }
+                    onMoveToLost={
+                      onMoveToWonLost ? () => onMoveToWonLost(lead, "lost") : undefined
+                    }
                     onReturnToFunnel={onReturnToFunnel ? () => onReturnToFunnel(lead) : undefined}
                     isWonLostView={isWonLostView}
                     isDragging={snapshot.isDragging}
