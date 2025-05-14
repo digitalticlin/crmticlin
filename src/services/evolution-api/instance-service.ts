@@ -1,4 +1,3 @@
-
 import { ApiClient } from "./api-client";
 import { EvolutionInstance } from "./types";
 
@@ -104,7 +103,7 @@ export class InstanceService {
   }
 
   /**
-   * Check instance connection status
+   * Check instance connection status CORRIGIDO: nunca usar /info/ para status simples.
    * @param instanceName Name of the instance to check
    * @param detailed Whether to return detailed information
    * @returns Status string or detailed info object
@@ -112,21 +111,20 @@ export class InstanceService {
   async checkInstanceStatus(instanceName: string, detailed: boolean = false): Promise<string | any> {
     try {
       console.log(`Checking instance status: ${instanceName}, detailed: ${detailed}`);
-      
+
       if (detailed) {
-        // Get full instance information
+        // Get full instance information (legítimo!)
         const response = await this.apiClient.fetchWithHeaders(
-          `/instance/info/${instanceName}`, 
+          `/instance/info/${instanceName}`,
           { method: "GET" }
         );
         return response;
       } else {
-        // Get simple connection status
+        // Para status simples, sempre usar connectionState!
         const response = await this.apiClient.fetchWithHeaders(
-          `/instance/connectionState/${instanceName}`, 
+          `/instance/connectionState/${instanceName}`,
           { method: "GET" }
         );
-        
         return response?.state || 'disconnected';
       }
     } catch (error) {
