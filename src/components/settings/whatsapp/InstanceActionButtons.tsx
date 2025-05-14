@@ -26,24 +26,44 @@ const InstanceActionButtons = ({
     <div className="flex gap-2">
       {!connected ? (
         /* Disconnected state buttons */
-        <Button 
-          variant="whatsapp" 
-          className="flex-1"
-          onClick={hasQrCode ? onRefreshQrCode : onConnect}
-          disabled={isLoading || actionInProgress}
-        >
-          {hasQrCode ? (
-            <>
-              <RefreshCw className={`w-4 h-4 mr-2 ${isLoading || actionInProgress ? "animate-spin" : ""}`} />
-              {isLoading || actionInProgress ? "Atualizando..." : "Atualizar QR Code"}
-            </>
-          ) : (
-            <>
-              <QrCode className="w-4 h-4 mr-2" />
-              {isLoading || actionInProgress ? "Conectando..." : "Conectar WhatsApp"}
-            </>
-          )}
-        </Button>
+        <>
+          <Button 
+            variant="whatsapp" 
+            className="flex-1"
+            onClick={hasQrCode ? onRefreshQrCode : onConnect}
+            disabled={isLoading || actionInProgress}
+          >
+            {hasQrCode ? (
+              <>
+                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading || actionInProgress ? "animate-spin" : ""}`} />
+                {isLoading || actionInProgress ? "Atualizando..." : "Atualizar QR Code"}
+              </>
+            ) : (
+              <>
+                <QrCode className="w-4 h-4 mr-2" />
+                {isLoading || actionInProgress ? "Conectando..." : "Conectar WhatsApp"}
+              </>
+            )}
+          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  variant="destructive"
+                  className="flex-1"
+                  onClick={onDelete}
+                  disabled={isLoading || actionInProgress}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  {isLoading || actionInProgress ? "Removendo..." : "Deletar"}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Remover permanentemente esta instância da sua conta</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </>
       ) : (
         /* Connected state buttons */
         <TooltipProvider>
@@ -70,3 +90,4 @@ const InstanceActionButtons = ({
 };
 
 export default InstanceActionButtons;
+
