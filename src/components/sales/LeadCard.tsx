@@ -49,9 +49,9 @@ export const LeadCard = ({
       {...provided.draggableProps}
       {...provided.dragHandleProps}
       className={cn(
-        // Largura limitada + centralizado na coluna (ajuste aqui)
+        // Card lead mais largo e centralizado
         "glass bg-white/70 dark:bg-black/30 backdrop-blur-xl mb-5 rounded-3xl border-2 border-transparent shadow-glass-lg transition-all duration-300 p-4 cursor-pointer font-inter group",
-        "w-[88%] max-w-[320px] mx-auto", // <-- centralizado e mais estreito
+        "w-[96%] max-w-[380px] mx-auto", // <-- card mais largo e centralizado
         isDragging || isClone
           ? "scale-105 z-[99999] opacity-90 shadow-glass-lg border-ticlin border-2 pointer-events-none"
           : "hover:scale-105 hover:z-30 hover:relative hover:shadow-2xl hover:border-ticlin hover:border-2",

@@ -31,15 +31,16 @@ export const KanbanColumn = ({
   const columnColor = column.color || "#e0e0e0";
   const [isAnyCardHovered, setIsAnyCardHovered] = useState(false);
 
-  // Diminui a largura da coluna para caber mais etapas na tela
+  // Nova: espaço maior entre header e cards. Libera overflow visual para zoom do card.
   return (
     <div
-      className="relative glass bg-white/50 dark:bg-black/30 rounded-3xl border-none shadow-glass-lg overflow-hidden flex flex-col min-w-[290px] max-w-[320px] w-full md:h-[72vh] h-[540px] transition-all"
+      className="relative glass bg-white/50 dark:bg-black/30 rounded-3xl border-none shadow-glass-lg flex flex-col min-w-[290px] max-w-[320px] w-full md:h-[72vh] h-[540px] transition-all"
       style={{
         boxShadow: "0 8px 40px 0 rgba(31,38,135,0.13)",
         border: "1.5px solid rgba(255,255,255,0.15)",
         marginBottom: 0,
         zIndex: 10,
+        // overflow visível quando hover/drag em card, cortado só se não houver hover
         overflow: isAnyCardHovered ? "visible" : "hidden"
       }}
     >
@@ -49,8 +50,9 @@ export const KanbanColumn = ({
         onColumnUpdate={onColumnUpdate}
         onColumnDelete={onColumnDelete}
       />
-      {/* Limite de altura, ativando scroll apenas no conteúdo dos cards */}
-      <div className="flex-1 overflow-y-auto px-1 pb-1">
+      {/* Espaço extra abaixo do cabeçalho */}
+      <div className="flex-1 overflow-y-auto px-1 pb-1 pt-4">
+        {/* ↑↑ pt-4 = espaço maior do header até os cards */}
         <ColumnContent
           columnId={column.id}
           leads={column.leads}

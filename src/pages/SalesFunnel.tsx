@@ -102,12 +102,11 @@ export default function SalesFunnel() {
           </div>
 
           {/* SESSÃO DAS ETAPAS E AÇÕES */}
-          <div className="mb-4">
+          <div className="mb-8">
             <FunnelActionsBar 
               activeTab={activeTab}
               setActiveTab={setActiveTab}
               onAddColumn={() => addColumn("Nova etapa")}
-              // Os handlers abaixo são só ilustrações, ajuste a lógica real depois conforme necessário
               onManageTags={() => toast.info("Gerenciar etiquetas (em breve!)")}
               onCreateNewFunnel={() => toast.info("Criar novo funil (em breve!)")}
               onSwitchFunnel={() => toast.info("Alternar entre funis (em breve!)")}
