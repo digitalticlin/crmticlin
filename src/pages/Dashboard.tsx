@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import KPICard from "@/components/dashboard/KPICard";
@@ -14,7 +15,12 @@ import {
   Sun
 } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
-import Topbar from "@/components/layout/Topbar";
+import { useAuth } from "@/contexts/AuthContext";
+import { useProfileData } from "@/hooks/useProfileData";
+import { useCompanyData } from "@/hooks/useCompanyData";
+import { useUserCompanies } from "@/hooks/useUserCompanies";
+import { useSwitchCompany } from "@/hooks/useSwitchCompany";
+import TopbarUserMenu from "@/components/layout/TopbarUserMenu";
 import {
   AreaChart,
   Area,
@@ -56,23 +62,57 @@ export default function Dashboard() {
     return "Boa noite";
   });
 
+  // Dados do usuário para o menu/avatar
+  const { user } = useAuth();
+  const { fullName, avatarUrl } = useProfileData();
+  const { companyId } = useCompanyData();
+  const { companies } = useUserCompanies(user?.id);
+  const { switchCompany } = useSwitchCompany(user?.id);
+  const email = user?.email || "";
+
   return (
     <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 overflow-hidden">
       <Sidebar />
 
       <div className="flex-1 flex flex-col overflow-auto">
-        {/* Topbar */}
-        <Topbar />
-
         <main className="flex-1 overflow-auto">
           <div className="p-6">
-            {/* Header */}
+            {/* Header (Greeting + Ícones à direita) */}
             <div className="flex justify-between items-center mb-8">
               <div>
                 <h1 className="text-2xl font-bold">{greeting}, Admin</h1>
                 <p className="text-muted-foreground">Bem-vindo de volta ao seu dashboard</p>
               </div>
-              {/* Removido qualquer avatar estático ou usuário extra */}
+              <div className="flex items-center gap-4">
+                {/* Botão de tema */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Trocar tema"
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                >
+                  {theme === "dark" ? (
+                    <Sun className="w-5 h-5" />
+                  ) : (
+                    <Moon className="w-5 h-5" />
+                  )}
+                </Button>
+
+                {/* Botão de notificações */}
+                <Button variant="ghost" size="icon" aria-label="Notificações">
+                  <Bell className="w-5 h-5" />
+                </Button>
+
+                {/* Avatar/Menu do usuário */}
+                <TopbarUserMenu
+                  fullName={fullName}
+                  email={email}
+                  avatarUrl={avatarUrl}
+                  companyId={companyId}
+                  companies={companies}
+                  onSwitchCompany={switchCompany}
+                />
+              </div>
             </div>
             
             {/* KPI Cards */}
@@ -222,3 +262,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
