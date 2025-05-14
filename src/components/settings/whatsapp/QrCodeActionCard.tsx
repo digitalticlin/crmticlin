@@ -44,9 +44,15 @@ const QrCodeActionCard = ({
       }
       onCancel();
       // Toast de sucesso
-      toast.success("Instância cancelada com sucesso!");
+      toast({
+        title: "Instância cancelada com sucesso!",
+      });
     } catch (error: any) {
-      toast.error(error?.message || "Erro ao cancelar instância");
+      toast({
+        title: "Erro ao cancelar instância",
+        description: error?.message || "",
+        variant: "destructive"
+      });
       onCancel();
     } finally {
       setIsDeleting(false);
