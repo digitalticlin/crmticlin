@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { evolutionApiService } from "@/services/evolution-api";
 import { WhatsAppStatus } from "@/hooks/whatsapp/database";
 import { generateUniqueInstanceName } from "@/utils/whatsapp/instanceNameGenerator";
+import type { CreateInstanceResponse } from "@/services/evolution-api/types";
 
 /**
  * Cria nova instância WhatsApp e salva no banco, retorna QR code.
@@ -37,9 +38,15 @@ export const createWhatsAppInstance = async (username: string): Promise<{
     const companyId = profileData.company_id;
 
     // Chama Evolution API (POST para criar instância, com API-KEY correta)
-    const response = await evolutionApiService.createInstance(uniqueInstanceName);
+    // Aqui garantimos o tipo correto de resposta:
+    const response = await evolutionApiService.createInstance(uniqueInstanceName) as CreateInstanceResponse;
 
-    if (!response || !response.qrcode || !response.qrcode.base64 || !response.instance?.instanceId) {
+    if (
+      !response ||
+      !response.qrcode ||
+      !response.qrcode.base64 ||
+      !response.instance?.instanceId
+    ) {
       throw new Error("QR code ou dados ausentes na resposta da API");
     }
 
