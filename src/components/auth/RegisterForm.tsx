@@ -48,13 +48,13 @@ export default function RegisterForm() {
     setIsLoading(true);
     
     try {
-      // Preparar os dados do usuário para o Supabase - removendo o campo company_id
+      // Preparar os dados do usuário para o Supabase com role definido como admin
       const userData = {
         full_name: data.fullName,
         username: data.username,
         document_id: data.documentId,
-        whatsapp: data.whatsapp
-        // Não enviamos company_id, pois isso está causando o erro
+        whatsapp: data.whatsapp,
+        role: "admin" // Definindo explicitamente o papel como admin
       };
       
       // Registrar o usuário usando o AuthContext

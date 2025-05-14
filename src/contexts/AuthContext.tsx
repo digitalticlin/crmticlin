@@ -75,6 +75,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         delete userData.company_id;
       }
       
+      // Definindo o papel de usuário como "admin" por padrão para todos os novos registros
+      userData.role = "admin";
+      
       const { error } = await supabase.auth.signUp({
         email,
         password,

@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import QrCodeDialog from "./QrCodeDialog";
 import { createWhatsAppInstance } from "@/services/whatsapp/instanceCreationService";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PlaceholderInstanceCardProps {
   isSuperAdmin?: boolean; // Indicates if user is SuperAdmin with no plan restrictions
@@ -20,6 +21,7 @@ const PlaceholderInstanceCard = ({
   const [username, setUsername] = useState<string>("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  const [isNewUser, setIsNewUser] = useState(false);
   
   // Extract username from email when component mounts
   useEffect(() => {
@@ -27,6 +29,37 @@ const PlaceholderInstanceCard = ({
       // Extract username from email (part before @)
       const extractedUsername = userEmail.split('@')[0].replace(/[^a-z0-9]/gi, '');
       setUsername(extractedUsername);
+      
+      // Verificar se o usuário é novo (criou conta recentemente)
+      const checkIfNewUser = async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) return;
+          
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('created_at')
+            .eq('id', session.user.id)
+            .single();
+            
+          if (error) {
+            console.error("Erro ao verificar perfil do usuário:", error);
+            return;
+          }
+          
+          if (data) {
+            // Verificar se a conta foi criada nas últimas 24 horas
+            const creationDate = new Date(data.created_at);
+            const now = new Date();
+            const hoursElapsed = (now.getTime() - creationDate.getTime()) / (1000 * 60 * 60);
+            setIsNewUser(hoursElapsed < 24);
+          }
+        } catch (error) {
+          console.error("Erro ao verificar status do usuário:", error);
+        }
+      };
+      
+      checkIfNewUser();
     }
   }, [userEmail]);
 
@@ -41,8 +74,9 @@ const PlaceholderInstanceCard = ({
       return;
     }
     
-    if (!isSuperAdmin) {
-      toast.error("Available only in higher plans. Upgrade your plan.");
+    // Permitir conexão se for SuperAdmin ou usuário novo (primeira conexão)
+    if (!isSuperAdmin && !isNewUser) {
+      toast.error("Disponível apenas em planos superiores. Atualize seu plano para adicionar mais números de WhatsApp.");
       return;
     }
 
@@ -55,14 +89,14 @@ const PlaceholderInstanceCard = ({
         // Display QR code to user
         setQrCodeUrl(result.qrCode);
         setIsDialogOpen(true);
-        toast.success("Connection request sent successfully!");
+        toast.success("Solicitação de conexão enviada com sucesso!");
       } else {
-        toast.error(result.error || "Could not create WhatsApp instance");
+        toast.error(result.error || "Não foi possível criar a instância do WhatsApp");
       }
       
     } catch (error: any) {
       console.error("Error in handleAddWhatsApp:", error);
-      toast.error("Could not create WhatsApp instance");
+      toast.error("Não foi possível criar a instância do WhatsApp");
     } finally {
       setIsCreating(false);
     }
@@ -78,9 +112,13 @@ const PlaceholderInstanceCard = ({
           
           <h3 className="font-medium">Adicionar número</h3>
           
-          {!isSuperAdmin ? (
+          {!isSuperAdmin && !isNewUser ? (
             <p className="text-sm text-muted-foreground">
               Disponível em planos superiores. Atualize seu plano para adicionar mais números de WhatsApp.
+            </p>
+          ) : isNewUser ? (
+            <p className="text-sm text-muted-foreground">
+              Como novo administrador, você pode adicionar seu primeiro número de WhatsApp.
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">
@@ -92,10 +130,10 @@ const PlaceholderInstanceCard = ({
             variant="whatsapp"
             size="sm"
             className="mt-2"
-            disabled={!isSuperAdmin || isCreating}
+            disabled={(!isSuperAdmin && !isNewUser) || isCreating}
             onClick={handleAddWhatsApp}
           >
-            {isCreating ? "Conectando..." : isSuperAdmin ? "Adicionar WhatsApp" : "Atualizar plano"}
+            {isCreating ? "Conectando..." : (isSuperAdmin || isNewUser) ? "Adicionar WhatsApp" : "Atualizar plano"}
           </Button>
         </CardContent>
       </Card>
