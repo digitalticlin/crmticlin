@@ -43,7 +43,9 @@ export const useWhatsAppConnector = () => {
           status: result.status
         },
         hash: result.hash || "",
-        qrcode: result.qrcode,
+        qrcode: {
+          base64: result.qrcode.base64
+        },
         webhook: result.webhook || {},
         websocket: result.websocket || {},
         rabbitmq: result.rabbitmq || {},
