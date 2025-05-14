@@ -7,10 +7,13 @@ import { LeadDetailSidebar } from "@/components/sales/LeadDetailSidebar";
 import { AddColumnDialog } from "@/components/sales/AddColumnDialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Tag, Plus, ArrowsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { FIXED_COLUMN_IDS, KanbanLead } from "@/types/kanban";
 import { useNavigate } from "react-router-dom";
+
+// Novos controles
+import { FunnelActionsBar } from "@/components/sales/funnel/FunnelActionsBar";
 
 export default function SalesFunnel() {
   const [activeTab, setActiveTab] = useState("funnel");
@@ -91,49 +94,28 @@ export default function SalesFunnel() {
       <Sidebar />
       <main className="flex-1 overflow-auto">
         <div className="p-6">
-          {/* HEADER (idêntico ao dashboard) */}
-          <div className="flex justify-between items-center mb-8">
+          {/* HEADER */}
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
             <div>
               <h1 className="text-2xl font-bold">Funil de Vendas</h1>
               <p className="text-muted-foreground">Gerencie seus leads e oportunidades de vendas</p>
             </div>
-            {/* Aqui pode ir futuras ações do usuário caso precise */}
           </div>
-          {/* SESSÃO DAS ETAPAS DO FUNIL + BOTÃO ADICIONAR ETAPA E ABAS */}
-          <div className="flex flex-col gap-4 mb-4">
-            <div className="flex flex-wrap items-center gap-4">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
-                <TabsList className="shadow bg-white dark:bg-[#232323] border border-slate-200/70 dark:border-white/10 flex px-2 gap-2 rounded-full py-1">
-                  <TabsTrigger
-                    value="funnel"
-                    className={`px-4 py-1 rounded-full font-medium font-inter text-xs md:text-sm transition-all
-                      ${activeTab === "funnel"
-                        ? "bg-ticlin text-black shadow"
-                        : "text-neutral-700 dark:text-white hover:bg-ticlin/10"}
-                    `}
-                  >
-                    Funil Principal
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="won-lost"
-                    className={`px-4 py-1 rounded-full font-medium font-inter text-xs md:text-sm transition-all
-                      ${activeTab === "won-lost"
-                        ? "bg-ticlin text-black shadow"
-                        : "text-neutral-700 dark:text-white hover:bg-ticlin/10"}
-                    `}
-                  >
-                    Ganhos e Perdidos
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-              {/* Botão Adicionar Etapa só aparece na aba principal */}
-              {activeTab === "funnel" && (
-                <div>
-                  <AddColumnDialog onAddColumn={addColumn} />
-                </div>
-              )}
-            </div>
+
+          {/* SESSÃO DAS ETAPAS E AÇÕES */}
+          <div className="mb-4">
+            <FunnelActionsBar 
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              onAddColumn={() => addColumn("Nova etapa")}
+              // Os handlers abaixo são só ilustrações, ajuste a lógica real depois conforme necessário
+              onManageTags={() => toast.info("Gerenciar etiquetas (em breve!)")}
+              onCreateNewFunnel={() => toast.info("Criar novo funil (em breve!)")}
+              onSwitchFunnel={() => toast.info("Alternar entre funis (em breve!)")}
+              onAddLead={() => toast.info("Adicionar lead (em breve!)")}
+            />
           </div>
+          
           {/* BOARD DO FUNIL */}
           <div className="flex-1 w-full min-w-0 max-w-full flex flex-col items-center justify-center px-0 pt-0">
             {activeTab === "funnel" ? (
