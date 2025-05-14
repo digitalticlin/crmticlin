@@ -29,7 +29,7 @@ export const BoardContent = ({
   
   return (
     <ScrollArea className="w-full h-full">
-      <div className="flex gap-4 pb-6 min-w-max h-full">
+      <div className="flex gap-6 pb-6 min-w-max h-full">
         {visibleColumns.map((column) => (
           <KanbanColumn
             key={column.id}

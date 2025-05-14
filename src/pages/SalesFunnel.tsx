@@ -104,22 +104,22 @@ export default function SalesFunnel() {
   );
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 overflow-hidden">
+    <div className="flex h-screen bg-[#f5f5f5] dark:bg-[#121212] bg-gradient-to-br from-[#e0e0e0]/60 to-[#f5f5f5]/95 dark:from-[#121212]/80 dark:to-[#252525]/85 overflow-hidden font-playfair transition-soft">
       <Sidebar />
-      
+
       <main className="flex-1 overflow-hidden">
-        <div className="p-6 h-full flex flex-col">
+        <div className="p-6 h-full flex flex-col glass dark:glass-dark rounded-2xl shadow-lg border-[2px] border-white/30 dark:border-white/10">
           {/* Header */}
           <div className="flex justify-between items-center mb-4">
             <div>
-              <h1 className="text-2xl font-bold">Funil de Vendas</h1>
-              <p className="text-muted-foreground">Gerencie seus leads e oportunidades de vendas</p>
+              <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white font-playfair">Funil de Vendas</h1>
+              <p className="text-muted-foreground font-sans mt-1">Gerencie seus leads e oportunidades de vendas</p>
             </div>
-            
             <div className="flex gap-2">
               {activeTab === "won-lost" ? (
                 <Button 
-                  variant="outline" 
+                  variant="outline"
+                  className="rounded-2xl border shadow-md bg-white/30 hover:bg-white/80 transition-soft font-bold text-gray-900 dark:bg-white/10 dark:text-white"
                   onClick={() => setActiveTab("funnel")}
                 >
                   <ChevronLeft className="h-4 w-4 mr-2" />
@@ -130,18 +130,17 @@ export default function SalesFunnel() {
               )}
             </div>
           </div>
-          
-          {/* Tabs for switching between funnel and won/lost leads */}
+
+          {/* Tabs para alternar funil/won-lost */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
-            <TabsList>
-              <TabsTrigger value="funnel">Funil Principal</TabsTrigger>
-              <TabsTrigger value="won-lost">Ganhos e Perdidos</TabsTrigger>
+            <TabsList className="glass dark:glass-dark rounded-2xl px-2 py-1 flex gap-2 border-transparent shadow-sm">
+              <TabsTrigger value="funnel" className="transition-soft font-bold rounded-lg data-[state=active]:bg-ticlin/90 data-[state=active]:text-black data-[state=active]:shadow-md">Funil Principal</TabsTrigger>
+              <TabsTrigger value="won-lost" className="transition-soft font-bold rounded-lg data-[state=active]:bg-ticlin/90 data-[state=active]:text-black data-[state=active]:shadow-md">Ganhos e Perdidos</TabsTrigger>
             </TabsList>
           </Tabs>
 
-          {/* Main content area - adjusted to take up remaining height */}
-          <div className="flex-1 overflow-hidden">
-            {/* Kanban Board with conditional rendering based on active tab */}
+          {/* Board */}
+          <div className="flex-1 overflow-hidden pt-2">
             {activeTab === "funnel" ? (
               <KanbanBoard 
                 columns={columns}
@@ -184,3 +183,4 @@ export default function SalesFunnel() {
     </div>
   );
 }
+

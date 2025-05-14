@@ -29,11 +29,15 @@ export const KanbanColumn = ({
   
   return (
     <div 
-      className="relative bg-white/10 dark:bg-black/10 backdrop-blur-lg rounded-lg border border-slate-200/20 shadow-xl overflow-hidden flex flex-col min-w-[18rem] h-[calc(100vh-220px)]"
+      className={`relative glass dark:glass-dark rounded-2xl ticlin-shadow transition-soft border-2 border-white/30 dark:border-white/10 shadow-lg flex flex-col min-w-[18rem] max-w-[19rem] h-[calc(100vh-240px)] mx-1`}
+      style={{
+        background: "rgba(255,255,255,0.15)",
+        borderColor: columnColor
+      }}
     >
       {/* Colored bar at the top of the column */}
       <ColumnColorBar color={columnColor} />
-      
+
       <ColumnHeader 
         column={column}
         onColumnUpdate={onColumnUpdate}
@@ -52,3 +56,4 @@ export const KanbanColumn = ({
     </div>
   );
 };
+
