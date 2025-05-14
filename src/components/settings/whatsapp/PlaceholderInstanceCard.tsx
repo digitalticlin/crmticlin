@@ -4,101 +4,128 @@ import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import QrCodeDialog from "./QrCodeDialog";
 import { createWhatsAppInstance } from "@/services/whatsapp/instanceCreationService";
 import { supabase } from "@/integrations/supabase/client";
+import QrCodeActionCard from "./QrCodeActionCard";
+import { useQrCodeDialogState } from "@/hooks/whatsapp/useQrCodeDialogState";
 
 interface PlaceholderInstanceCardProps {
-  isSuperAdmin?: boolean; // Indicates if user is SuperAdmin with no plan restrictions
-  userEmail: string; // User email to use as base for instance name
+  isSuperAdmin?: boolean;
+  userEmail: string;
 }
 
-const PlaceholderInstanceCard = ({ 
+const PlaceholderInstanceCard = ({
   isSuperAdmin = false,
   userEmail
 }: PlaceholderInstanceCardProps) => {
   const [isCreating, setIsCreating] = useState(false);
   const [username, setUsername] = useState<string>("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [isNewUser, setIsNewUser] = useState(false);
-  
-  // Extract username from email when component mounts
+  const [instanceName, setInstanceName] = useState<string | null>(null);
+  const [instanceId, setInstanceId] = useState<string | null>(null);
+
+  // Hook para controle do QRCode
+  const qrCodeDialog = useQrCodeDialogState();
+
+  // Extrai username do email
   useEffect(() => {
     if (userEmail) {
-      // Extract username from email (part before @)
-      const extractedUsername = userEmail.split('@')[0].replace(/[^a-z0-9]/gi, '');
+      const extractedUsername = userEmail.split('@')[0].replace(/[^a-z0-9]/gi, "");
       setUsername(extractedUsername);
-      
-      // Verificar se o usuário é novo (criou conta recentemente)
+
+      // Verifica se usuário é novo (criou conta em 24h)
       const checkIfNewUser = async () => {
         try {
           const { data: { session } } = await supabase.auth.getSession();
           if (!session) return;
-          
           const { data, error } = await supabase
             .from('profiles')
             .select('created_at')
             .eq('id', session.user.id)
             .single();
-            
-          if (error) {
-            console.error("Erro ao verificar perfil do usuário:", error);
-            return;
-          }
-          
-          if (data) {
-            // Verificar se a conta foi criada nas últimas 24 horas
+          if (!error && data) {
             const creationDate = new Date(data.created_at);
-            const now = new Date();
-            const hoursElapsed = (now.getTime() - creationDate.getTime()) / (1000 * 60 * 60);
-            setIsNewUser(hoursElapsed < 24);
+            setIsNewUser((Date.now() - creationDate.getTime()) / 3600000 < 24);
           }
-        } catch (error) {
-          console.error("Erro ao verificar status do usuário:", error);
-        }
+        } catch { /* Falha silenciosa só pra UX */ }
       };
-      
       checkIfNewUser();
     }
   }, [userEmail]);
 
+  // Ao clicar para criar o WhatsApp
   const handleAddWhatsApp = async () => {
-    if (isCreating) {
-      console.log("Already processing an add request, ignoring");
-      return;
-    }
-    
+    if (isCreating) return;
     if (!username) {
-      toast.error("Could not get your username");
+      toast.error("Não foi possível obter o nome de usuário.");
       return;
     }
-    
-    // Permitir conexão se for SuperAdmin ou usuário novo (primeira conexão)
     if (!isSuperAdmin && !isNewUser) {
-      toast.error("Disponível apenas em planos superiores. Atualize seu plano para adicionar mais números de WhatsApp.");
+      toast.error("Disponível apenas em planos superiores. Atualize seu plano.");
       return;
     }
-
     try {
       setIsCreating(true);
-      
+      // Chamada à Evolution API via service: cria e grava no banco.
       const result = await createWhatsAppInstance(username);
-      
       if (result.success && result.qrCode) {
-        // Display QR code to user
-        setQrCodeUrl(result.qrCode);
-        setIsDialogOpen(true);
-        toast.success("Solicitação de conexão enviada com sucesso!");
+        // Mostra card com QR code via hook local de estado
+        qrCodeDialog.show(result.qrCode);
+        setInstanceName(result.instanceName || null);
+        setInstanceId(result.instanceId || null);
+        toast.success("Solicitação de conexão enviada!");
       } else {
-        toast.error(result.error || "Não foi possível criar a instância do WhatsApp");
+        toast.error(result.error || "Erro ao criar a instância.");
       }
-      
     } catch (error: any) {
-      console.error("Error in handleAddWhatsApp:", error);
-      toast.error("Não foi possível criar a instância do WhatsApp");
+      toast.error("Falha ao criar a instância do WhatsApp");
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  // Handler botão "Já escaneei"
+  const handleScanned = () => {
+    qrCodeDialog.hide();
+    // Aqui seria ideal iniciar polling do status via hook central!
+    toast.info("Estamos verificando a conexão...");
+  };
+
+  // Handler botão "Gerar novo QRCode"
+  const handleRegenerate = async () => {
+    if (!instanceName) {
+      toast.error("Instância desconhecida.");
+      return;
+    }
+    try {
+      setIsCreating(true);
+      const result = await createWhatsAppInstance(instanceName);
+      if (result.success && result.qrCode) {
+        qrCodeDialog.show(result.qrCode);
+        toast.success("Novo QR code gerado!");
+      } else {
+        toast.error(result.error || "Falha ao renovar QR code.");
+      }
+    } catch (error) {
+      toast.error("Erro ao renovar QR code.");
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  // Handler botão "Cancelar"
+  const handleCancel = async () => {
+    qrCodeDialog.hide();
+    setInstanceName(null);
+    setInstanceId(null);
+    // Remove a instância do banco se criada!
+    if (instanceId) {
+      try {
+        await supabase.from('whatsapp_numbers').delete().eq('id', instanceId);
+        toast.success("Instância cancelada.");
+      } catch {
+        toast.error("Erro ao remover instância.");
+      }
     }
   };
 
@@ -109,12 +136,10 @@ const PlaceholderInstanceCard = ({
           <div className="mb-2">
             <MessageSquare className="h-12 w-12 text-green-500" />
           </div>
-          
           <h3 className="font-medium">Adicionar número</h3>
-          
           {!isSuperAdmin && !isNewUser ? (
             <p className="text-sm text-muted-foreground">
-              Disponível em planos superiores. Atualize seu plano para adicionar mais números de WhatsApp.
+              Disponível apenas em planos superiores. Atualize seu plano.
             </p>
           ) : isNewUser ? (
             <p className="text-sm text-muted-foreground">
@@ -122,28 +147,33 @@ const PlaceholderInstanceCard = ({
             </p>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Como SuperAdmin, você pode adicionar quantos números quiser.
+              Como SuperAdmin, adicione quantos números quiser.
             </p>
           )}
-          
-          <Button 
+          <Button
             variant="whatsapp"
             size="sm"
             className="mt-2"
             disabled={(!isSuperAdmin && !isNewUser) || isCreating}
             onClick={handleAddWhatsApp}
           >
-            {isCreating ? "Conectando..." : (isSuperAdmin || isNewUser) ? "Adicionar WhatsApp" : "Atualizar plano"}
+            {isCreating ? "Conectando..." : "Adicionar WhatsApp"}
           </Button>
         </CardContent>
       </Card>
 
-      {/* QR Code Dialog */}
-      <QrCodeDialog
-        isOpen={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        qrCodeUrl={qrCodeUrl}
-      />
+      {/* Card/modal para QR code com ações */}
+      {qrCodeDialog.isOpen && qrCodeDialog.qrCodeUrl && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center">
+          <QrCodeActionCard
+            qrCodeUrl={qrCodeDialog.qrCodeUrl}
+            isLoading={isCreating}
+            onScanned={handleScanned}
+            onRegenerate={handleRegenerate}
+            onCancel={handleCancel}
+          />
+        </div>
+      )}
     </>
   );
 };

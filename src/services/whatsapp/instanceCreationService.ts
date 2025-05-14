@@ -5,81 +5,86 @@ import { WhatsAppStatus } from "@/hooks/whatsapp/database";
 import { generateUniqueInstanceName } from "@/utils/whatsapp/instanceNameGenerator";
 
 /**
- * Creates a new WhatsApp instance and saves it to the database
+ * Cria nova instância WhatsApp e salva no banco, retorna QR code.
  */
 export const createWhatsAppInstance = async (username: string): Promise<{
   success: boolean;
   qrCode?: string;
+  instanceName?: string;
+  instanceId?: string;
   error?: string;
 }> => {
   try {
-    // Generate unique instance name
+    // Gera nome único para a instância
     const uniqueInstanceName = await generateUniqueInstanceName(username);
     console.log("Unique instance name generated:", uniqueInstanceName);
-    
-    // Get current user's company ID
+
+    // Busca company_id do usuário atual
     const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError) {
-      throw new Error("Error getting user data");
-    }
-    
+    if (userError) throw new Error("Erro ao obter dados do usuário");
     const userId = userData.user?.id;
-    
-    // Get company ID from user profile
+
+    // Busca perfil do usuário p/ company_id
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('company_id')
       .eq('id', userId)
       .single();
-    
-    if (profileError || !profileData?.company_id) {
-      throw new Error("Error getting user company");
-    }
-    
+
+    if (profileError || !profileData?.company_id)
+      throw new Error("Erro ao obter a empresa do usuário");
+
     const companyId = profileData.company_id;
-    
-    // Create instance via Evolution API
+
+    // Chama Evolution API (POST para criar instância, com API-KEY correta)
     const response = await evolutionApiService.createInstance(uniqueInstanceName);
-    
-    if (!response || !response.qrcode || !response.qrcode.base64) {
-      throw new Error("QR code not received from API");
+
+    if (!response || !response.qrcode || !response.qrcode.base64 || !response.instance?.instanceId) {
+      throw new Error("QR code ou dados ausentes na resposta da API");
     }
-    
-    // Extract QR code
+
+    // Extrai QR e IDs necessários
     const qrCode = response.qrcode.base64;
-    
-    // Save instance to database
+    const instanceIdFromEvolution = response.instance.instanceId;
+    const evolutionInstanceName = response.instance.instanceName;
+
+    // Salva no Supabase
     const whatsappData = {
       instance_name: uniqueInstanceName,
-      phone: "", // Will be updated when connected
+      phone: "", // Atualiza depois se precisar
       company_id: companyId,
       status: "connecting" as WhatsAppStatus,
       qr_code: qrCode,
-      instance_id: response.instanceId,
-      evolution_instance_name: response.instanceName,
+      instance_id: instanceIdFromEvolution,
+      evolution_instance_name: evolutionInstanceName,
       evolution_token: response.hash || ""
     };
-    
-    // Insert into database
-    const { error: dbError } = await supabase
+
+    // Salva (insert) no banco
+    const { data: insertData, error: dbError } = await supabase
       .from('whatsapp_numbers')
-      .insert(whatsappData);
-  
+      .insert(whatsappData)
+      .select();
+
     if (dbError) {
-      console.error("Error saving instance to database:", dbError);
-      throw new Error("Error saving the instance");
+      console.error("Erro ao salvar instância no banco:", dbError);
+      throw new Error("Erro ao salvar a instância no banco");
     }
-    
+
+    // Retorna info para UI consumir (id do registro salvo)
+    const saved = insertData && Array.isArray(insertData) && insertData.length > 0 ? insertData[0] : null;
+
     return {
       success: true,
-      qrCode: qrCode
+      qrCode,
+      instanceName: uniqueInstanceName,
+      instanceId: saved?.id || instanceIdFromEvolution,
     };
-    
   } catch (error: any) {
-    console.error("Complete error creating instance:", error);
+    console.error("Erro completo ao criar instância:", error);
     return {
       success: false,
-      error: error.message || "Could not create WhatsApp instance"
+      error: error.message || "Erro ao criar a instância WhatsApp"
     };
   }
 };
