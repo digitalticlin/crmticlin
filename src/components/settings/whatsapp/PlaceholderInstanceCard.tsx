@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,8 @@ import { createWhatsAppInstance } from "@/services/whatsapp/instanceCreationServ
 import { supabase } from "@/integrations/supabase/client";
 import QrCodeActionCard from "./QrCodeActionCard";
 import { useQrCodeDialogState } from "@/hooks/whatsapp/useQrCodeDialogState";
+import { useEvolutionInstanceStatus } from "@/hooks/whatsapp/useEvolutionInstanceStatus";
+import { useWhatsAppInstanceActions, useWhatsAppInstanceState } from "@/hooks/whatsapp/whatsappInstanceStore";
 
 interface PlaceholderInstanceCardProps {
   isSuperAdmin?: boolean;
@@ -84,11 +85,54 @@ const PlaceholderInstanceCard = ({
     }
   };
 
+  // Estados para fetch único da atualização Evolution API
+  const { fetchStatus } = useEvolutionInstanceStatus();
+  const { setInstances } = useWhatsAppInstanceState();
+  const { updateInstance } = useWhatsAppInstanceActions();
+  const [isSyncingStatus, setIsSyncingStatus] = useState(false);
+
+  // Função auxiliar para buscar status após QR
+  const syncInstanceWithEvolution = async () => {
+    if (!instanceName || isSyncingStatus) return;
+    setIsSyncingStatus(true);
+    try {
+      const statusData = await fetchStatus(instanceName);
+      // statusData pode ser: { state: "connected" | ... } ou outro JSON
+      // Atualiza ou adiciona a instância na lista global
+      setInstances(prev => {
+        // Procura se já existe
+        const idx = prev.findIndex(i => i.instanceName === instanceName);
+        if (idx !== -1) {
+          // Atualiza status
+          const updated = [...prev];
+          updated[idx] = {
+            ...updated[idx],
+            connected: (statusData?.state === "connected")
+          };
+          return updated;
+        }
+        // Se não existir, adiciona nova
+        return [
+          ...prev,
+          {
+            id: instanceId || "1",
+            instanceName: instanceName,
+            connected: (statusData?.state === "connected"),
+          }
+        ];
+      });
+    } catch (error) {
+      // No-op por enquanto (pode mostrar toast se quiser)
+    } finally {
+      setIsSyncingStatus(false);
+    }
+  };
+
   // Handler botão "Já escaneei"
-  const handleScanned = () => {
+  const handleScanned = async () => {
     qrCodeDialog.hide();
-    // Aqui seria ideal iniciar polling do status via hook central!
     toast.info("Estamos verificando a conexão...");
+    await syncInstanceWithEvolution();
   };
 
   // Handler botão "Gerar novo QRCode"
@@ -122,11 +166,17 @@ const PlaceholderInstanceCard = ({
     if (instanceId) {
       try {
         await supabase.from('whatsapp_numbers').delete().eq('id', instanceId);
-        toast.success("Instância cancelada.");
+        toast({
+          title: "Instância cancelada.",
+        });
       } catch {
-        toast.error("Erro ao remover instância.");
+        toast({
+          title: "Erro ao remover instância.",
+          variant: "destructive"
+        });
       }
     }
+    await syncInstanceWithEvolution();
   };
 
   return (
