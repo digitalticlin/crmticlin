@@ -87,7 +87,7 @@ const PlaceholderInstanceCard = ({
 
   // Estados para fetch único da atualização Evolution API
   const { fetchStatus } = useEvolutionInstanceStatus();
-  const { setInstances } = useWhatsAppInstanceState();
+  const { instances, setInstances } = useWhatsAppInstanceState();
   const { updateInstance } = useWhatsAppInstanceActions();
   const [isSyncingStatus, setIsSyncingStatus] = useState(false);
 
@@ -99,28 +99,26 @@ const PlaceholderInstanceCard = ({
       const statusData = await fetchStatus(instanceName);
       // statusData pode ser: { state: "connected" | ... } ou outro JSON
       // Atualiza ou adiciona a instância na lista global
-      setInstances(prev => {
-        // Procura se já existe
-        const idx = prev.findIndex(i => i.instanceName === instanceName);
-        if (idx !== -1) {
-          // Atualiza status
-          const updated = [...prev];
-          updated[idx] = {
-            ...updated[idx],
-            connected: (statusData?.state === "connected")
-          };
-          return updated;
-        }
+      const idx = instances.findIndex(i => i.instanceName === instanceName);
+      if (idx !== -1) {
+        // Atualiza status
+        const updated = [...instances];
+        updated[idx] = {
+          ...updated[idx],
+          connected: (statusData?.state === "connected")
+        };
+        setInstances(updated);
+      } else {
         // Se não existir, adiciona nova
-        return [
-          ...prev,
+        setInstances([
+          ...instances,
           {
             id: instanceId || "1",
             instanceName: instanceName,
             connected: (statusData?.state === "connected"),
           }
-        ];
-      });
+        ]);
+      }
     } catch (error) {
       // No-op por enquanto (pode mostrar toast se quiser)
     } finally {
@@ -166,14 +164,9 @@ const PlaceholderInstanceCard = ({
     if (instanceId) {
       try {
         await supabase.from('whatsapp_numbers').delete().eq('id', instanceId);
-        toast({
-          title: "Instância cancelada.",
-        });
+        toast("Instância cancelada.");
       } catch {
-        toast({
-          title: "Erro ao remover instância.",
-          variant: "destructive"
-        });
+        toast({ description: "Erro ao remover instância.", variant: "destructive" });
       }
     }
     await syncInstanceWithEvolution();
