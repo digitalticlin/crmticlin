@@ -32,11 +32,12 @@ export const LeadCard = ({
   const isWon = isWonLostView && lead.columnId === FIXED_COLUMN_IDS.WON;
   const isLost = isWonLostView && lead.columnId === FIXED_COLUMN_IDS.LOST;
 
+  // Now the entire card opens chat by default when clicked
   const handleCardClick = () => {
     if (onOpenChat) {
       onOpenChat();
     } else {
-      onClick();
+      onClick(); // Fallback to the default onClick behavior if onOpenChat isn't provided
     }
   };
 
@@ -46,26 +47,25 @@ export const LeadCard = ({
       {...provided.draggableProps}
       {...provided.dragHandleProps}
       className={cn(
-        "glass dark:glass-dark card-glass-hover rounded-xl border border-white/20 shadow-md transition-soft cursor-pointer mb-4",
-        isDragging && "card-glass-active z-50 opacity-95 ticlin-border",
-        !isDragging && "hover:ticlin-border hover:scale-[1.04] hover:shadow-xl",
+        "bg-white dark:bg-gray-800 mb-3 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm transition-all p-3 cursor-pointer",
+        isDragging && "shadow-lg scale-[1.02] border-primary z-50 opacity-95",
+        !isDragging && "hover:shadow-md animate-fade-in",
         isWon && "border-l-4 border-l-green-500",
         isLost && "border-l-4 border-l-red-500"
       )}
       onClick={handleCardClick}
       style={{
         ...provided.draggableProps.style,
+        // Fix DnD issues by ensuring proper positioning during drag
         ...(isDragging ? {
           transformOrigin: 'center',
-          transition: 'transform 0.14s, opacity 0.12s, box-shadow 0.16s',
-          boxShadow: '0 10px 32px 0 #d3d80066, 0 2px 4px 0 rgba(50,50,0,0.12)',
-          borderColor: '#d3d800'
+          transition: 'transform 0.1s ease, opacity 0.1s ease, box-shadow 0.1s ease',
         } : {})
       }}
     >
       <LeadCardContent lead={lead} isWonLostView={isWonLostView} />
       
-      <div className="flex justify-between items-center mt-2">
+      <div className="flex justify-between items-center">
         <LeadCardTags tags={lead.tags} />
         <LeadCardActions 
           onMoveToWon={onMoveToWon}

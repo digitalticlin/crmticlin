@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -119,42 +120,11 @@
 
 @layer utilities {
   .glass {
-    @apply bg-white/20 dark:bg-white/5 backdrop-blur-lg border border-white/30 dark:border-white/10 shadow-lg;
+    @apply bg-white/20 dark:bg-black/20 backdrop-blur-lg border border-white/30 dark:border-white/10 shadow-lg;
   }
-  .glass-dark {
-    @apply bg-black/20 backdrop-blur-lg border border-white/10 shadow-2xl;
-  }
-  .ticlin-shadow {
-    box-shadow: 0 4px 32px 0 rgba(0,0,0,0.07), 0 2px 4px 0 rgba(211, 216, 0, 0.08);
-  }
-  .ticlin-border {
-    border: 2px solid #d3d800 !important;
-  }
-  .highlight-drop {
-    box-shadow: 0 0 0 4px #d3d80033;
-    border: 2px solid #d3d800;
-    border-radius: 1rem;
-    transition: box-shadow 0.25s;
-  }
-  .card-glass-hover {
-    transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
-    will-change: transform, box-shadow;
-  }
-  .card-glass-hover:hover {
-    @apply ticlin-shadow ticlin-border;
-    transform: scale(1.025);
-    background: rgba(255,255,255,0.25);
-    z-index: 10;
-  }
-  .card-glass-active {
-    box-shadow: 0 8px 24px 0 #d3d80044, 0 2px 4px 0 rgba(211, 216, 0, 0.15);
-    border: 2px solid #d3d800;
-    opacity: 0.92;
-    transform: scale(1.035);
-    background: rgba(255,255,255,0.36);
-  }
-  .transition-soft {
-    transition: all 0.24s cubic-bezier(0.33,1,0.68,1) !important;
+  
+  .glass-darker {
+    @apply bg-black/10 dark:bg-white/5 backdrop-blur-lg border border-white/20 dark:border-white/10;
   }
   
   .glass-card {
