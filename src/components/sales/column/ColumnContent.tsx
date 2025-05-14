@@ -21,8 +21,14 @@ export const ColumnContent = ({
   onMoveToWonLost,
   onReturnToFunnel,
   isWonLostView = false,
-  renderClone
-}: ColumnContentProps) => {
+  renderClone,
+  // NEW props para hover handlers
+  onAnyCardMouseEnter,
+  onAnyCardMouseLeave,
+}: ColumnContentProps & {
+  onAnyCardMouseEnter?: () => void;
+  onAnyCardMouseLeave?: () => void;
+}) => {
   return (
     <LeadsList 
       columnId={columnId}
@@ -33,6 +39,8 @@ export const ColumnContent = ({
       onReturnToFunnel={onReturnToFunnel}
       isWonLostView={isWonLostView}
       renderClone={renderClone}
+      onAnyCardMouseEnter={onAnyCardMouseEnter}
+      onAnyCardMouseLeave={onAnyCardMouseLeave}
     />
   );
 };
