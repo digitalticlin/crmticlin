@@ -113,12 +113,12 @@ export default function SalesFunnel() {
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* CABEÇALHO COM GLASS + BARRA DE FUNDO TRANSLÚCIDO */}
         <div className="sticky top-0 z-30 w-full flex flex-col gap-4 pb-2">
-          <div className="backdrop-blur-md glass bg-white/60 dark:bg-[#232323cc] rounded-b-3xl shadow-glass-lg px-10 py-6 flex flex-col md:flex-row justify-between items-center border-b border-slate-200/15 dark:border-white/10 transition-all">
+          <div className="backdrop-blur-md glass bg-white/80 dark:bg-[#221F26ee] rounded-b-3xl shadow-glass-lg px-8 md:px-10 py-5 md:py-6 flex flex-col md:flex-row justify-between items-center border-b border-slate-200/15 dark:border-white/10 transition-all">
             <div className="flex flex-col items-center md:items-start">
-              <h1 className="text-2xl md:text-3xl font-bold font-inter mb-1 text-neutral-900 dark:text-white tracking-tight">
+              <h1 className="text-3xl font-bold font-inter mb-1 text-neutral-900 dark:text-white tracking-tight">
                 Funil de Vendas
               </h1>
-              <p className="text-base font-inter font-medium text-muted-foreground dark:text-zinc-300">
+              <p className="text-[1rem] font-inter font-normal text-muted-foreground dark:text-zinc-300">
                 Gerencie seus leads e oportunidades de vendas
               </p>
             </div>
@@ -126,7 +126,7 @@ export default function SalesFunnel() {
               {activeTab === "won-lost" ? (
                 <Button
                   variant="outline"
-                  className="rounded-full bg-white/60 dark:bg-black/40 border-none shadow glass text-neutral-800 dark:text-white font-inter hover:ring-2 hover:ring-ticlin"
+                  className="rounded-full bg-white/70 dark:bg-[#333333cc] border-none shadow glass text-neutral-800 dark:text-white font-inter font-medium hover:ring-2 hover:ring-ticlin"
                   onClick={() => setActiveTab("funnel")}
                 >
                   <ChevronLeft className="h-4 w-4 mr-2" />
@@ -140,23 +140,23 @@ export default function SalesFunnel() {
           {/* TABS reformuladas estilo "pill" glassmorphism */}
           <div className="flex w-full justify-center">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
-              <TabsList className="shadow glass bg-white/50 dark:bg-[#232323b0] border-none flex px-2 gap-2 rounded-full py-1">
+              <TabsList className="shadow glass bg-white/60 dark:bg-[#232323b0] border-none flex px-2 gap-2 rounded-full py-1">
                 <TabsTrigger
                   value="funnel"
-                  className={`px-8 py-2 rounded-full font-semibold font-inter text-lg transition-all
+                  className={`px-8 py-2 rounded-full font-semibold font-inter text-base md:text-lg transition-all
                    ${activeTab==="funnel"
                     ? "bg-ticlin text-black shadow-md"
-                    : "text-neutral-700 dark:text-neutral-200 hover:bg-ticlin/30"}
+                    : "text-neutral-700 dark:text-neutral-200 hover:bg-ticlin/20"}
                   `}
                 >
                   Funil Principal
                 </TabsTrigger>
                 <TabsTrigger
                   value="won-lost"
-                  className={`px-8 py-2 rounded-full font-semibold font-inter text-lg transition-all
+                  className={`px-8 py-2 rounded-full font-semibold font-inter text-base md:text-lg transition-all
                    ${activeTab==="won-lost"
                     ? "bg-ticlin text-black shadow-md"
-                    : "text-neutral-700 dark:text-neutral-200 hover:bg-ticlin/30"}
+                    : "text-neutral-700 dark:text-neutral-200 hover:bg-ticlin/20"}
                   `}
                 >
                   Ganhos e Perdidos
