@@ -132,9 +132,7 @@ const WhatsAppSettings = () => {
       )}
       
       <div className="grid gap-4 sm:grid-cols-2">
-        {instances.map(instance =>
-          // Só renderiza instâncias reais (não manter lógica para placeholder id="1")
-          !!instance.id && instance.id !== "1" ? (
+        {instances.filter(instance => !!instance.id && instance.id !== "1").map(instance =>
             <WhatsAppInstanceCard
               key={instance.id}
               instance={instance}
@@ -145,14 +143,15 @@ const WhatsAppSettings = () => {
               onRefreshQrCode={refreshQrCode}
               onStatusCheck={handleStatusCheck}
             />
-          ) : null
         )}
-        
+
         {/* Placeholder para adicionar novo, mostrado só se não há instâncias reais */}
-        <PlaceholderInstanceCard
-          isSuperAdmin={isSuperAdmin}
-          userEmail={userEmail}
-        />
+        {instances.filter(instance => !!instance.id && instance.id !== "1").length === 0 && (
+          <PlaceholderInstanceCard
+            isSuperAdmin={isSuperAdmin}
+            userEmail={userEmail}
+          />
+        )}
       </div>
     </div>
   );

@@ -129,25 +129,29 @@ export const useWhatsAppInstances = (userEmail: string) => {
         setIsLoading(prev => ({ ...prev, [instanceId]: true }));
         setLastError(null);
 
+        // Remove imediatamente do estado local antes de qualquer requisição
+        setInstances(instances.filter(i => i.id !== instanceId));
+
         const instance = instances.find(i => i.id === instanceId);
         if (!instance) {
-          throw new Error("Instance not found");
+          // Caso não exista mais, já retorna
+          return;
         }
 
+        // Tenta apagar na Evolution e Supabase
         await deleteInstance(instance);
 
-        // Após deletar, faz um fetch atualizado do banco ao invés de só remover do estado local
+        // Força refetch para garantir sync do backend
         if (companyId) {
-          const latestInstances = await fetchInstances(companyId);
-          setInstances(latestInstances);
-        } else {
-          setInstances(instances.filter(i => i.id !== instanceId));
+          await fetchInstances(companyId);
         }
 
         toast.success("WhatsApp successfully disconnected!");
       } catch (error: any) {
+        // Mesmo se ocorrer erro, NÃO repopula o card no estado/local.
         console.error("Error deleting instance:", error);
         setLastError(error?.message || "Error deleting WhatsApp instance");
+        // Não faz mais nada: o card já saiu da interface
       } finally {
         setIsLoading(prev => ({ ...prev, [instanceId]: false }));
       }
