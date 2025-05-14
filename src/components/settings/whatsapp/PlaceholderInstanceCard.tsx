@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -146,8 +145,7 @@ const PlaceholderInstanceCard = ({
             const updated = [...instances];
             updated[idx] = {
               ...updated[idx],
-              connected: false,
-              waitingOpen: true // custom field, opcional só para UI interna
+              connected: false // removed waitingOpen, keep TS valid
             };
             setInstances(updated);
           } else {
@@ -156,8 +154,7 @@ const PlaceholderInstanceCard = ({
               {
                 id: instanceId || "1",
                 instanceName: instanceName,
-                connected: false,
-                waitingOpen: true
+                connected: false // removed waitingOpen
               }
             ]);
           }
