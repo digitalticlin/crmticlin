@@ -1,7 +1,8 @@
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Tag, Plus, ArrowUpDown } from "lucide-react";
+import { Tag, Plus, ChevronDown } from "lucide-react";
+import { FunnelDropdown } from "./FunnelDropdown";
 
 interface FunnelActionsBarProps {
   activeTab: string;
@@ -25,6 +26,28 @@ export function FunnelActionsBar({
   return (
     <div className="flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-4 justify-between w-full">
       <div className="flex items-center gap-2">
+        {/* Nome do Funil como Dropdown */}
+        <FunnelDropdown
+          label={
+            <span className="font-semibold text-sm md:text-base">
+              Funil Principal
+            </span>
+          }
+          iconRight={<ChevronDown className="w-4 h-4" />}
+          items={[
+            {
+              label: "Alternar Funil",
+              onClick: onSwitchFunnel,
+            },
+            {
+              label: "Novo Funil",
+              onClick: onCreateNewFunnel,
+              icon: <Plus className="w-4 h-4" />,
+            },
+          ]}
+        />
+
+        {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-auto">
           <TabsList className="shadow bg-white/90 dark:bg-[#232323] border border-slate-200/70 dark:border-white/10 flex px-2 gap-2 rounded-full py-1">
             <TabsTrigger
@@ -49,26 +72,6 @@ export function FunnelActionsBar({
             </TabsTrigger>
           </TabsList>
         </Tabs>
-
-        {/* Botão: Alternar Funil */}
-        <Button
-          variant="outline"
-          className="ml-2 hidden sm:flex gap-1 items-center"
-          onClick={onSwitchFunnel}
-        >
-          <ArrowUpDown className="w-4 h-4" />
-          <span className="hidden md:inline">Alternar Funil</span>
-        </Button>
-        
-        {/* Botão: Novo Funil */}
-        <Button
-          variant="outline"
-          className="hidden sm:flex gap-1 items-center"
-          onClick={onCreateNewFunnel}
-        >
-          <Plus className="w-4 h-4" />
-          <span className="hidden md:inline">Novo Funil</span>
-        </Button>
       </div>
 
       <div className="flex items-center gap-2">
@@ -82,25 +85,21 @@ export function FunnelActionsBar({
           <span className="hidden md:inline">Gerenciar Etiquetas</span>
         </Button>
 
-        {/* Botão: Adicionar Lead */}
-        <Button
+        {/* Botão + com opções de Adicionar Lead/Etapa */}
+        <FunnelDropdown
+          label={<Plus className="w-5 h-5" />}
+          items={[
+            {
+              label: "Adicionar Lead",
+              onClick: onAddLead,
+            },
+            {
+              label: "Adicionar Etapa",
+              onClick: onAddColumn,
+            },
+          ]}
           variant="default"
-          className="gap-1 items-center bg-ticlin text-black hover:bg-ticlin/90 font-semibold px-4"
-          onClick={onAddLead}
-        >
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Adicionar Lead</span>
-        </Button>
-
-        {/* Botão: Adicionar Etapa */}
-        <Button
-          variant="outline"
-          className="gap-1 items-center"
-          onClick={onAddColumn}
-        >
-          <Plus className="w-4 h-4" />
-          <span className="hidden md:inline">Adicionar Etapa</span>
-        </Button>
+        />
       </div>
     </div>
   );
