@@ -12,6 +12,7 @@ interface LeadsListProps {
   onMoveToWonLost?: (lead: KanbanLead, status: "won" | "lost") => void;
   onReturnToFunnel?: (lead: KanbanLead) => void;
   isWonLostView?: boolean;
+  renderClone?: any;
 }
 
 export const LeadsList = ({
@@ -21,12 +22,13 @@ export const LeadsList = ({
   onOpenChat,
   onMoveToWonLost,
   onReturnToFunnel,
-  isWonLostView = false
+  isWonLostView = false,
+  renderClone
 }: LeadsListProps) => {
   const droppableId = columnId;
 
   return (
-    <Droppable droppableId={droppableId} key={droppableId}>
+    <Droppable droppableId={droppableId} key={droppableId} renderClone={renderClone}>
       {(provided, snapshot) => (
         <div
           ref={provided.innerRef}
@@ -39,6 +41,8 @@ export const LeadsList = ({
           style={{
             transition: "background-color 0.3s, transform 0.25s, border 0.2s",
             minHeight: "120px",
+            position: "relative",
+            zIndex: 2
           }}
         >
           {leads.map((lead, index) => (
@@ -58,6 +62,7 @@ export const LeadsList = ({
                   onReturnToFunnel={onReturnToFunnel ? () => onReturnToFunnel(lead) : undefined}
                   isWonLostView={isWonLostView}
                   isDragging={snapshot.isDragging}
+                  // Não passa isClone aqui
                 />
               )}
             </Draggable>

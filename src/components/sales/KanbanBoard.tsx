@@ -1,9 +1,10 @@
 
-import { DragDropContext } from "react-beautiful-dnd";
+import { DragDropContext, Draggable, Droppable, DraggableProvided } from "react-beautiful-dnd";
 import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
 import { useDragAndDrop } from "@/hooks/kanban/useDragAndDrop";
 import { BoardContent } from "./kanban/BoardContent";
-import { DropZones } from "./kanban/DropZones";
+// import { DropZones } from "./kanban/DropZones"; // DropZones REMOVIDO
+import { LeadCard } from "./LeadCard"; // Importado para o renderClone
 
 interface KanbanBoardProps {
   columns: IKanbanColumn[];
@@ -39,8 +40,34 @@ export const KanbanBoard = ({
     isWonLostView 
   });
 
-  // Create a key based on columns that will force remount when columns change
-  // This ensures proper reset of the drag and drop context
+  // Cria um mapping para lookup por id mais fácil para renderClone
+  const leadMap: Record<string, KanbanLead> = {};
+  columns.forEach(col => {
+    col.leads.forEach(lead => {
+      leadMap[lead.id] = lead;
+    });
+  });
+
+  // Renderização personalizada do clone flutuante durante drag
+  const renderClone = (provided: DraggableProvided, snapshot: any, rubric: any) => {
+    const leadId = rubric.draggableId;
+    const lead = leadMap[leadId];
+    if (!lead) return null;
+
+    return (
+      <div style={{ zIndex: 9999, pointerEvents: "none" }}>
+        <LeadCard
+          lead={lead}
+          provided={provided}
+          onClick={() => undefined}
+          isDragging={true}
+          isClone={true}
+        />
+      </div>
+    );
+  };
+
+  // Cria uma key baseada nas colunas que irá forçar o remount quando as colunas mudarem
   const boardKey = columns.map(col => col.id).join('-');
 
   return (
@@ -48,7 +75,8 @@ export const KanbanBoard = ({
       onDragStart={onDragStart} 
       onDragEnd={onDragEnd}
     >
-      <div className="relative w-full h-full flex flex-col">
+      {/* Usaremos renderClone nos Droppable em LeadsList.tsx */}
+      <div className="relative w-full h-full flex flex-col" key={boardKey}>
         <BoardContent 
           columns={columns}
           onOpenLeadDetail={onOpenLeadDetail}
@@ -58,10 +86,9 @@ export const KanbanBoard = ({
           onMoveToWonLost={!isWonLostView ? onMoveToWonLost : undefined}
           onReturnToFunnel={isWonLostView ? onReturnToFunnel : undefined}
           isWonLostView={isWonLostView}
+          renderClone={renderClone}
         />
-        
-        {/* Fixed Won/Lost drop zones that appear during drag */}
-        {!isWonLostView && <DropZones showDropZones={showDropZones} />}
+        {/* DropZones (caixas amarelas) removido */}
       </div>
     </DragDropContext>
   );

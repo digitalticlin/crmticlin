@@ -10,6 +10,7 @@ interface ColumnContentProps {
   onMoveToWonLost?: (lead: KanbanLead, status: "won" | "lost") => void;
   onReturnToFunnel?: (lead: KanbanLead) => void;
   isWonLostView?: boolean;
+  renderClone?: any;
 }
 
 export const ColumnContent = ({
@@ -19,7 +20,8 @@ export const ColumnContent = ({
   onOpenChat,
   onMoveToWonLost,
   onReturnToFunnel,
-  isWonLostView = false
+  isWonLostView = false,
+  renderClone
 }: ColumnContentProps) => {
   return (
     <LeadsList 
@@ -30,6 +32,7 @@ export const ColumnContent = ({
       onMoveToWonLost={onMoveToWonLost}
       onReturnToFunnel={onReturnToFunnel}
       isWonLostView={isWonLostView}
+      renderClone={renderClone}
     />
   );
 };

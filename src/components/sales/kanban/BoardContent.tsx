@@ -11,6 +11,7 @@ interface BoardContentProps {
   onMoveToWonLost?: (lead: KanbanLead, status: "won" | "lost") => void;
   isWonLostView?: boolean;
   onReturnToFunnel?: (lead: KanbanLead) => void;
+  renderClone?: any; // add renderClone to propagate to LeadsList
 }
 
 export const BoardContent = ({
@@ -21,7 +22,8 @@ export const BoardContent = ({
   onOpenChat,
   onMoveToWonLost,
   isWonLostView = false,
-  onReturnToFunnel
+  onReturnToFunnel,
+  renderClone
 }: BoardContentProps) => {
   const visibleColumns = columns.filter(column => !column.isHidden);
 
@@ -72,6 +74,7 @@ export const BoardContent = ({
             onMoveToWonLost={onMoveToWonLost}
             isWonLostView={isWonLostView}
             onReturnToFunnel={onReturnToFunnel}
+            renderClone={renderClone}
           />
         ))}
       </div>

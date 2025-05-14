@@ -13,6 +13,7 @@ interface KanbanColumnProps {
   onMoveToWonLost?: (lead: KanbanLead, status: "won" | "lost") => void;
   isWonLostView?: boolean;
   onReturnToFunnel?: (lead: KanbanLead) => void;
+  renderClone?: any; // add renderClone to propagate to ColumnContent
 }
 
 export const KanbanColumn = ({
@@ -23,7 +24,8 @@ export const KanbanColumn = ({
   onOpenChat,
   onMoveToWonLost,
   isWonLostView = false,
-  onReturnToFunnel
+  onReturnToFunnel,
+  renderClone
 }: KanbanColumnProps) => {
   const columnColor = column.color || "#e0e0e0";
 
@@ -33,7 +35,8 @@ export const KanbanColumn = ({
       style={{
         boxShadow: "0 8px 40px 0 rgba(31,38,135,0.13)",
         border: "1.5px solid rgba(255,255,255,0.15)",
-        marginBottom: 0
+        marginBottom: 0,
+        zIndex: 10 // Garante que o portal clone possa passar acima
       }}
     >
       <ColumnColorBar color={columnColor} />
@@ -52,6 +55,7 @@ export const KanbanColumn = ({
           onMoveToWonLost={!isWonLostView ? onMoveToWonLost : undefined}
           onReturnToFunnel={isWonLostView ? onReturnToFunnel : undefined}
           isWonLostView={isWonLostView}
+          renderClone={renderClone}
         />
       </div>
     </div>
