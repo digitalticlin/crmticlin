@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useConnectionSynchronizer } from "@/hooks/whatsapp/status-monitor/useConnectionSynchronizer";
 
 const STATUS_CHECK_INTERVAL = 15000; // Check status every 15 seconds
 
@@ -52,6 +53,9 @@ const WhatsAppSettings = () => {
     };
     
     getUser();
+    
+    // O cleanup não deve resetar loadingRef para permitir que o componente
+    // evite fazer múltiplas chamadas durante seu ciclo de vida
   }, []);
   
   // Só inicializar o hook quando o email do usuário estiver disponível
@@ -67,6 +71,9 @@ const WhatsAppSettings = () => {
     showQrCode,
     setShowQrCode,
   } = useWhatsAppInstances(userEmail);
+
+  // Add the connection synchronizer
+  const { syncAllInstances } = useConnectionSynchronizer();
 
   // Handle showing QR code by updating state
   const handleShowQrCode = (instanceId: string) => {
@@ -88,6 +95,22 @@ const WhatsAppSettings = () => {
   const handleStatusCheck = (instanceId: string) => {
     addConnectingInstance(instanceId);
   };
+  
+  // Force sync all instances when the component loads or instances change
+  useEffect(() => {
+    if (instances.length > 0) {
+      // Format instances for the sync function
+      const instancesForSync = instances.map(instance => ({
+        id: instance.id,
+        instanceName: instance.instanceName
+      }));
+      
+      // Perform initial sync
+      syncAllInstances(instancesForSync).then((results) => {
+        console.log("Initial status sync completed:", results);
+      });
+    }
+  }, [instances, syncAllInstances]);
   
   return (
     <div className="space-y-6">

@@ -1,7 +1,9 @@
 
+import { useState, useCallback } from "react";
 import { WhatsAppInstance } from "../whatsappInstanceStore";
 import { usePriorityMonitor } from "./usePriorityMonitor";
 import { useInstanceStatusChecker } from "./useInstanceStatusChecker";
+import { useConnectionSynchronizer } from "./useConnectionSynchronizer";
 
 /**
  * Hook for setting up periodic status checks with priority handling
@@ -9,9 +11,11 @@ import { useInstanceStatusChecker } from "./useInstanceStatusChecker";
 export const usePeriodicChecker = () => {
   const { getConnectingInstances, isConnectingInstance, removeConnectingInstance } = usePriorityMonitor();
   const { checkInstanceStatus, isLoading } = useInstanceStatusChecker();
+  const { forceSyncConnectionStatus } = useConnectionSynchronizer();
+  const [intervalId, setIntervalId] = useState<number | null>(null);
   
   // Set up periodic status checks for multiple instances
-  const setupPeriodicStatusCheck = (
+  const setupPeriodicStatusCheck = useCallback((
     instances: WhatsAppInstance[], 
     checkInterval: number = 15000
   ) => {
@@ -36,10 +40,14 @@ export const usePeriodicChecker = () => {
       
       for (let i = 0; i < connectingInstanceIds.length; i++) {
         const instanceId = connectingInstanceIds[i];
+        // Find the instance data
+        const instance = instances.find(inst => inst.id === instanceId);
+        if (!instance) continue;
+        
         // Add a slight delay between each check to prevent API flooding
         setTimeout(() => {
-          // Force fresh checks for connecting instances
-          checkInstanceStatus(instanceId, true).then(status => {
+          // Use the connection synchronizer for more accurate status updates
+          forceSyncConnectionStatus(instanceId, instance.instanceName).then(status => {
             // If the instance was in connecting state and is now connected, remove from connecting set
             if (status === 'connected' && isConnectingInstance(instanceId)) {
               console.log(`Instance ${instanceId} is now connected, removing from connecting instances`);
@@ -59,7 +67,7 @@ export const usePeriodicChecker = () => {
         const instance = disconnectedInstances[i];
         // Add a delay between each check to prevent API flooding
         setTimeout(() => {
-          checkInstanceStatus(instance.id);
+          forceSyncConnectionStatus(instance.id, instance.instanceName);
         }, (connectingInstanceIds.length * 500) + (i * 1000)); // Stagger after connecting instances
       }
       
@@ -69,7 +77,7 @@ export const usePeriodicChecker = () => {
         const instance = connectedInstances[i];
         // Check connected instances less frequently
         setTimeout(() => {
-          checkInstanceStatus(instance.id);
+          forceSyncConnectionStatus(instance.id, instance.instanceName);
         }, (connectingInstanceIds.length * 500) + (disconnectedInstances.length * 1000) + (i * 1000));
       }
     };
@@ -77,13 +85,27 @@ export const usePeriodicChecker = () => {
     // Run the first check immediately
     checkAllInstances();
     
+    // Clear any existing interval
+    if (intervalId !== null) {
+      clearInterval(intervalId);
+    }
+    
     // Set up periodic check
-    const intervalId = setInterval(checkAllInstances, checkInterval);
+    const id = window.setInterval(checkAllInstances, checkInterval);
+    setIntervalId(id);
     
     return () => {
-      clearInterval(intervalId);
+      if (id) {
+        clearInterval(id);
+        setIntervalId(null);
+      }
     };
-  };
+  }, [
+    getConnectingInstances, 
+    isConnectingInstance, 
+    removeConnectingInstance,
+    forceSyncConnectionStatus
+  ]);
   
   return {
     setupPeriodicStatusCheck,

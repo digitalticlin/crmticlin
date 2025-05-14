@@ -6,6 +6,7 @@ import InstanceHeader from "./InstanceHeader";
 import DeviceInfoSection from "./DeviceInfoSection";
 import QrCodeSection from "./QrCodeSection";
 import InstanceActionButtons from "./InstanceActionButtons";
+import { useConnectionSynchronizer } from "@/hooks/whatsapp/status-monitor/useConnectionSynchronizer";
 
 interface WhatsAppInstanceCardProps {
   instance: WhatsAppInstance;
@@ -29,6 +30,9 @@ const WhatsAppInstanceCard = ({
   // Local state to track when QR code was successfully obtained
   const [qrCodeSuccess, setQrCodeSuccess] = useState(false);
   const [actionInProgress, setActionInProgress] = useState(false);
+  
+  // Get connection synchronizer for manual refresh
+  const { forceSyncConnectionStatus, isSyncing } = useConnectionSynchronizer();
 
   // Detect when a QR code is received to show automatically
   useEffect(() => {
@@ -61,6 +65,17 @@ const WhatsAppInstanceCard = ({
       setQrCodeSuccess(false); // Reset QR code success state
     }
   }, [instance.connected]);
+  
+  // Periodically sync status if QR code is showing
+  useEffect(() => {
+    if (showQrCode || qrCodeSuccess) {
+      const syncInterval = setInterval(() => {
+        forceSyncConnectionStatus(instance.id, instance.instanceName);
+      }, 5000); // Check every 5 seconds while QR is showing
+      
+      return () => clearInterval(syncInterval);
+    }
+  }, [showQrCode, qrCodeSuccess, instance.id, instance.instanceName, forceSyncConnectionStatus]);
 
   // Click function to connect WhatsApp
   const handleConnect = async () => {
@@ -70,6 +85,9 @@ const WhatsAppInstanceCard = ({
       setQrCodeSuccess(false);
       await onConnect(instance.id);
       console.log(`Connection started for ${instance.instanceName}`);
+      
+      // After connecting, force a status sync
+      await forceSyncConnectionStatus(instance.id, instance.instanceName);
       
       // Trigger more frequent status checks after connection is initiated
       if (onStatusCheck) {
@@ -91,6 +109,9 @@ const WhatsAppInstanceCard = ({
       await onRefreshQrCode(instance.id);
       console.log(`QR code updated for ${instance.instanceName}`);
       
+      // After refreshing QR, force a status sync
+      await forceSyncConnectionStatus(instance.id, instance.instanceName);
+      
       // Trigger more frequent status checks after QR code refresh
       if (onStatusCheck) {
         onStatusCheck(instance.id);
@@ -99,6 +120,16 @@ const WhatsAppInstanceCard = ({
       console.error("Error updating QR code:", error);
     } finally {
       setActionInProgress(false);
+    }
+  };
+  
+  // Function to manually refresh connection status
+  const handleStatusRefresh = async () => {
+    try {
+      console.log(`Manually refreshing status for ${instance.instanceName}`);
+      await forceSyncConnectionStatus(instance.id, instance.instanceName);
+    } catch (error) {
+      console.error("Error refreshing status:", error);
     }
   };
 
@@ -118,13 +149,20 @@ const WhatsAppInstanceCard = ({
 
   // Determine if QR code should be shown (when available and shown)
   const shouldShowQrCode = (showQrCode || qrCodeSuccess) && instance.qrCodeUrl;
+  
+  // Determine if we're currently loading status
+  const isStatusLoading = isLoading || isSyncing[instance.id];
 
   return (
     <Card className="overflow-hidden glass-card border-0">
       <CardContent className="p-0">
         <div className="p-4">
           {/* Header section - always visible */}
-          <InstanceHeader instance={instance} />
+          <InstanceHeader 
+            instance={instance} 
+            onRefreshStatus={handleStatusRefresh}
+            isStatusLoading={isStatusLoading}
+          />
           
           {/* Connected Section - Only shown when connected */}
           {instance.connected && (

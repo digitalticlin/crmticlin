@@ -4,6 +4,7 @@ import { WhatsAppInstance } from "./whatsappInstanceStore";
 import { useInstanceStatusChecker } from "./status-monitor/useInstanceStatusChecker";
 import { usePriorityMonitor } from "./status-monitor/usePriorityMonitor";
 import { usePeriodicChecker } from "./status-monitor/usePeriodicChecker";
+import { useConnectionSynchronizer } from "./status-monitor/useConnectionSynchronizer";
 
 /**
  * Main hook for monitoring WhatsApp instance status
@@ -13,12 +14,20 @@ export const useWhatsAppStatusMonitor = () => {
   const { checkInstanceStatus, isLoading } = useInstanceStatusChecker();
   const { addConnectingInstance } = usePriorityMonitor();
   const { setupPeriodicStatusCheck } = usePeriodicChecker();
+  const { 
+    forceSyncConnectionStatus, 
+    syncAllInstances, 
+    isSyncing 
+  } = useConnectionSynchronizer();
 
   return {
     checkInstanceStatus,
     setupPeriodicStatusCheck,
     addConnectingInstance,
-    isLoading
+    forceSyncConnectionStatus,
+    syncAllInstances,
+    isLoading,
+    isSyncing
   };
 };
 
