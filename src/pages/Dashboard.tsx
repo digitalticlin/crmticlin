@@ -1,9 +1,9 @@
-
 import { useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import KPICard from "@/components/dashboard/KPICard";
 import StatCard from "@/components/dashboard/StatCard";
 import ChartCard from "@/components/dashboard/ChartCard";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { Button } from "@/components/ui/button";
 import { 
   Users, 
@@ -77,44 +77,9 @@ export default function Dashboard() {
       <div className="flex-1 flex flex-col overflow-auto">
         <main className="flex-1 overflow-auto">
           <div className="p-6">
-            {/* Header (Greeting + Ícones à direita) */}
-            <div className="flex justify-between items-center mb-8">
-              <div>
-                <h1 className="text-2xl font-bold">{greeting}, Admin</h1>
-                <p className="text-muted-foreground">Bem-vindo de volta ao seu dashboard</p>
-              </div>
-              <div className="flex items-center gap-4">
-                {/* Botão de tema */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Trocar tema"
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                >
-                  {theme === "dark" ? (
-                    <Sun className="w-5 h-5" />
-                  ) : (
-                    <Moon className="w-5 h-5" />
-                  )}
-                </Button>
+            {/* Dashboard Header */}
+            <DashboardHeader />
 
-                {/* Botão de notificações */}
-                <Button variant="ghost" size="icon" aria-label="Notificações">
-                  <Bell className="w-5 h-5" />
-                </Button>
-
-                {/* Avatar/Menu do usuário */}
-                <TopbarUserMenu
-                  fullName={fullName}
-                  email={email}
-                  avatarUrl={avatarUrl}
-                  companyId={companyId}
-                  companies={companies}
-                  onSwitchCompany={switchCompany}
-                />
-              </div>
-            </div>
-            
             {/* KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <KPICard
@@ -262,4 +227,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
