@@ -55,8 +55,8 @@ export const createWhatsAppInstance = async (username: string): Promise<{
       company_id: companyId,
       status: "connecting" as WhatsAppStatus,
       qr_code: qrCode,
-      instance_id: response.instance.instanceId,
-      evolution_instance_name: response.instance.instanceName,
+      instance_id: response.instanceId,
+      evolution_instance_name: response.instanceName,
       evolution_token: response.hash || ""
     };
     

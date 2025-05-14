@@ -1,10 +1,6 @@
-import { ApiClient } from "./api-client";
 
-export interface EvolutionInstance {
-  instanceName: string;
-  qrcode: string;
-  status: string;
-}
+import { ApiClient } from "./api-client";
+import { EvolutionInstance } from "./types";
 
 /**
  * Class for managing WhatsApp instances
@@ -85,7 +81,7 @@ export class InstanceService {
     try {
       console.log(`Connecting instance: ${instanceName}`);
       const response = await this.apiClient.fetchWithHeaders(`/instance/connect/${instanceName}`, { method: "GET" });
-      return response?.qrcode;
+      return response?.qrcode?.base64 || '';
     } catch (error) {
       console.error(`Error connecting instance ${instanceName}:`, error);
       throw error;

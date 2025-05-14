@@ -70,7 +70,7 @@ export interface EvolutionApiResult {
   };
   hash: string;
   qrcode?: {
-    base64?: string;
+    base64?: string | null;
     code?: string | null;
     pairingCode?: string | null;
     count?: number;
