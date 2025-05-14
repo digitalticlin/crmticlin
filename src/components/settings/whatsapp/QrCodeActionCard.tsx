@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription } from "@/components/ui/card";
 import { X, RefreshCcw, Check } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
 
 interface QrCodeActionCardProps {
   qrCodeUrl: string;
@@ -43,13 +44,9 @@ const QrCodeActionCard = ({
       }
       onCancel();
       // Toast de sucesso
-      if (window?.toast) {
-        window.toast.success("Instância cancelada com sucesso!");
-      }
+      toast.success("Instância cancelada com sucesso!");
     } catch (error: any) {
-      if (window?.toast) {
-        window.toast.error(error?.message || "Erro ao cancelar instância");
-      }
+      toast.error(error?.message || "Erro ao cancelar instância");
       onCancel();
     } finally {
       setIsDeleting(false);
