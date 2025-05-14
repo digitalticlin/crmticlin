@@ -15,10 +15,10 @@ export const updateConnectionAttempt = async (
     const { error } = await supabase
       .from('whatsapp_connection_logs')
       .insert({
-        instance_id: instanceId,
-        success,
-        error_message: errorMessage || null,
-        timestamp: new Date().toISOString()
+        whatsapp_number_id: instanceId, // Use whatsapp_number_id instead of instance_id
+        status: success ? 'connected' : 'disconnected', // Use correct enum values
+        details: errorMessage || null, // Use details field instead of error_message
+        created_at: new Date().toISOString()
       });
       
     if (error) {

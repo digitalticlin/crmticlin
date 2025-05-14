@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { updateInstanceStatusAndPhone, updateConnectionAttempt } from "../database";
+import { WhatsAppStatus } from "../database/whatsappDatabaseTypes";
 
 /**
  * Hook for managing WhatsApp instance status updates in database
@@ -20,8 +21,15 @@ export const useStatusUpdater = () => {
     try {
       setIsUpdating(prev => ({ ...prev, [instanceId]: true }));
       
+      // Convert string status to WhatsAppStatus type
+      const whatsappStatus: WhatsAppStatus = status === 'connected' 
+        ? 'connected' 
+        : status === 'connecting' 
+          ? 'connecting' 
+          : 'disconnected';
+      
       // Update status in database
-      await updateInstanceStatusAndPhone(instanceId, status);
+      await updateInstanceStatusAndPhone(instanceId, whatsappStatus);
       
       // Update global state
       if (window._whatsAppInstancesStore) {

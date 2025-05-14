@@ -4,5 +4,4 @@ export * from './database/whatsappDatabaseTypes';
 export * from './database/saveInstanceToDatabase';
 export * from './database/updateInstanceStatus';
 export * from './database/updateQrCode';
-export * from './database/updateConnectionAttempt';
-export * from './useWhatsAppDatabase';
+// We don't need to export updateConnectionAttempt from here as it's already exported in useWhatsAppDatabase.ts
