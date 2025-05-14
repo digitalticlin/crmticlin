@@ -5,7 +5,7 @@ import {
   useWhatsAppInstanceActions,
   WhatsAppInstance 
 } from "./whatsappInstanceStore";
-import { updateInstanceDisconnectedStatus } from "./useWhatsAppDatabase";
+import { updateInstanceDisconnectedStatus } from "./database";
 
 /**
  * Hook for disconnecting WhatsApp instances

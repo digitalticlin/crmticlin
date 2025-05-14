@@ -1,7 +1,7 @@
 
-// Re-export all database functions
+// Export all database functions from the database folder
+export * from './whatsappDatabaseTypes';
 export * from './saveInstanceToDatabase';
 export * from './updateInstanceStatus';
 export * from './updateQrCode';
-export * from './whatsappDatabaseTypes';
 export * from './updateConnectionAttempt';
