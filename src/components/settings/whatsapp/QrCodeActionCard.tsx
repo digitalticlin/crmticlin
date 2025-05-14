@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription } from "@/components/ui/card";
@@ -73,9 +72,12 @@ const QrCodeActionCard = ({
       const json = await res.json();
       if (json?.state === "open") {
         toast({
-          title: "Instância conectada!",
+          title: (
+            <span className="flex items-center gap-2">
+              <CircleCheck className="w-4 h-4 text-green-500" /> Instância conectada!
+            </span>
+          ),
           description: "Seu WhatsApp foi conectado com sucesso.",
-          icon: <CircleCheck className="text-green-500" />,
         });
         onScanned();
       } else {
@@ -211,4 +213,3 @@ const QrCodeActionCard = ({
 };
 
 export default QrCodeActionCard;
-
