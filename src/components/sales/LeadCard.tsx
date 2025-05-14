@@ -5,6 +5,7 @@ import { DraggableProvided } from "react-beautiful-dnd";
 import { LeadCardContent } from "./lead/LeadCardContent";
 import { LeadCardTags } from "./lead/LeadCardTags";
 import { LeadCardActions } from "./lead/LeadCardActions";
+import React from "react";
 
 interface LeadCardProps {
   lead: KanbanLead;
@@ -17,6 +18,8 @@ interface LeadCardProps {
   isWonLostView?: boolean;
   isDragging?: boolean;
   isClone?: boolean; // novo prop
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
 export const LeadCard = ({
@@ -29,7 +32,9 @@ export const LeadCard = ({
   onReturnToFunnel,
   isWonLostView = false,
   isDragging = false,
-  isClone = false
+  isClone = false,
+  onMouseEnter,
+  onMouseLeave
 }: LeadCardProps) => {
   const isWon = isWonLostView && lead.columnId === FIXED_COLUMN_IDS.WON;
   const isLost = isWonLostView && lead.columnId === FIXED_COLUMN_IDS.LOST;
@@ -47,7 +52,7 @@ export const LeadCard = ({
         "glass bg-white/70 dark:bg-black/30 backdrop-blur-xl mb-5 rounded-3xl border-2 border-transparent shadow-glass-lg transition-all duration-300 p-4 cursor-pointer font-inter group",
         isDragging || isClone
           ? "scale-105 z-[99999] opacity-90 shadow-glass-lg border-ticlin border-2 pointer-events-none"
-          : "hover:scale-105 hover:shadow-2xl hover:border-ticlin hover:border-2",
+          : "hover:scale-105 hover:z-30 hover:relative hover:shadow-2xl hover:border-ticlin hover:border-2",
         isWon && "border-l-[4px] border-l-green-500",
         isLost && "border-l-[4px] border-l-red-500"
       )}
@@ -55,10 +60,6 @@ export const LeadCard = ({
         ...provided.draggableProps.style,
         ...(isDragging || isClone
           ? {
-              position: isClone ? "fixed" : undefined,
-              top: isClone ? 0 : undefined,
-              left: isClone ? 0 : undefined,
-              width: isClone ? "340px" : undefined,
               transformOrigin: "center",
               boxShadow: "0 12px 36px 0 rgba(211,216,0,.18)",
               transition:
@@ -69,6 +70,8 @@ export const LeadCard = ({
           : {})
       }}
       onClick={handleCardClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       <LeadCardContent lead={lead} isWonLostView={isWonLostView} />
       <div className="flex justify-between items-center mt-2">

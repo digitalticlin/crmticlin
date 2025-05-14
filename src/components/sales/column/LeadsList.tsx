@@ -3,6 +3,7 @@ import { Droppable, Draggable } from "react-beautiful-dnd";
 import { KanbanLead } from "@/types/kanban";
 import { LeadCard } from "@/components/sales/LeadCard";
 import { cn } from "@/lib/utils";
+import React, { useState } from "react";
 
 interface LeadsListProps {
   columnId: string;
@@ -25,6 +26,7 @@ export const LeadsList = ({
   isWonLostView = false,
   renderClone
 }: LeadsListProps) => {
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const droppableId = columnId;
 
   return (
@@ -35,6 +37,8 @@ export const LeadsList = ({
           {...provided.droppableProps}
           className={cn(
             "min-h-full transition-all duration-200 rounded-3xl",
+            // Se está sendo feito hover NESTE grupo de cards OU drag sobre, libera overflow visível
+            (typeof hoveredIndex === "number" || snapshot.isDraggingOver) && "overflow-visible",
             snapshot.isDraggingOver &&
               "ring-2 ring-ticlin/80 bg-[#fffde8] dark:bg-neutral-900/80 shadow-lg scale-[1.02]"
           )}
@@ -42,7 +46,8 @@ export const LeadsList = ({
             transition: "background-color 0.3s, transform 0.25s, border 0.2s",
             minHeight: "120px",
             position: "relative",
-            zIndex: 2
+            zIndex: 2,
+            overflow: (typeof hoveredIndex === "number" || snapshot.isDraggingOver) ? "visible" : "unset",
           }}
         >
           {leads.map((lead, index) => (
@@ -62,6 +67,9 @@ export const LeadsList = ({
                   onReturnToFunnel={onReturnToFunnel ? () => onReturnToFunnel(lead) : undefined}
                   isWonLostView={isWonLostView}
                   isDragging={snapshot.isDragging}
+                  // Controle de hover (para overflow)
+                  onMouseEnter={() => setHoveredIndex(index)}
+                  onMouseLeave={() => setHoveredIndex(null)}
                   // Não passa isClone aqui
                 />
               )}

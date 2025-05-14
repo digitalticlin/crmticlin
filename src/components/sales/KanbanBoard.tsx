@@ -1,10 +1,9 @@
 
-import { DragDropContext, Draggable, Droppable, DraggableProvided } from "react-beautiful-dnd";
+import { DragDropContext, DraggableProvided } from "react-beautiful-dnd";
 import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
 import { useDragAndDrop } from "@/hooks/kanban/useDragAndDrop";
 import { BoardContent } from "./kanban/BoardContent";
-// import { DropZones } from "./kanban/DropZones"; // DropZones REMOVIDO
-import { LeadCard } from "./LeadCard"; // Importado para o renderClone
+import { LeadCard } from "./LeadCard";
 
 interface KanbanBoardProps {
   columns: IKanbanColumn[];
@@ -55,7 +54,7 @@ export const KanbanBoard = ({
     if (!lead) return null;
 
     return (
-      <div style={{ zIndex: 9999, pointerEvents: "none" }}>
+      <div style={{ width: provided.draggableProps?.style?.width || "340px", pointerEvents: "none" }}>
         <LeadCard
           lead={lead}
           provided={provided}
@@ -75,7 +74,6 @@ export const KanbanBoard = ({
       onDragStart={onDragStart} 
       onDragEnd={onDragEnd}
     >
-      {/* Usaremos renderClone nos Droppable em LeadsList.tsx */}
       <div className="relative w-full h-full flex flex-col" key={boardKey}>
         <BoardContent 
           columns={columns}
@@ -88,7 +86,6 @@ export const KanbanBoard = ({
           isWonLostView={isWonLostView}
           renderClone={renderClone}
         />
-        {/* DropZones (caixas amarelas) removido */}
       </div>
     </DragDropContext>
   );
