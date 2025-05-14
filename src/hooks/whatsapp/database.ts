@@ -4,5 +4,5 @@ export * from './database/whatsappDatabaseTypes';
 export * from './database/saveInstanceToDatabase';
 export * from './database/updateInstanceStatus';
 export * from './database/updateQrCode';
+export * from './database/updateConnectionAttempt';
 export * from './useWhatsAppDatabase';
-

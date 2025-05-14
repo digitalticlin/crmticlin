@@ -1,8 +1,9 @@
 
 import { useState, useRef } from "react";
 import { evolutionApiService } from "@/services/evolution-api";
-import { updateInstanceStatusAndPhone, updateConnectionAttempt, updateQrCodeInDatabase } from "../database";
 import { useErrorTracker } from "./useErrorTracker";
+import { useDeviceInfoFetcher } from "./useDeviceInfoFetcher";
+import { useStatusUpdater } from "./useStatusUpdater";
 
 /**
  * Hook for checking WhatsApp instance status with throttling
@@ -11,7 +12,10 @@ export const useInstanceStatusChecker = () => {
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
   const instanceCheckInProgress = useRef<Record<string, boolean>>({});
   const lastCheckTime = useRef<Record<string, number>>({});
+  
   const { trackConnectionError, clearErrorTracking } = useErrorTracker();
+  const { fetchDeviceInfo, fetchPhoneNumber } = useDeviceInfoFetcher();
+  const { updateInstanceStatus, logConnectionFailure } = useStatusUpdater();
   
   // Check instance status with throttling and concurrency protection
   const checkInstanceStatus = async (instanceId: string, forceFresh: boolean = false) => {
@@ -54,78 +58,31 @@ export const useInstanceStatusChecker = () => {
       
       // If device is connected, get additional device info
       if (status === 'connected') {
-        try {
-          const deviceInfo = await evolutionApiService.getDeviceInfo(instanceName);
-          if (deviceInfo && deviceInfo.status === 'success') {
-            // Update device info in store
-            if (window._whatsAppInstancesStore) {
-              const updateInstance = window._whatsAppInstancesStore.getState().actions.updateInstance;
-              updateInstance(instanceId, { 
-                connected: true,
-                deviceInfo: {
-                  batteryLevel: deviceInfo.device?.battery?.value || 0,
-                  deviceModel: deviceInfo.device?.phone?.device_model || "Unknown device",
-                  whatsappVersion: deviceInfo.device?.wa_version || "Unknown version",
-                  lastConnectionTime: new Date().toISOString(),
-                  platformType: deviceInfo.device?.platform || "Unknown platform"
-                }
-              });
-            }
-            
-            // Clear error tracking since we connected successfully
-            clearErrorTracking(instanceId);
-          }
-        } catch (error) {
-          console.error("Error getting device information:", error);
-          
-          // Try a fallback to get at least the phone number
-          try {
-            // Use evolutionApiService instead of direct apiClient access
-            const infoData = await evolutionApiService.checkInstanceStatus(instanceName);
-            
-            // Update phone in store
-            if (window._whatsAppInstancesStore) {
-              const updateInstance = window._whatsAppInstancesStore.getState().actions.updateInstance;
-              updateInstance(instanceId, { 
-                phoneNumber: undefined,
-              });
-            }
-          } catch (fallbackError) {
-            console.error("Error in fallback for info:", fallbackError);
-          }
-        }
+        await fetchDeviceInfo(instanceId, instanceName);
+        // Clear error tracking since we connected successfully
+        clearErrorTracking(instanceId);
       }
       
       // Update status in database
-      if (instanceId !== "1") {
-        try {
-          await updateInstanceStatusAndPhone(instanceId, status);
-          
-          // Update global state
-          if (window._whatsAppInstancesStore) {
-            const updateInstance = window._whatsAppInstancesStore.getState().actions.updateInstance;
-            updateInstance(instanceId, { connected: status === 'connected' });
-          }
-          
-          // Register successful connection
-          if (status === 'connected') {
-            await updateConnectionAttempt(instanceId, true);
-          }
-          
-        } catch (error) {
-          console.error("Error updating status in database:", error);
-          await updateConnectionAttempt(instanceId, false, error instanceof Error ? error.message : String(error));
-        }
-      }
+      await updateInstanceStatus(instanceId, status);
       
       return status;
     } catch (error) {
       console.error(`Error checking status of instance ${instanceId}:`, error);
       
+      // Try fallback for phone number if available
+      try {
+        await fetchPhoneNumber(instanceId, instanceName);
+      } catch (fallbackError) {
+        console.error("Fallback phone fetch failed:", fallbackError);
+      }
+      
       // Track error and check if we should continue with frequent checks
       const shouldContinue = trackConnectionError(instanceId);
       
-      await updateConnectionAttempt(instanceId, false, error instanceof Error ? error.message : String(error));
+      // Log connection failure
+      await logConnectionFailure(instanceId, error);
+      
       return "disconnected";
     } finally {
       setIsLoading(prev => ({ ...prev, [instanceId]: false }));
