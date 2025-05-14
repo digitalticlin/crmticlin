@@ -1,4 +1,3 @@
-
 import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
 import { KanbanColumn } from "../KanbanColumn";
 
@@ -62,7 +61,7 @@ export const BoardContent = ({
       style={{ WebkitOverflowScrolling: "touch", cursor: "grab" }}
       onMouseDown={mouseDown}
     >
-      <div className="flex gap-8 md:gap-10 px-2 md:px-8 pb-10 md:pb-12 min-w-max justify-center w-full">
+      <div className="flex gap-4 md:gap-6 px-1 md:px-2 pb-8 md:pb-10 min-w-max justify-center w-full">
         {visibleColumns.map((column) => (
           <KanbanColumn
             key={column.id}

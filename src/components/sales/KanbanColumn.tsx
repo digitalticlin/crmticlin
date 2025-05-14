@@ -31,11 +31,10 @@ export const KanbanColumn = ({
   const columnColor = column.color || "#e0e0e0";
   const [isAnyCardHovered, setIsAnyCardHovered] = useState(false);
 
-  // Aumenta largura da coluna para permitir sobra lateral para o efeito zoom.
-  // Usa overflow hidden normalmente, mas libera para visible quando um card está hover.
+  // Diminui a largura da coluna para caber mais etapas na tela
   return (
     <div
-      className="relative glass bg-white/50 dark:bg-black/30 rounded-3xl border-none shadow-glass-lg overflow-hidden flex flex-col min-w-[400px] max-w-[440px] w-full md:h-[72vh] h-[540px] transition-all"
+      className="relative glass bg-white/50 dark:bg-black/30 rounded-3xl border-none shadow-glass-lg overflow-hidden flex flex-col min-w-[290px] max-w-[320px] w-full md:h-[72vh] h-[540px] transition-all"
       style={{
         boxShadow: "0 8px 40px 0 rgba(31,38,135,0.13)",
         border: "1.5px solid rgba(255,255,255,0.15)",
