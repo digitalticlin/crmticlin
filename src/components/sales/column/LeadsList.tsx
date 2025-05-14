@@ -14,9 +14,6 @@ interface LeadsListProps {
   onReturnToFunnel?: (lead: KanbanLead) => void;
   isWonLostView?: boolean;
   renderClone?: any;
-  // NOVO: Callbacks para hover, controlados pela coluna
-  onAnyCardMouseEnter?: () => void;
-  onAnyCardMouseLeave?: () => void;
 }
 
 export const LeadsList = ({
@@ -27,22 +24,9 @@ export const LeadsList = ({
   onMoveToWonLost,
   onReturnToFunnel,
   isWonLostView = false,
-  renderClone,
-  onAnyCardMouseEnter,
-  onAnyCardMouseLeave,
+  renderClone
 }: LeadsListProps) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-
-  // Encapsula onMouseEnter/onMouseLeave para avisar o parent (coluna)
-  const handleMouseEnter = (index: number) => {
-    setHoveredIndex(index);
-    if (onAnyCardMouseEnter) onAnyCardMouseEnter();
-  };
-  const handleMouseLeave = () => {
-    setHoveredIndex(null);
-    if (onAnyCardMouseLeave) onAnyCardMouseLeave();
-  };
-
   const droppableId = columnId;
 
   return (
@@ -53,6 +37,7 @@ export const LeadsList = ({
           {...provided.droppableProps}
           className={cn(
             "min-h-full transition-all duration-200 rounded-3xl",
+            // Se está sendo feito hover NESTE grupo de cards OU drag sobre, libera overflow visível
             (typeof hoveredIndex === "number" || snapshot.isDraggingOver) && "overflow-visible",
             snapshot.isDraggingOver &&
               "ring-2 ring-ticlin/80 bg-[#fffde8] dark:bg-neutral-900/80 shadow-lg scale-[1.02]"
@@ -83,8 +68,8 @@ export const LeadsList = ({
                   isWonLostView={isWonLostView}
                   isDragging={snapshot.isDragging}
                   // Controle de hover (para overflow)
-                  onMouseEnter={() => handleMouseEnter(index)}
-                  onMouseLeave={handleMouseLeave}
+                  onMouseEnter={() => setHoveredIndex(index)}
+                  onMouseLeave={() => setHoveredIndex(null)}
                   // Não passa isClone aqui
                 />
               )}
