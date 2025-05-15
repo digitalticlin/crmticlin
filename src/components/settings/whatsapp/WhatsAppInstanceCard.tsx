@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { WhatsAppInstance } from "@/hooks/whatsapp/whatsappInstanceStore";
@@ -144,6 +143,18 @@ const WhatsAppInstanceCard = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showQrCode, isInstanceConnected, instance.qrCodeUrl]);
 
+  // Handler visual para status customizado (open = sucesso/conectado)
+  const renderConnectedBanner = () => {
+    if (instance.status === "open") {
+      return (
+        <div className="w-full bg-[#d3d800] bg-opacity-60 rounded-md flex items-center gap-2 p-2 mt-2 mb-3 shadow text-gray-900 font-semibold text-sm justify-center">
+          ✅ WhatsApp conectado com sucesso (aguardando mensagens)!
+        </div>
+      );
+    }
+    return null;
+  };
+
   // Estado calculado de conexão imediato e polling
   const statusConnected = isInstanceConnected || isAutoConnected;
   const showQr = (showQrCode || (!statusConnected && instance.qrCodeUrl)) && !statusConnected;
@@ -211,6 +222,7 @@ const WhatsAppInstanceCard = ({
               onRefreshStatus={async () => { }}
               isStatusLoading={isLoading}
             />
+            {renderConnectedBanner()}
             {isInstanceConnected && <DeviceInfoSection deviceInfo={instance.deviceInfo} />}
 
             {/* NOVO: Seção de QR Code (condicional, agora extraída) */}
