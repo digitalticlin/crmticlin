@@ -1,7 +1,8 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription } from "@/components/ui/card";
-import { X, RefreshCcw, Check, CircleCheck } from "lucide-react";
+import { X, RefreshCcw, Check } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface QrCodeActionCardProps {
@@ -10,7 +11,8 @@ interface QrCodeActionCardProps {
   onScanned: () => void;
   onRegenerate: () => void;
   onCancel: () => void;
-  instanceName?: string | null; // Para API Evolution
+  instanceName?: string | null;
+  onCloseWithRefresh?: () => void; // NOVO: ao fechar, dispara atualização (refetch)
 }
 
 const QrCodeActionCard = ({
@@ -20,24 +22,29 @@ const QrCodeActionCard = ({
   onRegenerate,
   onCancel,
   instanceName,
+  onCloseWithRefresh // NOVO!
 }: QrCodeActionCardProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [qrUrl, setQrUrl] = useState(qrCodeUrl);
 
+  // --- Função util para finalizar (fecha e atualiza) ---
+  const handleCloseAll = () => {
+    onCancel();
+    if (onCloseWithRefresh) onCloseWithRefresh();
+  };
+
   // Novo handler para cancelar e deletar a instância na Evolution API
   const handleDeleteInstance = async () => {
     if (!instanceName) {
-      onCancel();
+      handleCloseAll();
       return;
     }
     setIsDeleting(true);
     try {
-      // Usar evolutionApiService conforme padrão do sistema
       const { evolutionApiService } = await import("@/services/evolution-api");
       await evolutionApiService.deleteInstance(instanceName);
-
       toast({
         title: "Instância cancelada com sucesso!",
         variant: "default",
@@ -50,16 +57,16 @@ const QrCodeActionCard = ({
       });
     } finally {
       setIsDeleting(false);
-      onCancel();
+      handleCloseAll(); // ao cancelar, fecha modal e atualiza!
     }
   };
 
-  // Handler para "Já conectei": fecha modal imediatamente e dispara checagem apenas para feedback
+  // Handler para "Já conectei"
   const handleCheckConnected = async () => {
     if (!instanceName) return;
     setIsChecking(true);
-    // FECHAR O MODAL IMEDIATAMENTE!
     onScanned();
+    if (onCloseWithRefresh) onCloseWithRefresh(); // ao fechar, atualiza
 
     try {
       const res = await fetch(`https://ticlin-evolution-api.eirfpl.easypanel.host/instance/connectionState/${instanceName}`, {
@@ -75,7 +82,6 @@ const QrCodeActionCard = ({
           description: "Seu WhatsApp foi conectado com sucesso.",
         });
       } else {
-        // Exibe toast, mas não bloqueia fechamento do modal
         toast({
           title: "Ainda não conectado!",
           description: "Por favor, conclua a conexão no celular ou aguarde.",
@@ -125,7 +131,7 @@ const QrCodeActionCard = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 animate-fade-in">
-      <Card className="w-full max-w-md glass-morphism p-6 rounded-2xl shadow-2xl border-none transition-all">
+      <Card className="w-full max-w-lg glass-morphism p-8 rounded-2xl shadow-2xl border-none transition-all">
         <CardHeader className="flex flex-col items-center text-center pb-2 border-none bg-transparent">
           <CardTitle className="text-lg font-semibold mb-0 text-gradient">
             Escaneie para conectar seu WhatsApp
@@ -136,11 +142,11 @@ const QrCodeActionCard = ({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center px-0 pb-2 pt-1">
-          <div className="flex justify-center items-center bg-white/15 dark:bg-zinc-700 rounded-lg p-2 mb-4 w-52 h-52 shadow-xl border border-white/20 backdrop-blur-md transition-all">
+          <div className="flex justify-center items-center bg-white/15 dark:bg-zinc-700 rounded-xl p-3 mb-4 w-72 h-72 sm:w-80 sm:h-80 shadow-xl border border-white/20 backdrop-blur-md transition-all">
             <img
               src={qrUrl}
               alt="QR Code para conexão do WhatsApp"
-              className="w-48 h-48 object-contain rounded-md border shadow-lg"
+              className="w-64 h-64 sm:w-72 sm:h-72 object-contain rounded-lg border-2 border-green-400 shadow-lg"
               draggable={false}
             />
           </div>
@@ -148,8 +154,8 @@ const QrCodeActionCard = ({
             O QR code expira em poucos minutos.<br /> Gere novamente se necessário.
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col gap-4 pt-0 px-0 border-none bg-transparent">
-          <div className="flex gap-2 w-full px-0">
+        <CardFooter className="flex flex-col gap-3 pt-0 px-0 border-none bg-transparent">
+          <div className="flex flex-col sm:flex-row gap-2 w-full px-0 justify-between items-stretch">
             <Button
               variant="default"
               size="sm"
@@ -208,3 +214,4 @@ const QrCodeActionCard = ({
 };
 
 export default QrCodeActionCard;
+
