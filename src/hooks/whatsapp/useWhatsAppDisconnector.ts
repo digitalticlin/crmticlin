@@ -1,5 +1,6 @@
+
 import { toast } from "sonner";
-import { evolutionApiService } from "@/services/evolution-api";
+import { evolutionDeleteInstance } from "./evolutionDeleteInstance";
 import { 
   useWhatsAppInstanceActions,
   WhatsAppInstance 
@@ -8,12 +9,12 @@ import { updateInstanceDisconnectedStatus } from "./database";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Hook for disconnecting WhatsApp instances
+ * Hook para desconectar (remover) instâncias do WhatsApp
  */
 export const useWhatsAppDisconnector = () => {
   const { updateInstance, setLoading, setError } = useWhatsAppInstanceActions();
   
-  // Delete a WhatsApp instance
+  // Deletar uma instância WhatsApp
   const deleteInstance = async (instanceIdOrInstance: string | WhatsAppInstance) => {
     const isInstanceObject = typeof instanceIdOrInstance !== 'string';
     const instanceId = isInstanceObject ? instanceIdOrInstance.id : instanceIdOrInstance;
@@ -29,15 +30,8 @@ export const useWhatsAppDisconnector = () => {
 
       console.log(`Deleting WhatsApp instance: ${instanceName} (ID: ${instanceId})`);
 
-      // Tenta apagar na Evolution API
-      let deleted = false;
-      try {
-        const success = await evolutionApiService.deleteInstance(instanceName);
-        deleted = !!success;
-      } catch (err) {
-        // Ainda tenta remover do supabase mesmo se der erro
-        console.warn("Erro ao remover na Evolution, mas continuará exclusão local.");
-      }
+      // Executa o DELETE na Evolution API, somente com o endpoint e header solicitado
+      await evolutionDeleteInstance(instanceName);
 
       // Remove do Supabase mesmo se der erro na API externa
       await supabase.from('whatsapp_numbers').delete().eq('id', instanceId);
@@ -63,7 +57,7 @@ export const useWhatsAppDisconnector = () => {
     }
   };
 
-  // Handle operation errors and show toast
+  // Handler de erro em operações (inalterado)
   const handleOperationError = (error: any, operation: string) => {
     const errorMessage = error?.message || "Erro desconhecido";
     console.error(`Error during operation: ${operation}:`, error);
@@ -72,6 +66,7 @@ export const useWhatsAppDisconnector = () => {
   };
 
   return {
-    deleteInstance
+    deleteInstance,
   };
 };
+
