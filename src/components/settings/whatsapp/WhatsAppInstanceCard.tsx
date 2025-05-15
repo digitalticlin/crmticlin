@@ -6,6 +6,9 @@ import DeviceInfoSection from "./DeviceInfoSection";
 import QrCodeSection from "./QrCodeSection";
 import InstanceActionButtons from "./InstanceActionButtons";
 import { useConnectionSynchronizer } from "@/hooks/whatsapp/status-monitor/useConnectionSynchronizer";
+import { useInstanceConnectionWaiter } from "@/hooks/whatsapp/useInstanceConnectionWaiter";
+import { toast } from "@/hooks/use-toast";
+import { LoaderCircle } from "lucide-react";
 
 interface WhatsAppInstanceCardProps {
   instance: WhatsAppInstance;
@@ -32,6 +35,39 @@ const WhatsAppInstanceCard = ({
   
   // Get connection synchronizer for manual refresh
   const { forceSyncConnectionStatus, isSyncing } = useConnectionSynchronizer();
+
+  // NOVO: Estado para ativar processo de aguardando conexão
+  const [connectingSpinner, setConnectingSpinner] = useState(false);
+
+  // Novo hook para esperar a conexão após fechar modal QR
+  const {
+    waiting, cancelled, timedOut, start: startWait, cancel: cancelWait
+  } = useInstanceConnectionWaiter({
+    instanceId: instance.id,
+    instanceName: instance.instanceName,
+    // Usa connection check já existente do Synchronizer!
+    checkStatusFn: async (id: string) => {
+      return await forceSyncConnectionStatus(id, instance.instanceName) || "";
+    },
+    onSuccess: () => {
+      setConnectingSpinner(false);
+      toast({
+        title: "Conectado com sucesso!",
+        description: "Seu WhatsApp foi conectado.",
+        variant: "default"
+      });
+    },
+    onTimeout: () => {
+      setConnectingSpinner(false);
+      toast({
+        title: "Ainda não foi possível conectar!",
+        description: "Verifique o app do celular ou tente novamente.",
+        variant: "destructive"
+      });
+    },
+    pollingInterval: 5000,
+    timeoutDuration: 60000
+  });
 
   // Detect when a QR code is received to show automatically
   useEffect(() => {
@@ -79,6 +115,18 @@ const WhatsAppInstanceCard = ({
   // Removido: useEffect que faz polling via interval próprio quando QRCode está sendo exibido
   // Vamos confiar APENAS no periodic checker central já corrigido
   // O único check imediato permitido é um status manual (usuário clica); status ao montar o QR code/dispositivo é centralizado.
+
+  // NOVO: Monitorar quando fechar o modal QR e mostrar spinner se ainda não está connected
+  useEffect(() => {
+    if (!showQrCode && !instance.connected && !!instance.qrCodeUrl) {
+      setConnectingSpinner(true);
+      startWait();
+    } else if (instance.connected) {
+      setConnectingSpinner(false);
+      cancelWait();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showQrCode, instance.connected, instance.qrCodeUrl]);
 
   // Click function to connect WhatsApp
   const handleConnect = async () => {
@@ -156,6 +204,9 @@ const WhatsAppInstanceCard = ({
   // Determine if we're currently loading status
   const isStatusLoading = isLoading || isSyncing[instance.id];
 
+  // Determinar se mostra spinner de conexão
+  const shouldShowConnectingSpinner = connectingSpinner && !instance.connected;
+
   return (
     <Card className="overflow-hidden glass-card border-0">
       <CardContent className="p-0">
@@ -175,6 +226,22 @@ const WhatsAppInstanceCard = ({
           {/* QR Code Section - Only shown when disconnected and QR code exists */}
           {shouldShowQrCode && instance.qrCodeUrl && !instance.connected && (
             <QrCodeSection qrCodeUrl={instance.qrCodeUrl} />
+          )}
+          
+          {/* NOVO: Spinner "Conectando..." após fechar QR */}
+          {shouldShowConnectingSpinner && (
+            <div className="flex flex-col items-center justify-center gap-2 py-4 animate-fade-in">
+              <LoaderCircle className="animate-spin text-primary w-8 h-8" />
+              <span className="text-sm text-muted-foreground">Aguardando confirmação da conexão...<br />Isso pode levar alguns segundos.</span>
+              <button
+                type="button"
+                className="text-xs text-red-500 underline mt-1"
+                onClick={() => cancelWait()}
+                disabled={isLoading}
+              >
+                Cancelar
+              </button>
+            </div>
           )}
           
           {/* Action Buttons - Different based on connection state */}
