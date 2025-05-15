@@ -35,14 +35,14 @@ export const useConnectionSynchronizer = () => {
       const evolutionStatus = await evolutionApiService.checkInstanceStatus(instanceName, true);
       console.log(`Evolution API reports status for ${instanceName}: ${evolutionStatus}`);
       
-      // If detailed object is returned, extract connection state
+      // Se receber "open", trate como "connected"!
       const status = typeof evolutionStatus === 'string' 
         ? evolutionStatus 
         : evolutionStatus?.instance?.state || evolutionStatus?.state || 'disconnected';
       
-      // Map Evolution API status to our WhatsApp status type
+      // Aqui o ajuste principal: "open" será tratado como sucesso/conectado
       const mappedStatus: WhatsAppStatus = 
-        status === 'connected' ? 'connected' :
+        status === 'connected' || status === 'open' ? 'connected' :
         status === 'connecting' ? 'connecting' : 
         'disconnected';
       
@@ -117,3 +117,4 @@ export const useConnectionSynchronizer = () => {
     lastSyncTime
   };
 };
+
