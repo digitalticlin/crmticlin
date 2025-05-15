@@ -1,4 +1,3 @@
-
 import { MAX_RETRIES, RETRY_DELAY, API_KEY } from "./config";
 
 /**
@@ -34,19 +33,26 @@ export class ApiClient {
   async fetchWithHeaders(endpoint: string, options: RequestInit = {}, retries = 0): Promise<any> {
     // Create a unique key for this request to deduplicate identical calls
     const requestKey = `${options.method || 'GET'}-${endpoint}-${options.body || ''}`;
-    
+
     // If an identical request is already in progress, return that promise instead of making a new request
     if (this.requestQueue.has(requestKey)) {
       console.log(`Request to ${endpoint} already in progress, reusing existing promise`);
       return this.requestQueue.get(requestKey);
     }
-    
-    // Create headers with API key
+
+    // Create headers with API key (always lowercase key!)
     const headers = {
       "Content-Type": "application/json",
-      "apikey": this.apiKey,
+      "apikey": this.apiKey, // <--- GARANTE lower case!
       ...options.headers
     };
+
+    // Log for debug:
+    if (!headers["apikey"]) {
+      console.warn("API key header ('apikey') is missing. Headers object:", headers);
+    } else {
+      console.log(`API key header set: ${headers["apikey"].substring(0, 4)}...`);
+    }
 
     // Check if we're in a development environment (Lovable preview)
     const isDevOrPreview = typeof window !== 'undefined' && 
@@ -55,11 +61,13 @@ export class ApiClient {
 
     // For development/preview environments, use a proxy to avoid CORS issues
     let url = `${this.apiUrl}${endpoint}`;
-    
+
     console.log(`Making API request to: ${url}`, {
       method: options.method || 'GET',
+      requestHeaders: headers,
+      requestBody: options.body ? options.body : undefined,
     });
-    
+
     // Debug log to verify API key is being sent correctly
     console.log(`Request using API key: ${this.apiKey.substring(0, 4)}...${this.apiKey.substring(this.apiKey.length - 4)}`);
     
@@ -72,7 +80,7 @@ export class ApiClient {
       try {
         const response = await fetch(url, {
           ...options,
-          headers
+          headers // <---- ensure this is always set
         });
 
         console.log(`Response status: ${response.status} ${response.statusText}`);
