@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppStatus } from "@/hooks/whatsapp/database";
 import { toast } from "sonner";
@@ -117,7 +116,6 @@ export const createWhatsAppInstance = async (username: string): Promise<{
   let tryCount = 0;
   let lastError: string | undefined;
   let newName = baseName;
-  let instanceData: any;
 
   while (tryCount < 10) {
     try {
@@ -126,7 +124,7 @@ export const createWhatsAppInstance = async (username: string): Promise<{
         newName = await makeUniqueInstanceName(baseName);
       }
       // POST na Evolution
-      const evolutionResp: EvolutionInstance = await evolutionRequest(
+      const evolutionResp = await evolutionRequest(
         "/instance/create", {
         method: "POST",
         body: JSON.stringify({
@@ -135,11 +133,14 @@ export const createWhatsAppInstance = async (username: string): Promise<{
           integration: "WHATSAPP-BAILEYS"
         }),
       });
-      // Checa dados essenciais
+
+      // --- AJUSTE AQUI: Validação do campo base64 no retorno ---
       if (
         !evolutionResp ||
-        !evolutionResp.qrcode?.base64 ||
-        !evolutionResp.instanceId
+        !evolutionResp.qrcode ||
+        !evolutionResp.qrcode.base64 ||
+        !evolutionResp.instance ||
+        !evolutionResp.instance.instanceId
       ) {
         throw new Error("QR code ou dados ausentes na resposta da Evolution API");
       }
@@ -152,14 +153,15 @@ export const createWhatsAppInstance = async (username: string): Promise<{
       if (!profileData?.company_id) throw new Error("Erro ao obter a empresa do usuário");
       const companyId = profileData.company_id;
 
+      // --- Salva exatamente o base64 da resposta no campo qr_code ---
       const whatsappData = {
         instance_name: newName,
         phone: "",
         company_id: companyId,
         status: "connecting" as WhatsAppStatus,
-        qr_code: evolutionResp.qrcode.base64,
-        instance_id: evolutionResp.instanceId,
-        evolution_instance_name: evolutionResp.instanceName,
+        qr_code: evolutionResp.qrcode.base64, // <--- Aqui está o ajuste central do fluxo!
+        instance_id: evolutionResp.instance.instanceId,
+        evolution_instance_name: evolutionResp.instance.instanceName,
         evolution_token: evolutionResp.hash || "",
       };
 
@@ -176,7 +178,7 @@ export const createWhatsAppInstance = async (username: string): Promise<{
         success: true,
         qrCode: evolutionResp.qrcode.base64,
         instanceName: newName,
-        instanceId: savedInstance?.id || evolutionResp.instanceId,
+        instanceId: savedInstance?.id || evolutionResp.instance.instanceId,
       };
     } catch (err: any) {
       lastError = String((err?.response?.message || err?.message || "Erro ao criar instância"));
