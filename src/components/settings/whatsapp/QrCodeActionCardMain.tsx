@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription } from "@/components/ui/card";
@@ -39,8 +38,10 @@ const QrCodeActionCardMain = ({
 
   // Para garantir atualização/refetch ao fechar
   const handleCloseAll = () => {
-    onCancel();
-    if (onCloseWithRefresh) onCloseWithRefresh();
+    console.log('[QrCodeActionCardMain] handleCloseAll chamado - resetando apenas estados locais, sem polling!');
+    // Apenas fecha modal e reseta relacionado a UI, não chama polling nem refresh de status!
+    if (typeof onCancel === "function") onCancel();
+    // NÃO chama onCloseWithRefresh aqui de jeito nenhum!
   };
 
   // Handler para deletar instância Evolution API
@@ -100,11 +101,12 @@ const QrCodeActionCardMain = ({
     }
   };
 
-  // Função para verificar estado do QRCode (só permite UMA requisição por clique)
+  // Função PARA VERIFICAR STATUS APENAS VIA CLIQUE EM "JÁ CONECTEI"
   const checkConnection = async () => {
     if (!instanceName || isChecking || hasRequestedRef.current) return;
     setIsChecking(true);
     hasRequestedRef.current = true;
+    console.log('[QrCodeActionCardMain] checkConnection: faz requisição única para o status da instância');
 
     try {
       const response = await fetch(`${API_URL}${encodeURIComponent(instanceName)}`, {
@@ -122,7 +124,6 @@ const QrCodeActionCardMain = ({
       }
       const state = json?.instance?.state ?? json?.state;
 
-      // Instância não existe
       if (
         (json?.status === 404 || json?.status === "404") &&
         json?.response?.message &&
@@ -142,7 +143,7 @@ const QrCodeActionCardMain = ({
           description: "Seu WhatsApp foi conectado com sucesso.",
         });
         onScanned();
-        if (onCloseWithRefresh) onCloseWithRefresh();
+        // NÃO chama onCloseWithRefresh para não disparar polling automático!
         setIsChecking(false);
         hasRequestedRef.current = false;
         return;
@@ -154,13 +155,13 @@ const QrCodeActionCardMain = ({
           description: "Esse número foi excluído e deve ser reconectado.",
           variant: "destructive",
         });
-        if (onCloseWithRefresh) onCloseWithRefresh();
+        // NÃO chama onCloseWithRefresh para não disparar polling automático!
         setIsChecking(false);
         hasRequestedRef.current = false;
         return;
       }
 
-      // Caso esteja "connecting", apenas avise
+      // Caso "connecting", só feedback, NÃO faz nova checagem!
       toast({
         title: "Ainda aguardando conexão.",
         description: "Tente novamente em instantes, ou leia o QR Code novamente se necessário.",
@@ -227,7 +228,10 @@ const QrCodeActionCardMain = ({
       <WhatsAppSupportErrorModal
         open={showSupportModal}
         errorDetail={supportDetail}
-        onClose={() => setShowSupportModal(false)}
+        onClose={() => {
+          setShowSupportModal(false);
+          console.log('[QrCodeActionCardMain] Suporte: modal fechado');
+        }}
       />
       {/* Glassmorphism utility */}
       <style>{`
@@ -254,4 +258,3 @@ const QrCodeActionCardMain = ({
 };
 
 export default QrCodeActionCardMain;
-
