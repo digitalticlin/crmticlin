@@ -25,44 +25,25 @@ const QrCodeActionCardMain = ({
   onCancel,
   instanceName,
   instanceInfoFromDb, // NOVO: receber info do banco direto por props se possível
+  onCloseWithRefresh,
 }: QrCodeActionCardProps & { instanceInfoFromDb?: { name: string; number?: string; status?: string } }) => {
-  // Estados locais
+  // Estados locais UNIFICADOS
   const [isDeleting, setIsDeleting] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [supportDetail, setSupportDetail] = useState<string | undefined>(undefined);
-  const [qrUrl] = useState(qrCodeUrl);
-  // Estados locais
-  // const [isDeleting, setIsDeleting] = useState(false);
-  // const [showSupportModal, setShowSupportModal] = useState(false);
-  // const [supportDetail, setSupportDetail] = useState<string | undefined>(undefined);
-  // const [qrUrl] = useState(qrCodeUrl);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [showSupportModal, setShowSupportModal] = useState(false);
-  const [supportDetail, setSupportDetail] = useState<string | undefined>(undefined);
-  const [qrUrl] = useState(qrCodeUrl);
-  // --- Remover estados conectados/card, pois isso vem do banco agora
-  // const [connectedCardVisible, setConnectedCardVisible] = useState(false);
-  // const [instanceInfo, setInstanceInfo] = useState<{ name: string; number?: string } | null>(null);
-  // const [hasConnected, setHasConnected] = useState(false);
+  const [isCheckingAndSaving, setIsCheckingAndSaving] = useState(false);
 
   // info vem direto do banco agora
   const instanceInfo = instanceInfoFromDb || { name: instanceName || "Instância WhatsApp", number: undefined, status: undefined };
 
-  // Para resgatar nome e número do QR, pode ser extendido se necessário
-  useEffect(() => {
-    // setInstanceInfo({
-    //   name: instanceName || "Instância WhatsApp",
-    //   // O número pode ser buscado por props se necessário
-    // });
-  }, [instanceName]);
+  // Função de cleanup simples para garantir que eventuais efeitos sejam limpos (placeholder para compatibilidade)
+  const cleanup = () => {
+    // Nenhum efeito para limpar neste fluxo, mas mantido para estrutura e compatibilidade
+  };
 
-  // Referência para acesso ao cleanup de polling/efeitos ao fechar modal
-  const cleanupOnCloseRef = useRef<() => void>(() => {});
-
-  // NOVO: Função para garantir cleanup SEMPRE ao fechar modal
+  // Fechamento/cancelamento sempre limpa
   const handleCloseAll = () => {
-    // Cancela polling e efeitos se ativo
-    cleanup(); // Chama sempre o cleanup ao fechar/cancelar
+    cleanup();
     if (typeof onCancel === "function") onCancel();
   };
 
@@ -122,9 +103,7 @@ const QrCodeActionCardMain = ({
     }
   };
 
-  // --- NOVO: Estado do hook isolado, sem pooling, dispara só 1 vez ---
-  const [isCheckingAndSaving, setIsCheckingAndSaving] = useState(false);
-
+  // Botão "Já conectei" agora executa: faz uma requisição, salva no banco, o card renderiza pelo banco, sem loop
   const handleCheckAndSave = async () => {
     if (!instanceName || isCheckingAndSaving) return;
     setIsCheckingAndSaving(true);
@@ -149,7 +128,7 @@ const QrCodeActionCardMain = ({
       const state = json?.instance?.state ?? json?.state;
       const phone = json?.instance?.phone?.toString() || json?.instance?.me?.id || "";
 
-      // Checagem se não existe
+      // Instância não existe
       if (
         (json?.status === 404 || json?.status === "404") &&
         json?.response?.message &&
@@ -161,24 +140,25 @@ const QrCodeActionCardMain = ({
         return;
       }
 
+      // Se conectado: salva no banco e card autoatualiza
       if (state === "open" || state === "connecting") {
-        // 2. Atualizar o registro no banco (status e telefone)
         await updateInstanceStatusAndPhone(
-          instanceName,         // Para manter compatibilidade, aceite tanto id quanto instanceName (ajuste conforme a função espera, pode ser instance id)
+          instanceName,         // Passa o nome (id compatível, se precisar adaptar isso, veja arg da função)
           "connected",
           phone
         );
+        // O card se atualizará com a info do banco (não force re-render manualmente)
         toast({
           title: "Instância conectada!",
           description: "Status e telefone atualizados no banco.",
           variant: "default",
         });
-        // Opcional: acionar callback de scanned/cancelar modal
         if (typeof onScanned === "function") onScanned();
         handleCloseAll();
         return;
       }
 
+      // Se removido/closed
       if (state === "closed") {
         toast({
           title: "Instância removida.",
@@ -189,6 +169,7 @@ const QrCodeActionCardMain = ({
         return;
       }
 
+      // Se outro estado, só alerta
       toast({
         title: "Ainda aguardando conexão.",
         description: "Tente novamente em instantes, ou leia o QR Code novamente se necessário.",
@@ -294,7 +275,7 @@ const QrCodeActionCardMain = ({
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center px-0 pb-2 pt-1">
-          <QrCodeDisplay qrUrl={qrUrl} />
+          <QrCodeDisplay qrUrl={qrCodeUrl} />
           <div className="text-xs text-gray-600 dark:text-gray-400 text-center pb-2">
             O QR code expira em poucos minutos.<br /> Gere novamente se necessário.
           </div>
