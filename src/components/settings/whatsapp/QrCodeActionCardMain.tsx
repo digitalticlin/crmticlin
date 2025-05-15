@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription } from "@/components/ui/card";
@@ -44,9 +43,10 @@ const QrCodeActionCardMain = ({
   // Referência para acesso ao cleanup de polling/efeitos ao fechar modal
   const cleanupOnCloseRef = useRef<() => void>(() => {});
 
+  // NOVO: Função para garantir cleanup SEMPRE ao fechar modal
   const handleCloseAll = () => {
     // Cancela polling e efeitos se ativo
-    cleanupOnCloseRef.current();
+    cleanup(); // Chama sempre o cleanup ao fechar/cancelar
     if (typeof onCancel === "function") onCancel();
   };
 
@@ -122,11 +122,14 @@ const QrCodeActionCardMain = ({
     },
   });
 
-  // Limpa polling/checks ao fechar modal
+  // Limpa polling/checks ao fechar modal (componentWillUnmount E ao chamar handleCloseAll)
   useEffect(() => {
     cleanupOnCloseRef.current = cleanup;
     return () => cleanup();
   }, [cleanup]);
+
+  // Se o usuário fechar modal manualmente (botão cancelar/deletar): garantir cleanup
+  // Já está coberto por handleCloseAll!
 
   // --- Renderização: QR até conectar, depois card de conectado ---
   if (hasConnected && connectedCardVisible) {
@@ -237,7 +240,7 @@ const QrCodeActionCardMain = ({
               variant="destructive"
               size="sm"
               className="flex-1 min-w-0"
-              onClick={handleDeleteInstance}
+              onClick={handleCloseAll}
               disabled={isLoading || isDeleting || isChecking}
             >
               {isDeleting ? <span className="animate-spin"><X className="w-4 h-4 mr-1" /></span> : <X className="w-4 h-4 mr-1" />}
@@ -285,4 +288,3 @@ const QrCodeActionCardMain = ({
 };
 
 export default QrCodeActionCardMain;
-
