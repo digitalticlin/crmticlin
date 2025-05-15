@@ -1023,49 +1023,70 @@ export type Database = {
       }
       whatsapp_numbers: {
         Row: {
+          client_name: string | null
           company_id: string
+          connection_status: string | null
           created_at: string | null
           date_connected: string | null
           date_disconnected: string | null
+          evolution_instance_id: string | null
           evolution_instance_name: string | null
           evolution_token: string | null
           id: string
           instance_id: string | null
           instance_name: string
           n8n_webhook_url: string | null
+          number: string | null
+          owner_jid: string | null
           phone: string
+          profile_name: string | null
+          profile_pic_url: string | null
           qr_code: string | null
           status: Database["public"]["Enums"]["whatsapp_status"] | null
           updated_at: string | null
         }
         Insert: {
+          client_name?: string | null
           company_id: string
+          connection_status?: string | null
           created_at?: string | null
           date_connected?: string | null
           date_disconnected?: string | null
+          evolution_instance_id?: string | null
           evolution_instance_name?: string | null
           evolution_token?: string | null
           id?: string
           instance_id?: string | null
           instance_name: string
           n8n_webhook_url?: string | null
+          number?: string | null
+          owner_jid?: string | null
           phone: string
+          profile_name?: string | null
+          profile_pic_url?: string | null
           qr_code?: string | null
           status?: Database["public"]["Enums"]["whatsapp_status"] | null
           updated_at?: string | null
         }
         Update: {
+          client_name?: string | null
           company_id?: string
+          connection_status?: string | null
           created_at?: string | null
           date_connected?: string | null
           date_disconnected?: string | null
+          evolution_instance_id?: string | null
           evolution_instance_name?: string | null
           evolution_token?: string | null
           id?: string
           instance_id?: string | null
           instance_name?: string
           n8n_webhook_url?: string | null
+          number?: string | null
+          owner_jid?: string | null
           phone?: string
+          profile_name?: string | null
+          profile_pic_url?: string | null
           qr_code?: string | null
           status?: Database["public"]["Enums"]["whatsapp_status"] | null
           updated_at?: string | null
