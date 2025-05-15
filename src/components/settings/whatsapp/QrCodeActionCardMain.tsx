@@ -6,6 +6,7 @@ import { toast } from "@/hooks/use-toast";
 import { WhatsAppSupportErrorModal } from "./WhatsAppSupportErrorModal";
 import { QrCodeDisplay } from "./QrCodeDisplay";
 import { useQrConnectionCheck } from "./useQrConnectionCheck";
+import { updateInstanceStatusAndPhone } from "@/hooks/whatsapp/database";
 
 interface QrCodeActionCardProps {
   qrCodeUrl: string;
@@ -23,21 +24,36 @@ const QrCodeActionCardMain = ({
   onScanned,
   onCancel,
   instanceName,
-}: QrCodeActionCardProps) => {
+  instanceInfoFromDb, // NOVO: receber info do banco direto por props se possível
+}: QrCodeActionCardProps & { instanceInfoFromDb?: { name: string; number?: string; status?: string } }) => {
   // Estados locais
   const [isDeleting, setIsDeleting] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [supportDetail, setSupportDetail] = useState<string | undefined>(undefined);
   const [qrUrl] = useState(qrCodeUrl);
-  const [connectedCardVisible, setConnectedCardVisible] = useState(false);
-  const [instanceInfo, setInstanceInfo] = useState<{ name: string; number?: string } | null>(null);
+  // Estados locais
+  // const [isDeleting, setIsDeleting] = useState(false);
+  // const [showSupportModal, setShowSupportModal] = useState(false);
+  // const [supportDetail, setSupportDetail] = useState<string | undefined>(undefined);
+  // const [qrUrl] = useState(qrCodeUrl);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [supportDetail, setSupportDetail] = useState<string | undefined>(undefined);
+  const [qrUrl] = useState(qrCodeUrl);
+  // --- Remover estados conectados/card, pois isso vem do banco agora
+  // const [connectedCardVisible, setConnectedCardVisible] = useState(false);
+  // const [instanceInfo, setInstanceInfo] = useState<{ name: string; number?: string } | null>(null);
+  // const [hasConnected, setHasConnected] = useState(false);
+
+  // info vem direto do banco agora
+  const instanceInfo = instanceInfoFromDb || { name: instanceName || "Instância WhatsApp", number: undefined, status: undefined };
 
   // Para resgatar nome e número do QR, pode ser extendido se necessário
   useEffect(() => {
-    setInstanceInfo({
-      name: instanceName || "Instância WhatsApp",
-      // O número pode ser buscado por props se necessário
-    });
+    // setInstanceInfo({
+    //   name: instanceName || "Instância WhatsApp",
+    //   // O número pode ser buscado por props se necessário
+    // });
   }, [instanceName]);
 
   // Referência para acesso ao cleanup de polling/efeitos ao fechar modal
@@ -107,32 +123,93 @@ const QrCodeActionCardMain = ({
   };
 
   // --- NOVO: Estado do hook isolado, sem pooling, dispara só 1 vez ---
-  const [hasConnected, setHasConnected] = useState(false);
-  const { isChecking, checkConnection, cleanup } = useQrConnectionCheck({
-    instanceName,
-    onConnected: () => {
-      setHasConnected(true);
-      setConnectedCardVisible(true);
-      onScanned();
-    },
-    onClosed: () => {},
-    onNotExist: (msg) => {
-      setSupportDetail(msg);
-      setShowSupportModal(true);
-    },
-  });
+  const [isCheckingAndSaving, setIsCheckingAndSaving] = useState(false);
 
-  // Limpa polling/checks ao fechar modal (componentWillUnmount E ao chamar handleCloseAll)
-  useEffect(() => {
-    cleanupOnCloseRef.current = cleanup;
-    return () => cleanup();
-  }, [cleanup]);
+  const handleCheckAndSave = async () => {
+    if (!instanceName || isCheckingAndSaving) return;
+    setIsCheckingAndSaving(true);
+    try {
+      // 1. Buscar status e phone do Evolution API
+      const response = await fetch(
+        `https://ticlin-evolution-api.eirfpl.easypanel.host/instance/connectionState/${encodeURIComponent(instanceName)}`,
+        {
+          method: "GET",
+          headers: {
+            "apikey": "JTZZDXMpymy7RETTvXdA9VxKdD0Mdj7t",
+            "Content-Type": "application/json"
+          }
+        }
+      );
+      let json: any = null;
+      try {
+        json = await response.json();
+      } catch {
+        throw new Error("Resposta inesperada do servidor");
+      }
+      const state = json?.instance?.state ?? json?.state;
+      const phone = json?.instance?.phone?.toString() || json?.instance?.me?.id || "";
 
-  // Se o usuário fechar modal manualmente (botão cancelar/deletar): garantir cleanup
-  // Já está coberto por handleCloseAll!
+      // Checagem se não existe
+      if (
+        (json?.status === 404 || json?.status === "404") &&
+        json?.response?.message &&
+        Array.isArray(json.response.message) &&
+        json.response.message.join(" ").toLowerCase().includes("instance does not exist")
+      ) {
+        setSupportDetail(json.response.message?.join(" ") || "Instância não encontrada");
+        setShowSupportModal(true);
+        return;
+      }
 
-  // --- Renderização: QR até conectar, depois card de conectado ---
-  if (hasConnected && connectedCardVisible) {
+      if (state === "open" || state === "connecting") {
+        // 2. Atualizar o registro no banco (status e telefone)
+        await updateInstanceStatusAndPhone(
+          instanceName,         // Para manter compatibilidade, aceite tanto id quanto instanceName (ajuste conforme a função espera, pode ser instance id)
+          "connected",
+          phone
+        );
+        toast({
+          title: "Instância conectada!",
+          description: "Status e telefone atualizados no banco.",
+          variant: "default",
+        });
+        // Opcional: acionar callback de scanned/cancelar modal
+        if (typeof onScanned === "function") onScanned();
+        handleCloseAll();
+        return;
+      }
+
+      if (state === "closed") {
+        toast({
+          title: "Instância removida.",
+          description: "Esse número foi excluído e deve ser reconectado.",
+          variant: "destructive",
+        });
+        handleCloseAll();
+        return;
+      }
+
+      toast({
+        title: "Ainda aguardando conexão.",
+        description: "Tente novamente em instantes, ou leia o QR Code novamente se necessário.",
+        variant: "default",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao verificar instância",
+        description: error?.message || "",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCheckingAndSaving(false);
+    }
+  };
+
+  // --- Renderização: Usar info do banco em vez de estado local
+  const isInstanceConnected = instanceInfo?.status === "open" || instanceInfo?.status === "connected";
+
+  if (isInstanceConnected) {
+    // Card "Dispositivo conectado" - usa phone e status do banco
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 animate-fade-in">
         <Card className="w-full max-w-md glass-morphism p-8 rounded-2xl shadow-2xl border-none transition-all">
@@ -228,29 +305,26 @@ const QrCodeActionCardMain = ({
               variant="default"
               size="sm"
               className="flex-1 min-w-0"
-              onClick={() => {
-                checkConnection();
-              }}
-              disabled={isLoading || isDeleting || isChecking}
+              onClick={handleCheckAndSave}
+              disabled={isLoading || isDeleting || isCheckingAndSaving}
             >
               <Check className="w-4 h-4 mr-1" />
-              {isChecking ? "Verificando..." : "Já conectei"}
+              {isCheckingAndSaving ? "Verificando..." : "Já conectei"}
             </Button>
             <Button
               variant="destructive"
               size="sm"
               className="flex-1 min-w-0"
               onClick={handleCloseAll}
-              disabled={isLoading || isDeleting || isChecking}
+              disabled={isLoading || isDeleting || isCheckingAndSaving}
             >
               {isDeleting ? <span className="animate-spin"><X className="w-4 h-4 mr-1" /></span> : <X className="w-4 h-4 mr-1" />}
               {isDeleting ? "Cancelando..." : "Cancelar"}
             </Button>
           </div>
-          {/* Spinner explícito durante verificação manual */}
-          {isChecking && (
+          {isCheckingAndSaving && (
             <div className="flex flex-col items-center justify-center gap-2 py-2 animate-fade-in">
-              <span className="text-sm text-muted-foreground">Verificando conexão...</span>
+              <span className="text-sm text-muted-foreground">Verificando conexão/atualizando banco...</span>
             </div>
           )}
         </CardFooter>
