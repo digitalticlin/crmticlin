@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useWhatsAppChat } from "./useWhatsAppChat";
 import { Contact } from "@/types/chat";
@@ -89,19 +88,28 @@ export function useChat() {
           console.log('Novo lead recebido:', payload);
           
           // Se houver uma nova inserção, adicionar aos contatos e ao funil de vendas
-          const newLead = payload.new;
+          // Explicitly type newLead from payload to ensure properties are checked
+          const newLeadData = payload.new as { 
+            id: string; 
+            name: string; 
+            phone: string; 
+            last_message: string | null; 
+            last_message_time: string | null;
+            // Add other relevant fields from the 'leads' table if needed for context
+          };
           
-          if (newLead) {
+          if (newLeadData && newLeadData.phone) {
             try {
               // Adicionar lead ao funil de vendas
+              // The 'name' property is removed from this object to match the expected type
+              // Omit<KanbanLead, "id" | "name" | "columnId">
               receiveNewLead({
-                name: newLead.name || `Lead-${newLead.phone.substring(newLead.phone.length - 4)}`,
-                phone: newLead.phone,
-                lastMessage: newLead.last_message || "",
-                lastMessageTime: newLead.last_message_time ? 
-                  new Date(newLead.last_message_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 
+                phone: newLeadData.phone,
+                lastMessage: newLeadData.last_message || "",
+                lastMessageTime: newLeadData.last_message_time ? 
+                  new Date(newLeadData.last_message_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 
                   "Agora",
-                tags: []
+                tags: [] // Assuming KanbanLead expects tags and it's not in the Omit type
               });
               
               // Atualizar lista de contatos no chat
@@ -125,7 +133,10 @@ export function useChat() {
           // Se o lead selecionado for atualizado, atualizar conteúdo
           if (selectedContact && payload.new.id === selectedContact.id) {
             // Atualizar mensagens se o lead selecionado receber uma nova mensagem
-            if (payload.new.last_message !== payload.old.last_message) {
+            // Ensure payload.new.last_message and payload.old.last_message exist if accessed
+            const newLastMessage = (payload.new as { last_message?: string }).last_message;
+            const oldLastMessage = (payload.old as { last_message?: string }).last_message;
+            if (newLastMessage !== oldLastMessage) {
               await fetchMessages();
             }
           }
