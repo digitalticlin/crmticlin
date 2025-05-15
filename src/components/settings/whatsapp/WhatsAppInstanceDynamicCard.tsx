@@ -1,133 +1,109 @@
 
-import { useState } from "react";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { QrCode, RefreshCw, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Trash2 } from "lucide-react"
+import { toast } from "sonner"
 
-interface Props {
+interface WhatsAppInstanceDynamicCardProps {
   instance: {
-    id: string;
-    instanceName: string;
-    phoneNumber?: string;
-    state: "connecting" | "open" | "close";
-    qrCodeUrl?: string;
-  };
-  onDeleteSuccess: (id: string) => void;
-  onRefreshInstances?: () => void;
+    id: string
+    instanceName: string
+    phoneNumber?: string
+    status: "connected" | "connecting" | "disconnected" // status direto do Supabase
+  }
+  onDeleteSuccess: (id: string) => void
 }
 
-const EVOLUTION_URL = "https://ticlin-evolution-api.eirfpl.easypanel.host";
-const API_KEY = "JTZZDXMpymy7RETTvXdA9VxKdD0Mdj7t";
+const EVOLUTION_URL = "https://ticlin-evolution-api.eirfpl.easypanel.host"
+const API_KEY = "JTZZDXMpymy7RETTvXdA9VxKdD0Mdj7t"
 
-export default function WhatsAppInstanceDynamicCard({ instance, onDeleteSuccess, onRefreshInstances }: Props) {
-  const [qrCode, setQrCode] = useState<string | null>(instance.qrCodeUrl || null);
-  const [loading, setLoading] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+export default function WhatsAppInstanceDynamicCard({ instance, onDeleteSuccess }: WhatsAppInstanceDynamicCardProps) {
+  const { id, instanceName, phoneNumber, status } = instance
+  const isConnected = status === "connected" || status === "connecting"
+  const isDisconnected = status === "disconnected"
 
-  // Gera/Regera QRCode usando a API /instance/connect/{instanceName}
-  const handleGenerateQr = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${EVOLUTION_URL}/instance/connect/${encodeURIComponent(instance.instanceName)}`, {
-        method: "GET",
-        headers: {
-          "apikey": API_KEY
-        }
-      });
-      if (!res.ok) throw new Error("Erro ao gerar novo QRCode");
-      const data = await res.json();
-      if (data?.base64) {
-        setQrCode(data.base64);
-        toast.success("QR Code gerado com sucesso!");
-      } else {
-        throw new Error("Resposta inválida ao gerar QRCode");
-      }
-    } catch (e: any) {
-      toast.error(e.message || "Erro ao gerar QRCode");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Desconecta e remove instância
+  // Botão de deletar
   const handleDelete = async () => {
-    setDeleting(true);
     try {
-      const res = await fetch(`${EVOLUTION_URL}/instance/delete/${encodeURIComponent(instance.instanceName)}`, {
-        method: "DELETE",
-        headers: {
-          "API-KEY": API_KEY
+      const resp = await fetch(
+        `${EVOLUTION_URL}/instance/delete/${encodeURIComponent(instanceName)}`,
+        {
+          method: "DELETE",
+          headers: {
+            "apikey": API_KEY
+          }
         }
-      });
-      const data = await res.json();
-      if (data?.status === "SUCCESS") {
-        toast.success("Instância removida com sucesso!");
-        onDeleteSuccess(instance.id);
-        if (onRefreshInstances) onRefreshInstances();
-        return;
+      )
+      const data = await resp.json()
+      if (!resp.ok || data?.status !== "SUCCESS") {
+        throw new Error(data?.response?.message || "Erro ao deletar instância na Evolution API")
       }
-      throw new Error("API não confirmou remoção");
+      toast.success("Instância removida com sucesso!")
+      onDeleteSuccess(id)
     } catch (e: any) {
-      toast.error(e.message || "Erro ao remover instância");
-    } finally {
-      setDeleting(false);
+      toast.error(e?.message || "Erro ao deletar instância")
     }
-  };
+  }
 
   return (
-    <Card className="overflow-hidden mb-4">
-      <CardContent>
-        <div className="flex flex-col gap-2">
-          <strong className="text-lg">{instance.instanceName}</strong>
-          <span className="text-sm text-muted-foreground">{instance.phoneNumber || "Número não informado"}</span>
-          <div>
-            {/* Lógica conforme state */}
-            {(instance.state === "connecting" || instance.state === "close") && (
-              <>
-                <div className="mb-2">
-                  <span className="text-yellow-600 font-medium block mb-1">
-                    {instance.state === "connecting" ? "Aguardando conexão via QR Code" : "WhatsApp desconectado"}
-                  </span>
-                  {qrCode && (
-                    <img src={qrCode} alt="QRCode" className="w-48 h-48 border mx-auto mb-2" />
-                  )}
-                  <Button 
-                    onClick={handleGenerateQr}
-                    disabled={loading}
-                    className="w-full"
-                    variant="whatsapp"
-                  >
-                    <QrCode className="mr-1" /> {loading ? "Gerando QR Code..." : "Gerar QR Code"}
-                  </Button>
+    <Card className="overflow-hidden glass-card border-0 mb-4 bg-white/10 dark:bg-black/10 backdrop-blur-md shadow-md">
+      <CardContent className="p-0">
+        <div className="p-4">
+          <div className="flex justify-between items-center mb-3">
+            <div>
+              <h4 className="font-medium">WhatsApp</h4>
+              <p className="text-sm text-muted-foreground">
+                Instance: {instanceName}
+              </p>
+              {isConnected && phoneNumber && (
+                <div className="flex items-center mt-1 gap-1 text-green-600 dark:text-green-400">
+                  <span className="font-mono text-xs">{phoneNumber}</span>
                 </div>
-              </>
-            )}
-
-            {instance.state === "open" && (
-              <>
-                <span className="text-green-600 font-medium mb-1 block">
-                  Instância conectada!
+              )}
+            </div>
+            <div>
+              {isConnected ? (
+                <span className="px-3 py-1 bg-green-100 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-lg text-xs font-semibold">
+                  Conectado
                 </span>
-                <Button
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="w-full"
-                  variant="destructive"
-                >
-                  <Trash2 className="mr-1" />
-                  {deleting ? "Desconectando..." : "Desconectar"}
-                </Button>
-              </>
+              ) : (
+                <span className="px-3 py-1 bg-gray-200 dark:bg-gray-900/20 text-gray-700 dark:text-gray-400 rounded-lg text-xs font-semibold">
+                  Disconnected
+                </span>
+              )}
+            </div>
+          </div>
+          <div>
+            {isConnected && (
+              <div className="rounded-lg border bg-gray-50 dark:bg-gray-900/40 p-3 mb-2 text-center">
+                <div>
+                  <span className="font-medium">Instância:</span> {instanceName}
+                </div>
+                {phoneNumber && (
+                  <div>
+                    <span className="font-medium">Telefone:</span> {phoneNumber}
+                  </div>
+                )}
+              </div>
+            )}
+            {isDisconnected && (
+              <div className="mb-2 py-2 text-center">
+                <span className="text-red-700 font-semibold">Dispositivo desconectado</span>
+              </div>
+            )}
+            {isDisconnected && (
+              <Button
+                variant="destructive"
+                className="w-full"
+                onClick={handleDelete}
+              >
+                <Trash2 className="mr-2 w-4 h-4" />
+                Deletar
+              </Button>
             )}
           </div>
         </div>
       </CardContent>
-      <CardFooter>
-        <span className="text-xs text-muted-foreground ml-1">
-          Status: <strong>{instance.state.toUpperCase()}</strong>
-        </span>
-      </CardFooter>
     </Card>
-  );
+  )
 }
