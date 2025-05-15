@@ -15,6 +15,7 @@ import { useConnectionPolling } from "./ConnectionPollingHooks";
 import ConnectionSpinner from "./ConnectionSpinner";
 import WhatsAppInstanceMainActions from "./WhatsAppInstanceMainActions";
 import WhatsAppInstanceQrSection from "./WhatsAppInstanceQrSection";
+import ConnectedBanner from "./ConnectedBanner";
 
 interface WhatsAppInstanceCardProps {
   instance: WhatsAppInstance;
@@ -222,7 +223,7 @@ const WhatsAppInstanceCard = ({
               onRefreshStatus={async () => { }}
               isStatusLoading={isLoading}
             />
-            {renderConnectedBanner()}
+            <ConnectedBanner status={instance.status} />
             {isInstanceConnected && <DeviceInfoSection deviceInfo={instance.deviceInfo} />}
 
             {/* NOVO: Seção de QR Code (condicional, agora extraída) */}
