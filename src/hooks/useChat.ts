@@ -13,7 +13,7 @@ export function useChat() {
   // State for contact notes
   const [contactNotes, setContactNotes] = useState("");
 
-  // Manual loading state for full refresh
+  // Estado para controle do loading manual do botão de atualizar
   const [manualLoading, setManualLoading] = useState(false);
 
   // WhatsApp chat integration
@@ -26,6 +26,7 @@ export function useChat() {
     fetchContacts,
     isLoadingContacts,
     isLoadingMessages,
+    fetchMessages // adicionado para usar na chamada manual
   } = useWhatsAppChat(userEmail);
 
   // Use only real WhatsApp contacts
@@ -91,17 +92,21 @@ export function useChat() {
     sendMessage(text);
   };
 
-  // Manual chats refresh handler
+  // Handler para atualização manual (botão "Atualizar" no chat)
   const handleManualRefresh = useCallback(async () => {
     setManualLoading(true);
     try {
       await fetchContacts();
+      // Se algum contato está selecionado, atualiza os messages dele também
+      if (selectedContact && fetchMessages) {
+        await fetchMessages();
+      }
     } finally {
       setManualLoading(false);
     }
-  }, [fetchContacts]);
+  }, [fetchContacts, fetchMessages, selectedContact]);
 
-  // Expor loading consolidando loading do chat e manual loading (usado pra exibir spinner)
+  // O loading do botão/área é considerado loading aut/polling OU loading manual
   return {
     contacts: whatsappContacts,
     setContacts: () => {},

@@ -92,6 +92,7 @@ export const useWhatsAppChat = (userEmail: string) => {
     contactNotes,
     setContactNotes,
     updateContactNotes,
-    fetchContacts // <-- Now available for use in useChat
+    fetchContacts,   // já estava exportando
+    fetchMessages    // agora expõe para uso manual
   };
 };
