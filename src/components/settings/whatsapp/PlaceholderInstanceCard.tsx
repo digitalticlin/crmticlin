@@ -1,4 +1,3 @@
-
 import { usePlaceholderLogic } from "./PlaceholderLogicHooks";
 import AddWhatsAppCard from "./AddWhatsAppCard";
 import WaitingForConnectionCard from "./WaitingForConnectionCard";
@@ -7,11 +6,13 @@ import PlaceholderQrModal from "./PlaceholderQrModal";
 interface PlaceholderInstanceCardProps {
   isSuperAdmin?: boolean;
   userEmail: string;
+  onRefreshInstances?: () => void;      // nova prop (opcional, para compatibilidade)
 }
 
 const PlaceholderInstanceCard = ({
   isSuperAdmin = false,
-  userEmail
+  userEmail,
+  onRefreshInstances,
 }: PlaceholderInstanceCardProps) => {
   const {
     isNewUser,
@@ -51,6 +52,7 @@ const PlaceholderInstanceCard = ({
         onRegenerate={handleRegenerate}
         onCancel={handleCancel}
         instanceName={instanceName}
+        onRefreshInstances={onRefreshInstances}
       />
     </>
   );

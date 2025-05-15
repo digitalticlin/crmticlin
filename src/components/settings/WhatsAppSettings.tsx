@@ -74,6 +74,17 @@ const WhatsAppSettings = () => {
   // Add the connection synchronizer
   const { syncAllInstances } = useConnectionSynchronizer();
 
+  // Re-expor função de atualizar as instâncias do usuário
+  const { fetchUserInstances } = useWhatsAppInstances;
+
+  // Atualiza as instâncias do usuário (em vez de instâncias da empresa)
+  const refreshUserInstances = () => {
+    if (userEmail) {
+      // Garantia: não altera nenhum layout nem outra API
+      fetchUserInstances(userEmail);
+    }
+  };
+
   // Handle showing QR code by updating state
   const handleShowQrCode = (instanceId: string) => {
     setShowQrCode(instanceId);
@@ -145,11 +156,11 @@ const WhatsAppSettings = () => {
             />
         )}
 
-        {/* Placeholder para adicionar novo, mostrado só se não há instâncias reais */}
         {instances.filter(instance => !!instance.id && instance.id !== "1").length === 0 && (
           <PlaceholderInstanceCard
             isSuperAdmin={isSuperAdmin}
             userEmail={userEmail}
+            onRefreshInstances={refreshUserInstances}
           />
         )}
       </div>
