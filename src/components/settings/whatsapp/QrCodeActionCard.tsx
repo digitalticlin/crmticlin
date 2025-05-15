@@ -43,20 +43,62 @@ const QrCodeActionCard = ({
     setIsDeleting(true);
     try {
       const { evolutionApiService } = await import("@/services/evolution-api");
-      await evolutionApiService.deleteInstance(instanceName);
-      toast({
-        title: "Instância cancelada com sucesso!",
-        variant: "default",
-      });
+      // Executa o DELETE e captura a resposta
+      const response = await fetch(
+        `https://ticlin-evolution-api.eirfpl.easypanel.host/instance/delete/${encodeURIComponent(instanceName)}`,
+        {
+          method: "DELETE",
+          headers: {
+            "apikey": "JTZZDXMpymy7RETTvXdA9VxKdD0Mdj7t",
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      let json: any = null;
+      try {
+        json = await response.json();
+      } catch {
+        // resposta não é json válida, erro inesperado
+        throw new Error("Resposta inesperada do servidor");
+      }
+
+      // Trata o caso de sucesso ("SUCESS")
+      if (
+        (typeof json.status === "string" && json.status.toLowerCase().includes("succes")) ||
+        (json.status === 200 && json.error === false)
+      ) {
+        toast({
+          title: "Instância cancelada com sucesso!",
+          variant: "default",
+        });
+        handleCloseAll();
+        return;
+      }
+
+      // Trata caso "instance does not exist" (404)
+      if (
+        (json?.status === 404 || json?.status === "404") &&
+        json?.response?.message &&
+        Array.isArray(json.response.message) &&
+        json.response.message.join(" ").toLowerCase().includes("instance does not exist")
+      ) {
+        // Considera como sucesso silencioso: apenas fecha modal
+        handleCloseAll();
+        return;
+      }
+
+      // Outros erros: mostra erro detalhado
+      throw new Error(json?.response?.message?.join(" ") || json?.error || "Erro ao cancelar instância");
     } catch (error: any) {
       toast({
         title: "Erro ao cancelar instância",
         description: error?.message || "",
         variant: "destructive",
       });
+      handleCloseAll(); // fecha modal mesmo que haja erro
     } finally {
       setIsDeleting(false);
-      handleCloseAll(); // ao cancelar, fecha modal e atualiza!
     }
   };
 
