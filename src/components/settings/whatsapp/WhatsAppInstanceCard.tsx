@@ -11,6 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { LoaderCircle } from "lucide-react";
 import { WhatsAppSupportErrorModal } from "./WhatsAppSupportErrorModal";
 import { Button } from "@/components/ui/button";
+import { useConnectionAutoChecker } from "@/hooks/whatsapp/useConnectionAutoChecker";
 
 interface WhatsAppInstanceCardProps {
   instance: WhatsAppInstance;
@@ -146,6 +147,27 @@ const WhatsAppInstanceCard = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showQrCode, instance.connected, instance.qrCodeUrl]);
 
+  // NOVO: Hook polling automático após fechamento do modal QRCode
+  const { isWaiting: isAutoWaiting, isConnected: isAutoConnected, start: startAutoCheck, stop: stopAutoCheck } =
+    useConnectionAutoChecker(instance.id, instance.instanceName);
+
+  // NOVA: Quando QR modal fechar (showQrCode passa de true pra false), iniciar monitoramento
+  useEffect(() => {
+    // Se modal fechou (showQrCode == false) e não está conectado, dispara polling auto
+    if (!showQrCode && !instance.connected && !!instance.qrCodeUrl) {
+      startAutoCheck();
+    }
+    // Opcional: parar quando ficar invisível ou conectado
+    else if (instance.connected) {
+      stopAutoCheck();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showQrCode, instance.connected, instance.qrCodeUrl]);
+  
+  // Quando polling auto detectar "open", mostrar conectado sem QR!
+  const statusConnected = instance.connected || isAutoConnected;
+  const showQr = (showQrCode || (!statusConnected && instance.qrCodeUrl)) && !statusConnected;
+  
   // Adaptação das funções de ação para mostrar modal de suporte em erros
   const handleConnect = async () => {
     try {
@@ -229,46 +251,38 @@ const WhatsAppInstanceCard = ({
           <div className="p-4">
             {/* Header section - always visible */}
             <InstanceHeader 
-              instance={instance} 
-              onRefreshStatus={handleStatusRefresh}
-              isStatusLoading={isStatusLoading}
+              instance={{...instance, connected: statusConnected}} 
+              onRefreshStatus={async () => {}}
+              isStatusLoading={isLoading}
             />
             
             {/* Connected Section - Only shown when connected */}
-            {instance.connected && (
+            {statusConnected && (
               <DeviceInfoSection deviceInfo={instance.deviceInfo} />
             )}
             
             {/* QR Code Section - Only shown when disconnected and QR code exists */}
-            {shouldShowQrCode && instance.qrCodeUrl && !instance.connected && (
+            {showQr && instance.qrCodeUrl && !statusConnected && (
               <>
                 <QrCodeSection qrCodeUrl={instance.qrCodeUrl} />
                 <Button variant="outline" className="w-full mt-2"
-                  onClick={handleConnectClickAndCloseQR}>
+                  onClick={() => {}}>
                   Já conectei
                 </Button>
               </>
             )}
             
-            {/* NOVO: Spinner "Conectando..." após fechar QR */}
-            {shouldShowConnectingSpinner && (
+            {/* NOVO: Spinner "Conectando..." após fechar QR, enquanto polling */}
+            {isAutoWaiting && !statusConnected && (
               <div className="flex flex-col items-center justify-center gap-2 py-4 animate-fade-in">
                 <LoaderCircle className="animate-spin text-primary w-8 h-8" />
                 <span className="text-sm text-muted-foreground">Aguardando confirmação da conexão...<br />Isso pode levar alguns segundos.</span>
-                <button
-                  type="button"
-                  className="text-xs text-red-500 underline mt-1"
-                  onClick={cancelWait}
-                  disabled={isLoading}
-                >
-                  Cancelar
-                </button>
               </div>
             )}
             
-            {/* Action Buttons - Different based on connection state */}
+            {/* Action Buttons - Só mostra "Deletar" quando conectado */}
             <InstanceActionButtons
-              connected={instance.connected}
+              connected={statusConnected}
               hasQrCode={!!instance.qrCodeUrl}
               isLoading={isLoading}
               actionInProgress={actionInProgress}
