@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { WhatsAppInstance } from "@/hooks/whatsapp/whatsappInstanceStore";
@@ -8,11 +9,11 @@ import InstanceActionButtons from "./InstanceActionButtons";
 import { useConnectionSynchronizer } from "@/hooks/whatsapp/status-monitor/useConnectionSynchronizer";
 import { useInstanceConnectionWaiter } from "@/hooks/whatsapp/useInstanceConnectionWaiter";
 import { toast } from "@/hooks/use-toast";
-import { LoaderCircle } from "lucide-react";
 import { WhatsAppSupportErrorModal } from "./WhatsAppSupportErrorModal";
 import { Button } from "@/components/ui/button";
 import { useConnectionAutoChecker } from "@/hooks/whatsapp/useConnectionAutoChecker";
-import { useAutoConnectionPolling } from "@/hooks/whatsapp/useAutoConnectionPolling";
+import { useConnectionPolling } from "./ConnectionPollingHooks";
+import ConnectionSpinner from "./ConnectionSpinner";
 
 interface WhatsAppInstanceCardProps {
   instance: WhatsAppInstance;
@@ -33,23 +34,21 @@ const WhatsAppInstanceCard = ({
   onRefreshQrCode,
   onStatusCheck
 }: WhatsAppInstanceCardProps) => {
-  // Local state to track when QR code was successfully obtained
+  // Estados locais
   const [qrCodeSuccess, setQrCodeSuccess] = useState(false);
   const [actionInProgress, setActionInProgress] = useState(false);
-  
-  // Get connection synchronizer for manual refresh
+  const [connectingSpinner, setConnectingSpinner] = useState(false);
+  const [supportErrorModal, setSupportErrorModal] = useState<{open: boolean; detail?: string}>({open: false, detail: ""});
+
   const { forceSyncConnectionStatus, isSyncing } = useConnectionSynchronizer();
 
-  // NOVO: Estado para ativar processo de aguardando conexão
-  const [connectingSpinner, setConnectingSpinner] = useState(false);
-
-  // Novo hook para esperar a conexão após fechar modal QR
+  // Suporte para esperar conexão após QR
   const {
-    waiting, cancelled, timedOut, start: startWait, cancel: cancelWait
+    start: startWait,
+    cancel: cancelWait
   } = useInstanceConnectionWaiter({
     instanceId: instance.id,
     instanceName: instance.instanceName,
-    // Usa connection check já existente do Synchronizer!
     checkStatusFn: async (id: string) => {
       return await forceSyncConnectionStatus(id, instance.instanceName) || "";
     },
@@ -73,66 +72,45 @@ const WhatsAppInstanceCard = ({
     timeoutDuration: 60000
   });
 
-  // NOVO: Estado para suporte de erros
-  const [supportErrorModal, setSupportErrorModal] = useState<{open: boolean; detail?: string}>({open: false, detail: ""});
-
-  // Handler para mostrar modal suporte nos erros
+  // Handler para mostrar modal suporte em erros
   const handleSupportError = (detail: string) => {
     setSupportErrorModal({ open: true, detail });
   };
 
-  // Função para uso do botão "Já conectei"
+  // "Já conectei" manual no modal QR
   const handleConnectClickAndCloseQR = () => {
-    // Fecha QR/modal imediatamente, ativa spinner. O startWait() já inicia polling no card.
     setConnectingSpinner(true);
     startWait();
-    // Aqui pode-se logar/guardar que usuário sinalizou conexão manual
   };
 
-  // Detect when a QR code is received to show automatically
+  // Exibe QR code quando chegar
   useEffect(() => {
     if (instance.qrCodeUrl && !qrCodeSuccess) {
-      console.log(`QR Code received for instance ${instance.id}: ${instance.instanceName}`);
       setQrCodeSuccess(true);
-      
-      // Start frequent status checks when QR code is shown
-      if (onStatusCheck) {
-        onStatusCheck(instance.id);
-      }
-      
-      // Set up more frequent status checks while QR code is showing
+      if (onStatusCheck) onStatusCheck(instance.id);
       const statusCheckInterval = setInterval(() => {
-        if (onStatusCheck) {
-          onStatusCheck(instance.id);
-        }
+        if (onStatusCheck) onStatusCheck(instance.id);
       }, 2000);
-      
-      // Clear interval if component unmounts or status changes to connected
-      return () => {
-        clearInterval(statusCheckInterval);
-      };
+      return () => clearInterval(statusCheckInterval);
     }
   }, [instance.qrCodeUrl, qrCodeSuccess, instance.id, instance.instanceName, onStatusCheck]);
 
-  // Stop frequent checking when instance gets connected
+  // Reset sucesso do QR ao conectar
   useEffect(() => {
-    if (instance.connected) {
-      setQrCodeSuccess(false); // Reset QR code success state
-    }
+    if (instance.connected) setQrCodeSuccess(false);
   }, [instance.connected]);
-  
-  // Periodically sync status if QR code is showing
+
+  // Sincronização periódica quando QR está exibido
   useEffect(() => {
     if (showQrCode || qrCodeSuccess) {
       const syncInterval = setInterval(() => {
         forceSyncConnectionStatus(instance.id, instance.instanceName);
-      }, 5000); // Check every 5 seconds while QR is showing
-      
+      }, 5000);
       return () => clearInterval(syncInterval);
     }
   }, [showQrCode, qrCodeSuccess, instance.id, instance.instanceName, forceSyncConnectionStatus]);
 
-  // NOVO: Monitorar quando fechar o modal QR e mostrar spinner se ainda não está connected
+  // Garante spinner aguardando conexão se fechar QR e ainda não conectado
   useEffect(() => {
     if (!showQrCode && !instance.connected && !!instance.qrCodeUrl) {
       setConnectingSpinner(true);
@@ -144,89 +122,31 @@ const WhatsAppInstanceCard = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showQrCode, instance.connected, instance.qrCodeUrl]);
 
-  // NOVO: Hook polling automático após fechamento do modal QRCode
-  const { isWaiting: isAutoWaiting, isConnected: isAutoConnected, start: startAutoCheck, stop: stopAutoCheck } =
+  // Hook de auto-polling mais lento
+  const { isConnected: isAutoConnected, start: startAutoCheck, stop: stopAutoCheck } =
     useConnectionAutoChecker(instance.id, instance.instanceName);
 
-  // NOVA: Quando QR modal fechar (showQrCode passa de true pra false), iniciar monitoramento
   useEffect(() => {
-    // Se modal fechou (showQrCode == false) e não está conectado, dispara polling auto
-    if (!showQrCode && !instance.connected && !!instance.qrCodeUrl) {
-      startAutoCheck();
-    }
-    // Opcional: parar quando ficar invisível ou conectado
-    else if (instance.connected) {
-      stopAutoCheck();
-    }
+    if (!showQrCode && !instance.connected && !!instance.qrCodeUrl) startAutoCheck();
+    else if (instance.connected) stopAutoCheck();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showQrCode, instance.connected, instance.qrCodeUrl]);
-  
-  // Quando polling auto detectar "open", mostrar conectado sem QR!
+
+  // Estado calculado de conexão imediato e polling
   const statusConnected = instance.connected || isAutoConnected;
   const showQr = (showQrCode || (!statusConnected && instance.qrCodeUrl)) && !statusConnected;
-  
-  // --- DO NOT use isConnectingNow before declaration!
-  // Define the polling control state and polling hook FIRST
-  const [triggerAutoConnect, setTriggerAutoConnect] = useState(false);
-  const [alreadyConnected, setAlreadyConnected] = useState(instance.connected);
 
-  // Handler to activate immediate polling after modal closed or "Já conectei"
-  const startImmediateConnectionPolling = () => {
-    if (!instance.connected) {
-      setTriggerAutoConnect(true);
-      setAlreadyConnected(false);
-    }
-  };
+  // HOOK DE POLLING MODULARIZADO
+  const { isConnectingNow, startImmediateConnectionPolling } = useConnectionPolling(instance, showQrCode);
 
-  // useEffect to trigger polling when modal closes
-  useEffect(() => {
-    if (!showQrCode && !!instance.qrCodeUrl && !instance.connected && !alreadyConnected) {
-      startImmediateConnectionPolling();
-    }
-    if (showQrCode) {
-      setTriggerAutoConnect(false);
-      setAlreadyConnected(instance.connected);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showQrCode, instance.connected, instance.qrCodeUrl]);
-
-  // Specialized polling hook -- declare this BEFORE you use isConnectingNow!
-  const { connecting: isConnectingNow } = useAutoConnectionPolling({
-    active: triggerAutoConnect,
-    instanceId: instance.id,
-    instanceName: instance.instanceName,
-    onConnected: () => {
-      setAlreadyConnected(true);
-      setTriggerAutoConnect(false);
-    },
-    onTimeout: () => {
-      setTriggerAutoConnect(false);
-    }
-  });
-
-  // --------- All variable declarations that depend on isConnectingNow go AFTER:
-  // Helper to compute when to show connection spinner
-  const computedConnectingSpinner =
-    (connectingSpinner && !instance.connected)
-    || (isConnectingNow && !instance.connected);
-
-  // Adaptação das funções de ação para mostrar modal de suporte em erros
+  // Adaptação das funções de ação
   const handleConnect = async () => {
     try {
-      console.log(`Starting connection for instance ${instance.id}: ${instance.instanceName}`);
       setActionInProgress(true);
       setQrCodeSuccess(false);
       await onConnect(instance.id);
-      console.log(`Connection started for ${instance.instanceName}`);
-      
-      // After connecting, force a status sync
       await forceSyncConnectionStatus(instance.id, instance.instanceName);
-      
-      // Trigger more frequent status checks after connection is initiated
-      if (onStatusCheck) {
-        onStatusCheck(instance.id);
-      }
-      // Trigger immediate polling for connection
+      if (onStatusCheck) onStatusCheck(instance.id);
       startImmediateConnectionPolling();
     } catch (error: any) {
       handleSupportError(error?.message || "Erro desconhecido ao tentar conectar.");
@@ -237,41 +157,22 @@ const WhatsAppInstanceCard = ({
 
   const handleRefreshQrCode = async () => {
     try {
-      console.log(`Updating QR code for instance ${instance.id}: ${instance.instanceName}`);
       setActionInProgress(true);
       setQrCodeSuccess(false);
       await onRefreshQrCode(instance.id);
-      console.log(`QR code updated for ${instance.instanceName}`);
-      
-      // After refreshing QR, force a status sync
       await forceSyncConnectionStatus(instance.id, instance.instanceName);
-      
-      // Trigger more frequent status checks after QR code refresh
-      if (onStatusCheck) {
-        onStatusCheck(instance.id);
-      }
+      if (onStatusCheck) onStatusCheck(instance.id);
     } catch (error: any) {
       handleSupportError(error?.message || "Erro desconhecido ao atualizar QR Code.");
     } finally {
       setActionInProgress(false);
     }
   };
-  
-  const handleStatusRefresh = async () => {
-    try {
-      console.log(`Manually refreshing status for ${instance.instanceName}`);
-      await forceSyncConnectionStatus(instance.id, instance.instanceName);
-    } catch (error) {
-      console.error("Error refreshing status:", error);
-    }
-  };
 
   const handleDelete = async () => {
     try {
-      console.log(`Deleting instance ${instance.id}: ${instance.instanceName}`);
       setActionInProgress(true);
       await onDelete(instance.id);
-      console.log(`Instance ${instance.instanceName} deleted`);
     } catch (error: any) {
       handleSupportError(error?.message || "Erro desconhecido ao tentar remover instância.");
     } finally {
@@ -279,104 +180,21 @@ const WhatsAppInstanceCard = ({
     }
   };
 
-  // Determine if QR code should be shown (when available and shown)
-  const shouldShowQrCode = (showQrCode || qrCodeSuccess) && instance.qrCodeUrl;
-  
-  // Determine if we're currently loading status
-  const isStatusLoading = isLoading || isSyncing[instance.id];
-
-  // Determinar se mostra spinner de conexão
-  const computedConnectingSpinner =
-    (connectingSpinner && !instance.connected)
-    || (isConnectingNow && !instance.connected);
-
-  // NOVO: Flag para saber quando iniciar polling avançado de conexão (após fechar modal QR ou clicar "Já conectei")
-  const [triggerAutoConnect, setTriggerAutoConnect] = useState(false);
-  // NOVO: Flag local "já iniciou polling desta rodada" para não duplicar
-  const [alreadyConnected, setAlreadyConnected] = useState(instance.connected);
-
-  // Handler para ativar polling imediatamente após fechar modal QR (ou clicar "Já conectei")
-  const startImmediateConnectionPolling = () => {
-    if (!instance.connected) {
-      setTriggerAutoConnect(true);
-      setAlreadyConnected(false);
-    }
-  };
-
-  // Detecta fechamento do modal QR e dispara polling imediatamente
-  useEffect(() => {
-    // Se o QR estava sendo mostrado E agora não está, e não está conectado: inicia polling imediato
-    if (!showQrCode && !!instance.qrCodeUrl && !instance.connected && !alreadyConnected) {
-      startImmediateConnectionPolling();
-    }
-    // Ao mostrar o modal novamente, reseta flags
-    if (showQrCode) {
-      setTriggerAutoConnect(false);
-      setAlreadyConnected(instance.connected);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showQrCode, instance.connected, instance.qrCodeUrl]);
-
-  // Hook de polling especializado (começa assim que triggerAutoConnect fica true)
-  const { connecting: isConnectingNow } = useAutoConnectionPolling({
-    active: triggerAutoConnect,
-    instanceId: instance.id,
-    instanceName: instance.instanceName,
-    // Quando conectar:
-    onConnected: () => {
-      setAlreadyConnected(true);
-      setTriggerAutoConnect(false);
-      // Opcional: pode disparar um toast aqui se quiser
-    },
-    // Timeout
-    onTimeout: () => {
-      setTriggerAutoConnect(false);
-      // Mantém spinner parado, pode exibir mensagem se quiser
-    }
-  });
-
-  // Adaptação do handleConnect para disparar polling imediato ao clicar “Já conectei” (no uso do botão)
-  const handleConnect = async () => {
-    try {
-      console.log(`Starting connection for instance ${instance.id}: ${instance.instanceName}`);
-      setActionInProgress(true);
-      setQrCodeSuccess(false);
-      await onConnect(instance.id);
-      console.log(`Connection started for ${instance.instanceName}`);
-      
-      // After connecting, force a status sync
-      await forceSyncConnectionStatus(instance.id, instance.instanceName);
-      
-      // Trigger more frequent status checks after connection is initiated
-      if (onStatusCheck) {
-        onStatusCheck(instance.id);
-      }
-      // Trigger immediate polling for connection
-      startImmediateConnectionPolling();
-    } catch (error: any) {
-      handleSupportError(error?.message || "Erro desconhecido ao tentar conectar.");
-    } finally {
-      setActionInProgress(false);
-    }
-  };
-
-  // Novo: Section que mostra spinner “verificando conexão…” quando polling ativo e não conectado
-  const shouldShowConnectingSpinner = computedConnectingSpinner;
+  // -- Layout e ações
+  const shouldShowConnectingSpinner =
+    (connectingSpinner && !instance.connected) || (isConnectingNow && !instance.connected);
 
   return (
     <>
       <Card className="overflow-hidden glass-card border-0">
         <CardContent className="p-0">
           <div className="p-4">
-            {/* Header section - always visible */}
-            <InstanceHeader 
-              instance={{...instance, connected: statusConnected}} 
-              onRefreshStatus={async () => {}}
+            <InstanceHeader
+              instance={{ ...instance, connected: statusConnected }}
+              onRefreshStatus={async () => { }}
               isStatusLoading={isLoading}
             />
-            {statusConnected && (
-              <DeviceInfoSection deviceInfo={instance.deviceInfo} />
-            )}
+            {statusConnected && <DeviceInfoSection deviceInfo={instance.deviceInfo} />}
             {showQr && instance.qrCodeUrl && !statusConnected && (
               <>
                 <QrCodeSection qrCodeUrl={instance.qrCodeUrl} />
@@ -385,13 +203,7 @@ const WhatsAppInstanceCard = ({
                 </Button>
               </>
             )}
-            {/* Show spinner if connecting and not connected */}
-            {shouldShowConnectingSpinner && (
-              <div className="flex flex-col items-center justify-center gap-2 py-4 animate-fade-in">
-                <LoaderCircle className="animate-spin text-primary w-8 h-8" />
-                <span className="text-sm text-muted-foreground">Verificando conexão...</span>
-              </div>
-            )}
+            {shouldShowConnectingSpinner && <ConnectionSpinner />}
             <InstanceActionButtons
               connected={statusConnected}
               hasQrCode={!!instance.qrCodeUrl}
@@ -404,7 +216,6 @@ const WhatsAppInstanceCard = ({
           </div>
         </CardContent>
       </Card>
-      {/* Modal global de suporte para erros críticos */}
       <WhatsAppSupportErrorModal
         open={supportErrorModal.open}
         onClose={() => setSupportErrorModal({ open: false })}
