@@ -129,18 +129,20 @@ const WhatsAppInstanceCard = ({
     }
   }, [showQrCode, qrCodeSuccess, instance.id, instance.instanceName, forceSyncConnectionStatus, isInstanceConnected]);
 
-  // Checagem única ao fechar modal QR
+  // Depuração: log dos efeitos relacionados a polling e status
   useEffect(() => {
+    console.log("[WhatsAppInstanceCard][DEBUG] useEffect: showQrCode", showQrCode, "instance.qrCodeUrl", instance.qrCodeUrl, "isInstanceConnected", isInstanceConnected, "hasCheckedStatusAfterClose", hasCheckedStatusAfterClose);
     if (
-      !showQrCode && // modal fechado/oculto
+      !showQrCode &&
       !!instance.qrCodeUrl &&
       !isInstanceConnected &&
-      !hasCheckedStatusAfterClose // apenas uma vez após fechar
+      !hasCheckedStatusAfterClose
     ) {
       setHasCheckedStatusAfterClose(true);
+      console.log("[WhatsAppInstanceCard][DEBUG] Forçando forceSyncConnectionStatus após fechar QR");
       forceSyncConnectionStatus(instance.id, instance.instanceName);
     } else if (showQrCode) {
-      setHasCheckedStatusAfterClose(false); // reset ciclo
+      setHasCheckedStatusAfterClose(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showQrCode, instance.qrCodeUrl, isInstanceConnected, instance.id, instance.instanceName]);

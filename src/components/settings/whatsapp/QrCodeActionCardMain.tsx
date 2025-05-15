@@ -30,14 +30,11 @@ const QrCodeActionCardMain = ({
   const [supportDetail, setSupportDetail] = useState<string | undefined>(undefined);
   const [qrUrl] = useState(qrCodeUrl);
 
-  // Novo: garante que handleCloseAll só fecha modal, nada de polling!
   const handleCloseAll = () => {
     console.log('[QrCodeActionCardMain] handleCloseAll chamado - só UI, sem polling/refresh de status!');
     if (typeof onCancel === "function") onCancel();
-    // Não chama onCloseWithRefresh!
   };
 
-  // Handler para deletar instância Evolution API (permanece igual)
   const handleDeleteInstance = async () => {
     if (!instanceName) {
       handleCloseAll();
@@ -94,7 +91,7 @@ const QrCodeActionCardMain = ({
     }
   };
 
-  // Usando hook isolado para checagem (apenas no botão)
+  // Isolado: checagem só manual via botão
   const { isChecking, checkConnection } = useQrConnectionCheck({
     instanceName,
     onConnected: onScanned,
@@ -105,6 +102,7 @@ const QrCodeActionCardMain = ({
     },
   });
 
+  // Removido: spinner, só ícone fixo e logs de ação clara
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 animate-fade-in">
       <Card className="w-full max-w-lg glass-morphism p-8 rounded-2xl shadow-2xl border-none transition-all">
@@ -129,10 +127,13 @@ const QrCodeActionCardMain = ({
               variant="default"
               size="sm"
               className="flex-1 min-w-0"
-              onClick={checkConnection}
+              onClick={() => {
+                console.log('[QrCodeActionCardMain][DEBUG] Botão "Já conectei" clicado, isChecking:', isChecking);
+                checkConnection();
+              }}
               disabled={isLoading || isDeleting || isChecking}
             >
-              {isChecking ? <span className="animate-spin"><Check className="w-4 h-4 mr-1" /></span> : <Check className="w-4 h-4 mr-1" />}
+              <Check className="w-4 h-4 mr-1" />
               Já conectei
             </Button>
             <Button
@@ -157,7 +158,6 @@ const QrCodeActionCardMain = ({
           console.log('[QrCodeActionCardMain] Suporte: modal fechado');
         }}
       />
-      {/* Glassmorphism utility */}
       <style>{`
         .glass-morphism {
           background: rgba(255,255,255,0.17);

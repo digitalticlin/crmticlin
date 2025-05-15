@@ -14,6 +14,7 @@ export function useConnectionPolling(instance, showQrCode) {
     if (!instance.connected) {
       setTriggerAutoConnect(true);
       setAlreadyConnected(false);
+      console.log("[ConnectionPollingHooks][DEBUG] Polling imediato iniciado pelo usuário para instancia:", instance.id);
     }
   };
 
@@ -25,6 +26,7 @@ export function useConnectionPolling(instance, showQrCode) {
     if (showQrCode) {
       setTriggerAutoConnect(false);
       setAlreadyConnected(instance.connected);
+      console.log("[ConnectionPollingHooks][DEBUG] Polling auto desconectado/resetado por showQrCode=true");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showQrCode, instance.connected, instance.qrCodeUrl]);
@@ -37,9 +39,11 @@ export function useConnectionPolling(instance, showQrCode) {
     onConnected: () => {
       setAlreadyConnected(true);
       setTriggerAutoConnect(false);
+      console.log("[ConnectionPollingHooks][DEBUG] Instancia conectada via polling auto:", instance.id);
     },
     onTimeout: () => {
       setTriggerAutoConnect(false);
+      console.log("[ConnectionPollingHooks][DEBUG] Polling timeout:", instance.id);
     }
   });
 
