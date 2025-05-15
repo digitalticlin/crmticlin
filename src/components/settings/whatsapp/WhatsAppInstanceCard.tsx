@@ -10,6 +10,7 @@ import { useInstanceConnectionWaiter } from "@/hooks/whatsapp/useInstanceConnect
 import { toast } from "@/hooks/use-toast";
 import { LoaderCircle } from "lucide-react";
 import { WhatsAppSupportErrorModal } from "./WhatsAppSupportErrorModal";
+import { Button } from "@/components/ui/button";
 
 interface WhatsAppInstanceCardProps {
   instance: WhatsAppInstance;
