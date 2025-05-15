@@ -1,8 +1,18 @@
+include = ["./functions/**"]
 
-project_id = "kigyebrhfoljnydfipcr"
+[dev]
+  auto_refresh = true
 
-[functions.webhook_evolution]
+[network]
+  upload_rate_limit_kbps = 1000
+  download_rate_limit_kbps = 1000
+
+[auth]
+  disable_signup = false
+  email_confirmations_enabled = true
+  password_authentications_enabled = true
+  anonymous_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpZ3llYnJoZm9sam55ZGZpcGNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMDU0OTUsImV4cCI6MjA2MjY4MTQ5NX0.348qSsRPai26TFU87MDv0yE4i_pQmLYMQW9d7n5AN-A"
+  jwt_secret = "super-secret-jwt-token-with-at-least-32-characters"
+
+[functions.sync_whatsapp_instances]
 verify_jwt = false
-
-[realtime]
-enabled = true
