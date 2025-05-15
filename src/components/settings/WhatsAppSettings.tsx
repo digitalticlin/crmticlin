@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
 import WhatsAppInstanceCard from "./whatsapp/WhatsAppInstanceCard";
@@ -8,6 +9,7 @@ import { AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useConnectionSynchronizer } from "@/hooks/whatsapp/status-monitor/useConnectionSynchronizer";
+import { useWhatsAppFetcher } from "@/hooks/whatsapp/useWhatsAppFetcher"; // <------ NOVO IMPORT
 
 const STATUS_CHECK_INTERVAL = 15000; // Check status every 15 seconds
 
@@ -52,9 +54,6 @@ const WhatsAppSettings = () => {
     };
     
     getUser();
-    
-    // O cleanup não deve resetar loadingRef para permitir que o componente
-    // evite fazer múltiplas chamadas durante seu ciclo de vida
   }, []);
   
   // Só inicializar o hook quando o email do usuário estiver disponível
@@ -74,13 +73,12 @@ const WhatsAppSettings = () => {
   // Add the connection synchronizer
   const { syncAllInstances } = useConnectionSynchronizer();
 
-  // Re-expor função de atualizar as instâncias do usuário
-  const { fetchUserInstances } = useWhatsAppInstances;
+  // Obter fetchUserInstances, garantindo refresh correto das instâncias de usuário
+  const { fetchUserInstances } = useWhatsAppFetcher(); // <------ LINHA CORRIGIDA
 
   // Atualiza as instâncias do usuário (em vez de instâncias da empresa)
   const refreshUserInstances = () => {
     if (userEmail) {
-      // Garantia: não altera nenhum layout nem outra API
       fetchUserInstances(userEmail);
     }
   };
