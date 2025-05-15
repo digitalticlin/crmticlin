@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Contact } from '@/types/chat';
 import { useWhatsAppInstanceState } from '@/hooks/whatsapp/whatsappInstanceStore';
@@ -92,6 +91,7 @@ export const useWhatsAppChat = (userEmail: string) => {
     lastRefresh,
     contactNotes,
     setContactNotes,
-    updateContactNotes
+    updateContactNotes,
+    fetchContacts // <-- Now available for use in useChat
   };
 };
