@@ -15,6 +15,7 @@ export interface WhatsAppInstance {
     lastConnectionTime?: string;
     platformType?: string;
   };
+  status?: string; // Correção: torna status opcional para suportar a checagem do card!
 }
 
 interface WhatsAppInstanceState {
@@ -59,3 +60,4 @@ export const useWhatsAppInstanceState = () => {
 };
 
 export const useWhatsAppInstanceActions = () => useWhatsAppInstanceStore((state) => state.actions);
+
