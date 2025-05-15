@@ -52,55 +52,59 @@ export default function WhatsAppInstanceDynamicCard({
   };
 
   return (
-    <div className="flex justify-center items-center">
+    <div className="flex w-full justify-center items-center">
       <Card
         className={`
-          w-full max-w-sm mx-auto rounded-2xl border border-gray-200 dark:border-white/10
-          bg-white/70 dark:bg-[#23272e]/60 shadow-md
-          backdrop-blur-[10px]
+          w-full max-w-xs mx-auto rounded-2xl 
+          border border-white/15 dark:border-white/10
+          bg-white/30 dark:bg-[#23272e]/50
+          backdrop-blur-xl shadow-glass
+          flex flex-col items-center justify-center
           p-0
-          flex flex-col items-center
+          min-h-[240px]
           transition-all duration-200
-          min-h-[260px]
         `}
-        style={{ boxShadow: "0 4px 24px 0 rgba(20,20,40,0.05)" }}
+        style={{
+          boxShadow:
+            "0 6px 36px 0 rgba(20,20,40,0.08), 0 1.5px 6px 0 rgba(0,0,0,0.03)",
+          background:
+            "linear-gradient(124deg, rgba(255,255,255,0.58) 70%, rgba(230,235,255,0.07) 100%)",
+        }}
       >
-        <CardContent className="w-full flex flex-col items-center justify-center px-8 py-7 gap-5">
+        <CardContent className="w-full flex flex-col items-center justify-center px-7 py-7 gap-5">
           <div className="flex flex-col items-center gap-2 w-full">
-            <MessageSquare className="w-10 h-10 text-ticlin mb-2" />
-            <h4 className="font-bold text-center text-lg text-gray-900 dark:text-white mb-0">
+            <span className="flex items-center justify-center rounded-full bg-white/70 dark:bg-gray-800/70 shadow p-3 mb-0.5">
+              <MessageSquare className="w-7 h-7 text-ticlin" />
+            </span>
+            <h4 className="font-bold text-center text-lg text-gray-900 dark:text-white mb-0 tracking-tight">
               {isConnected ? "WhatsApp Conectado" : "WhatsApp Desconectado"}
             </h4>
-            <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm gap-1">
-              <span className="font-medium">
-                Nome:
-              </span>
-              <span className="font-mono text-xs truncate max-w-[140px]">{instanceName}</span>
+            <div className="flex items-center text-neutral-700 dark:text-gray-300 text-xs gap-1 mt-1">
+              <span className="font-semibold">Nome:</span>
+              <span className="font-mono truncate max-w-[120px] text-xs">{instanceName}</span>
             </div>
             {isConnected && phoneNumber && (
-              <div className="flex items-center gap-1 mt-1 text-green-700 dark:text-green-400 text-sm">
+              <div className="flex items-center gap-1 mt-2 text-green-700 dark:text-green-400 text-xs">
                 <Phone className="w-4 h-4" />
                 <span className="font-bold">{phoneNumber}</span>
               </div>
             )}
           </div>
-          {/* Status visual minimalista */}
           <div className="w-full flex justify-center">
             {isConnected ? (
-              <span className="px-4 py-1 rounded-full bg-green-100/70 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold tracking-wide shadow-none border-0">
+              <span className="px-4 py-1 rounded-full bg-green-100/60 dark:bg-green-900/30 text-green-800 dark:text-green-400 text-[11px] font-bold shadow-none border-0 tracking-wide">
                 Conectado ao WhatsApp
               </span>
             ) : (
-              <span className="px-4 py-1 rounded-full bg-red-100/60 dark:bg-red-900/10 text-red-700 dark:text-red-400 text-xs font-semibold tracking-wide border-0">
+              <span className="px-4 py-1 rounded-full bg-red-100/50 dark:bg-red-900/10 text-red-700 dark:text-red-400 text-[11px] font-bold border-0 tracking-wide">
                 Desconectado
               </span>
             )}
           </div>
-          {/* Botão de deletar só se desconectado */}
           {isDisconnected && (
             <Button
               variant="destructive"
-              className="mt-4 w-full font-bold"
+              className="mt-4 w-full font-semibold text-sm rounded-xl shadow-sm"
               onClick={handleDelete}
             >
               <Trash2 className="mr-2 w-4 h-4" />
@@ -112,3 +116,4 @@ export default function WhatsAppInstanceDynamicCard({
     </div>
   );
 }
+
