@@ -1,8 +1,10 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription } from "@/components/ui/card";
 import { X, RefreshCcw, Check } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { WhatsAppSupportErrorModal } from "./WhatsAppSupportErrorModal";
 
 interface QrCodeActionCardProps {
   qrCodeUrl: string;
@@ -13,6 +15,9 @@ interface QrCodeActionCardProps {
   instanceName?: string | null;
   onCloseWithRefresh?: () => void; // NOVO: ao fechar, dispara atualização (refetch)
 }
+
+const EVOLUTION_API = "https://ticlin-evolution-api.eirfpl.easypanel.host";
+const API_KEY = "JTZZDXMpymy7RETTvXdA9VxKdD0Mdj7t";
 
 const QrCodeActionCard = ({
   qrCodeUrl,
@@ -27,6 +32,10 @@ const QrCodeActionCard = ({
   const [isChecking, setIsChecking] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [qrUrl, setQrUrl] = useState(qrCodeUrl);
+
+  // Novo: controle do modal de suporte
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [supportDetail, setSupportDetail] = useState<string | undefined>(undefined);
 
   // --- Função util para finalizar (fecha e atualiza) ---
   const handleCloseAll = () => {
@@ -102,41 +111,119 @@ const QrCodeActionCard = ({
     }
   };
 
-  // Handler para "Já conectei"
+  // Handler para "Já conectei" NOVO FLUXO
   const handleCheckConnected = async () => {
     if (!instanceName) return;
     setIsChecking(true);
-    onScanned();
-    if (onCloseWithRefresh) onCloseWithRefresh(); // ao fechar, atualiza
 
-    try {
-      const res = await fetch(`https://ticlin-evolution-api.eirfpl.easypanel.host/instance/connectionState/${instanceName}`, {
-        headers: {
-          "Content-Type": "application/json",
-          "API-KEY": "JTZZDXMpymy7RETTvXdA9VxKdD0Mdj7t",
-        },
-      });
-      const json = await res.json();
-      if (json?.state === "open") {
-        toast({
-          title: "Instância conectada!",
-          description: "Seu WhatsApp foi conectado com sucesso.",
+    // Helper para analisar o resultado, inclusive "404"
+    const fetchStatus = async () => {
+      try {
+        const res = await fetch(`${EVOLUTION_API}/instance/connectionState/${instanceName}`, {
+          method: "GET",
+          headers: {
+            "apikey": API_KEY,
+            "Content-Type": "application/json"
+          }
         });
-      } else {
-        toast({
-          title: "Ainda não conectado!",
-          description: "Por favor, conclua a conexão no celular ou aguarde.",
-        });
+
+        // Tentar extrair status numérico, response json
+        let json, statusCode = res.status;
+        try {
+          json = await res.json();
+        } catch {
+          throw new Error("Erro ao decodificar resposta JSON");
+        }
+
+        // Trata instância não existe (404)
+        if (
+          statusCode === 404 ||
+          (json?.status === 404 && json?.response?.message?.join(" ").toLowerCase().includes("instance does not exist"))
+        ) {
+          setSupportDetail((json?.response?.message?.join(" ") || "Instância não encontrada."));
+          setShowSupportModal(true);
+          setIsChecking(false);
+          return { type: "not-exist" };
+        }
+
+        // Se houver .instance.state ou .state
+        const state = json?.instance?.state || json?.state;
+        if (!state) throw new Error("Resposta de status inesperada da Evolution API");
+
+        return { type: "state", value: state, full: json };
+      } catch (error: any) {
+        setSupportDetail(error.message || "Erro ao consultar status.");
+        setShowSupportModal(true);
+        setIsChecking(false);
+        return { type: "error" };
       }
-    } catch (error: any) {
-      toast({
-        title: "Erro ao verificar status",
-        description: error?.message || "",
-        variant: "destructive",
-      });
-    } finally {
+    };
+
+    // Primeira requisição
+    const result = await fetchStatus();
+    if (!result || result.type !== "state") {
+      // Abre o modal de suporte se erro ou não existe
       setIsChecking(false);
+      return;
     }
+
+    if (result.value === "open") {
+      // Instância conectada com sucesso!
+      onScanned(); // fecha modal/modal QR
+      toast({
+        title: "Instância conectada!",
+        description: "Seu WhatsApp foi conectado com sucesso.",
+      });
+      setIsChecking(false);
+      if (onCloseWithRefresh) onCloseWithRefresh();
+      return;
+    }
+
+    if (result.value === "connecting") {
+      // Espera 10s e tenta mais uma vez (apenas 1x)
+      setTimeout(async () => {
+        const secondResult = await fetchStatus();
+        if (secondResult && secondResult.type === "state" && secondResult.value === "open") {
+          onScanned();
+          toast({
+            title: "Instância conectada!",
+            description: "Seu WhatsApp foi conectado.",
+          });
+        } else if (secondResult && secondResult.type === "state" && secondResult.value === "closed") {
+          toast({
+            title: "Instância removida.",
+            description: "Esse número foi excluído e deve ser reconectado.",
+            variant: "destructive"
+          });
+        } else if (secondResult && secondResult.type === "not-exist") {
+          setSupportDetail((secondResult.full?.response?.message?.join(" ") || "Instância não encontrada."));
+          setShowSupportModal(true);
+        } else {
+          // Se ainda connecting, apenas aceita estado e não faz mais polling
+          toast({
+            title: "Ainda aguardando conexão.",
+            description: "Tente novamente em instantes, ou leia QR code novamente se necessário.",
+            variant: "default"
+          });
+        }
+        setIsChecking(false);
+        if (onCloseWithRefresh) onCloseWithRefresh();
+      }, 10000); // 10 segundos
+      return;
+    }
+
+    if (result.value === "closed") {
+      toast({
+        title: "Instância removida.",
+        description: "Esse número foi excluído e deve ser reconectado.",
+        variant: "destructive"
+      });
+      setIsChecking(false);
+      if (onCloseWithRefresh) onCloseWithRefresh();
+      return;
+    }
+
+    setIsChecking(false);
   };
 
   return (
@@ -189,6 +276,12 @@ const QrCodeActionCard = ({
           </div>
         </CardFooter>
       </Card>
+      {/* SUPORTE: Modal para instance not exist */}
+      <WhatsAppSupportErrorModal
+        open={showSupportModal}
+        errorDetail={supportDetail}
+        onClose={() => setShowSupportModal(false)}
+      />
       {/* Glassmorphism utility */}
       <style>{`
         .glass-morphism {
