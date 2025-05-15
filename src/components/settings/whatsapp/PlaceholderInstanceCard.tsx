@@ -68,7 +68,7 @@ const PlaceholderInstanceCard = ({
     }
     try {
       setIsCreating(true);
-      // Gera nome incremental disponível, considerando banco + Evolution (máx 20 tentativas)
+      // Usar lógica nova, centralizada, para gerar nome incremental único:
       const candidateName = await getNextAvailableInstanceName(username);
       const result = await createWhatsAppInstance(candidateName);
       if (!result.success) {

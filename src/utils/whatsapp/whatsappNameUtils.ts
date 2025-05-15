@@ -1,14 +1,18 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-// Utility para buscar todos os nomes ocupados no CRM e na Evolution
-export const fetchAllWhatsAppInstanceNames = async (): Promise<string[]> => {
-  const { data } = await supabase
-    .from("whatsapp_numbers")
-    .select("instance_name");
-  const localNames = (data || []).map((r: any) => (r?.instance_name || "").toLowerCase());
+/**
+ * Recupera nomes já existentes no Supabase (CRM).
+ */
+export async function fetchLocalInstanceNames(): Promise<string[]> {
+  const { data } = await supabase.from("whatsapp_numbers").select("instance_name");
+  return (data || []).map((r: any) => (r?.instance_name || "").toLowerCase());
+}
 
-  let evolutionNames: string[] = [];
+/**
+ * Recupera nomes existentes na Evolution API.
+ */
+export async function fetchEvolutionInstanceNames(): Promise<string[]> {
   try {
     const resp = await fetch("https://ticlin-evolution-api.eirfpl.easypanel.host/instance/fetchInstances", {
       method: "GET",
@@ -17,14 +21,30 @@ export const fetchAllWhatsAppInstanceNames = async (): Promise<string[]> => {
         "Content-Type": "application/json"
       }
     });
-    if (resp.ok) {
-      const d = await resp.json();
-      if (Array.isArray(d.instances)) {
-        evolutionNames = d.instances.map((i: any) => (i.instanceName || "").toLowerCase());
-      }
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    if (Array.isArray(data.instances)) {
+      return data.instances.map((i: any) => (i.instanceName || "").toLowerCase());
     }
+    return [];
   } catch {
-    // ignore
+    return [];
   }
-  return [...new Set([...localNames, ...evolutionNames])];
-};
+}
+
+/**
+ * Gera próximo nome incremental disponível baseado nos já existentes e baseName.
+ */
+export async function getNextAvailableInstanceName(baseName: string, maxAttempts = 20): Promise<string> {
+  const base = baseName.toLowerCase();
+  const localNames = await fetchLocalInstanceNames();
+  const evolutionNames = await fetchEvolutionInstanceNames();
+  const allNames = [...new Set([...localNames, ...evolutionNames])];
+  for (let attempts = 0; attempts < maxAttempts; attempts++) {
+    const candidate = base + (attempts === 0 ? "" : String(attempts));
+    if (!allNames.includes(candidate)) {
+      return candidate;
+    }
+  }
+  throw new Error("Não foi possível encontrar um nome de instância disponível.");
+}
