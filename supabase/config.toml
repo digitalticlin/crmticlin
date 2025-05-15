@@ -3,3 +3,6 @@ project_id = "kigyebrhfoljnydfipcr"
 
 [functions.webhook_evolution]
 verify_jwt = false
+
+[realtime]
+enabled = true
