@@ -1,12 +1,110 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { evolutionApiService } from "@/services/evolution-api";
 import { WhatsAppStatus } from "@/hooks/whatsapp/database";
-import { generateUniqueInstanceName } from "@/utils/whatsapp/instanceNameGenerator";
-import type { CreateInstanceResponse } from "@/services/evolution-api/types";
+import { toast } from "sonner";
+
+type EvolutionInstance = {
+  instanceId: string;
+  instanceName: string;
+  qrcode: { base64: string };
+  hash?: string;
+  status?: string;
+};
+
+const EVOLUTION_API_URL = "https://ticlin-evolution-api.eirfpl.easypanel.host";
+const API_KEY = "JTZZDXMpymy7RETTvXdA9VxKdD0Mdj7t";
 
 /**
- * Cria nova instância WhatsApp e salva no banco, retorna QR code.
+ * Faz requisições para Evolution API com header correto
+ */
+const evolutionRequest = async (route: string, opts: Partial<RequestInit> = {}) => {
+  const headers = {
+    "Content-Type": "application/json",
+    "apikey": API_KEY,
+    ...(opts.headers || {}),
+  };
+
+  const method = opts.method || "GET";
+  const url = `${EVOLUTION_API_URL}${route}`;
+  const config = {
+    ...opts,
+    headers,
+    method,
+  };
+
+  const response = await fetch(url, config);
+  if (!response.ok) {
+    let errorBody: any = "";
+    try {
+      errorBody = await response.json();
+    } catch {}
+    const message =
+      errorBody?.error ||
+      errorBody?.message ||
+      errorBody?.response?.message ||
+      response.statusText ||
+      "Erro desconhecido";
+    const err = new Error(message);
+    // propaga objeto completo do response se houver
+    (err as any).response = errorBody;
+    (err as any).status = response.status;
+    throw err;
+  }
+  return response.json();
+};
+
+/**
+ * Busca todos os nomes de instância já existentes na Evolution API
+ */
+const fetchEvolutionInstanceNames = async (): Promise<string[]> => {
+  const data = await evolutionRequest("/instance/fetchInstances", { method: "GET" });
+  if (Array.isArray(data.instances)) {
+    return data.instances.map((i: any) => i.instanceName?.toLowerCase?.() || "").filter(Boolean);
+  }
+  return [];
+};
+
+/**
+ * Gera um nome incremental não colidindo nos bancos local e Evolution
+ */
+const makeUniqueInstanceName = async (baseName: string): Promise<string> => {
+  // Buscar nomes locais
+  const { data: localData } = await supabase.from("whatsapp_numbers").select("instance_name");
+  const local: string[] = (localData || [])
+    .map((row: any) => row.instance_name?.toLowerCase?.() || "")
+    .filter(Boolean);
+
+  // Buscar nomes na Evolution
+  let evolution: string[] = [];
+  try {
+    evolution = await fetchEvolutionInstanceNames();
+  } catch (err) {
+    // Continua, ao menos previne colisão local
+  }
+
+  let highest = 0;
+  let exists = false;
+  for (const name of [...local, ...evolution]) {
+    if (name === baseName.toLowerCase()) {
+      exists = true;
+      highest = Math.max(highest, 1);
+    } else {
+      const regex = new RegExp(`^${baseName.toLowerCase()}(\\d+)$`);
+      const match = name.match(regex);
+      if (match && match[1]) {
+        const num = parseInt(match[1], 10);
+        if (!isNaN(num)) {
+          highest = Math.max(highest, num + 1);
+        }
+      }
+    }
+  }
+  if (!exists && highest === 0) return baseName;
+  return `${baseName}${highest > 0 ? highest : 1}`;
+};
+
+/**
+ * Cria nova instância WhatsApp, nomeando incrementalmente conforme regra.
  */
 export const createWhatsAppInstance = async (username: string): Promise<{
   success: boolean;
@@ -15,148 +113,90 @@ export const createWhatsAppInstance = async (username: string): Promise<{
   instanceId?: string;
   error?: string;
 }> => {
-  // Verifica se já existe uma instância pendente para o mesmo company_id
-  try {
-    // Obter dados do usuário
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError) throw new Error("Erro ao obter dados do usuário");
-    const userId = userData.user?.id;
+  let baseName = username.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+  let tryCount = 0;
+  let lastError: string | undefined;
+  let newName = baseName;
+  let instanceData: any;
 
-    // Busca perfil do usuário p/ company_id
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('company_id')
-      .eq('id', userId)
-      .single();
-
-    if (profileError || !profileData?.company_id)
-      throw new Error("Erro ao obter a empresa do usuário");
-    const companyId = profileData.company_id;
-
-    // Verifique se já existe uma instância pendente (connecting/disconnected) com phone vazio
-    const { data: pendingInstances, error: fetchError } = await supabase
-      .from('whatsapp_numbers')
-      .select('id, instance_name, status')
-      .eq('company_id', companyId)
-      .in('status', ['connecting', 'disconnected'])
-      .or('phone.is.null,phone.eq.""');
-
-    if (fetchError) {
-      console.warn("Erro ao verificar instâncias pendentes (continuando):", fetchError);
-    // Se houver erro, não bloqueia criação. Só loga.
-    }
-    if (pendingInstances && pendingInstances.length > 0) {
-      return {
-        success: false,
-        error:
-          "Já existe uma instância de WhatsApp pendente de conexão para sua empresa! Por favor, finalize ou exclua a anterior antes de criar outra.",
-      };
-    }
-
-    // Novo: função auxiliar interna para tentar nomes sucessivos em caso de erro de nome em uso
-    const tryCreateInstanceWithRetries = async (
-      baseInstanceName: string,
-      maxTries = 10
-    ) => {
-      let attempt = 0;
-      let instanceName = baseInstanceName;
-      let lastError: any = null;
-      while (attempt < maxTries) {
-        try {
-          // Chama Evolution API para criar instância
-          const response = await evolutionApiService.createInstance(instanceName);
-
-          // Corrige: acessar as propriedades com base no que EvolutionInstance retorna (não .instance!)
-          if (
-            !response ||
-            !response.qrcode ||
-            !response.qrcode.base64 ||
-            !response.instanceId
-          ) {
-            throw new Error("QR code ou dados ausentes na resposta da API");
-          }
-
-          // Extrai QR e IDs necessários
-          const qrCode = response.qrcode.base64;
-          const instanceIdFromEvolution = response.instanceId;
-          const evolutionInstanceName = response.instanceName;
-
-          // Salva (insert) no banco
-          const whatsappData = {
-            instance_name: instanceName,
-            phone: "",
-            company_id: companyId,
-            status: "connecting" as WhatsAppStatus,
-            qr_code: qrCode,
-            instance_id: instanceIdFromEvolution,
-            evolution_instance_name: evolutionInstanceName,
-            evolution_token: response.hash || "",
-          };
-
-          const { data: insertData, error: dbError } = await supabase
-            .from('whatsapp_numbers')
-            .insert(whatsappData)
-            .select();
-
-          if (dbError) {
-            throw new Error("Erro ao salvar a instância no banco");
-          }
-
-          const saved = insertData && Array.isArray(insertData) && insertData.length > 0 ? insertData[0] : null;
-
-          return {
-            success: true,
-            qrCode,
-            instanceName,
-            instanceId: saved?.id || instanceIdFromEvolution,
-          };
-        } catch (error: any) {
-          lastError = error;
-          // Analisa se o erro é de nome já em uso pela Evolution API
-          if (error && error.response && error.response.status === 403) {
-            const respMessage = Array.isArray(error.response?.response?.message)
-              ? error.response?.response?.message[0] || ""
-              : error.response?.response?.message || "";
-
-            if (
-              typeof respMessage === "string" &&
-              respMessage.includes("already in use")
-            ) {
-              // Incrementa o sufixo e tenta novamente
-              attempt += 1;
-              instanceName =
-                attempt === 1
-                  ? `${baseInstanceName}1`
-                  : `${baseInstanceName}${attempt}`;
-              continue; // tenta novamente
-            }
-          }
-          // Para outros erros, retorna imediatamente
-          break;
-        }
+  while (tryCount < 10) {
+    try {
+      // Sempre garante nome incremental possível
+      if (tryCount > 0) {
+        newName = await makeUniqueInstanceName(baseName);
       }
-      // Se saiu do laço, retorna erro
-      return {
-        success: false,
-        error:
-          lastError?.message ||
-          "Não foi possível criar uma instância disponível (nomes já em uso)",
+      // POST na Evolution
+      const evolutionResp: EvolutionInstance = await evolutionRequest(
+        "/instance/create", {
+        method: "POST",
+        body: JSON.stringify({
+          instanceName: newName,
+          qrcode: true,
+          integration: "WHATSAPP-BAILEYS"
+        }),
+      });
+      // Checa dados essenciais
+      if (
+        !evolutionResp ||
+        !evolutionResp.qrcode?.base64 ||
+        !evolutionResp.instanceId
+      ) {
+        throw new Error("QR code ou dados ausentes na resposta da Evolution API");
+      }
+
+      // Salvar no banco
+      const userResult = await supabase.auth.getUser();
+      const userId = userResult.data.user?.id;
+
+      const { data: profileData } = await supabase.from("profiles").select("company_id").eq("id", userId).single();
+      if (!profileData?.company_id) throw new Error("Erro ao obter a empresa do usuário");
+      const companyId = profileData.company_id;
+
+      const whatsappData = {
+        instance_name: newName,
+        phone: "",
+        company_id: companyId,
+        status: "connecting" as WhatsAppStatus,
+        qr_code: evolutionResp.qrcode.base64,
+        instance_id: evolutionResp.instanceId,
+        evolution_instance_name: evolutionResp.instanceName,
+        evolution_token: evolutionResp.hash || "",
       };
-    };
 
-    // Gera nome único para a instância inicialmente
-    const uniqueInstanceName = await generateUniqueInstanceName(username);
-    console.log("Unique instance name generated:", uniqueInstanceName);
+      const { data: insertData, error: dbError } = await supabase
+        .from('whatsapp_numbers')
+        .insert(whatsappData)
+        .select();
 
-    // Tenta criar a instância, incrementando se necessário
-    const result = await tryCreateInstanceWithRetries(uniqueInstanceName, 10);
+      if (dbError) throw new Error("Erro ao salvar a instância no banco");
 
-    return result;
-  } catch (error: any) {
-    console.error("Erro completo ao criar instância:", error);
-    return {
-      success: false,
-      error: error.message || "Erro ao criar a instância WhatsApp"
-    };
+      const savedInstance = insertData && Array.isArray(insertData) && insertData.length > 0 ? insertData[0] : null;
+
+      return {
+        success: true,
+        qrCode: evolutionResp.qrcode.base64,
+        instanceName: newName,
+        instanceId: savedInstance?.id || evolutionResp.instanceId,
+      };
+    } catch (err: any) {
+      lastError = String((err?.response?.message || err?.message || "Erro ao criar instância"));
+      // Trata 403 usando "already in use"
+      if (
+        err?.status === 403 &&
+        ((Array.isArray(err?.response?.message) && `${err?.response?.message[0]}`.toLowerCase().includes("already in use")) ||
+          (typeof err?.response?.message === "string" && err?.response?.message.toLowerCase().includes("already in use")))
+      ) {
+        tryCount += 1;
+        continue; // Tentativa extra
+      } else {
+        break; // Para qualquer outro erro não continua tentando
+      }
+    }
   }
+
+  // Falha: Não foi possível criar, mostrar suporte.
+  return {
+    success: false,
+    error: lastError || "Não foi possível criar a instância WhatsApp. Fale com nosso suporte."
+  };
 };
