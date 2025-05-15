@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { WhatsAppInstance } from "@/hooks/whatsapp/whatsappInstanceStore";
@@ -14,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { useConnectionAutoChecker } from "@/hooks/whatsapp/useConnectionAutoChecker";
 import { useConnectionPolling } from "./ConnectionPollingHooks";
 import ConnectionSpinner from "./ConnectionSpinner";
+import WhatsAppInstanceMainActions from "./WhatsAppInstanceMainActions";
+import WhatsAppInstanceQrSection from "./WhatsAppInstanceQrSection";
 
 interface WhatsAppInstanceCardProps {
   instance: WhatsAppInstance;
@@ -199,27 +200,28 @@ const WhatsAppInstanceCard = ({
             />
             {statusConnected && <DeviceInfoSection deviceInfo={instance.deviceInfo} />}
 
-            {/* Renderização condicional — Se não está onlyDeleteMode, então pode exibir QRCode e ações */}
-            {showQr && !onlyDeleteMode && instance.qrCodeUrl && !statusConnected && (
-              <>
-                <QrCodeSection qrCodeUrl={instance.qrCodeUrl} />
-                <Button variant="outline" className="w-full mt-2" onClick={handleConnect}>
-                  Já conectei
-                </Button>
-              </>
-            )}
-            {/* Se estiver aguardando conexão ("apenas deletar"), NÃO mostra QRCode nem botão "Já conectei" */}
+            {/* NOVO: Seção de QR Code (condicional, agora extraída) */}
+            <WhatsAppInstanceQrSection
+              showQr={showQr}
+              onlyDeleteMode={onlyDeleteMode}
+              instance={instance}
+              statusConnected={statusConnected}
+              handleConnect={handleConnect}
+            />
 
             {shouldShowConnectingSpinner && <ConnectionSpinner />}
-            <InstanceActionButtons
-              connected={statusConnected}
-              hasQrCode={!!instance.qrCodeUrl}
+
+            {/* NOVA: Seção de Botões principais (condicional, extraída) */}
+            <WhatsAppInstanceMainActions
+              statusConnected={statusConnected}
+              instance={instance}
+              showQr={showQr}
+              onlyDeleteMode={onlyDeleteMode}
               isLoading={isLoading}
               actionInProgress={actionInProgress}
-              onRefreshQrCode={handleRefreshQrCode}
               onConnect={handleConnect}
               onDelete={handleDelete}
-              onlyDeleteMode={onlyDeleteMode}
+              onRefreshQrCode={handleRefreshQrCode}
             />
           </div>
         </CardContent>
@@ -234,4 +236,3 @@ const WhatsAppInstanceCard = ({
 };
 
 export default WhatsAppInstanceCard;
-
