@@ -1,3 +1,4 @@
+
 import {
   Dialog,
   DialogContent,
@@ -9,12 +10,29 @@ import { Button } from "@/components/ui/button";
 import { Check, Loader2 } from "lucide-react";
 import { useState } from "react";
 
+// Função utilitária local para a exclusão via Evolution API (garante total isolamento)
+async function deleteEvolutionInstance(instanceName: string) {
+  const API_URL = "https://ticlin-evolution-api.eirfpl.easypanel.host/instance/delete/" + encodeURIComponent(instanceName);
+  const API_KEY = "JTZZDXMpymy7RETTvXdA9VxKdD0Mdj7t";
+  const resp = await fetch(API_URL, {
+    method: "DELETE",
+    headers: {
+      "apikey": API_KEY,
+    },
+  });
+  const data = await resp.json();
+  if (!resp.ok || data.status !== "SUCCESS") {
+    throw new Error(data?.response?.message || "Erro ao deletar instância na Evolution API");
+  }
+  return data;
+}
+
 interface PlaceholderQrModalProps {
   isOpen: boolean;
   qrCodeUrl: string | null;
   isCreating: boolean;
   onScanned: () => void;
-  onRegenerate: () => void;
+  onRegenerate: () => void; // NÃO MAIS USADO, será removido do botão
   onCancel: () => void;
   instanceName: string | null;
   onRefreshInstances?: () => void;
@@ -25,7 +43,7 @@ export default function PlaceholderQrModal({
   qrCodeUrl,
   isCreating,
   onScanned,
-  onRegenerate,
+  // onRegenerate, // Removida do props dos botões
   onCancel,
   instanceName,
   onRefreshInstances
@@ -38,6 +56,28 @@ export default function PlaceholderQrModal({
     if (onRefreshInstances) {
       setTimeout(() => onRefreshInstances(), 350); // ligeiro delay para evitar race com o fechamento
     }
+  };
+
+  const handleCancelWithDelete = async () => {
+    if (!instanceName) {
+      onCancel();
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await deleteEvolutionInstance(instanceName);
+      // Sucesso: fecha o modal e aciona evento parent (remover da lista, etc)
+      if (onRefreshInstances) {
+        setTimeout(() => onRefreshInstances(), 350);
+      }
+      onCancel();
+      // Feedback visual pode ser adicionado se necessário
+    } catch (error: any) {
+      // Exibe erro, mas garante que o loading some e o modal fecha
+      alert(error.message || "Falha ao remover instância.");
+      setIsLoading(false);
+    }
+    setIsLoading(false);
   };
 
   return (
@@ -69,13 +109,7 @@ export default function PlaceholderQrModal({
             </div>
           )}
           <div className="flex w-full justify-center space-x-2">
-            <Button
-              variant="outline"
-              onClick={onRegenerate}
-              disabled={isLoading}
-            >
-              Regenerar QR Code
-            </Button>
+            {/* Removido o botão de regenerar */}
             <Button
               onClick={handleScanClick}
               disabled={isLoading}
@@ -84,10 +118,17 @@ export default function PlaceholderQrModal({
             </Button>
             <Button
               variant="destructive"
-              onClick={onCancel}
+              onClick={handleCancelWithDelete}
               disabled={isLoading}
             >
-              Cancelar
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Cancelando...
+                </>
+              ) : (
+                "Cancelar"
+              )}
             </Button>
           </div>
         </div>
