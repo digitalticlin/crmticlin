@@ -1,4 +1,3 @@
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.42.6";
 
 const corsHeaders = {
@@ -64,7 +63,7 @@ Deno.serve(async (req) => {
       (existingRecords || []).map((rec: any) => (rec.instance_name || "").toLowerCase())
     );
 
-    // FETCH correto para a Evolution API
+    // FETCH correto para Evolution API
     const evoResp = await fetch(EVOLUTION_API_URL, {
       method: "GET",
       headers: {
@@ -77,32 +76,49 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Failed to fetch from Evolution API" }), { status: 500, headers: corsHeaders });
     }
     const data = await evoResp.json();
-    // Suporte tanto para array brute quanto para objs .instances
     const evoInstances: Array<any> = Array.isArray(data) ? data : Array.isArray(data.instances) ? data.instances : [];
 
     const filteredEvoInstances = prefix
       ? evoInstances.filter(inst => (inst.name || inst.instanceName || "").toLowerCase().startsWith(prefix))
       : evoInstances;
 
+    // Novo: para depuração, logar quantas e exemplos do que veio da Evolution:
+    console.log(`[SYNC] Fetched from Evolution: count=${filteredEvoInstances.length}`);
+    if (filteredEvoInstances.length) {
+      console.log(`[SYNC] First examples:`, filteredEvoInstances.slice(0, 2));
+    }
+
     // Mapear e inserir (apenas os que não existem ainda)
     const inserts = [];
-    let numInserted = 0;
-    for (const instRaw of filteredEvoInstances) {
-      // Suporte a diversas keys possíveis de nome...
-      const instanceName = (instRaw.name || instRaw.instanceName || "").toLowerCase();
-      if (!instanceName) continue;
-      if (existingNames.has(instanceName)) continue;
+    let skippedNotFound = 0;
+    let skippedAlreadyExists = 0;
+    let createdCount = 0;
+    let errors: any[] = [];
 
-      const company_id = resolveCompanyId(instanceName, prefixMap);
-      if (!company_id) {
-        console.warn(`No company_id found for instance ${instanceName}, skipping`);
+    for (const instRaw of filteredEvoInstances) {
+      const instanceName = (instRaw.name || instRaw.instanceName || "").toLowerCase();
+      if (!instanceName) {
+        console.warn(`[SYNC][skip] Instância sem nome, objeto:`, instRaw);
         continue;
       }
+      if (existingNames.has(instanceName)) {
+        skippedAlreadyExists++;
+        continue;
+      }
+
+      // Buscar company_id por prefixo do nome (ex: "digitalticlin-atend" pega "digitalticlin" da tabela companies)
+      const company_id = resolveCompanyId(instanceName, prefixMap);
+      if (!company_id) {
+        console.warn(`[SYNC][skip] Sem company_id correspondente para: ${instanceName}. prefixMap=`, prefixMap);
+        skippedNotFound++;
+        continue;
+      }
+
       inserts.push({
         company_id,
         instance_name: instanceName,
-        phone: instRaw.number || instRaw.phone || null,
-        status: "disconnected",
+        phone: instRaw.number || instRaw.phone || null, // pode vir como null da evolution...
+        status: instRaw.connectionStatus ? (instRaw.connectionStatus === "open" ? "connected" : "disconnected") : "disconnected",
         qr_code: null,
         evolution_instance_id: instRaw.id || null,
         evolution_instance_name: instRaw.name || null,
@@ -118,17 +134,25 @@ Deno.serve(async (req) => {
       const { error: insertErr } = await supabase
         .from("whatsapp_numbers")
         .insert(inserts);
-      if (insertErr) throw insertErr;
-      numInserted = inserts.length;
+      if (insertErr) {
+        errors.push(insertErr);
+        console.error("[SYNC][error-insert]", insertErr);
+        return new Response(JSON.stringify({ error: insertErr.message || "Error inserting whatsapp_numbers" }), { status: 500, headers: corsHeaders });
+      }
+      createdCount = inserts.length;
+      console.log(`[SYNC] Inseridos:`, inserts.map(i => i.instance_name));
     }
 
+    // Resposta inclui tudo logável → o frontend/usuário pode conferir o que foi feito!
     return new Response(
       JSON.stringify({
         success: true,
         checked: filteredEvoInstances.length,
-        inserted: numInserted,
-        skipped: filteredEvoInstances.length - numInserted,
-        details: inserts.map(i => i.instance_name),
+        already_exists: skippedAlreadyExists,
+        company_not_found: skippedNotFound,
+        inserted: createdCount,
+        details_inserted: inserts.map(i => i.instance_name),
+        errors
       }),
       { headers: corsHeaders }
     );
@@ -137,4 +161,3 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: err.message || "Unexpected error" }), { status: 500, headers: corsHeaders });
   }
 });
-
