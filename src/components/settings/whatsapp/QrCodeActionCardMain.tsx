@@ -1,11 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription } from "@/components/ui/card";
 import { X, Check } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { WhatsAppSupportErrorModal } from "./WhatsAppSupportErrorModal";
 import { QrCodeDisplay } from "./QrCodeDisplay";
-import { useQrConnectionCheck } from "./useQrConnectionCheck";
 import { updateInstanceStatusAndPhone } from "@/hooks/whatsapp/database";
 
 interface QrCodeActionCardProps {
@@ -16,7 +15,79 @@ interface QrCodeActionCardProps {
   onCancel: () => void;
   instanceName?: string | null;
   onCloseWithRefresh?: () => void;
+  instanceInfoFromDb?: { name: string; number?: string; status?: string };
 }
+
+const checkAndUpdateStatusInDb = async (
+  instanceName: string,
+  onSuccess: (phone: string) => void,
+  onClosed: () => void,
+  onError: (detail?: string) => void
+) => {
+  try {
+    const response = await fetch(
+      `https://ticlin-evolution-api.eirfpl.easypanel.host/instance/connectionState/${encodeURIComponent(instanceName)}`,
+      {
+        method: "GET",
+        headers: {
+          "apikey": "JTZZDXMpymy7RETTvXdA9VxKdD0Mdj7t",
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    let json: any = null;
+    try {
+      json = await response.json();
+    } catch {
+      throw new Error("Resposta inesperada do servidor");
+    }
+    const state = json?.instance?.state ?? json?.state;
+    const phone = json?.instance?.phone?.toString() || json?.instance?.me?.id || "";
+
+    if (
+      (json?.status === 404 || json?.status === "404") &&
+      json?.response?.message &&
+      Array.isArray(json.response.message) &&
+      json.response.message.join(" ").toLowerCase().includes("instance does not exist")
+    ) {
+      onError(json.response.message?.join(" ") || "Instância não encontrada");
+      return;
+    }
+
+    if (state === "open" || state === "connecting") {
+      await updateInstanceStatusAndPhone(instanceName, "connected", phone);
+      toast({
+        title: "Instância conectada!",
+        description: "Status e telefone atualizados no banco.",
+        variant: "default",
+      });
+      onSuccess(phone);
+      return;
+    }
+    if (state === "closed") {
+      toast({
+        title: "Instância removida.",
+        description: "Esse número foi excluído e deve ser reconectado.",
+        variant: "destructive",
+      });
+      onClosed();
+      return;
+    }
+
+    toast({
+      title: "Ainda aguardando conexão.",
+      description: "Tente novamente em instantes, ou leia o QR Code novamente se necessário.",
+      variant: "default",
+    });
+  } catch (error: any) {
+    toast({
+      title: "Erro ao verificar instância",
+      description: error?.message || "",
+      variant: "destructive",
+    });
+    onError(error?.message);
+  }
+};
 
 const QrCodeActionCardMain = ({
   qrCodeUrl,
@@ -24,24 +95,18 @@ const QrCodeActionCardMain = ({
   onScanned,
   onCancel,
   instanceName,
-  instanceInfoFromDb, // NOVO: receber info do banco direto por props se possível
+  instanceInfoFromDb,
   onCloseWithRefresh,
-}: QrCodeActionCardProps & { instanceInfoFromDb?: { name: string; number?: string; status?: string } }) => {
-  // Estados locais UNIFICADOS
+}: QrCodeActionCardProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [supportDetail, setSupportDetail] = useState<string | undefined>(undefined);
   const [isCheckingAndSaving, setIsCheckingAndSaving] = useState(false);
 
-  // info vem direto do banco agora
   const instanceInfo = instanceInfoFromDb || { name: instanceName || "Instância WhatsApp", number: undefined, status: undefined };
 
-  // Função de cleanup simples para garantir que eventuais efeitos sejam limpos (placeholder para compatibilidade)
-  const cleanup = () => {
-    // Nenhum efeito para limpar neste fluxo, mas mantido para estrutura e compatibilidade
-  };
+  const cleanup = () => {};
 
-  // Fechamento/cancelamento sempre limpa
   const handleCloseAll = () => {
     cleanup();
     if (typeof onCancel === "function") onCancel();
@@ -103,94 +168,28 @@ const QrCodeActionCardMain = ({
     }
   };
 
-  // Botão "Já conectei" agora executa: faz uma requisição, salva no banco, o card renderiza pelo banco, sem loop
   const handleCheckAndSave = async () => {
     if (!instanceName || isCheckingAndSaving) return;
     setIsCheckingAndSaving(true);
-    try {
-      // 1. Buscar status e phone do Evolution API
-      const response = await fetch(
-        `https://ticlin-evolution-api.eirfpl.easypanel.host/instance/connectionState/${encodeURIComponent(instanceName)}`,
-        {
-          method: "GET",
-          headers: {
-            "apikey": "JTZZDXMpymy7RETTvXdA9VxKdD0Mdj7t",
-            "Content-Type": "application/json"
-          }
-        }
-      );
-      let json: any = null;
-      try {
-        json = await response.json();
-      } catch {
-        throw new Error("Resposta inesperada do servidor");
-      }
-      const state = json?.instance?.state ?? json?.state;
-      const phone = json?.instance?.phone?.toString() || json?.instance?.me?.id || "";
 
-      // Instância não existe
-      if (
-        (json?.status === 404 || json?.status === "404") &&
-        json?.response?.message &&
-        Array.isArray(json.response.message) &&
-        json.response.message.join(" ").toLowerCase().includes("instance does not exist")
-      ) {
-        setSupportDetail(json.response.message?.join(" ") || "Instância não encontrada");
-        setShowSupportModal(true);
-        return;
-      }
-
-      // Se conectado: salva no banco e card autoatualiza
-      if (state === "open" || state === "connecting") {
-        await updateInstanceStatusAndPhone(
-          instanceName,         // Passa o nome (id compatível, se precisar adaptar isso, veja arg da função)
-          "connected",
-          phone
-        );
-        // O card se atualizará com a info do banco (não force re-render manualmente)
-        toast({
-          title: "Instância conectada!",
-          description: "Status e telefone atualizados no banco.",
-          variant: "default",
-        });
+    await checkAndUpdateStatusInDb(
+      instanceName,
+      () => {
         if (typeof onScanned === "function") onScanned();
         handleCloseAll();
-        return;
+      },
+      handleCloseAll,
+      (detail) => {
+        setSupportDetail(detail);
+        setShowSupportModal(true);
       }
-
-      // Se removido/closed
-      if (state === "closed") {
-        toast({
-          title: "Instância removida.",
-          description: "Esse número foi excluído e deve ser reconectado.",
-          variant: "destructive",
-        });
-        handleCloseAll();
-        return;
-      }
-
-      // Se outro estado, só alerta
-      toast({
-        title: "Ainda aguardando conexão.",
-        description: "Tente novamente em instantes, ou leia o QR Code novamente se necessário.",
-        variant: "default",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Erro ao verificar instância",
-        description: error?.message || "",
-        variant: "destructive",
-      });
-    } finally {
-      setIsCheckingAndSaving(false);
-    }
+    );
+    setIsCheckingAndSaving(false);
   };
 
-  // --- Renderização: Usar info do banco em vez de estado local
   const isInstanceConnected = instanceInfo?.status === "open" || instanceInfo?.status === "connected";
 
   if (isInstanceConnected) {
-    // Card "Dispositivo conectado" - usa phone e status do banco
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 animate-fade-in">
         <Card className="w-full max-w-md glass-morphism p-8 rounded-2xl shadow-2xl border-none transition-all">
@@ -229,7 +228,6 @@ const QrCodeActionCardMain = ({
             </Button>
           </CardFooter>
         </Card>
-        {/* SUPORTE: Modal para instance not exist */}
         <WhatsAppSupportErrorModal
           open={showSupportModal}
           errorDetail={supportDetail}
@@ -261,7 +259,6 @@ const QrCodeActionCardMain = ({
     );
   }
 
-  // --- Renderiza QR Code e botão "Já conectei" ---
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 animate-fade-in">
       <Card className="w-full max-w-lg glass-morphism p-8 rounded-2xl shadow-2xl border-none transition-all">
@@ -310,7 +307,6 @@ const QrCodeActionCardMain = ({
           )}
         </CardFooter>
       </Card>
-      {/* SUPORTE: Modal para instance not exist */}
       <WhatsAppSupportErrorModal
         open={showSupportModal}
         errorDetail={supportDetail}
