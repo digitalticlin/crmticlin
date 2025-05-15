@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppStatus } from "@/hooks/whatsapp/database";
 import { toast } from "sonner";
@@ -32,6 +33,7 @@ const evolutionRequest = async (route: string, opts: Partial<RequestInit> = {}) 
   };
 
   const response = await fetch(url, config);
+
   if (!response.ok) {
     let errorBody: any = "";
     try {
@@ -44,7 +46,6 @@ const evolutionRequest = async (route: string, opts: Partial<RequestInit> = {}) 
       response.statusText ||
       "Erro desconhecido";
     const err = new Error(message);
-    // propaga objeto completo do response se houver
     (err as any).response = errorBody;
     (err as any).status = response.status;
     throw err;
@@ -67,19 +68,15 @@ const fetchEvolutionInstanceNames = async (): Promise<string[]> => {
  * Gera um nome incremental não colidindo nos bancos local e Evolution
  */
 const makeUniqueInstanceName = async (baseName: string): Promise<string> => {
-  // Buscar nomes locais
   const { data: localData } = await supabase.from("whatsapp_numbers").select("instance_name");
   const local: string[] = (localData || [])
     .map((row: any) => row.instance_name?.toLowerCase?.() || "")
     .filter(Boolean);
 
-  // Buscar nomes na Evolution
   let evolution: string[] = [];
   try {
     evolution = await fetchEvolutionInstanceNames();
-  } catch (err) {
-    // Continua, ao menos previne colisão local
-  }
+  } catch (err) {}
 
   let highest = 0;
   let exists = false;
@@ -103,7 +100,7 @@ const makeUniqueInstanceName = async (baseName: string): Promise<string> => {
 };
 
 /**
- * Cria nova instância WhatsApp, nomeando incrementalmente conforme regra.
+ * Cria nova instância WhatsApp, nome incremental via Evolution API.
  */
 export const createWhatsAppInstance = async (username: string): Promise<{
   success: boolean;
@@ -111,19 +108,21 @@ export const createWhatsAppInstance = async (username: string): Promise<{
   instanceName?: string;
   instanceId?: string;
   error?: string;
+  triedNames?: string[];
 }> => {
   let baseName = username.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
   let tryCount = 0;
   let lastError: string | undefined;
   let newName = baseName;
+  const triedNames: string[] = [];
 
   while (tryCount < 10) {
+    triedNames.push(newName);
     try {
-      // Sempre garante nome incremental possível
       if (tryCount > 0) {
         newName = await makeUniqueInstanceName(baseName);
+        triedNames.push(newName);
       }
-      // POST na Evolution
       const evolutionResp = await evolutionRequest(
         "/instance/create", {
         method: "POST",
@@ -134,7 +133,6 @@ export const createWhatsAppInstance = async (username: string): Promise<{
         }),
       });
 
-      // --- AJUSTE AQUI: Validação do campo base64 no retorno ---
       if (
         !evolutionResp ||
         !evolutionResp.qrcode ||
@@ -145,7 +143,6 @@ export const createWhatsAppInstance = async (username: string): Promise<{
         throw new Error("QR code ou dados ausentes na resposta da Evolution API");
       }
 
-      // Salvar no banco
       const userResult = await supabase.auth.getUser();
       const userId = userResult.data.user?.id;
 
@@ -153,13 +150,12 @@ export const createWhatsAppInstance = async (username: string): Promise<{
       if (!profileData?.company_id) throw new Error("Erro ao obter a empresa do usuário");
       const companyId = profileData.company_id;
 
-      // --- Salva exatamente o base64 da resposta no campo qr_code ---
       const whatsappData = {
         instance_name: newName,
         phone: "",
         company_id: companyId,
         status: "connecting" as WhatsAppStatus,
-        qr_code: evolutionResp.qrcode.base64, // <--- Aqui está o ajuste central do fluxo!
+        qr_code: evolutionResp.qrcode.base64,
         instance_id: evolutionResp.instance.instanceId,
         evolution_instance_name: evolutionResp.instance.instanceName,
         evolution_token: evolutionResp.hash || "",
@@ -179,26 +175,45 @@ export const createWhatsAppInstance = async (username: string): Promise<{
         qrCode: evolutionResp.qrcode.base64,
         instanceName: newName,
         instanceId: savedInstance?.id || evolutionResp.instance.instanceId,
+        triedNames
       };
     } catch (err: any) {
-      lastError = String((err?.response?.message || err?.message || "Erro ao criar instância"));
-      // Trata 403 usando "already in use"
-      if (
+      // Lógica principal de incremento
+      const alreadyUsed = (
         err?.status === 403 &&
-        ((Array.isArray(err?.response?.message) && `${err?.response?.message[0]}`.toLowerCase().includes("already in use")) ||
-          (typeof err?.response?.message === "string" && err?.response?.message.toLowerCase().includes("already in use")))
-      ) {
+        (
+          (Array.isArray(err?.response?.message) &&
+            err?.response?.message.some((m: string) => m.toLowerCase().includes("already in use"))) ||
+          (typeof err?.response?.message === "string" &&
+            err?.response?.message.toLowerCase().includes("already in use"))
+        )
+      );
+
+      lastError = String(
+        (err?.response?.message && Array.isArray(err.response.message)
+          ? err.response.message[0]
+          : err?.response?.message || err?.message || "Erro ao criar instância"
+        )
+      );
+
+      if (alreadyUsed) {
         tryCount += 1;
-        continue; // Tentativa extra
+        continue;
       } else {
-        break; // Para qualquer outro erro não continua tentando
+        // Outro erro: retorna explicitamente para informar frontend
+        return {
+          success: false,
+          error: lastError || "Não foi possível criar a instância WhatsApp. Fale com nosso suporte.",
+          triedNames
+        };
       }
     }
   }
 
-  // Falha: Não foi possível criar, mostrar suporte.
+  // Falha: Não foi possível criar, mostrar todos nomes tentados para troubleshooting.
   return {
     success: false,
-    error: lastError || "Não foi possível criar a instância WhatsApp. Fale com nosso suporte."
+    error: lastError || "Não foi possível criar a instância WhatsApp. Nomes usados: " + triedNames.join(", "),
+    triedNames
   };
 };

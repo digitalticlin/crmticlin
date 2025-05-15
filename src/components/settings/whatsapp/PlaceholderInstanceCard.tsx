@@ -68,11 +68,21 @@ const PlaceholderInstanceCard = ({
     }
     try {
       setIsCreating(true);
-      // Usar lógica nova, centralizada, para gerar nome incremental único:
-      const candidateName = await getNextAvailableInstanceName(username);
-      const result = await createWhatsAppInstance(candidateName);
+      // Usar o createWhatsAppInstance direto
+      const result = await createWhatsAppInstance(username);
       if (!result.success) {
-        toast.error(result.error || "Erro ao criar a instância.");
+        // Exibir erro detalhado baseado na resposta
+        if (
+          result.error &&
+          (result.error.toLowerCase().includes("already in use") ||
+            (result.triedNames && result.triedNames.length > 0))
+        ) {
+          toast.error(
+            `Os nomes tentados já estavam em uso: ${result.triedNames?.join(", ")}. Por favor, tente novamente em instantes ou altere seu nome!`
+          );
+        } else {
+          toast.error(result.error || "Erro ao criar a instância.");
+        }
         setIsCreating(false);
         return;
       }
