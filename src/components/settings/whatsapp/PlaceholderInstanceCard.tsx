@@ -11,6 +11,7 @@ import { useEvolutionInstanceStatus } from "@/hooks/whatsapp/useEvolutionInstanc
 import { useWhatsAppInstanceActions, useWhatsAppInstanceState } from "@/hooks/whatsapp/whatsappInstanceStore";
 import { useEvolutionOpenStatus } from "@/hooks/whatsapp/useEvolutionOpenStatus";
 import WaitingForConnectionCard from "./WaitingForConnectionCard";
+import { useUniqueWhatsAppInstanceName } from "@/hooks/whatsapp/useUniqueWhatsAppInstanceName";
 
 interface PlaceholderInstanceCardProps {
   isSuperAdmin?: boolean;
@@ -27,20 +28,14 @@ const PlaceholderInstanceCard = ({
   const [instanceName, setInstanceName] = useState<string | null>(null);
   const [instanceId, setInstanceId] = useState<string | null>(null);
   const [waitingForOpen, setWaitingForOpen] = useState(false);
-
-  // Hook para controle do QRCode
   const qrCodeDialog = useQrCodeDialogState();
-
-  // Importa novo hook do Evolution "open"
   const { checkIfOpen } = useEvolutionOpenStatus();
+  const { getNextAvailableInstanceName } = useUniqueWhatsAppInstanceName();
 
-  // Extrai username do email
   useEffect(() => {
     if (userEmail) {
       const extractedUsername = userEmail.split('@')[0].replace(/[^a-z0-9]/gi, "");
       setUsername(extractedUsername);
-
-      // Verifica se usuário é novo (criou conta em 24h)
       const checkIfNewUser = async () => {
         try {
           const { data: { session } } = await supabase.auth.getSession();
@@ -54,42 +49,13 @@ const PlaceholderInstanceCard = ({
             const creationDate = new Date(data.created_at);
             setIsNewUser((Date.now() - creationDate.getTime()) / 3600000 < 24);
           }
-        } catch { /* Falha silenciosa só pra UX */ }
+        } catch { /* UX silent fail */ }
       };
       checkIfNewUser();
     }
   }, [userEmail]);
 
-  // Função auxiliar para pegar todos os nomes existentes localmente (CRM)
-  const fetchLocalInstanceNames = async () => {
-    const { data } = await supabase
-      .from("whatsapp_numbers")
-      .select("instance_name");
-    return (data || []).map((r: any) => (r?.instance_name || "").toLowerCase());
-  };
-
-  // Função auxiliar para pegar todos os nomes existentes na Evolution
-  const fetchEvolutionInstanceNames = async () => {
-    try {
-      const resp = await fetch("https://ticlin-evolution-api.eirfpl.easypanel.host/instance/fetchInstances", {
-        method: "GET",
-        headers: {
-          "apikey": "JTZZDXMpymy7RETTvXdA9VxKdD0Mdj7t",
-          "Content-Type": "application/json"
-        }
-      });
-      if (!resp.ok) return [];
-      const data = await resp.json();
-      if (Array.isArray(data.instances)) {
-        return data.instances.map((i: any) => (i.instanceName || "").toLowerCase());
-      }
-      return [];
-    } catch {
-      return [];
-    }
-  };
-
-  // Lógica incremental de criação de instância
+  // Ao clicar para criar o WhatsApp
   const handleAddWhatsApp = async () => {
     if (isCreating) return;
     if (!username) {
@@ -102,49 +68,19 @@ const PlaceholderInstanceCard = ({
     }
     try {
       setIsCreating(true);
-      // Obtem nomes já existentes locais e na Evolution
-      const baseName = username.toLowerCase();
-      const localNames = await fetchLocalInstanceNames();
-      const evolutionNames = await fetchEvolutionInstanceNames();
-      const allNames = [...localNames, ...evolutionNames];
-      // Tenta nome incremental até máximo de tentativas
-      let candidate, attempts = 0, createdResult = null;
-      while (attempts < 10) {
-        candidate = baseName + (attempts === 0 ? "" : String(attempts));
-        if (allNames.includes(candidate)) {
-          attempts += 1;
-          continue;
-        }
-        // Tenta criar com o nome candidate
-        const result = await createWhatsAppInstance(candidate);
-        if (result.success) {
-          createdResult = result;
-          break;
-        }
-        // Se erro de "already in use" ou 403, tenta próximo nome
-        if (
-          (result.error || "").toLowerCase().includes("already in use") ||
-          (result.error || "").toLowerCase().includes("forbidden")
-        ) {
-          attempts += 1;
-          continue;
-        }
-        // Outro erro: reporta e encerra
-        toast.error(result.error || "Erro ao criar instância.");
+      // Gera nome incremental disponível, considerando banco + Evolution (máx 20 tentativas)
+      const candidateName = await getNextAvailableInstanceName(username);
+      const result = await createWhatsAppInstance(candidateName);
+      if (!result.success) {
+        toast.error(result.error || "Erro ao criar a instância.");
         setIsCreating(false);
         return;
       }
-      if (!createdResult) {
-        toast.error("Não foi possível criar nova instância WhatsApp. Tente novamente mais tarde.");
-        setIsCreating(false);
-        return;
-      }
-      // Sucesso: mostra o QRCode/SALVA corretamente no banco
-      qrCodeDialog.show(createdResult.qrCode!);
-      setInstanceName(createdResult.instanceName || null);
-      setInstanceId(createdResult.instanceId || null);
+      qrCodeDialog.show(result.qrCode!);
+      setInstanceName(result.instanceName || null);
+      setInstanceId(result.instanceId || null);
       toast.success("Solicitação de conexão enviada!");
-      setWaitingForOpen(false); // cada ciclo inicia fresh
+      setWaitingForOpen(false);
     } catch (error: any) {
       toast.error("Falha ao criar a instância do WhatsApp");
     } finally {
