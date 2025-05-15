@@ -25,14 +25,14 @@ export default function WhatsAppInstanceDynamicCard({ instance, onDeleteSuccess,
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  // Gera/Regera QRCode
+  // Gera/Regera QRCode usando a API /instance/connect/{instanceName}
   const handleGenerateQr = async () => {
     setLoading(true);
     try {
       const res = await fetch(`${EVOLUTION_URL}/instance/connect/${encodeURIComponent(instance.instanceName)}`, {
         method: "GET",
         headers: {
-          "API-KEY": API_KEY
+          "apikey": API_KEY
         }
       });
       if (!res.ok) throw new Error("Erro ao gerar novo QRCode");
