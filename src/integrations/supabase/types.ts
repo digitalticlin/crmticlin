@@ -1032,6 +1032,7 @@ export type Database = {
           id: string
           instance_id: string | null
           instance_name: string
+          n8n_webhook_url: string | null
           phone: string
           qr_code: string | null
           status: Database["public"]["Enums"]["whatsapp_status"] | null
@@ -1047,6 +1048,7 @@ export type Database = {
           id?: string
           instance_id?: string | null
           instance_name: string
+          n8n_webhook_url?: string | null
           phone: string
           qr_code?: string | null
           status?: Database["public"]["Enums"]["whatsapp_status"] | null
@@ -1062,6 +1064,7 @@ export type Database = {
           id?: string
           instance_id?: string | null
           instance_name?: string
+          n8n_webhook_url?: string | null
           phone?: string
           qr_code?: string | null
           status?: Database["public"]["Enums"]["whatsapp_status"] | null

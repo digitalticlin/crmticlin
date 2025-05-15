@@ -13,7 +13,7 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL") || "https://kigyebrhfoljnydfipc
 const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpZ3llYnJoZm9sam55ZGZpcGNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMDU0OTUsImV4cCI6MjA2MjY4MTQ5NX0.348qSsRPai26TFU87MDv0yE4i_pQmLYMQW9d7n5AN-A";
 
 // Coluna fixa para novos leads
-const ENTRADA_LEADS_ID = "column-new-lead";
+const ENTRADA_LEADS_ID = "column-new-lead"; // This seems unused, consider removing if not needed for kanban stage
 
 serve(async (req) => {
   // CORS preflight
@@ -37,7 +37,7 @@ serve(async (req) => {
       const messageData = payload.data;
       const remoteJid = messageData.key.remoteJid;
       const fromMe = messageData.key.fromMe;
-      const messageType = messageData.messageType || "text";
+      // const messageType = messageData.messageType || "text"; // messageType is used in extractTextMessage
       
       // Se a mensagem for de um grupo ou não for recebida (fromMe=true), ignoramos
       if (remoteJid.includes('@g.us') || fromMe) {
@@ -60,10 +60,10 @@ serve(async (req) => {
           { headers: corsHeaders });
       }
       
-      // Encontrar o ID da instância WhatsApp
+      // Encontrar o ID da instância WhatsApp e a URL do webhook N8N
       const { data: whatsappNumber, error: numberError } = await supabase
         .from('whatsapp_numbers')
-        .select('id, company_id')
+        .select('id, company_id, n8n_webhook_url') // Adicionado n8n_webhook_url
         .eq('evolution_instance_name', instanceName)
         .single();
         
@@ -75,6 +75,7 @@ serve(async (req) => {
       
       const whatsappNumberId = whatsappNumber.id;
       const companyId = whatsappNumber.company_id;
+      const n8nWebhookUrl = whatsappNumber.n8n_webhook_url; // Captura a URL do webhook N8N
       
       // Verificar se já existe um lead para este número
       const { data: existingLead, error: leadError } = await supabase
@@ -105,7 +106,7 @@ serve(async (req) => {
             whatsapp_number_id: whatsappNumberId,
             name: leadName,
             phone: phone,
-            kanban_stage_id: null, // Será atualizado após inserção para o stage de entrada
+            kanban_stage_id: null, 
             last_message: extractTextMessage(messageData),
             last_message_time: new Date().toISOString(),
             unread_count: 1
@@ -127,11 +128,10 @@ serve(async (req) => {
           .select('id')
           .eq('company_id', companyId)
           .eq('is_fixed', true)
-          .ilike('title', '%entrada%leads%')
+          .ilike('title', '%entrada%leads%') // Consider making this more robust, e.g., a fixed ID or type
           .single();
         
-        // Se não encontrar a etapa de entrada por nome, pegar o primeiro estágio do kanban
-        if (stageError) {
+        if (stageError && entryStage === null) { // Check specifically for null if single() returns null on no row
           console.log("Etapa de entrada não encontrada pelo nome, buscando o primeiro estágio...");
           const { data: firstStage, error: firstStageError } = await supabase
             .from('kanban_stages')
@@ -142,18 +142,15 @@ serve(async (req) => {
             .single();
             
           if (!firstStageError && firstStage) {
-            // Atualizar o lead com o estágio de kanban encontrado
             await supabase
               .from('leads')
               .update({ kanban_stage_id: firstStage.id })
               .eq('id', leadId);
-              
             console.log(`Lead ${leadId} adicionado ao estágio ${firstStage.id}`);
           } else {
             console.error("Não foi possível encontrar nenhum estágio de kanban:", firstStageError);
           }
-        } else {
-          // Atualizar o lead com o estágio de entrada de leads
+        } else if (entryStage) {
           await supabase
             .from('leads')
             .update({ kanban_stage_id: entryStage.id })
@@ -164,7 +161,6 @@ serve(async (req) => {
       } else {
         leadId = existingLead.id;
         
-        // Atualizar contagem de mensagens não lidas e última mensagem
         await supabase
           .from('leads')
           .update({
@@ -180,15 +176,16 @@ serve(async (req) => {
       // Salvar a mensagem
       const messageText = extractTextMessage(messageData);
       if (messageText) {
-        const { data: savedMessage, error: messageError } = await supabase
+        const { error: messageError } = await supabase // Removed 'savedMessage' as it's not used
           .from('messages')
           .insert({
             lead_id: leadId,
             whatsapp_number_id: whatsappNumberId,
             from_me: false,
             text: messageText,
-            status: 'received',
-            external_id: messageData.key.id
+            status: 'received', // Assuming all incoming messages are 'received' initially
+            external_id: messageData.key.id,
+            timestamp: new Date( (messageData.messageTimestamp || Math.floor(Date.now()/1000)) * 1000).toISOString() // Use current time if no timestamp
           });
           
         if (messageError) {
@@ -196,6 +193,29 @@ serve(async (req) => {
         } else {
           console.log("Mensagem salva com sucesso");
         }
+      }
+
+      // Encaminhar para o webhook N8N, se configurado
+      if (n8nWebhookUrl) {
+        console.log(`Encaminhando payload para N8N: ${n8nWebhookUrl}`);
+        // Não aguardar a resposta do N8N para não atrasar a resposta ao Evolution API
+        fetch(n8nWebhookUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload), // Envia o payload original recebido
+        })
+        .then(response => {
+          if (!response.ok) {
+            response.text().then(text => {
+              console.error(`Erro ao encaminhar para N8N (${response.status}): ${text}`);
+            });
+          } else {
+            console.log("Payload encaminhado para N8N com sucesso.");
+          }
+        })
+        .catch(err => {
+          console.error("Erro de rede ao tentar encaminhar para N8N:", err);
+        });
       }
       
       return new Response(
@@ -210,10 +230,10 @@ serve(async (req) => {
     }
 
     // Resposta para outros tipos de eventos
-    return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
+    return new Response(JSON.stringify({ success: true, info: "Evento não processado por este webhook" }), { headers: corsHeaders });
   } catch (err) {
     console.error("Erro ao processar webhook Evolution:", err);
-    return new Response(JSON.stringify({ success: false, error: String(err) }), 
+    return new Response(JSON.stringify({ success: false, error: String(err.message || err) }), 
       { status: 400, headers: corsHeaders });
   }
 });
@@ -222,7 +242,6 @@ serve(async (req) => {
 function extractTextMessage(messageData: any): string | null {
   if (!messageData.message) return null;
   
-  // Verificar diferentes tipos de mensagens
   if (messageData.message.conversation) {
     return messageData.message.conversation;
   } else if (messageData.message.extendedTextMessage && messageData.message.extendedTextMessage.text) {
@@ -231,7 +250,24 @@ function extractTextMessage(messageData: any): string | null {
     return messageData.message.imageMessage.caption;
   } else if (messageData.message.videoMessage && messageData.message.videoMessage.caption) {
     return messageData.message.videoMessage.caption;
+  } else if (messageData.message.documentMessage && messageData.message.documentMessage.caption) {
+    return messageData.message.documentMessage.caption;
+  } else if (messageData.message.audioMessage) {
+    return "[Mensagem de áudio]";
+  } else if (messageData.message.contactMessage) {
+    return "[Mensagem de contato]";
+  } else if (messageData.message.locationMessage) {
+    return "[Mensagem de localização]";
   }
   
-  return "[Mensagem não suportada]";
+  // Fallback para tipos de mensagem não explicitamente tratados, mas que podem ter texto
+  const messageContent = messageData.message[Object.keys(messageData.message)[0]];
+  if (typeof messageContent === 'object' && messageContent !== null && messageContent.text) {
+    return messageContent.text;
+  }
+  if (typeof messageContent === 'object' && messageContent !== null && messageContent.caption) {
+    return messageContent.caption;
+  }
+  
+  return "[Tipo de mensagem não suportado para extração de texto]";
 }
