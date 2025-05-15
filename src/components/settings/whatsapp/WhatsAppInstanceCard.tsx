@@ -132,10 +132,6 @@ const WhatsAppInstanceCard = ({
     }
   }, [showQrCode, qrCodeSuccess, instance.id, instance.instanceName, forceSyncConnectionStatus]);
 
-  // Removido: useEffect que faz polling via interval próprio quando QRCode está sendo exibido
-  // Vamos confiar APENAS no periodic checker central já corrigido
-  // O único check imediato permitido é um status manual (usuário clica); status ao montar o QR code/dispositivo é centralizado.
-
   // NOVO: Monitorar quando fechar o modal QR e mostrar spinner se ainda não está connected
   useEffect(() => {
     if (!showQrCode && !instance.connected && !!instance.qrCodeUrl) {
@@ -169,6 +165,51 @@ const WhatsAppInstanceCard = ({
   const statusConnected = instance.connected || isAutoConnected;
   const showQr = (showQrCode || (!statusConnected && instance.qrCodeUrl)) && !statusConnected;
   
+  // --- DO NOT use isConnectingNow before declaration!
+  // Define the polling control state and polling hook FIRST
+  const [triggerAutoConnect, setTriggerAutoConnect] = useState(false);
+  const [alreadyConnected, setAlreadyConnected] = useState(instance.connected);
+
+  // Handler to activate immediate polling after modal closed or "Já conectei"
+  const startImmediateConnectionPolling = () => {
+    if (!instance.connected) {
+      setTriggerAutoConnect(true);
+      setAlreadyConnected(false);
+    }
+  };
+
+  // useEffect to trigger polling when modal closes
+  useEffect(() => {
+    if (!showQrCode && !!instance.qrCodeUrl && !instance.connected && !alreadyConnected) {
+      startImmediateConnectionPolling();
+    }
+    if (showQrCode) {
+      setTriggerAutoConnect(false);
+      setAlreadyConnected(instance.connected);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showQrCode, instance.connected, instance.qrCodeUrl]);
+
+  // Specialized polling hook -- declare this BEFORE you use isConnectingNow!
+  const { connecting: isConnectingNow } = useAutoConnectionPolling({
+    active: triggerAutoConnect,
+    instanceId: instance.id,
+    instanceName: instance.instanceName,
+    onConnected: () => {
+      setAlreadyConnected(true);
+      setTriggerAutoConnect(false);
+    },
+    onTimeout: () => {
+      setTriggerAutoConnect(false);
+    }
+  });
+
+  // --------- All variable declarations that depend on isConnectingNow go AFTER:
+  // Helper to compute when to show connection spinner
+  const computedConnectingSpinner =
+    (connectingSpinner && !instance.connected)
+    || (isConnectingNow && !instance.connected);
+
   // Adaptação das funções de ação para mostrar modal de suporte em erros
   const handleConnect = async () => {
     try {
