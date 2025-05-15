@@ -60,7 +60,36 @@ const PlaceholderInstanceCard = ({
     }
   }, [userEmail]);
 
-  // Ao clicar para criar o WhatsApp
+  // Função auxiliar para pegar todos os nomes existentes localmente (CRM)
+  const fetchLocalInstanceNames = async () => {
+    const { data } = await supabase
+      .from("whatsapp_numbers")
+      .select("instance_name");
+    return (data || []).map((r: any) => (r?.instance_name || "").toLowerCase());
+  };
+
+  // Função auxiliar para pegar todos os nomes existentes na Evolution
+  const fetchEvolutionInstanceNames = async () => {
+    try {
+      const resp = await fetch("https://ticlin-evolution-api.eirfpl.easypanel.host/instance/fetchInstances", {
+        method: "GET",
+        headers: {
+          "apikey": "JTZZDXMpymy7RETTvXdA9VxKdD0Mdj7t",
+          "Content-Type": "application/json"
+        }
+      });
+      if (!resp.ok) return [];
+      const data = await resp.json();
+      if (Array.isArray(data.instances)) {
+        return data.instances.map((i: any) => (i.instanceName || "").toLowerCase());
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  };
+
+  // Lógica incremental de criação de instância
   const handleAddWhatsApp = async () => {
     if (isCreating) return;
     if (!username) {
@@ -73,18 +102,49 @@ const PlaceholderInstanceCard = ({
     }
     try {
       setIsCreating(true);
-      // Chamada à Evolution API via service: cria e grava no banco.
-      const result = await createWhatsAppInstance(username);
-      if (result.success && result.qrCode) {
-        // Mostra card com QR code via hook local de estado
-        qrCodeDialog.show(result.qrCode);
-        setInstanceName(result.instanceName || null);
-        setInstanceId(result.instanceId || null);
-        toast.success("Solicitação de conexão enviada!");
-        setWaitingForOpen(false); // cada ciclo inicia fresh
-      } else {
-        toast.error(result.error || "Erro ao criar a instância.");
+      // Obtem nomes já existentes locais e na Evolution
+      const baseName = username.toLowerCase();
+      const localNames = await fetchLocalInstanceNames();
+      const evolutionNames = await fetchEvolutionInstanceNames();
+      const allNames = [...localNames, ...evolutionNames];
+      // Tenta nome incremental até máximo de tentativas
+      let candidate, attempts = 0, createdResult = null;
+      while (attempts < 10) {
+        candidate = baseName + (attempts === 0 ? "" : String(attempts));
+        if (allNames.includes(candidate)) {
+          attempts += 1;
+          continue;
+        }
+        // Tenta criar com o nome candidate
+        const result = await createWhatsAppInstance(candidate);
+        if (result.success) {
+          createdResult = result;
+          break;
+        }
+        // Se erro de "already in use" ou 403, tenta próximo nome
+        if (
+          (result.error || "").toLowerCase().includes("already in use") ||
+          (result.error || "").toLowerCase().includes("forbidden")
+        ) {
+          attempts += 1;
+          continue;
+        }
+        // Outro erro: reporta e encerra
+        toast.error(result.error || "Erro ao criar instância.");
+        setIsCreating(false);
+        return;
       }
+      if (!createdResult) {
+        toast.error("Não foi possível criar nova instância WhatsApp. Tente novamente mais tarde.");
+        setIsCreating(false);
+        return;
+      }
+      // Sucesso: mostra o QRCode/SALVA corretamente no banco
+      qrCodeDialog.show(createdResult.qrCode!);
+      setInstanceName(createdResult.instanceName || null);
+      setInstanceId(createdResult.instanceId || null);
+      toast.success("Solicitação de conexão enviada!");
+      setWaitingForOpen(false); // cada ciclo inicia fresh
     } catch (error: any) {
       toast.error("Falha ao criar a instância do WhatsApp");
     } finally {
