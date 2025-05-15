@@ -2,6 +2,7 @@
 import { useRef, useState } from "react";
 import { toast } from "@/hooks/use-toast";
 
+// ATENÇÃO: Aqui está a URL e header corretos:
 const API_URL = "https://ticlin-evolution-api.eirfpl.easypanel.host/instance/connectionState/";
 const API_KEY = "JTZZDXMpymy7RETTvXdA9VxKdD0Mdj7t";
 
@@ -12,17 +13,22 @@ interface UseQrConnectionCheckParams {
   onNotExist: (msg: string) => void;
 }
 
+/**
+ * Checa status de conexão somente quando chamado manualmente pelo botão "Já conectei"
+ * Nunca deixa pooling/efeito extra existir. Não faz requisição automaticamente, só via clique.
+ */
 export function useQrConnectionCheck({ instanceName, onConnected, onClosed, onNotExist }: UseQrConnectionCheckParams) {
   const [isChecking, setIsChecking] = useState(false);
   const hasRequestedRef = useRef(false);
 
   const checkConnection = async () => {
-    if (!instanceName || isChecking || hasRequestedRef.current) return;
+    if (!instanceName || isChecking || hasRequestedRef.current) return; // só UMA por clique
     setIsChecking(true);
     hasRequestedRef.current = true;
-    console.log('[useQrConnectionCheck] checkConnection: requisição única disparada');
+    console.log('[useQrConnectionCheck] checkConnection: requisição disparada manualmente');
 
     try {
+      // SÓ faz chamada para connectionState, nunca /info/
       const response = await fetch(`${API_URL}${encodeURIComponent(instanceName)}`, {
         method: "GET",
         headers: {
@@ -36,8 +42,11 @@ export function useQrConnectionCheck({ instanceName, onConnected, onClosed, onNo
       } catch {
         throw new Error("Resposta inesperada do servidor");
       }
+
+      // Resposta esperada: { instance: { instanceName, state } }
       const state = json?.instance?.state ?? json?.state;
 
+      // Falha: instância não existe
       if (
         (json?.status === 404 || json?.status === "404") &&
         json?.response?.message &&
@@ -50,7 +59,8 @@ export function useQrConnectionCheck({ instanceName, onConnected, onClosed, onNo
         return;
       }
 
-      if (state === "open") {
+      // Status de conexão: se for "open" OU "connecting", considerar conectado
+      if (state === "open" || state === "connecting") {
         toast({ title: "Instância conectada!", description: "Seu WhatsApp foi conectado com sucesso." });
         onConnected();
         setIsChecking(false);
@@ -58,6 +68,7 @@ export function useQrConnectionCheck({ instanceName, onConnected, onClosed, onNo
         return;
       }
 
+      // Status "closed" explicitamente desconectado
       if (state === "closed") {
         toast({
           title: "Instância removida.",
@@ -70,6 +81,7 @@ export function useQrConnectionCheck({ instanceName, onConnected, onClosed, onNo
         return;
       }
 
+      // Caso qualquer outro estado: exibir alerta de aguardo
       toast({
         title: "Ainda aguardando conexão.",
         description: "Tente novamente em instantes, ou leia o QR Code novamente se necessário.",
