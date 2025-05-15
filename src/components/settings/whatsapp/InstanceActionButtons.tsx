@@ -1,8 +1,9 @@
 
 import { Button } from "@/components/ui/button";
-import { QrCode, RefreshCw, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
+// Adicionada a prop onlyDeleteMode
 interface InstanceActionButtonsProps {
   connected: boolean;
   hasQrCode: boolean;
@@ -11,6 +12,7 @@ interface InstanceActionButtonsProps {
   onRefreshQrCode: () => Promise<void>;
   onConnect: () => Promise<void>;
   onDelete: () => Promise<void>;
+  onlyDeleteMode?: boolean;
 }
 
 const InstanceActionButtons = ({
@@ -20,31 +22,41 @@ const InstanceActionButtons = ({
   actionInProgress,
   onRefreshQrCode,
   onConnect,
-  onDelete
+  onDelete,
+  onlyDeleteMode = false
 }: InstanceActionButtonsProps) => {
+  if (onlyDeleteMode) {
+    // Modo restrito: mostra apenas o botão Deletar
+    return (
+      <div className="flex gap-2">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="destructive"
+                className="flex-1"
+                onClick={onDelete}
+                disabled={isLoading || actionInProgress}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                {isLoading || actionInProgress ? "Removendo..." : "Deletar"}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Remover permanentemente esta instância da sua conta</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    );
+  }
+
   return (
     <div className="flex gap-2">
       {!connected ? (
         /* Disconnected state buttons */
         <>
-          <Button 
-            variant="whatsapp" 
-            className="flex-1"
-            onClick={hasQrCode ? onRefreshQrCode : onConnect}
-            disabled={isLoading || actionInProgress}
-          >
-            {hasQrCode ? (
-              <>
-                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading || actionInProgress ? "animate-spin" : ""}`} />
-                {isLoading || actionInProgress ? "Atualizando..." : "Atualizar QR Code"}
-              </>
-            ) : (
-              <>
-                <QrCode className="w-4 h-4 mr-2" />
-                {isLoading || actionInProgress ? "Conectando..." : "Conectar WhatsApp"}
-              </>
-            )}
-          </Button>
+          {/* Botões removidos ("Atualizar QR Code"/"Conectar WhatsApp") */}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>

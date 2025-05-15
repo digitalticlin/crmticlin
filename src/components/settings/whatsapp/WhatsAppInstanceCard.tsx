@@ -136,6 +136,9 @@ const WhatsAppInstanceCard = ({
   const statusConnected = instance.connected || isAutoConnected;
   const showQr = (showQrCode || (!statusConnected && instance.qrCodeUrl)) && !statusConnected;
 
+  // NOVO: Modo Only Delete — aguardando conexão após criação de instância, não conectado, mas tem qrCodeUrl
+  const onlyDeleteMode = showQr && !statusConnected;
+
   // HOOK DE POLLING MODULARIZADO
   const { isConnectingNow, startImmediateConnectionPolling } = useConnectionPolling(instance, showQrCode);
 
@@ -195,7 +198,9 @@ const WhatsAppInstanceCard = ({
               isStatusLoading={isLoading}
             />
             {statusConnected && <DeviceInfoSection deviceInfo={instance.deviceInfo} />}
-            {showQr && instance.qrCodeUrl && !statusConnected && (
+
+            {/* Renderização condicional — Se não está onlyDeleteMode, então pode exibir QRCode e ações */}
+            {showQr && !onlyDeleteMode && instance.qrCodeUrl && !statusConnected && (
               <>
                 <QrCodeSection qrCodeUrl={instance.qrCodeUrl} />
                 <Button variant="outline" className="w-full mt-2" onClick={handleConnect}>
@@ -203,6 +208,8 @@ const WhatsAppInstanceCard = ({
                 </Button>
               </>
             )}
+            {/* Se estiver aguardando conexão ("apenas deletar"), NÃO mostra QRCode nem botão "Já conectei" */}
+
             {shouldShowConnectingSpinner && <ConnectionSpinner />}
             <InstanceActionButtons
               connected={statusConnected}
@@ -212,6 +219,7 @@ const WhatsAppInstanceCard = ({
               onRefreshQrCode={handleRefreshQrCode}
               onConnect={handleConnect}
               onDelete={handleDelete}
+              onlyDeleteMode={onlyDeleteMode}
             />
           </div>
         </CardContent>
@@ -226,3 +234,4 @@ const WhatsAppInstanceCard = ({
 };
 
 export default WhatsAppInstanceCard;
+
