@@ -1,11 +1,10 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription } from "@/components/ui/card";
 import { X, Check } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { WhatsAppSupportErrorModal } from "./WhatsAppSupportErrorModal";
-import { useQrCodeConnection } from "./useQrCodeConnection";
 import { QrCodeDisplay } from "./QrCodeDisplay";
 
 interface QrCodeActionCardProps {
@@ -17,6 +16,9 @@ interface QrCodeActionCardProps {
   instanceName?: string | null;
   onCloseWithRefresh?: () => void; // Ao fechar, dispara atualização (refetch)
 }
+
+const API_URL = "https://ticlin-evolution-api.eirfpl.easypanel.host/instance/connectionState/";
+const API_KEY = "JTZZDXMpymy7RETTvXdA9VxKdD0Mdj7t";
 
 const QrCodeActionCardMain = ({
   qrCodeUrl,
@@ -30,6 +32,10 @@ const QrCodeActionCardMain = ({
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [supportDetail, setSupportDetail] = useState<string | undefined>(undefined);
   const [qrUrl] = useState(qrCodeUrl);
+
+  // Novo: Impede chamadas duplicadas da função checkConnection
+  const [isChecking, setIsChecking] = useState(false);
+  const hasRequestedRef = useRef(false);
 
   // Para garantir atualização/refetch ao fechar
   const handleCloseAll = () => {
@@ -94,26 +100,85 @@ const QrCodeActionCardMain = ({
     }
   };
 
-  // Hook de conexão usando o fluxo correto para "Já conectei"
-  const {
-    isChecking,
-    checkConnection
-  } = useQrCodeConnection({
-    instanceName,
-    onConnected: () => {
-      onScanned();
-      if (onCloseWithRefresh) onCloseWithRefresh();
-    },
-    onFail: (msg) => {},
-    onClosed: () => {
-      if (onCloseWithRefresh) onCloseWithRefresh();
-    },
-    onNotExist: (detail) => {
-      setSupportDetail(detail);
-      setShowSupportModal(true);
-    },
-    onFinal: () => {}
-  });
+  // Função para verificar estado do QRCode (só permite UMA requisição por clique)
+  const checkConnection = async () => {
+    if (!instanceName || isChecking || hasRequestedRef.current) return;
+    setIsChecking(true);
+    hasRequestedRef.current = true;
+
+    try {
+      const response = await fetch(`${API_URL}${encodeURIComponent(instanceName)}`, {
+        method: "GET",
+        headers: {
+          "apikey": API_KEY,
+          "Content-Type": "application/json"
+        }
+      });
+      let json;
+      try {
+        json = await response.json();
+      } catch {
+        throw new Error("Resposta inesperada do servidor");
+      }
+      const state = json?.instance?.state ?? json?.state;
+
+      // Instância não existe
+      if (
+        (json?.status === 404 || json?.status === "404") &&
+        json?.response?.message &&
+        Array.isArray(json.response.message) &&
+        json.response.message.join(" ").toLowerCase().includes("instance does not exist")
+      ) {
+        setSupportDetail(json.response.message?.join(" ") || "Instância não encontrada");
+        setShowSupportModal(true);
+        setIsChecking(false);
+        hasRequestedRef.current = false;
+        return;
+      }
+
+      if (state === "open") {
+        toast({
+          title: "Instância conectada!",
+          description: "Seu WhatsApp foi conectado com sucesso.",
+        });
+        onScanned();
+        if (onCloseWithRefresh) onCloseWithRefresh();
+        setIsChecking(false);
+        hasRequestedRef.current = false;
+        return;
+      }
+
+      if (state === "closed") {
+        toast({
+          title: "Instância removida.",
+          description: "Esse número foi excluído e deve ser reconectado.",
+          variant: "destructive",
+        });
+        if (onCloseWithRefresh) onCloseWithRefresh();
+        setIsChecking(false);
+        hasRequestedRef.current = false;
+        return;
+      }
+
+      // Caso esteja "connecting", apenas avise
+      toast({
+        title: "Ainda aguardando conexão.",
+        description: "Tente novamente em instantes, ou leia o QR Code novamente se necessário.",
+        variant: "default",
+      });
+      setIsChecking(false);
+      hasRequestedRef.current = false;
+      return;
+    } catch (error: any) {
+      toast({
+        title: "Erro ao verificar instância",
+        description: error?.message || "Problema inesperado ao consultar status.",
+        variant: "destructive"
+      });
+      setIsChecking(false);
+      hasRequestedRef.current = false;
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 animate-fade-in">
@@ -189,3 +254,4 @@ const QrCodeActionCardMain = ({
 };
 
 export default QrCodeActionCardMain;
+
