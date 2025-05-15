@@ -2,55 +2,8 @@
 // deno-lint-ignore-file no-explicit-any
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { extractTextMessage } from "../utils/helpers.ts";
-
-interface LeadData {
-  company_id: string;
-  whatsapp_number_id: string;
-  name: string;
-  phone: string;
-  kanban_stage_id: string | null;
-  last_message: string | null;
-  last_message_time: string;
-  unread_count: number;
-}
-
-interface ExistingLead {
-  id: string;
-  unread_count?: number;
-  // Add other properties if needed
-}
-
-async function findOrCreateKanbanStageId(supabase: SupabaseClient, companyId: string): Promise<string | null> {
-  // Buscar a etapa de entrada de leads no kanban
-  const { data: entryStage, error: stageError } = await supabase
-    .from('kanban_stages')
-    .select('id')
-    .eq('company_id', companyId)
-    .eq('is_fixed', true)
-    .ilike('title', '%entrada%leads%')
-    .maybeSingle(); // Use maybeSingle to handle no rows gracefully
-
-  if (stageError && !entryStage) { 
-    console.log("Etapa de entrada não encontrada pelo nome, buscando o primeiro estágio...", stageError);
-    const { data: firstStage, error: firstStageError } = await supabase
-      .from('kanban_stages')
-      .select('id')
-      .eq('company_id', companyId)
-      .order('order_position', { ascending: true })
-      .limit(1)
-      .maybeSingle();
-      
-    if (!firstStageError && firstStage) {
-      return firstStage.id;
-    } else {
-      console.error("Não foi possível encontrar nenhum estágio de kanban:", firstStageError || "Nenhum estágio encontrado.");
-      return null;
-    }
-  } else if (entryStage) {
-    return entryStage.id;
-  }
-  return null;
-}
+import { LeadData, ExistingLead } from "./leadTypes.ts";
+import { findOrCreateKanbanStageId } from "./kanbanStageService.ts";
 
 export async function processLead(
   supabase: SupabaseClient,
@@ -65,7 +18,7 @@ export async function processLead(
       .select('id, unread_count')
       .eq('phone', phone)
       .eq('company_id', companyId)
-      .maybeSingle();
+      .maybeSingle() as { data: ExistingLead | null, error: any };
 
     if (leadError) {
       console.error("Erro ao verificar lead:", leadError);
