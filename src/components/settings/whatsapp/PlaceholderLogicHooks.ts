@@ -56,7 +56,13 @@ export function usePlaceholderLogic({ userEmail, isSuperAdmin = false }) {
     }
     try {
       setIsCreating(true);
-      const result = await createWhatsAppInstance(username);
+
+      // Buscar o próximo nome incremental disponível usando utilitário já existente.
+      const nextAvailableName = await getNextAvailableInstanceName(username);
+
+      // Usar sempre o nome incremental disponível na criação (conforme solicitado)
+      const result = await createWhatsAppInstance(nextAvailableName);
+
       if (!result.success) {
         if (
           result.error &&
