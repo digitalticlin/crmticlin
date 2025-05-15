@@ -26,7 +26,7 @@ const QrCodeActionCard = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [qrUrl, setQrUrl] = useState(qrCodeUrl);
 
-  // Handler para cancelar e deletar a instância na Evolution API
+  // Novo handler para cancelar e deletar a instância na Evolution API
   const handleDeleteInstance = async () => {
     if (!instanceName) {
       onCancel();
@@ -34,14 +34,10 @@ const QrCodeActionCard = ({
     }
     setIsDeleting(true);
     try {
-      const response = await fetch(`https://ticlin-evolution-api.eirfpl.easypanel.host/instance/delete/${instanceName}`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-          "API-KEY": "JTZZDXMpymy7RETTvXdA9VxKdD0Mdj7t",
-        },
-      });
-      if (!response.ok) throw new Error("Não foi possível remover a instância Evolution");
+      // Usar evolutionApiService conforme padrão do sistema
+      const { evolutionApiService } = await import("@/services/evolution-api");
+      await evolutionApiService.deleteInstance(instanceName);
+
       toast({
         title: "Instância cancelada com sucesso!",
         variant: "default",
