@@ -1,25 +1,29 @@
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Trash2 } from "lucide-react"
-import { toast } from "sonner"
+
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Trash2, MessageSquare, Phone } from "lucide-react";
+import { toast } from "sonner";
 
 interface WhatsAppInstanceDynamicCardProps {
   instance: {
-    id: string
-    instanceName: string
-    phoneNumber?: string
-    status: "connected" | "connecting" | "disconnected" // status direto do Supabase
-  }
-  onDeleteSuccess: (id: string) => void
+    id: string;
+    instanceName: string;
+    phoneNumber?: string;
+    status: "connected" | "connecting" | "disconnected";
+  };
+  onDeleteSuccess: (id: string) => void;
 }
 
-const EVOLUTION_URL = "https://ticlin-evolution-api.eirfpl.easypanel.host"
-const API_KEY = "JTZZDXMpymy7RETTvXdA9VxKdD0Mdj7t"
+const EVOLUTION_URL = "https://ticlin-evolution-api.eirfpl.easypanel.host";
+const API_KEY = "JTZZDXMpymy7RETTvXdA9VxKdD0Mdj7t";
 
-export default function WhatsAppInstanceDynamicCard({ instance, onDeleteSuccess }: WhatsAppInstanceDynamicCardProps) {
-  const { id, instanceName, phoneNumber, status } = instance
-  const isConnected = status === "connected" || status === "connecting"
-  const isDisconnected = status === "disconnected"
+export default function WhatsAppInstanceDynamicCard({
+  instance,
+  onDeleteSuccess,
+}: WhatsAppInstanceDynamicCardProps) {
+  const { id, instanceName, phoneNumber, status } = instance;
+  const isConnected = status === "connected" || status === "connecting";
+  const isDisconnected = status === "disconnected";
 
   // Botão de deletar
   const handleDelete = async () => {
@@ -29,81 +33,82 @@ export default function WhatsAppInstanceDynamicCard({ instance, onDeleteSuccess 
         {
           method: "DELETE",
           headers: {
-            "apikey": API_KEY
-          }
+            apikey: API_KEY,
+          },
         }
-      )
-      const data = await resp.json()
+      );
+      const data = await resp.json();
       if (!resp.ok || data?.status !== "SUCCESS") {
-        throw new Error(data?.response?.message || "Erro ao deletar instância na Evolution API")
+        throw new Error(
+          data?.response?.message ||
+            "Erro ao deletar instância na Evolution API"
+        );
       }
-      toast.success("Instância removida com sucesso!")
-      onDeleteSuccess(id)
+      toast.success("Instância removida com sucesso!");
+      onDeleteSuccess(id);
     } catch (e: any) {
-      toast.error(e?.message || "Erro ao deletar instância")
+      toast.error(e?.message || "Erro ao deletar instância");
     }
-  }
+  };
 
   return (
-    <Card className="overflow-hidden glass-card border-0 mb-6 bg-white/10 dark:bg-black/20 backdrop-blur-lg shadow-glass relative transition-shadow duration-300 animate-fade-in">
-      <div className="absolute inset-0 pointer-events-none z-0 rounded-2xl bg-gradient-to-br from-white/30 via-transparent to-white/10 dark:from-white/10 dark:to-black/10" />
-      <CardContent className="p-0 relative z-10">
-        <div className="p-6 flex flex-col items-center">
-          <div className="flex justify-between w-full items-center mb-4">
-            <div>
-              <h4 className="font-semibold text-lg text-white/90 dark:text-white">
-                WhatsApp Instance
-              </h4>
-              <p className="text-sm text-white/60 dark:text-white/60">
-                Nome: <span className="font-mono text-xs">{instanceName}</span>
-              </p>
+    <div className="flex justify-center items-center">
+      <Card
+        className={`
+          w-full max-w-sm mx-auto rounded-2xl border border-gray-200 dark:border-white/10
+          bg-white/70 dark:bg-[#23272e]/60 shadow-md
+          backdrop-blur-[10px]
+          p-0
+          flex flex-col items-center
+          transition-all duration-200
+          min-h-[260px]
+        `}
+        style={{ boxShadow: "0 4px 24px 0 rgba(20,20,40,0.05)" }}
+      >
+        <CardContent className="w-full flex flex-col items-center justify-center px-8 py-7 gap-5">
+          <div className="flex flex-col items-center gap-2 w-full">
+            <MessageSquare className="w-10 h-10 text-ticlin mb-2" />
+            <h4 className="font-bold text-center text-lg text-gray-900 dark:text-white mb-0">
+              {isConnected ? "WhatsApp Conectado" : "WhatsApp Desconectado"}
+            </h4>
+            <div className="flex items-center text-gray-600 dark:text-gray-300 text-sm gap-1">
+              <span className="font-medium">
+                Nome:
+              </span>
+              <span className="font-mono text-xs truncate max-w-[140px]">{instanceName}</span>
             </div>
-            <div>
-              {isConnected ? (
-                <span className="px-3 py-1 bg-green-100/80 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full text-xs font-bold shadow-sm border border-white/30">
-                  Conectado
-                </span>
-              ) : (
-                <span className="px-3 py-1 bg-red-100/60 dark:bg-red-900/10 text-red-700 dark:text-red-400 rounded-full text-xs font-bold border border-white/30 shadow-sm">
-                  Desconectado
-                </span>
-              )}
-            </div>
+            {isConnected && phoneNumber && (
+              <div className="flex items-center gap-1 mt-1 text-green-700 dark:text-green-400 text-sm">
+                <Phone className="w-4 h-4" />
+                <span className="font-bold">{phoneNumber}</span>
+              </div>
+            )}
           </div>
-          {isConnected && (
-            <div className="w-full mb-3">
-              <div className="flex flex-col items-center justify-center rounded-xl border border-gray-100/40 dark:border-gray-400/10 bg-white/20 dark:bg-black/10 p-4 shadow-inner backdrop-blur-md">
-                <span className="font-semibold text-gray-800 dark:text-white/90 mb-1">
-                  <span className="text-ticlin mr-1">✓</span> Instância conectada ao WhatsApp
-                </span>
-                <div className="text-xs text-white/70 dark:text-white/50">
-                  <span className="block"><span className="font-medium">Nome:</span> {instanceName}</span>
-                  {phoneNumber && (
-                    <span className="block mt-1">
-                      <span className="font-medium">Telefone:</span> {phoneNumber}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Status visual minimalista */}
+          <div className="w-full flex justify-center">
+            {isConnected ? (
+              <span className="px-4 py-1 rounded-full bg-green-100/70 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold tracking-wide shadow-none border-0">
+                Conectado ao WhatsApp
+              </span>
+            ) : (
+              <span className="px-4 py-1 rounded-full bg-red-100/60 dark:bg-red-900/10 text-red-700 dark:text-red-400 text-xs font-semibold tracking-wide border-0">
+                Desconectado
+              </span>
+            )}
+          </div>
+          {/* Botão de deletar só se desconectado */}
           {isDisconnected && (
-            <>
-              <div className="w-full py-4 text-center mb-2 rounded-xl bg-red-50/40 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30">
-                <span className="text-red-700 dark:text-red-400 font-semibold text-base">Dispositivo desconectado</span>
-              </div>
-              <Button
-                variant="destructive"
-                className="w-full mt-1 shadow-lg shadow-red-200/30 dark:shadow-red-900/10"
-                onClick={handleDelete}
-              >
-                <Trash2 className="mr-2 w-4 h-4" />
-                Deletar Instância
-              </Button>
-            </>
+            <Button
+              variant="destructive"
+              className="mt-4 w-full font-bold"
+              onClick={handleDelete}
+            >
+              <Trash2 className="mr-2 w-4 h-4" />
+              Deletar Instância
+            </Button>
           )}
-        </div>
-      </CardContent>
-    </Card>
-  )
+        </CardContent>
+      </Card>
+    </div>
+  );
 }
