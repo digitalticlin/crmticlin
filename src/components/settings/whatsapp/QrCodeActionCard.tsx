@@ -54,10 +54,13 @@ const QrCodeActionCard = ({
     }
   };
 
-  // Handler para "Já conectei": checa status, se "open", fecha card
+  // Handler para "Já conectei": fecha modal imediatamente e dispara checagem apenas para feedback
   const handleCheckConnected = async () => {
     if (!instanceName) return;
     setIsChecking(true);
+    // FECHAR O MODAL IMEDIATAMENTE!
+    onScanned();
+
     try {
       const res = await fetch(`https://ticlin-evolution-api.eirfpl.easypanel.host/instance/connectionState/${instanceName}`, {
         headers: {
@@ -71,8 +74,8 @@ const QrCodeActionCard = ({
           title: "Instância conectada!",
           description: "Seu WhatsApp foi conectado com sucesso.",
         });
-        onScanned();
       } else {
+        // Exibe toast, mas não bloqueia fechamento do modal
         toast({
           title: "Ainda não conectado!",
           description: "Por favor, conclua a conexão no celular ou aguarde.",
