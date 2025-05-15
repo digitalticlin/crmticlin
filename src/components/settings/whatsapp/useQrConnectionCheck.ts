@@ -15,27 +15,35 @@ interface UseQrConnectionCheckParams {
 
 /**
  * Checa status de conexão somente quando chamado manualmente pelo botão "Já conectei"
- * Nunca deixa pooling/efeito extra existir. Não faz requisição automaticamente, só via clique.
+ * Nunca deixa pooling/efeito extra existir. Não faz requisição automaticamente, só via clique ou comando direto.
  */
 export function useQrConnectionCheck({ instanceName, onConnected, onClosed, onNotExist }: UseQrConnectionCheckParams) {
   const [isChecking, setIsChecking] = useState(false);
   const hasRequestedRef = useRef(false);
+  const abortRef = useRef<AbortController | null>(null);
 
+  // Faz só UMA requisição ao clicar, e permite cancelar próximas se desmontar
   const checkConnection = async () => {
     if (!instanceName || isChecking || hasRequestedRef.current) return; // só UMA por clique
     setIsChecking(true);
     hasRequestedRef.current = true;
-    console.log('[useQrConnectionCheck] checkConnection: requisição disparada manualmente');
+
+    // Cria AbortController para possível cancelamento
+    const abortController = new AbortController();
+    abortRef.current = abortController;
 
     try {
-      // SÓ faz chamada para connectionState, nunca /info/
-      const response = await fetch(`${API_URL}${encodeURIComponent(instanceName)}`, {
-        method: "GET",
-        headers: {
-          "apikey": API_KEY,
-          "Content-Type": "application/json"
+      const response = await fetch(
+        `${API_URL}${encodeURIComponent(instanceName)}`,
+        {
+          method: "GET",
+          headers: {
+            "apikey": API_KEY,
+            "Content-Type": "application/json"
+          },
+          signal: abortController.signal
         }
-      });
+      );
       let json: any = null;
       try {
         json = await response.json();
@@ -43,10 +51,9 @@ export function useQrConnectionCheck({ instanceName, onConnected, onClosed, onNo
         throw new Error("Resposta inesperada do servidor");
       }
 
-      // Resposta esperada: { instance: { instanceName, state } }
       const state = json?.instance?.state ?? json?.state;
 
-      // Falha: instância não existe
+      // Instância não existe
       if (
         (json?.status === 404 || json?.status === "404") &&
         json?.response?.message &&
@@ -59,7 +66,7 @@ export function useQrConnectionCheck({ instanceName, onConnected, onClosed, onNo
         return;
       }
 
-      // Status de conexão: se for "open" OU "connecting", considerar conectado
+      // Conectado (open/connecting): dispara callback IMEDIATO de sucesso
       if (state === "open" || state === "connecting") {
         toast({ title: "Instância conectada!", description: "Seu WhatsApp foi conectado com sucesso." });
         onConnected();
@@ -68,7 +75,7 @@ export function useQrConnectionCheck({ instanceName, onConnected, onClosed, onNo
         return;
       }
 
-      // Status "closed" explicitamente desconectado
+      // Status "closed"
       if (state === "closed") {
         toast({
           title: "Instância removida.",
@@ -81,7 +88,7 @@ export function useQrConnectionCheck({ instanceName, onConnected, onClosed, onNo
         return;
       }
 
-      // Caso qualquer outro estado: exibir alerta de aguardo
+      // Outro estado: alerta de aguardo
       toast({
         title: "Ainda aguardando conexão.",
         description: "Tente novamente em instantes, ou leia o QR Code novamente se necessário.",
@@ -89,8 +96,13 @@ export function useQrConnectionCheck({ instanceName, onConnected, onClosed, onNo
       });
       setIsChecking(false);
       hasRequestedRef.current = false;
-      return;
     } catch (error: any) {
+      if (error?.name === "AbortError") {
+        // Cancelamento: limpa estado, não mostra erro
+        setIsChecking(false);
+        hasRequestedRef.current = false;
+        return;
+      }
       toast({
         title: "Erro ao verificar instância",
         description: error?.message || "Problema inesperado ao consultar status.",
@@ -101,5 +113,13 @@ export function useQrConnectionCheck({ instanceName, onConnected, onClosed, onNo
     }
   };
 
-  return { isChecking, checkConnection };
+  // Limpa estado e aborta requisições pendentes ao desmontar hook ou fechar modal
+  const cleanup = () => {
+    abortRef.current?.abort();
+    setIsChecking(false);
+    hasRequestedRef.current = false;
+  };
+
+  return { isChecking, checkConnection, cleanup };
 }
+

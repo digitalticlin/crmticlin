@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription } from "@/components/ui/card";
 import { X, Check } from "lucide-react";
@@ -25,13 +25,28 @@ const QrCodeActionCardMain = ({
   onCancel,
   instanceName,
 }: QrCodeActionCardProps) => {
+  // Estados locais
   const [isDeleting, setIsDeleting] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [supportDetail, setSupportDetail] = useState<string | undefined>(undefined);
   const [qrUrl] = useState(qrCodeUrl);
+  const [connectedCardVisible, setConnectedCardVisible] = useState(false);
+  const [instanceInfo, setInstanceInfo] = useState<{ name: string; number?: string } | null>(null);
+
+  // Para resgatar nome e número do QR, pode ser extendido se necessário
+  useEffect(() => {
+    setInstanceInfo({
+      name: instanceName || "Instância WhatsApp",
+      // O número pode ser buscado por props se necessário
+    });
+  }, [instanceName]);
+
+  // Referência para acesso ao cleanup de polling/efeitos ao fechar modal
+  const cleanupOnCloseRef = useRef<() => void>(() => {});
 
   const handleCloseAll = () => {
-    console.log('[QrCodeActionCardMain] handleCloseAll chamado - só UI, sem polling/refresh de status!');
+    // Cancela polling e efeitos se ativo
+    cleanupOnCloseRef.current();
     if (typeof onCancel === "function") onCancel();
   };
 
@@ -91,10 +106,15 @@ const QrCodeActionCardMain = ({
     }
   };
 
-  // Isolado: checagem só manual via botão
-  const { isChecking, checkConnection } = useQrConnectionCheck({
+  // --- NOVO: Estado do hook isolado, sem pooling, dispara só 1 vez ---
+  const [hasConnected, setHasConnected] = useState(false);
+  const { isChecking, checkConnection, cleanup } = useQrConnectionCheck({
     instanceName,
-    onConnected: onScanned,
+    onConnected: () => {
+      setHasConnected(true);
+      setConnectedCardVisible(true);
+      onScanned();
+    },
     onClosed: () => {},
     onNotExist: (msg) => {
       setSupportDetail(msg);
@@ -102,7 +122,85 @@ const QrCodeActionCardMain = ({
     },
   });
 
-  // Removido: spinner, só ícone fixo e logs de ação clara
+  // Limpa polling/checks ao fechar modal
+  useEffect(() => {
+    cleanupOnCloseRef.current = cleanup;
+    return () => cleanup();
+  }, [cleanup]);
+
+  // --- Renderização: QR até conectar, depois card de conectado ---
+  if (hasConnected && connectedCardVisible) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 animate-fade-in">
+        <Card className="w-full max-w-md glass-morphism p-8 rounded-2xl shadow-2xl border-none transition-all">
+          <CardHeader className="flex flex-col items-center text-center pb-2 border-none bg-transparent">
+            <CardTitle className="text-lg font-semibold mb-0 text-gradient">
+              Dispositivo conectado!
+            </CardTitle>
+            <CardDescription className="mt-2 mb-0 text-xs text-muted-foreground max-w-xs">
+              Seu WhatsApp foi conectado com sucesso.<br />
+              Agora você pode usá-lo normalmente.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center gap-2 px-0 pb-2 pt-1">
+            <div className="rounded-xl border-2 border-green-400 bg-white py-3 px-6 mb-2 w-full flex flex-col items-center">
+              <span className="font-semibold text-green-800">
+                {instanceInfo?.name}
+              </span>
+              {instanceInfo?.number && (
+                <span className="text-xs text-muted-foreground">{instanceInfo.number}</span>
+              )}
+            </div>
+            <div className="text-xs text-green-600 text-center pb-1 pt-1">
+              Status: <strong>Conectado</strong>
+            </div>
+          </CardContent>
+          <CardFooter className="flex justify-center pt-0 px-0 border-none bg-transparent">
+            <Button
+              variant="destructive"
+              size="sm"
+              className="w-full"
+              onClick={handleDeleteInstance}
+              disabled={isDeleting}
+            >
+              {isDeleting ? <span className="animate-spin"><X className="w-4 h-4 mr-1" /></span> : <X className="w-4 h-4 mr-1" />}
+              {isDeleting ? "Removendo..." : "Remover"}
+            </Button>
+          </CardFooter>
+        </Card>
+        {/* SUPORTE: Modal para instance not exist */}
+        <WhatsAppSupportErrorModal
+          open={showSupportModal}
+          errorDetail={supportDetail}
+          onClose={() => {
+            setShowSupportModal(false);
+            console.log('[QrCodeActionCardMain] Suporte: modal fechado');
+          }}
+        />
+        <style>{`
+          .glass-morphism {
+            background: rgba(255,255,255,0.17);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+            backdrop-filter: blur(13px);
+            -webkit-backdrop-filter: blur(13px);
+            border-radius: 24px;
+            border: 1px solid rgba(255,255,255, 0.18);
+            transition: all 0.2s;
+          }
+          .text-gradient {
+            background: linear-gradient(90deg, #19ffe5 8%, #a685ff 44%, #7e30e1 86%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-fill-color: transparent;
+          }
+        `}
+        </style>
+      </div>
+    );
+  }
+
+  // --- Renderiza QR Code e botão "Já conectei" ---
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 animate-fade-in">
       <Card className="w-full max-w-lg glass-morphism p-8 rounded-2xl shadow-2xl border-none transition-all">
@@ -128,13 +226,12 @@ const QrCodeActionCardMain = ({
               size="sm"
               className="flex-1 min-w-0"
               onClick={() => {
-                console.log('[QrCodeActionCardMain][DEBUG] Botão "Já conectei" clicado, isChecking:', isChecking);
                 checkConnection();
               }}
               disabled={isLoading || isDeleting || isChecking}
             >
               <Check className="w-4 h-4 mr-1" />
-              Já conectei
+              {isChecking ? "Verificando..." : "Já conectei"}
             </Button>
             <Button
               variant="destructive"
@@ -147,6 +244,12 @@ const QrCodeActionCardMain = ({
               {isDeleting ? "Cancelando..." : "Cancelar"}
             </Button>
           </div>
+          {/* Spinner explícito durante verificação manual */}
+          {isChecking && (
+            <div className="flex flex-col items-center justify-center gap-2 py-2 animate-fade-in">
+              <span className="text-sm text-muted-foreground">Verificando conexão...</span>
+            </div>
+          )}
         </CardFooter>
       </Card>
       {/* SUPORTE: Modal para instance not exist */}
@@ -182,3 +285,4 @@ const QrCodeActionCardMain = ({
 };
 
 export default QrCodeActionCardMain;
+
