@@ -1,22 +1,17 @@
 
+// deno-lint-ignore-file no-explicit-any
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "./utils/helpers.ts";
+import { processLead } from "./services/leadService.ts";
+import { saveMessage } from "./services/messageService.ts";
+import { forwardToN8N } from "./services/n8nService.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-// Configuração do cliente Supabase para edge function
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "https://kigyebrhfoljnydfipcr.supabase.co";
 const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpZ3llYnJoZm9sam55ZGZpcGNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMDU0OTUsImV4cCI6MjA2MjY4MTQ5NX0.348qSsRPai26TFU87MDv0yE4i_pQmLYMQW9d7n5AN-A";
 
-// Coluna fixa para novos leads
-const ENTRADA_LEADS_ID = "column-new-lead"; // This seems unused, consider removing if not needed for kanban stage
-
-serve(async (req) => {
-  // CORS preflight
+serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -25,249 +20,103 @@ serve(async (req) => {
     return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey);
 
   try {
     const payload = await req.json();
-    console.log("Webhook Evolution recebido:", JSON.stringify(payload));
+    console.log("Webhook Evolution recebido:", JSON.stringify(payload, null, 2).substring(0, 500) + "..."); // Log resumido
     
-    // Verificar se é uma mensagem recebida e se tem o formato esperado
     if (payload.event === "messages.upsert" && payload.data && payload.data.key) {
-      // Extrair informações da mensagem
       const messageData = payload.data;
       const remoteJid = messageData.key.remoteJid;
       const fromMe = messageData.key.fromMe;
-      // const messageType = messageData.messageType || "text"; // messageType is used in extractTextMessage
       
-      // Se a mensagem for de um grupo ou não for recebida (fromMe=true), ignoramos
       if (remoteJid.includes('@g.us') || fromMe) {
         return new Response(JSON.stringify({ success: true, info: "Ignorado: grupo ou mensagem enviada" }), 
           { headers: corsHeaders });
       }
 
-      // Extrair o número de telefone do remoteJid
       const phoneMatch = remoteJid.match(/(\d+)@s\.whatsapp\.net/);
       if (!phoneMatch) {
+        console.error("Formato de JID inválido:", remoteJid);
         return new Response(JSON.stringify({ success: false, error: "Formato de JID inválido" }), 
-          { headers: corsHeaders });
+          { headers: corsHeaders, status: 400 });
       }
       
       const phone = phoneMatch[1];
       const instanceName = payload.instance;
       
       if (!instanceName) {
+        console.error("Nome da instância ausente no payload");
         return new Response(JSON.stringify({ success: false, error: "Nome da instância ausente" }), 
-          { headers: corsHeaders });
+          { headers: corsHeaders, status: 400 });
       }
       
-      // Encontrar o ID da instância WhatsApp e a URL do webhook N8N
       const { data: whatsappNumber, error: numberError } = await supabase
         .from('whatsapp_numbers')
-        .select('id, company_id, n8n_webhook_url') // Adicionado n8n_webhook_url
+        .select('id, company_id, n8n_webhook_url')
         .eq('evolution_instance_name', instanceName)
         .single();
         
-      if (numberError) {
-        console.error("Erro ao buscar instância WhatsApp:", numberError);
-        return new Response(JSON.stringify({ success: false, error: "Instância não encontrada" }), 
-          { headers: corsHeaders });
+      if (numberError || !whatsappNumber) {
+        console.error("Erro ao buscar instância WhatsApp ou instância não encontrada:", numberError, "Instância:", instanceName);
+        return new Response(JSON.stringify({ success: false, error: "Instância WhatsApp não encontrada ou erro na busca." }), 
+          { headers: corsHeaders, status: 404 });
       }
       
       const whatsappNumberId = whatsappNumber.id;
       const companyId = whatsappNumber.company_id;
-      const n8nWebhookUrl = whatsappNumber.n8n_webhook_url; // Captura a URL do webhook N8N
+      const n8nWebhookUrl = whatsappNumber.n8n_webhook_url;
       
-      // Verificar se já existe um lead para este número
-      const { data: existingLead, error: leadError } = await supabase
-        .from('leads')
-        .select('*')
-        .eq('phone', phone)
-        .eq('company_id', companyId)
-        .maybeSingle();
-        
-      if (leadError) {
-        console.error("Erro ao verificar lead:", leadError);
-        return new Response(JSON.stringify({ success: false, error: "Erro ao verificar lead" }), 
-          { headers: corsHeaders });
-      }
-      
-      let leadId;
-      
-      // Se o lead não existe, criar um novo
-      if (!existingLead) {
-        const pushName = messageData.pushName || null;
-        const leadName = pushName ? pushName : `Lead-${phone.substring(phone.length - 4)}`;
-        
-        // Criar novo lead
-        const { data: newLead, error: createLeadError } = await supabase
-          .from('leads')
-          .insert({
-            company_id: companyId,
-            whatsapp_number_id: whatsappNumberId,
-            name: leadName,
-            phone: phone,
-            kanban_stage_id: null, 
-            last_message: extractTextMessage(messageData),
-            last_message_time: new Date().toISOString(),
-            unread_count: 1
-          })
-          .select()
-          .single();
-          
-        if (createLeadError) {
-          console.error("Erro ao criar lead:", createLeadError);
-          return new Response(JSON.stringify({ success: false, error: "Erro ao criar lead" }), 
-            { headers: corsHeaders });
-        }
-        
-        leadId = newLead.id;
-        
-        // Buscar a etapa de entrada de leads no kanban
-        const { data: entryStage, error: stageError } = await supabase
-          .from('kanban_stages')
-          .select('id')
-          .eq('company_id', companyId)
-          .eq('is_fixed', true)
-          .ilike('title', '%entrada%leads%') // Consider making this more robust, e.g., a fixed ID or type
-          .single();
-        
-        if (stageError && entryStage === null) { // Check specifically for null if single() returns null on no row
-          console.log("Etapa de entrada não encontrada pelo nome, buscando o primeiro estágio...");
-          const { data: firstStage, error: firstStageError } = await supabase
-            .from('kanban_stages')
-            .select('id')
-            .eq('company_id', companyId)
-            .order('order_position', { ascending: true })
-            .limit(1)
-            .single();
-            
-          if (!firstStageError && firstStage) {
-            await supabase
-              .from('leads')
-              .update({ kanban_stage_id: firstStage.id })
-              .eq('id', leadId);
-            console.log(`Lead ${leadId} adicionado ao estágio ${firstStage.id}`);
-          } else {
-            console.error("Não foi possível encontrar nenhum estágio de kanban:", firstStageError);
-          }
-        } else if (entryStage) {
-          await supabase
-            .from('leads')
-            .update({ kanban_stage_id: entryStage.id })
-            .eq('id', leadId);
-            
-          console.log(`Lead ${leadId} adicionado à etapa de entrada ${entryStage.id}`);
-        }
-      } else {
-        leadId = existingLead.id;
-        
-        await supabase
-          .from('leads')
-          .update({
-            unread_count: (existingLead.unread_count || 0) + 1,
-            last_message: extractTextMessage(messageData),
-            last_message_time: new Date().toISOString()
-          })
-          .eq('id', leadId);
-          
-        console.log(`Lead ${leadId} existente atualizado`);
-      }
-      
-      // Salvar a mensagem
-      const messageText = extractTextMessage(messageData);
-      if (messageText) {
-        const { error: messageError } = await supabase // Removed 'savedMessage' as it's not used
-          .from('messages')
-          .insert({
-            lead_id: leadId,
-            whatsapp_number_id: whatsappNumberId,
-            from_me: false,
-            text: messageText,
-            status: 'received', // Assuming all incoming messages are 'received' initially
-            external_id: messageData.key.id,
-            timestamp: new Date( (messageData.messageTimestamp || Math.floor(Date.now()/1000)) * 1000).toISOString() // Use current time if no timestamp
-          });
-          
-        if (messageError) {
-          console.error("Erro ao salvar mensagem:", messageError);
-        } else {
-          console.log("Mensagem salva com sucesso");
-        }
-      }
+      const { leadId, leadCreated, error: leadProcessingError } = await processLead(
+        supabase,
+        phone,
+        companyId,
+        whatsappNumberId,
+        messageData
+      );
 
-      // Encaminhar para o webhook N8N, se configurado
+      if (leadProcessingError || !leadId) {
+        return new Response(JSON.stringify({ success: false, error: leadProcessingError || "Falha ao processar lead" }), 
+          { headers: corsHeaders, status: 500 });
+      }
+      
+      const { success: messageSaved, error: messageSavingError } = await saveMessage(
+        supabase,
+        leadId,
+        whatsappNumberId,
+        messageData
+      );
+
+      if (!messageSaved) {
+        // Log o erro mas continua, pois o lead já foi processado.
+        console.error("Falha ao salvar mensagem:", messageSavingError);
+      }
+      
       if (n8nWebhookUrl) {
-        console.log(`Encaminhando payload para N8N: ${n8nWebhookUrl}`);
-        // Não aguardar a resposta do N8N para não atrasar a resposta ao Evolution API
-        fetch(n8nWebhookUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload), // Envia o payload original recebido
-        })
-        .then(response => {
-          if (!response.ok) {
-            response.text().then(text => {
-              console.error(`Erro ao encaminhar para N8N (${response.status}): ${text}`);
-            });
-          } else {
-            console.log("Payload encaminhado para N8N com sucesso.");
-          }
-        })
-        .catch(err => {
-          console.error("Erro de rede ao tentar encaminhar para N8N:", err);
-        });
+        await forwardToN8N(n8nWebhookUrl, payload);
       }
       
       return new Response(
         JSON.stringify({ 
           success: true,
-          leadCreated: !existingLead,
+          leadCreated: leadCreated,
           leadId: leadId,
-          message: !existingLead ? "Novo lead criado e adicionado ao funil" : "Lead existente atualizado" 
+          message: leadCreated ? "Novo lead criado e mensagem salva" : "Lead existente atualizado e mensagem salva" 
         }), 
         { headers: corsHeaders }
       );
     }
 
-    // Resposta para outros tipos de eventos
     return new Response(JSON.stringify({ success: true, info: "Evento não processado por este webhook" }), { headers: corsHeaders });
   } catch (err) {
-    console.error("Erro ao processar webhook Evolution:", err);
-    return new Response(JSON.stringify({ success: false, error: String(err.message || err) }), 
+    console.error("Erro raiz ao processar webhook Evolution:", err);
+    // Se err.response existe, pode ser uma Response já formatada por um service
+    if (err.response && err.response instanceof Response) {
+        return err.response;
+    }
+    return new Response(JSON.stringify({ success: false, error: String(err.message || "Erro desconhecido") }), 
       { status: 400, headers: corsHeaders });
   }
 });
 
-// Função auxiliar para extrair texto da mensagem
-function extractTextMessage(messageData: any): string | null {
-  if (!messageData.message) return null;
-  
-  if (messageData.message.conversation) {
-    return messageData.message.conversation;
-  } else if (messageData.message.extendedTextMessage && messageData.message.extendedTextMessage.text) {
-    return messageData.message.extendedTextMessage.text;
-  } else if (messageData.message.imageMessage && messageData.message.imageMessage.caption) {
-    return messageData.message.imageMessage.caption;
-  } else if (messageData.message.videoMessage && messageData.message.videoMessage.caption) {
-    return messageData.message.videoMessage.caption;
-  } else if (messageData.message.documentMessage && messageData.message.documentMessage.caption) {
-    return messageData.message.documentMessage.caption;
-  } else if (messageData.message.audioMessage) {
-    return "[Mensagem de áudio]";
-  } else if (messageData.message.contactMessage) {
-    return "[Mensagem de contato]";
-  } else if (messageData.message.locationMessage) {
-    return "[Mensagem de localização]";
-  }
-  
-  // Fallback para tipos de mensagem não explicitamente tratados, mas que podem ter texto
-  const messageContent = messageData.message[Object.keys(messageData.message)[0]];
-  if (typeof messageContent === 'object' && messageContent !== null && messageContent.text) {
-    return messageContent.text;
-  }
-  if (typeof messageContent === 'object' && messageContent !== null && messageContent.caption) {
-    return messageContent.caption;
-  }
-  
-  return "[Tipo de mensagem não suportado para extração de texto]";
-}
