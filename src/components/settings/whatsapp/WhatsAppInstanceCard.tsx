@@ -185,6 +185,8 @@ const WhatsAppInstanceCard = ({
       if (onStatusCheck) {
         onStatusCheck(instance.id);
       }
+      // Trigger immediate polling for connection
+      startImmediateConnectionPolling();
     } catch (error: any) {
       handleSupportError(error?.message || "Erro desconhecido ao tentar conectar.");
     } finally {
@@ -243,7 +245,9 @@ const WhatsAppInstanceCard = ({
   const isStatusLoading = isLoading || isSyncing[instance.id];
 
   // Determinar se mostra spinner de conexão
-  const shouldShowConnectingSpinner = connectingSpinner && !instance.connected;
+  const computedConnectingSpinner =
+    (connectingSpinner && !instance.connected)
+    || (isConnectingNow && !instance.connected);
 
   // NOVO: Flag para saber quando iniciar polling avançado de conexão (após fechar modal QR ou clicar "Já conectei")
   const [triggerAutoConnect, setTriggerAutoConnect] = useState(false);
@@ -306,7 +310,7 @@ const WhatsAppInstanceCard = ({
       if (onStatusCheck) {
         onStatusCheck(instance.id);
       }
-      // NOVO: dispara polling imediato já aqui se desejado
+      // Trigger immediate polling for connection
       startImmediateConnectionPolling();
     } catch (error: any) {
       handleSupportError(error?.message || "Erro desconhecido ao tentar conectar.");
@@ -316,7 +320,7 @@ const WhatsAppInstanceCard = ({
   };
 
   // Novo: Section que mostra spinner “verificando conexão…” quando polling ativo e não conectado
-  const shouldShowConnectingSpinner = isConnectingNow && !instance.connected;
+  const shouldShowConnectingSpinner = computedConnectingSpinner;
 
   return (
     <>
@@ -329,13 +333,9 @@ const WhatsAppInstanceCard = ({
               onRefreshStatus={async () => {}}
               isStatusLoading={isLoading}
             />
-            
-            {/* Connected Section - Only shown when connected */}
             {statusConnected && (
               <DeviceInfoSection deviceInfo={instance.deviceInfo} />
             )}
-            
-            {/* QR Code Section - Only shown when disconnected and QR code exists */}
             {showQr && instance.qrCodeUrl && !statusConnected && (
               <>
                 <QrCodeSection qrCodeUrl={instance.qrCodeUrl} />
@@ -344,16 +344,13 @@ const WhatsAppInstanceCard = ({
                 </Button>
               </>
             )}
-            
-            {/* NOVO: Spinner "Conectando..." após fechar QR, enquanto polling */}
-            {shouldShowConnectingSpinner && !instance.connected && (
+            {/* Show spinner if connecting and not connected */}
+            {shouldShowConnectingSpinner && (
               <div className="flex flex-col items-center justify-center gap-2 py-4 animate-fade-in">
                 <LoaderCircle className="animate-spin text-primary w-8 h-8" />
                 <span className="text-sm text-muted-foreground">Verificando conexão...</span>
               </div>
             )}
-            
-            {/* Action Buttons - Só mostra "Deletar" quando conectado */}
             <InstanceActionButtons
               connected={statusConnected}
               hasQrCode={!!instance.qrCodeUrl}
@@ -371,7 +368,6 @@ const WhatsAppInstanceCard = ({
         open={supportErrorModal.open}
         onClose={() => setSupportErrorModal({ open: false })}
         errorDetail={supportErrorModal.detail}
-        // onRetry opcional: poderia re-executar última ação se desejado
       />
     </>
   );
