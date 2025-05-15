@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription } from "@/components/ui/card";
@@ -98,37 +97,6 @@ const QrCodeActionCard = ({
     }
   };
 
-  // Handler para "Gerar novo QRCode"
-  const handleRegenerateQr = async () => {
-    if (!instanceName) return;
-    setIsRefreshing(true);
-    try {
-      const res = await fetch(`https://ticlin-evolution-api.eirfpl.easypanel.host/instance/connect/${instanceName}`, {
-        headers: {
-          "Content-Type": "application/json",
-          "API-KEY": "JTZZDXMpymy7RETTvXdA9VxKdD0Mdj7t",
-        },
-      });
-      const json = await res.json();
-      if (json?.qrcode?.base64) {
-        setQrUrl(json.qrcode.base64);
-        toast({
-          title: "QR Code atualizado",
-        });
-      } else {
-        throw new Error("QR Code não recebido");
-      }
-    } catch (error: any) {
-      toast({
-        title: "Erro ao gerar novo QRCode",
-        description: error?.message || "",
-        variant: "destructive",
-      });
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 animate-fade-in">
       <Card className="w-full max-w-lg glass-morphism p-8 rounded-2xl shadow-2xl border-none transition-all">
@@ -165,16 +133,6 @@ const QrCodeActionCard = ({
             >
               {isChecking ? <span className="animate-spin"><Check className="w-4 h-4 mr-1" /></span> : <Check className="w-4 h-4 mr-1" />}
               Já conectei
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 min-w-0"
-              onClick={handleRegenerateQr}
-              disabled={isLoading || isDeleting || isChecking || isRefreshing}
-            >
-              {isRefreshing ? <span className="animate-spin"><RefreshCcw className="w-4 h-4 mr-1" /></span> : <RefreshCcw className="w-4 h-4 mr-1" />}
-              Gerar novo QRCode
             </Button>
             <Button
               variant="destructive"
@@ -214,4 +172,3 @@ const QrCodeActionCard = ({
 };
 
 export default QrCodeActionCard;
-
