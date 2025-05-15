@@ -1,10 +1,12 @@
-import { useState, useRef } from "react";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardContent, CardFooter, CardTitle, CardDescription } from "@/components/ui/card";
 import { X, Check } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { WhatsAppSupportErrorModal } from "./WhatsAppSupportErrorModal";
 import { QrCodeDisplay } from "./QrCodeDisplay";
+import { useQrConnectionCheck } from "./useQrConnectionCheck";
 
 interface QrCodeActionCardProps {
   qrCodeUrl: string;
@@ -13,11 +15,8 @@ interface QrCodeActionCardProps {
   onRegenerate: () => void;
   onCancel: () => void;
   instanceName?: string | null;
-  onCloseWithRefresh?: () => void; // Ao fechar, dispara atualização (refetch)
+  onCloseWithRefresh?: () => void;
 }
-
-const API_URL = "https://ticlin-evolution-api.eirfpl.easypanel.host/instance/connectionState/";
-const API_KEY = "JTZZDXMpymy7RETTvXdA9VxKdD0Mdj7t";
 
 const QrCodeActionCardMain = ({
   qrCodeUrl,
@@ -25,26 +24,20 @@ const QrCodeActionCardMain = ({
   onScanned,
   onCancel,
   instanceName,
-  onCloseWithRefresh
 }: QrCodeActionCardProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [supportDetail, setSupportDetail] = useState<string | undefined>(undefined);
   const [qrUrl] = useState(qrCodeUrl);
 
-  // Novo: Impede chamadas duplicadas da função checkConnection
-  const [isChecking, setIsChecking] = useState(false);
-  const hasRequestedRef = useRef(false);
-
-  // Para garantir atualização/refetch ao fechar
+  // Novo: garante que handleCloseAll só fecha modal, nada de polling!
   const handleCloseAll = () => {
-    console.log('[QrCodeActionCardMain] handleCloseAll chamado - resetando apenas estados locais, sem polling!');
-    // Apenas fecha modal e reseta relacionado a UI, não chama polling nem refresh de status!
+    console.log('[QrCodeActionCardMain] handleCloseAll chamado - só UI, sem polling/refresh de status!');
     if (typeof onCancel === "function") onCancel();
-    // NÃO chama onCloseWithRefresh aqui de jeito nenhum!
+    // Não chama onCloseWithRefresh!
   };
 
-  // Handler para deletar instância Evolution API
+  // Handler para deletar instância Evolution API (permanece igual)
   const handleDeleteInstance = async () => {
     if (!instanceName) {
       handleCloseAll();
@@ -101,85 +94,16 @@ const QrCodeActionCardMain = ({
     }
   };
 
-  // Função PARA VERIFICAR STATUS APENAS VIA CLIQUE EM "JÁ CONECTEI"
-  const checkConnection = async () => {
-    if (!instanceName || isChecking || hasRequestedRef.current) return;
-    setIsChecking(true);
-    hasRequestedRef.current = true;
-    console.log('[QrCodeActionCardMain] checkConnection: faz requisição única para o status da instância');
-
-    try {
-      const response = await fetch(`${API_URL}${encodeURIComponent(instanceName)}`, {
-        method: "GET",
-        headers: {
-          "apikey": API_KEY,
-          "Content-Type": "application/json"
-        }
-      });
-      let json;
-      try {
-        json = await response.json();
-      } catch {
-        throw new Error("Resposta inesperada do servidor");
-      }
-      const state = json?.instance?.state ?? json?.state;
-
-      if (
-        (json?.status === 404 || json?.status === "404") &&
-        json?.response?.message &&
-        Array.isArray(json.response.message) &&
-        json.response.message.join(" ").toLowerCase().includes("instance does not exist")
-      ) {
-        setSupportDetail(json.response.message?.join(" ") || "Instância não encontrada");
-        setShowSupportModal(true);
-        setIsChecking(false);
-        hasRequestedRef.current = false;
-        return;
-      }
-
-      if (state === "open") {
-        toast({
-          title: "Instância conectada!",
-          description: "Seu WhatsApp foi conectado com sucesso.",
-        });
-        onScanned();
-        // NÃO chama onCloseWithRefresh para não disparar polling automático!
-        setIsChecking(false);
-        hasRequestedRef.current = false;
-        return;
-      }
-
-      if (state === "closed") {
-        toast({
-          title: "Instância removida.",
-          description: "Esse número foi excluído e deve ser reconectado.",
-          variant: "destructive",
-        });
-        // NÃO chama onCloseWithRefresh para não disparar polling automático!
-        setIsChecking(false);
-        hasRequestedRef.current = false;
-        return;
-      }
-
-      // Caso "connecting", só feedback, NÃO faz nova checagem!
-      toast({
-        title: "Ainda aguardando conexão.",
-        description: "Tente novamente em instantes, ou leia o QR Code novamente se necessário.",
-        variant: "default",
-      });
-      setIsChecking(false);
-      hasRequestedRef.current = false;
-      return;
-    } catch (error: any) {
-      toast({
-        title: "Erro ao verificar instância",
-        description: error?.message || "Problema inesperado ao consultar status.",
-        variant: "destructive"
-      });
-      setIsChecking(false);
-      hasRequestedRef.current = false;
-    }
-  };
+  // Usando hook isolado para checagem (apenas no botão)
+  const { isChecking, checkConnection } = useQrConnectionCheck({
+    instanceName,
+    onConnected: onScanned,
+    onClosed: () => {},
+    onNotExist: (msg) => {
+      setSupportDetail(msg);
+      setShowSupportModal(true);
+    },
+  });
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 animate-fade-in">
