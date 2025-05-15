@@ -9,6 +9,7 @@ import { useConnectionSynchronizer } from "@/hooks/whatsapp/status-monitor/useCo
 import { useInstanceConnectionWaiter } from "@/hooks/whatsapp/useInstanceConnectionWaiter";
 import { toast } from "@/hooks/use-toast";
 import { LoaderCircle } from "lucide-react";
+import { WhatsAppSupportErrorModal } from "./WhatsAppSupportErrorModal";
 
 interface WhatsAppInstanceCardProps {
   instance: WhatsAppInstance;
@@ -69,6 +70,22 @@ const WhatsAppInstanceCard = ({
     timeoutDuration: 60000
   });
 
+  // NOVO: Estado para suporte de erros
+  const [supportErrorModal, setSupportErrorModal] = useState<{open: boolean; detail?: string}>({open: false, detail: ""});
+
+  // Handler para mostrar modal suporte nos erros
+  const handleSupportError = (detail: string) => {
+    setSupportErrorModal({ open: true, detail });
+  };
+
+  // Função para uso do botão "Já conectei"
+  const handleConnectClickAndCloseQR = () => {
+    // Fecha QR/modal imediatamente, ativa spinner. O startWait() já inicia polling no card.
+    setConnectingSpinner(true);
+    startWait();
+    // Aqui pode-se logar/guardar que usuário sinalizou conexão manual
+  };
+
   // Detect when a QR code is received to show automatically
   useEffect(() => {
     if (instance.qrCodeUrl && !qrCodeSuccess) {
@@ -128,7 +145,7 @@ const WhatsAppInstanceCard = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showQrCode, instance.connected, instance.qrCodeUrl]);
 
-  // Click function to connect WhatsApp
+  // Adaptação das funções de ação para mostrar modal de suporte em erros
   const handleConnect = async () => {
     try {
       console.log(`Starting connection for instance ${instance.id}: ${instance.instanceName}`);
@@ -144,14 +161,13 @@ const WhatsAppInstanceCard = ({
       if (onStatusCheck) {
         onStatusCheck(instance.id);
       }
-    } catch (error) {
-      console.error("Error connecting:", error);
+    } catch (error: any) {
+      handleSupportError(error?.message || "Erro desconhecido ao tentar conectar.");
     } finally {
       setActionInProgress(false);
     }
   };
 
-  // Function to update QR code
   const handleRefreshQrCode = async () => {
     try {
       console.log(`Updating QR code for instance ${instance.id}: ${instance.instanceName}`);
@@ -167,14 +183,13 @@ const WhatsAppInstanceCard = ({
       if (onStatusCheck) {
         onStatusCheck(instance.id);
       }
-    } catch (error) {
-      console.error("Error updating QR code:", error);
+    } catch (error: any) {
+      handleSupportError(error?.message || "Erro desconhecido ao atualizar QR Code.");
     } finally {
       setActionInProgress(false);
     }
   };
   
-  // Function to manually refresh connection status
   const handleStatusRefresh = async () => {
     try {
       console.log(`Manually refreshing status for ${instance.instanceName}`);
@@ -184,15 +199,14 @@ const WhatsAppInstanceCard = ({
     }
   };
 
-  // Function to delete WhatsApp number
   const handleDelete = async () => {
     try {
       console.log(`Deleting instance ${instance.id}: ${instance.instanceName}`);
       setActionInProgress(true);
       await onDelete(instance.id);
       console.log(`Instance ${instance.instanceName} deleted`);
-    } catch (error) {
-      console.error("Error deleting:", error);
+    } catch (error: any) {
+      handleSupportError(error?.message || "Erro desconhecido ao tentar remover instância.");
     } finally {
       setActionInProgress(false);
     }
@@ -208,55 +222,70 @@ const WhatsAppInstanceCard = ({
   const shouldShowConnectingSpinner = connectingSpinner && !instance.connected;
 
   return (
-    <Card className="overflow-hidden glass-card border-0">
-      <CardContent className="p-0">
-        <div className="p-4">
-          {/* Header section - always visible */}
-          <InstanceHeader 
-            instance={instance} 
-            onRefreshStatus={handleStatusRefresh}
-            isStatusLoading={isStatusLoading}
-          />
-          
-          {/* Connected Section - Only shown when connected */}
-          {instance.connected && (
-            <DeviceInfoSection deviceInfo={instance.deviceInfo} />
-          )}
-          
-          {/* QR Code Section - Only shown when disconnected and QR code exists */}
-          {shouldShowQrCode && instance.qrCodeUrl && !instance.connected && (
-            <QrCodeSection qrCodeUrl={instance.qrCodeUrl} />
-          )}
-          
-          {/* NOVO: Spinner "Conectando..." após fechar QR */}
-          {shouldShowConnectingSpinner && (
-            <div className="flex flex-col items-center justify-center gap-2 py-4 animate-fade-in">
-              <LoaderCircle className="animate-spin text-primary w-8 h-8" />
-              <span className="text-sm text-muted-foreground">Aguardando confirmação da conexão...<br />Isso pode levar alguns segundos.</span>
-              <button
-                type="button"
-                className="text-xs text-red-500 underline mt-1"
-                onClick={() => cancelWait()}
-                disabled={isLoading}
-              >
-                Cancelar
-              </button>
-            </div>
-          )}
-          
-          {/* Action Buttons - Different based on connection state */}
-          <InstanceActionButtons
-            connected={instance.connected}
-            hasQrCode={!!instance.qrCodeUrl}
-            isLoading={isLoading}
-            actionInProgress={actionInProgress}
-            onRefreshQrCode={handleRefreshQrCode}
-            onConnect={handleConnect}
-            onDelete={handleDelete}
-          />
-        </div>
-      </CardContent>
-    </Card>
+    <>
+      <Card className="overflow-hidden glass-card border-0">
+        <CardContent className="p-0">
+          <div className="p-4">
+            {/* Header section - always visible */}
+            <InstanceHeader 
+              instance={instance} 
+              onRefreshStatus={handleStatusRefresh}
+              isStatusLoading={isStatusLoading}
+            />
+            
+            {/* Connected Section - Only shown when connected */}
+            {instance.connected && (
+              <DeviceInfoSection deviceInfo={instance.deviceInfo} />
+            )}
+            
+            {/* QR Code Section - Only shown when disconnected and QR code exists */}
+            {shouldShowQrCode && instance.qrCodeUrl && !instance.connected && (
+              <>
+                <QrCodeSection qrCodeUrl={instance.qrCodeUrl} />
+                <Button variant="outline" className="w-full mt-2"
+                  onClick={handleConnectClickAndCloseQR}>
+                  Já conectei
+                </Button>
+              </>
+            )}
+            
+            {/* NOVO: Spinner "Conectando..." após fechar QR */}
+            {shouldShowConnectingSpinner && (
+              <div className="flex flex-col items-center justify-center gap-2 py-4 animate-fade-in">
+                <LoaderCircle className="animate-spin text-primary w-8 h-8" />
+                <span className="text-sm text-muted-foreground">Aguardando confirmação da conexão...<br />Isso pode levar alguns segundos.</span>
+                <button
+                  type="button"
+                  className="text-xs text-red-500 underline mt-1"
+                  onClick={cancelWait}
+                  disabled={isLoading}
+                >
+                  Cancelar
+                </button>
+              </div>
+            )}
+            
+            {/* Action Buttons - Different based on connection state */}
+            <InstanceActionButtons
+              connected={instance.connected}
+              hasQrCode={!!instance.qrCodeUrl}
+              isLoading={isLoading}
+              actionInProgress={actionInProgress}
+              onRefreshQrCode={handleRefreshQrCode}
+              onConnect={handleConnect}
+              onDelete={handleDelete}
+            />
+          </div>
+        </CardContent>
+      </Card>
+      {/* Modal global de suporte para erros críticos */}
+      <WhatsAppSupportErrorModal
+        open={supportErrorModal.open}
+        onClose={() => setSupportErrorModal({ open: false })}
+        errorDetail={supportErrorModal.detail}
+        // onRetry opcional: poderia re-executar última ação se desejado
+      />
+    </>
   );
 };
 
