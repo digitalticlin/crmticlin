@@ -5,27 +5,22 @@ import { evolutionApiService } from '@/services/evolution-api';
 import { useChatDatabase } from '@/hooks/whatsapp/useChatDatabase';
 
 /**
- * Hook for managing WhatsApp contacts
+ * Hook para gerenciar contatos WhatsApp — SÓ busca quando chamado manualmente!
  */
 export const useWhatsAppContacts = (activeInstance: any, companyId: string | null) => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
-  
-  // Database operations
+
   const { saveChatsAsLeads } = useChatDatabase();
-  
-  // Fetch contacts (chats)
+
+  // NÃO chame esse método automaticamente — só use manualmente!
   const fetchContacts = useCallback(async () => {
     if (!activeInstance || !companyId || isLoadingContacts) return;
-    
     setIsLoadingContacts(true);
-    
+
     try {
-      // Usando findChats em vez de fetchContacts para corresponder ao método disponível
       const chats = await evolutionApiService.findChats(activeInstance.instanceName);
-      
       if (chats && chats.length > 0) {
-        // Save chats as leads in the database
         const contacts = await saveChatsAsLeads(companyId, activeInstance.id, chats);
         setContacts(contacts);
       }
@@ -35,7 +30,7 @@ export const useWhatsAppContacts = (activeInstance: any, companyId: string | nul
       setIsLoadingContacts(false);
     }
   }, [activeInstance, companyId, isLoadingContacts, saveChatsAsLeads]);
-  
+
   return {
     contacts,
     fetchContacts,

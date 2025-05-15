@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { Message } from '@/types/chat';
 import { evolutionApiService } from '@/services/evolution-api';
@@ -6,37 +7,30 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Hook for managing WhatsApp messages
+ * Hook para mensagens WhatsApp — NÃO faz fetch automático!
  */
 export const useWhatsAppMessages = (activeInstance: any, selectedContact: any) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  
-  // Database operations
+
   const { saveMessages } = useChatDatabase();
-  
-  // Fetch messages for selected contact
+
+  // Só usaremos fetchMessages caso chamado manualmente para debug/emergência
   const fetchMessages = useCallback(async () => {
     if (!selectedContact || !activeInstance || isLoadingMessages) return;
-    
     setIsLoadingMessages(true);
-    
+
     try {
-      // Extract phone number from formatted display
       const phone = selectedContact.phone.replace(/\D/g, '');
-      
       if (!phone) {
         console.error("Invalid phone number for contact:", selectedContact);
         return;
       }
-      
       const jid = `${phone}@s.whatsapp.net`;
-      // Usando findMessages em vez de fetchMessages para corresponder ao método disponível
       const whatsAppMessages = await evolutionApiService.findMessages(activeInstance.instanceName, jid);
-      
+
       if (whatsAppMessages && whatsAppMessages.length > 0) {
-        // Save messages to database and get them mapped to our format
         const savedMessages = await saveMessages(selectedContact.id, activeInstance.id, whatsAppMessages);
         setMessages(savedMessages);
       }
@@ -46,45 +40,37 @@ export const useWhatsAppMessages = (activeInstance: any, selectedContact: any) =
       setIsLoadingMessages(false);
     }
   }, [selectedContact, activeInstance, isLoadingMessages, saveMessages]);
-  
-  // Send a message
+
+  // ENCORE: Envio de mensagem permanece igual
   const sendMessage = useCallback(async (text: string) => {
     if (!selectedContact || !activeInstance || isSending || !text.trim()) return;
-    
     setIsSending(true);
-    
+
     try {
-      // Extract phone number from formatted display
       const phone = selectedContact.phone.replace(/\D/g, '');
-      
       if (!phone) {
         toast.error("Número de telefone inválido");
         return;
       }
-      
-      // Send message through Evolution API
+
+      // Restante igual
       const response = await evolutionApiService.sendMessage(
-        activeInstance.instanceName, 
-        phone, 
+        activeInstance.instanceName,
+        phone,
         text
       );
-      
       if (response && response.key) {
-        // Create a temporary message object for UI
         const newMessage: Message = {
-          id: Math.random().toString(), // Temporary ID, will be replaced by DB ID
+          id: Math.random().toString(),
           text,
           sender: "user",
-          time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           status: "sent",
           isIncoming: false,
           fromMe: true
         };
-        
-        // Update UI immediately
         setMessages(prev => [...prev, newMessage]);
-        
-        // Save message to database
+
         await supabase
           .from('messages')
           .insert({
@@ -95,8 +81,7 @@ export const useWhatsAppMessages = (activeInstance: any, selectedContact: any) =
             status: 'sent',
             external_id: response.key.id
           });
-        
-        // Update lead's last message
+
         await supabase
           .from('leads')
           .update({
@@ -104,9 +89,8 @@ export const useWhatsAppMessages = (activeInstance: any, selectedContact: any) =
             last_message_time: new Date().toISOString()
           })
           .eq('id', selectedContact.id);
-        
-        // Refresh messages to get the actual message from server
-        setTimeout(fetchMessages, 1000);
+
+        setTimeout(fetchMessages, 1000); // só se o método for chamado manualmente
       } else {
         throw new Error("Falha ao enviar mensagem");
       }
@@ -117,7 +101,7 @@ export const useWhatsAppMessages = (activeInstance: any, selectedContact: any) =
       setIsSending(false);
     }
   }, [selectedContact, activeInstance, isSending, fetchMessages]);
-  
+
   return {
     messages,
     fetchMessages,
