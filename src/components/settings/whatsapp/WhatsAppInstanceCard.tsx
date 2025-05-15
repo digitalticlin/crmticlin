@@ -47,19 +47,12 @@ const WhatsAppInstanceCard = ({
 
   const { forceSyncConnectionStatus, isSyncing } = useConnectionSynchronizer();
 
-  // Computa status real da instância levando em conta "open" e "connecting" como conectado
-  const isInstanceConnected =
-    instance.connected ||
-    instance.status === "open" ||
-    instance.status === "connecting";
-  const instanceStatus =
-    instance.status === "open" || instance.status === "connecting"
-      ? "connected"
-      : instance.status
-      ? instance.status
-      : instance.connected
-      ? "connected"
-      : "disconnected";
+  // NOVA LÓGICA: Estado calculado a partir SOMENTE do Supabase
+  // NÃO FAZ MAIS CONSULTA À EVOLUTION API PARA RENDERIZAÇÃO!
+  const dbStatus = instance.status;
+  const isInstanceConnected = dbStatus === "open" || dbStatus === "connecting";
+  const isInstanceDisconnected = dbStatus === "closed";
+  const hasPhone = Boolean(instance.phoneNumber);
 
   // Suporte para esperar conexão após QR
   const {
@@ -220,10 +213,37 @@ const WhatsAppInstanceCard = ({
         <CardContent className="p-0">
           <div className="p-4">
             <InstanceHeader
-              instance={{ ...instance, connected: isInstanceConnected, status: instanceStatus }}
+              instance={{
+                ...instance,
+                connected: isInstanceConnected,
+                status: dbStatus
+              }}
               onRefreshStatus={async () => { }}
               isStatusLoading={isLoading}
             />
+            {/* Status de Conexão Visual apenas via SUPABASE */}
+            {isInstanceConnected && (
+              <>
+                <div className="mb-2 py-2 text-center">
+                  <span className="text-green-700 font-semibold">Conectado</span>
+                </div>
+                <div className="rounded-lg border bg-gray-50 dark:bg-gray-900/40 p-3 mb-2 text-center">
+                  <div>
+                    <span className="font-medium">Instância:</span> {instance.instanceName}
+                  </div>
+                  {hasPhone && (
+                    <div>
+                      <span className="font-medium">Telefone:</span> {instance.phoneNumber}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+            {isInstanceDisconnected && (
+              <div className="mb-2 py-2 text-center">
+                <span className="text-red-700 font-semibold">Dispositivo desconectado</span>
+              </div>
+            )}
             <ConnectedBanner status={instance.status} />
             {isInstanceConnected && <DeviceInfoSection deviceInfo={instance.deviceInfo} />}
 
