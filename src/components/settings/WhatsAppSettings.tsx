@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
 import WhatsAppInstanceCard from "./whatsapp/WhatsAppInstanceCard";
@@ -140,7 +139,7 @@ const WhatsAppSettings = () => {
         </Alert>
       )}
       
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {instances.filter(instance => !!instance.id && instance.id !== "1").map(instance =>
             <WhatsAppInstanceCard
               key={instance.id}
@@ -154,13 +153,14 @@ const WhatsAppSettings = () => {
             />
         )}
 
-        {instances.filter(instance => !!instance.id && instance.id !== "1").length === 0 && (
+        {/* Sempre exibir card para nova conexão, mesmo se houver instâncias */}
+        <div className="flex">
           <PlaceholderInstanceCard
             isSuperAdmin={isSuperAdmin}
             userEmail={userEmail}
             onRefreshInstances={refreshUserInstances}
           />
-        )}
+        </div>
       </div>
     </div>
   );
