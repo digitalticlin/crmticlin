@@ -40,16 +40,27 @@ const WhatsAppInstanceCard = ({
   const [qrCodeSuccess, setQrCodeSuccess] = useState(false);
   const [actionInProgress, setActionInProgress] = useState(false);
   const [connectingSpinner, setConnectingSpinner] = useState(false);
-  const [supportErrorModal, setSupportErrorModal] = useState<{open: boolean; detail?: string}>({open: false, detail: ""});
+  const [supportErrorModal, setSupportErrorModal<{open: boolean; detail?: string}>({open: false, detail: ""});
+
+  // NOVO: Estado para força resultado único da verificação ao fechar o modal
+  const [singleStatusChecked, setSingleStatusChecked] = useState(false);
 
   const { forceSyncConnectionStatus, isSyncing } = useConnectionSynchronizer();
 
   // Computa status real da instância levando em conta "open" como conectado
   // Importante: se já houver um campo status, use-o, senão derive de `connected` padrão.
-  const isInstanceConnected = instance.connected || instance.status === "open";
-  const instanceStatus = instance.status === "open" ? "connected" 
-    : instance.status ? instance.status 
-    : (instance.connected ? "connected" : "disconnected");
+  const isInstanceConnected =
+    instance.connected ||
+    instance.status === "open" ||
+    instance.status === "connecting";
+  const instanceStatus =
+    instance.status === "open" || instance.status === "connecting"
+      ? "connected"
+      : instance.status
+      ? instance.status
+      : instance.connected
+      ? "connected"
+      : "disconnected";
 
   // Suporte para esperar conexão após QR
   const {
@@ -122,16 +133,20 @@ const WhatsAppInstanceCard = ({
 
   // Garante spinner aguardando conexão se fechar QR e ainda não conectado/aberto
   useEffect(() => {
-    // Aqui valida se está "open" ou "connected" e cancela spinner/polling se for o caso
-    if (!showQrCode && !isInstanceConnected && !!instance.qrCodeUrl) {
-      setConnectingSpinner(true);
-      startWait();
-    } else if (isInstanceConnected) {
-      setConnectingSpinner(false);
-      cancelWait();
+    if (
+      !showQrCode && // modal fechado (ou oculto)
+      !!instance.qrCodeUrl &&
+      !isInstanceConnected &&
+      !singleStatusChecked // apenas 1x
+    ) {
+      setSingleStatusChecked(true);
+      // Chama apenas 1x para status fresh
+      forceSyncConnectionStatus(instance.id, instance.instanceName);
+    } else if (showQrCode) {
+      setSingleStatusChecked(false); // reset para próximo ciclo
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showQrCode, isInstanceConnected, instance.qrCodeUrl]);
+  }, [showQrCode, instance.qrCodeUrl, isInstanceConnected, instance.id, instance.instanceName]);
 
   // Hook de auto-polling mais lento
   const { isConnected: isAutoConnected, start: startAutoCheck, stop: stopAutoCheck } =
@@ -210,7 +225,8 @@ const WhatsAppInstanceCard = ({
   // -- Layout e ações
   // spinner/aguardando conexão só aparece enquanto "connecting" e não "open"/"connected"
   const shouldShowConnectingSpinner =
-    ((connectingSpinner && !isInstanceConnected) || (isConnectingNow && !isInstanceConnected)) && instance.status !== "open";
+    ((connectingSpinner && !isInstanceConnected) || (isConnectingNow && !isInstanceConnected)) && instance.status !== "open" &&
+    instance.status !== "connecting";
 
   return (
     <>
