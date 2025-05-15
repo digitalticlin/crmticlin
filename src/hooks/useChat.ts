@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { useWhatsAppChat } from "./useWhatsAppChat";
 import { Contact } from "@/types/chat";
@@ -102,8 +101,9 @@ export function useChat() {
     }
   }, [fetchContacts]);
 
+  // Expor loading consolidando loading do chat e manual loading (usado pra exibir spinner)
   return {
-    contacts,
+    contacts: whatsappContacts,
     setContacts: () => {},
     selectedContact,
     setSelectedContact,

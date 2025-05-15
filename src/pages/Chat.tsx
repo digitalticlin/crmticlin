@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/chat/EmptyState";
 import { ContactDetails } from "@/components/chat/ContactDetails";
 import { useChat } from "@/hooks/useChat";
 import { LoadingSpinner } from "@/components/ui/spinner";
-import { RotateCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 
 export default function Chat() {
   const {
@@ -47,9 +47,9 @@ export default function Chat() {
               disabled={isLoadingContacts}
               aria-label="Atualizar chats"
               type="button"
+              style={{ minHeight: 28, minWidth: 28 }}
             >
-              <RotateCw className={`w-4 h-4 ${isLoadingContacts ? "animate-spin" : ""}`} />
-              Atualizar
+              <RefreshCw className={`w-4 h-4 ${isLoadingContacts ? "animate-spin" : ""}`} />
             </button>
           </div>
           {isLoadingContacts && contacts.length === 0 && (
@@ -117,3 +117,4 @@ export default function Chat() {
     </div>
   );
 }
+
