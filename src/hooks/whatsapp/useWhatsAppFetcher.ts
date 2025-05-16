@@ -14,7 +14,7 @@ export const useWhatsAppFetcher = () => {
   const { setInstances } = useWhatsAppInstanceState();
   const { setError } = useWhatsAppInstanceActions();
   const fetchingRef = useRef<Record<string, boolean>>({});
-  
+
   // Fetch instances from the database for a specific company
   const fetchInstances = async (companyId: string) => {
     // Evitar múltiplas chamadas simultâneas para o mesmo companyId
@@ -71,33 +71,35 @@ export const useWhatsAppFetcher = () => {
       return;
     }
     
-    // Gera o nome da instância com base no email (parte antes do @)
-    const instanceName = userEmail ? userEmail.split('@')[0] : "";
-    
+    // Gera o nome do prefixo da instância com base no email (parte antes do @)
+    const instancePrefix = userEmail
+      ? userEmail.split('@')[0].replace(/[^a-z0-9]/gi, "").toLowerCase()
+      : "";
+
     try {
-      console.log(`Buscando instâncias WhatsApp para usuário: ${userEmail}, nome base da instância: ${instanceName}`);
+      console.log(`Buscando instâncias WhatsApp para usuário: ${userEmail}, prefixo: ${instancePrefix}`);
       fetchingRef.current[userEmail] = true;
       setError(null);
-      
-      // Busca instâncias do usuário do Supabase
+
+      // Busca todas as instâncias do usuário cujo instance_name começa com o prefixo
       const { data, error } = await supabase
         .from('whatsapp_numbers')
         .select('*')
-        .eq('instance_name', instanceName);
+        .ilike('instance_name', `${instancePrefix}%`); // ilike é case-insensitive
 
       if (error) {
         throw error;
       }
 
       if (data && data.length > 0) {
-        console.log(`Encontradas ${data.length} instâncias WhatsApp para usuário ${userEmail}`);
+        console.log(`Encontradas ${data.length} instâncias WhatsApp para usuário ${userEmail} (prefixo: ${instancePrefix})`);
         const mappedInstances = mapDatabaseInstancesToState(data);
         setInstances(mappedInstances);
       } else {
         console.log(`Nenhuma instância WhatsApp encontrada para usuário ${userEmail}, criando placeholder`);
         // Se não encontrar instâncias, crie um placeholder
         setInstances([
-          { id: "1", instanceName, connected: false }
+          { id: "1", instanceName: instancePrefix, connected: false }
         ]);
       }
     } catch (error) {
@@ -105,7 +107,7 @@ export const useWhatsAppFetcher = () => {
       setError("Erro ao carregar instâncias WhatsApp");
       toast.error("Erro ao carregar instâncias WhatsApp");
       setInstances([
-        { id: "1", instanceName, connected: false }
+        { id: "1", instanceName: instancePrefix, connected: false }
       ]);
     } finally {
       fetchingRef.current[userEmail] = false;
