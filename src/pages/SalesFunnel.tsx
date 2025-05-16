@@ -10,8 +10,6 @@ import { ChevronLeft, Tag, Plus, ArrowUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { FIXED_COLUMN_IDS, KanbanLead } from "@/types/kanban";
 import { useNavigate } from "react-router-dom";
-
-// Novos controles
 import { FunnelActionsBar } from "@/components/sales/funnel/FunnelActionsBar";
 import { useFunnelManagement } from "@/hooks/salesFunnel/useFunnelManagement";
 import { useStageManagement } from "@/hooks/salesFunnel/useStageManagement";
@@ -49,22 +47,18 @@ export default function SalesFunnel() {
     navigate('/chat');
   };
 
-  const moveLeadToStatus = (lead: KanbanLead, status: "won" | "lost") => {
+  // Correct handler for onMoveToWonLost
+  const handleMoveToWonLost = async (lead: KanbanLead, status: "won" | "lost") => {
+    // Map status to columnId
     const targetColumnId = status === "won" ? FIXED_COLUMN_IDS.WON : FIXED_COLUMN_IDS.LOST;
-    const updatedColumns = columns.map(col => ({
-      ...col,
-      leads: col.leads.filter(l => l.id !== lead.id)
-    }));
-    const finalColumns = updatedColumns.map(col => {
-      if (col.id === targetColumnId) {
-        return {
-          ...col,
-          leads: [{...lead, columnId: targetColumnId}, ...col.leads]
-        };
-      }
-      return col;
-    });
-    setColumns(finalColumns);
+    // selectedFunnel comes from funnel/context/hook
+    const { companyId } = useCompanyData();
+    const { funnels, selectedFunnel } = useFunnelManagement(companyId);
+    if (!selectedFunnel) {
+      toast.error("Funil não selecionado.");
+      return;
+    }
+    await moveLeadToStage(lead, targetColumnId, selectedFunnel.id);
     toast.success(`Lead movido para ${status === "won" ? "Ganhos" : "Perdidos"}`);
   };
 
@@ -97,7 +91,6 @@ export default function SalesFunnel() {
   );
 
   const { companyId } = useCompanyData();
-  // Multi-funil hook
   const { funnels, selectedFunnel, setSelectedFunnel, createFunnel, loadFunnels } =
     useFunnelManagement(companyId);
 
@@ -106,7 +99,7 @@ export default function SalesFunnel() {
   const { leads, refetchLeads, updateLead, addTagToLead, removeTagFromLead } = useLeadsDatabase(selectedFunnel?.id);
 
   // Montar colunas a partir dos stages; inserir leads em colunas corretas
-  
+  // ... keep existing code (handlers for updates/persistence, etc)
 
   // handler para atualizar campos do lead (persistente)
   const handleUpdateLead = async (leadId: string, fields: Partial<KanbanLead>) => {
@@ -122,14 +115,6 @@ export default function SalesFunnel() {
       await addTagToLead({ leadId, tagId });
     }
     refetchLeads();
-  };
-
-  // Move para Ganho/Perdido sincronizado com DB
-  const handleMoveToWonLost = async (lead, status) => {
-    const stage = status === "won" ? wonLostColumns[0] : wonLostColumns[1];
-    if (!stage) return;
-    await moveLeadToStage(lead, stage.id, selectedFunnel?.id);
-    toast.success(`Lead movido para ${stage.title}`);
   };
 
   // Persistência etiquetas
@@ -177,7 +162,7 @@ export default function SalesFunnel() {
               onColumnUpdate={updateColumn}
               onColumnDelete={deleteColumn}
               onOpenChat={handleOpenChat}
-              onMoveToWonLost={moveLeadToStage}
+              onMoveToWonLost={handleMoveToWonLost}
             />
           </div>
         </div>
