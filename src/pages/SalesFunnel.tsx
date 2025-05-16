@@ -13,6 +13,11 @@ import { useNavigate } from "react-router-dom";
 
 // Novos controles
 import { FunnelActionsBar } from "@/components/sales/funnel/FunnelActionsBar";
+import { useFunnelManagement } from "@/hooks/salesFunnel/useFunnelManagement";
+import { useStageManagement } from "@/hooks/salesFunnel/useStageManagement";
+import { useTagDatabase } from "@/hooks/salesFunnel/useTagDatabase";
+import { FunnelSelector } from "@/components/sales/funnel/FunnelSelector";
+import { useCompanyData } from "@/hooks/useCompanyData";
 
 export default function SalesFunnel() {
   const [activeTab, setActiveTab] = useState("funnel");
@@ -87,6 +92,24 @@ export default function SalesFunnel() {
   const wonLostColumns = columns.filter(col =>
     col.id === FIXED_COLUMN_IDS.WON || col.id === FIXED_COLUMN_IDS.LOST
   );
+
+  const { company } = useCompanyData();
+  // Multi-funil hook
+  const { funnels, selectedFunnel, setSelectedFunnel, createFunnel, loadFunnels } =
+    useFunnelManagement(company?.id);
+
+  // Etapas por funil (7 como limite)
+  const { stages, addStage, loadStages } = useStageManagement(selectedFunnel?.id, 7);
+
+  // Persistência etiquetas
+  const { tags, createTag: createTagDb, loadTags } = useTagDatabase(company?.id);
+
+  // Adicionar funil e etapas fixas iniciais se não existirem
+  // ... implement you want: check onCreateFunnel if necessary
+
+  // Atualizar o estado de leads, etc com funnel_id, kanban_stage_id
+
+  // Adapte os controles inferiores para filtrar boards, etapas e cartões pelo funil selecionado
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 overflow-hidden font-inter">

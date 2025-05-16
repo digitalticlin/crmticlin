@@ -418,14 +418,49 @@ export type Database = {
           },
         ]
       }
+      funnels: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnels_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kanban_stages: {
         Row: {
           color: string | null
           company_id: string
           created_at: string | null
+          funnel_id: string | null
           id: string
           is_fixed: boolean | null
           is_hidden: boolean | null
+          is_lost: boolean | null
+          is_won: boolean | null
           order_position: number
           title: string
           updated_at: string | null
@@ -434,9 +469,12 @@ export type Database = {
           color?: string | null
           company_id: string
           created_at?: string | null
+          funnel_id?: string | null
           id?: string
           is_fixed?: boolean | null
           is_hidden?: boolean | null
+          is_lost?: boolean | null
+          is_won?: boolean | null
           order_position: number
           title: string
           updated_at?: string | null
@@ -445,9 +483,12 @@ export type Database = {
           color?: string | null
           company_id?: string
           created_at?: string | null
+          funnel_id?: string | null
           id?: string
           is_fixed?: boolean | null
           is_hidden?: boolean | null
+          is_lost?: boolean | null
+          is_won?: boolean | null
           order_position?: number
           title?: string
           updated_at?: string | null
@@ -458,6 +499,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kanban_stages_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "funnels"
             referencedColumns: ["id"]
           },
         ]
@@ -505,6 +553,7 @@ export type Database = {
           company_id: string
           created_at: string | null
           email: string | null
+          funnel_id: string | null
           id: string
           kanban_stage_id: string | null
           last_message: string | null
@@ -524,6 +573,7 @@ export type Database = {
           company_id: string
           created_at?: string | null
           email?: string | null
+          funnel_id?: string | null
           id?: string
           kanban_stage_id?: string | null
           last_message?: string | null
@@ -543,6 +593,7 @@ export type Database = {
           company_id?: string
           created_at?: string | null
           email?: string | null
+          funnel_id?: string | null
           id?: string
           kanban_stage_id?: string | null
           last_message?: string | null
@@ -562,6 +613,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "funnels"
             referencedColumns: ["id"]
           },
           {
