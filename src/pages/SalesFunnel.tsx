@@ -93,16 +93,16 @@ export default function SalesFunnel() {
     col.id === FIXED_COLUMN_IDS.WON || col.id === FIXED_COLUMN_IDS.LOST
   );
 
-  const { company } = useCompanyData();
+  const { companyId } = useCompanyData();
   // Multi-funil hook
   const { funnels, selectedFunnel, setSelectedFunnel, createFunnel, loadFunnels } =
-    useFunnelManagement(company?.id);
+    useFunnelManagement(companyId);
 
-  // Etapas por funil (7 como limite)
-  const { stages, addStage, loadStages } = useStageManagement(selectedFunnel?.id, 7);
+  // Etapas por funil (7 como limite) — agora o hook exige também o companyId
+  const { stages, addStage, loadStages } = useStageManagement(selectedFunnel?.id, companyId, 7);
 
   // Persistência etiquetas
-  const { tags, createTag: createTagDb, loadTags } = useTagDatabase(company?.id);
+  const { tags, createTag: createTagDb, loadTags } = useTagDatabase(companyId);
 
   // Adicionar funil e etapas fixas iniciais se não existirem
   // ... implement you want: check onCreateFunnel if necessary

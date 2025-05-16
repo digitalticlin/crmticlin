@@ -11,16 +11,17 @@ export interface KanbanStage {
   is_lost?: boolean;
   order_position: number;
   funnel_id: string;
+  company_id: string;
 }
 
-export function useStageManagement(funnelId: string, limit: number = 7) {
+export function useStageManagement(funnelId: string, companyId: string, limit: number = 7) {
   const [stages, setStages] = useState<KanbanStage[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (funnelId) loadStages();
+    if (funnelId && companyId) loadStages();
     // eslint-disable-next-line
-  }, [funnelId]);
+  }, [funnelId, companyId]);
 
   const loadStages = async () => {
     setLoading(true);
@@ -33,11 +34,12 @@ export function useStageManagement(funnelId: string, limit: number = 7) {
     setLoading(false);
   };
 
-  const addStage = async (title: string, color?: string) => {
+  const addStage = async (title: string, color: string = "#e0e0e0") => {
     if (stages.length >= limit) throw new Error("Limite de etapas atingido.");
     const { data, error } = await supabase
       .from("kanban_stages")
       .insert({
+        company_id: companyId,
         funnel_id: funnelId,
         title,
         color,
