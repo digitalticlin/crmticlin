@@ -27,6 +27,13 @@ export interface SyncResult {
   skipped_without_phone?: number;
 }
 
+function extractPhoneFromOwnerJid(ownerJid?: string): string | null {
+  // Exemplo: '556291758080@s.whatsapp.net' => retorna '556291758080'
+  if (!ownerJid || typeof ownerJid !== "string") return null;
+  const match = ownerJid.match(/^(\d+)@/);
+  return match ? match[1] : null;
+}
+
 export async function insertMissingInstances({
   supabase,
   evoInstances,
@@ -74,8 +81,11 @@ export async function insertMissingInstances({
       skippedNotFound++;
       continue;
     }
-    // Corrigir: não inserir instâncias sem número de telefone
-    const phoneValue = instRaw.number || instRaw.phone || null;
+    // Corrigir: extrair telefone de ownerJid se não houver number/phone
+    let phoneValue = instRaw.number || instRaw.phone || null;
+    if (!phoneValue && instRaw.ownerJid) {
+      phoneValue = extractPhoneFromOwnerJid(instRaw.ownerJid);
+    }
     if (!phoneValue) {
       skippedWithoutPhone++;
       console.warn(`[SYNC][skip] Instância ignorada, sem número de telefone: ${instanceName}. Dados:`, instRaw);
