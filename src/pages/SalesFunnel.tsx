@@ -18,6 +18,8 @@ import { useStageManagement } from "@/hooks/salesFunnel/useStageManagement";
 import { useTagDatabase } from "@/hooks/salesFunnel/useTagDatabase";
 import { FunnelSelector } from "@/components/sales/funnel/FunnelSelector";
 import { useCompanyData } from "@/hooks/useCompanyData";
+import { useLeadsDatabase } from "@/hooks/salesFunnel/useLeadsDatabase";
+import { useStageDatabase } from "@/hooks/salesFunnel/useStageDatabase";
 
 export default function SalesFunnel() {
   const [activeTab, setActiveTab] = useState("funnel");
@@ -99,26 +101,34 @@ export default function SalesFunnel() {
   const { funnels, selectedFunnel, setSelectedFunnel, createFunnel, loadFunnels } =
     useFunnelManagement(companyId);
 
-  // Etapas (inclui "Ganho" e "Perdido" mesmo vazias)
-  const { stages, addStage, updateStage, removeStage, loadStages } = useStageManagement(selectedFunnel?.id, companyId, 7);
+  // NOVO: Buscar as etapas (stages) e leads do funil do banco (RLS garante permissão)
+  const { stages, refetchStages } = useStageDatabase(selectedFunnel?.id);
+  const { leads, refetchLeads, updateLead, addTagToLead, removeTagFromLead } = useLeadsDatabase(selectedFunnel?.id);
 
-  // Gera colunas do kanban incluindo "Ganho/Lost" sempre
-  const allStageIds = [
-    ...(stages ? stages.map((s) => s.id) : []),
-  ];
-  // Adicionar IDs padrões para Ganho/Perdido se não existirem
-  const ganhoStage = stages?.find((s) => s.is_won);
-  const perdidoStage = stages?.find((s) => s.is_lost);
+  // Montar colunas a partir dos stages; inserir leads em colunas corretas
+  const columns = stages.map((stage) => ({
+    id: stage.id,
+    title: stage.title,
+    leads: leads.filter((lead) => lead.columnId === stage.id),
+    isFixed: stage.is_fixed,
+    color: stage.color,
+  }));
 
-  const fullColumns = [
-    ...columns,
-    ...(ganhoStage && !columns.find(c => c.id === ganhoStage.id)
-      ? [{ id: ganhoStage.id, title: ganhoStage.title, leads: [], isFixed: true, color: ganhoStage.color }]
-      : []),
-    ...(perdidoStage && !columns.find(c => c.id === perdidoStage.id)
-      ? [{ id: perdidoStage.id, title: perdidoStage.title, leads: [], isFixed: true, color: perdidoStage.color }]
-      : []),
-  ];
+  // handler para atualizar campos do lead (persistente)
+  const handleUpdateLead = async (leadId: string, fields: Partial<KanbanLead>) => {
+    await updateLead({ leadId, fields });
+    refetchLeads();
+  };
+
+  // handler para adicionar/remover tags do lead (persistente)
+  const handleToggleTag = async (leadId: string, tagId: string, hasTag: boolean) => {
+    if (hasTag) {
+      await removeTagFromLead({ leadId, tagId });
+    } else {
+      await addTagToLead({ leadId, tagId });
+    }
+    refetchLeads();
+  };
 
   // Move para Ganho/Perdido sincronizado com DB
   const handleMoveToWonLost = async (lead, status) => {
