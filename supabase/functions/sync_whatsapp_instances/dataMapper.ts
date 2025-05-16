@@ -24,6 +24,7 @@ export interface SyncResult {
   inserted: number;
   details_inserted: string[];
   errors: any[];
+  skipped_without_phone?: number;
 }
 
 export async function insertMissingInstances({
@@ -53,6 +54,7 @@ export async function insertMissingInstances({
   const inserts = [];
   let skippedNotFound = 0;
   let skippedAlreadyExists = 0;
+  let skippedWithoutPhone = 0;
   let createdCount = 0;
   let errors: any[] = [];
 
@@ -72,10 +74,17 @@ export async function insertMissingInstances({
       skippedNotFound++;
       continue;
     }
+    // Corrigir: não inserir instâncias sem número de telefone
+    const phoneValue = instRaw.number || instRaw.phone || null;
+    if (!phoneValue) {
+      skippedWithoutPhone++;
+      console.warn(`[SYNC][skip] Instância ignorada, sem número de telefone: ${instanceName}. Dados:`, instRaw);
+      continue;
+    }
     inserts.push({
       company_id,
       instance_name: instanceName,
-      phone: instRaw.number || instRaw.phone || null,
+      phone: phoneValue,
       status:
         instRaw.connectionStatus === "open"
           ? "connected"
@@ -110,5 +119,6 @@ export async function insertMissingInstances({
     inserted: createdCount,
     details_inserted: inserts.map((i) => i.instance_name),
     errors,
+    skipped_without_phone: skippedWithoutPhone,
   };
 }
