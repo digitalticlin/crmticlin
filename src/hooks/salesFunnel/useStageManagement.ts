@@ -14,7 +14,11 @@ export interface KanbanStage {
   company_id: string;
 }
 
-export function useStageManagement(funnelId: string, companyId: string, limit: number = 7) {
+export function useStageManagement(
+  funnelId: string,
+  companyId: string,
+  limit: number = 7
+) {
   const [stages, setStages] = useState<KanbanStage[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -34,6 +38,7 @@ export function useStageManagement(funnelId: string, companyId: string, limit: n
     setLoading(false);
   };
 
+  // CREATE
   const addStage = async (title: string, color: string = "#e0e0e0") => {
     if (stages.length >= limit) throw new Error("Limite de etapas atingido.");
     const { data, error } = await supabase
@@ -44,14 +49,52 @@ export function useStageManagement(funnelId: string, companyId: string, limit: n
         title,
         color,
         is_fixed: false,
-        order_position: (stages[stages.length - 1]?.order_position || 0) + 1,
+        order_position:
+          (stages[stages.length - 1]?.order_position || 0) + 1,
       })
       .select()
       .single();
-    if (!error && data) setStages((prev) => [...prev, data]);
+    if (!error && data) {
+      setStages((prev) => [...prev, data]);
+      await loadStages();
+    }
   };
 
-  // ...funções para editar/remover etapas
+  // UPDATE
+  const updateStage = async (stageId: string, updates: Partial<KanbanStage>) => {
+    const { data, error } = await supabase
+      .from("kanban_stages")
+      .update(updates)
+      .eq("id", stageId)
+      .select()
+      .single();
+    if (!error && data) {
+      setStages((prev) =>
+        prev.map((s) => (s.id === stageId ? { ...s, ...updates } : s))
+      );
+      await loadStages();
+    }
+  };
 
-  return { stages, loading, addStage, setStages, loadStages };
+  // DELETE
+  const removeStage = async (stageId: string) => {
+    const { error } = await supabase
+      .from("kanban_stages")
+      .delete()
+      .eq("id", stageId);
+    if (!error) {
+      setStages((prev) => prev.filter((s) => s.id !== stageId));
+      await loadStages();
+    }
+  };
+
+  return {
+    stages,
+    loading,
+    addStage,
+    updateStage,
+    removeStage,
+    setStages,
+    loadStages,
+  };
 }

@@ -39,7 +39,8 @@ export default function SalesFunnel() {
     updateLeadPurchaseValue,
     updateLeadAssignedUser,
     updateLeadName,
-    receiveNewLead
+    receiveNewLead,
+    moveLeadToStage
   } = useSalesFunnel();
 
   const handleOpenChat = (lead: KanbanLead) => {
@@ -98,8 +99,34 @@ export default function SalesFunnel() {
   const { funnels, selectedFunnel, setSelectedFunnel, createFunnel, loadFunnels } =
     useFunnelManagement(companyId);
 
-  // Etapas por funil (7 como limite) — agora o hook exige também o companyId
-  const { stages, addStage, loadStages } = useStageManagement(selectedFunnel?.id, companyId, 7);
+  // Etapas (inclui "Ganho" e "Perdido" mesmo vazias)
+  const { stages, addStage, updateStage, removeStage, loadStages } = useStageManagement(selectedFunnel?.id, companyId, 7);
+
+  // Gera colunas do kanban incluindo "Ganho/Lost" sempre
+  const allStageIds = [
+    ...(stages ? stages.map((s) => s.id) : []),
+  ];
+  // Adicionar IDs padrões para Ganho/Perdido se não existirem
+  const ganhoStage = stages?.find((s) => s.is_won);
+  const perdidoStage = stages?.find((s) => s.is_lost);
+
+  const fullColumns = [
+    ...columns,
+    ...(ganhoStage && !columns.find(c => c.id === ganhoStage.id)
+      ? [{ id: ganhoStage.id, title: ganhoStage.title, leads: [], isFixed: true, color: ganhoStage.color }]
+      : []),
+    ...(perdidoStage && !columns.find(c => c.id === perdidoStage.id)
+      ? [{ id: perdidoStage.id, title: perdidoStage.title, leads: [], isFixed: true, color: perdidoStage.color }]
+      : []),
+  ];
+
+  // Move para Ganho/Perdido sincronizado com DB
+  const handleMoveToWonLost = async (lead, status) => {
+    const stage = status === "won" ? ganhoStage : perdidoStage;
+    if (!stage) return;
+    await moveLeadToStage(lead, stage.id, selectedFunnel?.id);
+    toast.success(`Lead movido para ${stage.title}`);
+  };
 
   // Persistência etiquetas
   const { tags, createTag: createTagDb, loadTags } = useTagDatabase(companyId);
@@ -141,17 +168,20 @@ export default function SalesFunnel() {
           <div className="flex-1 w-full min-w-0 max-w-full flex flex-col items-center justify-center px-0 pt-0">
             {activeTab === "funnel" ? (
               <KanbanBoard
-                columns={columns}
+                columns={fullColumns}
                 onColumnsChange={setColumns}
                 onOpenLeadDetail={openLeadDetail}
                 onColumnUpdate={updateColumn}
                 onColumnDelete={deleteColumn}
                 onOpenChat={handleOpenChat}
-                onMoveToWonLost={moveLeadToStatus}
+                onMoveToWonLost={handleMoveToWonLost}
               />
             ) : (
               <KanbanBoard
-                columns={wonLostColumns}
+                columns={[
+                  ...(ganhoStage ? [{ ...ganhoStage, id: ganhoStage.id, title: ganhoStage.title, leads: [], isFixed: true, color: ganhoStage.color }] : []),
+                  ...(perdidoStage ? [{ ...perdidoStage, id: perdidoStage.id, title: perdidoStage.title, leads: [], isFixed: true, color: perdidoStage.color }] : []),
+                ]}
                 onColumnsChange={setColumns}
                 onOpenLeadDetail={openLeadDetail}
                 onColumnUpdate={updateColumn}

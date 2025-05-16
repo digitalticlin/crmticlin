@@ -4,6 +4,15 @@ import { useLeadManagement } from "./salesFunnel/useLeadManagement";
 import { useTagManagement } from "./salesFunnel/useTagManagement";
 import { initialColumns, initialTags } from "@/data/initialSalesFunnelData";
 import { KanbanLead, KanbanTag } from "@/types/kanban";
+import { supabase } from "@/integrations/supabase/client";
+
+// Novo: sincronizar movimentação de lead
+async function moveLeadToStageDB(leadId: string, kanban_stage_id: string, funnel_id: string) {
+  await supabase
+    .from("leads")
+    .update({ kanban_stage_id, funnel_id })
+    .eq("id", leadId);
+}
 
 export const useSalesFunnel = () => {
   // Initialize column management
@@ -53,6 +62,22 @@ export const useSalesFunnel = () => {
     }
   };
 
+  // Nova: mover lead e sincronizar no banco
+  const moveLeadToStage = async (lead: KanbanLead, newColumnId: string, funnelId: string) => {
+    setColumns(columns =>
+      columns.map(col =>
+        col.id === lead.columnId
+          ? { ...col, leads: col.leads.filter(l => l.id !== lead.id) }
+          : col
+      ).map(col =>
+        col.id === newColumnId
+          ? { ...col, leads: [{ ...lead, columnId: newColumnId }, ...col.leads] }
+          : col
+      )
+    );
+    await moveLeadToStageDB(lead.id, newColumnId, funnelId);
+  };
+
   return {
     columns,
     setColumns,
@@ -70,6 +95,7 @@ export const useSalesFunnel = () => {
     updateLeadPurchaseValue,
     updateLeadAssignedUser,
     updateLeadName,
-    receiveNewLead
+    receiveNewLead,
+    moveLeadToStage, // <- exposto para SalesFunnel.tsx
   };
 };

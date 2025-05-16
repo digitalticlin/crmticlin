@@ -28,7 +28,10 @@ export function useTagDatabase(companyId: string) {
       .insert({ company_id: companyId, name, color })
       .select()
       .single();
-    if (!error && data) setTags((prev) => [...prev, data]);
+    if (!error && data) {
+      setTags((prev) => [...prev, data]);
+      await loadTags();
+    }
     return data;
   };
 
