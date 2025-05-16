@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Sidebar from "@/components/layout/Sidebar";
-import { useSalesFunnel } from "@/hooks/useSalesFunnel";
+import { useSalesFunnel } from "@/hooks/salesFunnel/useSalesFunnel";
 import { KanbanBoard } from "@/components/sales/KanbanBoard";
 import { LeadDetailSidebar } from "@/components/sales/LeadDetailSidebar";
 import { AddColumnDialog } from "@/components/sales/AddColumnDialog";
@@ -106,13 +106,7 @@ export default function SalesFunnel() {
   const { leads, refetchLeads, updateLead, addTagToLead, removeTagFromLead } = useLeadsDatabase(selectedFunnel?.id);
 
   // Montar colunas a partir dos stages; inserir leads em colunas corretas
-  const columns = stages.map((stage) => ({
-    id: stage.id,
-    title: stage.title,
-    leads: leads.filter((lead) => lead.columnId === stage.id),
-    isFixed: stage.is_fixed,
-    color: stage.color,
-  }));
+  
 
   // handler para atualizar campos do lead (persistente)
   const handleUpdateLead = async (leadId: string, fields: Partial<KanbanLead>) => {
@@ -132,7 +126,7 @@ export default function SalesFunnel() {
 
   // Move para Ganho/Perdido sincronizado com DB
   const handleMoveToWonLost = async (lead, status) => {
-    const stage = status === "won" ? ganhoStage : perdidoStage;
+    const stage = status === "won" ? wonLostColumns[0] : wonLostColumns[1];
     if (!stage) return;
     await moveLeadToStage(lead, stage.id, selectedFunnel?.id);
     toast.success(`Lead movido para ${stage.title}`);
@@ -176,31 +170,15 @@ export default function SalesFunnel() {
           
           {/* BOARD DO FUNIL */}
           <div className="flex-1 w-full min-w-0 max-w-full flex flex-col items-center justify-center px-0 pt-0">
-            {activeTab === "funnel" ? (
-              <KanbanBoard
-                columns={fullColumns}
-                onColumnsChange={setColumns}
-                onOpenLeadDetail={openLeadDetail}
-                onColumnUpdate={updateColumn}
-                onColumnDelete={deleteColumn}
-                onOpenChat={handleOpenChat}
-                onMoveToWonLost={handleMoveToWonLost}
-              />
-            ) : (
-              <KanbanBoard
-                columns={[
-                  ...(ganhoStage ? [{ ...ganhoStage, id: ganhoStage.id, title: ganhoStage.title, leads: [], isFixed: true, color: ganhoStage.color }] : []),
-                  ...(perdidoStage ? [{ ...perdidoStage, id: perdidoStage.id, title: perdidoStage.title, leads: [], isFixed: true, color: perdidoStage.color }] : []),
-                ]}
-                onColumnsChange={setColumns}
-                onOpenLeadDetail={openLeadDetail}
-                onColumnUpdate={updateColumn}
-                onColumnDelete={deleteColumn}
-                onOpenChat={handleOpenChat}
-                onReturnToFunnel={returnLeadToFunnel}
-                isWonLostView={true}
-              />
-            )}
+            <KanbanBoard
+              columns={columns}
+              onColumnsChange={setColumns}
+              onOpenLeadDetail={openLeadDetail}
+              onColumnUpdate={updateColumn}
+              onColumnDelete={deleteColumn}
+              onOpenChat={handleOpenChat}
+              onMoveToWonLost={moveLeadToStage}
+            />
           </div>
         </div>
       </main>
