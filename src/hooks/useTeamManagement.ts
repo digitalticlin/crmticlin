@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -82,7 +83,7 @@ export const useTeamManagement = (companyId?: string | null) => {
   }: {
     full_name: string;
     email: string;
-    role: string;
+    role: Role; // Use the Role union type here
     assignedWhatsAppIds: string[];
     assignedFunnelIds: string[];
   }) => {
@@ -90,11 +91,13 @@ export const useTeamManagement = (companyId?: string | null) => {
     // 1. Gerar senha temporária
     const tempPassword = uuidv4().slice(0, 8) + "A!";
     // 2. Criar usuário no auth
+    const safeRole = getValidRole(role);
+
     const { data: signUp, error: signUpError } = await supabase.auth.admin.createUser({
       email,
       password: tempPassword,
       email_confirm: true,
-      user_metadata: { full_name, company_id: companyId, role },
+      user_metadata: { full_name, company_id: companyId, role: safeRole },
     });
 
     if (signUpError || !signUp?.user) {
@@ -109,7 +112,7 @@ export const useTeamManagement = (companyId?: string | null) => {
       .update({
         full_name,
         company_id: companyId,
-        role,
+        role: safeRole,
         must_change_password: true,
       })
       .eq("id", signUp.user.id);
