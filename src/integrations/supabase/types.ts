@@ -746,6 +746,7 @@ export type Database = {
           document_id: string | null
           full_name: string | null
           id: string
+          must_change_password: boolean | null
           position: string | null
           role: Database["public"]["Enums"]["user_role"] | null
           updated_at: string | null
@@ -758,6 +759,7 @@ export type Database = {
           document_id?: string | null
           full_name?: string | null
           id: string
+          must_change_password?: boolean | null
           position?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string | null
@@ -770,6 +772,7 @@ export type Database = {
           document_id?: string | null
           full_name?: string | null
           id?: string
+          must_change_password?: boolean | null
           position?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string | null
@@ -1007,6 +1010,42 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_funnels: {
+        Row: {
+          created_at: string | null
+          funnel_id: string
+          id: string
+          profile_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          funnel_id: string
+          id?: string
+          profile_id: string
+        }
+        Update: {
+          created_at?: string | null
+          funnel_id?: string
+          id?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_funnels_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_funnels_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
