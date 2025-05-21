@@ -29,7 +29,7 @@ export default function WhatsAppInstanceGlassCard({
 
   // Paleta neon
   const lemonNeon = "#F9FF66";
-  
+
   return (
     <div className="flex w-full justify-center items-center">
       <Card
@@ -50,7 +50,7 @@ export default function WhatsAppInstanceGlassCard({
         <div className="flex-shrink-0 flex items-center justify-center w-16 h-16 rounded-full bg-[#F9FF66]/20 shadow" >
           <MessageSquare className="w-8 h-8 text-[#F9FF66]" />
         </div>
-        {/* Conteúdo central */}
+        {/* Conteúdo central (Nome, Status, Telefone) */}
         <div className="ml-6 flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
             <h4 className="text-lg font-bold text-white/90 truncate">{instanceName}</h4>
