@@ -4,10 +4,10 @@ import ChartCard from "@/components/dashboard/ChartCard";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { TeamInviteForm } from "@/components/settings/TeamInviteForm";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useTeamManagement } from "@/hooks/useTeamManagement";
 import { supabase } from "@/integrations/supabase/client";
+import { InviteMemberModal } from "./InviteMemberModal";
 
 export default function TeamSettings() {
   const { companyId } = useCompanyData();
@@ -22,6 +22,7 @@ export default function TeamSettings() {
   // Buscar todas instâncias WhatsApp e funis da empresa para usar em atribuições
   const [allWhatsApps, setAllWhatsApps] = useState<{ id: string; instance_name: string }[]>([]);
   const [allFunnels, setAllFunnels] = useState<{ id: string; name: string }[]>([]);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
 
   useMemo(() => {
     async function fetchAux() {
@@ -53,22 +54,28 @@ export default function TeamSettings() {
 
   return (
     <div>
-      <ChartCard
-        title="Novo membro"
-        description="Convide um colaborador para sua equipe e já defina funis/instâncias permitidos"
-      >
-        <TeamInviteForm
-          onInvite={inviteTeamMember}
-          loading={loading}
-          allWhatsApps={allWhatsApps}
-          allFunnels={allFunnels}
-        />
-      </ChartCard>
+      <div className="flex justify-end mb-4">
+        <Button
+          className="bg-gradient-to-tr from-[#9b87f5] to-[#6E59A5] text-white font-bold shadow-lg"
+          onClick={() => setInviteModalOpen(true)}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Adicionar
+        </Button>
+      </div>
+
+      <InviteMemberModal
+        open={inviteModalOpen}
+        onOpenChange={setInviteModalOpen}
+        onInvite={inviteTeamMember}
+        loading={loading}
+        allWhatsApps={allWhatsApps}
+        allFunnels={allFunnels}
+      />
 
       <ChartCard
         title="Membros da Equipe"
         description="Gerencie os membros da sua equipe e suas permissões"
-        className="mt-4"
       >
         <div className="space-y-4 mt-4">
           <div className="overflow-x-auto">
