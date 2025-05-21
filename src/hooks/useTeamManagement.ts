@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -51,7 +50,7 @@ export const useTeamManagement = (companyId?: string | null) => {
         id: p.id,
         full_name: p.full_name,
         email: p.email,
-        role: p.role,
+        role: (p.role ?? "seller") as "admin" | "seller" | "custom",
         must_change_password: !!p.must_change_password,
         whatsapp_numbers: (p.user_whatsapp_numbers || []).map((wn: any) => ({
           id: wn.whatsapp_number_id,
