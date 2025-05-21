@@ -13,6 +13,13 @@ export interface TeamMember {
   funnels: { id: string, name: string }[];
 }
 
+const allowedRoles = ["admin", "seller", "custom"] as const;
+type Role = typeof allowedRoles[number];
+
+function getValidRole(role: any): Role {
+  return allowedRoles.includes(role) ? role : "seller";
+}
+
 export const useTeamManagement = (companyId?: string | null) => {
   const [loading, setLoading] = useState(false);
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -50,7 +57,7 @@ export const useTeamManagement = (companyId?: string | null) => {
         id: p.id,
         full_name: p.full_name,
         email: p.email,
-        role: (p.role ?? "seller") as "admin" | "seller" | "custom",
+        role: getValidRole(p.role),
         must_change_password: !!p.must_change_password,
         whatsapp_numbers: (p.user_whatsapp_numbers || []).map((wn: any) => ({
           id: wn.whatsapp_number_id,
