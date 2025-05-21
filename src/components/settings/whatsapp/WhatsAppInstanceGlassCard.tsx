@@ -1,8 +1,7 @@
 
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Trash, RefreshCcw, Phone } from "lucide-react";
-import { toast } from "sonner";
 
 type Props = {
   instance: {
@@ -28,71 +27,87 @@ export default function WhatsAppInstanceGlassCard({
   const isConnected = status === "connected" || status === "connecting";
   const isDisconnected = status === "disconnected";
 
+  // Paleta neon
+  const lemonNeon = "#F9FF66";
+  
   return (
     <div className="flex w-full justify-center items-center">
       <Card
         className={`
-          relative w-full max-w-lg mx-auto rounded-2xl
+          flex flex-row items-center
+          max-w-2xl w-full min-h-[140px] p-4
           bg-white/10 dark:bg-card/10
           border border-white/20 dark:border-white/10
-          backdrop-blur-2xl glass-morphism
-          shadow-[0_8px_40px_0_rgba(16,20,29,0.15)]
-          px-0 py-0 min-h-[300px] transition-all duration-200
+          rounded-2xl shadow-glass-lg
           overflow-hidden
+          transition-colors duration-200
+          hover:border-[${lemonNeon}]
+          group
         `}
+        style={{ boxShadow: "0 8px 40px 0 rgba(16,20,29,0.15)" }}
       >
-        {/* Neon Accent Bar */}
-        <div className="absolute left-4 right-4 top-0 h-1.5 rounded-b-xl z-10" style={{background: 'linear-gradient(90deg, #F9FF66 0%, #eaff65 100%)'}} />
-        
-        <CardContent className="w-full flex flex-col items-center justify-center px-8 py-10 gap-5">
-          {/* WhatsApp Icon haloed in neon */}
-          <span className="flex items-center justify-center rounded-full bg-[#F9FF66]/30 shadow-[0_0_10px_2px_#F9FF6680] p-3 mb-1.5">
-            <MessageSquare className="w-8 h-8 text-[#F9FF66]" />
-          </span>
-          {/* Status badge */}
-          <span className={`px-4 py-1 rounded-full text-xs font-semibold mb-2 shadow
-            ${status === 'connected'
-              ? 'bg-[#F9FF66]/90 text-gray-900'
-              : 'bg-zinc-100/60 text-gray-800 dark:bg-zinc-800/60 dark:text-white'
-            }`}>
-            {status === 'connected' ? "Conectado" : (status === "connecting" ? "Conectando..." : "Desconectado")}
-          </span>
-          {/* Nome da instância */}
-          <h4 className="font-bold text-center text-lg text-white/90 mb-1">{instanceName}</h4>
-          {/* Telefone conectado */}
+        {/* Ícone à esquerda */}
+        <div className="flex-shrink-0 flex items-center justify-center w-16 h-16 rounded-full bg-[#F9FF66]/20 shadow" >
+          <MessageSquare className="w-8 h-8 text-[#F9FF66]" />
+        </div>
+        {/* Conteúdo central */}
+        <div className="ml-6 flex-1 min-w-0">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h4 className="text-lg font-bold text-white/90 truncate">{instanceName}</h4>
+            <span
+              className={`
+                px-3 py-1 rounded-full text-xs font-semibold shadow
+                ${
+                  status === "connected"
+                    ? "bg-[#F9FF66]/90 text-gray-900"
+                    : status === "connecting"
+                    ? "bg-zinc-100/80 text-gray-800 dark:bg-zinc-800/70 dark:text-white"
+                    : "bg-zinc-200/60 text-gray-800 dark:bg-zinc-900/60 dark:text-white"
+                }
+              `}
+            >
+              {status === "connected"
+                ? "Conectado"
+                : status === "connecting"
+                ? "Conectando..."
+                : "Desconectado"}
+            </span>
+          </div>
+          {/* Telefone abaixo */}
           {isConnected && phoneNumber && (
-            <div className="flex items-center gap-2 mt-1 text-[#222] dark:text-[#e8fa92] font-mono text-base bg-black/10 dark:bg-white/10 px-3 py-1 rounded-lg">
+            <div className="flex items-center gap-1 mt-2 font-mono text-base text-[#F9FF66] dark:text-[#e8fa92]">
               <Phone className="w-5 h-5 text-[#F9FF66]" />
-              <span className="font-semibold">{phoneNumber}</span>
+              <span className="font-semibold truncate">{phoneNumber}</span>
             </div>
           )}
-
-          {/* Ações (apenas para instâncias desconectadas!) */}
-          <div className="flex gap-3 justify-center mt-2">
-            {isDisconnected && (
-              <Button
-                variant="destructive"
-                size="icon"
-                className="border border-white/20 bg-[#F9FF66]/20 hover:bg-[#F9FF66]/50 shadow"
-                onClick={() => onDelete(id)}
-                disabled={isDeleting}
-              >
-                <Trash className="text-red-600" />
-              </Button>
-            )}
-            {!!onRefresh && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="border border-white/20 hover:bg-[#F9FF66]/20 shadow"
-                onClick={() => onRefresh(id)}
-                disabled={isLoading}
-              >
-                <RefreshCcw className="text-[#F9FF66]" />
-              </Button>
-            )}
-          </div>
-        </CardContent>
+        </div>
+        {/* Botões à direita */}
+        <div className="flex flex-col gap-2 ml-6">
+          {isDisconnected && (
+            <Button
+              variant="destructive"
+              size="icon"
+              className="border border-white/20 bg-[#F9FF66]/20 hover:bg-[#F9FF66]/50 shadow"
+              onClick={() => onDelete(id)}
+              disabled={isDeleting}
+              aria-label="Excluir instância"
+            >
+              <Trash className="text-red-600" />
+            </Button>
+          )}
+          {!!onRefresh && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="border border-white/20 hover:bg-[#F9FF66]/20 shadow"
+              onClick={() => onRefresh(id)}
+              disabled={isLoading}
+              aria-label="Recarregar status"
+            >
+              <RefreshCcw className="text-[#F9FF66]" />
+            </Button>
+          )}
+        </div>
       </Card>
     </div>
   );
