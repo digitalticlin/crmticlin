@@ -1,6 +1,6 @@
 
-import { Card } from "@/components/ui/card";
-import { MessageSquare, Plus } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface AddWhatsAppCardProps {
@@ -10,9 +10,8 @@ interface AddWhatsAppCardProps {
   onAdd: () => void;
 }
 
-const lemonNeon = "#F9FF66";
-const purple = "#9b87f5";
-const grayText = "#aaadb0";
+// Novo fundo igual ao card de instância conectada
+const cardBg = "linear-gradient(125deg, rgba(30,32,39,0.94) 60%, rgba(28,28,36,0.88) 100%)";
 
 const AddWhatsAppCard = ({
   isSuperAdmin = false,
@@ -20,76 +19,52 @@ const AddWhatsAppCard = ({
   isCreating,
   onAdd,
 }: AddWhatsAppCardProps) => (
-  <div className="w-full flex justify-center items-center px-2">
-    <Card
-      className={`
-        relative flex flex-col md:flex-row w-full max-w-2xl min-h-[220px] md:min-h-[260px] bg-white/20 dark:bg-card/20
-        border-2 border-white/10 dark:border-white/10 rounded-2xl shadow-glass-lg overflow-hidden
-        transition-all duration-300 hover:border-[${lemonNeon}] ring-1 ring-white/5
-        backdrop-blur-xl glass
-      `}
-      style={{
-        boxShadow: "0 12px 40px 0 rgba(16,20,29,0.20)",
-        background: "rgba(255, 255, 255, 0.13)",
-      }}
-    >
-      {/* Ícone flutuando lado esquerdo */}
-      <div className="w-full md:w-1/3 flex flex-col items-center justify-center bg-transparent z-10 relative">
-        <div
-          className="flex items-center justify-center rounded-full border-[4px] border-white/20 shadow-xl bg-[#F9FF66]/80"
-          style={{
-            width: 80,
-            height: 80,
-            marginTop: 36,
-            marginBottom: 32,
-            boxShadow:
-              "0 2px 24px 0 rgba(249,255,102,0.14), 0 0px 0px -1px #F9FF66",
-          }}
-        >
-          <MessageSquare size={42} className="text-[#1e1e1e] drop-shadow" />
-        </div>
+  <Card
+    className={`
+      relative overflow-hidden border-0 shadow-xl 
+      rounded-2xl
+      w-full max-w-xl mx-auto
+      flex flex-col items-center justify-center
+      glass-morphism
+      transition-transform hover:scale-105 duration-200
+      min-h-[330px]
+    `}
+    style={{
+      background: cardBg,
+      boxShadow: "0 8px 40px 0 rgba(16,20,29,0.11), 0 2px 10px 0 rgba(0,0,0,0.04)",
+    }}
+  >
+    {/* Camada para efeito de vidro extra se desejar */}
+    <div className="absolute inset-0 pointer-events-none z-0 rounded-2xl" />
+    <CardContent className="flex flex-col items-center text-center space-y-2 relative z-10 px-10 py-10">
+      <div className="mb-2">
+        <MessageSquare className="h-12 w-12 text-green-500" />
       </div>
-
-      {/* Área central de conteúdo */}
-      <div className="w-full md:w-2/3 flex flex-col items-center justify-center py-7 px-6 md:px-10 text-center">
-        <span
-          className="text-xs tracking-widest uppercase font-semibold mb-1"
-          style={{ color: grayText, letterSpacing: 2 }}
-        >
-          WhatsApp
-        </span>
-        <h2 className="text-[1.6rem] leading-tight font-bold text-neutral-900 dark:text-zinc-50 mb-1">
-          Adicione um novo número
-        </h2>
-        <p className="text-[1rem] text-muted-foreground mb-1 font-medium max-w-md mx-auto">
-          {isSuperAdmin
-            ? "Como super admin, adicione quantos números quiser para automatizar o atendimento do seu time!"
-            : isNewUser
-            ? "Bem-vindo! Adicione seu primeiro número do WhatsApp para começar a se comunicar com seus clientes."
-            : "Disponível apenas em planos superiores. Atualize seu plano para adicionar mais números."}
+      <h3 className="font-semibold text-xl text-white mb-1">Adicionar WhatsApp</h3>
+      {!isSuperAdmin && !isNewUser ? (
+        <p className="text-sm text-white/60">
+          Disponível apenas em planos superiores. Atualize seu plano.
         </p>
-        <Button
-          variant="ghost"
-          size="lg"
-          className={`
-            mt-5 px-8 py-4 text-base font-semibold rounded-xl text-white
-            bg-[${purple}] hover:bg-[#7e69ab] shadow-lg transition-all duration-200 hover:scale-105
-            disabled:bg-zinc-300/70 disabled:text-zinc-400
-          `}
-          style={{
-            background: purple,
-            marginTop: "1.2rem",
-          }}
-          disabled={(!isSuperAdmin && !isNewUser) || isCreating}
-          onClick={onAdd}
-        >
-          <Plus className="w-6 h-6 mr-2" />
-          {isCreating ? "Conectando..." : "Adicionar WhatsApp"}
-        </Button>
-      </div>
-    </Card>
-  </div>
+      ) : isNewUser ? (
+        <p className="text-sm text-white/70">
+          Como novo administrador, você pode adicionar seu primeiro número de WhatsApp.
+        </p>
+      ) : (
+        <p className="text-sm text-white/70">
+          Como SuperAdmin, adicione quantos números quiser.
+        </p>
+      )}
+      <Button
+        variant="whatsapp"
+        size="sm"
+        className="mt-4 px-5 py-2 text-base font-semibold rounded-lg"
+        disabled={(!isSuperAdmin && !isNewUser) || isCreating}
+        onClick={onAdd}
+      >
+        {isCreating ? "Conectando..." : "Adicionar WhatsApp"}
+      </Button>
+    </CardContent>
+  </Card>
 );
 
 export default AddWhatsAppCard;
-
