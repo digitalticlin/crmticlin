@@ -13,8 +13,11 @@ import ProfileAvatar from "./ProfileAvatar";
 import ProfileForm from "./ProfileForm";
 import SecuritySection from "./SecuritySection";
 import ProfileActions from "./ProfileActions";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 const ProfileSettings = () => {
+  const isMobile = useIsMobile();
   const {
     loading,
     saving,
@@ -45,19 +48,18 @@ const ProfileSettings = () => {
   }
 
   const handleCancel = () => {
-    // Recarregar os dados originais
     window.location.reload();
   };
 
   return (
     <Card className="glass-card border-0">
-      <CardHeader>
-        <CardTitle>Perfil</CardTitle>
-        <CardDescription>
+      <CardHeader className={cn("pb-4", isMobile && "px-4 pt-4")}>
+        <CardTitle className={isMobile ? "text-lg" : "text-xl"}>Perfil</CardTitle>
+        <CardDescription className={isMobile ? "text-sm" : ""}>
           Gerencie suas informações de perfil e dados da conta
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className={cn("space-y-6", isMobile && "px-4 pb-4")}>
         <ProfileAvatar 
           avatarUrl={avatarUrl} 
           fullName={fullName} 
@@ -86,11 +88,16 @@ const ProfileSettings = () => {
           onChangePassword={handleChangePassword}
         />
         
-        <ProfileActions 
-          saving={saving}
-          onSave={handleSaveChanges}
-          onCancel={handleCancel}
-        />
+        <div className={cn(
+          "flex space-x-2",
+          isMobile ? "flex-col space-x-0 space-y-2" : "justify-end"
+        )}>
+          <ProfileActions 
+            saving={saving}
+            onSave={handleSaveChanges}
+            onCancel={handleCancel}
+          />
+        </div>
       </CardContent>
     </Card>
   );
