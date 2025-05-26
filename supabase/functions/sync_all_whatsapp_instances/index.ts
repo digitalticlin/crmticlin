@@ -1,6 +1,37 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.42.6";
-import { evolutionApiService } from "../sync_whatsapp_instances/evolutionApi.ts";
+
+// ===== Definições diretas Evolution API =====
+const EVOLUTION_API_KEY = "JTZZDXMpymy7RETTvXdA9VxKdD0Mdj7t";
+const EVOLUTION_API_URL = "https://ticlin-evolution-api.eirfpl.easypanel.host";
+
+// Consulta status da instância na Evolution API
+async function checkInstanceStatus(instanceName: string, detailed = false) {
+  // /instance/connectionState ou /instance/fetchInstances
+  const url = `${EVOLUTION_API_URL}/instance/connectionState/${encodeURIComponent(instanceName)}`;
+  const resp = await fetch(url, {
+    method: "GET",
+    headers: { "API-KEY": EVOLUTION_API_KEY }
+  });
+  if (!resp.ok) throw new Error(`Evolution API connectionState failed: ${resp.status}`);
+  const result = await resp.json();
+  // Retorna "open", "connecting", "disconnected", etc.
+  if (detailed) return result;
+  return result?.instance?.state;
+}
+
+// Busca informações do device, incluindo telefone
+async function getDeviceInfo(instanceName: string) {
+  const url = `${EVOLUTION_API_URL}/instance/deviceInfo/${encodeURIComponent(instanceName)}`;
+  const resp = await fetch(url, {
+    method: "GET",
+    headers: { "API-KEY": EVOLUTION_API_KEY }
+  });
+  if (!resp.ok) throw new Error(`Evolution API getDeviceInfo failed: ${resp.status}`);
+  return await resp.json();
+}
+
+// ====== Fim Evolution API helpers ======
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,7 +64,7 @@ Deno.serve(async (req) => {
       let newPhone = instance.phone;
       try {
         // Consulta Evolution API para status
-        const status = await evolutionApiService.checkInstanceStatus(evoName, true);
+        const status = await checkInstanceStatus(evoName, true);
         if (typeof status === "object" ? status?.instance?.state === "open" : status === "open" || status === "connected") {
           newStatus = "connected";
         } else if (status === "connecting") {
@@ -41,7 +72,7 @@ Deno.serve(async (req) => {
         }
         // Se conectado, tenta buscar telefone atualizado
         if (newStatus === "connected") {
-          const info = await evolutionApiService.getDeviceInfo(evoName);
+          const info = await getDeviceInfo(evoName);
           if (info?.phone?.number) {
             newPhone = info.phone.number;
           }
