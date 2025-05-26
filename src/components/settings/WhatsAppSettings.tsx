@@ -1,7 +1,7 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
 import WhatsAppInstanceCard from "./whatsapp/WhatsAppInstanceCard";
-import PlaceholderInstanceCard from "./whatsapp/PlaceholderInstanceCard";
 import WhatsAppInfoAlert from "./whatsapp/WhatsAppInfoAlert";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -9,6 +9,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useConnectionSynchronizer } from "@/hooks/whatsapp/status-monitor/useConnectionSynchronizer";
 import { useWhatsAppFetcher } from "@/hooks/whatsapp/useWhatsAppFetcher";
+import FloatingAddWhatsAppButton from "./whatsapp/FloatingAddWhatsAppButton";
+import { usePlaceholderLogic } from "./whatsapp/PlaceholderLogicHooks";
+import PlaceholderQrModal from "./whatsapp/PlaceholderQrModal";
+import WaitingForConnectionCard from "./whatsapp/WaitingForConnectionCard";
 
 const STATUS_CHECK_INTERVAL = 15000; // Check status every 15 seconds
 
@@ -18,12 +22,10 @@ const WhatsAppSettings = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const userDataLoadedRef = useRef(false);
-  
+
   // Load current user data
   useEffect(() => {
-    // Evitar múltiplas chamadas carregando os dados apenas uma vez
     if (userDataLoadedRef.current) return;
-    
     const getUser = async () => {
       try {
         setIsLoading(true);
@@ -33,11 +35,10 @@ const WhatsAppSettings = () => {
           toast.error("Could not load user data");
           return;
         }
-        
         if (user) {
           setUserEmail(user.email || "");
           userDataLoadedRef.current = true;
-          
+
           // Check if user is a SuperAdmin
           const { data: superAdmin, error: superAdminError } = await supabase.rpc('is_super_admin');
           if (!superAdminError) {
@@ -51,10 +52,9 @@ const WhatsAppSettings = () => {
         setIsLoading(false);
       }
     };
-    
     getUser();
   }, []);
-  
+
   // Só inicializar o hook quando o email do usuário estiver disponível
   const {
     instances,
@@ -86,50 +86,51 @@ const WhatsAppSettings = () => {
   const handleShowQrCode = (instanceId: string) => {
     setShowQrCode(instanceId);
   };
-  
+
   // Modified to handle the Promise<string> return properly
   const handleConnectInstance = async (instanceId: string) => {
     try {
       await connectInstance(instanceId);
-      // After connection is initiated, add instance to priority checking
       addConnectingInstance(instanceId);
     } catch (error) {
       console.error("Error in handleConnectInstance:", error);
     }
   };
-  
+
   // Handle explicit status check request from component
   const handleStatusCheck = (instanceId: string) => {
     addConnectingInstance(instanceId);
   };
-  
-  // Force sync all instances when the component loads or instances change
+
   useEffect(() => {
     if (instances.length > 0) {
-      // Format instances for the sync function
       const instancesForSync = instances.map(instance => ({
         id: instance.id,
         instanceName: instance.instanceName
       }));
-      
-      // Perform initial sync
       syncAllInstances(instancesForSync).then((results) => {
         console.log("Initial status sync completed:", results);
       });
     }
   }, [instances, syncAllInstances]);
-  
+
+  // --- Lógica para adicionar WhatsApp, fora da grid, aproveitando usePlaceholderLogic ---
+  const placeholderLogic = usePlaceholderLogic({ userEmail, isSuperAdmin });
+
+  // Render waiting card se existe
+  const showWaitingCard = placeholderLogic.waitingForOpen && placeholderLogic.instanceName;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
       <div className="flex flex-col space-y-1.5">
         <h3 className="text-xl font-semibold">WhatsApp Management</h3>
         <p className="text-sm text-muted-foreground">
           Connect and manage your WhatsApp instances
         </p>
       </div>
-      
+
       <WhatsAppInfoAlert />
-      
+
       {lastError && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
@@ -138,28 +139,52 @@ const WhatsAppSettings = () => {
           </AlertDescription>
         </Alert>
       )}
-      
+
+      {/* Botão flutuante "+" */}
+      <FloatingAddWhatsAppButton
+        onClick={placeholderLogic.handleAddWhatsApp}
+        disabled={placeholderLogic.isCreating}
+        isLoading={placeholderLogic.isCreating}
+        isSuperAdmin={isSuperAdmin}
+        isNewUser={placeholderLogic.isNewUser}
+      />
+
+      {/* Modal do QR Code e lógica de adicionar */}
+      <PlaceholderQrModal
+        isOpen={placeholderLogic.qrCodeDialog.isOpen}
+        qrCodeUrl={placeholderLogic.qrCodeDialog.qrCodeUrl}
+        isCreating={placeholderLogic.isCreating}
+        onScanned={placeholderLogic.handleScanned}
+        onRegenerate={placeholderLogic.handleRegenerate}
+        onCancel={placeholderLogic.handleCancel}
+        instanceName={placeholderLogic.instanceName}
+        onRefreshInstances={refreshUserInstances}
+      />
+
+      {/* Card de "aguardando conexão" após scan QR */}
+      {showWaitingCard && (
+        <div className="max-w-[450px] mx-auto">
+          <WaitingForConnectionCard
+            instanceName={placeholderLogic.instanceName!}
+            onDelete={placeholderLogic.handleDeleteWaiting}
+          />
+        </div>
+      )}
+
       {/* Grid responsiva para os cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {instances.filter(instance => !!instance.id && instance.id !== "1").map(instance =>
-            <WhatsAppInstanceCard
-              key={instance.id}
-              instance={instance}
-              isLoading={instanceLoading[instance.id] || false}
-              showQrCode={showQrCode === instance.id}
-              onConnect={handleConnectInstance}
-              onDelete={deleteInstance}
-              onRefreshQrCode={refreshQrCode}
-              onStatusCheck={handleStatusCheck}
-            />
+          <WhatsAppInstanceCard
+            key={instance.id}
+            instance={instance}
+            isLoading={instanceLoading[instance.id] || false}
+            showQrCode={showQrCode === instance.id}
+            onConnect={handleConnectInstance}
+            onDelete={deleteInstance}
+            onRefreshQrCode={refreshQrCode}
+            onStatusCheck={handleStatusCheck}
+          />
         )}
-
-        {/* O card de adicionar segue o mesmo alinhamento dos demais */}
-        <PlaceholderInstanceCard
-          isSuperAdmin={isSuperAdmin}
-          userEmail={userEmail}
-          onRefreshInstances={refreshUserInstances}
-        />
       </div>
     </div>
   );
