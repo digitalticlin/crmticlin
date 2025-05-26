@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { MessageSquare, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,9 +26,7 @@ const AddWhatsAppCard = ({
       className={cn(
         "relative overflow-hidden border-0 shadow-xl rounded-2xl",
         "glass-morphism transition-transform hover:scale-105 duration-200",
-        isMobile 
-          ? "w-full min-h-[280px] mx-auto" 
-          : "w-full max-w-2xl min-h-[200px] mx-auto"
+        "w-full max-w-sm md:max-w-md min-h-[260px] md:min-h-[280px] mx-auto flex flex-col items-center"
       )}
       style={{
         background: cardBg,
@@ -37,73 +34,48 @@ const AddWhatsAppCard = ({
       }}
     >
       <div className="absolute inset-0 pointer-events-none z-0 rounded-2xl" />
-      <CardContent className={cn(
-        "relative z-10 h-full",
-        isMobile 
-          ? "flex flex-col items-center text-center space-y-4 p-6" 
-          : "flex flex-row items-center space-x-6 p-8"
-      )}>
-        {/* Icon Section */}
-        <div className={cn(
-          "flex items-center justify-center rounded-2xl",
-          "bg-white/10 backdrop-blur-sm border border-white/20",
-          isMobile ? "w-16 h-16 mb-2" : "w-20 h-20 flex-shrink-0"
-        )}>
-          <MessageSquare className={cn(
-            "text-green-400",
-            isMobile ? "h-8 w-8" : "h-10 w-10"
-          )} />
+      <CardContent
+        className={cn(
+          "relative z-10 h-full flex flex-col items-center justify-between text-center px-6 py-8 gap-4"
+        )}
+      >
+        {/* Ícone centralizado, espaçado do topo */}
+        <div className="flex items-center justify-center rounded-2xl mx-auto mb-2 bg-white/10 backdrop-blur-sm border border-white/20 w-16 h-16">
+          <MessageSquare className="text-green-400 h-8 w-8" />
         </div>
 
-        {/* Content Section */}
-        <div className={cn(
-          "flex-1",
-          isMobile ? "text-center" : "text-left"
-        )}>
-          <h3 className={cn(
-            "font-bold text-white mb-2",
-            isMobile ? "text-lg" : "text-xl"
-          )}>
-            Adicionar WhatsApp
-          </h3>
-          
+        {/* Texto e instruções */}
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <h3 className="font-bold text-white text-lg mb-1">Adicionar WhatsApp</h3>
           {!isSuperAdmin && !isNewUser ? (
-            <p className={cn(
-              "text-white/60 mb-4",
-              isMobile ? "text-sm" : "text-base"
-            )}>
-              Disponível apenas em planos superiores. Atualize seu plano.
+            <p className="text-white/60 mb-0 text-sm">
+              Disponível apenas em planos superiores.<br />Atualize seu plano.
             </p>
           ) : isNewUser ? (
-            <p className={cn(
-              "text-white/70 mb-4",
-              isMobile ? "text-sm" : "text-base"
-            )}>
+            <p className="text-white/70 mb-0 text-sm">
               Como novo administrador, você pode adicionar seu primeiro número de WhatsApp.
             </p>
           ) : (
-            <p className={cn(
-              "text-white/70 mb-4",
-              isMobile ? "text-sm" : "text-base"
-            )}>
+            <p className="text-white/70 mb-0 text-sm">
               Como SuperAdmin, adicione quantos números quiser.
             </p>
           )}
-
-          <Button
-            variant="whatsapp"
-            size={isMobile ? "default" : "lg"}
-            className={cn(
-              "font-semibold rounded-lg shadow-lg",
-              isMobile ? "w-full px-4 py-2 text-sm" : "px-6 py-3 text-base"
-            )}
-            disabled={(!isSuperAdmin && !isNewUser) || isCreating}
-            onClick={onAdd}
-          >
-            <Plus className={cn("mr-2", isMobile ? "h-4 w-4" : "h-5 w-5")} />
-            {isCreating ? "Conectando..." : "Adicionar WhatsApp"}
-          </Button>
         </div>
+
+        {/* Botão centralizado e espaçado da base */}
+        <Button
+          variant="whatsapp"
+          size="lg"
+          className={cn(
+            "font-semibold rounded-lg shadow-lg w-44 mx-auto",
+            isMobile ? "text-sm" : "text-base"
+          )}
+          disabled={(!isSuperAdmin && !isNewUser) || isCreating}
+          onClick={onAdd}
+        >
+          <Plus className="mr-2 w-5 h-5" />
+          {isCreating ? "Conectando..." : "Adicionar WhatsApp"}
+        </Button>
       </CardContent>
     </Card>
   );

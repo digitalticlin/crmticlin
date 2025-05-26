@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2, MessageSquare, Phone } from "lucide-react";
@@ -57,11 +56,10 @@ export default function WhatsAppInstanceDynamicCard({
     <div className="flex w-full justify-center items-center">
       <Card
         className={cn(
-          "w-full rounded-2xl border border-white/10 dark:border-white/10",
+          "w-full max-w-sm md:max-w-md rounded-2xl border border-white/10 dark:border-white/10",
           "bg-white/5 dark:bg-[#20232a]/30 backdrop-blur-md shadow-glass",
           "flex flex-col items-center justify-center px-0 py-0",
-          "transition-all duration-200",
-          isMobile ? "min-h-[240px] max-w-sm" : "min-h-[270px] max-w-lg"
+          "transition-all duration-200 min-h-[260px] md:min-h-[280px]"
         )}
         style={{
           boxShadow:
@@ -70,89 +68,66 @@ export default function WhatsAppInstanceDynamicCard({
             "linear-gradient(125deg, rgba(30,32,39,0.94) 60%, rgba(28,28,36,0.88) 100%)",
         }}
       >
-        <CardContent className={cn(
-          "w-full flex flex-col items-center justify-center gap-4",
-          isMobile ? "px-6 py-6" : "px-10 py-10"
-        )}>
-          {/* WhatsApp Icon */}
-          <span className={cn(
-            "flex items-center justify-center rounded-full",
-            "bg-white/20 dark:bg-[#21222b]/70 shadow p-3",
-            isMobile ? "mb-1" : "mb-2.5"
-          )}>
-            <MessageSquare className={cn(
-              "text-ticlin",
-              isMobile ? "w-6 h-6" : "w-8 h-8"
-            )} />
+        <CardContent
+          className={cn(
+            "w-full flex flex-col items-center justify-between gap-4",
+            "p-6 pt-8 pb-6"
+          )}
+        >
+          {/* Ícone largo, espaçado */}
+          <span
+            className={cn(
+              "flex items-center justify-center rounded-full mb-2",
+              "bg-white/20 dark:bg-[#21222b]/70 shadow p-4"
+            )}
+          >
+            <MessageSquare className="text-ticlin w-8 h-8 md:w-10 md:h-10" />
           </span>
 
-          {/* Status + Name */}
-          <h4 className={cn(
-            "font-extrabold text-center text-white mb-0 tracking-tight",
-            isMobile ? "text-lg" : "text-xl"
-          )}>
-            {isConnected ? "WhatsApp Conectado" : "WhatsApp Desconectado"}
-          </h4>
-
-          <div className={cn(
-            "flex items-center text-white/80 gap-2 mt-1",
-            isMobile ? "text-sm flex-col" : "text-base flex-row"
-          )}>
-            <span className="font-semibold">Nome:</span>
-            <span className={cn(
-              "font-mono truncate text-center",
-              isMobile ? "max-w-[200px] text-sm" : "max-w-[170px] text-base"
-            )}>
-              {instanceName}
-            </span>
-          </div>
-
-          {/* Connected Phone */}
-          {isConnected && phoneNumber && (
-            <div className={cn(
-              "flex items-center gap-2 mt-2 text-green-300 dark:text-green-400",
-              isMobile ? "text-sm" : "text-base"
-            )}>
-              <Phone className={cn(isMobile ? "w-4 h-4" : "w-5 h-5")} />
-              <span className="font-bold">{phoneNumber}</span>
+          {/* Nome + Badge status numa linha centralizada */}
+          <div className="flex flex-col items-center w-full">
+            <div className="flex items-center gap-2 mb-1 w-full justify-center">
+              <span
+                className={cn(
+                  "font-bold font-mono text-base md:text-lg text-white truncate max-w-[170px] md:max-w-[220px]"
+                )}
+                title={instanceName}
+              >
+                {instanceName}
+              </span>
+              <span>
+                {isConnected ? (
+                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-green-100/80 text-green-700 dark:bg-green-800/35 dark:text-green-200">
+                    Conectado
+                  </span>
+                ) : (
+                  <span className="px-3 py-1 rounded-full text-xs font-semibold bg-red-200/60 text-red-700 dark:bg-red-700/20 dark:text-red-200">
+                    Desconectado
+                  </span>
+                )}
+              </span>
             </div>
-          )}
-
-          {/* Status Badge */}
-          <div className="w-full flex justify-center mt-2">
-            {isConnected ? (
-              <span className={cn(
-                "px-4 py-2 rounded-full bg-green-200/60 dark:bg-green-800/30",
-                "text-green-800 dark:text-green-300 font-semibold border-0",
-                "tracking-wide shadow-none",
-                isMobile ? "text-xs" : "text-[13px]"
-              )}>
-                Conectado ao WhatsApp
-              </span>
-            ) : (
-              <span className={cn(
-                "px-4 py-2 rounded-full bg-red-200/40 dark:bg-red-700/15",
-                "text-red-700 dark:text-red-300 font-semibold border-0",
-                "tracking-wide",
-                isMobile ? "text-xs" : "text-[13px]"
-              )}>
-                Desconectado
-              </span>
+            {/* Telefone */}
+            {isConnected && phoneNumber && (
+              <div className="flex items-center gap-1 text-green-300 dark:text-green-400 text-sm mt-1 mb-0.5">
+                <Phone className="w-4 h-4" />
+                <span className="font-semibold">{phoneNumber}</span>
+              </div>
             )}
           </div>
 
-          {/* Delete Button */}
+          {/* Espaço extra */}
+          <div className="flex-1" />
+
+          {/* Botão deletar centralizado para desconectado apenas */}
           {isDisconnected && (
             <Button
               variant="destructive"
-              className={cn(
-                "mt-4 w-full font-bold rounded-xl shadow-lg",
-                isMobile ? "text-sm" : "text-base"
-              )}
+              className="mt-4 mx-auto w-40 font-bold rounded-xl shadow-lg transition-all"
               onClick={handleDelete}
             >
-              <Trash2 className={cn("mr-2", isMobile ? "w-4 h-4" : "w-5 h-5")} />
-              Deletar Instância
+              <Trash2 className="mr-2 w-5 h-5" />
+              Excluir Instância
             </Button>
           )}
         </CardContent>
