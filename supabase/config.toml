@@ -1,3 +1,4 @@
+
 include = ["./functions/**"]
 
 [dev]
@@ -16,3 +17,7 @@ include = ["./functions/**"]
 
 [functions.sync_whatsapp_instances]
 verify_jwt = false
+
+[functions.webhook_evolution]
+verify_jwt = false
+
