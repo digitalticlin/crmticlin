@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { MessageSquare, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,7 +28,6 @@ const AddWhatsAppCard = ({
         "relative overflow-hidden border-0 shadow-xl rounded-2xl",
         "glass-morphism transition-transform hover:scale-105 duration-200",
         "w-full max-w-sm md:max-w-md mx-auto flex flex-col items-center",
-        // ADICIONADO PARA DESKTOP
         "min-h-[260px] md:min-h-[250px] md:min-w-[450px]"
       )}
       style={{
@@ -72,7 +70,8 @@ const AddWhatsAppCard = ({
           variant="whatsapp"
           size="lg"
           className={cn(
-            "font-semibold rounded-lg shadow-lg w-44 mx-auto",
+            "font-semibold rounded-lg shadow-lg",
+            "w-full md:w-[90%] mx-auto",
             isMobile ? "text-sm" : "text-base"
           )}
           disabled={(!isSuperAdmin && !isNewUser) || isCreating}
@@ -87,4 +86,3 @@ const AddWhatsAppCard = ({
 };
 
 export default AddWhatsAppCard;
-

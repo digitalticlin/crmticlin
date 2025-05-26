@@ -209,7 +209,9 @@ const WhatsAppInstanceCard = ({
 
   return (
     <>
-      <Card className="overflow-hidden glass-card border-0">
+      <Card
+        className="overflow-hidden glass-card border-0 w-full max-w-sm md:max-w-md mx-auto flex flex-col items-center min-h-[260px] md:min-h-[250px] md:min-w-[450px] rounded-2xl"
+      >
         <CardContent className="p-0">
           <div className="p-4">
             <InstanceHeader
