@@ -1,3 +1,4 @@
+
 import { Card, CardContent } from "@/components/ui/card";
 import { MessageSquare, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,8 @@ interface AddWhatsAppCardProps {
   onAdd: () => void;
 }
 
-const cardBg = "linear-gradient(125deg, rgba(30,32,39,0.94) 60%, rgba(28,28,36,0.88) 100%)";
+const cardBg =
+  "linear-gradient(125deg, rgba(30,32,39,0.94) 60%, rgba(28,28,36,0.88) 100%)";
 
 const AddWhatsAppCard = ({
   isSuperAdmin = false,
@@ -26,11 +28,14 @@ const AddWhatsAppCard = ({
       className={cn(
         "relative overflow-hidden border-0 shadow-xl rounded-2xl",
         "glass-morphism transition-transform hover:scale-105 duration-200",
-        "w-full max-w-sm md:max-w-md min-h-[260px] md:min-h-[280px] mx-auto flex flex-col items-center"
+        "w-full max-w-sm md:max-w-md mx-auto flex flex-col items-center",
+        // ADICIONADO PARA DESKTOP
+        "min-h-[260px] md:min-h-[250px] md:min-w-[450px]"
       )}
       style={{
         background: cardBg,
-        boxShadow: "0 8px 40px 0 rgba(16,20,29,0.11), 0 2px 10px 0 rgba(0,0,0,0.04)",
+        boxShadow:
+          "0 8px 40px 0 rgba(16,20,29,0.11), 0 2px 10px 0 rgba(0,0,0,0.04)",
       }}
     >
       <div className="absolute inset-0 pointer-events-none z-0 rounded-2xl" />
@@ -82,3 +87,4 @@ const AddWhatsAppCard = ({
 };
 
 export default AddWhatsAppCard;
+

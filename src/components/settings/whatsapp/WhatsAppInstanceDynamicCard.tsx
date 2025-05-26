@@ -1,3 +1,4 @@
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2, MessageSquare, Phone } from "lucide-react";
@@ -56,10 +57,11 @@ export default function WhatsAppInstanceDynamicCard({
     <div className="flex w-full justify-center items-center">
       <Card
         className={cn(
+          // Outras classes já existentes...
           "w-full max-w-sm md:max-w-md rounded-2xl border border-white/10 dark:border-white/10",
           "bg-white/5 dark:bg-[#20232a]/30 backdrop-blur-md shadow-glass",
           "flex flex-col items-center justify-center px-0 py-0",
-          "transition-all duration-200 min-h-[260px] md:min-h-[280px]"
+          "transition-all duration-200 min-h-[260px] md:min-h-[250px] md:min-w-[450px]"
         )}
         style={{
           boxShadow:
@@ -135,3 +137,4 @@ export default function WhatsAppInstanceDynamicCard({
     </div>
   );
 }
+
