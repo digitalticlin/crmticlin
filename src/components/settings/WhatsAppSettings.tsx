@@ -8,7 +8,7 @@ import { AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useConnectionSynchronizer } from "@/hooks/whatsapp/status-monitor/useConnectionSynchronizer";
-import { useWhatsAppFetcher } from "@/hooks/whatsapp/useWhatsAppFetcher"; // <------ NOVO IMPORT
+import { useWhatsAppFetcher } from "@/hooks/whatsapp/useWhatsAppFetcher";
 
 const STATUS_CHECK_INTERVAL = 15000; // Check status every 15 seconds
 
@@ -73,7 +73,7 @@ const WhatsAppSettings = () => {
   const { syncAllInstances } = useConnectionSynchronizer();
 
   // Obter fetchUserInstances, garantindo refresh correto das instâncias de usuário
-  const { fetchUserInstances } = useWhatsAppFetcher(); // <------ LINHA CORRIGIDA
+  const { fetchUserInstances } = useWhatsAppFetcher();
 
   // Atualiza as instâncias do usuário (em vez de instâncias da empresa)
   const refreshUserInstances = () => {
@@ -139,7 +139,8 @@ const WhatsAppSettings = () => {
         </Alert>
       )}
       
-      <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      {/* Grid responsiva para os cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {instances.filter(instance => !!instance.id && instance.id !== "1").map(instance =>
             <WhatsAppInstanceCard
               key={instance.id}
@@ -153,14 +154,12 @@ const WhatsAppSettings = () => {
             />
         )}
 
-        {/* Sempre exibir card para nova conexão, mesmo se houver instâncias */}
-        <div className="flex">
-          <PlaceholderInstanceCard
-            isSuperAdmin={isSuperAdmin}
-            userEmail={userEmail}
-            onRefreshInstances={refreshUserInstances}
-          />
-        </div>
+        {/* O card de adicionar segue o mesmo alinhamento dos demais */}
+        <PlaceholderInstanceCard
+          isSuperAdmin={isSuperAdmin}
+          userEmail={userEmail}
+          onRefreshInstances={refreshUserInstances}
+        />
       </div>
     </div>
   );
