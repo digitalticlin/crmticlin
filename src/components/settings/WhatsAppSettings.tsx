@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
 import WhatsAppInstanceCard from "./whatsapp/WhatsAppInstanceCard";
@@ -13,6 +12,8 @@ import FloatingAddWhatsAppButton from "./whatsapp/FloatingAddWhatsAppButton";
 import { usePlaceholderLogic } from "./whatsapp/PlaceholderLogicHooks";
 import PlaceholderQrModal from "./whatsapp/PlaceholderQrModal";
 import WaitingForConnectionCard from "./whatsapp/WaitingForConnectionCard";
+import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const STATUS_CHECK_INTERVAL = 15000; // Check status every 15 seconds
 
@@ -22,6 +23,7 @@ const WhatsAppSettings = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const userDataLoadedRef = useRef(false);
+  const [isSyncingAll, setIsSyncingAll] = useState(false);
 
   // Load current user data
   useEffect(() => {
@@ -114,6 +116,31 @@ const WhatsAppSettings = () => {
     }
   }, [instances, syncAllInstances]);
 
+  // Atualiza status de todas as instâncias do usuário (empresa atual)
+  const handleSyncAllForCompany = async () => {
+    if (!instances.length) {
+      toast.error("Nenhuma instância WhatsApp encontrada para atualizar.");
+      return;
+    }
+    try {
+      setIsSyncingAll(true);
+      const instancesForSync = instances.map(instance => ({
+        id: instance.id,
+        instanceName: instance.instanceName
+      }));
+      await syncAllInstances(instancesForSync);
+      toast.success("Status do WhatsApp da empresa sincronizado!");
+      // Opcional: forçar atualização visual
+      refreshUserInstances();
+    } catch (e) {
+      toast.error(
+        "Falha ao sincronizar status das instâncias da empresa."
+      );
+    } finally {
+      setIsSyncingAll(false);
+    }
+  };
+
   // --- Lógica para adicionar WhatsApp, fora da grid, aproveitando usePlaceholderLogic ---
   const placeholderLogic = usePlaceholderLogic({ userEmail, isSuperAdmin });
 
@@ -123,7 +150,31 @@ const WhatsAppSettings = () => {
   return (
     <div className="space-y-6 relative">
       <div className="flex flex-col space-y-1.5">
-        <h3 className="text-xl font-semibold">WhatsApp Management</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-xl font-semibold">WhatsApp Management</h3>
+          {/* Botão de sincronizar status de toda a empresa (apenas Admin comum, não SuperAdmin global) */}
+          {!isSuperAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSyncAllForCompany}
+              disabled={isSyncingAll}
+              className="ml-2"
+            >
+              {isSyncingAll ? (
+                <>
+                  <Loader2 className="animate-spin mr-1 h-4 w-4" />
+                  Atualizando...
+                </>
+              ) : (
+                <>
+                  <Loader2 className="mr-1 h-4 w-4" />
+                  Atualizar Status
+                </>
+              )}
+            </Button>
+          )}
+        </div>
         <p className="text-sm text-muted-foreground">
           Connect and manage your WhatsApp instances
         </p>

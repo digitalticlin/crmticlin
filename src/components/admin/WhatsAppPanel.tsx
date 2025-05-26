@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -10,6 +9,8 @@ import { WhatsAppFilters } from "./whatsapp/WhatsAppFilters";
 import { WhatsAppInstanceTable } from "./whatsapp/WhatsAppInstanceTable";
 import { SystemDiagnostic } from "./whatsapp/SystemDiagnostic";
 import { getStatusBadge } from "./whatsapp/StatusBadge";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 // Mock data for WhatsApp instances
 const mockWhatsAppInstances = [
@@ -75,7 +76,8 @@ export default function WhatsAppPanel() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [companyFilter, setCompanyFilter] = useState('all');
-  
+  const [isGlobalSyncing, setIsGlobalSyncing] = useState(false);
+
   const companies = [
     { id: '1', name: 'Tech Solutions Ltda' },
     { id: '2', name: 'Marketing Digital SA' },
@@ -97,6 +99,24 @@ export default function WhatsAppPanel() {
     return matchesSearch && matchesStatus && matchesCompany;
   });
   
+  // Sincronização global de todas as instâncias (Edge Function)
+  const handleGlobalSync = async () => {
+    try {
+      setIsGlobalSyncing(true);
+      const response = await fetch("/functions/v1/sync_all_whatsapp_instances", {
+        method: "POST"
+      });
+      if (!response.ok) throw new Error("Erro ao invocar função de sync global");
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      toast.success("Status de todas as instâncias WhatsApp atualizado!");
+    } catch (e: any) {
+      toast.error(e?.message || "Erro ao sincronizar status global.");
+    } finally {
+      setIsGlobalSyncing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -109,8 +129,23 @@ export default function WhatsAppPanel() {
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="gap-1">
-                <RefreshCcw className="h-4 w-4" /> Atualizar Status
+              <Button
+                variant="outline"
+                className="gap-1"
+                onClick={handleGlobalSync}
+                disabled={isGlobalSyncing}
+              >
+                {isGlobalSyncing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Atualizando...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCcw className="h-4 w-4" />
+                    Atualizar Status
+                  </>
+                )}
               </Button>
             </div>
           </div>
