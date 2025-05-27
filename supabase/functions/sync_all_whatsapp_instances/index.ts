@@ -1,4 +1,3 @@
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.42.6";
 
 // ===== Definições diretas Evolution API =====
@@ -62,39 +61,58 @@ Deno.serve(async (req) => {
       const evoName = instance.evolution_instance_name || instance.instance_name;
       let newStatus = "disconnected";
       let newPhone = instance.phone;
+      let updatedFields: Record<string, any> = {};
+
       try {
         // Consulta Evolution API para status
         const status = await checkInstanceStatus(evoName, true);
-        if (typeof status === "object" ? status?.instance?.state === "open" : status === "open" || status === "connected") {
+        const statusValue = typeof status === "object" ? status?.instance?.state : status;
+        if (statusValue === "open" || statusValue === "connected") {
           newStatus = "connected";
-        } else if (status === "connecting") {
+        } else if (statusValue === "connecting") {
           newStatus = "connecting";
         }
+
         // Se conectado, tenta buscar telefone atualizado
         if (newStatus === "connected") {
           const info = await getDeviceInfo(evoName);
-          if (info?.phone?.number) {
+          if (info?.phone?.number && info.phone.number !== instance.phone) {
             newPhone = info.phone.number;
+            updatedFields.phone = newPhone;
           }
         }
-        // Atualiza status e telefone no banco!
+
+        // Atualizar evolution_instance_name se faltar
+        if (!instance.evolution_instance_name && instance.instance_name) {
+          updatedFields.evolution_instance_name = instance.instance_name;
+        }
+
+        // Sempre atualiza status, data_connected, data_disconnected
+        updatedFields.status = newStatus;
+        updatedFields.date_connected = newStatus === "connected" ? new Date().toISOString() : null;
+        updatedFields.date_disconnected = newStatus === "disconnected" ? new Date().toISOString() : null;
+
+        // Atualiza no banco apenas se mudou algo relevante
         const { error: updateError } = await supabase
           .from("whatsapp_numbers")
-          .update({
-            status: newStatus,
-            phone: newPhone,
-            date_connected: newStatus === "connected" ? new Date().toISOString() : null,
-            date_disconnected: newStatus === "disconnected" ? new Date().toISOString() : null,
-          })
+          .update(updatedFields)
           .eq("id", instance.id);
 
         if (updateError) throw updateError;
 
-        results[instance.id] = { status: newStatus, ok: true };
+        console.log(
+          `[SYNC][${instance.id}] Atualizado: status=${newStatus}, phone=${newPhone}, evolution_instance_name=${updatedFields.evolution_instance_name || instance.evolution_instance_name
+          }`
+        );
+
+        results[instance.id] = { status: newStatus, ok: true, phone: newPhone, evolution_instance_name: updatedFields.evolution_instance_name || instance.evolution_instance_name };
       } catch (e) {
+        console.error(`[SYNC][${instance.id}] Falha ao atualizar:`, e);
         results[instance.id] = { status: "error", ok: false, error: String(e) };
       }
     }
+
+    console.log("[SYNC] Fim do ciclo. Resumo das instâncias:", results);
 
     return new Response(
       JSON.stringify({ success: true, count: instancesDb?.length || 0, results }),
