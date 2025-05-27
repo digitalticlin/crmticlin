@@ -55,6 +55,26 @@ Deno.serve(async (req) => {
 
     if (loadError) throw loadError;
 
+    // 1. Buscar todas as instâncias válidas da Evolution API (lista "viva")
+    const urlEvo = `${EVOLUTION_API_URL}/instance/fetchInstances`;
+    const respEvo = await fetch(urlEvo, {
+      method: "GET",
+      headers: { "API-KEY": EVOLUTION_API_KEY }
+    });
+    if (!respEvo.ok) throw new Error(`Evolution API fetchInstances failed: ${respEvo.status}`);
+    const evoListRaw = await respEvo.json();
+    // Normaliza formato: array ou objeto com "instances"
+    const evoListArr = Array.isArray(evoListRaw)
+      ? evoListRaw
+      : Array.isArray(evoListRaw.instances)
+        ? evoListRaw.instances
+        : [];
+    // Lista dos nomes válidos ('instanceName')
+    const allEvolutionNamesSet = new Set(
+      evoListArr.map(i => (i?.instanceName || i?.name || "").toLowerCase())
+    );
+
+    // Atualização/Sync em todos os registros (aqui mantemos sua lógica usual)
     const results: Record<string, any> = {};
     for (const instance of instancesDb || []) {
       // Usa sempre evolution_instance_name para integração API
@@ -112,10 +132,38 @@ Deno.serve(async (req) => {
       }
     }
 
+    // 2. Após atualizar todos, removemos os "zumbis" não mais presentes na Evolution
+    const zombieRecords = (instancesDb || []).filter((dbInstance) => {
+      const key = (dbInstance.evolution_instance_name || dbInstance.instance_name || "").toLowerCase();
+      return key && !allEvolutionNamesSet.has(key);
+    });
+
+    let zombiesRemoved: string[] = [];
+    for (const zb of zombieRecords) {
+      const { error: delErr } = await supabase
+        .from("whatsapp_numbers")
+        .delete()
+        .eq("id", zb.id);
+      if (delErr) {
+        console.error(`[SYNC][${zb.id}] Falha ao remover instância zumbi:`, delErr);
+      } else {
+        zombiesRemoved.push(zb.id);
+        console.log(`[SYNC][${zb.id}] Instância zumbi removida`);
+      }
+    }
+
     console.log("[SYNC] Fim do ciclo. Resumo das instâncias:", results);
+    if (zombiesRemoved.length > 0) {
+      console.log(`[SYNC] Instâncias zumbi removidas:`, zombiesRemoved);
+    }
 
     return new Response(
-      JSON.stringify({ success: true, count: instancesDb?.length || 0, results }),
+      JSON.stringify({ 
+        success: true, 
+        count: instancesDb?.length || 0, 
+        results, 
+        zombiesRemoved 
+      }),
       { headers: corsHeaders }
     );
   } catch (err: any) {
