@@ -1,103 +1,75 @@
 
-import { useRef, useCallback } from "react";
-import { WhatsAppInstance } from "../whatsappInstanceStore";
-import { usePriorityMonitor } from "./usePriorityMonitor";
-import { useInstanceStatusChecker } from "./useInstanceStatusChecker";
-import { useConnectionSynchronizer } from "./useConnectionSynchronizer";
+import { useRef, useEffect } from "react";
+import { WhatsAppConnectionStatus } from "../database/whatsappDatabaseTypes";
 
 /**
- * Hook for setting up controlled and limited periodic status checks
+ * Hook for setting up periodic status checks for WhatsApp instances
  */
 export const usePeriodicChecker = () => {
-  const { getConnectingInstances, isConnectingInstance, removeConnectingInstance } = usePriorityMonitor();
-  const { checkInstanceStatus } = useInstanceStatusChecker();
-  const { forceSyncConnectionStatus } = useConnectionSynchronizer();
-  // Use a ref so it's global per mount and never duplicated
-  const intervalRef = useRef<number | null>(null);
-  // Track last fetch time per instance to throttle
-  const instanceLastCheck = useRef<Record<string, number>>({});
-
+  const checkInterval = useRef<NodeJS.Timeout | null>(null);
+  const connectingInstances = useRef<Set<string>>(new Set());
+  
   /**
-   * Central periodic status check with throttle/limite
+   * Setup periodic status checking for instances
    */
-  const setupPeriodicStatusCheck = useCallback(
-    (
-      instances: WhatsAppInstance[],
-      checkInterval: number = 15000 // 15s default, mas pode ser reduzido se desejar
-    ) => {
-      if (!instances.length) return null;
-
-      // Estado global para uso em outros hooks/comps
-      if (!window._whatsAppInstancesState) {
-        window._whatsAppInstancesState = { instances };
-      } else {
-        window._whatsAppInstancesState.instances = instances;
-      }
-
-      console.log("Iniciando status checker centralizado para", instances.length, "instâncias");
-
-      // Função principal que controla a frequência
-      const runStatusChecks = () => {
-        const now = Date.now();
-        const connectingIds = getConnectingInstances();
-
-        // 1º: Instâncias "connecting" (verificação mais rápida, até máx 1x/5s)
-        connectingIds.forEach((instanceId, idx) => {
-          const instance = instances.find((inst) => inst.id === instanceId);
-          if (!instance) return;
-          // throttle: máx 1x/5s
-          if (!instanceLastCheck.current[instanceId] || now - instanceLastCheck.current[instanceId] > 5000) {
-            instanceLastCheck.current[instanceId] = now;
-            forceSyncConnectionStatus(instanceId, instance.instanceName).then((status) => {
-              // Se conectou, remove da lista de connecting
-              if (status === "connected" && isConnectingInstance(instanceId)) {
-                removeConnectingInstance(instanceId);
-              }
-            });
+  const setupPeriodicStatusCheck = (
+    instances: Array<{ id: string; instanceName: string; connection_status?: string }>,
+    checkFunction: (instanceId: string, instanceName: string) => Promise<WhatsAppConnectionStatus>
+  ) => {
+    // Clear existing interval
+    if (checkInterval.current) {
+      clearInterval(checkInterval.current);
+    }
+    
+    // Only check instances that are not already connected
+    const instancesToCheck = instances.filter(instance => 
+      instance.connection_status !== "open" && 
+      instance.connection_status !== "closed"
+    );
+    
+    if (instancesToCheck.length === 0) {
+      console.log("No instances need periodic checking");
+      return;
+    }
+    
+    console.log(`Setting up periodic status check for ${instancesToCheck.length} instances`);
+    
+    checkInterval.current = setInterval(async () => {
+      for (const instance of instancesToCheck) {
+        try {
+          const status = await checkFunction(instance.id, instance.instanceName);
+          
+          // If instance becomes connected, we can remove it from periodic checking
+          if (status === "open") {
+            console.log(`Instance ${instance.instanceName} is now connected, removing from periodic checks`);
+            connectingInstances.current.delete(instance.id);
           }
-        });
-
-        // 2º: Instâncias desconectadas (máx 1x/15s)
-        instances
-          .filter((inst) => !inst.connected && !isConnectingInstance(inst.id))
-          .forEach((instance) => {
-            if (!instanceLastCheck.current[instance.id] || now - instanceLastCheck.current[instance.id] > 15000) {
-              instanceLastCheck.current[instance.id] = now;
-              forceSyncConnectionStatus(instance.id, instance.instanceName);
-            }
-          });
-
-        // 3º: Instâncias conectadas (1x/30s)
-        instances
-          .filter((inst) => inst.connected)
-          .forEach((instance) => {
-            if (!instanceLastCheck.current[instance.id] || now - instanceLastCheck.current[instance.id] > 30000) {
-              instanceLastCheck.current[instance.id] = now;
-              forceSyncConnectionStatus(instance.id, instance.instanceName);
-            }
-          });
-      };
-
-      // Executa imediatamente o primeiro ciclo (caso credenciais mudem)
-      runStatusChecks();
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-      // Executa ciclo a cada checkInterval (15s)
-      intervalRef.current = window.setInterval(runStatusChecks, checkInterval);
-
-      return () => {
-        // Limpa interval quando desmontar ou trocar
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
+        } catch (error) {
+          console.error(`Error checking status for instance ${instance.instanceName}:`, error);
         }
-      };
-    },
-    [getConnectingInstances, isConnectingInstance, removeConnectingInstance, forceSyncConnectionStatus]
-  );
-
+      }
+    }, 10000); // Check every 10 seconds
+  };
+  
+  /**
+   * Stop periodic checking
+   */
+  const stopPeriodicStatusCheck = () => {
+    if (checkInterval.current) {
+      clearInterval(checkInterval.current);
+      checkInterval.current = null;
+    }
+  };
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopPeriodicStatusCheck();
+    };
+  }, []);
+  
   return {
     setupPeriodicStatusCheck,
+    stopPeriodicStatusCheck
   };
 };
