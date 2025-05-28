@@ -64,15 +64,45 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+// Função para registrar logs da sincronização
+async function logSyncExecution(supabase: any, status: string, result: any, error?: string, executionTime?: number) {
+  try {
+    await supabase
+      .from("sync_logs")
+      .insert({
+        function_name: "sync_all_whatsapp_instances",
+        status,
+        execution_time: executionTime ? `${executionTime} milliseconds` : null,
+        result: result || null,
+        error_message: error || null
+      });
+  } catch (logError) {
+    console.error("[SYNC][LOG ERROR]", logError);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  const startTime = Date.now();
+  let isAutoSync = false;
 
   try {
-    console.log("[SYNC] Iniciando sincronização completa de instâncias WhatsApp");
+    // Verificar se é uma execução automática
+    const body = await req.text();
+    if (body) {
+      try {
+        const parsedBody = JSON.parse(body);
+        isAutoSync = parsedBody.auto_sync === true;
+      } catch (e) {
+        // Ignorar erro de parsing se não for JSON válido
+      }
+    }
+
+    console.log(`[SYNC] Iniciando sincronização ${isAutoSync ? 'AUTOMÁTICA' : 'MANUAL'} de instâncias WhatsApp`);
 
     // 1. Buscar TODAS as instâncias da Evolution API (source of truth)
     const evolutionInstances = await fetchAllEvolutionInstances();
@@ -251,32 +281,52 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log("[SYNC] Sincronização completa finalizada");
+    const executionTime = Date.now() - startTime;
+    const summary = {
+      updated: Object.values(syncResults).filter(r => r.status === "updated").length,
+      inserted: Object.values(syncResults).filter(r => r.status === "inserted").length,
+      deleted: Object.values(syncResults).filter(r => r.status === "deleted").length,
+      errors: Object.values(syncResults).filter(r => r.status === "error").length,
+      skipped: Object.values(syncResults).filter(r => r.status === "skipped").length,
+    };
+
+    const finalResult = {
+      success: true,
+      auto_sync: isAutoSync,
+      execution_time_ms: executionTime,
+      total_evolution_instances: evolutionInstances.length,
+      total_db_instances_before: dbInstances?.length || 0,
+      sync_results: syncResults,
+      zombies_removed: zombiesRemoved,
+      summary
+    };
+
+    // Registrar log da execução
+    await logSyncExecution(supabase, "success", finalResult, undefined, executionTime);
+
+    console.log(`[SYNC] Sincronização ${isAutoSync ? 'AUTOMÁTICA' : 'MANUAL'} completa finalizada`);
     console.log(`[SYNC] Instâncias sincronizadas: ${Object.keys(syncResults).length}`);
     console.log(`[SYNC] Instâncias removidas: ${zombiesRemoved.length}`);
+    console.log(`[SYNC] Tempo de execução: ${executionTime}ms`);
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        total_evolution_instances: evolutionInstances.length,
-        total_db_instances_before: dbInstances?.length || 0,
-        sync_results: syncResults,
-        zombies_removed: zombiesRemoved,
-        summary: {
-          updated: Object.values(syncResults).filter(r => r.status === "updated").length,
-          inserted: Object.values(syncResults).filter(r => r.status === "inserted").length,
-          deleted: Object.values(syncResults).filter(r => r.status === "deleted").length,
-          errors: Object.values(syncResults).filter(r => r.status === "error").length,
-          skipped: Object.values(syncResults).filter(r => r.status === "skipped").length,
-        }
-      }),
+      JSON.stringify(finalResult),
       { headers: corsHeaders }
     );
 
   } catch (err: any) {
-    console.error("[SYNC][FATAL ERROR]", err);
+    const executionTime = Date.now() - startTime;
+    console.error(`[SYNC][FATAL ERROR] ${isAutoSync ? 'AUTOMÁTICA' : 'MANUAL'}`, err);
+    
+    // Registrar log do erro
+    await logSyncExecution(supabase, "error", null, err.message || "Erro inesperado no sync global.", executionTime);
+    
     return new Response(
-      JSON.stringify({ error: err.message || "Erro inesperado no sync global." }),
+      JSON.stringify({ 
+        error: err.message || "Erro inesperado no sync global.",
+        auto_sync: isAutoSync,
+        execution_time_ms: executionTime
+      }),
       { status: 500, headers: corsHeaders }
     );
   }

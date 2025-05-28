@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Building2, Users, CreditCard, MessageSquare, FileText, LifeBuoy, Settings, ChevronRight, ChevronLeft, RefreshCcw } from "lucide-react";
+import { Building2, Users, CreditCard, MessageSquare, FileText, LifeBuoy, Settings, ChevronRight, ChevronLeft, RefreshCcw, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SidebarLogo from "@/components/layout/SidebarLogo";
 import { Separator } from "@/components/ui/separator";
@@ -38,6 +38,11 @@ const GlobalAdminSidebar = ({ activeTab, setActiveTab }: GlobalAdminSidebarProps
       id: "sync",
       icon: RefreshCcw,
       label: "Sincronização",
+    },
+    {
+      id: "sync-logs",
+      icon: Activity,
+      label: "Logs Sync",
     },
     {
       id: "logs",

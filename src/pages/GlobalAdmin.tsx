@@ -10,6 +10,7 @@ import LogsPanel from "@/components/admin/LogsPanel";
 import SupportPanel from "@/components/admin/SupportPanel";
 import ConfigPanel from "@/components/admin/ConfigPanel";
 import { WhatsAppSyncTest } from "@/components/admin/WhatsAppSyncTest";
+import { SyncLogsPanel } from "@/components/admin/SyncLogsPanel";
 
 export default function GlobalAdmin() {
   const [activeTab, setActiveTab] = useState("companies");
@@ -27,12 +28,13 @@ export default function GlobalAdmin() {
           </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid grid-cols-8 w-full">
+            <TabsList className="grid grid-cols-9 w-full">
               <TabsTrigger value="companies">Empresas</TabsTrigger>
               <TabsTrigger value="users">Usuários</TabsTrigger>
               <TabsTrigger value="plans">Planos</TabsTrigger>
               <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
               <TabsTrigger value="sync">Sincronização</TabsTrigger>
+              <TabsTrigger value="sync-logs">Logs Sync</TabsTrigger>
               <TabsTrigger value="logs">Logs</TabsTrigger>
               <TabsTrigger value="support">Suporte</TabsTrigger>
               <TabsTrigger value="config">Configurações</TabsTrigger>
@@ -57,13 +59,17 @@ export default function GlobalAdmin() {
             <TabsContent value="sync">
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-xl font-semibold mb-2">Sincronização WhatsApp</h2>
+                  <h2 className="text-xl font-semibold mb-2">Sincronização Manual WhatsApp</h2>
                   <p className="text-muted-foreground mb-6">
-                    Sincronizar todas as instâncias da Evolution API com o banco de dados da plataforma
+                    Executar sincronização manual das instâncias da Evolution API com o banco de dados da plataforma
                   </p>
                 </div>
                 <WhatsAppSyncTest />
               </div>
+            </TabsContent>
+            
+            <TabsContent value="sync-logs">
+              <SyncLogsPanel />
             </TabsContent>
             
             <TabsContent value="logs">

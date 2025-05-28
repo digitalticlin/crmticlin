@@ -908,6 +908,36 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          execution_time: unknown | null
+          function_name: string
+          id: string
+          result: Json | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          execution_time?: unknown | null
+          function_name: string
+          id?: string
+          result?: Json | null
+          status: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          execution_time?: unknown | null
+          function_name?: string
+          id?: string
+          result?: Json | null
+          status?: string
+        }
+        Relationships: []
+      }
       tags: {
         Row: {
           color: string
