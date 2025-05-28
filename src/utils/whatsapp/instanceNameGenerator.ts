@@ -9,7 +9,7 @@ export const generateUniqueInstanceName = async (baseUsername: string): Promise<
   try {
     // Fetch existing instances from database
     const { data: existingInstances, error } = await supabase
-      .from('whatsapp_numbers')
+      .from('whatsapp_instances')
       .select('instance_name')
       .filter('instance_name', 'ilike', `${baseUsername}%`);
 
