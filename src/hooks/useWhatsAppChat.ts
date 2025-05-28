@@ -2,13 +2,12 @@
 import { useState } from 'react';
 import { Contact } from '@/types/chat';
 import { useWhatsAppInstanceState } from '@/hooks/whatsapp/whatsappInstanceStore';
-import { supabase } from "@/integrations/supabase/client";
 import { useWhatsAppContacts } from './whatsapp/useWhatsAppContacts';
 import { useWhatsAppMessages } from './whatsapp/useWhatsAppMessages';
 import { useCompanyResolver } from './whatsapp/useCompanyResolver';
 import { useContactNotes } from './whatsapp/useContactNotes';
 
-// NOVO FLUXO: NENHUM POLLING/FETCH AUTOMÁTICO!
+// Novo fluxo: carrega dados do banco de dados e escuta real-time
 export const useWhatsAppChat = (userEmail: string) => {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
@@ -20,14 +19,14 @@ export const useWhatsAppChat = (userEmail: string) => {
   // Get user company ID
   const companyId = useCompanyResolver(userEmail);
 
-  // Get contacts (sem refresh automático)
+  // Get contacts (carrega do banco)
   const {
     contacts,
     fetchContacts,
     isLoadingContacts
   } = useWhatsAppContacts(activeInstance, companyId);
 
-  // Get messages (sem refresh automático)
+  // Get messages (carrega do banco)
   const {
     messages,
     fetchMessages,
@@ -53,8 +52,6 @@ export const useWhatsAppChat = (userEmail: string) => {
     }
   };
 
-  // ─── REMOVIDO: Não existe mais polling automático de contatos ou mensagens ──
-
   return {
     contacts,
     selectedContact,
@@ -68,7 +65,7 @@ export const useWhatsAppChat = (userEmail: string) => {
     contactNotes,
     setContactNotes,
     updateContactNotes,
-    fetchContacts,   // Disponível apenas para caso manual/emergencial
+    fetchContacts,
     fetchMessages
   };
 };

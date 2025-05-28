@@ -16,7 +16,7 @@ interface MessagePayload {
 export async function saveMessage(
   supabase: SupabaseClient,
   leadId: string,
-  whatsappNumberId: string,
+  whatsappInstanceId: string,
   messageData: any
 ): Promise<{ success: boolean; error?: string }> {
   const messageText = extractTextMessage(messageData);
@@ -26,7 +26,7 @@ export async function saveMessage(
 
   const payload: MessagePayload = {
     lead_id: leadId,
-    whatsapp_number_id: whatsappNumberId,
+    whatsapp_number_id: whatsappInstanceId, // CORRIGIDO: usar whatsappInstanceId em vez de whatsappNumberId
     from_me: false, // Assuming all webhook messages are incoming
     text: messageText,
     status: 'received',

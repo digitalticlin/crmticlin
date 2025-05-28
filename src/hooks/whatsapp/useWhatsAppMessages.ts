@@ -2,46 +2,59 @@
 import { useState, useCallback } from 'react';
 import { Message } from '@/types/chat';
 import { evolutionApiService } from '@/services/evolution-api';
-import { useChatDatabase } from '@/hooks/whatsapp/useChatDatabase';
-import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 /**
- * Hook para mensagens WhatsApp — NÃO faz fetch automático!
+ * Hook para mensagens WhatsApp — carrega do banco de dados
  */
 export const useWhatsAppMessages = (activeInstance: any, selectedContact: any) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
-  const { saveMessages } = useChatDatabase();
-
-  // Só usaremos fetchMessages caso chamado manualmente para debug/emergência
+  // Carregar mensagens do banco de dados
   const fetchMessages = useCallback(async () => {
     if (!selectedContact || !activeInstance || isLoadingMessages) return;
     setIsLoadingMessages(true);
 
     try {
-      const phone = selectedContact.phone.replace(/\D/g, '');
-      if (!phone) {
-        console.error("Invalid phone number for contact:", selectedContact);
+      // Buscar mensagens da tabela messages
+      const { data: dbMessages, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('lead_id', selectedContact.id)
+        .eq('whatsapp_number_id', activeInstance.id)
+        .order('timestamp', { ascending: true });
+
+      if (error) {
+        console.error("Error fetching messages:", error);
         return;
       }
-      const jid = `${phone}@s.whatsapp.net`;
-      const whatsAppMessages = await evolutionApiService.findMessages(activeInstance.instanceName, jid);
 
-      if (whatsAppMessages && whatsAppMessages.length > 0) {
-        const savedMessages = await saveMessages(selectedContact.id, activeInstance.id, whatsAppMessages);
-        setMessages(savedMessages);
+      if (dbMessages && dbMessages.length > 0) {
+        const mappedMessages: Message[] = dbMessages.map(dbMessage => ({
+          id: dbMessage.id,
+          text: dbMessage.text || "",
+          sender: dbMessage.from_me ? "user" : "contact",
+          time: new Date(dbMessage.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+          status: dbMessage.status || "sent",
+          isIncoming: !dbMessage.from_me,
+          fromMe: dbMessage.from_me
+        }));
+
+        setMessages(mappedMessages);
+      } else {
+        setMessages([]);
       }
     } catch (error) {
       console.error("Error fetching WhatsApp messages:", error);
     } finally {
       setIsLoadingMessages(false);
     }
-  }, [selectedContact, activeInstance, isLoadingMessages, saveMessages]);
+  }, [selectedContact, activeInstance, isLoadingMessages]);
 
-  // ENCORE: Envio de mensagem permanece igual
+  // Envio de mensagem
   const sendMessage = useCallback(async (text: string) => {
     if (!selectedContact || !activeInstance || isSending || !text.trim()) return;
     setIsSending(true);
@@ -53,12 +66,13 @@ export const useWhatsAppMessages = (activeInstance: any, selectedContact: any) =
         return;
       }
 
-      // Restante igual
+      // Enviar via Evolution API
       const response = await evolutionApiService.sendMessage(
         activeInstance.instanceName,
         phone,
         text
       );
+      
       if (response && response.key) {
         const newMessage: Message = {
           id: Math.random().toString(),
@@ -71,6 +85,7 @@ export const useWhatsAppMessages = (activeInstance: any, selectedContact: any) =
         };
         setMessages(prev => [...prev, newMessage]);
 
+        // Salvar no banco de dados
         await supabase
           .from('messages')
           .insert({
@@ -82,6 +97,7 @@ export const useWhatsAppMessages = (activeInstance: any, selectedContact: any) =
             external_id: response.key.id
           });
 
+        // Atualizar lead
         await supabase
           .from('leads')
           .update({
@@ -90,7 +106,6 @@ export const useWhatsAppMessages = (activeInstance: any, selectedContact: any) =
           })
           .eq('id', selectedContact.id);
 
-        setTimeout(fetchMessages, 1000); // só se o método for chamado manualmente
       } else {
         throw new Error("Falha ao enviar mensagem");
       }
@@ -100,7 +115,7 @@ export const useWhatsAppMessages = (activeInstance: any, selectedContact: any) =
     } finally {
       setIsSending(false);
     }
-  }, [selectedContact, activeInstance, isSending, fetchMessages]);
+  }, [selectedContact, activeInstance, isSending]);
 
   return {
     messages,

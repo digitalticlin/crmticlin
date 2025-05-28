@@ -1,65 +1,63 @@
-
-import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { Contact } from "@/types/chat";
-import { KanbanLead } from "@/types/kanban";
+import { useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Contact } from '@/types/chat';
+import { useRealtimeMessages } from './useRealtimeMessages';
 
 interface UseRealtimeLeadsProps {
   selectedContact: Contact | null;
   fetchContacts: () => Promise<void>;
-  fetchMessages: () => Promise<void>; // fetchMessages can be undefined
-  receiveNewLead: (leadData: Omit<KanbanLead, "id" | "name" | "columnId">) => void;
+  fetchMessages?: () => Promise<void>;
+  receiveNewLead: (lead: any) => void;
 }
 
 /**
- * Garante que, ao receber insert/update do lead selecionado, o chat busque imediatamente as novas mensagens.
+ * Hook para escutar leads e mensagens em tempo real
  */
-export function useRealtimeLeads({
+export const useRealtimeLeads = ({
   selectedContact,
   fetchContacts,
   fetchMessages,
   receiveNewLead,
-}: UseRealtimeLeadsProps) {
+}: UseRealtimeLeadsProps) => {
+
+  // Get active instance ID (assuming first instance for now)
+  // TODO: This should be improved to get the actual active instance
+  const activeInstanceId = selectedContact?.id ? "instance-id" : null; // Placeholder
+
+  // Setup realtime messages subscription
+  useRealtimeMessages({
+    selectedContact,
+    activeInstanceId,
+    onNewMessage: async () => {
+      if (fetchMessages) {
+        await fetchMessages();
+      }
+    },
+    onContactUpdate: async () => {
+      await fetchContacts();
+    }
+  });
+
   useEffect(() => {
-    const leadsChannel = supabase
-      .channel('public:leads:chat_subscription')
+    console.log('[Realtime Leads] Setting up leads subscription');
+
+    const channel = supabase
+      .channel('leads-changes')
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'leads',
+          table: 'leads'
         },
-        async (payload) => {
-          console.log('Novo lead recebido (realtime):', payload);
-          const newLeadData = payload.new as {
-            id: string;
-            name: string;
-            phone: string;
-            last_message: string | null;
-            last_message_time: string | null;
-          };
-
-          if (newLeadData && newLeadData.phone) {
-            try {
-              receiveNewLead({
-                phone: newLeadData.phone,
-                lastMessage: newLeadData.last_message || "",
-                lastMessageTime: newLeadData.last_message_time
-                  ? new Date(newLeadData.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                  : "Agora",
-                tags: [],
-              });
-              await fetchContacts();
-            } catch (error) {
-              console.error("Erro ao processar novo lead (realtime):", error);
-            }
-          }
-
-          // Traga mensagens imediatamente se esse contato estiver selecionado (caso o contato recém-criado corresponda)
-          if (selectedContact && newLeadData.id === selectedContact.id && fetchMessages) {
-            await fetchMessages();
-          }
+        (payload) => {
+          console.log('[Realtime Leads] New lead received:', payload);
+          
+          const newLead = payload.new as any;
+          receiveNewLead(newLead);
+          
+          // Refresh contacts list
+          fetchContacts();
         }
       )
       .on(
@@ -67,31 +65,20 @@ export function useRealtimeLeads({
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'leads',
+          table: 'leads'
         },
-        async (payload) => {
-          console.log('Lead atualizado (realtime):', payload);
-          if (selectedContact && payload.new.id === selectedContact.id) {
-            // Se o lead selecionado foi alterado, busque as mensagens
-            if (fetchMessages) {
-              await fetchMessages();
-            }
-          }
-          // Sempre faça refresh dos contatos no update
-          await fetchContacts();
+        (payload) => {
+          console.log('[Realtime Leads] Lead updated:', payload);
+          
+          // Refresh contacts list when leads are updated
+          fetchContacts();
         }
       )
-      .subscribe((status, err) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('Subscribed to leads changes for chat.');
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || err) {
-          console.error('Realtime leads subscription error:', status, err);
-        }
-      });
+      .subscribe();
 
     return () => {
-      supabase.removeChannel(leadsChannel);
+      console.log('[Realtime Leads] Cleaning up subscription');
+      supabase.removeChannel(channel);
     };
-  }, [fetchContacts, fetchMessages, selectedContact, receiveNewLead]);
-}
-
+  }, [fetchContacts, receiveNewLead]);
+};

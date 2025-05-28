@@ -52,27 +52,28 @@ serve(async (req: Request) => {
           { headers: corsHeaders, status: 400 });
       }
       
-      const { data: whatsappNumber, error: numberError } = await supabase
-        .from('whatsapp_numbers')
+      // CORRIGIDO: Buscar na tabela whatsapp_instances em vez de whatsapp_numbers
+      const { data: whatsappInstance, error: instanceError } = await supabase
+        .from('whatsapp_instances')
         .select('id, company_id, n8n_webhook_url')
         .eq('evolution_instance_name', instanceName)
         .single();
         
-      if (numberError || !whatsappNumber) {
-        console.error("Erro ao buscar instância WhatsApp ou instância não encontrada:", numberError, "Instância:", instanceName);
+      if (instanceError || !whatsappInstance) {
+        console.error("Erro ao buscar instância WhatsApp ou instância não encontrada:", instanceError, "Instância:", instanceName);
         return new Response(JSON.stringify({ success: false, error: "Instância WhatsApp não encontrada ou erro na busca." }), 
           { headers: corsHeaders, status: 404 });
       }
       
-      const whatsappNumberId = whatsappNumber.id;
-      const companyId = whatsappNumber.company_id;
-      const n8nWebhookUrl = whatsappNumber.n8n_webhook_url;
+      const whatsappInstanceId = whatsappInstance.id;
+      const companyId = whatsappInstance.company_id;
+      const n8nWebhookUrl = whatsappInstance.n8n_webhook_url;
       
       const { leadId, leadCreated, error: leadProcessingError } = await processLead(
         supabase,
         phone,
         companyId,
-        whatsappNumberId,
+        whatsappInstanceId,
         messageData
       );
 
@@ -84,7 +85,7 @@ serve(async (req: Request) => {
       const { success: messageSaved, error: messageSavingError } = await saveMessage(
         supabase,
         leadId,
-        whatsappNumberId,
+        whatsappInstanceId,
         messageData
       );
 
@@ -119,4 +120,3 @@ serve(async (req: Request) => {
       { status: 400, headers: corsHeaders });
   }
 });
-

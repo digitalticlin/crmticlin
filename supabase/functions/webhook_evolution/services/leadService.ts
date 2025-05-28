@@ -9,7 +9,7 @@ export async function processLead(
   supabase: SupabaseClient,
   phone: string,
   companyId: string,
-  whatsappNumberId: string,
+  whatsappInstanceId: string, // CORRIGIDO: renomeado de whatsappNumberId
   messageData: any
 ): Promise<{ leadId: string; leadCreated: boolean; error?: string }> {
   try {
@@ -36,7 +36,7 @@ export async function processLead(
 
       const leadPayload: LeadData = {
         company_id: companyId,
-        whatsapp_number_id: whatsappNumberId,
+        whatsapp_number_id: whatsappInstanceId, // CORRIGIDO: usar whatsappInstanceId
         name: leadName,
         phone: phone,
         kanban_stage_id: kanbanStageId,

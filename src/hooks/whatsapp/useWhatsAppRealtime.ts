@@ -34,13 +34,13 @@ export const useWhatsAppRealtime = (userEmail: string) => {
               const mappedInstance = {
                 id: newRecord.id,
                 instanceName: newRecord.instance_name,
-                connected: newRecord.connection_status === 'open', // Usar connection_status
+                connected: newRecord.connection_status === 'open',
                 qrCodeUrl: newRecord.qr_code,
                 phoneNumber: newRecord.phone,
                 evolution_instance_name: newRecord.evolution_instance_name,
                 evolution_instance_id: newRecord.evolution_instance_id,
                 phone: newRecord.phone || "",
-                connection_status: newRecord.connection_status || "disconnected", // Usar connection_status
+                connection_status: newRecord.connection_status || "disconnected",
                 owner_jid: newRecord.owner_jid,
                 profile_name: newRecord.profile_name,
                 profile_pic_url: newRecord.profile_pic_url,
@@ -55,8 +55,6 @@ export const useWhatsAppRealtime = (userEmail: string) => {
                 updateInstance(newRecord.id, mappedInstance);
                 console.log('[WhatsApp Realtime] Updated instance:', newRecord.id);
               } else if (payload.eventType === 'INSERT') {
-                // Para INSERT, precisaríamos adicionar à lista, mas isso é mais complexo
-                // Por enquanto, vamos apenas logar
                 console.log('[WhatsApp Realtime] New instance inserted:', newRecord.id);
               }
             }
