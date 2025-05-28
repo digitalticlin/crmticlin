@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { WhatsAppStatus } from "./whatsappDatabaseTypes";
+import { WhatsAppConnectionStatus } from "./whatsappDatabaseTypes";
 
 /**
  * Updates the status of a WhatsApp instance to disconnected in the database
@@ -11,7 +11,7 @@ export const updateInstanceDisconnectedStatus = async (instanceId: string) => {
   const { error } = await supabase
     .from('whatsapp_instances')
     .update({
-      status: 'disconnected' as WhatsAppStatus,
+      connection_status: 'disconnected' as WhatsAppConnectionStatus,
       date_disconnected: new Date().toISOString(),
       qr_code: null
     })
@@ -26,12 +26,12 @@ export const updateInstanceDisconnectedStatus = async (instanceId: string) => {
 /**
  * Updates the status and phone number of a WhatsApp instance in the database
  */
-export const updateInstanceStatusAndPhone = async (instanceId: string, status: WhatsAppStatus, phone?: string) => {
+export const updateInstanceStatusAndPhone = async (instanceId: string, connection_status: WhatsAppConnectionStatus, phone?: string) => {
   console.log(`Atualizando status e telefone da instância ${instanceId} no banco de dados`);
   
   const updateData: any = { 
-    status,
-    ...(status === 'connected' ? { date_connected: new Date().toISOString() } : {})
+    connection_status,
+    ...(connection_status === 'open' ? { date_connected: new Date().toISOString() } : {})
   };
   
   if (phone) {

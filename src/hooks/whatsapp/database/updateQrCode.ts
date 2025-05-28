@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { WhatsAppStatus } from "./whatsappDatabaseTypes";
+import { WhatsAppConnectionStatus } from "./whatsappDatabaseTypes";
 
 /**
  * Updates the QR code of a WhatsApp instance in the database
@@ -13,7 +13,7 @@ export const updateQrCodeInDatabase = async (instanceId: string, qrCodeUrl: stri
     .from('whatsapp_instances')
     .update({ 
       qr_code: qrCodeUrl,
-      status: 'connecting' as WhatsAppStatus
+      connection_status: 'connecting' as WhatsAppConnectionStatus
     })
     .eq('id', instanceId);
     

@@ -2,7 +2,7 @@
 import { useState, useCallback } from "react";
 import { evolutionApiService } from "@/services/evolution-api";
 import { updateInstanceStatusAndPhone } from "../database";
-import { WhatsAppStatus } from "../database/whatsappDatabaseTypes";
+import { WhatsAppConnectionStatus } from "../database/whatsappDatabaseTypes";
 import { toast } from "sonner";
 
 /**
@@ -21,7 +21,7 @@ export const useConnectionSynchronizer = () => {
   const forceSyncConnectionStatus = useCallback(async (
     instanceId: string, 
     instanceName: string
-  ): Promise<WhatsAppStatus> => {
+  ): Promise<WhatsAppConnectionStatus> => {
     if (!instanceId || !instanceName) {
       console.error("Missing required parameters for sync:", { instanceId, instanceName });
       return "disconnected";
@@ -41,14 +41,14 @@ export const useConnectionSynchronizer = () => {
         : evolutionStatus?.instance?.state || evolutionStatus?.state || 'disconnected';
       
       // Aqui o ajuste principal: "open" será tratado como sucesso/conectado
-      const mappedStatus: WhatsAppStatus = 
-        status === 'connected' || status === 'open' ? 'connected' :
+      const mappedStatus: WhatsAppConnectionStatus = 
+        status === 'connected' || status === 'open' ? 'open' :
         status === 'connecting' ? 'connecting' : 
-        'disconnected';
+        'closed';
       
       // Get phone number for connected instances
       let phone: string | undefined = undefined;
-      if (mappedStatus === 'connected') {
+      if (mappedStatus === 'open') {
         try {
           const deviceInfo = await evolutionApiService.getDeviceInfo(instanceName);
           if (deviceInfo && deviceInfo.phone) {
@@ -70,7 +70,7 @@ export const useConnectionSynchronizer = () => {
       if (window._whatsAppInstancesStore) {
         const updateInstance = window._whatsAppInstancesStore.getState().actions.updateInstance;
         updateInstance(instanceId, { 
-          connected: mappedStatus === 'connected',
+          connected: mappedStatus === 'open',
           phoneNumber: phone
         });
       }
@@ -79,7 +79,7 @@ export const useConnectionSynchronizer = () => {
     } catch (error) {
       console.error(`Error synchronizing status for ${instanceName}:`, error);
       toast.error(`Falha ao sincronizar status do WhatsApp: ${instanceName}`);
-      return "disconnected";
+      return "closed";
     } finally {
       setIsSyncing(prev => ({ ...prev, [instanceId]: false }));
     }
@@ -93,7 +93,7 @@ export const useConnectionSynchronizer = () => {
     instanceName: string;
   }>) => {
     console.log(`Synchronizing ${instances.length} WhatsApp instances`);
-    const results: Record<string, WhatsAppStatus> = {};
+    const results: Record<string, WhatsAppConnectionStatus> = {};
     
     for (const instance of instances) {
       try {
@@ -103,7 +103,7 @@ export const useConnectionSynchronizer = () => {
         );
       } catch (error) {
         console.error(`Error syncing instance ${instance.instanceName}:`, error);
-        results[instance.id] = "disconnected";
+        results[instance.id] = "closed";
       }
     }
     
@@ -117,4 +117,3 @@ export const useConnectionSynchronizer = () => {
     lastSyncTime
   };
 };
-

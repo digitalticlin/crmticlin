@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppInstance } from "../whatsappInstanceStore";
-import { WhatsAppStatus, EvolutionApiResult } from "./whatsappDatabaseTypes";
+import { WhatsAppConnectionStatus, EvolutionApiResult } from "./whatsappDatabaseTypes";
 
 /**
  * Saves a WhatsApp instance to the database
@@ -56,7 +56,7 @@ export const saveInstanceToDatabase = async (
       instance_name: instance.instanceName,
       phone: instance.phoneNumber || "", // Será atualizado quando conectado
       company_id: companyId,
-      status: "connecting" as WhatsAppStatus,
+      connection_status: "connecting" as WhatsAppConnectionStatus,
       qr_code: qrCodeUrl,
       instance_id: result.instance.instanceId,
       evolution_instance_name: result.instance.instanceName,

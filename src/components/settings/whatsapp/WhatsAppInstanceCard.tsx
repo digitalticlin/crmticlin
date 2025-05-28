@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { WhatsAppInstance } from "@/hooks/whatsapp/whatsappInstanceStore";
@@ -49,7 +50,7 @@ const WhatsAppInstanceCard = ({
 
   // NOVA LÓGICA: Estado calculado a partir SOMENTE do Supabase
   // NÃO FAZ MAIS CONSULTA À EVOLUTION API PARA RENDERIZAÇÃO!
-  const dbStatus = instance.status;
+  const dbStatus = instance.connection_status;
   const isInstanceConnected = dbStatus === "open" || dbStatus === "connecting";
   const isInstanceDisconnected = dbStatus === "closed";
   const hasPhone = Boolean(instance.phoneNumber);
@@ -204,8 +205,8 @@ const WhatsAppInstanceCard = ({
   // Spinner/aguardando conexão só aparece enquanto "connecting" e não "open"/"connecting"
   const shouldShowConnectingSpinner =
     ((connectingSpinner && !isInstanceConnected) || (isConnectingNow && !isInstanceConnected)) &&
-    instance.status !== "open" &&
-    instance.status !== "connecting";
+    instance.connection_status !== "open" &&
+    instance.connection_status !== "connecting";
 
   return (
     <>
@@ -218,7 +219,7 @@ const WhatsAppInstanceCard = ({
               instance={{
                 ...instance,
                 connected: isInstanceConnected,
-                status: dbStatus
+                connection_status: dbStatus
               }}
               onRefreshStatus={async () => { }}
               isStatusLoading={isLoading}
@@ -246,7 +247,7 @@ const WhatsAppInstanceCard = ({
                 <span className="text-red-700 font-semibold">Dispositivo desconectado</span>
               </div>
             )}
-            <ConnectedBanner status={instance.status} />
+            <ConnectedBanner status={instance.connection_status} />
             {isInstanceConnected && <DeviceInfoSection deviceInfo={instance.deviceInfo} />}
 
             <WhatsAppInstanceQrSection

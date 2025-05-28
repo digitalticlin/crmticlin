@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { WhatsAppStatus } from "@/hooks/whatsapp/database";
+import { WhatsAppConnectionStatus } from "@/hooks/whatsapp/database";
 import { toast } from "sonner";
 
 type EvolutionInstance = {
@@ -154,7 +154,7 @@ export const createWhatsAppInstance = async (username: string): Promise<{
         instance_name: newName,
         phone: "",
         company_id: companyId,
-        status: "connecting" as WhatsAppStatus,
+        connection_status: "connecting" as WhatsAppConnectionStatus,
         qr_code: evolutionResp.qrcode.base64,
         instance_id: evolutionResp.instance.instanceId,
         evolution_instance_name: evolutionResp.instance.instanceName,
