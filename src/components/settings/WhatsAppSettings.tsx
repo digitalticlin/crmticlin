@@ -1,6 +1,7 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
-import WhatsAppInstanceCard from "./whatsapp/WhatsAppInstanceCard";
+import WhatsAppInstanceStatusCard from "./whatsapp/WhatsAppInstanceStatusCard";
 import WhatsAppInfoAlert from "./whatsapp/WhatsAppInfoAlert";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -14,8 +15,7 @@ import PlaceholderQrModal from "./whatsapp/PlaceholderQrModal";
 import WaitingForConnectionCard from "./whatsapp/WaitingForConnectionCard";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const STATUS_CHECK_INTERVAL = 15000; // Check status every 15 seconds
+import { useWhatsAppRealtime } from "@/hooks/whatsapp/useWhatsAppRealtime";
 
 const WhatsAppSettings = () => {
   // State to store current user's email
@@ -56,6 +56,9 @@ const WhatsAppSettings = () => {
     };
     getUser();
   }, []);
+
+  // Inicializar realtime
+  useWhatsAppRealtime(userEmail);
 
   // Só inicializar o hook quando o email do usuário estiver disponível
   const {
@@ -222,18 +225,16 @@ const WhatsAppSettings = () => {
         </div>
       )}
 
-      {/* Grid responsiva para os cards */}
+      {/* Grid responsiva para os cards com novo design */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {instances.filter(instance => !!instance.id && instance.id !== "1").map(instance =>
-          <WhatsAppInstanceCard
+          <WhatsAppInstanceStatusCard
             key={instance.id}
             instance={instance}
             isLoading={instanceLoading[instance.id] || false}
-            showQrCode={showQrCode === instance.id}
-            onConnect={handleConnectInstance}
-            onDelete={deleteInstance}
-            onRefreshQrCode={refreshQrCode}
-            onStatusCheck={handleStatusCheck}
+            onConnect={() => handleConnectInstance(instance.id)}
+            onDelete={() => deleteInstance(instance.id)}
+            onRefreshQrCode={() => refreshQrCode(instance.id)}
           />
         )}
       </div>

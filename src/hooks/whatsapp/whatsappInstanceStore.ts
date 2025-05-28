@@ -7,6 +7,20 @@ export interface WhatsAppInstance {
   connected: boolean;
   qrCodeUrl?: string;
   phoneNumber?: string;
+  // Novos campos da tabela whatsapp_instances
+  evolution_instance_name?: string;
+  evolution_instance_id?: string;
+  phone: string;
+  status: 'open' | 'closed' | 'connecting' | 'disconnected';
+  connection_status?: string;
+  owner_jid?: string;
+  profile_name?: string;
+  profile_pic_url?: string;
+  client_name?: string;
+  date_connected?: string;
+  date_disconnected?: string;
+  created_at?: string;
+  updated_at?: string;
   // Device information fields
   deviceInfo?: {
     batteryLevel?: number;
@@ -15,7 +29,6 @@ export interface WhatsAppInstance {
     lastConnectionTime?: string;
     platformType?: string;
   };
-  status?: string; // Correção: torna status opcional para suportar a checagem do card!
 }
 
 interface WhatsAppInstanceState {
@@ -60,4 +73,3 @@ export const useWhatsAppInstanceState = () => {
 };
 
 export const useWhatsAppInstanceActions = () => useWhatsAppInstanceStore((state) => state.actions);
-
