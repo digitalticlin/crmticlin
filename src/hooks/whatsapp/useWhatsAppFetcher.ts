@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,7 +31,7 @@ export const useWhatsAppFetcher = () => {
       
       // Fetch instances from Supabase
       const { data, error } = await supabase
-        .from('whatsapp_numbers')
+        .from('whatsapp_instances')
         .select('*')
         .eq('company_id', companyId);
 
@@ -83,7 +84,7 @@ export const useWhatsAppFetcher = () => {
 
       // Busca todas as instâncias do usuário cujo instance_name começa com o prefixo
       const { data, error } = await supabase
-        .from('whatsapp_numbers')
+        .from('whatsapp_instances')
         .select('*')
         .ilike('instance_name', `${instancePrefix}%`); // ilike é case-insensitive
 

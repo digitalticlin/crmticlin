@@ -67,7 +67,7 @@ export const saveInstanceToDatabase = async (
     
     // Inserir ou atualizar no banco de dados
     const { error, data } = await supabase
-      .from('whatsapp_numbers')
+      .from('whatsapp_instances')
       .upsert(whatsappData, { onConflict: 'instance_name' })
       .select();
   
@@ -82,7 +82,7 @@ export const saveInstanceToDatabase = async (
       console.log("Select não retornou dados, buscando o registro inserido/atualizado...");
       // Busca o registro inserido/atualizado se select não o retornou
       const { data: fetchedData, error: fetchError } = await supabase
-        .from('whatsapp_numbers')
+        .from('whatsapp_instances')
         .select('*')
         .eq('instance_name', instance.instanceName)
         .limit(1);

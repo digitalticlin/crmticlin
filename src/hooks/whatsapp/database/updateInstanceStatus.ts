@@ -9,7 +9,7 @@ export const updateInstanceDisconnectedStatus = async (instanceId: string) => {
   console.log(`Atualizando instância ${instanceId} para status desconectado no banco de dados`);
   
   const { error } = await supabase
-    .from('whatsapp_numbers')
+    .from('whatsapp_instances')
     .update({
       status: 'disconnected' as WhatsAppStatus,
       date_disconnected: new Date().toISOString(),
@@ -39,7 +39,7 @@ export const updateInstanceStatusAndPhone = async (instanceId: string, status: W
   }
   
   const { error } = await supabase
-    .from('whatsapp_numbers')
+    .from('whatsapp_instances')
     .update(updateData)
     .eq('id', instanceId);
     

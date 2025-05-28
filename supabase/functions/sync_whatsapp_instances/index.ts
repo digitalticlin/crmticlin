@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
 
     // Buscar nomes já cadastrados
     const { data: existingRecords, error: fetchDbError } = await supabase
-      .from("whatsapp_numbers")
+      .from("whatsapp_instances")
       .select("instance_name");
     if (fetchDbError) {
       console.error("[SYNC] Erro ao buscar instâncias já cadastradas:", fetchDbError);
@@ -69,4 +69,3 @@ Deno.serve(async (req) => {
     );
   }
 });
-

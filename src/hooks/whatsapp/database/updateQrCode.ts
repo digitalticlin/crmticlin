@@ -10,7 +10,7 @@ export const updateQrCodeInDatabase = async (instanceId: string, qrCodeUrl: stri
   console.log("Novo QR code (primeiros 50 caracteres):", qrCodeUrl.substring(0, 50));
   
   const { error } = await supabase
-    .from('whatsapp_numbers')
+    .from('whatsapp_instances')
     .update({ 
       qr_code: qrCodeUrl,
       status: 'connecting' as WhatsAppStatus

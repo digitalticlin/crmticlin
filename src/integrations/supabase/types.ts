@@ -40,7 +40,7 @@ export type Database = {
             foreignKeyName: "ai_agent_whatsapp_numbers_whatsapp_number_id_fkey"
             columns: ["whatsapp_number_id"]
             isOneToOne: false
-            referencedRelation: "whatsapp_numbers"
+            referencedRelation: "whatsapp_instances"
             referencedColumns: ["id"]
           },
         ]
@@ -253,7 +253,7 @@ export type Database = {
             foreignKeyName: "broadcast_lists_whatsapp_number_id_fkey"
             columns: ["whatsapp_number_id"]
             isOneToOne: false
-            referencedRelation: "whatsapp_numbers"
+            referencedRelation: "whatsapp_instances"
             referencedColumns: ["id"]
           },
         ]
@@ -640,7 +640,7 @@ export type Database = {
             foreignKeyName: "leads_whatsapp_number_id_fkey"
             columns: ["whatsapp_number_id"]
             isOneToOne: false
-            referencedRelation: "whatsapp_numbers"
+            referencedRelation: "whatsapp_instances"
             referencedColumns: ["id"]
           },
         ]
@@ -694,7 +694,7 @@ export type Database = {
             foreignKeyName: "messages_whatsapp_number_id_fkey"
             columns: ["whatsapp_number_id"]
             isOneToOne: false
-            referencedRelation: "whatsapp_numbers"
+            referencedRelation: "whatsapp_instances"
             referencedColumns: ["id"]
           },
         ]
@@ -1081,7 +1081,7 @@ export type Database = {
             foreignKeyName: "user_whatsapp_numbers_whatsapp_number_id_fkey"
             columns: ["whatsapp_number_id"]
             isOneToOne: false
-            referencedRelation: "whatsapp_numbers"
+            referencedRelation: "whatsapp_instances"
             referencedColumns: ["id"]
           },
         ]
@@ -1113,12 +1113,12 @@ export type Database = {
             foreignKeyName: "whatsapp_connection_logs_whatsapp_number_id_fkey"
             columns: ["whatsapp_number_id"]
             isOneToOne: false
-            referencedRelation: "whatsapp_numbers"
+            referencedRelation: "whatsapp_instances"
             referencedColumns: ["id"]
           },
         ]
       }
-      whatsapp_numbers: {
+      whatsapp_instances: {
         Row: {
           client_name: string | null
           company_id: string

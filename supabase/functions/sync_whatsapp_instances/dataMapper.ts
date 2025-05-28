@@ -112,7 +112,7 @@ export async function insertMissingInstances({
   }
   if (inserts.length > 0) {
     const { error: insertErr } = await supabase
-      .from("whatsapp_numbers")
+      .from("whatsapp_instances")
       .insert(inserts);
     if (insertErr) {
       errors.push(insertErr);
