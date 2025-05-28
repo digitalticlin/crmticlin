@@ -105,7 +105,7 @@ export const useWhatsAppFetcher = () => {
             instanceName: instancePrefix, 
             connected: false,
             phone: "",
-            status: "disconnected"
+            connection_status: "disconnected"
           }
         ]);
       }
@@ -119,7 +119,7 @@ export const useWhatsAppFetcher = () => {
           instanceName: instancePrefix, 
           connected: false,
           phone: "",
-          status: "disconnected"
+          connection_status: "disconnected"
         }
       ]);
     } finally {
@@ -134,15 +134,14 @@ export const useWhatsAppFetcher = () => {
       .map(instance => ({
         id: instance.id,
         instanceName: instance.instance_name,
-        connected: instance.status === 'open', // Mapear "open" para connected
+        connected: instance.connection_status === 'open', // Usar connection_status para mapear connected
         qrCodeUrl: instance.qr_code,
         phoneNumber: instance.phone,
         // Novos campos da tabela
         evolution_instance_name: instance.evolution_instance_name,
         evolution_instance_id: instance.evolution_instance_id,
         phone: instance.phone || "",
-        status: instance.status || "disconnected",
-        connection_status: instance.connection_status,
+        connection_status: instance.connection_status || "disconnected", // Usar connection_status
         owner_jid: instance.owner_jid,
         profile_name: instance.profile_name,
         profile_pic_url: instance.profile_pic_url,

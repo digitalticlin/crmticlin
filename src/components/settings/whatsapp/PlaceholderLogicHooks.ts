@@ -105,8 +105,8 @@ export function usePlaceholderLogic({ userEmail, isSuperAdmin = false }) {
         const updated = [...instances];
         updated[idx] = {
           ...updated[idx],
-          connected: (statusData?.state === "connected"),
-          status: statusData?.state === "connected" ? "open" : "disconnected"
+          connected: (statusData?.state === "open"),
+          connection_status: statusData?.state || "disconnected" // Usar connection_status
         };
         setInstances(updated);
       } else {
@@ -115,9 +115,9 @@ export function usePlaceholderLogic({ userEmail, isSuperAdmin = false }) {
           {
             id: instanceId || "1",
             instanceName: instanceName,
-            connected: (statusData?.state === "connected"),
+            connected: (statusData?.state === "open"),
             phone: "",
-            status: statusData?.state === "connected" ? "open" : "disconnected"
+            connection_status: statusData?.state || "disconnected" // Usar connection_status
           }
         ]);
       }
@@ -140,7 +140,7 @@ export function usePlaceholderLogic({ userEmail, isSuperAdmin = false }) {
             updated[idx] = {
               ...updated[idx],
               connected: false,
-              status: "connecting"
+              connection_status: "connecting" // Usar connection_status
             };
             setInstances(updated);
           } else {
@@ -151,7 +151,7 @@ export function usePlaceholderLogic({ userEmail, isSuperAdmin = false }) {
                 instanceName: instanceName,
                 connected: false,
                 phone: "",
-                status: "connecting"
+                connection_status: "connecting" // Usar connection_status
               }
             ]);
           }

@@ -11,7 +11,7 @@ export interface WhatsAppInstance {
   evolution_instance_name?: string;
   evolution_instance_id?: string;
   phone: string;
-  status: 'open' | 'closed' | 'connecting' | 'disconnected';
+  // Removido: status - agora usamos apenas connection_status
   connection_status?: string;
   owner_jid?: string;
   profile_name?: string;

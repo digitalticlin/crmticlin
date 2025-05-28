@@ -34,14 +34,13 @@ export const useWhatsAppRealtime = (userEmail: string) => {
               const mappedInstance = {
                 id: newRecord.id,
                 instanceName: newRecord.instance_name,
-                connected: newRecord.status === 'open',
+                connected: newRecord.connection_status === 'open', // Usar connection_status
                 qrCodeUrl: newRecord.qr_code,
                 phoneNumber: newRecord.phone,
                 evolution_instance_name: newRecord.evolution_instance_name,
                 evolution_instance_id: newRecord.evolution_instance_id,
                 phone: newRecord.phone || "",
-                status: newRecord.status || "disconnected",
-                connection_status: newRecord.connection_status,
+                connection_status: newRecord.connection_status || "disconnected", // Usar connection_status
                 owner_jid: newRecord.owner_jid,
                 profile_name: newRecord.profile_name,
                 profile_pic_url: newRecord.profile_pic_url,

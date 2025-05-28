@@ -1,8 +1,8 @@
 
 import { WhatsAppInstance } from "../whatsappInstanceStore";
 
-// Define a type for the allowed status values to match the database enum
-export type WhatsAppStatus = "connected" | "connecting" | "disconnected";
+// Define a type for the allowed connection_status values to match the Evolution API
+export type WhatsAppConnectionStatus = "open" | "closed" | "connecting" | "disconnected";
 
 // Database record structure
 export interface WhatsAppDatabaseRecord {
@@ -10,7 +10,7 @@ export interface WhatsAppDatabaseRecord {
   instance_name: string;
   phone: string;
   company_id: string;
-  status: WhatsAppStatus;
+  connection_status: string; // Agora usamos apenas connection_status
   qr_code: string | null;
   instance_id: string;
   evolution_instance_name: string;

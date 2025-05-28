@@ -1121,21 +1121,18 @@ export type Database = {
           created_at: string | null
           details: string | null
           id: string
-          status: Database["public"]["Enums"]["whatsapp_status"]
           whatsapp_number_id: string
         }
         Insert: {
           created_at?: string | null
           details?: string | null
           id?: string
-          status: Database["public"]["Enums"]["whatsapp_status"]
           whatsapp_number_id: string
         }
         Update: {
           created_at?: string | null
           details?: string | null
           id?: string
-          status?: Database["public"]["Enums"]["whatsapp_status"]
           whatsapp_number_id?: string
         }
         Relationships: [
@@ -1169,7 +1166,6 @@ export type Database = {
           profile_name: string | null
           profile_pic_url: string | null
           qr_code: string | null
-          status: Database["public"]["Enums"]["whatsapp_status"] | null
           updated_at: string | null
         }
         Insert: {
@@ -1192,7 +1188,6 @@ export type Database = {
           profile_name?: string | null
           profile_pic_url?: string | null
           qr_code?: string | null
-          status?: Database["public"]["Enums"]["whatsapp_status"] | null
           updated_at?: string | null
         }
         Update: {
@@ -1215,7 +1210,6 @@ export type Database = {
           profile_name?: string | null
           profile_pic_url?: string | null
           qr_code?: string | null
-          status?: Database["public"]["Enums"]["whatsapp_status"] | null
           updated_at?: string | null
         }
         Relationships: [
@@ -1262,7 +1256,6 @@ export type Database = {
         | "error"
         | "paused"
       user_role: "admin" | "seller" | "custom"
-      whatsapp_status: "connected" | "disconnected" | "connecting"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1386,7 +1379,6 @@ export const Constants = {
         "paused",
       ],
       user_role: ["admin", "seller", "custom"],
-      whatsapp_status: ["connected", "disconnected", "connecting"],
     },
   },
 } as const

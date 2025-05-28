@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { updateInstanceStatusAndPhone } from "../database";
 import { updateConnectionAttempt } from "../database/updateConnectionAttempt";
-import { WhatsAppStatus } from "../database/whatsappDatabaseTypes";
+import { WhatsAppConnectionStatus } from "../database/whatsappDatabaseTypes";
 
 /**
  * Hook for managing WhatsApp instance status updates in database
@@ -13,7 +13,7 @@ export const useStatusUpdater = () => {
   /**
    * Update instance status in database and store
    */
-  const updateInstanceStatus = async (instanceId: string, status: string): Promise<boolean> => {
+  const updateInstanceStatus = async (instanceId: string, connectionStatus: string): Promise<boolean> => {
     // Skip for demo instance
     if (instanceId === "1") {
       return true;
@@ -22,24 +22,29 @@ export const useStatusUpdater = () => {
     try {
       setIsUpdating(prev => ({ ...prev, [instanceId]: true }));
       
-      // Convert string status to WhatsAppStatus type
-      const whatsappStatus: WhatsAppStatus = status === 'connected' 
-        ? 'connected' 
-        : status === 'connecting' 
+      // Convert string status to WhatsAppConnectionStatus type
+      const whatsappConnectionStatus: WhatsAppConnectionStatus = connectionStatus === 'open' 
+        ? 'open' 
+        : connectionStatus === 'connecting' 
           ? 'connecting' 
-          : 'disconnected';
+          : connectionStatus === 'closed'
+            ? 'closed'
+            : 'disconnected';
       
-      // Update status in database
-      await updateInstanceStatusAndPhone(instanceId, whatsappStatus);
+      // Update connection_status in database
+      await updateInstanceStatusAndPhone(instanceId, whatsappConnectionStatus);
       
       // Update global state
       if (window._whatsAppInstancesStore) {
         const updateInstance = window._whatsAppInstancesStore.getState().actions.updateInstance;
-        updateInstance(instanceId, { connected: status === 'connected' });
+        updateInstance(instanceId, { 
+          connected: connectionStatus === 'open',
+          connection_status: connectionStatus
+        });
       }
       
       // Register successful connection
-      if (status === 'connected') {
+      if (connectionStatus === 'open') {
         await updateConnectionAttempt(instanceId, true);
         return true;
       }

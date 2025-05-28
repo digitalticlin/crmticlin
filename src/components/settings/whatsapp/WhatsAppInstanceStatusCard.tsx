@@ -34,8 +34,8 @@ const WhatsAppInstanceStatusCard = ({
   isLoading = false
 }: WhatsAppInstanceStatusCardProps) => {
   
-  const getStatusConfig = (status: string) => {
-    switch (status) {
+  const getStatusConfig = (connectionStatus: string) => {
+    switch (connectionStatus) {
       case 'open':
         return {
           color: 'bg-green-50 border-green-200',
@@ -52,8 +52,8 @@ const WhatsAppInstanceStatusCard = ({
           title: 'Conectando',
           description: 'Estabelecendo conexão...'
         };
-      case 'disconnected':
       case 'closed':
+      case 'disconnected':
       default:
         return {
           color: 'bg-red-50 border-red-200',
@@ -65,7 +65,7 @@ const WhatsAppInstanceStatusCard = ({
     }
   };
 
-  const statusConfig = getStatusConfig(instance.status);
+  const statusConfig = getStatusConfig(instance.connection_status || 'disconnected');
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return null;
@@ -99,13 +99,13 @@ const WhatsAppInstanceStatusCard = ({
             </div>
           </div>
           <Badge className={statusConfig.badgeColor}>
-            {instance.status === 'open' ? 'Ativo' : 
-             instance.status === 'connecting' ? 'Conectando' : 'Inativo'}
+            {instance.connection_status === 'open' ? 'Ativo' : 
+             instance.connection_status === 'connecting' ? 'Conectando' : 'Inativo'}
           </Badge>
         </div>
 
         {/* Informações do perfil (apenas quando conectado) */}
-        {instance.status === 'open' && (
+        {instance.connection_status === 'open' && (
           <div className="mb-4 p-4 bg-white/50 rounded-lg">
             <div className="flex items-center gap-3 mb-3">
               <Avatar className="h-12 w-12">
@@ -141,14 +141,14 @@ const WhatsAppInstanceStatusCard = ({
             <span className="ml-2 text-gray-600 font-mono">{instance.instanceName}</span>
           </div>
           
-          {instance.status === 'open' && instance.date_connected && (
+          {instance.connection_status === 'open' && instance.date_connected && (
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Calendar className="h-4 w-4" />
               <span>Conectado em: {formatDate(instance.date_connected)}</span>
             </div>
           )}
           
-          {(instance.status === 'disconnected' || instance.status === 'closed') && instance.date_disconnected && (
+          {(instance.connection_status === 'disconnected' || instance.connection_status === 'closed') && instance.date_disconnected && (
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <Clock className="h-4 w-4" />
               <span>Desconectado em: {formatDate(instance.date_disconnected)}</span>
@@ -158,7 +158,7 @@ const WhatsAppInstanceStatusCard = ({
 
         {/* Ações baseadas no status */}
         <div className="flex gap-2">
-          {instance.status === 'open' && (
+          {instance.connection_status === 'open' && (
             <>
               <Button 
                 variant="outline" 
@@ -172,7 +172,7 @@ const WhatsAppInstanceStatusCard = ({
             </>
           )}
           
-          {(instance.status === 'disconnected' || instance.status === 'closed') && (
+          {(instance.connection_status === 'disconnected' || instance.connection_status === 'closed') && (
             <>
               <Button 
                 onClick={onConnect}
@@ -199,7 +199,7 @@ const WhatsAppInstanceStatusCard = ({
             </>
           )}
           
-          {instance.status === 'connecting' && (
+          {instance.connection_status === 'connecting' && (
             <div className="flex-1 text-center py-2">
               <div className="flex items-center justify-center gap-2 text-yellow-600">
                 <Loader2 className="h-4 w-4 animate-spin" />
