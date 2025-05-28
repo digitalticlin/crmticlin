@@ -80,6 +80,8 @@ export const useWhatsAppCreator = (companyId: string | null) => {
         id: newInstanceId,
         instanceName: uniqueInstanceName,
         connected: false,
+        phone: "",
+        status: "disconnected"
       };
       
       // Connect the instance - this will create it in Evolution API
