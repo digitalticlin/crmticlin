@@ -10,7 +10,10 @@ async function checkInstanceStatus(instanceName: string, detailed = false) {
   const url = `${EVOLUTION_API_URL}/instance/connectionState/${encodeURIComponent(instanceName)}`;
   const resp = await fetch(url, {
     method: "GET",
-    headers: { "API-KEY": EVOLUTION_API_KEY }
+    headers: { 
+      "apikey": EVOLUTION_API_KEY,
+      "Content-Type": "application/json"
+    }
   });
   if (!resp.ok) throw new Error(`Evolution API connectionState failed: ${resp.status}`);
   const result = await resp.json();
@@ -23,7 +26,10 @@ async function getDeviceInfo(instanceName: string) {
   const url = `${EVOLUTION_API_URL}/instance/deviceInfo/${encodeURIComponent(instanceName)}`;
   const resp = await fetch(url, {
     method: "GET",
-    headers: { "API-KEY": EVOLUTION_API_KEY }
+    headers: { 
+      "apikey": EVOLUTION_API_KEY,
+      "Content-Type": "application/json"
+    }
   });
   if (!resp.ok) throw new Error(`Evolution API getDeviceInfo failed: ${resp.status}`);
   return await resp.json();
@@ -34,7 +40,10 @@ async function fetchAllEvolutionInstances() {
   const url = `${EVOLUTION_API_URL}/instance/fetchInstances`;
   const resp = await fetch(url, {
     method: "GET",
-    headers: { "API-KEY": EVOLUTION_API_KEY }
+    headers: { 
+      "apikey": EVOLUTION_API_KEY,
+      "Content-Type": "application/json"
+    }
   });
   if (!resp.ok) throw new Error(`Evolution API fetchInstances failed: ${resp.status}`);
   const data = await resp.json();
@@ -111,13 +120,18 @@ Deno.serve(async (req) => {
         let newPhone = "";
 
         // Verificar status da conexão
-        const status = await checkInstanceStatus(instanceName, true);
-        const statusValue = typeof status === "object" ? status?.instance?.state : status;
-        
-        if (statusValue === "open" || statusValue === "connected") {
-          newStatus = "connected";
-        } else if (statusValue === "connecting") {
-          newStatus = "connecting";
+        try {
+          const status = await checkInstanceStatus(instanceName, true);
+          const statusValue = typeof status === "object" ? status?.instance?.state : status;
+          
+          if (statusValue === "open" || statusValue === "connected") {
+            newStatus = "connected";
+          } else if (statusValue === "connecting") {
+            newStatus = "connecting";
+          }
+        } catch (statusError) {
+          console.warn(`[SYNC][${instanceName}] Erro ao verificar status:`, statusError);
+          // Continue with disconnected status
         }
 
         // Buscar telefone se conectado
