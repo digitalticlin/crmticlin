@@ -12,7 +12,7 @@ export default function WhatsAppSync() {
           <div className="mb-8">
             <h1 className="text-2xl font-bold">Sincronização WhatsApp</h1>
             <p className="text-muted-foreground">
-              Sincronizar instâncias da Evolution API com o banco de dados
+              Sincronizar instâncias da Evolution API with o banco de dados
             </p>
           </div>
           
