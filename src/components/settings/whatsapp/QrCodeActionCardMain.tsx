@@ -34,7 +34,7 @@ const QrCodeActionCardMain = ({
   const handleConnect = async () => {
     try {
       await onConnect();
-      // Check if now connected
+      // Check if now connected - use "open" instead of "connected"
       if (connectionStatus === "open") {
         onClose();
       }

@@ -21,7 +21,7 @@ export const usePeriodicChecker = () => {
       clearInterval(checkInterval.current);
     }
     
-    // Only check instances that are not already connected
+    // Only check instances that are not already connected - use "open" instead of "connected"
     const instancesToCheck = instances.filter(instance => 
       instance.connection_status !== "open" && 
       instance.connection_status !== "closed"
@@ -39,7 +39,7 @@ export const usePeriodicChecker = () => {
         try {
           const status = await checkFunction(instance.id, instance.instanceName);
           
-          // If instance becomes connected, we can remove it from periodic checking
+          // If instance becomes connected, we can remove it from periodic checking - use "open" instead of "connected"
           if (status === "open") {
             console.log(`Instance ${instance.instanceName} is now connected, removing from periodic checks`);
             connectingInstances.current.delete(instance.id);
