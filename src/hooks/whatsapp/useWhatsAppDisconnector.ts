@@ -34,7 +34,7 @@ export const useWhatsAppDisconnector = () => {
       await evolutionDeleteInstance(instanceName);
 
       // Remove do Supabase mesmo se der erro na API externa
-      await supabase.from('whatsapp_numbers').delete().eq('id', instanceId);
+      await supabase.from('whatsapp_instances').delete().eq('id', instanceId);
 
       updateInstance(instanceId, {
         connected: false,
@@ -69,4 +69,3 @@ export const useWhatsAppDisconnector = () => {
     deleteInstance,
   };
 };
-

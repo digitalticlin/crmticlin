@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
  * Recupera nomes já existentes no Supabase (CRM).
  */
 export async function fetchLocalInstanceNames(): Promise<string[]> {
-  const { data } = await supabase.from("whatsapp_numbers").select("instance_name");
+  const { data } = await supabase.from("whatsapp_instances").select("instance_name");
   return (data || []).map((r: any) => (r?.instance_name || "").toLowerCase());
 }
 

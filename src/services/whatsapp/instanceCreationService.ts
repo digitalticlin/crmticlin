@@ -68,7 +68,7 @@ const fetchEvolutionInstanceNames = async (): Promise<string[]> => {
  * Gera um nome incremental não colidindo nos bancos local e Evolution
  */
 const makeUniqueInstanceName = async (baseName: string): Promise<string> => {
-  const { data: localData } = await supabase.from("whatsapp_numbers").select("instance_name");
+  const { data: localData } = await supabase.from("whatsapp_instances").select("instance_name");
   const local: string[] = (localData || [])
     .map((row: any) => row.instance_name?.toLowerCase?.() || "")
     .filter(Boolean);
@@ -162,7 +162,7 @@ export const createWhatsAppInstance = async (username: string): Promise<{
       };
 
       const { data: insertData, error: dbError } = await supabase
-        .from('whatsapp_numbers')
+        .from('whatsapp_instances')
         .insert(whatsappData)
         .select();
 

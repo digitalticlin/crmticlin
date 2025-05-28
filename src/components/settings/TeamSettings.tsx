@@ -29,7 +29,7 @@ export default function TeamSettings() {
       if (!companyId) return;
       // WhatsApp instances
       const { data: whatsapps } = await supabase
-        .from("whatsapp_numbers")
+        .from("whatsapp_instances")
         .select("id, instance_name")
         .eq("company_id", companyId);
       setAllWhatsApps(whatsapps || []);

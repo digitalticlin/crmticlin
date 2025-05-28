@@ -189,7 +189,7 @@ export function usePlaceholderLogic({ userEmail, isSuperAdmin = false }) {
     setWaitingForOpen(false);
     if (instanceId) {
       try {
-        await supabase.from('whatsapp_numbers').delete().eq('id', instanceId);
+        await supabase.from('whatsapp_instances').delete().eq('id', instanceId);
         toast("Instância cancelada.");
       } catch {
         toast("Erro ao remover instância.");
@@ -204,7 +204,7 @@ export function usePlaceholderLogic({ userEmail, isSuperAdmin = false }) {
     setWaitingForOpen(false);
     if (instanceId) {
       try {
-        await supabase.from('whatsapp_numbers').delete().eq('id', instanceId);
+        await supabase.from('whatsapp_instances').delete().eq('id', instanceId);
         toast("Instância cancelada.");
       } catch {
         toast("Erro ao remover instância.");
