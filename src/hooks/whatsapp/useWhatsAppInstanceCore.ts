@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,7 +15,11 @@ export const useWhatsAppInstances = (userEmail: string) => {
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
   const [showQrCode, setShowQrCode] = useState<string | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
+  
+  // Refs para controlar execuções e evitar loops
   const loadingRef = useRef(false);
+  const statusCheckExecutedRef = useRef(false);
+  const lastStatusCheckRef = useRef<number>(0);
   
   // Resolvers
   const companyId = useCompanyResolver(userEmail);
@@ -44,17 +49,39 @@ export const useWhatsAppInstances = (userEmail: string) => {
     loadInstances();
   }, [companyId, fetchInstances]);
 
-  // Checagem única do status das instâncias logo após carregá-las
+  // Verificação de status ÚNICA e controlada
   useEffect(() => {
-    if (!instances.length) return;
+    if (!instances.length || statusCheckExecutedRef.current) return;
+    
+    // Evitar múltiplas execuções em curto período
+    const now = Date.now();
+    const minInterval = 30000; // 30 segundos mínimo entre verificações gerais
+    if (now - lastStatusCheckRef.current < minInterval) {
+      console.log('[WhatsApp] Status check throttled - too soon');
+      return;
+    }
 
-    // Checar status de cada instância apenas uma vez ao abrir a página
-    instances.forEach((instance) => {
-      checkInstanceStatus(instance.id, true);
+    console.log('[WhatsApp] Executing SINGLE status check for all instances');
+    
+    // Marcar como executado para evitar re-execução
+    statusCheckExecutedRef.current = true;
+    lastStatusCheckRef.current = now;
+
+    // Verificar status de cada instância apenas uma vez
+    instances.forEach((instance, index) => {
+      // Escalonar as verificações para evitar sobrecarga
+      setTimeout(() => {
+        console.log(`[WhatsApp] Checking status for instance ${instance.instanceName}`);
+        checkInstanceStatus(instance.id, true);
+      }, index * 2000); // 2 segundos entre cada verificação
     });
 
-    // Não retorna cleanup — nenhuma checagem periódica!
-  }, [instances, checkInstanceStatus]);
+    // Reset do flag após um tempo para permitir verificações futuras se necessário
+    setTimeout(() => {
+      statusCheckExecutedRef.current = false;
+    }, 300000); // 5 minutos
+
+  }, [instances.length, checkInstanceStatus]); // Só depende do número de instâncias, não do array completo
 
   return {
     instances,
@@ -64,7 +91,16 @@ export const useWhatsAppInstances = (userEmail: string) => {
     setShowQrCode,
     
     // Functions
-    checkInstanceStatus,
+    checkInstanceStatus: (instanceId: string, forceFresh?: boolean) => {
+      // Adicionar throttling adicional nas chamadas manuais
+      const now = Date.now();
+      if (!forceFresh && now - lastStatusCheckRef.current < 10000) {
+        console.log('[WhatsApp] Manual status check throttled');
+        return;
+      }
+      lastStatusCheckRef.current = now;
+      return checkInstanceStatus(instanceId, forceFresh);
+    },
     addConnectingInstance,
     connectInstance: async (instanceId: string | WhatsAppInstance): Promise<string | undefined> => {
       try {

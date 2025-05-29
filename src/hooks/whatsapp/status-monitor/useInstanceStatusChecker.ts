@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { evolutionApiService } from "@/services/evolution-api";
 import { useErrorTracker } from "./useErrorTracker";
@@ -5,18 +6,19 @@ import { useDeviceInfoFetcher } from "./useDeviceInfoFetcher";
 import { useStatusUpdater } from "./useStatusUpdater";
 
 /**
- * Hook for checking WhatsApp instance status with throttling
+ * Hook for checking WhatsApp instance status with aggressive throttling to prevent loops
  */
 export const useInstanceStatusChecker = () => {
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
   const instanceCheckInProgress = useRef<Record<string, boolean>>({});
   const lastCheckTime = useRef<Record<string, number>>({});
+  const globalLastCheck = useRef<number>(0);
   
   const { trackConnectionError, clearErrorTracking } = useErrorTracker();
   const { fetchDeviceInfo, fetchPhoneNumber } = useDeviceInfoFetcher();
   const { updateInstanceStatus, logConnectionFailure } = useStatusUpdater();
   
-  // Check instance status with throttling and concurrency protection
+  // Check instance status with aggressive throttling and concurrency protection
   const checkInstanceStatus = async (instanceId: string, forceFresh: boolean = false) => {
     // Find instance by ID
     const instance = window._whatsAppInstancesState?.instances?.find(i => i.id === instanceId);
@@ -27,31 +29,40 @@ export const useInstanceStatusChecker = () => {
     
     const instanceName = instance.instanceName;
     
-    // Prevent concurrent checks for the same instance
-    if (instanceCheckInProgress.current[instanceId]) {
-      console.log(`Status check já em andamento para ${instanceId}, ignorando`);
+    // Proteção global contra excesso de verificações
+    const now = Date.now();
+    const globalMinInterval = 5000; // 5 segundos entre QUALQUER verificação
+    if (!forceFresh && now - globalLastCheck.current < globalMinInterval) {
+      console.log(`[StatusChecker] Global throttling active - last check was ${now - globalLastCheck.current}ms ago`);
       return;
     }
-    // Throttle: máximo 1x a cada 5 segundos 
-    const now = Date.now();
+    
+    // Prevent concurrent checks for the same instance
+    if (instanceCheckInProgress.current[instanceId]) {
+      console.log(`[StatusChecker] Instance ${instanceId} already being checked, skipping`);
+      return;
+    }
+    
+    // Throttle individual instance checks: mínimo 15 segundos entre verificações da mesma instância
     const lastCheck = lastCheckTime.current[instanceId] || 0;
-    const minInterval = 5000; // 5s Default para todos
+    const minInterval = 15000; // 15 segundos para cada instância
     if (!forceFresh && now - lastCheck < minInterval) {
-      console.log(`Throttling status check para ${instanceId} < 5s`);
+      console.log(`[StatusChecker] Instance ${instanceId} throttled - last check ${now - lastCheck}ms ago`);
       return;
     }
     
     try {
-      console.log(`Checking status of instance: ${instanceName}`);
+      console.log(`[StatusChecker] Checking status of instance: ${instanceName}`);
       
       // Mark this instance as being checked
       instanceCheckInProgress.current[instanceId] = true;
       lastCheckTime.current[instanceId] = now;
+      globalLastCheck.current = now;
       setIsLoading(prev => ({ ...prev, [instanceId]: true }));
       
       // Get current instance status via Evolution API
       const status = await evolutionApiService.checkInstanceStatus(instanceName);
-      console.log(`Status of instance ${instanceName}: ${status}`);
+      console.log(`[StatusChecker] Status of instance ${instanceName}: ${status}`);
       
       // If device is connected, get additional device info
       if (status === 'connected') {
@@ -65,13 +76,13 @@ export const useInstanceStatusChecker = () => {
       
       return status;
     } catch (error) {
-      console.error(`Error checking status of instance ${instanceId}:`, error);
+      console.error(`[StatusChecker] Error checking status of instance ${instanceId}:`, error);
       
       // Try fallback for phone number if available
       try {
         await fetchPhoneNumber(instanceId, instanceName);
       } catch (fallbackError) {
-        console.error("Fallback phone fetch failed:", fallbackError);
+        console.error("[StatusChecker] Fallback phone fetch failed:", fallbackError);
       }
       
       // Track error and check if we should continue with frequent checks
@@ -83,10 +94,10 @@ export const useInstanceStatusChecker = () => {
       return "disconnected";
     } finally {
       setIsLoading(prev => ({ ...prev, [instanceId]: false }));
-      // Release the lock after a short delay to prevent immediate rechecking
+      // Release the lock after a longer delay to prevent immediate rechecking
       setTimeout(() => {
         instanceCheckInProgress.current[instanceId] = false;
-      }, 500);
+      }, 2000); // 2 segundos de cooldown
     }
   };
   

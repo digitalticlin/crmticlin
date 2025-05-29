@@ -24,6 +24,7 @@ const WhatsAppSettings = () => {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const userDataLoadedRef = useRef(false);
   const [isSyncingAll, setIsSyncingAll] = useState(false);
+  const syncExecutedRef = useRef(false); // Evitar múltiplas execuções de sync
 
   // Load current user data
   useEffect(() => {
@@ -107,17 +108,24 @@ const WhatsAppSettings = () => {
     addConnectingInstance(instanceId);
   };
 
+  // Sync inicial controlado - executar apenas UMA vez
   useEffect(() => {
-    if (instances.length > 0) {
+    if (instances.length > 0 && !syncExecutedRef.current) {
+      console.log('[WhatsAppSettings] Executing SINGLE initial sync');
+      syncExecutedRef.current = true;
+      
       const instancesForSync = instances.map(instance => ({
         id: instance.id,
         instanceName: instance.instanceName
       }));
+      
       syncAllInstances(instancesForSync).then((results) => {
-        console.log("Initial status sync completed:", results);
+        console.log("[WhatsAppSettings] Initial status sync completed:", results);
+      }).catch((error) => {
+        console.error("[WhatsAppSettings] Initial sync failed:", error);
       });
     }
-  }, [instances, syncAllInstances]);
+  }, [instances.length, syncAllInstances]); // Só depende do número de instâncias
 
   // Atualiza status de todas as instâncias do usuário (empresa atual)
   const handleSyncAllForCompany = async () => {
@@ -125,6 +133,11 @@ const WhatsAppSettings = () => {
       toast.error("Nenhuma instância WhatsApp encontrada para atualizar.");
       return;
     }
+    if (isSyncingAll) {
+      console.log('[WhatsAppSettings] Sync already in progress, skipping');
+      return;
+    }
+    
     try {
       setIsSyncingAll(true);
       const instancesForSync = instances.map(instance => ({
