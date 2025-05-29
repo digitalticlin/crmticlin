@@ -11,6 +11,7 @@ import SupportPanel from "@/components/admin/SupportPanel";
 import ConfigPanel from "@/components/admin/ConfigPanel";
 import { WhatsAppSyncTest } from "@/components/admin/WhatsAppSyncTest";
 import { SyncLogsPanel } from "@/components/admin/SyncLogsPanel";
+import { VPSTestPanel } from "@/components/admin/VPSTestPanel";
 
 export default function GlobalAdmin() {
   const [activeTab, setActiveTab] = useState("companies");
@@ -28,13 +29,14 @@ export default function GlobalAdmin() {
           </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid grid-cols-9 w-full">
+            <TabsList className="grid grid-cols-10 w-full">
               <TabsTrigger value="companies">Empresas</TabsTrigger>
               <TabsTrigger value="users">Usuários</TabsTrigger>
               <TabsTrigger value="plans">Planos</TabsTrigger>
               <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
               <TabsTrigger value="sync">Sincronização</TabsTrigger>
               <TabsTrigger value="sync-logs">Logs Sync</TabsTrigger>
+              <TabsTrigger value="vps">VPS</TabsTrigger>
               <TabsTrigger value="logs">Logs</TabsTrigger>
               <TabsTrigger value="support">Suporte</TabsTrigger>
               <TabsTrigger value="config">Configurações</TabsTrigger>
@@ -70,6 +72,18 @@ export default function GlobalAdmin() {
             
             <TabsContent value="sync-logs">
               <SyncLogsPanel />
+            </TabsContent>
+            
+            <TabsContent value="vps">
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-semibold mb-2">Teste VPS Hostinger</h2>
+                  <p className="text-muted-foreground mb-6">
+                    Testar conectividade com o servidor VPS e gerar scripts de instalação do WhatsApp Web.js
+                  </p>
+                </div>
+                <VPSTestPanel />
+              </div>
             </TabsContent>
             
             <TabsContent value="logs">
