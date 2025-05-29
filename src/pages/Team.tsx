@@ -60,7 +60,13 @@ export default function Team() {
     assignedWhatsAppIds: string[];
     assignedFunnelIds: string[];
   }) => {
-    return await inviteTeamMember(data);
+    // Type the role properly for the inviteTeamMember function
+    const roleTyped = data.role as "admin" | "seller" | "custom";
+    const success = await inviteTeamMember({
+      ...data,
+      role: roleTyped,
+    });
+    // InviteMemberForm expects Promise<void>, so we don't return the boolean
   };
 
   return (
