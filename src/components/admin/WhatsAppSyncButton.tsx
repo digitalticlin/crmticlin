@@ -19,21 +19,26 @@ export const WhatsAppSyncButton = () => {
       });
 
       if (error) {
+        console.error("Erro na invocação da função:", error);
         throw error;
       }
 
       console.log("Resultado da sincronização:", data);
       
-      if (data.success) {
+      // Verificar se a resposta indica sucesso
+      if (data && data.success) {
         const summary = data.summary || {};
         toast.success(
-          `Sincronização concluída! 
+          `Sincronização concluída com sucesso! 
           Atualizadas: ${summary.updated || 0}, 
           Inseridas: ${summary.inserted || 0}, 
-          Removidas: ${summary.deleted || 0}`
+          Removidas: ${summary.deleted || 0}${summary.errors > 0 ? `, Erros: ${summary.errors}` : ''}`
         );
       } else {
-        throw new Error(data.error || "Erro desconhecido na sincronização");
+        // Se data.success é false, mostrar o erro específico
+        const errorMessage = data?.error || "Erro desconhecido na sincronização";
+        console.error("Sincronização falhou:", errorMessage);
+        toast.error(`Erro na sincronização: ${errorMessage}`);
       }
       
     } catch (error: any) {
