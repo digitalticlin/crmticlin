@@ -1,22 +1,35 @@
 
+import { useState, Suspense, lazy } from "react";
 import { 
   Tabs, 
   TabsContent, 
   TabsList, 
   TabsTrigger 
 } from "@/components/ui/tabs";
-import { User, MessagesSquare, Users } from "lucide-react";
-import ProfileSettings from "./ProfileSettings";
-import WhatsAppSettings from "./WhatsAppSettings";
-import TeamSettings from "./TeamSettings";
+import { User, MessagesSquare, Users, Loader2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+
+// Lazy load components to prevent simultaneous rendering
+const ProfileSettings = lazy(() => import("./ProfileSettings"));
+const WhatsAppSettings = lazy(() => import("./WhatsAppSettings"));
+const TeamSettings = lazy(() => import("./TeamSettings"));
+
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center min-h-[400px]">
+    <Loader2 className="h-8 w-8 animate-spin text-ticlin" />
+  </div>
+);
 
 const SettingsTabs = () => {
   const isMobile = useIsMobile();
+  const [activeTab, setActiveTab] = useState("profile");
+
+  console.log('[SettingsTabs] Rendering with active tab:', activeTab);
 
   return (
-    <Tabs defaultValue="profile" className="space-y-4">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
       <TabsList className={cn(
         "grid h-auto p-1 bg-white/10 dark:bg-black/10 backdrop-blur-lg rounded-xl",
         isMobile ? "grid-cols-1 w-full gap-1" : "grid-cols-3"
@@ -54,15 +67,27 @@ const SettingsTabs = () => {
       </TabsList>
       
       <TabsContent value="profile" className="space-y-4">
-        <ProfileSettings />
+        <ErrorBoundary>
+          <Suspense fallback={<LoadingSpinner />}>
+            <ProfileSettings />
+          </Suspense>
+        </ErrorBoundary>
       </TabsContent>
       
       <TabsContent value="whatsapp" className="space-y-4">
-        <WhatsAppSettings />
+        <ErrorBoundary>
+          <Suspense fallback={<LoadingSpinner />}>
+            <WhatsAppSettings />
+          </Suspense>
+        </ErrorBoundary>
       </TabsContent>
 
       <TabsContent value="team" className="space-y-4">
-        <TeamSettings />
+        <ErrorBoundary>
+          <Suspense fallback={<LoadingSpinner />}>
+            <TeamSettings />
+          </Suspense>
+        </ErrorBoundary>
       </TabsContent>
     </Tabs>
   );

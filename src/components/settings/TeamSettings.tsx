@@ -1,8 +1,8 @@
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useTeamManagement } from "@/hooks/useTeamManagement";
@@ -10,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { InviteMemberModal } from "./InviteMemberModal";
 
 export default function TeamSettings() {
+  console.log('[TeamSettings] Component rendering');
+  
   const { companyId } = useCompanyData();
   const {
     members,
@@ -19,28 +21,79 @@ export default function TeamSettings() {
     removeTeamMember,
   } = useTeamManagement(companyId);
 
-  // Buscar todas instâncias WhatsApp e funis da empresa para usar em atribuições
+  // Estado para dados auxiliares
   const [allWhatsApps, setAllWhatsApps] = useState<{ id: string; instance_name: string }[]>([]);
   const [allFunnels, setAllFunnels] = useState<{ id: string; name: string }[]>([]);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [auxDataLoading, setAuxDataLoading] = useState(false);
+  
+  // Refs para controlar execuções
+  const auxDataLoadedRef = useRef(false);
+  const isUnmountedRef = useRef(false);
 
-  useMemo(() => {
-    async function fetchAux() {
-      if (!companyId) return;
-      // WhatsApp instances
-      const { data: whatsapps } = await supabase
-        .from("whatsapp_instances")
-        .select("id, instance_name")
-        .eq("company_id", companyId);
-      setAllWhatsApps(whatsapps || []);
-      // Funis
-      const { data: funnels } = await supabase
-        .from("funnels")
-        .select("id, name")
-        .eq("company_id", companyId);
-      setAllFunnels(funnels || []);
+  // Cleanup no desmonte
+  useEffect(() => {
+    isUnmountedRef.current = false;
+    return () => {
+      isUnmountedRef.current = true;
+      console.log('[TeamSettings] Component unmounting');
+    };
+  }, []);
+
+  // Buscar dados auxiliares apenas UMA vez quando companyId estiver disponível
+  useEffect(() => {
+    if (!companyId || auxDataLoadedRef.current || isUnmountedRef.current) {
+      console.log('[TeamSettings] Skipping aux data fetch - no companyId or already loaded');
+      return;
     }
-    fetchAux();
+
+    const fetchAuxData = async () => {
+      try {
+        console.log('[TeamSettings] Fetching auxiliary data for company:', companyId);
+        setAuxDataLoading(true);
+        auxDataLoadedRef.current = true;
+
+        // Buscar WhatsApp instances
+        const { data: whatsapps, error: whatsappError } = await supabase
+          .from("whatsapp_instances")
+          .select("id, instance_name")
+          .eq("company_id", companyId);
+
+        if (isUnmountedRef.current) return;
+
+        if (whatsappError) {
+          console.error('[TeamSettings] Error fetching WhatsApp instances:', whatsappError);
+        } else {
+          setAllWhatsApps(whatsapps || []);
+          console.log('[TeamSettings] WhatsApp instances loaded:', whatsapps?.length || 0);
+        }
+
+        // Buscar Funis
+        const { data: funnels, error: funnelsError } = await supabase
+          .from("funnels")
+          .select("id, name")
+          .eq("company_id", companyId);
+
+        if (isUnmountedRef.current) return;
+
+        if (funnelsError) {
+          console.error('[TeamSettings] Error fetching funnels:', funnelsError);
+        } else {
+          setAllFunnels(funnels || []);
+          console.log('[TeamSettings] Funnels loaded:', funnels?.length || 0);
+        }
+      } catch (error) {
+        if (!isUnmountedRef.current) {
+          console.error('[TeamSettings] Error in fetchAuxData:', error);
+        }
+      } finally {
+        if (!isUnmountedRef.current) {
+          setAuxDataLoading(false);
+        }
+      }
+    };
+
+    fetchAuxData();
   }, [companyId]);
 
   const getInitials = (name: string) => {
@@ -51,6 +104,14 @@ export default function TeamSettings() {
       .toUpperCase()
       .substring(0, 2);
   };
+
+  if (loading || auxDataLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-ticlin" />
+      </div>
+    );
+  }
 
   return (
     <div>

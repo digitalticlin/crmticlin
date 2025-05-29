@@ -22,6 +22,17 @@ export const useWhatsAppInstances = (userEmail: string) => {
   const loadingRef = useRef(false);
   const statusCheckExecutedRef = useRef(false);
   const lastStatusCheckRef = useRef<number>(0);
+  const isUnmountedRef = useRef(false);
+  const lastFetchRef = useRef<number>(0);
+  
+  // Cleanup no desmonte
+  useEffect(() => {
+    isUnmountedRef.current = false;
+    return () => {
+      isUnmountedRef.current = true;
+      console.log('[useWhatsAppInstanceCore] Component unmounting, cleaning up');
+    };
+  }, []);
   
   // Resolvers
   const companyId = useCompanyResolver(userEmail);
@@ -33,10 +44,18 @@ export const useWhatsAppInstances = (userEmail: string) => {
   
   console.log('[useWhatsAppInstanceCore] Company ID resolved:', companyId);
   
-  // Load WhatsApp instances when company ID is available, only once
+  // Load WhatsApp instances when company ID is available, only once with aggressive throttling
   useEffect(() => {
-    if (!companyId || loadingRef.current) {
-      console.log('[useWhatsAppInstanceCore] Skipping fetch - no companyId or already loading');
+    const now = Date.now();
+    const minInterval = 60000; // 1 minuto entre fetches
+    
+    if (
+      !companyId || 
+      loadingRef.current || 
+      isUnmountedRef.current ||
+      (now - lastFetchRef.current < minInterval)
+    ) {
+      console.log('[useWhatsAppInstanceCore] Skipping fetch - conditions not met');
       return;
     }
 
@@ -44,39 +63,51 @@ export const useWhatsAppInstances = (userEmail: string) => {
       try {
         console.log('[useWhatsAppInstanceCore] Loading instances for company:', companyId);
         loadingRef.current = true;
+        lastFetchRef.current = now;
         setIsLoading(prev => ({ ...prev, fetch: true }));
-        await fetchInstances(companyId);
-        console.log('[useWhatsAppInstanceCore] Instances loaded successfully');
+        
+        if (!isUnmountedRef.current) {
+          await fetchInstances(companyId);
+          console.log('[useWhatsAppInstanceCore] Instances loaded successfully');
+        }
       } catch (error) {
-        console.error("Error fetching WhatsApp instances:", error);
-        toast.error("Could not load WhatsApp instances");
+        if (!isUnmountedRef.current) {
+          console.error("Error fetching WhatsApp instances:", error);
+          toast.error("Could not load WhatsApp instances");
+        }
       } finally {
-        setIsLoading(prev => ({ ...prev, fetch: false }));
+        if (!isUnmountedRef.current) {
+          setIsLoading(prev => ({ ...prev, fetch: false }));
+        }
+        loadingRef.current = false;
       }
     };
 
     loadInstances();
   }, [companyId, fetchInstances]);
 
-  // Verificação de status ÚNICA e controlada - DESABILITADA temporariamente para debug
+  // Verificação de status DESABILITADA temporariamente para debug
   useEffect(() => {
-    if (!instances.length || statusCheckExecutedRef.current) {
-      console.log('[useWhatsAppInstanceCore] Skipping status check - no instances or already executed');
+    console.log('[useWhatsAppInstanceCore] Status check effect - DISABLED for debugging');
+    
+    // TEMPORARIAMENTE DESABILITADO
+    return;
+    
+    /*
+    if (!instances.length || statusCheckExecutedRef.current || isUnmountedRef.current) {
+      console.log('[useWhatsAppInstanceCore] Skipping status check - conditions not met');
       return;
     }
     
     // Evitar múltiplas execuções em curto período
     const now = Date.now();
-    const minInterval = 60000; // Aumentado para 1 minuto
+    const minInterval = 300000; // 5 minutos
     if (now - lastStatusCheckRef.current < minInterval) {
-      console.log('[useWhatsAppInstanceCore] Status check throttled - too soon:', now - lastStatusCheckRef.current, 'ms ago');
+      console.log('[useWhatsAppInstanceCore] Status check throttled');
       return;
     }
 
-    console.log('[useWhatsAppInstanceCore] TEMPORARY: Status check DISABLED for debugging');
-    
-    // TEMPORARIAMENTE DESABILITADO PARA DEBUG
-    // console.log('[useWhatsAppInstanceCore] Executing SINGLE status check for all instances');
+    console.log('[useWhatsAppInstanceCore] Executing SINGLE status check for all instances');
     
     // Marcar como executado para evitar re-execução
     statusCheckExecutedRef.current = true;
@@ -84,8 +115,11 @@ export const useWhatsAppInstances = (userEmail: string) => {
 
     // Reset do flag após um tempo para permitir verificações futuras se necessário
     setTimeout(() => {
-      statusCheckExecutedRef.current = false;
+      if (!isUnmountedRef.current) {
+        statusCheckExecutedRef.current = false;
+      }
     }, 600000); // 10 minutos
+    */
 
   }, [instances.length, checkInstanceStatus]);
 
@@ -98,8 +132,9 @@ export const useWhatsAppInstances = (userEmail: string) => {
     showQrCode,
     setShowQrCode,
     
-    // Functions
+    // Functions with additional safety checks
     checkInstanceStatus: (instanceId: string, forceFresh?: boolean) => {
+      if (isUnmountedRef.current) return;
       console.log('[useWhatsAppInstanceCore] Manual status check requested for:', instanceId);
       const now = Date.now();
       if (!forceFresh && now - lastStatusCheckRef.current < 15000) {
@@ -109,8 +144,16 @@ export const useWhatsAppInstances = (userEmail: string) => {
       lastStatusCheckRef.current = now;
       return checkInstanceStatus(instanceId, forceFresh);
     },
-    addConnectingInstance,
+    
+    addConnectingInstance: (instanceId: string) => {
+      if (!isUnmountedRef.current) {
+        addConnectingInstance(instanceId);
+      }
+    },
+    
     connectInstance: async (instanceId: string | WhatsAppInstance): Promise<string | undefined> => {
+      if (isUnmountedRef.current) return;
+      
       try {
         console.log('[useWhatsAppInstanceCore] Connect instance requested:', typeof instanceId === 'string' ? instanceId : instanceId.id);
         
@@ -127,26 +170,34 @@ export const useWhatsAppInstances = (userEmail: string) => {
         setLastError(null);
         
         const qrCodeUrl = await connectInstance(instanceToConnect);
-        setShowQrCode(instanceToConnect.id);
         
-        // Mark this instance as connecting to trigger more frequent status checks
-        addConnectingInstance(instanceToConnect.id);
+        if (!isUnmountedRef.current) {
+          setShowQrCode(instanceToConnect.id);
+          // Mark this instance as connecting to trigger more frequent status checks
+          addConnectingInstance(instanceToConnect.id);
+        }
         
         return qrCodeUrl;
       } catch (error: any) {
-        console.error("Error connecting instance:", error);
-        setLastError(error?.message || "Error connecting WhatsApp instance");
+        if (!isUnmountedRef.current) {
+          console.error("Error connecting instance:", error);
+          setLastError(error?.message || "Error connecting WhatsApp instance");
+        }
         return undefined;
       } finally {
-        if (typeof instanceId === 'string') {
-          setIsLoading(prev => ({ ...prev, [instanceId]: false }));
-        } else {
-          setIsLoading(prev => ({ ...prev, [instanceId.id]: false }));
+        if (!isUnmountedRef.current) {
+          if (typeof instanceId === 'string') {
+            setIsLoading(prev => ({ ...prev, [instanceId]: false }));
+          } else {
+            setIsLoading(prev => ({ ...prev, [instanceId.id]: false }));
+          }
         }
       }
     },
     
     refreshQrCode: async (instanceId: string) => {
+      if (isUnmountedRef.current) return;
+      
       try {
         console.log('[useWhatsAppInstanceCore] Refresh QR code requested for:', instanceId);
         setIsLoading(prev => ({ ...prev, [instanceId]: true }));
@@ -159,19 +210,27 @@ export const useWhatsAppInstances = (userEmail: string) => {
         
         // Using connectInstance instead of refreshQrCode to get a completely new code
         await connectInstance(instance);
-        setShowQrCode(instanceId);
         
-        // Mark this instance for priority status checking
-        addConnectingInstance(instanceId);
+        if (!isUnmountedRef.current) {
+          setShowQrCode(instanceId);
+          // Mark this instance for priority status checking
+          addConnectingInstance(instanceId);
+        }
       } catch (error: any) {
-        console.error("Error updating QR code:", error);
-        setLastError(error?.message || "Error updating QR code");
+        if (!isUnmountedRef.current) {
+          console.error("Error updating QR code:", error);
+          setLastError(error?.message || "Error updating QR code");
+        }
       } finally {
-        setIsLoading(prev => ({ ...prev, [instanceId]: false }));
+        if (!isUnmountedRef.current) {
+          setIsLoading(prev => ({ ...prev, [instanceId]: false }));
+        }
       }
     },
     
     deleteInstance: async (instanceId: string) => {
+      if (isUnmountedRef.current) return;
+      
       try {
         console.log('[useWhatsAppInstanceCore] Delete instance requested for:', instanceId);
         setIsLoading(prev => ({ ...prev, [instanceId]: true }));
@@ -190,18 +249,24 @@ export const useWhatsAppInstances = (userEmail: string) => {
         await deleteInstance(instance);
 
         // Força refetch para garantir sync do backend
-        if (companyId) {
+        if (companyId && !isUnmountedRef.current) {
           await fetchInstances(companyId);
         }
 
-        toast.success("WhatsApp successfully disconnected!");
+        if (!isUnmountedRef.current) {
+          toast.success("WhatsApp successfully disconnected!");
+        }
       } catch (error: any) {
         // Mesmo se ocorrer erro, NÃO repopula o card no estado/local.
-        console.error("Error deleting instance:", error);
-        setLastError(error?.message || "Error deleting WhatsApp instance");
+        if (!isUnmountedRef.current) {
+          console.error("Error deleting instance:", error);
+          setLastError(error?.message || "Error deleting WhatsApp instance");
+        }
         // Não faz mais nada: o card já saiu da interface
       } finally {
-        setIsLoading(prev => ({ ...prev, [instanceId]: false }));
+        if (!isUnmountedRef.current) {
+          setIsLoading(prev => ({ ...prev, [instanceId]: false }));
+        }
       }
     },
     
