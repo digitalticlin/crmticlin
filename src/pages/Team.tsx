@@ -5,7 +5,7 @@ import ChartCard from "@/components/dashboard/ChartCard";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { TeamInviteForm } from "@/components/settings/TeamInviteForm";
+import { InviteMemberForm } from "@/components/settings/team/InviteMemberForm";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useTeamManagement } from "@/hooks/useTeamManagement";
 import { toast } from "sonner";
@@ -53,6 +53,16 @@ export default function Team() {
       .substring(0, 2);
   };
 
+  const handleInvite = async (data: {
+    full_name: string;
+    email: string;
+    role: string;
+    assignedWhatsAppIds: string[];
+    assignedFunnelIds: string[];
+  }) => {
+    return await inviteTeamMember(data);
+  };
+
   return (
     <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 overflow-hidden">
       <Sidebar />
@@ -74,8 +84,8 @@ export default function Team() {
             title="Novo membro"
             description="Convide um colaborador para sua equipe e já defina funis/instâncias permitidos"
           >
-            <TeamInviteForm
-              onInvite={inviteTeamMember}
+            <InviteMemberForm
+              onSubmit={handleInvite}
               loading={loading}
               allWhatsApps={allWhatsApps}
               allFunnels={allFunnels}
