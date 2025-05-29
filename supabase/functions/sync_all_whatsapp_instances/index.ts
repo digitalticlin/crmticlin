@@ -244,28 +244,73 @@ Deno.serve(async (req) => {
         if (dbInstancesMap.has(instanceName)) {
           // Atualizar existente
           const dbInstance = dbInstancesMap.get(instanceName);
-          const { error: updateError } = await supabase
+          
+          console.log(`[SYNC][${instanceName}] ANTES DO UPDATE - Status atual no banco: "${dbInstance.connection_status}"`);
+          console.log(`[SYNC][${instanceName}] EXECUTANDO UPDATE para status: "${newConnectionStatus}"`);
+          
+          const { data: updateResult, error: updateError, count } = await supabase
             .from("whatsapp_instances")
             .update(instanceData)
-            .eq("id", dbInstance.id);
+            .eq("id", dbInstance.id)
+            .select();
+
+          console.log(`[SYNC][${instanceName}] Resultado do UPDATE:`, {
+            error: updateError,
+            count,
+            updateResult: updateResult ? JSON.stringify(updateResult) : 'null'
+          });
 
           if (updateError) {
-            console.error(`[SYNC][${instanceName}] Erro ao atualizar:`, updateError);
+            console.error(`[SYNC][${instanceName}] ERRO CRÍTICO no UPDATE:`, updateError);
             syncResults[instanceName] = { 
               status: "error", 
               action: "update", 
               error: updateError.message,
-              raw_evolution_status: rawEvolutionStatus
+              raw_evolution_status: rawEvolutionStatus,
+              critical_update_error: true
             };
           } else {
-            console.log(`[SYNC][${instanceName}] Atualizado com sucesso`);
-            syncResults[instanceName] = { 
-              status: "updated", 
-              phone: newPhone, 
-              connection_status: newConnectionStatus,
-              raw_evolution_status: rawEvolutionStatus,
-              previous_status: dbInstance.connection_status
-            };
+            // Verificar se o UPDATE foi efetivamente aplicado
+            const { data: verificationData, error: verificationError } = await supabase
+              .from("whatsapp_instances")
+              .select("connection_status")
+              .eq("id", dbInstance.id)
+              .single();
+
+            console.log(`[SYNC][${instanceName}] VERIFICAÇÃO PÓS-UPDATE:`, {
+              verificationError,
+              statusAtualNoBanco: verificationData?.connection_status,
+              statusEsperado: newConnectionStatus,
+              updateFoiEfetivo: verificationData?.connection_status === newConnectionStatus
+            });
+
+            if (verificationError) {
+              console.error(`[SYNC][${instanceName}] Erro na verificação pós-UPDATE:`, verificationError);
+            }
+
+            if (verificationData?.connection_status !== newConnectionStatus) {
+              console.error(`[SYNC][${instanceName}] FALHA: UPDATE não foi efetivo! Status continua "${verificationData?.connection_status}" em vez de "${newConnectionStatus}"`);
+              syncResults[instanceName] = { 
+                status: "error", 
+                action: "update", 
+                error: `UPDATE não foi efetivo - status continua ${verificationData?.connection_status}`,
+                raw_evolution_status: rawEvolutionStatus,
+                previous_status: dbInstance.connection_status,
+                expected_status: newConnectionStatus,
+                actual_status: verificationData?.connection_status,
+                update_failed: true
+              };
+            } else {
+              console.log(`[SYNC][${instanceName}] ✅ UPDATE EFETIVO - Status atualizado com sucesso para "${newConnectionStatus}"`);
+              syncResults[instanceName] = { 
+                status: "updated", 
+                phone: newPhone, 
+                connection_status: newConnectionStatus,
+                raw_evolution_status: rawEvolutionStatus,
+                previous_status: dbInstance.connection_status,
+                update_verified: true
+              };
+            }
           }
         } else {
           // Criar novo - precisamos definir company_id
@@ -287,9 +332,17 @@ Deno.serve(async (req) => {
 
           if (companyId) {
             const insertData = { ...instanceData, company_id: companyId };
-            const { error: insertError } = await supabase
+            console.log(`[SYNC][${instanceName}] EXECUTANDO INSERT para nova instância`);
+            
+            const { data: insertResult, error: insertError } = await supabase
               .from("whatsapp_instances")
-              .insert(insertData);
+              .insert(insertData)
+              .select();
+
+            console.log(`[SYNC][${instanceName}] Resultado do INSERT:`, {
+              error: insertError,
+              insertResult: insertResult ? JSON.stringify(insertResult) : 'null'
+            });
 
             if (insertError) {
               console.error(`[SYNC][${instanceName}] Erro ao inserir:`, insertError);
@@ -300,7 +353,7 @@ Deno.serve(async (req) => {
                 raw_evolution_status: rawEvolutionStatus
               };
             } else {
-              console.log(`[SYNC][${instanceName}] Inserido com sucesso`);
+              console.log(`[SYNC][${instanceName}] ✅ Inserido com sucesso`);
               syncResults[instanceName] = { 
                 status: "inserted", 
                 phone: newPhone, 
@@ -359,6 +412,7 @@ Deno.serve(async (req) => {
       deleted: Object.values(syncResults).filter(r => r.status === "deleted").length,
       errors: Object.values(syncResults).filter(r => r.status === "error").length,
       skipped: Object.values(syncResults).filter(r => r.status === "skipped").length,
+      update_failures: Object.values(syncResults).filter(r => r.update_failed).length,
     };
 
     const finalResult = {
@@ -369,15 +423,20 @@ Deno.serve(async (req) => {
       total_db_instances_before: dbInstances?.length || 0,
       sync_results: syncResults,
       zombies_removed: zombiesRemoved,
-      summary
+      summary,
+      detailed_debug_info: {
+        critical_issues: Object.values(syncResults).filter(r => r.critical_update_error || r.update_failed),
+        verification_results: Object.values(syncResults).filter(r => r.update_verified !== undefined)
+      }
     };
 
     // Registrar log da execução
-    await logSyncExecution(supabase, "success", finalResult, undefined, executionTime);
+    await logSyncExecution(supabase, summary.errors > 0 ? "warning" : "success", finalResult, undefined, executionTime);
 
     console.log(`[SYNC] Sincronização ${isAutoSync ? 'AUTOMÁTICA' : 'MANUAL'} completa finalizada`);
     console.log(`[SYNC] Instâncias sincronizadas: ${Object.keys(syncResults).length}`);
     console.log(`[SYNC] Instâncias removidas: ${zombiesRemoved.length}`);
+    console.log(`[SYNC] Falhas críticas de UPDATE: ${summary.update_failures}`);
     console.log(`[SYNC] Tempo de execução: ${executionTime}ms`);
     console.log(`[SYNC] Resumo detalhado:`, JSON.stringify(summary, null, 2));
 
