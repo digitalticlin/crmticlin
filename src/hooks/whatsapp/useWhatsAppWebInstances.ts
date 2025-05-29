@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
@@ -50,7 +49,7 @@ export const useWhatsAppWebInstances = (companyId?: string) => {
     }
   };
 
-  const createInstance = async (instanceName: string) => {
+  const createInstance = async (instanceName: string): Promise<void> => {
     try {
       setLoading(true);
       
@@ -63,7 +62,6 @@ export const useWhatsAppWebInstances = (companyId?: string) => {
       toast.success('Instância WhatsApp criada com sucesso!');
       await fetchInstances();
       
-      return result.instance;
     } catch (err) {
       console.error('Error creating instance:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao criar instância';
