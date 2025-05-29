@@ -1,0 +1,221 @@
+
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { QrCode, Trash2, RefreshCw, Phone, Wifi } from "lucide-react";
+import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+interface WhatsAppWebInstanceCardProps {
+  instance: WhatsAppWebInstance;
+  onDelete: (instanceId: string) => Promise<void>;
+  onRefreshQR: (instanceId: string) => Promise<string>;
+}
+
+export function WhatsAppWebInstanceCard({ 
+  instance, 
+  onDelete, 
+  onRefreshQR 
+}: WhatsAppWebInstanceCardProps) {
+  const [showQR, setShowQR] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'ready':
+      case 'open':
+        return 'bg-green-500';
+      case 'connecting':
+      case 'waiting_scan':
+        return 'bg-yellow-500';
+      case 'disconnected':
+      case 'error':
+        return 'bg-red-500';
+      default:
+        return 'bg-gray-500';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'ready':
+        return 'Conectado';
+      case 'open':
+        return 'Online';
+      case 'connecting':
+        return 'Conectando';
+      case 'waiting_scan':
+        return 'Aguardando QR';
+      case 'disconnected':
+        return 'Desconectado';
+      case 'error':
+        return 'Erro';
+      default:
+        return status;
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('Tem certeza que deseja remover esta instância?')) return;
+    
+    setIsDeleting(true);
+    try {
+      await onDelete(instance.id);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleRefreshQR = async () => {
+    setIsRefreshing(true);
+    try {
+      await onRefreshQR(instance.id);
+      setShowQR(true);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const showQRCode = () => {
+    if (instance.qr_code) {
+      setShowQR(true);
+    } else {
+      handleRefreshQR();
+    }
+  };
+
+  return (
+    <>
+      <Card className="relative">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Wifi className="h-4 w-4 text-green-600" />
+              <CardTitle className="text-lg">WhatsApp Web</CardTitle>
+            </div>
+            <Badge 
+              variant="outline" 
+              className={`${getStatusColor(instance.web_status || instance.connection_status)} text-white`}
+            >
+              {getStatusText(instance.web_status || instance.connection_status)}
+            </Badge>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Instância: {instance.instance_name}
+          </p>
+          {instance.phone && (
+            <div className="flex items-center gap-1 text-green-600">
+              <Phone className="h-3 w-3" />
+              <span className="text-xs font-medium">{instance.phone}</span>
+            </div>
+          )}
+          {instance.profile_name && (
+            <p className="text-xs text-muted-foreground">
+              Perfil: {instance.profile_name}
+            </p>
+          )}
+        </CardHeader>
+
+        <CardContent className="pt-0">
+          <div className="flex gap-2">
+            {(instance.web_status === 'waiting_scan' || instance.web_status === 'connecting') && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={showQRCode}
+                disabled={isRefreshing}
+                className="flex-1"
+              >
+                <QrCode className="h-4 w-4 mr-1" />
+                {isRefreshing ? 'Carregando...' : 'Ver QR Code'}
+              </Button>
+            )}
+            
+            {instance.web_status === 'disconnected' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefreshQR}
+                disabled={isRefreshing}
+                className="flex-1"
+              >
+                <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Reconectar
+              </Button>
+            )}
+
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              {isDeleting ? 'Removendo...' : 'Remover'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={showQR} onOpenChange={setShowQR}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Conectar WhatsApp</DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex flex-col items-center justify-center py-4">
+            {instance.qr_code ? (
+              <>
+                <div className="bg-white p-4 rounded-lg mb-4">
+                  <img 
+                    src={instance.qr_code} 
+                    alt="QR Code WhatsApp" 
+                    className="w-64 h-64"
+                  />
+                </div>
+                <p className="text-sm text-center text-muted-foreground">
+                  1. Abra o WhatsApp no seu celular<br/>
+                  2. Vá em Menu → Aparelhos conectados<br/>
+                  3. Toque em "Conectar um aparelho"<br/>
+                  4. Escaneie este QR code
+                </p>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <p>QR Code não disponível. Tente gerar um novo.</p>
+                <Button 
+                  onClick={handleRefreshQR} 
+                  disabled={isRefreshing}
+                  className="mt-4"
+                >
+                  {isRefreshing ? 'Gerando...' : 'Gerar QR Code'}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleRefreshQR}
+              disabled={isRefreshing}
+              className="flex-1"
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowQR(false)}
+              className="flex-1"
+            >
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}

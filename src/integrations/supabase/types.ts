@@ -1150,6 +1150,7 @@ export type Database = {
           client_name: string | null
           company_id: string
           connection_status: string | null
+          connection_type: string | null
           created_at: string | null
           date_connected: string | null
           date_disconnected: string | null
@@ -1166,12 +1167,17 @@ export type Database = {
           profile_name: string | null
           profile_pic_url: string | null
           qr_code: string | null
+          server_url: string | null
+          session_data: Json | null
           updated_at: string | null
+          vps_instance_id: string | null
+          web_status: string | null
         }
         Insert: {
           client_name?: string | null
           company_id: string
           connection_status?: string | null
+          connection_type?: string | null
           created_at?: string | null
           date_connected?: string | null
           date_disconnected?: string | null
@@ -1188,12 +1194,17 @@ export type Database = {
           profile_name?: string | null
           profile_pic_url?: string | null
           qr_code?: string | null
+          server_url?: string | null
+          session_data?: Json | null
           updated_at?: string | null
+          vps_instance_id?: string | null
+          web_status?: string | null
         }
         Update: {
           client_name?: string | null
           company_id?: string
           connection_status?: string | null
+          connection_type?: string | null
           created_at?: string | null
           date_connected?: string | null
           date_disconnected?: string | null
@@ -1210,7 +1221,11 @@ export type Database = {
           profile_name?: string | null
           profile_pic_url?: string | null
           qr_code?: string | null
+          server_url?: string | null
+          session_data?: Json | null
           updated_at?: string | null
+          vps_instance_id?: string | null
+          web_status?: string | null
         }
         Relationships: [
           {
