@@ -33,15 +33,23 @@ export const useWhatsAppMessages = (activeInstance: any, selectedContact: any) =
       }
 
       if (dbMessages && dbMessages.length > 0) {
-        const mappedMessages: Message[] = dbMessages.map(dbMessage => ({
-          id: dbMessage.id,
-          text: dbMessage.text || "",
-          sender: dbMessage.from_me ? "user" : "contact",
-          time: new Date(dbMessage.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-          status: dbMessage.status || "sent",
-          isIncoming: !dbMessage.from_me,
-          fromMe: dbMessage.from_me
-        }));
+        const mappedMessages: Message[] = dbMessages.map(dbMessage => {
+          // Ensure status is one of the valid Message status values
+          let messageStatus: "sent" | "delivered" | "read" = "sent";
+          if (dbMessage.status === "delivered" || dbMessage.status === "read") {
+            messageStatus = dbMessage.status as "delivered" | "read";
+          }
+
+          return {
+            id: dbMessage.id,
+            text: dbMessage.text || "",
+            sender: dbMessage.from_me ? "user" : "contact",
+            time: new Date(dbMessage.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+            status: messageStatus,
+            isIncoming: !dbMessage.from_me,
+            fromMe: dbMessage.from_me
+          };
+        });
 
         setMessages(mappedMessages);
       } else {
