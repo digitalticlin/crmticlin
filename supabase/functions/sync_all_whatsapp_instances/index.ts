@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
     // Sincronizar cada instância da Evolution
     for (const [instanceName, evoInstance] of evolutionInstancesMap) {
       try {
-        let newStatus = "disconnected";
+        let newConnectionStatus = "disconnected";
         let newPhone = "";
 
         // Verificar status da conexão
@@ -155,9 +155,11 @@ Deno.serve(async (req) => {
           const statusValue = typeof status === "object" ? status?.instance?.state : status;
           
           if (statusValue === "open" || statusValue === "connected") {
-            newStatus = "connected";
+            newConnectionStatus = "open";
           } else if (statusValue === "connecting") {
-            newStatus = "connecting";
+            newConnectionStatus = "connecting";
+          } else {
+            newConnectionStatus = "closed";
           }
         } catch (statusError) {
           console.warn(`[SYNC][${instanceName}] Erro ao verificar status:`, statusError);
@@ -165,7 +167,7 @@ Deno.serve(async (req) => {
         }
 
         // Buscar telefone se conectado
-        if (newStatus === "connected") {
+        if (newConnectionStatus === "open") {
           try {
             const deviceInfo = await getDeviceInfo(instanceName);
             newPhone = deviceInfo?.phone?.number || "";
@@ -180,21 +182,20 @@ Deno.serve(async (req) => {
           newPhone = match ? match[1] : "";
         }
 
-        // Dados para inserir/atualizar
+        // Dados para inserir/atualizar - CORRIGIDO: usar connection_status em vez de status
         const instanceData = {
           instance_name: instanceName,
           evolution_instance_name: evoInstance.instanceName || evoInstance.name,
           evolution_instance_id: evoInstance.id,
           phone: newPhone || evoInstance.number || evoInstance.phone || "",
-          status: newStatus,
-          connection_status: evoInstance.connectionStatus,
+          connection_status: newConnectionStatus, // CORRIGIDO: era 'status', agora é 'connection_status'
           owner_jid: evoInstance.ownerJid,
           profile_name: evoInstance.profileName,
           profile_pic_url: evoInstance.profilePicUrl,
           client_name: evoInstance.clientName,
           evolution_token: evoInstance.token,
-          date_connected: newStatus === "connected" ? new Date().toISOString() : null,
-          date_disconnected: newStatus === "disconnected" ? new Date().toISOString() : null,
+          date_connected: newConnectionStatus === "open" ? new Date().toISOString() : null,
+          date_disconnected: newConnectionStatus === "closed" ? new Date().toISOString() : null,
         };
 
         // Verificar se já existe no banco
@@ -211,7 +212,7 @@ Deno.serve(async (req) => {
             syncResults[instanceName] = { status: "error", action: "update", error: updateError.message };
           } else {
             console.log(`[SYNC][${instanceName}] Atualizado com sucesso`);
-            syncResults[instanceName] = { status: "updated", phone: newPhone, connection_status: newStatus };
+            syncResults[instanceName] = { status: "updated", phone: newPhone, connection_status: newConnectionStatus };
           }
         } else {
           // Criar novo - precisamos definir company_id
@@ -243,7 +244,7 @@ Deno.serve(async (req) => {
               syncResults[instanceName] = { status: "error", action: "insert", error: insertError.message };
             } else {
               console.log(`[SYNC][${instanceName}] Inserido com sucesso`);
-              syncResults[instanceName] = { status: "inserted", phone: newPhone, connection_status: newStatus };
+              syncResults[instanceName] = { status: "inserted", phone: newPhone, connection_status: newConnectionStatus };
             }
           } else {
             console.warn(`[SYNC][${instanceName}] Company não encontrada para a instância`);
