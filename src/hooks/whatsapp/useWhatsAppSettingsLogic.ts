@@ -8,6 +8,8 @@ import { useWhatsAppFetcher } from "@/hooks/whatsapp/useWhatsAppFetcher";
 import { useWhatsAppRealtime } from "@/hooks/whatsapp/useWhatsAppRealtime";
 
 export const useWhatsAppSettingsLogic = () => {
+  console.log('[useWhatsAppSettingsLogic] Hook initializing');
+  
   const [userEmail, setUserEmail] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
@@ -17,9 +19,16 @@ export const useWhatsAppSettingsLogic = () => {
 
   // Load current user data
   useEffect(() => {
-    if (userDataLoadedRef.current) return;
+    console.log('[useWhatsAppSettingsLogic] User data effect triggered');
+    
+    if (userDataLoadedRef.current) {
+      console.log('[useWhatsAppSettingsLogic] User data already loaded, skipping');
+      return;
+    }
+    
     const getUser = async () => {
       try {
+        console.log('[useWhatsAppSettingsLogic] Fetching user data...');
         setIsLoading(true);
         const { data: { user }, error } = await supabase.auth.getUser();
         if (error) {
@@ -28,6 +37,7 @@ export const useWhatsAppSettingsLogic = () => {
           return;
         }
         if (user) {
+          console.log('[useWhatsAppSettingsLogic] User found:', user.email);
           setUserEmail(user.email || "");
           userDataLoadedRef.current = true;
 
@@ -35,6 +45,7 @@ export const useWhatsAppSettingsLogic = () => {
           const { data: superAdmin, error: superAdminError } = await supabase.rpc('is_super_admin');
           if (!superAdminError) {
             setIsSuperAdmin(superAdmin || false);
+            console.log('[useWhatsAppSettingsLogic] SuperAdmin status:', superAdmin);
           }
         }
       } catch (error) {
@@ -47,18 +58,22 @@ export const useWhatsAppSettingsLogic = () => {
     getUser();
   }, []);
 
-  // Initialize realtime
+  // Initialize realtime only when userEmail is available
+  console.log('[useWhatsAppSettingsLogic] Setting up realtime for:', userEmail);
   useWhatsAppRealtime(userEmail);
 
   // Get WhatsApp instances and related functions
+  console.log('[useWhatsAppSettingsLogic] Initializing WhatsApp hooks for:', userEmail);
   const whatsAppHooks = useWhatsAppInstances(userEmail);
   const { syncAllInstances } = useConnectionSynchronizer();
   const { fetchUserInstances } = useWhatsAppFetcher();
 
+  console.log('[useWhatsAppSettingsLogic] WhatsApp instances loaded:', whatsAppHooks.instances.length);
+
   // Sync inicial controlado - executar apenas UMA vez
   useEffect(() => {
     if (whatsAppHooks.instances.length > 0 && !syncExecutedRef.current) {
-      console.log('[WhatsAppSettings] Executing SINGLE initial sync');
+      console.log('[useWhatsAppSettingsLogic] Executing SINGLE initial sync for', whatsAppHooks.instances.length, 'instances');
       syncExecutedRef.current = true;
       
       const instancesForSync = whatsAppHooks.instances.map(instance => ({
@@ -67,21 +82,23 @@ export const useWhatsAppSettingsLogic = () => {
       }));
       
       syncAllInstances(instancesForSync).then((results) => {
-        console.log("[WhatsAppSettings] Initial status sync completed:", results);
+        console.log("[useWhatsAppSettingsLogic] Initial status sync completed:", results);
       }).catch((error) => {
-        console.error("[WhatsAppSettings] Initial sync failed:", error);
+        console.error("[useWhatsAppSettingsLogic] Initial sync failed:", error);
       });
     }
   }, [whatsAppHooks.instances.length, syncAllInstances]);
 
   // Handle sync all for company
   const handleSyncAllForCompany = async () => {
+    console.log('[useWhatsAppSettingsLogic] handleSyncAllForCompany called');
+    
     if (!whatsAppHooks.instances.length) {
       toast.error("Nenhuma instância WhatsApp encontrada para atualizar.");
       return;
     }
     if (isSyncingAll) {
-      console.log('[WhatsAppSettings] Sync already in progress, skipping');
+      console.log('[useWhatsAppSettingsLogic] Sync already in progress, skipping');
       return;
     }
     
@@ -91,10 +108,12 @@ export const useWhatsAppSettingsLogic = () => {
         id: instance.id,
         instanceName: instance.instanceName
       }));
+      console.log('[useWhatsAppSettingsLogic] Syncing instances:', instancesForSync.length);
       await syncAllInstances(instancesForSync);
       toast.success("Status do WhatsApp da empresa sincronizado!");
       refreshUserInstances();
     } catch (e) {
+      console.error('[useWhatsAppSettingsLogic] Sync failed:', e);
       toast.error("Falha ao sincronizar status das instâncias da empresa.");
     } finally {
       setIsSyncingAll(false);
@@ -103,10 +122,13 @@ export const useWhatsAppSettingsLogic = () => {
 
   // Refresh user instances
   const refreshUserInstances = () => {
+    console.log('[useWhatsAppSettingsLogic] refreshUserInstances called for:', userEmail);
     if (userEmail) {
       fetchUserInstances(userEmail);
     }
   };
+
+  console.log('[useWhatsAppSettingsLogic] Hook returning data');
 
   return {
     userEmail,

@@ -11,6 +11,8 @@ import { useWhatsAppCreator } from './useWhatsAppCreator';
 import { useWhatsAppFetcher } from './useWhatsAppFetcher';
 
 export const useWhatsAppInstances = (userEmail: string) => {
+  console.log('[useWhatsAppInstanceCore] Hook initializing for:', userEmail);
+  
   const { instances, setInstances } = useWhatsAppInstanceState();
   const [isLoading, setIsLoading] = useState<Record<string, boolean>>({});
   const [showQrCode, setShowQrCode] = useState<string | null>(null);
@@ -29,15 +31,22 @@ export const useWhatsAppInstances = (userEmail: string) => {
   const { fetchInstances } = useWhatsAppFetcher();
   const { addNewInstance } = useWhatsAppCreator(companyId);
   
+  console.log('[useWhatsAppInstanceCore] Company ID resolved:', companyId);
+  
   // Load WhatsApp instances when company ID is available, only once
   useEffect(() => {
-    if (!companyId || loadingRef.current) return;
+    if (!companyId || loadingRef.current) {
+      console.log('[useWhatsAppInstanceCore] Skipping fetch - no companyId or already loading');
+      return;
+    }
 
     const loadInstances = async () => {
       try {
+        console.log('[useWhatsAppInstanceCore] Loading instances for company:', companyId);
         loadingRef.current = true;
         setIsLoading(prev => ({ ...prev, fetch: true }));
         await fetchInstances(companyId);
+        console.log('[useWhatsAppInstanceCore] Instances loaded successfully');
       } catch (error) {
         console.error("Error fetching WhatsApp instances:", error);
         toast.error("Could not load WhatsApp instances");
@@ -49,39 +58,38 @@ export const useWhatsAppInstances = (userEmail: string) => {
     loadInstances();
   }, [companyId, fetchInstances]);
 
-  // Verificação de status ÚNICA e controlada
+  // Verificação de status ÚNICA e controlada - DESABILITADA temporariamente para debug
   useEffect(() => {
-    if (!instances.length || statusCheckExecutedRef.current) return;
+    if (!instances.length || statusCheckExecutedRef.current) {
+      console.log('[useWhatsAppInstanceCore] Skipping status check - no instances or already executed');
+      return;
+    }
     
     // Evitar múltiplas execuções em curto período
     const now = Date.now();
-    const minInterval = 30000; // 30 segundos mínimo entre verificações gerais
+    const minInterval = 60000; // Aumentado para 1 minuto
     if (now - lastStatusCheckRef.current < minInterval) {
-      console.log('[WhatsApp] Status check throttled - too soon');
+      console.log('[useWhatsAppInstanceCore] Status check throttled - too soon:', now - lastStatusCheckRef.current, 'ms ago');
       return;
     }
 
-    console.log('[WhatsApp] Executing SINGLE status check for all instances');
+    console.log('[useWhatsAppInstanceCore] TEMPORARY: Status check DISABLED for debugging');
+    
+    // TEMPORARIAMENTE DESABILITADO PARA DEBUG
+    // console.log('[useWhatsAppInstanceCore] Executing SINGLE status check for all instances');
     
     // Marcar como executado para evitar re-execução
     statusCheckExecutedRef.current = true;
     lastStatusCheckRef.current = now;
 
-    // Verificar status de cada instância apenas uma vez
-    instances.forEach((instance, index) => {
-      // Escalonar as verificações para evitar sobrecarga
-      setTimeout(() => {
-        console.log(`[WhatsApp] Checking status for instance ${instance.instanceName}`);
-        checkInstanceStatus(instance.id, true);
-      }, index * 2000); // 2 segundos entre cada verificação
-    });
-
     // Reset do flag após um tempo para permitir verificações futuras se necessário
     setTimeout(() => {
       statusCheckExecutedRef.current = false;
-    }, 300000); // 5 minutos
+    }, 600000); // 10 minutos
 
-  }, [instances.length, checkInstanceStatus]); // Só depende do número de instâncias, não do array completo
+  }, [instances.length, checkInstanceStatus]);
+
+  console.log('[useWhatsAppInstanceCore] Returning hook interface with', instances.length, 'instances');
 
   return {
     instances,
@@ -92,10 +100,10 @@ export const useWhatsAppInstances = (userEmail: string) => {
     
     // Functions
     checkInstanceStatus: (instanceId: string, forceFresh?: boolean) => {
-      // Adicionar throttling adicional nas chamadas manuais
+      console.log('[useWhatsAppInstanceCore] Manual status check requested for:', instanceId);
       const now = Date.now();
-      if (!forceFresh && now - lastStatusCheckRef.current < 10000) {
-        console.log('[WhatsApp] Manual status check throttled');
+      if (!forceFresh && now - lastStatusCheckRef.current < 15000) {
+        console.log('[useWhatsAppInstanceCore] Manual status check throttled');
         return;
       }
       lastStatusCheckRef.current = now;
@@ -104,6 +112,8 @@ export const useWhatsAppInstances = (userEmail: string) => {
     addConnectingInstance,
     connectInstance: async (instanceId: string | WhatsAppInstance): Promise<string | undefined> => {
       try {
+        console.log('[useWhatsAppInstanceCore] Connect instance requested:', typeof instanceId === 'string' ? instanceId : instanceId.id);
+        
         // Check if instanceId is a string or a WhatsAppInstance object
         const instanceToConnect = typeof instanceId === 'string' 
           ? instances.find(i => i.id === instanceId) 
@@ -138,6 +148,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
     
     refreshQrCode: async (instanceId: string) => {
       try {
+        console.log('[useWhatsAppInstanceCore] Refresh QR code requested for:', instanceId);
         setIsLoading(prev => ({ ...prev, [instanceId]: true }));
         setLastError(null);
         
@@ -162,6 +173,7 @@ export const useWhatsAppInstances = (userEmail: string) => {
     
     deleteInstance: async (instanceId: string) => {
       try {
+        console.log('[useWhatsAppInstanceCore] Delete instance requested for:', instanceId);
         setIsLoading(prev => ({ ...prev, [instanceId]: true }));
         setLastError(null);
 
