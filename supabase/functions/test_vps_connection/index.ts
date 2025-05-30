@@ -12,12 +12,13 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Iniciando teste de conectividade VPS...');
+    console.log('Iniciando teste de conectividade VPS Ubuntu 4GB...');
     
     const vpsConfig = {
-      host: '92.112.178.252',
+      host: '31.97.24.222',
       port: 3001,
-      sshPort: 22
+      sshPort: 22,
+      type: 'Ubuntu 4GB VPS'
     };
 
     // Teste 1: Verificar se a porta 3001 está acessível
@@ -50,7 +51,7 @@ serve(async (req) => {
       console.log(`Ping: FALHOU - ${error.message}`);
     }
 
-    // Preparar script do servidor Node.js
+    // Script do servidor Node.js atualizado
     const serverScript = `#!/usr/bin/env node
 
 const express = require('express');
@@ -75,7 +76,39 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
-    instances: instances.size 
+    instances: instances.size,
+    server: 'WhatsApp Web.js Server',
+    version: '1.0.0'
+  });
+});
+
+// Informações do servidor
+app.get('/info', (req, res) => {
+  res.json({
+    server: 'WhatsApp Web.js Server',
+    version: '1.0.0',
+    host: '${vpsConfig.host}',
+    port: PORT,
+    activeInstances: instances.size,
+    uptime: process.uptime(),
+    nodeVersion: process.version,
+    platform: process.platform
+  });
+});
+
+// Listar instâncias
+app.get('/instances', (req, res) => {
+  const instanceList = Array.from(instances.keys()).map(id => ({
+    instanceId: id,
+    status: instances.get(id).client.info ? 'ready' : 'connecting',
+    createdAt: instances.get(id).createdAt,
+    lastActivity: instances.get(id).lastActivity
+  }));
+
+  res.json({ 
+    success: true, 
+    instances: instanceList,
+    total: instanceList.length
   });
 });
 
@@ -122,6 +155,12 @@ app.post('/create', async (req, res) => {
       try {
         qrCode = await QRCode.toDataURL(qr);
         
+        // Atualizar QR na instância
+        if (instances.has(instanceId)) {
+          instances.get(instanceId).qrCode = qrCode;
+          instances.get(instanceId).lastActivity = new Date();
+        }
+        
         // Enviar QR para webhook
         if (webhookUrl) {
           await fetch(webhookUrl, {
@@ -130,7 +169,8 @@ app.post('/create', async (req, res) => {
             body: JSON.stringify({
               event: 'qr',
               instanceId,
-              data: { qr: qrCode }
+              data: { qr: qrCode },
+              timestamp: new Date().toISOString()
             })
           });
         }
@@ -144,6 +184,14 @@ app.post('/create', async (req, res) => {
       
       const info = client.info;
       
+      // Atualizar status da instância
+      if (instances.has(instanceId)) {
+        instances.get(instanceId).status = 'ready';
+        instances.get(instanceId).lastActivity = new Date();
+        instances.get(instanceId).phone = info.wid.user;
+        instances.get(instanceId).name = info.pushname;
+      }
+      
       // Enviar evento de ready para webhook
       if (webhookUrl) {
         await fetch(webhookUrl, {
@@ -156,7 +204,8 @@ app.post('/create', async (req, res) => {
               phone: info.wid.user,
               name: info.pushname,
               profilePic: await client.getProfilePicUrl(info.wid._serialized).catch(() => null)
-            }
+            },
+            timestamp: new Date().toISOString()
           })
         });
       }
@@ -164,6 +213,11 @@ app.post('/create', async (req, res) => {
 
     client.on('message', async (message) => {
       console.log(\`Nova mensagem para \${instanceId}:\`, message.body);
+      
+      // Atualizar atividade da instância
+      if (instances.has(instanceId)) {
+        instances.get(instanceId).lastActivity = new Date();
+      }
       
       // Enviar mensagem para webhook
       if (webhookUrl) {
@@ -200,14 +254,22 @@ app.post('/create', async (req, res) => {
           body: JSON.stringify({
             event: 'disconnected',
             instanceId,
-            data: { reason }
+            data: { reason },
+            timestamp: new Date().toISOString()
           })
         });
       }
     });
 
     // Armazenar instância
-    instances.set(instanceId, { client, webhookUrl, qrCode });
+    instances.set(instanceId, { 
+      client, 
+      webhookUrl, 
+      qrCode,
+      status: 'connecting',
+      createdAt: new Date(),
+      lastActivity: new Date()
+    });
 
     // Inicializar cliente
     await client.initialize();
@@ -215,7 +277,8 @@ app.post('/create', async (req, res) => {
     res.json({ 
       success: true, 
       instanceId,
-      qrCode 
+      qrCode,
+      status: 'connecting'
     });
 
   } catch (error) {
@@ -274,7 +337,8 @@ app.get('/qr/:instanceId', (req, res) => {
 
   res.json({ 
     success: true, 
-    qrCode: instance.qrCode 
+    qrCode: instance.qrCode,
+    status: instance.status
   });
 });
 
@@ -290,15 +354,32 @@ app.get('/status/:instanceId', async (req, res) => {
     });
   }
 
-  const state = await instance.client.getState();
-  
-  res.json({ 
-    success: true, 
-    status: {
-      state,
-      isReady: instance.client.info !== null
-    }
-  });
+  try {
+    const state = await instance.client.getState();
+    
+    res.json({ 
+      success: true, 
+      status: {
+        state,
+        isReady: instance.client.info !== null,
+        createdAt: instance.createdAt,
+        lastActivity: instance.lastActivity,
+        phone: instance.phone || null,
+        name: instance.name || null
+      }
+    });
+  } catch (error) {
+    res.json({
+      success: true,
+      status: {
+        state: 'disconnected',
+        isReady: false,
+        createdAt: instance.createdAt,
+        lastActivity: instance.lastActivity,
+        error: error.message
+      }
+    });
+  }
 });
 
 // Enviar mensagem
@@ -314,8 +395,18 @@ app.post('/send', async (req, res) => {
       });
     }
 
+    if (!instance.client.info) {
+      return res.status(400).json({
+        success: false,
+        error: 'Instância não está conectada'
+      });
+    }
+
     const chatId = phone.includes('@') ? phone : \`\${phone}@c.us\`;
     await instance.client.sendMessage(chatId, message);
+
+    // Atualizar atividade
+    instance.lastActivity = new Date();
 
     res.json({ success: true });
 
@@ -326,19 +417,6 @@ app.post('/send', async (req, res) => {
       error: error.message 
     });
   }
-});
-
-// Listar instâncias
-app.get('/instances', (req, res) => {
-  const instanceList = Array.from(instances.keys()).map(id => ({
-    instanceId: id,
-    status: instances.get(id).client.info ? 'ready' : 'connecting'
-  }));
-
-  res.json({ 
-    success: true, 
-    instances: instanceList 
-  });
 });
 
 // Middleware de erro
@@ -357,8 +435,13 @@ if (!fs.existsSync('./sessions')) {
 
 // Iniciar servidor
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(\`Servidor WhatsApp Web.js rodando na porta \${PORT}\`);
-  console.log(\`Acesse: http://localhost:\${PORT}/health\`);
+  console.log(\`=== WhatsApp Web.js Server ===\`);
+  console.log(\`Servidor rodando na porta \${PORT}\`);
+  console.log(\`Host: ${vpsConfig.host}\`);
+  console.log(\`Health: http://${vpsConfig.host}:\${PORT}/health\`);
+  console.log(\`Info: http://${vpsConfig.host}:\${PORT}/info\`);
+  console.log(\`Instâncias: http://${vpsConfig.host}:\${PORT}/instances\`);
+  console.log(\`===============================\`);
 });
 
 // Graceful shutdown
@@ -382,7 +465,7 @@ process.on('SIGINT', async () => {
     const packageJson = `{
   "name": "whatsapp-web-server",
   "version": "1.0.0",
-  "description": "Servidor WhatsApp Web.js para Ticlin",
+  "description": "Servidor WhatsApp Web.js para Ticlin - VPS Ubuntu 4GB",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -392,54 +475,96 @@ process.on('SIGINT', async () => {
   },
   "dependencies": {
     "express": "^4.18.2",
-    "cors": "^2.8.5",
+    "cors": "^2.8.5", 
     "whatsapp-web.js": "^1.23.0",
     "qrcode": "^1.5.3"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
   },
-  "keywords": ["whatsapp", "web", "api", "ticlin"],
+  "keywords": ["whatsapp", "web", "api", "ticlin", "ubuntu"],
   "author": "Ticlin",
   "license": "MIT"
 }`;
 
     const installScript = `#!/bin/bash
 
-echo "=== Instalação do Servidor WhatsApp Web.js ==="
+echo "=== Instalação do Servidor WhatsApp Web.js - Ubuntu 4GB VPS ==="
+echo "Host: ${vpsConfig.host}"
+echo "Porta: ${vpsConfig.port}"
+echo ""
+
+# Verificar se estamos executando como root
+if [[ $EUID -ne 0 ]]; then
+   echo "Este script deve ser executado como root (use sudo)" 
+   exit 1
+fi
+
+# Verificar conectividade
+echo "Verificando conectividade..."
+if ! ping -c 1 google.com &> /dev/null; then
+    echo "Aviso: Sem conectividade com a internet"
+fi
 
 # Verificar se Node.js está instalado
 if ! command -v node &> /dev/null; then
-    echo "Node.js não encontrado. Instalando..."
-    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-    sudo apt-get install -y nodejs
+    echo "Node.js não encontrado. Instalando Node.js 18 LTS..."
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+    apt-get install -y nodejs
+else
+    echo "Node.js já instalado: $(node --version)"
 fi
 
-# Verificar versão do Node.js
+# Verificar se NPM está funcionando
+if ! command -v npm &> /dev/null; then
+    echo "NPM não encontrado. Reinstalando Node.js..."
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+    apt-get install -y nodejs
+fi
+
 echo "Versão do Node.js: $(node --version)"
 echo "Versão do NPM: $(npm --version)"
 
+# Instalar dependências do sistema
+echo "Instalando dependências do sistema..."
+apt-get update
+apt-get install -y curl wget gnupg2 software-properties-common
+
+# Instalar Google Chrome (necessário para whatsapp-web.js)
+if ! command -v google-chrome &> /dev/null; then
+    echo "Instalando Google Chrome..."
+    wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add -
+    echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
+    apt-get update
+    apt-get install -y google-chrome-stable
+fi
+
 # Criar diretório do projeto
+echo "Criando diretório do projeto..."
 mkdir -p /root/whatsapp-server
 cd /root/whatsapp-server
 
 # Criar arquivos
+echo "Criando package.json..."
 cat > package.json << 'EOF'
 ${packageJson}
 EOF
 
+echo "Criando server.js..."
 cat > server.js << 'EOF'
 ${serverScript}
 EOF
 
 # Instalar dependências
-echo "Instalando dependências..."
+echo "Instalando dependências do projeto..."
 npm install
 
 # Instalar PM2 para gerenciar o processo
+echo "Instalando PM2..."
 npm install -g pm2
 
 # Criar arquivo de configuração do PM2
+echo "Criando configuração do PM2..."
 cat > ecosystem.config.js << 'EOF'
 module.exports = {
   apps: [{
@@ -451,32 +576,85 @@ module.exports = {
     max_memory_restart: '1G',
     env: {
       NODE_ENV: 'production',
-      PORT: 3001
-    }
+      PORT: ${vpsConfig.port}
+    },
+    error_file: './logs/err.log',
+    out_file: './logs/out.log',
+    log_file: './logs/combined.log',
+    time: true
   }]
 };
 EOF
 
+# Criar diretório de logs
+mkdir -p logs
+
 # Criar script de inicialização
+echo "Criando script de inicialização..."
 cat > start.sh << 'EOF'
 #!/bin/bash
+echo "Iniciando WhatsApp Web.js Server..."
 cd /root/whatsapp-server
+
+# Parar instância anterior se existir
+pm2 stop whatsapp-server 2>/dev/null || true
+pm2 delete whatsapp-server 2>/dev/null || true
+
+# Iniciar nova instância
 pm2 start ecosystem.config.js
 pm2 save
 pm2 startup
+
+echo "Servidor iniciado!"
+echo "Status: pm2 status"
+echo "Logs: pm2 logs whatsapp-server"
+echo "Health check: curl http://localhost:${vpsConfig.port}/health"
 EOF
 
 chmod +x start.sh
 
-echo "=== Instalação concluída! ==="
-echo "Para iniciar o servidor:"
-echo "cd /root/whatsapp-server && ./start.sh"
+# Criar script de parada
+cat > stop.sh << 'EOF'
+#!/bin/bash
+echo "Parando WhatsApp Web.js Server..."
+pm2 stop whatsapp-server
+pm2 delete whatsapp-server
+echo "Servidor parado!"
+EOF
+
+chmod +x stop.sh
+
+# Configurar firewall UFW
+echo "Configurando firewall..."
+ufw --force reset
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow ssh
+ufw allow ${vpsConfig.port}
+ufw --force enable
+
 echo ""
-echo "Para verificar status:"
-echo "pm2 status"
+echo "=== Instalação concluída com sucesso! ==="
 echo ""
-echo "Para ver logs:"
-echo "pm2 logs whatsapp-server"
+echo "Próximos passos:"
+echo "1. Iniciar servidor: ./start.sh"
+echo "2. Verificar status: pm2 status"
+echo "3. Ver logs: pm2 logs whatsapp-server"
+echo "4. Testar saúde: curl http://localhost:${vpsConfig.port}/health"
+echo "5. Testar externamente: curl http://${vpsConfig.host}:${vpsConfig.port}/health"
+echo ""
+echo "Endpoints disponíveis:"
+echo "- Health: http://${vpsConfig.host}:${vpsConfig.port}/health"
+echo "- Info: http://${vpsConfig.host}:${vpsConfig.port}/info"  
+echo "- Instâncias: http://${vpsConfig.host}:${vpsConfig.port}/instances"
+echo ""
+echo "Comandos úteis:"
+echo "- pm2 status          # Ver status dos processos"
+echo "- pm2 logs            # Ver logs em tempo real"
+echo "- pm2 restart all     # Reiniciar todos os processos"
+echo "- ./stop.sh           # Parar servidor"
+echo "- ./start.sh          # Iniciar servidor"
+echo ""
 `;
 
     const results = {
@@ -484,31 +662,38 @@ echo "pm2 logs whatsapp-server"
         http_test: httpTest,
         ping_test: pingTest,
         host: vpsConfig.host,
-        port: vpsConfig.port
+        port: vpsConfig.port,
+        type: vpsConfig.type
       },
       server_files: {
-        server_script: "server.js criado",
-        package_json: "package.json criado", 
-        install_script: "install.sh criado"
+        server_script: "server.js criado com endpoints /health, /info, /instances",
+        package_json: "package.json criado com dependências atualizadas", 
+        install_script: "install.sh criado com instalação completa para Ubuntu",
+        ecosystem_config: "PM2 ecosystem.config.js configurado",
+        firewall_setup: "Configuração UFW incluída"
       },
       next_steps: [
-        "Conectar na VPS via SSH",
-        "Executar o script de instalação",
-        "Iniciar o servidor WhatsApp",
-        "Testar conectividade com Supabase"
+        "1. Conectar na VPS: ssh root@" + vpsConfig.host,
+        "2. Atualizar sistema: apt update && apt upgrade -y",
+        "3. Executar script de instalação completo",
+        "4. Configurar firewall UFW (incluído no script)",
+        "5. Iniciar servidor WhatsApp com PM2",
+        "6. Testar endpoints: /health, /info, /instances",
+        "7. Executar novo teste de conectividade no painel"
       ]
     };
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Teste de conectividade realizado e scripts criados",
+        message: "Teste de conectividade realizado para VPS Ubuntu 4GB",
         results,
         scripts: {
           server: serverScript,
           package: packageJson,
           install: installScript
-        }
+        },
+        vps: vpsConfig
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -521,7 +706,7 @@ echo "pm2 logs whatsapp-server"
       JSON.stringify({
         success: false,
         error: error.message,
-        message: "Falha no teste de conectividade"
+        message: "Falha no teste de conectividade com a VPS Ubuntu 4GB"
       }),
       {
         status: 500,

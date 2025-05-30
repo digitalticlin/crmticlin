@@ -15,7 +15,11 @@ export interface WhatsAppWebInstance {
 }
 
 export class WhatsAppWebService {
-  private static readonly BASE_URL = '/functions/v1/whatsapp_web_server';
+  private static readonly VPS_CONFIG = {
+    host: '31.97.24.222',
+    port: 3001,
+    baseUrl: 'http://31.97.24.222:3001'
+  };
 
   static async createInstance(instanceName: string): Promise<{
     success: boolean;
@@ -29,7 +33,8 @@ export class WhatsAppWebService {
         body: {
           action: 'create_instance',
           instanceData: {
-            instanceName
+            instanceName,
+            serverUrl: this.VPS_CONFIG.baseUrl
           }
         }
       });
@@ -97,6 +102,7 @@ export class WhatsAppWebService {
     error?: string;
   }> {
     try {
+      // Primeiro tenta via edge function
       const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
         body: {
           action: 'get_status',
@@ -168,7 +174,7 @@ export class WhatsAppWebService {
       }
 
       // Send message directly to VPS server
-      const response = await fetch(`${instance.server_url}/send`, {
+      const response = await fetch(`${this.VPS_CONFIG.baseUrl}/send`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -190,6 +196,99 @@ export class WhatsAppWebService {
 
     } catch (error) {
       console.error('Error sending message:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  static async checkServerHealth(): Promise<{
+    success: boolean;
+    data?: any;
+    error?: string;
+  }> {
+    try {
+      const response = await fetch(`${this.VPS_CONFIG.baseUrl}/health`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        signal: AbortSignal.timeout(5000)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${data.error || 'Server error'}`);
+      }
+
+      return { success: true, data };
+
+    } catch (error) {
+      console.error('Error checking server health:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  static async getServerInfo(): Promise<{
+    success: boolean;
+    data?: any;
+    error?: string;
+  }> {
+    try {
+      const response = await fetch(`${this.VPS_CONFIG.baseUrl}/info`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        signal: AbortSignal.timeout(5000)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${data.error || 'Server error'}`);
+      }
+
+      return { success: true, data };
+
+    } catch (error) {
+      console.error('Error getting server info:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  static async listInstances(): Promise<{
+    success: boolean;
+    data?: any;
+    error?: string;
+  }> {
+    try {
+      const response = await fetch(`${this.VPS_CONFIG.baseUrl}/instances`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        signal: AbortSignal.timeout(5000)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${data.error || 'Server error'}`);
+      }
+
+      return { success: true, data };
+
+    } catch (error) {
+      console.error('Error listing instances:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'

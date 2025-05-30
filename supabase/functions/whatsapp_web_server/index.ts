@@ -10,15 +10,13 @@ const corsHeaders = {
 interface VPSCredentials {
   host: string;
   port: number;
-  username: string;
-  password: string;
+  baseUrl: string;
 }
 
 const VPS_CONFIG: VPSCredentials = {
-  host: '92.112.178.252',
+  host: '31.97.24.222',
   port: 3001,
-  username: 'root',
-  password: 'Ticlin20252025@'
+  baseUrl: 'http://31.97.24.222:3001'
 };
 
 serve(async (req) => {
@@ -48,6 +46,7 @@ serve(async (req) => {
     const { action, instanceData } = await req.json();
 
     console.log(`WhatsApp Web Server action: ${action}`);
+    console.log(`VPS Config: ${VPS_CONFIG.baseUrl}`);
 
     switch (action) {
       case 'create_instance':
@@ -62,6 +61,9 @@ serve(async (req) => {
       case 'get_qr':
         return await getQRCode(instanceData.instanceId);
       
+      case 'check_server':
+        return await checkServerHealth();
+        
       default:
         throw new Error(`Unknown action: ${action}`);
     }
@@ -106,7 +108,7 @@ async function createWhatsAppInstance(supabase: any, instanceData: any, userId: 
       phone: '',
       company_id: profile.company_id,
       connection_type: 'web',
-      server_url: `http://${VPS_CONFIG.host}:${VPS_CONFIG.port}`,
+      server_url: VPS_CONFIG.baseUrl,
       vps_instance_id: vpsInstanceId,
       web_status: 'creating',
       connection_status: 'connecting'
@@ -120,11 +122,12 @@ async function createWhatsAppInstance(supabase: any, instanceData: any, userId: 
 
   // Send command to VPS to create WhatsApp instance
   try {
-    const vpsResponse = await fetch(`http://${VPS_CONFIG.host}:${VPS_CONFIG.port}/create`, {
+    console.log(`Sending create request to: ${VPS_CONFIG.baseUrl}/create`);
+    
+    const vpsResponse = await fetch(`${VPS_CONFIG.baseUrl}/create`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get('VPS_API_KEY') || 'default-key'}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         instanceId: vpsInstanceId,
@@ -133,9 +136,14 @@ async function createWhatsAppInstance(supabase: any, instanceData: any, userId: 
       })
     });
 
+    if (!vpsResponse.ok) {
+      const errorText = await vpsResponse.text();
+      throw new Error(`VPS HTTP ${vpsResponse.status}: ${errorText}`);
+    }
+
     const vpsResult = await vpsResponse.json();
     
-    if (!vpsResponse.ok) {
+    if (!vpsResult.success) {
       throw new Error(`VPS error: ${vpsResult.error || 'Unknown error'}`);
     }
 
@@ -192,16 +200,19 @@ async function deleteWhatsAppInstance(supabase: any, instanceId: string) {
 
   // Send delete command to VPS
   try {
-    await fetch(`http://${VPS_CONFIG.host}:${VPS_CONFIG.port}/delete`, {
+    const response = await fetch(`${VPS_CONFIG.baseUrl}/delete`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get('VPS_API_KEY') || 'default-key'}`
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         instanceId: instance.vps_instance_id
       })
     });
+
+    if (!response.ok) {
+      console.error(`VPS delete failed: HTTP ${response.status}`);
+    }
   } catch (error) {
     console.error('Error deleting from VPS:', error);
   }
@@ -224,11 +235,17 @@ async function deleteWhatsAppInstance(supabase: any, instanceId: string) {
 
 async function getInstanceStatus(instanceId: string) {
   try {
-    const response = await fetch(`http://${VPS_CONFIG.host}:${VPS_CONFIG.port}/status/${instanceId}`, {
+    const response = await fetch(`${VPS_CONFIG.baseUrl}/status/${instanceId}`, {
+      method: 'GET',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('VPS_API_KEY') || 'default-key'}`
-      }
+        'Content-Type': 'application/json'
+      },
+      signal: AbortSignal.timeout(5000)
     });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
 
     const status = await response.json();
     
@@ -249,11 +266,17 @@ async function getInstanceStatus(instanceId: string) {
 
 async function getQRCode(instanceId: string) {
   try {
-    const response = await fetch(`http://${VPS_CONFIG.host}:${VPS_CONFIG.port}/qr/${instanceId}`, {
+    const response = await fetch(`${VPS_CONFIG.baseUrl}/qr/${instanceId}`, {
+      method: 'GET',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('VPS_API_KEY') || 'default-key'}`
-      }
+        'Content-Type': 'application/json'
+      },
+      signal: AbortSignal.timeout(5000)
     });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
 
     const result = await response.json();
     
@@ -266,6 +289,37 @@ async function getQRCode(instanceId: string) {
       JSON.stringify({ 
         success: false, 
         error: `QR code fetch failed: ${error.message}` 
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+async function checkServerHealth() {
+  try {
+    const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      signal: AbortSignal.timeout(5000)
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const health = await response.json();
+    
+    return new Response(
+      JSON.stringify({ success: true, health }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: `Health check failed: ${error.message}` 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
