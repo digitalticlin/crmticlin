@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
@@ -59,17 +60,52 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
     try {
       setLoading(true);
       
+      console.log('Creating instance with WhatsAppWebService:', instanceName);
       const result = await WhatsAppWebService.createInstance(instanceName);
       
       if (!result.success) {
         throw new Error(result.error || 'Failed to create instance');
       }
 
+      console.log('Instance creation result:', result);
+      
+      // Buscar a instância recém-criada do banco
       await fetchInstances();
       
-      // Retornar a instância criada com QR Code
-      const newInstance = instances.find(i => i.instance_name === instanceName);
-      return newInstance || null;
+      // Aguardar um pouco para garantir que o banco foi atualizado
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Buscar novamente as instâncias para pegar a recém-criada
+      const { data: updatedInstances, error: fetchError } = await supabase
+        .from('whatsapp_instances')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('instance_name', instanceName)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (fetchError) {
+        console.error('Error fetching created instance:', fetchError);
+        throw new Error(fetchError.message);
+      }
+
+      const newInstance = updatedInstances?.[0];
+      console.log('Found created instance:', newInstance);
+      
+      if (newInstance) {
+        // Atualizar a lista local de instâncias
+        setInstances(prev => {
+          const exists = prev.find(i => i.id === newInstance.id);
+          if (exists) {
+            return prev.map(i => i.id === newInstance.id ? newInstance : i);
+          }
+          return [newInstance, ...prev];
+        });
+        
+        return newInstance;
+      }
+      
+      return null;
       
     } catch (err) {
       console.error('Error creating instance:', err);
@@ -203,7 +239,29 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
     loading,
     error,
     createInstance,
-    deleteInstance,
+    deleteInstance: async (instanceId: string) => {
+      try {
+        setLoading(true);
+        
+        const result = await WhatsAppWebService.deleteInstance(instanceId);
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to delete instance');
+        }
+
+        toast.success('WhatsApp desconectado com sucesso!');
+        await fetchInstances();
+        
+      } catch (err) {
+        console.error('Error deleting instance:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Erro ao remover instância';
+        toast.error(errorMessage);
+        setError(errorMessage);
+        throw err;
+      } finally {
+        setLoading(false);
+      }
+    },
     refreshQRCode: async (instanceId: string) => {
       try {
         const instance = instances.find(i => i.id === instanceId);

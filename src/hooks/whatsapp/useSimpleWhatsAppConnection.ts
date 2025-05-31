@@ -14,6 +14,7 @@ export const useSimpleWhatsAppConnection = () => {
     instances,
     loading: instancesLoading,
     createInstance,
+    refreshQRCode,
     error
   } = useWhatsAppWebInstances(companyId, companyLoading);
 
@@ -28,19 +29,43 @@ export const useSimpleWhatsAppConnection = () => {
       // Gerar nome automático baseado no timestamp
       const instanceName = `whatsapp_${Date.now()}`;
       
-      await createInstance(instanceName);
+      console.log('Creating instance:', instanceName);
+      const newInstance = await createInstance(instanceName);
       
-      // Buscar a instância recém-criada para obter o QR Code
-      const newInstance = instances.find(i => i.instance_name === instanceName);
-      if (newInstance?.qr_code) {
-        setCurrentQRCode(newInstance.qr_code);
-        setShowQRModal(true);
+      if (newInstance) {
+        console.log('Instance created:', newInstance);
+        
+        // Se a instância foi criada e tem QR Code, mostrar modal
+        if (newInstance.qr_code) {
+          setCurrentQRCode(newInstance.qr_code);
+          setShowQRModal(true);
+          toast.success('QR Code gerado! Escaneie para conectar.');
+        } else if (newInstance.vps_instance_id) {
+          // Se não tem QR Code, tentar buscar
+          console.log('Fetching QR Code for instance:', newInstance.vps_instance_id);
+          try {
+            const qrCode = await refreshQRCode(newInstance.id);
+            if (qrCode) {
+              setCurrentQRCode(qrCode);
+              setShowQRModal(true);
+              toast.success('QR Code gerado! Escaneie para conectar.');
+            } else {
+              toast.error('Erro ao gerar QR Code');
+            }
+          } catch (qrError) {
+            console.error('Error fetching QR Code:', qrError);
+            toast.error('Erro ao gerar QR Code');
+          }
+        } else {
+          toast.error('Erro ao criar instância WhatsApp');
+        }
+      } else {
+        toast.error('Erro ao criar instância WhatsApp');
       }
       
-      toast.success('QR Code gerado! Escaneie para conectar.');
     } catch (err) {
       console.error('Erro ao conectar WhatsApp:', err);
-      toast.error('Erro ao gerar QR Code');
+      toast.error('Erro ao criar instância WhatsApp');
     } finally {
       setIsConnecting(false);
     }
