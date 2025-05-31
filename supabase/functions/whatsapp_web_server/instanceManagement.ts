@@ -1,3 +1,4 @@
+
 import { VPS_CONFIG, corsHeaders } from './config.ts';
 import { InstanceData } from './types.ts';
 
@@ -13,22 +14,6 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
 
   if (!profile?.company_id) {
     throw new Error('User company not found');
-  }
-
-  // Check for existing instances with same name
-  const { data: existingInstance } = await supabase
-    .from('whatsapp_instances')
-    .select('id')
-    .eq('company_id', profile.company_id)
-    .eq('instance_name', instanceData.instanceName)
-    .single();
-
-  if (existingInstance) {
-    // Delete existing instance if found
-    await supabase
-      .from('whatsapp_instances')
-      .delete()
-      .eq('id', existingInstance.id);
   }
 
   // Generate unique VPS instance ID
@@ -51,16 +36,12 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
     .single();
 
   if (dbError) {
-    console.error('Database error:', dbError);
-    throw new Error(`Erro no banco de dados: ${dbError.message}`);
+    throw new Error(`Database error: ${dbError.message}`);
   }
 
   // Send command to VPS to create WhatsApp instance
   try {
     console.log(`Sending create request to: ${VPS_CONFIG.baseUrl}/create`);
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
     
     const vpsResponse = await fetch(`${VPS_CONFIG.baseUrl}/create`, {
       method: 'POST',
@@ -71,38 +52,29 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
         instanceId: vpsInstanceId,
         sessionName: instanceData.instanceName,
         webhookUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/webhook_whatsapp_web`
-      }),
-      signal: controller.signal
+      })
     });
-
-    clearTimeout(timeoutId);
 
     if (!vpsResponse.ok) {
       const errorText = await vpsResponse.text();
-      console.error('VPS HTTP error:', vpsResponse.status, errorText);
-      throw new Error(`Servidor WhatsApp indisponível (${vpsResponse.status})`);
+      throw new Error(`VPS HTTP ${vpsResponse.status}: ${errorText}`);
     }
 
     const vpsResult = await vpsResponse.json();
     
     if (!vpsResult.success) {
-      console.error('VPS error result:', vpsResult);
-      throw new Error(`Erro no servidor: ${vpsResult.error || 'Erro desconhecido'}`);
+      throw new Error(`VPS error: ${vpsResult.error || 'Unknown error'}`);
     }
 
     // Update database with QR code if available
     if (vpsResult.qrCode) {
-      const { error: updateError } = await supabase
+      await supabase
         .from('whatsapp_instances')
         .update({
           qr_code: vpsResult.qrCode,
           web_status: 'waiting_scan'
         })
         .eq('id', dbInstance.id);
-
-      if (updateError) {
-        console.error('Error updating QR code:', updateError);
-      }
     }
 
     return new Response(
@@ -128,18 +100,7 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
       })
       .eq('id', dbInstance.id);
 
-    // Determine error message based on error type
-    let errorMessage = 'Erro de comunicação com servidor WhatsApp';
-    
-    if (vpsError.name === 'AbortError') {
-      errorMessage = 'Timeout: Servidor WhatsApp não respondeu em 30s';
-    } else if (vpsError.message.includes('fetch')) {
-      errorMessage = 'Servidor WhatsApp offline ou inacessível';
-    } else {
-      errorMessage = vpsError.message;
-    }
-
-    throw new Error(errorMessage);
+    throw new Error(`Failed to create instance on VPS: ${vpsError.message}`);
   }
 }
 

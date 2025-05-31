@@ -1,9 +1,8 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
-import { useInstanceCreation } from './useInstanceCreation';
-import { useInstanceOperations } from './useInstanceOperations';
-import { useWhatsAppRealtime } from './useWhatsAppRealtime';
+import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
+import { toast } from "sonner";
 
 export interface WhatsAppWebInstance {
   id: string;
@@ -16,7 +15,6 @@ export interface WhatsAppWebInstance {
   qr_code?: string;
   phone?: string;
   profile_name?: string;
-  profile_pic_url?: string;
   company_id: string;
 }
 
@@ -25,10 +23,7 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { createInstance: createInstanceBase, isCreating } = useInstanceCreation(companyId);
-  const { deleteInstance: deleteInstanceBase, refreshQRCode: refreshQRCodeBase, sendMessage } = useInstanceOperations();
-
-  const fetchInstances = useCallback(async () => {
+  const fetchInstances = async () => {
     if (!companyId) {
       setInstances([]);
       setLoading(false);
@@ -39,12 +34,11 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
       setLoading(true);
       setError(null);
 
-      // Filtrar apenas instâncias WhatsApp Web.js (sem Evolution)
       const { data, error: fetchError } = await supabase
         .from('whatsapp_instances')
         .select('*')
         .eq('company_id', companyId)
-        .or('connection_type.eq.web,vps_instance_id.not.is.null')
+        .eq('connection_type', 'web')
         .order('created_at', { ascending: false });
 
       if (fetchError) {
@@ -58,45 +52,125 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
     } finally {
       setLoading(false);
     }
-  }, [companyId]);
+  };
 
-  const createInstance = async (instanceName: string): Promise<WhatsAppWebInstance | null> => {
-    const newInstance = await createInstanceBase(instanceName);
-    
-    if (newInstance) {
-      // Atualizar a lista local de instâncias
-      setInstances(prev => {
-        const exists = prev.find(i => i.id === newInstance.id);
-        if (exists) {
-          return prev.map(i => i.id === newInstance.id ? newInstance : i);
-        }
-        return [newInstance, ...prev];
-      });
+  const createInstance = async (instanceName: string): Promise<void> => {
+    try {
+      setLoading(true);
+      
+      const result = await WhatsAppWebService.createInstance(instanceName);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create instance');
+      }
+
+      toast.success('Instância WhatsApp criada com sucesso!');
+      await fetchInstances();
+      
+    } catch (err) {
+      console.error('Error creating instance:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao criar instância';
+      toast.error(errorMessage);
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
     }
-    
-    return newInstance;
   };
 
   const deleteInstance = async (instanceId: string) => {
-    await deleteInstanceBase(instanceId);
-    await fetchInstances();
+    try {
+      setLoading(true);
+      
+      const result = await WhatsAppWebService.deleteInstance(instanceId);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to delete instance');
+      }
+
+      toast.success('Instância removida com sucesso!');
+      await fetchInstances();
+      
+    } catch (err) {
+      console.error('Error deleting instance:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao remover instância';
+      toast.error(errorMessage);
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const refreshQRCode = async (instanceId: string) => {
-    const qrCode = await refreshQRCodeBase(instanceId, instances);
-    
-    // Update instance in state
-    setInstances(prev => prev.map(i => 
-      i.id === instanceId 
-        ? { ...i, qr_code: qrCode } 
-        : i
-    ));
+    try {
+      const instance = instances.find(i => i.id === instanceId);
+      if (!instance?.vps_instance_id) {
+        throw new Error('Instance not found');
+      }
 
-    return qrCode;
+      const result = await WhatsAppWebService.getQRCode(instance.vps_instance_id);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to get QR code');
+      }
+
+      // Update instance in state
+      setInstances(prev => prev.map(i => 
+        i.id === instanceId 
+          ? { ...i, qr_code: result.qrCode } 
+          : i
+      ));
+
+      return result.qrCode;
+    } catch (err) {
+      console.error('Error refreshing QR code:', err);
+      toast.error('Erro ao atualizar QR code');
+      throw err;
+    }
+  };
+
+  const sendMessage = async (instanceId: string, phone: string, message: string) => {
+    try {
+      const result = await WhatsAppWebService.sendMessage(instanceId, phone, message);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to send message');
+      }
+
+      return true;
+    } catch (err) {
+      console.error('Error sending message:', err);
+      toast.error('Erro ao enviar mensagem');
+      throw err;
+    }
   };
 
   // Subscribe to real-time updates
-  useWhatsAppRealtime(companyId, fetchInstances);
+  useEffect(() => {
+    if (!companyId) return;
+
+    const channel = supabase
+      .channel('whatsapp-web-instances')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'whatsapp_instances',
+          filter: `company_id=eq.${companyId}`
+        },
+        (payload) => {
+          console.log('WhatsApp Web instance change:', payload);
+          fetchInstances();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [companyId]);
 
   // Só buscar instâncias quando companyId estiver disponível e não estiver carregando
   useEffect(() => {
@@ -106,11 +180,11 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
     }
     
     fetchInstances();
-  }, [companyId, companyLoading, fetchInstances]);
+  }, [companyId, companyLoading]);
 
   return {
     instances,
-    loading: loading || isCreating,
+    loading,
     error,
     createInstance,
     deleteInstance,
