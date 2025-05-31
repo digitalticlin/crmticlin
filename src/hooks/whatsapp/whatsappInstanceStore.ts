@@ -23,6 +23,7 @@ export interface WhatsAppInstance {
   created_at?: string;
   updated_at?: string;
   session_data?: any;
+  company_id?: string;
   // Device information fields
   deviceInfo?: {
     batteryLevel?: number;

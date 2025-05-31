@@ -2,18 +2,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
-import { Contact } from '@/types/chat';
+import { Contact, Message } from '@/types/chat';
 import { WhatsAppWebInstance } from './useWhatsAppWebInstances';
-
-export interface Message {
-  id: string;
-  text: string;
-  from_me: boolean;
-  timestamp: string;
-  media_type?: string;
-  media_url?: string;
-  status?: string;
-}
 
 export const useWhatsAppMessages = (
   activeInstance: WhatsAppWebInstance | null, 
@@ -39,7 +29,22 @@ export const useWhatsAppMessages = (
         .order('timestamp', { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
+      
+      // Convert database messages to chat Message format
+      const chatMessages: Message[] = (data || []).map(msg => ({
+        id: msg.id,
+        text: msg.text || '',
+        sender: msg.from_me ? 'user' : 'contact',
+        time: new Date(msg.timestamp).toLocaleTimeString('pt-BR', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        }),
+        status: msg.status === 'sent' ? 'sent' : msg.status === 'delivered' ? 'delivered' : 'read',
+        isIncoming: !msg.from_me,
+        fromMe: msg.from_me
+      }));
+      
+      setMessages(chatMessages);
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {
