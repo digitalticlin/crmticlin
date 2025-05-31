@@ -1,22 +1,32 @@
 
 import { useState } from 'react';
 import { useWhatsAppWebInstances } from './useWhatsAppWebInstances';
+import { useInstanceCreationWithRetry } from './useInstanceCreationWithRetry';
 import { useCompanyData } from '../useCompanyData';
 import { toast } from 'sonner';
 
 export const useSimpleWhatsAppConnection = () => {
   const [showQRModal, setShowQRModal] = useState(false);
+  const [showLoadingModal, setShowLoadingModal] = useState(false);
   const [currentQRCode, setCurrentQRCode] = useState<string | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false);
 
   const { companyId, loading: companyLoading } = useCompanyData();
   const {
     instances,
     loading: instancesLoading,
-    createInstance,
-    refreshQRCode,
+    deleteInstance,
+    refetch,
     error
   } = useWhatsAppWebInstances(companyId, companyLoading);
+
+  const {
+    createInstanceWithRetry,
+    cancelCreation,
+    isCreating,
+    currentStep,
+    retryCount,
+    maxRetries
+  } = useInstanceCreationWithRetry(companyId);
 
   const quickConnect = async () => {
     if (!companyId) {
@@ -24,51 +34,44 @@ export const useSimpleWhatsAppConnection = () => {
       return;
     }
 
-    setIsConnecting(true);
+    // Gerar nome automático baseado no timestamp
+    const instanceName = `whatsapp_${Date.now()}`;
+    
+    console.log('Starting quick connect for instance:', instanceName);
+    
+    // Mostrar modal de loading
+    setShowLoadingModal(true);
+    
     try {
-      // Gerar nome automático baseado no timestamp
-      const instanceName = `whatsapp_${Date.now()}`;
+      const result = await createInstanceWithRetry(instanceName);
       
-      console.log('Creating instance:', instanceName);
-      const newInstance = await createInstance(instanceName);
+      // Fechar modal de loading
+      setShowLoadingModal(false);
       
-      if (newInstance) {
-        console.log('Instance created:', newInstance);
+      if (result.success && result.qrCode) {
+        console.log('Instance created successfully with QR code');
+        setCurrentQRCode(result.qrCode);
+        setShowQRModal(true);
+        toast.success('QR Code gerado! Escaneie para conectar.');
         
-        // Se a instância foi criada e tem QR Code, mostrar modal
-        if (newInstance.qr_code) {
-          setCurrentQRCode(newInstance.qr_code);
-          setShowQRModal(true);
-          toast.success('QR Code gerado! Escaneie para conectar.');
-        } else if (newInstance.vps_instance_id) {
-          // Se não tem QR Code, tentar buscar
-          console.log('Fetching QR Code for instance:', newInstance.vps_instance_id);
-          try {
-            const qrCode = await refreshQRCode(newInstance.id);
-            if (qrCode) {
-              setCurrentQRCode(qrCode);
-              setShowQRModal(true);
-              toast.success('QR Code gerado! Escaneie para conectar.');
-            } else {
-              toast.error('Erro ao gerar QR Code');
-            }
-          } catch (qrError) {
-            console.error('Error fetching QR Code:', qrError);
-            toast.error('Erro ao gerar QR Code');
-          }
-        } else {
-          toast.error('Erro ao criar instância WhatsApp');
-        }
+        // Atualizar lista de instâncias
+        await refetch();
       } else {
-        toast.error('Erro ao criar instância WhatsApp');
+        console.error('Failed to create instance:', result.error);
+        toast.error(result.error || 'Erro ao criar instância WhatsApp');
       }
       
     } catch (err) {
-      console.error('Erro ao conectar WhatsApp:', err);
-      toast.error('Erro ao criar instância WhatsApp');
-    } finally {
-      setIsConnecting(false);
+      setShowLoadingModal(false);
+      console.error('Erro inesperado ao conectar WhatsApp:', err);
+      toast.error('Erro inesperado ao criar instância WhatsApp');
     }
+  };
+
+  const handleCancelCreation = () => {
+    cancelCreation();
+    setShowLoadingModal(false);
+    toast.info('Conexão cancelada');
   };
 
   const closeQRModal = () => {
@@ -87,14 +90,20 @@ export const useSimpleWhatsAppConnection = () => {
   return {
     quickConnect,
     showQRModal,
+    showLoadingModal,
     currentQRCode,
     closeQRModal,
-    isConnecting,
+    handleCancelCreation,
+    isConnecting: isCreating,
+    currentStep,
+    retryCount,
+    maxRetries,
     hasConnectedInstances,
     connectedInstances,
     instances,
     isLoading,
     error,
-    companyId
+    companyId,
+    deleteInstance
   };
 };

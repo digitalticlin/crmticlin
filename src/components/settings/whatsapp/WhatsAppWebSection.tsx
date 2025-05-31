@@ -4,21 +4,28 @@ import { Button } from "@/components/ui/button";
 import { Wifi, Smartphone, ArrowRight } from "lucide-react";
 import { useSimpleWhatsAppConnection } from "@/hooks/whatsapp/useSimpleWhatsAppConnection";
 import { SimpleQRCodeModal } from "./SimpleQRCodeModal";
+import { CreationLoadingModal } from "./CreationLoadingModal";
 import { ConnectedInstanceCard } from "./ConnectedInstanceCard";
 
 export function WhatsAppWebSection() {
   const {
     quickConnect,
     showQRModal,
+    showLoadingModal,
     currentQRCode,
     closeQRModal,
+    handleCancelCreation,
     isConnecting,
+    currentStep,
+    retryCount,
+    maxRetries,
     hasConnectedInstances,
     connectedInstances,
     instances,
     isLoading,
     error,
-    companyId
+    companyId,
+    deleteInstance
   } = useSimpleWhatsAppConnection();
 
   if (isLoading) {
@@ -130,10 +137,7 @@ export function WhatsAppWebSection() {
               <ConnectedInstanceCard
                 key={instance.id}
                 instance={instance}
-                onDelete={async (instanceId) => {
-                  // Implementar delete através do hook existente
-                  console.log('Delete instance:', instanceId);
-                }}
+                onDelete={deleteInstance}
               />
             ))}
           </div>
@@ -167,6 +171,16 @@ export function WhatsAppWebSection() {
           </CardContent>
         </Card>
       )}
+
+      {/* Modal de Loading */}
+      <CreationLoadingModal
+        isOpen={showLoadingModal}
+        onClose={() => {}} // Não permitir fechar clicando fora
+        onCancel={handleCancelCreation}
+        currentStep={currentStep}
+        retryCount={retryCount}
+        maxRetries={maxRetries}
+      />
 
       {/* Modal QR Code */}
       <SimpleQRCodeModal
