@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
@@ -15,6 +14,7 @@ export interface WhatsAppWebInstance {
   qr_code?: string;
   phone?: string;
   profile_name?: string;
+  profile_pic_url?: string;
   company_id: string;
 }
 
@@ -34,11 +34,12 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
       setLoading(true);
       setError(null);
 
+      // Filtrar apenas instâncias WhatsApp Web.js (sem Evolution)
       const { data, error: fetchError } = await supabase
         .from('whatsapp_instances')
         .select('*')
         .eq('company_id', companyId)
-        .eq('connection_type', 'web')
+        .or('connection_type.eq.web,vps_instance_id.not.is.null')
         .order('created_at', { ascending: false });
 
       if (fetchError) {
@@ -54,7 +55,7 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
     }
   };
 
-  const createInstance = async (instanceName: string): Promise<void> => {
+  const createInstance = async (instanceName: string): Promise<WhatsAppWebInstance | null> => {
     try {
       setLoading(true);
       
@@ -64,8 +65,11 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
         throw new Error(result.error || 'Failed to create instance');
       }
 
-      toast.success('Instância WhatsApp criada com sucesso!');
       await fetchInstances();
+      
+      // Retornar a instância criada com QR Code
+      const newInstance = instances.find(i => i.instance_name === instanceName);
+      return newInstance || null;
       
     } catch (err) {
       console.error('Error creating instance:', err);
@@ -88,7 +92,7 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
         throw new Error(result.error || 'Failed to delete instance');
       }
 
-      toast.success('Instância removida com sucesso!');
+      toast.success('WhatsApp desconectado com sucesso!');
       await fetchInstances();
       
     } catch (err) {
@@ -146,7 +150,7 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
     }
   };
 
-  // Subscribe to real-time updates
+  // Subscribe to real-time updates for connection status changes
   useEffect(() => {
     if (!companyId) return;
 
@@ -162,6 +166,18 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
         },
         (payload) => {
           console.log('WhatsApp Web instance change:', payload);
+          
+          // Se uma instância foi conectada (status mudou para ready/open), mostrar toast
+          if (payload.eventType === 'UPDATE' && payload.new) {
+            const newStatus = payload.new.web_status;
+            const oldStatus = payload.old?.web_status;
+            
+            if ((newStatus === 'ready' || newStatus === 'open') && 
+                oldStatus !== 'ready' && oldStatus !== 'open') {
+              toast.success('WhatsApp conectado com sucesso!');
+            }
+          }
+          
           fetchInstances();
         }
       )
@@ -188,8 +204,48 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
     error,
     createInstance,
     deleteInstance,
-    refreshQRCode,
-    sendMessage,
+    refreshQRCode: async (instanceId: string) => {
+      try {
+        const instance = instances.find(i => i.id === instanceId);
+        if (!instance?.vps_instance_id) {
+          throw new Error('Instance not found');
+        }
+
+        const result = await WhatsAppWebService.getQRCode(instance.vps_instance_id);
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to get QR code');
+        }
+
+        // Update instance in state
+        setInstances(prev => prev.map(i => 
+          i.id === instanceId 
+            ? { ...i, qr_code: result.qrCode } 
+            : i
+        ));
+
+        return result.qrCode;
+      } catch (err) {
+        console.error('Error refreshing QR code:', err);
+        toast.error('Erro ao atualizar QR code');
+        throw err;
+      }
+    },
+    sendMessage: async (instanceId: string, phone: string, message: string) => {
+      try {
+        const result = await WhatsAppWebService.sendMessage(instanceId, phone, message);
+        
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to send message');
+        }
+
+        return true;
+      } catch (err) {
+        console.error('Error sending message:', err);
+        toast.error('Erro ao enviar mensagem');
+        throw err;
+      }
+    },
     refetch: fetchInstances
   };
 };
