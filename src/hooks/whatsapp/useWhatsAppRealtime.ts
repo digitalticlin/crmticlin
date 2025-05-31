@@ -1,96 +1,43 @@
 
-import { useEffect, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useWhatsAppInstanceState, useWhatsAppInstanceActions } from './whatsappInstanceStore';
+import { useEffect } from 'react';
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
-export const useWhatsAppRealtime = (userEmail: string) => {
-  const { instances } = useWhatsAppInstanceState();
-  const { updateInstance } = useWhatsAppInstanceActions();
-  const lastUpdateRef = useRef<number>(0);
-  const updateTimeoutRef = useRef<NodeJS.Timeout>();
-
+export const useWhatsAppRealtime = (companyId?: string, onInstanceChange?: () => void) => {
   useEffect(() => {
-    if (!userEmail) return;
+    if (!companyId || !onInstanceChange) return;
 
-    console.log('[WhatsApp Realtime] Setting up realtime subscription');
-    
     const channel = supabase
-      .channel('whatsapp-instances-changes')
+      .channel('whatsapp-web-instances')
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          event: '*',
           schema: 'public',
-          table: 'whatsapp_instances'
+          table: 'whatsapp_instances',
+          filter: `company_id=eq.${companyId}`
         },
         (payload) => {
-          console.log('[WhatsApp Realtime] Received change:', payload);
+          console.log('WhatsApp Web instance change:', payload);
           
-          // Debouncing: evitar atualizações muito frequentes
-          const now = Date.now();
-          if (now - lastUpdateRef.current < 3000) { // 3 segundos mínimo entre atualizações
-            console.log('[WhatsApp Realtime] Update debounced');
-            return;
+          // Se uma instância foi conectada (status mudou para ready/open), mostrar toast
+          if (payload.eventType === 'UPDATE' && payload.new) {
+            const newStatus = payload.new.web_status;
+            const oldStatus = payload.old?.web_status;
+            
+            if ((newStatus === 'ready' || newStatus === 'open') && 
+                oldStatus !== 'ready' && oldStatus !== 'open') {
+              toast.success('WhatsApp conectado com sucesso!');
+            }
           }
           
-          // Clear any pending timeout
-          if (updateTimeoutRef.current) {
-            clearTimeout(updateTimeoutRef.current);
-          }
-          
-          // Delay the update to batch multiple changes
-          updateTimeoutRef.current = setTimeout(() => {
-            processRealtimeUpdate(payload);
-            lastUpdateRef.current = Date.now();
-          }, 1000); // 1 segundo de delay para batch updates
+          onInstanceChange();
         }
       )
       .subscribe();
 
-    const processRealtimeUpdate = (payload: any) => {
-      const instancePrefix = userEmail.split('@')[0].replace(/[^a-z0-9]/gi, "").toLowerCase();
-      
-      if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
-        const newRecord = payload.new as any;
-        
-        // Verificar se a instância pertence ao usuário atual
-        if (newRecord.instance_name?.toLowerCase().startsWith(instancePrefix)) {
-          const mappedInstance = {
-            id: newRecord.id,
-            instanceName: newRecord.instance_name,
-            connected: newRecord.connection_status === 'open',
-            qrCodeUrl: newRecord.qr_code,
-            phoneNumber: newRecord.phone,
-            evolution_instance_name: newRecord.evolution_instance_name,
-            evolution_instance_id: newRecord.evolution_instance_id,
-            phone: newRecord.phone || "",
-            connection_status: newRecord.connection_status || "disconnected",
-            owner_jid: newRecord.owner_jid,
-            profile_name: newRecord.profile_name,
-            profile_pic_url: newRecord.profile_pic_url,
-            client_name: newRecord.client_name,
-            date_connected: newRecord.date_connected,
-            date_disconnected: newRecord.date_disconnected,
-            created_at: newRecord.created_at,
-            updated_at: newRecord.updated_at
-          };
-
-          if (payload.eventType === 'UPDATE') {
-            console.log('[WhatsApp Realtime] Processing update for instance:', newRecord.id);
-            updateInstance(newRecord.id, mappedInstance);
-          } else if (payload.eventType === 'INSERT') {
-            console.log('[WhatsApp Realtime] New instance inserted:', newRecord.id);
-          }
-        }
-      }
-    };
-
     return () => {
-      console.log('[WhatsApp Realtime] Cleaning up subscription');
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
       supabase.removeChannel(channel);
     };
-  }, [userEmail, updateInstance]);
+  }, [companyId, onInstanceChange]);
 };
