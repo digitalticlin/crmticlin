@@ -16,6 +16,7 @@ export interface ServiceResponse<T = any> {
   success: boolean;
   data?: T;
   error?: string;
+  qrCode?: string; // Add qrCode property for QR code responses
 }
 
 export interface InstanceResponse extends ServiceResponse {
