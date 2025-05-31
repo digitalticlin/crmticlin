@@ -64,11 +64,6 @@ const useWhatsAppInstanceStore = create<WhatsAppInstanceState & { actions: Whats
   }
 }));
 
-// Make store available globally for status updates
-if (typeof window !== 'undefined') {
-  window._whatsAppInstancesStore = useWhatsAppInstanceStore;
-}
-
 export const useWhatsAppInstanceState = () => {
   const { instances, isLoading, lastError, setInstances } = useWhatsAppInstanceStore();
   return { instances, isLoading, lastError, setInstances };

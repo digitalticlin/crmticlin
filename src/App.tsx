@@ -23,7 +23,6 @@ import Register from "./pages/Register";
 import ConfirmEmailInstructions from "./pages/ConfirmEmailInstructions";
 import ConfirmEmail from "./pages/ConfirmEmail";
 import GlobalAdmin from "./pages/GlobalAdmin";
-import WhatsAppSync from "./pages/WhatsAppSync";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 
@@ -58,7 +57,6 @@ const App = () => (
               <Route path="/ai-agents" element={<ProtectedRoute><AIAgents /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><GlobalAdmin /></ProtectedRoute>} />
-              <Route path="/whatsapp-sync" element={<ProtectedRoute><WhatsAppSync /></ProtectedRoute>} />
               
               {/* Rota de fallback */}
               <Route path="*" element={<NotFound />} />

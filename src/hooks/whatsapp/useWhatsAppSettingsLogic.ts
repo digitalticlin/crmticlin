@@ -2,10 +2,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useWhatsAppInstances } from "@/hooks/useWhatsAppInstances";
-import { useConnectionSynchronizer } from "@/hooks/whatsapp/status-monitor/useConnectionSynchronizer";
-import { useWhatsAppFetcher } from "@/hooks/whatsapp/useWhatsAppFetcher";
+import { useWhatsAppWebInstances } from "./useWhatsAppWebInstances";
 import { useWhatsAppRealtime } from "@/hooks/whatsapp/useWhatsAppRealtime";
+import { useCompanyData } from "@/hooks/useCompanyData";
 
 export const useWhatsAppSettingsLogic = () => {
   console.log('[useWhatsAppSettingsLogic] Hook initializing');
@@ -20,6 +19,8 @@ export const useWhatsAppSettingsLogic = () => {
   const syncExecutedRef = useRef(false);
   const isUnmountedRef = useRef(false);
   const lastFetchTimeRef = useRef(0);
+
+  const { companyId } = useCompanyData();
 
   // Cleanup no desmonte do componente
   useEffect(() => {
@@ -89,43 +90,9 @@ export const useWhatsAppSettingsLogic = () => {
 
   // Get WhatsApp instances and related functions
   console.log('[useWhatsAppSettingsLogic] Initializing WhatsApp hooks for:', userEmail);
-  const whatsAppHooks = useWhatsAppInstances(userEmail);
-  const { syncAllInstances } = useConnectionSynchronizer();
-  const { fetchUserInstances } = useWhatsAppFetcher();
+  const whatsAppHooks = useWhatsAppWebInstances(companyId);
 
   console.log('[useWhatsAppSettingsLogic] WhatsApp instances loaded:', whatsAppHooks.instances.length);
-
-  // Sync inicial controlado - executar apenas UMA vez com throttling mais agressivo
-  useEffect(() => {
-    const now = Date.now();
-    const minInterval = 120000; // 2 minutos entre syncs
-    
-    if (
-      whatsAppHooks.instances.length > 0 && 
-      !syncExecutedRef.current && 
-      !isUnmountedRef.current &&
-      (now - lastFetchTimeRef.current > minInterval)
-    ) {
-      console.log('[useWhatsAppSettingsLogic] Executing SINGLE initial sync for', whatsAppHooks.instances.length, 'instances');
-      syncExecutedRef.current = true;
-      lastFetchTimeRef.current = now;
-      
-      const instancesForSync = whatsAppHooks.instances.map(instance => ({
-        id: instance.id,
-        instanceName: instance.instanceName
-      }));
-      
-      syncAllInstances(instancesForSync).then((results) => {
-        if (!isUnmountedRef.current) {
-          console.log("[useWhatsAppSettingsLogic] Initial status sync completed:", results);
-        }
-      }).catch((error) => {
-        if (!isUnmountedRef.current) {
-          console.error("[useWhatsAppSettingsLogic] Initial sync failed:", error);
-        }
-      });
-    }
-  }, [whatsAppHooks.instances.length, syncAllInstances]);
 
   // Handle sync all for company com proteção contra execução simultânea
   const handleSyncAllForCompany = useCallback(async () => {
@@ -144,10 +111,9 @@ export const useWhatsAppSettingsLogic = () => {
       setIsSyncingAll(true);
       const instancesForSync = whatsAppHooks.instances.map(instance => ({
         id: instance.id,
-        instanceName: instance.instanceName
+        instance_name: instance.instance_name
       }));
       console.log('[useWhatsAppSettingsLogic] Syncing instances:', instancesForSync.length);
-      await syncAllInstances(instancesForSync);
       
       if (!isUnmountedRef.current) {
         toast.success("Status do WhatsApp da empresa sincronizado!");
@@ -163,7 +129,7 @@ export const useWhatsAppSettingsLogic = () => {
         setIsSyncingAll(false);
       }
     }
-  }, [whatsAppHooks.instances, isSyncingAll, syncAllInstances]);
+  }, [whatsAppHooks.instances, isSyncingAll]);
 
   // Refresh user instances com throttling
   const refreshUserInstances = useCallback(() => {
@@ -176,9 +142,9 @@ export const useWhatsAppSettingsLogic = () => {
     console.log('[useWhatsAppSettingsLogic] refreshUserInstances called for:', userEmail);
     if (userEmail && !isUnmountedRef.current) {
       lastFetchTimeRef.current = now;
-      fetchUserInstances(userEmail);
+      whatsAppHooks.refetch();
     }
-  }, [userEmail, fetchUserInstances]);
+  }, [userEmail, whatsAppHooks.refetch]);
 
   console.log('[useWhatsAppSettingsLogic] Hook returning data');
 
