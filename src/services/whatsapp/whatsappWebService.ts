@@ -1,7 +1,6 @@
 
 // Main WhatsApp Web Service - now acts as a facade for smaller services
-export { WhatsAppWebInstance } from "./types/whatsappWebTypes";
-export type { ServiceResponse, InstanceResponse } from "./types/whatsappWebTypes";
+export type { WhatsAppWebInstance, ServiceResponse, InstanceResponse } from "./types/whatsappWebTypes";
 
 import { InstanceManagementService } from "./services/instanceManagementService";
 import { InstanceStatusService } from "./services/instanceStatusService";
