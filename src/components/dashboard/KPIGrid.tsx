@@ -1,36 +1,50 @@
 
-import KPICard from "@/components/dashboard/KPICard";
-import { Users, MessageSquare, Zap, TrendingUp } from "lucide-react";
+import { KPICard } from "./KPICard";
+import { WhatsAppTestCard } from "./WhatsAppTestCard";
 
-export default function KPIGrid() {
+interface KPIGridProps {
+  totalLeads: number;
+  newLeads: number;
+  conversions: number;
+  responseRate: number;
+}
+
+export function KPIGrid({ totalLeads, newLeads, conversions, responseRate }: KPIGridProps) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
       <KPICard
-        title="Leads Novos"
-        value="185"
-        trend={{ value: 12, isPositive: true }}
-        icon={<Users className="h-5 w-5" />}
+        title="Total de Leads"
+        value={totalLeads.toString()}
+        change="+12%"
+        trend="up"
+        icon="users"
       />
       <KPICard
-        title="Atendimentos"
-        value="1,234"
-        trend={{ value: 8, isPositive: true }}
-        icon={<MessageSquare className="h-5 w-5" />}
-        variant="primary"
+        title="Novos Leads"
+        value={newLeads.toString()}
+        change="+5%"
+        trend="up"
+        icon="userPlus"
       />
       <KPICard
-        title="Leads Ganhos"
-        value="72"
-        trend={{ value: 5, isPositive: true }}
-        icon={<Zap className="h-5 w-5" />}
-        variant="highlight"
+        title="Conversões"
+        value={conversions.toString()}
+        change="+8%"
+        trend="up"
+        icon="trendingUp"
       />
       <KPICard
-        title="Taxa de Conversão"
-        value="38.9%"
-        trend={{ value: 2, isPositive: false }}
-        icon={<TrendingUp className="h-5 w-5" />}
+        title="Taxa de Resposta"
+        value={`${responseRate}%`}
+        change="-2%"
+        trend="down"
+        icon="messageSquare"
       />
+      
+      {/* Card de teste WhatsApp na grade */}
+      <div className="md:col-span-2 lg:col-span-1">
+        <WhatsAppTestCard />
+      </div>
     </div>
   );
 }
