@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
@@ -17,13 +18,17 @@ export interface WhatsAppWebInstance {
   company_id: string;
 }
 
-export const useWhatsAppWebInstances = (companyId?: string) => {
+export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boolean) => {
   const [instances, setInstances] = useState<WhatsAppWebInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchInstances = async () => {
-    if (!companyId) return;
+    if (!companyId) {
+      setInstances([]);
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -167,9 +172,15 @@ export const useWhatsAppWebInstances = (companyId?: string) => {
     };
   }, [companyId]);
 
+  // Só buscar instâncias quando companyId estiver disponível e não estiver carregando
   useEffect(() => {
+    if (companyLoading) {
+      setLoading(true);
+      return;
+    }
+    
     fetchInstances();
-  }, [companyId]);
+  }, [companyId, companyLoading]);
 
   return {
     instances,

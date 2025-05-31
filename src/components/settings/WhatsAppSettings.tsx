@@ -9,18 +9,19 @@ import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstance
 const WhatsAppSettings = () => {
   console.log('[WhatsAppSettings] Component rendering - WhatsApp Web.js only');
   
-  const { companyId } = useCompanyData();
+  const { companyId, loading: companyLoading } = useCompanyData();
   
   const {
     instances,
-    loading,
+    loading: instancesLoading,
     error,
     refetch
-  } = useWhatsAppWebInstances(companyId);
+  } = useWhatsAppWebInstances(companyId, companyLoading);
 
   console.log('[WhatsAppSettings] WhatsApp Web instances loaded:', {
     instancesCount: instances.length,
-    loading
+    loading: instancesLoading,
+    companyLoading
   });
 
   return (

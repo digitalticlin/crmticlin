@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -9,6 +9,44 @@ import { toast } from "sonner";
 export const useCompanyData = () => {
   const [companyName, setCompanyName] = useState("");
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  // Carregar company_id automaticamente quando o hook é inicializado
+  useEffect(() => {
+    const loadUserCompany = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          setLoading(false);
+          return;
+        }
+
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error("Error loading user profile:", error);
+          setLoading(false);
+          return;
+        }
+
+        if (profile?.company_id) {
+          setCompanyId(profile.company_id);
+          await fetchCompanyData(profile.company_id);
+        }
+      } catch (error) {
+        console.error("Error loading user company:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserCompany();
+  }, []);
   
   /**
    * Fetches company data based on company ID
@@ -94,6 +132,7 @@ export const useCompanyData = () => {
     setCompanyName,
     companyId,
     setCompanyId,
+    loading,
     fetchCompanyData,
     saveCompany
   };

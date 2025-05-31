@@ -7,20 +7,37 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wifi } from "lucide-react";
 
 export function WhatsAppWebSection() {
-  const { companyId } = useCompanyData();
+  const { companyId, loading: companyLoading } = useCompanyData();
   const {
     instances,
-    loading,
+    loading: instancesLoading,
     createInstance,
     deleteInstance,
     refreshQRCode
-  } = useWhatsAppWebInstances(companyId);
+  } = useWhatsAppWebInstances(companyId, companyLoading);
 
-  if (loading) {
+  const isLoading = companyLoading || instancesLoading;
+
+  if (isLoading) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Se não tem companyId depois de carregar, mostrar mensagem
+  if (!companyLoading && !companyId) {
+    return (
+      <Card>
+        <CardContent className="text-center py-8">
+          <Wifi className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium mb-2">Empresa não encontrada</h3>
+          <p className="text-muted-foreground">
+            Configure os dados da sua empresa primeiro na aba Perfil
+          </p>
         </CardContent>
       </Card>
     );
@@ -43,7 +60,7 @@ export function WhatsAppWebSection() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <AddWhatsAppWebCard
           onAdd={createInstance}
-          isCreating={loading}
+          isCreating={instancesLoading}
         />
 
         {instances.map((instance) => (
@@ -56,7 +73,7 @@ export function WhatsAppWebSection() {
         ))}
       </div>
 
-      {instances.length === 0 && (
+      {instances.length === 0 && !instancesLoading && (
         <Card>
           <CardContent className="text-center py-8">
             <Wifi className="h-12 w-12 text-muted-foreground mx-auto mb-4" />

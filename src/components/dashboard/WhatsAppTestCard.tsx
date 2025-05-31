@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,12 +16,13 @@ export function WhatsAppTestCard() {
   const [currentQRCode, setCurrentQRCode] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
-  const { companyId } = useCompanyData();
+  const { companyId, loading: companyLoading } = useCompanyData();
   const {
     instances,
+    loading: instancesLoading,
     createInstance,
     refreshQRCode
-  } = useWhatsAppWebInstances(companyId);
+  } = useWhatsAppWebInstances(companyId, companyLoading);
 
   const connectedInstances = instances.filter(i => i.web_status === 'ready' || i.web_status === 'open');
   const disconnectedInstances = instances.filter(i => i.web_status !== 'ready' && i.web_status !== 'open');
@@ -57,6 +57,35 @@ export function WhatsAppTestCard() {
     }
   };
 
+  const isLoading = companyLoading || instancesLoading;
+
+  // Se não tem companyId, mostrar mensagem de configuração
+  if (!companyLoading && !companyId) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-green-600" />
+            <CardTitle>Teste WhatsApp</CardTitle>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Configure sua empresa primeiro
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4">
+            <p className="text-sm text-muted-foreground">
+              Configure os dados da sua empresa no perfil para usar o WhatsApp
+            </p>
+            <Button variant="outline" className="mt-2" asChild>
+              <a href="/settings">Ir para Configurações</a>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <>
       <Card>
@@ -75,11 +104,17 @@ export function WhatsAppTestCard() {
           <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
             <div>
               <p className="text-sm font-medium">Status da Conexão</p>
-              <p className="text-xs text-muted-foreground">
-                {connectedInstances.length} conectada(s), {disconnectedInstances.length} desconectada(s)
-              </p>
+              {isLoading ? (
+                <p className="text-xs text-muted-foreground">Carregando...</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {connectedInstances.length} conectada(s), {disconnectedInstances.length} desconectada(s)
+                </p>
+              )}
             </div>
-            {connectedInstances.length > 0 ? (
+            {isLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+            ) : connectedInstances.length > 0 ? (
               <CheckCircle className="h-5 w-5 text-green-600" />
             ) : (
               <div className="h-2 w-2 bg-gray-400 rounded-full" />
@@ -88,7 +123,12 @@ export function WhatsAppTestCard() {
 
           {/* Ações */}
           <div className="space-y-2">
-            {disconnectedInstances.length === 0 ? (
+            {isLoading ? (
+              <Button disabled className="w-full">
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Carregando...
+              </Button>
+            ) : disconnectedInstances.length === 0 ? (
               <Button 
                 onClick={() => setShowCreateForm(true)}
                 className="w-full bg-green-600 hover:bg-green-700"
