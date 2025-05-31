@@ -105,10 +105,26 @@ export const useInstanceCreationWithRetry = (companyId?: string) => {
           continue;
         }
 
-        const newInstance = result.instance;
-        if (!newInstance) {
+        const serviceInstance = result.instance;
+        if (!serviceInstance) {
           throw new Error('Instância criada mas não retornada');
         }
+
+        // Convert service instance to WhatsAppWebInstance format
+        const newInstance: WhatsAppWebInstance = {
+          id: serviceInstance.id,
+          instance_name: serviceInstance.instanceName || instanceName,
+          connection_type: 'web',
+          server_url: serviceInstance.serverUrl || '',
+          vps_instance_id: serviceInstance.vpsInstanceId || '',
+          web_status: serviceInstance.webStatus || 'creating',
+          connection_status: serviceInstance.connectionStatus || 'connecting',
+          qr_code: serviceInstance.qrCode,
+          phone: serviceInstance.phone || '',
+          profile_name: serviceInstance.profileName,
+          profile_pic_url: undefined,
+          company_id: companyId
+        };
 
         // Se já tem QR code, retornar
         if (newInstance.qr_code) {
