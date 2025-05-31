@@ -1,8 +1,8 @@
 
 import ResponsiveSidebar from "@/components/layout/ResponsiveSidebar";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { KPIGrid } from "@/components/dashboard/KPIGrid";
-import { ChartsSection } from "@/components/dashboard/ChartsSection";
+import ChartsSection from "@/components/dashboard/ChartsSection";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 

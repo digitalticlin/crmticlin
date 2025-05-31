@@ -1,5 +1,5 @@
 
-import { KPICard } from "./KPICard";
+import KPICard from "./KPICard";
 import { WhatsAppTestCard } from "./WhatsAppTestCard";
 
 interface KPIGridProps {
@@ -15,29 +15,25 @@ export function KPIGrid({ totalLeads, newLeads, conversions, responseRate }: KPI
       <KPICard
         title="Total de Leads"
         value={totalLeads.toString()}
-        change="+12%"
-        trend="up"
+        trend={{ value: 12, isPositive: true }}
         icon="users"
       />
       <KPICard
         title="Novos Leads"
         value={newLeads.toString()}
-        change="+5%"
-        trend="up"
+        trend={{ value: 5, isPositive: true }}
         icon="userPlus"
       />
       <KPICard
         title="Conversões"
         value={conversions.toString()}
-        change="+8%"
-        trend="up"
+        trend={{ value: 8, isPositive: true }}
         icon="trendingUp"
       />
       <KPICard
         title="Taxa de Resposta"
         value={`${responseRate}%`}
-        change="-2%"
-        trend="down"
+        trend={{ value: 2, isPositive: false }}
         icon="messageSquare"
       />
       
