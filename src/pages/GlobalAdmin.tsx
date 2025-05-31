@@ -5,7 +5,7 @@ import GlobalAdminSidebar from "@/components/admin/GlobalAdminSidebar";
 import CompaniesPanel from "@/components/admin/CompaniesPanel";
 import UsersPanel from "@/components/admin/UsersPanel";
 import PlansPanel from "@/components/admin/PlansPanel";
-import WhatsAppPanel from "@/components/admin/WhatsAppPanel";
+import WhatsAppWebAdminPanel from "@/components/admin/WhatsAppWebAdminPanel";
 import LogsPanel from "@/components/admin/LogsPanel";
 import SupportPanel from "@/components/admin/SupportPanel";
 import ConfigPanel from "@/components/admin/ConfigPanel";
@@ -55,15 +55,15 @@ export default function GlobalAdmin() {
             </TabsContent>
             
             <TabsContent value="whatsapp">
-              <WhatsAppPanel />
+              <WhatsAppWebAdminPanel />
             </TabsContent>
             
             <TabsContent value="sync">
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-xl font-semibold mb-2">Sincronização Manual WhatsApp</h2>
+                  <h2 className="text-xl font-semibold mb-2">Sincronização Manual WhatsApp Web.js</h2>
                   <p className="text-muted-foreground mb-6">
-                    Executar sincronização manual das instâncias da Evolution API com o banco de dados da plataforma
+                    Executar sincronização manual das instâncias do servidor VPS com o banco de dados da plataforma
                   </p>
                 </div>
                 <WhatsAppSyncTest />

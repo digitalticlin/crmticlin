@@ -1,5 +1,5 @@
 
-import { useWhatsAppInstances as useWhatsAppInstancesCore } from './whatsapp/useWhatsAppInstanceCore';
+import { useWhatsAppWebInstances } from './whatsapp/useWhatsAppWebInstances';
 
-// Re-export the hook with the same name to maintain compatibility
-export const useWhatsAppInstances = useWhatsAppInstancesCore;
+// Re-export apenas o hook WhatsApp Web.js
+export const useWhatsAppInstances = useWhatsAppWebInstances;

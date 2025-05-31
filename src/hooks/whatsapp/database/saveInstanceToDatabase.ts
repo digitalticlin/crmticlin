@@ -1,17 +1,17 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppInstance } from "../whatsappInstanceStore";
-import { WhatsAppConnectionStatus, EvolutionApiResult } from "./whatsappDatabaseTypes";
+import { WhatsAppConnectionStatus, WhatsAppWebResult } from "./whatsappDatabaseTypes";
 
 /**
- * Saves a WhatsApp instance to the database
+ * Saves a WhatsApp Web.js instance to the database
  */
 export const saveInstanceToDatabase = async (
   instance: WhatsAppInstance, 
   qrCodeUrl: string, 
-  result: EvolutionApiResult
+  result: WhatsAppWebResult
 ) => {
-  console.log(`Salvando instância no banco de dados: ${instance.instanceName}`);
+  console.log(`Salvando instância WhatsApp Web.js no banco: ${instance.instanceName}`);
   console.log("QR Code a ser salvo (primeiros 50 caracteres):", qrCodeUrl.substring(0, 50));
   
   try {
@@ -51,19 +51,21 @@ export const saveInstanceToDatabase = async (
       throw new Error("Usuário não está associado a uma empresa");
     }
     
-    // Preparar dados para inserção/atualização
+    // Preparar dados para inserção/atualização - apenas WhatsApp Web.js
     const whatsappData = {
       instance_name: instance.instanceName,
-      phone: instance.phoneNumber || "", // Será atualizado quando conectado
+      phone: instance.phoneNumber || "",
       company_id: companyId,
       connection_status: "connecting" as WhatsAppConnectionStatus,
+      connection_type: 'web' as const,
+      server_url: instance.server_url || '',
+      vps_instance_id: instance.vps_instance_id || '',
+      web_status: 'waiting_scan',
       qr_code: qrCodeUrl,
-      instance_id: result.instance.instanceId,
-      evolution_instance_name: result.instance.instanceName,
-      evolution_token: result.hash // Salvar o hash retornado para uso futuro
+      session_data: result
     };
     
-    console.log("Dados a serem salvos no banco:", whatsappData);
+    console.log("Dados WhatsApp Web.js a serem salvos no banco:", whatsappData);
     
     // Inserir ou atualizar no banco de dados
     const { error, data } = await supabase
@@ -72,7 +74,7 @@ export const saveInstanceToDatabase = async (
       .select();
   
     if (error) {
-      console.error("Erro ao salvar instância no banco de dados:", error);
+      console.error("Erro ao salvar instância WhatsApp Web.js no banco:", error);
       throw error;
     }
     
@@ -104,7 +106,7 @@ export const saveInstanceToDatabase = async (
     console.log("Dados retornados após salvamento:", data[0]);
     return data[0];
   } catch (error) {
-    console.error("Falha ao salvar instância no banco de dados:", error);
+    console.error("Falha ao salvar instância WhatsApp Web.js no banco:", error);
     throw new Error("Erro ao salvar a instância no banco de dados");
   }
 };

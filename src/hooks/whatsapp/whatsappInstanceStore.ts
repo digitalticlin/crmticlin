@@ -7,12 +7,13 @@ export interface WhatsAppInstance {
   connected: boolean;
   qrCodeUrl?: string;
   phoneNumber?: string;
-  // Novos campos da tabela whatsapp_instances
-  evolution_instance_name?: string;
-  evolution_instance_id?: string;
   phone: string;
-  // Removido: status - agora usamos apenas connection_status
   connection_status?: string;
+  connection_type: 'web';
+  server_url?: string;
+  vps_instance_id?: string;
+  web_status?: string;
+  qr_code?: string;
   owner_jid?: string;
   profile_name?: string;
   profile_pic_url?: string;
@@ -21,6 +22,7 @@ export interface WhatsAppInstance {
   date_disconnected?: string;
   created_at?: string;
   updated_at?: string;
+  session_data?: any;
   // Device information fields
   deviceInfo?: {
     batteryLevel?: number;

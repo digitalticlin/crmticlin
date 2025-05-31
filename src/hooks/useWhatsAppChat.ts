@@ -7,14 +7,14 @@ import { useWhatsAppMessages } from './whatsapp/useWhatsAppMessages';
 import { useCompanyResolver } from './whatsapp/useCompanyResolver';
 import { useContactNotes } from './whatsapp/useContactNotes';
 
-// Novo fluxo: carrega dados do banco de dados e escuta real-time
+// Hook simplificado para WhatsApp Web.js apenas
 export const useWhatsAppChat = (userEmail: string) => {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
-  // Get active WhatsApp instance
+  // Get active WhatsApp Web.js instance
   const { instances } = useWhatsAppInstanceState();
-  const activeInstance = instances.length > 0 ? instances[0] : null;
+  const activeInstance = instances.find(i => i.connection_type === 'web') || null;
 
   // Get user company ID
   const companyId = useCompanyResolver(userEmail);

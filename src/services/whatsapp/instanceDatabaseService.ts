@@ -7,14 +7,16 @@ export interface InstanceDatabaseData {
   phone: string;
   company_id: string;
   connection_status: WhatsAppConnectionStatus;
+  connection_type: 'web';
+  server_url: string;
+  vps_instance_id: string;
+  web_status: string;
   qr_code: string;
-  instance_id: string;
-  evolution_instance_name: string;
-  evolution_token: string;
+  session_data?: any;
 }
 
 /**
- * Saves a new WhatsApp instance to the database
+ * Saves a new WhatsApp Web.js instance to the database
  */
 export const saveInstanceToDatabase = async (instanceData: InstanceDatabaseData) => {
   const { data: insertData, error: dbError } = await supabase

@@ -1154,13 +1154,9 @@ export type Database = {
           created_at: string | null
           date_connected: string | null
           date_disconnected: string | null
-          evolution_instance_id: string | null
-          evolution_instance_name: string | null
-          evolution_token: string | null
           id: string
           instance_id: string | null
           instance_name: string
-          n8n_webhook_url: string | null
           number: string | null
           owner_jid: string | null
           phone: string
@@ -1181,13 +1177,9 @@ export type Database = {
           created_at?: string | null
           date_connected?: string | null
           date_disconnected?: string | null
-          evolution_instance_id?: string | null
-          evolution_instance_name?: string | null
-          evolution_token?: string | null
           id?: string
           instance_id?: string | null
           instance_name: string
-          n8n_webhook_url?: string | null
           number?: string | null
           owner_jid?: string | null
           phone: string
@@ -1208,13 +1200,9 @@ export type Database = {
           created_at?: string | null
           date_connected?: string | null
           date_disconnected?: string | null
-          evolution_instance_id?: string | null
-          evolution_instance_name?: string | null
-          evolution_token?: string | null
           id?: string
           instance_id?: string | null
           instance_name?: string
-          n8n_webhook_url?: string | null
           number?: string | null
           owner_jid?: string | null
           phone?: string

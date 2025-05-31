@@ -1,81 +1,41 @@
 
 import { WhatsAppSettingsHeader } from "./whatsapp/WhatsAppSettingsHeader";
 import { WhatsAppErrorAlert } from "./whatsapp/WhatsAppErrorAlert";
-import { WhatsAppPlaceholderSection } from "./whatsapp/WhatsAppPlaceholderSection";
-import { WhatsAppInstancesGrid } from "./whatsapp/WhatsAppInstancesGrid";
 import WhatsAppInfoAlert from "./whatsapp/WhatsAppInfoAlert";
-import { useWhatsAppSettingsLogic } from "@/hooks/whatsapp/useWhatsAppSettingsLogic";
+import { WhatsAppWebSection } from "./whatsapp/WhatsAppWebSection";
+import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 
 const WhatsAppSettings = () => {
-  console.log('[WhatsAppSettings] Component rendering started');
+  console.log('[WhatsAppSettings] Component rendering - WhatsApp Web.js only');
   
   try {
     const {
-      userEmail,
-      isSuperAdmin,
-      isSyncingAll,
-      whatsAppHooks,
-      handleSyncAllForCompany,
-      refreshUserInstances
-    } = useWhatsAppSettingsLogic();
+      instances,
+      isLoading,
+      lastError,
+      createInstance,
+      deleteInstance,
+      refreshInstances
+    } = useWhatsAppWebInstances();
 
-    console.log('[WhatsAppSettings] Hook data loaded:', {
-      userEmail,
-      isSuperAdmin,
-      instancesCount: whatsAppHooks.instances.length,
-      isSyncingAll
+    console.log('[WhatsAppSettings] WhatsApp Web instances loaded:', {
+      instancesCount: instances.length,
+      isLoading
     });
-
-    // Handle showing QR code by updating state
-    const handleShowQrCode = (instanceId: string) => {
-      console.log('[WhatsAppSettings] handleShowQrCode called for:', instanceId);
-      whatsAppHooks.setShowQrCode(instanceId);
-    };
-
-    // Modified to handle the Promise<string> return properly
-    const handleConnectInstance = async (instanceId: string) => {
-      console.log('[WhatsAppSettings] handleConnectInstance called for:', instanceId);
-      try {
-        await whatsAppHooks.connectInstance(instanceId);
-        whatsAppHooks.addConnectingInstance(instanceId);
-      } catch (error) {
-        console.error("Error in handleConnectInstance:", error);
-      }
-    };
-
-    // Handle explicit status check request from component
-    const handleStatusCheck = (instanceId: string) => {
-      console.log('[WhatsAppSettings] handleStatusCheck called for:', instanceId);
-      whatsAppHooks.addConnectingInstance(instanceId);
-    };
-
-    console.log('[WhatsAppSettings] Rendering components...');
 
     return (
       <div className="space-y-6 relative">
         <WhatsAppSettingsHeader
-          isSuperAdmin={isSuperAdmin}
-          isSyncingAll={isSyncingAll}
-          onSyncAll={handleSyncAllForCompany}
+          isSuperAdmin={false}
+          isSyncingAll={false}
+          onSyncAll={() => {}}
         />
 
         <WhatsAppInfoAlert />
 
-        <WhatsAppErrorAlert lastError={whatsAppHooks.lastError} />
+        <WhatsAppErrorAlert lastError={lastError} />
 
-        <WhatsAppPlaceholderSection
-          userEmail={userEmail}
-          isSuperAdmin={isSuperAdmin}
-          onRefreshInstances={refreshUserInstances}
-        />
-
-        <WhatsAppInstancesGrid
-          instances={whatsAppHooks.instances}
-          instanceLoading={whatsAppHooks.isLoading}
-          onConnect={handleConnectInstance}
-          onDelete={whatsAppHooks.deleteInstance}
-          onRefreshQrCode={whatsAppHooks.refreshQrCode}
-        />
+        <WhatsAppWebSection />
       </div>
     );
   } catch (error) {
