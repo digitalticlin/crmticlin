@@ -2,12 +2,12 @@
 import { WhatsAppSettingsHeader } from "./whatsapp/WhatsAppSettingsHeader";
 import { WhatsAppErrorAlert } from "./whatsapp/WhatsAppErrorAlert";
 import WhatsAppInfoAlert from "./whatsapp/WhatsAppInfoAlert";
-import { WhatsAppWebSection } from "./whatsapp/WhatsAppWebSection";
+import { WhatsAppWebSectionWithMonitoring } from "./whatsapp/WhatsAppWebSectionWithMonitoring";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 
 const WhatsAppSettings = () => {
-  console.log('[WhatsAppSettings] Component rendering - WhatsApp Web.js only');
+  console.log('[WhatsAppSettings] Component rendering - WhatsApp Web.js with VPS monitoring');
   
   const { companyId, loading: companyLoading } = useCompanyData();
   
@@ -36,7 +36,7 @@ const WhatsAppSettings = () => {
 
       <WhatsAppErrorAlert lastError={error} />
 
-      <WhatsAppWebSection />
+      <WhatsAppWebSectionWithMonitoring />
     </div>
   );
 };

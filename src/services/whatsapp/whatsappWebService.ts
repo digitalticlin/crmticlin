@@ -7,11 +7,14 @@ import { InstanceStatusService } from "./services/instanceStatusService";
 import { MessagingService } from "./services/messagingService";
 import { ServerMonitoringService } from "./services/serverMonitoringService";
 import { ForceSyncService } from "./services/forceSyncService";
+import { InstanceCleanupService } from "./services/instanceCleanupService";
+import { VPSAuditService } from "./services/vpsAuditService";
 
 export class WhatsAppWebService {
   // Instance Management
   static createInstance = InstanceManagementService.createInstance;
-  static deleteInstance = InstanceManagementService.deleteInstance;
+  static deleteInstance = InstanceCleanupService.deleteInstanceWithCleanup; // Now uses cleanup service
+  static deleteInstanceOriginal = InstanceManagementService.deleteInstance; // Keep original for edge cases
 
   // Instance Status
   static getInstanceStatus = InstanceStatusService.getInstanceStatus;
@@ -26,4 +29,14 @@ export class WhatsAppWebService {
   static checkServerHealth = ServerMonitoringService.checkServerHealth;
   static getServerInfo = ServerMonitoringService.getServerInfo;
   static listInstances = ServerMonitoringService.listInstances;
+
+  // VPS Auditing and Cleanup
+  static performVPSAudit = VPSAuditService.performAudit;
+  static listVPSConnections = VPSAuditService.listVPSConnections;
+  static cleanupOrphanedVPS = VPSAuditService.cleanupOrphanedVPS;
+  static forceSyncInstances = VPSAuditService.forceSyncInstances;
+
+  // Connection Management
+  static sendHeartbeat = InstanceCleanupService.sendHeartbeat;
+  static forceReconnection = InstanceCleanupService.forceReconnection;
 }

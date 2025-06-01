@@ -287,6 +287,117 @@ export async function forceSync(supabase: any, vpsInstanceId: string) {
   return await syncInstanceStatus(supabase, vpsInstanceId, true);
 }
 
+export async function bulkForceSync(supabase: any, instanceIds: string[]) {
+  console.log('[StatusOperations] Bulk force syncing instances:', instanceIds);
+  
+  try {
+    const results = await Promise.allSettled(
+      instanceIds.map(async (vpsInstanceId) => {
+        try {
+          const response = await syncInstanceStatus(supabase, vpsInstanceId, true);
+          const data = await response.json();
+          return { vpsInstanceId, success: data.success, data };
+        } catch (error) {
+          return { vpsInstanceId, success: false, error: error.message };
+        }
+      })
+    );
+
+    const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+    const failed = results.filter(r => r.status === 'rejected' || !r.value?.success).length;
+
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        results: results.map(r => r.status === 'fulfilled' ? r.value : { success: false, error: 'Promise rejected' }),
+        summary: { successful, failed, total: instanceIds.length }
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('[StatusOperations] Bulk sync failed:', error);
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: `Bulk sync failed: ${error.message}` 
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+export async function forceReconnect(supabase: any, instanceId: string) {
+  console.log('[StatusOperations] Force reconnecting instance:', instanceId);
+  
+  try {
+    // Buscar a instância no banco
+    const { data: instance, error: fetchError } = await supabase
+      .from('whatsapp_instances')
+      .select('*')
+      .eq('id', instanceId)
+      .single();
+
+    if (fetchError || !instance) {
+      throw new Error('Instance not found');
+    }
+
+    if (!instance.vps_instance_id) {
+      throw new Error('No VPS instance ID found');
+    }
+
+    // Tentar reconectar no VPS
+    const reconnectResponse = await fetch(`${VPS_CONFIG.baseUrl}/reconnect`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        instanceId: instance.vps_instance_id
+      }),
+      signal: AbortSignal.timeout(15000)
+    });
+
+    if (!reconnectResponse.ok) {
+      const errorText = await reconnectResponse.text();
+      throw new Error(`VPS reconnect failed: HTTP ${reconnectResponse.status}: ${errorText}`);
+    }
+
+    const reconnectResult = await reconnectResponse.json();
+    console.log('[StatusOperations] Reconnect result:', reconnectResult);
+
+    // Atualizar status no banco se necessário
+    if (reconnectResult.success) {
+      await supabase
+        .from('whatsapp_instances')
+        .update({
+          web_status: 'connecting',
+          connection_status: 'connecting',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', instanceId);
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        reconnectResult
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('[StatusOperations] Force reconnect failed:', error);
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: `Force reconnect failed: ${error.message}` 
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
 export async function checkServerHealth() {
   console.log('[StatusOperations] Checking server health');
   

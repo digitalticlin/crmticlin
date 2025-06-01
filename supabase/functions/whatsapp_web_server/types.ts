@@ -1,13 +1,9 @@
 
-export interface VPSCredentials {
-  host: string;
-  port: number;
-  baseUrl: string;
-}
-
 export interface InstanceData {
   instanceName?: string;
   instanceId?: string;
+  vpsInstanceId?: string;
+  instanceIds?: string[];
   serverUrl?: string;
 }
 

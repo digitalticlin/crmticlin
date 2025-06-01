@@ -5,7 +5,15 @@ import { corsHeaders } from './config.ts';
 import { RequestBody } from './types.ts';
 import { authenticateRequest } from './authentication.ts';
 import { createWhatsAppInstance, deleteWhatsAppInstance } from './instanceManagement.ts';
-import { getInstanceStatus, getQRCode, checkServerHealth, syncInstanceStatus, forceSync } from './statusOperations.ts';
+import { 
+  getInstanceStatus, 
+  getQRCode, 
+  checkServerHealth, 
+  syncInstanceStatus, 
+  forceSync,
+  bulkForceSync,
+  forceReconnect
+} from './statusOperations.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -41,6 +49,12 @@ serve(async (req) => {
 
       case 'force_sync':
         return await forceSync(supabase, instanceData.vpsInstanceId!);
+
+      case 'bulk_force_sync':
+        return await bulkForceSync(supabase, instanceData.instanceIds!);
+
+      case 'force_reconnect':
+        return await forceReconnect(supabase, instanceData.instanceId!);
       
       case 'check_server':
         return await checkServerHealth();
