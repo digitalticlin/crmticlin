@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,7 @@ export function WhatsAppTestCard() {
     loading: instancesLoading,
     createInstance,
     refreshQRCode
-  } = useWhatsAppWebInstances(companyId, companyLoading);
+  } = useWhatsAppWebInstances();
 
   const connectedInstances = instances.filter(i => i.web_status === 'ready' || i.web_status === 'open');
   const disconnectedInstances = instances.filter(i => i.web_status !== 'ready' && i.web_status !== 'open');
@@ -35,7 +36,7 @@ export function WhatsAppTestCard() {
 
     setIsCreating(true);
     try {
-      await createInstance(instanceName.trim());
+      await createInstance();
       setInstanceName("");
       setShowCreateForm(false);
       toast.success("Instância criada! Agora você pode gerar o QR Code para conectar.");
