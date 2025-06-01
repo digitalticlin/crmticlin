@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { QrCode, Trash2, RefreshCw, Phone, Wifi, Sync } from "lucide-react";
+import { QrCode, Trash2, RefreshCw, Phone, Wifi } from "lucide-react";
 import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -208,7 +208,7 @@ export function WhatsAppWebInstanceCard({
                 disabled={isSyncing}
                 className="flex-1"
               >
-                <Sync className={`h-4 w-4 mr-1 ${isSyncing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-4 w-4 mr-1 ${isSyncing ? 'animate-spin' : ''}`} />
                 {isSyncing ? 'Sincronizando...' : 'Verificar Status'}
               </Button>
             )}

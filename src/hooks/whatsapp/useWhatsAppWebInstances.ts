@@ -225,7 +225,8 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
 
       console.log('[useWhatsAppWebInstances] Sync result:', result);
 
-      if (result.updated) {
+      // Check if the result has updated data
+      if (result.data && result.data.updated) {
         toast.success('Status sincronizado com sucesso!');
         // Force refresh to get updated data
         await fetchInstances();
