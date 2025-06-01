@@ -70,6 +70,8 @@ export function WhatsAppWebInstanceCard({
     setIsDeleting(true);
     try {
       await onDelete(instance.id);
+    } catch (error) {
+      console.error('Error deleting instance:', error);
     } finally {
       setIsDeleting(false);
     }
@@ -80,12 +82,15 @@ export function WhatsAppWebInstanceCard({
     try {
       await onRefreshQR(instance.id);
       setShowQR(true);
+    } catch (error) {
+      console.error('Error refreshing QR:', error);
     } finally {
       setIsRefreshing(false);
     }
   };
 
   const handleShowQR = () => {
+    console.log('Showing QR for instance:', instance.id, instance.web_status);
     if (onShowQR) {
       onShowQR(instance.id);
     } else {
@@ -99,6 +104,17 @@ export function WhatsAppWebInstanceCard({
 
   const needsQRCode = ['waiting_scan', 'connecting', 'creating'].includes(instance.web_status || instance.connection_status);
   const canReconnect = instance.web_status === 'disconnected';
+  const isConnected = ['ready', 'open'].includes(instance.web_status || instance.connection_status);
+
+  console.log('Instance status check:', {
+    id: instance.id,
+    web_status: instance.web_status,
+    connection_status: instance.connection_status,
+    phone: instance.phone,
+    needsQRCode,
+    canReconnect,
+    isConnected
+  });
 
   return (
     <>
@@ -128,6 +144,11 @@ export function WhatsAppWebInstanceCard({
           {instance.profile_name && (
             <p className="text-xs text-muted-foreground">
               Perfil: {instance.profile_name}
+            </p>
+          )}
+          {!isConnected && !instance.phone && (
+            <p className="text-xs text-amber-600 font-medium">
+              Aguardando conexão...
             </p>
           )}
         </CardHeader>

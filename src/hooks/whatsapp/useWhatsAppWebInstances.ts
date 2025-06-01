@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
@@ -64,6 +63,7 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
         throw new Error(fetchError.message);
       }
 
+      console.log('Fetched WhatsApp instances:', data);
       setInstances(data || []);
     } catch (err) {
       console.error('Error fetching WhatsApp Web instances:', err);
@@ -75,6 +75,7 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
 
   const startAutoConnection = async () => {
     try {
+      console.log('Starting auto connection...');
       setAutoConnectState(prev => ({ 
         ...prev, 
         isConnecting: true, 
@@ -82,13 +83,18 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
       }));
 
       const instanceName = generateInstanceName();
+      console.log('Generated instance name:', instanceName);
+      
       const result = await WhatsAppWebService.createInstance(instanceName);
+      console.log('Create instance result:', result);
 
       if (!result.success) {
         throw new Error(result.error || 'Falha ao criar instância');
       }
 
       const newInstanceId = result.instance?.id;
+      console.log('New instance ID:', newInstanceId);
+      
       if (newInstanceId) {
         setAutoConnectState(prev => ({
           ...prev,
@@ -98,7 +104,11 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
       }
 
       toast.success('Instância criada! Escaneie o QR code para conectar.');
-      await fetchInstances();
+      
+      // Force refresh instances
+      setTimeout(() => {
+        fetchInstances();
+      }, 1000);
 
     } catch (error) {
       console.error('Error in auto connect:', error);
@@ -224,9 +234,11 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
     }));
   };
 
-  // Subscribe to real-time updates
+  // Subscribe to real-time updates with better error handling
   useEffect(() => {
     if (!companyId) return;
+
+    console.log('Setting up realtime subscription for company:', companyId);
 
     const channel = supabase
       .channel('whatsapp-web-instances')
@@ -239,13 +251,20 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
           filter: `company_id=eq.${companyId}`
         },
         (payload) => {
-          console.log('WhatsApp Web instance change:', payload);
-          fetchInstances();
+          console.log('WhatsApp Web instance change received:', payload);
+          
+          // Add a small delay to ensure database consistency
+          setTimeout(() => {
+            fetchInstances();
+          }, 500);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Realtime subscription status:', status);
+      });
 
     return () => {
+      console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
   }, [companyId]);
@@ -257,6 +276,7 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
       return;
     }
     
+    console.log('Fetching instances for company:', companyId);
     fetchInstances();
   }, [companyId, companyLoading]);
 
