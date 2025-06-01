@@ -1,17 +1,17 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
-import Login from "@/pages/Login";
+import Index from "@/pages/Index";
 import Dashboard from "@/pages/Dashboard";
 import Chat from "@/pages/Chat";
 import Settings from "@/pages/Settings";
-import Leads from "@/pages/Leads";
-import Admin from "@/pages/Admin";
-import WhatsAppAdmin from "@/pages/WhatsAppAdmin";
+import SalesFunnel from "@/pages/SalesFunnel";
+import GlobalAdmin from "@/pages/GlobalAdmin";
 import VPSDiagnostic from "@/pages/VPSDiagnostic";
-import PrivateRoute from "@/components/auth/PrivateRoute";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -22,62 +22,62 @@ function App() {
         <Router>
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             <Routes>
-              <Route path="/" element={<Navigate to="/login" replace />} />
-              <Route path="/login" element={<Login />} />
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Index />} />
               <Route 
                 path="/dashboard" 
                 element={
-                  <PrivateRoute>
+                  <ProtectedRoute>
                     <Dashboard />
-                  </PrivateRoute>
+                  </ProtectedRoute>
                 } 
               />
               <Route 
                 path="/chat" 
                 element={
-                  <PrivateRoute>
+                  <ProtectedRoute>
                     <Chat />
-                  </PrivateRoute>
+                  </ProtectedRoute>
                 } 
               />
               <Route 
                 path="/leads" 
                 element={
-                  <PrivateRoute>
-                    <Leads />
-                  </PrivateRoute>
+                  <ProtectedRoute>
+                    <SalesFunnel />
+                  </ProtectedRoute>
                 } 
               />
               <Route 
                 path="/admin" 
                 element={
-                  <PrivateRoute>
-                    <Admin />
-                  </PrivateRoute>
+                  <ProtectedRoute>
+                    <GlobalAdmin />
+                  </ProtectedRoute>
                 } 
               />
               <Route 
                 path="/admin/whatsapp" 
                 element={
-                  <PrivateRoute>
-                    <WhatsAppAdmin />
-                  </PrivateRoute>
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
                 } 
               />
               <Route 
                 path="/vps-diagnostic" 
                 element={
-                  <PrivateRoute>
+                  <ProtectedRoute>
                     <VPSDiagnostic />
-                  </PrivateRoute>
+                  </ProtectedRoute>
                 } 
               />
               <Route 
                 path="/settings" 
                 element={
-                  <PrivateRoute>
+                  <ProtectedRoute>
                     <Settings />
-                  </PrivateRoute>
+                  </ProtectedRoute>
                 } 
               />
             </Routes>
