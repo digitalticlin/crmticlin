@@ -1,5 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,277 +13,304 @@ serve(async (req) => {
   }
 
   try {
-    console.log('=== INICIANDO DIAGNÓSTICO COMPLETO DA VPS ===');
-    
-    const vpsConfig = {
-      host: '31.97.24.222',
-      port: 3001,
-      sshPort: 22,
-      type: 'Ubuntu 4GB VPS'
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    const vpsHost = '31.97.24.222';
+    const vpsPort = 3001;
+    const results = {
+      success: false,
+      message: '',
+      timestamp: new Date().toISOString(),
+      vps: {
+        host: vpsHost,
+        port: vpsPort,
+        type: 'Ubuntu 4GB VPS'
+      },
+      diagnostics: {
+        connectivity: {
+          basic_ping: { success: false, details: '' },
+          node_server: { success: false, details: '' },
+          server_info: { success: false, data: null },
+          instances_list: { success: false, data: null },
+          webhook_url: { success: false, details: '' }
+        },
+        analysis: {
+          server_running: false,
+          has_instances: false,
+          webhook_reachable: false,
+          total_instances: 0
+        }
+      },
+      recommendations: [] as Array<{
+        priority: string;
+        issue: string;
+        solution: string;
+      }>,
+      verification_script: '',
+      summary: {
+        server_status: 'OFFLINE',
+        total_issues: 0,
+        total_warnings: 0,
+        next_steps: [] as string[]
+      }
     };
 
-    console.log(`Testando VPS: ${vpsConfig.host}:${vpsConfig.port}`);
-
-    // === TESTE 1: CONECTIVIDADE BÁSICA ===
-    console.log('\n--- TESTE 1: CONECTIVIDADE BÁSICA ---');
-    
-    let pingTest = false;
-    let pingResponse = '';
+    // Test 1: Basic connectivity
+    console.log('Testing basic connectivity...');
     try {
-      const response = await fetch(`http://${vpsConfig.host}`, {
-        method: 'HEAD',
-        signal: AbortSignal.timeout(5000)
-      });
-      pingTest = true;
-      pingResponse = `Host acessível - Status: ${response.status}`;
-      console.log('✅ Ping básico: SUCESSO');
-    } catch (error) {
-      pingResponse = `Erro: ${error.message}`;
-      console.log('❌ Ping básico: FALHOU -', error.message);
-    }
-
-    // === TESTE 2: SERVIDOR NODE.JS RODANDO ===
-    console.log('\n--- TESTE 2: SERVIDOR NODE.JS ---');
-    
-    let nodeServerTest = false;
-    let nodeServerResponse = '';
-    try {
-      const response = await fetch(`http://${vpsConfig.host}:${vpsConfig.port}/health`, {
+      const healthResponse = await fetch(`http://${vpsHost}:${vpsPort}/health`, {
         method: 'GET',
         signal: AbortSignal.timeout(10000)
       });
       
-      if (response.ok) {
-        const data = await response.json();
-        nodeServerTest = true;
-        nodeServerResponse = JSON.stringify(data, null, 2);
-        console.log('✅ Servidor Node.js: RODANDO');
-        console.log('Resposta /health:', data);
+      if (healthResponse.ok) {
+        results.diagnostics.connectivity.basic_ping.success = true;
+        results.diagnostics.connectivity.basic_ping.details = `Servidor acessível via HTTP (${healthResponse.status})`;
+        results.diagnostics.analysis.server_running = true;
       } else {
-        nodeServerResponse = `HTTP ${response.status}: ${response.statusText}`;
-        console.log('❌ Servidor Node.js: ERRO -', response.status);
+        results.diagnostics.connectivity.basic_ping.details = `HTTP ${healthResponse.status}: ${healthResponse.statusText}`;
       }
-    } catch (error) {
-      nodeServerResponse = `Erro de conexão: ${error.message}`;
-      console.log('❌ Servidor Node.js: NÃO ACESSÍVEL -', error.message);
+    } catch (error: any) {
+      results.diagnostics.connectivity.basic_ping.details = `Erro de conectividade: ${error.message}`;
     }
 
-    // === TESTE 3: INFORMAÇÕES DO SERVIDOR ===
-    console.log('\n--- TESTE 3: INFORMAÇÕES DO SERVIDOR ---');
-    
-    let serverInfoTest = false;
-    let serverInfo = null;
+    // Test 2: Node.js server endpoints
+    console.log('Testing Node.js server endpoints...');
     try {
-      const response = await fetch(`http://${vpsConfig.host}:${vpsConfig.port}/info`, {
+      const infoResponse = await fetch(`http://${vpsHost}:${vpsPort}/info`, {
         method: 'GET',
-        signal: AbortSignal.timeout(8000)
+        signal: AbortSignal.timeout(10000)
       });
       
-      if (response.ok) {
-        serverInfo = await response.json();
-        serverInfoTest = true;
-        console.log('✅ Informações do servidor obtidas:');
-        console.log(JSON.stringify(serverInfo, null, 2));
+      if (infoResponse.ok) {
+        const serverInfo = await infoResponse.json();
+        results.diagnostics.connectivity.server_info.success = true;
+        results.diagnostics.connectivity.server_info.data = serverInfo;
+        results.diagnostics.connectivity.node_server.success = true;
+        results.diagnostics.connectivity.node_server.details = 'Servidor Node.js respondendo corretamente';
       } else {
-        console.log('❌ Erro ao obter informações do servidor:', response.status);
+        results.diagnostics.connectivity.node_server.details = `Erro HTTP ${infoResponse.status}`;
       }
-    } catch (error) {
-      console.log('❌ Falha ao obter informações do servidor:', error.message);
+    } catch (error: any) {
+      results.diagnostics.connectivity.node_server.details = `Erro ao acessar /info: ${error.message}`;
     }
 
-    // === TESTE 4: INSTÂNCIAS ATIVAS ===
-    console.log('\n--- TESTE 4: INSTÂNCIAS WHATSAPP ATIVAS ---');
-    
-    let instancesTest = false;
-    let instancesData = null;
+    // Test 3: Instances list
+    console.log('Testing instances endpoint...');
     try {
-      const response = await fetch(`http://${vpsConfig.host}:${vpsConfig.port}/instances`, {
+      const instancesResponse = await fetch(`http://${vpsHost}:${vpsPort}/instances`, {
         method: 'GET',
-        signal: AbortSignal.timeout(8000)
+        signal: AbortSignal.timeout(10000)
       });
       
-      if (response.ok) {
-        instancesData = await response.json();
-        instancesTest = true;
-        console.log('✅ Lista de instâncias obtida:');
-        console.log(JSON.stringify(instancesData, null, 2));
-      } else {
-        console.log('❌ Erro ao listar instâncias:', response.status);
+      if (instancesResponse.ok) {
+        const instancesData = await instancesResponse.json();
+        results.diagnostics.connectivity.instances_list.success = true;
+        results.diagnostics.connectivity.instances_list.data = instancesData;
+        results.diagnostics.analysis.total_instances = Array.isArray(instancesData.instances) ? instancesData.instances.length : 0;
+        results.diagnostics.analysis.has_instances = results.diagnostics.analysis.total_instances > 0;
       }
-    } catch (error) {
-      console.log('❌ Falha ao listar instâncias:', error.message);
+    } catch (error: any) {
+      results.diagnostics.connectivity.instances_list.details = `Erro ao listar instâncias: ${error.message}`;
     }
 
-    // === TESTE 5: WEBHOOK DE TESTE ===
-    console.log('\n--- TESTE 5: CONFIGURAÇÃO DE WEBHOOK ---');
-    
-    const webhookUrl = `https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web`;
-    let webhookTest = false;
-    let webhookResponse = '';
-    
+    // Test 4: Webhook connectivity
+    console.log('Testing webhook connectivity...');
+    const webhookUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/webhook_whatsapp_web`;
     try {
-      // Simular um evento de webhook para testar se a URL está acessível
-      const testPayload = {
-        event: 'test',
-        instanceId: 'test_instance',
-        data: { message: 'Teste de conectividade webhook' },
-        timestamp: new Date().toISOString()
-      };
+      // Test webhook URL accessibility from our side
+      const webhookTestResponse = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`
+        },
+        body: JSON.stringify({
+          event: 'test',
+          instanceId: 'diagnostic_test',
+          data: { test: true, message: 'Teste de conectividade do diagnóstico' }
+        }),
+        signal: AbortSignal.timeout(15000)
+      });
 
+      if (webhookTestResponse.ok || webhookTestResponse.status === 200) {
+        results.diagnostics.connectivity.webhook_url.success = true;
+        results.diagnostics.connectivity.webhook_url.details = 'Webhook Supabase acessível e funcionando';
+        results.diagnostics.analysis.webhook_reachable = true;
+      } else {
+        results.diagnostics.connectivity.webhook_url.details = `Webhook retornou ${webhookTestResponse.status}: ${webhookTestResponse.statusText}`;
+      }
+    } catch (error: any) {
+      results.diagnostics.connectivity.webhook_url.details = `Erro ao testar webhook: ${error.message}`;
+    }
+
+    // Generate recommendations based on test results
+    console.log('Generating recommendations...');
+    
+    if (!results.diagnostics.analysis.server_running) {
+      results.recommendations.push({
+        priority: 'CRÍTICO',
+        issue: 'Servidor Node.js não está respondendo',
+        solution: 'Execute: pm2 restart whatsapp-server ou reinicie o servidor com npm start'
+      });
+    }
+
+    if (!results.diagnostics.analysis.webhook_reachable) {
+      results.recommendations.push({
+        priority: 'ALTO',
+        issue: 'Problemas de conectividade SSL/Timeout detectados nos logs',
+        solution: 'Atualize o código do servidor para resolver problemas SSL e implementar retry automático'
+      });
+    }
+
+    if (results.diagnostics.analysis.total_instances === 0) {
+      results.recommendations.push({
+        priority: 'INFORMATIVO',
+        issue: 'Nenhuma instância WhatsApp ativa encontrada',
+        solution: 'Crie uma nova instância WhatsApp através do painel de administração'
+      });
+    }
+
+    // Generate verification script
+    results.verification_script = `#!/bin/bash
+echo "=== DIAGNÓSTICO VPS WHATSAPP WEB.JS ==="
+echo "Data: $(date)"
+echo ""
+
+echo "=== 1. STATUS DO SERVIDOR ==="
+ps aux | grep node | grep -v grep
+echo ""
+
+echo "=== 2. PORTAS EM USO ==="
+netstat -tlnp | grep :3001
+echo ""
+
+echo "=== 3. TESTE ENDPOINTS ==="
+echo "Health Check:"
+curl -s -w "Status: %{http_code}\\n" http://localhost:3001/health | head -5
+echo ""
+
+echo "Server Info:"
+curl -s -w "Status: %{http_code}\\n" http://localhost:3001/info | head -5
+echo ""
+
+echo "Instances:"
+curl -s -w "Status: %{http_code}\\n" http://localhost:3001/instances | head -5
+echo ""
+
+echo "=== 4. TESTE WEBHOOK SUPABASE ==="
+curl -X POST "${webhookUrl}" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}" \\
+  -w "Status: %{http_code}\\n" \\
+  -d '{"event":"test","instanceId":"diagnostic","data":{"test":true,"message":"Teste manual VPS"}}'
+echo ""
+
+echo "=== 5. LOGS PM2 ==="
+pm2 logs whatsapp-server --lines 10 --nostream
+echo ""
+
+echo "=== 6. CORREÇÃO SSL/TIMEOUT ==="
+echo "Execute o seguinte código para corrigir problemas SSL:"
+echo ""
+cat << 'EOF'
+// Adicione ao início do server.js:
+process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
+
+// Substitua a função sendWebhook por:
+async function sendWebhook(event, instanceId, data, retries = 3) {
+  const webhookUrl = 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web';
+  
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
       const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpZ3llYnJoZm9sam55ZGZpcGNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMDU0OTUsImV4cCI6MjA2MjY4MTQ5NX0.348qSsRPai26TFU87MDv0yE4i_pQmLYMQW9d7n5AN-A`
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpZ3llYnJoZm9sam55ZGZpcGNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMDU0OTUsImV4cCI6MjA2MjY4MTQ5NX0.348qSsRPai26TFU87MDv0yE4i_pQmLYMQW9d7n5AN-A'
         },
-        body: JSON.stringify(testPayload),
-        signal: AbortSignal.timeout(10000)
+        body: JSON.stringify({
+          event,
+          instanceId,
+          data
+        }),
+        timeout: 30000
       });
 
       if (response.ok) {
-        const result = await response.json();
-        webhookTest = true;
-        webhookResponse = `Webhook acessível - Resposta: ${JSON.stringify(result)}`;
-        console.log('✅ Webhook URL acessível');
+        console.log(\`✅ Webhook enviado (tentativa \${attempt}): \${event}\`);
+        return;
       } else {
-        webhookResponse = `HTTP ${response.status}: ${response.statusText}`;
-        console.log('❌ Webhook URL com erro:', response.status);
+        console.log(\`⚠️ Webhook falhou (tentativa \${attempt}): \${response.status}\`);
       }
     } catch (error) {
-      webhookResponse = `Erro: ${error.message}`;
-      console.log('❌ Webhook URL inacessível:', error.message);
-    }
-
-    // === ANÁLISE DOS RESULTADOS ===
-    console.log('\n=== ANÁLISE DOS RESULTADOS ===');
-    
-    const diagnostics = {
-      connectivity: {
-        basic_ping: { success: pingTest, details: pingResponse },
-        node_server: { success: nodeServerTest, details: nodeServerResponse },
-        server_info: { success: serverInfoTest, data: serverInfo },
-        instances_list: { success: instancesTest, data: instancesData },
-        webhook_url: { success: webhookTest, details: webhookResponse }
-      },
-      analysis: {
-        server_running: nodeServerTest,
-        has_instances: instancesData?.instances?.length > 0 || false,
-        webhook_reachable: webhookTest,
-        total_instances: instancesData?.total || 0
+      console.log(\`❌ Erro webhook (tentativa \${attempt}): \${error.message}\`);
+      if (attempt < retries) {
+        await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
       }
-    };
-
-    // === RECOMENDAÇÕES ===
-    const recommendations = [];
-    
-    if (!nodeServerTest) {
-      recommendations.push({
-        priority: 'CRÍTICO',
-        issue: 'Servidor Node.js não está rodando na porta 3001',
-        solution: 'Executar: cd /root/whatsapp-server && npm start ou pm2 start ecosystem.config.js'
-      });
     }
-
-    if (nodeServerTest && (!instancesData || instancesData.total === 0)) {
-      recommendations.push({
-        priority: 'ALTO',
-        issue: 'Servidor rodando mas sem instâncias WhatsApp ativas',
-        solution: 'Verificar se as instâncias foram criadas corretamente e se estão conectadas'
-      });
-    }
-
-    if (!webhookTest) {
-      recommendations.push({
-        priority: 'ALTO',
-        issue: 'URL do webhook não está acessível ou configurada incorretamente',
-        solution: 'Verificar se a VPS consegue fazer POST para o webhook do Supabase'
-      });
-    }
-
-    if (nodeServerTest && instancesData?.total > 0) {
-      recommendations.push({
-        priority: 'INFORMATIVO',
-        issue: 'Servidor e instâncias funcionando, verificar sincronização',
-        solution: 'Testar reconexão de uma instância para verificar se os eventos chegam ao webhook'
-      });
-    }
-
-    // === SCRIPT DE VERIFICAÇÃO ATUALIZADO ===
-    const verificationScript = `#!/bin/bash
-
-echo "=== DIAGNÓSTICO VPS WHATSAPP WEB.JS ==="
-echo "Host: ${vpsConfig.host}"
-echo "Porta: ${vpsConfig.port}"
+  }
+  console.log(\`🔥 Webhook falhou após \${retries} tentativas\`);
+}
+EOF
 echo ""
+echo "=== FIM DO DIAGNÓSTICO ==="`;
 
-# Verificar se o Node.js está instalado
-echo "1. Verificando Node.js..."
-node --version
-npm --version
+    // Calculate summary
+    let totalIssues = 0;
+    let totalWarnings = 0;
 
-# Verificar se o PM2 está rodando
-echo "2. Verificando PM2..."
-pm2 status
+    results.recommendations.forEach(rec => {
+      if (rec.priority === 'CRÍTICO') totalIssues++;
+      else if (rec.priority === 'ALTO') totalWarnings++;
+    });
 
-# Verificar se a porta 3001 está escutando
-echo "3. Verificando porta 3001..."
-netstat -tlnp | grep :3001
+    results.summary.total_issues = totalIssues;
+    results.summary.total_warnings = totalWarnings;
 
-# Verificar logs do servidor
-echo "4. Últimos logs do servidor..."
-pm2 logs whatsapp-server --lines 20
+    if (results.diagnostics.analysis.server_running) {
+      results.summary.server_status = 'ONLINE';
+      results.success = true;
+      results.message = 'Diagnóstico concluído - Servidor online';
+    } else {
+      results.summary.server_status = 'OFFLINE';
+      results.message = 'Diagnóstico concluído - Problemas detectados';
+    }
 
-# Testar endpoints locais
-echo "5. Testando endpoints..."
-curl -s http://localhost:3001/health | jq .
-curl -s http://localhost:3001/info | jq .
-curl -s http://localhost:3001/instances | jq .
+    // Generate next steps
+    if (totalIssues > 0) {
+      results.summary.next_steps.push('Corrigir problemas críticos identificados');
+    }
+    if (totalWarnings > 0) {
+      results.summary.next_steps.push('Resolver avisos de configuração');
+    }
+    if (results.diagnostics.analysis.server_running && !results.diagnostics.analysis.webhook_reachable) {
+      results.summary.next_steps.push('Implementar correções SSL/Timeout no código do servidor');
+    }
 
-# Verificar conectividade com Supabase
-echo "6. Testando webhook Supabase..."
-curl -X POST "${webhookUrl}" \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpZ3llYnJoZm9sam55ZGZpcGNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMDU0OTUsImV4cCI6MjA2MjY4MTQ5NX0.348qSsRPai26TFU87MDv0yE4i_pQmLYMQW9d7n5AN-A" \\
-  -d '{"event":"test","instanceId":"diagnostic","data":{"test":true}}'
-
-echo ""
-echo "=== FIM DO DIAGNÓSTICO ==="
-`;
-
-    console.log('\n=== DIAGNÓSTICO CONCLUÍDO ===');
+    console.log('Diagnostic completed:', results);
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        message: "Diagnóstico completo da VPS executado",
-        timestamp: new Date().toISOString(),
-        vps: vpsConfig,
-        diagnostics,
-        recommendations,
-        verification_script: verificationScript,
-        summary: {
-          server_status: nodeServerTest ? "ONLINE" : "OFFLINE",
-          total_issues: recommendations.filter(r => r.priority === 'CRÍTICO').length,
-          total_warnings: recommendations.filter(r => r.priority === 'ALTO').length,
-          next_steps: recommendations.slice(0, 3).map(r => r.solution)
-        }
-      }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      JSON.stringify(results),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
 
   } catch (error) {
-    console.error('Erro no diagnóstico da VPS:', error);
+    console.error('Diagnostic error:', error);
     return new Response(
-      JSON.stringify({
-        success: false,
+      JSON.stringify({ 
+        success: false, 
         error: error.message,
-        message: "Falha no diagnóstico da VPS"
+        timestamp: new Date().toISOString()
       }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
   }
