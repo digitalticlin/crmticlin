@@ -1,23 +1,17 @@
 
-import { supabase } from "@/integrations/supabase/client";
 import { VPSHealthService } from "./vpsHealthService";
+import { OrphanInstanceValidator } from "./orphanInstanceValidator";
+import { OrphanInstanceRecoverer } from "./orphanInstanceRecoverer";
 import { toast } from "sonner";
 
-export interface OrphanInstance {
-  vpsInstanceId: string;
-  sessionName: string;
-  state: string;
-  isReady: boolean;
-  phone?: string;
-  name?: string;
-}
+export type { OrphanInstance } from "./orphanInstanceValidator";
 
 export class OrphanInstanceRecoveryService {
   /**
    * Encontra e recupera instâncias órfãs (ativas na VPS mas não no banco)
    */
   static async findAndRecoverOrphanInstances(companyId: string): Promise<{
-    found: OrphanInstance[];
+    found: any[];
     recovered: number;
     errors: string[];
   }> {
@@ -41,7 +35,7 @@ export class OrphanInstanceRecoveryService {
 
       console.log('[OrphanRecovery] ✅ VPS está online, prosseguindo...');
 
-      // 3. Buscar instâncias do VPS usando o serviço de saúde
+      // 3. Buscar instâncias do VPS
       console.log('[OrphanRecovery] Buscando instâncias do VPS...');
       const vpsInstances = await VPSHealthService.getVPSInstances();
       
@@ -55,51 +49,12 @@ export class OrphanInstanceRecoveryService {
 
       // 4. Buscar instâncias do banco para a empresa
       console.log('[OrphanRecovery] Buscando instâncias do banco...');
-      const { data: dbInstances, error: dbError } = await supabase
-        .from('whatsapp_instances')
-        .select('vps_instance_id, phone, web_status, connection_status')
-        .eq('company_id', companyId)
-        .eq('connection_type', 'web');
-
-      if (dbError) {
-        console.error('[OrphanRecovery] Erro no banco:', dbError);
-        throw new Error(`Erro no banco: ${dbError.message}`);
-      }
-
-      console.log('[OrphanRecovery] Instâncias do banco encontradas:', dbInstances?.length || 0);
-
-      const dbInstanceIds = new Set(
-        dbInstances?.map(i => i.vps_instance_id).filter(Boolean) || []
-      );
+      const dbInstances = await OrphanInstanceValidator.getDbInstances(companyId);
       
-      // 5. Identificar órfãs (VPS ativo mas não no banco)
-      const orphanInstances: OrphanInstance[] = vpsInstances
-        .filter(vps => {
-          const instanceId = vps.instanceId || vps.id || vps.instance_id;
-          const state = vps.state || vps.status || 'unknown';
-          const isReady = Boolean(vps.isReady || vps.is_ready || vps.ready);
-          const isConnected = state === 'CONNECTED' || state === 'ready';
-          const notInDB = !dbInstanceIds.has(instanceId);
-          
-          console.log('[OrphanRecovery] Analisando VPS:', {
-            instanceId,
-            state,
-            isReady,
-            isConnected,
-            notInDB,
-            willInclude: isConnected && isReady && notInDB
-          });
-          
-          return isConnected && isReady && notInDB;
-        })
-        .map(vps => ({
-          vpsInstanceId: vps.instanceId || vps.id || vps.instance_id,
-          sessionName: vps.sessionName || vps.session_name || vps.name || `recovered_${Date.now()}`,
-          state: vps.state || vps.status || 'CONNECTED',
-          isReady: Boolean(vps.isReady || vps.is_ready || vps.ready),
-          phone: vps.phone || vps.number || vps.phoneNumber,
-          name: vps.name || vps.profile_name || vps.profileName
-        }));
+      console.log('[OrphanRecovery] Instâncias do banco encontradas:', dbInstances.length);
+
+      // 5. Identificar órfãs
+      const orphanInstances = OrphanInstanceValidator.identifyOrphans(vpsInstances, dbInstances);
 
       console.log('[OrphanRecovery] Instâncias órfãs encontradas:', orphanInstances.length);
 
@@ -109,78 +64,18 @@ export class OrphanInstanceRecoveryService {
       }
 
       // 6. Recuperar instâncias órfãs
-      const recovered: number[] = [];
-      const errors: string[] = [];
+      const recoveryResult = await OrphanInstanceRecoverer.recoverMultipleOrphans(orphanInstances, companyId);
 
-      for (const orphan of orphanInstances) {
-        try {
-          console.log('[OrphanRecovery] Recuperando instância órfã:', {
-            vpsInstanceId: orphan.vpsInstanceId,
-            phone: orphan.phone,
-            name: orphan.name
-          });
-
-          const { data: recoveredInstance, error: insertError } = await supabase
-            .from('whatsapp_instances')
-            .insert({
-              company_id: companyId,
-              instance_name: orphan.sessionName,
-              vps_instance_id: orphan.vpsInstanceId,
-              connection_type: 'web',
-              web_status: 'ready',
-              connection_status: 'open',
-              phone: orphan.phone || '',
-              profile_name: orphan.name || '',
-              date_connected: new Date().toISOString(),
-              server_url: 'http://31.97.24.222:3001',
-              session_data: {
-                recovered: true,
-                recoveredAt: new Date().toISOString(),
-                originalState: orphan.state,
-                recoveryMethod: 'orphan_recovery_service'
-              }
-            })
-            .select()
-            .single();
-
-          if (insertError) {
-            console.error('[OrphanRecovery] Erro ao recuperar:', orphan.vpsInstanceId, insertError);
-            errors.push(`${orphan.vpsInstanceId}: ${insertError.message}`);
-          } else {
-            console.log('[OrphanRecovery] Instância recuperada com sucesso:', recoveredInstance);
-            recovered.push(1);
-            
-            toast.success(
-              `Instância ${orphan.phone || orphan.vpsInstanceId.substring(0, 8)} recuperada!`, 
-              { duration: 5000 }
-            );
-          }
-        } catch (error) {
-          console.error('[OrphanRecovery] Erro inesperado ao recuperar:', orphan.vpsInstanceId, error);
-          errors.push(`${orphan.vpsInstanceId}: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
-        }
-      }
-
-      const totalRecovered = recovered.length;
       console.log('[OrphanRecovery] Recuperação concluída:', {
         found: orphanInstances.length,
-        recovered: totalRecovered,
-        errors: errors.length
+        recovered: recoveryResult.recovered,
+        errors: recoveryResult.errors.length
       });
-
-      // Toast de resumo
-      if (totalRecovered > 0) {
-        toast.success(`✅ ${totalRecovered} instância(s) recuperada(s) com sucesso!`);
-      }
-
-      if (errors.length > 0) {
-        toast.error(`❌ ${errors.length} erro(s) durante a recuperação`);
-      }
 
       return {
         found: orphanInstances,
-        recovered: totalRecovered,
-        errors
+        recovered: recoveryResult.recovered,
+        errors: recoveryResult.errors
       };
 
     } catch (error) {

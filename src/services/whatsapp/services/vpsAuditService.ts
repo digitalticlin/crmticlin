@@ -1,6 +1,7 @@
 import { VPS_CONFIG } from "../config/vpsConfig";
 import { ServiceResponse } from "../types/whatsappWebTypes";
 import { supabase } from "@/integrations/supabase/client";
+import { VPSInstanceManager } from "./vpsInstanceManager";
 
 export interface VPSConnection {
   instanceId: string;
@@ -27,56 +28,14 @@ export interface AuditResult {
 
 export class VPSAuditService {
   /**
-   * Lista todas as conexões ativas no VPS com melhor tratamento de erro
+   * Lista todas as conexões ativas no VPS
    */
   static async listVPSConnections(): Promise<ServiceResponse<VPSConnection[]>> {
     try {
       console.log('[VPSAuditService] Conectando ao VPS:', VPS_CONFIG.baseUrl);
       
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 segundos
-
-      const response = await fetch(`${VPS_CONFIG.baseUrl}/instances`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      console.log('[VPSAuditService] Resposta do VPS:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries())
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Erro desconhecido');
-        const errorMsg = `VPS HTTP ${response.status}: ${response.statusText} - ${errorText}`;
-        console.error('[VPSAuditService] Erro HTTP:', errorMsg);
-        throw new Error(errorMsg);
-      }
-
-      const data = await response.json();
-      console.log('[VPSAuditService] Dados recebidos do VPS:', data);
-
-      // Validar estrutura da resposta
-      if (!data || typeof data !== 'object') {
-        throw new Error('Resposta inválida do VPS: dados não são um objeto');
-      }
-
-      const instances = data.instances || data.data || data || [];
-      
-      if (!Array.isArray(instances)) {
-        console.warn('[VPSAuditService] Instâncias não são um array:', instances);
-        return {
-          success: true,
-          data: []
-        };
-      }
+      // Usar o novo VPSInstanceManager
+      const instances = await VPSInstanceManager.getVPSInstances();
 
       // Normalizar dados das instâncias
       const normalizedInstances: VPSConnection[] = instances.map((instance: any) => ({

@@ -1,10 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { toast } from "sonner";
 import { WhatsAppWebInstance, AutoConnectState } from "./types/whatsappWebInstanceTypes";
 import { InstanceService } from "./services/instanceService";
 import { InstanceDataService } from "./services/instanceDataService";
-import { PollingService } from "./services/pollingService";
-import { HealthMonitoringService } from "./services/healthMonitoringService";
 import { ConnectionStabilityService } from "./services/connectionStabilityService";
 import { useCompanyData } from "@/hooks/useCompanyData";
 
@@ -35,7 +34,7 @@ export const useWhatsAppWebInstances = () => {
       const data = await InstanceDataService.fetchInstances(companyId);
       setInstances(data);
 
-      // NOVO: Iniciar sistema de estabilidade em vez de health monitoring simples
+      // Iniciar sistema de estabilidade
       ConnectionStabilityService.startStabilitySystem(companyId);
     } catch (err) {
       console.error('[useWhatsAppWebInstances] Error fetching instances:', err);
@@ -112,8 +111,6 @@ export const useWhatsAppWebInstances = () => {
     try {
       setLoading(true);
       
-      // REMOVIDO: HealthMonitoringService.stopMonitoringForInstance(instanceId);
-      // NOVO: O sistema de estabilidade gerencia isso automaticamente
       await InstanceService.deleteInstance(instanceId);
       await fetchInstances();
       
@@ -230,7 +227,7 @@ export const useWhatsAppWebInstances = () => {
     }));
   };
 
-  // Cleanup effect - ATUALIZADO
+  // Cleanup effect
   useEffect(() => {
     return () => {
       console.log('[useWhatsAppWebInstances] Cleanup - stopping stability system');

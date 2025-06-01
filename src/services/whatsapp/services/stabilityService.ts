@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { ConnectionHealthService } from "./connectionHealthService";
+import { StabilityQuarantineManager } from "./stabilityQuarantineManager";
 
 export interface StabilityConfig {
   healthCheckInterval: number; // minutos
@@ -18,12 +19,6 @@ export class StabilityService {
     autoRecoveryEnabled: true,
     aggressiveRemovalDisabled: true // NOVO: desabilita remoção agressiva
   };
-
-  private static quarantinedInstances = new Map<string, {
-    quarantinedAt: Date;
-    reason: string;
-    failures: number;
-  }>();
 
   /**
    * Aplica configurações de estabilidade conservadoras
@@ -91,17 +86,9 @@ export class StabilityService {
       const vpsInstanceId = instance.vps_instance_id;
 
       // Verificar se está em quarentena
-      const quarantine = this.quarantinedInstances.get(instanceId);
-      if (quarantine) {
-        const quarantineExpired = Date.now() - quarantine.quarantinedAt.getTime() > (this.config.quarantineTimeout * 60 * 1000);
-        
-        if (quarantineExpired) {
-          console.log('[StabilityService] Removendo da quarentena:', instanceId);
-          this.quarantinedInstances.delete(instanceId);
-        } else {
-          console.log('[StabilityService] Instância ainda em quarentena:', instanceId);
-          return; // Não verifica instâncias em quarentena
-        }
+      if (StabilityQuarantineManager.isInQuarantine(instanceId, this.config.quarantineTimeout)) {
+        console.log('[StabilityService] Instância ainda em quarentena:', instanceId);
+        return; // Não verifica instâncias em quarentena
       }
 
       // Verificação de saúde MUITO mais tolerante
@@ -111,7 +98,7 @@ export class StabilityService {
         console.warn('[StabilityService] Falha na verificação, mas sendo CONSERVADOR:', instanceId);
         
         // Em vez de remover, apenas coloca em quarentena
-        this.putInQuarantine(instanceId, 'health_check_failed', 1);
+        StabilityQuarantineManager.putInQuarantine(instanceId, 'health_check_failed', 1);
       } else {
         console.log('[StabilityService] Instância saudável:', instanceId);
       }
@@ -122,69 +109,17 @@ export class StabilityService {
   }
 
   /**
-   * Coloca instância em quarentena em vez de remover
-   */
-  private static putInQuarantine(instanceId: string, reason: string, failures: number) {
-    console.log('[StabilityService] Colocando em quarentena (NÃO removendo):', instanceId, reason);
-
-    this.quarantinedInstances.set(instanceId, {
-      quarantinedAt: new Date(),
-      reason,
-      failures
-    });
-
-    // Atualizar status no banco para indicar problema, mas NÃO remover
-    supabase
-      .from('whatsapp_instances')
-      .update({
-        web_status: 'unstable', // Novo status
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', instanceId)
-      .then(({ error }) => {
-        if (error) {
-          console.error('[StabilityService] Erro ao marcar como instável:', error);
-        } else {
-          console.log('[StabilityService] Instância marcada como instável (preservada):', instanceId);
-        }
-      });
-  }
-
-  /**
    * Força recuperação de instâncias em quarentena
    */
   static async forceRecoveryFromQuarantine() {
-    console.log('[StabilityService] Forçando recuperação de instâncias em quarentena...');
-
-    for (const [instanceId, quarantine] of this.quarantinedInstances.entries()) {
-      console.log('[StabilityService] Recuperando da quarentena:', instanceId);
-
-      // Tentar restaurar status
-      const { error } = await supabase
-        .from('whatsapp_instances')
-        .update({
-          web_status: 'ready',
-          connection_status: 'open',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', instanceId);
-
-      if (!error) {
-        console.log('[StabilityService] Instância recuperada da quarentena:', instanceId);
-        this.quarantinedInstances.delete(instanceId);
-      }
-    }
+    return await StabilityQuarantineManager.forceRecoveryFromQuarantine();
   }
 
   /**
    * Obtém status de quarentena
    */
   static getQuarantineStatus() {
-    return Array.from(this.quarantinedInstances.entries()).map(([instanceId, data]) => ({
-      instanceId,
-      ...data,
-      quarantinedFor: Math.floor((Date.now() - data.quarantinedAt.getTime()) / 1000 / 60) + ' minutos'
-    }));
+    return StabilityQuarantineManager.getQuarantineStatus();
   }
 
   /**

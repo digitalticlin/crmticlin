@@ -1,16 +1,16 @@
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Shield, AlertTriangle, CheckCircle, Search, Info, Activity, Wifi, WifiOff } from "lucide-react";
+import { Shield, Info } from "lucide-react";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ConnectionStabilityService } from "@/hooks/whatsapp/services/connectionStabilityService";
 import { OrphanInstanceRecoveryService } from "@/services/whatsapp/services/orphanInstanceRecoveryService";
-import { StabilityService } from "@/services/whatsapp/services/stabilityService";
 import { VPSHealthService } from "@/services/whatsapp/services/vpsHealthService";
 import { useCompanyData } from "@/hooks/useCompanyData";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { VPSStatusCard } from "./stability/VPSStatusCard";
+import { StabilityActionButtons } from "./stability/StabilityActionButtons";
+import { ScanResultsCard } from "./stability/ScanResultsCard";
 
 export function ConnectionStabilityDashboard() {
   const { companyId } = useCompanyData();
@@ -133,28 +133,6 @@ export function ConnectionStabilityDashboard() {
     setSystemStatus(status);
   };
 
-  const getVPSStatusBadge = () => {
-    if (!systemStatus?.vpsHealth) return null;
-    
-    const { isOnline, responseTime, consecutiveFailures } = systemStatus.vpsHealth;
-    
-    if (isOnline) {
-      return (
-        <Badge variant="default" className="gap-1">
-          <Wifi className="h-3 w-3" />
-          Online ({responseTime}ms)
-        </Badge>
-      );
-    } else {
-      return (
-        <Badge variant="destructive" className="gap-1">
-          <WifiOff className="h-3 w-3" />
-          Offline ({consecutiveFailures} falhas)
-        </Badge>
-      );
-    }
-  };
-
   return (
     <Card className="w-full">
       <CardHeader>
@@ -167,7 +145,7 @@ export function ConnectionStabilityDashboard() {
         </p>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-6">
         {/* Alerta informativo */}
         <Alert>
           <Info className="h-4 w-4" />
@@ -177,131 +155,24 @@ export function ConnectionStabilityDashboard() {
           </AlertDescription>
         </Alert>
 
-        {/* Status do VPS */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <h4 className="font-medium text-sm flex items-center gap-2">
-              <Activity className="h-4 w-4" />
-              Status do VPS
-            </h4>
-            <div className="flex flex-wrap gap-2">
-              {getVPSStatusBadge()}
-              {systemStatus?.vpsHealth?.lastChecked && (
-                <Badge variant="outline" className="text-xs">
-                  Última verificação: {new Date(systemStatus.vpsHealth.lastChecked).toLocaleTimeString()}
-                </Badge>
-              )}
-            </div>
-            {systemStatus?.vpsHealth?.error && (
-              <div className="text-xs text-red-600 mt-1">
-                Erro: {systemStatus.vpsHealth.error}
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <h4 className="font-medium text-sm">Status do Sistema</h4>
-            <div className="flex flex-wrap gap-2">
-              <Badge variant={systemStatus?.recoveryActive ? "default" : "secondary"}>
-                {systemStatus?.recoveryActive ? "Auto-recuperação Ativa" : "Auto-recuperação Inativa"}
-              </Badge>
-              <Badge variant={systemStatus?.stabilityActive ? "default" : "secondary"}>
-                {systemStatus?.stabilityActive ? "Monitoramento Ativo" : "Monitoramento Inativo"}
-              </Badge>
-            </div>
-          </div>
-        </div>
+        {/* Status Cards */}
+        <VPSStatusCard 
+          vpsHealth={systemStatus?.vpsHealth}
+          systemStatus={systemStatus}
+        />
 
         {/* Ações Principais */}
-        <div className="flex flex-wrap gap-2">
-          <Button 
-            onClick={handleStartStability}
-            className="gap-2"
-            variant="default"
-          >
-            <Shield className="h-4 w-4" />
-            Iniciar Sistema Estabilidade
-          </Button>
-
-          <Button 
-            onClick={handleVPSHealthCheck}
-            variant="outline"
-            className="gap-2"
-          >
-            <Activity className="h-4 w-4" />
-            Verificar VPS
-          </Button>
-
-          <Button 
-            onClick={handleScanOrphans}
-            disabled={isScanning}
-            variant="outline"
-            className="gap-2"
-          >
-            {isScanning ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <Search className="h-4 w-4" />
-            )}
-            {isScanning ? 'Buscando...' : 'Buscar Órfãs'}
-          </Button>
-
-          <Button 
-            onClick={handleForceRecovery}
-            disabled={isRecovering}
-            variant="outline"
-            className="gap-2"
-          >
-            {isRecovering ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-            {isRecovering ? 'Recuperando...' : 'Recuperação Forçada'}
-          </Button>
-        </div>
+        <StabilityActionButtons
+          isScanning={isScanning}
+          isRecovering={isRecovering}
+          onStartStability={handleStartStability}
+          onVPSHealthCheck={handleVPSHealthCheck}
+          onScanOrphans={handleScanOrphans}
+          onForceRecovery={handleForceRecovery}
+        />
 
         {/* Resultado da Última Busca */}
-        {lastScanResult && (
-          <div className="rounded-lg border p-4 bg-muted/30">
-            <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
-              {lastScanResult.errors.length > 0 ? (
-                <AlertTriangle className="h-4 w-4 text-orange-500" />
-              ) : (
-                <CheckCircle className="h-4 w-4 text-green-500" />
-              )}
-              Último Resultado da Busca
-            </h4>
-            <div className="grid gap-2 text-sm">
-              <div className="flex justify-between">
-                <span>Instâncias Órfãs Encontradas:</span>
-                <Badge variant="outline">{lastScanResult.found.length}</Badge>
-              </div>
-              <div className="flex justify-between">
-                <span>Instâncias Recuperadas:</span>
-                <Badge variant={lastScanResult.recovered > 0 ? "default" : "secondary"}>
-                  {lastScanResult.recovered}
-                </Badge>
-              </div>
-              {lastScanResult.errors.length > 0 && (
-                <>
-                  <div className="flex justify-between">
-                    <span>Erros:</span>
-                    <Badge variant="destructive">{lastScanResult.errors.length}</Badge>
-                  </div>
-                  <div className="mt-2 p-2 bg-red-50 rounded text-xs">
-                    <strong>Detalhes dos erros:</strong>
-                    <ul className="mt-1 space-y-1">
-                      {lastScanResult.errors.map((error: string, index: number) => (
-                        <li key={index} className="text-red-700">• {error}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
+        <ScanResultsCard lastScanResult={lastScanResult} />
 
         {/* Explicação */}
         <div className="text-xs text-muted-foreground space-y-1">

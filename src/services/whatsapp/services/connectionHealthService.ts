@@ -1,8 +1,6 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { VPS_CONFIG } from "../config/vpsConfig";
-import { ServiceResponse } from "../types/whatsappWebTypes";
 import { StabilityService } from "./stabilityService";
+import { ConnectionHealthChecker } from "./connectionHealthChecker";
 
 export interface ConnectionHealth {
   instanceId: string;
@@ -82,7 +80,7 @@ export class ConnectionHealthService {
 
       console.log('[ConnectionHealthService] ULTRA-CONSERVATIVE health check for:', instanceId);
       
-      const healthCheckResult = await this.checkVPSHealthOnly(vpsInstanceId);
+      const healthCheckResult = await ConnectionHealthChecker.checkVPSHealthOnly(vpsInstanceId);
       const currentHealth = this.healthStatus.get(instanceId);
       
       if (!currentHealth) return;
@@ -119,73 +117,13 @@ export class ConnectionHealthService {
           console.log('[ConnectionHealthService] Instance needs attention after', consecutiveFailures, 'failures, but NOT removing automatically');
           
           // Em vez de remover, marca como problemática no sistema de estabilidade
-          await this.markAsProblematic(instanceId, `${consecutiveFailures} health check failures`);
+          await ConnectionHealthChecker.markAsProblematic(instanceId, `${consecutiveFailures} health check failures`);
         }
       }
       
     } catch (error) {
       console.error('[ConnectionHealthService] Ultra-conservative health check error for:', instanceId, error);
       // MESMO em caso de erro, não remove - apenas registra
-    }
-  }
-  
-  /**
-   * Marca instância como problemática no sistema de estabilidade
-   */
-  private static async markAsProblematic(instanceId: string, reason: string) {
-    try {
-      console.log('[ConnectionHealthService] Marking as problematic (NOT removing):', instanceId, reason);
-      
-      // Atualizar status no banco para indicar problema
-      await supabase
-        .from('whatsapp_instances')
-        .update({
-          web_status: 'health_issues', // Novo status para indicar problemas
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', instanceId);
-
-      console.log('[ConnectionHealthService] Instance marked as problematic (preserved):', instanceId);
-      
-    } catch (error) {
-      console.error('[ConnectionHealthService] Error marking as problematic:', error);
-    }
-  }
-  
-  /**
-   * Verifica saúde APENAS com endpoint de health (sem gerar QR)
-   */
-  private static async checkVPSHealthOnly(vpsInstanceId: string): Promise<ServiceResponse> {
-    try {
-      // USA ENDPOINT /health EM VEZ DE /status PARA EVITAR QR CODES
-      const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        signal: AbortSignal.timeout(15000) // Timeout aumentado para 15 segundos
-      });
-      
-      if (!response.ok) {
-        return { success: false, error: `HTTP ${response.status}` };
-      }
-      
-      const data = await response.json();
-      
-      // Verifica se o VPS específico está na lista de instâncias ativas
-      const isInstanceHealthy = data.activeInstances && 
-                               data.activeInstances.includes(vpsInstanceId);
-      
-      return { 
-        success: isInstanceHealthy, 
-        data: isInstanceHealthy ? 'healthy' : 'not_active' 
-      };
-      
-    } catch (error) {
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
-      };
     }
   }
   
@@ -221,9 +159,9 @@ export class ConnectionHealthService {
   /**
    * NOVA FUNÇÃO: Verificação manual de status (apenas quando solicitado)
    */
-  static async manualHealthCheck(instanceId: string, vpsInstanceId: string): Promise<ServiceResponse> {
+  static async manualHealthCheck(instanceId: string, vpsInstanceId: string) {
     console.log('[ConnectionHealthService] Manual health check requested for:', instanceId);
-    return await this.checkVPSHealthOnly(vpsInstanceId);
+    return await ConnectionHealthChecker.checkVPSHealthOnly(vpsInstanceId);
   }
 
   /**
