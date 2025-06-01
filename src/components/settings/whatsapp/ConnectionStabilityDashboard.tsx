@@ -111,7 +111,7 @@ export function ConnectionStabilityDashboard() {
       const result = await ConnectionStabilityService.forceRecovery(companyId);
       
       const orphanCount = result.orphanRecovery?.recovered || 0;
-      const quarantineCount = result.quarantineRecovery?.total || 0;
+      const quarantineCount = result.quarantineRecovery?.recovered || 0;
       
       toast.success(`✅ Recuperação concluída! Órfãs: ${orphanCount}, Quarentena: ${quarantineCount}`, { duration: 6000 });
       console.log('[StabilityDashboard] Resultado da recuperação completa:', result);
