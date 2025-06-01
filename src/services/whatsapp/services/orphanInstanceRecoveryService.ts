@@ -24,16 +24,31 @@ export class OrphanInstanceRecoveryService {
     try {
       console.log('[OrphanRecovery] Iniciando busca por instâncias órfãs para empresa:', companyId);
 
-      // 1. Buscar todas as conexões VPS
+      // 1. Verificar se o companyId é válido
+      if (!companyId) {
+        throw new Error('Company ID é obrigatório');
+      }
+
+      // 2. Buscar todas as conexões VPS com melhor tratamento de erro
+      console.log('[OrphanRecovery] Buscando conexões VPS...');
       const vpsResult = await VPSAuditService.listVPSConnections();
+      
       if (!vpsResult.success) {
-        throw new Error(`Falha ao listar VPS: ${vpsResult.error}`);
+        console.error('[OrphanRecovery] Falha ao listar VPS:', vpsResult.error);
+        throw new Error(`Falha ao conectar com VPS: ${vpsResult.error}`);
       }
 
       const vpsConnections = vpsResult.data || [];
       console.log('[OrphanRecovery] Conexões VPS encontradas:', vpsConnections.length);
 
-      // 2. Buscar instâncias do banco para a empresa
+      // Se não há conexões VPS, não há órfãs
+      if (vpsConnections.length === 0) {
+        console.log('[OrphanRecovery] Nenhuma conexão VPS encontrada');
+        return { found: [], recovered: 0, errors: [] };
+      }
+
+      // 3. Buscar instâncias do banco para a empresa
+      console.log('[OrphanRecovery] Buscando instâncias do banco...');
       const { data: dbInstances, error: dbError } = await supabase
         .from('whatsapp_instances')
         .select('vps_instance_id, phone, web_status, connection_status')
@@ -41,18 +56,33 @@ export class OrphanInstanceRecoveryService {
         .eq('connection_type', 'web');
 
       if (dbError) {
+        console.error('[OrphanRecovery] Erro no banco:', dbError);
         throw new Error(`Erro no banco: ${dbError.message}`);
       }
 
-      const dbInstanceIds = new Set(dbInstances?.map(i => i.vps_instance_id).filter(Boolean) || []);
+      console.log('[OrphanRecovery] Instâncias do banco encontradas:', dbInstances?.length || 0);
+
+      const dbInstanceIds = new Set(
+        dbInstances?.map(i => i.vps_instance_id).filter(Boolean) || []
+      );
       
-      // 3. Identificar órfãs (VPS ativo mas não no banco)
+      // 4. Identificar órfãs (VPS ativo mas não no banco)
       const orphanInstances: OrphanInstance[] = vpsConnections
-        .filter(vps => 
-          vps.state === 'CONNECTED' && 
-          vps.isReady && 
-          !dbInstanceIds.has(vps.instanceId)
-        )
+        .filter(vps => {
+          const isConnected = vps.state === 'CONNECTED';
+          const isReady = vps.isReady === true;
+          const notInDB = !dbInstanceIds.has(vps.instanceId);
+          
+          console.log('[OrphanRecovery] Analisando VPS:', {
+            instanceId: vps.instanceId,
+            state: vps.state,
+            isReady: vps.isReady,
+            notInDB,
+            willInclude: isConnected && isReady && notInDB
+          });
+          
+          return isConnected && isReady && notInDB;
+        })
         .map(vps => ({
           vpsInstanceId: vps.instanceId,
           sessionName: vps.sessionName || `recovered_${Date.now()}`,
@@ -65,16 +95,21 @@ export class OrphanInstanceRecoveryService {
       console.log('[OrphanRecovery] Instâncias órfãs encontradas:', orphanInstances.length);
 
       if (orphanInstances.length === 0) {
+        console.log('[OrphanRecovery] Nenhuma instância órfã encontrada');
         return { found: [], recovered: 0, errors: [] };
       }
 
-      // 4. Recuperar instâncias órfãs
+      // 5. Recuperar instâncias órfãs
       const recovered: number[] = [];
       const errors: string[] = [];
 
       for (const orphan of orphanInstances) {
         try {
-          console.log('[OrphanRecovery] Recuperando instância órfã:', orphan.vpsInstanceId);
+          console.log('[OrphanRecovery] Recuperando instância órfã:', {
+            vpsInstanceId: orphan.vpsInstanceId,
+            phone: orphan.phone,
+            name: orphan.name
+          });
 
           const { data: recoveredInstance, error: insertError } = await supabase
             .from('whatsapp_instances')
@@ -88,11 +123,12 @@ export class OrphanInstanceRecoveryService {
               phone: orphan.phone || '',
               profile_name: orphan.name || '',
               date_connected: new Date().toISOString(),
-              server_url: 'recovered',
+              server_url: 'http://31.97.24.222:3001', // URL do VPS
               session_data: {
                 recovered: true,
                 recoveredAt: new Date().toISOString(),
-                originalState: orphan.state
+                originalState: orphan.state,
+                recoveryMethod: 'orphan_recovery_service'
               }
             })
             .select()
@@ -105,7 +141,10 @@ export class OrphanInstanceRecoveryService {
             console.log('[OrphanRecovery] Instância recuperada com sucesso:', recoveredInstance);
             recovered.push(1);
             
-            toast.success(`Instância ${orphan.phone || orphan.vpsInstanceId} recuperada!`);
+            toast.success(
+              `Instância ${orphan.phone || orphan.vpsInstanceId.substring(0, 8)} recuperada!`, 
+              { duration: 5000 }
+            );
           }
         } catch (error) {
           console.error('[OrphanRecovery] Erro inesperado ao recuperar:', orphan.vpsInstanceId, error);
@@ -120,6 +159,15 @@ export class OrphanInstanceRecoveryService {
         errors: errors.length
       });
 
+      // Toast de resumo
+      if (totalRecovered > 0) {
+        toast.success(`✅ ${totalRecovered} instância(s) recuperada(s) com sucesso!`);
+      }
+
+      if (errors.length > 0) {
+        toast.error(`❌ ${errors.length} erro(s) durante a recuperação`);
+      }
+
       return {
         found: orphanInstances,
         recovered: totalRecovered,
@@ -127,11 +175,15 @@ export class OrphanInstanceRecoveryService {
       };
 
     } catch (error) {
-      console.error('[OrphanRecovery] Falha na recuperação:', error);
+      console.error('[OrphanRecovery] Falha geral na recuperação:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      
+      toast.error(`Erro na busca: ${errorMessage}`);
+      
       return {
         found: [],
         recovered: 0,
-        errors: [error instanceof Error ? error.message : 'Erro desconhecido']
+        errors: [errorMessage]
       };
     }
   }

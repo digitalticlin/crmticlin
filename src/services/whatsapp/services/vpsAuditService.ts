@@ -1,4 +1,3 @@
-
 import { VPS_CONFIG } from "../config/vpsConfig";
 import { ServiceResponse } from "../types/whatsappWebTypes";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,38 +27,96 @@ export interface AuditResult {
 
 export class VPSAuditService {
   /**
-   * Lista todas as conexões ativas no VPS
+   * Lista todas as conexões ativas no VPS com melhor tratamento de erro
    */
   static async listVPSConnections(): Promise<ServiceResponse<VPSConnection[]>> {
     try {
-      console.log('[VPSAuditService] Listing VPS connections');
+      console.log('[VPSAuditService] Conectando ao VPS:', VPS_CONFIG.baseUrl);
       
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 segundos
+
       const response = await fetch(`${VPS_CONFIG.baseUrl}/instances`, {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        signal: AbortSignal.timeout(10000)
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      console.log('[VPSAuditService] Resposta do VPS:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`VPS HTTP ${response.status}: ${errorText}`);
+        const errorText = await response.text().catch(() => 'Erro desconhecido');
+        const errorMsg = `VPS HTTP ${response.status}: ${response.statusText} - ${errorText}`;
+        console.error('[VPSAuditService] Erro HTTP:', errorMsg);
+        throw new Error(errorMsg);
       }
 
       const data = await response.json();
-      console.log('[VPSAuditService] VPS connections:', data);
+      console.log('[VPSAuditService] Dados recebidos do VPS:', data);
+
+      // Validar estrutura da resposta
+      if (!data || typeof data !== 'object') {
+        throw new Error('Resposta inválida do VPS: dados não são um objeto');
+      }
+
+      const instances = data.instances || data.data || data || [];
+      
+      if (!Array.isArray(instances)) {
+        console.warn('[VPSAuditService] Instâncias não são um array:', instances);
+        return {
+          success: true,
+          data: []
+        };
+      }
+
+      // Normalizar dados das instâncias
+      const normalizedInstances: VPSConnection[] = instances.map((instance: any) => ({
+        instanceId: instance.instanceId || instance.id || instance.instance_id || 'unknown',
+        sessionName: instance.sessionName || instance.session_name || instance.name || 'unknown',
+        state: instance.state || instance.status || 'UNKNOWN',
+        isReady: Boolean(instance.isReady || instance.is_ready || instance.ready),
+        phone: instance.phone || instance.number || instance.phoneNumber,
+        name: instance.name || instance.profile_name || instance.profileName,
+        createdAt: instance.createdAt || instance.created_at || new Date().toISOString(),
+        lastActivity: instance.lastActivity || instance.last_activity
+      }));
+
+      console.log('[VPSAuditService] Instâncias normalizadas:', normalizedInstances.length);
 
       return {
         success: true,
-        data: data.instances || []
+        data: normalizedInstances
       };
 
     } catch (error) {
-      console.error('[VPSAuditService] Error listing VPS connections:', error);
+      console.error('[VPSAuditService] Erro detalhado ao listar VPS:', error);
+      
+      let errorMessage = 'Erro desconhecido';
+      
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Timeout: VPS não respondeu em 15 segundos';
+        } else if (error.message.includes('Failed to fetch')) {
+          errorMessage = 'Falha na conexão: VPS pode estar offline ou inacessível';
+        } else if (error.message.includes('CORS')) {
+          errorMessage = 'Erro CORS: problema na configuração do VPS';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: errorMessage
       };
     }
   }
