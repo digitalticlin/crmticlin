@@ -10,8 +10,7 @@ import {
   XCircle, 
   AlertTriangle,
   RefreshCw,
-  Terminal,
-  Layers
+  Terminal
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -114,20 +113,6 @@ export const VPSDiagnosticPanel = () => {
         return data;
       });
 
-      // 3. Teste de Dependências (se endpoint disponível)
-      await runTest('Dependências Node.js', async () => {
-        const response = await fetch(`${VPS_CONFIG.baseUrl}/debug/dependencies`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Endpoint não disponível: ${response.status}`);
-        }
-        
-        return await response.json();
-      });
-
       toast.success("Diagnóstico completo executado!");
       
     } catch (error) {
@@ -154,17 +139,6 @@ export const VPSDiagnosticPanel = () => {
     }
   };
 
-  const getStatusBadge = (status: DiagnosticResult['status']) => {
-    const variants = {
-      success: 'bg-green-100 text-green-800',
-      error: 'bg-red-100 text-red-800',
-      warning: 'bg-yellow-100 text-yellow-800',
-      pending: 'bg-blue-100 text-blue-800'
-    };
-    
-    return variants[status] || 'bg-gray-100 text-gray-800';
-  };
-
   return (
     <div className="space-y-6">
       <Card>
@@ -184,7 +158,7 @@ export const VPSDiagnosticPanel = () => {
             <AlertDescription>
               <strong>VPS Target:</strong> {VPS_CONFIG.host}:{VPS_CONFIG.port}
               <br />
-              Este diagnóstico irá testar conectividade, instâncias e dependências.
+              Este diagnóstico irá testar conectividade e instâncias.
             </AlertDescription>
           </Alert>
 
@@ -223,7 +197,7 @@ export const VPSDiagnosticPanel = () => {
                         </span>
                       )}
                     </div>
-                    <Badge className={getStatusBadge(result.status)}>
+                    <Badge variant={result.status === 'success' ? 'default' : 'destructive'}>
                       {result.status}
                     </Badge>
                   </div>
@@ -248,46 +222,6 @@ export const VPSDiagnosticPanel = () => {
           )}
         </CardContent>
       </Card>
-
-      {/* Resumo dos Resultados */}
-      {results.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Layers className="h-5 w-5 text-green-600" />
-              Resumo do Diagnóstico
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-4 gap-4 text-center">
-              <div className="p-3 bg-green-50 rounded">
-                <div className="text-2xl font-bold text-green-600">
-                  {results.filter(r => r.status === 'success').length}
-                </div>
-                <div className="text-sm text-green-700">Sucessos</div>
-              </div>
-              <div className="p-3 bg-red-50 rounded">
-                <div className="text-2xl font-bold text-red-600">
-                  {results.filter(r => r.status === 'error').length}
-                </div>
-                <div className="text-sm text-red-700">Erros</div>
-              </div>
-              <div className="p-3 bg-yellow-50 rounded">
-                <div className="text-2xl font-bold text-yellow-600">
-                  {results.filter(r => r.status === 'warning').length}
-                </div>
-                <div className="text-sm text-yellow-700">Avisos</div>
-              </div>
-              <div className="p-3 bg-blue-50 rounded">
-                <div className="text-2xl font-bold text-blue-600">
-                  {results.filter(r => r.status === 'pending').length}
-                </div>
-                <div className="text-sm text-blue-700">Pendentes</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };

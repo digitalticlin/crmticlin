@@ -5,9 +5,11 @@ import { VPSManualTestPanel } from "@/components/admin/VPSManualTestPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const VPSDiagnostic = () => {
+  console.log('[VPSDiagnostic] Componente renderizado');
+
   return (
     <DashboardLayout>
-      <div className="p-6">
+      <div className="p-6 h-full overflow-auto">
         <div className="mb-6">
           <h1 className="text-3xl font-bold">Diagnóstico VPS</h1>
           <p className="text-muted-foreground">

@@ -3,7 +3,6 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { 
   Terminal,
@@ -19,7 +18,6 @@ interface TestCommand {
   description: string;
   endpoint: string;
   method: 'GET' | 'POST';
-  body?: string;
   expectedResult: string;
 }
 
@@ -37,21 +35,6 @@ const TEST_COMMANDS: TestCommand[] = [
     endpoint: "/instances",
     method: "GET",
     expectedResult: "Array de instâncias ativas"
-  },
-  {
-    name: "Verificar Dependências",
-    description: "Verifica dependências Node.js instaladas",
-    endpoint: "/debug/dependencies",
-    method: "GET",
-    expectedResult: "Lista de dependências com versões"
-  },
-  {
-    name: "Teste Criação",
-    description: "Testa criação de instância",
-    endpoint: "/test-create",
-    method: "POST",
-    body: '{"instanceId": "test_manual", "testMode": true}',
-    expectedResult: "Sucesso na criação de instância teste"
   }
 ];
 
@@ -61,7 +44,6 @@ export const VPSManualTestPanel = () => {
   const [results, setResults] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [customEndpoint, setCustomEndpoint] = useState('');
-  const [customBody, setCustomBody] = useState('');
 
   const executeTest = async (command: TestCommand) => {
     const key = command.name;
@@ -75,10 +57,6 @@ export const VPSManualTestPanel = () => {
           'Content-Type': 'application/json'
         }
       };
-      
-      if (command.body) {
-        options.body = command.body;
-      }
       
       console.log(`Executando teste: ${command.name}`, { url, options });
       
@@ -130,18 +108,12 @@ export const VPSManualTestPanel = () => {
     
     try {
       const url = `${VPS_BASE_URL}${customEndpoint}`;
-      const options: RequestInit = {
-        method: customBody ? 'POST' : 'GET',
+      const response = await fetch(url, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json'
         }
-      };
-      
-      if (customBody) {
-        options.body = customBody;
-      }
-      
-      const response = await fetch(url, options);
+      });
       const data = await response.json();
       
       setResults(prev => ({
@@ -179,14 +151,6 @@ export const VPSManualTestPanel = () => {
     toast.success("Copiado para área de transferência");
   };
 
-  const executeAllTests = async () => {
-    for (const command of TEST_COMMANDS) {
-      await executeTest(command);
-      // Pequena pausa entre testes
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }
-  };
-
   return (
     <div className="space-y-6">
       <Card>
@@ -201,11 +165,6 @@ export const VPSManualTestPanel = () => {
         </CardHeader>
         
         <CardContent className="space-y-4">
-          <Button onClick={executeAllTests} className="w-full" size="lg">
-            <Terminal className="h-4 w-4 mr-2" />
-            Executar Todos os Testes
-          </Button>
-          
           <div className="grid gap-4">
             {TEST_COMMANDS.map((command) => (
               <Card key={command.name} className="p-4">
@@ -237,11 +196,6 @@ export const VPSManualTestPanel = () => {
                 
                 <div className="text-xs text-muted-foreground mb-2">
                   <code>{command.method} {command.endpoint}</code>
-                  {command.body && (
-                    <div className="mt-1">
-                      <strong>Body:</strong> <code>{command.body}</code>
-                    </div>
-                  )}
                 </div>
                 
                 <div className="text-xs text-muted-foreground">
@@ -295,16 +249,6 @@ export const VPSManualTestPanel = () => {
               placeholder="/debug/custom-endpoint"
               value={customEndpoint}
               onChange={(e) => setCustomEndpoint(e.target.value)}
-            />
-          </div>
-          
-          <div>
-            <label className="text-sm font-medium">Body (opcional - para POST)</label>
-            <Textarea
-              placeholder='{"key": "value"}'
-              value={customBody}
-              onChange={(e) => setCustomBody(e.target.value)}
-              rows={3}
             />
           </div>
           
