@@ -1,160 +1,107 @@
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect } from 'react';
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { useWhatsAppWebInstances } from "./useWhatsAppWebInstances";
-import { useWhatsAppRealtime } from "@/hooks/whatsapp/useWhatsAppRealtime";
-import { useCompanyData } from "@/hooks/useCompanyData";
+import { useWhatsAppWebInstances } from './useWhatsAppWebInstances';
+import { useCompanyData } from '../useCompanyData';
 
 export const useWhatsAppSettingsLogic = () => {
-  console.log('[useWhatsAppSettingsLogic] Hook initializing');
+  const [qrModalInstanceId, setQrModalInstanceId] = useState<string | null>(null);
   
-  const [userEmail, setUserEmail] = useState<string>("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
-  const [isSyncingAll, setIsSyncingAll] = useState(false);
+  const { companyId, loading: companyLoading } = useCompanyData();
   
-  // Refs para controlar execuções e evitar loops
-  const userDataLoadedRef = useRef(false);
-  const syncExecutedRef = useRef(false);
-  const isUnmountedRef = useRef(false);
-  const lastFetchTimeRef = useRef(0);
+  const {
+    instances,
+    loading,
+    error,
+    autoConnectState,
+    createInstance,
+    deleteInstance,
+    refreshQRCode,
+    syncInstanceStatus,
+    forceSync,
+    closeQRModal,
+    openQRModal,
+    refetch
+  } = useWhatsAppWebInstances();
 
-  const { companyId } = useCompanyData();
+  const connectedInstances = instances.filter(instance => 
+    ['ready', 'open'].includes(instance.web_status || instance.connection_status) && 
+    instance.phone && instance.phone !== ''
+  );
 
-  // Cleanup no desmonte do componente
-  useEffect(() => {
-    isUnmountedRef.current = false;
-    return () => {
-      isUnmountedRef.current = true;
-      console.log('[useWhatsAppSettingsLogic] Component unmounting, cleaning up');
-    };
-  }, []);
+  const handleOpenQRModal = (instanceId: string) => {
+    setQrModalInstanceId(instanceId);
+  };
 
-  // Load current user data - APENAS UMA VEZ
-  useEffect(() => {
-    console.log('[useWhatsAppSettingsLogic] User data effect triggered');
-    
-    if (userDataLoadedRef.current || isUnmountedRef.current) {
-      console.log('[useWhatsAppSettingsLogic] User data already loaded or component unmounted, skipping');
-      return;
-    }
-    
-    const getUser = async () => {
-      try {
-        console.log('[useWhatsAppSettingsLogic] Fetching user data...');
-        setIsLoading(true);
-        
-        const { data: { user }, error } = await supabase.auth.getUser();
-        
-        if (isUnmountedRef.current) return; // Verificar se ainda está montado
-        
-        if (error) {
-          console.error("Error getting user:", error);
-          toast.error("Could not load user data");
-          return;
-        }
-        
-        if (user) {
-          console.log('[useWhatsAppSettingsLogic] User found:', user.email);
-          setUserEmail(user.email || "");
-          userDataLoadedRef.current = true;
+  const handleCloseQRModal = () => {
+    setQrModalInstanceId(null);
+  };
 
-          // Check if user is a SuperAdmin
-          const { data: superAdmin, error: superAdminError } = await supabase.rpc('is_super_admin');
-          
-          if (isUnmountedRef.current) return; // Verificar novamente
-          
-          if (!superAdminError) {
-            setIsSuperAdmin(superAdmin || false);
-            console.log('[useWhatsAppSettingsLogic] SuperAdmin status:', superAdmin);
-          }
-        }
-      } catch (error) {
-        if (isUnmountedRef.current) return;
-        console.error("Error fetching user:", error);
-        toast.error("An error occurred while loading user data");
-      } finally {
-        if (!isUnmountedRef.current) {
-          setIsLoading(false);
-        }
-      }
-    };
-    
-    getUser();
-  }, []); // Empty dependency array - executa apenas uma vez
-
-  // Initialize realtime only when userEmail is available
-  console.log('[useWhatsAppSettingsLogic] Setting up realtime for:', userEmail);
-  useWhatsAppRealtime(userEmail);
-
-  // Get WhatsApp instances and related functions
-  console.log('[useWhatsAppSettingsLogic] Initializing WhatsApp hooks for:', userEmail);
-  const whatsAppHooks = useWhatsAppWebInstances(companyId);
-
-  console.log('[useWhatsAppSettingsLogic] WhatsApp instances loaded:', whatsAppHooks.instances.length);
-
-  // Handle sync all for company com proteção contra execução simultânea
-  const handleSyncAllForCompany = useCallback(async () => {
-    console.log('[useWhatsAppSettingsLogic] handleSyncAllForCompany called');
-    
-    if (!whatsAppHooks.instances.length) {
-      toast.error("Nenhuma instância WhatsApp encontrada para atualizar.");
-      return;
-    }
-    if (isSyncingAll || isUnmountedRef.current) {
-      console.log('[useWhatsAppSettingsLogic] Sync already in progress or component unmounted, skipping');
-      return;
-    }
-    
+  const handleCreateInstance = async () => {
     try {
-      setIsSyncingAll(true);
-      const instancesForSync = whatsAppHooks.instances.map(instance => ({
-        id: instance.id,
-        instance_name: instance.instance_name
-      }));
-      console.log('[useWhatsAppSettingsLogic] Syncing instances:', instancesForSync.length);
-      
-      if (!isUnmountedRef.current) {
-        toast.success("Status do WhatsApp da empresa sincronizado!");
-        refreshUserInstances();
-      }
-    } catch (e) {
-      if (!isUnmountedRef.current) {
-        console.error('[useWhatsAppSettingsLogic] Sync failed:', e);
-        toast.error("Falha ao sincronizar status das instâncias da empresa.");
-      }
-    } finally {
-      if (!isUnmountedRef.current) {
-        setIsSyncingAll(false);
-      }
+      await createInstance();
+      toast.success('Instância criada com sucesso!');
+    } catch (error) {
+      console.error('Error creating instance:', error);
+      toast.error('Erro ao criar instância');
     }
-  }, [whatsAppHooks.instances, isSyncingAll]);
+  };
 
-  // Refresh user instances com throttling
-  const refreshUserInstances = useCallback(() => {
-    const now = Date.now();
-    if (now - lastFetchTimeRef.current < 5000) { // 5 segundos de throttling
-      console.log('[useWhatsAppSettingsLogic] refreshUserInstances throttled');
-      return;
+  const handleDeleteInstance = async (instanceId: string) => {
+    try {
+      await deleteInstance(instanceId);
+      toast.success('Instância removida com sucesso!');
+    } catch (error) {
+      console.error('Error deleting instance:', error);
+      toast.error('Erro ao remover instância');
     }
-    
-    console.log('[useWhatsAppSettingsLogic] refreshUserInstances called for:', userEmail);
-    if (userEmail && !isUnmountedRef.current) {
-      lastFetchTimeRef.current = now;
-      whatsAppHooks.refetch();
-    }
-  }, [userEmail, whatsAppHooks.refetch]);
+  };
 
-  console.log('[useWhatsAppSettingsLogic] Hook returning data');
+  const handleRefreshQR = async (instanceId: string) => {
+    try {
+      await refreshQRCode(instanceId);
+      toast.success('QR Code atualizado!');
+    } catch (error) {
+      console.error('Error refreshing QR:', error);
+      toast.error('Erro ao atualizar QR Code');
+    }
+  };
+
+  const handleSyncStatus = async (instanceId: string) => {
+    try {
+      await syncInstanceStatus(instanceId);
+      toast.success('Status sincronizado!');
+    } catch (error) {
+      console.error('Error syncing status:', error);
+      toast.error('Erro ao sincronizar status');
+    }
+  };
+
+  const handleForceSync = async (instanceId: string) => {
+    try {
+      await forceSync(instanceId);
+      toast.success('Sincronização forçada realizada!');
+    } catch (error) {
+      console.error('Error force syncing:', error);
+      toast.error('Erro ao forçar sincronização');
+    }
+  };
 
   return {
-    userEmail,
-    isLoading,
-    isSuperAdmin,
-    isSyncingAll,
-    whatsAppHooks,
-    handleSyncAllForCompany,
-    refreshUserInstances
+    instances,
+    loading: loading || companyLoading,
+    error,
+    connectedInstances,
+    autoConnectState,
+    qrModalInstanceId,
+    handleOpenQRModal,
+    handleCloseQRModal,
+    handleCreateInstance,
+    handleDeleteInstance,
+    handleRefreshQR,
+    handleSyncStatus,
+    handleForceSync,
+    closeQRModal,
+    refetch
   };
 };
