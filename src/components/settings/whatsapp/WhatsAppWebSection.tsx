@@ -5,7 +5,7 @@ import { WhatsAppWebInstanceCard } from "./WhatsAppWebInstanceCard";
 import { AddWhatsAppWebCard } from "./AddWhatsAppWebCard";
 import { AutoQRCodeModal } from "./AutoQRCodeModal";
 import { InstanceQRModal } from "./InstanceQRModal";
-import ConnectedBanner from "./ConnectedBanner";
+import { ConnectedBanner } from "./ConnectedBanner";
 
 export const WhatsAppWebSection = () => {
   console.log('[WhatsAppWebSection] Rendering section');
