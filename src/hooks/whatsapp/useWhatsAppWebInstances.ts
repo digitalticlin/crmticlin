@@ -328,40 +328,46 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
     };
   }, []);
 
-  // POLLING DRASTICAMENTE REDUZIDO - apenas para instâncias em estados específicos
+  // POLLING REDUZIDO - apenas para instâncias em estados intermediários específicos
   useEffect(() => {
     if (!companyId || instances.length === 0) return;
 
-    // APENAS instâncias aguardando scan OU que acabaram de ser criadas
-    const pendingInstances = instances.filter(instance => {
-      return ['waiting_scan', 'creating'].includes(instance.web_status) && 
-             instance.vps_instance_id &&
-             (!instance.phone || instance.phone === '');
+    // APENAS instâncias em estados que realmente precisam de sync
+    const needsSyncInstances = instances.filter(instance => {
+      return ['connecting', 'creating'].includes(instance.web_status) && 
+             instance.vps_instance_id;
     });
 
-    if (pendingInstances.length === 0) {
-      console.log('[useWhatsAppWebInstances] No pending instances - no polling needed');
+    if (needsSyncInstances.length === 0) {
+      console.log('[useWhatsAppWebInstances] No instances needing sync - no polling needed');
       return;
     }
 
-    console.log('[useWhatsAppWebInstances] Setting up REDUCED polling for', pendingInstances.length, 'pending instances');
+    console.log('[useWhatsAppWebInstances] Setting up intelligent polling for', needsSyncInstances.length, 'instances needing sync');
 
     const pollInterval = setInterval(async () => {
-      console.log('[useWhatsAppWebInstances] Polling check for pending instances...');
+      console.log('[useWhatsAppWebInstances] Intelligent polling check...');
       
-      for (const instance of pendingInstances) {
+      for (const instance of needsSyncInstances) {
         try {
-          console.log('[useWhatsAppWebInstances] Checking status for pending instance:', instance.id);
+          console.log('[useWhatsAppWebInstances] Auto-syncing instance:', instance.id);
           await syncInstanceStatus(instance.id);
         } catch (error) {
           console.error('[useWhatsAppWebInstances] Polling error for instance:', instance.id, error);
         }
       }
-    }, 60000); // AUMENTADO PARA 60 SEGUNDOS (era 30s)
+    }, 15000); // REDUZIDO PARA 15 SEGUNDOS para estados críticos
+
+    // Auto-cleanup após 5 minutos para evitar polling infinito
+    const timeout = setTimeout(() => {
+      console.log('[useWhatsAppWebInstances] Auto-stopping polling after 5 minutes');
+      clearInterval(pollInterval);
+    }, 300000);
 
     return () => {
       console.log('[useWhatsAppWebInstances] Cleaning up polling interval');
       clearInterval(pollInterval);
+      clearTimeout(timeout);
     };
   }, [instances, companyId]);
 

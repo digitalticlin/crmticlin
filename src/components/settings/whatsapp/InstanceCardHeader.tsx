@@ -1,25 +1,37 @@
 
 import { CardTitle } from "@/components/ui/card";
-import { Wifi, Phone, AlertTriangle } from "lucide-react";
 import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
-import { InstanceStatusBadge } from "./InstanceStatusBadge";
+import { MessageCircle, Clock } from "lucide-react";
 
 interface InstanceCardHeaderProps {
   instance: WhatsAppWebInstance;
-  hasDiscrepancy: boolean;
 }
 
-export function InstanceCardHeader({ instance, hasDiscrepancy }: InstanceCardHeaderProps) {
+export function InstanceCardHeader({ instance }: InstanceCardHeaderProps) {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return null;
+    return new Date(dateString).toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   return (
-    <div className="flex items-center justify-between">
+    <div className="space-y-1">
       <div className="flex items-center gap-2">
-        <Wifi className="h-4 w-4 text-green-600" />
-        <CardTitle className="text-lg">WhatsApp Web</CardTitle>
-        {hasDiscrepancy && (
-          <AlertTriangle className="h-4 w-4 text-orange-500" />
-        )}
+        <MessageCircle className="h-4 w-4 text-green-600" />
+        <CardTitle className="text-lg">{instance.instance_name}</CardTitle>
       </div>
-      <InstanceStatusBadge status={instance.web_status || instance.connection_status} />
+      
+      {instance.date_connected && (
+        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Clock className="h-3 w-3" />
+          <span>Conectado em {formatDate(instance.date_connected)}</span>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,21 +1,16 @@
 
 import { Button } from "@/components/ui/button";
-import { QrCode, Trash2, RefreshCw, AlertTriangle } from "lucide-react";
+import { QrCode, Trash2, RefreshCw } from "lucide-react";
 import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 
 interface InstanceCardActionsProps {
   instance: WhatsAppWebInstance;
   needsQRCode: boolean;
   canReconnect: boolean;
-  canSync: boolean;
   isRefreshing: boolean;
-  isSyncing: boolean;
-  isForceSyncing: boolean;
   isDeleting: boolean;
   onShowQR: () => void;
   onRefreshQR: () => Promise<void>;
-  onSyncStatus?: () => Promise<void>;
-  onForceSync?: () => Promise<void>;
   onDelete: () => Promise<void>;
 }
 
@@ -23,19 +18,29 @@ export function InstanceCardActions({
   instance,
   needsQRCode,
   canReconnect,
-  canSync,
   isRefreshing,
-  isSyncing,
-  isForceSyncing,
   isDeleting,
   onShowQR,
   onRefreshQR,
-  onSyncStatus,
-  onForceSync,
   onDelete
 }: InstanceCardActionsProps) {
+  const isConnecting = ['connecting', 'creating'].includes(instance.web_status || instance.connection_status);
+  const isWaitingQR = instance.web_status === 'waiting_scan';
+
+  // Durante a conexão, mostrar apenas informação, sem botões
+  if (isConnecting && !isWaitingQR) {
+    return (
+      <div className="flex justify-center py-2">
+        <span className="text-sm text-muted-foreground">
+          Conectando automaticamente...
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="flex gap-2 flex-wrap">
+      {/* Botão QR Code apenas quando necessário */}
       {needsQRCode && (
         <Button
           variant="outline"
@@ -49,6 +54,7 @@ export function InstanceCardActions({
         </Button>
       )}
       
+      {/* Botão Reconectar apenas quando desconectado */}
       {canReconnect && (
         <Button
           variant="outline"
@@ -62,32 +68,7 @@ export function InstanceCardActions({
         </Button>
       )}
 
-      {canSync && onSyncStatus && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onSyncStatus}
-          disabled={isSyncing}
-          className="flex-1"
-        >
-          <RefreshCw className={`h-4 w-4 mr-1 ${isSyncing ? 'animate-spin' : ''}`} />
-          {isSyncing ? 'Sincronizando...' : 'Verificar Status'}
-        </Button>
-      )}
-
-      {onForceSync && instance.vps_instance_id && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onForceSync}
-          disabled={isForceSyncing}
-          className="flex-1 border-orange-300 text-orange-700 hover:bg-orange-50"
-        >
-          <AlertTriangle className={`h-4 w-4 mr-1 ${isForceSyncing ? 'animate-spin' : ''}`} />
-          {isForceSyncing ? 'Forçando...' : 'Forçar Sync'}
-        </Button>
-      )}
-
+      {/* Botão Remover sempre disponível */}
       <Button
         variant="destructive"
         size="sm"

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { InstanceCardHeader } from "./InstanceCardHeader";
@@ -29,8 +29,6 @@ export function WhatsAppWebInstanceCard({
   const [showQR, setShowQR] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [isForceSyncing, setIsForceSyncing] = useState(false);
 
   const handleDelete = async () => {
     if (!confirm('Tem certeza que deseja remover esta instância?')) return;
@@ -57,34 +55,6 @@ export function WhatsAppWebInstanceCard({
     }
   };
 
-  const handleSyncStatus = async () => {
-    if (!onSyncStatus) return;
-    
-    setIsSyncing(true);
-    try {
-      console.log('[WhatsAppWebInstanceCard] Syncing status for instance:', instance.id);
-      await onSyncStatus(instance.id);
-    } catch (error) {
-      console.error('[WhatsAppWebInstanceCard] Error syncing status:', error);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const handleForceSync = async () => {
-    if (!onForceSync) return;
-    
-    setIsForceSyncing(true);
-    try {
-      console.log('[WhatsAppWebInstanceCard] Force syncing instance:', instance.id);
-      await onForceSync(instance.id);
-    } catch (error) {
-      console.error('[WhatsAppWebInstanceCard] Error force syncing:', error);
-    } finally {
-      setIsForceSyncing(false);
-    }
-  };
-
   const handleShowQR = () => {
     console.log('[WhatsAppWebInstanceCard] Showing QR for instance:', instance.id, instance.web_status);
     if (onShowQR) {
@@ -98,15 +68,38 @@ export function WhatsAppWebInstanceCard({
     }
   };
 
-  const needsQRCode = ['waiting_scan', 'connecting', 'creating'].includes(instance.web_status || instance.connection_status);
+  // Estados definidos de forma mais clara
+  const needsQRCode = instance.web_status === 'waiting_scan';
   const canReconnect = instance.web_status === 'disconnected';
   const isConnected = ['ready', 'open'].includes(instance.web_status || instance.connection_status);
-  const canSync = instance.vps_instance_id && !isConnected;
+  const isConnecting = ['connecting', 'creating'].includes(instance.web_status || instance.connection_status);
 
-  // Detectar possível discrepância
-  const hasDiscrepancy = instance.vps_instance_id && 
-                        (!instance.phone || instance.phone === '') && 
-                        ['connecting', 'waiting_scan'].includes(instance.web_status || instance.connection_status);
+  // Auto-sync para instâncias em estado de conexão
+  useEffect(() => {
+    if (!isConnecting || !onSyncStatus) return;
+
+    console.log('[WhatsAppWebInstanceCard] Starting auto-sync for connecting instance:', instance.id);
+
+    const syncInterval = setInterval(async () => {
+      try {
+        console.log('[WhatsAppWebInstanceCard] Auto-syncing instance:', instance.id);
+        await onSyncStatus(instance.id);
+      } catch (error) {
+        console.error('[WhatsAppWebInstanceCard] Auto-sync error:', error);
+      }
+    }, 15000); // Auto-sync a cada 15 segundos
+
+    // Cleanup após 5 minutos para evitar polling infinito
+    const timeout = setTimeout(() => {
+      clearInterval(syncInterval);
+      console.log('[WhatsAppWebInstanceCard] Auto-sync timeout for instance:', instance.id);
+    }, 300000); // 5 minutos
+
+    return () => {
+      clearInterval(syncInterval);
+      clearTimeout(timeout);
+    };
+  }, [isConnecting, onSyncStatus, instance.id]);
 
   console.log('[WhatsAppWebInstanceCard] Instance status check:', {
     id: instance.id,
@@ -116,19 +109,18 @@ export function WhatsAppWebInstanceCard({
     needsQRCode,
     canReconnect,
     isConnected,
-    canSync
+    isConnecting
   });
 
   return (
     <>
-      <Card className={`relative ${isNewInstance ? 'ring-2 ring-green-400 ring-opacity-50' : ''} ${hasDiscrepancy ? 'border-orange-300' : ''}`}>
+      <Card className={`relative ${isNewInstance ? 'ring-2 ring-green-400 ring-opacity-50' : ''} ${isConnecting ? 'border-yellow-300 bg-yellow-50/30' : ''}`}>
         <CardHeader className="pb-3">
-          <InstanceCardHeader instance={instance} hasDiscrepancy={hasDiscrepancy} />
+          <InstanceCardHeader instance={instance} />
           <InstanceCardContent 
             instance={instance}
             isConnected={isConnected}
             needsQRCode={needsQRCode}
-            hasDiscrepancy={hasDiscrepancy}
           />
         </CardHeader>
 
@@ -137,15 +129,10 @@ export function WhatsAppWebInstanceCard({
             instance={instance}
             needsQRCode={needsQRCode}
             canReconnect={canReconnect}
-            canSync={canSync}
             isRefreshing={isRefreshing}
-            isSyncing={isSyncing}
-            isForceSyncing={isForceSyncing}
             isDeleting={isDeleting}
             onShowQR={handleShowQR}
             onRefreshQR={handleRefreshQR}
-            onSyncStatus={onSyncStatus ? handleSyncStatus : undefined}
-            onForceSync={onForceSync ? handleForceSync : undefined}
             onDelete={handleDelete}
           />
         </CardContent>
