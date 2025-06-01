@@ -9,8 +9,7 @@ import {
   AlertTriangle, 
   CheckCircle, 
   XCircle, 
-  Trash2,
-  Sync
+  Trash2
 } from "lucide-react";
 import { VPSAuditService, AuditResult } from "@/services/whatsapp/services/vpsAuditService";
 import { toast } from "sonner";
@@ -225,7 +224,7 @@ export function VPSMonitoringPanel() {
                       {isSyncing ? (
                         <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
                       ) : (
-                        <Sync className="h-4 w-4 mr-1" />
+                        <RefreshCw className="h-4 w-4 mr-1" />
                       )}
                       Sincronizar
                     </Button>
