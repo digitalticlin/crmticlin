@@ -40,7 +40,9 @@ export const WhatsAppWebSection = () => {
   };
 
   const handleCreateInstance = async (instanceName: string) => {
-    await createInstance(instanceName);
+    // The createInstance function from the hook doesn't expect arguments
+    // It handles the auto-connection flow internally
+    await createInstance();
   };
 
   console.log('[WhatsAppWebSection] Instances loaded:', {
@@ -100,8 +102,8 @@ export const WhatsAppWebSection = () => {
 
       {qrModalInstanceId && (
         <InstanceQRModal
-          isOpen={!!qrModalInstanceId}
-          onClose={handleCloseQRModal}
+          showQR={!!qrModalInstanceId}
+          onOpenChange={handleCloseQRModal}
           instance={instances.find(i => i.id === qrModalInstanceId)}
           isRefreshing={loading}
           onRefreshQR={async () => {
