@@ -39,6 +39,13 @@ export const WhatsAppWebSection = () => {
     }
   }, [connectedInstances.length]);
 
+  // Show toast when instances become connected
+  useEffect(() => {
+    if (connectedInstances.length > 0 && !hasShownToast) {
+      setHasShownToast(true);
+    }
+  }, [connectedInstances.length, hasShownToast]);
+
   const handleOpenQRModal = (instanceId: string) => {
     setQrModalInstanceId(instanceId);
   };
@@ -123,13 +130,6 @@ export const WhatsAppWebSection = () => {
             }
           }}
         />
-      )}
-
-      {/* Trigger toast flag when showing connected instances */}
-      {connectedInstances.length > 0 && !hasShownToast && (
-        <div style={{ display: 'none' }}>
-          {setHasShownToast(true)}
-        </div>
       )}
     </div>
   );
