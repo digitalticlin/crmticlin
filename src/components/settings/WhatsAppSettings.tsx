@@ -1,13 +1,10 @@
 
-import { WhatsAppSettingsHeader } from "./whatsapp/WhatsAppSettingsHeader";
-import { WhatsAppErrorAlert } from "./whatsapp/WhatsAppErrorAlert";
-import WhatsAppInfoAlert from "./whatsapp/WhatsAppInfoAlert";
-import { WhatsAppWebSectionWithMonitoring } from "./whatsapp/WhatsAppWebSectionWithMonitoring";
+import { WhatsAppWebSection } from "./whatsapp/WhatsAppWebSection";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 
 const WhatsAppSettings = () => {
-  console.log('[WhatsAppSettings] Component rendering - WhatsApp Web.js with VPS monitoring');
+  console.log('[WhatsAppSettings] Component rendering - simplified layout');
   
   const { companyId, loading: companyLoading } = useCompanyData();
   
@@ -25,18 +22,17 @@ const WhatsAppSettings = () => {
   });
 
   return (
-    <div className="space-y-6 relative">
-      <WhatsAppSettingsHeader
-        isSuperAdmin={false}
-        isSyncingAll={false}
-        onSyncAll={() => refetch()}
-      />
+    <div className="space-y-6">
+      {/* Simple header */}
+      <div>
+        <h2 className="text-xl font-semibold">WhatsApp</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Conecte e gerencie suas instâncias WhatsApp
+        </p>
+      </div>
 
-      <WhatsAppInfoAlert />
-
-      <WhatsAppErrorAlert lastError={error} />
-
-      <WhatsAppWebSectionWithMonitoring />
+      {/* Main content */}
+      <WhatsAppWebSection />
     </div>
   );
 };

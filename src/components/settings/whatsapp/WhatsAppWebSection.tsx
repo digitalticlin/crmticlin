@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { WhatsAppWebInstanceCard } from "./WhatsAppWebInstanceCard";
-import { AddWhatsAppWebCard } from "./AddWhatsAppWebCard";
+import { ConnectWhatsAppButton } from "./ConnectWhatsAppButton";
 import { AutoQRCodeModal } from "./AutoQRCodeModal";
 import { InstanceQRModal } from "./InstanceQRModal";
 import { ConnectedBanner } from "./ConnectedBanner";
@@ -54,9 +53,7 @@ export const WhatsAppWebSection = () => {
     setQrModalInstanceId(null);
   };
 
-  const handleCreateInstance = async (instanceName: string) => {
-    // The createInstance function from the hook doesn't expect arguments
-    // It handles the auto-connection flow internally
+  const handleCreateInstance = async () => {
     await createInstance();
   };
 
@@ -78,7 +75,8 @@ export const WhatsAppWebSection = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Toast notification for connected instances */}
       {connectedInstances.length > 0 && (
         <ConnectedBanner 
           status="open" 
@@ -86,6 +84,7 @@ export const WhatsAppWebSection = () => {
         />
       )}
 
+      {/* Existing instances grid */}
       {instances.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {instances.map(instance => (
@@ -101,9 +100,10 @@ export const WhatsAppWebSection = () => {
         </div>
       )}
 
-      <AddWhatsAppWebCard 
-        onAdd={handleCreateInstance}
-        isCreating={loading}
+      {/* Connect button - simplified */}
+      <ConnectWhatsAppButton 
+        onConnect={handleCreateInstance}
+        isConnecting={loading}
       />
 
       <AutoQRCodeModal
