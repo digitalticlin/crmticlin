@@ -5,15 +5,7 @@ import { corsHeaders } from './config.ts';
 import { RequestBody } from './types.ts';
 import { authenticateRequest } from './authentication.ts';
 import { createWhatsAppInstance, deleteWhatsAppInstance } from './instanceManagement.ts';
-import { 
-  getInstanceStatus, 
-  getQRCode, 
-  checkServerHealth, 
-  syncInstanceStatus, 
-  forceSync,
-  bulkForceSync,
-  forceReconnect
-} from './statusOperations.ts';
+import { getInstanceStatus, getQRCode, checkServerHealth } from './statusOperations.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -29,7 +21,7 @@ serve(async (req) => {
     const user = await authenticateRequest(req, supabase);
     const { action, instanceData }: RequestBody = await req.json();
 
-    console.log(`[WhatsApp Web Server] Action: ${action}, User: ${user.id}`);
+    console.log(`WhatsApp Web Server action: ${action}`);
 
     switch (action) {
       case 'create_instance':
@@ -43,18 +35,6 @@ serve(async (req) => {
       
       case 'get_qr':
         return await getQRCode(instanceData.instanceId!);
-
-      case 'sync_status':
-        return await syncInstanceStatus(supabase, instanceData.vpsInstanceId!);
-
-      case 'force_sync':
-        return await forceSync(supabase, instanceData.vpsInstanceId!);
-
-      case 'bulk_force_sync':
-        return await bulkForceSync(supabase, instanceData.instanceIds!);
-
-      case 'force_reconnect':
-        return await forceReconnect(supabase, instanceData.instanceId!);
       
       case 'check_server':
         return await checkServerHealth();
@@ -64,7 +44,7 @@ serve(async (req) => {
     }
 
   } catch (error) {
-    console.error('[WhatsApp Web Server] Error:', error);
+    console.error('WhatsApp Web Server error:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 

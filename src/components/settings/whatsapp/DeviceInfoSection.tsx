@@ -34,14 +34,6 @@ const DeviceInfoSection = ({ deviceInfo }: DeviceInfoSectionProps) => {
     }
   };
 
-  // Get battery progress bar color class
-  const getBatteryProgressClass = (level?: number) => {
-    if (level === undefined) return "bg-gray-500";
-    if (level > 70) return "bg-green-500";
-    if (level > 30) return "bg-yellow-500";
-    return "bg-red-500";
-  };
-
   return (
     <div className="mb-4 space-y-4">
       {/* Success message */}
@@ -70,16 +62,15 @@ const DeviceInfoSection = ({ deviceInfo }: DeviceInfoSectionProps) => {
             <div className="font-medium">
               {formatBatteryLevel(deviceInfo.batteryLevel)}
               {deviceInfo.batteryLevel !== undefined && (
-                <div className="relative">
-                  <Progress 
-                    value={deviceInfo.batteryLevel} 
-                    className="h-1.5 mt-1"
-                  />
-                  <div 
-                    className={`absolute top-0 left-0 h-full rounded-full transition-all ${getBatteryProgressClass(deviceInfo.batteryLevel)}`}
-                    style={{ width: `${deviceInfo.batteryLevel}%` }}
-                  />
-                </div>
+                <Progress 
+                  value={deviceInfo.batteryLevel} 
+                  className="h-1.5 mt-1"
+                  indicatorClassName={
+                    deviceInfo.batteryLevel > 70 ? "bg-green-500" : 
+                    deviceInfo.batteryLevel > 30 ? "bg-yellow-500" : 
+                    "bg-red-500"
+                  }
+                />
               )}
             </div>
             

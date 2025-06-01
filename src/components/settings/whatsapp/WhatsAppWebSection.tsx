@@ -1,141 +1,116 @@
-import { useState, useEffect } from "react";
+
+import { useCompanyData } from "@/hooks/useCompanyData";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { WhatsAppWebInstanceCard } from "./WhatsAppWebInstanceCard";
 import { ConnectWhatsAppButton } from "./ConnectWhatsAppButton";
 import { AutoQRCodeModal } from "./AutoQRCodeModal";
-import { InstanceQRModal } from "./InstanceQRModal";
-import { ConnectedBanner } from "./ConnectedBanner";
-import { ConnectionStabilityDashboard } from "./ConnectionStabilityDashboard";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Wifi } from "lucide-react";
 
-export const WhatsAppWebSection = () => {
-  console.log('[WhatsAppWebSection] Rendering section with stability dashboard');
-  
-  const [qrModalInstanceId, setQrModalInstanceId] = useState<string | null>(null);
-  const [hasShownToast, setHasShownToast] = useState(false);
-  
+export function WhatsAppWebSection() {
+  const { companyId, loading: companyLoading } = useCompanyData();
   const {
     instances,
-    loading,
-    error,
+    loading: instancesLoading,
     autoConnectState,
-    createInstance,
     deleteInstance,
     refreshQRCode,
-    syncInstanceStatus,
-    forceSync,
+    startAutoConnection,
     closeQRModal,
     openQRModal
-  } = useWhatsAppWebInstances();
+  } = useWhatsAppWebInstances(companyId, companyLoading);
 
-  const connectedInstances = instances.filter(instance => 
-    ['ready', 'open'].includes(instance.web_status || instance.connection_status) && 
-    instance.phone && instance.phone !== ''
-  );
+  const isLoading = companyLoading || instancesLoading;
 
-  // Reset toast flag when no connected instances
-  useEffect(() => {
-    if (connectedInstances.length === 0) {
-      setHasShownToast(false);
-    }
-  }, [connectedInstances.length]);
-
-  // Show toast when instances become connected
-  useEffect(() => {
-    if (connectedInstances.length > 0 && !hasShownToast) {
-      setHasShownToast(true);
-    }
-  }, [connectedInstances.length, hasShownToast]);
-
-  const handleOpenQRModal = (instanceId: string) => {
-    setQrModalInstanceId(instanceId);
-  };
-
-  const handleCloseQRModal = () => {
-    setQrModalInstanceId(null);
-  };
-
-  const handleCreateInstance = async () => {
-    await createInstance();
-  };
-
-  console.log('[WhatsAppWebSection] Instances loaded:', {
-    total: instances.length,
-    connected: connectedInstances.length,
-    loading
-  });
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-sm text-muted-foreground">Carregando instâncias...</p>
-        </div>
-      </div>
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+        </CardContent>
+      </Card>
     );
   }
 
+  // Se não tem companyId depois de carregar, mostrar mensagem
+  if (!companyLoading && !companyId) {
+    return (
+      <Card>
+        <CardContent className="text-center py-8">
+          <Wifi className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium mb-2">Empresa não encontrada</h3>
+          <p className="text-muted-foreground">
+            Configure os dados da sua empresa primeiro na aba Perfil
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Encontrar a instância ativa do QR modal
+  const activeInstance = autoConnectState.activeInstanceId 
+    ? instances.find(i => i.id === autoConnectState.activeInstanceId)
+    : null;
+
   return (
     <div className="space-y-6">
-      {/* NOVO: Dashboard de Estabilidade */}
-      <ConnectionStabilityDashboard />
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Wifi className="h-5 w-5 text-green-600" />
+            <CardTitle>WhatsApp Web.js</CardTitle>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Conecte sua conta WhatsApp de forma rápida e automática
+          </p>
+        </CardHeader>
+      </Card>
 
-      {/* Toast notification for connected instances */}
-      {connectedInstances.length > 0 && (
-        <ConnectedBanner 
-          status="open" 
-          shouldShowToast={!hasShownToast}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {/* Botão de conexão */}
+        <ConnectWhatsAppButton
+          onConnect={startAutoConnection}
+          isConnecting={autoConnectState.isConnecting}
         />
+
+        {/* Instâncias existentes */}
+        {instances.map((instance) => (
+          <WhatsAppWebInstanceCard
+            key={instance.id}
+            instance={instance}
+            onDelete={deleteInstance}
+            onRefreshQR={refreshQRCode}
+            onShowQR={() => openQRModal(instance.id)}
+            isNewInstance={instance.id === autoConnectState.activeInstanceId}
+          />
+        ))}
+      </div>
+
+      {/* Estado vazio apenas se não há instâncias */}
+      {instances.length === 0 && !instancesLoading && (
+        <Card>
+          <CardContent className="text-center py-8">
+            <Wifi className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">Nenhuma conexão WhatsApp</h3>
+            <p className="text-muted-foreground">
+              Clique em "Conectar WhatsApp" para começar
+            </p>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Existing instances grid */}
-      {instances.length > 0 && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {instances.map(instance => (
-            <WhatsAppWebInstanceCard
-              key={instance.id}
-              instance={instance}
-              onShowQR={() => handleOpenQRModal(instance.id)}
-              onRefreshQR={() => refreshQRCode(instance.id)}
-              onDelete={() => deleteInstance(instance.id)}
-              onForceSync={() => forceSync(instance.id)}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Connect button - simplified */}
-      <ConnectWhatsAppButton 
-        onConnect={handleCreateInstance}
-        isConnecting={loading}
-      />
-
-      {/* Modals */}
+      {/* Modal do QR Code */}
       <AutoQRCodeModal
         isOpen={autoConnectState.showQRModal}
         onOpenChange={closeQRModal}
-        qrCode={instances.find(i => i.id === autoConnectState.activeInstanceId)?.qr_code || null}
-        isLoading={loading}
+        qrCode={activeInstance?.qr_code || null}
+        isLoading={autoConnectState.isConnecting && !activeInstance?.qr_code}
         onRefresh={() => {
-          if (autoConnectState.activeInstanceId) {
-            refreshQRCode(autoConnectState.activeInstanceId);
+          if (activeInstance) {
+            refreshQRCode(activeInstance.id);
           }
         }}
       />
-
-      {qrModalInstanceId && (
-        <InstanceQRModal
-          showQR={!!qrModalInstanceId}
-          onOpenChange={handleCloseQRModal}
-          instance={instances.find(i => i.id === qrModalInstanceId)}
-          isRefreshing={loading}
-          onRefreshQR={async () => {
-            if (qrModalInstanceId) {
-              await refreshQRCode(qrModalInstanceId);
-            }
-          }}
-        />
-      )}
     </div>
   );
-};
+}

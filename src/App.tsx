@@ -1,94 +1,71 @@
 
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/sonner";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "@/hooks/use-theme";
 import { AuthProvider } from "@/contexts/AuthContext";
-import Index from "@/pages/Index";
-import Dashboard from "@/pages/Dashboard";
-import Chat from "@/pages/Chat";
-import Settings from "@/pages/Settings";
-import SalesFunnel from "@/pages/SalesFunnel";
-import GlobalAdmin from "@/pages/GlobalAdmin";
-import VPSDiagnostic from "@/pages/VPSDiagnostic";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
+import Team from "./pages/Team";
+import Plans from "./pages/Plans";
+import AIAgents from "./pages/AIAgents";
+import Settings from "./pages/Settings";
+import NotFound from "./pages/NotFound";
+import SalesFunnel from "./pages/SalesFunnel";
+import Chat from "./pages/Chat";
+import Clients from "./pages/Clients";
+import Automation from "./pages/Automation";
+import Integration from "./pages/Integration";
+import Register from "./pages/Register";
+import ConfirmEmailInstructions from "./pages/ConfirmEmailInstructions";
+import ConfirmEmail from "./pages/ConfirmEmail";
+import GlobalAdmin from "./pages/GlobalAdmin";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
-function App() {
-  console.log('[App] Componente inicializando...');
-  
-  return (
-    <QueryClientProvider client={queryClient}>
-      <Router>
-        <AuthProvider>
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <ThemeProvider defaultTheme="light">
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
             <Routes>
+              {/* Rotas públicas */}
               <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Index />} />
-              <Route 
-                path="/dashboard" 
-                element={
-                  <ProtectedRoute>
-                    <Dashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/chat" 
-                element={
-                  <ProtectedRoute>
-                    <Chat />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/leads" 
-                element={
-                  <ProtectedRoute>
-                    <SalesFunnel />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/admin" 
-                element={
-                  <ProtectedRoute>
-                    <GlobalAdmin />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/admin/whatsapp" 
-                element={
-                  <ProtectedRoute>
-                    <Settings />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/vps-diagnostic" 
-                element={
-                  <ProtectedRoute>
-                    <VPSDiagnostic />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/settings" 
-                element={
-                  <ProtectedRoute>
-                    <Settings />
-                  </ProtectedRoute>
-                } 
-              />
+              <Route path="/register" element={<Register />} />
+              <Route path="/confirm-email-instructions" element={<ConfirmEmailInstructions />} />
+              <Route path="/confirm-email/:token" element={<ConfirmEmail />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              
+              {/* Rotas protegidas */}
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/sales-funnel" element={<ProtectedRoute><SalesFunnel /></ProtectedRoute>} />
+              <Route path="/chat" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+              <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
+              <Route path="/automation" element={<ProtectedRoute><Automation /></ProtectedRoute>} />
+              <Route path="/integration" element={<ProtectedRoute><Integration /></ProtectedRoute>} />
+              <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
+              <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
+              <Route path="/ai-agents" element={<ProtectedRoute><AIAgents /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute><GlobalAdmin /></ProtectedRoute>} />
+              
+              {/* Rota de fallback */}
+              <Route path="*" element={<NotFound />} />
             </Routes>
-          </div>
-          <Toaster />
-        </AuthProvider>
-      </Router>
-    </QueryClientProvider>
-  );
-}
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
+  </QueryClientProvider>
+);
 
 export default App;

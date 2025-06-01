@@ -1,19 +1,18 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MessageSquare, QrCode, CheckCircle, Loader2 } from "lucide-react";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { toast } from "sonner";
-import { WhatsAppConnectionStatus } from "./whatsapp/WhatsAppConnectionStatus";
-import { WhatsAppActionButtons } from "./whatsapp/WhatsAppActionButtons";
-import { WhatsAppCreateInstanceModal } from "./whatsapp/WhatsAppCreateInstanceModal";
-import { WhatsAppQRCodeModal } from "./whatsapp/WhatsAppQRCodeModal";
 
 export function WhatsAppTestCard() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
+  const [instanceName, setInstanceName] = useState("");
   const [currentQRCode, setCurrentQRCode] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
@@ -23,15 +22,22 @@ export function WhatsAppTestCard() {
     loading: instancesLoading,
     createInstance,
     refreshQRCode
-  } = useWhatsAppWebInstances();
+  } = useWhatsAppWebInstances(companyId, companyLoading);
 
   const connectedInstances = instances.filter(i => i.web_status === 'ready' || i.web_status === 'open');
   const disconnectedInstances = instances.filter(i => i.web_status !== 'ready' && i.web_status !== 'open');
 
   const handleCreateInstance = async () => {
+    if (!instanceName.trim()) {
+      toast.error("Digite um nome para a instância");
+      return;
+    }
+
     setIsCreating(true);
     try {
-      await createInstance();
+      await createInstance(instanceName.trim());
+      setInstanceName("");
+      setShowCreateForm(false);
       toast.success("Instância criada! Agora você pode gerar o QR Code para conectar.");
     } catch (error) {
       console.error('Erro ao criar instância:', error);
@@ -94,36 +100,153 @@ export function WhatsAppTestCard() {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          <WhatsAppConnectionStatus
-            isLoading={isLoading}
-            connectedCount={connectedInstances.length}
-            disconnectedCount={disconnectedInstances.length}
-          />
+          {/* Status atual */}
+          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div>
+              <p className="text-sm font-medium">Status da Conexão</p>
+              {isLoading ? (
+                <p className="text-xs text-muted-foreground">Carregando...</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  {connectedInstances.length} conectada(s), {disconnectedInstances.length} desconectada(s)
+                </p>
+              )}
+            </div>
+            {isLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+            ) : connectedInstances.length > 0 ? (
+              <CheckCircle className="h-5 w-5 text-green-600" />
+            ) : (
+              <div className="h-2 w-2 bg-gray-400 rounded-full" />
+            )}
+          </div>
 
-          <WhatsAppActionButtons
-            isLoading={isLoading}
-            isCreating={isCreating}
-            instances={instances}
-            connectedInstances={connectedInstances}
-            disconnectedInstances={disconnectedInstances}
-            onCreateInstance={() => setShowCreateForm(true)}
-            onShowQR={handleShowQR}
-          />
+          {/* Ações */}
+          <div className="space-y-2">
+            {isLoading ? (
+              <Button disabled className="w-full">
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Carregando...
+              </Button>
+            ) : disconnectedInstances.length === 0 ? (
+              <Button 
+                onClick={() => setShowCreateForm(true)}
+                className="w-full bg-green-600 hover:bg-green-700"
+                disabled={isCreating}
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                {isCreating ? 'Criando...' : 'Criar Nova Instância WhatsApp'}
+              </Button>
+            ) : (
+              <Button 
+                onClick={() => handleShowQR(disconnectedInstances[0].id)}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                <QrCode className="h-4 w-4 mr-2" />
+                Conectar WhatsApp ({disconnectedInstances[0].instance_name})
+              </Button>
+            )}
+
+            {instances.length > 0 && (
+              <Button variant="outline" className="w-full" asChild>
+                <a href="/settings">Ver Todas as Instâncias</a>
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
 
-      <WhatsAppCreateInstanceModal
-        open={showCreateForm}
-        onOpenChange={setShowCreateForm}
-        onCreateInstance={handleCreateInstance}
-        isCreating={isCreating}
-      />
+      {/* Modal de Criação */}
+      <Dialog open={showCreateForm} onOpenChange={setShowCreateForm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Criar Nova Instância WhatsApp</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="instanceName">Nome da Instância</Label>
+              <Input
+                id="instanceName"
+                value={instanceName}
+                onChange={(e) => setInstanceName(e.target.value)}
+                placeholder="Ex: atendimento, vendas, suporte..."
+                disabled={isCreating}
+              />
+            </div>
 
-      <WhatsAppQRCodeModal
-        open={showQRModal}
-        onOpenChange={setShowQRModal}
-        qrCode={currentQRCode}
-      />
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowCreateForm(false)}
+                className="flex-1"
+                disabled={isCreating}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleCreateInstance}
+                disabled={isCreating || !instanceName.trim()}
+                className="flex-1 bg-green-600 hover:bg-green-700"
+              >
+                {isCreating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Criando...
+                  </>
+                ) : (
+                  'Criar Instância'
+                )}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal do QR Code */}
+      <Dialog open={showQRModal} onOpenChange={setShowQRModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Conectar WhatsApp</DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex flex-col items-center justify-center py-4">
+            {currentQRCode ? (
+              <>
+                <div className="bg-white p-4 rounded-lg mb-4 border">
+                  <img 
+                    src={currentQRCode} 
+                    alt="QR Code WhatsApp" 
+                    className="w-64 h-64"
+                  />
+                </div>
+                <div className="text-center space-y-2">
+                  <p className="text-sm font-medium">Como conectar:</p>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>1. Abra o WhatsApp no seu celular</p>
+                    <p>2. Vá em Menu → Aparelhos conectados</p>
+                    <p>3. Toque em "Conectar um aparelho"</p>
+                    <p>4. Escaneie este QR code</p>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+                <p>Gerando QR Code...</p>
+              </div>
+            )}
+          </div>
+
+          <Button 
+            variant="outline" 
+            onClick={() => setShowQRModal(false)}
+            className="w-full"
+          >
+            Fechar
+          </Button>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -1,10 +1,13 @@
 
+import { WhatsAppSettingsHeader } from "./whatsapp/WhatsAppSettingsHeader";
+import { WhatsAppErrorAlert } from "./whatsapp/WhatsAppErrorAlert";
+import WhatsAppInfoAlert from "./whatsapp/WhatsAppInfoAlert";
 import { WhatsAppWebSection } from "./whatsapp/WhatsAppWebSection";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 
 const WhatsAppSettings = () => {
-  console.log('[WhatsAppSettings] Component rendering - simplified layout');
+  console.log('[WhatsAppSettings] Component rendering - WhatsApp Web.js only');
   
   const { companyId, loading: companyLoading } = useCompanyData();
   
@@ -13,7 +16,7 @@ const WhatsAppSettings = () => {
     loading: instancesLoading,
     error,
     refetch
-  } = useWhatsAppWebInstances();
+  } = useWhatsAppWebInstances(companyId, companyLoading);
 
   console.log('[WhatsAppSettings] WhatsApp Web instances loaded:', {
     instancesCount: instances.length,
@@ -22,16 +25,17 @@ const WhatsAppSettings = () => {
   });
 
   return (
-    <div className="space-y-6">
-      {/* Simple header */}
-      <div>
-        <h2 className="text-xl font-semibold">WhatsApp</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Conecte e gerencie suas instâncias WhatsApp
-        </p>
-      </div>
+    <div className="space-y-6 relative">
+      <WhatsAppSettingsHeader
+        isSuperAdmin={false}
+        isSyncingAll={false}
+        onSyncAll={() => refetch()}
+      />
 
-      {/* Main content */}
+      <WhatsAppInfoAlert />
+
+      <WhatsAppErrorAlert lastError={error} />
+
       <WhatsAppWebSection />
     </div>
   );
