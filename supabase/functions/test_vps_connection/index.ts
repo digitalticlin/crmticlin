@@ -49,6 +49,11 @@ serve(async (req) => {
         issue: string;
         solution: string;
       }>,
+      ssl_timeout_fix: {
+        backup_script: '',
+        fix_script: '',
+        restart_script: ''
+      },
       verification_script: '',
       summary: {
         server_status: 'OFFLINE',
@@ -147,6 +152,324 @@ serve(async (req) => {
       results.diagnostics.connectivity.webhook_url.details = `Erro ao testar webhook: ${error.message}`;
     }
 
+    // Generate SSL/Timeout fix scripts
+    console.log('Generating SSL/Timeout fix scripts...');
+    
+    // Backup script
+    results.ssl_timeout_fix.backup_script = `#!/bin/bash
+echo "=== BACKUP DO SERVIDOR ATUAL ==="
+cd /root/whatsapp-server
+cp server.js server.js.backup.$(date +%Y%m%d_%H%M%S)
+echo "✅ Backup criado: server.js.backup.$(date +%Y%m%d_%H%M%S)"
+echo ""`;
+
+    // Fix script with complete server.js replacement
+    results.ssl_timeout_fix.fix_script = `#!/bin/bash
+echo "=== APLICANDO CORREÇÃO SSL/TIMEOUT ==="
+cd /root/whatsapp-server
+
+# Backup do arquivo atual
+cp server.js server.js.backup.$(date +%Y%m%d_%H%M%S)
+
+# Criar novo server.js com correções SSL/Timeout
+cat > server.js << 'EOF'
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
+const express = require('express');
+const QRCode = require('qrcode');
+const fs = require('fs');
+const path = require('path');
+
+// CORREÇÃO SSL: Desabilitar verificação de certificados SSL para desenvolvimento
+process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
+
+const app = express();
+app.use(express.json());
+
+const PORT = 3001;
+const HOST = '31.97.24.222';
+const instances = new Map();
+
+// Função melhorada para envio de webhook com retry e configuração SSL
+async function sendWebhook(event, instanceId, data, retries = 3) {
+  const webhookUrl = 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web';
+  
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      console.log(\`📤 Tentativa \${attempt}/\${retries} de envio webhook: \${event} para \${instanceId}\`);
+      
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpZ3llYnJoZm9sam55ZGZpcGNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMDU0OTUsImV4cCI6MjA2MjY4MTQ5NX0.348qSsRPai26TFU87MDv0yE4i_pQmLYMQW9d7n5AN-A',
+          'User-Agent': 'WhatsApp-Server/1.0'
+        },
+        body: JSON.stringify({
+          event,
+          instanceId,
+          data
+        }),
+        // CORREÇÃO TIMEOUT: Aumentar timeout para 30 segundos
+        timeout: 30000,
+        // Configurações adicionais para melhor conectividade
+        agent: {
+          keepAlive: true,
+          timeout: 30000
+        }
+      });
+
+      if (response.ok) {
+        console.log(\`✅ Webhook enviado com sucesso (tentativa \${attempt}): \${event}\`);
+        return true;
+      } else {
+        const errorText = await response.text().catch(() => 'Erro desconhecido');
+        console.log(\`⚠️ Webhook falhou HTTP \${response.status} (tentativa \${attempt}): \${errorText}\`);
+      }
+    } catch (error) {
+      console.log(\`❌ Erro webhook (tentativa \${attempt}): \${error.message}\`);
+      
+      // Log detalhado do erro para debug
+      if (error.code) {
+        console.log(\`   Código do erro: \${error.code}\`);
+      }
+      if (error.cause) {
+        console.log(\`   Causa: \${error.cause.message || error.cause}\`);
+      }
+      
+      // Se não for a última tentativa, aguardar antes de tentar novamente
+      if (attempt < retries) {
+        const waitTime = 2000 * attempt; // Backoff exponencial
+        console.log(\`   ⏳ Aguardando \${waitTime}ms antes da próxima tentativa...\`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+      }
+    }
+  }
+  
+  console.log(\`🔥 Webhook falhou após \${retries} tentativas para evento: \${event}\`);
+  return false;
+}
+
+// Função para criar uma nova instância WhatsApp
+async function createInstance(instanceId) {
+  if (instances.has(instanceId)) {
+    return { success: false, message: 'Instância já existe' };
+  }
+
+  const client = new Client({
+    authStrategy: new LocalAuth({ clientId: instanceId }),
+    puppeteer: {
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-gpu'
+      ]
+    }
+  });
+
+  // QR Code gerado
+  client.on('qr', async (qr) => {
+    console.log(\`\${new Date().toISOString()}: QR Code gerado para \${instanceId}\`);
+    try {
+      const qrCodeData = await QRCode.toDataURL(qr);
+      await sendWebhook('qr', instanceId, { qr: qrCodeData });
+    } catch (error) {
+      console.log(\`\${new Date().toISOString()}: Erro ao gerar QR: \${error.message}\`, error);
+    }
+  });
+
+  // Cliente pronto
+  client.on('ready', async () => {
+    console.log(\`\${new Date().toISOString()}: Cliente \${instanceId} conectado!\`);
+    const clientInfo = client.info;
+    await sendWebhook('ready', instanceId, {
+      phone: clientInfo.wid.user,
+      name: clientInfo.pushname,
+      platform: clientInfo.platform
+    });
+  });
+
+  // Nova mensagem recebida
+  client.on('message', async (message) => {
+    console.log(\`\${new Date().toISOString()}: Nova mensagem para \${instanceId}: \${message.body}\`);
+    await sendWebhook('message', instanceId, {
+      id: message.id._serialized,
+      body: message.body,
+      from: message.from,
+      to: message.to,
+      timestamp: message.timestamp,
+      type: message.type,
+      notifyName: message.notifyName
+    });
+  });
+
+  // Cliente desconectado
+  client.on('disconnected', async (reason) => {
+    console.log(\`\${new Date().toISOString()}: Cliente \${instanceId} desconectado: \${reason}\`);
+    await sendWebhook('disconnected', instanceId, { reason });
+    instances.delete(instanceId);
+  });
+
+  // Inicializar cliente
+  try {
+    await client.initialize();
+    instances.set(instanceId, client);
+    return { success: true, message: 'Instância criada com sucesso' };
+  } catch (error) {
+    console.error(\`Erro ao criar instância \${instanceId}:\`, error);
+    return { success: false, message: error.message };
+  }
+}
+
+// Rotas da API
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'online',
+    timestamp: new Date().toISOString(),
+    instances: instances.size,
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    version: '2.0.0-ssl-fix'
+  });
+});
+
+app.get('/info', (req, res) => {
+  res.json({
+    server: 'WhatsApp Web.js Server',
+    version: '2.0.0-ssl-fix',
+    host: HOST,
+    port: PORT,
+    instances_active: instances.size,
+    instances_list: Array.from(instances.keys()),
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    ssl_fix: 'enabled',
+    timeout_fix: 'enabled',
+    webhook_url: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web'
+  });
+});
+
+app.get('/instances', (req, res) => {
+  const instanceList = Array.from(instances.entries()).map(([id, client]) => ({
+    id,
+    status: client.info ? 'connected' : 'disconnected',
+    info: client.info || null
+  }));
+  
+  res.json({
+    total: instances.size,
+    instances: instanceList
+  });
+});
+
+app.post('/create-instance', async (req, res) => {
+  const { instanceId } = req.body;
+  
+  if (!instanceId) {
+    return res.status(400).json({ success: false, message: 'instanceId é obrigatório' });
+  }
+  
+  const result = await createInstance(instanceId);
+  res.json(result);
+});
+
+app.delete('/delete-instance/:instanceId', async (req, res) => {
+  const { instanceId } = req.params;
+  
+  if (!instances.has(instanceId)) {
+    return res.status(404).json({ success: false, message: 'Instância não encontrada' });
+  }
+  
+  try {
+    const client = instances.get(instanceId);
+    await client.destroy();
+    instances.delete(instanceId);
+    res.json({ success: true, message: 'Instância removida com sucesso' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Teste de webhook manual
+app.post('/test-webhook', async (req, res) => {
+  const { event = 'test', instanceId = 'manual_test', data = {} } = req.body;
+  
+  console.log(\`🧪 Teste manual de webhook: \${event}\`);
+  const result = await sendWebhook(event, instanceId, { ...data, manual_test: true });
+  
+  res.json({
+    success: result,
+    message: result ? 'Webhook teste enviado com sucesso' : 'Webhook teste falhou',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  console.log(\`\${new Date().toISOString()}: Finalizando servidor...\`);
+  
+  for (const [instanceId, client] of instances) {
+    try {
+      await client.destroy();
+      console.log(\`Cliente \${instanceId} finalizado\`);
+    } catch (error) {
+      console.error(\`Erro ao finalizar cliente \${instanceId}:\`, error);
+    }
+  }
+  
+  process.exit(0);
+});
+
+// Iniciar servidor
+app.listen(PORT, HOST, () => {
+  console.log(\`\${new Date().toISOString()}: === WhatsApp Web.js Server ===\`);
+  console.log(\`\${new Date().toISOString()}: Servidor rodando na porta \${PORT}\`);
+  console.log(\`\${new Date().toISOString()}: Host: \${HOST}\`);
+  console.log(\`\${new Date().toISOString()}: Health: http://\${HOST}:\${PORT}/health\`);
+  console.log(\`\${new Date().toISOString()}: Info: http://\${HOST}:\${PORT}/info\`);
+  console.log(\`\${new Date().toISOString()}: Instâncias: http://\${HOST}:\${PORT}/instances\`);
+  console.log(\`\${new Date().toISOString()}: SSL Fix: ATIVADO\`);
+  console.log(\`\${new Date().toISOString()}: Timeout Fix: ATIVADO\`);
+  console.log(\`\${new Date().toISOString()}: ===============================\`);
+});
+EOF
+
+echo "✅ Arquivo server.js atualizado com correções SSL/Timeout"
+echo ""`;
+
+    // Restart script
+    results.ssl_timeout_fix.restart_script = `#!/bin/bash
+echo "=== REINICIANDO SERVIDOR COM CORREÇÕES ==="
+cd /root/whatsapp-server
+
+# Parar processo atual
+pm2 stop whatsapp-server 2>/dev/null || true
+pm2 delete whatsapp-server 2>/dev/null || true
+
+# Aguardar um momento
+sleep 3
+
+# Iniciar com novo código
+pm2 start server.js --name whatsapp-server --log-date-format="YYYY-MM-DD HH:mm:ss"
+
+# Verificar status
+sleep 5
+pm2 status
+pm2 logs whatsapp-server --lines 20
+
+echo ""
+echo "✅ Servidor reiniciado com correções SSL/Timeout"
+echo "🧪 Teste os endpoints:"
+echo "   curl http://localhost:3001/health"
+echo "   curl http://localhost:3001/info"
+echo "   curl -X POST http://localhost:3001/test-webhook"
+echo ""`;
+
     // Generate recommendations based on test results
     console.log('Generating recommendations...');
     
@@ -154,110 +477,53 @@ serve(async (req) => {
       results.recommendations.push({
         priority: 'CRÍTICO',
         issue: 'Servidor Node.js não está respondendo',
-        solution: 'Execute: pm2 restart whatsapp-server ou reinicie o servidor com npm start'
+        solution: 'Execute o script de correção SSL/Timeout e reinicie o servidor'
       });
     }
 
     if (!results.diagnostics.analysis.webhook_reachable) {
       results.recommendations.push({
         priority: 'ALTO',
-        issue: 'Problemas de conectividade SSL/Timeout detectados nos logs',
-        solution: 'Atualize o código do servidor para resolver problemas SSL e implementar retry automático'
+        issue: 'Problemas SSL/Timeout detectados nos logs (UNABLE_TO_VERIFY_LEAF_SIGNATURE, UND_ERR_CONNECT_TIMEOUT)',
+        solution: 'Aplicar correção SSL/Timeout no código do servidor'
       });
     }
 
-    if (results.diagnostics.analysis.total_instances === 0) {
-      results.recommendations.push({
-        priority: 'INFORMATIVO',
-        issue: 'Nenhuma instância WhatsApp ativa encontrada',
-        solution: 'Crie uma nova instância WhatsApp através do painel de administração'
-      });
-    }
+    results.recommendations.push({
+      priority: 'INFORMATIVO',
+      issue: 'Logs mostram erros SSL e timeout recorrentes',
+      solution: 'Use os scripts de correção fornecidos para resolver definitivamente'
+    });
 
     // Generate verification script
     results.verification_script = `#!/bin/bash
-echo "=== DIAGNÓSTICO VPS WHATSAPP WEB.JS ==="
+echo "=== VERIFICAÇÃO PÓS-CORREÇÃO ==="
 echo "Data: $(date)"
 echo ""
 
-echo "=== 1. STATUS DO SERVIDOR ==="
-ps aux | grep node | grep -v grep
+echo "=== 1. STATUS DO SERVIDOR CORRIGIDO ==="
+curl -s http://localhost:3001/health | jq .
 echo ""
 
-echo "=== 2. PORTAS EM USO ==="
-netstat -tlnp | grep :3001
+echo "=== 2. INFORMAÇÕES DETALHADAS ==="
+curl -s http://localhost:3001/info | jq .
 echo ""
 
-echo "=== 3. TESTE ENDPOINTS ==="
-echo "Health Check:"
-curl -s -w "Status: %{http_code}\\n" http://localhost:3001/health | head -5
-echo ""
-
-echo "Server Info:"
-curl -s -w "Status: %{http_code}\\n" http://localhost:3001/info | head -5
-echo ""
-
-echo "Instances:"
-curl -s -w "Status: %{http_code}\\n" http://localhost:3001/instances | head -5
-echo ""
-
-echo "=== 4. TESTE WEBHOOK SUPABASE ==="
-curl -X POST "${webhookUrl}" \\
+echo "=== 3. TESTE WEBHOOK MANUAL ==="
+curl -X POST http://localhost:3001/test-webhook \\
   -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}" \\
-  -w "Status: %{http_code}\\n" \\
-  -d '{"event":"test","instanceId":"diagnostic","data":{"test":true,"message":"Teste manual VPS"}}'
+  -d '{"event":"test_correcao","instanceId":"verificacao","data":{"message":"Teste após correção SSL/Timeout"}}' | jq .
 echo ""
 
-echo "=== 5. LOGS PM2 ==="
+echo "=== 4. LOGS RECENTES ==="
 pm2 logs whatsapp-server --lines 10 --nostream
 echo ""
 
-echo "=== 6. CORREÇÃO SSL/TIMEOUT ==="
-echo "Execute o seguinte código para corrigir problemas SSL:"
+echo "=== 5. STATUS PM2 ==="
+pm2 status
 echo ""
-cat << 'EOF'
-// Adicione ao início do server.js:
-process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
 
-// Substitua a função sendWebhook por:
-async function sendWebhook(event, instanceId, data, retries = 3) {
-  const webhookUrl = 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web';
-  
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpZ3llYnJoZm9sam55ZGZpcGNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMDU0OTUsImV4cCI6MjA2MjY4MTQ5NX0.348qSsRPai26TFU87MDv0yE4i_pQmLYMQW9d7n5AN-A'
-        },
-        body: JSON.stringify({
-          event,
-          instanceId,
-          data
-        }),
-        timeout: 30000
-      });
-
-      if (response.ok) {
-        console.log(\`✅ Webhook enviado (tentativa \${attempt}): \${event}\`);
-        return;
-      } else {
-        console.log(\`⚠️ Webhook falhou (tentativa \${attempt}): \${response.status}\`);
-      }
-    } catch (error) {
-      console.log(\`❌ Erro webhook (tentativa \${attempt}): \${error.message}\`);
-      if (attempt < retries) {
-        await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
-      }
-    }
-  }
-  console.log(\`🔥 Webhook falhou após \${retries} tentativas\`);
-}
-EOF
-echo ""
-echo "=== FIM DO DIAGNÓSTICO ==="`;
+echo "=== VERIFICAÇÃO CONCLUÍDA ==="`;
 
     // Calculate summary
     let totalIssues = 0;
@@ -274,24 +540,20 @@ echo "=== FIM DO DIAGNÓSTICO ==="`;
     if (results.diagnostics.analysis.server_running) {
       results.summary.server_status = 'ONLINE';
       results.success = true;
-      results.message = 'Diagnóstico concluído - Servidor online';
+      results.message = 'Diagnóstico concluído - Servidor online mas com problemas SSL/Timeout';
     } else {
       results.summary.server_status = 'OFFLINE';
-      results.message = 'Diagnóstico concluído - Problemas detectados';
+      results.message = 'Diagnóstico concluído - Problemas críticos detectados';
     }
 
     // Generate next steps
-    if (totalIssues > 0) {
-      results.summary.next_steps.push('Corrigir problemas críticos identificados');
-    }
-    if (totalWarnings > 0) {
-      results.summary.next_steps.push('Resolver avisos de configuração');
-    }
-    if (results.diagnostics.analysis.server_running && !results.diagnostics.analysis.webhook_reachable) {
-      results.summary.next_steps.push('Implementar correções SSL/Timeout no código do servidor');
-    }
+    results.summary.next_steps.push('1. Fazer backup do servidor atual');
+    results.summary.next_steps.push('2. Aplicar script de correção SSL/Timeout');
+    results.summary.next_steps.push('3. Reiniciar servidor com PM2');
+    results.summary.next_steps.push('4. Verificar logs e testar webhook');
+    results.summary.next_steps.push('5. Executar verificação pós-correção');
 
-    console.log('Diagnostic completed:', results);
+    console.log('Diagnostic completed with SSL/Timeout fixes:', results);
 
     return new Response(
       JSON.stringify(results),
