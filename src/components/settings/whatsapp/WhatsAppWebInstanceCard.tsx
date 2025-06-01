@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { QrCode, Trash2, RefreshCw, Phone, Wifi } from "lucide-react";
+import { QrCode, Trash2, RefreshCw, Phone, Wifi, Sync } from "lucide-react";
 import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -11,6 +11,7 @@ interface WhatsAppWebInstanceCardProps {
   instance: WhatsAppWebInstance;
   onDelete: (instanceId: string) => Promise<void>;
   onRefreshQR: (instanceId: string) => Promise<string>;
+  onSyncStatus?: (instanceId: string) => Promise<any>;
   onShowQR?: (instanceId: string) => void;
   isNewInstance?: boolean;
 }
@@ -19,12 +20,14 @@ export function WhatsAppWebInstanceCard({
   instance, 
   onDelete, 
   onRefreshQR,
+  onSyncStatus,
   onShowQR,
   isNewInstance = false
 }: WhatsAppWebInstanceCardProps) {
   const [showQR, setShowQR] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -71,7 +74,7 @@ export function WhatsAppWebInstanceCard({
     try {
       await onDelete(instance.id);
     } catch (error) {
-      console.error('Error deleting instance:', error);
+      console.error('[WhatsAppWebInstanceCard] Error deleting instance:', error);
     } finally {
       setIsDeleting(false);
     }
@@ -83,14 +86,28 @@ export function WhatsAppWebInstanceCard({
       await onRefreshQR(instance.id);
       setShowQR(true);
     } catch (error) {
-      console.error('Error refreshing QR:', error);
+      console.error('[WhatsAppWebInstanceCard] Error refreshing QR:', error);
     } finally {
       setIsRefreshing(false);
     }
   };
 
+  const handleSyncStatus = async () => {
+    if (!onSyncStatus) return;
+    
+    setIsSyncing(true);
+    try {
+      console.log('[WhatsAppWebInstanceCard] Syncing status for instance:', instance.id);
+      await onSyncStatus(instance.id);
+    } catch (error) {
+      console.error('[WhatsAppWebInstanceCard] Error syncing status:', error);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const handleShowQR = () => {
-    console.log('Showing QR for instance:', instance.id, instance.web_status);
+    console.log('[WhatsAppWebInstanceCard] Showing QR for instance:', instance.id, instance.web_status);
     if (onShowQR) {
       onShowQR(instance.id);
     } else {
@@ -105,15 +122,17 @@ export function WhatsAppWebInstanceCard({
   const needsQRCode = ['waiting_scan', 'connecting', 'creating'].includes(instance.web_status || instance.connection_status);
   const canReconnect = instance.web_status === 'disconnected';
   const isConnected = ['ready', 'open'].includes(instance.web_status || instance.connection_status);
+  const canSync = instance.vps_instance_id && !isConnected;
 
-  console.log('Instance status check:', {
+  console.log('[WhatsAppWebInstanceCard] Instance status check:', {
     id: instance.id,
     web_status: instance.web_status,
     connection_status: instance.connection_status,
     phone: instance.phone,
     needsQRCode,
     canReconnect,
-    isConnected
+    isConnected,
+    canSync
   });
 
   return (
@@ -148,13 +167,13 @@ export function WhatsAppWebInstanceCard({
           )}
           {!isConnected && !instance.phone && (
             <p className="text-xs text-amber-600 font-medium">
-              Aguardando conexão...
+              {needsQRCode ? 'Aguardando conexão...' : 'Desconectado'}
             </p>
           )}
         </CardHeader>
 
         <CardContent className="pt-0">
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {needsQRCode && (
               <Button
                 variant="outline"
@@ -178,6 +197,19 @@ export function WhatsAppWebInstanceCard({
               >
                 <RefreshCw className={`h-4 w-4 mr-1 ${isRefreshing ? 'animate-spin' : ''}`} />
                 Reconectar
+              </Button>
+            )}
+
+            {canSync && onSyncStatus && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSyncStatus}
+                disabled={isSyncing}
+                className="flex-1"
+              >
+                <Sync className={`h-4 w-4 mr-1 ${isSyncing ? 'animate-spin' : ''}`} />
+                {isSyncing ? 'Sincronizando...' : 'Verificar Status'}
               </Button>
             )}
 

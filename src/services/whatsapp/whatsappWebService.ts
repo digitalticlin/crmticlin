@@ -15,6 +15,7 @@ export class WhatsAppWebService {
   // Instance Status
   static getInstanceStatus = InstanceStatusService.getInstanceStatus;
   static getQRCode = InstanceStatusService.getQRCode;
+  static syncInstanceStatus = InstanceStatusService.syncInstanceStatus;
 
   // Messaging
   static sendMessage = MessagingService.sendMessage;

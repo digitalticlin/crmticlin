@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
@@ -52,6 +53,8 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
       setLoading(true);
       setError(null);
 
+      console.log('[useWhatsAppWebInstances] Fetching instances for company:', companyId);
+
       const { data, error: fetchError } = await supabase
         .from('whatsapp_instances')
         .select('*')
@@ -60,13 +63,14 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
         .order('created_at', { ascending: false });
 
       if (fetchError) {
+        console.error('[useWhatsAppWebInstances] Fetch error:', fetchError);
         throw new Error(fetchError.message);
       }
 
-      console.log('Fetched WhatsApp instances:', data);
+      console.log('[useWhatsAppWebInstances] Fetched instances:', data);
       setInstances(data || []);
     } catch (err) {
-      console.error('Error fetching WhatsApp Web instances:', err);
+      console.error('[useWhatsAppWebInstances] Error fetching instances:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
@@ -75,7 +79,7 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
 
   const startAutoConnection = async () => {
     try {
-      console.log('Starting auto connection...');
+      console.log('[useWhatsAppWebInstances] Starting auto connection...');
       setAutoConnectState(prev => ({ 
         ...prev, 
         isConnecting: true, 
@@ -83,17 +87,17 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
       }));
 
       const instanceName = generateInstanceName();
-      console.log('Generated instance name:', instanceName);
+      console.log('[useWhatsAppWebInstances] Generated instance name:', instanceName);
       
       const result = await WhatsAppWebService.createInstance(instanceName);
-      console.log('Create instance result:', result);
+      console.log('[useWhatsAppWebInstances] Create instance result:', result);
 
       if (!result.success) {
         throw new Error(result.error || 'Falha ao criar instância');
       }
 
       const newInstanceId = result.instance?.id;
-      console.log('New instance ID:', newInstanceId);
+      console.log('[useWhatsAppWebInstances] New instance ID:', newInstanceId);
       
       if (newInstanceId) {
         setAutoConnectState(prev => ({
@@ -111,7 +115,7 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
       }, 1000);
 
     } catch (error) {
-      console.error('Error in auto connect:', error);
+      console.error('[useWhatsAppWebInstances] Error in auto connect:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       
       setAutoConnectState(prev => ({
@@ -140,7 +144,7 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
       await fetchInstances();
       
     } catch (err) {
-      console.error('Error creating instance:', err);
+      console.error('[useWhatsAppWebInstances] Error creating instance:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao criar instância';
       toast.error(errorMessage);
       setError(errorMessage);
@@ -164,7 +168,7 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
       await fetchInstances();
       
     } catch (err) {
-      console.error('Error deleting instance:', err);
+      console.error('[useWhatsAppWebInstances] Error deleting instance:', err);
       const errorMessage = err instanceof Error ? err.message : 'Erro ao remover instância';
       toast.error(errorMessage);
       setError(errorMessage);
@@ -181,6 +185,8 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
         throw new Error('Instance not found');
       }
 
+      console.log('[useWhatsAppWebInstances] Refreshing QR for instance:', instanceId);
+
       const result = await WhatsAppWebService.getQRCode(instance.vps_instance_id);
       
       if (!result.success) {
@@ -196,8 +202,41 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
 
       return result.qrCode;
     } catch (err) {
-      console.error('Error refreshing QR code:', err);
+      console.error('[useWhatsAppWebInstances] Error refreshing QR code:', err);
       toast.error('Erro ao atualizar QR code');
+      throw err;
+    }
+  };
+
+  const syncInstanceStatus = async (instanceId: string) => {
+    try {
+      const instance = instances.find(i => i.id === instanceId);
+      if (!instance?.vps_instance_id) {
+        throw new Error('Instance not found');
+      }
+
+      console.log('[useWhatsAppWebInstances] Syncing status for instance:', instanceId);
+
+      const result = await WhatsAppWebService.syncInstanceStatus(instance.vps_instance_id);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to sync status');
+      }
+
+      console.log('[useWhatsAppWebInstances] Sync result:', result);
+
+      if (result.updated) {
+        toast.success('Status sincronizado com sucesso!');
+        // Force refresh to get updated data
+        await fetchInstances();
+      } else {
+        toast.info('Status já está atualizado');
+      }
+
+      return result;
+    } catch (err) {
+      console.error('[useWhatsAppWebInstances] Error syncing status:', err);
+      toast.error('Erro ao sincronizar status');
       throw err;
     }
   };
@@ -212,7 +251,7 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
 
       return true;
     } catch (err) {
-      console.error('Error sending message:', err);
+      console.error('[useWhatsAppWebInstances] Error sending message:', err);
       toast.error('Erro ao enviar mensagem');
       throw err;
     }
@@ -234,11 +273,41 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
     }));
   };
 
-  // Subscribe to real-time updates with better error handling
+  // Polling para instâncias em estado de espera
+  useEffect(() => {
+    if (!companyId || instances.length === 0) return;
+
+    const waitingInstances = instances.filter(instance => 
+      ['waiting_scan', 'connecting', 'creating'].includes(instance.web_status) && 
+      instance.vps_instance_id
+    );
+
+    if (waitingInstances.length === 0) return;
+
+    console.log('[useWhatsAppWebInstances] Setting up polling for waiting instances:', waitingInstances.length);
+
+    const pollInterval = setInterval(async () => {
+      for (const instance of waitingInstances) {
+        try {
+          console.log('[useWhatsAppWebInstances] Polling status for instance:', instance.id);
+          await syncInstanceStatus(instance.id);
+        } catch (error) {
+          console.error('[useWhatsAppWebInstances] Polling error for instance:', instance.id, error);
+        }
+      }
+    }, 10000); // Poll a cada 10 segundos
+
+    return () => {
+      console.log('[useWhatsAppWebInstances] Cleaning up polling interval');
+      clearInterval(pollInterval);
+    };
+  }, [instances, companyId]);
+
+  // Subscribe to real-time updates
   useEffect(() => {
     if (!companyId) return;
 
-    console.log('Setting up realtime subscription for company:', companyId);
+    console.log('[useWhatsAppWebInstances] Setting up realtime subscription for company:', companyId);
 
     const channel = supabase
       .channel('whatsapp-web-instances')
@@ -251,20 +320,20 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
           filter: `company_id=eq.${companyId}`
         },
         (payload) => {
-          console.log('WhatsApp Web instance change received:', payload);
+          console.log('[useWhatsAppWebInstances] Realtime change received:', payload);
           
           // Add a small delay to ensure database consistency
           setTimeout(() => {
             fetchInstances();
-          }, 500);
+          }, 1000);
         }
       )
       .subscribe((status) => {
-        console.log('Realtime subscription status:', status);
+        console.log('[useWhatsAppWebInstances] Realtime subscription status:', status);
       });
 
     return () => {
-      console.log('Cleaning up realtime subscription');
+      console.log('[useWhatsAppWebInstances] Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
   }, [companyId]);
@@ -276,7 +345,7 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
       return;
     }
     
-    console.log('Fetching instances for company:', companyId);
+    console.log('[useWhatsAppWebInstances] Fetching instances for company:', companyId);
     fetchInstances();
   }, [companyId, companyLoading]);
 
@@ -288,6 +357,7 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
     createInstance,
     deleteInstance,
     refreshQRCode,
+    syncInstanceStatus,
     sendMessage,
     startAutoConnection,
     closeQRModal,
