@@ -12,18 +12,19 @@ export interface ConnectionHealth {
 }
 
 export class ConnectionHealthService {
-  private static readonly HEARTBEAT_INTERVAL = 30000; // 30 segundos
-  private static readonly MAX_CONSECUTIVE_FAILURES = 3;
-  private static readonly RECONNECTION_COOLDOWN = 60000; // 1 minuto
+  // INTERVALOS REDUZIDOS DRASTICAMENTE PARA EVITAR GERAÇÃO EXCESSIVA DE QR
+  private static readonly HEARTBEAT_INTERVAL = 300000; // 5 minutos (era 30s)
+  private static readonly MAX_CONSECUTIVE_FAILURES = 5; // Aumentado (era 3)
+  private static readonly RECONNECTION_COOLDOWN = 300000; // 5 minutos (era 1 minuto)
   
   private static activeHeartbeats = new Map<string, NodeJS.Timeout>();
   private static healthStatus = new Map<string, ConnectionHealth>();
   
   /**
-   * Inicia monitoramento de saúde para uma instância
+   * Inicia monitoramento de saúde APENAS para instâncias conectadas
    */
   static startHealthMonitoring(instanceId: string, vpsInstanceId: string): void {
-    console.log('[ConnectionHealthService] Starting health monitoring for:', instanceId);
+    console.log('[ConnectionHealthService] Starting REDUCED health monitoring for:', instanceId);
     
     // Para monitoramento existente se houver
     this.stopHealthMonitoring(instanceId);
@@ -37,16 +38,16 @@ export class ConnectionHealthService {
       needsReconnection: false
     });
     
-    // Inicia heartbeat periódico
+    // HEARTBEAT MUITO MAIS ESPAÇADO - apenas para instâncias conectadas
     const heartbeatInterval = setInterval(async () => {
       await this.performHealthCheck(instanceId, vpsInstanceId);
-    }, this.HEARTBEAT_INTERVAL);
+    }, this.HEARTBEAT_INTERVAL); // 5 minutos em vez de 30 segundos
     
     this.activeHeartbeats.set(instanceId, heartbeatInterval);
   }
   
   /**
-   * Para monitoramento de saúde para uma instância
+   * Para monitoramento de saúde
    */
   static stopHealthMonitoring(instanceId: string): void {
     console.log('[ConnectionHealthService] Stopping health monitoring for:', instanceId);
@@ -61,19 +62,20 @@ export class ConnectionHealthService {
   }
   
   /**
-   * Realiza verificação de saúde de uma instância
+   * Realiza verificação de saúde APENAS com status endpoint (sem QR)
    */
   private static async performHealthCheck(instanceId: string, vpsInstanceId: string): Promise<void> {
     try {
-      console.log('[ConnectionHealthService] Performing health check for:', instanceId);
+      console.log('[ConnectionHealthService] LIGHT health check for:', instanceId);
       
-      const healthCheckResult = await this.checkVPSHealth(vpsInstanceId);
+      // USA ENDPOINT ESPECÍFICO DE HEALTH QUE NÃO GERA QR CODE
+      const healthCheckResult = await this.checkVPSHealthOnly(vpsInstanceId);
       const currentHealth = this.healthStatus.get(instanceId);
       
       if (!currentHealth) return;
       
       if (healthCheckResult.success) {
-        // Instância saudável - reset falhas
+        // Reset falhas
         const updatedHealth: ConnectionHealth = {
           ...currentHealth,
           isHealthy: true,
@@ -83,9 +85,9 @@ export class ConnectionHealthService {
         };
         
         this.healthStatus.set(instanceId, updatedHealth);
-        console.log('[ConnectionHealthService] Health check passed for:', instanceId);
+        console.log('[ConnectionHealthService] Light health check passed for:', instanceId);
       } else {
-        // Instância com problema - incrementa falhas
+        // Incrementa falhas mas com tolerância maior
         const consecutiveFailures = currentHealth.consecutiveFailures + 1;
         const needsReconnection = consecutiveFailures >= this.MAX_CONSECUTIVE_FAILURES;
         
@@ -97,15 +99,14 @@ export class ConnectionHealthService {
         };
         
         this.healthStatus.set(instanceId, updatedHealth);
-        console.warn('[ConnectionHealthService] Health check failed for:', instanceId, 'Failures:', consecutiveFailures);
+        console.warn('[ConnectionHealthService] Light health check failed for:', instanceId, 'Failures:', consecutiveFailures);
         
+        // APENAS se realmente precisar reconectar e depois de muitas falhas
         if (needsReconnection) {
-          await this.attemptAutoReconnection(instanceId, vpsInstanceId);
+          console.log('[ConnectionHealthService] Instance needs reconnection after', consecutiveFailures, 'failures');
+          // NÃO tenta reconexão automática - apenas marca como problemática
         }
       }
-      
-      // Atualiza status no banco se necessário
-      await this.updateDatabaseStatus(instanceId, currentHealth);
       
     } catch (error) {
       console.error('[ConnectionHealthService] Health check error for:', instanceId, error);
@@ -113,16 +114,17 @@ export class ConnectionHealthService {
   }
   
   /**
-   * Verifica saúde no VPS
+   * Verifica saúde APENAS com endpoint de health (sem gerar QR)
    */
-  private static async checkVPSHealth(vpsInstanceId: string): Promise<ServiceResponse> {
+  private static async checkVPSHealthOnly(vpsInstanceId: string): Promise<ServiceResponse> {
     try {
-      const response = await fetch(`${VPS_CONFIG.baseUrl}/health/${vpsInstanceId}`, {
+      // USA ENDPOINT /health EM VEZ DE /status PARA EVITAR QR CODES
+      const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
         },
-        signal: AbortSignal.timeout(15000) // 15 segundos timeout
+        signal: AbortSignal.timeout(10000) // Timeout reduzido
       });
       
       if (!response.ok) {
@@ -130,75 +132,21 @@ export class ConnectionHealthService {
       }
       
       const data = await response.json();
-      return { success: true, data };
+      
+      // Verifica se o VPS específico está na lista de instâncias ativas
+      const isInstanceHealthy = data.activeInstances && 
+                               data.activeInstances.includes(vpsInstanceId);
+      
+      return { 
+        success: isInstanceHealthy, 
+        data: isInstanceHealthy ? 'healthy' : 'not_active' 
+      };
       
     } catch (error) {
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 
       };
-    }
-  }
-  
-  /**
-   * Tenta reconexão automática
-   */
-  private static async attemptAutoReconnection(instanceId: string, vpsInstanceId: string): Promise<void> {
-    try {
-      console.log('[ConnectionHealthService] Attempting auto-reconnection for:', instanceId);
-      
-      const reconnectResult = await fetch(`${VPS_CONFIG.baseUrl}/reconnect`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          instanceId: vpsInstanceId,
-          autoReconnect: true
-        }),
-        signal: AbortSignal.timeout(30000) // 30 segundos para reconexão
-      });
-      
-      if (reconnectResult.ok) {
-        console.log('[ConnectionHealthService] Auto-reconnection successful for:', instanceId);
-        
-        // Reset status de saúde
-        const currentHealth = this.healthStatus.get(instanceId);
-        if (currentHealth) {
-          this.healthStatus.set(instanceId, {
-            ...currentHealth,
-            isHealthy: true,
-            consecutiveFailures: 0,
-            needsReconnection: false,
-            lastHeartbeat: new Date().toISOString()
-          });
-        }
-      } else {
-        console.error('[ConnectionHealthService] Auto-reconnection failed for:', instanceId);
-      }
-      
-    } catch (error) {
-      console.error('[ConnectionHealthService] Auto-reconnection error for:', instanceId, error);
-    }
-  }
-  
-  /**
-   * Atualiza status no banco de dados se necessário
-   */
-  private static async updateDatabaseStatus(instanceId: string, health: ConnectionHealth): Promise<void> {
-    try {
-      // Só atualiza se detectar mudança significativa de status
-      if (!health.isHealthy && health.consecutiveFailures >= 2) {
-        await supabase
-          .from('whatsapp_instances')
-          .update({
-            web_status: 'connection_unstable',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', instanceId);
-      }
-    } catch (error) {
-      console.error('[ConnectionHealthService] Database update error:', error);
     }
   }
   
@@ -220,7 +168,7 @@ export class ConnectionHealthService {
    * Para todos os monitoramentos (cleanup)
    */
   static stopAllMonitoring(): void {
-    console.log('[ConnectionHealthService] Stopping all health monitoring');
+    console.log('[ConnectionHealthService] Stopping ALL health monitoring');
     
     this.activeHeartbeats.forEach((heartbeat, instanceId) => {
       clearInterval(heartbeat);
@@ -229,5 +177,13 @@ export class ConnectionHealthService {
     
     this.activeHeartbeats.clear();
     this.healthStatus.clear();
+  }
+
+  /**
+   * NOVA FUNÇÃO: Verificação manual de status (apenas quando solicitado)
+   */
+  static async manualHealthCheck(instanceId: string, vpsInstanceId: string): Promise<ServiceResponse> {
+    console.log('[ConnectionHealthService] Manual health check requested for:', instanceId);
+    return await this.checkVPSHealthOnly(vpsInstanceId);
   }
 }

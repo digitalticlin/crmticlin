@@ -2,10 +2,10 @@
 export const VPS_CONFIG = {
   baseUrl: 'http://31.97.24.222:3001',
   
-  // Timeouts otimizados para produção
+  // Timeouts otimizados e REDUZIDOS para evitar operações desnecessárias
   timeouts: {
-    // Operações básicas (status, qr)
-    basic: 20000, // 20 segundos
+    // Operações básicas (status, qr) - REDUZIDO
+    basic: 15000, // 15 segundos (era 20s)
     
     // Operações de conexão (create, reconnect)
     connection: 45000, // 45 segundos
@@ -13,22 +13,22 @@ export const VPS_CONFIG = {
     // Operações de limpeza (delete)
     cleanup: 30000, // 30 segundos
     
-    // Health checks (mais rápido)
-    health: 15000, // 15 segundos
+    // Health checks - MUITO REDUZIDO
+    health: 8000, // 8 segundos (era 15s)
   },
   
-  // Configurações de retry
+  // Configurações de retry REDUZIDAS
   retry: {
-    maxAttempts: 3,
-    baseDelay: 1000, // 1 segundo
-    maxDelay: 10000, // 10 segundos
+    maxAttempts: 2, // REDUZIDO de 3 para 2
+    baseDelay: 2000, // AUMENTADO de 1s para 2s
+    maxDelay: 8000, // REDUZIDO de 10s para 8s
   },
   
-  // Configurações de heartbeat
+  // Configurações de heartbeat DRASTICAMENTE REDUZIDAS
   heartbeat: {
-    interval: 30000, // 30 segundos
-    timeout: 10000, // 10 segundos
-    maxFailures: 3,
+    interval: 300000, // 5 MINUTOS (era 30 segundos) 
+    timeout: 8000, // REDUZIDO de 10s para 8s
+    maxFailures: 5, // AUMENTADO de 3 para 5
   },
   
   // Configurações de persistência
@@ -36,7 +36,22 @@ export const VPS_CONFIG = {
     enableSessionPersistence: true,
     sessionTimeout: 7200000, // 2 horas em ms
     autoReconnect: true,
-    reconnectDelay: 60000, // 1 minuto
+    reconnectDelay: 120000, // AUMENTADO para 2 minutos (era 1 minuto)
+  },
+
+  // NOVA: Configurações para evitar polling excessivo
+  polling: {
+    // Intervalo para instâncias pendentes (aguardando QR scan)
+    pendingInterval: 60000, // 1 minuto
+    
+    // Intervalo para instâncias conectadas
+    connectedInterval: 300000, // 5 minutos
+    
+    // Máximo de tentativas antes de parar o polling
+    maxPollingAttempts: 10,
+    
+    // Timeout para chamadas de polling
+    pollingTimeout: 10000, // 10 segundos
   }
 };
 
@@ -69,4 +84,19 @@ export const withRetry = async <T>(
   }
   
   throw lastError!;
+};
+
+// NOVA: Helper para verificar se deve fazer polling
+export const shouldPoll = (status: string, attemptCount: number): boolean => {
+  // Só faz polling para estados específicos e dentro do limite de tentativas
+  const pollableStates = ['waiting_scan', 'creating', 'connecting'];
+  return pollableStates.includes(status) && attemptCount < VPS_CONFIG.polling.maxPollingAttempts;
+};
+
+// NOVA: Helper para determinar intervalo de polling baseado no status
+export const getPollingInterval = (status: string): number => {
+  if (['ready', 'open'].includes(status)) {
+    return VPS_CONFIG.polling.connectedInterval; // 5 minutos para conectadas
+  }
+  return VPS_CONFIG.polling.pendingInterval; // 1 minuto para pendentes
 };
