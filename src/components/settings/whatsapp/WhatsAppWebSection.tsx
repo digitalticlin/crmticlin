@@ -5,7 +5,7 @@ import { WhatsAppWebInstanceCard } from "./WhatsAppWebInstanceCard";
 import { AddWhatsAppWebCard } from "./AddWhatsAppWebCard";
 import { AutoQRCodeModal } from "./AutoQRCodeModal";
 import { InstanceQRModal } from "./InstanceQRModal";
-import { ConnectedBanner } from "./ConnectedBanner";
+import ConnectedBanner from "./ConnectedBanner";
 
 export const WhatsAppWebSection = () => {
   console.log('[WhatsAppWebSection] Rendering section');
@@ -39,6 +39,10 @@ export const WhatsAppWebSection = () => {
     setQrModalInstanceId(null);
   };
 
+  const handleCreateInstance = async (instanceName: string) => {
+    await createInstance(instanceName);
+  };
+
   console.log('[WhatsAppWebSection] Instances loaded:', {
     total: instances.length,
     connected: connectedInstances.length,
@@ -59,7 +63,7 @@ export const WhatsAppWebSection = () => {
   return (
     <div className="space-y-4">
       {connectedInstances.length > 0 && (
-        <ConnectedBanner count={connectedInstances.length} />
+        <ConnectedBanner status="open" />
       )}
 
       {instances.length > 0 && (
@@ -77,13 +81,21 @@ export const WhatsAppWebSection = () => {
         </div>
       )}
 
-      <AddWhatsAppWebCard onCreateInstance={createInstance} />
+      <AddWhatsAppWebCard 
+        onAdd={handleCreateInstance}
+        isCreating={loading}
+      />
 
       <AutoQRCodeModal
         isOpen={autoConnectState.showQRModal}
-        onClose={closeQRModal}
-        instance={instances.find(i => i.id === autoConnectState.activeInstanceId)}
-        onRefreshQR={refreshQRCode}
+        onOpenChange={closeQRModal}
+        qrCode={instances.find(i => i.id === autoConnectState.activeInstanceId)?.qr_code || null}
+        isLoading={loading}
+        onRefresh={() => {
+          if (autoConnectState.activeInstanceId) {
+            refreshQRCode(autoConnectState.activeInstanceId);
+          }
+        }}
       />
 
       {qrModalInstanceId && (
@@ -91,7 +103,12 @@ export const WhatsAppWebSection = () => {
           isOpen={!!qrModalInstanceId}
           onClose={handleCloseQRModal}
           instance={instances.find(i => i.id === qrModalInstanceId)}
-          onRefreshQR={refreshQRCode}
+          isRefreshing={loading}
+          onRefreshQR={async () => {
+            if (qrModalInstanceId) {
+              await refreshQRCode(qrModalInstanceId);
+            }
+          }}
         />
       )}
     </div>
