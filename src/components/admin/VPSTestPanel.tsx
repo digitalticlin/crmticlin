@@ -1,6 +1,7 @@
 
 import { VPSConfigCard } from "./vps/VPSConfigCard";
 import { TestResultsCard } from "./vps/TestResultsCard";
+import { VPSDiagnosticTest } from "./VPSDiagnosticTest";
 import { useVPSTest } from "./vps/useVPSTest";
 
 export const VPSTestPanel = () => {
@@ -27,6 +28,9 @@ export const VPSTestPanel = () => {
           vpsConfig={VPS_CONFIG}
         />
       )}
+
+      {/* Novo componente de diagnóstico completo */}
+      <VPSDiagnosticTest />
     </div>
   );
 };
