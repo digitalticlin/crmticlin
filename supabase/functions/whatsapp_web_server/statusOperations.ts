@@ -113,30 +113,74 @@ export async function syncInstanceStatus(supabase: any, vpsInstanceId: string) {
 
     console.log('[StatusOperations] Current instance in DB:', instance);
 
+    // Normalizar valores para comparação
+    const vpsConnected = vpsStatus.connected === true;
+    const vpsPhone = vpsStatus.phone || '';
+    const vpsName = vpsStatus.name || vpsStatus.profileName || '';
+    
+    const dbConnected = ['ready', 'open'].includes(instance.connection_status) || ['ready', 'open'].includes(instance.web_status);
+    const dbPhone = instance.phone || '';
+    
+    console.log('[StatusOperations] Status comparison:', {
+      vpsConnected,
+      vpsPhone,
+      vpsName,
+      dbConnected,
+      dbPhone,
+      connectionStatusDB: instance.connection_status,
+      webStatusDB: instance.web_status
+    });
+
     // Prepara dados para atualização
     const updateData: any = {};
-    
-    if (vpsStatus.connected && vpsStatus.phone && !instance.phone) {
-      updateData.phone = vpsStatus.phone;
+    let needsUpdate = false;
+
+    // Verifica se precisa atualizar baseado no status de conexão
+    if (vpsConnected && !dbConnected) {
+      // VPS conectado mas DB mostra desconectado - sempre atualizar
       updateData.web_status = 'ready';
       updateData.connection_status = 'open';
       updateData.date_connected = new Date().toISOString();
       updateData.qr_code = null; // Remove QR code quando conectado
+      needsUpdate = true;
       
-      if (vpsStatus.profileName) updateData.profile_name = vpsStatus.profileName;
-      if (vpsStatus.profilePicUrl) updateData.profile_pic_url = vpsStatus.profilePicUrl;
-      
-      console.log('[StatusOperations] Phone found, updating with:', updateData);
-    } else if (!vpsStatus.connected) {
+      console.log('[StatusOperations] VPS connected but DB disconnected - updating to connected');
+    } else if (!vpsConnected && dbConnected) {
+      // VPS desconectado mas DB mostra conectado - atualizar para desconectado
       updateData.web_status = 'disconnected';
       updateData.connection_status = 'disconnected';
       updateData.date_disconnected = new Date().toISOString();
+      needsUpdate = true;
       
-      console.log('[StatusOperations] Not connected, updating status to disconnected');
+      console.log('[StatusOperations] VPS disconnected but DB connected - updating to disconnected');
     }
 
+    // Atualizar telefone se VPS está conectado e tem telefone diferente
+    if (vpsConnected && vpsPhone && vpsPhone !== dbPhone) {
+      updateData.phone = vpsPhone;
+      needsUpdate = true;
+      
+      console.log('[StatusOperations] Phone number different, updating:', { vpsPhone, dbPhone });
+    }
+
+    // Atualizar nome do perfil se disponível
+    if (vpsConnected && vpsName && vpsName !== instance.profile_name) {
+      updateData.profile_name = vpsName;
+      needsUpdate = true;
+      
+      console.log('[StatusOperations] Profile name different, updating:', { vpsName, dbName: instance.profile_name });
+    }
+
+    // Atualizar URL da foto do perfil se disponível
+    if (vpsConnected && vpsStatus.profilePicUrl && vpsStatus.profilePicUrl !== instance.profile_pic_url) {
+      updateData.profile_pic_url = vpsStatus.profilePicUrl;
+      needsUpdate = true;
+    }
+
+    console.log('[StatusOperations] Update needed:', needsUpdate, 'Update data:', updateData);
+
     // Atualiza no banco se houver mudanças
-    if (Object.keys(updateData).length > 0) {
+    if (needsUpdate) {
       const { data: updatedInstance, error: updateError } = await supabase
         .from('whatsapp_instances')
         .update({
@@ -159,19 +203,21 @@ export async function syncInstanceStatus(supabase: any, vpsInstanceId: string) {
           success: true, 
           updated: true,
           instance: updatedInstance,
-          vpsStatus
+          vpsStatus,
+          changes: updateData
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } else {
-      console.log('[StatusOperations] No updates needed');
+      console.log('[StatusOperations] No updates needed - statuses are in sync');
       
       return new Response(
         JSON.stringify({ 
           success: true, 
           updated: false,
           instance,
-          vpsStatus
+          vpsStatus,
+          reason: 'Statuses already in sync'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
