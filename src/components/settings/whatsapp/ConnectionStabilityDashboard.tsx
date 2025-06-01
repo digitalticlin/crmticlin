@@ -3,11 +3,12 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Shield, AlertTriangle, CheckCircle, Search, Info } from "lucide-react";
+import { RefreshCw, Shield, AlertTriangle, CheckCircle, Search, Info, Activity, Wifi, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import { ConnectionStabilityService } from "@/hooks/whatsapp/services/connectionStabilityService";
 import { OrphanInstanceRecoveryService } from "@/services/whatsapp/services/orphanInstanceRecoveryService";
 import { StabilityService } from "@/services/whatsapp/services/stabilityService";
+import { VPSHealthService } from "@/services/whatsapp/services/vpsHealthService";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -38,12 +39,12 @@ export function ConnectionStabilityDashboard() {
     }
 
     setIsScanning(true);
-    setLastScanResult(null); // Limpar resultado anterior
+    setLastScanResult(null);
     
     try {
       console.log('[StabilityDashboard] Iniciando busca por instâncias órfãs...');
       
-      toast.info('Buscando instâncias órfãs...', { duration: 2000 });
+      toast.info('Verificando saúde do VPS e buscando órfãs...', { duration: 2000 });
       
       const result = await OrphanInstanceRecoveryService.findAndRecoverOrphanInstances(companyId);
       setLastScanResult(result);
@@ -73,6 +74,22 @@ export function ConnectionStabilityDashboard() {
       });
     } finally {
       setIsScanning(false);
+    }
+  };
+
+  const handleVPSHealthCheck = async () => {
+    try {
+      toast.info('Verificando saúde do VPS...', { duration: 2000 });
+      
+      const health = await VPSHealthService.checkVPSHealth();
+      
+      if (health.isOnline) {
+        toast.success(`✅ VPS online! Tempo de resposta: ${health.responseTime}ms`, { duration: 4000 });
+      } else {
+        toast.error(`❌ VPS offline: ${health.error}`, { duration: 6000 });
+      }
+    } catch (error) {
+      toast.error('Erro ao verificar VPS');
     }
   };
 
@@ -116,6 +133,28 @@ export function ConnectionStabilityDashboard() {
     setSystemStatus(status);
   };
 
+  const getVPSStatusBadge = () => {
+    if (!systemStatus?.vpsHealth) return null;
+    
+    const { isOnline, responseTime, consecutiveFailures } = systemStatus.vpsHealth;
+    
+    if (isOnline) {
+      return (
+        <Badge variant="default" className="gap-1">
+          <Wifi className="h-3 w-3" />
+          Online ({responseTime}ms)
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge variant="destructive" className="gap-1">
+          <WifiOff className="h-3 w-3" />
+          Offline ({consecutiveFailures} falhas)
+        </Badge>
+      );
+    }
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -134,12 +173,32 @@ export function ConnectionStabilityDashboard() {
           <Info className="h-4 w-4" />
           <AlertDescription>
             <strong>Diagnóstico:</strong> Use "Buscar Órfãs" para encontrar conexões ativas na VPS que sumiram do banco de dados. 
-            Isso pode acontecer por webhooks ou monitoramento muito agressivo.
+            O sistema verifica automaticamente a saúde do VPS antes de cada operação.
           </AlertDescription>
         </Alert>
 
-        {/* Status do Sistema */}
+        {/* Status do VPS */}
         <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <h4 className="font-medium text-sm flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              Status do VPS
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {getVPSStatusBadge()}
+              {systemStatus?.vpsHealth?.lastChecked && (
+                <Badge variant="outline" className="text-xs">
+                  Última verificação: {new Date(systemStatus.vpsHealth.lastChecked).toLocaleTimeString()}
+                </Badge>
+              )}
+            </div>
+            {systemStatus?.vpsHealth?.error && (
+              <div className="text-xs text-red-600 mt-1">
+                Erro: {systemStatus.vpsHealth.error}
+              </div>
+            )}
+          </div>
+
           <div className="space-y-2">
             <h4 className="font-medium text-sm">Status do Sistema</h4>
             <div className="flex flex-wrap gap-2">
@@ -149,16 +208,6 @@ export function ConnectionStabilityDashboard() {
               <Badge variant={systemStatus?.stabilityActive ? "default" : "secondary"}>
                 {systemStatus?.stabilityActive ? "Monitoramento Ativo" : "Monitoramento Inativo"}
               </Badge>
-              <Badge variant={systemStatus?.removalDisabled ? "default" : "destructive"}>
-                {systemStatus?.removalDisabled ? "Remoção Bloqueada" : "Remoção Permitida"}
-              </Badge>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <h4 className="font-medium text-sm">Instâncias em Quarentena</h4>
-            <div className="text-sm text-muted-foreground">
-              {systemStatus?.quarantinedInstances?.length || 0} instâncias em quarentena
             </div>
           </div>
         </div>
@@ -172,6 +221,15 @@ export function ConnectionStabilityDashboard() {
           >
             <Shield className="h-4 w-4" />
             Iniciar Sistema Estabilidade
+          </Button>
+
+          <Button 
+            onClick={handleVPSHealthCheck}
+            variant="outline"
+            className="gap-2"
+          >
+            <Activity className="h-4 w-4" />
+            Verificar VPS
           </Button>
 
           <Button 
@@ -247,7 +305,8 @@ export function ConnectionStabilityDashboard() {
 
         {/* Explicação */}
         <div className="text-xs text-muted-foreground space-y-1">
-          <p><strong>Sistema de Estabilidade:</strong> Monitora e recupera conexões automaticamente</p>
+          <p><strong>Sistema de Estabilidade:</strong> Monitora VPS e recupera conexões automaticamente</p>
+          <p><strong>Verificar VPS:</strong> Testa conectividade e saúde do servidor VPS</p>
           <p><strong>Buscar Órfãs:</strong> Encontra instâncias ativas na VPS mas perdidas no banco</p>
           <p><strong>Recuperação Forçada:</strong> Restaura todas as instâncias em quarentena</p>
         </div>

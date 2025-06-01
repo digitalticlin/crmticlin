@@ -1,6 +1,7 @@
 
 import { OrphanInstanceRecoveryService } from "@/services/whatsapp/services/orphanInstanceRecoveryService";
 import { StabilityService } from "@/services/whatsapp/services/stabilityService";
+import { VPSHealthService } from "@/services/whatsapp/services/vpsHealthService";
 
 export class ConnectionStabilityService {
   private static recoveryCleanup: (() => void) | null = null;
@@ -12,16 +13,19 @@ export class ConnectionStabilityService {
   static startStabilitySystem(companyId: string) {
     console.log('[ConnectionStability] Iniciando sistema completo de estabilidade para empresa:', companyId);
 
-    // 1. Aplicar configurações de estabilidade
+    // 1. Iniciar monitoramento de saúde do VPS
+    VPSHealthService.startHealthMonitoring(5); // A cada 5 minutos
+
+    // 2. Aplicar configurações de estabilidade
     StabilityService.applyStabilitySettings();
 
-    // 2. Executar recuperação imediata de órfãs
+    // 3. Executar recuperação imediata de órfãs
     this.performImmediateRecovery(companyId);
 
-    // 3. Iniciar auto-recuperação
+    // 4. Iniciar auto-recuperação
     this.recoveryCleanup = OrphanInstanceRecoveryService.startAutoRecovery(companyId, 10); // A cada 10 minutos
 
-    // 4. Iniciar monitoramento conservador
+    // 5. Iniciar monitoramento conservador
     this.stabilityCleanup = StabilityService.startConservativeMonitoring();
 
     console.log('[ConnectionStability] Sistema de estabilidade iniciado com sucesso');
@@ -61,6 +65,9 @@ export class ConnectionStabilityService {
   static stopStabilitySystem() {
     console.log('[ConnectionStability] Parando sistema de estabilidade');
 
+    // Parar monitoramento de saúde do VPS
+    VPSHealthService.stopHealthMonitoring();
+
     if (this.recoveryCleanup) {
       this.recoveryCleanup();
       this.recoveryCleanup = null;
@@ -94,11 +101,20 @@ export class ConnectionStabilityService {
    * Obtém status do sistema
    */
   static getSystemStatus() {
+    const vpsHealth = VPSHealthService.getHealthStatus();
+    
     return {
       recoveryActive: this.recoveryCleanup !== null,
       stabilityActive: this.stabilityCleanup !== null,
       quarantinedInstances: StabilityService.getQuarantineStatus(),
-      removalDisabled: !StabilityService.isRemovalAllowed()
+      removalDisabled: !StabilityService.isRemovalAllowed(),
+      vpsHealth: {
+        isOnline: vpsHealth.isOnline,
+        responseTime: vpsHealth.responseTime,
+        lastChecked: vpsHealth.lastChecked,
+        consecutiveFailures: vpsHealth.consecutiveFailures,
+        error: vpsHealth.error
+      }
     };
   }
 }

@@ -1,6 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { VPSAuditService } from "./vpsAuditService";
+import { VPSHealthService } from "./vpsHealthService";
 import { toast } from "sonner";
 
 export interface OrphanInstance {
@@ -29,25 +29,31 @@ export class OrphanInstanceRecoveryService {
         throw new Error('Company ID é obrigatório');
       }
 
-      // 2. Buscar todas as conexões VPS com melhor tratamento de erro
-      console.log('[OrphanRecovery] Buscando conexões VPS...');
-      const vpsResult = await VPSAuditService.listVPSConnections();
+      // 2. Verificar saúde do VPS antes de prosseguir
+      console.log('[OrphanRecovery] Verificando saúde do VPS...');
+      const healthStatus = await VPSHealthService.checkVPSHealth();
       
-      if (!vpsResult.success) {
-        console.error('[OrphanRecovery] Falha ao listar VPS:', vpsResult.error);
-        throw new Error(`Falha ao conectar com VPS: ${vpsResult.error}`);
+      if (!healthStatus.isOnline) {
+        const errorMsg = `VPS offline ou inacessível: ${healthStatus.error}`;
+        console.error('[OrphanRecovery]', errorMsg);
+        throw new Error(errorMsg);
       }
 
-      const vpsConnections = vpsResult.data || [];
-      console.log('[OrphanRecovery] Conexões VPS encontradas:', vpsConnections.length);
+      console.log('[OrphanRecovery] ✅ VPS está online, prosseguindo...');
 
-      // Se não há conexões VPS, não há órfãs
-      if (vpsConnections.length === 0) {
-        console.log('[OrphanRecovery] Nenhuma conexão VPS encontrada');
+      // 3. Buscar instâncias do VPS usando o serviço de saúde
+      console.log('[OrphanRecovery] Buscando instâncias do VPS...');
+      const vpsInstances = await VPSHealthService.getVPSInstances();
+      
+      console.log('[OrphanRecovery] Instâncias VPS encontradas:', vpsInstances.length);
+
+      // Se não há instâncias VPS, não há órfãs
+      if (vpsInstances.length === 0) {
+        console.log('[OrphanRecovery] Nenhuma instância VPS encontrada');
         return { found: [], recovered: 0, errors: [] };
       }
 
-      // 3. Buscar instâncias do banco para a empresa
+      // 4. Buscar instâncias do banco para a empresa
       console.log('[OrphanRecovery] Buscando instâncias do banco...');
       const { data: dbInstances, error: dbError } = await supabase
         .from('whatsapp_instances')
@@ -66,17 +72,20 @@ export class OrphanInstanceRecoveryService {
         dbInstances?.map(i => i.vps_instance_id).filter(Boolean) || []
       );
       
-      // 4. Identificar órfãs (VPS ativo mas não no banco)
-      const orphanInstances: OrphanInstance[] = vpsConnections
+      // 5. Identificar órfãs (VPS ativo mas não no banco)
+      const orphanInstances: OrphanInstance[] = vpsInstances
         .filter(vps => {
-          const isConnected = vps.state === 'CONNECTED';
-          const isReady = vps.isReady === true;
-          const notInDB = !dbInstanceIds.has(vps.instanceId);
+          const instanceId = vps.instanceId || vps.id || vps.instance_id;
+          const state = vps.state || vps.status || 'unknown';
+          const isReady = Boolean(vps.isReady || vps.is_ready || vps.ready);
+          const isConnected = state === 'CONNECTED' || state === 'ready';
+          const notInDB = !dbInstanceIds.has(instanceId);
           
           console.log('[OrphanRecovery] Analisando VPS:', {
-            instanceId: vps.instanceId,
-            state: vps.state,
-            isReady: vps.isReady,
+            instanceId,
+            state,
+            isReady,
+            isConnected,
             notInDB,
             willInclude: isConnected && isReady && notInDB
           });
@@ -84,12 +93,12 @@ export class OrphanInstanceRecoveryService {
           return isConnected && isReady && notInDB;
         })
         .map(vps => ({
-          vpsInstanceId: vps.instanceId,
-          sessionName: vps.sessionName || `recovered_${Date.now()}`,
-          state: vps.state,
-          isReady: vps.isReady,
-          phone: vps.phone,
-          name: vps.name
+          vpsInstanceId: vps.instanceId || vps.id || vps.instance_id,
+          sessionName: vps.sessionName || vps.session_name || vps.name || `recovered_${Date.now()}`,
+          state: vps.state || vps.status || 'CONNECTED',
+          isReady: Boolean(vps.isReady || vps.is_ready || vps.ready),
+          phone: vps.phone || vps.number || vps.phoneNumber,
+          name: vps.name || vps.profile_name || vps.profileName
         }));
 
       console.log('[OrphanRecovery] Instâncias órfãs encontradas:', orphanInstances.length);
@@ -99,7 +108,7 @@ export class OrphanInstanceRecoveryService {
         return { found: [], recovered: 0, errors: [] };
       }
 
-      // 5. Recuperar instâncias órfãs
+      // 6. Recuperar instâncias órfãs
       const recovered: number[] = [];
       const errors: string[] = [];
 
@@ -123,7 +132,7 @@ export class OrphanInstanceRecoveryService {
               phone: orphan.phone || '',
               profile_name: orphan.name || '',
               date_connected: new Date().toISOString(),
-              server_url: 'http://31.97.24.222:3001', // URL do VPS
+              server_url: 'http://31.97.24.222:3001',
               session_data: {
                 recovered: true,
                 recoveredAt: new Date().toISOString(),
