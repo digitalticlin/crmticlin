@@ -3,6 +3,7 @@ import { VPSConfigCard } from "./vps/VPSConfigCard";
 import { TestResultsCard } from "./vps/TestResultsCard";
 import { VPSDiagnosticTest } from "./VPSDiagnosticTest";
 import { VPSWebhookTest } from "./VPSWebhookTest";
+import { VPSAutoFixPanel } from "./vps/VPSAutoFixPanel";
 import { useVPSTest } from "./vps/useVPSTest";
 
 export const VPSTestPanel = () => {
@@ -29,6 +30,9 @@ export const VPSTestPanel = () => {
           vpsConfig={VPS_CONFIG}
         />
       )}
+
+      {/* Painel de Correção Automática */}
+      <VPSAutoFixPanel />
 
       {/* Teste específico de webhook */}
       <VPSWebhookTest />
