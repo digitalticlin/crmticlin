@@ -18,10 +18,29 @@ export interface WhatsAppWebInstance {
   company_id: string;
 }
 
+export interface AutoConnectState {
+  isConnecting: boolean;
+  showQRModal: boolean;
+  activeInstanceId: string | null;
+  error: string | null;
+}
+
 export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boolean) => {
   const [instances, setInstances] = useState<WhatsAppWebInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [autoConnectState, setAutoConnectState] = useState<AutoConnectState>({
+    isConnecting: false,
+    showQRModal: false,
+    activeInstanceId: null,
+    error: null
+  });
+
+  const generateInstanceName = () => {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 8);
+    return `whatsapp_${timestamp}_${random}`;
+  };
 
   const fetchInstances = async () => {
     if (!companyId) {
@@ -51,6 +70,49 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const startAutoConnection = async () => {
+    try {
+      setAutoConnectState(prev => ({ 
+        ...prev, 
+        isConnecting: true, 
+        error: null 
+      }));
+
+      const instanceName = generateInstanceName();
+      const result = await WhatsAppWebService.createInstance(instanceName);
+
+      if (!result.success) {
+        throw new Error(result.error || 'Falha ao criar instância');
+      }
+
+      const newInstanceId = result.instance?.id;
+      if (newInstanceId) {
+        setAutoConnectState(prev => ({
+          ...prev,
+          activeInstanceId: newInstanceId,
+          showQRModal: true
+        }));
+      }
+
+      toast.success('Instância criada! Escaneie o QR code para conectar.');
+      await fetchInstances();
+
+    } catch (error) {
+      console.error('Error in auto connect:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      
+      setAutoConnectState(prev => ({
+        ...prev,
+        error: errorMessage,
+        isConnecting: false
+      }));
+      
+      toast.error(errorMessage);
+    } finally {
+      setAutoConnectState(prev => ({ ...prev, isConnecting: false }));
     }
   };
 
@@ -146,6 +208,22 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
     }
   };
 
+  const closeQRModal = () => {
+    setAutoConnectState(prev => ({ 
+      ...prev, 
+      showQRModal: false,
+      activeInstanceId: null 
+    }));
+  };
+
+  const openQRModal = (instanceId: string) => {
+    setAutoConnectState(prev => ({ 
+      ...prev, 
+      showQRModal: true,
+      activeInstanceId: instanceId 
+    }));
+  };
+
   // Subscribe to real-time updates
   useEffect(() => {
     if (!companyId) return;
@@ -186,10 +264,14 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
     instances,
     loading,
     error,
+    autoConnectState,
     createInstance,
     deleteInstance,
     refreshQRCode,
     sendMessage,
+    startAutoConnection,
+    closeQRModal,
+    openQRModal,
     refetch: fetchInstances
   };
 };

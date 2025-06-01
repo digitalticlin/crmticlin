@@ -1,10 +1,8 @@
 
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
-import { useAutoConnect } from "@/hooks/whatsapp/useAutoConnect";
 import { WhatsAppWebInstanceCard } from "./WhatsAppWebInstanceCard";
 import { ConnectWhatsAppButton } from "./ConnectWhatsAppButton";
-import { ConnectingInstanceCard } from "./ConnectingInstanceCard";
 import { AutoQRCodeModal } from "./AutoQRCodeModal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wifi } from "lucide-react";
@@ -14,18 +12,13 @@ export function WhatsAppWebSection() {
   const {
     instances,
     loading: instancesLoading,
+    autoConnectState,
     deleteInstance,
-    refreshQRCode
-  } = useWhatsAppWebInstances(companyId, companyLoading);
-
-  const {
-    state: autoConnectState,
-    startConnection,
+    refreshQRCode,
+    startAutoConnection,
     closeQRModal,
-    openQRModal,
-    refreshQRCode: refreshAutoQR,
-    reset
-  } = useAutoConnect();
+    openQRModal
+  } = useWhatsAppWebInstances(companyId, companyLoading);
 
   const isLoading = companyLoading || instancesLoading;
 
@@ -54,6 +47,11 @@ export function WhatsAppWebSection() {
     );
   }
 
+  // Encontrar a instância ativa do QR modal
+  const activeInstance = autoConnectState.activeInstanceId 
+    ? instances.find(i => i.id === autoConnectState.activeInstanceId)
+    : null;
+
   return (
     <div className="space-y-6">
       <Card>
@@ -69,25 +67,11 @@ export function WhatsAppWebSection() {
       </Card>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* Botão de conexão ou card de instância em processo */}
-        {!autoConnectState.instanceId ? (
-          <ConnectWhatsAppButton
-            onConnect={startConnection}
-            isConnecting={autoConnectState.isConnecting}
-          />
-        ) : (
-          <ConnectingInstanceCard
-            instanceId={autoConnectState.instanceId}
-            status={autoConnectState.error ? 'error' : 
-                   autoConnectState.qrCode ? 'waiting_scan' : 'connecting'}
-            error={autoConnectState.error}
-            onShowQR={openQRModal}
-            onRefresh={() => {
-              reset();
-              startConnection();
-            }}
-          />
-        )}
+        {/* Botão de conexão */}
+        <ConnectWhatsAppButton
+          onConnect={startAutoConnection}
+          isConnecting={autoConnectState.isConnecting}
+        />
 
         {/* Instâncias existentes */}
         {instances.map((instance) => (
@@ -96,12 +80,14 @@ export function WhatsAppWebSection() {
             instance={instance}
             onDelete={deleteInstance}
             onRefreshQR={refreshQRCode}
+            onShowQR={() => openQRModal(instance.id)}
+            isNewInstance={instance.id === autoConnectState.activeInstanceId}
           />
         ))}
       </div>
 
-      {/* Estado vazio apenas se não há instâncias E não está conectando */}
-      {instances.length === 0 && !instancesLoading && !autoConnectState.instanceId && (
+      {/* Estado vazio apenas se não há instâncias */}
+      {instances.length === 0 && !instancesLoading && (
         <Card>
           <CardContent className="text-center py-8">
             <Wifi className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
@@ -113,13 +99,17 @@ export function WhatsAppWebSection() {
         </Card>
       )}
 
-      {/* Modal do QR Code automático */}
+      {/* Modal do QR Code */}
       <AutoQRCodeModal
         isOpen={autoConnectState.showQRModal}
         onOpenChange={closeQRModal}
-        qrCode={autoConnectState.qrCode}
-        isLoading={autoConnectState.isConnecting && !autoConnectState.qrCode}
-        onRefresh={refreshAutoQR}
+        qrCode={activeInstance?.qr_code || null}
+        isLoading={autoConnectState.isConnecting && !activeInstance?.qr_code}
+        onRefresh={() => {
+          if (activeInstance) {
+            refreshQRCode(activeInstance.id);
+          }
+        }}
       />
     </div>
   );
