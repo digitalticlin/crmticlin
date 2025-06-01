@@ -88,15 +88,6 @@ export function InstanceCardContent({
             <span>{instance.profile_name}</span>
           </div>
         )}
-        
-        {instance.date_connected && isConnected && (
-          <div className="flex items-center gap-2">
-            <Calendar className="h-3 w-3 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">
-              Conectado em {new Date(instance.date_connected).toLocaleString('pt-BR')}
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Informações técnicas (apenas para debug se necessário) */}
