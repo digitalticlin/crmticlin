@@ -6,6 +6,7 @@ import { useWhatsAppContacts } from './whatsapp/useWhatsAppContacts';
 import { useWhatsAppMessages } from './whatsapp/useWhatsAppMessages';
 import { useCompanyResolver } from './whatsapp/useCompanyResolver';
 import { useContactNotes } from './whatsapp/useContactNotes';
+import { useRealtimeMessages } from './chat/useRealtimeMessages';
 import { WhatsAppWebInstance } from './whatsapp/useWhatsAppWebInstances';
 
 // Hook simplificado para WhatsApp Web.js apenas
@@ -56,6 +57,14 @@ export const useWhatsAppChat = (userEmail: string) => {
     setContactNotes,
     updateContactNotes
   } = useContactNotes(selectedContact);
+
+  // Setup realtime messages
+  useRealtimeMessages({
+    selectedContact,
+    activeInstanceId: activeInstance?.id || null,
+    onNewMessage: fetchMessages,
+    onContactUpdate: fetchContacts
+  });
 
   // Update selected contact with changes like notes
   const updateSelectedContactData = (updates: Partial<Contact>) => {
