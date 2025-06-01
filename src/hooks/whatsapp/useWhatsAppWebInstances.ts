@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from "sonner";
 import { WhatsAppWebInstance, AutoConnectState } from "./types/whatsappWebInstanceTypes";
@@ -6,6 +5,7 @@ import { InstanceService } from "./services/instanceService";
 import { InstanceDataService } from "./services/instanceDataService";
 import { PollingService } from "./services/pollingService";
 import { HealthMonitoringService } from "./services/healthMonitoringService";
+import { ConnectionStabilityService } from "./services/connectionStabilityService";
 import { useCompanyData } from "@/hooks/useCompanyData";
 
 export const useWhatsAppWebInstances = () => {
@@ -35,8 +35,8 @@ export const useWhatsAppWebInstances = () => {
       const data = await InstanceDataService.fetchInstances(companyId);
       setInstances(data);
 
-      // Start health monitoring for connected instances
-      HealthMonitoringService.startMonitoringForInstances(data);
+      // NOVO: Iniciar sistema de estabilidade em vez de health monitoring simples
+      ConnectionStabilityService.startStabilitySystem(companyId);
     } catch (err) {
       console.error('[useWhatsAppWebInstances] Error fetching instances:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -112,7 +112,8 @@ export const useWhatsAppWebInstances = () => {
     try {
       setLoading(true);
       
-      HealthMonitoringService.stopMonitoringForInstance(instanceId);
+      // REMOVIDO: HealthMonitoringService.stopMonitoringForInstance(instanceId);
+      // NOVO: O sistema de estabilidade gerencia isso automaticamente
       await InstanceService.deleteInstance(instanceId);
       await fetchInstances();
       
@@ -229,18 +230,13 @@ export const useWhatsAppWebInstances = () => {
     }));
   };
 
-  // Cleanup effect
+  // Cleanup effect - ATUALIZADO
   useEffect(() => {
     return () => {
-      HealthMonitoringService.stopAllMonitoring();
+      console.log('[useWhatsAppWebInstances] Cleanup - stopping stability system');
+      ConnectionStabilityService.stopStabilitySystem();
     };
   }, []);
-
-  // Polling effect
-  useEffect(() => {
-    if (!companyId || instances.length === 0) return;
-    return PollingService.setupPolling(instances, companyId);
-  }, [instances, companyId]);
 
   // Realtime subscription effect
   useEffect(() => {

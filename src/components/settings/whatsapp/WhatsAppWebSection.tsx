@@ -5,9 +5,10 @@ import { ConnectWhatsAppButton } from "./ConnectWhatsAppButton";
 import { AutoQRCodeModal } from "./AutoQRCodeModal";
 import { InstanceQRModal } from "./InstanceQRModal";
 import { ConnectedBanner } from "./ConnectedBanner";
+import { ConnectionStabilityDashboard } from "./ConnectionStabilityDashboard";
 
 export const WhatsAppWebSection = () => {
-  console.log('[WhatsAppWebSection] Rendering section');
+  console.log('[WhatsAppWebSection] Rendering section with stability dashboard');
   
   const [qrModalInstanceId, setQrModalInstanceId] = useState<string | null>(null);
   const [hasShownToast, setHasShownToast] = useState(false);
@@ -76,6 +77,9 @@ export const WhatsAppWebSection = () => {
 
   return (
     <div className="space-y-6">
+      {/* NOVO: Dashboard de Estabilidade */}
+      <ConnectionStabilityDashboard />
+
       {/* Toast notification for connected instances */}
       {connectedInstances.length > 0 && (
         <ConnectedBanner 
@@ -106,6 +110,7 @@ export const WhatsAppWebSection = () => {
         isConnecting={loading}
       />
 
+      {/* Modals */}
       <AutoQRCodeModal
         isOpen={autoConnectState.showQRModal}
         onOpenChange={closeQRModal}
