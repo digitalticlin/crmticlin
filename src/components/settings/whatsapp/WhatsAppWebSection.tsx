@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { WhatsAppWebInstanceCard } from "./WhatsAppWebInstanceCard";
 import { AddWhatsAppWebCard } from "./AddWhatsAppWebCard";
@@ -11,6 +11,7 @@ export const WhatsAppWebSection = () => {
   console.log('[WhatsAppWebSection] Rendering section');
   
   const [qrModalInstanceId, setQrModalInstanceId] = useState<string | null>(null);
+  const [hasShownToast, setHasShownToast] = useState(false);
   
   const {
     instances,
@@ -30,6 +31,13 @@ export const WhatsAppWebSection = () => {
     ['ready', 'open'].includes(instance.web_status || instance.connection_status) && 
     instance.phone && instance.phone !== ''
   );
+
+  // Reset toast flag when no connected instances
+  useEffect(() => {
+    if (connectedInstances.length === 0) {
+      setHasShownToast(false);
+    }
+  }, [connectedInstances.length]);
 
   const handleOpenQRModal = (instanceId: string) => {
     setQrModalInstanceId(instanceId);
@@ -65,7 +73,10 @@ export const WhatsAppWebSection = () => {
   return (
     <div className="space-y-4">
       {connectedInstances.length > 0 && (
-        <ConnectedBanner status="open" />
+        <ConnectedBanner 
+          status="open" 
+          shouldShowToast={!hasShownToast}
+        />
       )}
 
       {instances.length > 0 && (
@@ -112,6 +123,13 @@ export const WhatsAppWebSection = () => {
             }
           }}
         />
+      )}
+
+      {/* Trigger toast flag when showing connected instances */}
+      {connectedInstances.length > 0 && !hasShownToast && (
+        <div style={{ display: 'none' }}>
+          {setHasShownToast(true)}
+        </div>
       )}
     </div>
   );

@@ -1,17 +1,25 @@
 
-import React from "react";
+import React, { useEffect } from "react";
+import { toast } from "@/hooks/use-toast";
 
 interface ConnectedBannerProps {
   status?: string;
+  shouldShowToast?: boolean;
 }
 
-export const ConnectedBanner: React.FC<ConnectedBannerProps> = ({ status }) => {
-  if (status !== "open") return null;
-  return (
-    <div className="w-full bg-[#d3d800] bg-opacity-60 rounded-md flex items-center gap-2 p-2 mt-2 mb-3 shadow text-gray-900 font-semibold text-sm justify-center">
-      ✅ WhatsApp conectado com sucesso (aguardando mensagens)!
-    </div>
-  );
+export const ConnectedBanner: React.FC<ConnectedBannerProps> = ({ status, shouldShowToast }) => {
+  useEffect(() => {
+    if (status === "open" && shouldShowToast) {
+      toast({
+        title: "✅ WhatsApp conectado com sucesso",
+        description: "Aguardando mensagens...",
+        duration: 5000,
+      });
+    }
+  }, [status, shouldShowToast]);
+
+  // Não renderiza mais nada, apenas dispara o toast
+  return null;
 };
 
 export default ConnectedBanner;
