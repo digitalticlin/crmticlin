@@ -45,7 +45,7 @@ export const useAutoConnect = () => {
       setState(prev => ({
         ...prev,
         instanceId: result.instance?.id || null,
-        qrCode: result.instance?.qr_code || null
+        qrCode: result.instance?.qrCode || null
       }));
 
       toast.success('Instância criada! Escaneie o QR code para conectar.');
