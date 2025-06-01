@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
@@ -17,6 +16,7 @@ export interface WhatsAppWebInstance {
   phone?: string;
   profile_name?: string;
   company_id: string;
+  date_connected?: string;
 }
 
 export interface AutoConnectState {
