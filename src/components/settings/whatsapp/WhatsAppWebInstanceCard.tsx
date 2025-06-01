@@ -74,32 +74,58 @@ export function WhatsAppWebInstanceCard({
   const isConnected = ['ready', 'open'].includes(instance.web_status || instance.connection_status);
   const isConnecting = ['connecting', 'creating'].includes(instance.web_status || instance.connection_status);
 
-  // Auto-sync para instâncias em estado de conexão
+  // NOVO: Auto-sync mais agressivo para instâncias waiting_scan
   useEffect(() => {
-    if (!isConnecting || !onSyncStatus) return;
+    if (instance.web_status !== 'waiting_scan' || !onSyncStatus) return;
 
-    console.log('[WhatsAppWebInstanceCard] Starting auto-sync for connecting instance:', instance.id);
+    console.log('[WhatsAppWebInstanceCard] Starting AGGRESSIVE auto-sync for waiting_scan instance:', instance.id);
 
     const syncInterval = setInterval(async () => {
       try {
-        console.log('[WhatsAppWebInstanceCard] Auto-syncing instance:', instance.id);
+        console.log('[WhatsAppWebInstanceCard] Aggressive auto-sync for waiting_scan instance:', instance.id);
         await onSyncStatus(instance.id);
       } catch (error) {
-        console.error('[WhatsAppWebInstanceCard] Auto-sync error:', error);
+        console.error('[WhatsAppWebInstanceCard] Aggressive auto-sync error:', error);
       }
-    }, 15000); // Auto-sync a cada 15 segundos
+    }, 5000); // 5 segundos para instâncias waiting_scan
 
-    // Cleanup após 5 minutos para evitar polling infinito
+    // Cleanup após 5 minutos
     const timeout = setTimeout(() => {
       clearInterval(syncInterval);
-      console.log('[WhatsAppWebInstanceCard] Auto-sync timeout for instance:', instance.id);
+      console.log('[WhatsAppWebInstanceCard] Aggressive auto-sync timeout for instance:', instance.id);
     }, 300000); // 5 minutos
 
     return () => {
       clearInterval(syncInterval);
       clearTimeout(timeout);
     };
-  }, [isConnecting, onSyncStatus, instance.id]);
+  }, [instance.web_status, onSyncStatus, instance.id]);
+
+  // Auto-sync para instâncias em estado de conexão (menos agressivo)
+  useEffect(() => {
+    if (!isConnecting || instance.web_status === 'waiting_scan' || !onSyncStatus) return;
+
+    console.log('[WhatsAppWebInstanceCard] Starting standard auto-sync for connecting instance:', instance.id);
+
+    const syncInterval = setInterval(async () => {
+      try {
+        console.log('[WhatsAppWebInstanceCard] Standard auto-sync instance:', instance.id);
+        await onSyncStatus(instance.id);
+      } catch (error) {
+        console.error('[WhatsAppWebInstanceCard] Standard auto-sync error:', error);
+      }
+    }, 15000); // 15 segundos para outras instâncias conectando
+
+    const timeout = setTimeout(() => {
+      clearInterval(syncInterval);
+      console.log('[WhatsAppWebInstanceCard] Standard auto-sync timeout for instance:', instance.id);
+    }, 300000);
+
+    return () => {
+      clearInterval(syncInterval);
+      clearTimeout(timeout);
+    };
+  }, [isConnecting, instance.web_status, onSyncStatus, instance.id]);
 
   console.log('[WhatsAppWebInstanceCard] Instance status check:', {
     id: instance.id,
@@ -138,7 +164,6 @@ export function WhatsAppWebInstanceCard({
         </CardContent>
       </Card>
 
-      {/* Dialog local para QR code quando não usar modal externo */}
       {!onShowQR && (
         <InstanceQRModal
           showQR={showQR}
