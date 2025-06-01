@@ -6,14 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   Server, 
-  Wifi, 
-  Database, 
   CheckCircle, 
   XCircle, 
   AlertTriangle,
   RefreshCw,
   Terminal,
-  Globe,
   Layers
 } from "lucide-react";
 import { toast } from "sonner";
@@ -73,6 +70,8 @@ export const VPSDiagnosticPanel = () => {
     setResults([]);
     
     try {
+      console.log('[VPSDiagnostic] Iniciando diagnóstico completo...');
+
       // 1. Teste de Conectividade Básica
       await runTest('Conectividade VPS', async () => {
         const controller = new AbortController();
@@ -100,64 +99,8 @@ export const VPSDiagnosticPanel = () => {
         }
       });
 
-      // 2. Teste de Estrutura de Diretórios
-      await runTest('Estrutura de Diretórios', async () => {
-        const response = await fetch(`${VPS_CONFIG.baseUrl}/debug/structure`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Endpoint não disponível: ${response.status}`);
-        }
-        
-        return await response.json();
-      });
-
-      // 3. Teste de Dependências Node.js
-      await runTest('Dependências Node.js', async () => {
-        const response = await fetch(`${VPS_CONFIG.baseUrl}/debug/dependencies`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Endpoint não disponível: ${response.status}`);
-        }
-        
-        return await response.json();
-      });
-
-      // 4. Teste de Configuração WhatsApp Web.js
-      await runTest('Configuração WhatsApp Web.js', async () => {
-        const response = await fetch(`${VPS_CONFIG.baseUrl}/debug/whatsapp-config`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Endpoint não disponível: ${response.status}`);
-        }
-        
-        return await response.json();
-      });
-
-      // 5. Teste de Persistência de Sessão
-      await runTest('Persistência de Sessão', async () => {
-        const response = await fetch(`${VPS_CONFIG.baseUrl}/debug/session-config`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Endpoint não disponível: ${response.status}`);
-        }
-        
-        return await response.json();
-      });
-
-      // 6. Teste de Lista de Instâncias Ativas
-      await runTest('Lista de Instâncias Ativas', async () => {
+      // 2. Teste de Lista de Instâncias
+      await runTest('Lista de Instâncias', async () => {
         const response = await fetch(`${VPS_CONFIG.baseUrl}/instances`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
@@ -171,77 +114,15 @@ export const VPSDiagnosticPanel = () => {
         return data;
       });
 
-      // 7. Teste de Criação de Instância (simulação)
-      await runTest('Teste de Criação de Instância', async () => {
-        const testInstanceId = `test_${Date.now()}`;
-        
-        const createResponse = await fetch(`${VPS_CONFIG.baseUrl}/test-create`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            instanceId: testInstanceId,
-            testMode: true
-          })
-        });
-        
-        if (!createResponse.ok) {
-          throw new Error(`Falha na criação: ${createResponse.status}`);
-        }
-        
-        const createData = await createResponse.json();
-        
-        // Verificar se a instância foi criada
-        const verifyResponse = await fetch(`${VPS_CONFIG.baseUrl}/status/${testInstanceId}`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        const verifyData = verifyResponse.ok ? await verifyResponse.json() : null;
-        
-        return {
-          creation: createData,
-          verification: verifyData,
-          persistent: !!verifyData
-        };
-      });
-
-      // 8. Teste de Webhook
-      await runTest('Configuração de Webhook', async () => {
-        const response = await fetch(`${VPS_CONFIG.baseUrl}/debug/webhook-config`, {
+      // 3. Teste de Dependências (se endpoint disponível)
+      await runTest('Dependências Node.js', async () => {
+        const response = await fetch(`${VPS_CONFIG.baseUrl}/debug/dependencies`, {
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
         });
         
         if (!response.ok) {
           throw new Error(`Endpoint não disponível: ${response.status}`);
-        }
-        
-        return await response.json();
-      });
-
-      // 9. Teste de Logs do Sistema
-      await runTest('Logs do Sistema', async () => {
-        const response = await fetch(`${VPS_CONFIG.baseUrl}/debug/logs`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Logs não disponíveis: ${response.status}`);
-        }
-        
-        return await response.json();
-      });
-
-      // 10. Teste de Recursos do Sistema
-      await runTest('Recursos do Sistema', async () => {
-        const response = await fetch(`${VPS_CONFIG.baseUrl}/debug/system-resources`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Recursos não disponíveis: ${response.status}`);
         }
         
         return await response.json();
@@ -290,10 +171,10 @@ export const VPSDiagnosticPanel = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Terminal className="h-5 w-5 text-blue-600" />
-            Diagnóstico Completo da VPS
+            Diagnóstico Automático da VPS
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Execute testes completos para identificar problemas de configuração na VPS Node.js
+            Execute testes automáticos para identificar problemas de configuração na VPS Node.js
           </p>
         </CardHeader>
         
@@ -303,7 +184,7 @@ export const VPSDiagnosticPanel = () => {
             <AlertDescription>
               <strong>VPS Target:</strong> {VPS_CONFIG.host}:{VPS_CONFIG.port}
               <br />
-              Este diagnóstico irá testar todos os aspectos críticos da configuração.
+              Este diagnóstico irá testar conectividade, instâncias e dependências.
             </AlertDescription>
           </Alert>
 
@@ -316,7 +197,7 @@ export const VPSDiagnosticPanel = () => {
             {isRunning ? (
               <>
                 <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Executando Diagnóstico... {currentTest && `(${currentTest})`}
+                Executando... {currentTest && `(${currentTest})`}
               </>
             ) : (
               <>

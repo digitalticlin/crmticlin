@@ -46,48 +46,6 @@ const TEST_COMMANDS: TestCommand[] = [
     expectedResult: "Lista de dependências com versões"
   },
   {
-    name: "Estrutura de Arquivos",
-    description: "Verifica estrutura de diretórios",
-    endpoint: "/debug/structure",
-    method: "GET",
-    expectedResult: "Estrutura de diretórios do projeto"
-  },
-  {
-    name: "Configuração WhatsApp",
-    description: "Verifica configuração do WhatsApp Web.js",
-    endpoint: "/debug/whatsapp-config",
-    method: "GET",
-    expectedResult: "Configurações de sessão e persistência"
-  },
-  {
-    name: "Status Sessões",
-    description: "Verifica configuração de persistência",
-    endpoint: "/debug/session-config",
-    method: "GET",
-    expectedResult: "Configurações de persistência de sessão"
-  },
-  {
-    name: "Webhook Config",
-    description: "Verifica configuração de webhooks",
-    endpoint: "/debug/webhook-config",
-    method: "GET",
-    expectedResult: "URLs e configurações de webhook"
-  },
-  {
-    name: "Logs Sistema",
-    description: "Obtém logs recentes do sistema",
-    endpoint: "/debug/logs",
-    method: "GET",
-    expectedResult: "Logs recentes do servidor"
-  },
-  {
-    name: "Recursos Sistema",
-    description: "Verifica uso de CPU/Memória",
-    endpoint: "/debug/system-resources",
-    method: "GET",
-    expectedResult: "Uso de recursos do sistema"
-  },
-  {
     name: "Teste Criação",
     description: "Testa criação de instância",
     endpoint: "/test-create",
