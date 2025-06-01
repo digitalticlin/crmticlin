@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -165,7 +166,7 @@ export function WhatsAppWebInstanceCard({
               <Wifi className="h-4 w-4 text-green-600" />
               <CardTitle className="text-lg">WhatsApp Web</CardTitle>
               {hasDiscrepancy && (
-                <AlertTriangle className="h-4 w-4 text-orange-500" title="Possível discrepância de status" />
+                <AlertTriangle className="h-4 w-4 text-orange-500" />
               )}
             </div>
             <Badge 
