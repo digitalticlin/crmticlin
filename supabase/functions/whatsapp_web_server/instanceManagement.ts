@@ -2,7 +2,7 @@ import { VPS_CONFIG, corsHeaders } from './config.ts';
 import { InstanceData } from './types.ts';
 
 export async function createWhatsAppInstance(supabase: any, instanceData: InstanceData, userId: string) {
-  console.log('Creating WhatsApp Web.js instance:', instanceData);
+  console.log('Creating WhatsApp Web.js instance with persistence:', instanceData);
 
   try {
     // Get user company
@@ -50,23 +50,33 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
     const webhookUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/webhook_whatsapp_web`;
     console.log('Webhook URL:', webhookUrl);
 
-    // Send command to VPS to create WhatsApp instance
+    // Send command to VPS to create WhatsApp instance WITH persistence settings
     console.log(`Sending create request to: ${VPS_CONFIG.baseUrl}/create`);
     
     const vpsPayload = {
       instanceId: vpsInstanceId,
       sessionName: instanceData.instanceName,
-      webhookUrl: webhookUrl
+      webhookUrl: webhookUrl,
+      // Configurações de persistência
+      persistent: true,
+      autoReconnect: true,
+      sessionTimeout: 7200000, // 2 horas
+      heartbeatInterval: 30000, // 30 segundos
+      keepAlive: true,
+      reconnectOnDisconnect: true,
+      maxReconnectAttempts: 5,
+      reconnectDelay: 60000 // 1 minuto
     };
     
-    console.log('VPS payload:', JSON.stringify(vpsPayload, null, 2));
+    console.log('VPS payload with persistence:', JSON.stringify(vpsPayload, null, 2));
 
     const vpsResponse = await fetch(`${VPS_CONFIG.baseUrl}/create`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(vpsPayload)
+      body: JSON.stringify(vpsPayload),
+      signal: AbortSignal.timeout(45000) // 45 segundos para criação
     });
 
     console.log('VPS response status:', vpsResponse.status);
@@ -127,7 +137,7 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
       }
     }
 
-    console.log('Instance creation completed successfully');
+    console.log('Instance creation completed successfully with persistence enabled');
 
     return new Response(
       JSON.stringify({
@@ -159,7 +169,7 @@ export async function deleteWhatsAppInstance(supabase: any, instanceId: string) 
     throw new Error('Instance not found');
   }
 
-  // Send delete command to VPS
+  // Send delete command to VPS with proper cleanup
   try {
     const response = await fetch(`${VPS_CONFIG.baseUrl}/delete`, {
       method: 'POST',
@@ -167,12 +177,17 @@ export async function deleteWhatsAppInstance(supabase: any, instanceId: string) 
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        instanceId: instance.vps_instance_id
-      })
+        instanceId: instance.vps_instance_id,
+        forceCleanup: true, // Força limpeza completa
+        clearSession: true  // Limpa dados de sessão
+      }),
+      signal: AbortSignal.timeout(30000) // 30 segundos para limpeza
     });
 
     if (!response.ok) {
       console.error(`VPS delete failed: HTTP ${response.status}`);
+    } else {
+      console.log('VPS cleanup completed successfully');
     }
   } catch (error) {
     console.error('Error deleting from VPS:', error);

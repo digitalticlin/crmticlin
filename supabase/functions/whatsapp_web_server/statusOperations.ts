@@ -1,4 +1,3 @@
-
 import { VPS_CONFIG, corsHeaders } from './config.ts';
 
 export async function getInstanceStatus(instanceId: string) {
@@ -10,7 +9,7 @@ export async function getInstanceStatus(instanceId: string) {
       headers: {
         'Content-Type': 'application/json'
       },
-      signal: AbortSignal.timeout(10000)
+      signal: AbortSignal.timeout(20000) // 20 segundos
     });
 
     console.log('[StatusOperations] VPS response status:', response.status);
@@ -49,7 +48,7 @@ export async function getQRCode(instanceId: string) {
       headers: {
         'Content-Type': 'application/json'
       },
-      signal: AbortSignal.timeout(10000)
+      signal: AbortSignal.timeout(20000) // 20 segundos
     });
 
     console.log('[StatusOperations] QR response status:', response.status);
@@ -83,13 +82,13 @@ export async function syncInstanceStatus(supabase: any, vpsInstanceId: string, f
   console.log('[StatusOperations] Syncing status for VPS instance:', vpsInstanceId, 'Force update:', forceUpdate);
   
   try {
-    // Primeiro busca o status no VPS
+    // Primeiro busca o status no VPS com timeout maior
     const vpsResponse = await fetch(`${VPS_CONFIG.baseUrl}/status/${vpsInstanceId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
       },
-      signal: AbortSignal.timeout(10000)
+      signal: AbortSignal.timeout(20000) // 20 segundos
     });
 
     if (!vpsResponse.ok) {
@@ -346,16 +345,19 @@ export async function forceReconnect(supabase: any, instanceId: string) {
       throw new Error('No VPS instance ID found');
     }
 
-    // Tentar reconectar no VPS
+    // Tentar reconectar no VPS com timeout maior e configurações de persistência
     const reconnectResponse = await fetch(`${VPS_CONFIG.baseUrl}/reconnect`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        instanceId: instance.vps_instance_id
+        instanceId: instance.vps_instance_id,
+        persistent: true, // Configurar para persistência
+        autoReconnect: true,
+        sessionTimeout: 7200000 // 2 horas
       }),
-      signal: AbortSignal.timeout(15000)
+      signal: AbortSignal.timeout(45000) // 45 segundos para reconexão
     });
 
     if (!reconnectResponse.ok) {
