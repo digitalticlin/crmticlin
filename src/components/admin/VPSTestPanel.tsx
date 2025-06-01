@@ -2,6 +2,7 @@
 import { VPSConfigCard } from "./vps/VPSConfigCard";
 import { TestResultsCard } from "./vps/TestResultsCard";
 import { VPSDiagnosticTest } from "./VPSDiagnosticTest";
+import { VPSWebhookTest } from "./VPSWebhookTest";
 import { useVPSTest } from "./vps/useVPSTest";
 
 export const VPSTestPanel = () => {
@@ -29,7 +30,10 @@ export const VPSTestPanel = () => {
         />
       )}
 
-      {/* Novo componente de diagnóstico completo */}
+      {/* Teste específico de webhook */}
+      <VPSWebhookTest />
+
+      {/* Diagnóstico completo */}
       <VPSDiagnosticTest />
     </div>
   );
