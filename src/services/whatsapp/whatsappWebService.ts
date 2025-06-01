@@ -6,6 +6,7 @@ import { InstanceManagementService } from "./services/instanceManagementService"
 import { InstanceStatusService } from "./services/instanceStatusService";
 import { MessagingService } from "./services/messagingService";
 import { ServerMonitoringService } from "./services/serverMonitoringService";
+import { ForceSyncService } from "./services/forceSyncService";
 
 export class WhatsAppWebService {
   // Instance Management
@@ -16,6 +17,7 @@ export class WhatsAppWebService {
   static getInstanceStatus = InstanceStatusService.getInstanceStatus;
   static getQRCode = InstanceStatusService.getQRCode;
   static syncInstanceStatus = InstanceStatusService.syncInstanceStatus;
+  static forceSync = ForceSyncService.forceSync;
 
   // Messaging
   static sendMessage = MessagingService.sendMessage;

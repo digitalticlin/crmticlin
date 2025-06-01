@@ -10,7 +10,7 @@ export async function getInstanceStatus(instanceId: string) {
       headers: {
         'Content-Type': 'application/json'
       },
-      signal: AbortSignal.timeout(10000) // Aumentado para 10s
+      signal: AbortSignal.timeout(10000)
     });
 
     console.log('[StatusOperations] VPS response status:', response.status);
@@ -79,8 +79,8 @@ export async function getQRCode(instanceId: string) {
   }
 }
 
-export async function syncInstanceStatus(supabase: any, vpsInstanceId: string) {
-  console.log('[StatusOperations] Syncing status for VPS instance:', vpsInstanceId);
+export async function syncInstanceStatus(supabase: any, vpsInstanceId: string, forceUpdate: boolean = false) {
+  console.log('[StatusOperations] Syncing status for VPS instance:', vpsInstanceId, 'Force update:', forceUpdate);
   
   try {
     // Primeiro busca o status no VPS
@@ -93,11 +93,13 @@ export async function syncInstanceStatus(supabase: any, vpsInstanceId: string) {
     });
 
     if (!vpsResponse.ok) {
-      throw new Error(`VPS HTTP ${vpsResponse.status}`);
+      const errorText = await vpsResponse.text();
+      console.error('[StatusOperations] VPS HTTP Error:', vpsResponse.status, errorText);
+      throw new Error(`VPS HTTP ${vpsResponse.status}: ${errorText}`);
     }
 
     const vpsStatus = await vpsResponse.json();
-    console.log('[StatusOperations] VPS status:', JSON.stringify(vpsStatus, null, 2));
+    console.log('[StatusOperations] VPS status response:', JSON.stringify(vpsStatus, null, 2));
 
     // Busca a instância no banco
     const { data: instance, error: fetchError } = await supabase
@@ -111,75 +113,118 @@ export async function syncInstanceStatus(supabase: any, vpsInstanceId: string) {
       throw new Error(`Database error: ${fetchError.message}`);
     }
 
-    console.log('[StatusOperations] Current instance in DB:', instance);
+    console.log('[StatusOperations] Current instance in DB:', JSON.stringify(instance, null, 2));
 
-    // Normalizar valores para comparação
-    const vpsConnected = vpsStatus.connected === true;
-    const vpsPhone = vpsStatus.phone || '';
-    const vpsName = vpsStatus.name || vpsStatus.profileName || '';
+    // Extrair valores do VPS - múltiplos formatos possíveis
+    const vpsConnected = vpsStatus.connected === true || 
+                        vpsStatus.status?.connected === true ||
+                        vpsStatus.state === 'CONNECTED' ||
+                        vpsStatus.status?.state === 'CONNECTED';
     
-    const dbConnected = ['ready', 'open'].includes(instance.connection_status) || ['ready', 'open'].includes(instance.web_status);
-    const dbPhone = instance.phone || '';
+    const vpsPhone = vpsStatus.phone || 
+                    vpsStatus.status?.phone || 
+                    vpsStatus.number || 
+                    vpsStatus.status?.number || 
+                    '';
     
-    console.log('[StatusOperations] Status comparison:', {
-      vpsConnected,
-      vpsPhone,
-      vpsName,
-      dbConnected,
-      dbPhone,
-      connectionStatusDB: instance.connection_status,
-      webStatusDB: instance.web_status
-    });
+    const vpsName = vpsStatus.name || 
+                   vpsStatus.status?.name ||
+                   vpsStatus.profileName || 
+                   vpsStatus.status?.profileName || 
+                   '';
 
-    // Prepara dados para atualização
+    const vpsProfilePicUrl = vpsStatus.profilePicUrl || 
+                            vpsStatus.status?.profilePicUrl || 
+                            '';
+    
+    // Normalizar valores do banco
+    const dbConnected = ['ready', 'open'].includes(instance.connection_status) || 
+                       ['ready', 'open'].includes(instance.web_status);
+    
+    const dbPhone = (instance.phone || '').trim();
+    const dbName = (instance.profile_name || '').trim();
+    
+    console.log('[StatusOperations] DETAILED STATUS COMPARISON:');
+    console.log('  VPS Connected:', vpsConnected);
+    console.log('  VPS Phone:', vpsPhone);
+    console.log('  VPS Name:', vpsName);
+    console.log('  DB Connected:', dbConnected);
+    console.log('  DB Phone:', dbPhone);
+    console.log('  DB Name:', dbName);
+    console.log('  Connection Status (DB):', instance.connection_status);
+    console.log('  Web Status (DB):', instance.web_status);
+    console.log('  Force Update:', forceUpdate);
+
+    // Lógica de atualização corrigida
     const updateData: any = {};
     let needsUpdate = false;
+    let updateReason = '';
 
-    // Verifica se precisa atualizar baseado no status de conexão
+    // CONDIÇÃO 1: VPS conectado mas DB não conectado
     if (vpsConnected && !dbConnected) {
-      // VPS conectado mas DB mostra desconectado - sempre atualizar
       updateData.web_status = 'ready';
       updateData.connection_status = 'open';
       updateData.date_connected = new Date().toISOString();
-      updateData.qr_code = null; // Remove QR code quando conectado
+      updateData.qr_code = null;
       needsUpdate = true;
-      
-      console.log('[StatusOperations] VPS connected but DB disconnected - updating to connected');
-    } else if (!vpsConnected && dbConnected) {
-      // VPS desconectado mas DB mostra conectado - atualizar para desconectado
+      updateReason += 'VPS conectado mas DB desconectado; ';
+    }
+
+    // CONDIÇÃO 2: VPS desconectado mas DB conectado
+    if (!vpsConnected && dbConnected) {
       updateData.web_status = 'disconnected';
       updateData.connection_status = 'disconnected';
       updateData.date_disconnected = new Date().toISOString();
       needsUpdate = true;
-      
-      console.log('[StatusOperations] VPS disconnected but DB connected - updating to disconnected');
+      updateReason += 'VPS desconectado mas DB conectado; ';
     }
 
-    // Atualizar telefone se VPS está conectado e tem telefone diferente
+    // CONDIÇÃO 3: Telefone diferente (apenas se VPS conectado e tem telefone)
     if (vpsConnected && vpsPhone && vpsPhone !== dbPhone) {
       updateData.phone = vpsPhone;
       needsUpdate = true;
-      
-      console.log('[StatusOperations] Phone number different, updating:', { vpsPhone, dbPhone });
+      updateReason += `Telefone diferente (VPS: ${vpsPhone}, DB: ${dbPhone}); `;
     }
 
-    // Atualizar nome do perfil se disponível
-    if (vpsConnected && vpsName && vpsName !== instance.profile_name) {
+    // CONDIÇÃO 4: Nome do perfil diferente
+    if (vpsConnected && vpsName && vpsName !== dbName) {
       updateData.profile_name = vpsName;
       needsUpdate = true;
-      
-      console.log('[StatusOperations] Profile name different, updating:', { vpsName, dbName: instance.profile_name });
+      updateReason += `Nome diferente (VPS: ${vpsName}, DB: ${dbName}); `;
     }
 
-    // Atualizar URL da foto do perfil se disponível
-    if (vpsConnected && vpsStatus.profilePicUrl && vpsStatus.profilePicUrl !== instance.profile_pic_url) {
-      updateData.profile_pic_url = vpsStatus.profilePicUrl;
+    // CONDIÇÃO 5: URL da foto do perfil diferente
+    if (vpsConnected && vpsProfilePicUrl && vpsProfilePicUrl !== instance.profile_pic_url) {
+      updateData.profile_pic_url = vpsProfilePicUrl;
       needsUpdate = true;
+      updateReason += 'Foto do perfil diferente; ';
     }
 
-    console.log('[StatusOperations] Update needed:', needsUpdate, 'Update data:', updateData);
+    // CONDIÇÃO 6: Forçar atualização (para casos manuais)
+    if (forceUpdate) {
+      if (vpsConnected) {
+        updateData.web_status = 'ready';
+        updateData.connection_status = 'open';
+        updateData.date_connected = new Date().toISOString();
+        updateData.qr_code = null;
+        if (vpsPhone) updateData.phone = vpsPhone;
+        if (vpsName) updateData.profile_name = vpsName;
+        if (vpsProfilePicUrl) updateData.profile_pic_url = vpsProfilePicUrl;
+      } else {
+        updateData.web_status = 'disconnected';
+        updateData.connection_status = 'disconnected';
+        updateData.date_disconnected = new Date().toISOString();
+      }
+      needsUpdate = true;
+      updateReason += 'Forçar atualização manual; ';
+    }
 
-    // Atualiza no banco se houver mudanças
+    console.log('[StatusOperations] UPDATE DECISION:');
+    console.log('  Needs Update:', needsUpdate);
+    console.log('  Update Reason:', updateReason);
+    console.log('  Update Data:', JSON.stringify(updateData, null, 2));
+
+    // Executar atualização se necessário
     if (needsUpdate) {
       const { data: updatedInstance, error: updateError } = await supabase
         .from('whatsapp_instances')
@@ -196,7 +241,8 @@ export async function syncInstanceStatus(supabase: any, vpsInstanceId: string) {
         throw new Error(`Update failed: ${updateError.message}`);
       }
 
-      console.log('[StatusOperations] Instance updated successfully:', updatedInstance);
+      console.log('[StatusOperations] Instance updated successfully!');
+      console.log('[StatusOperations] Updated instance:', JSON.stringify(updatedInstance, null, 2));
       
       return new Response(
         JSON.stringify({ 
@@ -204,7 +250,8 @@ export async function syncInstanceStatus(supabase: any, vpsInstanceId: string) {
           updated: true,
           instance: updatedInstance,
           vpsStatus,
-          changes: updateData
+          changes: updateData,
+          reason: updateReason.trim()
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -233,6 +280,11 @@ export async function syncInstanceStatus(supabase: any, vpsInstanceId: string) {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
+}
+
+export async function forceSync(supabase: any, vpsInstanceId: string) {
+  console.log('[StatusOperations] Force syncing instance:', vpsInstanceId);
+  return await syncInstanceStatus(supabase, vpsInstanceId, true);
 }
 
 export async function checkServerHealth() {

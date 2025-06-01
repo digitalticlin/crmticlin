@@ -16,6 +16,7 @@ export function WhatsAppWebSection() {
     deleteInstance,
     refreshQRCode,
     syncInstanceStatus,
+    forceSync,
     startAutoConnection,
     closeQRModal,
     openQRModal
@@ -82,6 +83,7 @@ export function WhatsAppWebSection() {
             onDelete={deleteInstance}
             onRefreshQR={refreshQRCode}
             onSyncStatus={syncInstanceStatus}
+            onForceSync={forceSync}
             onShowQR={() => openQRModal(instance.id)}
             isNewInstance={instance.id === autoConnectState.activeInstanceId}
           />

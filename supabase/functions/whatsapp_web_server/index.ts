@@ -5,7 +5,7 @@ import { corsHeaders } from './config.ts';
 import { RequestBody } from './types.ts';
 import { authenticateRequest } from './authentication.ts';
 import { createWhatsAppInstance, deleteWhatsAppInstance } from './instanceManagement.ts';
-import { getInstanceStatus, getQRCode, checkServerHealth, syncInstanceStatus } from './statusOperations.ts';
+import { getInstanceStatus, getQRCode, checkServerHealth, syncInstanceStatus, forceSync } from './statusOperations.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -38,6 +38,9 @@ serve(async (req) => {
 
       case 'sync_status':
         return await syncInstanceStatus(supabase, instanceData.vpsInstanceId!);
+
+      case 'force_sync':
+        return await forceSync(supabase, instanceData.vpsInstanceId!);
       
       case 'check_server':
         return await checkServerHealth();

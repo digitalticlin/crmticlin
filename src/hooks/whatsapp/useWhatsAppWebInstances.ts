@@ -224,10 +224,8 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
 
       console.log('[useWhatsAppWebInstances] Sync result:', result);
 
-      // Check if the result indicates an update was made
       if (result.data?.updated) {
         toast.success('Status sincronizado com sucesso!');
-        // Force refresh to get updated data
         await fetchInstances();
       } else {
         toast.info('Status já está atualizado');
@@ -237,6 +235,34 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
     } catch (err) {
       console.error('[useWhatsAppWebInstances] Error syncing status:', err);
       toast.error('Erro ao sincronizar status');
+      throw err;
+    }
+  };
+
+  const forceSync = async (instanceId: string) => {
+    try {
+      const instance = instances.find(i => i.id === instanceId);
+      if (!instance?.vps_instance_id) {
+        throw new Error('Instance not found');
+      }
+
+      console.log('[useWhatsAppWebInstances] Force syncing instance:', instanceId);
+
+      const result = await WhatsAppWebService.forceSync(instance.vps_instance_id);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to force sync');
+      }
+
+      console.log('[useWhatsAppWebInstances] Force sync result:', result);
+
+      toast.success('Sincronização forçada realizada com sucesso!');
+      await fetchInstances();
+
+      return result;
+    } catch (err) {
+      console.error('[useWhatsAppWebInstances] Error force syncing:', err);
+      toast.error('Erro ao forçar sincronização');
       throw err;
     }
   };
@@ -273,39 +299,38 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
     }));
   };
 
-  // Polling para instâncias em estado de espera OU com discrepância de status
+  // Polling melhorado para instâncias com discrepância
   useEffect(() => {
     if (!companyId || instances.length === 0) return;
 
-    // Incluir instâncias que podem ter discrepância de status
+    // Detectar instâncias que podem ter discrepância mais rigorosa
     const needsMonitoring = instances.filter(instance => {
-      // Instâncias aguardando conexão
       const isWaiting = ['waiting_scan', 'connecting', 'creating'].includes(instance.web_status) && instance.vps_instance_id;
+      const hasDiscrepancy = instance.vps_instance_id && 
+                            (!instance.phone || instance.phone === '') && 
+                            !['ready', 'open'].includes(instance.web_status || instance.connection_status);
+      const isStuckConnecting = instance.web_status === 'connecting' || instance.connection_status === 'connecting';
       
-      // Instâncias que podem ter discrepância (sem telefone mas podem estar conectadas)
-      const mayHaveDiscrepancy = instance.vps_instance_id && (!instance.phone || instance.phone === '') && 
-                                 ['disconnected', 'waiting_scan'].includes(instance.web_status || instance.connection_status);
-      
-      return isWaiting || mayHaveDiscrepancy;
+      return isWaiting || hasDiscrepancy || isStuckConnecting;
     });
 
     if (needsMonitoring.length === 0) return;
 
-    console.log('[useWhatsAppWebInstances] Setting up polling for instances needing monitoring:', needsMonitoring.length);
+    console.log('[useWhatsAppWebInstances] Setting up enhanced polling for instances with potential discrepancies:', needsMonitoring.length);
 
     const pollInterval = setInterval(async () => {
       for (const instance of needsMonitoring) {
         try {
-          console.log('[useWhatsAppWebInstances] Polling status for instance:', instance.id);
+          console.log('[useWhatsAppWebInstances] Polling status for instance:', instance.id, 'Status:', instance.web_status);
           await syncInstanceStatus(instance.id);
         } catch (error) {
           console.error('[useWhatsAppWebInstances] Polling error for instance:', instance.id, error);
         }
       }
-    }, 15000); // Poll a cada 15 segundos
+    }, 10000); // Poll a cada 10 segundos para instâncias com problema
 
     return () => {
-      console.log('[useWhatsAppWebInstances] Cleaning up polling interval');
+      console.log('[useWhatsAppWebInstances] Cleaning up enhanced polling interval');
       clearInterval(pollInterval);
     };
   }, [instances, companyId]);
@@ -365,6 +390,7 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
     deleteInstance,
     refreshQRCode,
     syncInstanceStatus,
+    forceSync,
     sendMessage,
     startAutoConnection,
     closeQRModal,

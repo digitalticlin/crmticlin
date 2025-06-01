@@ -1,9 +1,8 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { QrCode, Trash2, RefreshCw, Phone, Wifi } from "lucide-react";
+import { QrCode, Trash2, RefreshCw, Phone, Wifi, AlertTriangle } from "lucide-react";
 import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -12,6 +11,7 @@ interface WhatsAppWebInstanceCardProps {
   onDelete: (instanceId: string) => Promise<void>;
   onRefreshQR: (instanceId: string) => Promise<string>;
   onSyncStatus?: (instanceId: string) => Promise<any>;
+  onForceSync?: (instanceId: string) => Promise<any>;
   onShowQR?: (instanceId: string) => void;
   isNewInstance?: boolean;
 }
@@ -21,6 +21,7 @@ export function WhatsAppWebInstanceCard({
   onDelete, 
   onRefreshQR,
   onSyncStatus,
+  onForceSync,
   onShowQR,
   isNewInstance = false
 }: WhatsAppWebInstanceCardProps) {
@@ -28,6 +29,7 @@ export function WhatsAppWebInstanceCard({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isForceSyncing, setIsForceSyncing] = useState(false);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -106,6 +108,20 @@ export function WhatsAppWebInstanceCard({
     }
   };
 
+  const handleForceSync = async () => {
+    if (!onForceSync) return;
+    
+    setIsForceSyncing(true);
+    try {
+      console.log('[WhatsAppWebInstanceCard] Force syncing instance:', instance.id);
+      await onForceSync(instance.id);
+    } catch (error) {
+      console.error('[WhatsAppWebInstanceCard] Error force syncing:', error);
+    } finally {
+      setIsForceSyncing(false);
+    }
+  };
+
   const handleShowQR = () => {
     console.log('[WhatsAppWebInstanceCard] Showing QR for instance:', instance.id, instance.web_status);
     if (onShowQR) {
@@ -124,6 +140,11 @@ export function WhatsAppWebInstanceCard({
   const isConnected = ['ready', 'open'].includes(instance.web_status || instance.connection_status);
   const canSync = instance.vps_instance_id && !isConnected;
 
+  // Detectar possível discrepância
+  const hasDiscrepancy = instance.vps_instance_id && 
+                        (!instance.phone || instance.phone === '') && 
+                        ['connecting', 'waiting_scan'].includes(instance.web_status || instance.connection_status);
+
   console.log('[WhatsAppWebInstanceCard] Instance status check:', {
     id: instance.id,
     web_status: instance.web_status,
@@ -137,12 +158,15 @@ export function WhatsAppWebInstanceCard({
 
   return (
     <>
-      <Card className={`relative ${isNewInstance ? 'ring-2 ring-green-400 ring-opacity-50' : ''}`}>
+      <Card className={`relative ${isNewInstance ? 'ring-2 ring-green-400 ring-opacity-50' : ''} ${hasDiscrepancy ? 'border-orange-300' : ''}`}>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Wifi className="h-4 w-4 text-green-600" />
               <CardTitle className="text-lg">WhatsApp Web</CardTitle>
+              {hasDiscrepancy && (
+                <AlertTriangle className="h-4 w-4 text-orange-500" title="Possível discrepância de status" />
+              )}
             </div>
             <Badge 
               variant="outline" 
@@ -168,6 +192,11 @@ export function WhatsAppWebInstanceCard({
           {!isConnected && !instance.phone && (
             <p className="text-xs text-amber-600 font-medium">
               {needsQRCode ? 'Aguardando conexão...' : 'Desconectado'}
+            </p>
+          )}
+          {hasDiscrepancy && (
+            <p className="text-xs text-orange-600 font-medium">
+              Status pode estar desatualizado - tente forçar sincronização
             </p>
           )}
         </CardHeader>
@@ -210,6 +239,19 @@ export function WhatsAppWebInstanceCard({
               >
                 <RefreshCw className={`h-4 w-4 mr-1 ${isSyncing ? 'animate-spin' : ''}`} />
                 {isSyncing ? 'Sincronizando...' : 'Verificar Status'}
+              </Button>
+            )}
+
+            {onForceSync && instance.vps_instance_id && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleForceSync}
+                disabled={isForceSyncing}
+                className="flex-1 border-orange-300 text-orange-700 hover:bg-orange-50"
+              >
+                <AlertTriangle className={`h-4 w-4 mr-1 ${isForceSyncing ? 'animate-spin' : ''}`} />
+                {isForceSyncing ? 'Forçando...' : 'Forçar Sync'}
               </Button>
             )}
 
