@@ -1,160 +1,238 @@
 
-import { VPS_CONFIG } from "../config/vpsConfig";
-import { toast } from "sonner";
+import { VPS_CONFIG, withRetry, checkCircuitBreaker, getCachedPing, setCachedPing, getCachedStatus, setCachedStatus } from "../config/vpsConfig";
 
 export interface VPSHealthStatus {
   isOnline: boolean;
   responseTime: number;
-  lastChecked: Date;
+  lastChecked: string;
   consecutiveFailures: number;
-  instanceCount?: number;
   error?: string;
+  vpsLoad?: {
+    cpu: number;
+    memory: number;
+    activeConnections: number;
+  };
 }
 
 export class VPSHealthMonitor {
   private static healthStatus: VPSHealthStatus = {
     isOnline: false,
     responseTime: 0,
-    lastChecked: new Date(),
+    lastChecked: new Date().toISOString(),
     consecutiveFailures: 0
   };
 
-  private static healthCheckInterval: NodeJS.Timeout | null = null;
-  private static isMonitoring = false;
+  private static monitoringInterval: NodeJS.Timeout | null = null;
 
   /**
-   * Verifica se o VPS está online e responsivo
+   * Ping LEVE para verificar se VPS está respondendo
    */
-  static async checkVPSHealth(): Promise<VPSHealthStatus> {
+  static async pingVPS(): Promise<{ success: boolean; responseTime: number; error?: string }> {
+    // Verificar cache primeiro
+    const cached = getCachedPing();
+    if (cached) {
+      return cached;
+    }
+
+    // Verificar circuit breaker
+    if (!checkCircuitBreaker()) {
+      const result = { success: false, responseTime: 0, error: 'Circuit breaker ativo' };
+      setCachedPing(result);
+      return result;
+    }
+
     const startTime = Date.now();
     
     try {
-      console.log('[VPSHealthMonitor] Checking VPS health...');
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), VPS_CONFIG.timeouts.health);
+      const result = await withRetry(async () => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), VPS_CONFIG.timeouts.ping);
 
-      const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        signal: controller.signal
-      });
+        // Usar endpoint /ping mais leve em vez de /health
+        const response = await fetch(`${VPS_CONFIG.baseUrl}/ping`, {
+          method: 'GET',
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
 
-      clearTimeout(timeoutId);
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        return response;
+      }, 'VPS Ping', 3); // Só 3 tentativas para ping
+
       const responseTime = Date.now() - startTime;
+      const success = { success: true, responseTime };
+      
+      setCachedPing(success);
+      return success;
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      const failure = {
+        success: false,
+        responseTime,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+      
+      setCachedPing(failure);
+      return failure;
+    }
+  }
+
+  /**
+   * Verificação completa de saúde do VPS (menos frequente)
+   */
+  static async checkVPSHealth(): Promise<VPSHealthStatus> {
+    console.log('[VPSHealthMonitor] Iniciando verificação de saúde do VPS...');
+
+    // Verificar cache primeiro
+    const cached = getCachedStatus();
+    if (cached) {
+      return cached;
+    }
+
+    const startTime = Date.now();
+    
+    try {
+      const pingResult = await this.pingVPS();
+      
+      if (!pingResult.success) {
+        this.healthStatus = {
+          isOnline: false,
+          responseTime: pingResult.responseTime,
+          lastChecked: new Date().toISOString(),
+          consecutiveFailures: this.healthStatus.consecutiveFailures + 1,
+          error: pingResult.error
+        };
+        
+        setCachedStatus(this.healthStatus);
+        return this.healthStatus;
       }
 
-      const healthData = await response.json();
-      
+      // Se ping OK, fazer verificação completa
+      const healthData = await withRetry(async () => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), VPS_CONFIG.timeouts.health);
+
+        const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
+          method: 'GET',
+          signal: controller.signal,
+          headers: {
+            'Accept': 'application/json'
+          }
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        return response.json();
+      }, 'VPS Health Check');
+
+      const responseTime = Date.now() - startTime;
+
       this.healthStatus = {
         isOnline: true,
         responseTime,
-        lastChecked: new Date(),
-        consecutiveFailures: 0,
-        instanceCount: healthData.instances?.length || 0
+        lastChecked: new Date().toISOString(),
+        consecutiveFailures: 0, // Reset contador em caso de sucesso
+        vpsLoad: {
+          cpu: healthData.cpu || 0,
+          memory: healthData.memory || 0,
+          activeConnections: healthData.activeConnections || 0
+        }
       };
 
-      console.log('[VPSHealthMonitor] ✅ VPS is healthy:', {
-        responseTime: `${responseTime}ms`,
-        instances: this.healthStatus.instanceCount
-      });
-
+      console.log('[VPSHealthMonitor] ✅ VPS online -', responseTime + 'ms');
+      
+      setCachedStatus(this.healthStatus);
       return this.healthStatus;
 
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      const errorMessage = this.getErrorMessage(error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
       this.healthStatus = {
         isOnline: false,
         responseTime,
-        lastChecked: new Date(),
+        lastChecked: new Date().toISOString(),
         consecutiveFailures: this.healthStatus.consecutiveFailures + 1,
         error: errorMessage
       };
 
-      console.error('[VPSHealthMonitor] ❌ VPS health check failed:', {
-        error: errorMessage,
-        responseTime: `${responseTime}ms`,
-        consecutiveFailures: this.healthStatus.consecutiveFailures
-      });
-
-      // Alertar após várias falhas consecutivas
-      if (this.healthStatus.consecutiveFailures >= 3) {
-        toast.error(`VPS com problemas: ${errorMessage}`, {
-          duration: 10000,
-          description: `${this.healthStatus.consecutiveFailures} falhas consecutivas`
-        });
-      }
-
+      console.error('[VPSHealthMonitor] ❌ VPS offline:', errorMessage);
+      
+      setCachedStatus(this.healthStatus);
       return this.healthStatus;
     }
   }
 
   /**
-   * Inicia monitoramento contínuo da saúde do VPS
+   * Inicia monitoramento automático CONSERVADOR
    */
-  static startHealthMonitoring(intervalMinutes: number = 5): void {
-    if (this.isMonitoring) {
-      console.log('[VPSHealthMonitor] Health monitoring already running');
-      return;
+  static startHealthMonitoring(intervalMinutes: number = 30): void {
+    if (this.monitoringInterval) {
+      console.log('[VPSHealthMonitor] Parando monitoramento existente');
+      clearInterval(this.monitoringInterval);
     }
 
-    console.log('[VPSHealthMonitor] Starting VPS health monitoring every', intervalMinutes, 'minutes');
-    
-    // Primeira verificação imediata
-    this.checkVPSHealth();
-    
-    // Verificações periódicas
-    this.healthCheckInterval = setInterval(() => {
-      this.checkVPSHealth();
-    }, intervalMinutes * 60 * 1000);
+    console.log(`[VPSHealthMonitor] Iniciando monitoramento conservador a cada ${intervalMinutes} minutos`);
 
-    this.isMonitoring = true;
+    // Primeira verificação imediata (com delay para não sobrecarregar)
+    setTimeout(() => {
+      this.checkVPSHealth().catch(err => {
+        console.error('[VPSHealthMonitor] Erro na verificação inicial:', err);
+      });
+    }, 10000); // 10 segundos de delay
+
+    // Monitoramento periódico MUITO menos frequente
+    this.monitoringInterval = setInterval(async () => {
+      try {
+        await this.checkVPSHealth();
+      } catch (error) {
+        console.error('[VPSHealthMonitor] Erro no monitoramento periódico:', error);
+      }
+    }, intervalMinutes * 60 * 1000);
   }
 
   /**
-   * Para o monitoramento de saúde
+   * Para o monitoramento
    */
   static stopHealthMonitoring(): void {
-    if (this.healthCheckInterval) {
-      clearInterval(this.healthCheckInterval);
-      this.healthCheckInterval = null;
+    if (this.monitoringInterval) {
+      console.log('[VPSHealthMonitor] Parando monitoramento de saúde');
+      clearInterval(this.monitoringInterval);
+      this.monitoringInterval = null;
     }
-    this.isMonitoring = false;
-    console.log('[VPSHealthMonitor] Health monitoring stopped');
   }
 
   /**
-   * Obtém o status atual da saúde do VPS
+   * Obtém status atual
    */
   static getHealthStatus(): VPSHealthStatus {
     return { ...this.healthStatus };
   }
 
   /**
-   * Normaliza mensagem de erro
+   * Verifica se VPS está em estado crítico
    */
-  private static getErrorMessage(error: any): string {
-    if (error instanceof Error) {
-      if (error.name === 'AbortError') {
-        return 'Timeout: VPS não respondeu em tempo hábil';
-      } else if (error.message.includes('Failed to fetch')) {
-        return 'Falha na conexão: VPS pode estar offline';
-      } else if (error.message.includes('CORS')) {
-        return 'Erro CORS: problema na configuração do VPS';
-      } else if (error.message.includes('NetworkError')) {
-        return 'Erro de rede: verifique a conectividade';
-      } else {
-        return error.message;
-      }
-    }
-    return 'Erro desconhecido na comunicação com VPS';
+  static isVPSCritical(): boolean {
+    return this.healthStatus.consecutiveFailures >= VPS_CONFIG.monitoring.maxConsecutiveFailures;
+  }
+
+  /**
+   * Reset manual do contador de falhas
+   */
+  static resetFailureCount(): void {
+    console.log('[VPSHealthMonitor] Reset manual do contador de falhas');
+    this.healthStatus.consecutiveFailures = 0;
   }
 }

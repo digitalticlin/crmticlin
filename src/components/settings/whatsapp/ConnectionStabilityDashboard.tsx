@@ -6,11 +6,12 @@ import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ConnectionStabilityService } from "@/hooks/whatsapp/services/connectionStabilityService";
 import { OrphanInstanceRecoveryService } from "@/services/whatsapp/services/orphanInstanceRecoveryService";
-import { VPSHealthService } from "@/services/whatsapp/services/vpsHealthService";
+import { VPSHealthMonitor } from "@/services/whatsapp/services/vpsHealthMonitor";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { VPSStatusCard } from "./stability/VPSStatusCard";
 import { StabilityActionButtons } from "./stability/StabilityActionButtons";
 import { ScanResultsCard } from "./stability/ScanResultsCard";
+import { SystemHealthDashboard } from "./stability/SystemHealthDashboard";
 
 export function ConnectionStabilityDashboard() {
   const { companyId } = useCompanyData();
@@ -42,30 +43,30 @@ export function ConnectionStabilityDashboard() {
     setLastScanResult(null);
     
     try {
-      console.log('[StabilityDashboard] Iniciando busca por instâncias órfãs...');
+      console.log('[StabilityDashboard] Iniciando busca OTIMIZADA por instâncias órfãs...');
       
-      toast.info('Verificando saúde do VPS e buscando órfãs...', { duration: 2000 });
+      toast.info('🔍 Verificando VPS e buscando órfãs (processo otimizado)...', { duration: 3000 });
       
       const result = await OrphanInstanceRecoveryService.findAndRecoverOrphanInstances(companyId);
       setLastScanResult(result);
 
-      console.log('[StabilityDashboard] Resultado da busca:', result);
+      console.log('[StabilityDashboard] Resultado da busca otimizada:', result);
 
       if (result.found.length === 0) {
-        toast.success('✅ Nenhuma instância órfã encontrada! Tudo sincronizado.', { duration: 4000 });
+        toast.success('✅ Nenhuma instância órfã encontrada! Sistema sincronizado.', { duration: 4000 });
       } else if (result.recovered > 0) {
-        toast.success(`🎉 ${result.recovered} instância(s) órfã(s) recuperada(s) com sucesso!`, { duration: 5000 });
+        toast.success(`🎉 ${result.recovered} instância(s) órfã(s) recuperada(s) automaticamente!`, { duration: 6000 });
       }
 
       if (result.errors.length > 0) {
-        toast.error(`❌ ${result.errors.length} erro(s) durante a busca/recuperação`, { duration: 5000 });
-        console.error('[StabilityDashboard] Erros detalhados:', result.errors);
+        toast.error(`⚠️ ${result.errors.length} problema(s) detectado(s) - verificar logs`, { duration: 5000 });
+        console.error('[StabilityDashboard] Problemas detalhados:', result.errors);
       }
 
     } catch (error) {
-      console.error('[StabilityDashboard] Erro na busca:', error);
+      console.error('[StabilityDashboard] Erro na busca otimizada:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      toast.error(`Erro na busca: ${errorMessage}`, { duration: 5000 });
+      toast.error(`❌ Erro na busca: ${errorMessage}`, { duration: 6000 });
       
       setLastScanResult({
         found: [],
@@ -79,17 +80,19 @@ export function ConnectionStabilityDashboard() {
 
   const handleVPSHealthCheck = async () => {
     try {
-      toast.info('Verificando saúde do VPS...', { duration: 2000 });
+      toast.info('🏥 Verificando saúde completa do VPS...', { duration: 2000 });
       
-      const health = await VPSHealthService.checkVPSHealth();
+      const health = await VPSHealthMonitor.checkVPSHealth();
       
       if (health.isOnline) {
-        toast.success(`✅ VPS online! Tempo de resposta: ${health.responseTime}ms`, { duration: 4000 });
+        const loadInfo = health.vpsLoad ? 
+          ` (CPU: ${health.vpsLoad.cpu}%, Mem: ${health.vpsLoad.memory}%, Conexões: ${health.vpsLoad.activeConnections})` : '';
+        toast.success(`✅ VPS saudável! Latência: ${health.responseTime}ms${loadInfo}`, { duration: 5000 });
       } else {
-        toast.error(`❌ VPS offline: ${health.error}`, { duration: 6000 });
+        toast.error(`❌ VPS com problemas: ${health.error} (${health.consecutiveFailures} falhas consecutivas)`, { duration: 8000 });
       }
     } catch (error) {
-      toast.error('Erro ao verificar VPS');
+      toast.error('❌ Erro ao verificar VPS - servidor pode estar inacessível');
     }
   };
 
@@ -101,19 +104,22 @@ export function ConnectionStabilityDashboard() {
 
     setIsRecovering(true);
     try {
-      console.log('[StabilityDashboard] Forçando recuperação completa...');
+      console.log('[StabilityDashboard] Forçando recuperação COMPLETA do sistema...');
       
-      toast.info('Executando recuperação forçada...', { duration: 2000 });
+      toast.info('🔧 Executando recuperação completa do sistema...', { duration: 3000 });
       
       const result = await ConnectionStabilityService.forceRecovery(companyId);
       
-      toast.success('Recuperação forçada concluída!');
-      console.log('[StabilityDashboard] Resultado da recuperação forçada:', result);
+      const orphanCount = result.orphanRecovery?.recovered || 0;
+      const quarantineCount = result.quarantineRecovery?.total || 0;
+      
+      toast.success(`✅ Recuperação concluída! Órfãs: ${orphanCount}, Quarentena: ${quarantineCount}`, { duration: 6000 });
+      console.log('[StabilityDashboard] Resultado da recuperação completa:', result);
 
     } catch (error) {
-      console.error('[StabilityDashboard] Erro na recuperação forçada:', error);
+      console.error('[StabilityDashboard] Erro na recuperação completa:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      toast.error(`Erro na recuperação forçada: ${errorMessage}`);
+      toast.error(`❌ Erro na recuperação completa: ${errorMessage}`, { duration: 6000 });
     } finally {
       setIsRecovering(false);
     }
@@ -126,7 +132,7 @@ export function ConnectionStabilityDashboard() {
     }
 
     ConnectionStabilityService.startStabilitySystem(companyId);
-    toast.success('Sistema de estabilidade iniciado! 🛡️');
+    toast.success('🛡️ Sistema de estabilidade OTIMIZADO iniciado!', { duration: 4000 });
     
     // Atualizar status
     const status = ConnectionStabilityService.getSystemStatus();
@@ -134,54 +140,71 @@ export function ConnectionStabilityDashboard() {
   };
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Shield className="h-5 w-5 text-blue-500" />
-          Estabilidade de Conexão
-        </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Sistema avançado para evitar quedas de conexão e recuperar instâncias perdidas
-        </p>
-      </CardHeader>
+    <div className="space-y-6">
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-blue-500" />
+            Sistema de Estabilidade Avançado
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Sistema robusto para manter conexões WhatsApp estáveis com monitoramento inteligente e recuperação automática
+          </p>
+        </CardHeader>
 
-      <CardContent className="space-y-6">
-        {/* Alerta informativo */}
-        <Alert>
-          <Info className="h-4 w-4" />
-          <AlertDescription>
-            <strong>Diagnóstico:</strong> Use "Buscar Órfãs" para encontrar conexões ativas na VPS que sumiram do banco de dados. 
-            O sistema verifica automaticamente a saúde do VPS antes de cada operação.
-          </AlertDescription>
-        </Alert>
+        <CardContent className="space-y-6">
+          {/* Alerta informativo melhorado */}
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Sistema Otimizado:</strong> Timeouts aumentados, circuit breaker ativo, 
+              monitoramento conservador (30min), quarentena de 24h, e auto-recovery a cada 1h. 
+              Rate limiting protege o VPS de sobrecarga.
+            </AlertDescription>
+          </Alert>
 
-        {/* Status Cards */}
-        <VPSStatusCard 
-          vpsHealth={systemStatus?.vpsHealth}
-          systemStatus={systemStatus}
-        />
+          {/* Status Cards */}
+          <VPSStatusCard 
+            vpsHealth={systemStatus?.vpsHealth}
+            systemStatus={systemStatus}
+          />
 
-        {/* Ações Principais */}
-        <StabilityActionButtons
-          isScanning={isScanning}
-          isRecovering={isRecovering}
-          onStartStability={handleStartStability}
-          onVPSHealthCheck={handleVPSHealthCheck}
-          onScanOrphans={handleScanOrphans}
-          onForceRecovery={handleForceRecovery}
-        />
+          {/* Ações Principais */}
+          <StabilityActionButtons
+            isScanning={isScanning}
+            isRecovering={isRecovering}
+            onStartStability={handleStartStability}
+            onVPSHealthCheck={handleVPSHealthCheck}
+            onScanOrphans={handleScanOrphans}
+            onForceRecovery={handleForceRecovery}
+          />
 
-        {/* Resultado da Última Busca */}
-        <ScanResultsCard lastScanResult={lastScanResult} />
+          {/* Resultado da Última Busca */}
+          <ScanResultsCard lastScanResult={lastScanResult} />
 
-        {/* Explicação */}
-        <div className="text-xs text-muted-foreground space-y-1">
-          <p><strong>Sistema de Estabilidade:</strong> Monitora VPS e recupera conexões automaticamente</p>
-          <p><strong>Verificar VPS:</strong> Testa conectividade e saúde do servidor VPS</p>
-          <p><strong>Buscar Órfãs:</strong> Encontra instâncias ativas na VPS mas perdidas no banco</p>
-          <p><strong>Recuperação Forçada:</strong> Restaura todas as instâncias em quarentena</p>
-        </div>
-      </CardContent>
-    </Card>
+          {/* Explicação atualizada */}
+          <div className="text-xs text-muted-foreground space-y-1 bg-muted/30 p-3 rounded">
+            <p><strong>🛡️ Sistema de Estabilidade:</strong> Monitora VPS com circuit breaker e rate limiting</p>
+            <p><strong>🏥 Verificar VPS:</strong> Health check completo com métricas de performance</p>
+            <p><strong>🔍 Buscar Órfãs:</strong> Encontra e recupera instâncias perdidas automaticamente</p>
+            <p><strong>🔧 Recuperação Completa:</strong> Restaura órfãs + limpa quarentena + reset sistema</p>
+            <p><strong>⏱️ Configurações:</strong> Timeout 30s, monitoramento 30min, quarentena 24h, auto-recovery 1h</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Dashboard de saúde do sistema */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Monitoramento do Sistema</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Status detalhado dos componentes de estabilidade
+          </p>
+        </CardHeader>
+        <CardContent>
+          <SystemHealthDashboard />
+        </CardContent>
+      </Card>
+    </div>
   );
 }

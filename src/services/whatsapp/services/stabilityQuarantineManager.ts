@@ -1,81 +1,49 @@
 
-import { supabase } from "@/integrations/supabase/client";
-
-interface QuarantineEntry {
-  quarantinedAt: Date;
+interface QuarantinedInstance {
+  instanceId: string;
   reason: string;
-  failures: number;
+  quarantinedAt: number;
+  failureCount: number;
+  lastAttempt: number;
 }
 
 export class StabilityQuarantineManager {
-  private static quarantinedInstances = new Map<string, QuarantineEntry>();
+  private static quarantinedInstances: Map<string, QuarantinedInstance> = new Map();
 
   /**
-   * Coloca instância em quarentena em vez de remover
+   * Coloca instância em quarentena por 24 horas
    */
-  static putInQuarantine(instanceId: string, reason: string, failures: number) {
-    console.log('[QuarantineManager] Colocando em quarentena (NÃO removendo):', instanceId, reason);
-
+  static putInQuarantine(instanceId: string, reason: string, failureCount: number = 1): void {
+    const now = Date.now();
+    
+    const existing = this.quarantinedInstances.get(instanceId);
+    
     this.quarantinedInstances.set(instanceId, {
-      quarantinedAt: new Date(),
+      instanceId,
       reason,
-      failures
+      quarantinedAt: existing?.quarantinedAt || now,
+      failureCount: existing ? existing.failureCount + failureCount : failureCount,
+      lastAttempt: now
     });
 
-    // Atualizar status no banco para indicar problema, mas NÃO remover
-    supabase
-      .from('whatsapp_instances')
-      .update({
-        web_status: 'unstable', // Novo status
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', instanceId)
-      .then(({ error }) => {
-        if (error) {
-          console.error('[QuarantineManager] Erro ao marcar como instável:', error);
-        } else {
-          console.log('[QuarantineManager] Instância marcada como instável (preservada):', instanceId);
-        }
-      });
-  }
-
-  /**
-   * Força recuperação de instâncias em quarentena
-   */
-  static async forceRecoveryFromQuarantine() {
-    console.log('[QuarantineManager] Forçando recuperação de instâncias em quarentena...');
-
-    for (const [instanceId, quarantine] of this.quarantinedInstances.entries()) {
-      console.log('[QuarantineManager] Recuperando da quarentena:', instanceId);
-
-      // Tentar restaurar status
-      const { error } = await supabase
-        .from('whatsapp_instances')
-        .update({
-          web_status: 'ready',
-          connection_status: 'open',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', instanceId);
-
-      if (!error) {
-        console.log('[QuarantineManager] Instância recuperada da quarentena:', instanceId);
-        this.quarantinedInstances.delete(instanceId);
-      }
-    }
+    console.log(`[QuarantineManager] Instância ${instanceId} em quarentena: ${reason} (falhas: ${failureCount})`);
   }
 
   /**
    * Verifica se instância está em quarentena
    */
-  static isInQuarantine(instanceId: string, quarantineTimeoutMinutes: number = 30): boolean {
-    const quarantine = this.quarantinedInstances.get(instanceId);
-    if (!quarantine) return false;
-
-    const quarantineExpired = Date.now() - quarantine.quarantinedAt.getTime() > (quarantineTimeoutMinutes * 60 * 1000);
+  static isInQuarantine(instanceId: string, quarantineDurationMs: number = 86400000): boolean {
+    const quarantined = this.quarantinedInstances.get(instanceId);
     
-    if (quarantineExpired) {
-      console.log('[QuarantineManager] Removendo da quarentena:', instanceId);
+    if (!quarantined) {
+      return false;
+    }
+
+    const now = Date.now();
+    const timeInQuarantine = now - quarantined.quarantinedAt;
+    
+    if (timeInQuarantine >= quarantineDurationMs) {
+      console.log(`[QuarantineManager] Instância ${instanceId} saindo da quarentena após ${Math.round(timeInQuarantine / 3600000)}h`);
       this.quarantinedInstances.delete(instanceId);
       return false;
     }
@@ -84,13 +52,111 @@ export class StabilityQuarantineManager {
   }
 
   /**
-   * Obtém status de quarentena
+   * Remove instância da quarentena manualmente
    */
-  static getQuarantineStatus() {
-    return Array.from(this.quarantinedInstances.entries()).map(([instanceId, data]) => ({
-      instanceId,
-      ...data,
-      quarantinedFor: Math.floor((Date.now() - data.quarantinedAt.getTime()) / 1000 / 60) + ' minutos'
+  static removeFromQuarantine(instanceId: string): boolean {
+    const removed = this.quarantinedInstances.delete(instanceId);
+    if (removed) {
+      console.log(`[QuarantineManager] Instância ${instanceId} removida da quarentena manualmente`);
+    }
+    return removed;
+  }
+
+  /**
+   * Força recuperação de todas as instâncias em quarentena
+   */
+  static async forceRecoveryFromQuarantine(): Promise<{
+    recovered: number;
+    errors: string[];
+  }> {
+    console.log('[QuarantineManager] Forçando recuperação de instâncias em quarentena...');
+    
+    const recovered = this.quarantinedInstances.size;
+    const errors: string[] = [];
+
+    try {
+      // Limpar todas as instâncias da quarentena
+      this.quarantinedInstances.clear();
+      
+      console.log(`[QuarantineManager] ${recovered} instâncias removidas da quarentena`);
+      
+      return {
+        recovered,
+        errors
+      };
+      
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      errors.push(errorMessage);
+      
+      return {
+        recovered: 0,
+        errors
+      };
+    }
+  }
+
+  /**
+   * Obtém status da quarentena
+   */
+  static getQuarantineStatus(): {
+    total: number;
+    instances: Array<{
+      instanceId: string;
+      reason: string;
+      timeInQuarantine: number;
+      failureCount: number;
+    }>;
+  } {
+    const now = Date.now();
+    const instances = Array.from(this.quarantinedInstances.values()).map(q => ({
+      instanceId: q.instanceId,
+      reason: q.reason,
+      timeInQuarantine: now - q.quarantinedAt,
+      failureCount: q.failureCount
     }));
+
+    return {
+      total: instances.length,
+      instances
+    };
+  }
+
+  /**
+   * Limpeza automática de quarentenas expiradas
+   */
+  static cleanupExpiredQuarantines(quarantineDurationMs: number = 86400000): number {
+    const now = Date.now();
+    let cleaned = 0;
+
+    for (const [instanceId, quarantined] of this.quarantinedInstances.entries()) {
+      if (now - quarantined.quarantinedAt >= quarantineDurationMs) {
+        this.quarantinedInstances.delete(instanceId);
+        cleaned++;
+      }
+    }
+
+    if (cleaned > 0) {
+      console.log(`[QuarantineManager] ${cleaned} quarentenas expiradas removidas automaticamente`);
+    }
+
+    return cleaned;
+  }
+
+  /**
+   * Obtém tempo restante de quarentena
+   */
+  static getQuarantineTimeRemaining(instanceId: string, quarantineDurationMs: number = 86400000): number {
+    const quarantined = this.quarantinedInstances.get(instanceId);
+    
+    if (!quarantined) {
+      return 0;
+    }
+
+    const now = Date.now();
+    const elapsed = now - quarantined.quarantinedAt;
+    const remaining = quarantineDurationMs - elapsed;
+    
+    return Math.max(0, remaining);
   }
 }
