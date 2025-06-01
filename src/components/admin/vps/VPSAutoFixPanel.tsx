@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Terminal, CheckCircle, AlertCircle, Copy, Wrench, Play, RefreshCw } from "lucide-react";
+import { Terminal, CheckCircle, AlertCircle, Copy, Wrench, Play, RefreshCw, Key, Server } from "lucide-react";
 
 interface AutoFixResults {
   success: boolean;
@@ -16,7 +16,15 @@ interface AutoFixResults {
     status: 'pending' | 'running' | 'success' | 'error';
     details: string;
     duration?: number;
+    command?: string;
+    output?: string;
   }>;
+  ssh_connection?: {
+    host: string;
+    port: number;
+    username: string;
+    connected: boolean;
+  };
   final_verification?: {
     server_version: string;
     ssl_fix_enabled: boolean;
@@ -63,7 +71,7 @@ export const VPSAutoFixPanel = () => {
   const applyAutoFixes = async () => {
     try {
       setIsFixing(true);
-      toast.info("Aplicando correções automaticamente...");
+      toast.info("Aplicando correções via SSH...");
 
       const { data, error } = await supabase.functions.invoke('apply_vps_fixes', {
         body: {}
@@ -76,11 +84,15 @@ export const VPSAutoFixPanel = () => {
       setFixResults(data);
       
       if (data.success) {
-        toast.success("Correções aplicadas com sucesso!");
+        toast.success("Correções aplicadas com sucesso via SSH!");
         // Executar diagnóstico novamente para verificar as mudanças
         setTimeout(() => runDiagnostic(), 2000);
       } else {
-        toast.error(`Falha ao aplicar correções: ${data.message}`);
+        if (data.message?.includes('Configure a chave SSH')) {
+          toast.error("Chave SSH não configurada. Configure VPS_SSH_PRIVATE_KEY nos secrets.");
+        } else {
+          toast.error(`Falha ao aplicar correções: ${data.message}`);
+        }
       }
 
     } catch (error: any) {
@@ -112,7 +124,7 @@ export const VPSAutoFixPanel = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Wrench className="h-5 w-5 text-blue-600" />
-              <CardTitle>Correção Automática VPS</CardTitle>
+              <CardTitle>Correção Automática VPS (SSH Real)</CardTitle>
             </div>
             <div className="flex gap-2">
               <Button 
@@ -142,12 +154,12 @@ export const VPSAutoFixPanel = () => {
                 {isFixing ? (
                   <>
                     <RefreshCw className="h-4 w-4 animate-spin" />
-                    Aplicando Correções...
+                    Aplicando via SSH...
                   </>
                 ) : (
                   <>
-                    <Play className="h-4 w-4" />
-                    Aplicar Correções Auto
+                    <Server className="h-4 w-4" />
+                    Aplicar Correções SSH
                   </>
                 )}
               </Button>
@@ -155,13 +167,26 @@ export const VPSAutoFixPanel = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
-            Executa automaticamente todas as correções SSL/Timeout na VPS via SSH, 
-            incluindo backup, aplicação do fix e restart do servidor.
-          </p>
+          <div className="space-y-4">
+            <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+              <div className="flex items-center gap-2 mb-2">
+                <Key className="h-4 w-4 text-amber-600" />
+                <span className="font-medium text-amber-800">Configuração SSH Necessária</span>
+              </div>
+              <p className="text-sm text-amber-700">
+                Para aplicar correções reais, configure a chave SSH privada da VPS no secret <code>VPS_SSH_PRIVATE_KEY</code>.
+                Conecta em <strong>root@31.97.24.222:22</strong> e executa comandos reais no servidor.
+              </p>
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              Nova versão que conecta via SSH real na VPS, executa backup, aplica correções SSL/Timeout 
+              no código do servidor, reinicia com PM2 e verifica os resultados.
+            </p>
+          </div>
 
           {diagnosticResults && (
-            <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
               <h4 className="font-medium text-blue-800 mb-2">Último Diagnóstico:</h4>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><span className="font-medium">Status Servidor:</span> {diagnosticResults.summary?.server_status || 'N/A'}</div>
@@ -215,7 +240,7 @@ export const VPSAutoFixPanel = () => {
               ) : (
                 <AlertCircle className="h-5 w-5 text-red-600" />
               )}
-              Resultado da Correção Automática
+              Resultado da Correção SSH
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -223,24 +248,57 @@ export const VPSAutoFixPanel = () => {
               <span className="font-medium">Status:</span> {fixResults.message}
             </div>
 
+            {fixResults.ssh_connection && (
+              <div className="p-3 bg-gray-50 rounded border">
+                <h4 className="font-medium mb-2">Conexão SSH:</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div><span className="font-medium">Host:</span> {fixResults.ssh_connection.host}:{fixResults.ssh_connection.port}</div>
+                  <div><span className="font-medium">Usuário:</span> {fixResults.ssh_connection.username}</div>
+                  <div>
+                    <span className="font-medium">Status:</span> 
+                    <Badge variant={fixResults.ssh_connection.connected ? 'default' : 'destructive'} className="ml-2">
+                      {fixResults.ssh_connection.connected ? 'Conectado' : 'Desconectado'}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {fixResults.steps && fixResults.steps.length > 0 && (
               <div className="space-y-3">
-                <h4 className="font-medium">Etapas Executadas:</h4>
+                <h4 className="font-medium">Etapas SSH Executadas:</h4>
                 {fixResults.steps.map((step, index) => (
-                  <div key={index} className="flex items-start gap-3 p-3 border rounded">
-                    {getStepIcon(step.status)}
-                    <div className="flex-1">
-                      <div className="font-medium">{step.step}</div>
-                      <div className="text-sm text-muted-foreground">{step.details}</div>
-                      {step.duration && (
-                        <div className="text-xs text-muted-foreground">
-                          Duração: {step.duration}ms
-                        </div>
-                      )}
+                  <div key={index} className="border rounded p-3">
+                    <div className="flex items-start gap-3 mb-2">
+                      {getStepIcon(step.status)}
+                      <div className="flex-1">
+                        <div className="font-medium">{step.step}</div>
+                        <div className="text-sm text-muted-foreground">{step.details}</div>
+                      </div>
+                      <Badge variant={step.status === 'success' ? 'default' : step.status === 'error' ? 'destructive' : 'secondary'}>
+                        {step.status}
+                      </Badge>
                     </div>
-                    <Badge variant={step.status === 'success' ? 'default' : step.status === 'error' ? 'destructive' : 'secondary'}>
-                      {step.status}
-                    </Badge>
+                    
+                    {step.command && (
+                      <div className="mt-2 p-2 bg-gray-900 text-gray-100 rounded text-xs font-mono">
+                        <div className="text-gray-400 mb-1">Comando SSH:</div>
+                        {step.command}
+                      </div>
+                    )}
+                    
+                    {step.output && (
+                      <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-xs">
+                        <div className="text-green-700 font-medium mb-1">Output:</div>
+                        <pre className="text-green-600">{step.output}</pre>
+                      </div>
+                    )}
+                    
+                    {step.duration && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Duração: {step.duration}ms
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -248,7 +306,7 @@ export const VPSAutoFixPanel = () => {
 
             {fixResults.final_verification && (
               <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                <h4 className="font-medium text-green-800 mb-2">Verificação Final:</h4>
+                <h4 className="font-medium text-green-800 mb-2">Verificação Final SSH:</h4>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="font-medium">Versão do Servidor:</span> {fixResults.final_verification.server_version}
