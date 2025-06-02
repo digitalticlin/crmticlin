@@ -111,10 +111,11 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
   }
 
   // Send command to VPS to create WhatsApp instance
+  // Changing endpoint from /instance/create to /create
   try {
-    console.log(`Sending create request to: ${VPS_CONFIG.baseUrl}/instance/create`);
+    console.log(`Sending create request to: ${VPS_CONFIG.baseUrl}/create`);
     
-    const vpsResponse = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/create`, {
+    const vpsResponse = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/create`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -192,8 +193,9 @@ export async function deleteWhatsAppInstance(supabase: any, instanceId: string) 
   }
 
   // Send delete command to VPS with retry logic
+  // Changing endpoint from /instance/delete to /delete
   try {
-    await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/delete`, {
+    await makeVPSRequest(`${VPS_CONFIG.baseUrl}/delete`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

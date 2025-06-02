@@ -51,7 +51,8 @@ export async function getInstanceStatus(instanceId: string) {
   try {
     console.log(`[Status] Getting instance status: ${instanceId}`);
 
-    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/status`, {
+    // Changing endpoint from /instance/status to /status
+    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/status`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -93,7 +94,8 @@ export async function getQRCode(instanceId: string) {
   try {
     console.log(`[QR Code] Getting QR code for instance: ${instanceId}`);
 
-    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/qr`, {
+    // Changing endpoint from /instance/qr to /qr
+    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/qr`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
