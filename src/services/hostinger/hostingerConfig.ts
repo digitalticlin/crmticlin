@@ -1,8 +1,8 @@
 
 export const HOSTINGER_CONFIG = {
-  // URLs primária e fallback para VPS
-  PRIMARY_VPS_URL: 'http://31.97.24.222',
-  FALLBACK_VPS_URL: 'http://srv848330.hstgr.cloud',
+  // URLs primária e fallback para VPS com porta 80
+  PRIMARY_VPS_URL: 'http://31.97.24.222:80',
+  FALLBACK_VPS_URL: 'http://srv848330.hstgr.cloud:80',
   VPS_HOST: '31.97.24.222',
   VPS_PORT: 80,
   
@@ -16,7 +16,7 @@ export const HOSTINGER_CONFIG = {
   
   // Portas padrão dos serviços
   WHATSAPP_PORT: 3001,
-  API_SERVER_PORT: 3002,
+  API_SERVER_PORT: 80, // Usando porta 80 para API
   
   // Scripts de instalação
   WHATSAPP_INSTALL_SCRIPT: {
@@ -46,6 +46,11 @@ export const HOSTINGER_ENDPOINTS = {
 
 // Comandos pré-definidos para facilitar o uso
 export const PRESET_COMMANDS = {
+  SETUP_FIREWALL: {
+    command: 'sudo ufw allow 80/tcp && sudo ufw reload',
+    description: 'Configurar firewall para permitir porta 80'
+  },
+  
   CHECK_SYSTEM_STATUS: {
     command: 'systemctl status',
     description: 'Verificar status dos serviços do sistema'
@@ -67,8 +72,8 @@ export const PRESET_COMMANDS = {
   },
   
   CHECK_NETWORK: {
-    command: 'netstat -tlnp | grep -E "(3001|3002)"',
-    description: 'Verificar portas WhatsApp em uso'
+    command: 'netstat -tlnp | grep -E "(80|3001|3002)"',
+    description: 'Verificar portas em uso'
   },
   
   RESTART_WHATSAPP: {
