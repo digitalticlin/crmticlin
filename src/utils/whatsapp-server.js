@@ -23,6 +23,9 @@ app.use(express.json());
 // Token para autenticação
 const API_TOKEN = process.env.VPS_API_TOKEN || 'default-token';
 
+// URL do webhook Supabase
+const SUPABASE_WEBHOOK_URL = process.env.SUPABASE_WEBHOOK_URL || 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web';
+
 // Armazenar instâncias ativas com estado de reconexão
 const activeInstances = new Map();
 
@@ -33,6 +36,35 @@ const RECONNECT_CONFIG = {
   healthCheckInterval: 30000,
   sessionBackupInterval: 60000
 };
+
+// Função para enviar webhook ao Supabase
+async function sendWebhookToSupabase(event, instanceId, data = {}) {
+  try {
+    console.log(`📡 [v${SERVER_VERSION}] Enviando webhook: ${event} para instância ${instanceId}`);
+    
+    const response = await fetch(SUPABASE_WEBHOOK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_TOKEN}`
+      },
+      body: JSON.stringify({
+        event,
+        instanceId,
+        data,
+        timestamp: new Date().toISOString()
+      })
+    });
+
+    if (response.ok) {
+      console.log(`✅ [v${SERVER_VERSION}] Webhook ${event} enviado com sucesso para ${instanceId}`);
+    } else {
+      console.error(`❌ [v${SERVER_VERSION}] Falha no webhook ${event} para ${instanceId}: ${response.status}`);
+    }
+  } catch (error) {
+    console.error(`💥 [v${SERVER_VERSION}] Erro ao enviar webhook ${event} para ${instanceId}:`, error.message);
+  }
+}
 
 // Middleware de autenticação
 function authenticateToken(req, res, next) {
@@ -163,7 +195,7 @@ async function attemptReconnection(instanceId, instance) {
   }
 }
 
-// Configurar eventos do cliente com reconexão automática
+// Configurar eventos do cliente com reconexão automática E WEBHOOK AUTOMÁTICO
 function setupClientEvents(instanceId, client, instance) {
   // QR Code
   client.on('qr', async (qr) => {
@@ -184,22 +216,30 @@ function setupClientEvents(instanceId, client, instance) {
       instance.status = 'waiting_scan';
       instance.lastActivity = new Date().toISOString();
       
+      // Enviar webhook de QR Code
+      await sendWebhookToSupabase('qr', instanceId, {
+        qr: qrCodeDataUrl
+      });
+      
     } catch (error) {
       console.error(`❌ [v${SERVER_VERSION}] Erro ao gerar QR Code para ${instanceId}:`, error);
     }
   });
 
   // Autenticação
-  client.on('authenticated', () => {
+  client.on('authenticated', async () => {
     console.log(`🔐 [v${SERVER_VERSION}] Cliente autenticado: ${instanceId}`);
     instance.status = 'authenticated';
     instance.qrCode = null;
     instance.lastActivity = new Date().toISOString();
     instance.reconnectAttempts = 0; // Reset contador
+    
+    // Enviar webhook de autenticação
+    await sendWebhookToSupabase('authenticated', instanceId);
   });
 
-  // Pronto
-  client.on('ready', () => {
+  // Pronto - WEBHOOK AUTOMÁTICO PARA CADASTRAR NÚMERO
+  client.on('ready', async () => {
     console.log(`✅ [v${SERVER_VERSION}] Cliente pronto: ${instanceId}`);
     instance.status = 'ready';
     instance.lastActivity = new Date().toISOString();
@@ -209,14 +249,24 @@ function setupClientEvents(instanceId, client, instance) {
       instance.phone = client.info.wid?.user;
       instance.profileName = client.info.pushname;
       console.log(`📱 [v${SERVER_VERSION}] Conectado como: ${instance.phone} (${instance.profileName})`);
+      
+      // WEBHOOK AUTOMÁTICO PARA ATUALIZAR SUPABASE COM NÚMERO DO TELEFONE
+      await sendWebhookToSupabase('ready', instanceId, {
+        phone: instance.phone,
+        name: instance.profileName,
+        profilePic: client.info.profilePicUrl || null
+      });
     }
   });
 
   // Desconexão - Tentar reconectar automaticamente
-  client.on('disconnected', (reason) => {
+  client.on('disconnected', async (reason) => {
     console.log(`🔌 [v${SERVER_VERSION}] Cliente desconectado ${instanceId}:`, reason);
     instance.status = 'disconnected';
     instance.lastActivity = new Date().toISOString();
+    
+    // Enviar webhook de desconexão
+    await sendWebhookToSupabase('disconnected', instanceId, { reason });
     
     // Iniciar reconexão automática se não foi desconexão manual
     if (reason !== 'LOGOUT' && !instance.manualDisconnect) {
@@ -226,11 +276,36 @@ function setupClientEvents(instanceId, client, instance) {
   });
 
   // Falha na autenticação
-  client.on('auth_failure', (msg) => {
+  client.on('auth_failure', async (msg) => {
     console.error(`🚫 [v${SERVER_VERSION}] Falha na autenticação ${instanceId}:`, msg);
     instance.status = 'auth_failure';
     instance.qrCode = null;
     instance.lastActivity = new Date().toISOString();
+    
+    // Enviar webhook de falha na autenticação
+    await sendWebhookToSupabase('auth_failure', instanceId, { message: msg });
+  });
+
+  // Escutar mensagens recebidas
+  client.on('message', async (message) => {
+    try {
+      console.log(`💬 [v${SERVER_VERSION}] Mensagem recebida em ${instanceId}:`, message.from);
+      
+      // Enviar webhook de mensagem
+      await sendWebhookToSupabase('message', instanceId, {
+        id: message.id._serialized,
+        from: message.from,
+        to: message.to,
+        body: message.body,
+        type: message.type,
+        timestamp: message.timestamp,
+        notifyName: message._data.notifyName || null,
+        mediaUrl: message.hasMedia ? 'pending' : null
+      });
+      
+    } catch (error) {
+      console.error(`❌ [v${SERVER_VERSION}] Erro ao processar mensagem para ${instanceId}:`, error);
+    }
   });
 }
 
@@ -284,6 +359,7 @@ app.get('/health', (req, res) => {
     permanent_mode: true,
     health_check_enabled: true,
     auto_reconnect_enabled: true,
+    webhook_url: SUPABASE_WEBHOOK_URL,
     endpoints_available: [
       '/health',
       '/status',
@@ -483,7 +559,8 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
         qrCode: realQRCode,
         permanent_mode: true,
         auto_reconnect: true,
-        message: 'Instância criada em MODO PERMANENTE com auto-reconexão',
+        webhook_enabled: true,
+        message: 'Instância criada em MODO PERMANENTE com auto-reconexão e webhook automático',
         version: SERVER_VERSION,
         timestamp: new Date().toISOString()
       });
@@ -705,6 +782,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🔄 Auto-reconexão habilitada`);
   console.log(`💾 Backup automático de sessões habilitado`);
   console.log(`🔍 Health check habilitado (intervalo: ${RECONNECT_CONFIG.healthCheckInterval}ms)`);
+  console.log(`📡 Webhook automático habilitado: ${SUPABASE_WEBHOOK_URL}`);
   console.log(`💚 Health: http://localhost:${PORT}/health`);
   console.log(`🔑 Token: ${API_TOKEN === 'default-token' ? '⚠️  USANDO TOKEN PADRÃO' : '✅ Token configurado'}`);
   
@@ -726,7 +804,7 @@ app.listen(PORT, '0.0.0.0', () => {
   startHealthCheck();
   startSessionBackup();
   
-  console.log(`✅ [v${SERVER_VERSION}] Modo permanente ativado com sucesso!`);
+  console.log(`✅ [v${SERVER_VERSION}] Modo permanente ativado com webhooks automáticos!`);
 });
 
 // Graceful shutdown
