@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Zap, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { Zap, Loader2, CheckCircle, AlertCircle, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 export const DirectDeployButton = () => {
@@ -15,10 +15,9 @@ export const DirectDeployButton = () => {
       setIsDeploying(true);
       setDeployStatus('deploying');
       
-      console.log('🚀 Iniciando deploy direto do servidor WhatsApp...');
-      toast.info('🚀 Iniciando deploy do servidor WhatsApp permanente...');
+      console.log('🚀 Iniciando deploy direto via SSH...');
+      toast.info('🚀 Iniciando deploy do servidor WhatsApp via SSH...');
 
-      // Call the deploy edge function directly
       const response = await fetch('https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/deploy_whatsapp_server', {
         method: 'POST',
         headers: {
@@ -36,17 +35,18 @@ export const DirectDeployButton = () => {
         console.log('✅ Deploy realizado com sucesso:', result);
         setDeployResult(result);
         setDeployStatus('success');
-        toast.success('🎉 Servidor WhatsApp implantado com sucesso!');
+        toast.success('🎉 Servidor WhatsApp implantado com sucesso via SSH!');
         
         // Test server health after deploy
         setTimeout(async () => {
           try {
             const healthResponse = await fetch('http://31.97.24.222:3001/health');
             const healthData = await healthResponse.json();
-            console.log('🏥 Health check:', healthData);
-            toast.success(`✅ Servidor online! ${healthData.active_instances || 0} instâncias ativas`);
+            console.log('🏥 Health check final:', healthData);
+            toast.success(`✅ Servidor confirmado online! ${healthData.active_instances || 0} instâncias ativas`);
           } catch (error) {
-            console.log('⚠️ Health check failed, mas deploy foi realizado');
+            console.log('⚠️ Health check final falhou, mas servidor foi instalado');
+            toast.warning('⚠️ Servidor instalado, mas teste final falhou');
           }
         }, 5000);
         
@@ -56,7 +56,7 @@ export const DirectDeployButton = () => {
     } catch (error: any) {
       console.error('❌ Erro no deploy:', error);
       setDeployStatus('error');
-      toast.error(`❌ Erro no deploy: ${error.message}`);
+      toast.error(`❌ Erro no deploy SSH: ${error.message}`);
     } finally {
       setIsDeploying(false);
     }
@@ -71,53 +71,56 @@ export const DirectDeployButton = () => {
       case 'error':
         return <AlertCircle className="h-5 w-5 text-red-600" />;
       default:
-        return <Zap className="h-5 w-5 text-yellow-600" />;
+        return <Zap className="h-5 w-5 text-green-600" />;
     }
   };
 
   const getStatusText = () => {
     switch (deployStatus) {
       case 'deploying':
-        return 'Implantando servidor...';
+        return 'Instalando via SSH...';
       case 'success':
         return 'Servidor implantado com sucesso!';
       case 'error':
         return 'Erro na implantação';
       default:
-        return 'Pronto para deploy';
+        return 'Pronto para deploy via SSH';
     }
   };
 
   return (
-    <Card className="border-yellow-200 bg-yellow-50">
+    <Card className="border-green-200 bg-green-50">
       <CardHeader>
         <div className="flex items-center gap-2">
           {getStatusIcon()}
-          <CardTitle className="text-yellow-800">Deploy Direto do Servidor</CardTitle>
+          <CardTitle className="text-green-800">Deploy Direto via SSH</CardTitle>
         </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           <div>
-            <h3 className="font-medium text-yellow-800 mb-2">
+            <h3 className="font-medium text-green-800 mb-2">
               Servidor WhatsApp.js Permanente
             </h3>
-            <p className="text-sm text-yellow-700 mb-4">
-              Deploy direto contornando erro HTTPS 530 da API Hostinger
+            <p className="text-sm text-green-700 mb-4">
+              Deploy direto via SSH - Sem dependências da API Hostinger
             </p>
-            <p className="text-xs text-yellow-600">
+            <p className="text-xs text-green-600">
               Status: {getStatusText()}
             </p>
           </div>
 
           {deployResult && deployStatus === 'success' && (
-            <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+            <div className="p-3 bg-green-100 rounded-lg border border-green-300">
               <h4 className="font-medium text-green-800 mb-2">Deploy Realizado:</h4>
               <div className="text-xs text-green-700 space-y-1">
                 <div>• Servidor: {deployResult.server_url}</div>
+                <div>• Método: SSH Direto</div>
                 <div>• PM2: Configurado para auto-restart</div>
-                <div>• SSL: Correções aplicadas</div>
                 <div>• Webhook: Conectado ao Supabase</div>
+                {deployResult.health && (
+                  <div>• Instâncias ativas: {deployResult.health.active_instances || 0}</div>
+                )}
               </div>
             </div>
           )}
@@ -126,17 +129,17 @@ export const DirectDeployButton = () => {
             <Button
               onClick={handleDirectDeploy}
               disabled={isDeploying}
-              className="bg-yellow-600 hover:bg-yellow-700 text-white"
+              className="bg-green-600 hover:bg-green-700 text-white"
             >
               {isDeploying ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Implantando...
+                  Instalando via SSH...
                 </>
               ) : (
                 <>
                   <Zap className="h-4 w-4 mr-2" />
-                  Deploy Direto
+                  Deploy via SSH
                 </>
               )}
             </Button>
@@ -147,6 +150,7 @@ export const DirectDeployButton = () => {
                 onClick={() => window.open('http://31.97.24.222:3001/health', '_blank')}
                 className="border-green-600 text-green-600"
               >
+                <ExternalLink className="h-4 w-4 mr-2" />
                 Verificar Status
               </Button>
             )}

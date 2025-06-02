@@ -47,29 +47,29 @@ export const HostingerVPSPanel = () => {
       {/* Deploy Direto - Sempre visível */}
       <DirectDeployButton />
 
-      {/* API Status Warning */}
-      <Card className="border-orange-200 bg-orange-50">
+      {/* API Status Warning - Removido o alerta de erro 530 */}
+      <Card className="border-blue-200 bg-blue-50">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-orange-600" />
-            <CardTitle className="text-orange-800">Status da API Hostinger</CardTitle>
+            <Server className="h-5 w-5 text-blue-600" />
+            <CardTitle className="text-blue-800">Deploy Inteligente</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            <p className="text-sm text-orange-700">
-              ⚠️ <strong>HTTPS 530 Error detectado</strong> - API Hostinger temporariamente indisponível
+            <p className="text-sm text-blue-700">
+              ✅ <strong>Deploy via SSH direto</strong> - Método mais confiável
             </p>
-            <p className="text-xs text-orange-600">
-              • Use o "Deploy Direto" acima para contornar este problema<br/>
-              • Funcionalidades de gerenciamento VPS podem estar limitadas<br/>
-              • O servidor WhatsApp funcionará normalmente após o deploy
+            <p className="text-xs text-blue-600">
+              • Instala automaticamente Node.js, PM2 e dependências<br/>
+              • Não depende da API Hostinger<br/>
+              • Servidor permanente com auto-restart configurado
             </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* VPS Selection - Pode falhar devido ao erro 530 */}
+      {/* VPS Selection - Pode falhar devido a problemas de API */}
       <VPSSelector
         vpsList={vpsList}
         selectedVPS={selectedVPS}

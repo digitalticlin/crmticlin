@@ -8,24 +8,48 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🚀 Deploying permanent WhatsApp server to VPS...');
+    console.log('🚀 Deploying WhatsApp server directly via SSH...');
 
     const VPS_HOST = '31.97.24.222';
-    const deployScript = `
-#!/bin/bash
+    const VPS_USER = 'root';
+    const SSH_KEY = Deno.env.get('VPS_SSH_PRIVATE_KEY');
+
+    if (!SSH_KEY) {
+      throw new Error('SSH private key not configured');
+    }
+
+    // Create deployment script
+    const deployScript = `#!/bin/bash
 set -e
 
-echo "🔧 Installing Node.js and dependencies..."
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-apt-get install -y nodejs
+echo "🔧 Starting WhatsApp server deployment..."
 
-echo "📦 Installing PM2 globally..."
-npm install -g pm2
+# Check if server is already running
+if curl -s http://localhost:3001/health >/dev/null 2>&1; then
+    echo "✅ WhatsApp server already running!"
+    curl -s http://localhost:3001/health
+    exit 0
+fi
 
-echo "📁 Creating WhatsApp server directory..."
+# Install Node.js if not present
+if ! command -v node &> /dev/null; then
+    echo "📦 Installing Node.js..."
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    apt-get install -y nodejs
+fi
+
+# Install PM2 if not present
+if ! command -v pm2 &> /dev/null; then
+    echo "📦 Installing PM2..."
+    npm install -g pm2
+fi
+
+# Create server directory
+echo "📁 Creating server directory..."
 mkdir -p /root/whatsapp-permanent-server
 cd /root/whatsapp-permanent-server
 
+# Create package.json
 echo "📝 Creating package.json..."
 cat > package.json << 'EOF'
 {
@@ -43,9 +67,13 @@ cat > package.json << 'EOF'
 }
 EOF
 
-echo "⬇️ Installing dependencies..."
-npm install
+# Install dependencies if needed
+if [ ! -d "node_modules" ]; then
+    echo "⬇️ Installing dependencies..."
+    npm install
+fi
 
+# Create optimized server code
 echo "🤖 Creating WhatsApp server..."
 cat > server.js << 'EOF'
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
@@ -53,8 +81,6 @@ const express = require('express');
 const cors = require('cors');
 const QRCode = require('qrcode');
 const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
 
 process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = 'true';
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
@@ -65,11 +91,10 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 
-// Store for active WhatsApp instances
 const clients = new Map();
 const webhookUrl = 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web';
 
-// Health check endpoint
+// Health check
 app.get('/health', (req, res) => {
   res.json({
     success: true,
@@ -77,19 +102,15 @@ app.get('/health', (req, res) => {
     server: 'WhatsApp Permanent Server v2.0',
     timestamp: new Date().toISOString(),
     active_instances: clients.size,
-    uptime: process.uptime(),
-    ssl_fix_enabled: true,
-    timeout_fix_enabled: true
+    uptime: process.uptime()
   });
 });
 
-// Create new WhatsApp instance
+// Create WhatsApp instance
 app.post('/create', async (req, res) => {
   const { instanceId, sessionName, webhookUrl: customWebhook } = req.body;
   
   try {
-    console.log(\`🆕 Creating WhatsApp instance: \${instanceId}\`);
-    
     if (clients.has(instanceId)) {
       return res.json({ success: false, error: 'Instance already exists' });
     }
@@ -108,12 +129,7 @@ app.post('/create', async (req, res) => {
           '--disable-accelerated-2d-canvas',
           '--no-first-run',
           '--no-zygote',
-          '--disable-gpu',
-          '--ignore-ssl-errors=yes',
-          '--ignore-certificate-errors',
-          '--disable-web-security',
-          '--disable-features=VizDisplayCompositor',
-          '--timeout=60000'
+          '--disable-gpu'
         ],
         timeout: 60000
       }
@@ -132,15 +148,12 @@ app.post('/create', async (req, res) => {
     
     clients.set(instanceId, instanceData);
     
-    // QR Code handler
     client.on('qr', async (qr) => {
       try {
-        console.log(\`📱 QR Code generated for \${instanceId}\`);
         const qrCodeData = await QRCode.toDataURL(qr);
         instanceData.qrCode = qrCodeData;
         instanceData.status = 'waiting_scan';
         
-        // Notify webhook about QR code
         if (instanceData.webhook) {
           await axios.post(instanceData.webhook, {
             event: 'qr',
@@ -153,10 +166,8 @@ app.post('/create', async (req, res) => {
       }
     });
     
-    // Ready handler
     client.on('ready', async () => {
       try {
-        console.log(\`✅ WhatsApp ready for \${instanceId}\`);
         instanceData.status = 'ready';
         instanceData.qrCode = null;
         
@@ -164,15 +175,13 @@ app.post('/create', async (req, res) => {
         instanceData.phone = info.wid.user;
         instanceData.name = info.pushname;
         
-        // Notify webhook about ready state
         if (instanceData.webhook) {
           await axios.post(instanceData.webhook, {
             event: 'ready',
             instanceId,
             data: {
               phone: instanceData.phone,
-              name: instanceData.name,
-              profilePic: info.profilePicUrl
+              name: instanceData.name
             }
           }).catch(err => console.log('Webhook ready error:', err.message));
         }
@@ -181,14 +190,10 @@ app.post('/create', async (req, res) => {
       }
     });
     
-    // Message handler
     client.on('message', async (message) => {
       try {
-        if (message.from.includes('@g.us')) return; // Skip groups
+        if (message.from.includes('@g.us')) return;
         
-        console.log(\`📨 New message for \${instanceId}: \${message.from}\`);
-        
-        // Notify webhook about new message
         if (instanceData.webhook) {
           await axios.post(instanceData.webhook, {
             event: 'message',
@@ -198,9 +203,7 @@ app.post('/create', async (req, res) => {
               from: message.from,
               body: message.body,
               type: message.type,
-              timestamp: message.timestamp,
-              notifyName: message.notifyName,
-              mediaUrl: message.hasMedia ? \`/media/\${message.id._serialized}\` : null
+              timestamp: message.timestamp
             }
           }).catch(err => console.log('Webhook message error:', err.message));
         }
@@ -209,12 +212,9 @@ app.post('/create', async (req, res) => {
       }
     });
     
-    // Disconnected handler
     client.on('disconnected', async (reason) => {
-      console.log(\`❌ WhatsApp disconnected for \${instanceId}: \${reason}\`);
       instanceData.status = 'disconnected';
       
-      // Notify webhook about disconnection
       if (instanceData.webhook) {
         await axios.post(instanceData.webhook, {
           event: 'disconnected',
@@ -223,14 +223,11 @@ app.post('/create', async (req, res) => {
         }).catch(err => console.log('Webhook disconnect error:', err.message));
       }
       
-      // Auto-reconnect after 30 seconds
       setTimeout(() => {
-        console.log(\`🔄 Auto-reconnecting \${instanceId}...\`);
         client.initialize().catch(err => console.error('Reconnect error:', err));
       }, 30000);
     });
     
-    // Initialize client
     await client.initialize();
     
     res.json({ 
@@ -265,8 +262,6 @@ app.post('/send', async (req, res) => {
     
     const chatId = phone.includes('@c.us') ? phone : \`\${phone}@c.us\`;
     await instanceData.client.sendMessage(chatId, message);
-    
-    console.log(\`📤 Message sent from \${instanceId} to \${phone}\`);
     
     res.json({ success: true });
     
@@ -310,7 +305,6 @@ app.post('/delete', async (req, res) => {
     if (instanceData) {
       await instanceData.client.destroy();
       clients.delete(instanceId);
-      console.log(\`🗑️ Instance deleted: \${instanceId}\`);
     }
     
     res.json({ success: true });
@@ -340,16 +334,13 @@ app.get('/instances', (req, res) => {
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(\`🚀 WhatsApp Permanent Server running on port \${PORT}\`);
-  console.log(\`📊 Health check: http://localhost:\${PORT}/health\`);
 });
 
-// Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('🛑 Shutting down gracefully...');
   for (const [instanceId, data] of clients) {
     try {
       await data.client.destroy();
-      console.log(\`✅ Instance \${instanceId} closed\`);
     } catch (error) {
       console.error(\`❌ Error closing \${instanceId}:\`, error);
     }
@@ -358,6 +349,7 @@ process.on('SIGTERM', async () => {
 });
 EOF
 
+# Create PM2 ecosystem
 echo "⚙️ Creating PM2 ecosystem..."
 cat > ecosystem.config.js << 'EOF'
 module.exports = {
@@ -371,19 +363,16 @@ module.exports = {
     env: {
       NODE_ENV: 'production',
       PORT: 3001
-    },
-    error_file: '/root/logs/whatsapp-error.log',
-    out_file: '/root/logs/whatsapp-out.log',
-    log_file: '/root/logs/whatsapp-combined.log',
-    time: true
+    }
   }]
 };
 EOF
 
-echo "📁 Creating directories..."
+# Create directories
 mkdir -p /root/whatsapp-sessions
 mkdir -p /root/logs
 
+# Start server with PM2
 echo "🚀 Starting server with PM2..."
 pm2 stop whatsapp-permanent-server 2>/dev/null || true
 pm2 delete whatsapp-permanent-server 2>/dev/null || true
@@ -391,50 +380,98 @@ pm2 start ecosystem.config.js
 pm2 save
 pm2 startup
 
+# Test server
 echo "✅ Testing server..."
 sleep 5
 curl -s http://localhost:3001/health || echo "❌ Server not responding"
 
 echo "🎉 WhatsApp Permanent Server deployed successfully!"
-echo "🔗 Health check: http://31.97.24.222:3001/health"
-echo "📊 PM2 status: pm2 status"
-echo "📋 PM2 logs: pm2 logs whatsapp-permanent-server"
-    `;
+`;
 
-    // Send deployment script to VPS
-    const deployResponse = await fetch(`http://${VPS_HOST}:3002/execute`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        command: deployScript,
-        description: 'Deploy WhatsApp Permanent Server'
-      })
+    // Execute deployment via SSH
+    console.log('📡 Connecting to VPS via SSH...');
+    
+    // Create temporary script file
+    const scriptFile = await Deno.makeTempFile({ suffix: '.sh' });
+    await Deno.writeTextFile(scriptFile, deployScript);
+    
+    // Create SSH key file
+    const keyFile = await Deno.makeTempFile({ suffix: '.key' });
+    await Deno.writeTextFile(keyFile, SSH_KEY);
+    await Deno.chmod(keyFile, 0o600);
+
+    // Execute SSH command
+    const sshCommand = new Deno.Command('ssh', {
+      args: [
+        '-i', keyFile,
+        '-o', 'StrictHostKeyChecking=no',
+        '-o', 'UserKnownHostsFile=/dev/null',
+        `${VPS_USER}@${VPS_HOST}`,
+        'bash -s'
+      ],
+      stdin: 'piped',
+      stdout: 'piped',
+      stderr: 'piped'
     });
 
-    if (!deployResponse.ok) {
-      throw new Error(`VPS deployment failed: ${deployResponse.status}`);
+    const process = sshCommand.spawn();
+    
+    // Send script to stdin
+    const writer = process.stdin.getWriter();
+    await writer.write(new TextEncoder().encode(deployScript));
+    await writer.close();
+
+    const { code, stdout, stderr } = await process.output();
+    
+    // Clean up temp files
+    await Deno.remove(scriptFile);
+    await Deno.remove(keyFile);
+
+    const output = new TextDecoder().decode(stdout);
+    const errorOutput = new TextDecoder().decode(stderr);
+
+    console.log('SSH Output:', output);
+    if (errorOutput) console.log('SSH Errors:', errorOutput);
+
+    if (code !== 0) {
+      throw new Error(`SSH deployment failed with code ${code}: ${errorOutput || output}`);
     }
 
-    const deployResult = await deployResponse.json();
-    
-    // Test server health
-    await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10s
-    
-    const healthResponse = await fetch(`http://${VPS_HOST}:3001/health`);
-    const healthData = await healthResponse.json();
+    // Test server health after deployment
+    console.log('🏥 Testing server health...');
+    await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: 'WhatsApp Permanent Server deployed successfully!',
-        deployment: deployResult,
-        health: healthData,
-        server_url: `http://${VPS_HOST}:3001`
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    try {
+      const healthResponse = await fetch(`http://${VPS_HOST}:3001/health`);
+      const healthData = await healthResponse.json();
+      
+      console.log('✅ Server health check passed:', healthData);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'WhatsApp Permanent Server deployed successfully!',
+          server_url: `http://${VPS_HOST}:3001`,
+          health: healthData,
+          deployment_output: output
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+
+    } catch (healthError) {
+      console.log('⚠️ Health check failed, but deployment completed:', healthError.message);
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'WhatsApp server deployed, but health check failed',
+          server_url: `http://${VPS_HOST}:3001`,
+          deployment_output: output,
+          health_error: healthError.message
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
   } catch (error) {
     console.error('Deployment error:', error);
@@ -442,7 +479,7 @@ echo "📋 PM2 logs: pm2 logs whatsapp-permanent-server"
       JSON.stringify({
         success: false,
         error: error.message,
-        message: 'Failed to deploy WhatsApp server'
+        message: 'Failed to deploy WhatsApp server via SSH'
       }),
       { 
         status: 500, 
