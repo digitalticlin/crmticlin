@@ -13,10 +13,9 @@ export interface FixResults {
   message: string;
   timestamp: string;
   steps: FixStep[];
-  ssh_connection: {
+  api_connection: {
     host: string;
     port: number;
-    username: string;
     connected: boolean;
   };
   final_verification: {
@@ -27,8 +26,17 @@ export interface FixResults {
   };
 }
 
-export interface VPSSSHConfig {
+export interface VPSAPIConfig {
   host: string;
   port: number;
-  username: string;
+  baseUrl: string;
+  token: string;
+}
+
+export interface APIResponse {
+  success: boolean;
+  output?: string;
+  error?: string;
+  duration?: number;
+  timestamp?: string;
 }

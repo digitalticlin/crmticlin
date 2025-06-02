@@ -5,6 +5,7 @@ import { VPSDiagnosticTest } from "./VPSDiagnosticTest";
 import { VPSWebhookTest } from "./VPSWebhookTest";
 import { VPSAutoFixPanel } from "./vps/VPSAutoFixPanel";
 import { VPSQuickDiagnostic } from "./vps/VPSQuickDiagnostic";
+import { VPSInstallGuide } from "./vps/VPSInstallGuide";
 import { useVPSTest } from "./vps/useVPSTest";
 
 export const VPSTestPanel = () => {
@@ -19,7 +20,7 @@ export const VPSTestPanel = () => {
 
   return (
     <div className="space-y-6">
-      {/* Diagnóstico Rápido - Novo componente em destaque */}
+      {/* Diagnóstico Rápido */}
       <VPSQuickDiagnostic />
 
       <VPSConfigCard 
@@ -35,8 +36,11 @@ export const VPSTestPanel = () => {
         />
       )}
 
-      {/* Painel de Correção Automática */}
+      {/* Painel de Instalação Automática */}
       <VPSAutoFixPanel />
+
+      {/* Guia de Instalação Manual */}
+      <VPSInstallGuide />
 
       {/* Teste específico de webhook */}
       <VPSWebhookTest />

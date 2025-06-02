@@ -1,13 +1,14 @@
 
-import { VPSSSHConfig } from './types.ts';
+import { VPSAPIConfig } from './types.ts';
 
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-export const VPS_SSH_CONFIG: VPSSSHConfig = {
+export const VPS_API_CONFIG: VPSAPIConfig = {
   host: '31.97.24.222',
-  port: 22,
-  username: 'root'
+  port: 3002,
+  baseUrl: 'http://31.97.24.222:3002',
+  token: 'vps-api-token-2024' // Token será configurado via secret
 };

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Terminal, CheckCircle, AlertCircle, Copy, Wrench, Play, RefreshCw, Key, Server } from "lucide-react";
+import { Terminal, CheckCircle, AlertCircle, Copy, Wrench, Play, RefreshCw, Server, Globe } from "lucide-react";
 
 interface AutoFixResults {
   success: boolean;
@@ -19,10 +19,9 @@ interface AutoFixResults {
     command?: string;
     output?: string;
   }>;
-  ssh_connection?: {
+  api_connection?: {
     host: string;
     port: number;
-    username: string;
     connected: boolean;
   };
   final_verification?: {
@@ -71,7 +70,7 @@ export const VPSAutoFixPanel = () => {
   const applyAutoFixes = async () => {
     try {
       setIsFixing(true);
-      toast.info("Aplicando correções via SSH...");
+      toast.info("Aplicando correções via API HTTP...");
 
       const { data, error } = await supabase.functions.invoke('apply_vps_fixes', {
         body: {}
@@ -84,12 +83,12 @@ export const VPSAutoFixPanel = () => {
       setFixResults(data);
       
       if (data.success) {
-        toast.success("Correções aplicadas com sucesso via SSH!");
+        toast.success("Correções aplicadas com sucesso via API!");
         // Executar diagnóstico novamente para verificar as mudanças
         setTimeout(() => runDiagnostic(), 2000);
       } else {
-        if (data.message?.includes('Configure a chave SSH')) {
-          toast.error("Chave SSH não configurada. Configure VPS_SSH_PRIVATE_KEY nos secrets.");
+        if (data.message?.includes('API Server')) {
+          toast.error("API Server não está respondendo. Instale primeiro o servidor API na VPS.");
         } else {
           toast.error(`Falha ao aplicar correções: ${data.message}`);
         }
@@ -103,9 +102,36 @@ export const VPSAutoFixPanel = () => {
     }
   };
 
-  const copyScript = (script: string, name: string) => {
-    navigator.clipboard.writeText(script);
-    toast.success(`${name} copiado para a área de transferência!`);
+  const copyInstallScript = () => {
+    const installScript = `# Script de instalação do API Server na VPS
+# Execute estes comandos na sua VPS como root:
+
+# 1. Instalar Node.js (se não estiver instalado)
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+apt-get install -y nodejs
+
+# 2. Criar diretório e baixar o servidor API
+mkdir -p /root/vps-api-server
+cd /root/vps-api-server
+
+# 3. Baixar o arquivo do servidor API
+# (Copie o código do arquivo vps-api-server.js para o servidor)
+
+# 4. Instalar dependências
+npm init -y
+npm install express cors
+
+# 5. Configurar token de segurança
+export VPS_API_TOKEN="vps-api-token-2024"
+
+# 6. Iniciar o servidor
+node server.js
+
+# O servidor estará rodando na porta 3002
+# Teste: curl http://localhost:3002/status`;
+
+    navigator.clipboard.writeText(installScript);
+    toast.success("Script de instalação copiado para a área de transferência!");
   };
 
   const getStepIcon = (status: string) => {
@@ -124,7 +150,7 @@ export const VPSAutoFixPanel = () => {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Wrench className="h-5 w-5 text-blue-600" />
-              <CardTitle>Correção Automática VPS (SSH Real)</CardTitle>
+              <CardTitle>Instalação Automática VPS</CardTitle>
             </div>
             <div className="flex gap-2">
               <Button 
@@ -154,12 +180,12 @@ export const VPSAutoFixPanel = () => {
                 {isFixing ? (
                   <>
                     <RefreshCw className="h-4 w-4 animate-spin" />
-                    Aplicando via SSH...
+                    Aplicando via API...
                   </>
                 ) : (
                   <>
                     <Server className="h-4 w-4" />
-                    Aplicar Correções SSH
+                    Aplicar Correções
                   </>
                 )}
               </Button>
@@ -168,20 +194,29 @@ export const VPSAutoFixPanel = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
               <div className="flex items-center gap-2 mb-2">
-                <Key className="h-4 w-4 text-amber-600" />
-                <span className="font-medium text-amber-800">Configuração SSH Necessária</span>
+                <Globe className="h-4 w-4 text-blue-600" />
+                <span className="font-medium text-blue-800">Nova Arquitetura HTTP API</span>
               </div>
-              <p className="text-sm text-amber-700">
-                Para aplicar correções reais, configure a chave SSH privada da VPS no secret <code>VPS_SSH_PRIVATE_KEY</code>.
-                Conecta em <strong>root@31.97.24.222:22</strong> e executa comandos reais no servidor.
+              <p className="text-sm text-blue-700 mb-3">
+                Agora usamos um servidor API HTTP na VPS (porta 3002) em vez de SSH direto. 
+                Isso é mais estável e seguro. O processo instala automaticamente ambos os servidores.
               </p>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={copyInstallScript}
+                className="flex items-center gap-2"
+              >
+                <Copy className="h-4 w-4" />
+                Copiar Script de Instalação VPS
+              </Button>
             </div>
 
             <p className="text-sm text-muted-foreground">
-              Nova versão que conecta via SSH real na VPS, executa backup, aplica correções SSL/Timeout 
-              no código do servidor, reinicia com PM2 e verifica os resultados.
+              <strong>Processo completo:</strong> Verifica conexão → Faz backup → Instala API Server (porta 3002) → 
+              Instala WhatsApp Server corrigido (porta 3001) → Configura dependências → Inicia serviços → Verifica funcionamento
             </p>
           </div>
 
@@ -194,38 +229,6 @@ export const VPSAutoFixPanel = () => {
                 <div><span className="font-medium">Avisos:</span> {diagnosticResults.summary?.total_warnings || 0}</div>
                 <div><span className="font-medium">Timestamp:</span> {new Date(diagnosticResults.timestamp).toLocaleString()}</div>
               </div>
-              
-              {diagnosticResults.ssl_timeout_fix && (
-                <div className="mt-4 space-y-2">
-                  <h5 className="font-medium text-blue-800">Scripts Disponíveis:</h5>
-                  <div className="flex gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => copyScript(diagnosticResults.ssl_timeout_fix.backup_script, 'Script de Backup')}
-                    >
-                      <Copy className="h-4 w-4 mr-2" />
-                      Backup Script
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => copyScript(diagnosticResults.ssl_timeout_fix.fix_script, 'Script de Correção')}
-                    >
-                      <Copy className="h-4 w-4 mr-2" />
-                      Fix Script
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => copyScript(diagnosticResults.ssl_timeout_fix.restart_script, 'Script de Restart')}
-                    >
-                      <Copy className="h-4 w-4 mr-2" />
-                      Restart Script
-                    </Button>
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </CardContent>
@@ -240,7 +243,7 @@ export const VPSAutoFixPanel = () => {
               ) : (
                 <AlertCircle className="h-5 w-5 text-red-600" />
               )}
-              Resultado da Correção SSH
+              Resultado da Instalação
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -248,16 +251,15 @@ export const VPSAutoFixPanel = () => {
               <span className="font-medium">Status:</span> {fixResults.message}
             </div>
 
-            {fixResults.ssh_connection && (
+            {fixResults.api_connection && (
               <div className="p-3 bg-gray-50 rounded border">
-                <h4 className="font-medium mb-2">Conexão SSH:</h4>
+                <h4 className="font-medium mb-2">Conexão API Server:</h4>
                 <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div><span className="font-medium">Host:</span> {fixResults.ssh_connection.host}:{fixResults.ssh_connection.port}</div>
-                  <div><span className="font-medium">Usuário:</span> {fixResults.ssh_connection.username}</div>
+                  <div><span className="font-medium">Host:</span> {fixResults.api_connection.host}:{fixResults.api_connection.port}</div>
                   <div>
                     <span className="font-medium">Status:</span> 
-                    <Badge variant={fixResults.ssh_connection.connected ? 'default' : 'destructive'} className="ml-2">
-                      {fixResults.ssh_connection.connected ? 'Conectado' : 'Desconectado'}
+                    <Badge variant={fixResults.api_connection.connected ? 'default' : 'destructive'} className="ml-2">
+                      {fixResults.api_connection.connected ? 'Conectado' : 'Desconectado'}
                     </Badge>
                   </div>
                 </div>
@@ -266,7 +268,7 @@ export const VPSAutoFixPanel = () => {
 
             {fixResults.steps && fixResults.steps.length > 0 && (
               <div className="space-y-3">
-                <h4 className="font-medium">Etapas SSH Executadas:</h4>
+                <h4 className="font-medium">Etapas Executadas:</h4>
                 {fixResults.steps.map((step, index) => (
                   <div key={index} className="border rounded p-3">
                     <div className="flex items-start gap-3 mb-2">
@@ -282,7 +284,7 @@ export const VPSAutoFixPanel = () => {
                     
                     {step.command && (
                       <div className="mt-2 p-2 bg-gray-900 text-gray-100 rounded text-xs font-mono">
-                        <div className="text-gray-400 mb-1">Comando SSH:</div>
+                        <div className="text-gray-400 mb-1">Comando API:</div>
                         {step.command}
                       </div>
                     )}
@@ -306,7 +308,7 @@ export const VPSAutoFixPanel = () => {
 
             {fixResults.final_verification && (
               <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                <h4 className="font-medium text-green-800 mb-2">Verificação Final SSH:</h4>
+                <h4 className="font-medium text-green-800 mb-2">Verificação Final:</h4>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="font-medium">Versão do Servidor:</span> {fixResults.final_verification.server_version}
@@ -334,7 +336,7 @@ export const VPSAutoFixPanel = () => {
             )}
 
             <div className="text-xs text-muted-foreground">
-              Correção executada em: {new Date(fixResults.timestamp).toLocaleString('pt-BR')}
+              Instalação executada em: {new Date(fixResults.timestamp).toLocaleString('pt-BR')}
             </div>
           </CardContent>
         </Card>

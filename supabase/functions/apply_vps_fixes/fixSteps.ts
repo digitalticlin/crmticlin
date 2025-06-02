@@ -1,5 +1,5 @@
 
-import { executeSSHCommand } from './sshUtils.ts';
+import { executeAPICommand, testAPIConnection } from './apiUtils.ts';
 import { FixStep } from './types.ts';
 import { FIXED_SERVER_CODE, API_SERVER_CODE } from './serverTemplates.ts';
 
@@ -37,12 +37,12 @@ export async function executeFixStep(
   return step;
 }
 
-export async function testSSHConnection(): Promise<FixStep> {
+export async function testConnection(): Promise<FixStep> {
   return executeFixStep(
-    'Verificação de conexão SSH',
-    'Testando conexão SSH com a VPS...',
-    'echo "SSH Connection Test - $(date)"',
-    () => executeSSHCommand('echo "SSH Connection Test - $(date)"', 'Teste de conexão SSH')
+    'Verificação de conexão API',
+    'Testando conexão com API Server da VPS...',
+    'GET /status',
+    () => testAPIConnection()
   );
 }
 
@@ -51,11 +51,66 @@ export async function createBackup(): Promise<FixStep> {
     'Backup do servidor atual',
     'Criando backup do arquivo server.js...',
     'cd /root/whatsapp-server && cp server.js server.js.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || echo "Arquivo server.js não encontrado - será criado"',
-    () => executeSSHCommand(
+    () => executeAPICommand(
       'cd /root/whatsapp-server && cp server.js server.js.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || echo "Arquivo server.js não encontrado - será criado"',
       'Criação de backup'
     )
   );
+}
+
+export async function installAPIServer(): Promise<FixStep> {
+  const step: FixStep = {
+    step: 'Instalação do API Server',
+    status: 'running',
+    details: 'Instalando API Server na porta 3002...',
+    command: 'Instalação e configuração do API Server'
+  };
+
+  const startTime = Date.now();
+  
+  try {
+    // Criar diretório e instalar código
+    await executeAPICommand('mkdir -p /root/vps-api-server', 'Criação de diretório API');
+    
+    const installAPICommand = `cat > /root/vps-api-server/server.js << 'EOF'
+${API_SERVER_CODE}
+EOF`;
+    
+    const packageAPICommand = `cd /root/vps-api-server && cat > package.json << 'EOF'
+{
+  "name": "vps-api-server",
+  "version": "1.0.0",
+  "description": "API Server para controle remoto da VPS",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  }
+}
+EOF`;
+    
+    const apiResult = await executeAPICommand(installAPICommand, 'Instalação do código API Server');
+    const packageResult = await executeAPICommand(packageAPICommand, 'Criação do package.json API');
+    const installResult = await executeAPICommand('cd /root/vps-api-server && npm install', 'Instalação de dependências API');
+    
+    if (apiResult.success && packageResult.success && installResult.success) {
+      step.status = 'success';
+      step.details = 'API Server instalado e dependências configuradas';
+      step.output = 'API Server pronto na porta 3002';
+    } else {
+      throw new Error('Falha na instalação do API Server');
+    }
+  } catch (error: any) {
+    step.status = 'error';
+    step.details = `Erro na instalação do API Server: ${error.message}`;
+  }
+  
+  step.duration = Date.now() - startTime;
+  return step;
 }
 
 export async function applyServerFixes(): Promise<FixStep> {
@@ -69,28 +124,22 @@ export async function applyServerFixes(): Promise<FixStep> {
   const startTime = Date.now();
   
   try {
-    // Criar diretórios
-    await executeSSHCommand('mkdir -p /root/whatsapp-server', 'Criação de diretório WhatsApp');
-    await executeSSHCommand('mkdir -p /root/vps-api-server', 'Criação de diretório API');
+    // Criar diretório
+    await executeAPICommand('mkdir -p /root/whatsapp-server', 'Criação de diretório WhatsApp');
     
-    // Aplicar códigos
+    // Aplicar código corrigido
     const writeWhatsAppCommand = `cat > /root/whatsapp-server/server.js << 'EOF'
 ${FIXED_SERVER_CODE}
 EOF`;
     
-    const writeAPICommand = `cat > /root/vps-api-server/server.js << 'EOF'
-${API_SERVER_CODE}
-EOF`;
+    const whatsappResult = await executeAPICommand(writeWhatsAppCommand, 'Aplicação do código WhatsApp corrigido');
     
-    const whatsappResult = await executeSSHCommand(writeWhatsAppCommand, 'Aplicação do código WhatsApp corrigido');
-    const apiResult = await executeSSHCommand(writeAPICommand, 'Aplicação do código API server');
-    
-    if (whatsappResult.success && apiResult.success) {
+    if (whatsappResult.success) {
       step.status = 'success';
-      step.details = 'Arquivos server.js atualizados com correções SSL/Timeout e API server criado';
-      step.output = 'Códigos corrigidos aplicados com sucesso';
+      step.details = 'Arquivo server.js atualizado com correções SSL/Timeout';
+      step.output = 'Código corrigido aplicado com sucesso';
     } else {
-      throw new Error('Falha na aplicação de um ou ambos os códigos');
+      throw new Error('Falha na aplicação do código WhatsApp');
     }
   } catch (error: any) {
     step.status = 'error';
@@ -106,15 +155,14 @@ export async function installDependencies(): Promise<FixStep> {
     step: 'Verificação e instalação de dependências',
     status: 'running',
     details: 'Verificando package.json e instalando dependências...',
-    command: 'npm install em ambos os diretórios'
+    command: 'npm install no diretório WhatsApp'
   };
 
   const startTime = Date.now();
   
   try {
-    // Criar package.json files
-    const packageWhatsAppCommand = `cd /root/whatsapp-server && if [ ! -f package.json ]; then
-cat > package.json << 'EOF'
+    // Criar package.json
+    const packageWhatsAppCommand = `cd /root/whatsapp-server && cat > package.json << 'EOF'
 {
   "name": "whatsapp-server",
   "version": "2.0.0-ssl-fix",
@@ -130,37 +178,14 @@ cat > package.json << 'EOF'
     "qrcode": "^1.5.3"
   }
 }
-EOF
-fi`;
+EOF`;
     
-    const packageAPICommand = `cd /root/vps-api-server && if [ ! -f package.json ]; then
-cat > package.json << 'EOF'
-{
-  "name": "vps-api-server",
-  "version": "1.0.0",
-  "description": "API Server para controle remoto da VPS",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5"
-  }
-}
-EOF
-fi`;
-    
-    await executeSSHCommand(packageWhatsAppCommand, 'Criação do package.json WhatsApp');
-    await executeSSHCommand(packageAPICommand, 'Criação do package.json API');
-    
-    await executeSSHCommand('cd /root/whatsapp-server && npm install', 'Instalação de dependências WhatsApp');
-    await executeSSHCommand('cd /root/vps-api-server && npm install', 'Instalação de dependências API');
+    await executeAPICommand(packageWhatsAppCommand, 'Criação do package.json WhatsApp');
+    await executeAPICommand('cd /root/whatsapp-server && npm install', 'Instalação de dependências WhatsApp');
     
     step.status = 'success';
-    step.details = 'Dependências verificadas e instaladas em ambos os servidores';
-    step.output = 'package.json criados e dependências instaladas';
+    step.details = 'Dependências verificadas e instaladas';
+    step.output = 'package.json criado e dependências instaladas';
   } catch (error: any) {
     step.status = 'error';
     step.details = `Erro na instalação de dependências: ${error.message}`;
@@ -182,16 +207,17 @@ export async function restartServers(): Promise<FixStep> {
   
   try {
     // Parar processos antigos
-    await executeSSHCommand('pkill -f "node.*server.js" || true', 'Parada de processos antigos');
+    await executeAPICommand('pkill -f "node.*server.js" || true', 'Parada de processos antigos');
     await new Promise(resolve => setTimeout(resolve, 3000));
     
-    // Iniciar servidores
-    await executeSSHCommand(
+    // Iniciar WhatsApp server
+    await executeAPICommand(
       'cd /root/whatsapp-server && nohup node server.js > whatsapp.log 2>&1 & echo "WhatsApp server iniciado"',
       'Inicialização do WhatsApp server'
     );
     
-    await executeSSHCommand(
+    // Iniciar API server
+    await executeAPICommand(
       'cd /root/vps-api-server && nohup node server.js > api.log 2>&1 & echo "API server iniciado"',
       'Inicialização do API server'
     );
@@ -210,7 +236,7 @@ export async function restartServers(): Promise<FixStep> {
 
 export async function verifyInstallation(): Promise<FixStep> {
   const step: FixStep = {
-    step: 'Verificação pós-correção',
+    step: 'Verificação pós-instalação',
     status: 'running',
     details: 'Aguardando servidores estabilizarem e verificando endpoints...',
     command: 'sleep 10 && curl health endpoints'
@@ -222,12 +248,12 @@ export async function verifyInstallation(): Promise<FixStep> {
     // Aguardar estabilização
     await new Promise(resolve => setTimeout(resolve, 10000));
     
-    const whatsappResult = await executeSSHCommand(
+    const whatsappResult = await executeAPICommand(
       'curl -s http://localhost:3001/health',
       'Verificação do WhatsApp server'
     );
     
-    const apiResult = await executeSSHCommand(
+    const apiResult = await executeAPICommand(
       'curl -s http://localhost:3002/status',
       'Verificação do API server'
     );
