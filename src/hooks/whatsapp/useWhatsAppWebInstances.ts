@@ -43,6 +43,40 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     return session;
   }, []);
 
+  // Get admin user name for default instance naming
+  const getAdminUserName = useCallback(async () => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('company_id', companyId)
+        .eq('role', 'admin')
+        .single();
+      
+      if (profile?.full_name) {
+        return profile.full_name.split(' ')[0]; // First name only
+      }
+      
+      // Fallback: get current user name
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        return user.email.split('@')[0];
+      }
+      
+      return 'Usuario';
+    } catch (error) {
+      console.error('Error getting admin name:', error);
+      return 'Usuario';
+    }
+  }, [companyId]);
+
+  // Generate default instance name
+  const generateInstanceName = useCallback(async () => {
+    const adminName = await getAdminUserName();
+    const instanceCount = instances.length + 1;
+    return `${adminName} WhatsApp ${instanceCount}`;
+  }, [getAdminUserName, instances.length]);
+
   // Fetch instances from database
   const fetchInstances = useCallback(async () => {
     if (!companyId || companyLoading) return;
@@ -83,8 +117,8 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     }
   }, [companyId, companyLoading]);
 
-  // Create instance with authentication
-  const createInstance = async (instanceName: string): Promise<void> => {
+  // Create instance with authentication and improved naming
+  const createInstance = async (customInstanceName?: string): Promise<void> => {
     if (!companyId) {
       toast.error('ID da empresa não encontrado');
       return;
@@ -93,6 +127,9 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     try {
       // Get authenticated session
       await getAuthenticatedSession();
+      
+      // Use custom name or generate default
+      const instanceName = customInstanceName || await generateInstanceName();
       
       const result = await WhatsAppWebService.createInstance(instanceName);
 
@@ -109,7 +146,7 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     }
   };
 
-  // Auto connection flow
+  // Auto connection flow with improved naming
   const startAutoConnection = async () => {
     if (!companyId) {
       toast.error('ID da empresa não encontrado');
@@ -119,7 +156,7 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     setAutoConnectState(prev => ({ ...prev, isConnecting: true }));
 
     try {
-      const instanceName = `whatsapp_${Date.now()}`;
+      const instanceName = await generateInstanceName();
       
       const result = await WhatsAppWebService.createInstance(instanceName);
 
@@ -146,7 +183,7 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     }
   };
 
-  // Delete instance
+  // Delete instance with complete VPS cleanup
   const deleteInstance = async (instanceId: string) => {
     try {
       // Get authenticated session
@@ -156,7 +193,7 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
       
       if (result.success) {
         await fetchInstances();
-        toast.success('Instância deletada com sucesso');
+        toast.success('Instância deletada com sucesso da VPS e banco de dados');
       } else {
         throw new Error(result.error || 'Falha ao deletar instância');
       }
@@ -166,7 +203,7 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     }
   };
 
-  // Refresh QR Code - agora retorna a string do QR code
+  // Refresh QR Code - improved logic
   const refreshQRCode = async (instanceId: string): Promise<string | null> => {
     try {
       // Get authenticated session
@@ -176,14 +213,14 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
       
       if (result.success && result.qrCode) {
         await fetchInstances();
-        toast.success('QR Code atualizado');
+        toast.success('QR Code gerado com sucesso');
         return result.qrCode;
       } else {
-        throw new Error(result.error || 'Falha ao atualizar QR Code');
+        throw new Error(result.error || 'Falha ao gerar QR Code');
       }
     } catch (error: any) {
-      console.error('Error refreshing QR code:', error);
-      toast.error(`Erro ao atualizar QR Code: ${error.message}`);
+      console.error('Error generating QR code:', error);
+      toast.error(`Erro ao gerar QR Code: ${error.message}`);
       return null;
     }
   };

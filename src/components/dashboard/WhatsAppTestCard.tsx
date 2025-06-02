@@ -1,10 +1,11 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MessageSquare, QrCode, CheckCircle, Loader2 } from "lucide-react";
+import { MessageSquare, QrCode, CheckCircle, Loader2, Eye } from "lucide-react";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { toast } from "sonner";
@@ -24,8 +25,8 @@ export function WhatsAppTestCard() {
     refreshQRCode
   } = useWhatsAppWebInstances(companyId, companyLoading);
 
-  const connectedInstances = instances.filter(i => i.web_status === 'ready' || i.web_status === 'open');
-  const disconnectedInstances = instances.filter(i => i.web_status !== 'ready' && i.web_status !== 'open');
+  const connectedInstances = instances.filter(i => i.connection_status === 'connected');
+  const disconnectedInstances = instances.filter(i => i.connection_status !== 'connected');
 
   const handleCreateInstance = async () => {
     if (!instanceName.trim()) {
@@ -121,7 +122,7 @@ export function WhatsAppTestCard() {
             )}
           </div>
 
-          {/* Ações */}
+          {/* Ações melhoradas */}
           <div className="space-y-2">
             {isLoading ? (
               <Button disabled className="w-full">
@@ -143,7 +144,7 @@ export function WhatsAppTestCard() {
                 className="w-full bg-blue-600 hover:bg-blue-700"
               >
                 <QrCode className="h-4 w-4 mr-2" />
-                Conectar WhatsApp ({disconnectedInstances[0].instance_name})
+                Gerar QR Code ({disconnectedInstances[0].instance_name})
               </Button>
             )}
 

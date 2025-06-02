@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Trash2, QrCode, RefreshCw, Wifi } from "lucide-react";
+import { Trash2, QrCode, RefreshCw, Wifi, Eye } from "lucide-react";
 import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 
 interface WhatsAppWebInstanceCardProps {
@@ -53,8 +53,57 @@ export function WhatsAppWebInstanceCard({
     }
   };
 
-  const canShowQR = instance.web_status === 'waiting_scan' && instance.qr_code;
   const isConnected = instance.connection_status === 'connected';
+  const isDisconnected = instance.connection_status === 'disconnected';
+  const hasQRCode = instance.qr_code && instance.web_status === 'waiting_scan';
+  const needsQRCode = isDisconnected && !hasQRCode;
+
+  const getActionButton = () => {
+    if (isConnected) {
+      return null; // Connected instances don't need action buttons beyond delete
+    }
+
+    if (hasQRCode) {
+      return (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onShowQR}
+          className="flex-1 glass-card border-0 bg-blue-50/50 hover:bg-blue-100/50 dark:bg-blue-900/20 dark:hover:bg-blue-800/30"
+        >
+          <Eye className="h-4 w-4 mr-1" />
+          Ver QR Code
+        </Button>
+      );
+    }
+
+    if (needsQRCode) {
+      return (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onRefreshQR(instance.id)}
+          className="flex-1 glass-card border-0 bg-green-50/50 hover:bg-green-100/50 dark:bg-green-900/20 dark:hover:bg-green-800/30"
+        >
+          <QrCode className="h-4 w-4 mr-1" />
+          Gerar QR Code
+        </Button>
+      );
+    }
+
+    // For other states (connecting, etc.)
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onRefreshQR(instance.id)}
+        className="flex-1 glass-card border-0 bg-gray-50/50 hover:bg-gray-100/50 dark:bg-gray-900/20 dark:hover:bg-gray-800/30"
+      >
+        <RefreshCw className="h-4 w-4 mr-1" />
+        Atualizar Status
+      </Button>
+    );
+  };
 
   return (
     <Card className={`glass-card border-0 transition-all duration-200 hover:shadow-lg ${
@@ -94,29 +143,7 @@ export function WhatsAppWebInstanceCard({
         </div>
 
         <div className="flex gap-2">
-          {canShowQR && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onShowQR}
-              className="flex-1 glass-card border-0 bg-blue-50/50 hover:bg-blue-100/50 dark:bg-blue-900/20 dark:hover:bg-blue-800/30"
-            >
-              <QrCode className="h-4 w-4 mr-1" />
-              Ver QR Code
-            </Button>
-          )}
-          
-          {!isConnected && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onRefreshQR(instance.id)}
-              className="flex-1 glass-card border-0 bg-gray-50/50 hover:bg-gray-100/50 dark:bg-gray-900/20 dark:hover:bg-gray-800/30"
-            >
-              <RefreshCw className="h-4 w-4 mr-1" />
-              Atualizar
-            </Button>
-          )}
+          {getActionButton()}
           
           <Button
             variant="destructive"
@@ -131,7 +158,7 @@ export function WhatsAppWebInstanceCard({
         {isNewInstance && (
           <div className="mt-3 p-3 glass-card bg-blue-100/50 dark:bg-blue-900/30 rounded-lg border border-blue-200/30">
             <p className="text-xs text-blue-700 dark:text-blue-300">
-              ✨ Nova instância criada! {canShowQR ? 'Escaneie o QR Code para conectar.' : 'Aguardando QR Code...'}
+              ✨ Nova instância criada! {hasQRCode ? 'Escaneie o QR Code para conectar.' : needsQRCode ? 'Clique em "Gerar QR Code" para conectar.' : 'Aguardando configuração...'}
             </p>
           </div>
         )}
