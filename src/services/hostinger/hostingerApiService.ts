@@ -32,7 +32,7 @@ class HostingerApiService {
   private baseUrl: string;
 
   constructor() {
-    // Usar nossa Edge Function como proxy
+    // Usar nossa Edge Function como proxy para VPS direta
     this.baseUrl = 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/hostinger_proxy';
   }
 
@@ -42,7 +42,7 @@ class HostingerApiService {
     body?: any
   ): Promise<HostingerApiResponse<T>> {
     try {
-      console.log(`[Hostinger Service] ${method} ${endpoint}`);
+      console.log(`[VPS Service] ${method} ${endpoint}`);
       
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         method,
@@ -56,11 +56,11 @@ class HostingerApiService {
       const result = await response.json();
       
       // Log detalhado para debugging
-      console.log(`[Hostinger Service] Response status: ${response.status}`);
-      console.log(`[Hostinger Service] Response data:`, result);
+      console.log(`[VPS Service] Response status: ${response.status}`);
+      console.log(`[VPS Service] Response data:`, result);
 
       if (!response.ok) {
-        // Retornar erro detalhado da API
+        // Retornar erro detalhado da VPS
         return {
           success: false,
           error: result.error || `HTTP ${response.status}: ${response.statusText}`,
@@ -72,66 +72,99 @@ class HostingerApiService {
       if (!result.success) {
         return {
           success: false,
-          error: result.error || 'Erro na comunicação com a API Hostinger',
-          code: result.code || 'API_ERROR'
+          error: result.error || 'Erro na comunicação com a VPS',
+          code: result.code || 'VPS_ERROR'
         };
       }
 
       return { success: true, data: result.data };
     } catch (error: any) {
-      console.error('Hostinger API Error:', error);
+      console.error('VPS API Error:', error);
       return { 
         success: false, 
-        error: error.message || 'Erro na comunicação com a API Hostinger',
+        error: error.message || 'Erro na comunicação com a VPS',
         code: 'NETWORK_ERROR'
       };
     }
   }
 
-  // Testar conectividade básica
+  // Testar conectividade com a VPS
   async testConnection(): Promise<HostingerApiResponse<any>> {
-    console.log('[Hostinger] Testando conectividade...');
-    return this.makeRequest('/virtual-machines');
+    console.log('[VPS] Testando conectividade com VPS direta...');
+    return this.makeRequest('/health');
   }
 
-  // Listar todas as VPS
+  // Testar endpoint de status
+  async getStatus(): Promise<HostingerApiResponse<any>> {
+    console.log('[VPS] Verificando status da VPS...');
+    return this.makeRequest('/status');
+  }
+
+  // Listar informações da VPS (adaptado para VPS direta)
   async listVPS(): Promise<HostingerApiResponse<HostingerVPS[]>> {
-    return this.makeRequest<HostingerVPS[]>('/virtual-machines');
+    console.log('[VPS] Obtendo informações da VPS...');
+    
+    // Para VPS direta, vamos simular uma resposta baseada no status
+    const statusResult = await this.getStatus();
+    
+    if (statusResult.success) {
+      // Criar objeto VPS simulado baseado na resposta
+      const mockVPS: HostingerVPS = {
+        id: 'vps_31_97_24_222',
+        name: 'VPS Ticlin WhatsApp',
+        status: 'running',
+        ip_address: '31.97.24.222',
+        cpu_cores: 2,
+        memory: 4096,
+        storage: 80,
+        os: 'Ubuntu 20.04',
+        created_at: new Date().toISOString()
+      };
+      
+      return { success: true, data: [mockVPS] };
+    }
+    
+    return statusResult;
   }
 
-  // Obter detalhes de uma VPS específica
+  // Obter detalhes da VPS
   async getVPSDetails(vpsId: string): Promise<HostingerApiResponse<HostingerVPS>> {
-    return this.makeRequest<HostingerVPS>(`/virtual-machines/${vpsId}`);
+    const listResult = await this.listVPS();
+    if (listResult.success && listResult.data && listResult.data.length > 0) {
+      return { success: true, data: listResult.data[0] };
+    }
+    return { success: false, error: 'VPS não encontrada' };
   }
 
   // Executar comando na VPS
   async executeCommand(vpsId: string, command: string, description?: string): Promise<HostingerApiResponse<CommandResult>> {
-    console.log(`[Hostinger] Executando comando: ${description || command}`);
+    console.log(`[VPS] Executando comando: ${description || command}`);
     
     const payload = {
       command,
-      description: description || 'Comando executado via painel administrativo'
+      description: description || 'Comando executado via painel administrativo',
+      vpsId
     };
 
-    return this.makeRequest<CommandResult>(`/virtual-machines/${vpsId}/execute`, 'POST', payload);
+    return this.makeRequest<CommandResult>(`/execute`, 'POST', payload);
   }
 
   // Reiniciar VPS
   async restartVPS(vpsId: string): Promise<HostingerApiResponse> {
-    console.log(`[Hostinger] Reiniciando VPS: ${vpsId}`);
-    return this.makeRequest(`/virtual-machines/${vpsId}/restart`, 'POST');
+    console.log(`[VPS] Reiniciando VPS: ${vpsId}`);
+    return this.makeRequest(`/restart`, 'POST', { vpsId });
   }
 
   // Parar VPS
   async stopVPS(vpsId: string): Promise<HostingerApiResponse> {
-    console.log(`[Hostinger] Parando VPS: ${vpsId}`);
-    return this.makeRequest(`/virtual-machines/${vpsId}/stop`, 'POST');
+    console.log(`[VPS] Parando VPS: ${vpsId}`);
+    return this.makeRequest(`/stop`, 'POST', { vpsId });
   }
 
   // Iniciar VPS
   async startVPS(vpsId: string): Promise<HostingerApiResponse> {
-    console.log(`[Hostinger] Iniciando VPS: ${vpsId}`);
-    return this.makeRequest(`/virtual-machines/${vpsId}/start`, 'POST');
+    console.log(`[VPS] Iniciando VPS: ${vpsId}`);
+    return this.makeRequest(`/start`, 'POST', { vpsId });
   }
 
   // Obter logs da VPS

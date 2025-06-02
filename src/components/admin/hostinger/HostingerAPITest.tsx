@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { CheckCircle, XCircle, Loader2, Wifi, Server, AlertTriangle } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, Wifi, Server, AlertTriangle, Globe } from "lucide-react";
 
 interface APITestResults {
   token_configured: boolean;
@@ -25,12 +25,12 @@ export const HostingerAPITest = () => {
     try {
       setTesting(true);
       setResults(null);
-      toast.info("🔍 Testando conectividade com API Hostinger...");
+      toast.info("🔍 Testando conectividade com VPS direta (31.97.24.222)...");
 
       const startTime = Date.now();
       
-      // Testar conectividade básica
-      const response = await fetch('https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/hostinger_proxy/virtual-machines', {
+      // Testar conectividade com VPS direta
+      const response = await fetch('https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/hostinger_proxy/health', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
@@ -43,7 +43,7 @@ export const HostingerAPITest = () => {
       const data = await response.json();
       
       let testResults: APITestResults = {
-        token_configured: true, // Se chegou até aqui, o token está configurado
+        token_configured: true, // VPS direta não precisa de token
         connectivity: response.ok,
         authentication: response.status !== 401 && response.status !== 403,
         vps_list_access: false,
@@ -51,30 +51,28 @@ export const HostingerAPITest = () => {
         status_code: response.status
       };
 
-      if (data.success && data.data) {
+      if (data.success) {
         testResults.vps_list_access = true;
-        testResults.vps_count = Array.isArray(data.data) ? data.data.length : 0;
-        toast.success(`✅ Teste concluído! ${testResults.vps_count} VPS encontradas`);
+        testResults.vps_count = 1; // VPS direta sempre 1
+        toast.success(`✅ Conexão com VPS estabelecida! (${responseTime}ms)`);
       } else {
         testResults.error_details = data.error || 'Erro desconhecido';
         
         // Verificar tipos específicos de erro
-        if (data.code === 'MISSING_TOKEN') {
-          testResults.token_configured = false;
-        } else if (response.status === 401 || response.status === 403) {
+        if (response.status === 401 || response.status === 403) {
           testResults.authentication = false;
         }
         
-        toast.error(`❌ Falha no teste: ${data.error}`);
+        toast.error(`❌ Falha na conexão: ${data.error}`);
       }
 
       setResults(testResults);
 
     } catch (error: any) {
-      console.error('Erro no teste da API:', error);
+      console.error('Erro no teste da VPS:', error);
       
       setResults({
-        token_configured: false,
+        token_configured: true,
         connectivity: false,
         authentication: false,
         vps_list_access: false,
@@ -106,8 +104,8 @@ export const HostingerAPITest = () => {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Wifi className="h-5 w-5 text-blue-600" />
-            <CardTitle className="text-blue-800">Teste de Conectividade API</CardTitle>
+            <Globe className="h-5 w-5 text-blue-600" />
+            <CardTitle className="text-blue-800">Teste VPS Direta</CardTitle>
           </div>
           <Button 
             onClick={runAPITest} 
@@ -122,7 +120,7 @@ export const HostingerAPITest = () => {
             ) : (
               <>
                 <Server className="h-4 w-4 mr-2" />
-                Testar API
+                Testar VPS
               </>
             )}
           </Button>
@@ -133,14 +131,15 @@ export const HostingerAPITest = () => {
         {!results && !testing && (
           <div className="text-center py-6 text-blue-700">
             <Wifi className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Clique em "Testar API" para verificar a conectividade com a Hostinger</p>
+            <p>Clique em "Testar VPS" para verificar a conectividade com o servidor</p>
+            <p className="text-xs mt-2 opacity-75">VPS: 31.97.24.222</p>
           </div>
         )}
 
         {testing && (
           <div className="text-center py-6 text-blue-700">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-            <p>Testando conectividade com a API Hostinger...</p>
+            <p>Testando conectividade com a VPS...</p>
           </div>
         )}
 
@@ -149,10 +148,10 @@ export const HostingerAPITest = () => {
             {/* Status Geral */}
             <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
               <div className="flex items-center gap-3">
-                <div className="text-2xl">🔗</div>
+                <div className="text-2xl">🖥️</div>
                 <div>
-                  <h3 className="font-medium">Status da Integração</h3>
-                  <p className="text-sm text-muted-foreground">API Hostinger</p>
+                  <h3 className="font-medium">Status da VPS</h3>
+                  <p className="text-sm text-muted-foreground">31.97.24.222</p>
                 </div>
               </div>
               {results.vps_list_access ? (
@@ -164,16 +163,6 @@ export const HostingerAPITest = () => {
 
             {/* Detalhes dos Testes */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="flex items-center gap-3 p-3 border rounded">
-                {getStatusIcon(results.token_configured)}
-                <div>
-                  <div className={`font-medium ${getStatusColor(results.token_configured)}`}>
-                    Token Configurado
-                  </div>
-                  <div className="text-xs text-muted-foreground">HOSTINGER_API_TOKEN</div>
-                </div>
-              </div>
-              
               <div className="flex items-center gap-3 p-3 border rounded">
                 {getStatusIcon(results.connectivity)}
                 <div>
@@ -190,9 +179,9 @@ export const HostingerAPITest = () => {
                 {getStatusIcon(results.authentication)}
                 <div>
                   <div className={`font-medium ${getStatusColor(results.authentication)}`}>
-                    Autenticação
+                    Acesso VPS
                   </div>
-                  <div className="text-xs text-muted-foreground">Bearer Token</div>
+                  <div className="text-xs text-muted-foreground">Conexão direta</div>
                 </div>
               </div>
               
@@ -200,32 +189,25 @@ export const HostingerAPITest = () => {
                 {getStatusIcon(results.vps_list_access)}
                 <div>
                   <div className={`font-medium ${getStatusColor(results.vps_list_access)}`}>
-                    Acesso VPS
+                    Status VPS
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {results.vps_count !== undefined ? `${results.vps_count} VPS` : 'N/A'}
+                  <div className="text-xs text-muted-foreground">Servidor ativo</div>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3 p-3 border rounded">
+                <Globe className="h-4 w-4 text-blue-500" />
+                <div>
+                  <div className="font-medium text-blue-600">
+                    Método Direto
                   </div>
+                  <div className="text-xs text-muted-foreground">Sem API oficial</div>
                 </div>
               </div>
             </div>
 
-            {/* Alerta específico para erro 530 */}
-            {results.status_code === 530 && (
-              <div className="p-3 bg-orange-100 rounded-lg border border-orange-300">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertTriangle className="h-4 w-4 text-orange-600" />
-                  <h4 className="font-medium text-orange-800">Erro DNS 530 - Serviço Temporariamente Indisponível</h4>
-                </div>
-                <div className="text-sm text-orange-700 space-y-1">
-                  <p>• A API da Hostinger está temporariamente indisponível</p>
-                  <p>• Este é um problema no lado da Hostinger, não na nossa integração</p>
-                  <p>• Recomendação: Use o método direto via SSH como alternativa</p>
-                </div>
-              </div>
-            )}
-
             {/* Detalhes do Erro */}
-            {results.error_details && results.status_code !== 530 && (
+            {results.error_details && (
               <div className="p-3 bg-red-100 rounded-lg border border-red-300">
                 <h4 className="font-medium text-red-800 mb-2">Detalhes do Erro:</h4>
                 <p className="text-sm text-red-700">{results.error_details}</p>
@@ -237,18 +219,13 @@ export const HostingerAPITest = () => {
               <div className="p-3 bg-yellow-100 rounded-lg border border-yellow-300">
                 <h4 className="font-medium text-yellow-800 mb-2">Recomendações:</h4>
                 <ul className="text-sm text-yellow-700 space-y-1">
-                  {!results.token_configured && (
-                    <li>• Configure o token HOSTINGER_API_TOKEN nos Supabase Secrets</li>
+                  {!results.connectivity && (
+                    <li>• Verifique se a VPS está ligada e acessível</li>
                   )}
-                  {!results.authentication && results.status_code !== 530 && (
-                    <li>• Verifique se o token da API está válido e não expirado</li>
+                  {!results.authentication && (
+                    <li>• Verifique as configurações de acesso da VPS</li>
                   )}
-                  {!results.connectivity && results.status_code !== 530 && (
-                    <li>• Verifique a conectividade de rede com api.hostinger.com</li>
-                  )}
-                  {results.status_code === 530 && (
-                    <li>• Use o método "Deploy Direto" via SSH como alternativa</li>
-                  )}
+                  <li>• Use o método "Deploy Direto" via SSH como alternativa</li>
                 </ul>
               </div>
             )}

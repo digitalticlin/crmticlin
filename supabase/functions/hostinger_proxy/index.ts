@@ -31,35 +31,23 @@ serve(async (req) => {
   }
 
   try {
-    const API_TOKEN = Deno.env.get('HOSTINGER_API_TOKEN');
-    if (!API_TOKEN) {
-      console.error('❌ HOSTINGER_API_TOKEN não encontrado nos secrets');
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Token da API Hostinger não configurado nos Supabase Secrets',
-          code: 'MISSING_TOKEN'
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('✅ Token da API Hostinger encontrado');
+    console.log('[VPS Proxy] Iniciando requisição para VPS direta');
 
     const url = new URL(req.url);
     // Remover o prefix /functions/v1/hostinger_proxy da URL
     const path = url.pathname.replace('/functions/v1/hostinger_proxy', '');
     const method = req.method;
 
-    console.log(`[Hostinger Proxy] ${method} ${path}`);
+    console.log(`[VPS Proxy] ${method} ${path}`);
 
-    // Configurar URL da API Hostinger (SEM duplicar o path)
-    const hostingerBaseUrl = 'https://api.hostinger.com/vps/v1';
-    let hostingerUrl = `${hostingerBaseUrl}${path}`;
+    // Configurar URL da VPS direta (usando a URL correta fornecida)
+    const vpsBaseUrl = 'http://31.97.24.222';
+    let vpsUrl = `${vpsBaseUrl}${path}`;
 
-    // Headers para API Hostinger
-    const hostingerHeaders = {
-      'Authorization': `Bearer ${API_TOKEN}`,
+    console.log(`[VPS Proxy] URL da VPS: ${vpsUrl}`);
+
+    // Headers simplificados para VPS direta (sem Bearer token por enquanto)
+    const vpsHeaders = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
       'User-Agent': 'Ticlin-VPS-Manager/1.0'
@@ -68,53 +56,59 @@ serve(async (req) => {
     let requestBody = null;
     if (method === 'POST' && req.body) {
       requestBody = await req.text();
-      console.log(`[Hostinger Proxy] Request body: ${requestBody.substring(0, 200)}...`);
+      console.log(`[VPS Proxy] Request body: ${requestBody.substring(0, 200)}...`);
     }
 
-    console.log(`[Hostinger Proxy] Fazendo requisição para: ${hostingerUrl}`);
-    console.log(`[Hostinger Proxy] Headers: ${JSON.stringify(hostingerHeaders, null, 2)}`);
+    console.log(`[VPS Proxy] Fazendo requisição para VPS: ${vpsUrl}`);
+    console.log(`[VPS Proxy] Headers: ${JSON.stringify(vpsHeaders, null, 2)}`);
 
-    // Fazer requisição para API Hostinger com timeout
+    // Fazer requisição para VPS direta com timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 segundos timeout
 
     try {
-      const hostingerResponse = await fetch(hostingerUrl, {
+      const vpsResponse = await fetch(vpsUrl, {
         method,
-        headers: hostingerHeaders,
+        headers: vpsHeaders,
         body: requestBody,
         signal: controller.signal
       });
 
       clearTimeout(timeoutId);
 
-      const responseText = await hostingerResponse.text();
-      console.log(`[Hostinger Proxy] Status: ${hostingerResponse.status}`);
-      console.log(`[Hostinger Proxy] Response headers: ${JSON.stringify([...hostingerResponse.headers.entries()])}`);
-      console.log(`[Hostinger Proxy] Response: ${responseText.substring(0, 500)}...`);
+      const responseText = await vpsResponse.text();
+      console.log(`[VPS Proxy] Status: ${vpsResponse.status}`);
+      console.log(`[VPS Proxy] Response headers: ${JSON.stringify([...vpsResponse.headers.entries()])}`);
+      console.log(`[VPS Proxy] Response: ${responseText.substring(0, 500)}...`);
 
-      if (!hostingerResponse.ok) {
-        let errorMessage = `API Hostinger retornou erro ${hostingerResponse.status}`;
+      if (!vpsResponse.ok) {
+        let errorMessage = `VPS retornou erro ${vpsResponse.status}`;
         
         // Melhorar mensagens de erro específicas
-        switch (hostingerResponse.status) {
+        switch (vpsResponse.status) {
           case 401:
-            errorMessage = 'Token da API Hostinger inválido ou expirado';
+            errorMessage = 'Acesso não autorizado à VPS';
             break;
           case 403:
-            errorMessage = 'Acesso negado - verifique as permissões do token';
+            errorMessage = 'Acesso negado pela VPS';
             break;
           case 404:
-            errorMessage = 'Endpoint não encontrado na API Hostinger';
+            errorMessage = 'Endpoint não encontrado na VPS';
             break;
           case 429:
-            errorMessage = 'Limite de requisições excedido - tente novamente em alguns minutos';
+            errorMessage = 'Limite de requisições excedido na VPS';
             break;
           case 500:
-            errorMessage = 'Erro interno na API Hostinger';
+            errorMessage = 'Erro interno na VPS';
             break;
-          case 530:
-            errorMessage = 'Erro DNS na API Hostinger - serviço temporariamente indisponível';
+          case 502:
+            errorMessage = 'VPS indisponível (Bad Gateway)';
+            break;
+          case 503:
+            errorMessage = 'VPS temporariamente indisponível';
+            break;
+          case 504:
+            errorMessage = 'Timeout na conexão com a VPS';
             break;
           default:
             errorMessage += `: ${responseText}`;
@@ -124,11 +118,11 @@ serve(async (req) => {
           JSON.stringify({ 
             success: false, 
             error: errorMessage,
-            status_code: hostingerResponse.status,
+            status_code: vpsResponse.status,
             raw_response: responseText.substring(0, 500)
           }),
           { 
-            status: hostingerResponse.status, 
+            status: vpsResponse.status, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
         );
@@ -139,16 +133,12 @@ serve(async (req) => {
       try {
         responseData = JSON.parse(responseText);
       } catch (parseError) {
-        console.error('[Hostinger Proxy] Erro ao fazer parse do JSON:', parseError);
-        console.error('[Hostinger Proxy] Response text:', responseText);
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: 'Resposta inválida da API Hostinger - não é JSON válido',
-            raw_response: responseText.substring(0, 500)
-          }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        console.log('[VPS Proxy] Resposta não é JSON, tratando como texto');
+        // Se não for JSON válido, retornar como texto
+        responseData = {
+          output: responseText,
+          raw_response: responseText
+        };
       }
 
       // Retornar resposta formatada
@@ -164,11 +154,11 @@ serve(async (req) => {
       clearTimeout(timeoutId);
       
       if (fetchError.name === 'AbortError') {
-        console.error('[Hostinger Proxy] Timeout na requisição');
+        console.error('[VPS Proxy] Timeout na requisição');
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: 'Timeout na conexão com a API Hostinger',
+            error: 'Timeout na conexão com a VPS',
             code: 'TIMEOUT'
           }),
           { status: 408, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -179,7 +169,7 @@ serve(async (req) => {
     }
 
   } catch (error: any) {
-    console.error('[Hostinger Proxy] Erro:', error);
+    console.error('[VPS Proxy] Erro:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 

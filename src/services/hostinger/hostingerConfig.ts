@@ -1,6 +1,9 @@
 
 export const HOSTINGER_CONFIG = {
-  API_BASE_URL: 'https://api.hostinger.com/vps/v1',
+  API_BASE_URL: 'http://31.97.24.222',
+  VPS_HOST: '31.97.24.222',
+  VPS_PORT: 80,
+  ALTERNATIVE_HOST: 'srv848330.hstgr.cloud',
   API_TOKEN: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
   
   // Configurações de timeout
@@ -36,7 +39,9 @@ export const HOSTINGER_ENDPOINTS = {
   VPS_RESTART: (id: string) => `/virtual-machines/${id}/restart`,
   VPS_START: (id: string) => `/virtual-machines/${id}/start`,
   VPS_STOP: (id: string) => `/virtual-machines/${id}/stop`,
-  VPS_LOGS: (id: string) => `/virtual-machines/${id}/logs`
+  VPS_LOGS: (id: string) => `/virtual-machines/${id}/logs`,
+  HEALTH_CHECK: '/health',
+  STATUS: '/status'
 };
 
 // Comandos pré-definidos para facilitar o uso
