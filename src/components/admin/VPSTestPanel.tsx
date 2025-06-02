@@ -4,6 +4,7 @@ import { TestResultsCard } from "./vps/TestResultsCard";
 import { VPSDiagnosticTest } from "./VPSDiagnosticTest";
 import { VPSWebhookTest } from "./VPSWebhookTest";
 import { VPSAutoFixPanel } from "./vps/VPSAutoFixPanel";
+import { VPSQuickDiagnostic } from "./vps/VPSQuickDiagnostic";
 import { useVPSTest } from "./vps/useVPSTest";
 
 export const VPSTestPanel = () => {
@@ -18,6 +19,9 @@ export const VPSTestPanel = () => {
 
   return (
     <div className="space-y-6">
+      {/* Diagnóstico Rápido - Novo componente em destaque */}
+      <VPSQuickDiagnostic />
+
       <VPSConfigCard 
         config={VPS_CONFIG}
         onTest={runConnectivityTest}
