@@ -47,6 +47,12 @@ export default function ResponsiveSidebar() {
       icon: MessageSquare,
       label: "Chat",
       href: "/chat",
+    },
+    {
+      icon: MessageSquare,
+      label: "WhatsApp Chat",
+      href: "/whatsapp-chat",
+      className: "text-green-600"
     }
   ];
 
@@ -89,7 +95,7 @@ export default function ResponsiveSidebar() {
   const SidebarContent = () => (
     <>
       <SidebarLogo isCollapsed={isCollapsed && !isMobile} />
-      <Separator />
+      <Separator className="opacity-30" />
       <div className="flex flex-col flex-1 py-6 px-2 gap-1">
         <SidebarNavGroup items={mainNavItems} isCollapsed={isCollapsed && !isMobile} />
         <SidebarNavGroup items={featureNavItems} isCollapsed={isCollapsed && !isMobile} />
@@ -110,14 +116,14 @@ export default function ResponsiveSidebar() {
     return (
       <>
         {/* Mobile Header with Hamburger */}
-        <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-sidebar border-b h-14 flex items-center px-4">
+        <div className="md:hidden fixed top-0 left-0 right-0 z-50 glass-card h-14 flex items-center px-4 border-b border-white/10">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="mr-3">
+              <Button variant="ghost" size="icon" className="mr-3 hover:bg-white/10">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-[280px] bg-sidebar">
+            <SheetContent side="left" className="p-0 w-[280px] glass-sidebar border-r border-white/10">
               <div className="h-full flex flex-col">
                 <SidebarContent />
               </div>
@@ -136,7 +142,7 @@ export default function ResponsiveSidebar() {
   return (
     <div
       className={cn(
-        "hidden md:flex h-screen bg-sidebar sticky top-0 left-0 z-30 flex-col transition-all duration-300 shadow-lg",
+        "hidden md:flex h-screen glass-sidebar sticky top-0 left-0 z-30 flex-col transition-all duration-300 border-r border-white/10",
         isCollapsed ? "w-[80px]" : "w-[250px]"
       )}
     >
