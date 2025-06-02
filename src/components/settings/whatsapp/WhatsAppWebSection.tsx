@@ -1,8 +1,8 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { WhatsAppErrorAlert } from "./WhatsAppErrorAlert";
 import { WhatsAppWebInstanceCard } from "./WhatsAppWebInstanceCard";
-import FloatingAddWhatsAppButton from "./FloatingAddWhatsAppButton";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { AutoQRCodeModal } from "./AutoQRCodeModal";
 import { ConnectWhatsAppButton } from "./ConnectWhatsAppButton";
@@ -10,11 +10,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { ImprovedConnectWhatsAppButton } from "./ImprovedConnectWhatsAppButton";
 import { ImprovedQRCodeModal } from "./ImprovedQRCodeModal";
+import { useCompanyData } from "@/hooks/useCompanyData";
 
 export const WhatsAppWebSection = () => {
   console.log('[WhatsAppWebSection] Component rendering - WhatsApp Web.js only');
   
   const [userEmail, setUserEmail] = useState<string>("");
+  const { companyId, loading: companyLoading } = useCompanyData();
   
   const {
     instances,
@@ -28,7 +30,7 @@ export const WhatsAppWebSection = () => {
     openQRModal,
     autoConnectState,
     refetch
-  } = useWhatsAppWebInstances("", false);
+  } = useWhatsAppWebInstances(companyId, companyLoading);
 
   // Load current user data
   useEffect(() => {
@@ -78,7 +80,7 @@ export const WhatsAppWebSection = () => {
   };
 
   const renderContent = () => {
-    if (instancesLoading) {
+    if (instancesLoading || companyLoading) {
       return (
         <div className="flex justify-center py-8">
           <div className="text-center">
@@ -89,36 +91,24 @@ export const WhatsAppWebSection = () => {
       );
     }
 
-    if (instances.length === 0) {
-      return (
-        <div className="space-y-6">
-          <ImprovedConnectWhatsAppButton 
-            onConnect={handleAutoConnect}
-            isConnecting={autoConnectState.isConnecting}
-          />
-        </div>
-      );
-    }
-
     return (
-      <div className="space-y-6">
-        <div className="grid gap-4">
-          {instances.map((instance) => (
-            <WhatsAppWebInstanceCard
-              key={instance.id}
-              instance={instance}
-              onRefreshQR={handleRefreshQR}
-              onDelete={handleDeleteInstance}
-              onShowQR={() => openQRModal(instance.id)}
-            />
-          ))}
-        </div>
-
-        <FloatingAddWhatsAppButton 
-          onClick={() => handleCreateNew(`instance_${Date.now()}`)}
-          isSuperAdmin={true}
-          isNewUser={instances.length === 0}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {/* Card de Conectar WhatsApp */}
+        <ImprovedConnectWhatsAppButton 
+          onConnect={handleAutoConnect}
+          isConnecting={autoConnectState.isConnecting}
         />
+        
+        {/* Cards das Instâncias */}
+        {instances.map((instance) => (
+          <WhatsAppWebInstanceCard
+            key={instance.id}
+            instance={instance}
+            onRefreshQR={handleRefreshQR}
+            onDelete={handleDeleteInstance}
+            onShowQR={() => openQRModal(instance.id)}
+          />
+        ))}
       </div>
     );
   };
