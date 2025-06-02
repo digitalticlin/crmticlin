@@ -1,3 +1,4 @@
+
 import { AutoDeployButton } from "./hostinger/AutoDeployButton";
 import { PortTestDiagnostic } from "./vps/PortTestDiagnostic";
 import { VPSInfoCard } from "./vps/VPSInfoCard";
@@ -10,6 +11,7 @@ import { VPSConnectivityTest } from "./VPSConnectivityTest";
 import { VPSConnectionDiagnostic } from "./VPSConnectionDiagnostic";
 import { VPSEndpointDiscovery } from "./VPSEndpointDiscovery";
 import { VPSDeepInvestigation } from "./vps/VPSDeepInvestigation";
+import { VPSVersionDiagnostic } from "./vps/VPSVersionDiagnostic";
 
 export const VPSTestPanel = () => {
   return (
@@ -17,13 +19,16 @@ export const VPSTestPanel = () => {
       {/* Deploy Inteligente - Primeira seção */}
       <AutoDeployButton />
 
-      {/* Investigação Técnica Profunda - NOVA SEÇÃO PRIORITÁRIA */}
+      {/* Diagnóstico de Versão - NOVA FERRAMENTA PRINCIPAL */}
+      <VPSVersionDiagnostic />
+
+      {/* Investigação Técnica Profunda */}
       <VPSDeepInvestigation />
 
-      {/* Descoberta de Endpoints - seção anterior */}
+      {/* Descoberta de Endpoints */}
       <VPSEndpointDiscovery />
 
-      {/* Diagnóstico Completo VPS - Nova seção para Fase 1 */}
+      {/* Diagnóstico Completo VPS */}
       <VPSConnectionDiagnostic />
 
       {/* Teste de Conectividade WhatsApp Web.js */}
@@ -44,7 +49,7 @@ export const VPSTestPanel = () => {
       {/* Ações Administrativas */}
       <AdminActionsCard />
 
-      {/* Diagnóstico Avançado - Nova seção para análise 503 */}
+      {/* Diagnóstico Avançado */}
       <VPSAdvancedDiagnostic />
 
       {/* Diagnóstico Básico - Seção final */}
