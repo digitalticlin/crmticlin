@@ -13,6 +13,33 @@ export const VPS_CONFIG = {
   authToken: Deno.env.get('VPS_API_TOKEN') || 'default-token'
 };
 
+// Helper function to get VPS headers with correct authentication
+export const getVPSHeaders = () => ({
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${VPS_CONFIG.authToken}`
+});
+
+// Helper function to validate QR code is real (not placeholder)
+export const isRealQRCode = (qrCode: string | null): boolean => {
+  if (!qrCode || !qrCode.startsWith('data:image/')) {
+    return false;
+  }
+  
+  // Check if base64 content is substantial (real QR codes are much larger)
+  const base64Part = qrCode.split(',')[1];
+  if (!base64Part || base64Part.length < 500) {
+    return false;
+  }
+  
+  // Check for known fake/placeholder patterns
+  const knownFakePatterns = [
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+  ];
+  
+  return !knownFakePatterns.some(pattern => base64Part.includes(pattern));
+};
+
 console.log('[Config] VPS Config initialized:');
 console.log('[Config] Host:', VPS_CONFIG.host);
 console.log('[Config] Port:', VPS_CONFIG.port);

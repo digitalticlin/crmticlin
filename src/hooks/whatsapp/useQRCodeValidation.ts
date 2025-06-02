@@ -37,11 +37,29 @@ export function useQRCodeValidation() {
 
     // Verificar se tem conteúdo base64 suficiente
     const base64Part = qrCode.split(',')[1];
-    if (!base64Part || base64Part.length < 100) {
+    if (!base64Part || base64Part.length < 500) {
       const result = {
         isValid: false,
         isPlaceholder: true,
         errorMessage: 'QR Code sendo gerado...'
+      };
+      setValidationCache(prev => new Map(prev).set(qrCode, result));
+      return result;
+    }
+
+    // Verificar padrões conhecidos de QR codes falsos/placeholder
+    const knownFakePatterns = [
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+    ];
+    
+    const isFake = knownFakePatterns.some(pattern => base64Part.includes(pattern));
+    
+    if (isFake) {
+      const result = {
+        isValid: false,
+        isPlaceholder: true,
+        errorMessage: 'QR Code falso detectado. WhatsApp Web.js ainda está inicializando...'
       };
       setValidationCache(prev => new Map(prev).set(qrCode, result));
       return result;

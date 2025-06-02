@@ -1,46 +1,26 @@
 
-import { VPS_CONFIG, corsHeaders } from './config.ts';
+import { VPS_CONFIG, corsHeaders, getVPSHeaders } from './config.ts';
 
 async function makeVPSRequest(url: string, options: RequestInit, retries = 3): Promise<Response> {
-  console.log(`[VPS Message] Attempting connection to: ${url}`);
-  
   for (let i = 0; i < retries; i++) {
     try {
-      console.log(`[VPS Message] Attempt ${i + 1}/${retries}`);
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      console.log(`[VPS Request] Attempt ${i + 1}/${retries} to: ${url}`);
       
       const response = await fetch(url, {
         ...options,
-        signal: controller.signal,
+        signal: AbortSignal.timeout(15000),
       });
       
-      clearTimeout(timeoutId);
-      
-      console.log(`[VPS Message] Response: ${response.status} ${response.statusText}`);
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`[VPS Message] HTTP ${response.status}: ${errorText}`);
-        
-        if (i === retries - 1) {
-          throw new Error(`VPS HTTP ${response.status}: ${errorText}`);
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
-        continue;
-      }
-      
+      console.log(`[VPS Response] Status: ${response.status} ${response.statusText}`);
       return response;
     } catch (error) {
-      console.error(`[VPS Message] Attempt ${i + 1} failed:`, error.message);
+      console.error(`[VPS Request] Error (attempt ${i + 1}):`, error);
       
       if (i === retries - 1) {
         throw error;
       }
       
-      await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
     }
   }
   
@@ -48,15 +28,12 @@ async function makeVPSRequest(url: string, options: RequestInit, retries = 3): P
 }
 
 export async function sendMessage(instanceId: string, phone: string, message: string) {
-  try {
-    console.log(`[Send Message] Instance: ${instanceId}, Phone: ${phone}`);
+  console.log(`[Send Message] Sending message via instance: ${instanceId} to: ${phone}`);
 
+  try {
     const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/send`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${VPS_CONFIG.authToken}`
-      },
+      headers: getVPSHeaders(),
       body: JSON.stringify({
         instanceId,
         phone,
@@ -64,19 +41,25 @@ export async function sendMessage(instanceId: string, phone: string, message: st
       })
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`VPS send message failed: ${response.status} - ${errorText}`);
+    }
+
     const result = await response.json();
     console.log(`[Send Message] Result:`, result);
-    
+
     return new Response(
       JSON.stringify({
-        success: true,
-        data: result
+        success: result.success,
+        data: result.data,
+        error: result.error
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error(`[Send Message] Error:`, error.message);
+    console.error(`[Send Message] Error:`, error);
     return new Response(
       JSON.stringify({
         success: false,

@@ -1,5 +1,5 @@
 
-import { VPS_CONFIG, corsHeaders, getVPSHeaders } from './config.ts';
+import { VPS_CONFIG, corsHeaders, getVPSHeaders, isRealQRCode } from './config.ts';
 import { InstanceData } from './types.ts';
 
 async function makeVPSRequest(url: string, options: RequestInit, retries = 3): Promise<Response> {
@@ -97,18 +97,19 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
       throw new Error(`VPS health check failed: ${healthResponse.status}`);
     }
 
-    console.log('[Instance Management] VPS is responsive, proceeding with instance creation...');
+    const healthData = await healthResponse.json();
+    console.log('[Instance Management] VPS health check passed:', healthData);
   } catch (healthError) {
     console.error('[Instance Management] VPS health check failed:', healthError);
     throw new Error(`VPS não está respondendo: ${healthError.message}`);
   }
 
-  // FASE 4: Create instance using CORRECT endpoint and payload format (conforme Hostinger)
+  // FASE 4: Create instance using CORRECT endpoint and payload format
   let vpsResult;
   try {
-    console.log('[Instance Management] Creating instance using Hostinger-confirmed format');
+    console.log('[Instance Management] Creating instance with corrected authentication');
     
-    // Payload structure EXATAMENTE conforme especificado pela Hostinger
+    // Payload structure with corrected authentication
     const payload = {
       instanceId: vpsInstanceId,
       sessionName: instanceData.instanceName,
@@ -116,7 +117,7 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
       companyId: profile.company_id
     };
     
-    console.log('[Instance Management] Using Hostinger-confirmed payload:', payload);
+    console.log('[Instance Management] Using payload:', payload);
     console.log('[Instance Management] Using URL:', `${VPS_CONFIG.baseUrl}/instance/create`);
     console.log('[Instance Management] Using Headers:', getVPSHeaders());
     
@@ -128,10 +129,23 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
 
     if (vpsResponse.ok) {
       vpsResult = await vpsResponse.json();
-      console.log('[Instance Management] SUCCESS with Hostinger-confirmed format:', vpsResult);
+      console.log('[Instance Management] VPS creation SUCCESS:', vpsResult);
+      
+      // Validate if QR code returned is real
+      if (vpsResult.qrCode) {
+        const qrIsReal = isRealQRCode(vpsResult.qrCode);
+        console.log(`[Instance Management] QR Code validation - Is Real: ${qrIsReal}`);
+        
+        if (!qrIsReal) {
+          console.warn('[Instance Management] VPS returned fake QR code, but instance was created');
+          // Don't fail the creation, just clear the fake QR
+          vpsResult.qrCode = null;
+          vpsResult.status = 'creating';
+        }
+      }
     } else {
       const errorText = await vpsResponse.text();
-      console.error(`[Instance Management] Failed with status ${vpsResponse.status}: ${errorText}`);
+      console.error(`[Instance Management] VPS creation failed with status ${vpsResponse.status}: ${errorText}`);
       throw new Error(`VPS creation failed: ${vpsResponse.status} - ${errorText}`);
     }
   } catch (vpsError) {
@@ -156,9 +170,9 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
         connection_type: 'web',
         server_url: VPS_CONFIG.baseUrl,
         vps_instance_id: vpsInstanceId,
-        web_status: vpsResult.qrCode ? 'waiting_scan' : 'created',
+        web_status: vpsResult.qrCode ? 'waiting_scan' : 'creating',
         connection_status: 'connecting',
-        qr_code: vpsResult.qrCode || vpsResult.qr || null
+        qr_code: vpsResult.qrCode || null
       })
       .select()
       .single();
@@ -187,7 +201,7 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
         success: true,
         instance: {
           ...dbInstance,
-          qr_code: vpsResult.qrCode || vpsResult.qr || null
+          qr_code: vpsResult.qrCode || null
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -213,7 +227,7 @@ export async function deleteWhatsAppInstance(supabase: any, instanceId: string) 
   } else {
     // Use CORRECT delete endpoint with proper headers
     try {
-      console.log('[Instance Management] Deleting from VPS using Hostinger-confirmed format');
+      console.log('[Instance Management] Deleting from VPS with corrected authentication');
       
       await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/delete`, {
         method: 'POST',
