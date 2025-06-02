@@ -8,12 +8,16 @@ import { ServersCard } from "./vps/ServersCard";
 import { AdminActionsCard } from "./vps/AdminActionsCard";
 import { VPSAdvancedDiagnostic } from "./vps/VPSAdvancedDiagnostic";
 import { VPSConnectivityTest } from "./VPSConnectivityTest";
+import { VPSConnectionDiagnostic } from "./VPSConnectionDiagnostic";
 
 export const VPSTestPanel = () => {
   return (
     <div className="space-y-6">
       {/* Deploy Inteligente - Primeira seção */}
       <AutoDeployButton />
+
+      {/* Diagnóstico Completo VPS - Nova seção para Fase 1 */}
+      <VPSConnectionDiagnostic />
 
       {/* Teste de Conectividade WhatsApp Web.js */}
       <VPSConnectivityTest />

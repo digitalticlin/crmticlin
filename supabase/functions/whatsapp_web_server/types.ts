@@ -15,6 +15,8 @@ export interface InstanceData {
   instanceName: string;
   instanceId?: string;
   serverUrl?: string;
+  phone?: string;
+  message?: string;
 }
 
 export interface ServiceResponse {
