@@ -8,7 +8,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
-import Chat from "./pages/Chat";
 import WhatsAppChat from "./pages/WhatsAppChat";
 import SalesFunnel from "./pages/SalesFunnel";
 import Settings from "./pages/Settings";
@@ -57,7 +56,7 @@ function App() {
                 path="/chat"
                 element={
                   <ProtectedRoute>
-                    <Chat />
+                    <WhatsAppChat />
                   </ProtectedRoute>
                 }
               />

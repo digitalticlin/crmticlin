@@ -45,13 +45,8 @@ export default function ResponsiveSidebar() {
     },
     {
       icon: MessageSquare,
-      label: "Chat",
-      href: "/chat",
-    },
-    {
-      icon: MessageSquare,
       label: "WhatsApp Chat",
-      href: "/whatsapp-chat",
+      href: "/chat",
       className: "text-green-600"
     }
   ];
