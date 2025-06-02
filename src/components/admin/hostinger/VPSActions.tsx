@@ -12,14 +12,7 @@ import {
   Play,
   Wrench
 } from "lucide-react";
-
-interface HostingerVPS {
-  id: string;
-  name: string;
-  status: string;
-  ip: string;
-  location: string;
-}
+import { HostingerVPS } from "@/services/hostinger/hostingerApiService";
 
 interface VPSOperationState {
   isLoading: boolean;

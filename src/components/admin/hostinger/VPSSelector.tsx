@@ -4,14 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RefreshCw, Server } from "lucide-react";
-
-interface HostingerVPS {
-  id: string;
-  name: string;
-  status: string;
-  ip: string;
-  location: string;
-}
+import { HostingerVPS } from "@/services/hostinger/hostingerApiService";
 
 interface VPSSelectorProps {
   vpsList: HostingerVPS[];
@@ -79,7 +72,7 @@ export const VPSSelector = ({
                     <div className="flex items-center justify-between w-full">
                       <span>{vps.name}</span>
                       <span className="text-sm text-muted-foreground ml-2">
-                        {vps.ip}
+                        {vps.ip_address}
                       </span>
                     </div>
                   </SelectItem>
@@ -93,7 +86,7 @@ export const VPSSelector = ({
                   <div>
                     <h4 className="font-medium">{selectedVPS.name}</h4>
                     <p className="text-sm text-muted-foreground">
-                      IP: {selectedVPS.ip} | {selectedVPS.location}
+                      IP: {selectedVPS.ip_address} | {selectedVPS.os}
                     </p>
                   </div>
                   {getStatusBadge(selectedVPS.status)}
