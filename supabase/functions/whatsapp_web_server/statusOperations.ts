@@ -202,10 +202,73 @@ export async function getServerInfo() {
   }
 }
 
-// Função para sincronizar instâncias com lógica mais conservadora
+// Função para adotar instância órfã ativa
+async function adoptOrphanInstance(supabase: any, vpsInstance: any, companyId: string) {
+  try {
+    console.log(`[Adopt] 🆕 Adotando instância órfã ativa: ${vpsInstance.instanceId}`);
+    
+    // Criar registro no Supabase para a instância órfã ativa
+    const adoptedInstance = {
+      instance_name: vpsInstance.instanceId || `adopted_${Date.now()}`,
+      vps_instance_id: vpsInstance.instanceId,
+      connection_type: 'web',
+      connection_status: vpsInstance.status || 'open',
+      web_status: vpsInstance.status === 'open' ? 'ready' : 'authenticated',
+      phone: vpsInstance.phone || '',
+      profile_name: vpsInstance.profileName || null,
+      server_url: VPS_CONFIG.baseUrl,
+      company_id: companyId,
+      date_connected: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
+    const { data: newInstance, error } = await supabase
+      .from('whatsapp_instances')
+      .insert(adoptedInstance)
+      .select()
+      .single();
+
+    if (error) {
+      console.error(`[Adopt] ❌ Erro ao adotar instância órfã:`, error);
+      throw error;
+    }
+
+    console.log(`[Adopt] ✅ Instância órfã adotada com sucesso:`, {
+      id: newInstance.id,
+      instance_name: newInstance.instance_name,
+      vps_instance_id: newInstance.vps_instance_id,
+      status: newInstance.connection_status
+    });
+
+    return {
+      action: 'adopted',
+      instanceId: newInstance.id,
+      vps_instance_id: vpsInstance.instanceId,
+      status: vpsInstance.status,
+      phone: vpsInstance.phone || null
+    };
+
+  } catch (error) {
+    console.error(`[Adopt] ❌ Erro ao processar adoção da instância órfã:`, error);
+    return {
+      action: 'adoption_failed',
+      instanceId: vpsInstance.instanceId,
+      error: error.message
+    };
+  }
+}
+
+// Função para verificar se uma instância VPS está ativa/conectada
+function isActiveVPSInstance(vpsInstance: any): boolean {
+  const activeStatuses = ['open', 'authenticated', 'ready'];
+  return activeStatuses.includes(vpsInstance.status);
+}
+
+// Função para sincronizar instâncias com lógica mais conservadora e adoção de órfãs
 export async function syncInstances(supabase: any, companyId: string) {
   try {
-    console.log(`[Sync] 🔄 INICIANDO sync conservador para empresa: ${companyId}`);
+    console.log(`[Sync] 🔄 INICIANDO sync conservador + adoção de órfãs para empresa: ${companyId}`);
     
     // Buscar instâncias do banco
     const { data: dbInstances, error: dbError } = await supabase
@@ -246,6 +309,7 @@ export async function syncInstances(supabase: any, companyId: string) {
     const syncResults = [];
     let updatedCount = 0;
     let preservedCount = 0;
+    let adoptedCount = 0;
     let errorCount = 0;
 
     // Se há erro no VPS, apenas registrar mas NÃO remover instâncias
@@ -269,6 +333,7 @@ export async function syncInstances(supabase: any, companyId: string) {
           summary: {
             updated: 0,
             preserved: preservedCount,
+            adopted: 0,
             errors: 1,
             vps_error: vpsError
           },
@@ -277,8 +342,8 @@ export async function syncInstances(supabase: any, companyId: string) {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    
-    // Sincronizar status das instâncias apenas SE conseguimos acessar o VPS
+
+    // ETAPA 1: Sincronizar status das instâncias existentes no banco
     for (const dbInstance of dbInstances || []) {
       try {
         console.log(`[Sync] 🔍 Processando instância: ${dbInstance.instance_name} (${dbInstance.vps_instance_id})`);
@@ -381,7 +446,53 @@ export async function syncInstances(supabase: any, companyId: string) {
       }
     }
 
-    console.log(`[Sync] 🏁 Sync finalizado: ${updatedCount} atualizadas, ${preservedCount} preservadas, ${errorCount} erros`);
+    // ETAPA 2: Detectar e adotar instâncias órfãs ATIVAS no VPS
+    console.log(`[Sync] 🔍 Procurando por instâncias órfãs ativas no VPS...`);
+    
+    for (const vpsInstance of vpsInstances) {
+      try {
+        // Verificar se a instância do VPS já existe no banco desta empresa
+        const existsInDB = dbInstances?.some(db => db.vps_instance_id === vpsInstance.instanceId);
+        
+        if (!existsInDB) {
+          console.log(`[Sync] 🕵️ Instância órfã detectada no VPS: ${vpsInstance.instanceId} (status: ${vpsInstance.status})`);
+          
+          // Verificar se é uma instância ativa que devemos adotar
+          if (isActiveVPSInstance(vpsInstance)) {
+            console.log(`[Sync] 🆕 Instância órfã ATIVA encontrada - iniciando adoção: ${vpsInstance.instanceId}`);
+            
+            const adoptResult = await adoptOrphanInstance(supabase, vpsInstance, companyId);
+            syncResults.push(adoptResult);
+            
+            if (adoptResult.action === 'adopted') {
+              adoptedCount++;
+              console.log(`[Sync] ✅ Instância órfã adotada: ${vpsInstance.instanceId}`);
+            } else {
+              errorCount++;
+              console.log(`[Sync] ❌ Falha na adoção: ${vpsInstance.instanceId}`);
+            }
+          } else {
+            console.log(`[Sync] 🚫 Instância órfã INATIVA ignorada: ${vpsInstance.instanceId} (status: ${vpsInstance.status})`);
+            syncResults.push({
+              instanceId: vpsInstance.instanceId,
+              action: 'orphan_inactive',
+              status: vpsInstance.status,
+              reason: 'inactive_not_adopted'
+            });
+          }
+        }
+      } catch (orphanError) {
+        console.error(`[Sync] ❌ Erro ao processar instância órfã ${vpsInstance.instanceId}:`, orphanError);
+        syncResults.push({
+          instanceId: vpsInstance.instanceId,
+          action: 'orphan_error',
+          error: orphanError.message
+        });
+        errorCount++;
+      }
+    }
+
+    console.log(`[Sync] 🏁 Sync finalizado: ${updatedCount} atualizadas, ${preservedCount} preservadas, ${adoptedCount} adotadas, ${errorCount} erros`);
 
     return new Response(
       JSON.stringify({ 
@@ -390,8 +501,10 @@ export async function syncInstances(supabase: any, companyId: string) {
         summary: {
           updated: updatedCount,
           preserved: preservedCount,
+          adopted: adoptedCount,
           errors: errorCount,
-          total_processed: (dbInstances?.length || 0)
+          total_vps_instances: vpsInstances.length,
+          total_db_instances: (dbInstances?.length || 0)
         },
         timestamp: new Date().toISOString()
       }),
