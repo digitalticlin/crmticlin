@@ -138,24 +138,24 @@ class HostingerApiService {
   // Instalar WhatsApp Web.js automaticamente
   async installWhatsAppServer(vpsId: string): Promise<HostingerApiResponse<any>> {
     const installScript = `
-      # Atualizar sistema
-      apt update && apt upgrade -y
-      
-      # Instalar Node.js se necessário
-      if ! command -v node &> /dev/null; then
-        curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-        apt-get install -y nodejs
-      fi
-      
-      # Instalar PM2 globalmente
-      npm install -g pm2
-      
-      # Criar diretório WhatsApp
-      mkdir -p /root/whatsapp-web-server
-      cd /root/whatsapp-web-server
-      
-      # Criar package.json
-      cat > package.json << 'EOF'
+# Atualizar sistema
+apt update && apt upgrade -y
+
+# Instalar Node.js se necessário
+if ! command -v node &> /dev/null; then
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  apt-get install -y nodejs
+fi
+
+# Instalar PM2 globalmente
+npm install -g pm2
+
+# Criar diretório WhatsApp
+mkdir -p /root/whatsapp-web-server
+cd /root/whatsapp-web-server
+
+# Criar package.json
+cat > package.json << 'PACKAGE_EOF'
 {
   "name": "whatsapp-web-server",
   "version": "1.0.0",
@@ -167,19 +167,18 @@ class HostingerApiService {
     "qrcode": "^1.5.3"
   }
 }
-EOF
-      
-      # Instalar dependências
-      npm install
-      
-      # Criar servidor WhatsApp com correções SSL
-      cat > server.js << 'EOF'
+PACKAGE_EOF
+
+# Instalar dependências
+npm install
+
+# Criar servidor WhatsApp
+cat > server.js << 'SERVER_EOF'
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const express = require('express');
 const cors = require('cors');
 const QRCode = require('qrcode');
 
-// Configurações SSL para correção de erros
 process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = 'true';
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
@@ -191,7 +190,6 @@ app.use(express.json());
 
 const clients = new Map();
 
-// Endpoint de status
 app.get('/health', (req, res) => {
   res.json({
     success: true,
@@ -202,7 +200,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Criar nova instância
 app.post('/create-instance', async (req, res) => {
   const { instanceName } = req.body;
   
@@ -252,18 +249,18 @@ app.post('/create-instance', async (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`WhatsApp Web.js Server rodando na porta ${PORT}`);
+  console.log('WhatsApp Web.js Server rodando na porta 3001');
 });
-EOF
-      
-      # Iniciar com PM2
-      pm2 start server.js --name whatsapp-server
-      pm2 save
-      pm2 startup
-      
-      # Verificar se está rodando
-      sleep 5
-      curl -s http://localhost:3001/health || echo "Erro ao iniciar servidor"
+SERVER_EOF
+
+# Iniciar com PM2
+pm2 start server.js --name whatsapp-server
+pm2 save
+pm2 startup
+
+# Verificar se está rodando
+sleep 5
+curl -s http://localhost:3001/health || echo "Erro ao iniciar servidor"
     `;
 
     return this.executeCommand(vpsId, installScript, 'Instalação automática WhatsApp Web.js');
@@ -272,17 +269,17 @@ EOF
   // Aplicar correções SSL e timeout
   async applyWhatsAppFixes(vpsId: string): Promise<HostingerApiResponse<any>> {
     const fixScript = `
-      cd /root/whatsapp-web-server
-      
-      # Backup do arquivo atual
-      cp server.js server.js.backup
-      
-      # Aplicar correções SSL
-      npm install puppeteer-extra puppeteer-extra-plugin-stealth
-      
-      # Reiniciar servidor com correções
-      pm2 restart whatsapp-server
-      pm2 logs whatsapp-server --lines 10
+cd /root/whatsapp-web-server
+
+# Backup do arquivo atual
+cp server.js server.js.backup
+
+# Aplicar correções SSL
+npm install puppeteer-extra puppeteer-extra-plugin-stealth
+
+# Reiniciar servidor com correções
+pm2 restart whatsapp-server
+pm2 logs whatsapp-server --lines 10
     `;
 
     return this.executeCommand(vpsId, fixScript, 'Aplicar correções SSL e timeout');
@@ -291,14 +288,14 @@ EOF
   // Fazer backup da VPS
   async createBackup(vpsId: string): Promise<HostingerApiResponse> {
     const backupScript = `
-      mkdir -p /root/backups
-      cd /root/backups
-      
-      # Backup dos projetos
-      tar -czf whatsapp-backup-$(date +%Y%m%d_%H%M%S).tar.gz /root/whatsapp-web-server /root/vps-api-server
-      
-      # Listar backups
-      ls -la /root/backups/
+mkdir -p /root/backups
+cd /root/backups
+
+# Backup dos projetos
+tar -czf whatsapp-backup-$(date +%Y%m%d_%H%M%S).tar.gz /root/whatsapp-web-server /root/vps-api-server
+
+# Listar backups
+ls -la /root/backups/
     `;
 
     return this.executeCommand(vpsId, backupScript, 'Criar backup dos projetos');
