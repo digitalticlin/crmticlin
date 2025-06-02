@@ -24,10 +24,10 @@ interface CommandRequest {
   description?: string;
 }
 
-// URLs da VPS com porta 80 especificada
+// URLs da VPS - removendo porta 80 explícita pois HTTP usa 80 por padrão
 const VPS_URLS = [
-  'http://31.97.24.222:80',
-  'http://srv848330.hstgr.cloud:80'
+  'http://31.97.24.222',
+  'http://srv848330.hstgr.cloud'
 ];
 
 const VPS_TIMEOUT = 8000; // 8 segundos para testes rápidos
@@ -58,7 +58,7 @@ serve(async (req) => {
     
     for (const baseUrl of VPS_URLS) {
       const vpsUrl = `${baseUrl}${path}`;
-      console.log(`[VPS Proxy] Tentando conectar na porta 80: ${vpsUrl}`);
+      console.log(`[VPS Proxy] Tentando conectar: ${vpsUrl}`);
 
       try {
         const controller = new AbortController();
@@ -102,7 +102,7 @@ serve(async (req) => {
           };
         }
 
-        console.log(`[VPS Proxy] Sucesso com ${baseUrl} na porta 80`);
+        console.log(`[VPS Proxy] Sucesso com ${baseUrl}`);
         return new Response(
           JSON.stringify({ 
             success: true, 
@@ -117,7 +117,7 @@ serve(async (req) => {
 
       } catch (fetchError: any) {
         if (fetchError.name === 'AbortError') {
-          lastError = `Timeout na conexão com ${baseUrl} na porta 80`;
+          lastError = `Timeout na conexão com ${baseUrl}`;
           console.log(`[VPS Proxy] ${lastError}`);
         } else {
           lastError = `Erro de rede com ${baseUrl}: ${fetchError.message}`;
@@ -130,14 +130,14 @@ serve(async (req) => {
     }
 
     // Se chegou aqui, todas as URLs falharam
-    console.error('[VPS Proxy] Todas as URLs da VPS na porta 80 falharam');
+    console.error('[VPS Proxy] Todas as URLs da VPS falharam');
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: lastError || 'Servidor não está rodando na porta 80 ou firewall está bloqueando',
-        code: 'PORT_80_NOT_ACCESSIBLE',
+        error: lastError || 'Servidor não está rodando ou firewall está bloqueando',
+        code: 'VPS_NOT_ACCESSIBLE',
         attempted_servers: VPS_URLS,
-        suggestion: 'Verifique se o servidor está rodando na porta 80 e se o firewall permite conexões'
+        suggestion: 'Verifique se o servidor está rodando na porta 80 e se o firewall permite conexões HTTP'
       }),
       { 
         status: 503, 

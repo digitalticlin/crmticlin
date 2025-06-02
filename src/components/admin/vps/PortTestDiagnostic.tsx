@@ -31,7 +31,7 @@ export const PortTestDiagnostic = () => {
       resetTests();
       toast.info('🔍 Iniciando teste de conectividade na porta 80...');
 
-      // Teste 1: Ping básico da VPS
+      // Teste 1: Ping básico da VPS na porta 80
       addTestResult({
         test: 'Ping VPS',
         status: 'pending',
@@ -39,7 +39,7 @@ export const PortTestDiagnostic = () => {
       });
 
       try {
-        const pingResponse = await fetch('http://31.97.24.222:80/health', {
+        const pingResponse = await fetch('http://31.97.24.222/health', {
           method: 'GET',
           signal: AbortSignal.timeout(5000)
         });
@@ -221,7 +221,7 @@ export const PortTestDiagnostic = () => {
 
             <Button
               variant="outline"
-              onClick={() => window.open('http://31.97.24.222:80/health', '_blank')}
+              onClick={() => window.open('http://31.97.24.222/health', '_blank')}
               className="border-green-600 text-green-600"
             >
               <ExternalLink className="h-4 w-4 mr-2" />

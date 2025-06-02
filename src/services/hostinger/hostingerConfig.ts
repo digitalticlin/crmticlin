@@ -1,8 +1,8 @@
 
 export const HOSTINGER_CONFIG = {
-  // URLs primária e fallback para VPS com porta 80
-  PRIMARY_VPS_URL: 'http://31.97.24.222:80',
-  FALLBACK_VPS_URL: 'http://srv848330.hstgr.cloud:80',
+  // URLs primária e fallback para VPS sem porta explícita (HTTP usa 80 por padrão)
+  PRIMARY_VPS_URL: 'http://31.97.24.222',
+  FALLBACK_VPS_URL: 'http://srv848330.hstgr.cloud',
   VPS_HOST: '31.97.24.222',
   VPS_PORT: 80,
   

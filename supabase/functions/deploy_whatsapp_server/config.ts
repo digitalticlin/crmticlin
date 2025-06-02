@@ -6,7 +6,7 @@ export const corsHeaders = {
 
 export const VPS_CONFIG = {
   host: '31.97.24.222',
-  apiPort: 80, // Alterado para porta 80
+  apiPort: 80, // Porta 80 para API
   whatsappPort: 3001,
-  baseUrl: 'http://31.97.24.222:80' // URL com porta 80
+  baseUrl: 'http://31.97.24.222' // URL sem porta explícita (HTTP usa 80 por padrão)
 };
