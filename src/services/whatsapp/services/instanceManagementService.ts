@@ -8,6 +8,13 @@ export class InstanceManagementService {
     try {
       console.log('Creating WhatsApp Web.js instance:', instanceName);
 
+      // Get current session for authentication
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('User not authenticated');
+      }
+
       const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
         body: {
           action: 'create_instance',
@@ -19,10 +26,12 @@ export class InstanceManagementService {
       });
 
       if (error) {
+        console.error('Supabase function error:', error);
         throw new Error(error.message);
       }
 
       if (!data.success) {
+        console.error('Function returned error:', data.error);
         throw new Error(data.error || 'Failed to create instance');
       }
 
@@ -44,6 +53,13 @@ export class InstanceManagementService {
     try {
       console.log('Deleting WhatsApp Web.js instance:', instanceId);
 
+      // Get current session for authentication
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('User not authenticated');
+      }
+
       const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
         body: {
           action: 'delete_instance',
@@ -54,10 +70,12 @@ export class InstanceManagementService {
       });
 
       if (error) {
+        console.error('Supabase function error:', error);
         throw new Error(error.message);
       }
 
       if (!data.success) {
+        console.error('Function returned error:', data.error);
         throw new Error(data.error || 'Failed to delete instance');
       }
 

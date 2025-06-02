@@ -34,6 +34,15 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     activeInstanceId: null
   });
 
+  // Get authenticated session for API calls
+  const getAuthenticatedSession = useCallback(async () => {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error || !session) {
+      throw new Error('User not authenticated');
+    }
+    return session;
+  }, []);
+
   // Fetch instances from database
   const fetchInstances = useCallback(async () => {
     if (!companyId || companyLoading) return;
@@ -74,7 +83,7 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     }
   }, [companyId, companyLoading]);
 
-  // Create instance
+  // Create instance with authentication
   const createInstance = async (instanceName: string): Promise<void> => {
     if (!companyId) {
       toast.error('ID da empresa não encontrado');
@@ -82,6 +91,9 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     }
 
     try {
+      // Get authenticated session
+      await getAuthenticatedSession();
+      
       const result = await WhatsAppWebService.createInstance(instanceName);
 
       if (result.success && result.instance) {
@@ -137,6 +149,9 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
   // Delete instance
   const deleteInstance = async (instanceId: string) => {
     try {
+      // Get authenticated session
+      await getAuthenticatedSession();
+      
       const result = await WhatsAppWebService.deleteInstance(instanceId);
       
       if (result.success) {
@@ -154,6 +169,9 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
   // Refresh QR Code - agora retorna a string do QR code
   const refreshQRCode = async (instanceId: string): Promise<string | null> => {
     try {
+      // Get authenticated session
+      await getAuthenticatedSession();
+      
       const result = await WhatsAppWebService.getQRCode(instanceId);
       
       if (result.success && result.qrCode) {
@@ -202,7 +220,7 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     loading,
     error,
     autoConnectState,
-    createInstance, // Agora incluído
+    createInstance,
     fetchInstances,
     deleteInstance,
     refreshQRCode,

@@ -1,6 +1,5 @@
 
 import KPICard from "./KPICard";
-import { WhatsAppTestCard } from "./WhatsAppTestCard";
 
 interface KPIGridProps {
   totalLeads: number;
@@ -36,11 +35,6 @@ export function KPIGrid({ totalLeads, newLeads, conversions, responseRate }: KPI
         trend={{ value: 2, isPositive: false }}
         icon="messageSquare"
       />
-      
-      {/* Card de teste WhatsApp na grade */}
-      <div className="md:col-span-2 lg:col-span-1">
-        <WhatsAppTestCard />
-      </div>
     </div>
   );
 }

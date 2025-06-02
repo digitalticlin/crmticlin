@@ -8,6 +8,13 @@ export class InstanceStatusService {
     try {
       console.log('Getting WhatsApp Web.js instance status:', instanceId);
 
+      // Get current session for authentication
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('User not authenticated');
+      }
+
       const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
         body: {
           action: 'get_status',
@@ -42,6 +49,13 @@ export class InstanceStatusService {
   static async getQRCode(instanceId: string): Promise<QRCodeResponse> {
     try {
       console.log('Getting QR Code for WhatsApp Web.js instance:', instanceId);
+
+      // Get current session for authentication
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('User not authenticated');
+      }
 
       const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
         body: {
