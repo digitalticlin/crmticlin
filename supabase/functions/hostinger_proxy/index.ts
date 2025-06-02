@@ -47,12 +47,13 @@ serve(async (req) => {
     console.log('✅ Token da API Hostinger encontrado');
 
     const url = new URL(req.url);
+    // Remover o prefix /functions/v1/hostinger_proxy da URL
     const path = url.pathname.replace('/functions/v1/hostinger_proxy', '');
     const method = req.method;
 
     console.log(`[Hostinger Proxy] ${method} ${path}`);
 
-    // Configurar URL da API Hostinger
+    // Configurar URL da API Hostinger (SEM duplicar o path)
     const hostingerBaseUrl = 'https://api.hostinger.com/vps/v1';
     let hostingerUrl = `${hostingerBaseUrl}${path}`;
 
@@ -111,6 +112,9 @@ serve(async (req) => {
             break;
           case 500:
             errorMessage = 'Erro interno na API Hostinger';
+            break;
+          case 530:
+            errorMessage = 'Erro DNS na API Hostinger - serviço temporariamente indisponível';
             break;
           default:
             errorMessage += `: ${responseText}`;

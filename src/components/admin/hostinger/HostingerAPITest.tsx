@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { CheckCircle, XCircle, Loader2, Wifi, Server, Key, Clock } from "lucide-react";
+import { CheckCircle, XCircle, Loader2, Wifi, Server, AlertTriangle } from "lucide-react";
 
 interface APITestResults {
   token_configured: boolean;
@@ -14,6 +14,7 @@ interface APITestResults {
   response_time?: number;
   error_details?: string;
   vps_count?: number;
+  status_code?: number;
 }
 
 export const HostingerAPITest = () => {
@@ -46,7 +47,8 @@ export const HostingerAPITest = () => {
         connectivity: response.ok,
         authentication: response.status !== 401 && response.status !== 403,
         vps_list_access: false,
-        response_time: responseTime
+        response_time: responseTime,
+        status_code: response.status
       };
 
       if (data.success && data.data) {
@@ -207,8 +209,23 @@ export const HostingerAPITest = () => {
               </div>
             </div>
 
+            {/* Alerta específico para erro 530 */}
+            {results.status_code === 530 && (
+              <div className="p-3 bg-orange-100 rounded-lg border border-orange-300">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="h-4 w-4 text-orange-600" />
+                  <h4 className="font-medium text-orange-800">Erro DNS 530 - Serviço Temporariamente Indisponível</h4>
+                </div>
+                <div className="text-sm text-orange-700 space-y-1">
+                  <p>• A API da Hostinger está temporariamente indisponível</p>
+                  <p>• Este é um problema no lado da Hostinger, não na nossa integração</p>
+                  <p>• Recomendação: Use o método direto via SSH como alternativa</p>
+                </div>
+              </div>
+            )}
+
             {/* Detalhes do Erro */}
-            {results.error_details && (
+            {results.error_details && results.status_code !== 530 && (
               <div className="p-3 bg-red-100 rounded-lg border border-red-300">
                 <h4 className="font-medium text-red-800 mb-2">Detalhes do Erro:</h4>
                 <p className="text-sm text-red-700">{results.error_details}</p>
@@ -223,11 +240,14 @@ export const HostingerAPITest = () => {
                   {!results.token_configured && (
                     <li>• Configure o token HOSTINGER_API_TOKEN nos Supabase Secrets</li>
                   )}
-                  {!results.authentication && (
+                  {!results.authentication && results.status_code !== 530 && (
                     <li>• Verifique se o token da API está válido e não expirado</li>
                   )}
-                  {!results.connectivity && (
+                  {!results.connectivity && results.status_code !== 530 && (
                     <li>• Verifique a conectividade de rede com api.hostinger.com</li>
+                  )}
+                  {results.status_code === 530 && (
+                    <li>• Use o método "Deploy Direto" via SSH como alternativa</li>
                   )}
                 </ul>
               </div>
