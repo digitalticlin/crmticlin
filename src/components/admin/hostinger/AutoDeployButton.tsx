@@ -1,8 +1,8 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Zap, Loader2, CheckCircle, AlertCircle, ExternalLink, Activity, Server, Shield, Terminal } from "lucide-react";
+import { Zap, Loader2, CheckCircle, AlertCircle, ExternalLink, Activity, Terminal } from "lucide-react";
 import { toast } from "sonner";
 
 export const AutoDeployButton = () => {
@@ -12,27 +12,31 @@ export const AutoDeployButton = () => {
   const [diagnostics, setDiagnostics] = useState<any>(null);
   const [servicesOnline, setServicesOnline] = useState<boolean>(false);
 
-  // Verificar status dos serviços antes de executar deploy automático
-  useEffect(() => {
-    checkServicesStatus();
-  }, []);
-
   const checkServicesStatus = async () => {
     try {
       setDeployStatus('checking');
       console.log('🔍 Verificando status dos serviços...');
+      toast.info('🔍 Verificando se serviços já estão rodando...');
 
-      // Verificar API Server (porta 80)
+      // Verificar API Server (porta 80) com timeout manual
+      const apiController = new AbortController();
+      const apiTimeout = setTimeout(() => apiController.abort(), 5000);
+      
       const apiResponse = await fetch('http://31.97.24.222/health', {
         method: 'GET',
-        timeout: 5000
+        signal: apiController.signal
       });
+      clearTimeout(apiTimeout);
 
-      // Verificar WhatsApp Server (porta 3001)
+      // Verificar WhatsApp Server (porta 3001) com timeout manual
+      const whatsappController = new AbortController();
+      const whatsappTimeout = setTimeout(() => whatsappController.abort(), 5000);
+      
       const whatsappResponse = await fetch('http://31.97.24.222:3001/health', {
         method: 'GET',
-        timeout: 5000
+        signal: whatsappController.signal
       });
+      clearTimeout(whatsappTimeout);
 
       const apiOnline = apiResponse.ok;
       const whatsappOnline = whatsappResponse.ok;
@@ -41,7 +45,7 @@ export const AutoDeployButton = () => {
       setServicesOnline(bothOnline);
 
       if (bothOnline) {
-        console.log('✅ Serviços já estão online, cancelando deploy automático');
+        console.log('✅ Serviços já estão online');
         setDeployStatus('success');
         setDeployResult({
           success: true,
@@ -51,34 +55,48 @@ export const AutoDeployButton = () => {
         
         // Buscar diagnósticos dos serviços
         if (apiOnline) {
-          const apiData = await apiResponse.json();
-          setDiagnostics({
-            vps_ping: true,
-            api_server_running: true,
-            whatsapp_server_running: whatsappOnline,
-            pm2_running: true
-          });
+          try {
+            const apiData = await apiResponse.json();
+            setDiagnostics({
+              vps_ping: true,
+              api_server_running: true,
+              whatsapp_server_running: whatsappOnline,
+              pm2_running: true
+            });
+          } catch (e) {
+            setDiagnostics({
+              vps_ping: true,
+              api_server_running: true,
+              whatsapp_server_running: whatsappOnline,
+              pm2_running: true
+            });
+          }
         }
         
         toast.success('✅ Servidores já estão online! Deploy não necessário.');
+        return true;
       } else {
-        console.log('⚠️ Alguns serviços estão offline, executando deploy...');
-        handleAutoDeploy();
+        console.log('⚠️ Alguns serviços estão offline');
+        setDeployStatus('idle');
+        toast.warning('⚠️ Serviços offline. Use o botão de deploy para ativá-los.');
+        return false;
       }
     } catch (error) {
-      console.log('❌ Erro ao verificar serviços, executando deploy...');
-      handleAutoDeploy();
+      console.log('❌ Erro ao verificar serviços:', error);
+      setDeployStatus('idle');
+      toast.error('❌ Erro ao verificar serviços. Use o botão de deploy.');
+      return false;
     }
   };
 
-  const handleAutoDeploy = async () => {
+  const handleManualDeploy = async () => {
     try {
       setIsDeploying(true);
       setDeployStatus('deploying');
       setDiagnostics(null);
       
-      console.log('🚀 Executando deploy automático WhatsApp Server...');
-      toast.info('🚀 Iniciando deploy automático via SSH...');
+      console.log('🚀 Executando deploy manual WhatsApp Server...');
+      toast.info('🚀 Iniciando deploy manual via SSH...');
 
       const response = await fetch('https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/deploy_whatsapp_server', {
         method: 'POST',
@@ -146,13 +164,13 @@ export const AutoDeployButton = () => {
       case 'checking':
         return 'Verificando status dos serviços...';
       case 'deploying':
-        return 'Executando deploy automático...';
+        return 'Executando deploy manual...';
       case 'success':
         return servicesOnline ? 'Serviços já estão online!' : 'Deploy concluído com sucesso!';
       case 'error':
         return 'Erro no deploy - Verifique instruções';
       default:
-        return 'Iniciando verificação...';
+        return 'Deploy Manual SSH - Clique para executar';
     }
   };
 
@@ -178,7 +196,7 @@ export const AutoDeployButton = () => {
           {getStatusIcon()}
           <div>
             <CardTitle className={`${deployStatus === 'success' ? 'text-green-800' : deployStatus === 'error' ? 'text-red-800' : 'text-blue-800'}`}>
-              Deploy Inteligente SSH
+              Deploy Manual SSH
             </CardTitle>
             <p className={`text-sm ${deployStatus === 'success' ? 'text-green-700' : deployStatus === 'error' ? 'text-red-700' : 'text-blue-700'}`}>
               {getStatusText()}
@@ -231,7 +249,7 @@ export const AutoDeployButton = () => {
                 <div>✅ API Server: Ativo na porta 80</div>
                 <div>✅ WhatsApp Server: Ativo na porta 3001</div>
                 <div>✅ PM2: Gerenciamento ativo</div>
-                <div>✅ Deploy automático cancelado (não necessário)</div>
+                <div>✅ Deploy não foi necessário</div>
               </div>
             </div>
           )}
@@ -290,19 +308,33 @@ export const AutoDeployButton = () => {
           {/* Ações */}
           <div className="flex gap-2">
             <Button
-              onClick={handleAutoDeploy}
+              onClick={checkServicesStatus}
+              disabled={isDeploying || deployStatus === 'checking'}
+              variant="outline"
+              className="border-blue-600 text-blue-600"
+            >
+              {deployStatus === 'checking' ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Verificando...
+                </>
+              ) : (
+                <>
+                  <Activity className="h-4 w-4 mr-2" />
+                  Verificar Status
+                </>
+              )}
+            </Button>
+
+            <Button
+              onClick={handleManualDeploy}
               disabled={isDeploying || deployStatus === 'checking'}
               className={`${deployStatus === 'success' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'} text-white`}
             >
-              {(isDeploying || deployStatus === 'checking') ? (
+              {isDeploying ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  {deployStatus === 'checking' ? 'Verificando...' : 'Executando...'}
-                </>
-              ) : deployStatus === 'success' ? (
-                <>
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Re-executar Deploy
+                  Executando...
                 </>
               ) : (
                 <>
@@ -320,7 +352,7 @@ export const AutoDeployButton = () => {
                   className="border-green-600 text-green-600"
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
-                  Testar API Server
+                  Testar API
                 </Button>
 
                 <Button
