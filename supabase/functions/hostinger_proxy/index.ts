@@ -32,11 +32,13 @@ async function executeSSHCommand(command: string, description?: string): Promise
       '-o', 'ServerAliveInterval=60',
       '-o', 'ServerAliveCountMax=3',
       '-o', 'BatchMode=yes',
+      '-o', 'PasswordAuthentication=no',
+      '-o', 'PubkeyAuthentication=yes',
       `${VPS_CONFIG.username}@${VPS_CONFIG.hostname}`,
       command
     ];
     
-    console.log(`[SSH] Conectando em ${VPS_CONFIG.hostname}...`);
+    console.log(`[SSH] Conectando em ${VPS_CONFIG.hostname} com argumentos:`, sshArgs.slice(0, -2).join(' '));
     
     // Executar comando SSH usando Deno
     const process = new Deno.Command('ssh', {
@@ -89,10 +91,14 @@ serve(async (req) => {
     console.log('[SSH Proxy] Iniciando requisição via SSH');
 
     const url = new URL(req.url);
-    const path = url.pathname.replace('/functions/v1/hostinger_proxy', '');
+    // Corrigir parsing do path - remover prefixo da função e limpar barras extras
+    let path = url.pathname.replace('/functions/v1/hostinger_proxy', '').replace(/^\/+/, '/');
+    if (!path.startsWith('/')) {
+      path = '/' + path;
+    }
     const method = req.method;
 
-    console.log(`[SSH Proxy] ${method} ${path}`);
+    console.log(`[SSH Proxy] ${method} ${path} (original: ${url.pathname})`);
 
     // Processar diferentes endpoints
     if (path === '/health' || path === '/status') {
@@ -156,34 +162,51 @@ serve(async (req) => {
       // Executar comando via SSH
       console.log(`[SSH Proxy] Executando comando: ${description || 'Comando personalizado'}`);
       
-      const result = await executeSSHCommand(command, description);
-      
-      if (result.success) {
-        return new Response(
-          JSON.stringify({ 
-            success: true, 
-            data: {
-              output: result.output,
-              exit_code: result.exit_code,
-              duration: result.duration,
-              connection_method: 'SSH',
-              timestamp: new Date().toISOString()
+      try {
+        const result = await executeSSHCommand(command, description);
+        
+        if (result.success) {
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              data: {
+                output: result.output,
+                exit_code: result.exit_code,
+                duration: result.duration,
+                connection_method: 'SSH',
+                timestamp: new Date().toISOString()
+              }
+            }),
+            { 
+              status: 200, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
             }
-          }),
-          { 
-            status: 200, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      } else {
+          );
+        } else {
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: `Comando falhou com exit code ${result.exit_code}`,
+              data: {
+                output: result.output,
+                exit_code: result.exit_code,
+                error_details: result.output
+              }
+            }),
+            { 
+              status: 500, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
+        }
+      } catch (sshError) {
+        console.error('[SSH Proxy] Erro SSH específico:', sshError);
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: `Comando falhou com exit code ${result.exit_code}`,
-            data: {
-              output: result.output,
-              exit_code: result.exit_code
-            }
+            error: `Erro SSH: ${sshError.message}`,
+            code: 'SSH_EXECUTION_ERROR',
+            details: sshError.toString()
           }),
           { 
             status: 500, 
@@ -198,7 +221,8 @@ serve(async (req) => {
       JSON.stringify({ 
         success: false, 
         error: `Endpoint não encontrado: ${path}`,
-        code: 'ENDPOINT_NOT_FOUND'
+        code: 'ENDPOINT_NOT_FOUND',
+        available_endpoints: ['/health', '/status', '/execute']
       }),
       { 
         status: 404, 
@@ -212,7 +236,8 @@ serve(async (req) => {
       JSON.stringify({ 
         success: false, 
         error: error.message || 'Erro interno do servidor SSH',
-        code: 'INTERNAL_SSH_ERROR'
+        code: 'INTERNAL_SSH_ERROR',
+        stack: error.stack
       }),
       { 
         status: 500, 
