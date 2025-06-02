@@ -36,7 +36,7 @@ export default function GlobalAdmin() {
               <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
               <TabsTrigger value="sync">Sincronização</TabsTrigger>
               <TabsTrigger value="sync-logs">Logs Sync</TabsTrigger>
-              <TabsTrigger value="vps">VPS</TabsTrigger>
+              <TabsTrigger value="vps">Deploy VPS</TabsTrigger>
               <TabsTrigger value="logs">Logs</TabsTrigger>
               <TabsTrigger value="support">Suporte</TabsTrigger>
               <TabsTrigger value="config">Configurações</TabsTrigger>
@@ -77,9 +77,9 @@ export default function GlobalAdmin() {
             <TabsContent value="vps">
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-xl font-semibold mb-2">Teste VPS Hostinger</h2>
+                  <h2 className="text-xl font-semibold mb-2">Deploy VPS WhatsApp Server</h2>
                   <p className="text-muted-foreground mb-6">
-                    Testar conectividade com o servidor VPS e gerar scripts de instalação do WhatsApp Web.js
+                    Deploy automatizado do servidor WhatsApp Web.js via SSH na VPS
                   </p>
                 </div>
                 <VPSTestPanel />

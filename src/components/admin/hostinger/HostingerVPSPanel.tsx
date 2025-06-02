@@ -8,8 +8,7 @@ import { VPSSelector } from "./VPSSelector";
 import { VPSActions } from "./VPSActions";
 import { VPSLogs } from "./VPSLogs";
 import { DirectDeployButton } from "./DirectDeployButton";
-import { HostingerAPITest } from "./HostingerAPITest";
-import { Server, Loader2, Zap, AlertTriangle } from "lucide-react";
+import { Server, Loader2, Zap, Terminal } from "lucide-react";
 
 export const HostingerVPSPanel = () => {
   const {
@@ -37,7 +36,7 @@ export const HostingerVPSPanel = () => {
       <Card>
         <CardContent className="flex items-center justify-center py-8">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-          <span className="ml-2">Carregando VPS...</span>
+          <span className="ml-2">Carregando configurações VPS...</span>
         </CardContent>
       </Card>
     );
@@ -45,35 +44,32 @@ export const HostingerVPSPanel = () => {
 
   return (
     <div className="space-y-6">
-      {/* Teste de Conectividade API - Sempre visível primeiro */}
-      <HostingerAPITest />
-
-      {/* Deploy Direto - Sempre visível */}
+      {/* Deploy Direto SSH - Componente principal */}
       <DirectDeployButton />
 
-      {/* API Status Warning - Removido o alerta de erro 530 */}
+      {/* Informações sobre o método SSH */}
       <Card className="border-blue-200 bg-blue-50">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Server className="h-5 w-5 text-blue-600" />
-            <CardTitle className="text-blue-800">Deploy Inteligente</CardTitle>
+            <Terminal className="h-5 w-5 text-blue-600" />
+            <CardTitle className="text-blue-800">Deploy via SSH</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             <p className="text-sm text-blue-700">
-              ✅ <strong>Deploy via SSH direto</strong> - Método mais confiável
+              ✅ <strong>Método SSH direto</strong> - Solução profissional e confiável
             </p>
             <p className="text-xs text-blue-600">
               • Instala automaticamente Node.js, PM2 e dependências<br/>
-              • Não depende da API Hostinger<br/>
-              • Servidor permanente com auto-restart configurado
+              • Servidor permanente com auto-restart configurado<br/>
+              • Múltiplas instâncias WhatsApp com gerenciamento completo
             </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* VPS Selection - Pode falhar devido a problemas de API */}
+      {/* VPS Selection - Para configurações avançadas */}
       <VPSSelector
         vpsList={vpsList}
         selectedVPS={selectedVPS}
