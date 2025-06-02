@@ -1,46 +1,59 @@
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Wifi, Plus, Loader2 } from "lucide-react";
+import { MessageSquare, Loader2 } from "lucide-react";
 
 interface ConnectWhatsAppButtonProps {
-  onConnect: () => void;
+  onConnect: () => Promise<void>;
   isConnecting: boolean;
 }
 
 export function ConnectWhatsAppButton({ onConnect, isConnecting }: ConnectWhatsAppButtonProps) {
-  return (
-    <Card className="glass-card border-0 border-dashed border-2 border-green-200 dark:border-green-700/30 hover:border-green-300 dark:hover:border-green-600/50 transition-colors group">
-      <CardContent className="flex flex-col items-center justify-center p-6 text-center space-y-4">
-        <div className="p-3 rounded-full bg-green-100/50 dark:bg-green-800/30 group-hover:bg-green-200/50 dark:group-hover:bg-green-700/50 transition-colors">
-          {isConnecting ? (
-            <Loader2 className="h-8 w-8 text-green-600 dark:text-green-400 animate-spin" />
-          ) : (
-            <Plus className="h-8 w-8 text-green-600 dark:text-green-400" />
-          )}
-        </div>
-        
-        <div>
-          <h3 className="font-medium text-green-800 dark:text-green-300">
-            {isConnecting ? 'Criando Instância...' : 'Conectar WhatsApp'}
-          </h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            {isConnecting 
-              ? 'Aguarde enquanto criamos sua nova instância' 
-              : 'Criar uma nova conexão WhatsApp Web.js'
-            }
-          </p>
-        </div>
+  const [isLoading, setIsLoading] = useState(false);
 
-        <Button
-          onClick={onConnect}
-          disabled={isConnecting}
-          className="bg-green-600 hover:bg-green-700 text-white w-full"
-        >
-          <Wifi className="h-4 w-4 mr-2" />
-          {isConnecting ? 'Conectando...' : 'Conectar Agora'}
-        </Button>
-      </CardContent>
-    </Card>
+  const handleConnect = async () => {
+    setIsLoading(true);
+    try {
+      await onConnect();
+    } catch (error) {
+      console.error('Error connecting WhatsApp:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loading = isConnecting || isLoading;
+
+  return (
+    <div className="glass-card border-0 p-6 text-center">
+      <div className="p-4 rounded-lg bg-green-100/50 dark:bg-green-900/30 inline-block mb-4">
+        <MessageSquare className="h-12 w-12 text-green-600 mx-auto" />
+      </div>
+      
+      <h3 className="text-lg font-medium mb-2">Conectar WhatsApp Web.js</h3>
+      
+      <p className="text-muted-foreground mb-4 text-sm">
+        Crie sua primeira instância WhatsApp para começar a usar o sistema
+      </p>
+      
+      <Button 
+        onClick={handleConnect}
+        disabled={loading}
+        className="bg-green-600 hover:bg-green-700 text-white"
+        size="lg"
+      >
+        {loading ? (
+          <>
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            {isConnecting ? 'Conectando...' : 'Criando...'}
+          </>
+        ) : (
+          <>
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Conectar WhatsApp
+          </>
+        )}
+      </Button>
+    </div>
   );
 }

@@ -10,6 +10,7 @@ export const VPS_CONFIG = {
   get baseUrl() {
     return `http://${this.host}:${this.port}`;
   },
+  // FIX CRÍTICO: Usar a secret configurada corretamente
   authToken: Deno.env.get('VPS_API_TOKEN') || 'default-token'
 };
 
@@ -44,5 +45,5 @@ console.log('[Config] VPS Config initialized:');
 console.log('[Config] Host:', VPS_CONFIG.host);
 console.log('[Config] Port:', VPS_CONFIG.port);
 console.log('[Config] Base URL:', VPS_CONFIG.baseUrl);
-console.log('[Config] Auth Token:', VPS_CONFIG.authToken);
+console.log('[Config] Auth Token length:', VPS_CONFIG.authToken.length);
 console.log('[Config] Using custom token:', VPS_CONFIG.authToken !== 'default-token');
