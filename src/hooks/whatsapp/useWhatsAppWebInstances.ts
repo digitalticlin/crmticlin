@@ -106,6 +106,7 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
       }));
 
       setInstances(mappedInstances);
+      console.log('✅ Instâncias carregadas:', mappedInstances.length);
     } catch (err: any) {
       console.error('Error fetching WhatsApp Web instances:', err);
       setError(err.message);
@@ -122,13 +123,11 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     }
 
     try {
-      // Get authenticated session
       await getAuthenticatedSession();
       
-      // Use custom name or generate default based on username
       const instanceName = customInstanceName || await generateInstanceName();
       
-      console.log('Creating instance with name:', instanceName);
+      console.log('🔧 Criando instância com nome:', instanceName);
       
       // Check for duplicate names before attempting creation
       const existingInstance = instances.find(
@@ -145,43 +144,72 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
       const result = await WhatsAppWebService.createInstance(instanceName);
 
       if (result.success && result.instance) {
-        // Refresh instances to get the latest data
         await fetchInstances();
         
-        // Check if QR code is available and show modal automatically
         const newInstance = result.instance;
-        if (newInstance.qr_code) {
-          setAutoConnectState({
-            isConnecting: false,
-            showQRModal: true,
-            activeInstanceId: newInstance.id
-          });
-          toast.success('Instância criada com sucesso! QR Code pronto para escaneamento.');
-        } else {
-          toast.success('Instância criada! Aguarde o QR Code...');
-          // Try to get QR code after a short delay
-          setTimeout(async () => {
-            try {
-              const qrCode = await refreshQRCode(newInstance.id);
-              if (qrCode) {
-                setAutoConnectState({
-                  isConnecting: false,
-                  showQRModal: true,
-                  activeInstanceId: newInstance.id
-                });
+        setAutoConnectState({
+          isConnecting: false,
+          showQRModal: true,
+          activeInstanceId: newInstance.id
+        });
+        
+        toast.success('✅ Instância criada! Aguarde o QR Code...');
+        
+        // Implementar polling para obter QR code real
+        let attempts = 0;
+        const maxAttempts = 10;
+        const pollInterval = 3000; // 3 segundos
+        
+        const pollForQRCode = async () => {
+          if (attempts >= maxAttempts) {
+            console.log('⚠️ Máximo de tentativas atingido para obter QR Code');
+            return;
+          }
+          
+          attempts++;
+          console.log(`🔄 Tentativa ${attempts}/${maxAttempts} para obter QR Code`);
+          
+          try {
+            const qrResult = await WhatsAppWebService.getQRCode(newInstance.id);
+            if (qrResult.success && qrResult.qrCode) {
+              // Verificar se não é placeholder
+              const isPlaceholder = qrResult.qrCode.includes('iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB');
+              
+              if (!isPlaceholder) {
+                console.log('✅ QR Code real obtido!');
+                
+                // Atualizar no banco
+                await supabase
+                  .from('whatsapp_instances')
+                  .update({ 
+                    qr_code: qrResult.qrCode,
+                    web_status: 'waiting_scan'
+                  })
+                  .eq('id', newInstance.id);
+                
+                await fetchInstances();
+                toast.success('🎉 QR Code real gerado! Pode escanear agora.');
+                return;
               }
-            } catch (qrError) {
-              console.error('Error generating QR code after creation:', qrError);
             }
-          }, 3000);
-        }
+            
+            // Continuar polling se ainda for placeholder
+            setTimeout(pollForQRCode, pollInterval);
+          } catch (error) {
+            console.error('Erro ao fazer poll do QR Code:', error);
+            setTimeout(pollForQRCode, pollInterval);
+          }
+        };
+        
+        // Iniciar polling após 5 segundos
+        setTimeout(pollForQRCode, 5000);
+        
       } else {
         throw new Error(result.error || 'Falha ao criar instância');
       }
     } catch (error: any) {
       console.error('Error creating instance:', error);
       
-      // Improved error messages
       let errorMessage = 'Erro ao criar instância';
       
       if (error.message.includes('duplicate key')) {
@@ -212,54 +240,68 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
 
     try {
       const instanceName = await generateInstanceName();
-      console.log('Auto-connecting with instance name:', instanceName);
+      console.log('🚀 Auto-conectando com nome da instância:', instanceName);
       
       const result = await WhatsAppWebService.createInstance(instanceName);
 
       if (result.success && result.instance) {
         const newInstance = result.instance;
         
-        // Refresh instances to include the new one
         await fetchInstances();
         
-        // Check if QR code is available
-        if (newInstance.qr_code) {
-          setAutoConnectState({
-            isConnecting: false,
-            showQRModal: true,
-            activeInstanceId: newInstance.id
-          });
-          toast.success('Instância criada! Escaneie o QR Code para conectar.');
-        } else {
-          // QR code not immediately available, try to generate
-          console.log('QR Code not immediately available, attempting to generate...');
-          try {
-            const qrCode = await refreshQRCode(newInstance.id);
-            if (qrCode) {
-              setAutoConnectState({
-                isConnecting: false,
-                showQRModal: true,
-                activeInstanceId: newInstance.id
-              });
-              toast.success('QR Code gerado! Escaneie para conectar.');
-            } else {
-              setAutoConnectState({
-                isConnecting: false,
-                showQRModal: false,
-                activeInstanceId: null
-              });
-              toast.warning('Instância criada. Use "Gerar QR Code" para conectar.');
-            }
-          } catch (qrError) {
-            console.error('Error generating QR code:', qrError);
-            setAutoConnectState({
-              isConnecting: false,
-              showQRModal: false,
-              activeInstanceId: null
-            });
-            toast.warning('Instância criada. Use "Gerar QR Code" para conectar.');
+        setAutoConnectState({
+          isConnecting: false,
+          showQRModal: true,
+          activeInstanceId: newInstance.id
+        });
+        
+        toast.success('✅ Instância criada! Aguardando QR Code real...');
+        
+        // Implementar o mesmo polling aqui
+        let attempts = 0;
+        const maxAttempts = 10;
+        const pollInterval = 3000;
+        
+        const pollForQRCode = async () => {
+          if (attempts >= maxAttempts) {
+            toast.warning('⚠️ QR Code demorou para ser gerado. Use "Gerar QR Code" para tentar novamente.');
+            return;
           }
-        }
+          
+          attempts++;
+          console.log(`🔄 Auto-connect: Tentativa ${attempts}/${maxAttempts} para QR Code`);
+          
+          try {
+            const qrResult = await WhatsAppWebService.getQRCode(newInstance.id);
+            if (qrResult.success && qrResult.qrCode) {
+              const isPlaceholder = qrResult.qrCode.includes('iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB');
+              
+              if (!isPlaceholder) {
+                console.log('✅ QR Code real obtido no auto-connect!');
+                
+                await supabase
+                  .from('whatsapp_instances')
+                  .update({ 
+                    qr_code: qrResult.qrCode,
+                    web_status: 'waiting_scan'
+                  })
+                  .eq('id', newInstance.id);
+                
+                await fetchInstances();
+                toast.success('🎉 QR Code pronto! Escaneie para conectar.');
+                return;
+              }
+            }
+            
+            setTimeout(pollForQRCode, pollInterval);
+          } catch (error) {
+            console.error('Erro no polling auto-connect:', error);
+            setTimeout(pollForQRCode, pollInterval);
+          }
+        };
+        
+        setTimeout(pollForQRCode, 5000);
+        
       } else {
         throw new Error(result.error || 'Falha ao criar instância');
       }
@@ -267,7 +309,6 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
       console.error('Error in auto connection:', error);
       setAutoConnectState(prev => ({ ...prev, isConnecting: false }));
       
-      // Use same improved error handling as createInstance
       let errorMessage = 'Erro ao conectar WhatsApp';
       
       if (error.message.includes('duplicate key')) {
@@ -287,57 +328,75 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
   // Delete instance with complete VPS cleanup
   const deleteInstance = async (instanceId: string) => {
     try {
-      // Get authenticated session
       await getAuthenticatedSession();
       
       const result = await WhatsAppWebService.deleteInstance(instanceId);
       
       if (result.success) {
         await fetchInstances();
-        toast.success('Instância deletada com sucesso');
+        toast.success('✅ Instância deletada com sucesso');
       } else {
         throw new Error(result.error || 'Falha ao deletar instância');
       }
     } catch (error: any) {
       console.error('Error deleting instance:', error);
-      toast.error(`Erro ao deletar instância: ${error.message}`);
+      toast.error(`❌ Erro ao deletar instância: ${error.message}`);
     }
   };
 
-  // Refresh QR Code - improved logic with proper database update
+  // Refresh QR Code with improved validation and retry logic
   const refreshQRCode = async (instanceId: string): Promise<string | null> => {
     try {
-      // Get authenticated session
       await getAuthenticatedSession();
       
-      console.log('Requesting QR code for instance:', instanceId);
+      console.log('🔄 Solicitando QR code para instância:', instanceId);
+      
+      // Primeiro tentar obter QR code diretamente
       const result = await WhatsAppWebService.getQRCode(instanceId);
       
       if (result.success && result.qrCode) {
-        // Update instance in database with new QR code
-        const { error: updateError } = await supabase
-          .from('whatsapp_instances')
-          .update({ 
-            qr_code: result.qrCode,
-            web_status: 'waiting_scan'
-          })
-          .eq('id', instanceId);
+        // Verificar se não é placeholder
+        const isPlaceholder = result.qrCode.includes('iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB');
+        
+        if (!isPlaceholder) {
+          // QR code real obtido
+          const { error: updateError } = await supabase
+            .from('whatsapp_instances')
+            .update({ 
+              qr_code: result.qrCode,
+              web_status: 'waiting_scan'
+            })
+            .eq('id', instanceId);
 
-        if (updateError) {
-          console.error('Error updating QR code in database:', updateError);
+          if (updateError) {
+            console.error('Erro ao atualizar QR code no banco:', updateError);
+          } else {
+            console.log('✅ QR code real atualizado no banco');
+          }
+
+          await fetchInstances();
+          toast.success('✅ QR Code gerado com sucesso');
+          return result.qrCode;
         } else {
-          console.log('QR code successfully updated in database');
+          // É placeholder, implementar retry
+          toast.info('⏳ QR Code sendo gerado no servidor. Tentando novamente...');
+          
+          // Retry após 3 segundos
+          setTimeout(async () => {
+            const retryResult = await refreshQRCode(instanceId);
+            if (!retryResult) {
+              toast.warning('⚠️ QR Code ainda não pronto. Tente novamente em alguns segundos.');
+            }
+          }, 3000);
+          
+          return null;
         }
-
-        await fetchInstances();
-        toast.success('QR Code gerado com sucesso');
-        return result.qrCode;
       } else {
         throw new Error(result.error || 'Falha ao gerar QR Code');
       }
     } catch (error: any) {
       console.error('Error generating QR code:', error);
-      toast.error(`Erro ao gerar QR Code: ${error.message}`);
+      toast.error(`❌ Erro ao gerar QR Code: ${error.message}`);
       return null;
     }
   };

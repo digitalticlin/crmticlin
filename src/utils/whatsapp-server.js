@@ -1,16 +1,20 @@
 
-// Servidor WhatsApp Web.js v3.0 - Versão com controle e endpoint /instance/create
+// Servidor WhatsApp Web.js v3.1 - Versão com QR Code real e melhor controle
 // Execute este script na VPS na porta 3001
 
 const express = require('express');
+const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
+const qrcode = require('qrcode');
 const { exec } = require('child_process');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.WHATSAPP_PORT || 3001;
 
 // VERSION CONTROL
-const SERVER_VERSION = '3.0.0';
+const SERVER_VERSION = '3.1.0';
 const SERVER_HASH = 'sha256-' + Date.now();
 
 // Configurar CORS e parsing
@@ -19,6 +23,9 @@ app.use(express.json());
 
 // Token simples para autenticação
 const API_TOKEN = process.env.VPS_API_TOKEN || 'default-token';
+
+// Armazenar instâncias ativas
+const activeInstances = new Map();
 
 // Middleware de autenticação
 function authenticateToken(req, res, next) {
@@ -48,7 +55,7 @@ app.get('/health', (req, res) => {
     port: PORT,
     ssl_fix_enabled: true,
     timeout_fix_enabled: true,
-    active_instances: 0,
+    active_instances: activeInstances.size,
     endpoints_available: [
       '/health',
       '/status',
@@ -78,7 +85,7 @@ app.get('/status', (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: 'WhatsApp Web.js Server v3.0 funcionando',
+    message: 'WhatsApp Web.js Server v3.1 funcionando',
     version: SERVER_VERSION,
     hash: SERVER_HASH,
     endpoints: [
@@ -96,46 +103,25 @@ app.get('/', (req, res) => {
 
 // Endpoint para listar instâncias ativas
 app.get('/instances', (req, res) => {
-  exec('pm2 jlist', (error, stdout, stderr) => {
-    if (error) {
-      return res.json({
-        success: false,
-        instances: [],
-        error: error.message,
-        version: SERVER_VERSION
-      });
-    }
+  const instances = Array.from(activeInstances.entries()).map(([id, instance]) => ({
+    instanceId: id,
+    sessionName: instance.sessionName,
+    isReady: instance.client?.info?.wid ? true : false,
+    phone: instance.client?.info?.wid?.user,
+    status: instance.status || 'unknown',
+    qrCode: instance.qrCode || null,
+    lastActivity: instance.lastActivity || new Date().toISOString()
+  }));
 
-    try {
-      const processes = JSON.parse(stdout);
-      const whatsappInstances = processes.filter(p => 
-        p.name && p.name.includes('whatsapp')
-      );
-
-      res.json({
-        success: true,
-        instances: whatsappInstances.map(p => ({
-          name: p.name,
-          status: p.pm2_env.status,
-          pid: p.pid,
-          uptime: p.pm2_env.pm_uptime,
-          memory: p.monit.memory,
-          cpu: p.monit.cpu
-        })),
-        version: SERVER_VERSION
-      });
-    } catch (parseError) {
-      res.json({
-        success: false,
-        instances: [],
-        error: 'Erro ao fazer parse dos processos PM2',
-        version: SERVER_VERSION
-      });
-    }
+  res.json({
+    success: true,
+    instances,
+    total: instances.length,
+    version: SERVER_VERSION
   });
 });
 
-// ===== ENDPOINT PARA CRIAR INSTÂNCIA WHATSAPP (CORRIGIDO) =====
+// ===== ENDPOINT PARA CRIAR INSTÂNCIA WHATSAPP COM QR CODE REAL =====
 app.post('/instance/create', authenticateToken, async (req, res) => {
   const { instanceId, sessionName, webhookUrl, companyId } = req.body;
 
@@ -151,28 +137,148 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
   console.log('Payload recebido:', { instanceId, sessionName, webhookUrl, companyId });
 
   try {
-    // Simular criação de instância (aqui você adicionaria a lógica real do WhatsApp Web.js)
-    const result = await new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          success: true,
-          instanceId,
-          sessionName,
-          webhookUrl,
-          companyId,
-          status: 'created',
-          qrCode: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-          version: SERVER_VERSION,
-          timestamp: new Date().toISOString()
-        });
-      }, 2000);
+    // Verificar se a instância já existe
+    if (activeInstances.has(instanceId)) {
+      console.log(`⚠️ [v${SERVER_VERSION}] Instância ${instanceId} já existe`);
+      const existingInstance = activeInstances.get(instanceId);
+      
+      return res.json({
+        success: true,
+        instanceId,
+        sessionName,
+        webhookUrl,
+        companyId,
+        status: 'exists',
+        qrCode: existingInstance.qrCode,
+        version: SERVER_VERSION,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Criar nova instância do WhatsApp Web.js
+    const sessionPath = path.join(__dirname, 'sessions', instanceId);
+    
+    const client = new Client({
+      authStrategy: new LocalAuth({
+        clientId: instanceId,
+        dataPath: sessionPath
+      }),
+      puppeteer: {
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--single-process',
+          '--disable-gpu'
+        ]
+      }
     });
 
-    console.log(`✅ [v${SERVER_VERSION}] Instância criada com sucesso: ${instanceId}`);
-    res.json(result);
+    // Criar objeto da instância
+    const instanceData = {
+      client,
+      sessionName,
+      webhookUrl,
+      companyId,
+      status: 'initializing',
+      qrCode: null,
+      lastActivity: new Date().toISOString()
+    };
+
+    // Armazenar a instância
+    activeInstances.set(instanceId, instanceData);
+
+    // Event listener para QR Code
+    client.on('qr', async (qr) => {
+      try {
+        console.log(`📱 [v${SERVER_VERSION}] QR Code gerado para ${instanceId}`);
+        
+        // Gerar QR code como base64
+        const qrCodeDataUrl = await qrcode.toDataURL(qr, {
+          width: 512,
+          margin: 2,
+          color: {
+            dark: '#000000',
+            light: '#FFFFFF'
+          }
+        });
+        
+        instanceData.qrCode = qrCodeDataUrl;
+        instanceData.status = 'waiting_scan';
+        instanceData.lastActivity = new Date().toISOString();
+        
+        console.log(`✅ [v${SERVER_VERSION}] QR Code real gerado para ${instanceId}`);
+        
+      } catch (error) {
+        console.error(`❌ [v${SERVER_VERSION}] Erro ao gerar QR Code para ${instanceId}:`, error);
+      }
+    });
+
+    // Event listener para autenticação
+    client.on('authenticated', () => {
+      console.log(`🔐 [v${SERVER_VERSION}] Cliente autenticado: ${instanceId}`);
+      instanceData.status = 'authenticated';
+      instanceData.qrCode = null; // Limpar QR code após autenticação
+      instanceData.lastActivity = new Date().toISOString();
+    });
+
+    // Event listener para quando estiver pronto
+    client.on('ready', () => {
+      console.log(`✅ [v${SERVER_VERSION}] Cliente pronto: ${instanceId}`);
+      instanceData.status = 'ready';
+      instanceData.lastActivity = new Date().toISOString();
+      
+      // Obter informações do usuário
+      if (client.info) {
+        instanceData.phone = client.info.wid?.user;
+        instanceData.profileName = client.info.pushname;
+      }
+    });
+
+    // Event listener para desconexão
+    client.on('disconnected', (reason) => {
+      console.log(`🔌 [v${SERVER_VERSION}] Cliente desconectado ${instanceId}:`, reason);
+      instanceData.status = 'disconnected';
+      instanceData.lastActivity = new Date().toISOString();
+    });
+
+    // Inicializar o cliente
+    await client.initialize();
+
+    console.log(`✅ [v${SERVER_VERSION}] Instância ${instanceId} inicializada com sucesso`);
+
+    res.json({
+      success: true,
+      instanceId,
+      sessionName,
+      webhookUrl,
+      companyId,
+      status: 'created',
+      qrCode: null, // QR code será gerado assincronamente
+      version: SERVER_VERSION,
+      timestamp: new Date().toISOString()
+    });
 
   } catch (error) {
     console.error(`❌ [v${SERVER_VERSION}] Erro ao criar instância: ${error.message}`);
+    
+    // Remover instância em caso de erro
+    if (activeInstances.has(instanceId)) {
+      const instance = activeInstances.get(instanceId);
+      if (instance.client) {
+        try {
+          await instance.client.destroy();
+        } catch (destroyError) {
+          console.error(`❌ [v${SERVER_VERSION}] Erro ao destruir cliente: ${destroyError.message}`);
+        }
+      }
+      activeInstances.delete(instanceId);
+    }
+
     res.status(500).json({
       success: false,
       error: error.message,
@@ -196,7 +302,26 @@ app.post('/instance/delete', authenticateToken, async (req, res) => {
   console.log(`🗑️ [v${SERVER_VERSION}] Deletando instância WhatsApp: ${instanceId}`);
 
   try {
-    // Simular deleção de instância
+    if (activeInstances.has(instanceId)) {
+      const instance = activeInstances.get(instanceId);
+      
+      // Destruir o cliente
+      if (instance.client) {
+        await instance.client.destroy();
+      }
+      
+      // Remover da lista de instâncias ativas
+      activeInstances.delete(instanceId);
+      
+      // Limpar pasta de sessão
+      const sessionPath = path.join(__dirname, 'sessions', instanceId);
+      if (fs.existsSync(sessionPath)) {
+        fs.rmSync(sessionPath, { recursive: true, force: true });
+      }
+      
+      console.log(`✅ [v${SERVER_VERSION}] Instância ${instanceId} deletada com sucesso`);
+    }
+
     res.json({
       success: true,
       message: `Instância ${instanceId} deletada com sucesso`,
@@ -229,15 +354,31 @@ app.post('/instance/status', authenticateToken, async (req, res) => {
   console.log(`📊 [v${SERVER_VERSION}] Verificando status da instância: ${instanceId}`);
 
   try {
-    // Simular verificação de status
+    if (!activeInstances.has(instanceId)) {
+      return res.json({
+        success: true,
+        status: {
+          instanceId,
+          connectionStatus: 'not_found',
+          isConnected: false,
+          lastActivity: null,
+          version: SERVER_VERSION
+        }
+      });
+    }
+
+    const instance = activeInstances.get(instanceId);
+    
     res.json({
       success: true,
       status: {
         instanceId,
-        connectionStatus: 'connected',
-        phone: '+5511999999999',
-        isConnected: true,
-        lastActivity: new Date().toISOString(),
+        connectionStatus: instance.status,
+        phone: instance.phone,
+        profileName: instance.profileName,
+        isConnected: instance.status === 'ready',
+        lastActivity: instance.lastActivity,
+        qrCode: instance.qrCode,
         version: SERVER_VERSION
       }
     });
@@ -267,16 +408,35 @@ app.post('/instance/qr', authenticateToken, async (req, res) => {
   console.log(`📱 [v${SERVER_VERSION}] Gerando QR Code para instância: ${instanceId}`);
 
   try {
-    // Simular geração de QR Code
-    res.json({
-      success: true,
-      qrCode: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-      version: SERVER_VERSION,
-      timestamp: new Date().toISOString()
-    });
+    if (!activeInstances.has(instanceId)) {
+      return res.status(404).json({
+        success: false,
+        error: 'Instância não encontrada',
+        version: SERVER_VERSION
+      });
+    }
+
+    const instance = activeInstances.get(instanceId);
+    
+    if (instance.qrCode) {
+      res.json({
+        success: true,
+        qrCode: instance.qrCode,
+        version: SERVER_VERSION,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.json({
+        success: false,
+        error: 'QR Code não disponível ainda. Aguarde alguns segundos e tente novamente.',
+        status: instance.status,
+        version: SERVER_VERSION,
+        timestamp: new Date().toISOString()
+      });
+    }
 
   } catch (error) {
-    console.error(`❌ [v${SERVER_VERSION}] Erro ao gerar QR Code: ${error.message}`);
+    console.error(`❌ [v${SERVER_VERSION}] Erro ao obter QR Code: ${error.message}`);
     res.status(500).json({
       success: false,
       error: error.message,
@@ -308,11 +468,31 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`📱 QR Code: http://localhost:${PORT}/instance/qr`);
   console.log(`🔑 Token: ${API_TOKEN === 'default-token' ? '⚠️  USANDO TOKEN PADRÃO' : '✅ Token configurado'}`);
   console.log(`📝 Hash: ${SERVER_HASH}`);
+  
+  // Criar diretório de sessões se não existir
+  const sessionsDir = path.join(__dirname, 'sessions');
+  if (!fs.existsSync(sessionsDir)) {
+    fs.mkdirSync(sessionsDir, { recursive: true });
+    console.log(`📁 Diretório de sessões criado: ${sessionsDir}`);
+  }
 });
 
 // Graceful shutdown
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   console.log(`🛑 [v${SERVER_VERSION}] Encerrando WhatsApp Server...`);
+  
+  // Destruir todas as instâncias ativas
+  for (const [instanceId, instance] of activeInstances) {
+    try {
+      if (instance.client) {
+        await instance.client.destroy();
+      }
+      console.log(`🔌 [v${SERVER_VERSION}] Instância ${instanceId} finalizada`);
+    } catch (error) {
+      console.error(`❌ [v${SERVER_VERSION}] Erro ao finalizar instância ${instanceId}:`, error);
+    }
+  }
+  
   process.exit(0);
 });
 
