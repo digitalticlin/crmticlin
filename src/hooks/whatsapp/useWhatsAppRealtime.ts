@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 
 export const useWhatsAppRealtime = (userEmail: string) => {
   const { instances } = useWhatsAppInstanceState();
-  const { updateInstance, refetch } = useWhatsAppInstanceActions();
+  const { updateInstance } = useWhatsAppInstanceActions();
   const lastUpdateRef = useRef<number>(0);
   const updateTimeoutRef = useRef<NodeJS.Timeout>();
 

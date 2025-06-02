@@ -36,7 +36,7 @@ export class MessageSendingService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${VPS_CONFIG.apiToken}`
+          'Authorization': `Bearer ${VPS_CONFIG.authToken}`
         },
         body: JSON.stringify({
           instanceId: instance.vps_instance_id,
