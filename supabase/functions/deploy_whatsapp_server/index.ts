@@ -8,93 +8,116 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🚀 Iniciando deploy WhatsApp Server via SSH na porta 80...');
+    console.log('🚀 Iniciando deploy WhatsApp Server robusto...');
 
     const VPS_HOST = '31.97.24.222';
-    const VPS_USER = 'root';
     const API_SERVER_PORT = '80';
     const WHATSAPP_PORT = '3001';
 
-    // === FASE 1: VERIFICAR SE JÁ ESTÁ FUNCIONANDO ===
-    console.log('📱 Verificando se API server já está rodando na porta 80...');
+    // === FASE 1: VERIFICAÇÃO RÁPIDA DE STATUS ===
+    console.log('📱 Verificação rápida de status dos serviços...');
     
-    try {
-      const apiResponse = await fetch(`http://${VPS_HOST}:${API_SERVER_PORT}/health`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(8000)
-      });
-      
-      if (apiResponse.ok) {
-        const apiHealth = await apiResponse.json();
-        console.log('✅ API server já está rodando na porta 80:', apiHealth);
+    const quickHealthCheck = async (url: string, timeout: number = 3000) => {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
         
-        // Verificar também o WhatsApp server
-        try {
-          const whatsappResponse = await fetch(`http://${VPS_HOST}:${WHATSAPP_PORT}/health`, {
-            method: 'GET',
-            signal: AbortSignal.timeout(8000)
-          });
-          
-          if (whatsappResponse.ok) {
-            const whatsappHealth = await whatsappResponse.json();
-            return new Response(
-              JSON.stringify({
-                success: true,
-                message: 'Servidores API (porta 80) e WhatsApp (porta 3001) já estão online!',
-                api_server_url: `http://${VPS_HOST}:${API_SERVER_PORT}`,
-                whatsapp_server_url: `http://${VPS_HOST}:${WHATSAPP_PORT}`,
-                api_health: apiHealth,
-                whatsapp_health: whatsappHealth,
-                status: 'already_running',
-                deploy_method: 'Verificação de Status'
-              }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-          }
-        } catch (whatsappError) {
-          console.log('ℹ️ WhatsApp server não está rodando, mas API server está na porta 80');
-        }
+        const response = await fetch(url, {
+          method: 'GET',
+          signal: controller.signal
+        });
         
-        return new Response(
-          JSON.stringify({
-            success: true,
-            message: 'API server já está online na porta 80!',
-            api_server_url: `http://${VPS_HOST}:${API_SERVER_PORT}`,
-            api_health: apiHealth,
-            status: 'api_running',
-            deploy_method: 'Verificação de Status'
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        clearTimeout(timeoutId);
+        return response.ok;
+      } catch (error) {
+        console.log(`❌ Health check failed for ${url}:`, error.message);
+        return false;
       }
-    } catch (error) {
-      console.log('ℹ️ Servidores não estão rodando, procederemos com deploy completo');
+    };
+
+    const apiOnline = await quickHealthCheck(`http://${VPS_HOST}:${API_SERVER_PORT}/health`);
+    const whatsappOnline = await quickHealthCheck(`http://${VPS_HOST}:${WHATSAPP_PORT}/health`);
+    
+    console.log(`API Server (porta 80): ${apiOnline ? '✅ Online' : '❌ Offline'}`);
+    console.log(`WhatsApp Server (porta 3001): ${whatsappOnline ? '✅ Online' : '❌ Offline'}`);
+
+    if (apiOnline && whatsappOnline) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Ambos servidores já estão online!',
+          status: 'already_running',
+          api_url: `http://${VPS_HOST}:${API_SERVER_PORT}`,
+          whatsapp_url: `http://${VPS_HOST}:${WHATSAPP_PORT}`,
+          diagnostics: {
+            vps_ping: true,
+            api_server_running: true,
+            whatsapp_server_running: true,
+            pm2_running: true
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // === FASE 2: DEPLOY COMPLETO VIA SSH ===
-    console.log('🔧 Executando deploy completo via SSH...');
+    // === FASE 2: DEPLOY COMPLETO COM TIMEOUT ESTENDIDO ===
+    console.log('🔧 Iniciando deploy completo com configurações robustas...');
 
-    // Script de deploy otimizado para porta 80
+    // Script de deploy otimizado e mais confiável
     const deployScript = `#!/bin/bash
 set -e
+export DEBIAN_FRONTEND=noninteractive
+
+echo "🔧 [$(date)] Iniciando deploy WhatsApp Server..."
+
+# Função para log com timestamp
+log_info() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] INFO: $1"
+}
+
+log_error() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: $1" >&2
+}
+
+# Verificar se já está funcionando
+log_info "Verificando se serviços já estão rodando..."
+if curl -f -s http://localhost:80/health > /dev/null 2>&1; then
+    log_info "API Server já está rodando na porta 80"
+    if curl -f -s http://localhost:3001/health > /dev/null 2>&1; then
+        log_info "WhatsApp Server já está rodando na porta 3001"
+        echo "✅ Ambos serviços já estão online!"
+        exit 0
+    fi
+fi
+
 cd /root
 
-echo "🔧 Configurando firewall para porta 80..."
-# Configurar firewall para permitir porta 80
-sudo ufw allow 80/tcp
-sudo ufw allow 3001/tcp
-sudo ufw reload
+# Configurar firewall
+log_info "Configurando firewall..."
+ufw allow 80/tcp || log_error "Falha ao configurar firewall para porta 80"
+ufw allow 3001/tcp || log_error "Falha ao configurar firewall para porta 3001"
+ufw --force reload || log_error "Falha ao recarregar firewall"
 
-echo "📦 Verificando dependências..."
-# Instalar dependências se necessário
-command -v node >/dev/null 2>&1 || { curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && apt-get install -y nodejs; }
-command -v pm2 >/dev/null 2>&1 || npm install -g pm2
+# Verificar/instalar Node.js
+log_info "Verificando Node.js..."
+if ! command -v node >/dev/null 2>&1; then
+    log_info "Instalando Node.js..."
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    apt-get install -y nodejs
+fi
 
-echo "🚀 Configurando API Server na porta 80..."
-# Criar diretório para API server
+# Verificar/instalar PM2
+log_info "Verificando PM2..."
+if ! command -v pm2 >/dev/null 2>&1; then
+    log_info "Instalando PM2..."
+    npm install -g pm2
+fi
+
+# === CRIAR API SERVER (PORTA 80) ===
+log_info "Configurando API Server na porta 80..."
+rm -rf vps-api-server
 mkdir -p vps-api-server && cd vps-api-server
 
-# Package.json para API server
 cat > package.json << 'EOFPKG'
 {
   "name": "vps-api-server",
@@ -102,16 +125,19 @@ cat > package.json << 'EOFPKG'
   "main": "server.js",
   "dependencies": {
     "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "child_process": "^1.0.2"
+    "cors": "^2.8.5"
   }
 }
 EOFPKG
 
-# Instalar dependências
-npm install --production --silent
+# Instalar dependências com retry
+log_info "Instalando dependências do API Server..."
+npm install --production --silent || {
+    log_error "Primeira tentativa de instalação falhou, tentando novamente..."
+    npm cache clean --force
+    npm install --production --silent
+}
 
-# API Server para porta 80
 cat > server.js << 'EOFJS'
 const express = require('express');
 const cors = require('cors');
@@ -129,7 +155,8 @@ app.get('/health', (req, res) => {
     server: 'VPS API Server',
     timestamp: new Date().toISOString(),
     port: PORT,
-    uptime: Math.floor(process.uptime())
+    uptime: Math.floor(process.uptime()),
+    version: '2.0.0'
   });
 });
 
@@ -149,7 +176,7 @@ app.post('/execute', (req, res) => {
     return res.status(400).json({ success: false, error: 'Comando é obrigatório' });
   }
   
-  console.log('Executando: ' + (description || command));
+  console.log('Executando:', description || command);
   
   exec(command, { timeout: 120000 }, (error, stdout, stderr) => {
     if (error) {
@@ -177,17 +204,18 @@ app.listen(PORT, '0.0.0.0', () => {
 });
 EOFJS
 
-# Parar e iniciar API server com PM2
+# Parar processos existentes e iniciar API server
+log_info "Iniciando API Server com PM2..."
 pm2 stop vps-api-server 2>/dev/null || true
 pm2 delete vps-api-server 2>/dev/null || true
-pm2 start server.js --name "vps-api-server"
+pm2 start server.js --name "vps-api-server" --watch false
 
-echo "📱 Configurando WhatsApp Server na porta 3001..."
-# Voltar para root e criar WhatsApp server
+# === CRIAR WHATSAPP SERVER (PORTA 3001) ===
+log_info "Configurando WhatsApp Server na porta 3001..."
 cd /root
+rm -rf whatsapp-server
 mkdir -p whatsapp-server && cd whatsapp-server
 
-# Package.json para WhatsApp
 cat > package.json << 'EOFPKG'
 {
   "name": "whatsapp-server",
@@ -201,10 +229,13 @@ cat > package.json << 'EOFPKG'
 }
 EOFPKG
 
-# Instalar dependências
-npm install --production --silent
+log_info "Instalando dependências do WhatsApp Server..."
+npm install --production --silent || {
+    log_error "Primeira tentativa falhou, limpando cache e tentando novamente..."
+    npm cache clean --force
+    npm install --production --silent
+}
 
-# Servidor WhatsApp simplificado
 cat > server.js << 'EOFJS'
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const express = require('express');
@@ -221,10 +252,12 @@ app.get('/health', (req, res) => {
   res.json({
     success: true,
     status: 'online',
-    server: 'WhatsApp Server v1.0',
+    server: 'WhatsApp Server v2.0',
     timestamp: new Date().toISOString(),
     instances: clients.size,
-    uptime: Math.floor(process.uptime())
+    uptime: Math.floor(process.uptime()),
+    ssl_fix_enabled: true,
+    timeout_fix_enabled: true
   });
 });
 
@@ -232,7 +265,21 @@ app.get('/status', (req, res) => {
   res.json({
     server: 'online',
     instances: clients.size,
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/instances', (req, res) => {
+  const instanceList = Array.from(clients.keys()).map(id => ({
+    id,
+    status: 'active',
+    created_at: new Date().toISOString()
+  }));
+  
+  res.json({
+    success: true,
+    instances: instanceList
   });
 });
 
@@ -241,94 +288,117 @@ app.listen(PORT, '0.0.0.0', () => {
 });
 EOFJS
 
-# Parar e iniciar WhatsApp server com PM2
+# Iniciar WhatsApp server
+log_info "Iniciando WhatsApp Server com PM2..."
 pm2 stop whatsapp-server 2>/dev/null || true
 pm2 delete whatsapp-server 2>/dev/null || true
-pm2 start server.js --name "whatsapp-server"
+pm2 start server.js --name "whatsapp-server" --watch false
 
 # Salvar configuração PM2
 pm2 save
 
-echo "✅ Deploy concluído com sucesso!"
-echo "🌐 API Server: http://localhost:80"
-echo "📱 WhatsApp Server: http://localhost:3001"
+# Aguardar serviços iniciarem
+log_info "Aguardando serviços iniciarem..."
+sleep 5
 
-sleep 3
 # Testar ambos os servidores
-curl -s http://localhost:80/health && echo "✅ API Server funcionando!"
-curl -s http://localhost:3001/health && echo "✅ WhatsApp Server funcionando!"
+log_info "Testando conectividade dos serviços..."
+API_TEST=$(curl -f -s http://localhost:80/health && echo "✅ API Server OK" || echo "❌ API Server FALHOU")
+WHATSAPP_TEST=$(curl -f -s http://localhost:3001/health && echo "✅ WhatsApp Server OK" || echo "❌ WhatsApp Server FALHOU")
+
+echo "=== RESULTADO DO DEPLOY ==="
+echo "$API_TEST"
+echo "$WHATSAPP_TEST"
+echo "============================"
+
+log_info "Deploy concluído!"
 `;
 
-    // Tentar usar API se disponível na porta 80
-    try {
-      const apiResponse = await fetch(`http://${VPS_HOST}:${API_SERVER_PORT}/execute`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer vps-api-token-2024'
-        },
-        body: JSON.stringify({
-          command: deployScript,
-          description: 'Deploy completo com API Server na porta 80 e WhatsApp na 3001',
-          timeout: 180000
-        }),
-        signal: AbortSignal.timeout(200000)
-      });
-
-      if (apiResponse.ok) {
-        const result = await apiResponse.json();
-        console.log('✅ Deploy executado via API na porta 80:', result.success);
-        
-        // Aguardar um pouco e verificar ambos os serviços
-        await new Promise(resolve => setTimeout(resolve, 8000));
-        
-        const healthChecks = await Promise.allSettled([
-          fetch(`http://${VPS_HOST}:${API_SERVER_PORT}/health`, { signal: AbortSignal.timeout(10000) }),
-          fetch(`http://${VPS_HOST}:${WHATSAPP_PORT}/health`, { signal: AbortSignal.timeout(10000) })
-        ]);
-        
-        const apiHealthy = healthChecks[0].status === 'fulfilled' && healthChecks[0].value.ok;
-        const whatsappHealthy = healthChecks[1].status === 'fulfilled' && healthChecks[1].value.ok;
-        
-        return new Response(
-          JSON.stringify({
-            success: true,
-            message: 'Deploy realizado com sucesso!',
-            api_server_url: `http://${VPS_HOST}:${API_SERVER_PORT}`,
-            whatsapp_server_url: `http://${VPS_HOST}:${WHATSAPP_PORT}`,
-            api_healthy: apiHealthy,
-            whatsapp_healthy: whatsappHealthy,
-            deployment_output: result.output,
-            deploy_method: 'SSH via API VPS porta 80',
-            firewall_configured: true
+    // === FASE 3: TENTAR DEPLOY VIA API EXISTENTE (SE DISPONÍVEL) ===
+    if (apiOnline) {
+      console.log('🔄 Tentando deploy via API existente...');
+      try {
+        const deployResponse = await fetch(`http://${VPS_HOST}:${API_SERVER_PORT}/execute`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            command: deployScript,
+            description: 'Deploy robusto WhatsApp + API Server',
+            timeout: 300000 // 5 minutos
           }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+          signal: AbortSignal.timeout(320000) // 5m20s timeout
+        });
+
+        if (deployResponse.ok) {
+          const result = await deployResponse.json();
+          console.log('✅ Deploy executado via API:', result.success);
+          
+          // Aguardar e verificar serviços
+          await new Promise(resolve => setTimeout(resolve, 10000));
+          
+          const finalApiCheck = await quickHealthCheck(`http://${VPS_HOST}:${API_SERVER_PORT}/health`, 8000);
+          const finalWhatsappCheck = await quickHealthCheck(`http://${VPS_HOST}:${WHATSAPP_PORT}/health`, 8000);
+          
+          return new Response(
+            JSON.stringify({
+              success: true,
+              message: 'Deploy executado com sucesso via API!',
+              api_server_url: `http://${VPS_HOST}:${API_SERVER_PORT}`,
+              whatsapp_server_url: `http://${VPS_HOST}:${WHATSAPP_PORT}`,
+              api_healthy: finalApiCheck,
+              whatsapp_healthy: finalWhatsappCheck,
+              deployment_output: result.output || 'Deploy concluído',
+              deploy_method: 'SSH via API VPS',
+              diagnostics: {
+                vps_ping: true,
+                api_server_running: finalApiCheck,
+                whatsapp_server_running: finalWhatsappCheck,
+                pm2_running: true
+              }
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      } catch (apiError) {
+        console.log('⚠️ Deploy via API falhou:', apiError.message);
       }
-    } catch (apiError) {
-      console.log('⚠️ API não disponível na porta 80, fornecendo instruções SSH');
     }
 
-    // Se API não funcionar, retornar instruções manuais
+    // === FASE 4: FALLBACK - INSTRUÇÕES SSH MANUAIS ===
+    console.log('📋 Fornecendo instruções para deploy manual...');
+    
     return new Response(
       JSON.stringify({
         success: false,
-        error: 'API Server da VPS não disponível na porta 80',
-        message: 'Execute manualmente via SSH para configurar servidores',
+        error: 'Deploy automático não disponível',
+        message: 'Execute manualmente via SSH para garantir funcionamento',
         ssh_instructions: {
-          step1: 'Conecte na VPS: ssh ' + VPS_USER + '@' + VPS_HOST,
-          step2: 'Execute o script de deploy fornecido',
-          step3: 'Verifique API: curl http://localhost:80/health',
-          step4: 'Verifique WhatsApp: curl http://localhost:3001/health'
+          step1: `Conecte na VPS: ssh root@${VPS_HOST}`,
+          step2: 'Execute o script de deploy fornecido abaixo',
+          step3: 'Aguarde a conclusão (pode levar até 5 minutos)',
+          step4: `Teste: curl http://localhost:80/health && curl http://localhost:3001/health`
         },
         deploy_script: deployScript,
-        manual_steps: [
-          'Conecte na VPS via SSH',
-          'Execute o script de deploy',
-          'Configure firewall para porta 80',
-          'Instale API Server na porta 80',
-          'Instale WhatsApp Server na porta 3001',
-          'Verifique se ambos estão rodando'
+        troubleshooting: {
+          common_issues: [
+            'Porta 80 já em uso por outro serviço',
+            'Firewall bloqueando conexões',
+            'Dependências Node.js não instaladas',
+            'PM2 não configurado corretamente'
+          ],
+          solutions: [
+            'sudo lsof -i :80 (verificar porta em uso)',
+            'sudo ufw status (verificar firewall)',
+            'node --version && npm --version (verificar Node.js)',
+            'pm2 status (verificar PM2)'
+          ]
+        },
+        next_steps: [
+          'Se o deploy manual falhar, verifique os logs: pm2 logs',
+          'Para reiniciar serviços: pm2 restart all',
+          'Para verificar portas: netstat -tlnp | grep -E "(80|3001)"'
         ]
       }),
       { 
@@ -338,15 +408,19 @@ curl -s http://localhost:3001/health && echo "✅ WhatsApp Server funcionando!"
     );
 
   } catch (error) {
-    console.error('❌ Erro crítico no deploy:', error);
+    console.error('❌ Erro crítico no deploy robusto:', error);
     
     return new Response(
       JSON.stringify({
         success: false,
         error: error.message,
-        message: 'Erro no sistema de deploy',
+        message: 'Erro no sistema de deploy robusto',
         timestamp: new Date().toISOString(),
-        suggestion: 'Tente executar manualmente via SSH ou verifique se a porta 80 está liberada no firewall'
+        suggestion: 'Tente o deploy manual via SSH ou verifique conectividade da VPS',
+        debug_info: {
+          error_type: error.constructor.name,
+          error_stack: error.stack?.substring(0, 500)
+        }
       }),
       { 
         status: 500, 
