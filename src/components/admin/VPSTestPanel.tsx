@@ -1,4 +1,3 @@
-
 import { AutoDeployButton } from "./hostinger/AutoDeployButton";
 import { PortTestDiagnostic } from "./vps/PortTestDiagnostic";
 import { VPSInfoCard } from "./vps/VPSInfoCard";
@@ -10,6 +9,7 @@ import { VPSAdvancedDiagnostic } from "./vps/VPSAdvancedDiagnostic";
 import { VPSConnectivityTest } from "./VPSConnectivityTest";
 import { VPSConnectionDiagnostic } from "./VPSConnectionDiagnostic";
 import { VPSEndpointDiscovery } from "./VPSEndpointDiscovery";
+import { VPSDeepInvestigation } from "./vps/VPSDeepInvestigation";
 
 export const VPSTestPanel = () => {
   return (
@@ -17,7 +17,10 @@ export const VPSTestPanel = () => {
       {/* Deploy Inteligente - Primeira seção */}
       <AutoDeployButton />
 
-      {/* Descoberta de Endpoints - NOVA SEÇÃO PRINCIPAL */}
+      {/* Investigação Técnica Profunda - NOVA SEÇÃO PRIORITÁRIA */}
+      <VPSDeepInvestigation />
+
+      {/* Descoberta de Endpoints - seção anterior */}
       <VPSEndpointDiscovery />
 
       {/* Diagnóstico Completo VPS - Nova seção para Fase 1 */}
