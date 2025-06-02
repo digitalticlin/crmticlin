@@ -8,66 +8,196 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🚀 Deploying WhatsApp server via API...');
+    console.log('🔍 Iniciando diagnóstico profissional da VPS...');
 
     const VPS_HOST = '31.97.24.222';
-    const VPS_PORT = '3002';
+    const VPS_API_PORT = '3002';
+    const WHATSAPP_PORT = '3001';
     const API_TOKEN = 'vps-api-token-2024';
 
-    // First, try to check if server is already running
+    // === FASE 1: DIAGNÓSTICO COMPLETO ===
+    console.log('📊 FASE 1: Diagnóstico de conectividade VPS');
+    
+    const diagnosticResults = {
+      vps_ping: false,
+      api_server_running: false,
+      whatsapp_server_running: false,
+      api_authentication: false,
+      system_resources: null,
+      error_details: []
+    };
+
+    // 1.1 Teste de conectividade básica VPS
     try {
-      const healthResponse = await fetch(`http://${VPS_HOST}:3001/health`, {
+      console.log(`🔌 Testando conectividade básica com ${VPS_HOST}...`);
+      const pingResponse = await fetch(`http://${VPS_HOST}:80`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000)
+      });
+      diagnosticResults.vps_ping = true;
+      console.log('✅ VPS responde na porta 80');
+    } catch (error) {
+      console.log('⚠️ VPS não responde na porta 80:', error.message);
+      diagnosticResults.error_details.push(`Ping VPS: ${error.message}`);
+    }
+
+    // 1.2 Teste da API Server (porta 3002)
+    try {
+      console.log(`🔧 Testando API Server na porta ${VPS_API_PORT}...`);
+      const apiStatusResponse = await fetch(`http://${VPS_HOST}:${VPS_API_PORT}/status`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(8000)
+      });
+      
+      if (apiStatusResponse.ok) {
+        const apiStatus = await apiStatusResponse.json();
+        diagnosticResults.api_server_running = true;
+        diagnosticResults.system_resources = apiStatus;
+        console.log('✅ API Server está online:', apiStatus);
+      } else {
+        throw new Error(`API Server retornou status ${apiStatusResponse.status}`);
+      }
+    } catch (error) {
+      console.log('❌ API Server não está rodando:', error.message);
+      diagnosticResults.error_details.push(`API Server: ${error.message}`);
+    }
+
+    // 1.3 Teste de autenticação da API
+    if (diagnosticResults.api_server_running) {
+      try {
+        console.log('🔐 Testando autenticação da API...');
+        const authTestResponse = await fetch(`http://${VPS_HOST}:${VPS_API_PORT}/execute`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${API_TOKEN}`
+          },
+          body: JSON.stringify({
+            command: 'echo "Test auth"',
+            description: 'Teste de autenticação'
+          }),
+          signal: AbortSignal.timeout(10000)
+        });
+
+        if (authTestResponse.ok) {
+          diagnosticResults.api_authentication = true;
+          console.log('✅ Autenticação da API funcionando');
+        } else {
+          throw new Error(`Auth falhou: HTTP ${authTestResponse.status}`);
+        }
+      } catch (error) {
+        console.log('❌ Falha na autenticação da API:', error.message);
+        diagnosticResults.error_details.push(`Auth API: ${error.message}`);
+      }
+    }
+
+    // 1.4 Verificar se WhatsApp server já está rodando
+    try {
+      console.log(`📱 Verificando WhatsApp server na porta ${WHATSAPP_PORT}...`);
+      const whatsappResponse = await fetch(`http://${VPS_HOST}:${WHATSAPP_PORT}/health`, {
         method: 'GET',
         signal: AbortSignal.timeout(5000)
       });
       
-      if (healthResponse.ok) {
-        const healthData = await healthResponse.json();
-        console.log('✅ WhatsApp server already running:', healthData);
+      if (whatsappResponse.ok) {
+        const whatsappHealth = await whatsappResponse.json();
+        diagnosticResults.whatsapp_server_running = true;
+        console.log('✅ WhatsApp server já está rodando:', whatsappHealth);
         
         return new Response(
           JSON.stringify({
             success: true,
-            message: 'WhatsApp server is already running!',
-            server_url: `http://${VPS_HOST}:3001`,
-            health: healthData,
-            status: 'already_running'
+            message: 'WhatsApp server já está online e funcionando!',
+            server_url: `http://${VPS_HOST}:${WHATSAPP_PORT}`,
+            health: whatsappHealth,
+            status: 'already_running',
+            diagnostics: diagnosticResults
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-    } catch (healthError) {
-      console.log('⚠️ Health check failed, proceeding with deployment...');
+    } catch (error) {
+      console.log('ℹ️ WhatsApp server não está rodando, procederemos com deploy');
+      diagnosticResults.error_details.push(`WhatsApp check: ${error.message}`);
     }
 
-    // Deploy command to run on VPS
-    const deployCommand = `
-      #!/bin/bash
-      set -e
-      
-      echo "🔧 Starting WhatsApp server deployment..."
-      
-      # Install Node.js if not present
-      if ! command -v node &> /dev/null; then
-          echo "📦 Installing Node.js..."
-          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-          apt-get install -y nodejs
-      fi
-      
-      # Install PM2 if not present
-      if ! command -v pm2 &> /dev/null; then
-          echo "📦 Installing PM2..."
-          npm install -g pm2
-      fi
-      
-      # Create server directory
-      echo "📁 Creating server directory..."
-      mkdir -p /root/whatsapp-permanent-server
-      cd /root/whatsapp-permanent-server
-      
-      # Create package.json
-      echo "📝 Creating package.json..."
-      cat > package.json << 'EOF'
+    // === FASE 2: ESTRATÉGIA DE DEPLOY ===
+    console.log('🚀 FASE 2: Selecionando estratégia de deploy');
+
+    if (!diagnosticResults.api_server_running) {
+      console.log('⚠️ API Server não disponível - Deploy não é possível');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'API Server da VPS não está disponível',
+          message: 'Não é possível fazer deploy sem a API da VPS rodando',
+          diagnostics: diagnosticResults,
+          next_steps: [
+            'Verifique se a VPS está online',
+            'Instale o API Server usando o script de instalação manual',
+            'Verifique se a porta 3002 está liberada no firewall'
+          ]
+        }),
+        { 
+          status: 503, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    if (!diagnosticResults.api_authentication) {
+      console.log('⚠️ Falha na autenticação da API');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Falha na autenticação com API da VPS',
+          message: 'Token de autenticação inválido ou API não configurada',
+          diagnostics: diagnosticResults
+        }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // === FASE 3: DEPLOY PROFISSIONAL ===
+    console.log('🎯 FASE 3: Executando deploy via API autenticada');
+
+    const deployScript = `
+#!/bin/bash
+set -e
+
+echo "🚀 Deploy WhatsApp Server Profissional - $(date)"
+
+# Verificar se Node.js está instalado
+if ! command -v node &> /dev/null; then
+    echo "📦 Instalando Node.js 20..."
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    apt-get install -y nodejs
+fi
+
+# Verificar se PM2 está instalado
+if ! command -v pm2 &> /dev/null; then
+    echo "📦 Instalando PM2..."
+    npm install -g pm2
+fi
+
+# Criar diretório do servidor
+mkdir -p /root/whatsapp-permanent-server
+cd /root/whatsapp-permanent-server
+
+# Verificar se já existe e está rodando
+if pm2 list | grep -q "whatsapp-permanent-server.*online"; then
+    echo "✅ Servidor já está rodando, reiniciando..."
+    pm2 restart whatsapp-permanent-server
+    exit 0
+fi
+
+# Criar package.json se não existir
+if [ ! -f package.json ]; then
+    echo "📝 Criando package.json..."
+    cat > package.json << 'PKGEOF'
 {
   "name": "whatsapp-permanent-server",
   "version": "2.0.0",
@@ -81,23 +211,25 @@ serve(async (req) => {
     "puppeteer": "^21.5.0"
   }
 }
-EOF
-      
-      # Install dependencies if needed
-      if [ ! -d "node_modules" ]; then
-          echo "⬇️ Installing dependencies..."
-          npm install
-      fi
-      
-      # Create server code
-      echo "🤖 Creating WhatsApp server..."
-      cat > server.js << 'SERVEREOF'
+PKGEOF
+fi
+
+# Instalar dependências se necessário
+if [ ! -d "node_modules" ]; then
+    echo "⬇️ Instalando dependências..."
+    npm install
+fi
+
+# Criar servidor principal
+echo "🤖 Criando servidor WhatsApp..."
+cat > server.js << 'SERVEREOF'
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const express = require('express');
 const cors = require('cors');
 const QRCode = require('qrcode');
 const axios = require('axios');
 
+// Configurações de ambiente
 process.env.PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = 'true';
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
@@ -122,7 +254,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Create WhatsApp instance
+// Create instance endpoint
 app.post('/create', async (req, res) => {
   const { instanceId, sessionName, webhookUrl: customWebhook } = req.body;
   
@@ -164,6 +296,7 @@ app.post('/create', async (req, res) => {
     
     clients.set(instanceId, instanceData);
     
+    // Event handlers
     client.on('qr', async (qr) => {
       try {
         const qrCodeData = await QRCode.toDataURL(qr);
@@ -263,7 +396,7 @@ app.post('/create', async (req, res) => {
   }
 });
 
-// Send message
+// Send message endpoint
 app.post('/send', async (req, res) => {
   const { instanceId, phone, message } = req.body;
   
@@ -352,6 +485,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(\`🚀 WhatsApp Permanent Server running on port \${PORT}\`);
 });
 
+// Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('🛑 Shutting down gracefully...');
   for (const [instanceId, data] of clients) {
@@ -364,134 +498,117 @@ process.on('SIGTERM', async () => {
   process.exit(0);
 });
 SERVEREOF
-      
-      # Create PM2 ecosystem
-      echo "⚙️ Creating PM2 ecosystem..."
-      cat > ecosystem.config.js << 'EOF'
-module.exports = {
-  apps: [{
-    name: 'whatsapp-permanent-server',
-    script: 'server.js',
-    instances: 1,
-    autorestart: true,
-    watch: false,
-    max_memory_restart: '1G',
-    env: {
-      NODE_ENV: 'production',
-      PORT: 3001
+
+# Criar diretório de sessões
+mkdir -p /root/whatsapp-sessions
+
+# Parar instância anterior se existir
+pm2 stop whatsapp-permanent-server 2>/dev/null || true
+pm2 delete whatsapp-permanent-server 2>/dev/null || true
+
+# Iniciar com PM2
+echo "🚀 Iniciando servidor com PM2..."
+pm2 start server.js --name "whatsapp-permanent-server" --watch false --max-memory-restart 1G
+pm2 save
+
+# Configurar startup automático
+pm2 startup ubuntu 2>/dev/null || pm2 startup 2>/dev/null || true
+
+# Teste final
+echo "✅ Testando servidor..."
+sleep 5
+curl -s http://localhost:3001/health && echo "✅ Deploy concluído com sucesso!" || echo "❌ Falha no teste final"
+`;
+
+    console.log('📤 Enviando script de deploy via API...');
+
+    const deployResponse = await fetch(`http://${VPS_HOST}:${VPS_API_PORT}/execute`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_TOKEN}`
+      },
+      body: JSON.stringify({
+        command: deployScript,
+        description: 'Deploy WhatsApp Permanent Server',
+        timeout: 180000 // 3 minutos
+      }),
+      signal: AbortSignal.timeout(200000) // 3.3 minutos
+    });
+
+    if (!deployResponse.ok) {
+      throw new Error(`Deploy API falhou: HTTP ${deployResponse.status}`);
     }
-  }]
-};
-EOF
-      
-      # Create directories
-      mkdir -p /root/whatsapp-sessions
-      
-      # Start server with PM2
-      echo "🚀 Starting server with PM2..."
-      pm2 stop whatsapp-permanent-server 2>/dev/null || true
-      pm2 delete whatsapp-permanent-server 2>/dev/null || true
-      pm2 start ecosystem.config.js
-      pm2 save
-      pm2 startup
-      
-      # Test server
-      echo "✅ Testing server..."
-      sleep 3
-      curl -s http://localhost:3001/health || echo "❌ Server not responding"
-      
-      echo "🎉 WhatsApp Permanent Server deployed successfully!"
-    `;
 
-    console.log('📡 Executing deployment via VPS API...');
+    const deployResult = await deployResponse.json();
     
-    // Try to use VPS API to execute the deployment
+    if (!deployResult.success) {
+      throw new Error(`Deploy script falhou: ${deployResult.error || 'Erro desconhecido'}`);
+    }
+
+    console.log('✅ Deploy executado com sucesso');
+    console.log('Output:', deployResult.output);
+
+    // === FASE 4: VALIDAÇÃO FINAL ===
+    console.log('🧪 FASE 4: Validação final do deploy');
+    
+    await new Promise(resolve => setTimeout(resolve, 8000)); // Aguardar 8 segundos
+
     try {
-      const vpsApiResponse = await fetch(`http://${VPS_HOST}:${VPS_PORT}/execute`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${API_TOKEN}`
-        },
-        body: JSON.stringify({
-          command: deployCommand,
-          description: 'Deploy WhatsApp Permanent Server'
-        }),
-        signal: AbortSignal.timeout(120000) // 2 minutes timeout
-      });
-
-      if (!vpsApiResponse.ok) {
-        throw new Error(`VPS API responded with status ${vpsApiResponse.status}`);
-      }
-
-      const vpsResult = await vpsApiResponse.json();
+      const finalHealthResponse = await fetch(`http://${VPS_HOST}:${WHATSAPP_PORT}/health`);
       
-      if (!vpsResult.success) {
-        throw new Error(`VPS API error: ${vpsResult.error || 'Unknown error'}`);
-      }
-
-      console.log('✅ Deployment executed successfully via VPS API');
-      console.log('Output:', vpsResult.output);
-
-      // Test server health after deployment
-      console.log('🏥 Testing server health...');
-      await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
-
-      try {
-        const healthResponse = await fetch(`http://${VPS_HOST}:3001/health`);
-        const healthData = await healthResponse.json();
+      if (finalHealthResponse.ok) {
+        const finalHealth = await finalHealthResponse.json();
         
-        console.log('✅ Server health check passed:', healthData);
-
-        return new Response(
-          JSON.stringify({
-            success: true,
-            message: 'WhatsApp Permanent Server deployed successfully!',
-            server_url: `http://${VPS_HOST}:3001`,
-            health: healthData,
-            deployment_output: vpsResult.output
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-
-      } catch (healthError) {
-        console.log('⚠️ Health check failed, but deployment completed:', healthError.message);
+        console.log('🎉 Validação final: Servidor online!');
         
         return new Response(
           JSON.stringify({
             success: true,
-            message: 'WhatsApp server deployed, but health check failed',
-            server_url: `http://${VPS_HOST}:3001`,
-            deployment_output: vpsResult.output,
-            health_error: healthError.message
+            message: 'Deploy realizado com sucesso! Servidor WhatsApp online.',
+            server_url: `http://${VPS_HOST}:${WHATSAPP_PORT}`,
+            health: finalHealth,
+            deployment_output: deployResult.output,
+            diagnostics: diagnosticResults,
+            deploy_method: 'API VPS Autenticada'
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
+      } else {
+        throw new Error(`Health check final falhou: HTTP ${finalHealthResponse.status}`);
       }
-
-    } catch (vpsApiError) {
-      console.error('VPS API deployment failed:', vpsApiError.message);
+      
+    } catch (healthError) {
+      console.log('⚠️ Deploy concluído mas validação final falhou:', healthError.message);
       
       return new Response(
         JSON.stringify({
-          success: false,
-          error: `VPS API deployment failed: ${vpsApiError.message}`,
-          message: 'Failed to deploy via VPS API - server may be offline'
+          success: true,
+          message: 'Deploy executado, mas validação final falhou',
+          server_url: `http://${VPS_HOST}:${WHATSAPP_PORT}`,
+          deployment_output: deployResult.output,
+          validation_error: healthError.message,
+          diagnostics: diagnosticResults,
+          next_steps: [
+            'Aguarde alguns segundos e teste manualmente',
+            'Verifique se o PM2 está rodando o processo',
+            'Confirme se as portas estão liberadas'
+          ]
         }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
   } catch (error) {
-    console.error('Deployment error:', error);
+    console.error('❌ Erro crítico no deploy:', error);
+    
     return new Response(
       JSON.stringify({
         success: false,
         error: error.message,
-        message: 'Failed to deploy WhatsApp server'
+        message: 'Falha crítica no processo de deploy',
+        timestamp: new Date().toISOString(),
+        error_type: error.constructor.name
       }),
       { 
         status: 500, 
