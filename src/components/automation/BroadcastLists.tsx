@@ -135,16 +135,18 @@ export function BroadcastLists() {
   
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold flex items-center">
-            <Calendar className="h-5 w-5 text-primary mr-2" />
-            Listas de Transmissão
-          </CardTitle>
+      <Card className="glass-card">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold flex items-center">
+              <Calendar className="h-5 w-5 text-ticlin mr-2" />
+              Listas de Transmissão
+            </CardTitle>
+          </div>
         </CardHeader>
         <CardContent>
           {lists.length > 0 ? (
-            <div className="rounded-md border">
+            <div className="rounded-md overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -185,9 +187,9 @@ export function BroadcastLists() {
                               variant="outline" 
                               size="sm"
                               onClick={() => handleAction(list, 'start')}
-                              className="h-8 px-2"
+                              className="h-8 px-2 border-green-200 hover:border-green-300 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-900/30"
                             >
-                              <Play className="h-4 w-4 text-green-600" />
+                              <Play className="h-4 w-4 text-green-600 dark:text-green-400" />
                             </Button>
                           )}
                           
@@ -196,9 +198,9 @@ export function BroadcastLists() {
                               variant="outline" 
                               size="sm"
                               onClick={() => handleAction(list, 'stop')}
-                              className="h-8 px-2"
+                              className="h-8 px-2 border-amber-200 hover:border-amber-300 hover:bg-amber-50 dark:border-amber-800 dark:hover:bg-amber-900/30"
                             >
-                              <StopCircle className="h-4 w-4 text-amber-600" />
+                              <StopCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                             </Button>
                           )}
                           
@@ -217,9 +219,9 @@ export function BroadcastLists() {
                               variant="outline" 
                               size="sm"
                               onClick={() => handleDelete(list.id)}
-                              className="h-8 px-2"
+                              className="h-8 px-2 border-red-200 hover:border-red-300 hover:bg-red-50 dark:border-red-800 dark:hover:bg-red-900/30"
                             >
-                              <Trash2 className="h-4 w-4 text-red-600" />
+                              <Trash2 className="h-4 w-4 text-red-600 dark:text-red-400" />
                             </Button>
                           )}
                         </div>

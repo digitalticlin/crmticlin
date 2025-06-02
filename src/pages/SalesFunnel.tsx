@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { PageLayout } from "@/components/layout/PageLayout";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { ModernPageHeader } from "@/components/layout/ModernPageHeader";
 import { useSalesFunnel } from "@/hooks/salesFunnel/useSalesFunnel";
 import { KanbanBoard } from "@/components/sales/KanbanBoard";
 import { LeadDetailSidebar } from "@/components/sales/LeadDetailSidebar";
@@ -105,6 +105,7 @@ export default function SalesFunnel() {
 
   const addLeadAction = (
     <Button 
+      className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 py-2.5 font-medium shadow-lg transition-all duration-200 hover:shadow-xl"
       onClick={() => toast.info("Adicionar lead (em breve!)")}
     >
       <Plus className="h-4 w-4 mr-2" />
@@ -114,7 +115,7 @@ export default function SalesFunnel() {
 
   return (
     <PageLayout>
-      <PageHeader 
+      <ModernPageHeader 
         title="Funil de Vendas" 
         description="Gerencie seus leads e oportunidades de vendas"
         action={addLeadAction}

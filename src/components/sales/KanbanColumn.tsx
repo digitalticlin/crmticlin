@@ -33,8 +33,9 @@ export const KanbanColumn = ({
 
   return (
     <div
-      className="relative bg-card rounded-lg border shadow-sm flex flex-col min-w-[290px] max-w-[320px] w-full md:h-[72vh] h-[540px] transition-all duration-200"
+      className="relative bg-white/60 dark:bg-white/5 backdrop-blur-sm rounded-2xl border-0 shadow-lg flex flex-col min-w-[290px] max-w-[320px] w-full md:h-[72vh] h-[540px] transition-all duration-200 hover:shadow-xl"
       style={{
+        boxShadow: "0 8px 32px 0 rgba(31,38,135,0.1)",
         marginBottom: 0,
         zIndex: 10,
         overflow: isAnyCardHovered ? "visible" : "hidden"
