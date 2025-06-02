@@ -1,24 +1,18 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Server, 
-  Play, 
   RotateCcw, 
-  HardDrive, 
-  Activity, 
-  Terminal,
-  Download,
-  Settings,
-  CheckCircle,
-  AlertCircle,
-  Loader2
+  Loader2,
+  CloudCog
 } from "lucide-react";
 import { useHostingerVPS } from "@/hooks/hostinger/useHostingerVPS";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { VPSHealthCard } from "./VPSHealthCard";
+import { WhatsAppStatusCard } from "./WhatsAppStatusCard";
+import { VPSActionsCard } from "./VPSActionsCard";
+import { VPSMonitoringCard } from "./VPSMonitoringCard";
 
 export const HostingerVPSPanel = () => {
   const {
@@ -38,252 +32,133 @@ export const HostingerVPSPanel = () => {
     loadLogs
   } = useHostingerVPS();
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'running':
-        return <Badge className="bg-green-500"><CheckCircle className="h-3 w-3 mr-1" />Online</Badge>;
-      case 'stopped':
-        return <Badge variant="destructive"><AlertCircle className="h-3 w-3 mr-1" />Offline</Badge>;
-      case 'starting':
-        return <Badge variant="secondary"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Iniciando</Badge>;
-      case 'stopping':
-        return <Badge variant="secondary"><Loader2 className="h-3 w-3 mr-1 animate-spin" />Parando</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
-  const formatMemory = (mb: number) => {
-    return mb >= 1024 ? `${(mb / 1024).toFixed(1)}GB` : `${mb}MB`;
-  };
-
-  const formatStorage = (gb: number) => {
-    return `${gb}GB`;
-  };
-
   if (loading) {
     return (
-      <Card>
+      <Card className="border-blue-200">
         <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin mr-2" />
-          <span>Carregando VPS da Hostinger...</span>
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-3" />
+            <h3 className="text-lg font-medium text-gray-900 mb-1">Conectando ao seu servidor...</h3>
+            <p className="text-gray-500">Aguarde enquanto verificamos seu VPS</p>
+          </div>
         </CardContent>
       </Card>
     );
   }
 
+  const isServerOnline = selectedVPS?.status === 'running';
+
   return (
     <div className="space-y-6">
-      {/* Seleção de VPS */}
-      <Card>
+      {/* Cabeçalho com Seleção de VPS */}
+      <Card className="border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Server className="h-5 w-5 text-blue-600" />
-              <CardTitle>Gerenciamento VPS Hostinger</CardTitle>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <CloudCog className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <CardTitle className="text-xl text-blue-900">Painel do Servidor VPS</CardTitle>
+                <CardDescription className="text-blue-700">
+                  Gerencie seu servidor e WhatsApp de forma simples e visual
+                </CardDescription>
+              </div>
             </div>
-            <Button onClick={loadVPSList} variant="outline" size="sm">
+            <Button onClick={loadVPSList} variant="outline" size="sm" className="border-blue-300">
               <RotateCcw className="h-4 w-4 mr-1" />
               Atualizar
             </Button>
           </div>
-          <CardDescription>
-            Controle total da VPS via API oficial da Hostinger
-          </CardDescription>
         </CardHeader>
         <CardContent>
           {vpsList.length > 0 ? (
-            <Select 
-              value={selectedVPS?.id || ''} 
-              onValueChange={(value) => {
-                const vps = vpsList.find(v => v.id === value);
-                if (vps) setSelectedVPS(vps);
-              }}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Selecione uma VPS" />
-              </SelectTrigger>
-              <SelectContent>
-                {vpsList.map((vps) => (
-                  <SelectItem key={vps.id} value={vps.id}>
-                    <div className="flex items-center gap-2">
-                      <span>{vps.name}</span>
-                      <span className="text-muted-foreground">({vps.ip_address})</span>
-                      {getStatusBadge(vps.status)}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-blue-900">Escolha seu servidor:</label>
+              <Select 
+                value={selectedVPS?.id || ''} 
+                onValueChange={(value) => {
+                  const vps = vpsList.find(v => v.id === value);
+                  if (vps) setSelectedVPS(vps);
+                }}
+              >
+                <SelectTrigger className="w-full bg-white">
+                  <SelectValue placeholder="Clique aqui para selecionar seu servidor VPS" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vpsList.map((vps) => (
+                    <SelectItem key={vps.id} value={vps.id}>
+                      <div className="flex items-center gap-2">
+                        <Server className="h-4 w-4" />
+                        <span className="font-medium">{vps.name}</span>
+                        <span className="text-gray-500">({vps.ip_address})</span>
+                        <span className={`inline-block w-2 h-2 rounded-full ${vps.status === 'running' ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           ) : (
-            <div className="text-center py-4 text-muted-foreground">
-              Nenhuma VPS encontrada na sua conta Hostinger
+            <div className="text-center py-6 bg-white rounded-lg border border-blue-200">
+              <Server className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+              <h3 className="text-lg font-medium text-gray-900 mb-1">Nenhum servidor encontrado</h3>
+              <p className="text-gray-500">Verifique sua conta Hostinger ou tente atualizar</p>
             </div>
           )}
         </CardContent>
       </Card>
 
       {selectedVPS && (
-        <>
-          {/* Informações da VPS */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5" />
-                {selectedVPS.name}
-              </CardTitle>
-              <div className="flex items-center gap-4">
-                {getStatusBadge(selectedVPS.status)}
-                <span className="text-sm text-muted-foreground">IP: {selectedVPS.ip_address}</span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="text-center p-3 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{selectedVPS.cpu_cores}</div>
-                  <div className="text-sm text-muted-foreground">CPU Cores</div>
-                </div>
-                <div className="text-center p-3 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">{formatMemory(selectedVPS.memory)}</div>
-                  <div className="text-sm text-muted-foreground">RAM</div>
-                </div>
-                <div className="text-center p-3 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">{formatStorage(selectedVPS.storage)}</div>
-                  <div className="text-sm text-muted-foreground">Storage</div>
-                </div>
-                <div className="text-center p-3 bg-gray-50 rounded-lg">
-                  <div className="text-sm font-medium text-gray-600">{selectedVPS.os}</div>
-                  <div className="text-sm text-muted-foreground">Sistema</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Coluna Esquerda */}
+          <div className="space-y-6">
+            <VPSHealthCard vps={selectedVPS} />
+            <VPSActionsCard
+              isServerOnline={isServerOnline}
+              operationState={operationState}
+              onInstallWhatsApp={installWhatsAppServer}
+              onApplyFixes={applyWhatsAppFixes}
+              onCreateBackup={createBackup}
+              onRestartVPS={restartVPS}
+            />
+          </div>
 
-          {/* Ações da VPS */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Ações Rápidas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <Button 
-                  onClick={installWhatsAppServer}
-                  disabled={operationState.isInstalling || selectedVPS.status !== 'running'}
-                  className="flex flex-col items-center gap-2 h-auto py-4"
-                >
-                  {operationState.isInstalling ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <Play className="h-5 w-5" />
-                  )}
-                  <span className="text-xs">
-                    {operationState.isInstalling ? 'Instalando...' : 'Instalar WhatsApp'}
-                  </span>
-                </Button>
-
-                <Button 
-                  onClick={applyWhatsAppFixes}
-                  disabled={operationState.isApplyingFixes || selectedVPS.status !== 'running'}
-                  variant="outline"
-                  className="flex flex-col items-center gap-2 h-auto py-4"
-                >
-                  {operationState.isApplyingFixes ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <Settings className="h-5 w-5" />
-                  )}
-                  <span className="text-xs">
-                    {operationState.isApplyingFixes ? 'Aplicando...' : 'Aplicar Correções'}
-                  </span>
-                </Button>
-
-                <Button 
-                  onClick={createBackup}
-                  disabled={operationState.isBackingUp || selectedVPS.status !== 'running'}
-                  variant="outline"
-                  className="flex flex-col items-center gap-2 h-auto py-4"
-                >
-                  {operationState.isBackingUp ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <Download className="h-5 w-5" />
-                  )}
-                  <span className="text-xs">
-                    {operationState.isBackingUp ? 'Criando...' : 'Backup'}
-                  </span>
-                </Button>
-
-                <Button 
-                  onClick={restartVPS}
-                  disabled={operationState.isRestarting}
-                  variant="destructive"
-                  className="flex flex-col items-center gap-2 h-auto py-4"
-                >
-                  {operationState.isRestarting ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <RotateCcw className="h-5 w-5" />
-                  )}
-                  <span className="text-xs">
-                    {operationState.isRestarting ? 'Reiniciando...' : 'Reiniciar VPS'}
-                  </span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Status WhatsApp */}
-          {whatsappStatus && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Terminal className="h-5 w-5" />
-                  Status WhatsApp Web.js
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-32 w-full">
-                  <pre className="text-xs bg-gray-50 p-3 rounded">
-                    {whatsappStatus.pm2_status || 'Nenhum status disponível'}
-                  </pre>
-                </ScrollArea>
-                <div className="mt-3 flex gap-2">
-                  <Button 
-                    onClick={() => loadLogs(50)} 
-                    variant="outline" 
-                    size="sm"
-                  >
-                    <HardDrive className="h-4 w-4 mr-1" />
-                    Carregar Logs
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Logs da VPS */}
-          {logs && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Terminal className="h-5 w-5" />
-                  Logs do Sistema
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-64 w-full">
-                  <pre className="text-xs bg-gray-900 text-gray-100 p-4 rounded">
-                    {logs}
-                  </pre>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          )}
-        </>
+          {/* Coluna Direita */}
+          <div className="space-y-6">
+            <WhatsAppStatusCard 
+              whatsappStatus={whatsappStatus} 
+              isServerOnline={isServerOnline} 
+            />
+            <VPSMonitoringCard
+              logs={logs}
+              whatsappStatus={whatsappStatus}
+              isServerOnline={isServerOnline}
+              onLoadLogs={loadLogs}
+            />
+          </div>
+        </div>
       )}
+
+      {/* Rodapé Informativo */}
+      <Card className="border-gray-200 bg-gray-50">
+        <CardContent className="py-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+            <div>
+              <h4 className="font-medium text-gray-900 mb-1">🚀 Fácil de Usar</h4>
+              <p className="text-sm text-gray-600">Interface simples, sem comandos complicados</p>
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-900 mb-1">🔄 Automático</h4>
+              <p className="text-sm text-gray-600">WhatsApp sempre conectado, 24 horas por dia</p>
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-900 mb-1">🛡️ Seguro</h4>
+              <p className="text-sm text-gray-600">Backups automáticos e monitoramento constante</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
