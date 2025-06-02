@@ -1,8 +1,8 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
 import { toast } from "sonner";
+import { extractUsernameFromEmail, generateSequentialInstanceName } from "@/utils/instanceNaming";
 
 export interface WhatsAppWebInstance {
   id: string;
@@ -43,39 +43,35 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     return session;
   }, []);
 
-  // Get admin user name for default instance naming
-  const getAdminUserName = useCallback(async () => {
+  // Get current user email for username extraction
+  const getCurrentUserEmail = useCallback(async () => {
     try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('company_id', companyId)
-        .eq('role', 'admin')
-        .single();
-      
-      if (profile?.full_name) {
-        return profile.full_name.split(' ')[0]; // First name only
-      }
-      
-      // Fallback: get current user name
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.email) {
-        return user.email.split('@')[0];
+        return user.email;
       }
-      
-      return 'Usuario';
+      throw new Error('User email not found');
     } catch (error) {
-      console.error('Error getting admin name:', error);
-      return 'Usuario';
+      console.error('Error getting user email:', error);
+      return 'user';
     }
-  }, [companyId]);
+  }, []);
 
-  // Generate default instance name
+  // Generate instance name based on username and existing instances
   const generateInstanceName = useCallback(async () => {
-    const adminName = await getAdminUserName();
-    const instanceCount = instances.length + 1;
-    return `${adminName} WhatsApp ${instanceCount}`;
-  }, [getAdminUserName, instances.length]);
+    try {
+      const userEmail = await getCurrentUserEmail();
+      const username = extractUsernameFromEmail(userEmail);
+      
+      // Get existing instance names for the company
+      const existingNames = instances.map(instance => instance.instance_name.toLowerCase());
+      
+      return generateSequentialInstanceName(username, existingNames);
+    } catch (error) {
+      console.error('Error generating instance name:', error);
+      return `user${instances.length + 1}`;
+    }
+  }, [getCurrentUserEmail, instances]);
 
   // Fetch instances from database
   const fetchInstances = useCallback(async () => {
@@ -128,14 +124,40 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
       // Get authenticated session
       await getAuthenticatedSession();
       
-      // Use custom name or generate default
+      // Use custom name or generate default based on username
       const instanceName = customInstanceName || await generateInstanceName();
+      
+      console.log('Creating instance with name:', instanceName);
       
       const result = await WhatsAppWebService.createInstance(instanceName);
 
       if (result.success && result.instance) {
+        // Refresh instances to get the latest data including QR code
         await fetchInstances();
-        toast.success('Instância WhatsApp criada com sucesso!');
+        
+        // Check if QR code is available and show modal automatically
+        const newInstance = result.instance;
+        if (newInstance.qr_code) {
+          setAutoConnectState({
+            isConnecting: false,
+            showQRModal: true,
+            activeInstanceId: newInstance.id
+          });
+          toast.success('Instância criada! QR Code pronto para escaneamento.');
+        } else {
+          toast.success('Instância criada! Gerando QR Code...');
+          // Try to get QR code if not immediately available
+          setTimeout(async () => {
+            const qrCode = await refreshQRCode(newInstance.id);
+            if (qrCode) {
+              setAutoConnectState({
+                isConnecting: false,
+                showQRModal: true,
+                activeInstanceId: newInstance.id
+              });
+            }
+          }, 2000);
+        }
       } else {
         throw new Error(result.error || 'Falha ao criar instância');
       }
@@ -146,7 +168,7 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     }
   };
 
-  // Auto connection flow with improved naming
+  // Auto connection flow with improved naming and QR handling
   const startAutoConnection = async () => {
     if (!companyId) {
       toast.error('ID da empresa não encontrado');
@@ -157,22 +179,54 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
 
     try {
       const instanceName = await generateInstanceName();
+      console.log('Auto-connecting with instance name:', instanceName);
       
       const result = await WhatsAppWebService.createInstance(instanceName);
 
       if (result.success && result.instance) {
         const newInstance = result.instance;
         
-        setAutoConnectState({
-          isConnecting: false,
-          showQRModal: true,
-          activeInstanceId: newInstance.id
-        });
-
         // Refresh instances to include the new one
         await fetchInstances();
         
-        toast.success('Instância WhatsApp criada! Escaneie o QR Code para conectar.');
+        // Check if QR code is available
+        if (newInstance.qr_code) {
+          setAutoConnectState({
+            isConnecting: false,
+            showQRModal: true,
+            activeInstanceId: newInstance.id
+          });
+          toast.success('Instância criada! Escaneie o QR Code para conectar.');
+        } else {
+          // QR code not immediately available, try to generate
+          console.log('QR Code not immediately available, attempting to generate...');
+          try {
+            const qrCode = await refreshQRCode(newInstance.id);
+            if (qrCode) {
+              setAutoConnectState({
+                isConnecting: false,
+                showQRModal: true,
+                activeInstanceId: newInstance.id
+              });
+              toast.success('QR Code gerado! Escaneie para conectar.');
+            } else {
+              setAutoConnectState({
+                isConnecting: false,
+                showQRModal: false,
+                activeInstanceId: null
+              });
+              toast.warning('Instância criada. Clique em "Gerar QR Code" para conectar.');
+            }
+          } catch (qrError) {
+            console.error('Error generating QR code:', qrError);
+            setAutoConnectState({
+              isConnecting: false,
+              showQRModal: false,
+              activeInstanceId: null
+            });
+            toast.warning('Instância criada. Clique em "Gerar QR Code" para conectar.');
+          }
+        }
       } else {
         throw new Error(result.error || 'Falha ao criar instância');
       }
@@ -203,15 +257,31 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     }
   };
 
-  // Refresh QR Code - improved logic
+  // Refresh QR Code - improved logic with proper database update
   const refreshQRCode = async (instanceId: string): Promise<string | null> => {
     try {
       // Get authenticated session
       await getAuthenticatedSession();
       
+      console.log('Requesting QR code for instance:', instanceId);
       const result = await WhatsAppWebService.getQRCode(instanceId);
       
       if (result.success && result.qrCode) {
+        // Update instance in database with new QR code
+        const { error: updateError } = await supabase
+          .from('whatsapp_instances')
+          .update({ 
+            qr_code: result.qrCode,
+            web_status: 'waiting_scan'
+          })
+          .eq('id', instanceId);
+
+        if (updateError) {
+          console.error('Error updating QR code in database:', updateError);
+        } else {
+          console.log('QR code successfully updated in database');
+        }
+
         await fetchInstances();
         toast.success('QR Code gerado com sucesso');
         return result.qrCode;

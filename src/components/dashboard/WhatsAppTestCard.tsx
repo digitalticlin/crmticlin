@@ -9,6 +9,7 @@ import { MessageSquare, QrCode, CheckCircle, Loader2, Eye } from "lucide-react";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { toast } from "sonner";
+import { extractUsernameFromEmail } from "@/utils/instanceNaming";
 
 export function WhatsAppTestCard() {
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -49,13 +50,39 @@ export function WhatsAppTestCard() {
 
   const handleShowQR = async (instanceId: string) => {
     try {
-      const qrCode = await refreshQRCode(instanceId);
-      setCurrentQRCode(qrCode);
-      setShowQRModal(true);
+      const instance = instances.find(i => i.id === instanceId);
+      if (instance?.qr_code) {
+        setCurrentQRCode(instance.qr_code);
+        setShowQRModal(true);
+      } else {
+        const qrCode = await refreshQRCode(instanceId);
+        if (qrCode) {
+          setCurrentQRCode(qrCode);
+          setShowQRModal(true);
+        }
+      }
     } catch (error) {
       console.error('Erro ao gerar QR Code:', error);
       toast.error('Erro ao gerar QR Code');
     }
+  };
+
+  const getSuggestedInstanceName = async () => {
+    try {
+      // Get current user email for username suggestion
+      const response = await fetch('/api/user-profile');
+      if (response.ok) {
+        const userData = await response.json();
+        if (userData.email) {
+          const username = extractUsernameFromEmail(userData.email);
+          const existingCount = instances.length;
+          return `${username}${existingCount + 1}`;
+        }
+      }
+    } catch (error) {
+      console.error('Error getting user data:', error);
+    }
+    return `instancia${instances.length + 1}`;
   };
 
   const isLoading = companyLoading || instancesLoading;
@@ -171,9 +198,12 @@ export function WhatsAppTestCard() {
                 id="instanceName"
                 value={instanceName}
                 onChange={(e) => setInstanceName(e.target.value)}
-                placeholder="Ex: atendimento, vendas, suporte..."
+                placeholder="Ex: digitalticlin1, user2, atendimento3..."
                 disabled={isCreating}
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Dica: Use formato como "usuario1", "usuario2" para melhor organização
+              </p>
             </div>
 
             <div className="flex gap-2">

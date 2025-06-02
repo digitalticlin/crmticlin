@@ -111,7 +111,6 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
   }
 
   // Send command to VPS to create WhatsApp instance
-  // Changing endpoint from /instance/create to /create
   try {
     console.log(`Sending create request to: ${VPS_CONFIG.baseUrl}/create`);
     
@@ -136,27 +135,51 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
       throw new Error(`VPS error: ${vpsResult.error || 'Unknown error'}`);
     }
 
-    // Update database with success status and QR code if available
+    // Prepare update data with proper QR code handling
     const updateData: any = {
       web_status: vpsResult.qrCode ? 'waiting_scan' : 'created',
       connection_status: 'connecting'
     };
 
+    // Ensure QR code is properly formatted and saved
     if (vpsResult.qrCode) {
-      updateData.qr_code = vpsResult.qrCode;
+      console.log('QR Code received from VPS, length:', vpsResult.qrCode.length);
+      
+      // Validate QR code format (should be data:image/png;base64,...)
+      if (vpsResult.qrCode.startsWith('data:image')) {
+        updateData.qr_code = vpsResult.qrCode;
+        console.log('QR Code saved to database (Base64 format)');
+      } else if (vpsResult.qrCode.length > 100) {
+        // If it's just the base64 part, add the data URL prefix
+        updateData.qr_code = `data:image/png;base64,${vpsResult.qrCode}`;
+        console.log('QR Code formatted and saved to database');
+      } else {
+        console.warn('QR Code format seems invalid:', vpsResult.qrCode.substring(0, 50));
+        updateData.qr_code = vpsResult.qrCode; // Save as-is for debugging
+      }
     }
 
-    await supabase
+    // Update database with QR code and status
+    const { data: updatedInstance, error: updateError } = await supabase
       .from('whatsapp_instances')
       .update(updateData)
-      .eq('id', dbInstance.id);
+      .eq('id', dbInstance.id)
+      .select()
+      .single();
+
+    if (updateError) {
+      console.error('Error updating instance with QR code:', updateError);
+      throw new Error(`Database update error: ${updateError.message}`);
+    }
+
+    console.log('Instance updated successfully with QR code');
 
     return new Response(
       JSON.stringify({
         success: true,
         instance: {
-          ...dbInstance,
-          qr_code: vpsResult.qrCode,
+          ...updatedInstance,
+          qr_code: updateData.qr_code,
           web_status: updateData.web_status
         }
       }),
