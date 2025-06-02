@@ -5,7 +5,7 @@ import { WhatsAppWebInstanceCard } from "./WhatsAppWebInstanceCard";
 import { ConnectWhatsAppButton } from "./ConnectWhatsAppButton";
 import { AutoQRCodeModal } from "./AutoQRCodeModal";
 import { CleanupOrphanedInstancesButton } from "./CleanupOrphanedInstancesButton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Wifi } from "lucide-react";
 
 export function WhatsAppWebSection() {
@@ -58,28 +58,10 @@ export function WhatsAppWebSection() {
 
   return (
     <div className="space-y-6">
-      <Card className="glass-card border-0">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-100/50 dark:bg-green-800/30">
-                <Wifi className="h-5 w-5 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  WhatsApp Web.js
-                </CardTitle>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Conecte sua conta WhatsApp de forma rápida e automática
-                </p>
-              </div>
-            </div>
-            
-            {/* Botão de limpeza de instâncias órfãs */}
-            <CleanupOrphanedInstancesButton onCleanupComplete={refetch} />
-          </div>
-        </CardHeader>
-      </Card>
+      {/* Botão de limpeza de instâncias órfãs */}
+      <div className="flex justify-end">
+        <CleanupOrphanedInstancesButton onCleanupComplete={refetch} />
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {/* Botão de conexão */}
@@ -100,21 +82,6 @@ export function WhatsAppWebSection() {
           />
         ))}
       </div>
-
-      {/* Estado vazio apenas se não há instâncias */}
-      {instances.length === 0 && !instancesLoading && (
-        <Card className="glass-card border-0">
-          <CardContent className="text-center py-8">
-            <div className="p-4 rounded-lg bg-green-100/50 dark:bg-green-800/30 inline-block mb-4">
-              <Wifi className="h-12 w-12 text-green-600 dark:text-green-400 mx-auto" />
-            </div>
-            <h3 className="text-lg font-medium mb-2">Nenhuma conexão WhatsApp</h3>
-            <p className="text-muted-foreground">
-              Clique em "Conectar WhatsApp" para começar
-            </p>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Modal do QR Code */}
       <AutoQRCodeModal
