@@ -172,15 +172,15 @@ export const AutoDeployButton = () => {
   const getStatusText = () => {
     switch (deployStatus) {
       case 'checking':
-        return 'Verificando status dos serviços...';
+        return 'Verificando status com retry automático...';
       case 'deploying':
-        return 'Executando deploy manual...';
+        return 'Executando deploy otimizado...';
       case 'success':
-        return servicesOnline ? 'Serviços já estão online!' : 'Deploy concluído com sucesso!';
+        return servicesOnline ? 'Serviços online com verificação otimizada!' : 'Deploy otimizado concluído!';
       case 'error':
-        return 'Erro no deploy - Verifique instruções';
+        return 'Erro no deploy - Verifique instruções otimizadas';
       default:
-        return 'Deploy Manual SSH - Clique para executar';
+        return 'Deploy Otimizado SSH - Timeout 15s + Retry';
     }
   };
 
@@ -420,49 +420,4 @@ export const AutoDeployButton = () => {
       </CardContent>
     </Card>
   );
-
-  function getStatusIcon() {
-    switch (deployStatus) {
-      case 'checking':
-        return <Loader2 className="h-6 w-6 animate-spin text-blue-600" />;
-      case 'deploying':
-        return <Loader2 className="h-6 w-6 animate-spin text-blue-600" />;
-      case 'success':
-        return <CheckCircle className="h-6 w-6 text-green-600" />;
-      case 'error':
-        return <AlertCircle className="h-6 w-6 text-red-600" />;
-      default:
-        return <Zap className="h-6 w-6 text-green-600" />;
-    }
-  }
-
-  function getStatusText() {
-    switch (deployStatus) {
-      case 'checking':
-        return 'Verificando status com retry automático...';
-      case 'deploying':
-        return 'Executando deploy otimizado...';
-      case 'success':
-        return servicesOnline ? 'Serviços online com verificação otimizada!' : 'Deploy otimizado concluído!';
-      case 'error':
-        return 'Erro no deploy - Verifique instruções otimizadas';
-      default:
-        return 'Deploy Otimizado SSH - Timeout 15s + Retry';
-    }
-  }
-
-  function getStatusColor() {
-    switch (deployStatus) {
-      case 'checking':
-        return 'border-blue-200 bg-blue-50';
-      case 'deploying':
-        return 'border-blue-200 bg-blue-50';
-      case 'success':
-        return 'border-green-200 bg-green-50';
-      case 'error':
-        return 'border-red-200 bg-red-50';
-      default:
-        return 'border-gray-200 bg-gray-50';
-    }
-  }
 };
