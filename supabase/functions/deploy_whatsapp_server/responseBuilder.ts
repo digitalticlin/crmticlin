@@ -9,7 +9,7 @@ export const buildSuccessResponse = (
   apiResult: any,
   whatsappResult: any
 ): Response => {
-  console.log('🎉 Ambos serviços estão funcionando perfeitamente!');
+  console.log('🎉 Ambos serviços funcionando com verificação inteligente!');
   
   const response: DeployResponse = {
     success: true,
@@ -19,7 +19,7 @@ export const buildSuccessResponse = (
     whatsapp_server_url: `http://${vpsHost}:${whatsappPort}`,
     api_server_health: apiResult.data,
     whatsapp_server_health: whatsappResult.data,
-    deploy_method: 'Verificação automática com retry',
+    deploy_method: 'Verificação inteligente com múltiplos endpoints',
     diagnostics: {
       vps_ping: true,
       api_server_running: true,
@@ -27,13 +27,14 @@ export const buildSuccessResponse = (
       pm2_running: true,
       services_accessible: true,
       api_attempts: apiResult.attempt,
-      whatsapp_attempts: whatsappResult.attempt
+      whatsapp_attempts: whatsappResult.attempt,
+      intelligent_check: true
     },
     next_steps: [
       'Os serviços estão funcionando corretamente',
-      'Você pode começar a usar o WhatsApp Web.js',
-      'Acesse http://31.97.24.222/health para verificar API',
-      'Acesse http://31.97.24.222:3001/health para verificar WhatsApp'
+      'Verificação com múltiplos endpoints bem-sucedida',
+      `Acesse http://${vpsHost}:${apiPort}/status para API`,
+      `Acesse http://${vpsHost}:${whatsappPort}/health para WhatsApp`
     ]
   };
 
@@ -47,9 +48,10 @@ export const buildFailureResponse = (
   vpsHost: string,
   apiResult: any,
   whatsappResult: any,
-  deployScript: string
+  deployScript: string,
+  specificInstructions?: any
 ): Response => {
-  console.log('⚠️ Um ou mais serviços estão offline, fornecendo instruções otimizadas...');
+  console.log('⚠️ Problemas detectados, fornecendo soluções específicas...');
 
   const currentStatus: ServiceStatus = {
     api_server: apiResult.online,
@@ -59,42 +61,46 @@ export const buildFailureResponse = (
     retry_info: {
       api_attempts: apiResult.attempt,
       whatsapp_attempts: whatsappResult.attempt,
-      timeout_used: '15s',
-      max_retries: 3
+      timeout_used: '8s',
+      max_retries: 'múltiplos endpoints'
     }
   };
 
   const response: DeployResponse = {
     success: false,
-    error: 'Um ou mais serviços estão offline após retry',
-    message: 'Execute o script otimizado de ajuste via SSH',
+    error: 'Um ou mais serviços precisam de ajustes',
+    message: 'Execute as correções específicas via SSH',
     current_status: currentStatus,
-    ssh_instructions: {
+    ssh_instructions: specificInstructions || {
       step1: `Conecte na VPS: ssh root@${vpsHost}`,
-      step2: 'Execute o script otimizado de ajuste fornecido abaixo',
-      step3: 'Aguarde a verificação e ajustes automatizados (2-3 minutos)',
-      step4: `Teste final: curl http://localhost:80/health && curl http://localhost:3001/health`
+      step2: 'Execute o script de correção fornecido',
+      step3: 'Aguarde verificação automatizada (2-3 minutos)',
+      step4: `Teste: curl http://localhost:80/health && curl http://localhost:3001/health`
     },
     deploy_script: deployScript,
     improvements: {
-      timeout_increased: '5s → 15s para maior tolerância de rede',
-      retry_mechanism: 'Até 3 tentativas com delay de 2s entre elas',
-      pm2_cleanup: 'Remove instâncias duplicadas antes de recriar',
-      robust_testing: 'Verificação final com 5 tentativas e timeout de 10s',
-      external_connectivity: 'Testa acessibilidade externa após configuração'
+      intelligent_endpoints: 'Testa múltiplos endpoints (/health, /status, /, /instances)',
+      faster_timeout: 'Timeout reduzido para 8s para detecção mais rápida',
+      specific_diagnosis: 'Diagnóstico específico baseado no que está funcionando',
+      targeted_solutions: 'Soluções direcionadas ao problema identificado'
     },
     troubleshooting: {
-      common_issues: [
-        'Timeout de rede (resolvido com retry)',
-        'Instâncias PM2 duplicadas (limpeza automática)',
-        'Serviços não bindados em 0.0.0.0 (script corrige)',
-        'Inicialização lenta dos serviços (aguarda com retry)'
+      api_server_issues: [
+        'Se API offline: verificar PM2 status e logs',
+        'Se endpoint não responde: verificar firewall porta 80',
+        'Se timeout: verificar conectividade VPS'
       ],
-      solutions: [
-        'pm2 status (verificar instâncias após limpeza)',
-        'pm2 logs vps-api-server (logs do API)',
-        'pm2 logs whatsapp-server (logs do WhatsApp)',
-        'netstat -tlnp | grep -E "(80|3001)" (verificar portas)'
+      whatsapp_server_issues: [
+        'Se WhatsApp offline: verificar se existe diretório /root/whatsapp-*',
+        'Se porta 3001 não responde: verificar se servidor foi iniciado',
+        'Se endpoint /health não existe: implementar endpoint básico',
+        'Se processo não encontrado: iniciar via PM2'
+      ],
+      diagnostic_commands: [
+        'pm2 status (verificar processos)',
+        'sudo netstat -tlnp | grep -E "(80|3001)" (verificar portas)',
+        'ps aux | grep node (verificar processos Node.js)',
+        'ls -la /root/ | grep whatsapp (verificar diretórios)'
       ]
     }
   };
@@ -109,16 +115,17 @@ export const buildFailureResponse = (
 };
 
 export const buildErrorResponse = (error: any): Response => {
-  console.error('❌ Erro na verificação otimizada:', error);
+  console.error('❌ Erro na verificação inteligente:', error);
   
   const response: DeployResponse = {
     success: false,
     error: error.message,
-    message: 'Erro no sistema de verificação otimizado',
+    message: 'Erro no sistema de verificação inteligente',
     improvements: [
-      'Timeout aumentado para 15s',
-      'Retry automático implementado',
-      'Script de limpeza PM2 otimizado'
+      'Verificação com múltiplos endpoints implementada',
+      'Timeout otimizado para 8s',
+      'Diagnóstico específico por serviço',
+      'Soluções direcionadas ao problema'
     ]
   };
 

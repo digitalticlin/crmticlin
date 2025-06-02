@@ -11,132 +11,173 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🚀 INICIANDO DEPLOY PASSO A PASSO - VERIFICAÇÃO DETALHADA');
+    console.log('🚀 INICIANDO DEPLOY OTIMIZADO - VERIFICAÇÃO INTELIGENTE');
 
     const VPS_HOST = '31.97.24.222';
     const API_SERVER_PORT = '80';
     const WHATSAPP_PORT = '3001';
 
-    // === PASSO 1: VERIFICAR API SERVER (PORTA 80) ===
-    console.log('📋 PASSO 1: Verificando API Server na porta 80...');
+    // === VERIFICAÇÃO INTELIGENTE COM ENDPOINTS ALTERNATIVOS ===
+    console.log('📋 Verificando API Server com endpoints múltiplos...');
     
-    try {
-      const apiController = new AbortController();
-      const apiTimeout = setTimeout(() => apiController.abort(), 10000);
-      
-      const apiResponse = await fetch(`http://${VPS_HOST}:${API_SERVER_PORT}/status`, {
-        method: 'GET',
-        signal: apiController.signal,
-        headers: {
-          'User-Agent': 'Deploy-Test/1.0',
-          'Accept': 'application/json',
-          'Cache-Control': 'no-cache'
-        }
-      });
-      
-      clearTimeout(apiTimeout);
-      
-      if (apiResponse.ok) {
-        const apiData = await apiResponse.json();
-        console.log('✅ PASSO 1 OK: API Server respondendo:', apiData);
-      } else {
-        console.log(`⚠️ PASSO 1 FALHOU: API Server retornou status ${apiResponse.status}`);
-        throw new Error(`API Server HTTP ${apiResponse.status}`);
-      }
-    } catch (apiError) {
-      console.log('❌ PASSO 1 ERRO CRÍTICO:', apiError.message);
-      return buildErrorResponse(new Error(`Passo 1 falhou - API Server: ${apiError.message}`));
-    }
-
-    // === PASSO 2: VERIFICAR WHATSAPP SERVER (PORTA 3001) ===
-    console.log('📋 PASSO 2: Verificando WhatsApp Server na porta 3001...');
+    let apiOnline = false;
+    let apiData = null;
     
-    try {
-      const whatsappController = new AbortController();
-      const whatsappTimeout = setTimeout(() => whatsappController.abort(), 10000);
-      
-      const whatsappResponse = await fetch(`http://${VPS_HOST}:${WHATSAPP_PORT}/health`, {
-        method: 'GET',
-        signal: whatsappController.signal,
-        headers: {
-          'User-Agent': 'Deploy-Test/1.0',
-          'Accept': 'application/json',
-          'Cache-Control': 'no-cache'
-        }
-      });
-      
-      clearTimeout(whatsappTimeout);
-      
-      if (whatsappResponse.ok) {
-        const whatsappData = await whatsappResponse.json();
-        console.log('✅ PASSO 2 OK: WhatsApp Server respondendo:', whatsappData);
-      } else {
-        console.log(`⚠️ PASSO 2 FALHOU: WhatsApp Server retornou status ${whatsappResponse.status}`);
-        console.log('🔍 ESTE É O PONTO DE FALHA! WhatsApp Server não está respondendo na porta 3001');
+    // Testar múltiplos endpoints para API
+    const apiEndpoints = ['/health', '/status', '/'];
+    
+    for (const endpoint of apiEndpoints) {
+      try {
+        console.log(`🔍 Testando API: http://${VPS_HOST}:${API_SERVER_PORT}${endpoint}`);
         
-        // Continuar para verificar se ambos falharam ou só o WhatsApp
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        
+        const response = await fetch(`http://${VPS_HOST}:${API_SERVER_PORT}${endpoint}`, {
+          method: 'GET',
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'Deploy-Checker/3.0',
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache'
+          }
+        });
+        
+        clearTimeout(timeout);
+        
+        if (response.ok) {
+          try {
+            apiData = await response.json();
+          } catch (e) {
+            apiData = { status: 'online', endpoint };
+          }
+          console.log(`✅ API Server respondeu em ${endpoint}:`, apiData);
+          apiOnline = true;
+          break;
+        }
+      } catch (error) {
+        console.log(`❌ Endpoint ${endpoint} falhou:`, error.message);
       }
-    } catch (whatsappError) {
-      console.log('❌ PASSO 2 ERRO CRÍTICO:', whatsappError.message);
-      console.log('🎯 ERRO IDENTIFICADO: WhatsApp Server não está acessível na porta 3001');
-      console.log('💡 CAUSA PROVÁVEL: Servidor WhatsApp não está rodando ou não tem endpoint /health');
     }
 
-    // === PASSO 3: USAR VERIFICAÇÃO ORIGINAL COM RETRY ===
-    console.log('📋 PASSO 3: Executando verificação original com retry...');
+    // === VERIFICAÇÃO INTELIGENTE WHATSAPP SERVER ===
+    console.log('📋 Verificando WhatsApp Server com endpoints múltiplos...');
     
-    const { apiResult, whatsappResult } = await checkServices(
-      VPS_HOST, 
-      API_SERVER_PORT, 
-      WHATSAPP_PORT
-    );
+    let whatsappOnline = false;
+    let whatsappData = null;
+    
+    // Testar múltiplos endpoints para WhatsApp
+    const whatsappEndpoints = ['/health', '/status', '/', '/instances'];
+    
+    for (const endpoint of whatsappEndpoints) {
+      try {
+        console.log(`🔍 Testando WhatsApp: http://${VPS_HOST}:${WHATSAPP_PORT}${endpoint}`);
+        
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+        
+        const response = await fetch(`http://${VPS_HOST}:${WHATSAPP_PORT}${endpoint}`, {
+          method: 'GET',
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'Deploy-Checker/3.0',
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache'
+          }
+        });
+        
+        clearTimeout(timeout);
+        
+        if (response.ok) {
+          try {
+            whatsappData = await response.json();
+          } catch (e) {
+            whatsappData = { status: 'online', endpoint };
+          }
+          console.log(`✅ WhatsApp Server respondeu em ${endpoint}:`, whatsappData);
+          whatsappOnline = true;
+          break;
+        }
+      } catch (error) {
+        console.log(`❌ WhatsApp endpoint ${endpoint} falhou:`, error.message);
+      }
+    }
 
-    console.log('📊 RESULTADOS FINAIS:');
-    console.log(`   API Server: ${apiResult.online ? '✅ ONLINE' : '❌ OFFLINE'}`);
-    console.log(`   WhatsApp Server: ${whatsappResult.online ? '✅ ONLINE' : '❌ OFFLINE'}`);
+    // === DIAGNÓSTICO DETALHADO ===
+    console.log('📊 DIAGNÓSTICO DETALHADO:');
+    console.log(`   API Server: ${apiOnline ? '✅ ONLINE' : '❌ OFFLINE'}`);
+    console.log(`   WhatsApp Server: ${whatsappOnline ? '✅ ONLINE' : '❌ OFFLINE'}`);
 
-    // === ANÁLISE DE DIAGNÓSTICO ===
-    if (apiResult.online && whatsappResult.online) {
-      console.log('🎉 DIAGNÓSTICO: Ambos serviços estão funcionando! Deploy não necessário.');
+    if (apiOnline && whatsappOnline) {
+      console.log('🎉 AMBOS SERVIÇOS ONLINE - Deploy não necessário!');
       return buildSuccessResponse(
         VPS_HOST,
         API_SERVER_PORT,
         WHATSAPP_PORT,
-        apiResult,
-        whatsappResult
+        { online: true, data: apiData, attempt: 1 },
+        { online: true, data: whatsappData, attempt: 1 }
       );
     }
 
-    if (apiResult.online && !whatsappResult.online) {
-      console.log('🔍 DIAGNÓSTICO: API Server OK, mas WhatsApp Server OFFLINE');
-      console.log('💭 POSSÍVEIS CAUSAS:');
-      console.log('   1. WhatsApp Server não está rodando (PM2 parado)');
-      console.log('   2. Porta 3001 não está escutando');
-      console.log('   3. Endpoint /health não existe no WhatsApp Server');
-      console.log('   4. Processo do WhatsApp com erro');
+    if (apiOnline && !whatsappOnline) {
+      console.log('🔍 PROBLEMA IDENTIFICADO: WhatsApp Server OFFLINE');
+      console.log('💡 SOLUÇÕES POSSÍVEIS:');
+      console.log('   1. Servidor WhatsApp não foi iniciado');
+      console.log('   2. Porta 3001 não está sendo usada');
+      console.log('   3. Endpoint /health não implementado');
+      console.log('   4. Servidor WhatsApp em outra porta');
     }
 
-    if (!apiResult.online && whatsappResult.online) {
-      console.log('🔍 DIAGNÓSTICO: WhatsApp Server OK, mas API Server OFFLINE');
-      console.log('💭 Isso é estranho, pois acabamos de verificar que API está OK...');
+    if (!apiOnline && whatsappOnline) {
+      console.log('🔍 PROBLEMA IDENTIFICADO: API Server OFFLINE');
+      console.log('💡 POSSÍVEL CAUSA: Problema de conectividade ou firewall');
     }
 
-    if (!apiResult.online && !whatsappResult.online) {
-      console.log('🔍 DIAGNÓSTICO: Ambos serviços OFFLINE');
-      console.log('💭 POSSÍVEIS CAUSAS:');
-      console.log('   1. Problema de conectividade geral');
-      console.log('   2. Firewall bloqueando');
-      console.log('   3. Ambos processos parados');
+    if (!apiOnline && !whatsappOnline) {
+      console.log('🔍 PROBLEMA IDENTIFICADO: Ambos serviços OFFLINE');
+      console.log('💡 POSSÍVEL CAUSA: Problema de rede ou VPS');
     }
 
-    // === RETORNAR INSTRUÇÕES ESPECÍFICAS ===
+    // === SCRIPT DE CORREÇÃO INTELIGENTE ===
     const optimizedDeployScript = generateOptimizedDeployScript();
+
+    // === INSTRUÇÕES ESPECÍFICAS BASEADAS NO DIAGNÓSTICO ===
+    let specificInstructions = {};
+    
+    if (apiOnline && !whatsappOnline) {
+      specificInstructions = {
+        step1: `Conecte na VPS: ssh root@${VPS_HOST}`,
+        step2: 'Execute estes comandos para diagnosticar o WhatsApp Server:',
+        step3: `
+# Verificar se há algum processo na porta 3001
+sudo netstat -tlnp | grep :3001
+
+# Verificar processos Node.js rodando
+ps aux | grep node
+
+# Verificar diretórios WhatsApp
+ls -la /root/ | grep whatsapp
+
+# Tentar iniciar WhatsApp Server manualmente
+cd /root/whatsapp-web-server 2>/dev/null || cd /root/whatsapp-server 2>/dev/null || echo "Diretório WhatsApp não encontrado"
+`,
+        step4: 'Execute o script completo apenas se necessário'
+      };
+    } else {
+      specificInstructions = {
+        step1: `Conecte na VPS: ssh root@${VPS_HOST}`,
+        step2: 'Execute o script de correção completo fornecido',
+        step3: 'Aguarde a verificação e ajustes (2-3 minutos)',
+        step4: `Teste: curl http://localhost:80/health && curl http://localhost:3001/health`
+      };
+    }
 
     return buildFailureResponse(
       VPS_HOST,
-      apiResult,
-      whatsappResult,
-      optimizedDeployScript
+      { online: apiOnline, data: apiData, attempt: 1 },
+      { online: whatsappOnline, data: whatsappData, attempt: 1 },
+      optimizedDeployScript,
+      specificInstructions
     );
 
   } catch (error) {
