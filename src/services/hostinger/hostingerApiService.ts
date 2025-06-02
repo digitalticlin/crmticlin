@@ -27,11 +27,11 @@ interface CommandResult {
 }
 
 class HostingerApiService {
-  private baseUrl = 'https://api.hostinger.com/vps/v1';
-  private token: string;
+  private baseUrl: string;
 
   constructor() {
-    this.token = '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
+    // Usar nossa Edge Function como proxy
+    this.baseUrl = 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/hostinger_proxy';
   }
 
   private async makeRequest<T>(
@@ -40,10 +40,11 @@ class HostingerApiService {
     body?: any
   ): Promise<HostingerApiResponse<T>> {
     try {
+      console.log(`[Hostinger Service] ${method} ${endpoint}`);
+      
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         method,
         headers: {
-          'Authorization': `Bearer ${this.token}`,
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
@@ -54,8 +55,13 @@ class HostingerApiService {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data = await response.json();
-      return { success: true, data };
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Erro na comunicação com a API Hostinger');
+      }
+
+      return { success: true, data: result.data };
     } catch (error: any) {
       console.error('Hostinger API Error:', error);
       return { 

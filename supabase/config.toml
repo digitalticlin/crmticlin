@@ -1,19 +1,15 @@
 
-include = ["./functions/**"]
+project_id = "kigyebrhfoljnydfipcr"
 
-[dev]
-  auto_refresh = true
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
 
-[network]
-  upload_rate_limit_kbps = 1000
-  download_rate_limit_kbps = 1000
-
-[auth]
-  disable_signup = false
-  email_confirmations_enabled = true
-  password_authentications_enabled = true
-  anonymous_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpZ3llYnJoZm9sam55ZGZpcGNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMDU0OTUsImV4cCI6MjA2MjY4MTQ5NX0.348qSsRPai26TFU87MDv0yE4i_pQmLYMQW9d7n5AN-A"
-  jwt_secret = "super-secret-jwt-token-with-at-least-32-characters"
+[functions.hostinger_proxy]
+verify_jwt = false
 
 [functions.sync_whatsapp_instances]
 verify_jwt = false
@@ -23,3 +19,69 @@ verify_jwt = false
 
 [functions.sync_all_whatsapp_instances]
 verify_jwt = false
+
+[functions.apply_vps_fixes]
+verify_jwt = false
+
+[functions.test_vps_connection]
+verify_jwt = false
+
+[functions.whatsapp_web_server]
+verify_jwt = false
+
+[functions.webhook_whatsapp_web]
+verify_jwt = false
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[db.pooler]
+enabled = false
+port = 54329
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+[realtime]
+enabled = true
+ip_version = "ipv6"
+port = 54323
+max_header_length = 4096
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://127.0.0.1:54321"
+
+[inbucket]
+enabled = true
+port = 54324
+smtp_port = 54325
+pop3_port = 54326
+
+[storage]
+enabled = true
+port = 54321
+file_size_limit = "50MiB"
+
+[auth]
+enabled = true
+port = 54321
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+enable_signup = true
+email_double_confirm_changes = true
+enable_manual_linking = false
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
+[edge-runtime]
+enabled = true
+port = 54322
+inspector_port = 5433
