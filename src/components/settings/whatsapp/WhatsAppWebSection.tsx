@@ -4,6 +4,7 @@ import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstance
 import { WhatsAppWebInstanceCard } from "./WhatsAppWebInstanceCard";
 import { ConnectWhatsAppButton } from "./ConnectWhatsAppButton";
 import { AutoQRCodeModal } from "./AutoQRCodeModal";
+import { CleanupOrphanedInstancesButton } from "./CleanupOrphanedInstancesButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Wifi } from "lucide-react";
 
@@ -17,7 +18,8 @@ export function WhatsAppWebSection() {
     refreshQRCode,
     startAutoConnection,
     closeQRModal,
-    openQRModal
+    openQRModal,
+    refetch
   } = useWhatsAppWebInstances(companyId, companyLoading);
 
   const isLoading = companyLoading || instancesLoading;
@@ -58,18 +60,23 @@ export function WhatsAppWebSection() {
     <div className="space-y-6">
       <Card className="glass-card border-0">
         <CardHeader>
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-green-100/50 dark:bg-green-800/30">
-              <Wifi className="h-5 w-5 text-green-600 dark:text-green-400" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-green-100/50 dark:bg-green-800/30">
+                <Wifi className="h-5 w-5 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  WhatsApp Web.js
+                </CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Conecte sua conta WhatsApp de forma rápida e automática
+                </p>
+              </div>
             </div>
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                WhatsApp Web.js
-              </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Conecte sua conta WhatsApp de forma rápida e automática
-              </p>
-            </div>
+            
+            {/* Botão de limpeza de instâncias órfãs */}
+            <CleanupOrphanedInstancesButton onCleanupComplete={refetch} />
           </div>
         </CardHeader>
       </Card>

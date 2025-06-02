@@ -60,27 +60,42 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
   // Generate unique VPS instance ID
   const vpsInstanceId = `whatsapp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
-  // Create instance record in database first
-  const { data: dbInstance, error: dbError } = await supabase
+  // FASE 1: Check for orphaned instances and clean them up
+  console.log('Checking for orphaned instances...');
+  const { data: orphanedInstances } = await supabase
     .from('whatsapp_instances')
-    .insert({
-      instance_name: instanceData.instanceName,
-      phone: '',
-      company_id: profile.company_id,
-      connection_type: 'web',
-      server_url: VPS_CONFIG.baseUrl,
-      vps_instance_id: vpsInstanceId,
-      web_status: 'creating',
-      connection_status: 'connecting'
-    })
-    .select()
-    .single();
+    .select('id, instance_name, vps_instance_id')
+    .eq('company_id', profile.company_id)
+    .eq('instance_name', instanceData.instanceName);
 
-  if (dbError) {
-    throw new Error(`Database error: ${dbError.message}`);
+  if (orphanedInstances && orphanedInstances.length > 0) {
+    console.log(`Found ${orphanedInstances.length} potential orphaned instances with same name`);
+    
+    // Delete orphaned instances (those without proper VPS connection)
+    for (const orphan of orphanedInstances) {
+      if (!orphan.vps_instance_id || orphan.vps_instance_id === '') {
+        console.log(`Cleaning up orphaned instance: ${orphan.id}`);
+        await supabase
+          .from('whatsapp_instances')
+          .delete()
+          .eq('id', orphan.id);
+      }
+    }
   }
 
-  // Test VPS connectivity first
+  // FASE 2: Validate instance name uniqueness before proceeding
+  const { data: existingInstance } = await supabase
+    .from('whatsapp_instances')
+    .select('id')
+    .eq('company_id', profile.company_id)
+    .eq('instance_name', instanceData.instanceName)
+    .maybeSingle();
+
+  if (existingInstance) {
+    throw new Error(`Instância com nome "${instanceData.instanceName}" já existe. Tente com outro nome.`);
+  }
+
+  // FASE 3: Test VPS connectivity and verify correct endpoint
   try {
     console.log('Testing VPS connectivity...');
     const healthResponse = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/health`, {
@@ -88,7 +103,7 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
       headers: {
         'Authorization': `Bearer ${VPS_CONFIG.authToken}`
       }
-    }, 1);
+    }, 2); // Only 2 retries for health check
 
     if (!healthResponse.ok) {
       throw new Error(`VPS health check failed: ${healthResponse.status}`);
@@ -97,22 +112,13 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
     console.log('VPS is responsive, proceeding with instance creation...');
   } catch (healthError) {
     console.error('VPS health check failed:', healthError);
-    
-    // Update database to reflect VPS connection error
-    await supabase
-      .from('whatsapp_instances')
-      .update({
-        web_status: 'vps_error',
-        connection_status: 'disconnected'
-      })
-      .eq('id', dbInstance.id);
-
     throw new Error(`VPS não está respondendo: ${healthError.message}`);
   }
 
-  // Send command to VPS to create WhatsApp instance
+  // FASE 4: Create instance on VPS FIRST (before database)
+  let vpsResult;
   try {
-    console.log(`Sending create request to: ${VPS_CONFIG.baseUrl}/create`);
+    console.log(`Sending create request to VPS: ${VPS_CONFIG.baseUrl}/create`);
     
     const vpsResponse = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/create`, {
       method: 'POST',
@@ -128,77 +134,89 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
       })
     });
 
-    const vpsResult = await vpsResponse.json();
+    vpsResult = await vpsResponse.json();
     console.log('VPS create response:', vpsResult);
     
     if (!vpsResult.success) {
-      throw new Error(`VPS error: ${vpsResult.error || 'Unknown error'}`);
+      throw new Error(`VPS error: ${vpsResult.error || 'Unknown VPS error'}`);
     }
 
-    // Prepare update data with proper QR code handling
-    const updateData: any = {
-      web_status: vpsResult.qrCode ? 'waiting_scan' : 'created',
-      connection_status: 'connecting'
-    };
-
-    // Ensure QR code is properly formatted and saved
-    if (vpsResult.qrCode) {
-      console.log('QR Code received from VPS, length:', vpsResult.qrCode.length);
-      
-      // Validate QR code format (should be data:image/png;base64,...)
-      if (vpsResult.qrCode.startsWith('data:image')) {
-        updateData.qr_code = vpsResult.qrCode;
-        console.log('QR Code saved to database (Base64 format)');
-      } else if (vpsResult.qrCode.length > 100) {
-        // If it's just the base64 part, add the data URL prefix
-        updateData.qr_code = `data:image/png;base64,${vpsResult.qrCode}`;
-        console.log('QR Code formatted and saved to database');
-      } else {
-        console.warn('QR Code format seems invalid:', vpsResult.qrCode.substring(0, 50));
-        updateData.qr_code = vpsResult.qrCode; // Save as-is for debugging
-      }
+  } catch (vpsError) {
+    console.error('VPS communication error:', vpsError);
+    
+    // FASE 5: Improved error handling with specific messages
+    if (vpsError.message.includes('404')) {
+      throw new Error('Endpoint da VPS não encontrado. Verifique a configuração do servidor.');
+    } else if (vpsError.message.includes('timeout')) {
+      throw new Error('Timeout na conexão com a VPS. Tente novamente em alguns minutos.');
+    } else {
+      throw new Error(`Falha ao criar instância na VPS: ${vpsError.message}`);
     }
+  }
 
-    // Update database with QR code and status
-    const { data: updatedInstance, error: updateError } = await supabase
+  // FASE 2: Only create database record AFTER VPS confirms success
+  try {
+    console.log('VPS instance created successfully, now saving to database...');
+    
+    const { data: dbInstance, error: dbError } = await supabase
       .from('whatsapp_instances')
-      .update(updateData)
-      .eq('id', dbInstance.id)
+      .insert({
+        instance_name: instanceData.instanceName,
+        phone: '', // Will be updated when connected
+        company_id: profile.company_id,
+        connection_type: 'web',
+        server_url: VPS_CONFIG.baseUrl,
+        vps_instance_id: vpsInstanceId,
+        web_status: vpsResult.qrCode ? 'waiting_scan' : 'created',
+        connection_status: 'connecting',
+        qr_code: vpsResult.qrCode || null
+      })
       .select()
       .single();
 
-    if (updateError) {
-      console.error('Error updating instance with QR code:', updateError);
-      throw new Error(`Database update error: ${updateError.message}`);
+    if (dbError) {
+      console.error('Database error after VPS success:', dbError);
+      
+      // If database fails, try to cleanup VPS instance
+      try {
+        await makeVPSRequest(`${VPS_CONFIG.baseUrl}/delete`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${VPS_CONFIG.authToken}`
+          },
+          body: JSON.stringify({ instanceId: vpsInstanceId })
+        });
+      } catch (cleanupError) {
+        console.error('Failed to cleanup VPS instance after DB error:', cleanupError);
+      }
+      
+      throw new Error(`Erro no banco de dados: ${dbError.message}`);
     }
 
-    console.log('Instance updated successfully with QR code');
+    console.log('Instance successfully created in database with ID:', dbInstance.id);
+
+    // Log QR code status
+    if (vpsResult.qrCode) {
+      console.log('QR Code received and saved to database');
+    } else {
+      console.log('No QR Code received from VPS - may need to generate later');
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
         instance: {
-          ...updatedInstance,
-          qr_code: updateData.qr_code,
-          web_status: updateData.web_status
+          ...dbInstance,
+          qr_code: vpsResult.qrCode || null
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (vpsError) {
-    console.error('VPS communication error:', vpsError);
-    
-    // Update database to reflect VPS error with more specific status
-    await supabase
-      .from('whatsapp_instances')
-      .update({
-        web_status: 'vps_create_error',
-        connection_status: 'disconnected'
-      })
-      .eq('id', dbInstance.id);
-
-    throw new Error(`Falha ao criar instância na VPS: ${vpsError.message}`);
+  } catch (error) {
+    console.error('Unexpected error during database operation:', error);
+    throw error;
   }
 }
 
@@ -212,24 +230,24 @@ export async function deleteWhatsAppInstance(supabase: any, instanceId: string) 
     .single();
 
   if (!instance?.vps_instance_id) {
-    throw new Error('Instance not found');
-  }
-
-  // Send delete command to VPS with retry logic
-  // Changing endpoint from /instance/delete to /delete
-  try {
-    await makeVPSRequest(`${VPS_CONFIG.baseUrl}/delete`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${VPS_CONFIG.authToken}`
-      },
-      body: JSON.stringify({
-        instanceId: instance.vps_instance_id
-      })
-    });
-  } catch (error) {
-    console.error('Error deleting from VPS (continuing with DB cleanup):', error);
+    console.log('No VPS instance ID found, only deleting from database');
+  } else {
+    // Send delete command to VPS with retry logic
+    try {
+      await makeVPSRequest(`${VPS_CONFIG.baseUrl}/delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${VPS_CONFIG.authToken}`
+        },
+        body: JSON.stringify({
+          instanceId: instance.vps_instance_id
+        })
+      });
+      console.log('Instance successfully deleted from VPS');
+    } catch (error) {
+      console.error('Error deleting from VPS (continuing with DB cleanup):', error);
+    }
   }
 
   // Delete from database
@@ -241,6 +259,8 @@ export async function deleteWhatsAppInstance(supabase: any, instanceId: string) 
   if (deleteError) {
     throw new Error(`Database delete error: ${deleteError.message}`);
   }
+
+  console.log('Instance successfully deleted from database');
 
   return new Response(
     JSON.stringify({ success: true }),

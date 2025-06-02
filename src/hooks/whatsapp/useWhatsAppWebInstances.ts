@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
@@ -113,7 +114,7 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     }
   }, [companyId, companyLoading]);
 
-  // Create instance with authentication and improved naming
+  // Create instance with improved error handling and validation
   const createInstance = async (customInstanceName?: string): Promise<void> => {
     if (!companyId) {
       toast.error('ID da empresa não encontrado');
@@ -129,10 +130,22 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
       
       console.log('Creating instance with name:', instanceName);
       
+      // Check for duplicate names before attempting creation
+      const existingInstance = instances.find(
+        instance => instance.instance_name.toLowerCase() === instanceName.toLowerCase()
+      );
+      
+      if (existingInstance) {
+        toast.error(`Instância com nome "${instanceName}" já existe. Gerando nome alternativo...`);
+        const alternativeName = await generateInstanceName();
+        console.log('Using alternative name:', alternativeName);
+        return createInstance(alternativeName);
+      }
+      
       const result = await WhatsAppWebService.createInstance(instanceName);
 
       if (result.success && result.instance) {
-        // Refresh instances to get the latest data including QR code
+        // Refresh instances to get the latest data
         await fetchInstances();
         
         // Check if QR code is available and show modal automatically
@@ -143,32 +156,52 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
             showQRModal: true,
             activeInstanceId: newInstance.id
           });
-          toast.success('Instância criada! QR Code pronto para escaneamento.');
+          toast.success('Instância criada com sucesso! QR Code pronto para escaneamento.');
         } else {
-          toast.success('Instância criada! Gerando QR Code...');
-          // Try to get QR code if not immediately available
+          toast.success('Instância criada! Aguarde o QR Code...');
+          // Try to get QR code after a short delay
           setTimeout(async () => {
-            const qrCode = await refreshQRCode(newInstance.id);
-            if (qrCode) {
-              setAutoConnectState({
-                isConnecting: false,
-                showQRModal: true,
-                activeInstanceId: newInstance.id
-              });
+            try {
+              const qrCode = await refreshQRCode(newInstance.id);
+              if (qrCode) {
+                setAutoConnectState({
+                  isConnecting: false,
+                  showQRModal: true,
+                  activeInstanceId: newInstance.id
+                });
+              }
+            } catch (qrError) {
+              console.error('Error generating QR code after creation:', qrError);
             }
-          }, 2000);
+          }, 3000);
         }
       } else {
         throw new Error(result.error || 'Falha ao criar instância');
       }
     } catch (error: any) {
       console.error('Error creating instance:', error);
-      toast.error(`Erro ao criar instância: ${error.message}`);
+      
+      // Improved error messages
+      let errorMessage = 'Erro ao criar instância';
+      
+      if (error.message.includes('duplicate key')) {
+        errorMessage = 'Instância com este nome já existe. Tente com outro nome.';
+      } else if (error.message.includes('VPS não está respondendo')) {
+        errorMessage = 'Servidor WhatsApp offline. Tente novamente em alguns minutos.';
+      } else if (error.message.includes('404')) {
+        errorMessage = 'Erro de configuração do servidor. Contate o suporte.';
+      } else if (error.message.includes('timeout')) {
+        errorMessage = 'Timeout na conexão. Tente novamente.';
+      } else {
+        errorMessage = `Erro: ${error.message}`;
+      }
+      
+      toast.error(errorMessage);
       throw error;
     }
   };
 
-  // Auto connection flow with improved naming and QR handling
+  // Auto connection flow with improved error handling
   const startAutoConnection = async () => {
     if (!companyId) {
       toast.error('ID da empresa não encontrado');
@@ -215,7 +248,7 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
                 showQRModal: false,
                 activeInstanceId: null
               });
-              toast.warning('Instância criada. Clique em "Gerar QR Code" para conectar.');
+              toast.warning('Instância criada. Use "Gerar QR Code" para conectar.');
             }
           } catch (qrError) {
             console.error('Error generating QR code:', qrError);
@@ -224,7 +257,7 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
               showQRModal: false,
               activeInstanceId: null
             });
-            toast.warning('Instância criada. Clique em "Gerar QR Code" para conectar.');
+            toast.warning('Instância criada. Use "Gerar QR Code" para conectar.');
           }
         }
       } else {
@@ -233,7 +266,21 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     } catch (error: any) {
       console.error('Error in auto connection:', error);
       setAutoConnectState(prev => ({ ...prev, isConnecting: false }));
-      toast.error(`Erro ao conectar WhatsApp: ${error.message}`);
+      
+      // Use same improved error handling as createInstance
+      let errorMessage = 'Erro ao conectar WhatsApp';
+      
+      if (error.message.includes('duplicate key')) {
+        errorMessage = 'Conflito de nomes. Tente novamente.';
+      } else if (error.message.includes('VPS não está respondendo')) {
+        errorMessage = 'Servidor WhatsApp offline. Tente mais tarde.';
+      } else if (error.message.includes('404')) {
+        errorMessage = 'Erro de configuração. Contate o suporte.';
+      } else {
+        errorMessage = `Erro: ${error.message}`;
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
@@ -247,7 +294,7 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
       
       if (result.success) {
         await fetchInstances();
-        toast.success('Instância deletada com sucesso da VPS e banco de dados');
+        toast.success('Instância deletada com sucesso');
       } else {
         throw new Error(result.error || 'Falha ao deletar instância');
       }
