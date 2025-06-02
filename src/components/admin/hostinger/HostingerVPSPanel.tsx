@@ -8,6 +8,7 @@ import { VPSSelector } from "./VPSSelector";
 import { VPSActions } from "./VPSActions";
 import { VPSLogs } from "./VPSLogs";
 import { DirectDeployButton } from "./DirectDeployButton";
+import { HostingerAPITest } from "./HostingerAPITest";
 import { Server, Loader2, Zap, AlertTriangle } from "lucide-react";
 
 export const HostingerVPSPanel = () => {
@@ -44,6 +45,9 @@ export const HostingerVPSPanel = () => {
 
   return (
     <div className="space-y-6">
+      {/* Teste de Conectividade API - Sempre visível primeiro */}
+      <HostingerAPITest />
+
       {/* Deploy Direto - Sempre visível */}
       <DirectDeployButton />
 

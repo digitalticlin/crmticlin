@@ -16,6 +16,8 @@ interface HostingerApiResponse<T = any> {
   data?: T;
   error?: string;
   message?: string;
+  code?: string;
+  status_code?: number;
 }
 
 interface CommandResult {
@@ -51,14 +53,28 @@ class HostingerApiService {
         body: body ? JSON.stringify(body) : undefined
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
       const result = await response.json();
       
+      // Log detalhado para debugging
+      console.log(`[Hostinger Service] Response status: ${response.status}`);
+      console.log(`[Hostinger Service] Response data:`, result);
+
+      if (!response.ok) {
+        // Retornar erro detalhado da API
+        return {
+          success: false,
+          error: result.error || `HTTP ${response.status}: ${response.statusText}`,
+          code: result.code || 'HTTP_ERROR',
+          status_code: response.status
+        };
+      }
+
       if (!result.success) {
-        throw new Error(result.error || 'Erro na comunicação com a API Hostinger');
+        return {
+          success: false,
+          error: result.error || 'Erro na comunicação com a API Hostinger',
+          code: result.code || 'API_ERROR'
+        };
       }
 
       return { success: true, data: result.data };
@@ -66,9 +82,16 @@ class HostingerApiService {
       console.error('Hostinger API Error:', error);
       return { 
         success: false, 
-        error: error.message || 'Erro na comunicação com a API Hostinger' 
+        error: error.message || 'Erro na comunicação com a API Hostinger',
+        code: 'NETWORK_ERROR'
       };
     }
+  }
+
+  // Testar conectividade básica
+  async testConnection(): Promise<HostingerApiResponse<any>> {
+    console.log('[Hostinger] Testando conectividade...');
+    return this.makeRequest('/virtual-machines');
   }
 
   // Listar todas as VPS
