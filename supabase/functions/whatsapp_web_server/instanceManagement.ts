@@ -41,17 +41,19 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
 
   // Send command to VPS to create WhatsApp instance
   try {
-    console.log(`Sending create request to: ${VPS_CONFIG.baseUrl}/create`);
+    console.log(`Sending create request to: ${VPS_CONFIG.baseUrl}/instance/create`);
     
-    const vpsResponse = await fetch(`${VPS_CONFIG.baseUrl}/create`, {
+    const vpsResponse = await fetch(`${VPS_CONFIG.baseUrl}/instance/create`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${VPS_CONFIG.authToken}`
       },
       body: JSON.stringify({
         instanceId: vpsInstanceId,
         sessionName: instanceData.instanceName,
-        webhookUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/webhook_whatsapp_web`
+        webhookUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/webhook_whatsapp_web`,
+        companyId: profile.company_id
       })
     });
 
@@ -119,10 +121,11 @@ export async function deleteWhatsAppInstance(supabase: any, instanceId: string) 
 
   // Send delete command to VPS
   try {
-    const response = await fetch(`${VPS_CONFIG.baseUrl}/delete`, {
+    const response = await fetch(`${VPS_CONFIG.baseUrl}/instance/delete`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${VPS_CONFIG.authToken}`
       },
       body: JSON.stringify({
         instanceId: instance.vps_instance_id

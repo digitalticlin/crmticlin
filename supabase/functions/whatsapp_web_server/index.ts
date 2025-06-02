@@ -33,7 +33,7 @@ serve(async (req) => {
       case 'get_status':
         return await getInstanceStatus(instanceData.instanceId!);
       
-      case 'get_qr':
+      case 'get_qr_code':
         return await getQRCode(instanceData.instanceId!);
       
       case 'check_server':

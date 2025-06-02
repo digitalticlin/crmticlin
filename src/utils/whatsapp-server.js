@@ -1,5 +1,5 @@
 
-// Servidor WhatsApp com endpoint /health - Instalar na VPS
+// Servidor WhatsApp Web.js - Atualizado para novos endpoints
 // Comando de instalação: node whatsapp-server.js
 // Este servidor deve rodar na VPS na porta 3001
 
@@ -34,7 +34,7 @@ app.get('/health', (req, res) => {
   res.json({
     success: true,
     status: 'online',
-    server: 'WhatsApp Server',
+    server: 'WhatsApp Web.js Server',
     version: '2.0.0',
     timestamp: new Date().toISOString(),
     port: PORT,
@@ -62,7 +62,7 @@ app.get('/', (req, res) => {
     success: true,
     message: 'WhatsApp Web.js Server funcionando',
     version: '2.0.0',
-    endpoints: ['/health', '/status', '/instances', '/create', '/delete'],
+    endpoints: ['/health', '/status', '/instances', '/instance/create', '/instance/delete', '/instance/status', '/instance/qr'],
     timestamp: new Date().toISOString()
   });
 });
@@ -106,8 +106,8 @@ app.get('/instances', (req, res) => {
 });
 
 // Endpoint para criar instância WhatsApp
-app.post('/create', authenticateToken, async (req, res) => {
-  const { instanceId, sessionName, webhookUrl } = req.body;
+app.post('/instance/create', authenticateToken, async (req, res) => {
+  const { instanceId, sessionName, webhookUrl, companyId } = req.body;
 
   if (!instanceId || !sessionName) {
     return res.status(400).json({
@@ -127,7 +127,7 @@ app.post('/create', authenticateToken, async (req, res) => {
           instanceId,
           sessionName,
           status: 'created',
-          qrCode: 'data:image/png;base64,mock-qr-code-data'
+          qrCode: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
         });
       }, 2000);
     });
@@ -144,7 +144,7 @@ app.post('/create', authenticateToken, async (req, res) => {
 });
 
 // Endpoint para deletar instância
-app.post('/delete', authenticateToken, async (req, res) => {
+app.post('/instance/delete', authenticateToken, async (req, res) => {
   const { instanceId } = req.body;
 
   if (!instanceId) {
@@ -172,6 +172,70 @@ app.post('/delete', authenticateToken, async (req, res) => {
   }
 });
 
+// Endpoint para status da instância
+app.post('/instance/status', authenticateToken, async (req, res) => {
+  const { instanceId } = req.body;
+
+  if (!instanceId) {
+    return res.status(400).json({
+      success: false,
+      error: 'instanceId é obrigatório'
+    });
+  }
+
+  console.log(`📊 Verificando status da instância: ${instanceId}`);
+
+  try {
+    // Simular verificação de status
+    res.json({
+      success: true,
+      status: {
+        instanceId,
+        connectionStatus: 'connected',
+        phone: '+5511999999999',
+        isConnected: true,
+        lastActivity: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error(`❌ Erro ao verificar status: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Endpoint para QR Code
+app.post('/instance/qr', authenticateToken, async (req, res) => {
+  const { instanceId } = req.body;
+
+  if (!instanceId) {
+    return res.status(400).json({
+      success: false,
+      error: 'instanceId é obrigatório'
+    });
+  }
+
+  console.log(`📱 Gerando QR Code para instância: ${instanceId}`);
+
+  try {
+    // Simular geração de QR Code
+    res.json({
+      success: true,
+      qrCode: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+    });
+
+  } catch (error) {
+    console.error(`❌ Erro ao gerar QR Code: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Error handler
 app.use((error, req, res, next) => {
   console.error('Erro no servidor WhatsApp:', error);
@@ -184,10 +248,14 @@ app.use((error, req, res, next) => {
 
 // Iniciar servidor
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 WhatsApp Server rodando na porta ${PORT}`);
+  console.log(`🚀 WhatsApp Web.js Server rodando na porta ${PORT}`);
   console.log(`💚 Health: http://localhost:${PORT}/health`);
   console.log(`📊 Status: http://localhost:${PORT}/status`);
   console.log(`📋 Instances: http://localhost:${PORT}/instances`);
+  console.log(`🔧 Create: http://localhost:${PORT}/instance/create`);
+  console.log(`🗑️ Delete: http://localhost:${PORT}/instance/delete`);
+  console.log(`📊 Instance Status: http://localhost:${PORT}/instance/status`);
+  console.log(`📱 QR Code: http://localhost:${PORT}/instance/qr`);
   console.log(`🔑 Token: ${API_TOKEN === 'default-token' ? '⚠️  USANDO TOKEN PADRÃO' : '✅ Token configurado'}`);
 });
 
