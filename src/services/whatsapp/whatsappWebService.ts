@@ -1,26 +1,68 @@
 
-// Main WhatsApp Web Service - now acts as a facade for smaller services
-export type { WhatsAppWebInstance, ServiceResponse, InstanceResponse } from "./types/whatsappWebTypes";
+import { supabase } from "@/integrations/supabase/client";
 
-import { InstanceManagementService } from "./services/instanceManagementService";
-import { InstanceStatusService } from "./services/instanceStatusService";
-import { MessagingService } from "./services/messagingService";
-import { ServerMonitoringService } from "./services/serverMonitoringService";
+export interface WhatsAppWebServiceResponse {
+  success: boolean;
+  instance?: any;
+  qrCode?: string;
+  status?: any;
+  data?: any;
+  error?: string;
+}
 
 export class WhatsAppWebService {
-  // Instance Management
-  static createInstance = InstanceManagementService.createInstance;
-  static deleteInstance = InstanceManagementService.deleteInstance;
+  private static async makeAuthenticatedRequest(action: string, instanceData: any): Promise<WhatsAppWebServiceResponse> {
+    try {
+      console.log(`WhatsApp Web Service: ${action}`, instanceData);
+      
+      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+        body: {
+          action,
+          instanceData
+        }
+      });
 
-  // Instance Status
-  static getInstanceStatus = InstanceStatusService.getInstanceStatus;
-  static getQRCode = InstanceStatusService.getQRCode;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Erro na comunicação com o servidor');
+      }
 
-  // Messaging
-  static sendMessage = MessagingService.sendMessage;
+      console.log(`WhatsApp Web Service response:`, data);
+      return data;
+    } catch (error: any) {
+      console.error(`WhatsApp Web Service error (${action}):`, error);
+      return {
+        success: false,
+        error: error.message || 'Erro desconhecido'
+      };
+    }
+  }
 
-  // Server Monitoring
-  static checkServerHealth = ServerMonitoringService.checkServerHealth;
-  static getServerInfo = ServerMonitoringService.getServerInfo;
-  static listInstances = ServerMonitoringService.listInstances;
+  static async createInstance(instanceName: string): Promise<WhatsAppWebServiceResponse> {
+    return this.makeAuthenticatedRequest('create_instance', {
+      instanceName
+    });
+  }
+
+  static async deleteInstance(instanceId: string): Promise<WhatsAppWebServiceResponse> {
+    return this.makeAuthenticatedRequest('delete_instance', {
+      instanceId
+    });
+  }
+
+  static async getInstanceStatus(instanceId: string): Promise<WhatsAppWebServiceResponse> {
+    return this.makeAuthenticatedRequest('get_status', {
+      instanceId
+    });
+  }
+
+  static async getQRCode(instanceId: string): Promise<WhatsAppWebServiceResponse> {
+    return this.makeAuthenticatedRequest('get_qr_code', {
+      instanceId
+    });
+  }
+
+  static async checkServerHealth(): Promise<WhatsAppWebServiceResponse> {
+    return this.makeAuthenticatedRequest('check_server', {});
+  }
 }

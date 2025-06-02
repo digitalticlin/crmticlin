@@ -7,12 +7,16 @@ import { PortsServicesCard } from "./vps/PortsServicesCard";
 import { ServersCard } from "./vps/ServersCard";
 import { AdminActionsCard } from "./vps/AdminActionsCard";
 import { VPSAdvancedDiagnostic } from "./vps/VPSAdvancedDiagnostic";
+import { VPSConnectivityTest } from "./VPSConnectivityTest";
 
 export const VPSTestPanel = () => {
   return (
     <div className="space-y-6">
       {/* Deploy Inteligente - Primeira seção */}
       <AutoDeployButton />
+
+      {/* Teste de Conectividade WhatsApp Web.js */}
+      <VPSConnectivityTest />
 
       {/* Grid de Cards Principais */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
