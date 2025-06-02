@@ -1,5 +1,6 @@
+
 import { cn } from "@/lib/utils";
-import ResponsiveSidebar from "@/components/layout/ResponsiveSidebar";
+import { PageLayout } from "@/components/layout/PageLayout";
 import { ContactsList } from "@/components/chat/ContactsList";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { EmptyState } from "@/components/chat/EmptyState";
@@ -25,20 +26,16 @@ export default function Chat() {
     handleManualRefresh
   } = useChat();
 
-  // Empty state: no contacts and not loading
   const showEmptyState = contacts.length === 0 && !isLoadingContacts;
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 overflow-hidden">
-      <ResponsiveSidebar />
-
-      <main className="flex-1 flex h-full overflow-hidden">
+    <PageLayout className="p-0">
+      <div className="flex h-full overflow-hidden">
         {/* Left: Contacts List */}
         <div className={cn(
-          "h-full w-full max-w-sm border-r border-gray-200 dark:border-gray-700 flex flex-col bg-white/10 dark:bg-black/10 backdrop-blur-lg relative",
+          "h-full w-full max-w-sm border-r border-gray-200 dark:border-gray-700 flex flex-col glass-card relative",
           selectedContact ? "hidden md:flex" : "flex"
         )}>
-          {/* Manual refresh button */}
           <div className="p-2 flex items-center justify-end border-b border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-black/40 backdrop-blur z-10">
             <button
               className="flex items-center gap-1 px-2 py-1 text-xs rounded hover:bg-primary/10 text-primary outline-none border-none focus:ring-2 focus:ring-primary"
@@ -79,7 +76,7 @@ export default function Chat() {
 
         {/* Right: Chat Area */}
         <div className={cn(
-          "h-full flex-1 flex flex-col bg-white/5 dark:bg-black/5 backdrop-blur-lg relative",
+          "h-full flex-1 flex flex-col glass-card relative",
           !selectedContact && "hidden md:flex"
         )}>
           {isLoadingMessages && messages.length === 0 && selectedContact && (
@@ -112,7 +109,7 @@ export default function Chat() {
             onUpdateNotes={updateContactNotes}
           />
         )}
-      </main>
-    </div>
+      </div>
+    </PageLayout>
   );
 }
