@@ -11,6 +11,9 @@ max_rows = 1000
 [functions.hostinger_proxy]
 verify_jwt = false
 
+[functions.deploy_whatsapp_server]
+verify_jwt = false
+
 [functions.sync_whatsapp_instances]
 verify_jwt = false
 

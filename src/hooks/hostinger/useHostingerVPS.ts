@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { hostingerApi, HostingerVPS, HostingerApiResponse } from '@/services/hostinger/hostingerApiService';
+import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
 import { toast } from 'sonner';
 
 interface VPSOperationState {
@@ -8,6 +9,7 @@ interface VPSOperationState {
   isRestarting: boolean;
   isBackingUp: boolean;
   isApplyingFixes: boolean;
+  isDeployingWhatsApp: boolean;
 }
 
 export const useHostingerVPS = () => {
@@ -19,10 +21,12 @@ export const useHostingerVPS = () => {
     isInstalling: false,
     isRestarting: false,
     isBackingUp: false,
-    isApplyingFixes: false
+    isApplyingFixes: false,
+    isDeployingWhatsApp: false
   });
   const [logs, setLogs] = useState<string>('');
   const [whatsappStatus, setWhatsappStatus] = useState<any>(null);
+  const [serverHealth, setServerHealth] = useState<any>(null);
 
   // Carregar lista de VPS
   const loadVPSList = async () => {
@@ -190,12 +194,77 @@ export const useHostingerVPS = () => {
     }
   };
 
+  // Deploy WhatsApp Permanent Server
+  const deployWhatsAppServer = async () => {
+    if (!selectedVPS) {
+      toast.error('❌ Nenhuma VPS selecionada');
+      return;
+    }
+
+    try {
+      setOperationState(prev => ({ ...prev, isDeployingWhatsApp: true }));
+      toast.info('🚀 Implantando servidor WhatsApp permanente...');
+      
+      const result = await WhatsAppWebService.getServerInfo();
+      
+      if (result.success && result.data?.isOnline) {
+        toast.success('✅ Servidor WhatsApp já está rodando!');
+        await checkServerHealth();
+        return;
+      }
+
+      // Deploy new server
+      const deployResult = await fetch('https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/deploy_whatsapp_server', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const deployData = await deployResult.json();
+      
+      if (deployData.success) {
+        toast.success('🎉 Servidor WhatsApp implantado com sucesso!');
+        await checkServerHealth();
+      } else {
+        toast.error(`❌ Erro na implantação: ${deployData.error}`);
+      }
+    } catch (error: any) {
+      toast.error(`❌ Erro: ${error.message}`);
+    } finally {
+      setOperationState(prev => ({ ...prev, isDeployingWhatsApp: false }));
+    }
+  };
+
+  // Check WhatsApp server health
+  const checkServerHealth = async () => {
+    try {
+      console.log('[useHostingerVPS] Verificando saúde do servidor WhatsApp...');
+      const result = await WhatsAppWebService.checkServerHealth();
+      
+      if (result.success) {
+        console.log('[useHostingerVPS] Servidor health:', result.data);
+        setServerHealth(result.data);
+      } else {
+        setServerHealth({ isOnline: false, error: result.error });
+      }
+    } catch (error: any) {
+      console.error('Erro ao verificar saúde do servidor:', error);
+      setServerHealth({ isOnline: false, error: error.message });
+    }
+  };
+
   // Verificar status do WhatsApp
   const checkWhatsAppStatus = async () => {
     if (!selectedVPS) return;
 
     try {
       console.log('[useHostingerVPS] Verificando status WhatsApp...');
+      
+      // Check server health first
+      await checkServerHealth();
+      
+      // Then check PM2 status via traditional method
       const result = await hostingerApi.checkWhatsAppStatus(selectedVPS.id);
       
       if (result.success && result.data) {
@@ -252,15 +321,18 @@ export const useHostingerVPS = () => {
     operationState,
     logs,
     whatsappStatus,
+    serverHealth,
     
     // Actions
     loadVPSList,
     executeCommand,
     installWhatsAppServer,
+    deployWhatsAppServer,
     applyWhatsAppFixes,
     restartVPS,
     createBackup,
     checkWhatsAppStatus,
+    checkServerHealth,
     loadLogs
   };
 };
