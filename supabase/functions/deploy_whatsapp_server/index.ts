@@ -8,50 +8,66 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🚀 Deploying WhatsApp server directly via SSH...');
+    console.log('🚀 Deploying WhatsApp server via API...');
 
     const VPS_HOST = '31.97.24.222';
-    const VPS_USER = 'root';
-    const SSH_KEY = Deno.env.get('VPS_SSH_PRIVATE_KEY');
+    const VPS_PORT = '3002';
+    const API_TOKEN = 'vps-api-token-2024';
 
-    if (!SSH_KEY) {
-      throw new Error('SSH private key not configured');
+    // First, try to check if server is already running
+    try {
+      const healthResponse = await fetch(`http://${VPS_HOST}:3001/health`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000)
+      });
+      
+      if (healthResponse.ok) {
+        const healthData = await healthResponse.json();
+        console.log('✅ WhatsApp server already running:', healthData);
+        
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: 'WhatsApp server is already running!',
+            server_url: `http://${VPS_HOST}:3001`,
+            health: healthData,
+            status: 'already_running'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } catch (healthError) {
+      console.log('⚠️ Health check failed, proceeding with deployment...');
     }
 
-    // Create deployment script
-    const deployScript = `#!/bin/bash
-set -e
-
-echo "🔧 Starting WhatsApp server deployment..."
-
-# Check if server is already running
-if curl -s http://localhost:3001/health >/dev/null 2>&1; then
-    echo "✅ WhatsApp server already running!"
-    curl -s http://localhost:3001/health
-    exit 0
-fi
-
-# Install Node.js if not present
-if ! command -v node &> /dev/null; then
-    echo "📦 Installing Node.js..."
-    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-    apt-get install -y nodejs
-fi
-
-# Install PM2 if not present
-if ! command -v pm2 &> /dev/null; then
-    echo "📦 Installing PM2..."
-    npm install -g pm2
-fi
-
-# Create server directory
-echo "📁 Creating server directory..."
-mkdir -p /root/whatsapp-permanent-server
-cd /root/whatsapp-permanent-server
-
-# Create package.json
-echo "📝 Creating package.json..."
-cat > package.json << 'EOF'
+    // Deploy command to run on VPS
+    const deployCommand = `
+      #!/bin/bash
+      set -e
+      
+      echo "🔧 Starting WhatsApp server deployment..."
+      
+      # Install Node.js if not present
+      if ! command -v node &> /dev/null; then
+          echo "📦 Installing Node.js..."
+          curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+          apt-get install -y nodejs
+      fi
+      
+      # Install PM2 if not present
+      if ! command -v pm2 &> /dev/null; then
+          echo "📦 Installing PM2..."
+          npm install -g pm2
+      fi
+      
+      # Create server directory
+      echo "📁 Creating server directory..."
+      mkdir -p /root/whatsapp-permanent-server
+      cd /root/whatsapp-permanent-server
+      
+      # Create package.json
+      echo "📝 Creating package.json..."
+      cat > package.json << 'EOF'
 {
   "name": "whatsapp-permanent-server",
   "version": "2.0.0",
@@ -66,16 +82,16 @@ cat > package.json << 'EOF'
   }
 }
 EOF
-
-# Install dependencies if needed
-if [ ! -d "node_modules" ]; then
-    echo "⬇️ Installing dependencies..."
-    npm install
-fi
-
-# Create optimized server code
-echo "🤖 Creating WhatsApp server..."
-cat > server.js << 'EOF'
+      
+      # Install dependencies if needed
+      if [ ! -d "node_modules" ]; then
+          echo "⬇️ Installing dependencies..."
+          npm install
+      fi
+      
+      # Create server code
+      echo "🤖 Creating WhatsApp server..."
+      cat > server.js << 'SERVEREOF'
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const express = require('express');
 const cors = require('cors');
@@ -347,11 +363,11 @@ process.on('SIGTERM', async () => {
   }
   process.exit(0);
 });
-EOF
-
-# Create PM2 ecosystem
-echo "⚙️ Creating PM2 ecosystem..."
-cat > ecosystem.config.js << 'EOF'
+SERVEREOF
+      
+      # Create PM2 ecosystem
+      echo "⚙️ Creating PM2 ecosystem..."
+      cat > ecosystem.config.js << 'EOF'
 module.exports = {
   apps: [{
     name: 'whatsapp-permanent-server',
@@ -367,109 +383,105 @@ module.exports = {
   }]
 };
 EOF
+      
+      # Create directories
+      mkdir -p /root/whatsapp-sessions
+      
+      # Start server with PM2
+      echo "🚀 Starting server with PM2..."
+      pm2 stop whatsapp-permanent-server 2>/dev/null || true
+      pm2 delete whatsapp-permanent-server 2>/dev/null || true
+      pm2 start ecosystem.config.js
+      pm2 save
+      pm2 startup
+      
+      # Test server
+      echo "✅ Testing server..."
+      sleep 3
+      curl -s http://localhost:3001/health || echo "❌ Server not responding"
+      
+      echo "🎉 WhatsApp Permanent Server deployed successfully!"
+    `;
 
-# Create directories
-mkdir -p /root/whatsapp-sessions
-mkdir -p /root/logs
-
-# Start server with PM2
-echo "🚀 Starting server with PM2..."
-pm2 stop whatsapp-permanent-server 2>/dev/null || true
-pm2 delete whatsapp-permanent-server 2>/dev/null || true
-pm2 start ecosystem.config.js
-pm2 save
-pm2 startup
-
-# Test server
-echo "✅ Testing server..."
-sleep 5
-curl -s http://localhost:3001/health || echo "❌ Server not responding"
-
-echo "🎉 WhatsApp Permanent Server deployed successfully!"
-`;
-
-    // Execute deployment via SSH
-    console.log('📡 Connecting to VPS via SSH...');
+    console.log('📡 Executing deployment via VPS API...');
     
-    // Create temporary script file
-    const scriptFile = await Deno.makeTempFile({ suffix: '.sh' });
-    await Deno.writeTextFile(scriptFile, deployScript);
-    
-    // Create SSH key file
-    const keyFile = await Deno.makeTempFile({ suffix: '.key' });
-    await Deno.writeTextFile(keyFile, SSH_KEY);
-    await Deno.chmod(keyFile, 0o600);
-
-    // Execute SSH command
-    const sshCommand = new Deno.Command('ssh', {
-      args: [
-        '-i', keyFile,
-        '-o', 'StrictHostKeyChecking=no',
-        '-o', 'UserKnownHostsFile=/dev/null',
-        `${VPS_USER}@${VPS_HOST}`,
-        'bash -s'
-      ],
-      stdin: 'piped',
-      stdout: 'piped',
-      stderr: 'piped'
-    });
-
-    const process = sshCommand.spawn();
-    
-    // Send script to stdin
-    const writer = process.stdin.getWriter();
-    await writer.write(new TextEncoder().encode(deployScript));
-    await writer.close();
-
-    const { code, stdout, stderr } = await process.output();
-    
-    // Clean up temp files
-    await Deno.remove(scriptFile);
-    await Deno.remove(keyFile);
-
-    const output = new TextDecoder().decode(stdout);
-    const errorOutput = new TextDecoder().decode(stderr);
-
-    console.log('SSH Output:', output);
-    if (errorOutput) console.log('SSH Errors:', errorOutput);
-
-    if (code !== 0) {
-      throw new Error(`SSH deployment failed with code ${code}: ${errorOutput || output}`);
-    }
-
-    // Test server health after deployment
-    console.log('🏥 Testing server health...');
-    await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
-
+    // Try to use VPS API to execute the deployment
     try {
-      const healthResponse = await fetch(`http://${VPS_HOST}:3001/health`);
-      const healthData = await healthResponse.json();
-      
-      console.log('✅ Server health check passed:', healthData);
+      const vpsApiResponse = await fetch(`http://${VPS_HOST}:${VPS_PORT}/execute`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_TOKEN}`
+        },
+        body: JSON.stringify({
+          command: deployCommand,
+          description: 'Deploy WhatsApp Permanent Server'
+        }),
+        signal: AbortSignal.timeout(120000) // 2 minutes timeout
+      });
 
+      if (!vpsApiResponse.ok) {
+        throw new Error(`VPS API responded with status ${vpsApiResponse.status}`);
+      }
+
+      const vpsResult = await vpsApiResponse.json();
+      
+      if (!vpsResult.success) {
+        throw new Error(`VPS API error: ${vpsResult.error || 'Unknown error'}`);
+      }
+
+      console.log('✅ Deployment executed successfully via VPS API');
+      console.log('Output:', vpsResult.output);
+
+      // Test server health after deployment
+      console.log('🏥 Testing server health...');
+      await new Promise(resolve => setTimeout(resolve, 10000)); // Wait 10 seconds
+
+      try {
+        const healthResponse = await fetch(`http://${VPS_HOST}:3001/health`);
+        const healthData = await healthResponse.json();
+        
+        console.log('✅ Server health check passed:', healthData);
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: 'WhatsApp Permanent Server deployed successfully!',
+            server_url: `http://${VPS_HOST}:3001`,
+            health: healthData,
+            deployment_output: vpsResult.output
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+
+      } catch (healthError) {
+        console.log('⚠️ Health check failed, but deployment completed:', healthError.message);
+        
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: 'WhatsApp server deployed, but health check failed',
+            server_url: `http://${VPS_HOST}:3001`,
+            deployment_output: vpsResult.output,
+            health_error: healthError.message
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+    } catch (vpsApiError) {
+      console.error('VPS API deployment failed:', vpsApiError.message);
+      
       return new Response(
         JSON.stringify({
-          success: true,
-          message: 'WhatsApp Permanent Server deployed successfully!',
-          server_url: `http://${VPS_HOST}:3001`,
-          health: healthData,
-          deployment_output: output
+          success: false,
+          error: `VPS API deployment failed: ${vpsApiError.message}`,
+          message: 'Failed to deploy via VPS API - server may be offline'
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-
-    } catch (healthError) {
-      console.log('⚠️ Health check failed, but deployment completed:', healthError.message);
-      
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'WhatsApp server deployed, but health check failed',
-          server_url: `http://${VPS_HOST}:3001`,
-          deployment_output: output,
-          health_error: healthError.message
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
       );
     }
 
@@ -479,7 +491,7 @@ echo "🎉 WhatsApp Permanent Server deployed successfully!"
       JSON.stringify({
         success: false,
         error: error.message,
-        message: 'Failed to deploy WhatsApp server via SSH'
+        message: 'Failed to deploy WhatsApp server'
       }),
       { 
         status: 500, 
