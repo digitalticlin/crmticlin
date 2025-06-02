@@ -8,7 +8,6 @@ import { AutoQRCodeModal } from "./AutoQRCodeModal";
 import { ConnectWhatsAppButton } from "./ConnectWhatsAppButton";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
-import { VPSHealthDiagnostic } from "./VPSHealthDiagnostic";
 import { ImprovedConnectWhatsAppButton } from "./ImprovedConnectWhatsAppButton";
 import { ImprovedQRCodeModal } from "./ImprovedQRCodeModal";
 
@@ -93,7 +92,6 @@ export const WhatsAppWebSection = () => {
     if (instances.length === 0) {
       return (
         <div className="space-y-6">
-          <VPSHealthDiagnostic />
           <ImprovedConnectWhatsAppButton 
             onConnect={handleAutoConnect}
             isConnecting={autoConnectState.isConnecting}
@@ -104,8 +102,6 @@ export const WhatsAppWebSection = () => {
 
     return (
       <div className="space-y-6">
-        <VPSHealthDiagnostic />
-        
         <div className="grid gap-4">
           {instances.map((instance) => (
             <WhatsAppWebInstanceCard
