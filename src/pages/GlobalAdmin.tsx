@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import GlobalAdminSidebar from "@/components/admin/GlobalAdminSidebar";
@@ -12,6 +11,7 @@ import ConfigPanel from "@/components/admin/ConfigPanel";
 import { WhatsAppSyncTest } from "@/components/admin/WhatsAppSyncTest";
 import { SyncLogsPanel } from "@/components/admin/SyncLogsPanel";
 import { VPSTestPanel } from "@/components/admin/VPSTestPanel";
+import { DeployManager } from "@/components/admin/deploy/DeployManager";
 
 export default function GlobalAdmin() {
   const [activeTab, setActiveTab] = useState("companies");
@@ -29,7 +29,7 @@ export default function GlobalAdmin() {
           </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid grid-cols-10 w-full">
+            <TabsList className="grid grid-cols-11 w-full">
               <TabsTrigger value="companies">Empresas</TabsTrigger>
               <TabsTrigger value="users">Usuários</TabsTrigger>
               <TabsTrigger value="plans">Planos</TabsTrigger>
@@ -37,6 +37,7 @@ export default function GlobalAdmin() {
               <TabsTrigger value="sync">Sincronização</TabsTrigger>
               <TabsTrigger value="sync-logs">Logs Sync</TabsTrigger>
               <TabsTrigger value="vps">Deploy VPS</TabsTrigger>
+              <TabsTrigger value="deploy">Deploy Auto</TabsTrigger>
               <TabsTrigger value="logs">Logs</TabsTrigger>
               <TabsTrigger value="support">Suporte</TabsTrigger>
               <TabsTrigger value="config">Configurações</TabsTrigger>
@@ -83,6 +84,18 @@ export default function GlobalAdmin() {
                   </p>
                 </div>
                 <VPSTestPanel />
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="deploy">
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-semibold mb-2">Deploy Automático</h2>
+                  <p className="text-muted-foreground mb-6">
+                    Sistema de deploy automático para ambientes de teste e produção
+                  </p>
+                </div>
+                <DeployManager />
               </div>
             </TabsContent>
             
