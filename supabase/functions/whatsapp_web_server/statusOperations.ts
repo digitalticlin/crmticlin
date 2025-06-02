@@ -1,139 +1,80 @@
 
-import { VPS_CONFIG, corsHeaders, getVPSHeaders } from './config.ts';
+import { VPS_CONFIG, corsHeaders } from './config.ts';
 
 async function makeVPSRequest(url: string, options: RequestInit, retries = 3): Promise<Response> {
+  console.log(`[VPS Request] Attempting connection to: ${url}`);
+  
   for (let i = 0; i < retries; i++) {
     try {
-      console.log(`[Status Operations] VPS Request attempt ${i + 1}/${retries} to: ${url}`);
-      console.log(`[Status Operations] Headers:`, options.headers);
+      console.log(`[VPS Request] Attempt ${i + 1}/${retries}`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
       
       const response = await fetch(url, {
         ...options,
-        signal: AbortSignal.timeout(15000), // 15 second timeout
+        signal: controller.signal,
       });
       
-      console.log(`[Status Operations] VPS Response: ${response.status} ${response.statusText}`);
+      clearTimeout(timeoutId);
+      
+      console.log(`[VPS Request] Response: ${response.status} ${response.statusText}`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[VPS Request] HTTP ${response.status}: ${errorText}`);
+        
+        if (i === retries - 1) {
+          throw new Error(`VPS HTTP ${response.status}: ${errorText}`);
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
+        continue;
+      }
+      
       return response;
     } catch (error) {
-      console.error(`[Status Operations] VPS request error (attempt ${i + 1}):`, error);
+      console.error(`[VPS Request] Attempt ${i + 1} failed:`, error.message);
       
       if (i === retries - 1) {
         throw error;
       }
       
-      // Wait before retry
-      await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+      await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
     }
   }
   
   throw new Error('Max retries exceeded');
 }
 
-export async function getInstanceStatus(instanceId: string) {
-  try {
-    console.log(`[Status Operations] Getting status for instance: ${instanceId}`);
-    
-    // Use CORRECT status endpoint with Hostinger-confirmed format
-    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/status`, {
-      method: 'POST',
-      headers: getVPSHeaders(),
-      body: JSON.stringify({ instanceId })
-    });
-
-    const data = await response.json();
-    
-    return new Response(
-      JSON.stringify({
-        success: true,
-        status: data
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  } catch (error) {
-    console.error('[Status Operations] Error getting instance status:', error);
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
-  }
-}
-
-export async function getQRCode(instanceId: string) {
-  try {
-    console.log(`[Status Operations] Getting QR code for instance: ${instanceId}`);
-    
-    // Use CORRECT QR endpoint with Hostinger-confirmed format
-    console.log(`[Status Operations] Using Hostinger-confirmed QR endpoint: /instance/qr`);
-    
-    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/qr`, {
-      method: 'POST',
-      headers: getVPSHeaders(),
-      body: JSON.stringify({ instanceId })
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      console.log(`[Status Operations] QR Code obtained successfully`);
-      
-      return new Response(
-        JSON.stringify({
-          success: true,
-          qrCode: data.qrCode || data.qr || data.code || data
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    } else {
-      const errorText = await response.text();
-      throw new Error(`QR request failed: ${response.status} - ${errorText}`);
-    }
-  } catch (error) {
-    console.error('[Status Operations] Error getting QR code:', error);
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: `Erro ao gerar QR Code: ${error.message}`
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
-  }
-}
-
 export async function checkServerHealth() {
   try {
-    console.log('[Status Operations] Checking VPS server health...');
-    
+    console.log(`[Check Server Health] Testing VPS connectivity to: ${VPS_CONFIG.baseUrl}/health`);
+
     const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/health`, {
       method: 'GET',
-      headers: getVPSHeaders()
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
 
-    const data = await response.json();
+    const result = await response.json();
+    console.log(`[Check Server Health] VPS Health Response:`, result);
     
     return new Response(
       JSON.stringify({
         success: true,
-        data: {
-          status: 'online',
-          ...data
-        }
+        data: result
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+
   } catch (error) {
-    console.error('[Status Operations] Error checking server health:', error);
+    console.error(`[Check Server Health] Error:`, error.message);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message
+        error: `Erro ao verificar saúde do servidor: ${error.message}`
       }),
       { 
         status: 500, 
@@ -145,29 +86,114 @@ export async function checkServerHealth() {
 
 export async function getServerInfo() {
   try {
-    console.log('[Status Operations] Getting VPS server info...');
-    
-    // Use /status endpoint for server info (confirmed working)
+    console.log(`[Get Server Info] Getting VPS server info from: ${VPS_CONFIG.baseUrl}/status`);
+
     const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/status`, {
       method: 'GET',
-      headers: getVPSHeaders()
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
 
-    const data = await response.json();
+    const result = await response.json();
+    console.log(`[Get Server Info] VPS Status Response:`, result);
     
     return new Response(
       JSON.stringify({
         success: true,
-        data
+        data: result
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+
   } catch (error) {
-    console.error('[Status Operations] Error getting server info:', error);
+    console.error(`[Get Server Info] Error:`, error.message);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message
+        error: `Erro ao obter informações do servidor: ${error.message}`
+      }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+}
+
+export async function getInstanceStatus(instanceId: string) {
+  try {
+    console.log(`[Instance Status] Getting status for instance: ${instanceId}`);
+
+    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/status`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${VPS_CONFIG.authToken}`
+      },
+      body: JSON.stringify({
+        instanceId
+      })
+    });
+
+    const result = await response.json();
+    console.log(`[Instance Status] Result:`, result);
+    
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data: result
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error(`[Instance Status] Error:`, error.message);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: `Erro ao obter status da instância: ${error.message}`
+      }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+}
+
+export async function getQRCode(instanceId: string) {
+  try {
+    console.log(`[QR Code] Getting QR code for instance: ${instanceId}`);
+
+    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/qr`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${VPS_CONFIG.authToken}`
+      },
+      body: JSON.stringify({
+        instanceId
+      })
+    });
+
+    const result = await response.json();
+    console.log(`[QR Code] Result:`, result);
+    
+    return new Response(
+      JSON.stringify({
+        success: true,
+        qrCode: result.qrCode
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error(`[QR Code] Error:`, error.message);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: `Erro ao obter QR Code: ${error.message}`
       }),
       { 
         status: 500, 
@@ -179,34 +205,33 @@ export async function getServerInfo() {
 
 export async function syncInstances(supabase: any, companyId: string) {
   try {
-    console.log(`[Status Operations] Syncing instances for company: ${companyId}`);
-    
-    // Use /instances endpoint (confirmed working)
+    console.log(`[Sync Instances] Syncing instances for company: ${companyId}`);
+
+    // Get instances from VPS
     const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instances`, {
       method: 'GET',
-      headers: getVPSHeaders()
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
 
-    const data = await response.json();
-    console.log('[Status Operations] VPS instances data:', data);
-    
-    // Assumir que a resposta contém uma lista de instâncias
-    const vpsInstances = data.instances || data || [];
+    const result = await response.json();
+    console.log(`[Sync Instances] VPS Instances:`, result);
     
     return new Response(
       JSON.stringify({
         success: true,
-        instances: vpsInstances,
-        count: vpsInstances.length
+        data: result
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+
   } catch (error) {
-    console.error('[Status Operations] Error syncing instances:', error);
+    console.error(`[Sync Instances] Error:`, error.message);
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message
+        error: `Erro ao sincronizar instâncias: ${error.message}`
       }),
       { 
         status: 500, 

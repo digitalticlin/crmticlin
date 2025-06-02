@@ -25,25 +25,34 @@ export const VPSVersionDiagnostic = () => {
   const checkVersion = async () => {
     try {
       setChecking(true);
-      toast.info("🔍 Verificando versão do servidor VPS...");
+      toast.info("🔍 Verificando versão do servidor VPS através do edge function...");
 
-      // Testar conectividade direta com a VPS
-      const response = await fetch('http://31.97.24.222:3001/health');
-      
-      if (response.ok) {
-        const data = await response.json();
+      // Usar edge function como proxy para evitar problemas de CORS
+      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+        body: {
+          action: 'check_server',
+          instanceData: {}
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data?.success && data?.data) {
+        const serverData = data.data;
         setVersionInfo({
-          server: data.server || 'WhatsApp Server',
-          version: data.version || 'unknown',
-          hash: data.hash || 'not-available',
-          timestamp: data.timestamp || new Date().toISOString(),
+          server: serverData.server || 'WhatsApp Web.js Server',
+          version: serverData.version || 'unknown',
+          hash: serverData.hash || 'not-available',
+          timestamp: serverData.timestamp || new Date().toISOString(),
           status: 'online',
-          endpoints_available: data.endpoints_available || []
+          endpoints_available: serverData.endpoints_available || []
         });
         
-        toast.success("✅ Servidor VPS respondendo!");
+        toast.success(`✅ Servidor VPS v${serverData.version} detectado!`);
       } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        throw new Error('Resposta inválida do servidor');
       }
 
     } catch (error: any) {
@@ -129,7 +138,7 @@ export const VPSVersionDiagnostic = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <RefreshCw className="h-5 w-5 text-blue-600" />
-            <CardTitle>Diagnóstico de Versão VPS</CardTitle>
+            <CardTitle>Diagnóstico de Versão VPS (via Edge Function)</CardTitle>
           </div>
           <div className="flex gap-2">
             <Button 
@@ -177,7 +186,7 @@ export const VPSVersionDiagnostic = () => {
         {!versionInfo && !deployResults && (
           <div className="text-center py-8 text-muted-foreground">
             <RefreshCw className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Clique em "Verificar Versão" para diagnóstico</p>
+            <p>Clique em "Verificar Versão" para diagnóstico via edge function</p>
           </div>
         )}
 
@@ -188,7 +197,7 @@ export const VPSVersionDiagnostic = () => {
                 {getStatusIcon(versionInfo.status)}
                 <div>
                   <h3 className="font-medium">{versionInfo.server}</h3>
-                  <p className="text-sm text-muted-foreground">31.97.24.222:3001</p>
+                  <p className="text-sm text-muted-foreground">31.97.24.222:3001 (via Edge Function)</p>
                 </div>
               </div>
               {getStatusBadge(versionInfo.status)}
@@ -240,7 +249,7 @@ export const VPSVersionDiagnostic = () => {
                   <div className="font-medium text-yellow-800">Atualização Necessária</div>
                 </div>
                 <p className="text-sm text-yellow-700 mb-3">
-                  O servidor está rodando uma versão desatualizada que não possui o endpoint /instance/create.
+                  O servidor está rodando uma versão desatualizada que pode não ter todos os endpoints necessários.
                 </p>
                 <Button 
                   onClick={deployUpdate} 
