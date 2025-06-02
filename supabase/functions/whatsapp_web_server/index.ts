@@ -5,7 +5,7 @@ import { corsHeaders } from './config.ts';
 import { RequestBody } from './types.ts';
 import { authenticateRequest } from './authentication.ts';
 import { createWhatsAppInstance, deleteWhatsAppInstance } from './instanceManagement.ts';
-import { getInstanceStatus, getQRCode, checkServerHealth, getServerInfo } from './statusOperations.ts';
+import { getInstanceStatus, getQRCode, checkServerHealth, getServerInfo, syncInstances } from './statusOperations.ts';
 import { sendMessage } from './messageOperations.ts';
 
 serve(async (req) => {
@@ -50,6 +50,21 @@ serve(async (req) => {
       case 'get_server_info':
         console.log(`[WhatsApp Web Server] Getting server info`);
         return await getServerInfo();
+
+      case 'sync_instances':
+        console.log(`[WhatsApp Web Server] Syncing instances`);
+        // Get user company for syncing
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('id', user.id)
+          .single();
+        
+        if (!profile?.company_id) {
+          throw new Error('User company not found');
+        }
+        
+        return await syncInstances(supabase, profile.company_id);
 
       case 'send_message':
         console.log(`[WhatsApp Web Server] Sending message via instance: ${instanceData.instanceId}`);

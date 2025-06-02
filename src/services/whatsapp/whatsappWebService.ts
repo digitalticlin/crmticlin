@@ -66,6 +66,10 @@ export class WhatsAppWebService {
     return this.makeAuthenticatedRequest('check_server', {});
   }
 
+  static async syncInstances(): Promise<WhatsAppWebServiceResponse> {
+    return this.makeAuthenticatedRequest('sync_instances', {});
+  }
+
   static async sendMessage(instanceId: string, phone: string, message: string): Promise<WhatsAppWebServiceResponse> {
     return this.makeAuthenticatedRequest('send_message', {
       instanceId,
