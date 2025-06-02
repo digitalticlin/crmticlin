@@ -42,6 +42,8 @@ export class WhatsAppWebService {
         duration: `${duration}ms`,
         action,
         hasQrCode: action === 'get_qr_code' ? !!result.qrCode : undefined,
+        permanentMode: result.permanent_mode || false,
+        autoReconnect: result.auto_reconnect || false,
         instanceId: data.instanceId || data.instanceName
       });
 
@@ -88,6 +90,10 @@ export class WhatsAppWebService {
 
   static async getServerInfo() {
     return this.makeAuthenticatedRequest('get_server_info', {});
+  }
+
+  static async syncInstances() {
+    return this.makeAuthenticatedRequest('sync_instances', {});
   }
 
   static async sendMessage(instanceId: string, phone: string, message: string) {

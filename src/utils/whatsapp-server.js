@@ -1,4 +1,4 @@
-// Servidor WhatsApp Web.js v3.5 - CORRIGIDO para QR Code REAL obrigatório
+// Servidor WhatsApp Web.js v4.0 - MODO PERMANENTE com Auto-Reconexão
 // Execute este script na VPS na porta 3001
 
 const express = require('express');
@@ -13,35 +13,40 @@ const app = express();
 const PORT = process.env.WHATSAPP_PORT || 3001;
 
 // VERSION CONTROL
-const SERVER_VERSION = '3.5.0';
+const SERVER_VERSION = '4.0.0';
 const SERVER_HASH = 'sha256-' + Date.now();
 
 // Configurar CORS e parsing
 app.use(cors());
 app.use(express.json());
 
-// Token CORRIGIDO para autenticação - agora lê do environment
+// Token para autenticação
 const API_TOKEN = process.env.VPS_API_TOKEN || 'default-token';
 
-// Armazenar instâncias ativas
+// Armazenar instâncias ativas com estado de reconexão
 const activeInstances = new Map();
 
-// Middleware de autenticação CORRIGIDO
+// Configurações de reconexão
+const RECONNECT_CONFIG = {
+  maxRetries: 10,
+  retryDelay: 5000,
+  healthCheckInterval: 30000,
+  sessionBackupInterval: 60000
+};
+
+// Middleware de autenticação
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
   console.log(`🔐 [v${SERVER_VERSION}] Auth check - Received token: ${token}`);
-  console.log(`🔐 [v${SERVER_VERSION}] Expected token: ${API_TOKEN}`);
 
   if (!token || token !== API_TOKEN) {
     console.error(`❌ [v${SERVER_VERSION}] Token de autenticação inválido`);
     return res.status(401).json({ 
       success: false, 
       error: 'Token de autenticação inválido',
-      version: SERVER_VERSION,
-      receivedToken: token ? 'presente' : 'ausente',
-      expectedToken: 'configurado'
+      version: SERVER_VERSION
     });
   }
 
@@ -49,20 +54,236 @@ function authenticateToken(req, res, next) {
   next();
 }
 
-// ===== ENDPOINT /health OBRIGATÓRIO PARA DEPLOY =====
+// Sistema de Health Check e Auto-Reconexão
+function startHealthCheck() {
+  setInterval(async () => {
+    console.log(`🔍 [v${SERVER_VERSION}] Health check iniciado - ${activeInstances.size} instâncias`);
+    
+    for (const [instanceId, instance] of activeInstances) {
+      try {
+        if (instance.client && instance.status !== 'reconnecting') {
+          // Verificar se o cliente está realmente conectado
+          const isConnected = instance.client.info ? true : false;
+          
+          if (!isConnected && instance.status === 'ready') {
+            console.warn(`⚠️ [v${SERVER_VERSION}] Instância ${instanceId} perdeu conexão - iniciando reconexão`);
+            await attemptReconnection(instanceId, instance);
+          }
+        }
+      } catch (error) {
+        console.error(`❌ [v${SERVER_VERSION}] Erro no health check para ${instanceId}:`, error.message);
+        if (instance.reconnectAttempts < RECONNECT_CONFIG.maxRetries) {
+          await attemptReconnection(instanceId, instance);
+        }
+      }
+    }
+  }, RECONNECT_CONFIG.healthCheckInterval);
+}
+
+// Sistema de Reconexão Automática
+async function attemptReconnection(instanceId, instance) {
+  if (instance.reconnecting) {
+    console.log(`🔄 [v${SERVER_VERSION}] Reconexão já em andamento para ${instanceId}`);
+    return;
+  }
+
+  instance.reconnecting = true;
+  instance.reconnectAttempts = (instance.reconnectAttempts || 0) + 1;
+  instance.status = 'reconnecting';
+  
+  console.log(`🔄 [v${SERVER_VERSION}] Tentativa de reconexão ${instance.reconnectAttempts}/${RECONNECT_CONFIG.maxRetries} para ${instanceId}`);
+
+  try {
+    // Destruir cliente atual se existir
+    if (instance.client) {
+      try {
+        await instance.client.destroy();
+      } catch (destroyError) {
+        console.warn(`⚠️ [v${SERVER_VERSION}] Erro ao destruir cliente: ${destroyError.message}`);
+      }
+    }
+
+    // Aguardar antes de tentar reconectar
+    await new Promise(resolve => setTimeout(resolve, RECONNECT_CONFIG.retryDelay * instance.reconnectAttempts));
+
+    // Criar novo cliente
+    const sessionPath = path.join(__dirname, 'sessions', instanceId);
+    
+    const client = new Client({
+      authStrategy: new LocalAuth({
+        clientId: instanceId,
+        dataPath: sessionPath
+      }),
+      puppeteer: {
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--single-process',
+          '--disable-gpu',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor'
+        ]
+      },
+      webVersionCache: {
+        type: 'remote',
+        remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html',
+      }
+    });
+
+    // Configurar eventos do cliente
+    setupClientEvents(instanceId, client, instance);
+    
+    // Atualizar instância
+    instance.client = client;
+    instance.lastActivity = new Date().toISOString();
+
+    // Inicializar cliente
+    await client.initialize();
+    
+    console.log(`✅ [v${SERVER_VERSION}] Reconexão bem-sucedida para ${instanceId}`);
+    instance.reconnecting = false;
+    instance.reconnectAttempts = 0;
+
+  } catch (error) {
+    console.error(`❌ [v${SERVER_VERSION}] Falha na reconexão para ${instanceId}:`, error.message);
+    instance.reconnecting = false;
+    
+    if (instance.reconnectAttempts >= RECONNECT_CONFIG.maxRetries) {
+      console.error(`💀 [v${SERVER_VERSION}] Máximo de tentativas atingido para ${instanceId} - marcando como falha`);
+      instance.status = 'connection_failed';
+    } else {
+      // Tentar novamente após delay
+      setTimeout(() => attemptReconnection(instanceId, instance), RECONNECT_CONFIG.retryDelay * 2);
+    }
+  }
+}
+
+// Configurar eventos do cliente com reconexão automática
+function setupClientEvents(instanceId, client, instance) {
+  // QR Code
+  client.on('qr', async (qr) => {
+    try {
+      console.log(`📱 [v${SERVER_VERSION}] QR Code gerado para ${instanceId}`);
+      
+      const qrCodeDataUrl = await qrcode.toDataURL(qr, {
+        width: 512,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        },
+        errorCorrectionLevel: 'M'
+      });
+      
+      instance.qrCode = qrCodeDataUrl;
+      instance.status = 'waiting_scan';
+      instance.lastActivity = new Date().toISOString();
+      
+    } catch (error) {
+      console.error(`❌ [v${SERVER_VERSION}] Erro ao gerar QR Code para ${instanceId}:`, error);
+    }
+  });
+
+  // Autenticação
+  client.on('authenticated', () => {
+    console.log(`🔐 [v${SERVER_VERSION}] Cliente autenticado: ${instanceId}`);
+    instance.status = 'authenticated';
+    instance.qrCode = null;
+    instance.lastActivity = new Date().toISOString();
+    instance.reconnectAttempts = 0; // Reset contador
+  });
+
+  // Pronto
+  client.on('ready', () => {
+    console.log(`✅ [v${SERVER_VERSION}] Cliente pronto: ${instanceId}`);
+    instance.status = 'ready';
+    instance.lastActivity = new Date().toISOString();
+    instance.reconnectAttempts = 0; // Reset contador
+    
+    if (client.info) {
+      instance.phone = client.info.wid?.user;
+      instance.profileName = client.info.pushname;
+      console.log(`📱 [v${SERVER_VERSION}] Conectado como: ${instance.phone} (${instance.profileName})`);
+    }
+  });
+
+  // Desconexão - Tentar reconectar automaticamente
+  client.on('disconnected', (reason) => {
+    console.log(`🔌 [v${SERVER_VERSION}] Cliente desconectado ${instanceId}:`, reason);
+    instance.status = 'disconnected';
+    instance.lastActivity = new Date().toISOString();
+    
+    // Iniciar reconexão automática se não foi desconexão manual
+    if (reason !== 'LOGOUT' && !instance.manualDisconnect) {
+      console.log(`🔄 [v${SERVER_VERSION}] Iniciando reconexão automática para ${instanceId}`);
+      setTimeout(() => attemptReconnection(instanceId, instance), 2000);
+    }
+  });
+
+  // Falha na autenticação
+  client.on('auth_failure', (msg) => {
+    console.error(`🚫 [v${SERVER_VERSION}] Falha na autenticação ${instanceId}:`, msg);
+    instance.status = 'auth_failure';
+    instance.qrCode = null;
+    instance.lastActivity = new Date().toISOString();
+  });
+}
+
+// Sistema de Backup de Sessões
+function startSessionBackup() {
+  setInterval(() => {
+    console.log(`💾 [v${SERVER_VERSION}] Iniciando backup de sessões`);
+    
+    for (const [instanceId, instance] of activeInstances) {
+      if (instance.status === 'ready') {
+        try {
+          const sessionPath = path.join(__dirname, 'sessions', instanceId);
+          const backupPath = path.join(__dirname, 'backups', instanceId);
+          
+          if (fs.existsSync(sessionPath)) {
+            if (!fs.existsSync(path.join(__dirname, 'backups'))) {
+              fs.mkdirSync(path.join(__dirname, 'backups'), { recursive: true });
+            }
+            
+            // Copiar arquivos de sessão
+            exec(`cp -r "${sessionPath}" "${backupPath}"`, (error) => {
+              if (error) {
+                console.error(`❌ [v${SERVER_VERSION}] Erro no backup para ${instanceId}:`, error.message);
+              } else {
+                console.log(`✅ [v${SERVER_VERSION}] Backup realizado para ${instanceId}`);
+              }
+            });
+          }
+        } catch (error) {
+          console.error(`❌ [v${SERVER_VERSION}] Erro no backup para ${instanceId}:`, error.message);
+        }
+      }
+    }
+  }, RECONNECT_CONFIG.sessionBackupInterval);
+}
+
+// ===== ENDPOINTS =====
+
+// Health endpoint
 app.get('/health', (req, res) => {
   res.json({
     success: true,
     status: 'online',
-    server: 'WhatsApp Web.js Server',
+    server: 'WhatsApp Web.js Server - Modo Permanente',
     version: SERVER_VERSION,
     hash: SERVER_HASH,
     timestamp: new Date().toISOString(),
     port: PORT,
-    ssl_fix_enabled: true,
-    timeout_fix_enabled: true,
     active_instances: activeInstances.size,
     auth_token_configured: API_TOKEN !== 'default-token',
+    permanent_mode: true,
+    health_check_enabled: true,
+    auto_reconnect_enabled: true,
     endpoints_available: [
       '/health',
       '/status',
@@ -142,11 +363,9 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
     });
   }
 
-  console.log(`🔧 [v${SERVER_VERSION}] Criando instância WhatsApp REAL: ${instanceId}`);
-  console.log('Payload recebido:', { instanceId, sessionName, webhookUrl, companyId });
+  console.log(`🔧 [v${SERVER_VERSION}] Criando instância PERMANENTE: ${instanceId}`);
 
   try {
-    // Verificar se a instância já existe
     if (activeInstances.has(instanceId)) {
       console.log(`⚠️ [v${SERVER_VERSION}] Instância ${instanceId} já existe`);
       const existingInstance = activeInstances.get(instanceId);
@@ -159,14 +378,26 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
         companyId,
         status: 'exists',
         qrCode: existingInstance.qrCode,
-        version: SERVER_VERSION,
-        timestamp: new Date().toISOString()
+        permanent_mode: true,
+        version: SERVER_VERSION
       });
     }
 
-    // Criar nova instância do WhatsApp Web.js - CONFIGURAÇÃO REAL
+    // Tentar restaurar de backup se existir
+    const backupPath = path.join(__dirname, 'backups', instanceId);
     const sessionPath = path.join(__dirname, 'sessions', instanceId);
     
+    if (fs.existsSync(backupPath) && !fs.existsSync(sessionPath)) {
+      console.log(`📥 [v${SERVER_VERSION}] Restaurando backup para ${instanceId}`);
+      exec(`cp -r "${backupPath}" "${sessionPath}"`, (error) => {
+        if (error) {
+          console.warn(`⚠️ [v${SERVER_VERSION}] Erro ao restaurar backup: ${error.message}`);
+        } else {
+          console.log(`✅ [v${SERVER_VERSION}] Backup restaurado para ${instanceId}`);
+        }
+      });
+    }
+
     const client = new Client({
       authStrategy: new LocalAuth({
         clientId: instanceId,
@@ -193,7 +424,6 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
       }
     });
 
-    // Criar objeto da instância
     const instanceData = {
       client,
       sessionName,
@@ -202,20 +432,23 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
       status: 'initializing',
       qrCode: null,
       lastActivity: new Date().toISOString(),
-      qrGenerated: false,
-      realQRReceived: false,
+      reconnectAttempts: 0,
+      reconnecting: false,
+      manualDisconnect: false,
+      permanentMode: true,
       startTime: Date.now()
     };
 
-    // Armazenar a instância
     activeInstances.set(instanceId, instanceData);
 
-    // Promise para aguardar QR code real com timeout
+    // Configurar eventos
+    setupClientEvents(instanceId, client, instanceData);
+
+    // Aguardar QR code real
     const waitForRealQR = new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
-        console.error(`⏰ [v${SERVER_VERSION}] Timeout aguardando QR real para ${instanceId}`);
         reject(new Error('Timeout aguardando QR code real'));
-      }, 30000); // 30 segundos timeout
+      }, 30000);
 
       instanceData.qrResolve = (qrCode) => {
         clearTimeout(timeout);
@@ -227,115 +460,19 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
       };
     });
 
-    // Event listener para QR Code - GERAR QR REAL OBRIGATÓRIO
-    client.on('qr', async (qr) => {
-      try {
-        console.log(`📱 [v${SERVER_VERSION}] QR Code REAL recebido para ${instanceId}`);
-        console.log(`QR String recebida (primeiros 100 chars): ${qr.substring(0, 100)}...`);
-        
-        // Gerar QR code como base64 REAL com configurações otimizadas
-        const qrCodeDataUrl = await qrcode.toDataURL(qr, {
-          width: 512,
-          margin: 2,
-          color: {
-            dark: '#000000',
-            light: '#FFFFFF'
-          },
-          errorCorrectionLevel: 'M'
-        });
-        
-        // Verificar se o QR code gerado é real (não fake)
-        const base64Part = qrCodeDataUrl.split(',')[1];
-        if (!base64Part || base64Part.length < 500) {
-          console.warn(`⚠️ [v${SERVER_VERSION}] QR Code suspeito para ${instanceId} - muito pequeno`);
-          return;
-        }
-        
-        // Verificar padrões conhecidos de QR codes falsos
-        const knownFakePatterns = [
-          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-          'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
-        ];
-        
-        const isFakeQR = knownFakePatterns.some(pattern => base64Part.includes(pattern));
-        if (isFakeQR) {
-          console.warn(`⚠️ [v${SERVER_VERSION}] QR Code falso detectado para ${instanceId}`);
-          return;
-        }
-        
-        instanceData.qrCode = qrCodeDataUrl;
-        instanceData.status = 'waiting_scan';
-        instanceData.lastActivity = new Date().toISOString();
-        instanceData.qrGenerated = true;
-        instanceData.realQRReceived = true;
-        
-        console.log(`✅ [v${SERVER_VERSION}] QR Code REAL válido gerado para ${instanceId} - Tamanho: ${qrCodeDataUrl.length} chars`);
-        console.log(`📊 [v${SERVER_VERSION}] Base64 length: ${base64Part.length} chars`);
-        
-        // Resolver a promise do QR code
-        if (instanceData.qrResolve) {
-          instanceData.qrResolve(qrCodeDataUrl);
-        }
-        
-      } catch (error) {
-        console.error(`❌ [v${SERVER_VERSION}] Erro ao gerar QR Code para ${instanceId}:`, error);
-        instanceData.qrCode = null;
-        instanceData.status = 'qr_error';
-        if (instanceData.qrReject) {
-          instanceData.qrReject(error);
-        }
+    // Resolver QR code quando gerado
+    client.on('qr', (qr) => {
+      if (instanceData.qrResolve) {
+        instanceData.qrResolve(instanceData.qrCode);
       }
     });
 
-    // Event listener para autenticação
-    client.on('authenticated', () => {
-      console.log(`🔐 [v${SERVER_VERSION}] Cliente autenticado: ${instanceId}`);
-      instanceData.status = 'authenticated';
-      instanceData.qrCode = null; // Limpar QR code após autenticação
-      instanceData.lastActivity = new Date().toISOString();
-    });
-
-    // Event listener para quando estiver pronto
-    client.on('ready', () => {
-      console.log(`✅ [v${SERVER_VERSION}] Cliente pronto: ${instanceId}`);
-      instanceData.status = 'ready';
-      instanceData.lastActivity = new Date().toISOString();
-      
-      // Obter informações do usuário
-      if (client.info) {
-        instanceData.phone = client.info.wid?.user;
-        instanceData.profileName = client.info.pushname;
-        console.log(`📱 [v${SERVER_VERSION}] Conectado como: ${instanceData.phone} (${instanceData.profileName})`);
-      }
-    });
-
-    // Event listener para desconexão
-    client.on('disconnected', (reason) => {
-      console.log(`🔌 [v${SERVER_VERSION}] Cliente desconectado ${instanceId}:`, reason);
-      instanceData.status = 'disconnected';
-      instanceData.lastActivity = new Date().toISOString();
-    });
-
-    // Event listener para erro de autenticação
-    client.on('auth_failure', (msg) => {
-      console.error(`🚫 [v${SERVER_VERSION}] Falha na autenticação ${instanceId}:`, msg);
-      instanceData.status = 'auth_failure';
-      instanceData.qrCode = null;
-      instanceData.lastActivity = new Date().toISOString();
-    });
-
-    // Inicializar o cliente
-    console.log(`🚀 [v${SERVER_VERSION}] Inicializando cliente WhatsApp REAL para ${instanceId}...`);
+    console.log(`🚀 [v${SERVER_VERSION}] Inicializando cliente PERMANENTE para ${instanceId}...`);
     await client.initialize();
 
-    // AGUARDAR QR CODE REAL antes de retornar sucesso
     try {
-      console.log(`⏳ [v${SERVER_VERSION}] Aguardando QR Code REAL para ${instanceId}...`);
       const realQRCode = await waitForRealQR;
       
-      console.log(`✅ [v${SERVER_VERSION}] QR Code REAL obtido para ${instanceId} - retornando sucesso`);
-      
-      // Retornar resposta com QR REAL
       res.json({
         success: true,
         instanceId,
@@ -344,36 +481,24 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
         companyId,
         status: 'waiting_scan',
         qrCode: realQRCode,
-        message: 'Instância criada com QR Code REAL',
+        permanent_mode: true,
+        auto_reconnect: true,
+        message: 'Instância criada em MODO PERMANENTE com auto-reconexão',
         version: SERVER_VERSION,
         timestamp: new Date().toISOString()
       });
 
     } catch (qrError) {
       console.error(`❌ [v${SERVER_VERSION}] Erro ao aguardar QR real para ${instanceId}:`, qrError);
-      
-      // Limpar instância em caso de erro
-      if (activeInstances.has(instanceId)) {
-        const instance = activeInstances.get(instanceId);
-        if (instance.client) {
-          try {
-            await instance.client.destroy();
-          } catch (destroyError) {
-            console.error(`❌ [v${SERVER_VERSION}] Erro ao destruir cliente: ${destroyError.message}`);
-          }
-        }
-        activeInstances.delete(instanceId);
-      }
-      
       throw qrError;
     }
 
   } catch (error) {
     console.error(`❌ [v${SERVER_VERSION}] Erro ao criar instância: ${error.message}`);
     
-    // Remover instância em caso de erro
     if (activeInstances.has(instanceId)) {
       const instance = activeInstances.get(instanceId);
+      instance.manualDisconnect = true;
       if (instance.client) {
         try {
           await instance.client.destroy();
@@ -404,32 +529,37 @@ app.post('/instance/delete', authenticateToken, async (req, res) => {
     });
   }
 
-  console.log(`🗑️ [v${SERVER_VERSION}] Deletando instância WhatsApp: ${instanceId}`);
+  console.log(`🗑️ [v${SERVER_VERSION}] Deletando instância: ${instanceId}`);
 
   try {
     if (activeInstances.has(instanceId)) {
       const instance = activeInstances.get(instanceId);
+      instance.manualDisconnect = true; // Marcar como desconexão manual
       
-      // Destruir o cliente
       if (instance.client) {
         await instance.client.destroy();
       }
       
-      // Remover da lista de instâncias ativas
       activeInstances.delete(instanceId);
       
-      // Limpar pasta de sessão
+      // Limpar sessão e backup
       const sessionPath = path.join(__dirname, 'sessions', instanceId);
+      const backupPath = path.join(__dirname, 'backups', instanceId);
+      
       if (fs.existsSync(sessionPath)) {
         fs.rmSync(sessionPath, { recursive: true, force: true });
       }
       
-      console.log(`✅ [v${SERVER_VERSION}] Instância ${instanceId} deletada com sucesso`);
+      if (fs.existsSync(backupPath)) {
+        fs.rmSync(backupPath, { recursive: true, force: true });
+      }
+      
+      console.log(`✅ [v${SERVER_VERSION}] Instância ${instanceId} deletada completamente`);
     }
 
     res.json({
       success: true,
-      message: `Instância ${instanceId} deletada com sucesso`,
+      message: `Instância ${instanceId} deletada do modo permanente`,
       version: SERVER_VERSION,
       timestamp: new Date().toISOString()
     });
@@ -571,32 +701,41 @@ app.use((error, req, res, next) => {
 
 // Iniciar servidor
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 WhatsApp Web.js Server v${SERVER_VERSION} rodando na porta ${PORT}`);
+  console.log(`🚀 WhatsApp Web.js Server v${SERVER_VERSION} - MODO PERMANENTE rodando na porta ${PORT}`);
+  console.log(`🔄 Auto-reconexão habilitada`);
+  console.log(`💾 Backup automático de sessões habilitado`);
+  console.log(`🔍 Health check habilitado (intervalo: ${RECONNECT_CONFIG.healthCheckInterval}ms)`);
   console.log(`💚 Health: http://localhost:${PORT}/health`);
-  console.log(`📊 Status: http://localhost:${PORT}/status`);
-  console.log(`📋 Instances: http://localhost:${PORT}/instances`);
-  console.log(`🔧 Create: http://localhost:${PORT}/instance/create`);
-  console.log(`🗑️ Delete: http://localhost:${PORT}/instance/delete`);
-  console.log(`📊 Instance Status: http://localhost:${PORT}/instance/status`);
-  console.log(`📱 QR Code: http://localhost:${PORT}/instance/qr`);
   console.log(`🔑 Token: ${API_TOKEN === 'default-token' ? '⚠️  USANDO TOKEN PADRÃO' : '✅ Token configurado'}`);
-  console.log(`📝 Hash: ${SERVER_HASH}`);
   
-  // Criar diretório de sessões se não existir
+  // Criar diretórios necessários
   const sessionsDir = path.join(__dirname, 'sessions');
+  const backupsDir = path.join(__dirname, 'backups');
+  
   if (!fs.existsSync(sessionsDir)) {
     fs.mkdirSync(sessionsDir, { recursive: true });
     console.log(`📁 Diretório de sessões criado: ${sessionsDir}`);
   }
+  
+  if (!fs.existsSync(backupsDir)) {
+    fs.mkdirSync(backupsDir, { recursive: true });
+    console.log(`📁 Diretório de backups criado: ${backupsDir}`);
+  }
+  
+  // Iniciar sistemas de monitoramento
+  startHealthCheck();
+  startSessionBackup();
+  
+  console.log(`✅ [v${SERVER_VERSION}] Modo permanente ativado com sucesso!`);
 });
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
   console.log(`🛑 [v${SERVER_VERSION}] Encerrando WhatsApp Server...`);
   
-  // Destruir todas as instâncias ativas
   for (const [instanceId, instance] of activeInstances) {
     try {
+      instance.manualDisconnect = true;
       if (instance.client) {
         await instance.client.destroy();
       }

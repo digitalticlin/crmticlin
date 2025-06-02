@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
@@ -16,6 +17,8 @@ export interface WhatsAppWebInstance {
   phone?: string;
   profile_name?: string;
   company_id: string;
+  permanent_mode?: boolean;
+  auto_reconnect?: boolean;
 }
 
 interface AutoConnectState {
@@ -34,7 +37,26 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     activeInstanceId: null
   });
 
-  // Get authenticated session for API calls
+  // Auto-sync das instâncias a cada 30 segundos para modo permanente
+  useEffect(() => {
+    if (!companyId || companyLoading) return;
+
+    const syncInterval = setInterval(async () => {
+      try {
+        console.log('[Hook] Auto-sync das instâncias iniciado');
+        await fetchInstances();
+        
+        // Sync com VPS para limpar órfãs
+        await WhatsAppWebService.syncInstances();
+        
+      } catch (error) {
+        console.error('[Hook] Erro no auto-sync:', error);
+      }
+    }, 30000); // 30 segundos
+
+    return () => clearInterval(syncInterval);
+  }, [companyId, companyLoading]);
+
   const getAuthenticatedSession = useCallback(async () => {
     const { data: { session }, error } = await supabase.auth.getSession();
     if (error || !session) {
@@ -43,7 +65,6 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     return session;
   }, []);
 
-  // Get current user email for username extraction
   const getCurrentUserEmail = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -57,13 +78,11 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     }
   }, []);
 
-  // Generate instance name based on username and existing instances
   const generateInstanceName = useCallback(async () => {
     try {
       const userEmail = await getCurrentUserEmail();
       const username = extractUsernameFromEmail(userEmail);
       
-      // Get existing instance names for the company
       const existingNames = instances.map(instance => instance.instance_name.toLowerCase());
       
       return generateSequentialInstanceName(username, existingNames);
@@ -73,7 +92,6 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     }
   }, [getCurrentUserEmail, instances]);
 
-  // Fetch instances from database
   const fetchInstances = useCallback(async () => {
     if (!companyId || companyLoading) return;
 
@@ -101,11 +119,13 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
         qr_code: instance.qr_code,
         phone: instance.phone,
         profile_name: instance.profile_name,
-        company_id: instance.company_id
+        company_id: instance.company_id,
+        permanent_mode: true, // Modo permanente habilitado
+        auto_reconnect: true  // Auto-reconexão habilitada
       }));
 
       setInstances(mappedInstances);
-      console.log('✅ Instâncias carregadas:', mappedInstances.length);
+      console.log(`✅ Instâncias carregadas: ${mappedInstances.length} (modo permanente)`);
     } catch (err: any) {
       console.error('Error fetching WhatsApp Web instances:', err);
       setError(err.message);
@@ -114,7 +134,6 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     }
   }, [companyId, companyLoading]);
 
-  // Create instance with simplified flow
   const createInstance = async (customInstanceName?: string): Promise<void> => {
     if (!companyId) {
       toast.error('ID da empresa não encontrado');
@@ -126,9 +145,8 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
       
       const instanceName = customInstanceName || await generateInstanceName();
       
-      console.log('🔧 Criando instância com nome:', instanceName);
+      console.log('🔧 Criando instância PERMANENTE com nome:', instanceName);
       
-      // Check for duplicate names before attempting creation
       const existingInstance = instances.find(
         instance => instance.instance_name.toLowerCase() === instanceName.toLowerCase()
       );
@@ -152,9 +170,8 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
           activeInstanceId: newInstance.id
         });
         
-        toast.success('✅ Instância criada! Gerando QR Code...');
+        toast.success('✅ Instância criada em MODO PERMANENTE! Auto-reconexão habilitada.');
         
-        // Tentar obter QR code imediatamente
         setTimeout(() => {
           refreshQRCode(newInstance.id);
         }, 2000);
@@ -184,7 +201,6 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     }
   };
 
-  // Auto connection flow with simplified handling
   const startAutoConnection = async () => {
     if (!companyId) {
       toast.error('ID da empresa não encontrado');
@@ -195,7 +211,7 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
 
     try {
       const instanceName = await generateInstanceName();
-      console.log('🚀 Auto-conectando com nome da instância:', instanceName);
+      console.log('🚀 Auto-conectando MODO PERMANENTE com nome da instância:', instanceName);
       
       const result = await WhatsAppWebService.createInstance(instanceName);
 
@@ -210,9 +226,8 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
           activeInstanceId: newInstance.id
         });
         
-        toast.success('✅ Instância criada! Gerando QR Code...');
+        toast.success('✅ Instância criada em MODO PERMANENTE! Auto-reconexão habilitada.');
         
-        // Tentar obter QR code imediatamente
         setTimeout(() => {
           refreshQRCode(newInstance.id);
         }, 2000);
@@ -240,7 +255,6 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     }
   };
 
-  // Delete instance with complete VPS cleanup
   const deleteInstance = async (instanceId: string) => {
     try {
       await getAuthenticatedSession();
@@ -249,7 +263,7 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
       
       if (result.success) {
         await fetchInstances();
-        toast.success('✅ Instância deletada com sucesso');
+        toast.success('✅ Instância deletada do modo permanente');
       } else {
         throw new Error(result.error || 'Falha ao deletar instância');
       }
@@ -259,27 +273,26 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     }
   };
 
-  // Simplified QR Code refresh
   const refreshQRCode = async (instanceId: string): Promise<string | null> => {
     try {
       await getAuthenticatedSession();
       
-      console.log('🔄 Solicitando QR code para instância:', instanceId);
+      console.log('🔄 Solicitando QR code para instância PERMANENTE:', instanceId);
       
       const result = await WhatsAppWebService.getQRCode(instanceId);
       
       if (result.success && result.qrCode) {
-        // Atualizar no banco
         await supabase
           .from('whatsapp_instances')
           .update({ 
             qr_code: result.qrCode,
-            web_status: 'waiting_scan'
+            web_status: 'waiting_scan',
+            updated_at: new Date().toISOString()
           })
           .eq('id', instanceId);
         
         await fetchInstances();
-        toast.success('✅ QR Code gerado com sucesso!');
+        toast.success('✅ QR Code gerado! Modo permanente ativo.');
         return result.qrCode;
       } else {
         throw new Error(result.error || 'Falha ao gerar QR Code');
@@ -291,7 +304,6 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     }
   };
 
-  // Modal controls
   const closeQRModal = () => {
     setAutoConnectState(prev => ({
       ...prev,
@@ -308,12 +320,10 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     }));
   };
 
-  // Fetch instances on mount and company change
   useEffect(() => {
     fetchInstances();
   }, [fetchInstances]);
 
-  // Refetch function for external use
   const refetch = () => {
     fetchInstances();
   };

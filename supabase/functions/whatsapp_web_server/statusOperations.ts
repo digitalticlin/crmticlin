@@ -1,21 +1,18 @@
 
-import { VPS_CONFIG, corsHeaders, getVPSHeaders, isRealQRCode } from './config.ts';
+import { VPS_CONFIG, corsHeaders, getVPSHeaders } from './config.ts';
 
+// Função para fazer requisições VPS com retry
 async function makeVPSRequest(url: string, options: RequestInit, retries = 3): Promise<Response> {
   for (let i = 0; i < retries; i++) {
     try {
       console.log(`[VPS Request] Attempt ${i + 1}/${retries} to: ${url}`);
-      console.log(`[VPS Request] Headers:`, options.headers);
-      console.log(`[VPS Request] Body:`, options.body);
       
       const response = await fetch(url, {
         ...options,
-        signal: AbortSignal.timeout(15000), // 15 second timeout
+        signal: AbortSignal.timeout(30000), // 30 segundos timeout
       });
       
       console.log(`[VPS Response] Status: ${response.status} ${response.statusText}`);
-      console.log(`[VPS Response] Headers:`, Object.fromEntries(response.headers.entries()));
-      
       return response;
     } catch (error) {
       console.error(`[VPS Request] Error (attempt ${i + 1}):`, error);
@@ -33,40 +30,41 @@ async function makeVPSRequest(url: string, options: RequestInit, retries = 3): P
 }
 
 export async function getInstanceStatus(instanceId: string) {
-  console.log(`[Status] Getting status for instance: ${instanceId}`);
-
   try {
+    console.log(`[Status] Getting status for instance: ${instanceId}`);
+    
     const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/status`, {
       method: 'POST',
       headers: getVPSHeaders(),
       body: JSON.stringify({ instanceId })
     });
 
-    if (!response.ok) {
+    if (response.ok) {
+      const data = await response.json();
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          status: data.status,
+          permanent_mode: data.permanent_mode || false,
+          auto_reconnect: data.auto_reconnect || false
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else {
       const errorText = await response.text();
-      throw new Error(`VPS status request failed: ${response.status} - ${errorText}`);
+      throw new Error(`Status request failed: ${response.status} - ${errorText}`);
     }
 
-    const result = await response.json();
-    console.log(`[Status] Result:`, result);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        status: result.status
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
   } catch (error) {
-    console.error(`[Status] Error:`, error);
+    console.error('[Status] Error:', error);
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message
+      JSON.stringify({ 
+        success: false, 
+        error: error.message,
+        timestamp: new Date().toISOString()
       }),
       { 
-        status: 500, 
+        status: 400, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
@@ -74,10 +72,8 @@ export async function getInstanceStatus(instanceId: string) {
 }
 
 export async function getQRCode(instanceId: string) {
-  console.log(`[QR Code] Getting QR code for instance: ${instanceId}`);
-
   try {
-    console.log(`[VPS Request] Attempting connection to: ${VPS_CONFIG.baseUrl}/instance/qr`);
+    console.log(`[QR Code] Getting QR code for instance: ${instanceId}`);
     
     const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/qr`, {
       method: 'POST',
@@ -85,55 +81,32 @@ export async function getQRCode(instanceId: string) {
       body: JSON.stringify({ instanceId })
     });
 
-    if (!response.ok) {
+    if (response.ok) {
+      const data = await response.json();
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          qrCode: data.qrCode,
+          permanent_mode: data.permanent_mode || false
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else {
       const errorText = await response.text();
       console.error(`[QR Code] VPS request failed: ${response.status} - ${errorText}`);
       throw new Error(`VPS QR request failed: ${response.status} - ${errorText}`);
     }
 
-    const result = await response.json();
-    console.log(`[QR Code] Result:`, result);
-
-    // Validate if QR code is real
-    if (result.success && result.qrCode) {
-      const qrIsReal = isRealQRCode(result.qrCode);
-      console.log(`[QR Code] QR Code validation - Is Real: ${qrIsReal}`);
-      
-      if (!qrIsReal) {
-        console.warn(`[QR Code] VPS returned fake/placeholder QR code`);
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: 'VPS retornou QR Code falso. Aguarde a inicialização do WhatsApp Web.js ou tente novamente.',
-            qrCode: null
-          }),
-          { 
-            status: 400, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
-    }
-
-    return new Response(
-      JSON.stringify({
-        success: result.success,
-        qrCode: result.qrCode || null,
-        error: result.error
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
   } catch (error) {
-    console.error(`[QR Code] Error:`, error);
+    console.error('[QR Code] Error:', error);
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: `Erro ao obter QR Code: ${error.message}`,
-        qrCode: null
+      JSON.stringify({ 
+        success: false, 
+        error: error.message,
+        timestamp: new Date().toISOString()
       }),
       { 
-        status: 500, 
+        status: 400, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
@@ -141,35 +114,43 @@ export async function getQRCode(instanceId: string) {
 }
 
 export async function checkServerHealth() {
-  console.log(`[Health] Checking server health`);
-
   try {
+    console.log('[Health] Checking WhatsApp Web.js server health...');
+    
     const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/health`, {
       method: 'GET',
       headers: getVPSHeaders()
     }, 2);
 
-    if (!response.ok) {
-      throw new Error(`Health check failed: ${response.status}`);
+    if (response.ok) {
+      const data = await response.json();
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          data: {
+            status: data.status || 'online',
+            server: data.server,
+            version: data.version,
+            permanent_mode: data.permanent_mode || false,
+            health_check_enabled: data.health_check_enabled || false,
+            auto_reconnect_enabled: data.auto_reconnect_enabled || false,
+            active_instances: data.active_instances || 0,
+            timestamp: data.timestamp || new Date().toISOString()
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else {
+      throw new Error(`Server health check failed: ${response.status}`);
     }
 
-    const result = await response.json();
-    console.log(`[Health] Server health check result:`, result);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        data: result
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
   } catch (error) {
-    console.error(`[Health] Error:`, error);
+    console.error('[Health] Error:', error);
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: `Servidor VPS offline: ${error.message}`
+      JSON.stringify({ 
+        success: false, 
+        error: error.message,
+        timestamp: new Date().toISOString()
       }),
       { 
         status: 500, 
@@ -180,35 +161,38 @@ export async function checkServerHealth() {
 }
 
 export async function getServerInfo() {
-  console.log(`[Server Info] Getting server information`);
-
   try {
+    console.log('[Server Info] Getting server information...');
+    
     const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/status`, {
       method: 'GET',
       headers: getVPSHeaders()
     });
 
-    if (!response.ok) {
+    if (response.ok) {
+      const data = await response.json();
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          data: {
+            ...data,
+            permanent_mode: data.permanent_mode || false,
+            auto_reconnect: data.auto_reconnect || false
+          }
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else {
       throw new Error(`Server info request failed: ${response.status}`);
     }
 
-    const result = await response.json();
-    console.log(`[Server Info] Result:`, result);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        data: result
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
   } catch (error) {
-    console.error(`[Server Info] Error:`, error);
+    console.error('[Server Info] Error:', error);
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message
+      JSON.stringify({ 
+        success: false, 
+        error: error.message,
+        timestamp: new Date().toISOString()
       }),
       { 
         status: 500, 
@@ -218,75 +202,102 @@ export async function getServerInfo() {
   }
 }
 
+// Função para sincronizar instâncias e limpar órfãs
 export async function syncInstances(supabase: any, companyId: string) {
-  console.log(`[Sync] Syncing instances for company: ${companyId}`);
-
   try {
-    // Get active instances from VPS
-    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instances`, {
-      method: 'GET',
-      headers: getVPSHeaders()
-    });
-
-    if (!response.ok) {
-      throw new Error(`Sync request failed: ${response.status}`);
-    }
-
-    const result = await response.json();
-    console.log(`[Sync] VPS instances:`, result);
-
-    // Get database instances for company
-    const { data: dbInstances, error } = await supabase
+    console.log(`[Sync] Syncing instances for company: ${companyId}`);
+    
+    // Buscar instâncias do banco
+    const { data: dbInstances, error: dbError } = await supabase
       .from('whatsapp_instances')
       .select('*')
       .eq('company_id', companyId)
       .eq('connection_type', 'web');
 
-    if (error) {
-      throw new Error(`Database query error: ${error.message}`);
+    if (dbError) {
+      throw new Error(`Database error: ${dbError.message}`);
     }
 
-    console.log(`[Sync] Database instances:`, dbInstances);
+    // Buscar instâncias do VPS
+    const vpsResponse = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instances`, {
+      method: 'GET',
+      headers: getVPSHeaders()
+    });
 
-    // Update database instances with VPS status
-    let updatedCount = 0;
+    let vpsInstances = [];
+    if (vpsResponse.ok) {
+      const vpsData = await vpsResponse.json();
+      vpsInstances = vpsData.instances || [];
+    }
+
+    // Sincronizar status das instâncias
+    const syncResults = [];
+    
     for (const dbInstance of dbInstances || []) {
-      const vpsInstance = result.instances?.find((vps: any) => 
-        vps.instanceId === dbInstance.vps_instance_id
-      );
-
+      const vpsInstance = vpsInstances.find(v => v.instanceId === dbInstance.vps_instance_id);
+      
       if (vpsInstance) {
-        const { error: updateError } = await supabase
+        // Atualizar status no banco se necessário
+        const updates: any = {};
+        
+        if (vpsInstance.status !== dbInstance.connection_status) {
+          updates.connection_status = vpsInstance.status;
+        }
+        
+        if (vpsInstance.phone && vpsInstance.phone !== dbInstance.phone) {
+          updates.phone = vpsInstance.phone;
+        }
+        
+        if (Object.keys(updates).length > 0) {
+          updates.updated_at = new Date().toISOString();
+          
+          await supabase
+            .from('whatsapp_instances')
+            .update(updates)
+            .eq('id', dbInstance.id);
+            
+          syncResults.push({
+            instanceId: dbInstance.id,
+            action: 'updated',
+            changes: updates
+          });
+        }
+      } else {
+        // Instância órfã no banco - marcar como desconectada
+        await supabase
           .from('whatsapp_instances')
           .update({
-            connection_status: vpsInstance.isReady ? 'connected' : 'disconnected',
-            web_status: vpsInstance.status || 'unknown',
-            phone: vpsInstance.phone || dbInstance.phone,
+            connection_status: 'disconnected',
+            web_status: 'disconnected',
             updated_at: new Date().toISOString()
           })
           .eq('id', dbInstance.id);
-
-        if (!updateError) {
-          updatedCount++;
-        }
+          
+        syncResults.push({
+          instanceId: dbInstance.id,
+          action: 'marked_disconnected',
+          reason: 'not_found_in_vps'
+        });
       }
     }
 
     return new Response(
-      JSON.stringify({
-        success: true,
-        message: `Sincronizadas ${updatedCount} instâncias`,
-        data: { updatedCount, totalVPS: result.instances?.length || 0 }
+      JSON.stringify({ 
+        success: true, 
+        results: syncResults,
+        total_synced: syncResults.length,
+        timestamp: new Date().toISOString()
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error(`[Sync] Error:`, error);
+    console.error('[Sync] Error:', error);
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message
+      JSON.stringify({ 
+        success: false, 
+        error: error.message,
+        timestamp: new Date().toISOString()
       }),
       { 
         status: 500, 
