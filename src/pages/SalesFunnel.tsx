@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { PageLayout } from "@/components/layout/PageLayout";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { ModernPageHeader } from "@/components/layout/ModernPageHeader";
 import { useSalesFunnel } from "@/hooks/salesFunnel/useSalesFunnel";
 import { KanbanBoard } from "@/components/sales/KanbanBoard";
 import { LeadDetailSidebar } from "@/components/sales/LeadDetailSidebar";
@@ -14,6 +13,8 @@ import { useCompanyData } from "@/hooks/useCompanyData";
 import { useLeadsDatabase } from "@/hooks/salesFunnel/useLeadsDatabase";
 import { useStageDatabase } from "@/hooks/salesFunnel/useStageDatabase";
 import { useTagDatabase } from "@/hooks/salesFunnel/useTagDatabase";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 export default function SalesFunnel() {
   const [activeTab, setActiveTab] = useState("funnel");
@@ -102,14 +103,25 @@ export default function SalesFunnel() {
 
   const { tags, createTag: createTagDb, loadTags } = useTagDatabase(companyId);
 
+  const addLeadAction = (
+    <Button 
+      className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 py-2.5 font-medium shadow-lg transition-all duration-200 hover:shadow-xl"
+      onClick={() => toast.info("Adicionar lead (em breve!)")}
+    >
+      <Plus className="h-4 w-4 mr-2" />
+      Adicionar Lead
+    </Button>
+  );
+
   return (
     <PageLayout>
-      <PageHeader 
+      <ModernPageHeader 
         title="Funil de Vendas" 
         description="Gerencie seus leads e oportunidades de vendas"
+        action={addLeadAction}
       />
 
-      <div className="mb-8">
+      <div className="mb-6">
         <FunnelActionsBar 
           activeTab={activeTab}
           setActiveTab={setActiveTab}

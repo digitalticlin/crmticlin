@@ -38,6 +38,7 @@ export const LeadCard = ({
 }: LeadCardProps) => {
   const isWon = isWonLostView && lead.columnId === FIXED_COLUMN_IDS.WON;
   const isLost = isWonLostView && lead.columnId === FIXED_COLUMN_IDS.LOST;
+  
   const handleCardClick = () => {
     if (onOpenChat) onOpenChat();
     else onClick();
@@ -49,12 +50,11 @@ export const LeadCard = ({
       {...provided.draggableProps}
       {...provided.dragHandleProps}
       className={cn(
-        // Card lead mais largo e centralizado
-        "glass bg-white/70 dark:bg-black/30 backdrop-blur-xl mb-5 rounded-3xl border-2 border-transparent shadow-glass-lg transition-all duration-300 p-4 cursor-pointer font-inter group",
-        "w-[96%] max-w-[380px] mx-auto", // <-- card mais largo e centralizado
+        "bg-white/90 dark:bg-white/10 backdrop-blur-sm mb-4 rounded-xl border-0 shadow-md transition-all duration-300 p-4 cursor-pointer group",
+        "w-[96%] max-w-[380px] mx-auto",
         isDragging || isClone
-          ? "scale-105 z-[99999] opacity-90 shadow-glass-lg border-ticlin border-2 pointer-events-none"
-          : "hover:scale-105 hover:z-30 hover:relative hover:shadow-2xl hover:border-ticlin hover:border-2",
+          ? "scale-105 z-[99999] opacity-90 shadow-2xl border-blue-500 border-2 pointer-events-none"
+          : "hover:scale-105 hover:z-30 hover:relative hover:shadow-xl hover:bg-white/95 dark:hover:bg-white/15",
         isWon && "border-l-[4px] border-l-green-500",
         isLost && "border-l-[4px] border-l-red-500"
       )}
@@ -63,9 +63,8 @@ export const LeadCard = ({
         ...(isDragging || isClone
           ? {
               transformOrigin: "center",
-              boxShadow: "0 12px 36px 0 rgba(211,216,0,.18)",
-              transition:
-                "transform 0.18s cubic-bezier(.16,.83,.81,1), opacity 0.13s, box-shadow 0.18s",
+              boxShadow: "0 20px 40px 0 rgba(0,0,0,0.15)",
+              transition: "transform 0.18s cubic-bezier(.16,.83,.81,1), opacity 0.13s, box-shadow 0.18s",
               zIndex: 99999,
               pointerEvents: "none",
             }
@@ -76,7 +75,7 @@ export const LeadCard = ({
       onMouseLeave={onMouseLeave}
     >
       <LeadCardContent lead={lead} isWonLostView={isWonLostView} />
-      <div className="flex justify-between items-center mt-2">
+      <div className="flex justify-between items-center mt-3">
         <LeadCardTags tags={lead.tags} />
         <LeadCardActions
           onMoveToWon={onMoveToWon}

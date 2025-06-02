@@ -1,8 +1,8 @@
 
 import { useState, useMemo } from "react";
 import { PageLayout } from "@/components/layout/PageLayout";
-import { PageHeader } from "@/components/layout/PageHeader";
-import ChartCard from "@/components/dashboard/ChartCard";
+import { ModernPageHeader } from "@/components/layout/ModernPageHeader";
+import { ModernCard, ModernCardContent, ModernCardHeader, ModernCardTitle, ModernCardDescription } from "@/components/ui/modern-card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -10,6 +10,7 @@ import { InviteMemberForm } from "@/components/settings/team/InviteMemberForm";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useTeamManagement } from "@/hooks/useTeamManagement";
 import { supabase } from "@/integrations/supabase/client";
+import { ModernTeamMembersList } from "@/components/settings/team/ModernTeamMembersList";
 
 export default function Team() {
   const { companyId } = useCompanyData();
@@ -41,15 +42,6 @@ export default function Team() {
     fetchAux();
   }, [companyId]);
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
-  };
-
   const handleInvite = async (data: {
     full_name: string;
     email: string;
@@ -64,104 +56,59 @@ export default function Team() {
     });
   };
 
-  const refreshAction = (
-    <Button className="bg-ticlin hover:bg-ticlin/90 text-black" onClick={fetchTeamMembers}>
+  const addMemberAction = (
+    <Button 
+      className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 py-2.5 font-medium shadow-lg transition-all duration-200 hover:shadow-xl"
+      onClick={fetchTeamMembers}
+    >
       <Plus className="h-4 w-4 mr-2" />
-      Atualizar lista
+      Atualizar Lista
     </Button>
   );
 
   return (
     <PageLayout>
-      <PageHeader 
+      <ModernPageHeader 
         title="Gestão de Equipe" 
         description="Gerencie os membros da sua equipe e suas permissões"
-        action={refreshAction}
+        action={addMemberAction}
       />
 
-      <ChartCard
-        title="Novo membro"
-        description="Convide um colaborador para sua equipe e já defina funis/instâncias permitidos"
-      >
-        <InviteMemberForm
-          onSubmit={handleInvite}
-          loading={loading}
-          allWhatsApps={allWhatsApps}
-          allFunnels={allFunnels}
-        />
-      </ChartCard>
+      <div className="space-y-8">
+        {/* Invite Member Form */}
+        <ModernCard>
+          <ModernCardHeader>
+            <ModernCardTitle>Novo Membro</ModernCardTitle>
+            <ModernCardDescription>
+              Convide um colaborador para sua equipe e já defina funis/instâncias permitidos
+            </ModernCardDescription>
+          </ModernCardHeader>
+          <ModernCardContent>
+            <InviteMemberForm
+              onSubmit={handleInvite}
+              loading={loading}
+              allWhatsApps={allWhatsApps}
+              allFunnels={allFunnels}
+            />
+          </ModernCardContent>
+        </ModernCard>
 
-      <ChartCard
-        title="Membros da Equipe"
-        description="Gerencie os membros da sua equipe e suas permissões"
-      >
-        <div className="space-y-4 mt-4">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="text-left border-b border-gray-200 dark:border-gray-700">
-                  <th className="pb-2 font-medium">Membro</th>
-                  <th className="pb-2 font-medium">Função</th>
-                  <th className="pb-2 font-medium">Números WhatsApp</th>
-                  <th className="pb-2 font-medium">Funis</th>
-                  <th className="pb-2 font-medium text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {members.map((member) => (
-                  <tr key={member.id} className="border-b border-gray-100 dark:border-gray-800">
-                    <td className="py-4">
-                      <div className="flex items-center">
-                        <Avatar className="h-8 w-8 mr-2">
-                          <AvatarFallback className="bg-ticlin/20 text-black">
-                            {getInitials(member.full_name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium">{member.full_name}</div>
-                          <div className="text-sm text-muted-foreground">{member.email}</div>
-                          {member.must_change_password && (
-                            <span className="text-xs text-red-500">Precisa trocar senha</span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-4">{member.role === "seller" ? "Vendedor(a)" : "Personalizado"}</td>
-                    <td className="py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {member.whatsapp_numbers.map((w) => (
-                          <span key={w.id} className="bg-gray-100 text-xs p-1 rounded">{w.instance_name}</span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {member.funnels.map((f) => (
-                          <span key={f.id} className="bg-gray-100 text-xs p-1 rounded">{f.name}</span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="py-4 text-right">
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => removeTeamMember(member.id)}
-                      >
-                        Remover
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {members.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">Nenhum membro na equipe. Adicione membros para começar.</p>
-            </div>
-          )}
-        </div>
-      </ChartCard>
+        {/* Team Members List */}
+        <ModernCard>
+          <ModernCardHeader>
+            <ModernCardTitle>Membros da Equipe</ModernCardTitle>
+            <ModernCardDescription>
+              Gerencie os membros da sua equipe e suas permissões
+            </ModernCardDescription>
+          </ModernCardHeader>
+          <ModernCardContent>
+            <ModernTeamMembersList 
+              members={members}
+              onRemoveMember={removeTeamMember}
+            />
+          </ModernCardContent>
+        </ModernCard>
+      </div>
     </PageLayout>
   );
 }
