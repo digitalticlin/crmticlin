@@ -1,8 +1,7 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Zap, Loader2, CheckCircle, AlertCircle, ExternalLink, Activity, Server, Shield } from "lucide-react";
+import { Zap, Loader2, CheckCircle, AlertCircle, ExternalLink, Activity, Server, Shield, Terminal } from "lucide-react";
 import { toast } from "sonner";
 
 export const DirectDeployButton = () => {
@@ -17,8 +16,8 @@ export const DirectDeployButton = () => {
       setDeployStatus('diagnosing');
       setDiagnostics(null);
       
-      console.log('🔍 Iniciando diagnóstico profissional da VPS...');
-      toast.info('🔍 Executando diagnóstico profissional da VPS...');
+      console.log('🚀 Iniciando deploy WhatsApp Server...');
+      toast.info('🚀 Executando deploy via SSH...');
 
       const response = await fetch('https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/deploy_whatsapp_server', {
         method: 'POST',
@@ -49,7 +48,13 @@ export const DirectDeployButton = () => {
         }
         
       } else {
-        throw new Error(result.error || 'Deploy failed');
+        // Se não foi sucesso, mas tem instruções SSH, mostrar como warning
+        if (result.ssh_instructions) {
+          setDeployStatus('error');
+          toast.warning('⚠️ Deploy manual necessário - Verifique as instruções SSH');
+        } else {
+          throw new Error(result.error || 'Deploy failed');
+        }
       }
     } catch (error: any) {
       console.error('❌ Erro no deploy:', error);
@@ -95,22 +100,45 @@ export const DirectDeployButton = () => {
       <CardHeader>
         <div className="flex items-center gap-2">
           {getStatusIcon()}
-          <CardTitle className="text-green-800">Deploy Profissional VPS</CardTitle>
+          <CardTitle className="text-green-800">Deploy Direto SSH</CardTitle>
         </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           <div>
             <h3 className="font-medium text-green-800 mb-2">
-              Sistema de Deploy Inteligente
+              Deploy Automatizado via SSH
             </h3>
             <p className="text-sm text-green-700 mb-4">
-              Diagnóstico completo + Deploy automático via API autenticada
+              Script otimizado que instala e configura o servidor automaticamente
             </p>
             <p className="text-xs text-green-600">
               Status: {getStatusText()}
             </p>
           </div>
+
+          {/* Instruções SSH manuais */}
+          {deployResult && !deployResult.success && deployResult.ssh_instructions && (
+            <div className="p-3 bg-yellow-100 rounded-lg border border-yellow-300">
+              <h4 className="font-medium text-yellow-800 mb-2 flex items-center gap-2">
+                <Terminal className="h-4 w-4" />
+                Deploy Manual via SSH
+              </h4>
+              <div className="text-xs text-yellow-700 space-y-2">
+                <div><strong>1.</strong> {deployResult.ssh_instructions.step1}</div>
+                <div><strong>2.</strong> {deployResult.ssh_instructions.step2}</div>
+                <div><strong>3.</strong> {deployResult.ssh_instructions.step3}</div>
+                {deployResult.deploy_script && (
+                  <div className="mt-2">
+                    <div className="font-medium mb-1">Script de Deploy:</div>
+                    <div className="bg-gray-900 text-green-400 p-2 rounded text-xs font-mono max-h-32 overflow-y-auto">
+                      {deployResult.deploy_script}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Diagnósticos */}
           {diagnostics && (
@@ -190,12 +218,12 @@ export const DirectDeployButton = () => {
               {isDeploying ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  {deployStatus === 'diagnosing' ? 'Diagnosticando...' : 'Fazendo Deploy...'}
+                  {deployStatus === 'diagnosing' ? 'Executando...' : 'Fazendo Deploy...'}
                 </>
               ) : (
                 <>
                   <Zap className="h-4 w-4 mr-2" />
-                  Deploy Profissional
+                  Deploy SSH Direto
                 </>
               )}
             </Button>
