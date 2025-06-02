@@ -65,7 +65,7 @@ const ProfileSettings = () => {
           fullName={fullName} 
         />
         
-        <Separator />
+        <Separator className="bg-white/20 dark:bg-white/10" />
         
         <ProfileForm
           email={email}
@@ -81,7 +81,7 @@ const ProfileSettings = () => {
           setCompanyName={setCompanyName}
         />
         
-        <Separator />
+        <Separator className="bg-white/20 dark:bg-white/10" />
         
         <SecuritySection 
           email={email}

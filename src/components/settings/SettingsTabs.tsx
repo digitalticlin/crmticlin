@@ -29,15 +29,15 @@ const SettingsTabs = () => {
   console.log('[SettingsTabs] Rendering with active tab:', activeTab);
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
       <TabsList className={cn(
-        "grid h-auto p-1 bg-white/10 dark:bg-black/10 backdrop-blur-lg rounded-xl",
+        "grid h-auto p-1 glass-card border-0 rounded-xl",
         isMobile ? "grid-cols-1 w-full gap-1" : "grid-cols-3"
       )}>
         <TabsTrigger 
           value="profile" 
           className={cn(
-            "data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 rounded-lg",
+            "data-[state=active]:bg-white/20 dark:data-[state=active]:bg-white/10 data-[state=active]:backdrop-blur-lg rounded-lg transition-all duration-200",
             isMobile ? "justify-start py-3 px-4" : "py-2"
           )}
         >
@@ -47,7 +47,7 @@ const SettingsTabs = () => {
         <TabsTrigger 
           value="whatsapp" 
           className={cn(
-            "data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 rounded-lg",
+            "data-[state=active]:bg-white/20 dark:data-[state=active]:bg-white/10 data-[state=active]:backdrop-blur-lg rounded-lg transition-all duration-200",
             isMobile ? "justify-start py-3 px-4" : "py-2"
           )}
         >
@@ -57,7 +57,7 @@ const SettingsTabs = () => {
         <TabsTrigger 
           value="team" 
           className={cn(
-            "data-[state=active]:bg-white dark:data-[state=active]:bg-gray-800 rounded-lg",
+            "data-[state=active]:bg-white/20 dark:data-[state=active]:bg-white/10 data-[state=active]:backdrop-blur-lg rounded-lg transition-all duration-200",
             isMobile ? "justify-start py-3 px-4" : "py-2"
           )}
         >

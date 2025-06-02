@@ -24,7 +24,7 @@ export function WhatsAppWebSection() {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="glass-card border-0">
         <CardContent className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
         </CardContent>
@@ -35,9 +35,11 @@ export function WhatsAppWebSection() {
   // Se não tem companyId depois de carregar, mostrar mensagem
   if (!companyLoading && !companyId) {
     return (
-      <Card>
+      <Card className="glass-card border-0">
         <CardContent className="text-center py-8">
-          <Wifi className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <div className="p-4 rounded-lg bg-gray-100/50 dark:bg-gray-800/30 inline-block mb-4">
+            <Wifi className="h-12 w-12 text-muted-foreground mx-auto" />
+          </div>
           <h3 className="text-lg font-medium mb-2">Empresa não encontrada</h3>
           <p className="text-muted-foreground">
             Configure os dados da sua empresa primeiro na aba Perfil
@@ -54,15 +56,21 @@ export function WhatsAppWebSection() {
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="glass-card border-0">
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Wifi className="h-5 w-5 text-green-600" />
-            <CardTitle>WhatsApp Web.js</CardTitle>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-green-100/50 dark:bg-green-800/30">
+              <Wifi className="h-5 w-5 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                WhatsApp Web.js
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                Conecte sua conta WhatsApp de forma rápida e automática
+              </p>
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Conecte sua conta WhatsApp de forma rápida e automática
-          </p>
         </CardHeader>
       </Card>
 
@@ -88,9 +96,11 @@ export function WhatsAppWebSection() {
 
       {/* Estado vazio apenas se não há instâncias */}
       {instances.length === 0 && !instancesLoading && (
-        <Card>
+        <Card className="glass-card border-0">
           <CardContent className="text-center py-8">
-            <Wifi className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <div className="p-4 rounded-lg bg-green-100/50 dark:bg-green-800/30 inline-block mb-4">
+              <Wifi className="h-12 w-12 text-green-600 dark:text-green-400 mx-auto" />
+            </div>
             <h3 className="text-lg font-medium mb-2">Nenhuma conexão WhatsApp</h3>
             <p className="text-muted-foreground">
               Clique em "Conectar WhatsApp" para começar
