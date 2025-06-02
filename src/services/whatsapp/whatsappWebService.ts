@@ -53,4 +53,20 @@ export class WhatsAppWebService {
       instanceId
     });
   }
+
+  static async checkServerHealth() {
+    return this.makeAuthenticatedRequest('check_server', {});
+  }
+
+  static async getServerInfo() {
+    return this.makeAuthenticatedRequest('get_server_info', {});
+  }
+
+  static async sendMessage(instanceId: string, phone: string, message: string) {
+    return this.makeAuthenticatedRequest('send_message', {
+      instanceId,
+      phone,
+      message
+    });
+  }
 }
