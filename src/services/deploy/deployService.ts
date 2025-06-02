@@ -221,19 +221,29 @@ echo "🌐 Site disponível em: https://${env.domain}"
   }
 
   static async setupVPSInfrastructure(): Promise<boolean> {
-    console.log('[Deploy] Configurando infraestrutura base na VPS...');
+    console.log('[Deploy] Configurando infraestrutura completa na VPS...');
     
     const setupScript = `
 #!/bin/bash
 set -e
 
-echo "🏗️ Configurando infraestrutura para deploy automático"
+echo "🏗️ Configurando infraestrutura completa para deploy automático"
+echo "📍 Domínios: teste-crm.ticlin.com.br | crm.ticlin.com.br"
+
+# Atualizar sistema
+apt update && apt upgrade -y
 
 # Instalar dependências necessárias
-apt update
 apt install -y nginx certbot python3-certbot-nginx git nodejs npm
 
-# Criar estrutura de diretórios
+# Instalar Node.js mais recente se necessário
+if ! node --version | grep -q "v2"; then
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  apt-get install -y nodejs
+fi
+
+# Criar estrutura de diretórios para ambos os domínios
+echo "📁 Criando estrutura de diretórios..."
 mkdir -p /var/www/teste-crm.ticlin.com.br
 mkdir -p /var/www/crm.ticlin.com.br
 mkdir -p /var/www/deploy-scripts
@@ -243,11 +253,181 @@ mkdir -p /var/www/backups
 chown -R www-data:www-data /var/www/
 chmod -R 755 /var/www/
 
-# Verificar se nginx está rodando
-systemctl enable nginx
-systemctl start nginx
+# Configurar nginx para TESTE
+echo "🌐 Configurando nginx para TESTE (teste-crm.ticlin.com.br)..."
+cat > /etc/nginx/sites-available/teste-crm.ticlin.com.br << 'EOF'
+server {
+    listen 80;
+    server_name teste-crm.ticlin.com.br;
+    root /var/www/teste-crm.ticlin.com.br/dist;
+    index index.html;
 
-echo "✅ Infraestrutura configurada com sucesso!"
+    # Configuração para SPA (Single Page Application)
+    location / {
+        try_files \$uri \$uri/ /index.html;
+    }
+
+    # Proxy para API WhatsApp (se existir)
+    location /api/ {
+        proxy_pass http://localhost:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+    }
+
+    # Headers de segurança básicos
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-Content-Type-Options "nosniff" always;
+}
+EOF
+
+# Configurar nginx para PRODUÇÃO
+echo "🌐 Configurando nginx para PRODUÇÃO (crm.ticlin.com.br)..."
+cat > /etc/nginx/sites-available/crm.ticlin.com.br << 'EOF'
+server {
+    listen 80;
+    server_name crm.ticlin.com.br;
+    root /var/www/crm.ticlin.com.br/dist;
+    index index.html;
+
+    # Configuração para SPA (Single Page Application)
+    location / {
+        try_files \$uri \$uri/ /index.html;
+    }
+
+    # Proxy para API WhatsApp (se existir)
+    location /api/ {
+        proxy_pass http://localhost:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+    }
+
+    # Headers de segurança
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "no-referrer-when-downgrade" always;
+    add_header Content-Security-Policy "default-src 'self' http: https: data: blob: 'unsafe-inline'" always;
+}
+EOF
+
+# Ativar os sites
+echo "✅ Ativando sites no nginx..."
+ln -sf /etc/nginx/sites-available/teste-crm.ticlin.com.br /etc/nginx/sites-enabled/
+ln -sf /etc/nginx/sites-available/crm.ticlin.com.br /etc/nginx/sites-enabled/
+
+# Remover site padrão se existir
+rm -f /etc/nginx/sites-enabled/default
+
+# Testar configuração do nginx
+echo "🧪 Testando configuração do nginx..."
+nginx -t
+
+# Reiniciar nginx
+echo "🔄 Reiniciando nginx..."
+systemctl restart nginx
+systemctl enable nginx
+
+# Configurar SSL automático para ambos os domínios
+echo "🔒 Configurando SSL automático..."
+certbot --nginx -d teste-crm.ticlin.com.br -d crm.ticlin.com.br --non-interactive --agree-tos --email admin@ticlin.com.br --redirect
+
+# Configurar renovação automática do SSL
+echo "⏰ Configurando renovação automática do SSL..."
+echo "0 12 * * * /usr/bin/certbot renew --quiet" | crontab -
+
+# Criar página de manutenção padrão para teste
+echo "📄 Criando página temporária para teste..."
+mkdir -p /var/www/teste-crm.ticlin.com.br/dist
+cat > /var/www/teste-crm.ticlin.com.br/dist/index.html << 'HTML_EOF'
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ticlin CRM - Teste</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        .status { color: #28a745; font-weight: bold; }
+        .info { color: #666; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Ticlin CRM - Ambiente de Teste</h1>
+        <p class="status">✅ Infraestrutura configurada com sucesso!</p>
+        <p class="info">Este é o ambiente de teste. Aguardando primeiro deploy...</p>
+        <p class="info">Domínio: teste-crm.ticlin.com.br</p>
+    </div>
+</body>
+</html>
+HTML_EOF
+
+# Criar página de manutenção padrão para produção
+echo "📄 Criando página temporária para produção..."
+mkdir -p /var/www/crm.ticlin.com.br/dist
+cat > /var/www/crm.ticlin.com.br/dist/index.html << 'HTML_EOF'
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ticlin CRM</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        .status { color: #28a745; font-weight: bold; }
+        .info { color: #666; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Ticlin CRM</h1>
+        <p class="status">✅ Infraestrutura configurada com sucesso!</p>
+        <p class="info">Sistema em configuração. Aguardando deploy...</p>
+        <p class="info">Domínio: crm.ticlin.com.br</p>
+    </div>
+</body>
+</html>
+HTML_EOF
+
+# Ajustar permissões finais
+chown -R www-data:www-data /var/www/
+chmod -R 755 /var/www/
+
+# Verificar status final
+echo ""
+echo "✅ Configuração concluída!"
+echo ""
+echo "📊 Status dos serviços:"
+systemctl status nginx --no-pager -l
+echo ""
+echo "🌐 Domínios configurados:"
+echo "- Teste: https://teste-crm.ticlin.com.br"
+echo "- Produção: https://crm.ticlin.com.br"
+echo ""
+echo "📁 Estrutura criada:"
+ls -la /var/www/
+echo ""
+echo "🔒 Certificados SSL:"
+certbot certificates
+echo ""
+echo "🎉 Pronto para receber deploys!"
     `;
 
     try {
@@ -258,7 +438,7 @@ echo "✅ Infraestrutura configurada com sucesso!"
         },
         body: JSON.stringify({
           command: setupScript,
-          description: 'Configuração inicial da infraestrutura de deploy',
+          description: 'Configuração completa da infraestrutura de deploy com domínios',
           vpsId: 'vps_31_97_24_222'
         })
       });
