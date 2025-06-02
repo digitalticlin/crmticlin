@@ -1,52 +1,63 @@
 
-import { VPSConfigCard } from "./vps/VPSConfigCard";
-import { TestResultsCard } from "./vps/TestResultsCard";
-import { VPSDiagnosticTest } from "./VPSDiagnosticTest";
-import { VPSWebhookTest } from "./VPSWebhookTest";
-import { VPSAutoFixPanel } from "./vps/VPSAutoFixPanel";
-import { VPSQuickDiagnostic } from "./vps/VPSQuickDiagnostic";
-import { VPSInstallGuide } from "./vps/VPSInstallGuide";
-import { useVPSTest } from "./vps/useVPSTest";
+import { HostingerVPSPanel } from "./hostinger/HostingerVPSPanel";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Globe, Zap, Shield, CloudCog } from "lucide-react";
 
 export const VPSTestPanel = () => {
-  const { testing, testResults, runConnectivityTest } = useVPSTest();
-
-  const VPS_CONFIG = {
-    host: '31.97.24.222',
-    port: 3001,
-    sshPort: 22,
-    type: 'Ubuntu 4GB VPS'
-  };
-
   return (
     <div className="space-y-6">
-      {/* Diagnóstico Rápido */}
-      <VPSQuickDiagnostic />
+      {/* Header informativo */}
+      <Card className="border-blue-200 bg-blue-50">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <CloudCog className="h-6 w-6 text-blue-600" />
+            <CardTitle className="text-blue-800">Nova Integração Hostinger API</CardTitle>
+          </div>
+          <CardDescription className="text-blue-700">
+            Controle total da VPS via API oficial da Hostinger - Sem necessidade de SSH manual
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+              <Zap className="h-5 w-5 text-yellow-500" />
+              <div>
+                <div className="font-medium">Instalação Automática</div>
+                <div className="text-sm text-muted-foreground">WhatsApp Web.js com um clique</div>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+              <Shield className="h-5 w-5 text-green-500" />
+              <div>
+                <div className="font-medium">Correções SSL</div>
+                <div className="text-sm text-muted-foreground">Aplicadas automaticamente</div>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+              <Globe className="h-5 w-5 text-blue-500" />
+              <div>
+                <div className="font-medium">API Oficial</div>
+                <div className="text-sm text-muted-foreground">Integração nativa Hostinger</div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-4 flex gap-2">
+            <Badge variant="outline" className="text-green-600 border-green-600">
+              ✅ Token Configurado
+            </Badge>
+            <Badge variant="outline" className="text-blue-600 border-blue-600">
+              🚀 Pronto para Uso
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
 
-      <VPSConfigCard 
-        config={VPS_CONFIG}
-        onTest={runConnectivityTest}
-        testing={testing}
-      />
-
-      {testResults && (
-        <TestResultsCard 
-          testResults={testResults}
-          vpsConfig={VPS_CONFIG}
-        />
-      )}
-
-      {/* Painel de Instalação Automática */}
-      <VPSAutoFixPanel />
-
-      {/* Guia de Instalação Manual */}
-      <VPSInstallGuide />
-
-      {/* Teste específico de webhook */}
-      <VPSWebhookTest />
-
-      {/* Diagnóstico completo */}
-      <VPSDiagnosticTest />
+      {/* Painel principal da Hostinger */}
+      <HostingerVPSPanel />
     </div>
   );
 };
