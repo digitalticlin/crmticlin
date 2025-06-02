@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,8 @@ import { WhatsAppStatusCard } from "./WhatsAppStatusCard";
 import { VPSSelector } from "./VPSSelector";
 import { VPSActions } from "./VPSActions";
 import { VPSLogs } from "./VPSLogs";
-import { Server, Loader2, Zap } from "lucide-react";
+import { DirectDeployButton } from "./DirectDeployButton";
+import { Server, Loader2, Zap, AlertTriangle } from "lucide-react";
 
 export const HostingerVPSPanel = () => {
   const {
@@ -42,7 +44,32 @@ export const HostingerVPSPanel = () => {
 
   return (
     <div className="space-y-6">
-      {/* VPS Selection */}
+      {/* Deploy Direto - Sempre visível */}
+      <DirectDeployButton />
+
+      {/* API Status Warning */}
+      <Card className="border-orange-200 bg-orange-50">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-orange-600" />
+            <CardTitle className="text-orange-800">Status da API Hostinger</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <p className="text-sm text-orange-700">
+              ⚠️ <strong>HTTPS 530 Error detectado</strong> - API Hostinger temporariamente indisponível
+            </p>
+            <p className="text-xs text-orange-600">
+              • Use o "Deploy Direto" acima para contornar este problema<br/>
+              • Funcionalidades de gerenciamento VPS podem estar limitadas<br/>
+              • O servidor WhatsApp funcionará normalmente após o deploy
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* VPS Selection - Pode falhar devido ao erro 530 */}
       <VPSSelector
         vpsList={vpsList}
         selectedVPS={selectedVPS}
