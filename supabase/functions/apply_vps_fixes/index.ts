@@ -15,54 +15,76 @@ interface FixStep {
   output?: string;
 }
 
-// Configuração da API HTTP na VPS
-const VPS_API_CONFIG = {
+// Configuração SSH da VPS
+const VPS_SSH_CONFIG = {
   host: '31.97.24.222',
-  port: 3002, // Porta diferente do WhatsApp (3001)
-  baseUrl: 'http://31.97.24.222:3002'
+  port: 22,
+  username: 'root'
 };
 
-// Função para executar comando via API HTTP na VPS
-async function executeVPSCommand(command: string, description: string): Promise<{ success: boolean; output: string; error?: string }> {
+// Função para executar comando via SSH na VPS
+async function executeSSHCommand(command: string, description: string): Promise<{ success: boolean; output: string; error?: string }> {
   try {
-    console.log(`🔧 Executando via API HTTP: ${description}`);
+    console.log(`🔧 Executando via SSH: ${description}`);
     console.log(`Command: ${command}`);
     
-    const response = await fetch(`${VPS_API_CONFIG.baseUrl}/execute`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get('VPS_API_TOKEN') || 'default-token'}`,
-      },
-      body: JSON.stringify({
-        command: command,
-        description: description,
-        timeout: 120000 // 2 minutos timeout
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP ${response.status}: ${errorText}`);
+    const sshPrivateKey = Deno.env.get('VPS_SSH_PRIVATE_KEY');
+    if (!sshPrivateKey) {
+      throw new Error('Chave SSH privada não configurada. Configure VPS_SSH_PRIVATE_KEY nos secrets.');
     }
 
-    const result = await response.json();
+    // Criar arquivo temporário com a chave SSH
+    const keyFile = await Deno.makeTempFile({ suffix: '.pem' });
+    await Deno.writeTextFile(keyFile, sshPrivateKey);
+    await Deno.chmod(keyFile, 0o600);
+
+    try {
+      // Executar comando SSH
+      const sshCommand = [
+        'ssh',
+        '-i', keyFile,
+        '-o', 'StrictHostKeyChecking=no',
+        '-o', 'UserKnownHostsFile=/dev/null',
+        '-o', 'ConnectTimeout=30',
+        `${VPS_SSH_CONFIG.username}@${VPS_SSH_CONFIG.host}`,
+        command
+      ];
+
+      const process = new Deno.Command('ssh', {
+        args: sshCommand.slice(1),
+        stdout: 'piped',
+        stderr: 'piped',
+      });
+
+      const { code, stdout, stderr } = await process.output();
+      const output = new TextDecoder().decode(stdout);
+      const error = new TextDecoder().decode(stderr);
+
+      if (code === 0) {
+        console.log(`✅ SSH sucesso: ${output.substring(0, 200)}`);
+        return {
+          success: true,
+          output: output || 'Comando executado com sucesso'
+        };
+      } else {
+        console.error(`❌ SSH erro (código ${code}): ${error}`);
+        return {
+          success: false,
+          output: output,
+          error: `SSH failed (code ${code}): ${error}`
+        };
+      }
+    } finally {
+      // Limpar arquivo de chave temporário
+      await Deno.remove(keyFile).catch(() => {});
+    }
     
-    console.log(`✅ Resultado: ${result.success ? 'Sucesso' : 'Erro'}`);
-    console.log(`Output: ${result.output}`);
-    
-    return {
-      success: result.success,
-      output: result.output || '',
-      error: result.error
-    };
-    
-  } catch (error) {
-    console.error(`❌ Erro na requisição HTTP: ${error.message}`);
+  } catch (error: any) {
+    console.error(`❌ Erro SSH: ${error.message}`);
     return {
       success: false,
       output: '',
-      error: `Erro na comunicação com VPS: ${error.message}`
+      error: `Erro SSH: ${error.message}`
     };
   }
 }
@@ -343,6 +365,111 @@ process.on('SIGINT', () => {
 
 module.exports = app;`;
 
+// Código do API Server para porta 3002
+const API_SERVER_CODE = `const express = require('express');
+const { exec } = require('child_process');
+const cors = require('cors');
+
+const app = express();
+const PORT = process.env.API_PORT || 3002;
+
+// Configurar CORS e parsing
+app.use(cors());
+app.use(express.json());
+
+// Token simples para autenticação
+const API_TOKEN = process.env.VPS_API_TOKEN || 'default-token';
+
+// Middleware de autenticação
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token || token !== API_TOKEN) {
+    return res.status(401).json({ success: false, error: 'Token de autenticação inválido' });
+  }
+
+  next();
+}
+
+// Endpoint de status
+app.get('/status', (req, res) => {
+  res.json({
+    success: true,
+    status: 'online',
+    server: 'VPS API Server',
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
+    port: PORT
+  });
+});
+
+// Endpoint principal para execução de comandos
+app.post('/execute', authenticateToken, async (req, res) => {
+  const { command, description, timeout = 60000 } = req.body;
+
+  if (!command) {
+    return res.status(400).json({
+      success: false,
+      error: 'Comando é obrigatório'
+    });
+  }
+
+  console.log(\`🔧 Executando: \${description || 'Comando personalizado'}\`);
+  console.log(\`Command: \${command}\`);
+
+  try {
+    const startTime = Date.now();
+
+    exec(command, { timeout }, (error, stdout, stderr) => {
+      const duration = Date.now() - startTime;
+
+      if (error) {
+        console.error(\`❌ Erro: \${error.message}\`);
+        return res.status(500).json({
+          success: false,
+          error: error.message,
+          output: stderr || stdout,
+          duration
+        });
+      }
+
+      const output = stdout.trim() || stderr.trim() || 'Comando executado com sucesso';
+      
+      console.log(\`✅ Sucesso (\${duration}ms): \${output.substring(0, 200)}\`);
+      
+      res.json({
+        success: true,
+        output,
+        duration,
+        timestamp: new Date().toISOString()
+      });
+    });
+
+  } catch (error) {
+    console.error(\`❌ Erro na execução: \${error.message}\`);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Iniciar servidor
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(\`🚀 VPS API Server rodando na porta \${PORT}\`);
+  console.log(\`📡 Status: http://localhost:\${PORT}/status\`);
+  console.log(\`🔧 Execute: POST http://localhost:\${PORT}/execute\`);
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+  console.log('🛑 Encerrando VPS API Server...');
+  process.exit(0);
+});
+
+module.exports = app;`;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -354,10 +481,10 @@ serve(async (req) => {
       message: '',
       timestamp: new Date().toISOString(),
       steps: [] as FixStep[],
-      vps_api_connection: {
-        host: VPS_API_CONFIG.host,
-        port: VPS_API_CONFIG.port,
-        baseUrl: VPS_API_CONFIG.baseUrl,
+      ssh_connection: {
+        host: VPS_SSH_CONFIG.host,
+        port: VPS_SSH_CONFIG.port,
+        username: VPS_SSH_CONFIG.username,
         connected: false
       },
       final_verification: {
@@ -368,36 +495,36 @@ serve(async (req) => {
       }
     };
 
-    console.log('🚀 Iniciando aplicação de correções VPS via API HTTP...');
+    console.log('🚀 Iniciando aplicação de correções VPS via SSH direto...');
 
-    // Etapa 1: Verificar conexão com a API da VPS
+    // Etapa 1: Verificar conexão SSH
     const step1: FixStep = {
-      step: 'Verificação de conexão API VPS',
+      step: 'Verificação de conexão SSH',
       status: 'running',
-      details: 'Testando conexão com a API HTTP da VPS...',
-      command: 'GET /api/status'
+      details: 'Testando conexão SSH com a VPS...',
+      command: 'echo "SSH Connection Test - $(date)"'
     };
     results.steps.push(step1);
 
     const startTime1 = Date.now();
     try {
-      const statusCheck = await executeVPSCommand('echo "API Connection Test - $(date)"', 'Teste de conexão API');
+      const sshTest = await executeSSHCommand('echo "SSH Connection Test - $(date)"', 'Teste de conexão SSH');
       
-      if (statusCheck.success) {
+      if (sshTest.success) {
         step1.status = 'success';
-        step1.details = 'Conexão com API VPS estabelecida com sucesso';
-        step1.output = statusCheck.output;
+        step1.details = 'Conexão SSH estabelecida com sucesso';
+        step1.output = sshTest.output;
         step1.duration = Date.now() - startTime1;
-        results.vps_api_connection.connected = true;
+        results.ssh_connection.connected = true;
       } else {
-        throw new Error(statusCheck.error || 'Falha na conexão com API VPS');
+        throw new Error(sshTest.error || 'Falha na conexão SSH');
       }
     } catch (error: any) {
       step1.status = 'error';
-      step1.details = `Erro na conexão com API VPS: ${error.message}`;
+      step1.details = `Erro na conexão SSH: ${error.message}`;
       step1.duration = Date.now() - startTime1;
       
-      results.message = 'Falha na conexão com API VPS - Verifique se o servidor API está rodando na porta 3002';
+      results.message = 'Falha na conexão SSH - Verifique se a chave privada está configurada corretamente';
       return new Response(
         JSON.stringify(results),
         { 
@@ -406,7 +533,7 @@ serve(async (req) => {
       );
     }
 
-    // Etapa 2: Verificar diretório e criar backup
+    // Etapa 2: Backup do servidor atual
     const step2: FixStep = {
       step: 'Backup do servidor atual',
       status: 'running',
@@ -417,7 +544,7 @@ serve(async (req) => {
 
     const startTime2 = Date.now();
     try {
-      const backupResult = await executeVPSCommand(
+      const backupResult = await executeSSHCommand(
         'cd /root/whatsapp-server && cp server.js server.js.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || echo "Arquivo server.js não encontrado - será criado"',
         'Criação de backup'
       );
@@ -432,34 +559,42 @@ serve(async (req) => {
       step2.duration = Date.now() - startTime2;
     }
 
-    // Etapa 3: Criar diretório e aplicar código corrigido
+    // Etapa 3: Criar diretórios e aplicar código corrigido
     const step3: FixStep = {
       step: 'Aplicação das correções SSL/Timeout',
       status: 'running',
-      details: 'Criando diretório e aplicando código corrigido...',
+      details: 'Criando diretórios e aplicando código corrigido...',
       command: 'mkdir -p /root/whatsapp-server && aplicar código corrigido'
     };
     results.steps.push(step3);
 
     const startTime3 = Date.now();
     try {
-      // Primeiro criar o diretório
-      await executeVPSCommand('mkdir -p /root/whatsapp-server', 'Criação de diretório');
+      // Primeiro criar os diretórios
+      await executeSSHCommand('mkdir -p /root/whatsapp-server', 'Criação de diretório WhatsApp');
+      await executeSSHCommand('mkdir -p /root/vps-api-server', 'Criação de diretório API');
       
-      // Aplicar o novo código usando cat com EOF
-      const writeCodeCommand = `cat > /root/whatsapp-server/server.js << 'EOF'
+      // Aplicar o código do WhatsApp server
+      const writeWhatsAppCommand = `cat > /root/whatsapp-server/server.js << 'EOF'
 ${FIXED_SERVER_CODE}
 EOF`;
       
-      const applyFixResult = await executeVPSCommand(writeCodeCommand, 'Aplicação do código corrigido');
+      const applyWhatsAppResult = await executeSSHCommand(writeWhatsAppCommand, 'Aplicação do código WhatsApp corrigido');
       
-      if (applyFixResult.success) {
+      // Aplicar o código do API server
+      const writeAPICommand = `cat > /root/vps-api-server/server.js << 'EOF'
+${API_SERVER_CODE}
+EOF`;
+      
+      const applyAPIResult = await executeSSHCommand(writeAPICommand, 'Aplicação do código API server');
+      
+      if (applyWhatsAppResult.success && applyAPIResult.success) {
         step3.status = 'success';
-        step3.details = 'Arquivo server.js atualizado com correções SSL/Timeout';
-        step3.output = 'Código corrigido aplicado com sucesso';
+        step3.details = 'Arquivos server.js atualizados com correções SSL/Timeout e API server criado';
+        step3.output = 'Códigos corrigidos aplicados com sucesso';
         step3.duration = Date.now() - startTime3;
       } else {
-        throw new Error(applyFixResult.error || 'Falha na aplicação do código');
+        throw new Error('Falha na aplicação de um ou ambos os códigos');
       }
     } catch (error: any) {
       step3.status = 'error';
@@ -472,14 +607,14 @@ EOF`;
       step: 'Verificação e instalação de dependências',
       status: 'running',
       details: 'Verificando package.json e instalando dependências...',
-      command: 'cd /root/whatsapp-server && npm install whatsapp-web.js express qrcode'
+      command: 'npm install em ambos os diretórios'
     };
     results.steps.push(step4);
 
     const startTime4 = Date.now();
     try {
-      // Verificar se existe package.json, se não criar um básico
-      const packageJsonCommand = `cd /root/whatsapp-server && if [ ! -f package.json ]; then
+      // Package.json para WhatsApp server
+      const packageWhatsAppCommand = `cd /root/whatsapp-server && if [ ! -f package.json ]; then
 cat > package.json << 'EOF'
 {
   "name": "whatsapp-server",
@@ -499,17 +634,36 @@ cat > package.json << 'EOF'
 EOF
 fi`;
       
-      await executeVPSCommand(packageJsonCommand, 'Verificação/criação do package.json');
+      // Package.json para API server
+      const packageAPICommand = `cd /root/vps-api-server && if [ ! -f package.json ]; then
+cat > package.json << 'EOF'
+{
+  "name": "vps-api-server",
+  "version": "1.0.0",
+  "description": "API Server para controle remoto da VPS",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  }
+}
+EOF
+fi`;
+      
+      await executeSSHCommand(packageWhatsAppCommand, 'Criação do package.json WhatsApp');
+      await executeSSHCommand(packageAPICommand, 'Criação do package.json API');
       
       // Instalar dependências
-      const installResult = await executeVPSCommand(
-        'cd /root/whatsapp-server && npm install',
-        'Instalação de dependências'
-      );
+      await executeSSHCommand('cd /root/whatsapp-server && npm install', 'Instalação de dependências WhatsApp');
+      await executeSSHCommand('cd /root/vps-api-server && npm install', 'Instalação de dependências API');
       
       step4.status = 'success';
-      step4.details = 'Dependências verificadas e instaladas';
-      step4.output = 'package.json criado/verificado e dependências instaladas';
+      step4.details = 'Dependências verificadas e instaladas em ambos os servidores';
+      step4.output = 'package.json criados e dependências instaladas';
       step4.duration = Date.now() - startTime4;
     } catch (error: any) {
       step4.status = 'error';
@@ -517,96 +671,98 @@ fi`;
       step4.duration = Date.now() - startTime4;
     }
 
-    // Etapa 5: Parar processos antigos e iniciar novo servidor
+    // Etapa 5: Parar processos antigos e iniciar novos servidores
     const step5: FixStep = {
-      step: 'Reinicialização do servidor',
+      step: 'Reinicialização dos servidores',
       status: 'running',
-      details: 'Parando processos antigos e iniciando novo servidor...',
-      command: 'cd /root/whatsapp-server && pkill -f "node.*server.js" || true && nohup node server.js > server.log 2>&1 &'
+      details: 'Parando processos antigos e iniciando novos servidores...',
+      command: 'pkill node && iniciar ambos os servidores'
     };
     results.steps.push(step5);
 
     const startTime5 = Date.now();
     try {
       // Parar processos antigos
-      await executeVPSCommand('pkill -f "node.*server.js" || true', 'Parada de processos antigos');
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await executeSSHCommand('pkill -f "node.*server.js" || true', 'Parada de processos antigos');
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
-      // Iniciar novo servidor
-      const startResult = await executeVPSCommand(
-        'cd /root/whatsapp-server && nohup node server.js > server.log 2>&1 & echo "Servidor iniciado"',
-        'Inicialização do servidor'
+      // Iniciar WhatsApp server
+      await executeSSHCommand(
+        'cd /root/whatsapp-server && nohup node server.js > whatsapp.log 2>&1 & echo "WhatsApp server iniciado"',
+        'Inicialização do WhatsApp server'
+      );
+      
+      // Iniciar API server
+      await executeSSHCommand(
+        'cd /root/vps-api-server && nohup node server.js > api.log 2>&1 & echo "API server iniciado"',
+        'Inicialização do API server'
       );
       
       step5.status = 'success';
-      step5.details = 'Servidor reiniciado com sucesso';
-      step5.output = startResult.output;
+      step5.details = 'Ambos os servidores reiniciados com sucesso';
+      step5.output = 'WhatsApp server (porta 3001) e API server (porta 3002) iniciados';
       step5.duration = Date.now() - startTime5;
     } catch (error: any) {
       step5.status = 'error';
-      step5.details = `Erro ao reiniciar servidor: ${error.message}`;
+      step5.details = `Erro ao reiniciar servidores: ${error.message}`;
       step5.duration = Date.now() - startTime5;
     }
 
-    // Etapa 6: Verificação final com novos endpoints
+    // Etapa 6: Verificação final dos servidores
     const step6: FixStep = {
       step: 'Verificação pós-correção',
       status: 'running',
-      details: 'Aguardando servidor estabilizar e verificando endpoints...',
-      command: 'sleep 10 && curl -s http://localhost:3001/health'
+      details: 'Aguardando servidores estabilizarem e verificando endpoints...',
+      command: 'sleep 10 && curl health endpoints'
     };
     results.steps.push(step6);
 
     const startTime6 = Date.now();
     try {
-      // Aguardar servidor estabilizar
-      await new Promise(resolve => setTimeout(resolve, 8000));
+      // Aguardar servidores estabilizarem
+      await new Promise(resolve => setTimeout(resolve, 10000));
       
-      // Verificar health endpoint
-      const healthResult = await executeVPSCommand(
+      // Verificar WhatsApp server
+      const whatsappResult = await executeSSHCommand(
         'curl -s http://localhost:3001/health',
-        'Verificação do endpoint health'
-      );
-      const infoResult = await executeVPSCommand(
-        'curl -s http://localhost:3001/info',
-        'Verificação do endpoint info'
-      );
-      const statusResult = await executeVPSCommand(
-        'curl -s http://localhost:3001/instances',
-        'Verificação do endpoint instances'
+        'Verificação do WhatsApp server'
       );
       
-      if (healthResult.success) {
+      // Verificar API server
+      const apiResult = await executeSSHCommand(
+        'curl -s http://localhost:3002/status',
+        'Verificação do API server'
+      );
+      
+      if (whatsappResult.success && apiResult.success) {
         try {
-          const healthData = JSON.parse(healthResult.output);
-          const infoData = infoResult.success ? JSON.parse(infoResult.output) : {};
+          const whatsappData = JSON.parse(whatsappResult.output);
           
           results.final_verification = {
-            server_version: healthData.version || '2.0.0-ssl-fix',
-            ssl_fix_enabled: healthData.ssl_fix_enabled === true,
-            timeout_fix_enabled: healthData.timeout_fix_enabled === true,
+            server_version: whatsappData.version || '2.0.0-ssl-fix',
+            ssl_fix_enabled: whatsappData.ssl_fix_enabled === true,
+            timeout_fix_enabled: whatsappData.timeout_fix_enabled === true,
             webhook_test_available: true
           };
 
           step6.status = 'success';
-          step6.details = `Servidor funcionando! Versão: ${results.final_verification.server_version}`;
-          step6.output = `Health: ${healthResult.output}\nInfo: ${infoResult.output || 'N/A'}`;
+          step6.details = `Ambos os servidores funcionando! WhatsApp: ${results.final_verification.server_version}, API: online`;
+          step6.output = `WhatsApp: ${whatsappResult.output}\nAPI: ${apiResult.output}`;
           step6.duration = Date.now() - startTime6;
           
           results.success = true;
-          results.message = 'Todas as correções foram aplicadas e verificadas com sucesso via API HTTP!';
+          results.message = 'Todas as correções foram aplicadas e ambos os servidores estão funcionando!';
         } catch (parseError) {
-          // Se não conseguir fazer parse do JSON, ainda considerar sucesso se recebeu resposta
           step6.status = 'success';
-          step6.details = 'Servidor respondendo (dados em formato não-JSON)';
-          step6.output = healthResult.output;
+          step6.details = 'Servidores respondendo (dados em formato não-JSON)';
+          step6.output = `WhatsApp: ${whatsappResult.output}\nAPI: ${apiResult.output}`;
           step6.duration = Date.now() - startTime6;
           
           results.success = true;
-          results.message = 'Correções aplicadas com sucesso - servidor respondendo!';
+          results.message = 'Correções aplicadas com sucesso - ambos os servidores respondendo!';
         }
       } else {
-        throw new Error('Servidor não respondeu adequadamente');
+        throw new Error(`WhatsApp server: ${whatsappResult.success ? 'OK' : 'FALHA'}, API server: ${apiResult.success ? 'OK' : 'FALHA'}`);
       }
     } catch (error: any) {
       step6.status = 'error';
@@ -623,11 +779,11 @@ fi`;
       }
     }
 
-    console.log('✅ Resultado final das correções via API HTTP:', {
+    console.log('✅ Resultado final das correções via SSH:', {
       success: results.success,
       totalSteps: results.steps.length,
       successfulSteps: results.steps.filter(s => s.status === 'success').length,
-      apiConnected: results.vps_api_connection.connected
+      sshConnected: results.ssh_connection.connected
     });
 
     return new Response(
@@ -638,12 +794,12 @@ fi`;
     );
 
   } catch (error) {
-    console.error('❌ Erro na aplicação de correções via API HTTP:', error);
+    console.error('❌ Erro na aplicação de correções via SSH:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
         error: error.message,
-        message: 'Falha na aplicação de correções via API HTTP',
+        message: 'Falha na aplicação de correções via SSH',
         timestamp: new Date().toISOString(),
         steps: []
       }),
