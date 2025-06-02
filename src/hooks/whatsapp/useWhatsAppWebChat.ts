@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Contact, Message } from '@/types/chat';
 import { supabase } from "@/integrations/supabase/client";
@@ -104,12 +103,18 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
     }
   }, [selectedContact, activeInstance]);
 
-  // Enviar mensagem via WhatsApp Web.js
+  // Enviar mensagem via WhatsApp Web.js - MÉTODO ATUALIZADO
   const sendMessage = useCallback(async (text: string): Promise<boolean> => {
     if (!selectedContact || !activeInstance || !text.trim()) return false;
 
     setIsSending(true);
     try {
+      console.log('[WhatsApp Web Chat] Sending message:', {
+        instanceId: activeInstance.id,
+        phone: selectedContact.phone,
+        text: text.trim()
+      });
+
       const result = await WhatsAppWebService.sendMessage(
         activeInstance.id,
         selectedContact.phone,
@@ -139,13 +144,14 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
           fetchContacts();
         }, 1000);
 
+        toast.success('Mensagem enviada com sucesso');
         return true;
       } else {
         toast.error(`Erro ao enviar mensagem: ${result.error}`);
         return false;
       }
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('[WhatsApp Web Chat] Error sending message:', error);
       toast.error('Erro ao enviar mensagem');
       return false;
     } finally {

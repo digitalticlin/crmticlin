@@ -1,5 +1,5 @@
-
 import { supabase } from "@/integrations/supabase/client";
+import { MessageSendingService } from "./services/messageSendingService";
 
 export class WhatsAppWebService {
   private static async makeAuthenticatedRequest(action: string, data: any) {
@@ -97,10 +97,12 @@ export class WhatsAppWebService {
   }
 
   static async sendMessage(instanceId: string, phone: string, message: string) {
-    return this.makeAuthenticatedRequest('send_message', {
+    console.log('[WhatsApp Web Service] 📤 Sending message:', {
       instanceId,
       phone,
-      message
+      messageLength: message.length
     });
+
+    return MessageSendingService.sendMessage(instanceId, phone, message);
   }
 }

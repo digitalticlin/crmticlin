@@ -342,6 +342,67 @@ function startSessionBackup() {
   }, RECONNECT_CONFIG.sessionBackupInterval);
 }
 
+// ===== NOVO ENDPOINT PARA ENVIO DE MENSAGENS =====
+app.post('/send', authenticateToken, async (req, res) => {
+  const { instanceId, phone, message } = req.body;
+
+  if (!instanceId || !phone || !message) {
+    return res.status(400).json({
+      success: false,
+      error: 'instanceId, phone e message são obrigatórios',
+      version: SERVER_VERSION
+    });
+  }
+
+  console.log(`📤 [v${SERVER_VERSION}] Enviando mensagem para ${phone} via instância ${instanceId}`);
+
+  try {
+    if (!activeInstances.has(instanceId)) {
+      return res.status(404).json({
+        success: false,
+        error: 'Instância não encontrada',
+        version: SERVER_VERSION
+      });
+    }
+
+    const instance = activeInstances.get(instanceId);
+    
+    if (instance.status !== 'ready') {
+      return res.status(400).json({
+        success: false,
+        error: `Instância não está pronta. Status atual: ${instance.status}`,
+        version: SERVER_VERSION
+      });
+    }
+
+    // Limpar número de telefone (remover caracteres especiais)
+    const cleanPhone = phone.replace(/\D/g, '');
+    const formattedPhone = cleanPhone.includes('@') ? cleanPhone : `${cleanPhone}@c.us`;
+
+    // Enviar mensagem
+    const messageResult = await instance.client.sendMessage(formattedPhone, message);
+    
+    console.log(`✅ [v${SERVER_VERSION}] Mensagem enviada com sucesso para ${phone}`);
+    
+    res.json({
+      success: true,
+      messageId: messageResult.id._serialized,
+      to: formattedPhone,
+      message: message,
+      timestamp: new Date().toISOString(),
+      version: SERVER_VERSION
+    });
+
+  } catch (error) {
+    console.error(`❌ [v${SERVER_VERSION}] Erro ao enviar mensagem: ${error.message}`);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      version: SERVER_VERSION
+    });
+  }
+});
+
 // ===== ENDPOINTS =====
 
 // Health endpoint
@@ -367,7 +428,8 @@ app.get('/health', (req, res) => {
       '/instance/create',
       '/instance/delete',
       '/instance/status',
-      '/instance/qr'
+      '/instance/qr',
+      '/send'
     ]
   });
 });
@@ -400,7 +462,8 @@ app.get('/', (req, res) => {
       'POST /instance/create',
       'POST /instance/delete',
       'POST /instance/status',
-      'POST /instance/qr'
+      'POST /instance/qr',
+      'POST /send'
     ],
     timestamp: new Date().toISOString(),
     auth_configured: API_TOKEN !== 'default-token'
