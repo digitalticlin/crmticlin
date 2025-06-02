@@ -1,24 +1,51 @@
 
+// WhatsApp Web.js Service Types
 export interface WhatsAppWebInstance {
   id: string;
-  instanceName: string;
-  connectionType: 'web';
-  serverUrl: string;
-  vpsInstanceId: string;
-  webStatus: string;
-  connectionStatus: string;
-  qrCode?: string;
+  instance_name: string;
+  connection_type: 'web';
+  server_url: string;
+  vps_instance_id: string;
+  web_status: string;
+  connection_status: string;
+  qr_code?: string;
   phone?: string;
-  profileName?: string;
+  profile_name?: string;
+  company_id: string;
 }
 
-export interface ServiceResponse<T = any> {
+export interface ServiceResponse {
   success: boolean;
-  data?: T;
   error?: string;
-  qrCode?: string; // Add qrCode property for QR code responses
+  data?: any;
 }
 
 export interface InstanceResponse extends ServiceResponse {
   instance?: WhatsAppWebInstance;
+}
+
+export interface QRCodeResponse extends ServiceResponse {
+  qrCode?: string;
+}
+
+export interface ServerHealthResponse extends ServiceResponse {
+  status?: string;
+  uptime?: string;
+  activeInstances?: number;
+  timestamp?: string;
+}
+
+// VPS Server Communication Types
+export interface VPSCreateInstanceRequest {
+  instanceId: string;
+  sessionName: string;
+  webhookUrl?: string;
+}
+
+export interface VPSDeleteInstanceRequest {
+  instanceId: string;
+}
+
+export interface VPSInstanceStatusRequest {
+  instanceId: string;
 }

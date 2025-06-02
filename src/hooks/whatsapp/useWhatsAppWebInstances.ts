@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
 import { toast } from "sonner";
@@ -7,7 +7,7 @@ import { toast } from "sonner";
 export interface WhatsAppWebInstance {
   id: string;
   instance_name: string;
-  connection_type: string;
+  connection_type: 'web';
   server_url: string;
   vps_instance_id: string;
   web_status: string;
@@ -18,41 +18,30 @@ export interface WhatsAppWebInstance {
   company_id: string;
 }
 
-export interface AutoConnectState {
+interface AutoConnectState {
   isConnecting: boolean;
   showQRModal: boolean;
   activeInstanceId: string | null;
-  error: string | null;
 }
 
-export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boolean) => {
+export function useWhatsAppWebInstances(companyId: string | null, companyLoading: boolean) {
   const [instances, setInstances] = useState<WhatsAppWebInstance[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [autoConnectState, setAutoConnectState] = useState<AutoConnectState>({
     isConnecting: false,
     showQRModal: false,
-    activeInstanceId: null,
-    error: null
+    activeInstanceId: null
   });
 
-  const generateInstanceName = () => {
-    const timestamp = Date.now();
-    const random = Math.random().toString(36).substring(2, 8);
-    return `whatsapp_${timestamp}_${random}`;
-  };
+  // Fetch instances from database
+  const fetchInstances = useCallback(async () => {
+    if (!companyId || companyLoading) return;
 
-  const fetchInstances = async () => {
-    if (!companyId) {
-      setInstances([]);
-      setLoading(false);
-      return;
-    }
+    setLoading(true);
+    setError(null);
 
     try {
-      setLoading(true);
-      setError(null);
-
       const { data, error: fetchError } = await supabase
         .from('whatsapp_instances')
         .select('*')
@@ -60,218 +49,140 @@ export const useWhatsAppWebInstances = (companyId?: string, companyLoading?: boo
         .eq('connection_type', 'web')
         .order('created_at', { ascending: false });
 
-      if (fetchError) {
-        throw new Error(fetchError.message);
-      }
+      if (fetchError) throw fetchError;
 
-      setInstances(data || []);
-    } catch (err) {
+      const mappedInstances: WhatsAppWebInstance[] = (data || []).map(instance => ({
+        id: instance.id,
+        instance_name: instance.instance_name,
+        connection_type: 'web',
+        server_url: instance.server_url || '',
+        vps_instance_id: instance.vps_instance_id || '',
+        web_status: instance.web_status || 'creating',
+        connection_status: instance.connection_status || 'disconnected',
+        qr_code: instance.qr_code,
+        phone: instance.phone,
+        profile_name: instance.profile_name,
+        company_id: instance.company_id
+      }));
+
+      setInstances(mappedInstances);
+    } catch (err: any) {
       console.error('Error fetching WhatsApp Web instances:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      setError(err.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [companyId, companyLoading]);
 
+  // Auto connection flow
   const startAutoConnection = async () => {
-    try {
-      setAutoConnectState(prev => ({ 
-        ...prev, 
-        isConnecting: true, 
-        error: null 
-      }));
+    if (!companyId) {
+      toast.error('ID da empresa não encontrado');
+      return;
+    }
 
-      const instanceName = generateInstanceName();
+    setAutoConnectState(prev => ({ ...prev, isConnecting: true }));
+
+    try {
+      const instanceName = `whatsapp_${Date.now()}`;
+      
       const result = await WhatsAppWebService.createInstance(instanceName);
 
-      if (!result.success) {
+      if (result.success && result.instance) {
+        const newInstance = result.instance;
+        
+        setAutoConnectState({
+          isConnecting: false,
+          showQRModal: true,
+          activeInstanceId: newInstance.id
+        });
+
+        // Refresh instances to include the new one
+        await fetchInstances();
+        
+        toast.success('Instância WhatsApp criada! Escaneie o QR Code para conectar.');
+      } else {
         throw new Error(result.error || 'Falha ao criar instância');
       }
-
-      const newInstanceId = result.instance?.id;
-      if (newInstanceId) {
-        setAutoConnectState(prev => ({
-          ...prev,
-          activeInstanceId: newInstanceId,
-          showQRModal: true
-        }));
-      }
-
-      toast.success('Instância criada! Escaneie o QR code para conectar.');
-      await fetchInstances();
-
-    } catch (error) {
-      console.error('Error in auto connect:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      
-      setAutoConnectState(prev => ({
-        ...prev,
-        error: errorMessage,
-        isConnecting: false
-      }));
-      
-      toast.error(errorMessage);
-    } finally {
+    } catch (error: any) {
+      console.error('Error in auto connection:', error);
       setAutoConnectState(prev => ({ ...prev, isConnecting: false }));
+      toast.error(`Erro ao conectar WhatsApp: ${error.message}`);
     }
   };
 
-  const createInstance = async (instanceName: string): Promise<void> => {
-    try {
-      setLoading(true);
-      
-      const result = await WhatsAppWebService.createInstance(instanceName);
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to create instance');
-      }
-
-      toast.success('Instância WhatsApp criada com sucesso!');
-      await fetchInstances();
-      
-    } catch (err) {
-      console.error('Error creating instance:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao criar instância';
-      toast.error(errorMessage);
-      setError(errorMessage);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Delete instance
   const deleteInstance = async (instanceId: string) => {
     try {
-      setLoading(true);
-      
       const result = await WhatsAppWebService.deleteInstance(instanceId);
       
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to delete instance');
+      if (result.success) {
+        await fetchInstances();
+        toast.success('Instância deletada com sucesso');
+      } else {
+        throw new Error(result.error || 'Falha ao deletar instância');
       }
-
-      toast.success('Instância removida com sucesso!');
-      await fetchInstances();
-      
-    } catch (err) {
-      console.error('Error deleting instance:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Erro ao remover instância';
-      toast.error(errorMessage);
-      setError(errorMessage);
-      throw err;
-    } finally {
-      setLoading(false);
+    } catch (error: any) {
+      console.error('Error deleting instance:', error);
+      toast.error(`Erro ao deletar instância: ${error.message}`);
     }
   };
 
+  // Refresh QR Code
   const refreshQRCode = async (instanceId: string) => {
     try {
-      const instance = instances.find(i => i.id === instanceId);
-      if (!instance?.vps_instance_id) {
-        throw new Error('Instance not found');
-      }
-
-      const result = await WhatsAppWebService.getQRCode(instance.vps_instance_id);
+      const result = await WhatsAppWebService.getQRCode(instanceId);
       
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to get QR code');
+      if (result.success) {
+        await fetchInstances();
+        toast.success('QR Code atualizado');
+      } else {
+        throw new Error(result.error || 'Falha ao atualizar QR Code');
       }
-
-      // Update instance in state
-      setInstances(prev => prev.map(i => 
-        i.id === instanceId 
-          ? { ...i, qr_code: result.qrCode } 
-          : i
-      ));
-
-      return result.qrCode;
-    } catch (err) {
-      console.error('Error refreshing QR code:', err);
-      toast.error('Erro ao atualizar QR code');
-      throw err;
+    } catch (error: any) {
+      console.error('Error refreshing QR code:', error);
+      toast.error(`Erro ao atualizar QR Code: ${error.message}`);
     }
   };
 
-  const sendMessage = async (instanceId: string, phone: string, message: string) => {
-    try {
-      const result = await WhatsAppWebService.sendMessage(instanceId, phone, message);
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to send message');
-      }
-
-      return true;
-    } catch (err) {
-      console.error('Error sending message:', err);
-      toast.error('Erro ao enviar mensagem');
-      throw err;
-    }
-  };
-
+  // Modal controls
   const closeQRModal = () => {
-    setAutoConnectState(prev => ({ 
-      ...prev, 
+    setAutoConnectState(prev => ({
+      ...prev,
       showQRModal: false,
-      activeInstanceId: null 
+      activeInstanceId: null
     }));
   };
 
   const openQRModal = (instanceId: string) => {
-    setAutoConnectState(prev => ({ 
-      ...prev, 
+    setAutoConnectState(prev => ({
+      ...prev,
       showQRModal: true,
-      activeInstanceId: instanceId 
+      activeInstanceId: instanceId
     }));
   };
 
-  // Subscribe to real-time updates
+  // Fetch instances on mount and company change
   useEffect(() => {
-    if (!companyId) return;
-
-    const channel = supabase
-      .channel('whatsapp-web-instances')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'whatsapp_instances',
-          filter: `company_id=eq.${companyId}`
-        },
-        (payload) => {
-          console.log('WhatsApp Web instance change:', payload);
-          fetchInstances();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [companyId]);
-
-  // Só buscar instâncias quando companyId estiver disponível e não estiver carregando
-  useEffect(() => {
-    if (companyLoading) {
-      setLoading(true);
-      return;
-    }
-    
     fetchInstances();
-  }, [companyId, companyLoading]);
+  }, [fetchInstances]);
+
+  // Refetch function for external use
+  const refetch = () => {
+    fetchInstances();
+  };
 
   return {
     instances,
     loading,
     error,
     autoConnectState,
-    createInstance,
+    fetchInstances,
     deleteInstance,
     refreshQRCode,
-    sendMessage,
     startAutoConnection,
     closeQRModal,
     openQRModal,
-    refetch: fetchInstances
+    refetch
   };
-};
+}
