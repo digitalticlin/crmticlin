@@ -17,14 +17,14 @@ export const VPS_CONFIG = {
     status: '/status'
   },
   
-  // Instance management endpoints
+  // Instance management endpoints - CORRIGIDOS conforme suporte Hostinger
   endpoints: {
-    create: '/create',        // Precisa ser testado com POST
-    delete: '/delete',        // Precisa ser testado com POST/DELETE
-    status: '/status',        // Funcionando (GET)
-    instances: '/instances',  // Funcionando (GET)
-    qr: '/qr',               // Precisa ser testado
-    health: '/health'        // Funcionando (GET)
+    create: '/instance/create',        // Corrigido: era /create
+    delete: '/instance/delete',        // Corrigido: era /delete
+    qr: '/instance/qr',               // Corrigido: era /qr
+    status: '/instance/status',        // Corrigido: era /status
+    instances: '/instances',          // Mantido (funcionando)
+    health: '/health'                 // Mantido (funcionando)
   }
 };
 

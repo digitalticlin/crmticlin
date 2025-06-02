@@ -32,11 +32,14 @@ export async function getInstanceStatus(instanceId: string) {
   try {
     console.log(`Getting status for instance: ${instanceId}`);
     
-    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/status`, {
-      method: 'GET',
+    // Use CORRECT status endpoint - /instance/status with POST method
+    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/status`, {
+      method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         'Authorization': `Bearer ${VPS_CONFIG.authToken}`
-      }
+      },
+      body: JSON.stringify({ instanceId })
     });
 
     const data = await response.json();
@@ -67,45 +70,33 @@ export async function getQRCode(instanceId: string) {
   try {
     console.log(`Getting QR code for instance: ${instanceId}`);
     
-    // Tentar diferentes métodos para obter QR Code
-    const methods = [
-      { method: 'GET', url: `${VPS_CONFIG.baseUrl}/qr` },
-      { method: 'GET', url: `${VPS_CONFIG.baseUrl}/qr/${instanceId}` },
-      { method: 'POST', url: `${VPS_CONFIG.baseUrl}/qr`, body: { instanceId } }
-    ];
+    // Use CORRECT QR endpoint - /instance/qr with POST method
+    console.log(`Using corrected QR endpoint: /instance/qr`);
+    
+    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/qr`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${VPS_CONFIG.authToken}`
+      },
+      body: JSON.stringify({ instanceId })
+    });
 
-    for (const methodConfig of methods) {
-      try {
-        console.log(`Trying QR method: ${methodConfig.method} ${methodConfig.url}`);
-        
-        const response = await makeVPSRequest(methodConfig.url, {
-          method: methodConfig.method,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${VPS_CONFIG.authToken}`
-          },
-          body: methodConfig.body ? JSON.stringify(methodConfig.body) : undefined
-        }, 1); // Only 1 retry per method
-
-        if (response.ok) {
-          const data = await response.json();
-          console.log(`QR Code obtained via ${methodConfig.method} ${methodConfig.url}`);
-          
-          return new Response(
-            JSON.stringify({
-              success: true,
-              qrCode: data.qrCode || data.qr || data.code || data
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-      } catch (methodError) {
-        console.log(`Method ${methodConfig.method} failed:`, methodError.message);
-        continue;
-      }
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`QR Code obtained successfully`);
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          qrCode: data.qrCode || data.qr || data.code || data
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else {
+      const errorText = await response.text();
+      throw new Error(`QR request failed: ${response.status} - ${errorText}`);
     }
-
-    throw new Error('All QR Code methods failed');
   } catch (error) {
     console.error('Error getting QR code:', error);
     return new Response(
@@ -163,6 +154,7 @@ export async function getServerInfo() {
   try {
     console.log('Getting VPS server info...');
     
+    // Use /status endpoint for server info (confirmed working)
     const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/status`, {
       method: 'GET',
       headers: {
@@ -198,6 +190,7 @@ export async function syncInstances(supabase: any, companyId: string) {
   try {
     console.log(`Syncing instances for company: ${companyId}`);
     
+    // Use /instances endpoint (confirmed working)
     const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instances`, {
       method: 'GET',
       headers: {

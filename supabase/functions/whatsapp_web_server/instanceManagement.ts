@@ -101,73 +101,47 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
     throw new Error(`VPS não está respondendo: ${healthError.message}`);
   }
 
-  // FASE 4: Try different methods to create instance on VPS
+  // FASE 4: Create instance using CORRECT endpoint - /instance/create
   let vpsResult;
-  const createMethods = [
-    {
-      name: 'POST /create with instanceId',
-      url: `${VPS_CONFIG.baseUrl}/create`,
+  try {
+    console.log('Creating instance using corrected endpoint: /instance/create');
+    
+    // Payload structure based on Hostinger support feedback
+    const payload = {
+      instanceId: vpsInstanceId,
+      instanceName: instanceData.instanceName,
+      sessionName: instanceData.instanceName,
+      webhookUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/webhook_whatsapp_web`,
+      companyId: profile.company_id
+    };
+    
+    console.log('Using payload:', payload);
+    console.log('Using URL:', `${VPS_CONFIG.baseUrl}/instance/create`);
+    
+    const vpsResponse = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/create`, {
       method: 'POST',
-      body: {
-        instanceId: vpsInstanceId,
-        sessionName: instanceData.instanceName,
-        webhookUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/webhook_whatsapp_web`,
-        companyId: profile.company_id
-      }
-    },
-    {
-      name: 'POST /create with instanceName',
-      url: `${VPS_CONFIG.baseUrl}/create`,
-      method: 'POST',
-      body: {
-        instanceName: instanceData.instanceName,
-        sessionName: instanceData.instanceName,
-        webhookUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/webhook_whatsapp_web`,
-        companyId: profile.company_id
-      }
-    },
-    {
-      name: 'POST /create basic',
-      url: `${VPS_CONFIG.baseUrl}/create`,
-      method: 'POST',
-      body: {
-        name: instanceData.instanceName,
-        session: instanceData.instanceName
-      }
-    }
-  ];
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${VPS_CONFIG.authToken}`
+      },
+      body: JSON.stringify(payload)
+    });
 
-  for (const method of createMethods) {
-    try {
-      console.log(`Trying create method: ${method.name}`);
-      console.log(`URL: ${method.url}`);
-      console.log(`Body:`, method.body);
-      
-      const vpsResponse = await makeVPSRequest(method.url, {
-        method: method.method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${VPS_CONFIG.authToken}`
-        },
-        body: JSON.stringify(method.body)
-      }, 1); // Only 1 retry per method
-
-      if (vpsResponse.ok) {
-        vpsResult = await vpsResponse.json();
-        console.log(`Success with method: ${method.name}`, vpsResult);
-        break;
-      } else {
-        const errorText = await vpsResponse.text();
-        console.log(`Method ${method.name} failed with status ${vpsResponse.status}: ${errorText}`);
-      }
-    } catch (methodError) {
-      console.log(`Method ${method.name} failed:`, methodError.message);
-      continue;
+    if (vpsResponse.ok) {
+      vpsResult = await vpsResponse.json();
+      console.log('SUCCESS with corrected endpoint:', vpsResult);
+    } else {
+      const errorText = await vpsResponse.text();
+      console.error(`Failed with status ${vpsResponse.status}: ${errorText}`);
+      throw new Error(`VPS creation failed: ${vpsResponse.status} - ${errorText}`);
     }
+  } catch (vpsError) {
+    console.error('VPS creation error:', vpsError);
+    throw new Error(`Erro na criação VPS: ${vpsError.message}`);
   }
 
   if (!vpsResult || !vpsResult.success) {
-    throw new Error(`Todos os métodos de criação falharam. Último erro: ${vpsResult?.error || 'VPS não respondeu corretamente'}`);
+    throw new Error(`Criação falhou. Erro VPS: ${vpsResult?.error || 'VPS não respondeu corretamente'}`);
   }
 
   // FASE 5: Create database record AFTER VPS confirms success
@@ -195,7 +169,7 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
       
       // If database fails, try to cleanup VPS instance
       try {
-        await makeVPSRequest(`${VPS_CONFIG.baseUrl}/delete`, {
+        await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/delete`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -241,47 +215,26 @@ export async function deleteWhatsAppInstance(supabase: any, instanceId: string) 
   if (!instance?.vps_instance_id) {
     console.log('No VPS instance ID found, only deleting from database');
   } else {
-    // Try different delete methods
-    const deleteMethods = [
-      {
-        name: 'POST /delete with instanceId',
-        url: `${VPS_CONFIG.baseUrl}/delete`,
+    // Use CORRECT delete endpoint - /instance/delete
+    try {
+      console.log('Deleting from VPS using corrected endpoint: /instance/delete');
+      
+      await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/delete`, {
         method: 'POST',
-        body: { instanceId: instance.vps_instance_id }
-      },
-      {
-        name: 'DELETE /delete with instanceId',
-        url: `${VPS_CONFIG.baseUrl}/delete`,
-        method: 'DELETE',
-        body: { instanceId: instance.vps_instance_id }
-      },
-      {
-        name: 'POST /delete with instanceName',
-        url: `${VPS_CONFIG.baseUrl}/delete`,
-        method: 'POST',
-        body: { instanceName: instance.instance_name }
-      }
-    ];
-
-    for (const method of deleteMethods) {
-      try {
-        console.log(`Trying delete method: ${method.name}`);
-        
-        await makeVPSRequest(method.url, {
-          method: method.method,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${VPS_CONFIG.authToken}`
-          },
-          body: JSON.stringify(method.body)
-        }, 1);
-        
-        console.log(`Success with delete method: ${method.name}`);
-        break;
-      } catch (methodError) {
-        console.log(`Delete method ${method.name} failed:`, methodError.message);
-        continue;
-      }
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${VPS_CONFIG.authToken}`
+        },
+        body: JSON.stringify({ 
+          instanceId: instance.vps_instance_id,
+          instanceName: instance.instance_name 
+        })
+      });
+      
+      console.log('Successfully deleted from VPS');
+    } catch (deleteError) {
+      console.error('VPS delete error:', deleteError);
+      // Continue with database deletion even if VPS delete fails
     }
   }
 
