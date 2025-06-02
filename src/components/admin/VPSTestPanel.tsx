@@ -6,6 +6,7 @@ import { VPSStatusCard } from "./vps/VPSStatusCard";
 import { PortsServicesCard } from "./vps/PortsServicesCard";
 import { ServersCard } from "./vps/ServersCard";
 import { AdminActionsCard } from "./vps/AdminActionsCard";
+import { VPSAdvancedDiagnostic } from "./vps/VPSAdvancedDiagnostic";
 
 export const VPSTestPanel = () => {
   return (
@@ -28,7 +29,10 @@ export const VPSTestPanel = () => {
       {/* Ações Administrativas */}
       <AdminActionsCard />
 
-      {/* Diagnóstico Avançado - Seção final */}
+      {/* Diagnóstico Avançado - Nova seção para análise 503 */}
+      <VPSAdvancedDiagnostic />
+
+      {/* Diagnóstico Básico - Seção final */}
       <PortTestDiagnostic />
     </div>
   );
