@@ -1,12 +1,12 @@
 
 import { PageLayout } from "@/components/layout/PageLayout";
-import { ModernPageHeader } from "@/components/layout/ModernPageHeader";
+import { PageHeader } from "@/components/layout/PageHeader";
 import SettingsTabs from "@/components/settings/SettingsTabs";
 
 export default function Settings() {
   return (
     <PageLayout>
-      <ModernPageHeader 
+      <PageHeader 
         title="Configurações" 
         description="Gerencie as configurações da sua conta e preferências"
       />

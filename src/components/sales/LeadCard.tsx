@@ -50,11 +50,11 @@ export const LeadCard = ({
       {...provided.draggableProps}
       {...provided.dragHandleProps}
       className={cn(
-        "bg-white/90 dark:bg-white/10 backdrop-blur-sm mb-4 rounded-xl border-0 shadow-md transition-all duration-300 p-4 cursor-pointer group",
+        "bg-card border rounded-lg mb-4 shadow-sm transition-all duration-300 p-4 cursor-pointer group",
         "w-[96%] max-w-[380px] mx-auto",
         isDragging || isClone
-          ? "scale-105 z-[99999] opacity-90 shadow-2xl border-blue-500 border-2 pointer-events-none"
-          : "hover:scale-105 hover:z-30 hover:relative hover:shadow-xl hover:bg-white/95 dark:hover:bg-white/15",
+          ? "scale-105 z-[99999] opacity-90 shadow-lg border-primary pointer-events-none"
+          : "hover:scale-105 hover:z-30 hover:relative hover:shadow-md",
         isWon && "border-l-[4px] border-l-green-500",
         isLost && "border-l-[4px] border-l-red-500"
       )}

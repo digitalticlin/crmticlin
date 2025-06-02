@@ -85,7 +85,7 @@ export function NewBroadcastListForm({ onSuccess }: NewBroadcastListFormProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
-            <ListPlus className="h-5 w-5 text-ticlin mr-2" />
+            <ListPlus className="h-5 w-5 text-primary mr-2" />
             Nova Lista de Transmissão
           </CardTitle>
           <CardDescription>
@@ -120,7 +120,7 @@ export function NewBroadcastListForm({ onSuccess }: NewBroadcastListFormProps) {
               </Button>
             </div>
             
-            <div className="border border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 flex flex-col items-center justify-center bg-white/50 dark:bg-black/20 backdrop-blur-sm">
+            <div className="border border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 flex flex-col items-center justify-center bg-background">
               <Input 
                 id="contact-file"
                 type="file" 
@@ -147,10 +147,10 @@ export function NewBroadcastListForm({ onSuccess }: NewBroadcastListFormProps) {
                 <p className="text-sm font-medium mb-2">Pré-visualização ({previewNumbers.length} números):</p>
                 <div className="flex flex-wrap gap-2">
                   {previewNumbers.slice(0, 5).map((number, index) => (
-                    <Badge key={index} variant="outline" className="bg-background/80">{number}</Badge>
+                    <Badge key={index} variant="outline">{number}</Badge>
                   ))}
                   {previewNumbers.length > 5 && (
-                    <Badge variant="outline" className="bg-background/80">+{previewNumbers.length - 5}</Badge>
+                    <Badge variant="outline">+{previewNumbers.length - 5}</Badge>
                   )}
                 </div>
               </div>
@@ -160,7 +160,7 @@ export function NewBroadcastListForm({ onSuccess }: NewBroadcastListFormProps) {
           {/* Sender Phone Selection */}
           <div className="grid gap-2">
             <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-ticlin" />
+              <Phone className="h-4 w-4 text-primary" />
               <Label htmlFor="sender-phone">Telefone Remetente</Label>
             </div>
             <Select value={phoneId} onValueChange={setPhoneId} required>
@@ -223,7 +223,7 @@ export function NewBroadcastListForm({ onSuccess }: NewBroadcastListFormProps) {
           {/* Time Configuration */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-ticlin" />
+              <Clock className="h-4 w-4 text-primary" />
               <Label>Intervalo de Horário para Envios</Label>
             </div>
             
@@ -257,7 +257,6 @@ export function NewBroadcastListForm({ onSuccess }: NewBroadcastListFormProps) {
           </Button>
           <Button 
             type="submit" 
-            className="bg-ticlin hover:bg-ticlin/90 text-black"
             disabled={isUploading || !name || !phoneId || !messages[0] || !file}
           >
             {isUploading ? (
