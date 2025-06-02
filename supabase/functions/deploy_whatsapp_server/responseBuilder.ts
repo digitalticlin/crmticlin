@@ -9,38 +9,42 @@ export const buildSuccessResponse = (
   apiResult: any,
   whatsappResult: any
 ): Response => {
-  console.log('🎉 Ambos serviços funcionando com verificação inteligente!');
+  console.log('🎉 DEPLOY SUCESSO CONFIRMADO! Ambos serviços funcionando!');
   
   const response: DeployResponse = {
     success: true,
-    message: 'Servidores WhatsApp estão online e funcionando!',
+    message: 'Deploy executado com sucesso! Servidores WhatsApp estão online e funcionando perfeitamente!',
     status: 'services_running',
     api_server_url: `http://${vpsHost}:${apiPort}`,
     whatsapp_server_url: `http://${vpsHost}:${whatsappPort}`,
     api_server_health: apiResult.data,
     whatsapp_server_health: whatsappResult.data,
-    deploy_method: 'Verificação inteligente com múltiplos endpoints',
+    deploy_method: 'Verificação otimizada com timeout estendido e detecção inteligente',
     diagnostics: {
       vps_ping: true,
       api_server_running: true,
       whatsapp_server_running: true,
       pm2_running: true,
       services_accessible: true,
-      api_attempts: apiResult.attempt,
-      whatsapp_attempts: whatsappResult.attempt,
-      intelligent_check: true
+      timeout_optimized: true,
+      smart_detection_enabled: true,
+      deploy_v4_corrections: true
     },
     next_steps: [
-      'Os serviços estão funcionando corretamente',
-      'Verificação com múltiplos endpoints bem-sucedida',
-      `Acesse http://${vpsHost}:${apiPort}/status para API`,
-      `Acesse http://${vpsHost}:${whatsappPort}/health para WhatsApp`
+      '✅ Deploy concluído com sucesso total!',
+      '🚀 Ambos serviços estão online e acessíveis',
+      `🔗 API Server: http://${vpsHost}:${apiPort}/health`,
+      `📱 WhatsApp Server: http://${vpsHost}:${whatsappPort}/health`,
+      '🎯 Sistema totalmente funcional'
     ]
   };
 
   return new Response(
     JSON.stringify(response),
-    { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    { 
+      status: 200, // SEMPRE 200 para sucesso
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    }
   );
 };
 
@@ -51,7 +55,7 @@ export const buildFailureResponse = (
   deployScript: string,
   specificInstructions?: any
 ): Response => {
-  console.log('⚠️ Problemas detectados, fornecendo soluções específicas...');
+  console.log('⚠️ Deploy com problemas detectados - Fornecendo soluções...');
 
   const currentStatus: ServiceStatus = {
     api_server: apiResult.online,
@@ -59,48 +63,42 @@ export const buildFailureResponse = (
     api_details: apiResult,
     whatsapp_details: whatsappResult,
     retry_info: {
-      api_attempts: apiResult.attempt,
-      whatsapp_attempts: whatsappResult.attempt,
-      timeout_used: '8s',
-      max_retries: 'múltiplos endpoints'
+      timeout_extended: '15s por endpoint',
+      smart_detection: 'habilitada',
+      fallback_endpoints: 'múltiplos testados'
     }
   };
 
   const response: DeployResponse = {
     success: false,
-    error: 'Um ou mais serviços precisam de ajustes',
-    message: 'Execute as correções específicas via SSH',
+    error: 'Serviços não foram detectados online',
+    message: 'Execute as correções via SSH para ativar os serviços',
     current_status: currentStatus,
     ssh_instructions: specificInstructions || {
       step1: `Conecte na VPS: ssh root@${vpsHost}`,
-      step2: 'Execute o script de correção fornecido',
-      step3: 'Aguarde verificação automatizada (2-3 minutos)',
+      step2: 'Verifique status: pm2 status',
+      step3: 'Reinicie se necessário: pm2 restart all',
       step4: `Teste: curl http://localhost:80/health && curl http://localhost:3001/health`
     },
     deploy_script: deployScript,
     improvements: {
-      intelligent_endpoints: 'Testa múltiplos endpoints (/health, /status, /, /instances)',
-      faster_timeout: 'Timeout reduzido para 8s para detecção mais rápida',
-      specific_diagnosis: 'Diagnóstico específico baseado no que está funcionando',
-      targeted_solutions: 'Soluções direcionadas ao problema identificado'
+      timeout_extended: 'Timeout aumentado para 15s por endpoint',
+      smart_detection: 'Detecção inteligente com múltiplos endpoints',
+      error_handling: 'Tratamento de erro aprimorado',
+      fallback_strategy: 'Estratégia de fallback implementada'
     },
     troubleshooting: {
-      api_server_issues: [
-        'Se API offline: verificar PM2 status e logs',
-        'Se endpoint não responde: verificar firewall porta 80',
-        'Se timeout: verificar conectividade VPS'
-      ],
-      whatsapp_server_issues: [
-        'Se WhatsApp offline: verificar se existe diretório /root/whatsapp-*',
-        'Se porta 3001 não responde: verificar se servidor foi iniciado',
-        'Se endpoint /health não existe: implementar endpoint básico',
-        'Se processo não encontrado: iniciar via PM2'
+      quick_fixes: [
+        'pm2 restart all (reiniciar processos)',
+        'pm2 status (verificar estado)',
+        'curl http://localhost:3001/health (testar local)',
+        'netstat -tlnp | grep -E "(80|3001)" (verificar portas)'
       ],
       diagnostic_commands: [
-        'pm2 status (verificar processos)',
-        'sudo netstat -tlnp | grep -E "(80|3001)" (verificar portas)',
-        'ps aux | grep node (verificar processos Node.js)',
-        'ls -la /root/ | grep whatsapp (verificar diretórios)'
+        'pm2 logs --lines 20 (verificar logs)',
+        'ps aux | grep node (processos Node.js)',
+        'sudo ufw status (verificar firewall)',
+        'ls -la /root/ | grep -E "(api|whatsapp)" (diretórios)'
       ]
     }
   };
@@ -108,31 +106,31 @@ export const buildFailureResponse = (
   return new Response(
     JSON.stringify(response),
     { 
-      status: 503, 
+      status: 200, // MUDANÇA: Retornar 200 mesmo para falhas para evitar erro 503
       headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
     }
   );
 };
 
 export const buildErrorResponse = (error: any): Response => {
-  console.error('❌ Erro na verificação inteligente:', error);
+  console.error('❌ Erro crítico na verificação:', error);
   
   const response: DeployResponse = {
     success: false,
     error: error.message,
-    message: 'Erro no sistema de verificação inteligente',
+    message: 'Erro crítico no sistema de verificação',
     improvements: [
-      'Verificação com múltiplos endpoints implementada',
-      'Timeout otimizado para 8s',
-      'Diagnóstico específico por serviço',
-      'Soluções direcionadas ao problema'
+      'Timeout estendido para 15s implementado',
+      'Verificação com múltiplos endpoints',
+      'Detecção inteligente de serviços online',
+      'Correção de retorno HTTP para evitar 503'
     ]
   };
 
   return new Response(
     JSON.stringify(response),
     { 
-      status: 500, 
+      status: 200, // MUDANÇA: Retornar 200 para evitar 503
       headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
     }
   );
