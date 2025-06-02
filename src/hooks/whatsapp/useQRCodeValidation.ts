@@ -24,17 +24,18 @@ export function useQRCodeValidation() {
       return validationCache.get(qrCode)!;
     }
 
-    // Verificar se é placeholder conhecido
+    // Verificar se é placeholder conhecido ou fake
     const knownPlaceholders = [
       'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-      'data:image/png;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+      'data:image/png;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+      'fake-qr'
     ];
 
     if (knownPlaceholders.includes(qrCode)) {
       const result = {
         isValid: false,
         isPlaceholder: true,
-        errorMessage: 'QR Code é um placeholder. Aguarde geração do QR real.'
+        errorMessage: 'QR Code ainda sendo gerado. Aguarde...'
       };
       setValidationCache(prev => new Map(prev).set(qrCode, result));
       return result;
@@ -45,7 +46,7 @@ export function useQRCodeValidation() {
       const result = {
         isValid: false,
         isPlaceholder: false,
-        errorMessage: 'Formato de QR Code inválido'
+        errorMessage: 'QR Code inválido - deve ser uma imagem válida'
       };
       setValidationCache(prev => new Map(prev).set(qrCode, result));
       return result;
@@ -53,11 +54,11 @@ export function useQRCodeValidation() {
 
     // Verificar se tem conteúdo base64 suficiente (QR codes reais são maiores)
     const base64Part = qrCode.split(',')[1];
-    if (!base64Part || base64Part.length < 100) {
+    if (!base64Part || base64Part.length < 500) { // QR codes reais têm pelo menos 500 chars
       const result = {
         isValid: false,
         isPlaceholder: true,
-        errorMessage: 'QR Code muito pequeno, provavelmente é um placeholder'
+        errorMessage: 'QR Code muito pequeno. Aguardando QR real...'
       };
       setValidationCache(prev => new Map(prev).set(qrCode, result));
       return result;

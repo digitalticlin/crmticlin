@@ -1,5 +1,4 @@
-
-// Servidor WhatsApp Web.js v3.1 - Versão com QR Code real e melhor controle
+// Servidor WhatsApp Web.js v3.2 - Versão com QR Code real e melhor controle
 // Execute este script na VPS na porta 3001
 
 const express = require('express');
@@ -14,7 +13,7 @@ const app = express();
 const PORT = process.env.WHATSAPP_PORT || 3001;
 
 // VERSION CONTROL
-const SERVER_VERSION = '3.1.0';
+const SERVER_VERSION = '3.2.0';
 const SERVER_HASH = 'sha256-' + Date.now();
 
 // Configurar CORS e parsing
@@ -85,7 +84,7 @@ app.get('/status', (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: 'WhatsApp Web.js Server v3.1 funcionando',
+    message: 'WhatsApp Web.js Server v3.2 funcionando',
     version: SERVER_VERSION,
     hash: SERVER_HASH,
     endpoints: [
@@ -192,12 +191,13 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
     // Armazenar a instância
     activeInstances.set(instanceId, instanceData);
 
-    // Event listener para QR Code
+    // Event listener para QR Code - GERAR QR REAL
     client.on('qr', async (qr) => {
       try {
-        console.log(`📱 [v${SERVER_VERSION}] QR Code gerado para ${instanceId}`);
+        console.log(`📱 [v${SERVER_VERSION}] QR Code REAL gerado para ${instanceId}`);
+        console.log(`QR String recebida: ${qr.substring(0, 50)}...`);
         
-        // Gerar QR code como base64
+        // Gerar QR code como base64 REAL
         const qrCodeDataUrl = await qrcode.toDataURL(qr, {
           width: 512,
           margin: 2,
@@ -211,10 +211,12 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
         instanceData.status = 'waiting_scan';
         instanceData.lastActivity = new Date().toISOString();
         
-        console.log(`✅ [v${SERVER_VERSION}] QR Code real gerado para ${instanceId}`);
+        console.log(`✅ [v${SERVER_VERSION}] QR Code real gerado para ${instanceId} - Tamanho: ${qrCodeDataUrl.length} chars`);
         
       } catch (error) {
         console.error(`❌ [v${SERVER_VERSION}] Erro ao gerar QR Code para ${instanceId}:`, error);
+        instanceData.qrCode = null;
+        instanceData.status = 'qr_error';
       }
     });
 
@@ -247,10 +249,12 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
     });
 
     // Inicializar o cliente
+    console.log(`🚀 [v${SERVER_VERSION}] Inicializando cliente WhatsApp para ${instanceId}...`);
     await client.initialize();
 
     console.log(`✅ [v${SERVER_VERSION}] Instância ${instanceId} inicializada com sucesso`);
 
+    // Retornar resposta inicial (QR será gerado assincronamente)
     res.json({
       success: true,
       instanceId,
@@ -258,7 +262,8 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
       webhookUrl,
       companyId,
       status: 'created',
-      qrCode: null, // QR code será gerado assincronamente
+      qrCode: null, // QR code será gerado pelo evento 'qr'
+      message: 'Instância criada. QR Code será gerado em breve.',
       version: SERVER_VERSION,
       timestamp: new Date().toISOString()
     });
@@ -393,7 +398,7 @@ app.post('/instance/status', authenticateToken, async (req, res) => {
   }
 });
 
-// Endpoint para QR Code
+// Endpoint para QR Code - RETORNAR QR REAL
 app.post('/instance/qr', authenticateToken, async (req, res) => {
   const { instanceId } = req.body;
 
@@ -405,7 +410,7 @@ app.post('/instance/qr', authenticateToken, async (req, res) => {
     });
   }
 
-  console.log(`📱 [v${SERVER_VERSION}] Gerando QR Code para instância: ${instanceId}`);
+  console.log(`📱 [v${SERVER_VERSION}] Solicitando QR Code para instância: ${instanceId}`);
 
   try {
     if (!activeInstances.has(instanceId)) {
@@ -418,17 +423,20 @@ app.post('/instance/qr', authenticateToken, async (req, res) => {
 
     const instance = activeInstances.get(instanceId);
     
-    if (instance.qrCode) {
+    if (instance.qrCode && instance.qrCode.startsWith('data:image/')) {
+      console.log(`✅ [v${SERVER_VERSION}] QR Code real disponível para ${instanceId} - Tamanho: ${instance.qrCode.length}`);
       res.json({
         success: true,
         qrCode: instance.qrCode,
+        status: instance.status,
         version: SERVER_VERSION,
         timestamp: new Date().toISOString()
       });
     } else {
+      console.log(`⏳ [v${SERVER_VERSION}] QR Code ainda não disponível para ${instanceId} - Status: ${instance.status}`);
       res.json({
         success: false,
-        error: 'QR Code não disponível ainda. Aguarde alguns segundos e tente novamente.',
+        error: 'QR Code ainda não foi gerado. Aguarde alguns segundos.',
         status: instance.status,
         version: SERVER_VERSION,
         timestamp: new Date().toISOString()
