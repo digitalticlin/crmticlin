@@ -149,7 +149,7 @@ app.post('/execute', (req, res) => {
     return res.status(400).json({ success: false, error: 'Comando é obrigatório' });
   }
   
-  console.log(\`Executando: \${description || command}\`);
+  console.log('Executando: ' + (description || command));
   
   exec(command, { timeout: 120000 }, (error, stdout, stderr) => {
     if (error) {
@@ -173,7 +173,7 @@ app.post('/execute', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(\`🚀 VPS API Server rodando na porta \${PORT}\`);
+  console.log('🚀 VPS API Server rodando na porta ' + PORT);
 });
 EOFJS
 
@@ -237,7 +237,7 @@ app.get('/status', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(\`🚀 WhatsApp Server rodando na porta \${PORT}\`);
+  console.log('🚀 WhatsApp Server rodando na porta ' + PORT);
 });
 EOFJS
 
@@ -316,7 +316,7 @@ curl -s http://localhost:3001/health && echo "✅ WhatsApp Server funcionando!"
         error: 'API Server da VPS não disponível na porta 80',
         message: 'Execute manualmente via SSH para configurar servidores',
         ssh_instructions: {
-          step1: \`Conecte na VPS: ssh \${VPS_USER}@\${VPS_HOST}\`,
+          step1: 'Conecte na VPS: ssh ' + VPS_USER + '@' + VPS_HOST,
           step2: 'Execute o script de deploy fornecido',
           step3: 'Verifique API: curl http://localhost:80/health',
           step4: 'Verifique WhatsApp: curl http://localhost:3001/health'
