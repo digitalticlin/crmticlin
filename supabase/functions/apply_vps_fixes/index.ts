@@ -15,91 +15,54 @@ interface FixStep {
   output?: string;
 }
 
-// Função para executar comando SSH real
-async function executeSSHCommand(command: string): Promise<{ success: boolean; output: string; error?: string }> {
+// Configuração da API HTTP na VPS
+const VPS_API_CONFIG = {
+  host: '31.97.24.222',
+  port: 3002, // Porta diferente do WhatsApp (3001)
+  baseUrl: 'http://31.97.24.222:3002'
+};
+
+// Função para executar comando via API HTTP na VPS
+async function executeVPSCommand(command: string, description: string): Promise<{ success: boolean; output: string; error?: string }> {
   try {
-    console.log(`🔧 Executando SSH Real: ${command}`);
+    console.log(`🔧 Executando via API HTTP: ${description}`);
+    console.log(`Command: ${command}`);
     
-    const privateKey = Deno.env.get('VPS_SSH_PRIVATE_KEY');
-    if (!privateKey) {
-      return {
-        success: false,
-        output: '',
-        error: 'Chave SSH privada não configurada no secret VPS_SSH_PRIVATE_KEY'
-      };
-    }
-
-    // Configuração SSH
-    const sshConfig = {
-      hostname: '31.97.24.222',
-      port: 22,
-      username: 'root',
-      privateKey: privateKey,
-    };
-
-    console.log(`🔌 Conectando SSH: ${sshConfig.hostname}:${sshConfig.port} como ${sshConfig.username}`);
-
-    // Executar comando SSH usando Deno
-    const sshCommand = [
-      'ssh',
-      '-i', '/dev/stdin', // Usar stdin para a chave privada
-      '-o', 'StrictHostKeyChecking=no',
-      '-o', 'UserKnownHostsFile=/dev/null',
-      '-o', 'LogLevel=ERROR',
-      `${sshConfig.username}@${sshConfig.hostname}`,
-      command
-    ];
-
-    // Criar processo SSH
-    const process = new Deno.Command('ssh', {
-      args: [
-        '-o', 'StrictHostKeyChecking=no',
-        '-o', 'UserKnownHostsFile=/dev/null',
-        '-o', 'LogLevel=ERROR',
-        `${sshConfig.username}@${sshConfig.hostname}`,
-        command
-      ],
-      stdin: 'piped',
-      stdout: 'piped',
-      stderr: 'piped',
+    const response = await fetch(`${VPS_API_CONFIG.baseUrl}/execute`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get('VPS_API_TOKEN') || 'default-token'}`,
+      },
+      body: JSON.stringify({
+        command: command,
+        description: description,
+        timeout: 120000 // 2 minutos timeout
+      }),
     });
 
-    const child = process.spawn();
-
-    // Enviar chave privada via stdin
-    const writer = child.stdin.getWriter();
-    await writer.write(new TextEncoder().encode(privateKey));
-    await writer.close();
-
-    // Aguardar resultado
-    const { code, stdout, stderr } = await child.output();
-
-    const output = new TextDecoder().decode(stdout);
-    const errorOutput = new TextDecoder().decode(stderr);
-
-    console.log(`SSH Exit Code: ${code}`);
-    console.log(`SSH Output: ${output}`);
-    if (errorOutput) console.log(`SSH Error: ${errorOutput}`);
-
-    if (code === 0) {
-      return {
-        success: true,
-        output: output.trim() || 'Comando executado com sucesso'
-      };
-    } else {
-      return {
-        success: false,
-        output: output.trim(),
-        error: errorOutput.trim() || `Comando falhou com código ${code}`
-      };
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP ${response.status}: ${errorText}`);
     }
+
+    const result = await response.json();
+    
+    console.log(`✅ Resultado: ${result.success ? 'Sucesso' : 'Erro'}`);
+    console.log(`Output: ${result.output}`);
+    
+    return {
+      success: result.success,
+      output: result.output || '',
+      error: result.error
+    };
     
   } catch (error) {
-    console.error(`❌ Erro SSH: ${error.message}`);
+    console.error(`❌ Erro na requisição HTTP: ${error.message}`);
     return {
       success: false,
       output: '',
-      error: `Erro na execução SSH: ${error.message}`
+      error: `Erro na comunicação com VPS: ${error.message}`
     };
   }
 }
@@ -391,10 +354,10 @@ serve(async (req) => {
       message: '',
       timestamp: new Date().toISOString(),
       steps: [] as FixStep[],
-      ssh_connection: {
-        host: '31.97.24.222',
-        port: 22,
-        username: 'root',
+      vps_api_connection: {
+        host: VPS_API_CONFIG.host,
+        port: VPS_API_CONFIG.port,
+        baseUrl: VPS_API_CONFIG.baseUrl,
         connected: false
       },
       final_verification: {
@@ -405,36 +368,36 @@ serve(async (req) => {
       }
     };
 
-    console.log('🚀 Iniciando aplicação REAL de correções VPS via SSH...');
+    console.log('🚀 Iniciando aplicação de correções VPS via API HTTP...');
 
-    // Etapa 1: Verificar conexão SSH
+    // Etapa 1: Verificar conexão com a API da VPS
     const step1: FixStep = {
-      step: 'Verificação de conexão SSH',
+      step: 'Verificação de conexão API VPS',
       status: 'running',
-      details: 'Testando conexão SSH com o servidor VPS...',
-      command: 'echo "SSH Connection Test - $(date)"'
+      details: 'Testando conexão com a API HTTP da VPS...',
+      command: 'GET /api/status'
     };
     results.steps.push(step1);
 
     const startTime1 = Date.now();
     try {
-      const sshTest = await executeSSHCommand('echo "SSH Connection Test - $(date)"');
+      const statusCheck = await executeVPSCommand('echo "API Connection Test - $(date)"', 'Teste de conexão API');
       
-      if (sshTest.success) {
+      if (statusCheck.success) {
         step1.status = 'success';
-        step1.details = 'Conexão SSH estabelecida com sucesso';
-        step1.output = sshTest.output;
+        step1.details = 'Conexão com API VPS estabelecida com sucesso';
+        step1.output = statusCheck.output;
         step1.duration = Date.now() - startTime1;
-        results.ssh_connection.connected = true;
+        results.vps_api_connection.connected = true;
       } else {
-        throw new Error(sshTest.error || 'Falha na conexão SSH');
+        throw new Error(statusCheck.error || 'Falha na conexão com API VPS');
       }
     } catch (error: any) {
       step1.status = 'error';
-      step1.details = `Erro na conexão SSH: ${error.message}`;
+      step1.details = `Erro na conexão com API VPS: ${error.message}`;
       step1.duration = Date.now() - startTime1;
       
-      results.message = 'Falha na conexão SSH - Verifique a configuração da chave';
+      results.message = 'Falha na conexão com API VPS - Verifique se o servidor API está rodando na porta 3002';
       return new Response(
         JSON.stringify(results),
         { 
@@ -454,7 +417,10 @@ serve(async (req) => {
 
     const startTime2 = Date.now();
     try {
-      const backupResult = await executeSSHCommand(step2.command!);
+      const backupResult = await executeVPSCommand(
+        'cd /root/whatsapp-server && cp server.js server.js.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || echo "Arquivo server.js não encontrado - será criado"',
+        'Criação de backup'
+      );
       
       step2.status = 'success';
       step2.details = 'Backup criado ou arquivo será criado';
@@ -471,21 +437,21 @@ serve(async (req) => {
       step: 'Aplicação das correções SSL/Timeout',
       status: 'running',
       details: 'Criando diretório e aplicando código corrigido...',
-      command: 'mkdir -p /root/whatsapp-server && cat > /root/whatsapp-server/server.js'
+      command: 'mkdir -p /root/whatsapp-server && aplicar código corrigido'
     };
     results.steps.push(step3);
 
     const startTime3 = Date.now();
     try {
       // Primeiro criar o diretório
-      await executeSSHCommand('mkdir -p /root/whatsapp-server');
+      await executeVPSCommand('mkdir -p /root/whatsapp-server', 'Criação de diretório');
       
       // Aplicar o novo código usando cat com EOF
       const writeCodeCommand = `cat > /root/whatsapp-server/server.js << 'EOF'
 ${FIXED_SERVER_CODE}
 EOF`;
       
-      const applyFixResult = await executeSSHCommand(writeCodeCommand);
+      const applyFixResult = await executeVPSCommand(writeCodeCommand, 'Aplicação do código corrigido');
       
       if (applyFixResult.success) {
         step3.status = 'success';
@@ -533,10 +499,13 @@ cat > package.json << 'EOF'
 EOF
 fi`;
       
-      await executeSSHCommand(packageJsonCommand);
+      await executeVPSCommand(packageJsonCommand, 'Verificação/criação do package.json');
       
       // Instalar dependências
-      const installResult = await executeSSHCommand('cd /root/whatsapp-server && npm install');
+      const installResult = await executeVPSCommand(
+        'cd /root/whatsapp-server && npm install',
+        'Instalação de dependências'
+      );
       
       step4.status = 'success';
       step4.details = 'Dependências verificadas e instaladas';
@@ -560,11 +529,14 @@ fi`;
     const startTime5 = Date.now();
     try {
       // Parar processos antigos
-      await executeSSHCommand('pkill -f "node.*server.js" || true');
+      await executeVPSCommand('pkill -f "node.*server.js" || true', 'Parada de processos antigos');
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Iniciar novo servidor
-      const startResult = await executeSSHCommand('cd /root/whatsapp-server && nohup node server.js > server.log 2>&1 & echo "Servidor iniciado"');
+      const startResult = await executeVPSCommand(
+        'cd /root/whatsapp-server && nohup node server.js > server.log 2>&1 & echo "Servidor iniciado"',
+        'Inicialização do servidor'
+      );
       
       step5.status = 'success';
       step5.details = 'Servidor reiniciado com sucesso';
@@ -591,9 +563,18 @@ fi`;
       await new Promise(resolve => setTimeout(resolve, 8000));
       
       // Verificar health endpoint
-      const healthResult = await executeSSHCommand('curl -s http://localhost:3001/health');
-      const infoResult = await executeSSHCommand('curl -s http://localhost:3001/info');
-      const statusResult = await executeSSHCommand('curl -s http://localhost:3001/instances');
+      const healthResult = await executeVPSCommand(
+        'curl -s http://localhost:3001/health',
+        'Verificação do endpoint health'
+      );
+      const infoResult = await executeVPSCommand(
+        'curl -s http://localhost:3001/info',
+        'Verificação do endpoint info'
+      );
+      const statusResult = await executeVPSCommand(
+        'curl -s http://localhost:3001/instances',
+        'Verificação do endpoint instances'
+      );
       
       if (healthResult.success) {
         try {
@@ -613,7 +594,7 @@ fi`;
           step6.duration = Date.now() - startTime6;
           
           results.success = true;
-          results.message = 'Todas as correções foram aplicadas e verificadas com sucesso via SSH!';
+          results.message = 'Todas as correções foram aplicadas e verificadas com sucesso via API HTTP!';
         } catch (parseError) {
           // Se não conseguir fazer parse do JSON, ainda considerar sucesso se recebeu resposta
           step6.status = 'success';
@@ -642,11 +623,11 @@ fi`;
       }
     }
 
-    console.log('✅ Resultado final das correções SSH:', {
+    console.log('✅ Resultado final das correções via API HTTP:', {
       success: results.success,
       totalSteps: results.steps.length,
       successfulSteps: results.steps.filter(s => s.status === 'success').length,
-      sshConnected: results.ssh_connection.connected
+      apiConnected: results.vps_api_connection.connected
     });
 
     return new Response(
@@ -657,12 +638,12 @@ fi`;
     );
 
   } catch (error) {
-    console.error('❌ Erro na aplicação de correções SSH:', error);
+    console.error('❌ Erro na aplicação de correções via API HTTP:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
         error: error.message,
-        message: 'Falha na aplicação de correções via SSH',
+        message: 'Falha na aplicação de correções via API HTTP',
         timestamp: new Date().toISOString(),
         steps: []
       }),
