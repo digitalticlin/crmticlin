@@ -24,7 +24,7 @@ interface AutoConnectState {
   activeInstanceId: string | null;
 }
 
-export function useWhatsAppWebInstances(companyId: string | null, companyLoading: boolean) {
+export function useWhatsAppWebInstances(companyId: string | null, companyLoading: boolean = false) {
   const [instances, setInstances] = useState<WhatsAppWebInstance[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +73,29 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
       setLoading(false);
     }
   }, [companyId, companyLoading]);
+
+  // Create instance
+  const createInstance = async (instanceName: string): Promise<void> => {
+    if (!companyId) {
+      toast.error('ID da empresa não encontrado');
+      return;
+    }
+
+    try {
+      const result = await WhatsAppWebService.createInstance(instanceName);
+
+      if (result.success && result.instance) {
+        await fetchInstances();
+        toast.success('Instância WhatsApp criada com sucesso!');
+      } else {
+        throw new Error(result.error || 'Falha ao criar instância');
+      }
+    } catch (error: any) {
+      console.error('Error creating instance:', error);
+      toast.error(`Erro ao criar instância: ${error.message}`);
+      throw error;
+    }
+  };
 
   // Auto connection flow
   const startAutoConnection = async () => {
@@ -128,20 +151,22 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     }
   };
 
-  // Refresh QR Code
-  const refreshQRCode = async (instanceId: string) => {
+  // Refresh QR Code - agora retorna a string do QR code
+  const refreshQRCode = async (instanceId: string): Promise<string | null> => {
     try {
       const result = await WhatsAppWebService.getQRCode(instanceId);
       
-      if (result.success) {
+      if (result.success && result.qrCode) {
         await fetchInstances();
         toast.success('QR Code atualizado');
+        return result.qrCode;
       } else {
         throw new Error(result.error || 'Falha ao atualizar QR Code');
       }
     } catch (error: any) {
       console.error('Error refreshing QR code:', error);
       toast.error(`Erro ao atualizar QR Code: ${error.message}`);
+      return null;
     }
   };
 
@@ -177,6 +202,7 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     loading,
     error,
     autoConnectState,
+    createInstance, // Agora incluído
     fetchInstances,
     deleteInstance,
     refreshQRCode,

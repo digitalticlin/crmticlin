@@ -20,7 +20,7 @@ export const useWhatsAppSettingsLogic = () => {
   const isUnmountedRef = useRef(false);
   const lastFetchTimeRef = useRef(0);
 
-  const { companyId } = useCompanyData();
+  const { companyId, loading: companyLoading } = useCompanyData();
 
   // Cleanup no desmonte do componente
   useEffect(() => {
@@ -88,9 +88,9 @@ export const useWhatsAppSettingsLogic = () => {
   console.log('[useWhatsAppSettingsLogic] Setting up realtime for:', userEmail);
   useWhatsAppRealtime(userEmail);
 
-  // Get WhatsApp instances and related functions
+  // Get WhatsApp instances and related functions - CORRIGIDO: passando companyLoading
   console.log('[useWhatsAppSettingsLogic] Initializing WhatsApp hooks for:', userEmail);
-  const whatsAppHooks = useWhatsAppWebInstances(companyId);
+  const whatsAppHooks = useWhatsAppWebInstances(companyId, companyLoading);
 
   console.log('[useWhatsAppSettingsLogic] WhatsApp instances loaded:', whatsAppHooks.instances.length);
 
