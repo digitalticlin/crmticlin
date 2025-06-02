@@ -3,7 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 
 export class WhatsAppWebService {
   private static async makeAuthenticatedRequest(action: string, data: any) {
-    console.log(`WhatsApp Web Service: ${action}`, data);
+    const startTime = Date.now();
+    console.log(`[WhatsApp Web Service] 🚀 Iniciando ${action}:`, {
+      action,
+      data: { ...data, timestamp: new Date().toISOString() }
+    });
     
     try {
       const { data: result, error } = await supabase.functions.invoke('whatsapp_web_server', {
@@ -13,19 +17,43 @@ export class WhatsAppWebService {
         }
       });
 
+      const duration = Date.now() - startTime;
+      
       if (error) {
-        console.error('Supabase function error:', error);
+        console.error(`[WhatsApp Web Service] ❌ Erro Supabase (${action}):`, {
+          error,
+          duration: `${duration}ms`,
+          action
+        });
         throw new Error(error.message);
       }
 
       if (!result.success) {
-        console.error(`WhatsApp Web Service error (${action}):`, result.error);
+        console.error(`[WhatsApp Web Service] ❌ Falha na operação (${action}):`, {
+          error: result.error,
+          duration: `${duration}ms`,
+          action,
+          result
+        });
         throw new Error(result.error || `Failed to ${action}`);
       }
 
+      console.log(`[WhatsApp Web Service] ✅ Sucesso (${action}):`, {
+        duration: `${duration}ms`,
+        action,
+        hasQrCode: action === 'get_qr_code' ? !!result.qrCode : undefined,
+        instanceId: data.instanceId || data.instanceName
+      });
+
       return result;
     } catch (error) {
-      console.error(`WhatsApp Web Service error (${action}):`, error);
+      const duration = Date.now() - startTime;
+      console.error(`[WhatsApp Web Service] 💥 Erro inesperado (${action}):`, {
+        error: error instanceof Error ? error.message : error,
+        duration: `${duration}ms`,
+        action,
+        stack: error instanceof Error ? error.stack : undefined
+      });
       throw error;
     }
   }
