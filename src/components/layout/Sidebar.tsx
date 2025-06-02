@@ -1,17 +1,5 @@
-import React from "react";
 
-export interface NavItem {
-  name: string;
-  href: string;
-  icon: React.ForwardRefExoticComponent<
-    Omit<React.SVGProps<SVGSVGElement>, "ref"> & {
-      title?: string | undefined;
-      titleId?: string | undefined;
-    } & React.RefAttributes<SVGSVGElement>
-  >;
-  className?: string;
-}
-
+import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { 
   Users, 
@@ -34,9 +22,22 @@ import { useAuth } from "@/contexts/AuthContext";
 import SidebarLogo from "./SidebarLogo";
 import SidebarFooter from "./SidebarFooter";
 
+export interface NavItem {
+  name: string;
+  href: string;
+  icon: React.ForwardRefExoticComponent<
+    Omit<React.SVGProps<SVGSVGElement>, "ref"> & {
+      title?: string | undefined;
+      titleId?: string | undefined;
+    } & React.RefAttributes<SVGSVGElement>
+  >;
+  className?: string;
+}
+
 const Sidebar = () => {
   const { signOut } = useAuth();
   const navigate = useNavigate();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const handleSignOut = async () => {
     try {
@@ -45,6 +46,10 @@ const Sidebar = () => {
     } catch (error) {
       console.error("Error signing out:", error);
     }
+  };
+
+  const toggleCollapse = () => {
+    setIsCollapsed(!isCollapsed);
   };
 
   const navItems = [
@@ -62,8 +67,11 @@ const Sidebar = () => {
   ];
 
   return (
-    <div className="flex h-screen w-64 flex-col bg-white shadow-lg border-r border-gray-200">
-      <SidebarLogo />
+    <div className={cn(
+      "flex h-screen flex-col bg-white shadow-lg border-r border-gray-200 transition-all duration-300",
+      isCollapsed ? "w-16" : "w-64"
+    )}>
+      <SidebarLogo isCollapsed={isCollapsed} />
       
       <nav className="flex-1 space-y-1 px-2 py-4">
         {navItems.map((item) => (
@@ -82,26 +90,30 @@ const Sidebar = () => {
           >
             <item.icon
               className={cn(
-                "mr-3 h-5 w-5 flex-shrink-0",
+                "flex-shrink-0 h-5 w-5",
+                isCollapsed ? "mr-0" : "mr-3",
                 item.className
               )}
               aria-hidden="true"
             />
-            {item.name}
+            {!isCollapsed && item.name}
           </NavLink>
         ))}
       </nav>
 
-      <SidebarFooter />
+      <SidebarFooter isCollapsed={isCollapsed} toggleCollapse={toggleCollapse} />
 
       <div className="flex-shrink-0 border-t border-gray-200 p-4">
         <Button
           onClick={handleSignOut}
           variant="ghost"
-          className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+          className={cn(
+            "w-full text-gray-600 hover:text-gray-900 hover:bg-gray-50",
+            isCollapsed ? "justify-center px-2" : "justify-start"
+          )}
         >
-          <LogOut className="mr-3 h-5 w-5" />
-          Sair
+          <LogOut className={cn("h-5 w-5", isCollapsed ? "mr-0" : "mr-3")} />
+          {!isCollapsed && "Sair"}
         </Button>
       </div>
     </div>

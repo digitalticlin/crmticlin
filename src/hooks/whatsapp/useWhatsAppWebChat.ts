@@ -31,7 +31,7 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
         .select('*')
         .eq('whatsapp_number_id', activeInstance.id)
         .eq('company_id', activeInstance.company_id)
-        .order('last_message_time', { ascending: false, nullsLast: true });
+        .order('last_message_time', { ascending: false, nullsFirst: false });
 
       if (error) throw error;
 
