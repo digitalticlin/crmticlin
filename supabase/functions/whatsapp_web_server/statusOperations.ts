@@ -202,10 +202,10 @@ export async function getServerInfo() {
   }
 }
 
-// Função para sincronizar instâncias e limpar órfãs
+// Função para sincronizar instâncias com lógica mais conservadora
 export async function syncInstances(supabase: any, companyId: string) {
   try {
-    console.log(`[Sync] Syncing instances for company: ${companyId}`);
+    console.log(`[Sync] 🔄 INICIANDO sync conservador para empresa: ${companyId}`);
     
     // Buscar instâncias do banco
     const { data: dbInstances, error: dbError } = await supabase
@@ -218,81 +218,188 @@ export async function syncInstances(supabase: any, companyId: string) {
       throw new Error(`Database error: ${dbError.message}`);
     }
 
-    // Buscar instâncias do VPS
-    const vpsResponse = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instances`, {
-      method: 'GET',
-      headers: getVPSHeaders()
-    });
+    console.log(`[Sync] 📊 Instâncias no banco: ${dbInstances?.length || 0}`);
 
+    // Buscar instâncias do VPS
     let vpsInstances = [];
-    if (vpsResponse.ok) {
-      const vpsData = await vpsResponse.json();
-      vpsInstances = vpsData.instances || [];
+    let vpsError = null;
+    
+    try {
+      const vpsResponse = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instances`, {
+        method: 'GET',
+        headers: getVPSHeaders()
+      });
+
+      if (vpsResponse.ok) {
+        const vpsData = await vpsResponse.json();
+        vpsInstances = vpsData.instances || [];
+        console.log(`[Sync] 🖥️ Instâncias no VPS: ${vpsInstances.length}`);
+      } else {
+        vpsError = `VPS responded with status: ${vpsResponse.status}`;
+        console.error(`[Sync] ❌ VPS error: ${vpsError}`);
+      }
+    } catch (error) {
+      vpsError = error.message;
+      console.error(`[Sync] ❌ Failed to fetch VPS instances: ${vpsError}`);
     }
 
-    // Sincronizar status das instâncias
     const syncResults = [];
-    
-    for (const dbInstance of dbInstances || []) {
-      const vpsInstance = vpsInstances.find(v => v.instanceId === dbInstance.vps_instance_id);
+    let updatedCount = 0;
+    let preservedCount = 0;
+    let errorCount = 0;
+
+    // Se há erro no VPS, apenas registrar mas NÃO remover instâncias
+    if (vpsError) {
+      console.log(`[Sync] ⚠️ VPS inacessível: ${vpsError}. Preservando instâncias existentes.`);
       
-      if (vpsInstance) {
-        // Atualizar status no banco se necessário
-        const updates: any = {};
-        
-        if (vpsInstance.status !== dbInstance.connection_status) {
-          updates.connection_status = vpsInstance.status;
-        }
-        
-        if (vpsInstance.phone && vpsInstance.phone !== dbInstance.phone) {
-          updates.phone = vpsInstance.phone;
-        }
-        
-        if (Object.keys(updates).length > 0) {
-          updates.updated_at = new Date().toISOString();
-          
-          await supabase
-            .from('whatsapp_instances')
-            .update(updates)
-            .eq('id', dbInstance.id);
-            
-          syncResults.push({
-            instanceId: dbInstance.id,
-            action: 'updated',
-            changes: updates
-          });
-        }
-      } else {
-        // Instância órfã no banco - marcar como desconectada
-        await supabase
-          .from('whatsapp_instances')
-          .update({
-            connection_status: 'disconnected',
-            web_status: 'disconnected',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', dbInstance.id);
-          
+      for (const dbInstance of dbInstances || []) {
         syncResults.push({
           instanceId: dbInstance.id,
-          action: 'marked_disconnected',
-          reason: 'not_found_in_vps'
+          action: 'preserved',
+          reason: 'vps_unreachable',
+          vps_error: vpsError
         });
+        preservedCount++;
+      }
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          results: syncResults,
+          summary: {
+            updated: 0,
+            preserved: preservedCount,
+            errors: 1,
+            vps_error: vpsError
+          },
+          timestamp: new Date().toISOString()
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Sincronizar status das instâncias apenas SE conseguimos acessar o VPS
+    for (const dbInstance of dbInstances || []) {
+      try {
+        console.log(`[Sync] 🔍 Processando instância: ${dbInstance.instance_name} (${dbInstance.vps_instance_id})`);
+        
+        const vpsInstance = vpsInstances.find(v => v.instanceId === dbInstance.vps_instance_id);
+        
+        if (vpsInstance) {
+          console.log(`[Sync] ✅ Instância encontrada no VPS: ${vpsInstance.status}`);
+          
+          // Atualizar status APENAS se houver mudanças significativas
+          const updates: any = {};
+          let hasChanges = false;
+          
+          // Verificar mudanças de status
+          if (vpsInstance.status && vpsInstance.status !== dbInstance.connection_status) {
+            updates.connection_status = vpsInstance.status;
+            hasChanges = true;
+            console.log(`[Sync] 📝 Status changed: ${dbInstance.connection_status} -> ${vpsInstance.status}`);
+          }
+          
+          // Verificar mudanças de telefone
+          if (vpsInstance.phone && vpsInstance.phone !== dbInstance.phone) {
+            updates.phone = vpsInstance.phone;
+            hasChanges = true;
+            console.log(`[Sync] 📱 Phone updated: ${dbInstance.phone} -> ${vpsInstance.phone}`);
+          }
+          
+          // Verificar mudanças de profile
+          if (vpsInstance.profileName && vpsInstance.profileName !== dbInstance.profile_name) {
+            updates.profile_name = vpsInstance.profileName;
+            hasChanges = true;
+            console.log(`[Sync] 👤 Profile updated: ${dbInstance.profile_name} -> ${vpsInstance.profileName}`);
+          }
+          
+          if (hasChanges) {
+            updates.updated_at = new Date().toISOString();
+            
+            await supabase
+              .from('whatsapp_instances')
+              .update(updates)
+              .eq('id', dbInstance.id);
+              
+            syncResults.push({
+              instanceId: dbInstance.id,
+              action: 'updated',
+              changes: updates,
+              vps_status: vpsInstance.status
+            });
+            
+            updatedCount++;
+            console.log(`[Sync] ✅ Instância atualizada: ${dbInstance.instance_name}`);
+          } else {
+            syncResults.push({
+              instanceId: dbInstance.id,
+              action: 'unchanged',
+              current_status: dbInstance.connection_status
+            });
+            preservedCount++;
+            console.log(`[Sync] ➡️ Instância inalterada: ${dbInstance.instance_name}`);
+          }
+        } else {
+          // Instância no banco mas não no VPS - MARCAR como desconectada, mas NÃO remover
+          console.log(`[Sync] ⚠️ Instância órfã detectada: ${dbInstance.instance_name}. Marcando como desconectada.`);
+          
+          // Apenas marcar como desconectada se não estava já desconectada
+          if (dbInstance.connection_status !== 'disconnected') {
+            await supabase
+              .from('whatsapp_instances')
+              .update({
+                connection_status: 'disconnected',
+                web_status: 'disconnected',
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', dbInstance.id);
+              
+            syncResults.push({
+              instanceId: dbInstance.id,
+              action: 'marked_disconnected',
+              reason: 'not_found_in_vps',
+              previous_status: dbInstance.connection_status
+            });
+            updatedCount++;
+          } else {
+            syncResults.push({
+              instanceId: dbInstance.id,
+              action: 'already_disconnected',
+              reason: 'not_found_in_vps'
+            });
+            preservedCount++;
+          }
+        }
+      } catch (instanceError) {
+        console.error(`[Sync] ❌ Erro ao processar instância ${dbInstance.instance_name}:`, instanceError);
+        syncResults.push({
+          instanceId: dbInstance.id,
+          action: 'error',
+          error: instanceError.message
+        });
+        errorCount++;
       }
     }
+
+    console.log(`[Sync] 🏁 Sync finalizado: ${updatedCount} atualizadas, ${preservedCount} preservadas, ${errorCount} erros`);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         results: syncResults,
-        total_synced: syncResults.length,
+        summary: {
+          updated: updatedCount,
+          preserved: preservedCount,
+          errors: errorCount,
+          total_processed: (dbInstances?.length || 0)
+        },
         timestamp: new Date().toISOString()
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('[Sync] Error:', error);
+    console.error('[Sync] ❌ ERRO GERAL no sync:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 

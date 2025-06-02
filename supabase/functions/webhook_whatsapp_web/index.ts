@@ -19,7 +19,7 @@ serve(async (req) => {
     );
 
     const payload = await req.json();
-    console.log('WhatsApp Web webhook received:', JSON.stringify(payload, null, 2));
+    console.log('[Webhook] 📥 WhatsApp Web webhook received:', JSON.stringify(payload, null, 2));
 
     const { event, instanceId, data } = payload;
 
@@ -49,7 +49,7 @@ serve(async (req) => {
         break;
       
       default:
-        console.log(`Unknown webhook event: ${event}`);
+        console.log(`[Webhook] ❓ Unknown webhook event: ${event}`);
     }
 
     return new Response(
@@ -58,7 +58,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Webhook error:', error);
+    console.error('[Webhook] ❌ Webhook error:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
@@ -73,7 +73,7 @@ serve(async (req) => {
 });
 
 async function handleQREvent(supabase: any, instanceId: string, data: any) {
-  console.log('[Webhook] Handling QR event for instance:', instanceId);
+  console.log('[Webhook] 📱 Handling QR event for instance:', instanceId);
   
   try {
     const { error } = await supabase
@@ -87,17 +87,17 @@ async function handleQREvent(supabase: any, instanceId: string, data: any) {
       .eq('vps_instance_id', instanceId);
 
     if (error) {
-      console.error('[Webhook] Error updating QR code:', error);
+      console.error('[Webhook] ❌ Error updating QR code:', error);
     } else {
-      console.log('[Webhook] QR code updated successfully for:', instanceId);
+      console.log('[Webhook] ✅ QR code updated successfully for:', instanceId);
     }
   } catch (error) {
-    console.error('[Webhook] Exception in handleQREvent:', error);
+    console.error('[Webhook] ❌ Exception in handleQREvent:', error);
   }
 }
 
 async function handleAuthenticatedEvent(supabase: any, instanceId: string, data: any) {
-  console.log('[Webhook] Handling authenticated event for instance:', instanceId);
+  console.log('[Webhook] 🔐 Handling authenticated event for instance:', instanceId);
   
   try {
     const { error } = await supabase
@@ -111,20 +111,28 @@ async function handleAuthenticatedEvent(supabase: any, instanceId: string, data:
       .eq('vps_instance_id', instanceId);
 
     if (error) {
-      console.error('[Webhook] Error updating authenticated status:', error);
+      console.error('[Webhook] ❌ Error updating authenticated status:', error);
     } else {
-      console.log('[Webhook] Authenticated status updated successfully for:', instanceId);
+      console.log('[Webhook] ✅ Authenticated status updated successfully for:', instanceId);
     }
   } catch (error) {
-    console.error('[Webhook] Exception in handleAuthenticatedEvent:', error);
+    console.error('[Webhook] ❌ Exception in handleAuthenticatedEvent:', error);
   }
 }
 
 async function handleReadyEvent(supabase: any, instanceId: string, data: any) {
-  console.log('[Webhook] Handling ready event for instance:', instanceId, 'with data:', data);
+  console.log('[Webhook] 🚀 Handling ready event for instance:', instanceId, 'with data:', data);
   
   try {
-    // ATUALIZAÇÃO AUTOMÁTICA COM NÚMERO DO TELEFONE
+    // LOGGING DETALHADO PARA DEBUGGING
+    console.log('[Webhook] 📊 Instance data received:', {
+      instanceId,
+      phone: data.phone,
+      name: data.name,
+      profilePic: data.profilePic
+    });
+
+    // ATUALIZAÇÃO CRÍTICA COM INFORMAÇÕES COMPLETAS
     const updateData: any = {
       web_status: 'ready',
       connection_status: 'open',
@@ -136,36 +144,47 @@ async function handleReadyEvent(supabase: any, instanceId: string, data: any) {
     // Adicionar dados do telefone se disponíveis
     if (data.phone) {
       updateData.phone = data.phone;
-      console.log('[Webhook] Phone number to update:', data.phone);
+      console.log('[Webhook] 📱 Phone number to update:', data.phone);
     }
 
     if (data.name) {
       updateData.profile_name = data.name;
-      console.log('[Webhook] Profile name to update:', data.name);
+      console.log('[Webhook] 👤 Profile name to update:', data.name);
     }
 
     if (data.profilePic) {
       updateData.profile_pic_url = data.profilePic;
+      console.log('[Webhook] 🖼️ Profile pic to update:', data.profilePic);
     }
 
-    const { error } = await supabase
+    console.log('[Webhook] 💾 Updating database with data:', updateData);
+
+    const { data: updatedInstance, error } = await supabase
       .from('whatsapp_instances')
       .update(updateData)
-      .eq('vps_instance_id', instanceId);
+      .eq('vps_instance_id', instanceId)
+      .select()
+      .single();
 
     if (error) {
-      console.error('[Webhook] Error updating ready status:', error);
+      console.error('[Webhook] ❌ Error updating ready status:', error);
     } else {
-      console.log('[Webhook] ✅ Instance ready and phone number updated successfully for:', instanceId);
-      console.log('[Webhook] Updated data:', updateData);
+      console.log('[Webhook] ✅ ✅ ✅ Instance ready and CONNECTED successfully!');
+      console.log('[Webhook] 📊 Updated instance data:', updatedInstance);
+      console.log('[Webhook] 🎉 INSTÂNCIA CONECTADA COM SUCESSO:', {
+        id: updatedInstance?.id,
+        instance_name: updatedInstance?.instance_name,
+        phone: updatedInstance?.phone,
+        status: updatedInstance?.connection_status
+      });
     }
   } catch (error) {
-    console.error('[Webhook] Exception in handleReadyEvent:', error);
+    console.error('[Webhook] ❌ Exception in handleReadyEvent:', error);
   }
 }
 
 async function handleMessageEvent(supabase: any, instanceId: string, data: any) {
-  console.log('[Webhook] Handling message event for instance:', instanceId);
+  console.log('[Webhook] 💬 Handling message event for instance:', instanceId);
   
   try {
     // Get WhatsApp instance
@@ -176,7 +195,7 @@ async function handleMessageEvent(supabase: any, instanceId: string, data: any) 
       .single();
 
     if (instanceError || !whatsappInstance) {
-      console.error('[Webhook] WhatsApp instance not found for VPS instance:', instanceId, instanceError);
+      console.error('[Webhook] ❌ WhatsApp instance not found for VPS instance:', instanceId, instanceError);
       return;
     }
 
@@ -239,15 +258,15 @@ async function handleMessageEvent(supabase: any, instanceId: string, data: any) 
           timestamp: data.timestamp ? new Date(data.timestamp * 1000).toISOString() : new Date().toISOString()
         });
 
-      console.log('[Webhook] Message processed successfully for lead:', lead.id);
+      console.log('[Webhook] ✅ Message processed successfully for lead:', lead.id);
     }
   } catch (error) {
-    console.error('[Webhook] Exception in handleMessageEvent:', error);
+    console.error('[Webhook] ❌ Exception in handleMessageEvent:', error);
   }
 }
 
 async function handleDisconnectedEvent(supabase: any, instanceId: string, data: any) {
-  console.log('[Webhook] Handling disconnected event for instance:', instanceId);
+  console.log('[Webhook] 🔌 Handling disconnected event for instance:', instanceId);
   
   try {
     const { error } = await supabase
@@ -261,17 +280,17 @@ async function handleDisconnectedEvent(supabase: any, instanceId: string, data: 
       .eq('vps_instance_id', instanceId);
 
     if (error) {
-      console.error('[Webhook] Error updating disconnected status:', error);
+      console.error('[Webhook] ❌ Error updating disconnected status:', error);
     } else {
-      console.log('[Webhook] Disconnected status updated successfully for:', instanceId);
+      console.log('[Webhook] ✅ Disconnected status updated successfully for:', instanceId);
     }
   } catch (error) {
-    console.error('[Webhook] Exception in handleDisconnectedEvent:', error);
+    console.error('[Webhook] ❌ Exception in handleDisconnectedEvent:', error);
   }
 }
 
 async function handleAuthFailureEvent(supabase: any, instanceId: string, data: any) {
-  console.log('[Webhook] Handling auth failure event for instance:', instanceId);
+  console.log('[Webhook] 🚨 Handling auth failure event for instance:', instanceId);
   
   try {
     const { error } = await supabase
@@ -285,11 +304,11 @@ async function handleAuthFailureEvent(supabase: any, instanceId: string, data: a
       .eq('vps_instance_id', instanceId);
 
     if (error) {
-      console.error('[Webhook] Error updating auth failure status:', error);
+      console.error('[Webhook] ❌ Error updating auth failure status:', error);
     } else {
-      console.log('[Webhook] Auth failure status updated successfully for:', instanceId);
+      console.log('[Webhook] ✅ Auth failure status updated successfully for:', instanceId);
     }
   } catch (error) {
-    console.error('[Webhook] Exception in handleAuthFailureEvent:', error);
+    console.error('[Webhook] ❌ Exception in handleAuthFailureEvent:', error);
   }
 }

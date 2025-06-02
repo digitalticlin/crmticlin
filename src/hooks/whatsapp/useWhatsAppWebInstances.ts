@@ -1,24 +1,21 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from "@/integrations/supabase/client";
-import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
-import { toast } from "sonner";
-import { extractUsernameFromEmail, generateSequentialInstanceName } from "@/utils/instanceNaming";
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { toast } from 'sonner';
+import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface WhatsAppWebInstance {
   id: string;
   instance_name: string;
-  connection_type: 'web';
+  connection_type: string;
   server_url: string;
   vps_instance_id: string;
   web_status: string;
   connection_status: string;
-  qr_code?: string;
-  phone?: string;
-  profile_name?: string;
+  qr_code?: string | null;
+  phone?: string | null;
+  profile_name?: string | null;
   company_id: string;
-  permanent_mode?: boolean;
-  auto_reconnect?: boolean;
 }
 
 interface AutoConnectState {
@@ -27,78 +24,105 @@ interface AutoConnectState {
   activeInstanceId: string | null;
 }
 
-export function useWhatsAppWebInstances(companyId: string | null, companyLoading: boolean = false) {
+export const useWhatsAppWebInstances = (companyId: string | null, companyLoading: boolean) => {
   const [instances, setInstances] = useState<WhatsAppWebInstance[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const lastSyncRef = useRef<number>(0);
+  const syncTimeoutRef = useRef<NodeJS.Timeout>();
+  const isMountedRef = useRef(true);
+  
   const [autoConnectState, setAutoConnectState] = useState<AutoConnectState>({
     isConnecting: false,
     showQRModal: false,
-    activeInstanceId: null
+    activeInstanceId: null,
   });
 
-  // Auto-sync das instâncias a cada 30 segundos para modo permanente
+  // Cleanup no unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+      }
+      console.log('[Hook] Component unmounting - cleanup completed');
+    };
+  }, []);
+
+  // Função de sync mais conservadora
+  const performSync = useCallback(async (force = false) => {
+    if (!companyId || companyLoading || !isMountedRef.current) {
+      console.log('[Hook] ⏭️ Skipping sync - conditions not met:', { companyId: !!companyId, companyLoading, mounted: isMountedRef.current });
+      return;
+    }
+
+    const now = Date.now();
+    const timeSinceLastSync = now - lastSyncRef.current;
+    const MIN_SYNC_INTERVAL = 10000; // 10 segundos
+
+    if (!force && timeSinceLastSync < MIN_SYNC_INTERVAL) {
+      console.log(`[Hook] ⏰ Sync throttled - ${Math.round((MIN_SYNC_INTERVAL - timeSinceLastSync) / 1000)}s remaining`);
+      return;
+    }
+
+    try {
+      console.log('[Hook] 🔄 Iniciando sync conservador das instâncias');
+      lastSyncRef.current = now;
+
+      const result = await WhatsAppWebService.syncInstances();
+      
+      if (!isMountedRef.current) {
+        console.log('[Hook] Component unmounted during sync');
+        return;
+      }
+
+      if (result.success) {
+        console.log('[Hook] ✅ Sync successful:', result.data?.summary);
+        await fetchInstances(); // Recarregar após sync
+      } else {
+        console.error('[Hook] ❌ Sync failed:', result.error);
+        // Não mostrar erro para o usuário em sync automático
+      }
+    } catch (error) {
+      if (isMountedRef.current) {
+        console.error('[Hook] ❌ Sync error:', error);
+      }
+    }
+  }, [companyId, companyLoading]);
+
+  // Auto-sync com intervalo mais espaçado
   useEffect(() => {
     if (!companyId || companyLoading) return;
 
-    const syncInterval = setInterval(async () => {
-      try {
-        console.log('[Hook] Auto-sync das instâncias iniciado');
-        await fetchInstances();
-        
-        // Sync com VPS para limpar órfãs
-        await WhatsAppWebService.syncInstances();
-        
-      } catch (error) {
-        console.error('[Hook] Erro no auto-sync:', error);
+    console.log('[Hook] 🔄 Auto-sync das instâncias iniciado');
+    
+    // Sync inicial
+    performSync(false);
+    
+    // Auto-sync a cada 30 segundos (reduzido de frequência)
+    const interval = setInterval(() => {
+      if (isMountedRef.current) {
+        performSync(false);
       }
-    }, 30000); // 30 segundos
+    }, 30000);
 
-    return () => clearInterval(syncInterval);
-  }, [companyId, companyLoading]);
+    return () => {
+      clearInterval(interval);
+      console.log('[Hook] 🛑 Auto-sync parado');
+    };
+  }, [companyId, companyLoading, performSync]);
 
-  const getAuthenticatedSession = useCallback(async () => {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error || !session) {
-      throw new Error('User not authenticated');
-    }
-    return session;
-  }, []);
-
-  const getCurrentUserEmail = useCallback(async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email) {
-        return user.email;
-      }
-      throw new Error('User email not found');
-    } catch (error) {
-      console.error('Error getting user email:', error);
-      return 'user';
-    }
-  }, []);
-
-  const generateInstanceName = useCallback(async () => {
-    try {
-      const userEmail = await getCurrentUserEmail();
-      const username = extractUsernameFromEmail(userEmail);
-      
-      const existingNames = instances.map(instance => instance.instance_name.toLowerCase());
-      
-      return generateSequentialInstanceName(username, existingNames);
-    } catch (error) {
-      console.error('Error generating instance name:', error);
-      return `user${instances.length + 1}`;
-    }
-  }, [getCurrentUserEmail, instances]);
-
+  // Fetch instances from database
   const fetchInstances = useCallback(async () => {
-    if (!companyId || companyLoading) return;
-
-    setLoading(true);
-    setError(null);
+    if (!companyId || companyLoading) {
+      console.log('[Hook] ⏭️ Fetch skipped - no company ID or loading');
+      return;
+    }
 
     try {
+      console.log('[Hook] 📊 Fetching instances from database for company:', companyId);
+      
       const { data, error: fetchError } = await supabase
         .from('whatsapp_instances')
         .select('*')
@@ -106,240 +130,212 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
         .eq('connection_type', 'web')
         .order('created_at', { ascending: false });
 
-      if (fetchError) throw fetchError;
+      if (!isMountedRef.current) return;
+
+      if (fetchError) {
+        throw fetchError;
+      }
 
       const mappedInstances: WhatsAppWebInstance[] = (data || []).map(instance => ({
         id: instance.id,
         instance_name: instance.instance_name,
-        connection_type: 'web',
+        connection_type: instance.connection_type || 'web',
         server_url: instance.server_url || '',
         vps_instance_id: instance.vps_instance_id || '',
-        web_status: instance.web_status || 'creating',
-        connection_status: instance.connection_status || 'disconnected',
+        web_status: instance.web_status || '',
+        connection_status: instance.connection_status || '',
         qr_code: instance.qr_code,
         phone: instance.phone,
         profile_name: instance.profile_name,
-        company_id: instance.company_id,
-        permanent_mode: true, // Modo permanente habilitado
-        auto_reconnect: true  // Auto-reconexão habilitada
+        company_id: instance.company_id
       }));
 
       setInstances(mappedInstances);
+      setError(null);
+      
       console.log(`✅ Instâncias carregadas: ${mappedInstances.length} (modo permanente)`);
-    } catch (err: any) {
-      console.error('Error fetching WhatsApp Web instances:', err);
-      setError(err.message);
+      
+    } catch (error: any) {
+      if (isMountedRef.current) {
+        console.error('[Hook] ❌ Error fetching instances:', error);
+        setError(error.message);
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [companyId, companyLoading]);
 
-  const createInstance = async (customInstanceName?: string): Promise<void> => {
-    if (!companyId) {
-      toast.error('ID da empresa não encontrado');
-      return;
+  // Initial load
+  useEffect(() => {
+    if (companyId && !companyLoading) {
+      fetchInstances();
     }
+  }, [companyId, companyLoading, fetchInstances]);
 
-    try {
-      await getAuthenticatedSession();
-      
-      const instanceName = customInstanceName || await generateInstanceName();
-      
-      console.log('🔧 Criando instância PERMANENTE com nome:', instanceName);
-      
-      const existingInstance = instances.find(
-        instance => instance.instance_name.toLowerCase() === instanceName.toLowerCase()
-      );
-      
-      if (existingInstance) {
-        toast.error(`Instância com nome "${instanceName}" já existe. Gerando nome alternativo...`);
-        const alternativeName = await generateInstanceName();
-        console.log('Using alternative name:', alternativeName);
-        return createInstance(alternativeName);
+  // Realtime subscription with better error handling
+  useEffect(() => {
+    if (!companyId) return;
+
+    console.log('[Hook] 🔔 Setting up realtime subscription for company:', companyId);
+
+    const channel = supabase
+      .channel(`whatsapp-instances-${companyId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'whatsapp_instances',
+          filter: `company_id=eq.${companyId}`
+        },
+        (payload) => {
+          console.log('[Hook] 📡 Realtime update received:', payload.eventType);
+          
+          if (isMountedRef.current) {
+            // Debounced refetch
+            if (syncTimeoutRef.current) {
+              clearTimeout(syncTimeoutRef.current);
+            }
+            
+            syncTimeoutRef.current = setTimeout(() => {
+              if (isMountedRef.current) {
+                console.log('[Hook] 🔄 Realtime triggered refetch');
+                fetchInstances();
+              }
+            }, 1000);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[Hook] 🔕 Cleaning up realtime subscription');
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
       }
+      supabase.removeChannel(channel);
+    };
+  }, [companyId, fetchInstances]);
+
+  // Create instance with better error handling
+  const createInstance = useCallback(async (instanceName: string) => {
+    try {
+      console.log('[Hook] 🆕 Creating instance:', instanceName);
       
       const result = await WhatsAppWebService.createInstance(instanceName);
-
+      
       if (result.success && result.instance) {
+        console.log('[Hook] ✅ Instance created successfully');
+        toast.success(`Instância "${instanceName}" criada com sucesso!`);
         await fetchInstances();
-        
-        const newInstance = result.instance;
-        setAutoConnectState({
-          isConnecting: false,
-          showQRModal: true,
-          activeInstanceId: newInstance.id
-        });
-        
-        toast.success('✅ Instância criada em MODO PERMANENTE! Auto-reconexão habilitada.');
-        
-        setTimeout(() => {
-          refreshQRCode(newInstance.id);
-        }, 2000);
-        
+        return result.instance;
       } else {
-        throw new Error(result.error || 'Falha ao criar instância');
+        throw new Error(result.error || 'Failed to create instance');
       }
     } catch (error: any) {
-      console.error('Error creating instance:', error);
-      
-      let errorMessage = 'Erro ao criar instância';
-      
-      if (error.message.includes('duplicate key')) {
-        errorMessage = 'Instância com este nome já existe. Tente com outro nome.';
-      } else if (error.message.includes('VPS não está respondendo')) {
-        errorMessage = 'Servidor WhatsApp offline. Tente novamente em alguns minutos.';
-      } else if (error.message.includes('404')) {
-        errorMessage = 'Erro de configuração do servidor. Contate o suporte.';
-      } else if (error.message.includes('timeout')) {
-        errorMessage = 'Timeout na conexão. Tente novamente.';
-      } else {
-        errorMessage = `Erro: ${error.message}`;
-      }
-      
-      toast.error(errorMessage);
+      console.error('[Hook] ❌ Create instance error:', error);
+      toast.error(`Erro ao criar instância: ${error.message}`);
       throw error;
     }
-  };
+  }, [fetchInstances]);
 
-  const startAutoConnection = async () => {
-    if (!companyId) {
-      toast.error('ID da empresa não encontrado');
-      return;
-    }
-
-    setAutoConnectState(prev => ({ ...prev, isConnecting: true }));
-
+  // Delete instance with confirmation
+  const deleteInstance = useCallback(async (instanceId: string) => {
     try {
-      const instanceName = await generateInstanceName();
-      console.log('🚀 Auto-conectando MODO PERMANENTE com nome da instância:', instanceName);
-      
-      const result = await WhatsAppWebService.createInstance(instanceName);
-
-      if (result.success && result.instance) {
-        const newInstance = result.instance;
-        
-        await fetchInstances();
-        
-        setAutoConnectState({
-          isConnecting: false,
-          showQRModal: true,
-          activeInstanceId: newInstance.id
-        });
-        
-        toast.success('✅ Instância criada em MODO PERMANENTE! Auto-reconexão habilitada.');
-        
-        setTimeout(() => {
-          refreshQRCode(newInstance.id);
-        }, 2000);
-        
-      } else {
-        throw new Error(result.error || 'Falha ao criar instância');
-      }
-    } catch (error: any) {
-      console.error('Error in auto connection:', error);
-      setAutoConnectState(prev => ({ ...prev, isConnecting: false }));
-      
-      let errorMessage = 'Erro ao conectar WhatsApp';
-      
-      if (error.message.includes('duplicate key')) {
-        errorMessage = 'Conflito de nomes. Tente novamente.';
-      } else if (error.message.includes('VPS não está respondendo')) {
-        errorMessage = 'Servidor WhatsApp offline. Tente mais tarde.';
-      } else if (error.message.includes('404')) {
-        errorMessage = 'Erro de configuração. Contate o suporte.';
-      } else {
-        errorMessage = `Erro: ${error.message}`;
-      }
-      
-      toast.error(errorMessage);
-    }
-  };
-
-  const deleteInstance = async (instanceId: string) => {
-    try {
-      await getAuthenticatedSession();
+      console.log('[Hook] 🗑️ Deleting instance:', instanceId);
       
       const result = await WhatsAppWebService.deleteInstance(instanceId);
       
       if (result.success) {
+        console.log('[Hook] ✅ Instance deleted successfully');
+        toast.success('Instância removida com sucesso!');
         await fetchInstances();
-        toast.success('✅ Instância deletada do modo permanente');
       } else {
-        throw new Error(result.error || 'Falha ao deletar instância');
+        throw new Error(result.error || 'Failed to delete instance');
       }
     } catch (error: any) {
-      console.error('Error deleting instance:', error);
-      toast.error(`❌ Erro ao deletar instância: ${error.message}`);
+      console.error('[Hook] ❌ Delete instance error:', error);
+      toast.error(`Erro ao remover instância: ${error.message}`);
     }
-  };
+  }, [fetchInstances]);
 
-  const refreshQRCode = async (instanceId: string): Promise<string | null> => {
+  // Refresh QR code
+  const refreshQRCode = useCallback(async (instanceId: string) => {
     try {
-      await getAuthenticatedSession();
-      
-      console.log('🔄 Solicitando QR code para instância PERMANENTE:', instanceId);
+      console.log('[Hook] 🔄 Refreshing QR code for:', instanceId);
       
       const result = await WhatsAppWebService.getQRCode(instanceId);
       
       if (result.success && result.qrCode) {
-        await supabase
-          .from('whatsapp_instances')
-          .update({ 
-            qr_code: result.qrCode,
-            web_status: 'waiting_scan',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', instanceId);
-        
+        console.log('[Hook] ✅ QR code refreshed');
+        toast.success('QR Code atualizado!');
         await fetchInstances();
-        toast.success('✅ QR Code gerado! Modo permanente ativo.');
         return result.qrCode;
       } else {
-        throw new Error(result.error || 'Falha ao gerar QR Code');
+        throw new Error(result.error || 'Failed to get QR code');
       }
     } catch (error: any) {
-      console.error('Error generating QR code:', error);
-      toast.error(`❌ Erro ao gerar QR Code: ${error.message}`);
+      console.error('[Hook] ❌ Refresh QR error:', error);
+      toast.error(`Erro ao atualizar QR Code: ${error.message}`);
       return null;
     }
-  };
-
-  const closeQRModal = () => {
-    setAutoConnectState(prev => ({
-      ...prev,
-      showQRModal: false,
-      activeInstanceId: null
-    }));
-  };
-
-  const openQRModal = (instanceId: string) => {
-    setAutoConnectState(prev => ({
-      ...prev,
-      showQRModal: true,
-      activeInstanceId: instanceId
-    }));
-  };
-
-  useEffect(() => {
-    fetchInstances();
   }, [fetchInstances]);
 
-  const refetch = () => {
-    fetchInstances();
-  };
+  // Auto connection flow
+  const startAutoConnection = useCallback(async () => {
+    try {
+      setAutoConnectState(prev => ({ ...prev, isConnecting: true }));
+      
+      const instanceName = `whatsapp_${Date.now()}`;
+      const instance = await createInstance(instanceName);
+      
+      if (instance && instance.qr_code) {
+        setAutoConnectState({
+          isConnecting: false,
+          showQRModal: true,
+          activeInstanceId: instance.id
+        });
+      }
+    } catch (error) {
+      setAutoConnectState(prev => ({ ...prev, isConnecting: false }));
+    }
+  }, [createInstance]);
+
+  const closeQRModal = useCallback(() => {
+    setAutoConnectState(prev => ({ 
+      ...prev, 
+      showQRModal: false, 
+      activeInstanceId: null 
+    }));
+  }, []);
+
+  const openQRModal = useCallback((instanceId: string) => {
+    setAutoConnectState(prev => ({ 
+      ...prev, 
+      showQRModal: true, 
+      activeInstanceId: instanceId 
+    }));
+  }, []);
+
+  // Refetch function
+  const refetch = useCallback(() => {
+    console.log('[Hook] 🔄 Manual refetch requested');
+    return performSync(true);
+  }, [performSync]);
 
   return {
     instances,
     loading,
     error,
-    autoConnectState,
     createInstance,
-    fetchInstances,
     deleteInstance,
     refreshQRCode,
     startAutoConnection,
     closeQRModal,
     openQRModal,
+    autoConnectState,
     refetch
   };
-}
+};
