@@ -1,4 +1,4 @@
-// Servidor WhatsApp Web.js v3.4 - Versão CORRIGIDA com QR Code real obrigatório
+// Servidor WhatsApp Web.js v3.5 - CORRIGIDO para QR Code REAL obrigatório
 // Execute este script na VPS na porta 3001
 
 const express = require('express');
@@ -13,7 +13,7 @@ const app = express();
 const PORT = process.env.WHATSAPP_PORT || 3001;
 
 // VERSION CONTROL
-const SERVER_VERSION = '3.4.0';
+const SERVER_VERSION = '3.5.0';
 const SERVER_HASH = 'sha256-' + Date.now();
 
 // Configurar CORS e parsing
@@ -93,7 +93,7 @@ app.get('/status', (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: 'WhatsApp Web.js Server v3.4 funcionando - QR Real OBRIGATÓRIO',
+    message: 'WhatsApp Web.js Server v3.5 funcionando - QR Real OBRIGATÓRIO',
     version: SERVER_VERSION,
     hash: SERVER_HASH,
     endpoints: [
@@ -202,25 +202,36 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
       status: 'initializing',
       qrCode: null,
       lastActivity: new Date().toISOString(),
-      qrPromise: null,
-      qrAttempts: 0,
-      maxQRAttempts: 3
+      qrGenerated: false,
+      realQRReceived: false,
+      startTime: Date.now()
     };
 
     // Armazenar a instância
     activeInstances.set(instanceId, instanceData);
 
-    // Promise para aguardar QR code real
-    instanceData.qrPromise = new Promise((resolve) => {
-      instanceData.qrResolve = resolve;
+    // Promise para aguardar QR code real com timeout
+    const waitForRealQR = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        console.error(`⏰ [v${SERVER_VERSION}] Timeout aguardando QR real para ${instanceId}`);
+        reject(new Error('Timeout aguardando QR code real'));
+      }, 30000); // 30 segundos timeout
+
+      instanceData.qrResolve = (qrCode) => {
+        clearTimeout(timeout);
+        resolve(qrCode);
+      };
+      instanceData.qrReject = (error) => {
+        clearTimeout(timeout);
+        reject(error);
+      };
     });
 
     // Event listener para QR Code - GERAR QR REAL OBRIGATÓRIO
     client.on('qr', async (qr) => {
       try {
-        instanceData.qrAttempts++;
-        console.log(`📱 [v${SERVER_VERSION}] QR Code REAL recebido para ${instanceId} (tentativa ${instanceData.qrAttempts}/${instanceData.maxQRAttempts})`);
-        console.log(`QR String recebida: ${qr.substring(0, 100)}...`);
+        console.log(`📱 [v${SERVER_VERSION}] QR Code REAL recebido para ${instanceId}`);
+        console.log(`QR String recebida (primeiros 100 chars): ${qr.substring(0, 100)}...`);
         
         // Gerar QR code como base64 REAL com configurações otimizadas
         const qrCodeDataUrl = await qrcode.toDataURL(qr, {
@@ -240,11 +251,25 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
           return;
         }
         
+        // Verificar padrões conhecidos de QR codes falsos
+        const knownFakePatterns = [
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+          'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+        ];
+        
+        const isFakeQR = knownFakePatterns.some(pattern => base64Part.includes(pattern));
+        if (isFakeQR) {
+          console.warn(`⚠️ [v${SERVER_VERSION}] QR Code falso detectado para ${instanceId}`);
+          return;
+        }
+        
         instanceData.qrCode = qrCodeDataUrl;
         instanceData.status = 'waiting_scan';
         instanceData.lastActivity = new Date().toISOString();
+        instanceData.qrGenerated = true;
+        instanceData.realQRReceived = true;
         
-        console.log(`✅ [v${SERVER_VERSION}] QR Code REAL gerado para ${instanceId} - Tamanho: ${qrCodeDataUrl.length} chars`);
+        console.log(`✅ [v${SERVER_VERSION}] QR Code REAL válido gerado para ${instanceId} - Tamanho: ${qrCodeDataUrl.length} chars`);
         console.log(`📊 [v${SERVER_VERSION}] Base64 length: ${base64Part.length} chars`);
         
         // Resolver a promise do QR code
@@ -256,8 +281,8 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
         console.error(`❌ [v${SERVER_VERSION}] Erro ao gerar QR Code para ${instanceId}:`, error);
         instanceData.qrCode = null;
         instanceData.status = 'qr_error';
-        if (instanceData.qrResolve) {
-          instanceData.qrResolve(null);
+        if (instanceData.qrReject) {
+          instanceData.qrReject(error);
         }
       }
     });
@@ -303,21 +328,45 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
     console.log(`🚀 [v${SERVER_VERSION}] Inicializando cliente WhatsApp REAL para ${instanceId}...`);
     await client.initialize();
 
-    console.log(`✅ [v${SERVER_VERSION}] Instância ${instanceId} inicializada com sucesso - aguardando QR real`);
+    // AGUARDAR QR CODE REAL antes de retornar sucesso
+    try {
+      console.log(`⏳ [v${SERVER_VERSION}] Aguardando QR Code REAL para ${instanceId}...`);
+      const realQRCode = await waitForRealQR;
+      
+      console.log(`✅ [v${SERVER_VERSION}] QR Code REAL obtido para ${instanceId} - retornando sucesso`);
+      
+      // Retornar resposta com QR REAL
+      res.json({
+        success: true,
+        instanceId,
+        sessionName,
+        webhookUrl,
+        companyId,
+        status: 'waiting_scan',
+        qrCode: realQRCode,
+        message: 'Instância criada com QR Code REAL',
+        version: SERVER_VERSION,
+        timestamp: new Date().toISOString()
+      });
 
-    // Retornar resposta inicial
-    res.json({
-      success: true,
-      instanceId,
-      sessionName,
-      webhookUrl,
-      companyId,
-      status: 'created',
-      qrCode: null,
-      message: 'Instância criada. QR Code REAL será gerado em breve.',
-      version: SERVER_VERSION,
-      timestamp: new Date().toISOString()
-    });
+    } catch (qrError) {
+      console.error(`❌ [v${SERVER_VERSION}] Erro ao aguardar QR real para ${instanceId}:`, qrError);
+      
+      // Limpar instância em caso de erro
+      if (activeInstances.has(instanceId)) {
+        const instance = activeInstances.get(instanceId);
+        if (instance.client) {
+          try {
+            await instance.client.destroy();
+          } catch (destroyError) {
+            console.error(`❌ [v${SERVER_VERSION}] Erro ao destruir cliente: ${destroyError.message}`);
+          }
+        }
+        activeInstances.delete(instanceId);
+      }
+      
+      throw qrError;
+    }
 
   } catch (error) {
     console.error(`❌ [v${SERVER_VERSION}] Erro ao criar instância: ${error.message}`);
@@ -337,7 +386,7 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
 
     res.status(500).json({
       success: false,
-      error: error.message,
+      error: `Falha ao criar instância: ${error.message}`,
       version: SERVER_VERSION
     });
   }
@@ -475,7 +524,7 @@ app.post('/instance/qr', authenticateToken, async (req, res) => {
     const instance = activeInstances.get(instanceId);
     
     // Se já tem QR code real validado, retornar imediatamente
-    if (instance.qrCode && instance.qrCode.startsWith('data:image/')) {
+    if (instance.qrCode && instance.realQRReceived && instance.qrCode.startsWith('data:image/')) {
       const base64Part = instance.qrCode.split(',')[1];
       if (base64Part && base64Part.length > 500) {
         console.log(`✅ [v${SERVER_VERSION}] QR Code REAL já disponível para ${instanceId}`);
@@ -486,31 +535,6 @@ app.post('/instance/qr', authenticateToken, async (req, res) => {
           version: SERVER_VERSION,
           timestamp: new Date().toISOString()
         });
-      }
-    }
-
-    // Se tem promise do QR code, aguardar até 15 segundos
-    if (instance.qrPromise) {
-      console.log(`⏳ [v${SERVER_VERSION}] Aguardando QR Code REAL para ${instanceId}...`);
-      
-      const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 15000));
-      const qrCode = await Promise.race([instance.qrPromise, timeout]);
-      
-      if (qrCode) {
-        // Validar novamente se é real
-        const base64Part = qrCode.split(',')[1];
-        if (base64Part && base64Part.length > 500) {
-          console.log(`✅ [v${SERVER_VERSION}] QR Code REAL obtido para ${instanceId}`);
-          return res.json({
-            success: true,
-            qrCode: qrCode,
-            status: instance.status,
-            version: SERVER_VERSION,
-            timestamp: new Date().toISOString()
-          });
-        } else {
-          console.warn(`⚠️ [v${SERVER_VERSION}] QR Code inválido retornado para ${instanceId}`);
-        }
       }
     }
 

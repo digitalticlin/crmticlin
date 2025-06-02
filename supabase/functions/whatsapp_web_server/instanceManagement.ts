@@ -11,7 +11,7 @@ async function makeVPSRequest(url: string, options: RequestInit, retries = 3): P
       
       const response = await fetch(url, {
         ...options,
-        signal: AbortSignal.timeout(15000), // 15 second timeout
+        signal: AbortSignal.timeout(45000), // 45 second timeout para aguardar QR real
       });
       
       console.log(`[VPS Response] Status: ${response.status} ${response.statusText}`);
@@ -104,10 +104,10 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
     throw new Error(`VPS não está respondendo: ${healthError.message}`);
   }
 
-  // FASE 4: Create instance using CORRECT endpoint and payload format
+  // FASE 4: Create instance using CORRECT endpoint and payload format - AGUARDAR QR REAL
   let vpsResult;
   try {
-    console.log('[Instance Management] Creating instance with corrected authentication');
+    console.log('[Instance Management] Creating instance with corrected authentication and waiting for REAL QR');
     
     // Payload structure with corrected authentication
     const payload = {
@@ -129,20 +129,29 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
 
     if (vpsResponse.ok) {
       vpsResult = await vpsResponse.json();
-      console.log('[Instance Management] VPS creation SUCCESS:', vpsResult);
+      console.log('[Instance Management] VPS creation response:', vpsResult);
       
-      // Validate if QR code returned is real
-      if (vpsResult.qrCode) {
-        const qrIsReal = isRealQRCode(vpsResult.qrCode);
-        console.log(`[Instance Management] QR Code validation - Is Real: ${qrIsReal}`);
-        
-        if (!qrIsReal) {
-          console.warn('[Instance Management] VPS returned fake QR code, but instance was created');
-          // Don't fail the creation, just clear the fake QR
-          vpsResult.qrCode = null;
-          vpsResult.status = 'creating';
-        }
+      // VALIDAÇÃO CRÍTICA: Verificar se VPS realmente retornou sucesso E QR code real
+      if (!vpsResult.success) {
+        throw new Error(`VPS retornou falha: ${vpsResult.error || 'Erro desconhecido'}`);
       }
+      
+      // Verificar se tem QR code
+      if (!vpsResult.qrCode) {
+        throw new Error('VPS não retornou QR Code. Instância pode não ter sido criada corretamente.');
+      }
+      
+      // Validar se QR code é real
+      const qrIsReal = isRealQRCode(vpsResult.qrCode);
+      console.log(`[Instance Management] QR Code validation - Is Real: ${qrIsReal}`);
+      
+      if (!qrIsReal) {
+        console.error('[Instance Management] VPS returned fake QR code - FALHA CRÍTICA');
+        throw new Error('VPS retornou QR Code falso. WhatsApp Web.js não foi inicializado corretamente. Tente novamente.');
+      }
+      
+      console.log('[Instance Management] ✅ VPS retornou QR CODE REAL - prosseguindo com salvamento');
+      
     } else {
       const errorText = await vpsResponse.text();
       console.error(`[Instance Management] VPS creation failed with status ${vpsResponse.status}: ${errorText}`);
@@ -153,13 +162,9 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
     throw new Error(`Erro na criação VPS: ${vpsError.message}`);
   }
 
-  if (!vpsResult || !vpsResult.success) {
-    throw new Error(`Criação falhou. Erro VPS: ${vpsResult?.error || 'VPS não respondeu corretamente'}`);
-  }
-
-  // FASE 5: Create database record AFTER VPS confirms success
+  // FASE 5: Create database record ONLY AFTER VPS confirms success with REAL QR
   try {
-    console.log('[Instance Management] VPS instance created successfully, now saving to database...');
+    console.log('[Instance Management] VPS instance created successfully with REAL QR, now saving to database...');
     
     const { data: dbInstance, error: dbError } = await supabase
       .from('whatsapp_instances')
@@ -170,9 +175,9 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
         connection_type: 'web',
         server_url: VPS_CONFIG.baseUrl,
         vps_instance_id: vpsInstanceId,
-        web_status: vpsResult.qrCode ? 'waiting_scan' : 'creating',
+        web_status: 'waiting_scan', // QR real disponível para scan
         connection_status: 'connecting',
-        qr_code: vpsResult.qrCode || null
+        qr_code: vpsResult.qrCode // QR code REAL do VPS
       })
       .select()
       .single();
@@ -194,14 +199,14 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
       throw new Error(`Erro no banco de dados: ${dbError.message}`);
     }
 
-    console.log('[Instance Management] Instance successfully created in database with ID:', dbInstance.id);
+    console.log('[Instance Management] ✅ Instance successfully created in database with REAL QR and ID:', dbInstance.id);
 
     return new Response(
       JSON.stringify({
         success: true,
         instance: {
           ...dbInstance,
-          qr_code: vpsResult.qrCode || null
+          qr_code: vpsResult.qrCode // QR code REAL confirmado
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
