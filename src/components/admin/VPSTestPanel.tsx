@@ -9,12 +9,16 @@ import { AdminActionsCard } from "./vps/AdminActionsCard";
 import { VPSAdvancedDiagnostic } from "./vps/VPSAdvancedDiagnostic";
 import { VPSConnectivityTest } from "./VPSConnectivityTest";
 import { VPSConnectionDiagnostic } from "./VPSConnectionDiagnostic";
+import { VPSEndpointDiscovery } from "./VPSEndpointDiscovery";
 
 export const VPSTestPanel = () => {
   return (
     <div className="space-y-6">
       {/* Deploy Inteligente - Primeira seção */}
       <AutoDeployButton />
+
+      {/* Descoberta de Endpoints - NOVA SEÇÃO PRINCIPAL */}
+      <VPSEndpointDiscovery />
 
       {/* Diagnóstico Completo VPS - Nova seção para Fase 1 */}
       <VPSConnectionDiagnostic />
