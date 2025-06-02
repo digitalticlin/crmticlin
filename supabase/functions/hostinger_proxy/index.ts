@@ -6,31 +6,78 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface HostingerVPS {
-  id: string;
-  name: string;
-  status: 'running' | 'stopped' | 'starting' | 'stopping';
-  ip_address: string;
-  cpu_cores: number;
-  memory: number;
-  storage: number;
-  os: string;
-  created_at: string;
-}
-
 interface CommandRequest {
   vpsId: string;
   command: string;
   description?: string;
 }
 
-// URLs da VPS - removendo porta 80 explícita pois HTTP usa 80 por padrão
-const VPS_URLS = [
-  'http://31.97.24.222',
-  'http://srv848330.hstgr.cloud'
-];
+// Configuração SSH da VPS
+const VPS_CONFIG = {
+  hostname: '31.97.24.222',
+  port: 22,
+  username: 'root',
+  timeout: 30000 // 30 segundos
+};
 
-const VPS_TIMEOUT = 8000; // 8 segundos para testes rápidos
+async function executeSSHCommand(command: string, description?: string): Promise<any> {
+  console.log(`[SSH] Executando: ${description || command.substring(0, 100)}...`);
+  
+  try {
+    // Comando SSH com todas as opções de segurança
+    const sshArgs = [
+      '-o', 'StrictHostKeyChecking=no',
+      '-o', 'UserKnownHostsFile=/dev/null',
+      '-o', 'ConnectTimeout=30',
+      '-o', 'ServerAliveInterval=60',
+      '-o', 'ServerAliveCountMax=3',
+      '-o', 'BatchMode=yes',
+      `${VPS_CONFIG.username}@${VPS_CONFIG.hostname}`,
+      command
+    ];
+    
+    console.log(`[SSH] Conectando em ${VPS_CONFIG.hostname}...`);
+    
+    // Executar comando SSH usando Deno
+    const process = new Deno.Command('ssh', {
+      args: sshArgs,
+      stdout: 'piped',
+      stderr: 'piped',
+    });
+    
+    const { code, stdout, stderr } = await process.output();
+    
+    const outputText = new TextDecoder().decode(stdout);
+    const errorText = new TextDecoder().decode(stderr);
+    
+    console.log(`[SSH] Exit code: ${code}`);
+    if (outputText) console.log(`[SSH] Output: ${outputText.substring(0, 500)}...`);
+    if (errorText) console.log(`[SSH] Error: ${errorText.substring(0, 500)}...`);
+    
+    // Retornar resultado no formato esperado
+    return {
+      success: code === 0,
+      output: outputText || errorText,
+      exit_code: code,
+      duration: 0 // Será calculado pelo chamador se necessário
+    };
+    
+  } catch (error) {
+    console.error(`[SSH] Erro na execução:`, error);
+    throw new Error(`Falha na conexão SSH: ${error.message}`);
+  }
+}
+
+async function testSSHConnection(): Promise<boolean> {
+  try {
+    console.log('[SSH] Testando conectividade...');
+    const result = await executeSSHCommand('echo "SSH connection test successful"', 'Teste de conectividade SSH');
+    return result.success && result.output.includes('SSH connection test successful');
+  } catch (error) {
+    console.error('[SSH] Teste de conectividade falhou:', error);
+    return false;
+  }
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -39,119 +86,133 @@ serve(async (req) => {
   }
 
   try {
-    console.log('[VPS Proxy] Iniciando requisição para VPS na porta 80');
+    console.log('[SSH Proxy] Iniciando requisição via SSH');
 
     const url = new URL(req.url);
     const path = url.pathname.replace('/functions/v1/hostinger_proxy', '');
     const method = req.method;
 
-    console.log(`[VPS Proxy] ${method} ${path}`);
+    console.log(`[SSH Proxy] ${method} ${path}`);
 
-    let requestBody = null;
-    if (method === 'POST' && req.body) {
-      requestBody = await req.text();
-      console.log(`[VPS Proxy] Request body: ${requestBody.substring(0, 200)}...`);
-    }
-
-    // Tentar cada URL da VPS até encontrar uma que funcione
-    let lastError = null;
-    
-    for (const baseUrl of VPS_URLS) {
-      const vpsUrl = `${baseUrl}${path}`;
-      console.log(`[VPS Proxy] Tentando conectar: ${vpsUrl}`);
-
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), VPS_TIMEOUT);
-
-        const vpsHeaders = {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'User-Agent': 'Ticlin-VPS-Manager/1.0'
-        };
-
-        const vpsResponse = await fetch(vpsUrl, {
-          method,
-          headers: vpsHeaders,
-          body: requestBody,
-          signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-
-        const responseText = await vpsResponse.text();
-        console.log(`[VPS Proxy] ${baseUrl} - Status: ${vpsResponse.status}`);
-
-        if (!vpsResponse.ok) {
-          // Se não for sucesso, tentar próxima URL
-          lastError = `VPS ${baseUrl} retornou erro ${vpsResponse.status}`;
-          console.log(`[VPS Proxy] ${lastError}, tentando próxima URL...`);
-          continue;
-        }
-
-        // Sucesso! Processar resposta
-        let responseData;
-        try {
-          responseData = JSON.parse(responseText);
-        } catch (parseError) {
-          console.log('[VPS Proxy] Resposta não é JSON, tratando como texto');
-          responseData = {
-            output: responseText,
-            raw_response: responseText,
-            server_url: baseUrl
-          };
-        }
-
-        console.log(`[VPS Proxy] Sucesso com ${baseUrl}`);
+    // Processar diferentes endpoints
+    if (path === '/health' || path === '/status') {
+      // Teste de conectividade básico
+      const isConnected = await testSSHConnection();
+      
+      if (isConnected) {
         return new Response(
           JSON.stringify({ 
             success: true, 
-            data: responseData,
-            server_used: baseUrl
+            data: {
+              status: 'online',
+              message: 'VPS acessível via SSH',
+              timestamp: new Date().toISOString(),
+              connection_method: 'SSH'
+            }
           }),
           { 
             status: 200, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
           }
         );
-
-      } catch (fetchError: any) {
-        if (fetchError.name === 'AbortError') {
-          lastError = `Timeout na conexão com ${baseUrl}`;
-          console.log(`[VPS Proxy] ${lastError}`);
-        } else {
-          lastError = `Erro de rede com ${baseUrl}: ${fetchError.message}`;
-          console.log(`[VPS Proxy] ${lastError}`);
-        }
-        
-        // Continuar para próxima URL
-        continue;
+      } else {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'VPS não acessível via SSH',
+            code: 'SSH_CONNECTION_FAILED'
+          }),
+          { 
+            status: 503, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
       }
     }
 
-    // Se chegou aqui, todas as URLs falharam
-    console.error('[VPS Proxy] Todas as URLs da VPS falharam');
+    if (path === '/execute' && method === 'POST') {
+      let requestBody = null;
+      if (req.body) {
+        requestBody = await req.text();
+        console.log(`[SSH Proxy] Request body: ${requestBody.substring(0, 200)}...`);
+      }
+
+      const { command, description, vpsId } = JSON.parse(requestBody || '{}');
+      
+      if (!command) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Comando não fornecido',
+            code: 'MISSING_COMMAND'
+          }),
+          { 
+            status: 400, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      // Executar comando via SSH
+      console.log(`[SSH Proxy] Executando comando: ${description || 'Comando personalizado'}`);
+      
+      const result = await executeSSHCommand(command, description);
+      
+      if (result.success) {
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            data: {
+              output: result.output,
+              exit_code: result.exit_code,
+              duration: result.duration,
+              connection_method: 'SSH',
+              timestamp: new Date().toISOString()
+            }
+          }),
+          { 
+            status: 200, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      } else {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: `Comando falhou com exit code ${result.exit_code}`,
+            data: {
+              output: result.output,
+              exit_code: result.exit_code
+            }
+          }),
+          { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+    }
+
+    // Endpoint não encontrado
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: lastError || 'Servidor não está rodando ou firewall está bloqueando',
-        code: 'VPS_NOT_ACCESSIBLE',
-        attempted_servers: VPS_URLS,
-        suggestion: 'Verifique se o servidor está rodando na porta 80 e se o firewall permite conexões HTTP'
+        error: `Endpoint não encontrado: ${path}`,
+        code: 'ENDPOINT_NOT_FOUND'
       }),
       { 
-        status: 503, 
+        status: 404, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
 
   } catch (error: any) {
-    console.error('[VPS Proxy] Erro geral:', error);
+    console.error('[SSH Proxy] Erro geral:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || 'Erro interno do servidor',
-        code: 'INTERNAL_ERROR'
+        error: error.message || 'Erro interno do servidor SSH',
+        code: 'INTERNAL_SSH_ERROR'
       }),
       { 
         status: 500, 
