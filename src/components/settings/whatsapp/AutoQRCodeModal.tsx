@@ -1,7 +1,7 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Loader2, AlertCircle, CheckCircle, Clock } from "lucide-react";
+import { RefreshCw, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { useQRCodeValidation } from "@/hooks/whatsapp/useQRCodeValidation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -56,37 +56,17 @@ export function AutoQRCodeModal({
     }
 
     if (!validation.isValid) {
-      if (validation.isPlaceholder) {
-        return (
-          <div className="flex flex-col items-center justify-center py-8 space-y-4">
-            <Clock className="h-12 w-12 text-yellow-500" />
-            <div className="text-center">
-              <p className="text-sm font-medium text-yellow-600">Aguardando QR Code real</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                O servidor está preparando o QR Code do WhatsApp
-              </p>
-            </div>
-            <Alert className="w-full max-w-sm">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-xs">
-                {validation.errorMessage}
-              </AlertDescription>
-            </Alert>
+      return (
+        <div className="flex flex-col items-center justify-center py-8 space-y-4">
+          <AlertCircle className="h-12 w-12 text-red-500" />
+          <div className="text-center">
+            <p className="text-sm font-medium text-red-600">QR Code inválido</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {validation.errorMessage}
+            </p>
           </div>
-        );
-      } else {
-        return (
-          <div className="flex flex-col items-center justify-center py-8 space-y-4">
-            <AlertCircle className="h-12 w-12 text-red-500" />
-            <div className="text-center">
-              <p className="text-sm font-medium text-red-600">QR Code inválido</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {validation.errorMessage}
-              </p>
-            </div>
-          </div>
-        );
-      }
+        </div>
+      );
     }
 
     return (
@@ -151,7 +131,7 @@ export function AutoQRCodeModal({
             disabled={isLoading}
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            {validation.isPlaceholder ? 'Aguardar QR Real' : 'Gerar Novo QR'}
+            Gerar Novo QR
           </Button>
           
           <Button 

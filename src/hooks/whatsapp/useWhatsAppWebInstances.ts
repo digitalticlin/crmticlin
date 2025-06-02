@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
@@ -115,66 +114,7 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     }
   }, [companyId, companyLoading]);
 
-  // Polling para obter QR code real com retry inteligente
-  const pollForRealQRCode = useCallback(async (instanceId: string, maxAttempts: number = 15) => {
-    let attempts = 0;
-    const pollInterval = 3000; // 3 segundos
-    
-    const poll = async () => {
-      if (attempts >= maxAttempts) {
-        console.log(`⚠️ Máximo de tentativas atingido para obter QR Code real para ${instanceId}`);
-        toast.warning('QR Code demorou para ser gerado. Tente "Gerar QR Code" novamente.');
-        return;
-      }
-      
-      attempts++;
-      console.log(`🔄 Tentativa ${attempts}/${maxAttempts} para obter QR Code real para ${instanceId}`);
-      
-      try {
-        const qrResult = await WhatsAppWebService.getQRCode(instanceId);
-        
-        if (qrResult.success && qrResult.qrCode) {
-          // Verificar se é um QR code real (não placeholder)
-          const isRealQR = qrResult.qrCode.startsWith('data:image/') && 
-                          !qrResult.qrCode.includes('iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB') &&
-                          qrResult.qrCode !== 'fake-qr' &&
-                          qrResult.qrCode.length > 500;
-          
-          if (isRealQR) {
-            console.log(`✅ QR Code REAL obtido para ${instanceId}! Tamanho: ${qrResult.qrCode.length}`);
-            
-            // Atualizar no banco
-            await supabase
-              .from('whatsapp_instances')
-              .update({ 
-                qr_code: qrResult.qrCode,
-                web_status: 'waiting_scan'
-              })
-              .eq('id', instanceId);
-            
-            await fetchInstances();
-            toast.success('🎉 QR Code real gerado! Pode escanear agora.');
-            return;
-          } else {
-            console.log(`⏳ QR Code ainda é placeholder para ${instanceId}, continuando polling...`);
-          }
-        } else {
-          console.log(`⏳ QR Code ainda não disponível para ${instanceId}:`, qrResult.error);
-        }
-        
-        // Continuar polling
-        setTimeout(poll, pollInterval);
-      } catch (error) {
-        console.error(`Erro ao fazer poll do QR Code para ${instanceId}:`, error);
-        setTimeout(poll, pollInterval);
-      }
-    };
-    
-    // Iniciar polling após 2 segundos
-    setTimeout(poll, 2000);
-  }, [fetchInstances]);
-
-  // Create instance with improved error handling and validation
+  // Create instance with simplified flow
   const createInstance = async (customInstanceName?: string): Promise<void> => {
     if (!companyId) {
       toast.error('ID da empresa não encontrado');
@@ -212,10 +152,12 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
           activeInstanceId: newInstance.id
         });
         
-        toast.success('✅ Instância criada! Aguardando QR Code real...');
+        toast.success('✅ Instância criada! Gerando QR Code...');
         
-        // Iniciar polling para obter QR code real
-        pollForRealQRCode(newInstance.id);
+        // Tentar obter QR code imediatamente
+        setTimeout(() => {
+          refreshQRCode(newInstance.id);
+        }, 2000);
         
       } else {
         throw new Error(result.error || 'Falha ao criar instância');
@@ -242,7 +184,7 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     }
   };
 
-  // Auto connection flow with improved error handling
+  // Auto connection flow with simplified handling
   const startAutoConnection = async () => {
     if (!companyId) {
       toast.error('ID da empresa não encontrado');
@@ -268,10 +210,12 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
           activeInstanceId: newInstance.id
         });
         
-        toast.success('✅ Instância criada! Aguardando QR Code real...');
+        toast.success('✅ Instância criada! Gerando QR Code...');
         
-        // Iniciar polling para QR code real
-        pollForRealQRCode(newInstance.id);
+        // Tentar obter QR code imediatamente
+        setTimeout(() => {
+          refreshQRCode(newInstance.id);
+        }, 2000);
         
       } else {
         throw new Error(result.error || 'Falha ao criar instância');
@@ -315,48 +259,28 @@ export function useWhatsAppWebInstances(companyId: string | null, companyLoading
     }
   };
 
-  // Refresh QR Code with improved validation and retry logic
+  // Simplified QR Code refresh
   const refreshQRCode = async (instanceId: string): Promise<string | null> => {
     try {
       await getAuthenticatedSession();
       
-      console.log('🔄 Solicitando novo QR code para instância:', instanceId);
+      console.log('🔄 Solicitando QR code para instância:', instanceId);
       
-      // Solicitar novo QR code
       const result = await WhatsAppWebService.getQRCode(instanceId);
       
       if (result.success && result.qrCode) {
-        // Verificar se é QR code real
-        const isRealQR = result.qrCode.startsWith('data:image/') && 
-                        !result.qrCode.includes('iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB') &&
-                        result.qrCode !== 'fake-qr' &&
-                        result.qrCode.length > 500;
+        // Atualizar no banco
+        await supabase
+          .from('whatsapp_instances')
+          .update({ 
+            qr_code: result.qrCode,
+            web_status: 'waiting_scan'
+          })
+          .eq('id', instanceId);
         
-        if (isRealQR) {
-          // QR code real obtido
-          const { error: updateError } = await supabase
-            .from('whatsapp_instances')
-            .update({ 
-              qr_code: result.qrCode,
-              web_status: 'waiting_scan'
-            })
-            .eq('id', instanceId);
-
-          if (updateError) {
-            console.error('Erro ao atualizar QR code no banco:', updateError);
-          } else {
-            console.log('✅ QR code real atualizado no banco');
-          }
-
-          await fetchInstances();
-          toast.success('✅ QR Code gerado com sucesso');
-          return result.qrCode;
-        } else {
-          // É placeholder, iniciar polling
-          toast.info('⏳ Gerando QR Code real. Aguarde...');
-          pollForRealQRCode(instanceId);
-          return null;
-        }
+        await fetchInstances();
+        toast.success('✅ QR Code gerado com sucesso!');
+        return result.qrCode;
       } else {
         throw new Error(result.error || 'Falha ao gerar QR Code');
       }
