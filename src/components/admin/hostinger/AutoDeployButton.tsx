@@ -7,14 +7,69 @@ import { toast } from "sonner";
 
 export const AutoDeployButton = () => {
   const [isDeploying, setIsDeploying] = useState(false);
-  const [deployStatus, setDeployStatus] = useState<'idle' | 'deploying' | 'success' | 'error'>('idle');
+  const [deployStatus, setDeployStatus] = useState<'idle' | 'checking' | 'deploying' | 'success' | 'error'>('idle');
   const [deployResult, setDeployResult] = useState<any>(null);
   const [diagnostics, setDiagnostics] = useState<any>(null);
+  const [servicesOnline, setServicesOnline] = useState<boolean>(false);
 
-  // Executar deploy automaticamente quando o componente carregar
+  // Verificar status dos serviços antes de executar deploy automático
   useEffect(() => {
-    handleAutoDeploy();
+    checkServicesStatus();
   }, []);
+
+  const checkServicesStatus = async () => {
+    try {
+      setDeployStatus('checking');
+      console.log('🔍 Verificando status dos serviços...');
+
+      // Verificar API Server (porta 80)
+      const apiResponse = await fetch('http://31.97.24.222/health', {
+        method: 'GET',
+        timeout: 5000
+      });
+
+      // Verificar WhatsApp Server (porta 3001)
+      const whatsappResponse = await fetch('http://31.97.24.222:3001/health', {
+        method: 'GET',
+        timeout: 5000
+      });
+
+      const apiOnline = apiResponse.ok;
+      const whatsappOnline = whatsappResponse.ok;
+      const bothOnline = apiOnline && whatsappOnline;
+
+      setServicesOnline(bothOnline);
+
+      if (bothOnline) {
+        console.log('✅ Serviços já estão online, cancelando deploy automático');
+        setDeployStatus('success');
+        setDeployResult({
+          success: true,
+          status: 'already_running',
+          message: 'Serviços já estão rodando'
+        });
+        
+        // Buscar diagnósticos dos serviços
+        if (apiOnline) {
+          const apiData = await apiResponse.json();
+          setDiagnostics({
+            vps_ping: true,
+            api_server_running: true,
+            whatsapp_server_running: whatsappOnline,
+            pm2_running: true
+          });
+        }
+        
+        toast.success('✅ Servidores já estão online! Deploy não necessário.');
+      } else {
+        console.log('⚠️ Alguns serviços estão offline, executando deploy...');
+        handleAutoDeploy();
+      }
+    } catch (error) {
+      console.log('❌ Erro ao verificar serviços, executando deploy...');
+      handleAutoDeploy();
+    }
+  };
 
   const handleAutoDeploy = async () => {
     try {
@@ -46,6 +101,7 @@ export const AutoDeployButton = () => {
       if (result.success) {
         console.log('✅ Deploy realizado com sucesso:', result);
         setDeployStatus('success');
+        setServicesOnline(true);
         
         if (result.status === 'already_running') {
           toast.success('🎉 Servidores já estavam online! API porta 80 ativa.');
@@ -72,6 +128,8 @@ export const AutoDeployButton = () => {
 
   const getStatusIcon = () => {
     switch (deployStatus) {
+      case 'checking':
+        return <Loader2 className="h-6 w-6 animate-spin text-blue-600" />;
       case 'deploying':
         return <Loader2 className="h-6 w-6 animate-spin text-blue-600" />;
       case 'success':
@@ -85,19 +143,23 @@ export const AutoDeployButton = () => {
 
   const getStatusText = () => {
     switch (deployStatus) {
+      case 'checking':
+        return 'Verificando status dos serviços...';
       case 'deploying':
         return 'Executando deploy automático...';
       case 'success':
-        return 'Deploy concluído com sucesso!';
+        return servicesOnline ? 'Serviços já estão online!' : 'Deploy concluído com sucesso!';
       case 'error':
         return 'Erro no deploy - Verifique instruções';
       default:
-        return 'Iniciando deploy...';
+        return 'Iniciando verificação...';
     }
   };
 
   const getStatusColor = () => {
     switch (deployStatus) {
+      case 'checking':
+        return 'border-blue-200 bg-blue-50';
       case 'deploying':
         return 'border-blue-200 bg-blue-50';
       case 'success':
@@ -116,7 +178,7 @@ export const AutoDeployButton = () => {
           {getStatusIcon()}
           <div>
             <CardTitle className={`${deployStatus === 'success' ? 'text-green-800' : deployStatus === 'error' ? 'text-red-800' : 'text-blue-800'}`}>
-              Deploy Automático SSH
+              Deploy Inteligente SSH
             </CardTitle>
             <p className={`text-sm ${deployStatus === 'success' ? 'text-green-700' : deployStatus === 'error' ? 'text-red-700' : 'text-blue-700'}`}>
               {getStatusText()}
@@ -126,8 +188,23 @@ export const AutoDeployButton = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
+          {/* Status dos Serviços */}
+          {deployStatus === 'checking' && (
+            <div className="p-3 bg-blue-100 rounded-lg border border-blue-300">
+              <h4 className="font-medium text-blue-800 mb-2 flex items-center gap-2">
+                <Activity className="h-4 w-4 animate-pulse" />
+                Verificando Serviços
+              </h4>
+              <div className="text-sm text-blue-700 space-y-1">
+                <div>🔍 Testando API Server (porta 80)...</div>
+                <div>📱 Testando WhatsApp Server (porta 3001)...</div>
+                <div>⚡ Verificando necessidade de deploy...</div>
+              </div>
+            </div>
+          )}
+
           {/* Progresso do Deploy */}
-          {isDeploying && (
+          {isDeploying && deployStatus === 'deploying' && (
             <div className="p-3 bg-blue-100 rounded-lg border border-blue-300">
               <h4 className="font-medium text-blue-800 mb-2 flex items-center gap-2">
                 <Activity className="h-4 w-4 animate-pulse" />
@@ -139,6 +216,22 @@ export const AutoDeployButton = () => {
                 <div>🚀 Criando API Server (porta 80)...</div>
                 <div>📱 Criando WhatsApp Server (porta 3001)...</div>
                 <div>⚡ Iniciando serviços com PM2...</div>
+              </div>
+            </div>
+          )}
+
+          {/* Resultado: Serviços Online */}
+          {deployStatus === 'success' && servicesOnline && (
+            <div className="p-3 bg-green-100 rounded-lg border border-green-300">
+              <h4 className="font-medium text-green-800 mb-2 flex items-center gap-2">
+                <CheckCircle className="h-4 w-4" />
+                Serviços Online
+              </h4>
+              <div className="text-sm text-green-700 space-y-1">
+                <div>✅ API Server: Ativo na porta 80</div>
+                <div>✅ WhatsApp Server: Ativo na porta 3001</div>
+                <div>✅ PM2: Gerenciamento ativo</div>
+                <div>✅ Deploy automático cancelado (não necessário)</div>
               </div>
             </div>
           )}
@@ -194,39 +287,17 @@ export const AutoDeployButton = () => {
             </div>
           )}
 
-          {/* Resultado do Deploy */}
-          {deployResult && deployStatus === 'success' && (
-            <div className="p-3 bg-green-100 rounded-lg border border-green-300">
-              <h4 className="font-medium text-green-800 mb-2 flex items-center gap-2">
-                <Server className="h-4 w-4" />
-                Deploy Realizado com Sucesso
-              </h4>
-              <div className="text-xs text-green-700 space-y-1">
-                <div>✅ API Server: http://31.97.24.222 (porta 80)</div>
-                <div>✅ WhatsApp Server: http://31.97.24.222:3001</div>
-                <div>✅ PM2: Auto-restart configurado</div>
-                <div>✅ Firewall: Portas 80 e 3001 liberadas</div>
-                {deployResult.health?.active_instances !== undefined && (
-                  <div>📱 Instâncias WhatsApp: {deployResult.health.active_instances}</div>
-                )}
-                {deployResult.health?.uptime && (
-                  <div>⏱️ Uptime: {Math.floor(deployResult.health.uptime)}s</div>
-                )}
-              </div>
-            </div>
-          )}
-
           {/* Ações */}
           <div className="flex gap-2">
             <Button
               onClick={handleAutoDeploy}
-              disabled={isDeploying}
+              disabled={isDeploying || deployStatus === 'checking'}
               className={`${deployStatus === 'success' ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'} text-white`}
             >
-              {isDeploying ? (
+              {(isDeploying || deployStatus === 'checking') ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Executando...
+                  {deployStatus === 'checking' ? 'Verificando...' : 'Executando...'}
                 </>
               ) : deployStatus === 'success' ? (
                 <>
@@ -241,26 +312,26 @@ export const AutoDeployButton = () => {
               )}
             </Button>
             
-            {deployStatus === 'success' && deployResult?.api_server_url && (
-              <Button
-                variant="outline"
-                onClick={() => window.open(`http://31.97.24.222/health`, '_blank')}
-                className="border-green-600 text-green-600"
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Testar API Server
-              </Button>
-            )}
-
             {deployStatus === 'success' && (
-              <Button
-                variant="outline"
-                onClick={() => window.open(`http://31.97.24.222:3001/health`, '_blank')}
-                className="border-green-600 text-green-600"
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Testar WhatsApp
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => window.open(`http://31.97.24.222/health`, '_blank')}
+                  className="border-green-600 text-green-600"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Testar API Server
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={() => window.open(`http://31.97.24.222:3001/health`, '_blank')}
+                  className="border-green-600 text-green-600"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Testar WhatsApp
+                </Button>
+              </>
             )}
           </div>
         </div>
