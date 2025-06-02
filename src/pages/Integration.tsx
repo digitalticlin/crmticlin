@@ -1,10 +1,9 @@
-
-import Sidebar from "@/components/layout/Sidebar";
+import ResponsiveSidebar from "@/components/layout/ResponsiveSidebar";
 
 export default function Integration() {
   return (
     <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 overflow-hidden">
-      <Sidebar />
+      <ResponsiveSidebar />
       <main className="flex-1 p-6 overflow-auto">
         <div className="max-w-5xl mx-auto">
           <h1 className="text-2xl font-bold mb-6">Integração</h1>

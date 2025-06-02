@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import Sidebar from "@/components/layout/Sidebar";
+import ResponsiveSidebar from "@/components/layout/ResponsiveSidebar";
 import { ClientsLayout } from "@/components/clients/ClientsLayout";
 import { useClientManagement } from "@/hooks/useClientManagement";
 
@@ -24,7 +24,7 @@ export default function Clients() {
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 overflow-hidden">
-      <Sidebar />
+      <ResponsiveSidebar />
       
       <ClientsLayout 
         clients={clients}

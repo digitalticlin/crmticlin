@@ -1,6 +1,5 @@
-
 import { useState, useMemo } from "react";
-import Sidebar from "@/components/layout/Sidebar";
+import ResponsiveSidebar from "@/components/layout/ResponsiveSidebar";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -71,7 +70,7 @@ export default function Team() {
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 overflow-hidden">
-      <Sidebar />
+      <ResponsiveSidebar />
 
       <main className="flex-1 overflow-auto">
         <div className="p-6">

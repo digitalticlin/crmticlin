@@ -1,5 +1,5 @@
 import { useState } from "react";
-import Sidebar from "@/components/layout/Sidebar";
+import ResponsiveSidebar from "@/components/layout/ResponsiveSidebar";
 import { useSalesFunnel } from "@/hooks/salesFunnel/useSalesFunnel";
 import { KanbanBoard } from "@/components/sales/KanbanBoard";
 import { LeadDetailSidebar } from "@/components/sales/LeadDetailSidebar";
@@ -129,7 +129,7 @@ export default function SalesFunnel() {
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 overflow-hidden font-inter">
-      <Sidebar />
+      <ResponsiveSidebar />
       <main className="flex-1 overflow-auto">
         <div className="p-6">
           {/* HEADER */}
