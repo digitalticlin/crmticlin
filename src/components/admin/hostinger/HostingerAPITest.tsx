@@ -25,16 +25,17 @@ export const HostingerAPITest = () => {
     try {
       setTesting(true);
       setResults(null);
-      toast.info("🔍 Testando conectividade com VPS direta (31.97.24.222)...");
+      toast.info("🔍 Testando conectividade com VPS (múltiplas URLs)...");
 
       const startTime = Date.now();
       
-      // Testar conectividade com VPS direta
+      // Testar conectividade com VPS usando fallback automático
       const response = await fetch('https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/hostinger_proxy/health', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        signal: AbortSignal.timeout(12000) // 12 segundos total incluindo fallbacks
       });
 
       const endTime = Date.now();
@@ -53,17 +54,20 @@ export const HostingerAPITest = () => {
 
       if (data.success) {
         testResults.vps_list_access = true;
-        testResults.vps_count = 1; // VPS direta sempre 1
-        toast.success(`✅ Conexão com VPS estabelecida! (${responseTime}ms)`);
+        testResults.vps_count = 1;
+        
+        const serverUsed = data.server_used || 'Servidor VPS';
+        toast.success(`✅ Conexão estabelecida com ${serverUsed}! (${responseTime}ms)`);
       } else {
         testResults.error_details = data.error || 'Erro desconhecido';
         
-        // Verificar tipos específicos de erro
-        if (response.status === 401 || response.status === 403) {
-          testResults.authentication = false;
+        if (data.code === 'TIMEOUT_ERROR') {
+          testResults.error_details = 'Timeout - VPS pode estar offline ou bloqueando conexões HTTP';
+        } else if (data.code === 'ALL_SERVERS_DOWN') {
+          testResults.error_details = 'Todas as URLs da VPS estão indisponíveis';
         }
         
-        toast.error(`❌ Falha na conexão: ${data.error}`);
+        toast.error(`❌ Falha na conexão: ${testResults.error_details}`);
       }
 
       setResults(testResults);
@@ -71,15 +75,20 @@ export const HostingerAPITest = () => {
     } catch (error: any) {
       console.error('Erro no teste da VPS:', error);
       
+      let errorMessage = error.message;
+      if (error.name === 'TimeoutError') {
+        errorMessage = 'Timeout na conexão - VPS pode estar offline';
+      }
+      
       setResults({
         token_configured: true,
         connectivity: false,
         authentication: false,
         vps_list_access: false,
-        error_details: error.message
+        error_details: errorMessage
       });
       
-      toast.error(`❌ Erro no teste: ${error.message}`);
+      toast.error(`❌ Erro no teste: ${errorMessage}`);
     } finally {
       setTesting(false);
     }

@@ -44,23 +44,27 @@ class HostingerApiService {
     try {
       console.log(`[VPS Service] ${method} ${endpoint}`);
       
+      // Timeout mais baixo para testes rápidos
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 segundos total
+      
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         method,
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: body ? JSON.stringify(body) : undefined
+        body: body ? JSON.stringify(body) : undefined,
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
       const result = await response.json();
       
-      // Log detalhado para debugging
       console.log(`[VPS Service] Response status: ${response.status}`);
       console.log(`[VPS Service] Response data:`, result);
 
       if (!response.ok) {
-        // Retornar erro detalhado da VPS
         return {
           success: false,
           error: result.error || `HTTP ${response.status}: ${response.statusText}`,
@@ -80,6 +84,15 @@ class HostingerApiService {
       return { success: true, data: result.data };
     } catch (error: any) {
       console.error('VPS API Error:', error);
+      
+      if (error.name === 'AbortError') {
+        return { 
+          success: false, 
+          error: 'Timeout na conexão com a VPS - verifique se o servidor está acessível',
+          code: 'TIMEOUT_ERROR'
+        };
+      }
+      
       return { 
         success: false, 
         error: error.message || 'Erro na comunicação com a VPS',

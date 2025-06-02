@@ -1,18 +1,18 @@
 
 export const HOSTINGER_CONFIG = {
-  API_BASE_URL: 'http://31.97.24.222',
+  // URLs primária e fallback para VPS
+  PRIMARY_VPS_URL: 'http://31.97.24.222',
+  FALLBACK_VPS_URL: 'http://srv848330.hstgr.cloud',
   VPS_HOST: '31.97.24.222',
   VPS_PORT: 80,
-  ALTERNATIVE_HOST: 'srv848330.hstgr.cloud',
-  API_TOKEN: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
   
-  // Configurações de timeout
-  REQUEST_TIMEOUT: 30000, // 30 segundos
-  LONG_OPERATION_TIMEOUT: 300000, // 5 minutos para operações longas
+  // Configurações de timeout otimizadas
+  REQUEST_TIMEOUT: 8000, // 8 segundos para testes rápidos
+  LONG_OPERATION_TIMEOUT: 120000, // 2 minutos para operações longas
   
   // Configurações de retry
-  MAX_RETRIES: 3,
-  RETRY_DELAY: 2000, // 2 segundos
+  MAX_RETRIES: 2, // Reduzido para ser mais rápido
+  RETRY_DELAY: 1000, // 1 segundo
   
   // Portas padrão dos serviços
   WHATSAPP_PORT: 3001,
@@ -22,26 +22,26 @@ export const HOSTINGER_CONFIG = {
   WHATSAPP_INSTALL_SCRIPT: {
     name: 'WhatsApp Web.js Installation',
     description: 'Instalação completa do servidor WhatsApp Web.js com correções SSL',
-    timeout: 300000 // 5 minutos
+    timeout: 180000 // 3 minutos
   },
   
   SSL_FIX_SCRIPT: {
     name: 'SSL and Timeout Fixes',
     description: 'Aplicação de correções SSL e timeout para WhatsApp Web.js',
-    timeout: 120000 // 2 minutos
+    timeout: 60000 // 1 minuto
   }
 };
 
 export const HOSTINGER_ENDPOINTS = {
+  HEALTH_CHECK: '/health',
+  STATUS: '/status',
   LIST_VPS: '/virtual-machines',
   VPS_DETAILS: (id: string) => `/virtual-machines/${id}`,
-  VPS_EXECUTE: (id: string) => `/virtual-machines/${id}/execute`,
+  VPS_EXECUTE: '/execute',
   VPS_RESTART: (id: string) => `/virtual-machines/${id}/restart`,
   VPS_START: (id: string) => `/virtual-machines/${id}/start`,
   VPS_STOP: (id: string) => `/virtual-machines/${id}/stop`,
-  VPS_LOGS: (id: string) => `/virtual-machines/${id}/logs`,
-  HEALTH_CHECK: '/health',
-  STATUS: '/status'
+  VPS_LOGS: (id: string) => `/virtual-machines/${id}/logs`
 };
 
 // Comandos pré-definidos para facilitar o uso
