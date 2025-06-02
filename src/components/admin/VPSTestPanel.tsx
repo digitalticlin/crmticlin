@@ -1,5 +1,6 @@
 
 import { HostingerVPSPanel } from "./hostinger/HostingerVPSPanel";
+import { PortTestDiagnostic } from "./vps/PortTestDiagnostic";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Zap, Shield, Terminal } from "lucide-react";
@@ -41,12 +42,18 @@ export const VPSTestPanel = () => {
             <Badge variant="outline" className="text-green-600 border-green-600">
               ✅ SSH Configurado
             </Badge>
+            <Badge variant="outline" className="text-green-600 border-green-600">
+              ✅ Porta 80 Liberada
+            </Badge>
             <Badge variant="outline" className="text-blue-600 border-blue-600">
               🚀 Deploy Automático
             </Badge>
           </div>
         </CardContent>
       </Card>
+
+      {/* Teste de conectividade pós-abertura da porta */}
+      <PortTestDiagnostic />
 
       {/* Painel principal da VPS */}
       <HostingerVPSPanel />
