@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { WhatsAppErrorAlert } from "./WhatsAppErrorAlert";
 import { WhatsAppWebInstanceCard } from "./WhatsAppWebInstanceCard";
-import { FloatingAddWhatsAppButton } from "./FloatingAddWhatsAppButton";
+import FloatingAddWhatsAppButton from "./FloatingAddWhatsAppButton";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { AutoQRCodeModal } from "./AutoQRCodeModal";
 import { ConnectWhatsAppButton } from "./ConnectWhatsAppButton";
@@ -29,7 +29,7 @@ export const WhatsAppWebSection = () => {
     openQRModal,
     autoConnectState,
     refetch
-  } = useWhatsAppWebInstances();
+  } = useWhatsAppWebInstances("", false);
 
   // Load current user data
   useEffect(() => {
@@ -118,7 +118,11 @@ export const WhatsAppWebSection = () => {
           ))}
         </div>
 
-        <FloatingAddWhatsAppButton onCreateNew={handleCreateNew} />
+        <FloatingAddWhatsAppButton 
+          onClick={() => handleCreateNew(`instance_${Date.now()}`)}
+          isSuperAdmin={true}
+          isNewUser={instances.length === 0}
+        />
       </div>
     );
   };
