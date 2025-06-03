@@ -29,7 +29,7 @@ const Index = () => {
       <div className="w-full max-w-md relative z-10 animate-fade-in">
         <LoginForm />
         
-        <p className="text-center text-xs text-white/70 mt-8 font-medium">
+        <p className="text-center text-xs text-gray-700 mt-8 font-medium">
           Ticlin CRM &copy; {new Date().getFullYear()} - Todos os direitos reservados
         </p>
       </div>
