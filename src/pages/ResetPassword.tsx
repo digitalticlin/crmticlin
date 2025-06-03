@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -111,7 +110,7 @@ export default function ResetPassword() {
         <div className="mb-6 flex justify-center">
           <div className="relative">
             <img
-              src="/lovable-uploads/ae7ddc52-d3ed-478f-af96-603a69278f3b.png"
+              src="/lovable-uploads/68c955d6-5aab-40d3-9018-c372a8f3faf6.png"
               alt="Ticlin CRM"
               className="h-14 transition-transform duration-300 hover:scale-110"
             />
