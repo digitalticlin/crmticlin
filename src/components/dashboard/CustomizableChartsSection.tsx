@@ -41,6 +41,12 @@ export default function CustomizableChartsSection() {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {visibleCharts.map((chartKey) => {
         const ChartComponent = chartComponents[chartKey as keyof typeof chartComponents];
+        
+        if (!ChartComponent) {
+          console.error(`Component not found for chart key: ${chartKey}`);
+          return null;
+        }
+        
         return <ChartComponent key={chartKey} />;
       })}
     </div>
