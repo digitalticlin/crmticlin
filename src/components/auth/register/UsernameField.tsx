@@ -16,7 +16,7 @@ export const UsernameField = ({ form }: UsernameFieldProps) => {
       name="username"
       render={({ field }) => (
         <FormItem className="space-y-3">
-          <FormLabel className="text-gray-800 font-medium">Nome de usuário</FormLabel>
+          <FormLabel className="text-white font-medium">Nome de usuário</FormLabel>
           <FormControl>
             <div className="relative group">
               <User className="absolute left-3 top-3 h-5 w-5 text-gray-400 transition-colors group-hover:text-gray-600" />
@@ -26,10 +26,10 @@ export const UsernameField = ({ form }: UsernameFieldProps) => {
               />
             </div>
           </FormControl>
-          <p className="text-xs text-gray-600">
+          <p className="text-xs text-white/80">
             Gerado automaticamente com base no email
           </p>
-          <FormMessage className="text-red-500" />
+          <FormMessage className="text-red-200" />
         </FormItem>
       )}
     />
