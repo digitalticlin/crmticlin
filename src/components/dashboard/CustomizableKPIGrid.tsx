@@ -49,41 +49,58 @@ const kpiConfig = {
   }
 };
 
+// KPIs padrão sempre visíveis
+const DEFAULT_KPIS = ['novos_leads', 'total_leads', 'taxa_conversao', 'valor_pipeline'];
+
 function KPIGridContent() {
   const { config, loading: configLoading } = useDashboardConfig();
-  const { kpis, loading: kpisLoading } = useDashboardKPIs(config.period_filter);
+  const { kpis, loading: kpisLoading } = useDashboardKPIs(config?.period_filter || "30");
   const { isDemoMode } = useDemoMode();
 
+  console.log("KPIGridContent - configLoading:", configLoading, "kpisLoading:", kpisLoading);
+  console.log("KPIGridContent - config:", config);
+  console.log("KPIGridContent - kpis:", kpis);
+  console.log("KPIGridContent - isDemoMode:", isDemoMode);
+
   const visibleKPIs = useMemo(() => {
-    if (!config?.layout?.kpi_order || !config?.kpis) {
-      // Fallback para ordem padrão se não houver configuração
-      return ['novos_leads', 'total_leads', 'taxa_conversao', 'valor_pipeline'];
+    // Se não há configuração, usar KPIs padrão
+    if (!config || !config.layout || !config.layout.kpi_order) {
+      console.log("Usando KPIs padrão devido à falta de configuração");
+      return DEFAULT_KPIS;
     }
     
-    return config.layout.kpi_order.filter(kpiKey => {
-      return config.kpis[kpiKey as keyof typeof config.kpis];
+    // Se não há KPIs configurados, usar padrão
+    if (!config.kpis) {
+      console.log("Usando KPIs padrão devido à falta de config.kpis");
+      return DEFAULT_KPIS;
+    }
+    
+    // Filtrar KPIs habilitados
+    const enabled = config.layout.kpi_order.filter(kpiKey => {
+      const isEnabled = config.kpis[kpiKey as keyof typeof config.kpis];
+      console.log(`KPI ${kpiKey} habilitado:`, isEnabled);
+      return isEnabled;
     });
-  }, [config?.kpis, config?.layout?.kpi_order]);
+    
+    // Se nenhum KPI habilitado, usar padrão
+    if (enabled.length === 0) {
+      console.log("Nenhum KPI habilitado, usando padrão");
+      return DEFAULT_KPIS;
+    }
+    
+    return enabled;
+  }, [config]);
 
+  console.log("visibleKPIs final:", visibleKPIs);
+
+  // Estados de loading
   if (configLoading || kpisLoading) {
+    console.log("Renderizando estado de loading");
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="h-32 bg-white/20 rounded-3xl animate-pulse" />
         ))}
-      </div>
-    );
-  }
-
-  if (visibleKPIs.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-600">
-        <p>Nenhum KPI selecionado. Configure o dashboard para visualizar os dados.</p>
-        {isDemoMode && (
-          <p className="text-sm text-blue-600 mt-2">
-            Modo Demo ativo - dados de demonstração disponíveis
-          </p>
-        )}
       </div>
     );
   }
@@ -98,6 +115,8 @@ function KPIGridContent() {
     return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5";
   };
 
+  console.log("Renderizando grid com", visibleKPIs.length, "KPIs");
+
   return (
     <div className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6`}>
       {visibleKPIs.map((kpiKey) => {
@@ -108,12 +127,27 @@ function KPIGridContent() {
           return null;
         }
 
-        // Verificar se a chave existe nos KPIs e se não é 'trends'
-        const kpiValue = (kpiKey !== 'trends' && kpis && typeof kpis[kpiKey as keyof typeof kpis] === 'number') 
-          ? kpis[kpiKey as keyof typeof kpis] as number 
-          : 0;
+        // Verificar se a chave existe nos KPIs e garantir que é um número
+        let kpiValue = 0;
+        if (kpis && typeof kpis === 'object' && kpiKey in kpis) {
+          const value = kpis[kpiKey as keyof typeof kpis];
+          if (typeof value === 'number') {
+            kpiValue = value;
+          }
+        }
 
-        const trend = kpis?.trends?.[kpiKey as keyof typeof kpis.trends] || { value: 0, isPositive: true };
+        // Trend padrão se não existir
+        const defaultTrend = { value: 0, isPositive: true };
+        let trend = defaultTrend;
+        
+        if (kpis && kpis.trends && typeof kpis.trends === 'object' && kpiKey in kpis.trends) {
+          const trendValue = kpis.trends[kpiKey as keyof typeof kpis.trends];
+          if (trendValue && typeof trendValue === 'object' && 'value' in trendValue && 'isPositive' in trendValue) {
+            trend = trendValue;
+          }
+        }
+
+        console.log(`Renderizando KPI ${kpiKey} com valor:`, kpiValue, "trend:", trend);
         
         return (
           <ErrorBoundary 
@@ -138,8 +172,25 @@ function KPIGridContent() {
 }
 
 export function CustomizableKPIGrid() {
+  console.log("CustomizableKPIGrid renderizando");
   return (
-    <ErrorBoundary>
+    <ErrorBoundary
+      fallback={
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          {DEFAULT_KPIS.map((kpiKey) => {
+            const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
+            return (
+              <div key={kpiKey} className="h-32 bg-white/20 rounded-3xl flex items-center justify-center">
+                <div className="text-center">
+                  <h3 className="text-sm font-medium text-gray-700">{kpiData.title}</h3>
+                  <p className="text-xs text-gray-500 mt-2">Erro no carregamento</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      }
+    >
       <KPIGridContent />
     </ErrorBoundary>
   );

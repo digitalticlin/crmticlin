@@ -60,53 +60,57 @@ export const useDashboardConfig = () => {
   const { user } = useAuth();
   const { companyId } = useCompanyData();
 
+  console.log("useDashboardConfig - user:", !!user, "companyId:", companyId);
+
   useEffect(() => {
     if (user && companyId) {
       loadConfig();
+    } else {
+      console.log("useDashboardConfig - sem user ou companyId, usando config padrão");
+      setLoading(false);
     }
   }, [user, companyId]);
 
   const loadConfig = async () => {
     try {
+      console.log("useDashboardConfig - carregando configuração do banco");
+      
       const { data, error } = await supabase
         .from('dashboard_configs')
         .select('config_data')
         .eq('user_id', user?.id)
         .eq('company_id', companyId)
-        .single();
+        .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
+        console.error("Erro ao carregar configuração:", error);
         throw error;
       }
 
-      if (data) {
+      if (data && data.config_data) {
+        console.log("useDashboardConfig - configuração carregada:", data.config_data);
         const loadedConfig = data.config_data as unknown as DashboardConfig;
-        setConfig(loadedConfig);
+        
+        // Validar e mesclar com configuração padrão para garantir consistência
+        const mergedConfig = {
+          ...defaultConfig,
+          ...loadedConfig,
+          kpis: { ...defaultConfig.kpis, ...loadedConfig.kpis },
+          charts: { ...defaultConfig.charts, ...loadedConfig.charts },
+          layout: { ...defaultConfig.layout, ...loadedConfig.layout }
+        };
+        
+        setConfig(mergedConfig);
       } else {
-        await createDefaultConfig();
+        console.log("useDashboardConfig - nenhuma configuração encontrada, usando padrão");
+        setConfig(defaultConfig);
       }
     } catch (error) {
       console.error("Erro ao carregar configuração:", error);
-      toast.error("Erro ao carregar configurações do dashboard");
+      toast.error("Erro ao carregar configurações do dashboard, usando configuração padrão");
+      setConfig(defaultConfig);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const createDefaultConfig = async () => {
-    try {
-      const { error } = await supabase
-        .from('dashboard_configs')
-        .insert({
-          user_id: user?.id,
-          company_id: companyId,
-          config_data: defaultConfig as any
-        });
-
-      if (error) throw error;
-      setConfig(defaultConfig);
-    } catch (error) {
-      console.error("Erro ao criar configuração padrão:", error);
     }
   };
 
@@ -116,6 +120,11 @@ export const useDashboardConfig = () => {
     setSaving(true);
     
     try {
+      if (!user?.id || !companyId) {
+        console.warn("useDashboardConfig - não é possível salvar sem user ou companyId");
+        return;
+      }
+
       const { error } = await supabase
         .from('dashboard_configs')
         .upsert({
@@ -138,6 +147,8 @@ export const useDashboardConfig = () => {
   const resetToDefault = async () => {
     await updateConfig(defaultConfig);
   };
+
+  console.log("useDashboardConfig - retornando config:", config, "loading:", loading);
 
   return {
     config,

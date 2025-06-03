@@ -18,32 +18,49 @@ export const useDashboardKPIs = (periodDays: string) => {
   const { companyId } = useCompanyData();
   const { isDemoMode, getDemoKPIs } = useDemoMode();
 
+  console.log("useDashboardKPIs - periodDays:", periodDays, "companyId:", companyId, "isDemoMode:", isDemoMode);
+
   useEffect(() => {
-    if (isDemoMode) {
-      // Usar dados demo
-      console.log("Usando dados de demonstração");
-      setKPIs(getDemoKPIs());
-      setLoading(false);
-    } else if (companyId) {
-      loadKPIs();
-    } else {
-      setLoading(false);
-    }
-  }, [companyId, periodDays, isDemoMode]);
+    const loadData = async () => {
+      console.log("useDashboardKPIs - iniciando carregamento");
+      setLoading(true);
+      
+      try {
+        if (isDemoMode) {
+          console.log("useDashboardKPIs - usando dados de demonstração");
+          const demoData = getDemoKPIs();
+          setKPIs(demoData);
+        } else if (companyId) {
+          console.log("useDashboardKPIs - carregando dados reais para empresa:", companyId);
+          await loadKPIs();
+        } else {
+          console.log("useDashboardKPIs - sem companyId, usando dados padrão");
+          setKPIs(defaultKPIs);
+        }
+      } catch (error) {
+        console.error("useDashboardKPIs - erro no carregamento:", error);
+        setKPIs(defaultKPIs);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [companyId, periodDays, isDemoMode, getDemoKPIs]);
 
   const loadKPIs = async () => {
     try {
-      setLoading(true);
+      console.log("useDashboardKPIs - chamando KPILoaderService");
       const result = await KPILoaderService.loadKPIs(companyId!, periodDays);
+      console.log("useDashboardKPIs - resultado recebido:", result);
       setKPIs(result);
     } catch (error) {
-      console.error("Erro no carregamento de KPIs:", error);
-      // Em caso de erro, manter dados padrão
+      console.error("useDashboardKPIs - erro no carregamento de KPIs:", error);
       setKPIs(defaultKPIs);
-    } finally {
-      setLoading(false);
     }
   };
+
+  console.log("useDashboardKPIs - retornando:", { kpis, loading });
 
   return { kpis, loading, refresh: loadKPIs };
 };
