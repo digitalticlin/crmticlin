@@ -17,8 +17,9 @@ interface DraggableChartsSectionProps {
 }
 
 export function DraggableChartsSection({ config, onChartToggle }: DraggableChartsSectionProps) {
-  console.log("DraggableChartsSection - config.charts:", config.charts);
-  console.log("DraggableChartsSection - chart_order:", config.layout.chart_order);
+  console.log("DraggableChartsSection render:");
+  console.log("- config.charts:", config.charts);
+  console.log("- chart_order:", config.layout.chart_order);
 
   return (
     <div className="space-y-6">
@@ -32,38 +33,46 @@ export function DraggableChartsSection({ config, onChartToggle }: DraggableChart
       </div>
 
       <Droppable droppableId="charts-list">
-        {(provided) => (
-          <div
-            {...provided.droppableProps}
-            ref={provided.innerRef}
-            className="space-y-3"
-          >
-            {config.layout.chart_order.map((chartKey, index) => {
-              const isEnabled = config.charts[chartKey as keyof typeof config.charts];
-              console.log(`Chart ${chartKey} - isEnabled:`, isEnabled);
-              
-              return (
-                <Draggable key={chartKey} draggableId={chartKey} index={index}>
-                  {(provided, snapshot) => (
-                    <DraggableItem
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      dragHandleProps={provided.dragHandleProps}
-                      isDragging={snapshot.isDragging}
-                      isEnabled={isEnabled}
-                      label={chartLabels[chartKey as keyof typeof chartLabels]}
-                      onToggle={() => {
-                        console.log("onChartToggle called for:", chartKey);
-                        onChartToggle(chartKey as keyof DashboardConfig['charts']);
-                      }}
-                    />
-                  )}
-                </Draggable>
-              );
-            })}
-            {provided.placeholder}
-          </div>
-        )}
+        {(provided, snapshot) => {
+          console.log("Charts Droppable render - isDraggingOver:", snapshot.isDraggingOver);
+          
+          return (
+            <div
+              {...provided.droppableProps}
+              ref={provided.innerRef}
+              className="space-y-3"
+            >
+              {config.layout.chart_order.map((chartKey, index) => {
+                const isEnabled = config.charts[chartKey as keyof typeof config.charts];
+                console.log(`Chart ${chartKey} at index ${index} - isEnabled:`, isEnabled);
+                
+                return (
+                  <Draggable key={chartKey} draggableId={`chart-${chartKey}`} index={index}>
+                    {(provided, snapshot) => {
+                      console.log(`Chart ${chartKey} Draggable - isDragging:`, snapshot.isDragging);
+                      
+                      return (
+                        <DraggableItem
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          dragHandleProps={provided.dragHandleProps}
+                          isDragging={snapshot.isDragging}
+                          isEnabled={isEnabled}
+                          label={chartLabels[chartKey as keyof typeof chartLabels]}
+                          onToggle={() => {
+                            console.log("Chart onToggle called for:", chartKey, "current state:", isEnabled);
+                            onChartToggle(chartKey as keyof DashboardConfig['charts']);
+                          }}
+                        />
+                      );
+                    }}
+                  </Draggable>
+                );
+              })}
+              {provided.placeholder}
+            </div>
+          );
+        }}
       </Droppable>
     </div>
   );
