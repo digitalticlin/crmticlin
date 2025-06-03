@@ -1,6 +1,5 @@
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 
 const periodOptions = [
@@ -19,33 +18,24 @@ export default function PeriodFilter() {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-3">
-        <div className="w-20 h-4 bg-white/20 rounded animate-pulse"></div>
-        <div className="w-32 h-10 bg-white/20 rounded animate-pulse"></div>
-      </div>
+      <div className="w-40 h-10 bg-gradient-to-r from-[#D3D800]/20 to-yellow-500/20 rounded-xl animate-pulse"></div>
     );
   }
 
   return (
-    <div className="flex items-center gap-3">
-      <Label htmlFor="period-filter" className="text-sm font-medium text-gray-900 whitespace-nowrap">
-        Período:
-      </Label>
-      <Select value={config.period_filter} onValueChange={handlePeriodChange}>
-        <SelectTrigger 
-          id="period-filter"
-          className="w-40 bg-white/30 backdrop-blur-lg border border-white/30 hover:bg-white/40 transition-all"
-        >
-          <SelectValue placeholder="Selecione o período" />
-        </SelectTrigger>
-        <SelectContent>
-          {periodOptions.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+    <Select value={config.period_filter} onValueChange={handlePeriodChange}>
+      <SelectTrigger 
+        className="w-40 bg-gradient-to-r from-[#D3D800]/90 via-yellow-500/80 to-[#D3D800]/90 hover:from-[#D3D800] hover:via-yellow-400 hover:to-[#D3D800] text-gray-900 font-bold border-0 shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:scale-105 rounded-2xl"
+      >
+        <SelectValue placeholder="Selecione o período" />
+      </SelectTrigger>
+      <SelectContent className="bg-white/95 backdrop-blur-lg border border-[#D3D800]/30 rounded-xl shadow-xl">
+        {periodOptions.map((option) => (
+          <SelectItem key={option.value} value={option.value} className="hover:bg-[#D3D800]/10 rounded-lg">
+            {option.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
