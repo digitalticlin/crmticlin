@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -20,6 +19,7 @@ export interface DashboardConfig {
     performance_vendedores: boolean;
     evolucao_temporal: boolean;
     leads_etiquetas: boolean;
+    distribuicao_fonte: boolean;
   };
   layout: {
     kpi_order: string[];
