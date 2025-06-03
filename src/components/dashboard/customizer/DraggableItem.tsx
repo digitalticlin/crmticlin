@@ -17,13 +17,6 @@ export const DraggableItem = React.forwardRef<HTMLDivElement, DraggableItemProps
   ({ dragHandleProps, isDragging, isEnabled, label, onToggle, ...props }, ref) => {
     console.log("DraggableItem render:", { label, isEnabled, isDragging });
     
-    const handleToggleClick = (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      console.log("Toggle button clicked for:", label, "current enabled state:", isEnabled);
-      onToggle();
-    };
-    
     return (
       <div
         ref={ref}
@@ -36,7 +29,6 @@ export const DraggableItem = React.forwardRef<HTMLDivElement, DraggableItemProps
             <div
               {...dragHandleProps}
               className="p-1 rounded-lg hover:bg-white/20 transition-all duration-300 cursor-grab active:cursor-grabbing"
-              onMouseDown={(e) => e.stopPropagation()}
             >
               <GripVertical className="w-4 h-4 text-white/60 hover:text-[#D3D800]" />
             </div>
@@ -45,9 +37,11 @@ export const DraggableItem = React.forwardRef<HTMLDivElement, DraggableItemProps
             </Label>
           </div>
           <button
-            onClick={handleToggleClick}
+            onClick={() => {
+              console.log("Toggle clicked for:", label, "current state:", isEnabled);
+              onToggle();
+            }}
             className="p-2 rounded-xl hover:bg-white/20 transition-all duration-300 hover:scale-110 active:scale-95"
-            type="button"
           >
             {isEnabled ? (
               <Eye className="w-6 h-6 text-[#D3D800] drop-shadow-lg" />

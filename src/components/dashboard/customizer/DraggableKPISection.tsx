@@ -19,9 +19,8 @@ interface DraggableKPISectionProps {
 }
 
 export function DraggableKPISection({ config, onKPIToggle }: DraggableKPISectionProps) {
-  console.log("DraggableKPISection render:");
-  console.log("- config.kpis:", config.kpis);
-  console.log("- kpi_order:", config.layout.kpi_order);
+  console.log("DraggableKPISection - config.kpis:", config.kpis);
+  console.log("DraggableKPISection - kpi_order:", config.layout.kpi_order);
 
   return (
     <div className="space-y-6">
@@ -35,46 +34,38 @@ export function DraggableKPISection({ config, onKPIToggle }: DraggableKPISection
       </div>
 
       <Droppable droppableId="kpis-list">
-        {(provided, snapshot) => {
-          console.log("KPIs Droppable render - isDraggingOver:", snapshot.isDraggingOver);
-          
-          return (
-            <div
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              className="space-y-3"
-            >
-              {config.layout.kpi_order.map((kpiKey, index) => {
-                const isEnabled = config.kpis[kpiKey as keyof typeof config.kpis];
-                console.log(`KPI ${kpiKey} at index ${index} - isEnabled:`, isEnabled);
-                
-                return (
-                  <Draggable key={kpiKey} draggableId={`kpi-${kpiKey}`} index={index}>
-                    {(provided, snapshot) => {
-                      console.log(`KPI ${kpiKey} Draggable - isDragging:`, snapshot.isDragging);
-                      
-                      return (
-                        <DraggableItem
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          dragHandleProps={provided.dragHandleProps}
-                          isDragging={snapshot.isDragging}
-                          isEnabled={isEnabled}
-                          label={kpiLabels[kpiKey as keyof typeof kpiLabels]}
-                          onToggle={() => {
-                            console.log("KPI onToggle called for:", kpiKey, "current state:", isEnabled);
-                            onKPIToggle(kpiKey as keyof DashboardConfig['kpis']);
-                          }}
-                        />
-                      );
-                    }}
-                  </Draggable>
-                );
-              })}
-              {provided.placeholder}
-            </div>
-          );
-        }}
+        {(provided) => (
+          <div
+            {...provided.droppableProps}
+            ref={provided.innerRef}
+            className="space-y-3"
+          >
+            {config.layout.kpi_order.map((kpiKey, index) => {
+              const isEnabled = config.kpis[kpiKey as keyof typeof config.kpis];
+              console.log(`KPI ${kpiKey} - isEnabled:`, isEnabled);
+              
+              return (
+                <Draggable key={kpiKey} draggableId={kpiKey} index={index}>
+                  {(provided, snapshot) => (
+                    <DraggableItem
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      dragHandleProps={provided.dragHandleProps}
+                      isDragging={snapshot.isDragging}
+                      isEnabled={isEnabled}
+                      label={kpiLabels[kpiKey as keyof typeof kpiLabels]}
+                      onToggle={() => {
+                        console.log("onKPIToggle called for:", kpiKey);
+                        onKPIToggle(kpiKey as keyof DashboardConfig['kpis']);
+                      }}
+                    />
+                  )}
+                </Draggable>
+              );
+            })}
+            {provided.placeholder}
+          </div>
+        )}
       </Droppable>
     </div>
   );

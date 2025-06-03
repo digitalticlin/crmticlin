@@ -21,10 +21,9 @@ import SidebarLogo from "./SidebarLogo";
 import SidebarNavGroup from "./SidebarNavGroup";
 import SidebarFooter from "./SidebarFooter";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useSidebar } from "@/contexts/SidebarContext";
 
 export default function ResponsiveSidebar() {
-  const { isCollapsed, toggleSidebar } = useSidebar();
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const isMobile = useIsMobile();
 
@@ -103,7 +102,7 @@ export default function ResponsiveSidebar() {
       </div>
       <SidebarFooter 
         isCollapsed={isCollapsed && !isMobile} 
-        toggleCollapse={toggleSidebar} 
+        toggleCollapse={() => setIsCollapsed(!isCollapsed)} 
       />
     </>
   );
@@ -134,11 +133,11 @@ export default function ResponsiveSidebar() {
     );
   }
 
-  // Desktop sidebar - agora com posição FIXED para ficar congelado
+  // Desktop sidebar
   return (
     <div
       className={cn(
-        "hidden md:flex h-screen fixed top-0 left-0 z-30 flex-col transition-all duration-300 border-r bg-white/25 backdrop-blur-lg border-white/30",
+        "hidden md:flex h-screen sticky top-0 left-0 z-30 flex-col transition-all duration-300 border-r bg-white/25 backdrop-blur-lg border-white/30",
         isCollapsed ? "w-[80px]" : "w-[250px]"
       )}
     >

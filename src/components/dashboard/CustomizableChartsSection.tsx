@@ -5,7 +5,7 @@ import FunnelChart from "./charts/FunnelChart";
 import PerformanceChart from "./charts/PerformanceChart";
 import TagsChart from "./charts/TagsChart";
 import DistributionChart from "./charts/DistributionChart";
-import { useMemo, memo } from "react";
+import { useEffect, useMemo } from "react";
 
 const chartComponents = {
   funil_conversao: FunnelChart,
@@ -15,39 +15,29 @@ const chartComponents = {
   distribuicao_fonte: DistributionChart
 };
 
-// Componente individual memoizado para chart
-const MemoizedChart = memo(({ chartKey, ChartComponent }: {
-  chartKey: string;
-  ChartComponent: React.ComponentType;
-}) => {
-  if (!ChartComponent) {
-    return (
-      <div className="rounded-3xl bg-white/35 backdrop-blur-lg border border-white/30 shadow-2xl p-6">
-        <p className="text-gray-600">Componente não encontrado para: {chartKey}</p>
-      </div>
-    );
-  }
-  
-  return <ChartComponent />;
-});
+export default function CustomizableChartsSection() {
+  const { config, loading, configVersion } = useDashboardConfig();
 
-function CustomizableChartsSection() {
-  const { config, loading } = useDashboardConfig();
-
+  // Use useMemo to recalculate visible charts when config changes
   const visibleCharts = useMemo(() => {
-    if (!config || !config.layout || !config.charts) return [];
-    
-    return config.layout.chart_order.filter(chartKey => {
-      return config.charts[chartKey as keyof typeof config.charts];
-    });
-  }, [config]);
+    const visible = config.layout.chart_order.filter(
+      chartKey => config.charts[chartKey as keyof typeof config.charts]
+    );
+    console.log("=== CHARTS SECTION MEMOIZED CALCULATION ===");
+    console.log("Config version:", configVersion);
+    console.log("All charts order:", config.layout.chart_order);
+    console.log("Charts visibility state:", config.charts);
+    console.log("Visible Charts:", visible);
+    return visible;
+  }, [config, configVersion]);
 
-  // Grid dinâmico baseado no número de charts
-  const getGridCols = useMemo(() => {
-    const count = visibleCharts.length;
-    if (count === 1) return "grid-cols-1 max-w-4xl mx-auto";
-    return "grid-cols-1 lg:grid-cols-2";
-  }, [visibleCharts.length]);
+  useEffect(() => {
+    console.log("=== CHARTS SECTION RE-RENDER ===");
+    console.log("Config version:", configVersion);
+    console.log("Current config:", config);
+    console.log("Charts config:", config.charts);
+    console.log("Visible Charts count:", visibleCharts.length);
+  }, [config, configVersion, visibleCharts]);
 
   if (loading) {
     return (
@@ -67,21 +57,32 @@ function CustomizableChartsSection() {
     );
   }
 
+  // Grid dinâmico baseado no número de charts
+  const getGridCols = (count: number) => {
+    if (count === 1) return "grid-cols-1 max-w-4xl mx-auto";
+    if (count === 2) return "grid-cols-1 lg:grid-cols-2";
+    if (count === 3) return "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3";
+    return "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4";
+  };
+
   return (
-    <div className={`grid ${getGridCols} gap-6`}>
+    <div className={`grid ${getGridCols(visibleCharts.length)} gap-6`}>
       {visibleCharts.map((chartKey) => {
         const ChartComponent = chartComponents[chartKey as keyof typeof chartComponents];
         
-        return (
-          <MemoizedChart
-            key={chartKey}
-            chartKey={chartKey}
-            ChartComponent={ChartComponent}
-          />
-        );
+        if (!ChartComponent) {
+          console.error(`Component not found for chart key: ${chartKey}`);
+          return (
+            <div key={chartKey} className="rounded-3xl bg-white/35 backdrop-blur-lg border border-white/30 shadow-2xl p-6">
+              <p className="text-gray-600">Componente não encontrado para: {chartKey}</p>
+            </div>
+          );
+        }
+        
+        console.log(`Rendering Chart: ${chartKey}`);
+        
+        return <ChartComponent key={`${chartKey}-${configVersion}`} />;
       })}
     </div>
   );
 }
-
-export default memo(CustomizableChartsSection);

@@ -1,7 +1,5 @@
 
 import ChartCard from "@/components/dashboard/ChartCard";
-import { useSourceData } from "@/hooks/dashboard/useSourceData";
-import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import {
   PieChart,
   Pie,
@@ -11,36 +9,14 @@ import {
   Legend
 } from "recharts";
 
+const distributionData = [
+  { name: "WhatsApp", value: 45, color: "#25D366" },
+  { name: "Site", value: 25, color: "#d3d800" },
+  { name: "Indicação", value: 20, color: "#0088FE" },
+  { name: "Outros", value: 10, color: "#FF8042" }
+];
+
 export default function DistributionChart() {
-  const { config } = useDashboardConfig();
-  const { sourceData, loading } = useSourceData(config.period_filter);
-
-  if (loading) {
-    return (
-      <ChartCard 
-        title="Distribuição por Fonte" 
-        description="Origem dos leads recebidos"
-      >
-        <div className="h-80 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-        </div>
-      </ChartCard>
-    );
-  }
-
-  if (sourceData.length === 0) {
-    return (
-      <ChartCard 
-        title="Distribuição por Fonte" 
-        description="Origem dos leads recebidos"
-      >
-        <div className="h-80 flex items-center justify-center text-gray-600">
-          <p>Nenhum dado de fonte disponível para o período selecionado</p>
-        </div>
-      </ChartCard>
-    );
-  }
-
   return (
     <ChartCard 
       title="Distribuição por Fonte" 
@@ -50,7 +26,7 @@ export default function DistributionChart() {
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
-              data={sourceData}
+              data={distributionData}
               cx="50%"
               cy="50%"
               innerRadius={60}
@@ -58,7 +34,7 @@ export default function DistributionChart() {
               paddingAngle={5}
               dataKey="value"
             >
-              {sourceData.map((entry, index) => (
+              {distributionData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={entry.color} />
               ))}
             </Pie>

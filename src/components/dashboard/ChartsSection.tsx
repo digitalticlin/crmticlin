@@ -1,7 +1,5 @@
 
 import ChartCard from "@/components/dashboard/ChartCard";
-import { useTemporalData } from "@/hooks/dashboard/useTemporalData";
-import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import {
   AreaChart,
   Area,
@@ -12,45 +10,26 @@ import {
   ResponsiveContainer
 } from "recharts";
 
+const areaData = [
+  { name: "Jan", leads: 400, converted: 240 },
+  { name: "Fev", leads: 300, converted: 139 },
+  { name: "Mar", leads: 200, converted: 980 },
+  { name: "Abr", leads: 278, converted: 390 },
+  { name: "Mai", leads: 189, converted: 480 },
+  { name: "Jun", leads: 239, converted: 380 },
+  { name: "Jul", leads: 349, converted: 430 },
+];
+
 export default function ChartsSection() {
-  const { config } = useDashboardConfig();
-  const { temporalData, loading } = useTemporalData(config.period_filter);
-
-  if (loading) {
-    return (
-      <ChartCard 
-        title="Evolução Temporal" 
-        description="Leads recebidos vs. convertidos ao longo do tempo"
-      >
-        <div className="h-80 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-        </div>
-      </ChartCard>
-    );
-  }
-
-  if (temporalData.length === 0) {
-    return (
-      <ChartCard 
-        title="Evolução Temporal" 
-        description="Leads recebidos vs. convertidos ao longo do tempo"
-      >
-        <div className="h-80 flex items-center justify-center text-gray-600">
-          <p>Nenhum dado temporal disponível para o período selecionado</p>
-        </div>
-      </ChartCard>
-    );
-  }
-
   return (
     <ChartCard 
-      title="Evolução Temporal" 
-      description="Leads recebidos vs. convertidos ao longo do tempo"
+      title="Visão Geral de Leads" 
+      description="Leads recebidos vs. convertidos nos últimos 6 meses"
     >
       <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart
-            data={temporalData}
+            data={areaData}
             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
           >
             <defs>

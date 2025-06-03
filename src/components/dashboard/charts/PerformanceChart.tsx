@@ -1,7 +1,5 @@
 
 import ChartCard from "@/components/dashboard/ChartCard";
-import { usePerformanceData } from "@/hooks/dashboard/usePerformanceData";
-import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import {
   BarChart,
   Bar,
@@ -13,36 +11,16 @@ import {
   Legend
 } from "recharts";
 
+// Mock data - será substituído por dados reais
+const performanceData = [
+  { name: "João Silva", leads: 45, conversoes: 12, vendas: 25000 },
+  { name: "Maria Santos", leads: 38, conversoes: 15, vendas: 32000 },
+  { name: "Pedro Costa", leads: 52, conversoes: 8, vendas: 18000 },
+  { name: "Ana Oliveira", leads: 41, conversoes: 18, vendas: 38000 },
+  { name: "Carlos Lima", leads: 29, conversoes: 9, vendas: 21000 }
+];
+
 export default function PerformanceChart() {
-  const { config } = useDashboardConfig();
-  const { performanceData, loading } = usePerformanceData(config.period_filter);
-
-  if (loading) {
-    return (
-      <ChartCard 
-        title="Performance de Vendedores" 
-        description="Análise de performance individual por vendedor"
-      >
-        <div className="h-80 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-        </div>
-      </ChartCard>
-    );
-  }
-
-  if (performanceData.length === 0) {
-    return (
-      <ChartCard 
-        title="Performance de Vendedores" 
-        description="Análise de performance individual por vendedor"
-      >
-        <div className="h-80 flex items-center justify-center text-gray-600">
-          <p>Nenhum dado de vendedores disponível para o período selecionado</p>
-        </div>
-      </ChartCard>
-    );
-  }
-
   return (
     <ChartCard 
       title="Performance de Vendedores" 

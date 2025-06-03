@@ -17,26 +17,18 @@ export default function DashboardCustomizer() {
     console.log("=== KPI TOGGLE START ===");
     console.log("Toggling KPI:", kpiKey);
     console.log("Current KPI state:", config.kpis[kpiKey]);
-    
-    const newState = !config.kpis[kpiKey];
-    console.log("New KPI state will be:", newState);
+    console.log("New KPI state will be:", !config.kpis[kpiKey]);
     
     const updatedConfig = {
       ...config,
       kpis: {
         ...config.kpis,
-        [kpiKey]: newState
+        [kpiKey]: !config.kpis[kpiKey]
       }
     };
     
-    console.log("Updated config being sent:", updatedConfig);
-    
-    try {
-      await updateConfig(updatedConfig);
-      console.log("KPI toggle completed successfully");
-    } catch (error) {
-      console.error("Error toggling KPI:", error);
-    }
+    console.log("Updated config:", updatedConfig);
+    await updateConfig(updatedConfig);
     console.log("=== KPI TOGGLE END ===");
   };
 
@@ -44,105 +36,77 @@ export default function DashboardCustomizer() {
     console.log("=== CHART TOGGLE START ===");
     console.log("Toggling Chart:", chartKey);
     console.log("Current Chart state:", config.charts[chartKey]);
-    
-    const newState = !config.charts[chartKey];
-    console.log("New Chart state will be:", newState);
+    console.log("New Chart state will be:", !config.charts[chartKey]);
     
     const updatedConfig = {
       ...config,
       charts: {
         ...config.charts,
-        [chartKey]: newState
+        [chartKey]: !config.charts[chartKey]
       }
     };
     
-    console.log("Updated config being sent:", updatedConfig);
-    
-    try {
-      await updateConfig(updatedConfig);
-      console.log("Chart toggle completed successfully");
-    } catch (error) {
-      console.error("Error toggling chart:", error);
-    }
+    console.log("Updated config:", updatedConfig);
+    await updateConfig(updatedConfig);
     console.log("=== CHART TOGGLE END ===");
   };
 
   const handleDragEnd = async (result: DropResult) => {
-    console.log("=== DRAG END START ===");
-    console.log("Drag result:", result);
-
-    if (!result.destination) {
-      console.log("No destination, aborting drag");
-      return;
-    }
+    if (!result.destination) return;
 
     const { source, destination } = result;
     
     if (source.droppableId === destination.droppableId && source.index === destination.index) {
-      console.log("Same position, aborting drag");
       return;
     }
 
+    console.log("=== DRAG END START ===");
+    console.log("Drag result:", result);
+
     let updatedConfig = { ...config };
 
-    try {
-      if (source.droppableId === 'kpis-list') {
-        console.log("Reordering KPIs");
-        const newKpiOrder = Array.from(config.layout.kpi_order);
-        const [removed] = newKpiOrder.splice(source.index, 1);
-        newKpiOrder.splice(destination.index, 0, removed);
+    if (source.droppableId === 'kpis-list') {
+      const newKpiOrder = Array.from(config.layout.kpi_order);
+      const [removed] = newKpiOrder.splice(source.index, 1);
+      newKpiOrder.splice(destination.index, 0, removed);
 
-        updatedConfig = {
-          ...updatedConfig,
-          layout: {
-            ...updatedConfig.layout,
-            kpi_order: newKpiOrder
-          }
-        };
-        
-        console.log("New KPI order:", newKpiOrder);
-      } else if (source.droppableId === 'charts-list') {
-        console.log("Reordering Charts");
-        const newChartOrder = Array.from(config.layout.chart_order);
-        const [removed] = newChartOrder.splice(source.index, 1);
-        newChartOrder.splice(destination.index, 0, removed);
+      updatedConfig = {
+        ...updatedConfig,
+        layout: {
+          ...updatedConfig.layout,
+          kpi_order: newKpiOrder
+        }
+      };
+      
+      console.log("New KPI order:", newKpiOrder);
+    } else if (source.droppableId === 'charts-list') {
+      const newChartOrder = Array.from(config.layout.chart_order);
+      const [removed] = newChartOrder.splice(source.index, 1);
+      newChartOrder.splice(destination.index, 0, removed);
 
-        updatedConfig = {
-          ...updatedConfig,
-          layout: {
-            ...updatedConfig.layout,
-            chart_order: newChartOrder
-          }
-        };
-        
-        console.log("New Chart order:", newChartOrder);
-      }
-
-      console.log("Updated config after drag:", updatedConfig);
-      await updateConfig(updatedConfig);
-      console.log("Drag reorder completed successfully");
-    } catch (error) {
-      console.error("Error during drag and drop:", error);
+      updatedConfig = {
+        ...updatedConfig,
+        layout: {
+          ...updatedConfig.layout,
+          chart_order: newChartOrder
+        }
+      };
+      
+      console.log("New Chart order:", newChartOrder);
     }
-    
+
+    console.log("Updated config after drag:", updatedConfig);
+    await updateConfig(updatedConfig);
     console.log("=== DRAG END END ===");
   };
 
   const handleReset = async () => {
     console.log("=== RESET START ===");
-    try {
-      await resetToDefault();
-      console.log("Reset completed successfully");
-    } catch (error) {
-      console.error("Error during reset:", error);
-    }
+    await resetToDefault();
     console.log("=== RESET END ===");
   };
 
-  if (loading) {
-    console.log("DashboardCustomizer loading...");
-    return null;
-  }
+  if (loading) return null;
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>

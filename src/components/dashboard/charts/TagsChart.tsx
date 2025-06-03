@@ -1,7 +1,5 @@
 
 import ChartCard from "@/components/dashboard/ChartCard";
-import { useTagsData } from "@/hooks/dashboard/useTagsData";
-import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import {
   PieChart,
   Pie,
@@ -11,36 +9,16 @@ import {
   Legend
 } from "recharts";
 
+// Mock data - será substituído por dados reais
+const tagsData = [
+  { name: "Interesse Alto", value: 35, color: "#d3d800" },
+  { name: "Orçamento Aprovado", value: 28, color: "#0088FE" },
+  { name: "Urgente", value: 22, color: "#00C49F" },
+  { name: "Aguardando Decisão", value: 18, color: "#FFBB28" },
+  { name: "Remarcar Contato", value: 15, color: "#FF8042" }
+];
+
 export default function TagsChart() {
-  const { config } = useDashboardConfig();
-  const { tagsData, loading } = useTagsData(config.period_filter);
-
-  if (loading) {
-    return (
-      <ChartCard 
-        title="Leads por Etiquetas" 
-        description="Distribuição de leads por etiquetas no funil"
-      >
-        <div className="h-64 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-        </div>
-      </ChartCard>
-    );
-  }
-
-  if (tagsData.length === 0) {
-    return (
-      <ChartCard 
-        title="Leads por Etiquetas" 
-        description="Distribuição de leads por etiquetas no funil"
-      >
-        <div className="h-64 flex items-center justify-center text-gray-600">
-          <p>Nenhuma etiqueta com dados para o período selecionado</p>
-        </div>
-      </ChartCard>
-    );
-  }
-
   const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
     const RADIAN = Math.PI / 180;
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;

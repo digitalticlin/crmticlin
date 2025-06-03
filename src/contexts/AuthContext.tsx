@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,94 +26,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  
-  // Refs para controlar state e evitar múltiplas execuções
-  const isInitialized = useRef(false);
-  const isMounted = useRef(true);
-  const lastRedirect = useRef<string>('');
-
-  // Função de redirecionamento com proteção contra loops
-  const handleAuthRedirect = useCallback((event: string, newSession: Session | null) => {
-    // Só executar se componente montado e inicializado
-    if (!isMounted.current || !isInitialized.current) return;
-    
-    const currentPath = window.location.pathname;
-    const redirectKey = `${event}-${currentPath}-${!!newSession}`;
-    
-    // Evitar redirecionamentos duplicados
-    if (lastRedirect.current === redirectKey) return;
-    lastRedirect.current = redirectKey;
-    
-    // Usar requestAnimationFrame para navegação suave
-    requestAnimationFrame(() => {
-      if (!isMounted.current) return;
-      
-      try {
-        if (event === 'SIGNED_OUT' && currentPath !== '/') {
-          navigate("/", { replace: true });
-        } else if (event === 'SIGNED_IN' && newSession && currentPath === '/') {
-          navigate("/dashboard", { replace: true });
-        }
-      } catch (error) {
-        console.warn("Erro na navegação:", error);
-      }
-    });
-  }, [navigate]);
 
   useEffect(() => {
-    isMounted.current = true;
-    
-    // Configurar listener de autenticação
+    // Configurar listener de autenticação PRIMEIRO
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!isMounted.current) return;
-      
-      console.log('Auth state change:', event, !!session);
-      
       setSession(session);
       setUser(session?.user ?? null);
       
-      // Tratar navegação apenas para eventos relevantes
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        handleAuthRedirect(event, session);
+      if (event === 'SIGNED_OUT') {
+        navigate("/");
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        // Usuário acabou de fazer login ou token foi atualizado
+        // Continue na rota atual ou redirecione conforme necessário
       }
     });
 
-    // Verificar sessão existente
-    const initializeAuth = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (!isMounted.current) return;
-        
-        if (error) {
-          console.warn("Erro ao obter sessão:", error);
-          setSession(null);
-          setUser(null);
-        } else {
-          setSession(session);
-          setUser(session?.user ?? null);
-        }
-      } catch (error) {
-        console.warn("Erro na inicialização de auth:", error);
-        if (isMounted.current) {
-          setSession(null);
-          setUser(null);
-        }
-      } finally {
-        if (isMounted.current) {
-          setLoading(false);
-          isInitialized.current = true;
-        }
-      }
-    };
-
-    initializeAuth();
+    // ENTÃO verificar se já existe uma sessão
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
     return () => {
-      isMounted.current = false;
       subscription.unsubscribe();
     };
-  }, [handleAuthRedirect]);
+  }, [navigate]);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -122,6 +60,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (error) {
         throw error;
       }
+      
+      navigate("/dashboard");
     } catch (error: any) {
       toast.error(error.message || "Erro ao fazer login");
       throw error;
@@ -130,10 +70,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signUp = async (email: string, password: string, userData: any) => {
     try {
+      // Certifique-se de que userData não contém nenhum campo company_id vazio
       if (userData.company_id === "") {
         delete userData.company_id;
       }
       
+      // Definindo o papel de usuário como "admin" por padrão para todos os novos registros
       userData.role = "admin";
       
       const { error } = await supabase.auth.signUp({
@@ -149,8 +91,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw error;
       }
       
-      // Navegação segura
-      navigate("/confirm-email-instructions", { replace: true });
+      navigate("/confirm-email-instructions");
     } catch (error: any) {
       toast.error(error.message || "Erro ao criar conta");
       throw error;
@@ -164,6 +105,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (error) {
         throw error;
       }
+      
+      navigate("/");
     } catch (error: any) {
       toast.error(error.message || "Erro ao fazer logout");
     }

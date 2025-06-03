@@ -2,39 +2,44 @@
 import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { useDashboardKPIs } from "@/hooks/dashboard/useDashboardKPIs";
 import KPICard from "./KPICard";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { useMemo, memo } from "react";
+import { useEffect, useMemo } from "react";
 
 const kpiConfig = {
   novos_leads: {
     title: "Novos Leads",
     icon: "userPlus" as const,
-    format: (value: number) => value.toString()
+    format: (value: number) => value.toString(),
+    trend: { value: 12, isPositive: true }
   },
   total_leads: {
     title: "Total de Leads",
     icon: "users" as const,
-    format: (value: number) => value.toString()
+    format: (value: number) => value.toString(),
+    trend: { value: 8, isPositive: true }
   },
   taxa_conversao: {
     title: "Taxa de Conversão",
     icon: "trendingUp" as const,
-    format: (value: number) => `${value}%`
+    format: (value: number) => `${value}%`,
+    trend: { value: 5, isPositive: true }
   },
   taxa_perda: {
     title: "Taxa de Perda",
     icon: "trendingUp" as const,
-    format: (value: number) => `${value}%`
+    format: (value: number) => `${value}%`,
+    trend: { value: 3, isPositive: false }
   },
   valor_pipeline: {
     title: "Valor do Pipeline",
     icon: "trendingUp" as const,
-    format: (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+    format: (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+    trend: { value: 15, isPositive: true }
   },
   ticket_medio: {
     title: "Ticket Médio",
     icon: "trendingUp" as const,
-    format: (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+    format: (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+    trend: { value: 7, isPositive: true }
   },
   tempo_resposta: {
     title: "Tempo de Resposta",
@@ -44,161 +49,87 @@ const kpiConfig = {
       const hours = Math.floor(value / 60);
       const minutes = Math.round(value % 60);
       return `${hours}h ${minutes}min`;
-    }
+    },
+    trend: { value: 2, isPositive: false }
   }
 };
 
-// KPIs padrão sempre visíveis
-const DEFAULT_KPIS = ['novos_leads', 'total_leads', 'taxa_conversao', 'valor_pipeline'];
+export function CustomizableKPIGrid() {
+  const { config, loading: configLoading, configVersion } = useDashboardConfig();
+  const { kpis, loading: kpisLoading } = useDashboardKPIs(config.period_filter);
 
-// Componente individual memoizado para KPI
-const MemoizedKPICard = memo(({ kpiKey, kpiData, kpiValue, trend }: {
-  kpiKey: string;
-  kpiData: any;
-  kpiValue: number;
-  trend: any;
-}) => (
-  <KPICard
-    title={kpiData.title}
-    value={kpiData.format(kpiValue)}
-    trend={trend}
-    icon={kpiData.icon}
-  />
-));
-
-function KPIGridContent() {
-  const { config } = useDashboardConfig();
-  const { kpis, loading } = useDashboardKPIs(config?.period_filter || "30");
-
+  // Use useMemo to recalculate visible KPIs when config changes
   const visibleKPIs = useMemo(() => {
-    // Se não há configuração, usar KPIs padrão
-    if (!config || !config.layout || !config.layout.kpi_order || !config.kpis) {
-      return DEFAULT_KPIS;
-    }
-    
-    // Filtrar KPIs habilitados
-    const enabled = config.layout.kpi_order.filter(kpiKey => {
-      return config.kpis[kpiKey as keyof typeof config.kpis];
-    });
-    
-    // Se nenhum KPI habilitado, usar padrão
-    return enabled.length === 0 ? DEFAULT_KPIS : enabled;
-  }, [config]);
+    const visible = config.layout.kpi_order.filter(
+      kpiKey => config.kpis[kpiKey as keyof typeof config.kpis]
+    );
+    console.log("=== KPI GRID MEMOIZED CALCULATION ===");
+    console.log("Config version:", configVersion);
+    console.log("All KPIs order:", config.layout.kpi_order);
+    console.log("KPIs visibility state:", config.kpis);
+    console.log("Visible KPIs:", visible);
+    return visible;
+  }, [config, configVersion]);
 
-  // Grid dinâmico melhorado com largura máxima e breakpoints otimizados
-  const getGridCols = useMemo(() => {
-    const count = visibleKPIs.length;
-    
-    // Base classes com container máximo
-    let baseClasses = "w-full mx-auto";
-    
-    // Telas pequenas (mobile): máximo 1-2 colunas
-    if (count === 1) {
-      return `${baseClasses} grid-cols-1 max-w-sm`;
-    }
-    if (count === 2) {
-      return `${baseClasses} grid-cols-1 sm:grid-cols-2 max-w-2xl`;
-    }
-    if (count === 3) {
-      return `${baseClasses} grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-4xl`;
-    }
-    if (count <= 4) {
-      return `${baseClasses} grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 max-w-6xl`;
-    }
-    if (count <= 6) {
-      return `${baseClasses} grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 max-w-7xl`;
-    }
-    
-    // Máximo 5 colunas em telas ultrawide com container limitado
-    return `${baseClasses} grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 max-w-7xl`;
-  }, [visibleKPIs.length]);
+  useEffect(() => {
+    console.log("=== KPI GRID RE-RENDER ===");
+    console.log("Config version:", configVersion);
+    console.log("Current config:", config);
+    console.log("KPIs config:", config.kpis);
+    console.log("Visible KPIs count:", visibleKPIs.length);
+  }, [config, configVersion, visibleKPIs]);
 
-  // Estados de loading - sempre mostrar pelo menos os KPIs padrão
-  if (loading && (!kpis || !kpis.novos_leads)) {
+  if (configLoading || kpisLoading) {
     return (
-      <div className={`grid ${getGridCols} gap-4 md:gap-6`}>
-        {visibleKPIs.map((kpiKey) => {
-          const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
-          
-          if (!kpiData) return null;
-
-          return (
-            <div key={kpiKey} className="h-32 bg-white/20 rounded-3xl animate-pulse" />
-          );
-        })}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-32 bg-white/20 rounded-3xl animate-pulse" />
+        ))}
       </div>
     );
   }
 
+  if (visibleKPIs.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-600">
+        <p>Nenhum KPI selecionado. Configure o dashboard para visualizar os dados.</p>
+      </div>
+    );
+  }
+
+  // Grid dinâmico baseado no número de KPIs
+  const getGridCols = (count: number) => {
+    if (count === 1) return "grid-cols-1 max-w-sm mx-auto";
+    if (count === 2) return "grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto";
+    if (count === 3) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
+    if (count <= 4) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4";
+    if (count <= 6) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
+    return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5";
+  };
+
   return (
-    <div className={`grid ${getGridCols} gap-4 md:gap-6`}>
+    <div className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6`}>
       {visibleKPIs.map((kpiKey) => {
         const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
+        const value = kpis[kpiKey as keyof typeof kpis];
         
-        if (!kpiData) return null;
-
-        // Verificar se a chave existe nos KPIs
-        let kpiValue = 0;
-        if (kpis && typeof kpis === 'object' && kpiKey in kpis) {
-          const value = kpis[kpiKey as keyof typeof kpis];
-          if (typeof value === 'number') {
-            kpiValue = value;
-          }
+        if (!kpiData) {
+          console.warn(`KPI config not found for key: ${kpiKey}`);
+          return null;
         }
-
-        // Trend padrão se não existir
-        const defaultTrend = { value: 0, isPositive: true };
-        let trend = defaultTrend;
         
-        if (kpis && kpis.trends && typeof kpis.trends === 'object' && kpiKey in kpis.trends) {
-          const trendValue = kpis.trends[kpiKey as keyof typeof kpis.trends];
-          if (trendValue && typeof trendValue === 'object' && 'value' in trendValue && 'isPositive' in trendValue) {
-            trend = trendValue;
-          }
-        }
+        console.log(`Rendering KPI: ${kpiKey} with value:`, value);
         
         return (
-          <ErrorBoundary 
-            key={kpiKey} 
-            fallback={
-              <div className="h-32 bg-white/20 rounded-3xl flex items-center justify-center">
-                <span className="text-gray-500 text-sm">Erro no KPI</span>
-              </div>
-            }
-          >
-            <MemoizedKPICard
-              kpiKey={kpiKey}
-              kpiData={kpiData}
-              kpiValue={kpiValue}
-              trend={trend}
-            />
-          </ErrorBoundary>
+          <KPICard
+            key={`${kpiKey}-${configVersion}`}
+            title={kpiData.title}
+            value={kpiData.format(value)}
+            trend={kpiData.trend}
+            icon={kpiData.icon}
+          />
         );
       })}
     </div>
   );
 }
-
-export const CustomizableKPIGrid = memo(() => {
-  return (
-    <ErrorBoundary
-      fallback={
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto">
-          {DEFAULT_KPIS.map((kpiKey) => {
-            const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
-            return (
-              <div key={kpiKey} className="h-32 bg-white/20 rounded-3xl flex items-center justify-center">
-                <div className="text-center">
-                  <h3 className="text-sm font-medium text-gray-700">{kpiData.title}</h3>
-                  <p className="text-xs text-gray-500 mt-2">Erro no carregamento</p>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      }
-    >
-      <KPIGridContent />
-    </ErrorBoundary>
-  );
-});

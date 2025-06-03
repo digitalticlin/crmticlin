@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -55,159 +55,114 @@ const defaultConfig: DashboardConfig = {
 
 export const useDashboardConfig = () => {
   const [config, setConfig] = useState<DashboardConfig>(defaultConfig);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [configVersion, setConfigVersion] = useState(0);
   const { user } = useAuth();
-  const { companyId, loading: companyLoading } = useCompanyData();
-  const isMountedRef = useRef(true);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const { companyId } = useCompanyData();
 
-  const loadConfig = useCallback(async () => {
-    if (!user?.id || !companyId || companyLoading || !isMountedRef.current) {
-      if (isMountedRef.current) {
-        setConfig(defaultConfig);
-      }
-      return;
+  useEffect(() => {
+    if (user && companyId) {
+      loadConfig();
     }
+  }, [user, companyId]);
 
-    // Cancelar requisição anterior se existir
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    
-    abortControllerRef.current = new AbortController();
-    setLoading(true);
-
+  const loadConfig = async () => {
     try {
+      console.log("Loading dashboard config...");
       const { data, error } = await supabase
         .from('dashboard_configs')
         .select('config_data')
-        .eq('user_id', user.id)
+        .eq('user_id', user?.id)
         .eq('company_id', companyId)
-        .maybeSingle();
+        .single();
 
       if (error && error.code !== 'PGRST116') {
         throw error;
       }
 
-      let finalConfig = defaultConfig;
-      
-      if (data && data.config_data && !abortControllerRef.current?.signal.aborted) {
-        const loadedConfig = data.config_data as unknown as DashboardConfig;
-        
-        // Validar e mesclar com configuração padrão
-        finalConfig = {
-          ...defaultConfig,
-          ...loadedConfig,
-          kpis: { ...defaultConfig.kpis, ...loadedConfig.kpis },
-          charts: { ...defaultConfig.charts, ...loadedConfig.charts },
-          layout: { ...defaultConfig.layout, ...loadedConfig.layout }
-        };
+      if (data) {
+        console.log("Config loaded from database:", data.config_data);
+        const newConfig = data.config_data as unknown as DashboardConfig;
+        setConfig(newConfig);
+        setConfigVersion(Date.now()); // Use timestamp for unique version
+      } else {
+        console.log("No config found, creating default...");
+        await createDefaultConfig();
       }
-      
-      if (isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
-        setConfig(finalConfig);
-      }
-    } catch (error: any) {
-      if (!abortControllerRef.current?.signal.aborted) {
-        console.warn("Erro ao carregar configuração:", error);
-        if (isMountedRef.current) {
-          setConfig(defaultConfig);
-        }
-      }
+    } catch (error) {
+      console.error("Erro ao carregar configuração:", error);
+      toast.error("Erro ao carregar configurações do dashboard");
     } finally {
-      if (isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
-  }, [user?.id, companyId, companyLoading]);
+  };
 
-  useEffect(() => {
-    isMountedRef.current = true;
-    
-    if (!companyLoading) {
-      loadConfig();
+  const createDefaultConfig = async () => {
+    try {
+      const { error } = await supabase
+        .from('dashboard_configs')
+        .insert({
+          user_id: user?.id,
+          company_id: companyId,
+          config_data: defaultConfig as any
+        });
+
+      if (error) throw error;
+      console.log("Default config created");
+      setConfig(defaultConfig);
+      setConfigVersion(Date.now());
+    } catch (error) {
+      console.error("Erro ao criar configuração padrão:", error);
     }
+  };
 
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, [loadConfig, companyLoading]);
-
-  const updateConfig = useCallback(async (newConfig: Partial<DashboardConfig>) => {
+  const updateConfig = async (newConfig: Partial<DashboardConfig>) => {
     const updatedConfig = { ...config, ...newConfig };
+    console.log("=== UPDATE CONFIG ===");
+    console.log("Old config:", config);
+    console.log("New config:", updatedConfig);
+    
+    // Update state immediately and force re-render with new version
     setConfig(updatedConfig);
+    const newVersion = Date.now();
+    setConfigVersion(newVersion);
+    setSaving(true);
     
-    // Limpar timeout anterior
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
+    try {
+      console.log("Saving config to database:", updatedConfig);
+      const { error } = await supabase
+        .from('dashboard_configs')
+        .upsert({
+          user_id: user?.id,
+          company_id: companyId,
+          config_data: updatedConfig as any
+        });
+
+      if (error) throw error;
+
+      console.log("Config saved successfully with version:", newVersion);
+      toast.success("Configurações salvas com sucesso!");
+    } catch (error) {
+      console.error("Erro ao salvar configuração:", error);
+      // Revert to previous config on error
+      setConfig(config);
+      setConfigVersion(Date.now());
+      toast.error("Erro ao salvar configurações");
+    } finally {
+      setSaving(false);
     }
-    
-    // Timeout unificado para 100ms
-    saveTimeoutRef.current = setTimeout(async () => {
-      if (!isMountedRef.current) return;
-      
-      setSaving(true);
-      
-      try {
-        if (!user?.id || !companyId) {
-          return;
-        }
-
-        const { error } = await supabase
-          .from('dashboard_configs')
-          .upsert({
-            user_id: user.id,
-            company_id: companyId,
-            config_data: updatedConfig as any
-          });
-
-        if (error) throw error;
-        
-        if (isMountedRef.current) {
-          toast.success("Configurações salvas!");
-        }
-      } catch (error) {
-        console.error("Erro ao salvar configuração:", error);
-        if (isMountedRef.current) {
-          setConfig(config); // Revert on error
-          toast.error("Erro ao salvar configurações");
-        }
-      } finally {
-        if (isMountedRef.current) {
-          setSaving(false);
-        }
-      }
-    }, 100);
-  }, [config, user?.id, companyId]);
+  };
 
   const resetToDefault = async () => {
     await updateConfig(defaultConfig);
   };
 
-  // Cleanup na desmontagem
-  useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, []);
-
   return {
     config,
     loading,
     saving,
+    configVersion,
     updateConfig,
     resetToDefault
   };
