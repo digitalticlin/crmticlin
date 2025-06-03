@@ -10,7 +10,7 @@ export interface DashboardKPIs {
   taxa_perda: number;
   valor_pipeline: number;
   ticket_medio: number;
-  tempo_resposta: number; // em minutos
+  tempo_resposta: number;
 }
 
 export interface KPITrend {
@@ -30,128 +30,139 @@ export interface DashboardKPIsWithTrends extends DashboardKPIs {
   };
 }
 
+const defaultKPIs: DashboardKPIsWithTrends = {
+  novos_leads: 0,
+  total_leads: 0,
+  taxa_conversao: 0,
+  taxa_perda: 0,
+  valor_pipeline: 0,
+  ticket_medio: 0,
+  tempo_resposta: 0,
+  trends: {
+    novos_leads: { value: 0, isPositive: true },
+    total_leads: { value: 0, isPositive: true },
+    taxa_conversao: { value: 0, isPositive: true },
+    taxa_perda: { value: 0, isPositive: false },
+    valor_pipeline: { value: 0, isPositive: true },
+    ticket_medio: { value: 0, isPositive: true },
+    tempo_resposta: { value: 0, isPositive: false },
+  }
+};
+
 export const useDashboardKPIs = (periodDays: string) => {
-  const [kpis, setKPIs] = useState<DashboardKPIsWithTrends>({
-    novos_leads: 0,
-    total_leads: 0,
-    taxa_conversao: 0,
-    taxa_perda: 0,
-    valor_pipeline: 0,
-    ticket_medio: 0,
-    tempo_resposta: 0,
-    trends: {
-      novos_leads: { value: 0, isPositive: true },
-      total_leads: { value: 0, isPositive: true },
-      taxa_conversao: { value: 0, isPositive: true },
-      taxa_perda: { value: 0, isPositive: false },
-      valor_pipeline: { value: 0, isPositive: true },
-      ticket_medio: { value: 0, isPositive: true },
-      tempo_resposta: { value: 0, isPositive: false },
-    }
-  });
+  const [kpis, setKPIs] = useState<DashboardKPIsWithTrends>(defaultKPIs);
   const [loading, setLoading] = useState(true);
   const { companyId } = useCompanyData();
 
   useEffect(() => {
     if (companyId) {
       loadKPIs();
+    } else {
+      setLoading(false);
     }
   }, [companyId, periodDays]);
 
+  // Query simples para verificar conectividade
+  const checkConnection = async (): Promise<boolean> => {
+    try {
+      const { error } = await Promise.race([
+        supabase.from('leads').select('id').limit(1),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout')), 3000)
+        )
+      ]) as any;
+      return !error;
+    } catch {
+      return false;
+    }
+  };
+
+  // Query gradual 1: Buscar leads básicos
+  const fetchLeadsBasic = async (startDate: Date, endDate: Date) => {
+    try {
+      const { data, error } = await supabase
+        .from('leads')
+        .select('id, created_at, purchase_value, kanban_stage_id')
+        .eq('company_id', companyId)
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString());
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.warn("Erro ao buscar leads básicos:", error);
+      return [];
+    }
+  };
+
+  // Query gradual 2: Buscar estágios (separado)
+  const fetchStages = async (stageIds: string[]) => {
+    if (stageIds.length === 0) return [];
+    
+    try {
+      const { data, error } = await supabase
+        .from('kanban_stages')
+        .select('id, is_won, is_lost')
+        .in('id', stageIds);
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.warn("Erro ao buscar estágios:", error);
+      return [];
+    }
+  };
+
+  // Cálculo KPIs de forma segura
   const calculateKPIsForPeriod = async (startDate: Date, endDate: Date) => {
-    // Buscar dados dos leads
-    const { data: leadsData, error: leadsError } = await supabase
-      .from('leads')
-      .select(`
-        id,
-        created_at,
-        purchase_value,
-        last_message_time,
-        kanban_stage_id,
-        kanban_stages!inner(is_won, is_lost)
-      `)
-      .eq('company_id', companyId)
-      .gte('created_at', startDate.toISOString())
-      .lte('created_at', endDate.toISOString());
+    // Etapa 1: Buscar leads
+    const leads = await fetchLeadsBasic(startDate, endDate);
+    console.log(`Período ${startDate.toDateString()}: ${leads.length} leads encontrados`);
 
-    if (leadsError) throw leadsError;
+    // Etapa 2: Buscar estágios apenas se há leads
+    const stageIds = [...new Set(leads.map(l => l.kanban_stage_id).filter(Boolean))];
+    const stages = await fetchStages(stageIds);
+    
+    // Mapear estágios por ID
+    const stageMap = new Map(stages.map(s => [s.id, s]));
 
-    // Buscar tempo de resposta das mensagens
-    const { data: messagesData, error: messagesError } = await supabase
-      .from('messages')
-      .select(`
-        timestamp,
-        from_me,
-        lead_id,
-        leads!inner(created_at, company_id)
-      `)
-      .eq('leads.company_id', companyId)
-      .eq('from_me', true)
-      .gte('timestamp', startDate.toISOString())
-      .lte('timestamp', endDate.toISOString())
-      .order('timestamp', { ascending: true });
+    // Cálculos básicos
+    const totalLeads = leads.length;
+    const novosLeads = totalLeads;
 
-    if (messagesError) throw messagesError;
+    // Contagem de leads ganhos/perdidos
+    let leadsGanhos = 0;
+    let leadsPerdidos = 0;
+    let valorTotal = 0;
+    let valorGanhos = 0;
 
-    // Calcular KPIs
-    const totalLeads = leadsData?.length || 0;
-    const novosLeads = leadsData?.filter(lead => 
-      new Date(lead.created_at) >= startDate && new Date(lead.created_at) <= endDate
-    ).length || 0;
+    leads.forEach(lead => {
+      const stage = stageMap.get(lead.kanban_stage_id);
+      const valor = lead.purchase_value || 0;
+      
+      valorTotal += valor;
+      
+      if (stage?.is_won) {
+        leadsGanhos++;
+        valorGanhos += valor;
+      } else if (stage?.is_lost) {
+        leadsPerdidos++;
+      }
+    });
 
-    const leadsGanhos = leadsData?.filter(lead => 
-      lead.kanban_stages?.is_won
-    ).length || 0;
-
-    const leadsPerdidos = leadsData?.filter(lead => 
-      lead.kanban_stages?.is_lost
-    ).length || 0;
-
+    // Cálculos finais
     const taxaConversao = totalLeads > 0 ? (leadsGanhos / totalLeads) * 100 : 0;
     const taxaPerda = totalLeads > 0 ? (leadsPerdidos / totalLeads) * 100 : 0;
-
-    const valorPipeline = leadsData?.reduce((sum, lead) => 
-      sum + (lead.purchase_value || 0), 0
-    ) || 0;
-
-    const ticketMedio = leadsGanhos > 0 
-      ? (leadsData?.filter(lead => lead.kanban_stages?.is_won)
-          .reduce((sum, lead) => sum + (lead.purchase_value || 0), 0) || 0) / leadsGanhos
-      : 0;
-
-    // Calcular tempo médio de resposta
-    const temposResposta: number[] = [];
-    
-    if (messagesData) {
-      const leadsMap = new Map();
-      
-      messagesData.forEach(message => {
-        const leadId = message.lead_id;
-        const leadCreatedAt = new Date(message.leads.created_at);
-        const messageTime = new Date(message.timestamp);
-        
-        if (!leadsMap.has(leadId)) {
-          const tempoResposta = (messageTime.getTime() - leadCreatedAt.getTime()) / (1000 * 60); // em minutos
-          if (tempoResposta > 0) {
-            temposResposta.push(tempoResposta);
-            leadsMap.set(leadId, true);
-          }
-        }
-      });
-    }
-
-    const tempoMedioResposta = temposResposta.length > 0 
-      ? temposResposta.reduce((sum, tempo) => sum + tempo, 0) / temposResposta.length
-      : 0;
+    const ticketMedio = leadsGanhos > 0 ? valorGanhos / leadsGanhos : 0;
 
     return {
       novos_leads: novosLeads,
       total_leads: totalLeads,
       taxa_conversao: Math.round(taxaConversao * 100) / 100,
       taxa_perda: Math.round(taxaPerda * 100) / 100,
-      valor_pipeline: valorPipeline,
+      valor_pipeline: valorTotal,
       ticket_medio: Math.round(ticketMedio * 100) / 100,
-      tempo_resposta: Math.round(tempoMedioResposta * 100) / 100
+      tempo_resposta: 0 // Placeholder
     };
   };
 
@@ -170,22 +181,35 @@ export const useDashboardKPIs = (periodDays: string) => {
   const loadKPIs = async () => {
     try {
       setLoading(true);
+      console.log("=== Iniciando carregamento robusto de KPIs ===");
       
-      const daysAgo = parseInt(periodDays);
+      // Verificar conectividade primeiro
+      console.log("1. Verificando conectividade...");
+      const isConnected = await checkConnection();
+      if (!isConnected) {
+        console.warn("Sem conectividade - usando dados padrão");
+        setKPIs(defaultKPIs);
+        return;
+      }
+      console.log("✓ Conectividade OK");
+
+      // Calcular datas
+      const daysAgo = parseInt(periodDays) || 30;
       const currentEndDate = new Date();
       const currentStartDate = new Date();
       currentStartDate.setDate(currentStartDate.getDate() - daysAgo);
 
-      // Período anterior para comparação
       const previousEndDate = new Date(currentStartDate);
       const previousStartDate = new Date();
       previousStartDate.setDate(previousEndDate.getDate() - daysAgo);
 
-      // Calcular KPIs para período atual
+      console.log("2. Calculando KPIs período atual...");
       const currentKPIs = await calculateKPIsForPeriod(currentStartDate, currentEndDate);
+      console.log("✓ KPIs período atual:", currentKPIs);
       
-      // Calcular KPIs para período anterior
+      console.log("3. Calculando KPIs período anterior...");
       const previousKPIs = await calculateKPIsForPeriod(previousStartDate, previousEndDate);
+      console.log("✓ KPIs período anterior:", previousKPIs);
 
       // Calcular tendências
       const trends = {
@@ -194,25 +218,31 @@ export const useDashboardKPIs = (periodDays: string) => {
         taxa_conversao: calculateTrend(currentKPIs.taxa_conversao, previousKPIs.taxa_conversao),
         taxa_perda: {
           ...calculateTrend(currentKPIs.taxa_perda, previousKPIs.taxa_perda),
-          isPositive: !calculateTrend(currentKPIs.taxa_perda, previousKPIs.taxa_perda).isPositive // Inverter para taxa de perda
+          isPositive: !calculateTrend(currentKPIs.taxa_perda, previousKPIs.taxa_perda).isPositive
         },
         valor_pipeline: calculateTrend(currentKPIs.valor_pipeline, previousKPIs.valor_pipeline),
         ticket_medio: calculateTrend(currentKPIs.ticket_medio, previousKPIs.ticket_medio),
         tempo_resposta: {
           ...calculateTrend(currentKPIs.tempo_resposta, previousKPIs.tempo_resposta),
-          isPositive: !calculateTrend(currentKPIs.tempo_resposta, previousKPIs.tempo_resposta).isPositive // Inverter para tempo de resposta
+          isPositive: !calculateTrend(currentKPIs.tempo_resposta, previousKPIs.tempo_resposta).isPositive
         }
       };
 
-      setKPIs({
+      const finalKPIs = {
         ...currentKPIs,
         trends
-      });
+      };
+
+      console.log("✓ KPIs finais calculados:", finalKPIs);
+      setKPIs(finalKPIs);
 
     } catch (error) {
-      console.error("Erro ao carregar KPIs:", error);
+      console.error("Erro no carregamento de KPIs:", error);
+      // Em caso de erro, manter dados padrão
+      setKPIs(defaultKPIs);
     } finally {
       setLoading(false);
+      console.log("=== Carregamento de KPIs finalizado ===");
     }
   };
 

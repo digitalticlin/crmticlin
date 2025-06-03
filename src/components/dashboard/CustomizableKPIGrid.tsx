@@ -2,6 +2,7 @@
 import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { useDashboardKPIs } from "@/hooks/dashboard/useDashboardKPIs";
 import KPICard from "./KPICard";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useMemo } from "react";
 
 const kpiConfig = {
@@ -47,7 +48,7 @@ const kpiConfig = {
   }
 };
 
-export function CustomizableKPIGrid() {
+function KPIGridContent() {
   const { config, loading: configLoading } = useDashboardConfig();
   const { kpis, loading: kpisLoading } = useDashboardKPIs(config.period_filter);
 
@@ -100,15 +101,31 @@ export function CustomizableKPIGrid() {
         }
         
         return (
-          <KPICard
-            key={kpiKey}
-            title={kpiData.title}
-            value={kpiData.format(kpiValue)}
-            trend={trend}
-            icon={kpiData.icon}
-          />
+          <ErrorBoundary 
+            key={kpiKey} 
+            fallback={
+              <div className="h-32 bg-white/20 rounded-3xl flex items-center justify-center">
+                <span className="text-gray-500 text-sm">Erro no KPI</span>
+              </div>
+            }
+          >
+            <KPICard
+              title={kpiData.title}
+              value={kpiData.format(kpiValue)}
+              trend={trend}
+              icon={kpiData.icon}
+            />
+          </ErrorBoundary>
         );
       })}
     </div>
+  );
+}
+
+export function CustomizableKPIGrid() {
+  return (
+    <ErrorBoundary>
+      <KPIGridContent />
+    </ErrorBoundary>
   );
 }
