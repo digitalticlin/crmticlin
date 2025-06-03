@@ -15,6 +15,9 @@ export interface WhatsAppWebInstance {
   qr_code?: string | null;
   phone?: string | null;
   profile_name?: string | null;
+  profile_pic_url?: string | null;
+  date_connected?: string | null;
+  date_disconnected?: string | null;
   company_id: string;
 }
 
