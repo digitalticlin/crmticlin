@@ -370,6 +370,33 @@ export type Database = {
         }
         Relationships: []
       }
+      dashboard_configs: {
+        Row: {
+          company_id: string
+          config_data: Json
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          config_data?: Json
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          config_data?: Json
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       deals: {
         Row: {
           created_at: string | null

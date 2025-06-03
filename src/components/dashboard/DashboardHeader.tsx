@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Sun, Moon, Bell } from "lucide-react";
 import TopbarUserMenu from "@/components/layout/TopbarUserMenu";
+import DashboardCustomizer from "./DashboardCustomizer";
 import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfileData } from "@/hooks/useProfileData";
@@ -36,6 +37,9 @@ export default function DashboardHeader({}: DashboardHeaderProps) {
         <p className="text-gray-800 font-medium">Bem-vindo de volta ao seu dashboard</p>
       </div>
       <div className="flex items-center gap-4">
+        {/* Botão de personalização */}
+        <DashboardCustomizer />
+
         {/* Botão de tema */}
         <Button
           variant="ghost"
