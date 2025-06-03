@@ -1,8 +1,30 @@
 
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
+import { cva, type VariantProps } from "class-variance-authority";
 
-export interface KPICardProps extends React.HTMLAttributes<HTMLDivElement> {
+const kpiCardVariants = cva("p-4 rounded-xl glass transition-all duration-300", {
+  variants: {
+    variant: {
+      default: "shadow-md hover:shadow-lg",
+      outline: "border border-border",
+      primary: "border-l-4 border-l-ticlin",
+      highlight: "bg-gradient-to-br from-ticlin/20 to-ticlin/5 dark:from-ticlin/10 dark:to-ticlin/5",
+    },
+    size: {
+      sm: "p-3",
+      default: "p-4",
+      lg: "p-6",
+    },
+  },
+  defaultVariants: {
+    variant: "default",
+    size: "default",
+  },
+});
+
+export interface KPICardProps extends React.HTMLAttributes<HTMLDivElement>, 
+  VariantProps<typeof kpiCardVariants> {
   icon?: React.ReactNode;
   title: string;
   value: string | number;
@@ -20,11 +42,13 @@ export default function KPICard({
   value,
   trend,
   subtitle,
+  variant,
+  size,
   ...props
 }: KPICardProps) {
   return (
-    <Card className={cn("shadow-sm", className)} {...props}>
-      <CardContent className="p-6">
+    <Card className={cn(kpiCardVariants({ variant, size, className }), "border-0")} {...props}>
+      <CardContent className="p-0">
         <div className="flex justify-between items-start mb-2">
           <span className="text-sm font-medium text-muted-foreground">{title}</span>
           {icon && <div className="text-ticlin">{icon}</div>}

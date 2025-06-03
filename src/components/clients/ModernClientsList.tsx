@@ -4,7 +4,7 @@ import { Contact } from "@/types/chat";
 import { Input } from "@/components/ui/input";
 import { Search, FileSpreadsheet, Phone, Mail, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { ModernCard, ModernCardContent } from "@/components/ui/modern-card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -17,12 +17,14 @@ interface ModernClientsListProps {
 export const ModernClientsList = ({ clients, onSelectClient }: ModernClientsListProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   
+  // Filter clients based on search query
   const filteredClients = clients.filter(client => 
     client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     client.phone.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (client.email && client.email.toLowerCase().includes(searchQuery.toLowerCase()))
   );
   
+  // Function to export clients to CSV
   const exportToCSV = () => {
     let csv = "Nome,Telefone,Email,Etapa do Funil\n";
     
@@ -78,6 +80,7 @@ export const ModernClientsList = ({ clients, onSelectClient }: ModernClientsList
   
   return (
     <div className="space-y-6">
+      {/* Search and Export Bar */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div className="flex gap-2 items-center flex-1 max-w-md">
           <Search className="w-4 h-4 text-muted-foreground" />
@@ -95,7 +98,7 @@ export const ModernClientsList = ({ clients, onSelectClient }: ModernClientsList
           <Button 
             variant="outline" 
             size="sm"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 rounded-xl"
             onClick={exportToCSV}
           >
             <FileSpreadsheet className="h-4 w-4" />
@@ -104,14 +107,15 @@ export const ModernClientsList = ({ clients, onSelectClient }: ModernClientsList
         </div>
       </div>
 
+      {/* Clients Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredClients.map(client => (
-          <Card 
+          <ModernCard 
             key={client.id} 
-            className="cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02]"
+            className="cursor-pointer transition-all duration-200 hover:scale-[1.02]"
             onClick={() => onSelectClient(client)}
           >
-            <CardContent className="p-4">
+            <ModernCardContent className="p-4">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-12 w-12">
@@ -139,14 +143,15 @@ export const ModernClientsList = ({ clients, onSelectClient }: ModernClientsList
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
+            </ModernCardContent>
+          </ModernCard>
         ))}
       </div>
 
+      {/* Empty State */}
       {filteredClients.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
+        <ModernCard>
+          <ModernCardContent className="text-center py-12">
             <div className="flex flex-col items-center gap-4">
               <div className="p-4 rounded-full bg-gray-100 dark:bg-gray-800">
                 <Search className="h-8 w-8 text-muted-foreground" />
@@ -160,8 +165,8 @@ export const ModernClientsList = ({ clients, onSelectClient }: ModernClientsList
                 </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </ModernCardContent>
+        </ModernCard>
       )}
     </div>
   );

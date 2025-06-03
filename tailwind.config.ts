@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -63,6 +62,7 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
+                // Ticlin brand colors
                 ticlin: {
                     DEFAULT: '#d3d800',
                     light: '#e4e830',
@@ -131,6 +131,14 @@ export default {
 			},
 			fontFamily: {
 				inter: ['Inter', 'sans-serif'],
+			},
+			boxShadow: {
+				glass: "0 4px 32px 0 rgba(31, 38, 135, 0.07)",
+				'glass-lg': "0 8px 40px 0 rgba(31, 38, 135, 0.12)",
+			},
+			backgroundImage: {
+				'glass-light': "linear-gradient(135deg, rgba(255,255,255,0.60) 80%, rgba(245,245,245,0.76) 100%)",
+				'glass-dark': "linear-gradient(135deg, rgba(30,30,30,0.76) 80%, rgba(18,18,18,0.9) 100%)",
 			},
 		}
 	},
