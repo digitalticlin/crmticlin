@@ -67,12 +67,10 @@ export default function CustomizableChartsSection() {
     );
   }
 
-  // Grid dinâmico baseado no número de charts
+  // Grid limitado a máximo 2 colunas para melhor visualização
   const getGridCols = (count: number) => {
     if (count === 1) return "grid-cols-1 max-w-4xl mx-auto";
-    if (count === 2) return "grid-cols-1 lg:grid-cols-2";
-    if (count === 3) return "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3";
-    return "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4";
+    return "grid-cols-1 lg:grid-cols-2";
   };
 
   return (
