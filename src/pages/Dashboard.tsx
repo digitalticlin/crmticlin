@@ -12,7 +12,7 @@ export default function Dashboard() {
   const isMobile = useIsMobile();
 
   return (
-    <div className="flex min-h-screen relative overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden">
       {/* Fundo gradiente fixo - sempre na mesma posição da viewport */}
       <div 
         className="fixed inset-0 z-0 bg-gray-200"
@@ -38,39 +38,44 @@ export default function Dashboard() {
       {/* Sidebar fixo */}
       <ResponsiveSidebar />
       
-      {/* Conteúdo principal com scroll próprio */}
-      <main className="flex-1 overflow-auto relative z-10">
-        <div className={cn(
-          "p-4 md:p-6 space-y-6 md:space-y-8",
-          isMobile && "pt-6"
-        )}>
-          <DashboardHeader />
-          
-          {/* Card Análise de Performance - Layout alinhado horizontalmente */}
-          <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-4 md:p-6 shadow-md">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              {/* Título */}
-              <div className="flex-1">
-                <h2 className="text-lg font-semibold text-gray-900">Análise de Performance</h2>
-                <p className="text-sm text-gray-800">Visualize seus dados e métricas em tempo real</p>
-              </div>
-              
-              {/* Filtro centralizado */}
-              <div className="flex justify-center md:justify-start">
-                <PeriodFilter />
-              </div>
-              
-              {/* Botão Personalizar */}
-              <div className="flex justify-end">
-                <DashboardCustomizer />
+      {/* Conteúdo principal com margem lateral para o sidebar fixo */}
+      <div className={cn(
+        "relative z-10",
+        isMobile ? "ml-0" : "ml-[250px]" // Espaço para sidebar no desktop
+      )}>
+        <main className="h-screen overflow-auto">
+          <div className={cn(
+            "p-4 md:p-6 space-y-6 md:space-y-8",
+            isMobile && "pt-6"
+          )}>
+            <DashboardHeader />
+            
+            {/* Card Análise de Performance - Layout alinhado horizontalmente */}
+            <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-4 md:p-6 shadow-md">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                {/* Título */}
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold text-gray-900">Análise de Performance</h2>
+                  <p className="text-sm text-gray-800">Visualize seus dados e métricas em tempo real</p>
+                </div>
+                
+                {/* Filtro centralizado */}
+                <div className="flex justify-center md:justify-start">
+                  <PeriodFilter />
+                </div>
+                
+                {/* Botão Personalizar */}
+                <div className="flex justify-end">
+                  <DashboardCustomizer />
+                </div>
               </div>
             </div>
+            
+            <CustomizableKPIGrid />
+            <CustomizableChartsSection />
           </div>
-          
-          <CustomizableKPIGrid />
-          <CustomizableChartsSection />
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

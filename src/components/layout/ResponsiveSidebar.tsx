@@ -133,11 +133,11 @@ export default function ResponsiveSidebar() {
     );
   }
 
-  // Desktop sidebar
+  // Desktop sidebar - agora com posição FIXED para ficar congelado
   return (
     <div
       className={cn(
-        "hidden md:flex h-screen sticky top-0 left-0 z-30 flex-col transition-all duration-300 border-r bg-white/25 backdrop-blur-lg border-white/30",
+        "hidden md:flex h-screen fixed top-0 left-0 z-30 flex-col transition-all duration-300 border-r bg-white/25 backdrop-blur-lg border-white/30",
         isCollapsed ? "w-[80px]" : "w-[250px]"
       )}
     >
