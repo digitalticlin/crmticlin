@@ -57,7 +57,6 @@ export const useDashboardConfig = () => {
   const [config, setConfig] = useState<DashboardConfig>(defaultConfig);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [configVersion, setConfigVersion] = useState(0);
   const { user } = useAuth();
   const { companyId } = useCompanyData();
 
@@ -83,9 +82,8 @@ export const useDashboardConfig = () => {
 
       if (data) {
         console.log("Config loaded from database:", data.config_data);
-        const newConfig = data.config_data as unknown as DashboardConfig;
-        setConfig(newConfig);
-        setConfigVersion(Date.now()); // Use timestamp for unique version
+        const loadedConfig = data.config_data as unknown as DashboardConfig;
+        setConfig(loadedConfig);
       } else {
         console.log("No config found, creating default...");
         await createDefaultConfig();
@@ -110,8 +108,7 @@ export const useDashboardConfig = () => {
 
       if (error) throw error;
       console.log("Default config created");
-      setConfig(defaultConfig);
-      setConfigVersion(Date.now());
+      setConfig({ ...defaultConfig });
     } catch (error) {
       console.error("Erro ao criar configuração padrão:", error);
     }
@@ -120,13 +117,11 @@ export const useDashboardConfig = () => {
   const updateConfig = async (newConfig: Partial<DashboardConfig>) => {
     const updatedConfig = { ...config, ...newConfig };
     console.log("=== UPDATE CONFIG ===");
-    console.log("Old config:", config);
-    console.log("New config:", updatedConfig);
+    console.log("Old config:", JSON.stringify(config, null, 2));
+    console.log("New config:", JSON.stringify(updatedConfig, null, 2));
     
-    // Update state immediately and force re-render with new version
-    setConfig(updatedConfig);
-    const newVersion = Date.now();
-    setConfigVersion(newVersion);
+    // Update state immediately to trigger re-renders
+    setConfig({ ...updatedConfig });
     setSaving(true);
     
     try {
@@ -141,13 +136,12 @@ export const useDashboardConfig = () => {
 
       if (error) throw error;
 
-      console.log("Config saved successfully with version:", newVersion);
+      console.log("Config saved successfully");
       toast.success("Configurações salvas com sucesso!");
     } catch (error) {
       console.error("Erro ao salvar configuração:", error);
       // Revert to previous config on error
-      setConfig(config);
-      setConfigVersion(Date.now());
+      setConfig({ ...config });
       toast.error("Erro ao salvar configurações");
     } finally {
       setSaving(false);
@@ -162,7 +156,6 @@ export const useDashboardConfig = () => {
     config,
     loading,
     saving,
-    configVersion,
     updateConfig,
     resetToDefault
   };

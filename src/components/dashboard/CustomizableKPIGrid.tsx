@@ -55,29 +55,27 @@ const kpiConfig = {
 };
 
 export function CustomizableKPIGrid() {
-  const { config, loading: configLoading, configVersion } = useDashboardConfig();
+  const { config, loading: configLoading } = useDashboardConfig();
   const { kpis, loading: kpisLoading } = useDashboardKPIs(config.period_filter);
 
-  // Use useMemo to recalculate visible KPIs when config changes
+  // Calculate visible KPIs based on current config
   const visibleKPIs = useMemo(() => {
     const visible = config.layout.kpi_order.filter(
       kpiKey => config.kpis[kpiKey as keyof typeof config.kpis]
     );
-    console.log("=== KPI GRID MEMOIZED CALCULATION ===");
-    console.log("Config version:", configVersion);
-    console.log("All KPIs order:", config.layout.kpi_order);
-    console.log("KPIs visibility state:", config.kpis);
+    console.log("=== KPI GRID CALCULATION ===");
+    console.log("Current config:", config);
+    console.log("KPIs config:", config.kpis);
+    console.log("KPI order:", config.layout.kpi_order);
     console.log("Visible KPIs:", visible);
     return visible;
-  }, [config, configVersion]);
+  }, [config]);
 
   useEffect(() => {
     console.log("=== KPI GRID RE-RENDER ===");
-    console.log("Config version:", configVersion);
-    console.log("Current config:", config);
-    console.log("KPIs config:", config.kpis);
-    console.log("Visible KPIs count:", visibleKPIs.length);
-  }, [config, configVersion, visibleKPIs]);
+    console.log("Config:", config);
+    console.log("Visible KPIs:", visibleKPIs);
+  }, [config, visibleKPIs]);
 
   if (configLoading || kpisLoading) {
     return (
@@ -122,7 +120,7 @@ export function CustomizableKPIGrid() {
         
         return (
           <KPICard
-            key={`${kpiKey}-${configVersion}`}
+            key={kpiKey}
             title={kpiData.title}
             value={kpiData.format(value)}
             trend={kpiData.trend}

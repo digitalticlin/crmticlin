@@ -16,28 +16,26 @@ const chartComponents = {
 };
 
 export default function CustomizableChartsSection() {
-  const { config, loading, configVersion } = useDashboardConfig();
+  const { config, loading } = useDashboardConfig();
 
-  // Use useMemo to recalculate visible charts when config changes
+  // Calculate visible charts based on current config
   const visibleCharts = useMemo(() => {
     const visible = config.layout.chart_order.filter(
       chartKey => config.charts[chartKey as keyof typeof config.charts]
     );
-    console.log("=== CHARTS SECTION MEMOIZED CALCULATION ===");
-    console.log("Config version:", configVersion);
-    console.log("All charts order:", config.layout.chart_order);
-    console.log("Charts visibility state:", config.charts);
+    console.log("=== CHARTS SECTION CALCULATION ===");
+    console.log("Current config:", config);
+    console.log("Charts config:", config.charts);
+    console.log("Chart order:", config.layout.chart_order);
     console.log("Visible Charts:", visible);
     return visible;
-  }, [config, configVersion]);
+  }, [config]);
 
   useEffect(() => {
     console.log("=== CHARTS SECTION RE-RENDER ===");
-    console.log("Config version:", configVersion);
-    console.log("Current config:", config);
-    console.log("Charts config:", config.charts);
-    console.log("Visible Charts count:", visibleCharts.length);
-  }, [config, configVersion, visibleCharts]);
+    console.log("Config:", config);
+    console.log("Visible Charts:", visibleCharts);
+  }, [config, visibleCharts]);
 
   if (loading) {
     return (
@@ -81,7 +79,7 @@ export default function CustomizableChartsSection() {
         
         console.log(`Rendering Chart: ${chartKey}`);
         
-        return <ChartComponent key={`${chartKey}-${configVersion}`} />;
+        return <ChartComponent key={chartKey} />;
       })}
     </div>
   );
