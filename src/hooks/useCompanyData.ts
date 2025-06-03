@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,18 +12,31 @@ export const useCompanyData = () => {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { user, loading: authLoading } = useAuth();
+  const isMountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
   
   // Carregar company_id automaticamente quando o usuário estiver disponível
   useEffect(() => {
+    isMountedRef.current = true;
+    
     const loadUserCompany = async () => {
-      if (authLoading) return; // Aguardar auth carregar
+      if (authLoading || !isMountedRef.current) return; // Aguardar auth carregar
       
       if (!user) {
-        setCompanyId(null);
-        setCompanyName("");
-        setLoading(false);
+        if (isMountedRef.current) {
+          setCompanyId(null);
+          setCompanyName("");
+          setLoading(false);
+        }
         return;
       }
+
+      // Cancelar requisição anterior se existir
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      
+      abortControllerRef.current = new AbortController();
 
       try {
         const { data: profile, error } = await supabase
@@ -31,6 +44,8 @@ export const useCompanyData = () => {
           .select('company_id')
           .eq('id', user.id)
           .single();
+
+        if (!isMountedRef.current || abortControllerRef.current?.signal.aborted) return;
 
         if (error) {
           console.error("Error loading user profile:", error);
@@ -43,13 +58,23 @@ export const useCompanyData = () => {
           await fetchCompanyData(profile.company_id);
         }
       } catch (error) {
-        console.error("Error loading user company:", error);
+        if (!abortControllerRef.current?.signal.aborted) {
+          console.error("Error loading user company:", error);
+        }
       } finally {
-        setLoading(false);
+        if (isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 
     loadUserCompany();
+
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [user, authLoading]); // Dependências simplificadas
   
   /**
@@ -57,6 +82,8 @@ export const useCompanyData = () => {
    * @param id The company ID to fetch
    */
   const fetchCompanyData = async (id: string) => {
+    if (!isMountedRef.current) return;
+    
     try {
       const { data: company, error } = await supabase
         .from('companies')
@@ -66,7 +93,7 @@ export const useCompanyData = () => {
         
       if (error) throw error;
         
-      if (company) {
+      if (company && isMountedRef.current) {
         setCompanyName(company.name);
       }
     } catch (error) {
@@ -102,7 +129,7 @@ export const useCompanyData = () => {
           throw newCompanyError;
         }
         
-        if (newCompany) {
+        if (newCompany && isMountedRef.current) {
           setCompanyId(newCompany.id);
           return newCompany.id;
         }
@@ -130,6 +157,16 @@ export const useCompanyData = () => {
       return null;
     }
   };
+
+  // Cleanup na desmontagem
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
   
   return {
     companyName,

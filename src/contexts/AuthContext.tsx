@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from "react";
 import { Session, User } from "@supabase/supabase-js";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -24,37 +25,40 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
   
   // Refs para controlar state e evitar múltiplas execuções
   const isInitialized = useRef(false);
   const isMounted = useRef(true);
+  const lastRedirect = useRef<string>('');
 
-  // Função para navegar sem usar useNavigate diretamente
-  const navigateTo = useCallback((path: string) => {
-    // Usar window.location para navegação segura
-    if (window.location.pathname !== path) {
-      window.location.replace(path);
-    }
-  }, []);
-
-  // Função de redirecionamento sem navigate hook
+  // Função de redirecionamento com proteção contra loops
   const handleAuthRedirect = useCallback((event: string, newSession: Session | null) => {
-    // Só navegar se já estiver inicializado
-    if (!isInitialized.current || !isMounted.current) return;
+    // Só executar se componente montado e inicializado
+    if (!isMounted.current || !isInitialized.current) return;
     
     const currentPath = window.location.pathname;
+    const redirectKey = `${event}-${currentPath}-${!!newSession}`;
     
-    // Timeout para evitar conflitos de renderização
-    setTimeout(() => {
+    // Evitar redirecionamentos duplicados
+    if (lastRedirect.current === redirectKey) return;
+    lastRedirect.current = redirectKey;
+    
+    // Usar requestAnimationFrame para navegação suave
+    requestAnimationFrame(() => {
       if (!isMounted.current) return;
       
-      if (event === 'SIGNED_OUT' && currentPath !== '/') {
-        navigateTo("/");
-      } else if (event === 'SIGNED_IN' && newSession && currentPath === '/') {
-        navigateTo("/dashboard");
+      try {
+        if (event === 'SIGNED_OUT' && currentPath !== '/') {
+          navigate("/", { replace: true });
+        } else if (event === 'SIGNED_IN' && newSession && currentPath === '/') {
+          navigate("/dashboard", { replace: true });
+        }
+      } catch (error) {
+        console.warn("Erro na navegação:", error);
       }
-    }, 100);
-  }, [navigateTo]);
+    });
+  }, [navigate]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -145,8 +149,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw error;
       }
       
-      // Usar navegação segura
-      navigateTo("/confirm-email-instructions");
+      // Navegação segura
+      navigate("/confirm-email-instructions", { replace: true });
     } catch (error: any) {
       toast.error(error.message || "Erro ao criar conta");
       throw error;

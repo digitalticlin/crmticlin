@@ -61,13 +61,22 @@ export const useDashboardConfig = () => {
   const { companyId, loading: companyLoading } = useCompanyData();
   const isMountedRef = useRef(true);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const loadConfig = useCallback(async () => {
-    if (!user?.id || !companyId || companyLoading) {
-      setConfig(defaultConfig);
+    if (!user?.id || !companyId || companyLoading || !isMountedRef.current) {
+      if (isMountedRef.current) {
+        setConfig(defaultConfig);
+      }
       return;
     }
 
+    // Cancelar requisição anterior se existir
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    abortControllerRef.current = new AbortController();
     setLoading(true);
 
     try {
@@ -84,7 +93,7 @@ export const useDashboardConfig = () => {
 
       let finalConfig = defaultConfig;
       
-      if (data && data.config_data) {
+      if (data && data.config_data && !abortControllerRef.current?.signal.aborted) {
         const loadedConfig = data.config_data as unknown as DashboardConfig;
         
         // Validar e mesclar com configuração padrão
@@ -97,16 +106,18 @@ export const useDashboardConfig = () => {
         };
       }
       
-      if (isMountedRef.current) {
+      if (isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
         setConfig(finalConfig);
       }
     } catch (error: any) {
-      console.warn("Erro ao carregar configuração:", error);
-      if (isMountedRef.current) {
-        setConfig(defaultConfig);
+      if (!abortControllerRef.current?.signal.aborted) {
+        console.warn("Erro ao carregar configuração:", error);
+        if (isMountedRef.current) {
+          setConfig(defaultConfig);
+        }
       }
     } finally {
-      if (isMountedRef.current) {
+      if (isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
         setLoading(false);
       }
     }
@@ -120,9 +131,11 @@ export const useDashboardConfig = () => {
     }
 
     return () => {
-      isMountedRef.current = false;
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
       }
     };
   }, [loadConfig, companyLoading]);
@@ -136,7 +149,7 @@ export const useDashboardConfig = () => {
       clearTimeout(saveTimeoutRef.current);
     }
     
-    // Debounce reduzido para 500ms
+    // Timeout unificado para 100ms
     saveTimeoutRef.current = setTimeout(async () => {
       if (!isMountedRef.current) return;
       
@@ -171,12 +184,25 @@ export const useDashboardConfig = () => {
           setSaving(false);
         }
       }
-    }, 500);
+    }, 100);
   }, [config, user?.id, companyId]);
 
   const resetToDefault = async () => {
     await updateConfig(defaultConfig);
   };
+
+  // Cleanup na desmontagem
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   return {
     config,

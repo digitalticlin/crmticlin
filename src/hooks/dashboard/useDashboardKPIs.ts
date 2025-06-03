@@ -17,31 +17,44 @@ export const useDashboardKPIs = (periodDays: string) => {
   const { companyId, loading: companyLoading } = useCompanyData();
   const isLoadingRef = useRef(false);
   const isMountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const loadKPIs = useCallback(async () => {
     // Evitar execuções em paralelo
-    if (isLoadingRef.current || companyLoading) return;
+    if (isLoadingRef.current || companyLoading || !isMountedRef.current) return;
     
+    // Cancelar requisição anterior se existir
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    abortControllerRef.current = new AbortController();
     isLoadingRef.current = true;
     
     try {
       if (!companyId) {
-        setKPIs(defaultKPIs);
+        if (isMountedRef.current) {
+          setKPIs(defaultKPIs);
+        }
         return;
       }
 
       const result = await KPILoaderService.loadKPIs(companyId, periodDays);
       
-      if (isMountedRef.current) {
+      if (isMountedRef.current && !abortControllerRef.current?.signal.aborted) {
         setKPIs(result);
       }
     } catch (error) {
-      console.warn("Erro no carregamento de KPIs:", error);
-      if (isMountedRef.current) {
-        setKPIs(defaultKPIs);
+      if (!abortControllerRef.current?.signal.aborted) {
+        console.warn("Erro no carregamento de KPIs:", error);
+        if (isMountedRef.current) {
+          setKPIs(defaultKPIs);
+        }
       }
     } finally {
-      isLoadingRef.current = false;
+      if (isMountedRef.current) {
+        isLoadingRef.current = false;
+      }
     }
   }, [companyId, periodDays, companyLoading]);
 
@@ -52,7 +65,7 @@ export const useDashboardKPIs = (periodDays: string) => {
     
     setLoading(true);
     
-    // Timeout reduzido para 50ms
+    // Timeout unificado para 100ms
     const timer = setTimeout(async () => {
       if (isMountedRef.current) {
         await loadKPIs();
@@ -60,11 +73,10 @@ export const useDashboardKPIs = (periodDays: string) => {
           setLoading(false);
         }
       }
-    }, 50);
+    }, 100);
 
     return () => {
       clearTimeout(timer);
-      isMountedRef.current = false;
     };
   }, [loadKPIs, companyLoading]);
 
@@ -73,6 +85,9 @@ export const useDashboardKPIs = (periodDays: string) => {
     return () => {
       isMountedRef.current = false;
       isLoadingRef.current = false;
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
   }, []);
 
