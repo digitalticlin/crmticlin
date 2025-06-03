@@ -8,7 +8,7 @@ import TagsChart from "./charts/TagsChart";
 const chartComponents = {
   funil_conversao: FunnelChart,
   performance_vendedores: PerformanceChart,
-  evolucao_temporal: () => <ChartsSection />,
+  evolucao_temporal: ChartsSection,
   leads_etiquetas: TagsChart
 };
 
