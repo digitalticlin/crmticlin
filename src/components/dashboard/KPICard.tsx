@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { 
   Users, 
@@ -32,19 +31,19 @@ export default function KPICard({ title, value, trend, icon, className }: KPICar
 
   return (
     <div className={cn(
-      "rounded-3xl bg-white/20 backdrop-blur-lg border border-white/20 shadow-2xl p-6 space-y-4 transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] hover:bg-white/25 animate-fade-in",
+      "rounded-3xl bg-white/10 backdrop-blur-lg border border-white/10 shadow-2xl p-6 space-y-4 transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] hover:bg-white/15 animate-fade-in",
       className
     )}>
       <div className="flex items-center justify-between">
-        <div className="p-3 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20">
-          <IconComponent className="h-6 w-6 text-gray-800" />
+        <div className="p-3 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/10">
+          <IconComponent className="h-6 w-6 text-gray-900" />
         </div>
         {trend && (
           <div className={cn(
-            "flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm border",
+            "flex items-center gap-1 px-3 py-1 rounded-full text-xs font-inter font-semibold backdrop-blur-sm border",
             trend.isPositive 
-              ? "bg-green-100/50 text-green-700 border-green-200/50" 
-              : "bg-red-100/50 text-red-700 border-red-200/50"
+              ? "bg-green-100/70 text-green-800 border-green-200/60" 
+              : "bg-red-100/70 text-red-800 border-red-200/60"
           )}>
             {trend.isPositive ? (
               <ArrowUp className="h-3 w-3" />
@@ -56,9 +55,9 @@ export default function KPICard({ title, value, trend, icon, className }: KPICar
         )}
       </div>
       
-      <div className="space-y-1">
-        <p className="text-sm font-medium text-gray-700">{title}</p>
-        <p className="text-3xl font-bold text-gray-900">{value}</p>
+      <div className="space-y-2">
+        <p className="text-sm font-inter font-semibold text-gray-800">{title}</p>
+        <p className="text-4xl font-orbitron font-bold text-gray-900 tracking-wide">{value}</p>
       </div>
     </div>
   );
