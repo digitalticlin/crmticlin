@@ -1,6 +1,6 @@
-
 import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { useDashboardKPIs } from "@/hooks/dashboard/useDashboardKPIs";
+import { useDemoMode } from "@/hooks/dashboard/useDemoMode";
 import KPICard from "./KPICard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useMemo } from "react";
@@ -51,6 +51,7 @@ const kpiConfig = {
 function KPIGridContent() {
   const { config, loading: configLoading } = useDashboardConfig();
   const { kpis, loading: kpisLoading } = useDashboardKPIs(config.period_filter);
+  const { isDemoMode } = useDemoMode();
 
   const visibleKPIs = useMemo(() => {
     return config.layout.kpi_order.filter(kpiKey => {
@@ -72,6 +73,11 @@ function KPIGridContent() {
     return (
       <div className="text-center py-8 text-gray-600">
         <p>Nenhum KPI selecionado. Configure o dashboard para visualizar os dados.</p>
+        {isDemoMode && (
+          <p className="text-sm text-blue-600 mt-2">
+            Modo Demo ativo - dados de demonstração disponíveis
+          </p>
+        )}
       </div>
     );
   }

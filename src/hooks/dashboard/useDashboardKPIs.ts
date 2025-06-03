@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyData } from "@/hooks/useCompanyData";
+import { useDemoMode } from "@/hooks/dashboard/useDemoMode";
 
 export interface DashboardKPIs {
   novos_leads: number;
@@ -53,14 +54,20 @@ export const useDashboardKPIs = (periodDays: string) => {
   const [kpis, setKPIs] = useState<DashboardKPIsWithTrends>(defaultKPIs);
   const [loading, setLoading] = useState(true);
   const { companyId } = useCompanyData();
+  const { isDemoMode, getDemoKPIs } = useDemoMode();
 
   useEffect(() => {
-    if (companyId) {
+    if (isDemoMode) {
+      // Usar dados demo
+      console.log("Usando dados de demonstração");
+      setKPIs(getDemoKPIs());
+      setLoading(false);
+    } else if (companyId) {
       loadKPIs();
     } else {
       setLoading(false);
     }
-  }, [companyId, periodDays]);
+  }, [companyId, periodDays, isDemoMode]);
 
   // Query simples para verificar conectividade
   const checkConnection = async (): Promise<boolean> => {
