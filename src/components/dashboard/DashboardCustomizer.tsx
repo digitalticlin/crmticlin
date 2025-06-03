@@ -76,7 +76,7 @@ export default function DashboardCustomizer() {
       
       <SheetContent 
         side="right" 
-        className="w-[420px] overflow-hidden border-0 p-0"
+        className="w-[520px] overflow-hidden border-0 p-0"
         style={{
           background: `radial-gradient(circle at 30% 70%, #D3D800 0%, transparent 50%), 
                        radial-gradient(circle at 80% 20%, #17191c 0%, transparent 60%),
@@ -94,21 +94,23 @@ export default function DashboardCustomizer() {
         {/* Conteúdo principal */}
         <div className="relative z-10 h-full flex flex-col">
           <SheetHeader className="p-8 pb-6">
-            <div className="flex items-center justify-between">
-              <SheetTitle className="text-2xl font-bold bg-gradient-to-r from-[#D3D800] via-yellow-400 to-[#D3D800] bg-clip-text text-transparent">
-                ⚡ Personalizar Dashboard
+            <div className="flex flex-col gap-4">
+              <SheetTitle className="text-2xl font-bold bg-gradient-to-r from-[#D3D800] via-yellow-400 to-[#D3D800] bg-clip-text text-transparent text-center">
+                Personalizar Dashboard
               </SheetTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleReset}
-                className="flex items-center gap-2 bg-white/10 border border-[#D3D800]/30 text-[#D3D800] hover:bg-[#D3D800]/20 hover:border-[#D3D800]/50 backdrop-blur-lg rounded-xl font-medium transition-all duration-300 hover:scale-105"
-              >
-                <RotateCcw className="w-4 h-4" />
-                Restaurar
-              </Button>
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReset}
+                  className="flex items-center gap-2 bg-white/10 border border-[#D3D800]/30 text-[#D3D800] hover:bg-[#D3D800]/20 hover:border-[#D3D800]/50 backdrop-blur-lg rounded-xl font-medium transition-all duration-300 hover:scale-105"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  Restaurar
+                </Button>
+              </div>
             </div>
-            <p className="text-white/80 text-sm font-medium mt-2">
+            <p className="text-white/80 text-sm font-medium mt-2 text-center">
               Configure sua experiência de dados
             </p>
           </SheetHeader>
@@ -122,7 +124,7 @@ export default function DashboardCustomizer() {
                   <div className="w-10 h-10 bg-gradient-to-br from-[#D3D800] to-yellow-500 rounded-xl flex items-center justify-center shadow-lg">
                     <span className="text-gray-900 font-bold text-lg">📊</span>
                   </div>
-                  <h3 className="text-xl font-bold text-white">KPIs Principais</h3>
+                  <h3 className="text-xl font-bold text-white">Principais</h3>
                 </div>
                 
                 <div className="space-y-4">
@@ -160,7 +162,7 @@ export default function DashboardCustomizer() {
                   <div className="w-10 h-10 bg-gradient-to-br from-[#D3D800] to-yellow-500 rounded-xl flex items-center justify-center shadow-lg">
                     <span className="text-gray-900 font-bold text-lg">📈</span>
                   </div>
-                  <h3 className="text-xl font-bold text-white">Gráficos Estratégicos</h3>
+                  <h3 className="text-xl font-bold text-white">Gráficos</h3>
                 </div>
                 
                 <div className="space-y-4">
@@ -198,10 +200,11 @@ export default function DashboardCustomizer() {
                 Cancelar
               </Button>
               <Button 
+                variant="outline"
                 onClick={handleSave}
-                className="flex-1 bg-gradient-to-r from-[#D3D800] to-yellow-500 hover:from-yellow-500 hover:to-[#D3D800] text-gray-900 font-bold rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-2xl py-6"
+                className="flex-1 bg-white/10 border border-[#D3D800]/30 text-[#D3D800] hover:bg-[#D3D800]/20 hover:border-[#D3D800]/50 backdrop-blur-lg rounded-2xl font-medium transition-all duration-300 hover:scale-105 py-6"
               >
-                💾 Salvar Configurações
+                Salvar
               </Button>
             </div>
           </div>
