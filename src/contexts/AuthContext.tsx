@@ -1,7 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from "react";
 import { Session, User } from "@supabase/supabase-js";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -25,40 +24,37 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
   
   // Refs para controlar state e evitar múltiplas execuções
   const isInitialized = useRef(false);
   const isMounted = useRef(true);
-  const lastAuthEvent = useRef<string>('');
-  const redirectTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  // Função de redirecionamento com proteção contra loops
-  const handleNavigation = useCallback((event: string, newSession: Session | null) => {
-    // Evitar redirecionamentos repetidos
-    if (lastAuthEvent.current === event && !newSession) return;
-    lastAuthEvent.current = event;
-
-    // Limpar timeout anterior
-    if (redirectTimeout.current) {
-      clearTimeout(redirectTimeout.current);
+  // Função para navegar sem usar useNavigate diretamente
+  const navigateTo = useCallback((path: string) => {
+    // Usar window.location para navegação segura
+    if (window.location.pathname !== path) {
+      window.location.replace(path);
     }
+  }, []);
 
-    // Só navegar se já estiver inicializado e for necessário
-    if (isInitialized.current && isMounted.current) {
-      redirectTimeout.current = setTimeout(() => {
-        if (!isMounted.current) return;
-        
-        const currentPath = window.location.pathname;
-        
-        if (event === 'SIGNED_OUT' && currentPath !== '/') {
-          navigate("/", { replace: true });
-        } else if (event === 'SIGNED_IN' && newSession && currentPath === '/') {
-          navigate("/dashboard", { replace: true });
-        }
-      }, 100);
-    }
-  }, [navigate]);
+  // Função de redirecionamento sem navigate hook
+  const handleAuthRedirect = useCallback((event: string, newSession: Session | null) => {
+    // Só navegar se já estiver inicializado
+    if (!isInitialized.current || !isMounted.current) return;
+    
+    const currentPath = window.location.pathname;
+    
+    // Timeout para evitar conflitos de renderização
+    setTimeout(() => {
+      if (!isMounted.current) return;
+      
+      if (event === 'SIGNED_OUT' && currentPath !== '/') {
+        navigateTo("/");
+      } else if (event === 'SIGNED_IN' && newSession && currentPath === '/') {
+        navigateTo("/dashboard");
+      }
+    }, 100);
+  }, [navigateTo]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -74,7 +70,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       // Tratar navegação apenas para eventos relevantes
       if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
-        handleNavigation(event, session);
+        handleAuthRedirect(event, session);
       }
     });
 
@@ -112,11 +108,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => {
       isMounted.current = false;
       subscription.unsubscribe();
-      if (redirectTimeout.current) {
-        clearTimeout(redirectTimeout.current);
-      }
     };
-  }, [handleNavigation]);
+  }, [handleAuthRedirect]);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -152,7 +145,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw error;
       }
       
-      navigate("/confirm-email-instructions");
+      // Usar navegação segura
+      navigateTo("/confirm-email-instructions");
     } catch (error: any) {
       toast.error(error.message || "Erro ao criar conta");
       throw error;
