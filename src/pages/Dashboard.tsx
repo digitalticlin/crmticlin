@@ -43,14 +43,22 @@ export default function Dashboard() {
         )}>
           <DashboardHeader />
           
-          {/* Filtro de Período com botão Personalizar */}
-          <div className="flex justify-between items-center rounded-2xl bg-white/30 backdrop-blur-lg border border-white/30 p-4 shadow-lg">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Análise de Performance</h2>
-              <p className="text-sm text-gray-800">Visualize seus dados e métricas em tempo real</p>
+          {/* Filtro de Período com botão Personalizar - Layout reorganizado */}
+          <div className="relative rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-4 shadow-md">
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold text-gray-900">Análise de Performance</h2>
+                <p className="text-sm text-gray-800">Visualize seus dados e métricas em tempo real</p>
+              </div>
+              
+              {/* Botão Personalizar - canto direito */}
+              <div className="absolute top-4 right-4">
+                <DashboardCustomizer />
+              </div>
             </div>
-            <div className="flex items-center gap-3">
-              <DashboardCustomizer />
+            
+            {/* Filtro centralizado */}
+            <div className="flex justify-center mt-4">
               <PeriodFilter />
             </div>
           </div>
