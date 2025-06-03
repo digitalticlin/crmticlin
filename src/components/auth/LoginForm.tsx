@@ -50,138 +50,125 @@ const LoginForm = () => {
   };
 
   return (
-    <div className="w-full rounded-3xl bg-white/30 backdrop-blur-lg border border-white/20 shadow-2xl overflow-hidden transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] hover:bg-white/35">
-      {/* Logo Section with Brand Background */}
-      <div className="relative bg-gradient-to-br from-ticlin-400 via-ticlin-500 to-ticlin-600 p-8">
-        {/* Subtle overlay pattern */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(255,255,255,0.1)_0%,transparent_50%)] opacity-60"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(0,0,0,0.1)_0%,transparent_40%)] opacity-40"></div>
-        
-        {/* Logo Content */}
-        <div className="relative z-10 space-y-4 text-center animate-scale-in">
-          <div className="mb-6 flex justify-center">
-            <div className="relative">
-              <img
-                src="/lovable-uploads/c78e93c7-b1d1-4d36-a00e-3d5e9e5c1234.png"
-                alt="Ticlin CRM"
-                className="h-14 transition-transform duration-300 hover:scale-110 drop-shadow-lg"
-              />
-              <div className="absolute inset-0 bg-white/10 opacity-20 rounded-lg blur-lg"></div>
-            </div>
+    <div className="w-full rounded-3xl bg-white/30 backdrop-blur-lg border border-white/20 shadow-2xl p-8 space-y-8 transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] hover:bg-white/35">
+      {/* Logo Section */}
+      <div className="space-y-4 text-center animate-scale-in">
+        <div className="mb-6 flex justify-center">
+          <div className="relative">
+            <img
+              src="/lovable-uploads/ae7ddc52-d3ed-478f-af96-603a69278f3b.png"
+              alt="Ticlin CRM"
+              className="h-14 transition-transform duration-300 hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-ticlin-400 to-ticlin-600 opacity-10 rounded-lg blur-lg"></div>
           </div>
-          
-          <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl drop-shadow-lg">
-            Bem-vindo de volta
-          </h1>
-          <p className="text-sm text-white/90 font-medium drop-shadow">
-            Entre com suas credenciais para continuar
-          </p>
         </div>
         
-        {/* Bottom fade effect */}
-        <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white/30 to-transparent"></div>
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+          Bem-vindo de volta
+        </h1>
+        <p className="text-sm text-gray-700 font-medium">
+          Entre com suas credenciais para continuar
+        </p>
       </div>
 
-      {/* Form Section */}
-      <div className="p-8 pt-6 space-y-8">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem className="space-y-3">
-                  <FormLabel className="text-gray-800 font-medium">Email</FormLabel>
-                  <FormControl>
-                    <div className="relative group">
-                      <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400 transition-colors group-hover:text-gray-600" />
-                      <Input
-                        className="pl-11 h-12 rounded-xl bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-gray-300 transition-all duration-300 hover:border-gray-300"
-                        placeholder="exemplo@email.com"
-                        type="email"
-                        autoComplete="email"
-                        {...field}
-                      />
-                    </div>
-                  </FormControl>
-                  <FormMessage className="text-red-500" />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <FormLabel className="text-gray-800 font-medium">Senha</FormLabel>
-                    <Link
-                      to="/forgot-password"
-                      className="text-xs text-gray-600 hover:text-gray-800 transition-colors duration-200 underline-offset-4 hover:underline"
-                    >
-                      Esqueceu a senha?
-                    </Link>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem className="space-y-3">
+                <FormLabel className="text-gray-800 font-medium">Email</FormLabel>
+                <FormControl>
+                  <div className="relative group">
+                    <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400 transition-colors group-hover:text-gray-600" />
+                    <Input
+                      className="pl-11 h-12 rounded-xl bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-gray-300 transition-all duration-300 hover:border-gray-300"
+                      placeholder="exemplo@email.com"
+                      type="email"
+                      autoComplete="email"
+                      {...field}
+                    />
                   </div>
-                  <FormControl>
-                    <div className="relative group">
-                      <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400 transition-colors group-hover:text-gray-600" />
-                      <Input
-                        className="pl-11 pr-12 h-12 rounded-xl bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-gray-300 transition-all duration-300 hover:border-gray-300"
-                        placeholder="••••••••"
-                        type={showPassword ? "text" : "password"}
-                        autoComplete="current-password"
-                        {...field}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-1 top-1 h-10 w-10 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-200"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                        <span className="sr-only">
-                          {showPassword ? "Esconder senha" : "Mostrar senha"}
-                        </span>
-                      </Button>
-                    </div>
-                  </FormControl>
-                  <FormMessage className="text-red-500" />
-                </FormItem>
-              )}
-            />
-            
-            <Button
-              type="submit"
-              className="w-full h-12 rounded-full bg-gradient-to-r from-ticlin-500 to-ticlin-600 hover:from-ticlin-600 hover:to-ticlin-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-0"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Entrando...
+                </FormControl>
+                <FormMessage className="text-red-500" />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <FormLabel className="text-gray-800 font-medium">Senha</FormLabel>
+                  <Link
+                    to="/forgot-password"
+                    className="text-xs text-gray-600 hover:text-gray-800 transition-colors duration-200 underline-offset-4 hover:underline"
+                  >
+                    Esqueceu a senha?
+                  </Link>
                 </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  Entrar
-                  <ArrowRight className="h-4 w-4" />
-                </div>
-              )}
-            </Button>
-          </form>
-        </Form>
-        
-        <div className="text-center text-sm text-gray-700">
-          Não tem uma conta?{" "}
-          <Link to="/register" className="text-gray-800 font-medium hover:text-ticlin-600 transition-colors duration-200 underline-offset-4 hover:underline">
-            Criar conta
-          </Link>
-        </div>
+                <FormControl>
+                  <div className="relative group">
+                    <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400 transition-colors group-hover:text-gray-600" />
+                    <Input
+                      className="pl-11 pr-12 h-12 rounded-xl bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-gray-300 transition-all duration-300 hover:border-gray-300"
+                      placeholder="••••••••"
+                      type={showPassword ? "text" : "password"}
+                      autoComplete="current-password"
+                      {...field}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-1 top-1 h-10 w-10 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-200"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                      <span className="sr-only">
+                        {showPassword ? "Esconder senha" : "Mostrar senha"}
+                      </span>
+                    </Button>
+                  </div>
+                </FormControl>
+                <FormMessage className="text-red-500" />
+              </FormItem>
+            )}
+          />
+          
+          <Button
+            type="submit"
+            className="w-full h-12 rounded-full bg-gradient-to-r from-ticlin-500 to-ticlin-600 hover:from-ticlin-600 hover:to-ticlin-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-0"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                Entrando...
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                Entrar
+                <ArrowRight className="h-4 w-4" />
+              </div>
+            )}
+          </Button>
+        </form>
+      </Form>
+      
+      <div className="text-center text-sm text-gray-700">
+        Não tem uma conta?{" "}
+        <Link to="/register" className="text-gray-800 font-medium hover:text-ticlin-600 transition-colors duration-200 underline-offset-4 hover:underline">
+          Criar conta
+        </Link>
       </div>
     </div>
   );
