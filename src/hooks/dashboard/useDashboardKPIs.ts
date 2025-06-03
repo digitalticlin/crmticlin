@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useDemoMode } from "@/hooks/dashboard/useDemoMode";
 import { DashboardKPIsWithTrends, defaultKPIs } from "./types/dashboardTypes";
@@ -14,13 +14,9 @@ export type {
 
 export const useDashboardKPIs = (periodDays: string) => {
   const [kpis, setKPIs] = useState<DashboardKPIsWithTrends>(defaultKPIs);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const { companyId } = useCompanyData();
   const { isDemoMode, getDemoKPIs } = useDemoMode();
-  
-  // Refs para controlar requests e debounce
-  const loadController = useRef<AbortController | null>(null);
-  const loadTimer = useRef<NodeJS.Timeout | null>(null);
 
   const loadKPIs = useCallback(async () => {
     try {
@@ -44,34 +40,18 @@ export const useDashboardKPIs = (periodDays: string) => {
   }, [companyId, periodDays, isDemoMode, getDemoKPIs]);
 
   useEffect(() => {
-    // Debounce para evitar múltiplas chamadas
-    if (loadTimer.current) {
-      clearTimeout(loadTimer.current);
-    }
-
-    // Cancelar request anterior
-    if (loadController.current) {
-      loadController.current.abort();
-    }
-
-    loadController.current = new AbortController();
     setLoading(true);
-
-    loadTimer.current = setTimeout(async () => {
+    
+    const timer = setTimeout(async () => {
       try {
         await loadKPIs();
       } finally {
         setLoading(false);
       }
-    }, 300); // Debounce de 300ms
+    }, 100);
 
     return () => {
-      if (loadTimer.current) {
-        clearTimeout(loadTimer.current);
-      }
-      if (loadController.current) {
-        loadController.current.abort();
-      }
+      clearTimeout(timer);
     };
   }, [loadKPIs]);
 

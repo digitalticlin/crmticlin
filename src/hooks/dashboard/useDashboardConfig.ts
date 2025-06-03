@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,57 +53,20 @@ const defaultConfig: DashboardConfig = {
   period_filter: "30"
 };
 
-// Cache simples para configuração
-const configCache = new Map<string, { config: DashboardConfig; timestamp: number }>();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
-
 export const useDashboardConfig = () => {
   const [config, setConfig] = useState<DashboardConfig>(defaultConfig);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const { user } = useAuth();
   const { companyId } = useCompanyData();
-  
-  // Refs para controlar requests e debounce
-  const loadConfigController = useRef<AbortController | null>(null);
-  const saveConfigTimer = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    if (user && companyId) {
-      loadConfig();
-    } else {
-      setLoading(false);
-    }
-    
-    return () => {
-      if (loadConfigController.current) {
-        loadConfigController.current.abort();
-      }
-      if (saveConfigTimer.current) {
-        clearTimeout(saveConfigTimer.current);
-      }
-    };
-  }, [user, companyId]);
-
-  const loadConfig = async () => {
-    if (!user?.id || !companyId) return;
-    
-    // Verificar cache primeiro
-    const cacheKey = `${user.id}-${companyId}`;
-    const cached = configCache.get(cacheKey);
-    
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      setConfig(cached.config);
-      setLoading(false);
+  const loadConfig = useCallback(async () => {
+    if (!user?.id || !companyId) {
+      setConfig(defaultConfig);
       return;
     }
 
-    // Cancelar request anterior se existir
-    if (loadConfigController.current) {
-      loadConfigController.current.abort();
-    }
-    
-    loadConfigController.current = new AbortController();
+    setLoading(true);
 
     try {
       const { data, error } = await supabase
@@ -111,7 +74,6 @@ export const useDashboardConfig = () => {
         .select('config_data')
         .eq('user_id', user.id)
         .eq('company_id', companyId)
-        .abortSignal(loadConfigController.current.signal)
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
@@ -133,30 +95,25 @@ export const useDashboardConfig = () => {
         };
       }
       
-      // Atualizar cache
-      configCache.set(cacheKey, { config: finalConfig, timestamp: Date.now() });
       setConfig(finalConfig);
     } catch (error: any) {
-      if (error.name !== 'AbortError') {
-        console.warn("Erro ao carregar configuração:", error);
-        toast.error("Erro ao carregar configurações do dashboard");
-      }
+      console.warn("Erro ao carregar configuração:", error);
       setConfig(defaultConfig);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, companyId]);
+
+  useEffect(() => {
+    loadConfig();
+  }, [loadConfig]);
 
   const updateConfig = useCallback(async (newConfig: Partial<DashboardConfig>) => {
     const updatedConfig = { ...config, ...newConfig };
     setConfig(updatedConfig);
     
     // Debounce para salvar
-    if (saveConfigTimer.current) {
-      clearTimeout(saveConfigTimer.current);
-    }
-    
-    saveConfigTimer.current = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       setSaving(true);
       
       try {
@@ -174,10 +131,6 @@ export const useDashboardConfig = () => {
 
         if (error) throw error;
         
-        // Atualizar cache
-        const cacheKey = `${user.id}-${companyId}`;
-        configCache.set(cacheKey, { config: updatedConfig, timestamp: Date.now() });
-        
         toast.success("Configurações salvas!");
       } catch (error) {
         console.error("Erro ao salvar configuração:", error);
@@ -186,7 +139,9 @@ export const useDashboardConfig = () => {
       } finally {
         setSaving(false);
       }
-    }, 1000); // Debounce de 1 segundo
+    }, 1000);
+
+    return () => clearTimeout(timer);
   }, [config, user?.id, companyId]);
 
   const resetToDefault = async () => {

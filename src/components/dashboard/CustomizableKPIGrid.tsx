@@ -68,8 +68,8 @@ const MemoizedKPICard = memo(({ kpiKey, kpiData, kpiValue, trend }: {
 ));
 
 function KPIGridContent() {
-  const { config, loading: configLoading } = useDashboardConfig();
-  const { kpis, loading: kpisLoading } = useDashboardKPIs(config?.period_filter || "30");
+  const { config } = useDashboardConfig();
+  const { kpis, loading } = useDashboardKPIs(config?.period_filter || "30");
   const { isDemoMode } = useDemoMode();
 
   const visibleKPIs = useMemo(() => {
@@ -99,7 +99,7 @@ function KPIGridContent() {
   }, [visibleKPIs.length]);
 
   // Estados de loading
-  if (configLoading || kpisLoading) {
+  if (loading && !kpis) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
         {Array.from({ length: 4 }).map((_, i) => (

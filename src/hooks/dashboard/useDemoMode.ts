@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { DashboardKPIsWithTrends } from "./useDashboardKPIs";
+import { DashboardKPIsWithTrends } from "./types/dashboardTypes";
 
 const demoKPIs: DashboardKPIsWithTrends = {
   novos_leads: 47,
