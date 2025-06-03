@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Link } from "react-router-dom";
-import { ArrowRight, Eye, EyeOff, Mail } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -42,9 +42,7 @@ const LoginForm = () => {
     
     try {
       await signIn(values.email, values.password);
-      // Redirecionamento é feito no AuthContext após login bem-sucedido
     } catch (error) {
-      // Erros são tratados no AuthContext
       console.error("Erro de login:", error);
     } finally {
       setIsLoading(false);
@@ -52,36 +50,41 @@ const LoginForm = () => {
   };
 
   return (
-    <div className="w-full rounded-lg border bg-card shadow-sm p-6 space-y-6">
-      <div className="space-y-2 text-center">
-        <div className="mb-2 flex justify-center">
-          <img
-            src="/lovable-uploads/ae7ddc52-d3ed-478f-af96-603a69278f3b.png"
-            alt="Ticlin CRM"
-            className="h-12"
-          />
+    <div className="w-full rounded-3xl bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl p-8 space-y-8 transition-all duration-500 hover:bg-white/15 hover:shadow-3xl hover:scale-[1.02] glass-morphism">
+      {/* Logo Section */}
+      <div className="space-y-4 text-center animate-scale-in">
+        <div className="mb-6 flex justify-center">
+          <div className="relative">
+            <img
+              src="/lovable-uploads/ae7ddc52-d3ed-478f-af96-603a69278f3b.png"
+              alt="Ticlin CRM"
+              className="h-14 transition-transform duration-300 hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-ticlin-400 to-ticlin-600 opacity-20 rounded-lg blur-lg"></div>
+          </div>
         </div>
-        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+        
+        <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
           Bem-vindo de volta
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-white/70 font-medium">
           Entre com suas credenciais para continuar
         </p>
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <FormField
             control={form.control}
             name="email"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
+              <FormItem className="space-y-3">
+                <FormLabel className="text-white/90 font-medium">Email</FormLabel>
                 <FormControl>
-                  <div className="relative">
-                    <Mail className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <div className="relative group">
+                    <Mail className="absolute left-3 top-3 h-5 w-5 text-white/60 transition-colors group-hover:text-white/80" />
                     <Input
-                      className="pl-8"
+                      className="pl-11 h-12 rounded-xl bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:bg-white/15 focus:border-white/40 transition-all duration-300 hover:bg-white/15"
                       placeholder="exemplo@email.com"
                       type="email"
                       autoComplete="email"
@@ -89,28 +92,31 @@ const LoginForm = () => {
                     />
                   </div>
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-red-300" />
               </FormItem>
             )}
           />
+          
           <FormField
             control={form.control}
             name="password"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <FormLabel>Senha</FormLabel>
+                  <FormLabel className="text-white/90 font-medium">Senha</FormLabel>
                   <Link
                     to="/forgot-password"
-                    className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                    className="text-xs text-white/70 hover:text-white transition-colors duration-200 underline-offset-4 hover:underline"
                   >
                     Esqueceu a senha?
                   </Link>
                 </div>
                 <FormControl>
-                  <div className="relative">
+                  <div className="relative group">
+                    <Lock className="absolute left-3 top-3 h-5 w-5 text-white/60 transition-colors group-hover:text-white/80" />
                     <Input
-                      placeholder="******"
+                      className="pl-11 pr-12 h-12 rounded-xl bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:bg-white/15 focus:border-white/40 transition-all duration-300 hover:bg-white/15"
+                      placeholder="••••••••"
                       type={showPassword ? "text" : "password"}
                       autoComplete="current-password"
                       {...field}
@@ -119,7 +125,7 @@ const LoginForm = () => {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      className="absolute right-1 top-1 h-10 w-10 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? (
@@ -133,24 +139,34 @@ const LoginForm = () => {
                     </Button>
                   </div>
                 </FormControl>
-                <FormMessage />
+                <FormMessage className="text-red-300" />
               </FormItem>
             )}
           />
+          
           <Button
             type="submit"
-            className="w-full"
+            className="w-full h-12 rounded-full bg-gradient-to-r from-ticlin-500 to-ticlin-600 hover:from-ticlin-600 hover:to-ticlin-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-0"
             disabled={isLoading}
           >
-            {isLoading ? "Entrando..." : "Entrar"}
-            {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
+            {isLoading ? (
+              <div className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                Entrando...
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                Entrar
+                <ArrowRight className="h-4 w-4" />
+              </div>
+            )}
           </Button>
         </form>
       </Form>
       
-      <div className="text-center text-sm">
+      <div className="text-center text-sm text-white/70">
         Não tem uma conta?{" "}
-        <Link to="/register" className="underline font-medium">
+        <Link to="/register" className="text-white font-medium hover:text-ticlin-300 transition-colors duration-200 underline-offset-4 hover:underline">
           Criar conta
         </Link>
       </div>

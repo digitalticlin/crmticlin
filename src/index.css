@@ -54,10 +54,13 @@ body {
 
 .glass-morphism {
   background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
   border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.3);
+  box-shadow: 
+    0 25px 50px -12px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 .glass-sidebar {
@@ -148,17 +151,22 @@ body {
   }
 }
 
-/* Smooth transitions for glassmorphism elements */
+/* Enhanced Glassmorphism animations */
 .glass, .glass-card, .glass-morphism, .glass-sidebar {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass:hover, .glass-card:hover {
   background: rgba(255, 255, 255, 0.15);
   transform: translateY(-2px);
-  box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.4);
+  box-shadow: 0 20px 60px 0 rgba(31, 38, 135, 0.4);
 }
 
 .dark .glass:hover, .dark .glass-card:hover {
   background: rgba(15, 23, 42, 0.7);
+}
+
+/* Modern shadow effects */
+.shadow-3xl {
+  box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.25);
 }
