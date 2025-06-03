@@ -1,7 +1,7 @@
 
 import ResponsiveSidebar from "@/components/layout/ResponsiveSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import DashboardCustomizer from "@/components/dashboard/DashboardCustomizer";
+import DashboardCustomizer from "@/components/dashboard/customizer/DashboardCustomizer";
 import { CustomizableKPIGrid } from "@/components/dashboard/CustomizableKPIGrid";
 import CustomizableChartsSection from "@/components/dashboard/CustomizableChartsSection";
 import PeriodFilter from "@/components/dashboard/PeriodFilter";
