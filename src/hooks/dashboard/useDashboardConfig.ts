@@ -99,7 +99,7 @@ export const useDashboardConfig = () => {
         .insert({
           user_id: user?.id,
           company_id: companyId,
-          config_data: defaultConfig
+          config_data: defaultConfig as any
         });
 
       if (error) throw error;
@@ -117,7 +117,7 @@ export const useDashboardConfig = () => {
         .upsert({
           user_id: user?.id,
           company_id: companyId,
-          config_data: updatedConfig
+          config_data: updatedConfig as any
         });
 
       if (error) throw error;
