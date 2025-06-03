@@ -45,7 +45,7 @@ export default function TagsChart() {
       title="Leads por Etiquetas" 
       description="Distribuição de leads por etiquetas no funil"
     >
-      <div className="h-80">
+      <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie

@@ -45,9 +45,15 @@ export default function CustomizableChartsSection() {
     );
   }
 
-  // Se o evolucao_temporal for o único selecionado, mantém o layout original
+  // Se o evolucao_temporal for o único selecionado, mantém o layout original mas força 2 colunas
   if (visibleCharts.length === 1 && visibleCharts[0] === 'evolucao_temporal') {
-    return <ChartsSection />;
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="lg:col-span-2">
+          <ChartsSection />
+        </div>
+      </div>
+    );
   }
 
   return (
