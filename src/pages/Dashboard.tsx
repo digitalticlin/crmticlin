@@ -1,6 +1,7 @@
 
 import ResponsiveSidebar from "@/components/layout/ResponsiveSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import DashboardCustomizer from "@/components/dashboard/DashboardCustomizer";
 import { CustomizableKPIGrid } from "@/components/dashboard/CustomizableKPIGrid";
 import CustomizableChartsSection from "@/components/dashboard/CustomizableChartsSection";
 import PeriodFilter from "@/components/dashboard/PeriodFilter";
@@ -42,13 +43,16 @@ export default function Dashboard() {
         )}>
           <DashboardHeader />
           
-          {/* Filtro de Período */}
+          {/* Filtro de Período com botão Personalizar */}
           <div className="flex justify-between items-center rounded-2xl bg-white/30 backdrop-blur-lg border border-white/30 p-4 shadow-lg">
             <div>
               <h2 className="text-lg font-semibold text-gray-900">Análise de Performance</h2>
               <p className="text-sm text-gray-800">Visualize seus dados e métricas em tempo real</p>
             </div>
-            <PeriodFilter />
+            <div className="flex items-center gap-3">
+              <DashboardCustomizer />
+              <PeriodFilter />
+            </div>
           </div>
           
           <CustomizableKPIGrid />

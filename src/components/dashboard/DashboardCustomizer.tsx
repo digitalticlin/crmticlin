@@ -66,24 +66,26 @@ export default function DashboardCustomizer() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
-          variant="ghost"
-          size="icon"
-          className="hover:bg-white/20 rounded-xl backdrop-blur-sm"
+          variant="default"
+          className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 hover:from-gray-800 hover:via-gray-700 hover:to-gray-800 text-white border border-gray-600 shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-xl"
           onClick={() => setTempConfig(config)}
         >
-          <Settings className="w-5 h-5" />
+          <Settings className="w-4 h-4 mr-2" />
+          PERSONALIZAR
         </Button>
       </DialogTrigger>
       
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 backdrop-blur-xl border border-gray-600/50 shadow-2xl text-white">
         <DialogHeader>
           <div className="flex items-center justify-between">
-            <DialogTitle>Personalizar Dashboard</DialogTitle>
+            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+              Personalizar Dashboard
+            </DialogTitle>
             <Button
               variant="outline"
               size="sm"
               onClick={handleReset}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-sm"
             >
               <RotateCcw className="w-4 h-4" />
               Restaurar Padrão
@@ -93,12 +95,12 @@ export default function DashboardCustomizer() {
 
         <div className="space-y-6">
           {/* KPIs Section */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4">KPIs Principais</h3>
+          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+            <h3 className="text-lg font-semibold mb-4 text-white">KPIs Principais</h3>
             <div className="grid grid-cols-1 gap-4">
               {Object.entries(kpiLabels).map(([key, label]) => (
-                <div key={key} className="flex items-center justify-between">
-                  <Label htmlFor={key} className="text-sm font-medium">
+                <div key={key} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10">
+                  <Label htmlFor={key} className="text-sm font-medium text-gray-200">
                     {label}
                   </Label>
                   <Switch
@@ -111,15 +113,15 @@ export default function DashboardCustomizer() {
             </div>
           </div>
 
-          <Separator />
+          <Separator className="bg-white/20" />
 
           {/* Charts Section */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Gráficos Estratégicos</h3>
+          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+            <h3 className="text-lg font-semibold mb-4 text-white">Gráficos Estratégicos</h3>
             <div className="grid grid-cols-1 gap-4">
               {Object.entries(chartLabels).map(([key, label]) => (
-                <div key={key} className="flex items-center justify-between">
-                  <Label htmlFor={key} className="text-sm font-medium">
+                <div key={key} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10">
+                  <Label htmlFor={key} className="text-sm font-medium text-gray-200">
                     {label}
                   </Label>
                   <Switch
@@ -132,14 +134,21 @@ export default function DashboardCustomizer() {
             </div>
           </div>
 
-          <Separator />
+          <Separator className="bg-white/20" />
 
           {/* Actions */}
           <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setOpen(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => setOpen(false)}
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-sm"
+            >
               Cancelar
             </Button>
-            <Button onClick={handleSave}>
+            <Button 
+              onClick={handleSave}
+              className="bg-gradient-to-r from-yellow-600 to-yellow-500 hover:from-yellow-500 hover:to-yellow-400 text-gray-900 font-medium"
+            >
               Salvar Configurações
             </Button>
           </div>

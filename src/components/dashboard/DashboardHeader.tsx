@@ -1,9 +1,7 @@
 
 import { Button } from "@/components/ui/button";
-import { Sun, Moon, Bell } from "lucide-react";
+import { Bell } from "lucide-react";
 import TopbarUserMenu from "@/components/layout/TopbarUserMenu";
-import DashboardCustomizer from "./DashboardCustomizer";
-import { useTheme } from "@/hooks/use-theme";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfileData } from "@/hooks/useProfileData";
 import { useCompanyData } from "@/hooks/useCompanyData";
@@ -14,7 +12,6 @@ import { useState } from "react";
 interface DashboardHeaderProps {}
 
 export default function DashboardHeader({}: DashboardHeaderProps) {
-  const { theme, setTheme } = useTheme();
   const [greeting] = useState(() => {
     const hour = new Date().getHours();
     if (hour < 12) return "Bom dia";
@@ -37,24 +34,6 @@ export default function DashboardHeader({}: DashboardHeaderProps) {
         <p className="text-gray-800 font-medium">Bem-vindo de volta ao seu dashboard</p>
       </div>
       <div className="flex items-center gap-4">
-        {/* Botão de personalização */}
-        <DashboardCustomizer />
-
-        {/* Botão de tema */}
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Trocar tema"
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="hover:bg-white/20 rounded-xl backdrop-blur-sm"
-        >
-          {theme === "dark" ? (
-            <Sun className="w-5 h-5" />
-          ) : (
-            <Moon className="w-5 h-5" />
-          )}
-        </Button>
-
         {/* Botão de notificações */}
         <Button 
           variant="ghost" 
