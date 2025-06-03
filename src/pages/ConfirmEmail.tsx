@@ -65,35 +65,71 @@ export default function ConfirmEmail() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-200 relative overflow-hidden">
+      {/* Gradiente radial como segunda camada */}
+      <div 
+        className="absolute inset-0 opacity-80"
+        style={{
+          background: `radial-gradient(circle at 30% 70%, #D3D800 0%, transparent 50%), 
+                       radial-gradient(circle at 80% 20%, #17191c 0%, transparent 60%),
+                       radial-gradient(circle at 60% 40%, #D3D800 0%, transparent 40%)`
+        }}
+      ></div>
+      
+      {/* Elementos flutuantes ajustados */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-ticlin/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-ticlin/10 rounded-full blur-2xl translate-x-1/3 translate-y-1/3"></div>
+        {/* Large floating orbs */}
+        <div className="absolute top-20 left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-20 w-96 h-96 bg-gray-300/20 rounded-full blur-2xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-white/5 rounded-full blur-3xl animate-pulse delay-500"></div>
+        
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[length:50px_50px] opacity-30"></div>
       </div>
       
-      <div className="w-full max-w-md relative z-10">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center space-y-6">
+      {/* Main Content */}
+      <div className="w-full max-w-md relative z-10 animate-fade-in">
+        <div className="mb-6 flex justify-center">
+          <div className="relative">
+            <img
+              src="/lovable-uploads/ae7ddc52-d3ed-478f-af96-603a69278f3b.png"
+              alt="Ticlin CRM"
+              className="h-14 transition-transform duration-300 hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-ticlin-400 to-ticlin-600 opacity-10 rounded-lg blur-lg"></div>
+          </div>
+        </div>
+        
+        <div className="w-full rounded-3xl bg-white/30 backdrop-blur-lg border border-white/20 shadow-2xl p-8 space-y-8 transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] hover:bg-white/35 text-center">
           {status === "loading" && (
             <>
-              <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center">
-                <Loader2 className="h-8 w-8 text-ticlin animate-spin" />
+              <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center bg-ticlin/10 backdrop-blur-sm border border-ticlin/20">
+                <Loader2 className="h-8 w-8 text-ticlin-600 animate-spin" />
               </div>
-              <h1 className="text-2xl font-bold">Verificando...</h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                Estamos verificando seu e-mail. Por favor, aguarde.
-              </p>
+              <div className="space-y-4 animate-scale-in">
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                  Verificando...
+                </h1>
+                <p className="text-sm text-gray-700 font-medium">
+                  Estamos verificando seu e-mail. Por favor, aguarde.
+                </p>
+              </div>
             </>
           )}
           
           {status === "success" && (
             <>
-              <div className="mx-auto bg-green-50 dark:bg-green-900/30 w-16 h-16 rounded-full flex items-center justify-center">
-                <CheckCircle className="h-8 w-8 text-green-500" />
+              <div className="mx-auto bg-green-50/80 backdrop-blur-sm w-16 h-16 rounded-full flex items-center justify-center border border-green-200/50">
+                <CheckCircle className="h-8 w-8 text-green-600" />
               </div>
-              <h1 className="text-2xl font-bold">E-mail confirmado!</h1>
-              <p className="text-gray-600 dark:text-gray-400">{message}</p>
+              <div className="space-y-4 animate-scale-in">
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                  E-mail confirmado!
+                </h1>
+                <p className="text-sm text-gray-700 font-medium">{message}</p>
+              </div>
               <Link to="/">
-                <Button className="w-full">
+                <Button className="w-full h-12 rounded-full bg-gradient-to-r from-ticlin-500 to-ticlin-600 hover:from-ticlin-600 hover:to-ticlin-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-0">
                   Ir para o login
                 </Button>
               </Link>
@@ -102,17 +138,28 @@ export default function ConfirmEmail() {
           
           {status === "error" && (
             <>
-              <div className="mx-auto bg-red-50 dark:bg-red-900/30 w-16 h-16 rounded-full flex items-center justify-center">
-                <XCircle className="h-8 w-8 text-red-500" />
+              <div className="mx-auto bg-red-50/80 backdrop-blur-sm w-16 h-16 rounded-full flex items-center justify-center border border-red-200/50">
+                <XCircle className="h-8 w-8 text-red-600" />
               </div>
-              <h1 className="text-2xl font-bold">Erro na confirmação</h1>
-              <p className="text-gray-600 dark:text-gray-400">{message}</p>
-              <div className="space-y-2">
-                <Button variant="outline" className="w-full" onClick={handleResendEmail}>
+              <div className="space-y-4 animate-scale-in">
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                  Erro na confirmação
+                </h1>
+                <p className="text-sm text-gray-700 font-medium">{message}</p>
+              </div>
+              <div className="space-y-4">
+                <Button 
+                  variant="outline" 
+                  className="w-full h-12 rounded-full bg-white/50 backdrop-blur-sm border-white/30 text-gray-800 hover:bg-white/60 transition-all duration-300" 
+                  onClick={handleResendEmail}
+                >
                   Reenviar e-mail de confirmação
                 </Button>
                 <Link to="/">
-                  <Button variant="link" className="w-full">
+                  <Button 
+                    variant="link" 
+                    className="w-full text-gray-700 hover:text-gray-900 font-medium transition-colors duration-200"
+                  >
                     Voltar para login
                   </Button>
                 </Link>
@@ -121,7 +168,7 @@ export default function ConfirmEmail() {
           )}
         </div>
         
-        <p className="text-center text-xs text-muted-foreground mt-6">
+        <p className="text-center text-xs text-gray-700 mt-8 font-medium">
           Ticlin CRM &copy; {new Date().getFullYear()} - Todos os direitos reservados
         </p>
       </div>

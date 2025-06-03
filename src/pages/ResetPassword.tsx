@@ -84,53 +84,73 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-200 relative overflow-hidden">
+      {/* Gradiente radial como segunda camada */}
+      <div 
+        className="absolute inset-0 opacity-80"
+        style={{
+          background: `radial-gradient(circle at 30% 70%, #D3D800 0%, transparent 50%), 
+                       radial-gradient(circle at 80% 20%, #17191c 0%, transparent 60%),
+                       radial-gradient(circle at 60% 40%, #D3D800 0%, transparent 40%)`
+        }}
+      ></div>
+      
+      {/* Elementos flutuantes ajustados */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-ticlin/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-ticlin/10 rounded-full blur-2xl translate-x-1/3 translate-y-1/3"></div>
+        {/* Large floating orbs */}
+        <div className="absolute top-20 left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-20 w-96 h-96 bg-gray-300/20 rounded-full blur-2xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-white/5 rounded-full blur-3xl animate-pulse delay-500"></div>
+        
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[length:50px_50px] opacity-30"></div>
       </div>
       
-      <div className="w-full max-w-md relative z-10">
-        <div className="mb-4 flex justify-center">
-          <img
-            src="/lovable-uploads/ae7ddc52-d3ed-478f-af96-603a69278f3b.png"
-            alt="Ticlin CRM"
-            className="h-12"
-          />
+      {/* Main Content */}
+      <div className="w-full max-w-md relative z-10 animate-fade-in">
+        <div className="mb-6 flex justify-center">
+          <div className="relative">
+            <img
+              src="/lovable-uploads/ae7ddc52-d3ed-478f-af96-603a69278f3b.png"
+              alt="Ticlin CRM"
+              className="h-14 transition-transform duration-300 hover:scale-110"
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-ticlin-400 to-ticlin-600 opacity-10 rounded-lg blur-lg"></div>
+          </div>
         </div>
         
-        <div className="w-full rounded-lg border bg-card shadow-sm p-6 space-y-6">
-          <div className="space-y-2 text-center">
-            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
+        <div className="w-full rounded-3xl bg-white/30 backdrop-blur-lg border border-white/20 shadow-2xl p-8 space-y-8 transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] hover:bg-white/35">
+          <div className="space-y-4 text-center animate-scale-in">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
               Criar nova senha
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-gray-700 font-medium">
               Digite sua nova senha abaixo
             </p>
           </div>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
                 name="password"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nova senha</FormLabel>
+                  <FormItem className="space-y-3">
+                    <FormLabel className="text-gray-800 font-medium">Nova senha</FormLabel>
                     <FormControl>
-                      <div className="relative">
-                        <KeyRound className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <div className="relative group">
+                        <KeyRound className="absolute left-3 top-3 h-5 w-5 text-gray-400 transition-colors group-hover:text-gray-600" />
                         <Input
-                          className="pl-8"
+                          className="pl-11 pr-12 h-12 rounded-xl bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-gray-300 transition-all duration-300 hover:border-gray-300"
                           type={showPassword ? "text" : "password"}
-                          placeholder="******"
+                          placeholder="••••••••"
                           {...field}
                         />
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          className="absolute right-1 top-1 h-10 w-10 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-200"
                           onClick={() => setShowPassword(!showPassword)}
                         >
                           {showPassword ? (
@@ -144,7 +164,7 @@ export default function ResetPassword() {
                         </Button>
                       </div>
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-red-500" />
                   </FormItem>
                 )}
               />
@@ -153,22 +173,22 @@ export default function ResetPassword() {
                 control={form.control}
                 name="confirmPassword"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confirmar senha</FormLabel>
+                  <FormItem className="space-y-3">
+                    <FormLabel className="text-gray-800 font-medium">Confirmar senha</FormLabel>
                     <FormControl>
-                      <div className="relative">
-                        <KeyRound className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <div className="relative group">
+                        <KeyRound className="absolute left-3 top-3 h-5 w-5 text-gray-400 transition-colors group-hover:text-gray-600" />
                         <Input
-                          className="pl-8"
+                          className="pl-11 pr-12 h-12 rounded-xl bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-gray-300 transition-all duration-300 hover:border-gray-300"
                           type={showConfirmPassword ? "text" : "password"}
-                          placeholder="******"
+                          placeholder="••••••••"
                           {...field}
                         />
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          className="absolute right-1 top-1 h-10 w-10 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-200"
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                         >
                           {showConfirmPassword ? (
@@ -182,30 +202,39 @@ export default function ResetPassword() {
                         </Button>
                       </div>
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-red-500" />
                   </FormItem>
                 )}
               />
               
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full h-12 rounded-full bg-gradient-to-r from-ticlin-500 to-ticlin-600 hover:from-ticlin-600 hover:to-ticlin-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-0"
                 disabled={isLoading}
               >
-                {isLoading ? "Processando..." : "Salvar nova senha"}
-                {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Processando...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    Salvar nova senha
+                    <ArrowRight className="h-4 w-4" />
+                  </div>
+                )}
               </Button>
             </form>
           </Form>
           
           <div className="text-center text-sm">
-            <Link to="/" className="underline font-medium">
+            <Link to="/" className="text-gray-700 hover:text-gray-900 font-medium transition-colors duration-200 underline-offset-4 hover:underline">
               Voltar para login
             </Link>
           </div>
         </div>
         
-        <p className="text-center text-xs text-muted-foreground mt-6">
+        <p className="text-center text-xs text-gray-700 mt-8 font-medium">
           Ticlin CRM &copy; {new Date().getFullYear()} - Todos os direitos reservados
         </p>
       </div>

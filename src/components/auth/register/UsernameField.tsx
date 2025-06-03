@@ -15,21 +15,21 @@ export const UsernameField = ({ form }: UsernameFieldProps) => {
       control={form.control}
       name="username"
       render={({ field }) => (
-        <FormItem>
-          <FormLabel>Nome de usuário</FormLabel>
+        <FormItem className="space-y-3">
+          <FormLabel className="text-gray-800 font-medium">Nome de usuário</FormLabel>
           <FormControl>
-            <div className="relative">
-              <User className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <div className="relative group">
+              <User className="absolute left-3 top-3 h-5 w-5 text-gray-400 transition-colors group-hover:text-gray-600" />
               <Input
-                className="pl-8"
+                className="pl-11 h-12 rounded-xl bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-gray-300 transition-all duration-300 hover:border-gray-300"
                 {...field}
               />
             </div>
           </FormControl>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-gray-600">
             Gerado automaticamente com base no email
           </p>
-          <FormMessage />
+          <FormMessage className="text-red-500" />
         </FormItem>
       )}
     />

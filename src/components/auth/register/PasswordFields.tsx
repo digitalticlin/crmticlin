@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Lock } from "lucide-react";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -21,20 +21,22 @@ export const PasswordFields = ({ form }: PasswordFieldsProps) => {
         control={form.control}
         name="password"
         render={({ field }) => (
-          <FormItem>
-            <FormLabel>Senha</FormLabel>
+          <FormItem className="space-y-3">
+            <FormLabel className="text-gray-800 font-medium">Senha</FormLabel>
             <FormControl>
-              <div className="relative">
+              <div className="relative group">
+                <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400 transition-colors group-hover:text-gray-600" />
                 <Input
+                  className="pl-11 pr-12 h-12 rounded-xl bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-gray-300 transition-all duration-300 hover:border-gray-300"
                   type={showPassword ? "text" : "password"}
-                  placeholder="******"
+                  placeholder="••••••••"
                   {...field}
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  className="absolute right-1 top-1 h-10 w-10 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-200"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
@@ -48,7 +50,7 @@ export const PasswordFields = ({ form }: PasswordFieldsProps) => {
                 </Button>
               </div>
             </FormControl>
-            <FormMessage />
+            <FormMessage className="text-red-500" />
           </FormItem>
         )}
       />
@@ -57,20 +59,22 @@ export const PasswordFields = ({ form }: PasswordFieldsProps) => {
         control={form.control}
         name="confirmPassword"
         render={({ field }) => (
-          <FormItem>
-            <FormLabel>Confirmar senha</FormLabel>
+          <FormItem className="space-y-3">
+            <FormLabel className="text-gray-800 font-medium">Confirmar senha</FormLabel>
             <FormControl>
-              <div className="relative">
+              <div className="relative group">
+                <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400 transition-colors group-hover:text-gray-600" />
                 <Input
+                  className="pl-11 pr-12 h-12 rounded-xl bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-gray-300 transition-all duration-300 hover:border-gray-300"
                   type={showConfirmPassword ? "text" : "password"}
-                  placeholder="******"
+                  placeholder="••••••••"
                   {...field}
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  className="absolute right-1 top-1 h-10 w-10 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-200"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
                   {showConfirmPassword ? (
@@ -84,7 +88,7 @@ export const PasswordFields = ({ form }: PasswordFieldsProps) => {
                 </Button>
               </div>
             </FormControl>
-            <FormMessage />
+            <FormMessage className="text-red-500" />
           </FormItem>
         )}
       />
