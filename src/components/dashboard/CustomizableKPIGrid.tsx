@@ -8,44 +8,52 @@ import { useMemo } from "react";
 
 const kpiConfig = {
   novos_leads: {
-    title: "Novos Leads",
+    title: "Novos Contatos",
     icon: "userPlus" as const,
-    format: (value: number) => value.toString()
+    format: (value: number) => value === 0 ? "Nenhum ainda" : value.toString(),
+    description: "Contatos que chegaram recentemente"
   },
   total_leads: {
-    title: "Total de Leads",
+    title: "Total de Contatos",
     icon: "users" as const,
-    format: (value: number) => value.toString()
+    format: (value: number) => value === 0 ? "Nenhum ainda" : value.toString(),
+    description: "Todos os seus contatos"
   },
   taxa_conversao: {
-    title: "Taxa de Conversão",
+    title: "Vendas Realizadas",
     icon: "trendingUp" as const,
-    format: (value: number) => `${value}%`
+    format: (value: number) => value === 0 ? "Nenhuma ainda" : `${value}%`,
+    description: "Percentual de contatos que se tornaram clientes"
   },
   taxa_perda: {
-    title: "Taxa de Perda",
+    title: "Oportunidades Perdidas",
     icon: "trendingUp" as const,
-    format: (value: number) => `${value}%`
+    format: (value: number) => value === 0 ? "Nenhuma ainda" : `${value}%`,
+    description: "Contatos que não se interessaram"
   },
   valor_pipeline: {
-    title: "Valor do Pipeline",
+    title: "Oportunidades em Andamento",
     icon: "trendingUp" as const,
-    format: (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+    format: (value: number) => value === 0 ? "Nenhuma ainda" : `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+    description: "Valor total das vendas em negociação"
   },
   ticket_medio: {
-    title: "Ticket Médio",
+    title: "Valor Médio por Venda",
     icon: "trendingUp" as const,
-    format: (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+    format: (value: number) => value === 0 ? "Nenhuma ainda" : `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+    description: "Valor médio de cada venda realizada"
   },
   tempo_resposta: {
     title: "Tempo de Resposta",
     icon: "messageSquare" as const,
     format: (value: number) => {
+      if (value === 0) return "Nenhum ainda";
       if (value < 60) return `${Math.round(value)}min`;
       const hours = Math.floor(value / 60);
       const minutes = Math.round(value % 60);
       return `${hours}h ${minutes}min`;
-    }
+    },
+    description: "Tempo médio para responder mensagens"
   }
 };
 
@@ -154,15 +162,16 @@ function KPIGridContent() {
             key={kpiKey} 
             fallback={
               <div className="h-32 bg-white/20 rounded-3xl flex items-center justify-center">
-                <span className="text-gray-500 text-sm">Erro no KPI</span>
+                <span className="text-gray-500 text-sm">Erro no carregamento</span>
               </div>
             }
           >
             <KPICard
               title={kpiData.title}
               value={kpiData.format(kpiValue)}
-              trend={trend}
+              trend={kpiValue > 0 ? trend : undefined}
               icon={kpiData.icon}
+              description={kpiData.description}
             />
           </ErrorBoundary>
         );

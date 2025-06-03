@@ -1,5 +1,6 @@
 
 import ChartCard from "@/components/dashboard/ChartCard";
+import EmptyStateMessage from "@/components/dashboard/EmptyStateMessage";
 import { useTagsData } from "@/hooks/dashboard/useTagsData";
 import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import {
@@ -18,8 +19,8 @@ export default function TagsChart() {
   if (loading) {
     return (
       <ChartCard 
-        title="Leads por Etiquetas" 
-        description="Distribuição de leads por etiquetas no funil"
+        title="Contatos por Categoria" 
+        description="Veja como seus contatos estão organizados"
       >
         <div className="h-64 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
@@ -31,11 +32,11 @@ export default function TagsChart() {
   if (tagsData.length === 0) {
     return (
       <ChartCard 
-        title="Leads por Etiquetas" 
-        description="Distribuição de leads por etiquetas no funil"
+        title="Contatos por Categoria" 
+        description="Veja como seus contatos estão organizados"
       >
-        <div className="h-64 flex items-center justify-center text-gray-600">
-          <p>Nenhuma etiqueta com dados para o período selecionado</p>
+        <div className="h-64">
+          <EmptyStateMessage type="tags" className="h-full" />
         </div>
       </ChartCard>
     );
@@ -64,8 +65,8 @@ export default function TagsChart() {
 
   return (
     <ChartCard 
-      title="Leads por Etiquetas" 
-      description="Distribuição de leads por etiquetas no funil"
+      title="Contatos por Categoria" 
+      description="Veja como seus contatos estão organizados"
     >
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
