@@ -52,23 +52,20 @@ const LoginForm = () => {
   return (
     <div className="w-full rounded-3xl bg-white/30 backdrop-blur-lg border border-white/20 shadow-2xl p-8 space-y-8 transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] hover:bg-white/35">
       {/* Logo Section */}
-      <div className="space-y-4 text-center animate-scale-in">
-        <div className="mb-6 flex justify-center">
+      <div className="space-y-6 text-center animate-scale-in">
+        <div className="mb-8 flex justify-center">
           <div className="relative">
             <img
-              src="/lovable-uploads/ae7ddc52-d3ed-478f-af96-603a69278f3b.png"
+              src="/lovable-uploads/68c955d6-5aab-40d3-9018-c372a8f3faf6.png"
               alt="Ticlin CRM"
-              className="h-14 transition-transform duration-300 hover:scale-110"
+              className="h-16 transition-transform duration-300 hover:scale-110"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-ticlin-400 to-ticlin-600 opacity-10 rounded-lg blur-lg"></div>
           </div>
         </div>
         
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+        <p className="text-lg text-gray-700 font-medium">
           Bem-vindo de volta
-        </h1>
-        <p className="text-sm text-gray-700 font-medium">
-          Entre com suas credenciais para continuar
         </p>
       </div>
 
