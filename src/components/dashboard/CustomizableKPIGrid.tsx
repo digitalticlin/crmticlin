@@ -114,7 +114,9 @@ export function CustomizableKPIGrid() {
     <div key={`kpi-grid-${renderKey}`} className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6`}>
       {visibleKPIs.map((kpiKey) => {
         const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
-        const value = kpis[kpiKey as keyof typeof kpis];
+        
+        // Fix: Access KPI values correctly excluding the trends object
+        const kpiValue = kpiKey === 'trends' ? 0 : kpis[kpiKey as keyof Omit<typeof kpis, 'trends'>] as number;
         const trend = kpis.trends[kpiKey as keyof typeof kpis.trends];
         
         if (!kpiData) {
@@ -122,13 +124,13 @@ export function CustomizableKPIGrid() {
           return null;
         }
         
-        console.log(`Rendering KPI: ${kpiKey} with value:`, value, 'trend:', trend);
+        console.log(`Rendering KPI: ${kpiKey} with value:`, kpiValue, 'trend:', trend);
         
         return (
           <KPICard
             key={`${kpiKey}-${renderKey}`}
             title={kpiData.title}
-            value={kpiData.format(value)}
+            value={kpiData.format(kpiValue)}
             trend={trend}
             icon={kpiData.icon}
           />
