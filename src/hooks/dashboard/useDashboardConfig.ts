@@ -53,39 +53,12 @@ const defaultConfig: DashboardConfig = {
   period_filter: "30"
 };
 
-// Global state management for config
-let globalConfigState: DashboardConfig = defaultConfig;
-let configSubscribers: Array<(config: DashboardConfig) => void> = [];
-
-const notifySubscribers = (config: DashboardConfig) => {
-  globalConfigState = config;
-  configSubscribers.forEach(callback => callback(config));
-};
-
-const subscribeToConfig = (callback: (config: DashboardConfig) => void) => {
-  configSubscribers.push(callback);
-  return () => {
-    configSubscribers = configSubscribers.filter(cb => cb !== callback);
-  };
-};
-
 export const useDashboardConfig = () => {
-  const [config, setConfig] = useState<DashboardConfig>(globalConfigState);
+  const [config, setConfig] = useState<DashboardConfig>(defaultConfig);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { user } = useAuth();
   const { companyId } = useCompanyData();
-
-  // Subscribe to global config changes
-  useEffect(() => {
-    const unsubscribe = subscribeToConfig((newConfig) => {
-      console.log("=== CONFIG SUBSCRIBER TRIGGERED ===");
-      console.log("New config received:", newConfig);
-      setConfig({ ...newConfig }); // Force new object reference
-    });
-
-    return unsubscribe;
-  }, []);
 
   useEffect(() => {
     if (user && companyId) {
@@ -95,7 +68,6 @@ export const useDashboardConfig = () => {
 
   const loadConfig = async () => {
     try {
-      console.log("Loading dashboard config...");
       const { data, error } = await supabase
         .from('dashboard_configs')
         .select('config_data')
@@ -108,11 +80,9 @@ export const useDashboardConfig = () => {
       }
 
       if (data) {
-        console.log("Config loaded from database:", data.config_data);
         const loadedConfig = data.config_data as unknown as DashboardConfig;
-        notifySubscribers(loadedConfig);
+        setConfig(loadedConfig);
       } else {
-        console.log("No config found, creating default...");
         await createDefaultConfig();
       }
     } catch (error) {
@@ -134,25 +104,18 @@ export const useDashboardConfig = () => {
         });
 
       if (error) throw error;
-      console.log("Default config created");
-      notifySubscribers({ ...defaultConfig });
+      setConfig(defaultConfig);
     } catch (error) {
       console.error("Erro ao criar configuração padrão:", error);
     }
   };
 
   const updateConfig = useCallback(async (newConfig: Partial<DashboardConfig>) => {
-    const updatedConfig = { ...globalConfigState, ...newConfig };
-    console.log("=== UPDATE CONFIG ===");
-    console.log("Current global config:", JSON.stringify(globalConfigState, null, 2));
-    console.log("New config:", JSON.stringify(updatedConfig, null, 2));
-    
-    // Immediately update global state and notify all subscribers
-    notifySubscribers(updatedConfig);
+    const updatedConfig = { ...config, ...newConfig };
+    setConfig(updatedConfig);
     setSaving(true);
     
     try {
-      console.log("Saving config to database:", updatedConfig);
       const { error } = await supabase
         .from('dashboard_configs')
         .upsert({
@@ -162,18 +125,15 @@ export const useDashboardConfig = () => {
         });
 
       if (error) throw error;
-
-      console.log("Config saved successfully");
       toast.success("Configurações salvas com sucesso!");
     } catch (error) {
       console.error("Erro ao salvar configuração:", error);
-      // Revert to previous config on error
-      notifySubscribers({ ...globalConfigState });
+      setConfig(config); // Revert on error
       toast.error("Erro ao salvar configurações");
     } finally {
       setSaving(false);
     }
-  }, [user?.id, companyId]);
+  }, [config, user?.id, companyId]);
 
   const resetToDefault = async () => {
     await updateConfig(defaultConfig);

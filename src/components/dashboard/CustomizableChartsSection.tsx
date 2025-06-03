@@ -5,7 +5,7 @@ import FunnelChart from "./charts/FunnelChart";
 import PerformanceChart from "./charts/PerformanceChart";
 import TagsChart from "./charts/TagsChart";
 import DistributionChart from "./charts/DistributionChart";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
 const chartComponents = {
   funil_conversao: FunnelChart,
@@ -17,37 +17,12 @@ const chartComponents = {
 
 export default function CustomizableChartsSection() {
   const { config, loading } = useDashboardConfig();
-  const [renderKey, setRenderKey] = useState(0);
-
-  // Force re-render when config changes
-  useEffect(() => {
-    console.log("=== CHARTS SECTION CONFIG CHANGED ===");
-    console.log("Config Charts:", config.charts);
-    console.log("Chart Order:", config.layout.chart_order);
-    setRenderKey(prev => prev + 1);
-  }, [config]);
 
   const visibleCharts = useMemo(() => {
-    console.log("=== CHARTS SECTION CALCULATING VISIBLE CHARTS ===");
-    console.log("Render Key:", renderKey);
-    console.log("Config Charts:", config.charts);
-    console.log("Chart Order:", config.layout.chart_order);
-    
-    const filtered = config.layout.chart_order.filter(chartKey => {
-      const isEnabled = config.charts[chartKey as keyof typeof config.charts];
-      console.log(`Chart ${chartKey}: ${isEnabled ? 'ENABLED' : 'DISABLED'}`);
-      return isEnabled;
+    return config.layout.chart_order.filter(chartKey => {
+      return config.charts[chartKey as keyof typeof config.charts];
     });
-    
-    console.log("Final visible Charts:", filtered);
-    return filtered;
-  }, [config.charts, config.layout.chart_order, renderKey]);
-
-  useEffect(() => {
-    console.log("=== CHARTS SECTION RE-RENDER ===");
-    console.log("Render Key:", renderKey);
-    console.log("Visible Charts:", visibleCharts);
-  }, [renderKey, visibleCharts]);
+  }, [config.charts, config.layout.chart_order]);
 
   if (loading) {
     return (
@@ -74,7 +49,7 @@ export default function CustomizableChartsSection() {
   };
 
   return (
-    <div key={`charts-section-${renderKey}`} className={`grid ${getGridCols(visibleCharts.length)} gap-6`}>
+    <div className={`grid ${getGridCols(visibleCharts.length)} gap-6`}>
       {visibleCharts.map((chartKey) => {
         const ChartComponent = chartComponents[chartKey as keyof typeof chartComponents];
         
@@ -87,9 +62,7 @@ export default function CustomizableChartsSection() {
           );
         }
         
-        console.log(`Rendering Chart: ${chartKey}`);
-        
-        return <ChartComponent key={`${chartKey}-${renderKey}`} />;
+        return <ChartComponent key={chartKey} />;
       })}
     </div>
   );

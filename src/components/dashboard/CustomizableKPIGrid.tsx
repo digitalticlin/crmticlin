@@ -2,7 +2,7 @@
 import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { useDashboardKPIs } from "@/hooks/dashboard/useDashboardKPIs";
 import KPICard from "./KPICard";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
 const kpiConfig = {
   novos_leads: {
@@ -50,37 +50,12 @@ const kpiConfig = {
 export function CustomizableKPIGrid() {
   const { config, loading: configLoading } = useDashboardConfig();
   const { kpis, loading: kpisLoading } = useDashboardKPIs(config.period_filter);
-  const [renderKey, setRenderKey] = useState(0);
-
-  // Force re-render when config changes
-  useEffect(() => {
-    console.log("=== KPI GRID CONFIG CHANGED ===");
-    console.log("Config KPIs:", config.kpis);
-    console.log("KPI Order:", config.layout.kpi_order);
-    setRenderKey(prev => prev + 1);
-  }, [config]);
 
   const visibleKPIs = useMemo(() => {
-    console.log("=== KPI GRID CALCULATING VISIBLE KPIS ===");
-    console.log("Render Key:", renderKey);
-    console.log("Config KPIs:", config.kpis);
-    console.log("KPI Order:", config.layout.kpi_order);
-    
-    const filtered = config.layout.kpi_order.filter(kpiKey => {
-      const isEnabled = config.kpis[kpiKey as keyof typeof config.kpis];
-      console.log(`KPI ${kpiKey}: ${isEnabled ? 'ENABLED' : 'DISABLED'}`);
-      return isEnabled;
+    return config.layout.kpi_order.filter(kpiKey => {
+      return config.kpis[kpiKey as keyof typeof config.kpis];
     });
-    
-    console.log("Final visible KPIs:", filtered);
-    return filtered;
-  }, [config.kpis, config.layout.kpi_order, renderKey]);
-
-  useEffect(() => {
-    console.log("=== KPI GRID RE-RENDER ===");
-    console.log("Render Key:", renderKey);
-    console.log("Visible KPIs:", visibleKPIs);
-  }, [renderKey, visibleKPIs]);
+  }, [config.kpis, config.layout.kpi_order]);
 
   if (configLoading || kpisLoading) {
     return (
@@ -111,11 +86,11 @@ export function CustomizableKPIGrid() {
   };
 
   return (
-    <div key={`kpi-grid-${renderKey}`} className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6`}>
+    <div className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6`}>
       {visibleKPIs.map((kpiKey) => {
         const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
         
-        // Fix: Access KPI values correctly excluding the trends object
+        // Access KPI values correctly excluding the trends object
         const kpiValue = kpiKey === 'trends' ? 0 : kpis[kpiKey as keyof Omit<typeof kpis, 'trends'>] as number;
         const trend = kpis.trends[kpiKey as keyof typeof kpis.trends];
         
@@ -124,11 +99,9 @@ export function CustomizableKPIGrid() {
           return null;
         }
         
-        console.log(`Rendering KPI: ${kpiKey} with value:`, kpiValue, 'trend:', trend);
-        
         return (
           <KPICard
-            key={`${kpiKey}-${renderKey}`}
+            key={kpiKey}
             title={kpiData.title}
             value={kpiData.format(kpiValue)}
             trend={trend}
