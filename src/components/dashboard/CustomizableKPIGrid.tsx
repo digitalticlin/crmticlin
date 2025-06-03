@@ -61,7 +61,7 @@ export function CustomizableKPIGrid() {
 
   if (configLoading || kpisLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="h-32 bg-white/20 rounded-3xl animate-pulse" />
         ))}
@@ -74,6 +74,7 @@ export function CustomizableKPIGrid() {
   );
 
   console.log("Visible KPIs:", visibleKPIs);
+  console.log("Total visible KPIs count:", visibleKPIs.length);
 
   if (visibleKPIs.length === 0) {
     return (
@@ -83,11 +84,26 @@ export function CustomizableKPIGrid() {
     );
   }
 
+  // Grid dinâmico baseado no número de KPIs
+  const getGridCols = (count: number) => {
+    if (count === 1) return "grid-cols-1 max-w-sm mx-auto";
+    if (count === 2) return "grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto";
+    if (count === 3) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
+    if (count <= 4) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4";
+    if (count <= 6) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
+    return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5";
+  };
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+    <div className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6`}>
       {visibleKPIs.map((kpiKey) => {
         const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
         const value = kpis[kpiKey as keyof typeof kpis];
+        
+        if (!kpiData) {
+          console.warn(`KPI config not found for key: ${kpiKey}`);
+          return null;
+        }
         
         return (
           <KPICard

@@ -42,11 +42,12 @@ const defaultConfig: DashboardConfig = {
     funil_conversao: true,
     performance_vendedores: true,
     evolucao_temporal: false,
-    leads_etiquetas: false
+    leads_etiquetas: false,
+    distribuicao_fonte: false
   },
   layout: {
     kpi_order: ["novos_leads", "total_leads", "taxa_conversao", "taxa_perda", "valor_pipeline", "ticket_medio", "tempo_resposta"],
-    chart_order: ["funil_conversao", "performance_vendedores", "evolucao_temporal", "leads_etiquetas"]
+    chart_order: ["funil_conversao", "performance_vendedores", "evolucao_temporal", "leads_etiquetas", "distribuicao_fonte"]
   },
   period_filter: "30"
 };
