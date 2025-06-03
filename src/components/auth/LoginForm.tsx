@@ -47,19 +47,19 @@ const LoginForm = () => {
   };
 
   return (
-    <div className="w-full bg-white rounded-lg border shadow-sm p-6">
+    <div className="w-full bg-white rounded border border-gray-300 p-6">
       <div className="text-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-xl font-semibold text-gray-900 mb-1">
           Bem-vindo de volta
         </h1>
-        <p className="text-sm text-gray-600 mt-1">
+        <p className="text-sm text-gray-600">
           Entre com suas credenciais para continuar
         </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
-          <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+          <Label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
             Email
           </Label>
           <Input
@@ -67,7 +67,7 @@ const LoginForm = () => {
             type="email"
             placeholder="exemplo@email.com"
             autoComplete="email"
-            className="mt-1"
+            className="w-full"
             {...register("email")}
           />
           {errors.email && (
@@ -76,38 +76,37 @@ const LoginForm = () => {
         </div>
 
         <div>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-1">
             <Label htmlFor="password" className="text-sm font-medium text-gray-700">
               Senha
             </Label>
             <Link
               to="/forgot-password"
-              className="text-xs text-blue-600 hover:text-blue-500"
+              className="text-sm text-blue-600 hover:text-blue-500"
             >
               Esqueceu a senha?
             </Link>
           </div>
-          <div className="relative mt-1">
+          <div className="relative">
             <Input
               id="password"
               type={showPassword ? "text" : "password"}
-              placeholder="******"
+              placeholder="••••••"
               autoComplete="current-password"
+              className="w-full pr-10"
               {...register("password")}
             />
-            <Button
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
-              className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+              className="absolute inset-y-0 right-0 pr-3 flex items-center"
               onClick={() => setShowPassword(!showPassword)}
             >
               {showPassword ? (
-                <EyeOff className="h-4 w-4" />
+                <EyeOff className="h-4 w-4 text-gray-400" />
               ) : (
-                <Eye className="h-4 w-4" />
+                <Eye className="h-4 w-4 text-gray-400" />
               )}
-            </Button>
+            </button>
           </div>
           {errors.password && (
             <p className="text-sm text-red-600 mt-1">{errors.password.message}</p>
@@ -116,11 +115,11 @@ const LoginForm = () => {
 
         <Button
           type="submit"
-          className="w-full"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-2"
           disabled={isLoading}
         >
           {isLoading ? "Entrando..." : "Entrar"}
-          {!isLoading && <ArrowRight className="ml-2 h-4 w-4" />}
+          {!isLoading && <ArrowRight className="h-4 w-4" />}
         </Button>
       </form>
       
