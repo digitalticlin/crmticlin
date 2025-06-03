@@ -7,7 +7,7 @@ import { useInstanceDatabase } from './services/instanceDatabaseService';
 import { useInstanceActions } from './services/instanceActionsService';
 import { useAutoConnect } from './services/autoConnectService';
 
-export { WhatsAppWebInstance } from './types/whatsappWebTypes';
+export type { WhatsAppWebInstance } from './types/whatsappWebTypes';
 
 export const useWhatsAppWebInstances = (companyId: string | null, companyLoading: boolean) => {
   const [instances, setInstances] = useState<WhatsAppWebInstance[]>([]);
