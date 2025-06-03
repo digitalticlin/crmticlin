@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -57,6 +57,7 @@ export const useDashboardConfig = () => {
   const [config, setConfig] = useState<DashboardConfig>(defaultConfig);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const { user } = useAuth();
   const { companyId } = useCompanyData();
 
@@ -84,6 +85,7 @@ export const useDashboardConfig = () => {
         console.log("Config loaded from database:", data.config_data);
         const loadedConfig = data.config_data as unknown as DashboardConfig;
         setConfig(loadedConfig);
+        setRefreshKey(prev => prev + 1);
       } else {
         console.log("No config found, creating default...");
         await createDefaultConfig();
@@ -109,19 +111,21 @@ export const useDashboardConfig = () => {
       if (error) throw error;
       console.log("Default config created");
       setConfig({ ...defaultConfig });
+      setRefreshKey(prev => prev + 1);
     } catch (error) {
       console.error("Erro ao criar configuração padrão:", error);
     }
   };
 
-  const updateConfig = async (newConfig: Partial<DashboardConfig>) => {
+  const updateConfig = useCallback(async (newConfig: Partial<DashboardConfig>) => {
     const updatedConfig = { ...config, ...newConfig };
     console.log("=== UPDATE CONFIG ===");
     console.log("Old config:", JSON.stringify(config, null, 2));
     console.log("New config:", JSON.stringify(updatedConfig, null, 2));
     
-    // Update state immediately to trigger re-renders
-    setConfig({ ...updatedConfig });
+    // Force immediate state update with new refresh key
+    setConfig(updatedConfig);
+    setRefreshKey(prev => prev + 1);
     setSaving(true);
     
     try {
@@ -142,11 +146,12 @@ export const useDashboardConfig = () => {
       console.error("Erro ao salvar configuração:", error);
       // Revert to previous config on error
       setConfig({ ...config });
+      setRefreshKey(prev => prev + 1);
       toast.error("Erro ao salvar configurações");
     } finally {
       setSaving(false);
     }
-  };
+  }, [config, user?.id, companyId]);
 
   const resetToDefault = async () => {
     await updateConfig(defaultConfig);
@@ -157,6 +162,7 @@ export const useDashboardConfig = () => {
     loading,
     saving,
     updateConfig,
-    resetToDefault
+    resetToDefault,
+    refreshKey
   };
 };

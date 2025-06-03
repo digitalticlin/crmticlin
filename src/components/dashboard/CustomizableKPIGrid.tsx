@@ -55,27 +55,31 @@ const kpiConfig = {
 };
 
 export function CustomizableKPIGrid() {
-  const { config, loading: configLoading } = useDashboardConfig();
+  const { config, loading: configLoading, refreshKey } = useDashboardConfig();
   const { kpis, loading: kpisLoading } = useDashboardKPIs(config.period_filter);
 
-  // Calculate visible KPIs based on current config
+  // Force re-calculation when refreshKey changes
   const visibleKPIs = useMemo(() => {
-    const visible = config.layout.kpi_order.filter(
-      kpiKey => config.kpis[kpiKey as keyof typeof config.kpis]
-    );
-    console.log("=== KPI GRID CALCULATION ===");
-    console.log("Current config:", config);
-    console.log("KPIs config:", config.kpis);
-    console.log("KPI order:", config.layout.kpi_order);
-    console.log("Visible KPIs:", visible);
-    return visible;
-  }, [config]);
+    console.log("=== KPI GRID RECALCULATING ===");
+    console.log("RefreshKey:", refreshKey);
+    console.log("Config KPIs:", config.kpis);
+    console.log("KPI Order:", config.layout.kpi_order);
+    
+    const filtered = config.layout.kpi_order.filter(kpiKey => {
+      const isEnabled = config.kpis[kpiKey as keyof typeof config.kpis];
+      console.log(`KPI ${kpiKey}: ${isEnabled ? 'ENABLED' : 'DISABLED'}`);
+      return isEnabled;
+    });
+    
+    console.log("Final visible KPIs:", filtered);
+    return filtered;
+  }, [config, refreshKey]);
 
   useEffect(() => {
     console.log("=== KPI GRID RE-RENDER ===");
-    console.log("Config:", config);
+    console.log("RefreshKey:", refreshKey);
     console.log("Visible KPIs:", visibleKPIs);
-  }, [config, visibleKPIs]);
+  }, [refreshKey, visibleKPIs]);
 
   if (configLoading || kpisLoading) {
     return (
@@ -106,7 +110,7 @@ export function CustomizableKPIGrid() {
   };
 
   return (
-    <div className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6`}>
+    <div key={`kpi-grid-${refreshKey}`} className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6`}>
       {visibleKPIs.map((kpiKey) => {
         const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
         const value = kpis[kpiKey as keyof typeof kpis];
@@ -120,7 +124,7 @@ export function CustomizableKPIGrid() {
         
         return (
           <KPICard
-            key={kpiKey}
+            key={`${kpiKey}-${refreshKey}`}
             title={kpiData.title}
             value={kpiData.format(value)}
             trend={kpiData.trend}

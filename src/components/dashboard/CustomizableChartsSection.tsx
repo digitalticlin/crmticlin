@@ -16,26 +16,30 @@ const chartComponents = {
 };
 
 export default function CustomizableChartsSection() {
-  const { config, loading } = useDashboardConfig();
+  const { config, loading, refreshKey } = useDashboardConfig();
 
-  // Calculate visible charts based on current config
+  // Force re-calculation when refreshKey changes
   const visibleCharts = useMemo(() => {
-    const visible = config.layout.chart_order.filter(
-      chartKey => config.charts[chartKey as keyof typeof config.charts]
-    );
-    console.log("=== CHARTS SECTION CALCULATION ===");
-    console.log("Current config:", config);
-    console.log("Charts config:", config.charts);
-    console.log("Chart order:", config.layout.chart_order);
-    console.log("Visible Charts:", visible);
-    return visible;
-  }, [config]);
+    console.log("=== CHARTS SECTION RECALCULATING ===");
+    console.log("RefreshKey:", refreshKey);
+    console.log("Config Charts:", config.charts);
+    console.log("Chart Order:", config.layout.chart_order);
+    
+    const filtered = config.layout.chart_order.filter(chartKey => {
+      const isEnabled = config.charts[chartKey as keyof typeof config.charts];
+      console.log(`Chart ${chartKey}: ${isEnabled ? 'ENABLED' : 'DISABLED'}`);
+      return isEnabled;
+    });
+    
+    console.log("Final visible Charts:", filtered);
+    return filtered;
+  }, [config, refreshKey]);
 
   useEffect(() => {
     console.log("=== CHARTS SECTION RE-RENDER ===");
-    console.log("Config:", config);
+    console.log("RefreshKey:", refreshKey);
     console.log("Visible Charts:", visibleCharts);
-  }, [config, visibleCharts]);
+  }, [refreshKey, visibleCharts]);
 
   if (loading) {
     return (
@@ -64,7 +68,7 @@ export default function CustomizableChartsSection() {
   };
 
   return (
-    <div className={`grid ${getGridCols(visibleCharts.length)} gap-6`}>
+    <div key={`charts-section-${refreshKey}`} className={`grid ${getGridCols(visibleCharts.length)} gap-6`}>
       {visibleCharts.map((chartKey) => {
         const ChartComponent = chartComponents[chartKey as keyof typeof chartComponents];
         
@@ -79,7 +83,7 @@ export default function CustomizableChartsSection() {
         
         console.log(`Rendering Chart: ${chartKey}`);
         
-        return <ChartComponent key={chartKey} />;
+        return <ChartComponent key={`${chartKey}-${refreshKey}`} />;
       })}
     </div>
   );
