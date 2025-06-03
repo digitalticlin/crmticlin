@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthNavigationHandler } from "@/components/auth/AuthNavigationHandler";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
@@ -32,6 +33,7 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutos
     },
   },
 });
@@ -42,6 +44,7 @@ function App() {
       <TooltipProvider>
         <BrowserRouter>
           <AuthProvider>
+            <AuthNavigationHandler />
             <Toaster />
             <Sonner />
             <Routes>

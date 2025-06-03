@@ -1,5 +1,5 @@
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -13,8 +13,20 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   
   console.log("ProtectedRoute - loading:", loading, "user:", !!user, "path:", location.pathname);
   
+  // Timeout de segurança para loading infinito
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.warn("ProtectedRoute - Loading timeout, forçando verificação");
+      }
+    }, 10000); // 10 segundos
+
+    return () => clearTimeout(timeout);
+  }, [loading]);
+  
   // Se ainda estamos carregando, mostrar loading
   if (loading) {
+    console.log("ProtectedRoute - Mostrando loading");
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-ticlin"></div>
@@ -22,15 +34,14 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
   
-  // Se não há usuário autenticado, redirecionar para a página de login
-  // Usar replace para evitar adicionar à história de navegação
+  // Se não há usuário autenticado, redirecionar para login
   if (!user) {
-    console.log("ProtectedRoute - Redirecting to login");
+    console.log("ProtectedRoute - Usuário não autenticado, redirecionando para login");
     return <Navigate to="/" replace state={{ from: location }} />;
   }
   
-  // Se há usuário autenticado, renderizar o conteúdo da rota
-  console.log("ProtectedRoute - User authenticated, rendering children");
+  // Se há usuário autenticado, renderizar conteúdo
+  console.log("ProtectedRoute - Usuário autenticado, renderizando conteúdo");
   return <>{children}</>;
 };
 

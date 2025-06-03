@@ -1,7 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
-import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -25,75 +24,95 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
 
   useEffect(() => {
     let mounted = true;
+    let authSubscription: any = null;
 
-    // Configurar listener de autenticação
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    // Função para atualizar estado de forma segura
+    const updateAuthState = (newSession: Session | null) => {
       if (!mounted) return;
-
-      console.log("Auth state change:", event, !!session);
       
-      setSession(session);
-      setUser(session?.user ?? null);
+      console.log("AuthProvider - updateAuthState:", !!newSession);
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
       
-      // Evitar redirecionamentos em loop - só redirecionar em eventos específicos
-      if (event === 'SIGNED_OUT') {
-        // Só redirecionar se não estiver já na página inicial
-        if (location.pathname !== "/") {
-          navigate("/", { replace: true });
-        }
-      } else if (event === 'SIGNED_IN' && location.pathname === "/") {
-        // Só redirecionar para dashboard se estiver na página de login
-        navigate("/dashboard", { replace: true });
+      // Só marca como não loading após primeira verificação
+      if (!initialCheckDone) {
+        setInitialCheckDone(true);
+        setLoading(false);
       }
-      
-      // Definir loading como false após qualquer mudança de estado
-      setLoading(false);
-    });
+    };
 
-    // Verificar sessão existente apenas uma vez
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      
-      console.log("Initial session check:", !!session);
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    // Verificação inicial da sessão
+    const initializeAuth = async () => {
+      try {
+        console.log("AuthProvider - inicializando autenticação");
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Erro ao obter sessão:", error);
+        }
+        
+        updateAuthState(session);
+      } catch (error) {
+        console.error("Erro na inicialização da auth:", error);
+        updateAuthState(null);
+      }
+    };
+
+    // Configurar listener de mudanças de autenticação
+    const setupAuthListener = () => {
+      authSubscription = supabase.auth.onAuthStateChange((event, session) => {
+        if (!mounted) return;
+
+        console.log("AuthProvider - auth state change:", event, !!session);
+        
+        // Atualizar estado
+        updateAuthState(session);
+      });
+    };
+
+    // Inicializar
+    initializeAuth();
+    setupAuthListener();
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      if (authSubscription) {
+        authSubscription.data.subscription.unsubscribe();
+      }
     };
-  }, []); // Remover navigate e location das dependências para evitar loops
+  }, []); // Sem dependências para evitar loops
 
   const signIn = async (email: string, password: string) => {
     try {
+      setLoading(true);
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
         throw error;
       }
       
-      // Não fazer navigate aqui - deixar o onAuthStateChange gerenciar
+      // AuthStateChange vai gerenciar o redirecionamento
     } catch (error: any) {
       toast.error(error.message || "Erro ao fazer login");
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
   const signUp = async (email: string, password: string, userData: any) => {
     try {
-      // Certifique-se de que userData não contém nenhum campo company_id vazio
+      setLoading(true);
+      
+      // Limpar campos vazios
       if (userData.company_id === "") {
         delete userData.company_id;
       }
       
-      // Definindo o papel de usuário como "admin" por padrão para todos os novos registros
       userData.role = "admin";
       
       const { error } = await supabase.auth.signUp({
@@ -109,24 +128,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw error;
       }
       
-      navigate("/confirm-email-instructions");
+      // Redirecionar para instruções de confirmação
+      window.location.href = "/confirm-email-instructions";
     } catch (error: any) {
       toast.error(error.message || "Erro ao criar conta");
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
   const signOut = async () => {
     try {
+      setLoading(true);
       const { error } = await supabase.auth.signOut();
       
       if (error) {
         throw error;
       }
       
-      // Não fazer navigate aqui - deixar o onAuthStateChange gerenciar
+      // Redirecionamento será feito pelo AuthStateChange
     } catch (error: any) {
       toast.error(error.message || "Erro ao fazer logout");
+    } finally {
+      setLoading(false);
     }
   };
 
