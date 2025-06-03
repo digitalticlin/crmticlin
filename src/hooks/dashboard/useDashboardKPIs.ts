@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { DashboardKPIsWithTrends, defaultKPIs } from "./types/dashboardTypes";
 import { KPILoaderService } from "./services/kpiLoaderService";
@@ -14,9 +14,16 @@ export type {
 export const useDashboardKPIs = (periodDays: string) => {
   const [kpis, setKPIs] = useState<DashboardKPIsWithTrends>(defaultKPIs);
   const [loading, setLoading] = useState(false);
-  const { companyId } = useCompanyData();
+  const { companyId, loading: companyLoading } = useCompanyData();
+  const isLoadingRef = useRef(false);
+  const isMountedRef = useRef(true);
 
   const loadKPIs = useCallback(async () => {
+    // Evitar execuções em paralelo
+    if (isLoadingRef.current || companyLoading) return;
+    
+    isLoadingRef.current = true;
+    
     try {
       if (!companyId) {
         setKPIs(defaultKPIs);
@@ -24,28 +31,50 @@ export const useDashboardKPIs = (periodDays: string) => {
       }
 
       const result = await KPILoaderService.loadKPIs(companyId, periodDays);
-      setKPIs(result);
+      
+      if (isMountedRef.current) {
+        setKPIs(result);
+      }
     } catch (error) {
       console.warn("Erro no carregamento de KPIs:", error);
-      setKPIs(defaultKPIs);
+      if (isMountedRef.current) {
+        setKPIs(defaultKPIs);
+      }
+    } finally {
+      isLoadingRef.current = false;
     }
-  }, [companyId, periodDays]);
+  }, [companyId, periodDays, companyLoading]);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    
+    if (companyLoading) return; // Aguardar companyData carregar
+    
     setLoading(true);
     
+    // Timeout reduzido para 50ms
     const timer = setTimeout(async () => {
-      try {
+      if (isMountedRef.current) {
         await loadKPIs();
-      } finally {
-        setLoading(false);
+        if (isMountedRef.current) {
+          setLoading(false);
+        }
       }
-    }, 100);
+    }, 50);
 
     return () => {
       clearTimeout(timer);
+      isMountedRef.current = false;
     };
-  }, [loadKPIs]);
+  }, [loadKPIs, companyLoading]);
+
+  // Cleanup na desmontagem
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      isLoadingRef.current = false;
+    };
+  }, []);
 
   return { kpis, loading, refresh: loadKPIs };
 };

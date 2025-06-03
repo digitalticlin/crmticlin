@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -58,10 +58,12 @@ export const useDashboardConfig = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const { user } = useAuth();
-  const { companyId } = useCompanyData();
+  const { companyId, loading: companyLoading } = useCompanyData();
+  const isMountedRef = useRef(true);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const loadConfig = useCallback(async () => {
-    if (!user?.id || !companyId) {
+    if (!user?.id || !companyId || companyLoading) {
       setConfig(defaultConfig);
       return;
     }
@@ -95,25 +97,49 @@ export const useDashboardConfig = () => {
         };
       }
       
-      setConfig(finalConfig);
+      if (isMountedRef.current) {
+        setConfig(finalConfig);
+      }
     } catch (error: any) {
       console.warn("Erro ao carregar configuração:", error);
-      setConfig(defaultConfig);
+      if (isMountedRef.current) {
+        setConfig(defaultConfig);
+      }
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
-  }, [user?.id, companyId]);
+  }, [user?.id, companyId, companyLoading]);
 
   useEffect(() => {
-    loadConfig();
-  }, [loadConfig]);
+    isMountedRef.current = true;
+    
+    if (!companyLoading) {
+      loadConfig();
+    }
+
+    return () => {
+      isMountedRef.current = false;
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [loadConfig, companyLoading]);
 
   const updateConfig = useCallback(async (newConfig: Partial<DashboardConfig>) => {
     const updatedConfig = { ...config, ...newConfig };
     setConfig(updatedConfig);
     
-    // Debounce para salvar
-    const timer = setTimeout(async () => {
+    // Limpar timeout anterior
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    // Debounce reduzido para 500ms
+    saveTimeoutRef.current = setTimeout(async () => {
+      if (!isMountedRef.current) return;
+      
       setSaving(true);
       
       try {
@@ -131,17 +157,21 @@ export const useDashboardConfig = () => {
 
         if (error) throw error;
         
-        toast.success("Configurações salvas!");
+        if (isMountedRef.current) {
+          toast.success("Configurações salvas!");
+        }
       } catch (error) {
         console.error("Erro ao salvar configuração:", error);
-        setConfig(config); // Revert on error
-        toast.error("Erro ao salvar configurações");
+        if (isMountedRef.current) {
+          setConfig(config); // Revert on error
+          toast.error("Erro ao salvar configurações");
+        }
       } finally {
-        setSaving(false);
+        if (isMountedRef.current) {
+          setSaving(false);
+        }
       }
-    }, 1000);
-
-    return () => clearTimeout(timer);
+    }, 500);
   }, [config, user?.id, companyId]);
 
   const resetToDefault = async () => {

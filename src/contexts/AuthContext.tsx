@@ -29,44 +29,61 @@ export function AuthProvider({ children }: AuthProviderProps) {
   
   // Refs para controlar state e evitar múltiplas execuções
   const isInitialized = useRef(false);
-  const authStateTimer = useRef<NodeJS.Timeout | null>(null);
+  const isMounted = useRef(true);
+  const lastAuthEvent = useRef<string>('');
+  const redirectTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  // Debounce para mudanças de estado de auth
-  const debounceAuthChange = useCallback((event: string, newSession: Session | null) => {
-    if (authStateTimer.current) {
-      clearTimeout(authStateTimer.current);
+  // Função de redirecionamento com proteção contra loops
+  const handleNavigation = useCallback((event: string, newSession: Session | null) => {
+    // Evitar redirecionamentos repetidos
+    if (lastAuthEvent.current === event && !newSession) return;
+    lastAuthEvent.current = event;
+
+    // Limpar timeout anterior
+    if (redirectTimeout.current) {
+      clearTimeout(redirectTimeout.current);
     }
-    
-    authStateTimer.current = setTimeout(() => {
-      setSession(newSession);
-      setUser(newSession?.user ?? null);
-      
-      // Só navegar se já estiver inicializado e for um evento relevante
-      if (isInitialized.current) {
-        if (event === 'SIGNED_OUT') {
+
+    // Só navegar se já estiver inicializado e for necessário
+    if (isInitialized.current && isMounted.current) {
+      redirectTimeout.current = setTimeout(() => {
+        if (!isMounted.current) return;
+        
+        const currentPath = window.location.pathname;
+        
+        if (event === 'SIGNED_OUT' && currentPath !== '/') {
           navigate("/", { replace: true });
-        } else if (event === 'SIGNED_IN' && window.location.pathname === '/') {
+        } else if (event === 'SIGNED_IN' && newSession && currentPath === '/') {
           navigate("/dashboard", { replace: true });
         }
-      }
-    }, 100);
+      }, 100);
+    }
   }, [navigate]);
 
   useEffect(() => {
-    let mounted = true;
+    isMounted.current = true;
     
-    // Configurar listener de autenticação PRIMEIRO
+    // Configurar listener de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!mounted) return;
-      debounceAuthChange(event, session);
+      if (!isMounted.current) return;
+      
+      console.log('Auth state change:', event, !!session);
+      
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      // Tratar navegação apenas para eventos relevantes
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        handleNavigation(event, session);
+      }
     });
 
-    // ENTÃO verificar se já existe uma sessão
+    // Verificar sessão existente
     const initializeAuth = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         
-        if (!mounted) return;
+        if (!isMounted.current) return;
         
         if (error) {
           console.warn("Erro ao obter sessão:", error);
@@ -78,10 +95,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
       } catch (error) {
         console.warn("Erro na inicialização de auth:", error);
-        setSession(null);
-        setUser(null);
+        if (isMounted.current) {
+          setSession(null);
+          setUser(null);
+        }
       } finally {
-        if (mounted) {
+        if (isMounted.current) {
           setLoading(false);
           isInitialized.current = true;
         }
@@ -91,13 +110,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     initializeAuth();
 
     return () => {
-      mounted = false;
+      isMounted.current = false;
       subscription.unsubscribe();
-      if (authStateTimer.current) {
-        clearTimeout(authStateTimer.current);
+      if (redirectTimeout.current) {
+        clearTimeout(redirectTimeout.current);
       }
     };
-  }, []); // Remover navigate das dependências
+  }, [handleNavigation]);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -106,8 +125,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (error) {
         throw error;
       }
-      
-      // A navegação será feita pelo listener de auth state
     } catch (error: any) {
       toast.error(error.message || "Erro ao fazer login");
       throw error;
@@ -116,7 +133,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signUp = async (email: string, password: string, userData: any) => {
     try {
-      // Limpar campos vazios
       if (userData.company_id === "") {
         delete userData.company_id;
       }
@@ -150,8 +166,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (error) {
         throw error;
       }
-      
-      // A navegação será feita pelo listener de auth state
     } catch (error: any) {
       toast.error(error.message || "Erro ao fazer logout");
     }

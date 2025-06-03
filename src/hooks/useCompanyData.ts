@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * Hook for managing company data
@@ -10,18 +11,21 @@ export const useCompanyData = () => {
   const [companyName, setCompanyName] = useState("");
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
   
-  // Carregar company_id automaticamente quando o hook é inicializado
+  // Carregar company_id automaticamente quando o usuário estiver disponível
   useEffect(() => {
     const loadUserCompany = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          setLoading(false);
-          return;
-        }
+      if (authLoading) return; // Aguardar auth carregar
+      
+      if (!user) {
+        setCompanyId(null);
+        setCompanyName("");
+        setLoading(false);
+        return;
+      }
 
+      try {
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('company_id')
@@ -46,7 +50,7 @@ export const useCompanyData = () => {
     };
 
     loadUserCompany();
-  }, []);
+  }, [user, authLoading]); // Dependências simplificadas
   
   /**
    * Fetches company data based on company ID
