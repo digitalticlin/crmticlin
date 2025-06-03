@@ -23,7 +23,7 @@ export default function FunnelChart() {
       title="Funil de Conversão" 
       description="Análise do funil de vendas por etapa"
     >
-      <div className="h-80">
+      <div className="h-96">
         <ResponsiveContainer width="100%" height="100%">
           <div className="space-y-2">
             {funnelData.map((stage, index) => {

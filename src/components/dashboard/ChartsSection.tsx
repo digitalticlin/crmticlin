@@ -33,11 +33,10 @@ const barData = [
 
 export default function ChartsSection() {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
       <ChartCard 
         title="Visão Geral de Leads" 
         description="Leads recebidos vs. convertidos nos últimos 6 meses"
-        className="lg:col-span-2"
       >
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
