@@ -34,17 +34,37 @@ export class KPILoaderService {
       );
 
       // Timeout de 10 segundos para evitar travamento
-      const currentKPIs = await Promise.race([
+      const currentKPIsRaw = await Promise.race([
         currentKPIsPromise,
-        new Promise<typeof defaultKPIs>((_, reject) => 
+        new Promise<any>((_, reject) => 
           setTimeout(() => reject(new Error('Timeout ao calcular KPIs atuais')), 10000)
         )
       ]);
 
+      // Garantir que temos a estrutura correta
+      const currentKPIs = {
+        novos_leads: currentKPIsRaw?.novos_leads || 0,
+        total_leads: currentKPIsRaw?.total_leads || 0,
+        taxa_conversao: currentKPIsRaw?.taxa_conversao || 0,
+        taxa_perda: currentKPIsRaw?.taxa_perda || 0,
+        valor_pipeline: currentKPIsRaw?.valor_pipeline || 0,
+        ticket_medio: currentKPIsRaw?.ticket_medio || 0,
+        tempo_resposta: currentKPIsRaw?.tempo_resposta || 0,
+      };
+
       console.log("KPILoaderService - KPIs atuais calculados:", currentKPIs);
 
       // Calcular KPIs para período anterior com timeout
-      let previousKPIs = defaultKPIs;
+      let previousKPIs = {
+        novos_leads: 0,
+        total_leads: 0,
+        taxa_conversao: 0,
+        taxa_perda: 0,
+        valor_pipeline: 0,
+        ticket_medio: 0,
+        tempo_resposta: 0,
+      };
+      
       try {
         const previousKPIsPromise = KPICalculatorService.calculateKPIsForPeriod(
           companyId, 
@@ -52,12 +72,22 @@ export class KPILoaderService {
           prevEndDate
         );
 
-        previousKPIs = await Promise.race([
+        const previousKPIsRaw = await Promise.race([
           previousKPIsPromise,
-          new Promise<typeof defaultKPIs>((_, reject) => 
+          new Promise<any>((_, reject) => 
             setTimeout(() => reject(new Error('Timeout ao calcular KPIs anteriores')), 8000)
           )
         ]);
+
+        previousKPIs = {
+          novos_leads: previousKPIsRaw?.novos_leads || 0,
+          total_leads: previousKPIsRaw?.total_leads || 0,
+          taxa_conversao: previousKPIsRaw?.taxa_conversao || 0,
+          taxa_perda: previousKPIsRaw?.taxa_perda || 0,
+          valor_pipeline: previousKPIsRaw?.valor_pipeline || 0,
+          ticket_medio: previousKPIsRaw?.ticket_medio || 0,
+          tempo_resposta: previousKPIsRaw?.tempo_resposta || 0,
+        };
 
         console.log("KPILoaderService - KPIs anteriores calculados:", previousKPIs);
       } catch (error) {
@@ -67,43 +97,37 @@ export class KPILoaderService {
       // Calcular trends com validação
       const trends = {
         novos_leads: KPICalculatorService.calculateTrend(
-          currentKPIs.novos_leads || 0, 
-          previousKPIs.novos_leads || 0
+          currentKPIs.novos_leads, 
+          previousKPIs.novos_leads
         ),
         total_leads: KPICalculatorService.calculateTrend(
-          currentKPIs.total_leads || 0, 
-          previousKPIs.total_leads || 0
+          currentKPIs.total_leads, 
+          previousKPIs.total_leads
         ),
         taxa_conversao: KPICalculatorService.calculateTrend(
-          currentKPIs.taxa_conversao || 0, 
-          previousKPIs.taxa_conversao || 0
+          currentKPIs.taxa_conversao, 
+          previousKPIs.taxa_conversao
         ),
         taxa_perda: KPICalculatorService.calculateTrend(
-          currentKPIs.taxa_perda || 0, 
-          previousKPIs.taxa_perda || 0
+          currentKPIs.taxa_perda, 
+          previousKPIs.taxa_perda
         ),
         valor_pipeline: KPICalculatorService.calculateTrend(
-          currentKPIs.valor_pipeline || 0, 
-          previousKPIs.valor_pipeline || 0
+          currentKPIs.valor_pipeline, 
+          previousKPIs.valor_pipeline
         ),
         ticket_medio: KPICalculatorService.calculateTrend(
-          currentKPIs.ticket_medio || 0, 
-          previousKPIs.ticket_medio || 0
+          currentKPIs.ticket_medio, 
+          previousKPIs.ticket_medio
         ),
         tempo_resposta: KPICalculatorService.calculateTrend(
-          currentKPIs.tempo_resposta || 0, 
-          previousKPIs.tempo_resposta || 0
+          currentKPIs.tempo_resposta, 
+          previousKPIs.tempo_resposta
         ),
       };
 
       const result: DashboardKPIsWithTrends = {
-        novos_leads: currentKPIs.novos_leads || 0,
-        total_leads: currentKPIs.total_leads || 0,
-        taxa_conversao: currentKPIs.taxa_conversao || 0,
-        taxa_perda: currentKPIs.taxa_perda || 0,
-        valor_pipeline: currentKPIs.valor_pipeline || 0,
-        ticket_medio: currentKPIs.ticket_medio || 0,
-        tempo_resposta: currentKPIs.tempo_resposta || 0,
+        ...currentKPIs,
         trends
       };
 
