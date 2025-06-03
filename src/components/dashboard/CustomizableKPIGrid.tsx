@@ -71,20 +71,27 @@ function KPIGridContent() {
   console.log("KPIGridContent - isDemoMode:", isDemoMode);
 
   const visibleKPIs = useMemo(() => {
-    // Se não há configuração, usar KPIs padrão
-    if (!config || !config.layout || !config.layout.kpi_order) {
-      console.log("Usando KPIs padrão devido à falta de configuração");
+    // Se não há configuração ou está carregando, usar KPIs padrão
+    if (!config || configLoading) {
+      console.log("Usando KPIs padrão devido à falta de configuração ou loading");
+      return DEFAULT_KPIS;
+    }
+    
+    // Verificar se a estrutura da configuração está correta
+    if (!config.layout || !Array.isArray(config.layout.kpi_order)) {
+      console.log("Estrutura de layout inválida, usando padrão");
       return DEFAULT_KPIS;
     }
     
     // Se não há KPIs configurados, usar padrão
-    if (!config.kpis) {
+    if (!config.kpis || typeof config.kpis !== 'object') {
       console.log("Usando KPIs padrão devido à falta de config.kpis");
       return DEFAULT_KPIS;
     }
     
     // Filtrar KPIs habilitados
     const enabled = config.layout.kpi_order.filter(kpiKey => {
+      if (typeof kpiKey !== 'string') return false;
       const isEnabled = config.kpis[kpiKey as keyof typeof config.kpis];
       console.log(`KPI ${kpiKey} habilitado:`, isEnabled);
       return isEnabled;
@@ -97,7 +104,7 @@ function KPIGridContent() {
     }
     
     return enabled;
-  }, [config]);
+  }, [config, configLoading]);
 
   console.log("visibleKPIs final:", visibleKPIs);
 
@@ -109,6 +116,27 @@ function KPIGridContent() {
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="h-32 bg-white/20 rounded-3xl animate-pulse" />
         ))}
+      </div>
+    );
+  }
+
+  // Validar se kpis existe e é um objeto válido
+  if (!kpis || typeof kpis !== 'object') {
+    console.error("KPIs inválidos:", kpis);
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        {DEFAULT_KPIS.map((kpiKey) => {
+          const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
+          return (
+            <KPICard
+              key={kpiKey}
+              title={kpiData.title}
+              value="Erro no carregamento"
+              icon={kpiData.icon}
+              description={kpiData.description}
+            />
+          );
+        })}
       </div>
     );
   }
