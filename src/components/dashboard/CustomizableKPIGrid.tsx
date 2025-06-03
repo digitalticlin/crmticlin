@@ -8,38 +8,32 @@ const kpiConfig = {
   novos_leads: {
     title: "Novos Leads",
     icon: "userPlus" as const,
-    format: (value: number) => value.toString(),
-    trend: { value: 12, isPositive: true }
+    format: (value: number) => value.toString()
   },
   total_leads: {
     title: "Total de Leads",
     icon: "users" as const,
-    format: (value: number) => value.toString(),
-    trend: { value: 8, isPositive: true }
+    format: (value: number) => value.toString()
   },
   taxa_conversao: {
     title: "Taxa de Conversão",
     icon: "trendingUp" as const,
-    format: (value: number) => `${value}%`,
-    trend: { value: 5, isPositive: true }
+    format: (value: number) => `${value}%`
   },
   taxa_perda: {
     title: "Taxa de Perda",
     icon: "trendingUp" as const,
-    format: (value: number) => `${value}%`,
-    trend: { value: 3, isPositive: false }
+    format: (value: number) => `${value}%`
   },
   valor_pipeline: {
     title: "Valor do Pipeline",
     icon: "trendingUp" as const,
-    format: (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-    trend: { value: 15, isPositive: true }
+    format: (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
   },
   ticket_medio: {
     title: "Ticket Médio",
     icon: "trendingUp" as const,
-    format: (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-    trend: { value: 7, isPositive: true }
+    format: (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
   },
   tempo_resposta: {
     title: "Tempo de Resposta",
@@ -49,8 +43,7 @@ const kpiConfig = {
       const hours = Math.floor(value / 60);
       const minutes = Math.round(value % 60);
       return `${hours}h ${minutes}min`;
-    },
-    trend: { value: 2, isPositive: false }
+    }
   }
 };
 
@@ -122,20 +115,21 @@ export function CustomizableKPIGrid() {
       {visibleKPIs.map((kpiKey) => {
         const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
         const value = kpis[kpiKey as keyof typeof kpis];
+        const trend = kpis.trends[kpiKey as keyof typeof kpis.trends];
         
         if (!kpiData) {
           console.warn(`KPI config not found for key: ${kpiKey}`);
           return null;
         }
         
-        console.log(`Rendering KPI: ${kpiKey} with value:`, value);
+        console.log(`Rendering KPI: ${kpiKey} with value:`, value, 'trend:', trend);
         
         return (
           <KPICard
             key={`${kpiKey}-${renderKey}`}
             title={kpiData.title}
             value={kpiData.format(value)}
-            trend={kpiData.trend}
+            trend={trend}
             icon={kpiData.icon}
           />
         );
