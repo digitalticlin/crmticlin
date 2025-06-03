@@ -1,3 +1,4 @@
+
 import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { useDashboardKPIs } from "@/hooks/dashboard/useDashboardKPIs";
 import { useDemoMode } from "@/hooks/dashboard/useDemoMode";
@@ -54,10 +55,15 @@ function KPIGridContent() {
   const { isDemoMode } = useDemoMode();
 
   const visibleKPIs = useMemo(() => {
+    if (!config?.layout?.kpi_order || !config?.kpis) {
+      // Fallback para ordem padrão se não houver configuração
+      return ['novos_leads', 'total_leads', 'taxa_conversao', 'valor_pipeline'];
+    }
+    
     return config.layout.kpi_order.filter(kpiKey => {
       return config.kpis[kpiKey as keyof typeof config.kpis];
     });
-  }, [config.kpis, config.layout.kpi_order]);
+  }, [config?.kpis, config?.layout?.kpi_order]);
 
   if (configLoading || kpisLoading) {
     return (
@@ -97,14 +103,17 @@ function KPIGridContent() {
       {visibleKPIs.map((kpiKey) => {
         const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
         
-        // Access KPI values correctly excluding the trends object
-        const kpiValue = kpiKey === 'trends' ? 0 : kpis[kpiKey as keyof Omit<typeof kpis, 'trends'>] as number;
-        const trend = kpis.trends[kpiKey as keyof typeof kpis.trends];
-        
         if (!kpiData) {
           console.warn(`KPI config not found for key: ${kpiKey}`);
           return null;
         }
+
+        // Verificar se a chave existe nos KPIs e se não é 'trends'
+        const kpiValue = (kpiKey !== 'trends' && kpis && typeof kpis[kpiKey as keyof typeof kpis] === 'number') 
+          ? kpis[kpiKey as keyof typeof kpis] as number 
+          : 0;
+
+        const trend = kpis?.trends?.[kpiKey as keyof typeof kpis.trends] || { value: 0, isPositive: true };
         
         return (
           <ErrorBoundary 
