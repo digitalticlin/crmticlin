@@ -33,15 +33,15 @@ const defaultConfig: DashboardConfig = {
     total_leads: true,
     taxa_conversao: true,
     taxa_perda: true,
-    valor_pipeline: true,
-    ticket_medio: true,
-    tempo_resposta: true
+    valor_pipeline: false,
+    ticket_medio: false,
+    tempo_resposta: false
   },
   charts: {
     funil_conversao: true,
     performance_vendedores: true,
-    evolucao_temporal: true,
-    leads_etiquetas: true
+    evolucao_temporal: false,
+    leads_etiquetas: false
   },
   layout: {
     kpi_order: ["novos_leads", "total_leads", "taxa_conversao", "taxa_perda", "valor_pipeline", "ticket_medio", "tempo_resposta"],

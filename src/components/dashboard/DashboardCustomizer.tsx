@@ -1,10 +1,9 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
-import { Settings, RotateCcw } from "lucide-react";
+import { Settings, RotateCcw, Eye, EyeOff } from "lucide-react";
 import { useDashboardConfig, DashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { Separator } from "@/components/ui/separator";
 
@@ -63,8 +62,8 @@ export default function DashboardCustomizer() {
   if (loading) return null;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
         <Button
           variant="default"
           className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 hover:from-gray-800 hover:via-gray-700 hover:to-gray-800 text-white border border-gray-600 shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-xl"
@@ -73,14 +72,17 @@ export default function DashboardCustomizer() {
           <Settings className="w-4 h-4 mr-2" />
           PERSONALIZAR
         </Button>
-      </DialogTrigger>
+      </SheetTrigger>
       
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 backdrop-blur-xl border border-gray-600/50 shadow-2xl text-white">
-        <DialogHeader>
+      <SheetContent 
+        side="right" 
+        className="w-96 bg-gradient-to-br from-gray-900/95 via-gray-800/95 to-gray-900/95 backdrop-blur-xl border-l border-gray-600/50 shadow-2xl text-white overflow-y-auto"
+      >
+        <SheetHeader className="space-y-4">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+            <SheetTitle className="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
               Personalizar Dashboard
-            </DialogTitle>
+            </SheetTitle>
             <Button
               variant="outline"
               size="sm"
@@ -91,23 +93,28 @@ export default function DashboardCustomizer() {
               Restaurar Padrão
             </Button>
           </div>
-        </DialogHeader>
+        </SheetHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-6 mt-6">
           {/* KPIs Section */}
           <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
             <h3 className="text-lg font-semibold mb-4 text-white">KPIs Principais</h3>
-            <div className="grid grid-cols-1 gap-4">
+            <div className="space-y-3">
               {Object.entries(kpiLabels).map(([key, label]) => (
-                <div key={key} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10">
-                  <Label htmlFor={key} className="text-sm font-medium text-gray-200">
+                <div key={key} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                  <Label htmlFor={key} className="text-sm font-medium text-gray-200 cursor-pointer">
                     {label}
                   </Label>
-                  <Switch
-                    id={key}
-                    checked={tempConfig.kpis[key as keyof DashboardConfig['kpis']]}
-                    onCheckedChange={() => handleKPIToggle(key as keyof DashboardConfig['kpis'])}
-                  />
+                  <button
+                    onClick={() => handleKPIToggle(key as keyof DashboardConfig['kpis'])}
+                    className="p-1 rounded-md hover:bg-white/20 transition-colors"
+                  >
+                    {tempConfig.kpis[key as keyof DashboardConfig['kpis']] ? (
+                      <Eye className="w-5 h-5 text-green-400" />
+                    ) : (
+                      <EyeOff className="w-5 h-5 text-gray-500" />
+                    )}
+                  </button>
                 </div>
               ))}
             </div>
@@ -118,17 +125,22 @@ export default function DashboardCustomizer() {
           {/* Charts Section */}
           <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
             <h3 className="text-lg font-semibold mb-4 text-white">Gráficos Estratégicos</h3>
-            <div className="grid grid-cols-1 gap-4">
+            <div className="space-y-3">
               {Object.entries(chartLabels).map(([key, label]) => (
-                <div key={key} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10">
-                  <Label htmlFor={key} className="text-sm font-medium text-gray-200">
+                <div key={key} className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                  <Label htmlFor={key} className="text-sm font-medium text-gray-200 cursor-pointer">
                     {label}
                   </Label>
-                  <Switch
-                    id={key}
-                    checked={tempConfig.charts[key as keyof DashboardConfig['charts']]}
-                    onCheckedChange={() => handleChartToggle(key as keyof DashboardConfig['charts'])}
-                  />
+                  <button
+                    onClick={() => handleChartToggle(key as keyof DashboardConfig['charts'])}
+                    className="p-1 rounded-md hover:bg-white/20 transition-colors"
+                  >
+                    {tempConfig.charts[key as keyof DashboardConfig['charts']] ? (
+                      <Eye className="w-5 h-5 text-green-400" />
+                    ) : (
+                      <EyeOff className="w-5 h-5 text-gray-500" />
+                    )}
+                  </button>
                 </div>
               ))}
             </div>
@@ -137,7 +149,7 @@ export default function DashboardCustomizer() {
           <Separator className="bg-white/20" />
 
           {/* Actions */}
-          <div className="flex justify-end gap-3">
+          <div className="flex justify-end gap-3 pt-4">
             <Button 
               variant="outline" 
               onClick={() => setOpen(false)}
@@ -153,7 +165,7 @@ export default function DashboardCustomizer() {
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
