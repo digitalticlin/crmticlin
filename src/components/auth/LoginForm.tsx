@@ -50,7 +50,7 @@ const LoginForm = () => {
   };
 
   return (
-    <div className="w-full rounded-3xl bg-white/90 backdrop-blur-sm border border-gray-200 shadow-xl p-8 space-y-8 transition-all duration-500 hover:shadow-2xl hover:scale-[1.02]">
+    <div className="w-full rounded-3xl bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl p-8 space-y-8 transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] hover:bg-white/15">
       {/* Logo Section */}
       <div className="space-y-4 text-center animate-scale-in">
         <div className="mb-6 flex justify-center">
@@ -64,10 +64,10 @@ const LoginForm = () => {
           </div>
         </div>
         
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+        <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
           Bem-vindo de volta
         </h1>
-        <p className="text-sm text-gray-600 font-medium">
+        <p className="text-sm text-white/80 font-medium">
           Entre com suas credenciais para continuar
         </p>
       </div>
@@ -79,7 +79,7 @@ const LoginForm = () => {
             name="email"
             render={({ field }) => (
               <FormItem className="space-y-3">
-                <FormLabel className="text-gray-700 font-medium">Email</FormLabel>
+                <FormLabel className="text-white/90 font-medium">Email</FormLabel>
                 <FormControl>
                   <div className="relative group">
                     <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400 transition-colors group-hover:text-gray-600" />
@@ -92,7 +92,7 @@ const LoginForm = () => {
                     />
                   </div>
                 </FormControl>
-                <FormMessage className="text-red-500" />
+                <FormMessage className="text-red-300" />
               </FormItem>
             )}
           />
@@ -103,10 +103,10 @@ const LoginForm = () => {
             render={({ field }) => (
               <FormItem className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <FormLabel className="text-gray-700 font-medium">Senha</FormLabel>
+                  <FormLabel className="text-white/90 font-medium">Senha</FormLabel>
                   <Link
                     to="/forgot-password"
-                    className="text-xs text-gray-500 hover:text-gray-700 transition-colors duration-200 underline-offset-4 hover:underline"
+                    className="text-xs text-white/70 hover:text-white transition-colors duration-200 underline-offset-4 hover:underline"
                   >
                     Esqueceu a senha?
                   </Link>
@@ -139,7 +139,7 @@ const LoginForm = () => {
                     </Button>
                   </div>
                 </FormControl>
-                <FormMessage className="text-red-500" />
+                <FormMessage className="text-red-300" />
               </FormItem>
             )}
           />
@@ -164,9 +164,9 @@ const LoginForm = () => {
         </form>
       </Form>
       
-      <div className="text-center text-sm text-gray-600">
+      <div className="text-center text-sm text-white/80">
         Não tem uma conta?{" "}
-        <Link to="/register" className="text-gray-800 font-medium hover:text-ticlin-600 transition-colors duration-200 underline-offset-4 hover:underline">
+        <Link to="/register" className="text-white font-medium hover:text-ticlin-400 transition-colors duration-200 underline-offset-4 hover:underline">
           Criar conta
         </Link>
       </div>
