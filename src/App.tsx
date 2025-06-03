@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
+import OptimizedDashboard from "./pages/OptimizedDashboard";
 import WhatsAppChat from "./pages/WhatsAppChat";
 import SalesFunnel from "./pages/SalesFunnel";
 import Settings from "./pages/Settings";
@@ -81,7 +81,7 @@ function App() {
                 path="/dashboard"
                 element={
                   <ProtectedRoute>
-                    <Dashboard />
+                    <OptimizedDashboard />
                   </ProtectedRoute>
                 }
               />
