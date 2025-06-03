@@ -53,13 +53,39 @@ const defaultConfig: DashboardConfig = {
   period_filter: "30"
 };
 
+// Global state management for config
+let globalConfigState: DashboardConfig = defaultConfig;
+let configSubscribers: Array<(config: DashboardConfig) => void> = [];
+
+const notifySubscribers = (config: DashboardConfig) => {
+  globalConfigState = config;
+  configSubscribers.forEach(callback => callback(config));
+};
+
+const subscribeToConfig = (callback: (config: DashboardConfig) => void) => {
+  configSubscribers.push(callback);
+  return () => {
+    configSubscribers = configSubscribers.filter(cb => cb !== callback);
+  };
+};
+
 export const useDashboardConfig = () => {
-  const [config, setConfig] = useState<DashboardConfig>(defaultConfig);
+  const [config, setConfig] = useState<DashboardConfig>(globalConfigState);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
   const { user } = useAuth();
   const { companyId } = useCompanyData();
+
+  // Subscribe to global config changes
+  useEffect(() => {
+    const unsubscribe = subscribeToConfig((newConfig) => {
+      console.log("=== CONFIG SUBSCRIBER TRIGGERED ===");
+      console.log("New config received:", newConfig);
+      setConfig({ ...newConfig }); // Force new object reference
+    });
+
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     if (user && companyId) {
@@ -84,8 +110,7 @@ export const useDashboardConfig = () => {
       if (data) {
         console.log("Config loaded from database:", data.config_data);
         const loadedConfig = data.config_data as unknown as DashboardConfig;
-        setConfig(loadedConfig);
-        setRefreshKey(prev => prev + 1);
+        notifySubscribers(loadedConfig);
       } else {
         console.log("No config found, creating default...");
         await createDefaultConfig();
@@ -110,22 +135,20 @@ export const useDashboardConfig = () => {
 
       if (error) throw error;
       console.log("Default config created");
-      setConfig({ ...defaultConfig });
-      setRefreshKey(prev => prev + 1);
+      notifySubscribers({ ...defaultConfig });
     } catch (error) {
       console.error("Erro ao criar configuração padrão:", error);
     }
   };
 
   const updateConfig = useCallback(async (newConfig: Partial<DashboardConfig>) => {
-    const updatedConfig = { ...config, ...newConfig };
+    const updatedConfig = { ...globalConfigState, ...newConfig };
     console.log("=== UPDATE CONFIG ===");
-    console.log("Old config:", JSON.stringify(config, null, 2));
+    console.log("Current global config:", JSON.stringify(globalConfigState, null, 2));
     console.log("New config:", JSON.stringify(updatedConfig, null, 2));
     
-    // Force immediate state update with new refresh key
-    setConfig(updatedConfig);
-    setRefreshKey(prev => prev + 1);
+    // Immediately update global state and notify all subscribers
+    notifySubscribers(updatedConfig);
     setSaving(true);
     
     try {
@@ -145,13 +168,12 @@ export const useDashboardConfig = () => {
     } catch (error) {
       console.error("Erro ao salvar configuração:", error);
       // Revert to previous config on error
-      setConfig({ ...config });
-      setRefreshKey(prev => prev + 1);
+      notifySubscribers({ ...globalConfigState });
       toast.error("Erro ao salvar configurações");
     } finally {
       setSaving(false);
     }
-  }, [config, user?.id, companyId]);
+  }, [user?.id, companyId]);
 
   const resetToDefault = async () => {
     await updateConfig(defaultConfig);
@@ -162,7 +184,6 @@ export const useDashboardConfig = () => {
     loading,
     saving,
     updateConfig,
-    resetToDefault,
-    refreshKey
+    resetToDefault
   };
 };
