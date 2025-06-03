@@ -59,7 +59,7 @@ export function CustomizableKPIGrid() {
 
   if (configLoading || kpisLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="h-32 bg-white/20 rounded-3xl animate-pulse" />
         ))}
@@ -80,7 +80,7 @@ export function CustomizableKPIGrid() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
       {visibleKPIs.map((kpiKey) => {
         const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
         const value = kpis[kpiKey as keyof typeof kpis];

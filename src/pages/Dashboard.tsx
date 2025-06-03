@@ -3,6 +3,7 @@ import ResponsiveSidebar from "@/components/layout/ResponsiveSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { CustomizableKPIGrid } from "@/components/dashboard/CustomizableKPIGrid";
 import CustomizableChartsSection from "@/components/dashboard/CustomizableChartsSection";
+import PeriodFilter from "@/components/dashboard/PeriodFilter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -40,6 +41,16 @@ export default function Dashboard() {
           isMobile && "pt-6"
         )}>
           <DashboardHeader />
+          
+          {/* Filtro de Período */}
+          <div className="flex justify-between items-center rounded-2xl bg-white/30 backdrop-blur-lg border border-white/30 p-4 shadow-lg">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Análise de Performance</h2>
+              <p className="text-sm text-gray-800">Visualize seus dados e métricas em tempo real</p>
+            </div>
+            <PeriodFilter />
+          </div>
+          
           <CustomizableKPIGrid />
           <CustomizableChartsSection />
         </div>
