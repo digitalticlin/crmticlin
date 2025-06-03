@@ -119,19 +119,33 @@ export const useDiagnosticSystem = () => {
     }
 
     try {
-      const tables = ['leads', 'kanban_stages', 'funnels'];
-      const results = await Promise.all(
-        tables.map(async (table) => {
-          const { error } = await supabase
-            .from(table)
-            .select('id')
-            .eq('company_id', companyId)
-            .limit(1);
-          return { table, error };
-        })
-      );
+      // Verificar tabela leads
+      const { error: leadsError } = await supabase
+        .from('leads')
+        .select('id')
+        .eq('company_id', companyId)
+        .limit(1);
 
-      const errors = results.filter(r => r.error);
+      // Verificar tabela kanban_stages
+      const { error: stagesError } = await supabase
+        .from('kanban_stages')
+        .select('id')
+        .eq('company_id', companyId)
+        .limit(1);
+
+      // Verificar tabela funnels
+      const { error: funnelsError } = await supabase
+        .from('funnels')
+        .select('id')
+        .eq('company_id', companyId)
+        .limit(1);
+
+      const errors = [
+        { table: 'leads', error: leadsError },
+        { table: 'kanban_stages', error: stagesError },
+        { table: 'funnels', error: funnelsError }
+      ].filter(r => r.error);
+
       if (errors.length > 0) {
         return {
           id: 'tables',
