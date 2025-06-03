@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Settings } from "lucide-react";
@@ -8,39 +8,34 @@ import { DragDropContext, DropResult } from "react-beautiful-dnd";
 import { CustomizerSidebar } from "./CustomizerSidebar";
 
 export default function DashboardCustomizer() {
-  const { config, loading, saving, updateConfig, resetToDefault } = useDashboardConfig();
+  const { config, loading, updateConfig, resetToDefault } = useDashboardConfig();
   const [open, setOpen] = useState(false);
-  const [tempConfig, setTempConfig] = useState<DashboardConfig>(config);
 
-  // Sincronizar tempConfig com config sempre que config mudar
-  useEffect(() => {
-    console.log("Config updated, syncing tempConfig:", config);
-    setTempConfig(config);
-  }, [config]);
-
-  const handleKPIToggle = (kpiKey: keyof DashboardConfig['kpis']) => {
+  const handleKPIToggle = async (kpiKey: keyof DashboardConfig['kpis']) => {
     console.log("Toggling KPI:", kpiKey);
-    setTempConfig(prev => ({
-      ...prev,
+    const updatedConfig = {
+      ...config,
       kpis: {
-        ...prev.kpis,
-        [kpiKey]: !prev.kpis[kpiKey]
+        ...config.kpis,
+        [kpiKey]: !config.kpis[kpiKey]
       }
-    }));
+    };
+    await updateConfig(updatedConfig);
   };
 
-  const handleChartToggle = (chartKey: keyof DashboardConfig['charts']) => {
+  const handleChartToggle = async (chartKey: keyof DashboardConfig['charts']) => {
     console.log("Toggling Chart:", chartKey);
-    setTempConfig(prev => ({
-      ...prev,
+    const updatedConfig = {
+      ...config,
       charts: {
-        ...prev.charts,
-        [chartKey]: !prev.charts[chartKey]
+        ...config.charts,
+        [chartKey]: !config.charts[chartKey]
       }
-    }));
+    };
+    await updateConfig(updatedConfig);
   };
 
-  const handleDragEnd = (result: DropResult) => {
+  const handleDragEnd = async (result: DropResult) => {
     if (!result.destination) return;
 
     const { source, destination } = result;
@@ -49,56 +44,45 @@ export default function DashboardCustomizer() {
       return;
     }
 
+    let updatedConfig = { ...config };
+
     if (source.droppableId === 'kpis-list') {
-      const newKpiOrder = Array.from(tempConfig.layout.kpi_order);
+      const newKpiOrder = Array.from(config.layout.kpi_order);
       const [removed] = newKpiOrder.splice(source.index, 1);
       newKpiOrder.splice(destination.index, 0, removed);
 
-      setTempConfig(prev => ({
-        ...prev,
+      updatedConfig = {
+        ...updatedConfig,
         layout: {
-          ...prev.layout,
+          ...updatedConfig.layout,
           kpi_order: newKpiOrder
         }
-      }));
+      };
     } else if (source.droppableId === 'charts-list') {
-      const newChartOrder = Array.from(tempConfig.layout.chart_order);
+      const newChartOrder = Array.from(config.layout.chart_order);
       const [removed] = newChartOrder.splice(source.index, 1);
       newChartOrder.splice(destination.index, 0, removed);
 
-      setTempConfig(prev => ({
-        ...prev,
+      updatedConfig = {
+        ...updatedConfig,
         layout: {
-          ...prev.layout,
+          ...updatedConfig.layout,
           chart_order: newChartOrder
         }
-      }));
+      };
     }
-  };
 
-  const handleSave = async () => {
-    console.log("Saving tempConfig:", tempConfig);
-    await updateConfig(tempConfig);
-    setOpen(false);
+    await updateConfig(updatedConfig);
   };
 
   const handleReset = async () => {
     await resetToDefault();
-    // tempConfig será sincronizado automaticamente pelo useEffect
-  };
-
-  const handleOpenChange = (newOpen: boolean) => {
-    setOpen(newOpen);
-    if (newOpen) {
-      // Quando abrir, garantir que tempConfig está sincronizado
-      setTempConfig(config);
-    }
   };
 
   if (loading) return null;
 
   return (
-    <Sheet open={open} onOpenChange={handleOpenChange}>
+    <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button
           variant="outline"
@@ -121,13 +105,10 @@ export default function DashboardCustomizer() {
       >
         <DragDropContext onDragEnd={handleDragEnd}>
           <CustomizerSidebar
-            tempConfig={tempConfig}
+            config={config}
             onKPIToggle={handleKPIToggle}
             onChartToggle={handleChartToggle}
-            onSave={handleSave}
             onReset={handleReset}
-            onClose={() => setOpen(false)}
-            saving={saving}
           />
         </DragDropContext>
       </SheetContent>

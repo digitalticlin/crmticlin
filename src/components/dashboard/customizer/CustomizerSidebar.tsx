@@ -4,26 +4,19 @@ import { Separator } from "@/components/ui/separator";
 import { CustomizerHeader } from "./CustomizerHeader";
 import { DraggableKPISection } from "./DraggableKPISection";
 import { DraggableChartsSection } from "./DraggableChartsSection";
-import { CustomizerActions } from "./CustomizerActions";
 
 interface CustomizerSidebarProps {
-  tempConfig: DashboardConfig;
+  config: DashboardConfig;
   onKPIToggle: (kpiKey: keyof DashboardConfig['kpis']) => void;
   onChartToggle: (chartKey: keyof DashboardConfig['charts']) => void;
-  onSave: () => void;
   onReset: () => void;
-  onClose: () => void;
-  saving?: boolean;
 }
 
 export function CustomizerSidebar({
-  tempConfig,
+  config,
   onKPIToggle,
   onChartToggle,
-  onSave,
-  onReset,
-  onClose,
-  saving = false
+  onReset
 }: CustomizerSidebarProps) {
   return (
     <>
@@ -40,21 +33,15 @@ export function CustomizerSidebar({
 
         <div className="flex-1 px-8 pb-8 space-y-8 overflow-y-auto">
           <DraggableKPISection
-            tempConfig={tempConfig}
+            config={config}
             onKPIToggle={onKPIToggle}
           />
 
           <Separator className="bg-gradient-to-r from-transparent via-[#D3D800]/50 to-transparent h-[2px]" />
 
           <DraggableChartsSection
-            tempConfig={tempConfig}
+            config={config}
             onChartToggle={onChartToggle}
-          />
-
-          <CustomizerActions
-            onSave={onSave}
-            onClose={onClose}
-            saving={saving}
           />
         </div>
       </div>

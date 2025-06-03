@@ -1,9 +1,9 @@
 
 import { DashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
-import { Droppable } from "react-beautiful-dnd";
+import { Droppable, Draggable } from "react-beautiful-dnd";
 import { DraggableItem } from "./DraggableItem";
 
-const kpiLabels = {
+const kpiLabels: Record<keyof DashboardConfig['kpis'], string> = {
   novos_leads: "Novos Leads",
   total_leads: "Total de Leads",
   taxa_conversao: "Taxa de Conversão",
@@ -14,44 +14,48 @@ const kpiLabels = {
 };
 
 interface DraggableKPISectionProps {
-  tempConfig: DashboardConfig;
+  config: DashboardConfig;
   onKPIToggle: (kpiKey: keyof DashboardConfig['kpis']) => void;
 }
 
-export function DraggableKPISection({ tempConfig, onKPIToggle }: DraggableKPISectionProps) {
+export function DraggableKPISection({ config, onKPIToggle }: DraggableKPISectionProps) {
   return (
-    <div className="relative">
-      <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent rounded-3xl blur-sm"></div>
-      <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-6 border border-white/20 shadow-2xl">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-gradient-to-br from-[#D3D800] to-yellow-500 rounded-xl flex items-center justify-center shadow-lg">
-            <span className="text-gray-900 font-bold text-lg">📊</span>
-          </div>
-          <h3 className="text-xl font-bold text-white">Principais</h3>
-        </div>
-        
-        <Droppable droppableId="kpis-list">
-          {(provided, snapshot) => (
-            <div
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              className={`space-y-4 ${snapshot.isDraggingOver ? 'bg-white/5 rounded-2xl p-2' : ''}`}
-            >
-              {tempConfig.layout.kpi_order.map((key, index) => (
-                <DraggableItem
-                  key={key}
-                  id={key}
-                  index={index}
-                  label={kpiLabels[key as keyof typeof kpiLabels]}
-                  isVisible={tempConfig.kpis[key as keyof DashboardConfig['kpis']]}
-                  onToggle={() => onKPIToggle(key as keyof DashboardConfig['kpis'])}
-                />
-              ))}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
+          📊 Indicadores (KPIs)
+        </h3>
+        <p className="text-white/70 text-sm">
+          Selecione e reordene os indicadores do dashboard
+        </p>
       </div>
+
+      <Droppable droppableId="kpis-list">
+        {(provided) => (
+          <div
+            {...provided.droppableProps}
+            ref={provided.innerRef}
+            className="space-y-3"
+          >
+            {config.layout.kpi_order.map((kpiKey, index) => (
+              <Draggable key={kpiKey} draggableId={kpiKey} index={index}>
+                {(provided, snapshot) => (
+                  <DraggableItem
+                    ref={provided.innerRef}
+                    {...provided.draggableProps}
+                    dragHandleProps={provided.dragHandleProps}
+                    isDragging={snapshot.isDragging}
+                    isEnabled={config.kpis[kpiKey as keyof typeof config.kpis]}
+                    label={kpiLabels[kpiKey as keyof typeof kpiLabels]}
+                    onToggle={() => onKPIToggle(kpiKey as keyof DashboardConfig['kpis'])}
+                  />
+                )}
+              </Draggable>
+            ))}
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
     </div>
   );
 }
