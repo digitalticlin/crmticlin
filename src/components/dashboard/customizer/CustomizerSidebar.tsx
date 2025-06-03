@@ -13,6 +13,7 @@ interface CustomizerSidebarProps {
   onSave: () => void;
   onReset: () => void;
   onClose: () => void;
+  saving?: boolean;
 }
 
 export function CustomizerSidebar({
@@ -21,7 +22,8 @@ export function CustomizerSidebar({
   onChartToggle,
   onSave,
   onReset,
-  onClose
+  onClose,
+  saving = false
 }: CustomizerSidebarProps) {
   return (
     <>
@@ -52,6 +54,7 @@ export function CustomizerSidebar({
           <CustomizerActions
             onSave={onSave}
             onClose={onClose}
+            saving={saving}
           />
         </div>
       </div>

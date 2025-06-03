@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Settings } from "lucide-react";
@@ -8,11 +8,18 @@ import { DragDropContext, DropResult } from "react-beautiful-dnd";
 import { CustomizerSidebar } from "./CustomizerSidebar";
 
 export default function DashboardCustomizer() {
-  const { config, loading, updateConfig, resetToDefault } = useDashboardConfig();
+  const { config, loading, saving, updateConfig, resetToDefault } = useDashboardConfig();
   const [open, setOpen] = useState(false);
   const [tempConfig, setTempConfig] = useState<DashboardConfig>(config);
 
+  // Sincronizar tempConfig com config sempre que config mudar
+  useEffect(() => {
+    console.log("Config updated, syncing tempConfig:", config);
+    setTempConfig(config);
+  }, [config]);
+
   const handleKPIToggle = (kpiKey: keyof DashboardConfig['kpis']) => {
+    console.log("Toggling KPI:", kpiKey);
     setTempConfig(prev => ({
       ...prev,
       kpis: {
@@ -23,6 +30,7 @@ export default function DashboardCustomizer() {
   };
 
   const handleChartToggle = (chartKey: keyof DashboardConfig['charts']) => {
+    console.log("Toggling Chart:", chartKey);
     setTempConfig(prev => ({
       ...prev,
       charts: {
@@ -69,24 +77,32 @@ export default function DashboardCustomizer() {
   };
 
   const handleSave = async () => {
+    console.log("Saving tempConfig:", tempConfig);
     await updateConfig(tempConfig);
     setOpen(false);
   };
 
   const handleReset = async () => {
     await resetToDefault();
-    setTempConfig(config);
+    // tempConfig será sincronizado automaticamente pelo useEffect
+  };
+
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (newOpen) {
+      // Quando abrir, garantir que tempConfig está sincronizado
+      setTempConfig(config);
+    }
   };
 
   if (loading) return null;
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>
         <Button
           variant="outline"
           className="bg-white/10 border border-[#D3D800]/30 text-[#D3D800] hover:bg-[#D3D800]/20 hover:border-[#D3D800]/50 backdrop-blur-lg rounded-2xl font-medium transition-all duration-300 hover:scale-105 px-4 py-2"
-          onClick={() => setTempConfig(config)}
         >
           <Settings className="w-4 h-4 mr-2" />
           PERSONALIZAR
@@ -111,6 +127,7 @@ export default function DashboardCustomizer() {
             onSave={handleSave}
             onReset={handleReset}
             onClose={() => setOpen(false)}
+            saving={saving}
           />
         </DragDropContext>
       </SheetContent>

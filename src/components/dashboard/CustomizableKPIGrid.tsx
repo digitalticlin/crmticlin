@@ -57,6 +57,8 @@ export function CustomizableKPIGrid() {
   const { config, loading: configLoading } = useDashboardConfig();
   const { kpis, loading: kpisLoading } = useDashboardKPIs(config.period_filter);
 
+  console.log("CustomizableKPIGrid - Current config:", config);
+
   if (configLoading || kpisLoading) {
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
@@ -70,6 +72,8 @@ export function CustomizableKPIGrid() {
   const visibleKPIs = config.layout.kpi_order.filter(
     kpiKey => config.kpis[kpiKey as keyof typeof config.kpis]
   );
+
+  console.log("Visible KPIs:", visibleKPIs);
 
   if (visibleKPIs.length === 0) {
     return (

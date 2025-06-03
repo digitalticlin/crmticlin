@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -53,6 +54,7 @@ const defaultConfig: DashboardConfig = {
 export const useDashboardConfig = () => {
   const [config, setConfig] = useState<DashboardConfig>(defaultConfig);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const { user } = useAuth();
   const { companyId } = useCompanyData();
 
@@ -64,6 +66,7 @@ export const useDashboardConfig = () => {
 
   const loadConfig = async () => {
     try {
+      console.log("Loading dashboard config...");
       const { data, error } = await supabase
         .from('dashboard_configs')
         .select('config_data')
@@ -76,9 +79,10 @@ export const useDashboardConfig = () => {
       }
 
       if (data) {
+        console.log("Config loaded from database:", data.config_data);
         setConfig(data.config_data as unknown as DashboardConfig);
       } else {
-        // Criar configuração padrão se não existir
+        console.log("No config found, creating default...");
         await createDefaultConfig();
       }
     } catch (error) {
@@ -100,6 +104,8 @@ export const useDashboardConfig = () => {
         });
 
       if (error) throw error;
+      console.log("Default config created");
+      setConfig(defaultConfig);
     } catch (error) {
       console.error("Erro ao criar configuração padrão:", error);
     }
@@ -107,8 +113,10 @@ export const useDashboardConfig = () => {
 
   const updateConfig = async (newConfig: Partial<DashboardConfig>) => {
     const updatedConfig = { ...config, ...newConfig };
+    setSaving(true);
     
     try {
+      console.log("Saving config:", updatedConfig);
       const { error } = await supabase
         .from('dashboard_configs')
         .upsert({
@@ -120,10 +128,13 @@ export const useDashboardConfig = () => {
       if (error) throw error;
 
       setConfig(updatedConfig);
+      console.log("Config saved successfully");
       toast.success("Configurações salvas com sucesso!");
     } catch (error) {
       console.error("Erro ao salvar configuração:", error);
       toast.error("Erro ao salvar configurações");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -134,6 +145,7 @@ export const useDashboardConfig = () => {
   return {
     config,
     loading,
+    saving,
     updateConfig,
     resetToDefault
   };

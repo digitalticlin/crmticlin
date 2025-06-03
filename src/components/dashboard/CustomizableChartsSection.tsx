@@ -15,6 +15,8 @@ const chartComponents = {
 export default function CustomizableChartsSection() {
   const { config, loading } = useDashboardConfig();
 
+  console.log("CustomizableChartsSection - Current config:", config);
+
   if (loading) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -28,6 +30,8 @@ export default function CustomizableChartsSection() {
   const visibleCharts = config.layout.chart_order.filter(
     chartKey => config.charts[chartKey as keyof typeof config.charts]
   );
+
+  console.log("Visible Charts:", visibleCharts);
 
   if (visibleCharts.length === 0) {
     return (
