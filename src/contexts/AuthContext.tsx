@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -26,32 +26,50 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    // Configurar listener de autenticação PRIMEIRO
+    let mounted = true;
+
+    // Configurar listener de autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
+
+      console.log("Auth state change:", event, !!session);
+      
       setSession(session);
       setUser(session?.user ?? null);
       
+      // Evitar redirecionamentos em loop - só redirecionar em eventos específicos
       if (event === 'SIGNED_OUT') {
-        navigate("/");
-      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        // Usuário acabou de fazer login ou token foi atualizado
-        // Continue na rota atual ou redirecione conforme necessário
+        // Só redirecionar se não estiver já na página inicial
+        if (location.pathname !== "/") {
+          navigate("/", { replace: true });
+        }
+      } else if (event === 'SIGNED_IN' && location.pathname === "/") {
+        // Só redirecionar para dashboard se estiver na página de login
+        navigate("/dashboard", { replace: true });
       }
+      
+      // Definir loading como false após qualquer mudança de estado
+      setLoading(false);
     });
 
-    // ENTÃO verificar se já existe uma sessão
+    // Verificar sessão existente apenas uma vez
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      
+      console.log("Initial session check:", !!session);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, []); // Remover navigate e location das dependências para evitar loops
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -61,7 +79,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw error;
       }
       
-      navigate("/dashboard");
+      // Não fazer navigate aqui - deixar o onAuthStateChange gerenciar
     } catch (error: any) {
       toast.error(error.message || "Erro ao fazer login");
       throw error;
@@ -106,7 +124,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw error;
       }
       
-      navigate("/");
+      // Não fazer navigate aqui - deixar o onAuthStateChange gerenciar
     } catch (error: any) {
       toast.error(error.message || "Erro ao fazer logout");
     }

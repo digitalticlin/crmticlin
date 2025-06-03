@@ -1,6 +1,6 @@
 
 import { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface ProtectedRouteProps {
@@ -9,8 +9,11 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
   
-  // Se ainda estamos carregando, não renderize nada por enquanto
+  console.log("ProtectedRoute - loading:", loading, "user:", !!user, "path:", location.pathname);
+  
+  // Se ainda estamos carregando, mostrar loading
   if (loading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -19,12 +22,15 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
   
-  // Se não há usuário autenticado, redirecione para a página de login
+  // Se não há usuário autenticado, redirecionar para a página de login
+  // Usar replace para evitar adicionar à história de navegação
   if (!user) {
-    return <Navigate to="/" replace />;
+    console.log("ProtectedRoute - Redirecting to login");
+    return <Navigate to="/" replace state={{ from: location }} />;
   }
   
-  // Se há usuário autenticado, renderize o conteúdo da rota
+  // Se há usuário autenticado, renderizar o conteúdo da rota
+  console.log("ProtectedRoute - User authenticated, rendering children");
   return <>{children}</>;
 };
 
