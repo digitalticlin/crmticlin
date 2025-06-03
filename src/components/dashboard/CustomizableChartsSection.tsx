@@ -19,24 +19,10 @@ export default function CustomizableChartsSection() {
   const { config, loading } = useDashboardConfig();
 
   const visibleCharts = useMemo(() => {
-    // Verificar se config está disponível e tem estrutura válida
-    if (!config || !config.layout || !Array.isArray(config.layout.chart_order) || !config.charts) {
-      console.log("Configuração de gráficos inválida, usando padrão");
-      return ['funil_conversao', 'performance_vendedores'];
-    }
-
-    const filtered = config.layout.chart_order.filter(chartKey => {
-      if (typeof chartKey !== 'string') return false;
+    return config.layout.chart_order.filter(chartKey => {
       return config.charts[chartKey as keyof typeof config.charts];
     });
-
-    // Se nenhum gráfico habilitado, mostrar pelo menos os padrão
-    if (filtered.length === 0) {
-      return ['funil_conversao', 'performance_vendedores'];
-    }
-
-    return filtered;
-  }, [config]);
+  }, [config.charts, config.layout.chart_order]);
 
   if (loading) {
     return (

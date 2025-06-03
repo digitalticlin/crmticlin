@@ -1,6 +1,5 @@
 
 import ChartCard from "@/components/dashboard/ChartCard";
-import EmptyStateMessage from "@/components/dashboard/EmptyStateMessage";
 import { usePerformanceData } from "@/hooks/dashboard/usePerformanceData";
 import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import {
@@ -21,8 +20,8 @@ export default function PerformanceChart() {
   if (loading) {
     return (
       <ChartCard 
-        title="Desempenho da Equipe" 
-        description="Veja como cada membro da equipe está se saindo"
+        title="Performance de Vendedores" 
+        description="Análise de performance individual por vendedor"
       >
         <div className="h-80 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
@@ -34,11 +33,11 @@ export default function PerformanceChart() {
   if (performanceData.length === 0) {
     return (
       <ChartCard 
-        title="Desempenho da Equipe" 
-        description="Veja como cada membro da equipe está se saindo"
+        title="Performance de Vendedores" 
+        description="Análise de performance individual por vendedor"
       >
-        <div className="h-80">
-          <EmptyStateMessage type="performance" className="h-full" />
+        <div className="h-80 flex items-center justify-center text-gray-600">
+          <p>Nenhum dado de vendedores disponível para o período selecionado</p>
         </div>
       </ChartCard>
     );
@@ -46,8 +45,8 @@ export default function PerformanceChart() {
 
   return (
     <ChartCard 
-      title="Desempenho da Equipe" 
-      description="Veja como cada membro da equipe está se saindo"
+      title="Performance de Vendedores" 
+      description="Análise de performance individual por vendedor"
     >
       <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">
@@ -75,13 +74,13 @@ export default function PerformanceChart() {
             <Legend />
             <Bar 
               dataKey="leads" 
-              name="Contatos" 
+              name="Leads" 
               fill="#d3d800" 
               radius={[4, 4, 0, 0]} 
             />
             <Bar 
               dataKey="conversoes" 
-              name="Vendas" 
+              name="Conversões" 
               fill="#0088FE" 
               radius={[4, 4, 0, 0]} 
             />

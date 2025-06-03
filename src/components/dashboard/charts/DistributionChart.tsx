@@ -1,6 +1,5 @@
 
 import ChartCard from "@/components/dashboard/ChartCard";
-import EmptyStateMessage from "@/components/dashboard/EmptyStateMessage";
 import { useSourceData } from "@/hooks/dashboard/useSourceData";
 import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import {
@@ -19,8 +18,8 @@ export default function DistributionChart() {
   if (loading) {
     return (
       <ChartCard 
-        title="De Onde Vêm os Contatos" 
-        description="Descubra quais canais trazem mais contatos"
+        title="Distribuição por Fonte" 
+        description="Origem dos leads recebidos"
       >
         <div className="h-80 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
@@ -32,11 +31,11 @@ export default function DistributionChart() {
   if (sourceData.length === 0) {
     return (
       <ChartCard 
-        title="De Onde Vêm os Contatos" 
-        description="Descubra quais canais trazem mais contatos"
+        title="Distribuição por Fonte" 
+        description="Origem dos leads recebidos"
       >
-        <div className="h-80">
-          <EmptyStateMessage type="distribution" className="h-full" />
+        <div className="h-80 flex items-center justify-center text-gray-600">
+          <p>Nenhum dado de fonte disponível para o período selecionado</p>
         </div>
       </ChartCard>
     );
@@ -44,8 +43,8 @@ export default function DistributionChart() {
 
   return (
     <ChartCard 
-      title="De Onde Vêm os Contatos" 
-      description="Descubra quais canais trazem mais contatos"
+      title="Distribuição por Fonte" 
+      description="Origem dos leads recebidos"
     >
       <div className="h-80">
         <ResponsiveContainer width="100%" height="100%">

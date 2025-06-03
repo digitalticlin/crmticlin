@@ -8,52 +8,44 @@ import { useMemo } from "react";
 
 const kpiConfig = {
   novos_leads: {
-    title: "Novos Contatos",
+    title: "Novos Leads",
     icon: "userPlus" as const,
-    format: (value: number) => value === 0 ? "Nenhum ainda" : value.toString(),
-    description: "Contatos que chegaram recentemente"
+    format: (value: number) => value.toString()
   },
   total_leads: {
-    title: "Total de Contatos",
+    title: "Total de Leads",
     icon: "users" as const,
-    format: (value: number) => value === 0 ? "Nenhum ainda" : value.toString(),
-    description: "Todos os seus contatos"
+    format: (value: number) => value.toString()
   },
   taxa_conversao: {
-    title: "Vendas Realizadas",
+    title: "Taxa de Conversão",
     icon: "trendingUp" as const,
-    format: (value: number) => value === 0 ? "Nenhuma ainda" : `${value}%`,
-    description: "Percentual de contatos que se tornaram clientes"
+    format: (value: number) => `${value}%`
   },
   taxa_perda: {
-    title: "Oportunidades Perdidas",
+    title: "Taxa de Perda",
     icon: "trendingUp" as const,
-    format: (value: number) => value === 0 ? "Nenhuma ainda" : `${value}%`,
-    description: "Contatos que não se interessaram"
+    format: (value: number) => `${value}%`
   },
   valor_pipeline: {
-    title: "Oportunidades em Andamento",
+    title: "Valor do Pipeline",
     icon: "trendingUp" as const,
-    format: (value: number) => value === 0 ? "Nenhuma ainda" : `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-    description: "Valor total das vendas em negociação"
+    format: (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
   },
   ticket_medio: {
-    title: "Valor Médio por Venda",
+    title: "Ticket Médio",
     icon: "trendingUp" as const,
-    format: (value: number) => value === 0 ? "Nenhuma ainda" : `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-    description: "Valor médio de cada venda realizada"
+    format: (value: number) => `R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
   },
   tempo_resposta: {
     title: "Tempo de Resposta",
     icon: "messageSquare" as const,
     format: (value: number) => {
-      if (value === 0) return "Nenhum ainda";
       if (value < 60) return `${Math.round(value)}min`;
       const hours = Math.floor(value / 60);
       const minutes = Math.round(value % 60);
       return `${hours}h ${minutes}min`;
-    },
-    description: "Tempo médio para responder mensagens"
+    }
   }
 };
 
@@ -71,27 +63,20 @@ function KPIGridContent() {
   console.log("KPIGridContent - isDemoMode:", isDemoMode);
 
   const visibleKPIs = useMemo(() => {
-    // Se não há configuração ou está carregando, usar KPIs padrão
-    if (!config || configLoading) {
-      console.log("Usando KPIs padrão devido à falta de configuração ou loading");
-      return DEFAULT_KPIS;
-    }
-    
-    // Verificar se a estrutura da configuração está correta
-    if (!config.layout || !Array.isArray(config.layout.kpi_order)) {
-      console.log("Estrutura de layout inválida, usando padrão");
+    // Se não há configuração, usar KPIs padrão
+    if (!config || !config.layout || !config.layout.kpi_order) {
+      console.log("Usando KPIs padrão devido à falta de configuração");
       return DEFAULT_KPIS;
     }
     
     // Se não há KPIs configurados, usar padrão
-    if (!config.kpis || typeof config.kpis !== 'object') {
+    if (!config.kpis) {
       console.log("Usando KPIs padrão devido à falta de config.kpis");
       return DEFAULT_KPIS;
     }
     
     // Filtrar KPIs habilitados
     const enabled = config.layout.kpi_order.filter(kpiKey => {
-      if (typeof kpiKey !== 'string') return false;
       const isEnabled = config.kpis[kpiKey as keyof typeof config.kpis];
       console.log(`KPI ${kpiKey} habilitado:`, isEnabled);
       return isEnabled;
@@ -104,7 +89,7 @@ function KPIGridContent() {
     }
     
     return enabled;
-  }, [config, configLoading]);
+  }, [config]);
 
   console.log("visibleKPIs final:", visibleKPIs);
 
@@ -116,27 +101,6 @@ function KPIGridContent() {
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="h-32 bg-white/20 rounded-3xl animate-pulse" />
         ))}
-      </div>
-    );
-  }
-
-  // Validar se kpis existe e é um objeto válido
-  if (!kpis || typeof kpis !== 'object') {
-    console.error("KPIs inválidos:", kpis);
-    return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        {DEFAULT_KPIS.map((kpiKey) => {
-          const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
-          return (
-            <KPICard
-              key={kpiKey}
-              title={kpiData.title}
-              value="Erro no carregamento"
-              icon={kpiData.icon}
-              description={kpiData.description}
-            />
-          );
-        })}
       </div>
     );
   }
@@ -190,16 +154,15 @@ function KPIGridContent() {
             key={kpiKey} 
             fallback={
               <div className="h-32 bg-white/20 rounded-3xl flex items-center justify-center">
-                <span className="text-gray-500 text-sm">Erro no carregamento</span>
+                <span className="text-gray-500 text-sm">Erro no KPI</span>
               </div>
             }
           >
             <KPICard
               title={kpiData.title}
               value={kpiData.format(kpiValue)}
-              trend={kpiValue > 0 ? trend : undefined}
+              trend={trend}
               icon={kpiData.icon}
-              description={kpiData.description}
             />
           </ErrorBoundary>
         );

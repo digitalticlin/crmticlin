@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -24,87 +25,57 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    let mounted = true;
-    let authSubscription: any = null;
-
-    // Função para atualizar estado de forma segura
-    const updateAuthState = (newSession: Session | null) => {
-      if (!mounted) return;
+    // Configurar listener de autenticação PRIMEIRO
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
       
-      console.log("AuthProvider - updateAuthState:", !!newSession);
-      setSession(newSession);
-      setUser(newSession?.user ?? null);
-      setLoading(false);
-    };
-
-    // Verificação inicial da sessão
-    const initializeAuth = async () => {
-      try {
-        console.log("AuthProvider - inicializando autenticação");
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error("Erro ao obter sessão:", error);
-        }
-        
-        updateAuthState(session);
-      } catch (error) {
-        console.error("Erro na inicialização da auth:", error);
-        updateAuthState(null);
+      if (event === 'SIGNED_OUT') {
+        navigate("/");
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        // Usuário acabou de fazer login ou token foi atualizado
+        // Continue na rota atual ou redirecione conforme necessário
       }
-    };
+    });
 
-    // Configurar listener de mudanças de autenticação
-    const setupAuthListener = () => {
-      authSubscription = supabase.auth.onAuthStateChange((event, session) => {
-        if (!mounted) return;
-
-        console.log("AuthProvider - auth state change:", event, !!session);
-        updateAuthState(session);
-      });
-    };
-
-    // Inicializar
-    initializeAuth();
-    setupAuthListener();
+    // ENTÃO verificar se já existe uma sessão
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
     return () => {
-      mounted = false;
-      if (authSubscription) {
-        authSubscription.data.subscription.unsubscribe();
-      }
+      subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate]);
 
   const signIn = async (email: string, password: string) => {
     try {
-      setLoading(true);
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
         throw error;
       }
       
-      // AuthStateChange vai gerenciar o estado
+      navigate("/dashboard");
     } catch (error: any) {
       toast.error(error.message || "Erro ao fazer login");
       throw error;
-    } finally {
-      setLoading(false);
     }
   };
 
   const signUp = async (email: string, password: string, userData: any) => {
     try {
-      setLoading(true);
-      
-      // Limpar campos vazios
+      // Certifique-se de que userData não contém nenhum campo company_id vazio
       if (userData.company_id === "") {
         delete userData.company_id;
       }
       
+      // Definindo o papel de usuário como "admin" por padrão para todos os novos registros
       userData.role = "admin";
       
       const { error } = await supabase.auth.signUp({
@@ -120,31 +91,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw error;
       }
       
-      // Redirecionar para instruções de confirmação
-      window.location.href = "/confirm-email-instructions";
+      navigate("/confirm-email-instructions");
     } catch (error: any) {
       toast.error(error.message || "Erro ao criar conta");
       throw error;
-    } finally {
-      setLoading(false);
     }
   };
 
   const signOut = async () => {
     try {
-      setLoading(true);
       const { error } = await supabase.auth.signOut();
       
       if (error) {
         throw error;
       }
       
-      // Redirecionamento manual após logout
-      window.location.href = "/";
+      navigate("/");
     } catch (error: any) {
       toast.error(error.message || "Erro ao fazer logout");
-    } finally {
-      setLoading(false);
     }
   };
 

@@ -67,7 +67,6 @@ export const useDashboardConfig = () => {
       loadConfig();
     } else {
       console.log("useDashboardConfig - sem user ou companyId, usando config padrão");
-      setConfig(defaultConfig);
       setLoading(false);
     }
   }, [user, companyId]);
@@ -90,42 +89,17 @@ export const useDashboardConfig = () => {
 
       if (data && data.config_data) {
         console.log("useDashboardConfig - configuração carregada:", data.config_data);
+        const loadedConfig = data.config_data as unknown as DashboardConfig;
         
-        // Validar estrutura da configuração carregada
-        const loadedConfig = data.config_data as any;
-        
-        // Verificar se a estrutura é válida
-        if (!loadedConfig || typeof loadedConfig !== 'object') {
-          console.warn("Configuração carregada inválida, usando padrão");
-          setConfig(defaultConfig);
-          setLoading(false);
-          return;
-        }
-        
-        // Mesclar com configuração padrão para garantir consistência
-        const mergedConfig: DashboardConfig = {
-          kpis: { 
-            ...defaultConfig.kpis, 
-            ...(loadedConfig.kpis || {})
-          },
-          charts: { 
-            ...defaultConfig.charts, 
-            ...(loadedConfig.charts || {})
-          },
-          layout: { 
-            kpi_order: Array.isArray(loadedConfig.layout?.kpi_order) 
-              ? loadedConfig.layout.kpi_order 
-              : defaultConfig.layout.kpi_order,
-            chart_order: Array.isArray(loadedConfig.layout?.chart_order) 
-              ? loadedConfig.layout.chart_order 
-              : defaultConfig.layout.chart_order
-          },
-          period_filter: typeof loadedConfig.period_filter === 'string' 
-            ? loadedConfig.period_filter 
-            : defaultConfig.period_filter
+        // Validar e mesclar com configuração padrão para garantir consistência
+        const mergedConfig = {
+          ...defaultConfig,
+          ...loadedConfig,
+          kpis: { ...defaultConfig.kpis, ...loadedConfig.kpis },
+          charts: { ...defaultConfig.charts, ...loadedConfig.charts },
+          layout: { ...defaultConfig.layout, ...loadedConfig.layout }
         };
         
-        console.log("useDashboardConfig - configuração mesclada:", mergedConfig);
         setConfig(mergedConfig);
       } else {
         console.log("useDashboardConfig - nenhuma configuração encontrada, usando padrão");
@@ -133,7 +107,7 @@ export const useDashboardConfig = () => {
       }
     } catch (error) {
       console.error("Erro ao carregar configuração:", error);
-      console.log("useDashboardConfig - erro, usando configuração padrão");
+      toast.error("Erro ao carregar configurações do dashboard, usando configuração padrão");
       setConfig(defaultConfig);
     } finally {
       setLoading(false);
@@ -141,11 +115,11 @@ export const useDashboardConfig = () => {
   };
 
   const updateConfig = useCallback(async (newConfig: Partial<DashboardConfig>) => {
+    const updatedConfig = { ...config, ...newConfig };
+    setConfig(updatedConfig);
+    setSaving(true);
+    
     try {
-      const updatedConfig = { ...config, ...newConfig };
-      setConfig(updatedConfig);
-      setSaving(true);
-      
       if (!user?.id || !companyId) {
         console.warn("useDashboardConfig - não é possível salvar sem user ou companyId");
         return;

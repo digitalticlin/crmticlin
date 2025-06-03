@@ -1,6 +1,5 @@
 
 import ChartCard from "@/components/dashboard/ChartCard";
-import EmptyStateMessage from "@/components/dashboard/EmptyStateMessage";
 import { useFunnelData } from "@/hooks/dashboard/useFunnelData";
 import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 
@@ -11,8 +10,8 @@ export default function FunnelChart() {
   if (loading) {
     return (
       <ChartCard 
-        title="Jornada dos Contatos" 
-        description="Acompanhe como seus contatos evoluem no processo de venda"
+        title="Funil de Conversão" 
+        description="Análise do funil de vendas por etapa"
       >
         <div className="h-96 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
@@ -24,11 +23,11 @@ export default function FunnelChart() {
   if (funnelData.length === 0) {
     return (
       <ChartCard 
-        title="Jornada dos Contatos" 
-        description="Acompanhe como seus contatos evoluem no processo de venda"
+        title="Funil de Conversão" 
+        description="Análise do funil de vendas por etapa"
       >
-        <div className="h-96">
-          <EmptyStateMessage type="funnel" className="h-full" />
+        <div className="h-96 flex items-center justify-center text-gray-600">
+          <p>Nenhum dado disponível para o período selecionado</p>
         </div>
       </ChartCard>
     );
@@ -38,8 +37,8 @@ export default function FunnelChart() {
 
   return (
     <ChartCard 
-      title="Jornada dos Contatos" 
-      description="Acompanhe como seus contatos evoluem no processo de venda"
+      title="Funil de Conversão" 
+      description="Análise do funil de vendas por etapa"
     >
       <div className="h-96">
         <div className="space-y-2">
