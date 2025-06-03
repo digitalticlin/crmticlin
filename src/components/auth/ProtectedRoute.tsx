@@ -1,5 +1,5 @@
 
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -10,22 +10,24 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, loading } = useAuth();
   const location = useLocation();
+  const [shouldRedirect, setShouldRedirect] = useState(false);
   
   console.log("ProtectedRoute - loading:", loading, "user:", !!user, "path:", location.pathname);
   
-  // Timeout de segurança para loading infinito
   useEffect(() => {
+    // Timeout de segurança para loading infinito
     const timeout = setTimeout(() => {
       if (loading) {
-        console.warn("ProtectedRoute - Loading timeout, forçando verificação");
+        console.warn("ProtectedRoute - Loading timeout, assumindo não autenticado");
+        setShouldRedirect(true);
       }
-    }, 10000); // 10 segundos
+    }, 5000); // 5 segundos
 
     return () => clearTimeout(timeout);
   }, [loading]);
-  
-  // Se ainda estamos carregando, mostrar loading
-  if (loading) {
+
+  // Aguardar finalização do loading
+  if (loading && !shouldRedirect) {
     console.log("ProtectedRoute - Mostrando loading");
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -35,7 +37,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
   
   // Se não há usuário autenticado, redirecionar para login
-  if (!user) {
+  if (!user || shouldRedirect) {
     console.log("ProtectedRoute - Usuário não autenticado, redirecionando para login");
     return <Navigate to="/" replace state={{ from: location }} />;
   }

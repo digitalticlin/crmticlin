@@ -3,9 +3,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { AuthNavigationHandler } from "@/components/auth/AuthNavigationHandler";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
@@ -33,10 +32,35 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
-      staleTime: 5 * 60 * 1000, // 5 minutos
+      staleTime: 5 * 60 * 1000,
     },
   },
 });
+
+// Componente para gerenciar redirecionamento automático na página inicial
+function IndexRedirect() {
+  const { user, loading } = useAuth();
+
+  console.log("IndexRedirect - loading:", loading, "user:", !!user);
+
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-ticlin"></div>
+      </div>
+    );
+  }
+
+  // Se usuário está logado, redirecionar para dashboard
+  if (user) {
+    console.log("IndexRedirect - usuário logado, redirecionando para dashboard");
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // Se não está logado, mostrar página de login
+  console.log("IndexRedirect - usuário não logado, mostrando página de login");
+  return <Index />;
+}
 
 function App() {
   return (
@@ -44,11 +68,10 @@ function App() {
       <TooltipProvider>
         <BrowserRouter>
           <AuthProvider>
-            <AuthNavigationHandler />
             <Toaster />
             <Sonner />
             <Routes>
-              <Route path="/" element={<Index />} />
+              <Route path="/" element={<IndexRedirect />} />
               <Route path="/register" element={<Register />} />
               <Route path="/confirm-email" element={<ConfirmEmail />} />
               <Route path="/confirm-email-instructions" element={<ConfirmEmailInstructions />} />

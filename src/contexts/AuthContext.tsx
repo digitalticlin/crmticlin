@@ -24,7 +24,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [initialCheckDone, setInitialCheckDone] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -37,12 +36,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log("AuthProvider - updateAuthState:", !!newSession);
       setSession(newSession);
       setUser(newSession?.user ?? null);
-      
-      // Só marca como não loading após primeira verificação
-      if (!initialCheckDone) {
-        setInitialCheckDone(true);
-        setLoading(false);
-      }
+      setLoading(false);
     };
 
     // Verificação inicial da sessão
@@ -68,8 +62,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (!mounted) return;
 
         console.log("AuthProvider - auth state change:", event, !!session);
-        
-        // Atualizar estado
         updateAuthState(session);
       });
     };
@@ -84,7 +76,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         authSubscription.data.subscription.unsubscribe();
       }
     };
-  }, []); // Sem dependências para evitar loops
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -95,7 +87,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw error;
       }
       
-      // AuthStateChange vai gerenciar o redirecionamento
+      // AuthStateChange vai gerenciar o estado
     } catch (error: any) {
       toast.error(error.message || "Erro ao fazer login");
       throw error;
@@ -147,7 +139,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw error;
       }
       
-      // Redirecionamento será feito pelo AuthStateChange
+      // Redirecionamento manual após logout
+      window.location.href = "/";
     } catch (error: any) {
       toast.error(error.message || "Erro ao fazer logout");
     } finally {
