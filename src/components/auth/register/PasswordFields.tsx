@@ -22,7 +22,7 @@ export const PasswordFields = ({ form }: PasswordFieldsProps) => {
         name="password"
         render={({ field }) => (
           <FormItem className="space-y-3">
-            <FormLabel className="text-white font-medium">Senha</FormLabel>
+            <FormLabel className="text-gray-800 font-medium">Senha</FormLabel>
             <FormControl>
               <div className="relative group">
                 <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400 transition-colors group-hover:text-gray-600" />
@@ -50,7 +50,7 @@ export const PasswordFields = ({ form }: PasswordFieldsProps) => {
                 </Button>
               </div>
             </FormControl>
-            <FormMessage className="text-red-200" />
+            <FormMessage className="text-red-500" />
           </FormItem>
         )}
       />
@@ -60,7 +60,7 @@ export const PasswordFields = ({ form }: PasswordFieldsProps) => {
         name="confirmPassword"
         render={({ field }) => (
           <FormItem className="space-y-3">
-            <FormLabel className="text-white font-medium">Confirmar senha</FormLabel>
+            <FormLabel className="text-gray-800 font-medium">Confirmar senha</FormLabel>
             <FormControl>
               <div className="relative group">
                 <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400 transition-colors group-hover:text-gray-600" />
@@ -88,7 +88,7 @@ export const PasswordFields = ({ form }: PasswordFieldsProps) => {
                 </Button>
               </div>
             </FormControl>
-            <FormMessage className="text-red-200" />
+            <FormMessage className="text-red-500" />
           </FormItem>
         )}
       />

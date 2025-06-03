@@ -119,124 +119,118 @@ export default function ResetPassword() {
           </div>
         </div>
         
-        <div className="w-full rounded-3xl relative overflow-hidden bg-gradient-to-b from-ticlin-400 to-transparent shadow-2xl transition-all duration-500 hover:shadow-3xl hover:scale-[1.02]">
-          {/* Glassmorphism overlay */}
-          <div className="absolute inset-0 bg-white/20 backdrop-blur-lg border border-white/20 rounded-3xl"></div>
-          
-          {/* Content */}
-          <div className="relative z-10 p-8 space-y-8">
-            <div className="space-y-4 text-center animate-scale-in">
-              <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
-                Criar nova senha
-              </h1>
-              <p className="text-sm text-white/90 font-medium">
-                Digite sua nova senha abaixo
-              </p>
-            </div>
+        <div className="w-full rounded-3xl bg-white/30 backdrop-blur-lg border border-white/20 shadow-2xl p-8 space-y-8 transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] hover:bg-white/35">
+          <div className="space-y-4 text-center animate-scale-in">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+              Criar nova senha
+            </h1>
+            <p className="text-sm text-gray-700 font-medium">
+              Digite sua nova senha abaixo
+            </p>
+          </div>
 
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem className="space-y-3">
-                      <FormLabel className="text-white font-medium">Nova senha</FormLabel>
-                      <FormControl>
-                        <div className="relative group">
-                          <KeyRound className="absolute left-3 top-3 h-5 w-5 text-gray-400 transition-colors group-hover:text-gray-600" />
-                          <Input
-                            className="pl-11 pr-12 h-12 rounded-xl bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-gray-300 transition-all duration-300 hover:border-gray-300"
-                            type={showPassword ? "text" : "password"}
-                            placeholder="••••••••"
-                            {...field}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-1 top-1 h-10 w-10 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-200"
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                            <span className="sr-only">
-                              {showPassword ? "Esconder senha" : "Mostrar senha"}
-                            </span>
-                          </Button>
-                        </div>
-                      </FormControl>
-                      <FormMessage className="text-red-200" />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="confirmPassword"
-                  render={({ field }) => (
-                    <FormItem className="space-y-3">
-                      <FormLabel className="text-white font-medium">Confirmar senha</FormLabel>
-                      <FormControl>
-                        <div className="relative group">
-                          <KeyRound className="absolute left-3 top-3 h-5 w-5 text-gray-400 transition-colors group-hover:text-gray-600" />
-                          <Input
-                            className="pl-11 pr-12 h-12 rounded-xl bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-gray-300 transition-all duration-300 hover:border-gray-300"
-                            type={showConfirmPassword ? "text" : "password"}
-                            placeholder="••••••••"
-                            {...field}
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="absolute right-1 top-1 h-10 w-10 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-200"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          >
-                            {showConfirmPassword ? (
-                              <EyeOff className="h-4 w-4" />
-                            ) : (
-                              <Eye className="h-4 w-4" />
-                            )}
-                            <span className="sr-only">
-                              {showConfirmPassword ? "Esconder senha" : "Mostrar senha"}
-                            </span>
-                          </Button>
-                        </div>
-                      </FormControl>
-                      <FormMessage className="text-red-200" />
-                    </FormItem>
-                  )}
-                />
-                
-                <Button
-                  type="submit"
-                  className="w-full h-12 rounded-full bg-white text-ticlin-600 hover:bg-gray-50 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-0"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-ticlin-600/30 border-t-ticlin-600 rounded-full animate-spin"></div>
-                      Processando...
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      Salvar nova senha
-                      <ArrowRight className="h-4 w-4" />
-                    </div>
-                  )}
-                </Button>
-              </form>
-            </Form>
-            
-            <div className="text-center text-sm">
-              <Link to="/" className="text-white/90 hover:text-white font-medium transition-colors duration-200 underline-offset-4 hover:underline">
-                Voltar para login
-              </Link>
-            </div>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel className="text-gray-800 font-medium">Nova senha</FormLabel>
+                    <FormControl>
+                      <div className="relative group">
+                        <KeyRound className="absolute left-3 top-3 h-5 w-5 text-gray-400 transition-colors group-hover:text-gray-600" />
+                        <Input
+                          className="pl-11 pr-12 h-12 rounded-xl bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-gray-300 transition-all duration-300 hover:border-gray-300"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          {...field}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-1 top-1 h-10 w-10 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-200"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                          <span className="sr-only">
+                            {showPassword ? "Esconder senha" : "Mostrar senha"}
+                          </span>
+                        </Button>
+                      </div>
+                    </FormControl>
+                    <FormMessage className="text-red-500" />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem className="space-y-3">
+                    <FormLabel className="text-gray-800 font-medium">Confirmar senha</FormLabel>
+                    <FormControl>
+                      <div className="relative group">
+                        <KeyRound className="absolute left-3 top-3 h-5 w-5 text-gray-400 transition-colors group-hover:text-gray-600" />
+                        <Input
+                          className="pl-11 pr-12 h-12 rounded-xl bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-gray-300 transition-all duration-300 hover:border-gray-300"
+                          type={showConfirmPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          {...field}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-1 top-1 h-10 w-10 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-200"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
+                          <span className="sr-only">
+                            {showConfirmPassword ? "Esconder senha" : "Mostrar senha"}
+                          </span>
+                        </Button>
+                      </div>
+                    </FormControl>
+                    <FormMessage className="text-red-500" />
+                  </FormItem>
+                )}
+              />
+              
+              <Button
+                type="submit"
+                className="w-full h-12 rounded-full bg-gradient-to-r from-ticlin-500 to-ticlin-600 hover:from-ticlin-600 hover:to-ticlin-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-0"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Processando...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    Salvar nova senha
+                    <ArrowRight className="h-4 w-4" />
+                  </div>
+                )}
+              </Button>
+            </form>
+          </Form>
+          
+          <div className="text-center text-sm">
+            <Link to="/" className="text-gray-700 hover:text-gray-900 font-medium transition-colors duration-200 underline-offset-4 hover:underline">
+              Voltar para login
+            </Link>
           </div>
         </div>
         

@@ -17,7 +17,7 @@ export const ContactInfoFields = ({ form }: ContactInfoFieldsProps) => {
         name="documentId"
         render={({ field }) => (
           <FormItem className="space-y-3">
-            <FormLabel className="text-white font-medium">CPF/CNPJ</FormLabel>
+            <FormLabel className="text-gray-800 font-medium">CPF/CNPJ</FormLabel>
             <FormControl>
               <Input
                 className="h-12 rounded-xl bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-gray-300 transition-all duration-300 hover:border-gray-300"
@@ -25,7 +25,7 @@ export const ContactInfoFields = ({ form }: ContactInfoFieldsProps) => {
                 {...field}
               />
             </FormControl>
-            <FormMessage className="text-red-200" />
+            <FormMessage className="text-red-500" />
           </FormItem>
         )}
       />
@@ -35,7 +35,7 @@ export const ContactInfoFields = ({ form }: ContactInfoFieldsProps) => {
         name="whatsapp"
         render={({ field }) => (
           <FormItem className="space-y-3">
-            <FormLabel className="text-white font-medium">WhatsApp</FormLabel>
+            <FormLabel className="text-gray-800 font-medium">WhatsApp</FormLabel>
             <FormControl>
               <div className="relative group">
                 <Phone className="absolute left-3 top-3 h-5 w-5 text-gray-400 transition-colors group-hover:text-gray-600" />
@@ -46,7 +46,7 @@ export const ContactInfoFields = ({ form }: ContactInfoFieldsProps) => {
                 />
               </div>
             </FormControl>
-            <FormMessage className="text-red-200" />
+            <FormMessage className="text-red-500" />
           </FormItem>
         )}
       />

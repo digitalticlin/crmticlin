@@ -100,78 +100,72 @@ export default function ConfirmEmail() {
           </div>
         </div>
         
-        <div className="w-full rounded-3xl relative overflow-hidden bg-gradient-to-b from-ticlin-400 to-transparent shadow-2xl transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] text-center">
-          {/* Glassmorphism overlay */}
-          <div className="absolute inset-0 bg-white/20 backdrop-blur-lg border border-white/20 rounded-3xl"></div>
+        <div className="w-full rounded-3xl bg-white/30 backdrop-blur-lg border border-white/20 shadow-2xl p-8 space-y-8 transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] hover:bg-white/35 text-center">
+          {status === "loading" && (
+            <>
+              <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center bg-ticlin/10 backdrop-blur-sm border border-ticlin/20">
+                <Loader2 className="h-8 w-8 text-ticlin-600 animate-spin" />
+              </div>
+              <div className="space-y-4 animate-scale-in">
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                  Verificando...
+                </h1>
+                <p className="text-sm text-gray-700 font-medium">
+                  Estamos verificando seu e-mail. Por favor, aguarde.
+                </p>
+              </div>
+            </>
+          )}
           
-          {/* Content */}
-          <div className="relative z-10 p-8 space-y-8">
-            {status === "loading" && (
-              <>
-                <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center bg-white/20 backdrop-blur-sm border border-white/30">
-                  <Loader2 className="h-8 w-8 text-white animate-spin" />
-                </div>
-                <div className="space-y-4 animate-scale-in">
-                  <h1 className="text-2xl font-bold tracking-tight text-white">
-                    Verificando...
-                  </h1>
-                  <p className="text-sm text-white/90 font-medium">
-                    Estamos verificando seu e-mail. Por favor, aguarde.
-                  </p>
-                </div>
-              </>
-            )}
-            
-            {status === "success" && (
-              <>
-                <div className="mx-auto bg-green-50/80 backdrop-blur-sm w-16 h-16 rounded-full flex items-center justify-center border border-green-200/50">
-                  <CheckCircle className="h-8 w-8 text-green-600" />
-                </div>
-                <div className="space-y-4 animate-scale-in">
-                  <h1 className="text-2xl font-bold tracking-tight text-white">
-                    E-mail confirmado!
-                  </h1>
-                  <p className="text-sm text-white/90 font-medium">{message}</p>
-                </div>
+          {status === "success" && (
+            <>
+              <div className="mx-auto bg-green-50/80 backdrop-blur-sm w-16 h-16 rounded-full flex items-center justify-center border border-green-200/50">
+                <CheckCircle className="h-8 w-8 text-green-600" />
+              </div>
+              <div className="space-y-4 animate-scale-in">
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                  E-mail confirmado!
+                </h1>
+                <p className="text-sm text-gray-700 font-medium">{message}</p>
+              </div>
+              <Link to="/">
+                <Button className="w-full h-12 rounded-full bg-gradient-to-r from-ticlin-500 to-ticlin-600 hover:from-ticlin-600 hover:to-ticlin-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-0">
+                  Ir para o login
+                </Button>
+              </Link>
+            </>
+          )}
+          
+          {status === "error" && (
+            <>
+              <div className="mx-auto bg-red-50/80 backdrop-blur-sm w-16 h-16 rounded-full flex items-center justify-center border border-red-200/50">
+                <XCircle className="h-8 w-8 text-red-600" />
+              </div>
+              <div className="space-y-4 animate-scale-in">
+                <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+                  Erro na confirmação
+                </h1>
+                <p className="text-sm text-gray-700 font-medium">{message}</p>
+              </div>
+              <div className="space-y-4">
+                <Button 
+                  variant="outline" 
+                  className="w-full h-12 rounded-full bg-white/50 backdrop-blur-sm border-white/30 text-gray-800 hover:bg-white/60 transition-all duration-300" 
+                  onClick={handleResendEmail}
+                >
+                  Reenviar e-mail de confirmação
+                </Button>
                 <Link to="/">
-                  <Button className="w-full h-12 rounded-full bg-white text-ticlin-600 hover:bg-gray-50 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] border-0">
-                    Ir para o login
+                  <Button 
+                    variant="link" 
+                    className="w-full text-gray-700 hover:text-gray-900 font-medium transition-colors duration-200"
+                  >
+                    Voltar para login
                   </Button>
                 </Link>
-              </>
-            )}
-            
-            {status === "error" && (
-              <>
-                <div className="mx-auto bg-red-50/80 backdrop-blur-sm w-16 h-16 rounded-full flex items-center justify-center border border-red-200/50">
-                  <XCircle className="h-8 w-8 text-red-600" />
-                </div>
-                <div className="space-y-4 animate-scale-in">
-                  <h1 className="text-2xl font-bold tracking-tight text-white">
-                    Erro na confirmação
-                  </h1>
-                  <p className="text-sm text-white/90 font-medium">{message}</p>
-                </div>
-                <div className="space-y-4">
-                  <Button 
-                    variant="outline" 
-                    className="w-full h-12 rounded-full bg-white/30 backdrop-blur-sm border-white/30 text-white hover:bg-white/40 transition-all duration-300" 
-                    onClick={handleResendEmail}
-                  >
-                    Reenviar e-mail de confirmação
-                  </Button>
-                  <Link to="/">
-                    <Button 
-                      variant="link" 
-                      className="w-full text-white/90 hover:text-white font-medium transition-colors duration-200"
-                    >
-                      Voltar para login
-                    </Button>
-                  </Link>
-                </div>
-              </>
-            )}
-          </div>
+              </div>
+            </>
+          )}
         </div>
         
         <p className="text-center text-xs text-gray-700 mt-8 font-medium">

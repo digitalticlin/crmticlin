@@ -16,7 +16,7 @@ export const FullNameField = ({ form }: FullNameFieldProps) => {
       name="fullName"
       render={({ field }) => (
         <FormItem className="space-y-3">
-          <FormLabel className="text-white font-medium">Nome completo</FormLabel>
+          <FormLabel className="text-gray-800 font-medium">Nome completo</FormLabel>
           <FormControl>
             <div className="relative group">
               <User className="absolute left-3 top-3 h-5 w-5 text-gray-400 transition-colors group-hover:text-gray-600" />
@@ -28,7 +28,7 @@ export const FullNameField = ({ form }: FullNameFieldProps) => {
               />
             </div>
           </FormControl>
-          <FormMessage className="text-red-200" />
+          <FormMessage className="text-red-500" />
         </FormItem>
       )}
     />
