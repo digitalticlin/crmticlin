@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Sun, Moon, Bell } from "lucide-react";
 import TopbarUserMenu from "@/components/layout/TopbarUserMenu";
@@ -29,10 +30,10 @@ export default function DashboardHeader({}: DashboardHeaderProps) {
   const email = user?.email || "";
 
   return (
-    <div className="flex justify-between items-center mb-8 rounded-2xl bg-white/10 backdrop-blur-lg border border-white/10 p-6 shadow-lg">
+    <div className="flex justify-between items-center mb-8 rounded-2xl bg-white/15 backdrop-blur-lg border border-white/20 p-6 shadow-lg">
       <div>
-        <h1 className="text-3xl font-orbitron font-bold text-gray-900 tracking-wide">{greeting}, Admin</h1>
-        <p className="text-gray-800 font-inter font-medium text-base mt-1">Bem-vindo de volta ao seu dashboard</p>
+        <h1 className="text-2xl font-bold text-gray-900">{greeting}, Admin</h1>
+        <p className="text-gray-700 font-medium">Bem-vindo de volta ao seu dashboard</p>
       </div>
       <div className="flex items-center gap-4">
         {/* Botão de tema */}

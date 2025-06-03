@@ -62,6 +62,7 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
+                // Ticlin brand colors
                 ticlin: {
                     DEFAULT: '#d3d800',
                     light: '#e4e830',
@@ -130,8 +131,6 @@ export default {
 			},
 			fontFamily: {
 				inter: ['Inter', 'sans-serif'],
-				orbitron: ['Orbitron', 'monospace'],
-				sans: ['Inter', 'system-ui', 'sans-serif'],
 			},
 			boxShadow: {
 				glass: "0 4px 32px 0 rgba(31, 38, 135, 0.07)",
