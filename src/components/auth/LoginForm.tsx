@@ -50,7 +50,7 @@ const LoginForm = () => {
   };
 
   return (
-    <div className="w-full rounded-3xl bg-white/10 backdrop-blur-2xl border border-white/20 shadow-2xl p-8 space-y-8 transition-all duration-500 hover:bg-white/15 hover:shadow-3xl hover:scale-[1.02] glass-morphism">
+    <div className="w-full rounded-3xl bg-white/90 backdrop-blur-sm border border-gray-200 shadow-xl p-8 space-y-8 transition-all duration-500 hover:shadow-2xl hover:scale-[1.02]">
       {/* Logo Section */}
       <div className="space-y-4 text-center animate-scale-in">
         <div className="mb-6 flex justify-center">
@@ -60,14 +60,14 @@ const LoginForm = () => {
               alt="Ticlin CRM"
               className="h-14 transition-transform duration-300 hover:scale-110"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-ticlin-400 to-ticlin-600 opacity-20 rounded-lg blur-lg"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-ticlin-400 to-ticlin-600 opacity-10 rounded-lg blur-lg"></div>
           </div>
         </div>
         
-        <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl bg-gradient-to-r from-white to-white/80 bg-clip-text text-transparent">
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
           Bem-vindo de volta
         </h1>
-        <p className="text-sm text-white/70 font-medium">
+        <p className="text-sm text-gray-600 font-medium">
           Entre com suas credenciais para continuar
         </p>
       </div>
@@ -79,12 +79,12 @@ const LoginForm = () => {
             name="email"
             render={({ field }) => (
               <FormItem className="space-y-3">
-                <FormLabel className="text-white/90 font-medium">Email</FormLabel>
+                <FormLabel className="text-gray-700 font-medium">Email</FormLabel>
                 <FormControl>
                   <div className="relative group">
-                    <Mail className="absolute left-3 top-3 h-5 w-5 text-white/60 transition-colors group-hover:text-white/80" />
+                    <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400 transition-colors group-hover:text-gray-600" />
                     <Input
-                      className="pl-11 h-12 rounded-xl bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:bg-white/15 focus:border-white/40 transition-all duration-300 hover:bg-white/15"
+                      className="pl-11 h-12 rounded-xl bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-gray-300 transition-all duration-300 hover:border-gray-300"
                       placeholder="exemplo@email.com"
                       type="email"
                       autoComplete="email"
@@ -92,7 +92,7 @@ const LoginForm = () => {
                     />
                   </div>
                 </FormControl>
-                <FormMessage className="text-red-300" />
+                <FormMessage className="text-red-500" />
               </FormItem>
             )}
           />
@@ -103,19 +103,19 @@ const LoginForm = () => {
             render={({ field }) => (
               <FormItem className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <FormLabel className="text-white/90 font-medium">Senha</FormLabel>
+                  <FormLabel className="text-gray-700 font-medium">Senha</FormLabel>
                   <Link
                     to="/forgot-password"
-                    className="text-xs text-white/70 hover:text-white transition-colors duration-200 underline-offset-4 hover:underline"
+                    className="text-xs text-gray-500 hover:text-gray-700 transition-colors duration-200 underline-offset-4 hover:underline"
                   >
                     Esqueceu a senha?
                   </Link>
                 </div>
                 <FormControl>
                   <div className="relative group">
-                    <Lock className="absolute left-3 top-3 h-5 w-5 text-white/60 transition-colors group-hover:text-white/80" />
+                    <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400 transition-colors group-hover:text-gray-600" />
                     <Input
-                      className="pl-11 pr-12 h-12 rounded-xl bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:bg-white/15 focus:border-white/40 transition-all duration-300 hover:bg-white/15"
+                      className="pl-11 pr-12 h-12 rounded-xl bg-white border-gray-200 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-gray-300 transition-all duration-300 hover:border-gray-300"
                       placeholder="••••••••"
                       type={showPassword ? "text" : "password"}
                       autoComplete="current-password"
@@ -125,7 +125,7 @@ const LoginForm = () => {
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="absolute right-1 top-1 h-10 w-10 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
+                      className="absolute right-1 top-1 h-10 w-10 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-all duration-200"
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? (
@@ -139,7 +139,7 @@ const LoginForm = () => {
                     </Button>
                   </div>
                 </FormControl>
-                <FormMessage className="text-red-300" />
+                <FormMessage className="text-red-500" />
               </FormItem>
             )}
           />
@@ -164,9 +164,9 @@ const LoginForm = () => {
         </form>
       </Form>
       
-      <div className="text-center text-sm text-white/70">
+      <div className="text-center text-sm text-gray-600">
         Não tem uma conta?{" "}
-        <Link to="/register" className="text-white font-medium hover:text-ticlin-300 transition-colors duration-200 underline-offset-4 hover:underline">
+        <Link to="/register" className="text-gray-800 font-medium hover:text-ticlin-600 transition-colors duration-200 underline-offset-4 hover:underline">
           Criar conta
         </Link>
       </div>
