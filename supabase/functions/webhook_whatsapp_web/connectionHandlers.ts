@@ -101,9 +101,10 @@ export async function handleReadyEvent(supabase: any, instanceId: string, data: 
     }
 
     // ATUALIZAÇÃO CRÍTICA COM INFORMAÇÕES COMPLETAS
+    // Fix: Always set connection_status to 'open' for ready event (standard status)
     const updateData: any = {
       web_status: 'ready',
-      connection_status: 'open',
+      connection_status: 'open', // Always use 'open' as the standard connected status
       date_connected: new Date().toISOString(),
       qr_code: null,
       updated_at: new Date().toISOString()
@@ -125,7 +126,7 @@ export async function handleReadyEvent(supabase: any, instanceId: string, data: 
       console.log('[Webhook] 🖼️ Profile pic to update:', data.profilePic);
     }
 
-    console.log('[Webhook] 💾 Updating database with data:', updateData);
+    console.log('[Webhook] 💾 Updating database with standardized connection_status "open":', updateData);
 
     const { data: updatedInstance, error } = await supabase
       .from('whatsapp_instances')
@@ -143,7 +144,8 @@ export async function handleReadyEvent(supabase: any, instanceId: string, data: 
         id: updatedInstance?.id,
         instance_name: updatedInstance?.instance_name,
         phone: updatedInstance?.phone,
-        status: updatedInstance?.connection_status
+        connection_status: updatedInstance?.connection_status, // Should be 'open' now
+        profile_name: updatedInstance?.profile_name
       });
     }
   } catch (error) {

@@ -106,13 +106,20 @@ export const useWhatsAppRealtime = (userEmail: string) => {
         const newRecord = payload.new as any;
         
         if (newRecord.instance_name?.toLowerCase().startsWith(instancePrefix)) {
+          // Fix status mapping - recognize 'ready' and 'open' as connected
+          const isConnected = newRecord.connection_status === 'open' || 
+                             newRecord.connection_status === 'ready' || 
+                             newRecord.connection_status === 'connected';
+
           // Notificar mudanças importantes de status
           if (payload.eventType === 'UPDATE' && payload.old) {
             const oldStatus = payload.old.connection_status;
             const newStatus = newRecord.connection_status;
             
+            console.log('[WhatsApp Realtime] Status change detected:', { oldStatus, newStatus });
+            
             if (oldStatus !== newStatus) {
-              if (newStatus === 'open') {
+              if (isConnected) {
                 toast.success(`WhatsApp conectado`, {
                   description: `Instância ${newRecord.instance_name} está pronta`
                 });
@@ -124,11 +131,11 @@ export const useWhatsAppRealtime = (userEmail: string) => {
             }
           }
 
-          // Atualizar estado local
+          // Atualizar estado local com status correto
           const mappedInstance = {
             id: newRecord.id,
             instanceName: newRecord.instance_name,
-            connected: newRecord.connection_status === 'open',
+            connected: isConnected, // Use the corrected connected status
             qrCodeUrl: newRecord.qr_code,
             phoneNumber: newRecord.phone,
             vps_instance_id: newRecord.vps_instance_id,
@@ -147,6 +154,14 @@ export const useWhatsAppRealtime = (userEmail: string) => {
             created_at: newRecord.created_at,
             updated_at: newRecord.updated_at
           };
+
+          console.log('[WhatsApp Realtime] Updating instance with corrected status:', {
+            instanceId: newRecord.id,
+            connection_status: newRecord.connection_status,
+            isConnected,
+            profile_name: newRecord.profile_name,
+            phone: newRecord.phone
+          });
 
           updateInstance(newRecord.id, mappedInstance);
         }
