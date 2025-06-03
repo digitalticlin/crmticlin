@@ -6,10 +6,14 @@ import { CustomizableKPIGrid } from "@/components/dashboard/CustomizableKPIGrid"
 import CustomizableChartsSection from "@/components/dashboard/CustomizableChartsSection";
 import PeriodFilter from "@/components/dashboard/PeriodFilter";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
   const isMobile = useIsMobile();
+  const { configVersion } = useDashboardConfig();
+
+  console.log("Dashboard render - configVersion:", configVersion);
 
   return (
     <div className="flex min-h-screen bg-gray-200 relative overflow-hidden">
@@ -64,8 +68,8 @@ export default function Dashboard() {
             </div>
           </div>
           
-          <CustomizableKPIGrid />
-          <CustomizableChartsSection />
+          <CustomizableKPIGrid key={`kpi-grid-${configVersion}`} />
+          <CustomizableChartsSection key={`charts-section-${configVersion}`} />
         </div>
       </main>
     </div>

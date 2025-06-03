@@ -5,6 +5,7 @@ import FunnelChart from "./charts/FunnelChart";
 import PerformanceChart from "./charts/PerformanceChart";
 import TagsChart from "./charts/TagsChart";
 import DistributionChart from "./charts/DistributionChart";
+import { useEffect } from "react";
 
 const chartComponents = {
   funil_conversao: FunnelChart,
@@ -15,9 +16,14 @@ const chartComponents = {
 };
 
 export default function CustomizableChartsSection() {
-  const { config, loading } = useDashboardConfig();
+  const { config, loading, configVersion } = useDashboardConfig();
 
-  console.log("CustomizableChartsSection - Current config:", config);
+  useEffect(() => {
+    console.log("=== CHARTS SECTION RE-RENDER ===");
+    console.log("Config version:", configVersion);
+    console.log("Current config:", config);
+    console.log("Charts config:", config.charts);
+  }, [config, configVersion]);
 
   if (loading) {
     return (
@@ -33,6 +39,9 @@ export default function CustomizableChartsSection() {
     chartKey => config.charts[chartKey as keyof typeof config.charts]
   );
 
+  console.log("=== CHARTS SECTION RENDER ===");
+  console.log("All charts order:", config.layout.chart_order);
+  console.log("Charts visibility state:", config.charts);
   console.log("Visible Charts:", visibleCharts);
   console.log("Total visible charts count:", visibleCharts.length);
 
@@ -66,7 +75,9 @@ export default function CustomizableChartsSection() {
           );
         }
         
-        return <ChartComponent key={chartKey} />;
+        console.log(`Rendering Chart: ${chartKey}`);
+        
+        return <ChartComponent key={`${chartKey}-${configVersion}`} />;
       })}
     </div>
   );

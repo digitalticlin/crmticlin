@@ -57,6 +57,7 @@ export const useDashboardConfig = () => {
   const [config, setConfig] = useState<DashboardConfig>(defaultConfig);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [configVersion, setConfigVersion] = useState(0); // Force re-renders
   const { user } = useAuth();
   const { companyId } = useCompanyData();
 
@@ -82,7 +83,9 @@ export const useDashboardConfig = () => {
 
       if (data) {
         console.log("Config loaded from database:", data.config_data);
-        setConfig(data.config_data as unknown as DashboardConfig);
+        const newConfig = data.config_data as unknown as DashboardConfig;
+        setConfig(newConfig);
+        setConfigVersion(prev => prev + 1);
       } else {
         console.log("No config found, creating default...");
         await createDefaultConfig();
@@ -108,6 +111,7 @@ export const useDashboardConfig = () => {
       if (error) throw error;
       console.log("Default config created");
       setConfig(defaultConfig);
+      setConfigVersion(prev => prev + 1);
     } catch (error) {
       console.error("Erro ao criar configuração padrão:", error);
     }
@@ -115,10 +119,17 @@ export const useDashboardConfig = () => {
 
   const updateConfig = async (newConfig: Partial<DashboardConfig>) => {
     const updatedConfig = { ...config, ...newConfig };
+    console.log("=== UPDATE CONFIG ===");
+    console.log("Old config:", config);
+    console.log("New config:", updatedConfig);
+    
+    // Update state immediately for instant UI feedback
+    setConfig(updatedConfig);
+    setConfigVersion(prev => prev + 1);
     setSaving(true);
     
     try {
-      console.log("Saving config:", updatedConfig);
+      console.log("Saving config to database:", updatedConfig);
       const { error } = await supabase
         .from('dashboard_configs')
         .upsert({
@@ -129,11 +140,13 @@ export const useDashboardConfig = () => {
 
       if (error) throw error;
 
-      setConfig(updatedConfig);
       console.log("Config saved successfully");
       toast.success("Configurações salvas com sucesso!");
     } catch (error) {
       console.error("Erro ao salvar configuração:", error);
+      // Revert to previous config on error
+      setConfig(config);
+      setConfigVersion(prev => prev + 1);
       toast.error("Erro ao salvar configurações");
     } finally {
       setSaving(false);
@@ -148,6 +161,7 @@ export const useDashboardConfig = () => {
     config,
     loading,
     saving,
+    configVersion,
     updateConfig,
     resetToDefault
   };

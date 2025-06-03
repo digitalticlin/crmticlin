@@ -2,6 +2,7 @@
 import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { useDashboardKPIs } from "@/hooks/dashboard/useDashboardKPIs";
 import KPICard from "./KPICard";
+import { useEffect } from "react";
 
 const kpiConfig = {
   novos_leads: {
@@ -54,10 +55,15 @@ const kpiConfig = {
 };
 
 export function CustomizableKPIGrid() {
-  const { config, loading: configLoading } = useDashboardConfig();
+  const { config, loading: configLoading, configVersion } = useDashboardConfig();
   const { kpis, loading: kpisLoading } = useDashboardKPIs(config.period_filter);
 
-  console.log("CustomizableKPIGrid - Current config:", config);
+  useEffect(() => {
+    console.log("=== KPI GRID RE-RENDER ===");
+    console.log("Config version:", configVersion);
+    console.log("Current config:", config);
+    console.log("KPIs config:", config.kpis);
+  }, [config, configVersion]);
 
   if (configLoading || kpisLoading) {
     return (
@@ -73,6 +79,9 @@ export function CustomizableKPIGrid() {
     kpiKey => config.kpis[kpiKey as keyof typeof config.kpis]
   );
 
+  console.log("=== KPI GRID RENDER ===");
+  console.log("All KPIs order:", config.layout.kpi_order);
+  console.log("KPIs visibility state:", config.kpis);
   console.log("Visible KPIs:", visibleKPIs);
   console.log("Total visible KPIs count:", visibleKPIs.length);
 
@@ -105,9 +114,11 @@ export function CustomizableKPIGrid() {
           return null;
         }
         
+        console.log(`Rendering KPI: ${kpiKey} with value:`, value);
+        
         return (
           <KPICard
-            key={kpiKey}
+            key={`${kpiKey}-${configVersion}`}
             title={kpiData.title}
             value={kpiData.format(value)}
             trend={kpiData.trend}
