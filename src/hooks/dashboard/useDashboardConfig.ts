@@ -79,7 +79,7 @@ export const useDashboardConfig = () => {
       }
 
       if (data) {
-        setConfig(data.config_data as DashboardConfig);
+        setConfig(data.config_data as unknown as DashboardConfig);
       } else {
         // Criar configuração padrão se não existir
         await createDefaultConfig();
