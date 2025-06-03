@@ -11,8 +11,14 @@ export default function DashboardCustomizer() {
   const { config, loading, updateConfig, resetToDefault } = useDashboardConfig();
   const [open, setOpen] = useState(false);
 
+  console.log("DashboardCustomizer render - current config:", config);
+
   const handleKPIToggle = async (kpiKey: keyof DashboardConfig['kpis']) => {
+    console.log("=== KPI TOGGLE START ===");
     console.log("Toggling KPI:", kpiKey);
+    console.log("Current KPI state:", config.kpis[kpiKey]);
+    console.log("New KPI state will be:", !config.kpis[kpiKey]);
+    
     const updatedConfig = {
       ...config,
       kpis: {
@@ -20,11 +26,18 @@ export default function DashboardCustomizer() {
         [kpiKey]: !config.kpis[kpiKey]
       }
     };
+    
+    console.log("Updated config:", updatedConfig);
     await updateConfig(updatedConfig);
+    console.log("=== KPI TOGGLE END ===");
   };
 
   const handleChartToggle = async (chartKey: keyof DashboardConfig['charts']) => {
+    console.log("=== CHART TOGGLE START ===");
     console.log("Toggling Chart:", chartKey);
+    console.log("Current Chart state:", config.charts[chartKey]);
+    console.log("New Chart state will be:", !config.charts[chartKey]);
+    
     const updatedConfig = {
       ...config,
       charts: {
@@ -32,7 +45,10 @@ export default function DashboardCustomizer() {
         [chartKey]: !config.charts[chartKey]
       }
     };
+    
+    console.log("Updated config:", updatedConfig);
     await updateConfig(updatedConfig);
+    console.log("=== CHART TOGGLE END ===");
   };
 
   const handleDragEnd = async (result: DropResult) => {
@@ -43,6 +59,9 @@ export default function DashboardCustomizer() {
     if (source.droppableId === destination.droppableId && source.index === destination.index) {
       return;
     }
+
+    console.log("=== DRAG END START ===");
+    console.log("Drag result:", result);
 
     let updatedConfig = { ...config };
 
@@ -58,6 +77,8 @@ export default function DashboardCustomizer() {
           kpi_order: newKpiOrder
         }
       };
+      
+      console.log("New KPI order:", newKpiOrder);
     } else if (source.droppableId === 'charts-list') {
       const newChartOrder = Array.from(config.layout.chart_order);
       const [removed] = newChartOrder.splice(source.index, 1);
@@ -70,13 +91,19 @@ export default function DashboardCustomizer() {
           chart_order: newChartOrder
         }
       };
+      
+      console.log("New Chart order:", newChartOrder);
     }
 
+    console.log("Updated config after drag:", updatedConfig);
     await updateConfig(updatedConfig);
+    console.log("=== DRAG END END ===");
   };
 
   const handleReset = async () => {
+    console.log("=== RESET START ===");
     await resetToDefault();
+    console.log("=== RESET END ===");
   };
 
   if (loading) return null;
