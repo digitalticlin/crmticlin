@@ -2,15 +2,24 @@
 import { DashboardKPIsWithTrends, defaultKPIs } from "../types/dashboardTypes";
 import { KPICalculatorService } from "./kpiCalculatorService";
 
+// Cache simples para KPIs
+const kpiCache = new Map<string, { data: DashboardKPIsWithTrends; timestamp: number }>();
+const CACHE_TTL = 2 * 60 * 1000; // 2 minutos para KPIs
+
 export class KPILoaderService {
   static async loadKPIs(companyId: string, periodDays: string): Promise<DashboardKPIsWithTrends> {
     try {
-      console.log(`KPILoaderService - Carregando KPIs para empresa ${companyId}, período: ${periodDays} dias`);
-      
       // Validação de entrada
       if (!companyId || !periodDays) {
-        console.warn("KPILoaderService - parâmetros inválidos, retornando dados padrão");
         return defaultKPIs;
+      }
+
+      // Verificar cache primeiro
+      const cacheKey = `${companyId}-${periodDays}`;
+      const cached = kpiCache.get(cacheKey);
+      
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        return cached.data;
       }
 
       const days = parseInt(periodDays) || 30;
@@ -23,25 +32,22 @@ export class KPILoaderService {
       const prevStartDate = new Date();
       prevStartDate.setDate(prevEndDate.getDate() - days);
 
-      console.log(`KPILoaderService - Período atual: ${startDate.toDateString()} até ${endDate.toDateString()}`);
-      console.log(`KPILoaderService - Período anterior: ${prevStartDate.toDateString()} até ${prevEndDate.toDateString()}`);
-
-      // Calcular KPIs para período atual com timeout
+      // Calcular KPIs para período atual com timeout reduzido
       const currentKPIsPromise = KPICalculatorService.calculateKPIsForPeriod(
         companyId, 
         startDate, 
         endDate
       );
 
-      // Timeout de 10 segundos para evitar travamento
+      // Timeout reduzido para 5 segundos
       const currentKPIsRaw = await Promise.race([
         currentKPIsPromise,
         new Promise<any>((_, reject) => 
-          setTimeout(() => reject(new Error('Timeout ao calcular KPIs atuais')), 10000)
+          setTimeout(() => reject(new Error('Timeout ao calcular KPIs atuais')), 5000)
         )
       ]);
 
-      // Garantir que temos a estrutura correta
+      // Garantir estrutura correta
       const currentKPIs = {
         novos_leads: currentKPIsRaw?.novos_leads || 0,
         total_leads: currentKPIsRaw?.total_leads || 0,
@@ -52,9 +58,7 @@ export class KPILoaderService {
         tempo_resposta: currentKPIsRaw?.tempo_resposta || 0,
       };
 
-      console.log("KPILoaderService - KPIs atuais calculados:", currentKPIs);
-
-      // Calcular KPIs para período anterior com timeout
+      // Calcular KPIs anteriores com timeout ainda menor
       let previousKPIs = {
         novos_leads: 0,
         total_leads: 0,
@@ -75,7 +79,7 @@ export class KPILoaderService {
         const previousKPIsRaw = await Promise.race([
           previousKPIsPromise,
           new Promise<any>((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout ao calcular KPIs anteriores')), 8000)
+            setTimeout(() => reject(new Error('Timeout ao calcular KPIs anteriores')), 3000)
           )
         ]);
 
@@ -88,13 +92,11 @@ export class KPILoaderService {
           ticket_medio: previousKPIsRaw?.ticket_medio || 0,
           tempo_resposta: previousKPIsRaw?.tempo_resposta || 0,
         };
-
-        console.log("KPILoaderService - KPIs anteriores calculados:", previousKPIs);
       } catch (error) {
-        console.warn("KPILoaderService - Erro ao calcular KPIs anteriores, usando padrão:", error);
+        // Usar dados padrão se falhar
       }
 
-      // Calcular trends com validação
+      // Calcular trends
       const trends = {
         novos_leads: KPICalculatorService.calculateTrend(
           currentKPIs.novos_leads, 
@@ -131,12 +133,13 @@ export class KPILoaderService {
         trends
       };
 
-      console.log("KPILoaderService - Resultado final:", result);
+      // Salvar no cache
+      kpiCache.set(cacheKey, { data: result, timestamp: Date.now() });
+
       return result;
 
     } catch (error) {
-      console.error("KPILoaderService - Erro no carregamento de KPIs:", error);
-      console.log("KPILoaderService - Retornando dados padrão devido ao erro");
+      console.warn("Erro no carregamento de KPIs:", error);
       return defaultKPIs;
     }
   }

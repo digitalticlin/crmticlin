@@ -1,3 +1,4 @@
+
 import ResponsiveSidebar from "@/components/layout/ResponsiveSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardCustomizer from "@/components/dashboard/customizer/DashboardCustomizer";
@@ -7,8 +8,9 @@ import PeriodFilter from "@/components/dashboard/PeriodFilter";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { memo } from "react";
 
-export default function Dashboard() {
+function Dashboard() {
   const isMobile = useIsMobile();
 
   return (
@@ -90,3 +92,5 @@ export default function Dashboard() {
     </ErrorBoundary>
   );
 }
+
+export default memo(Dashboard);

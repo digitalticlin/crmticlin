@@ -9,11 +9,11 @@ import { useCompanyData } from "@/hooks/useCompanyData";
 import { useUserCompanies } from "@/hooks/useUserCompanies";
 import { useSwitchCompany } from "@/hooks/useSwitchCompany";
 import { useDemoMode } from "@/hooks/dashboard/useDemoMode";
-import { useState } from "react";
+import { useState, memo } from "react";
 
 interface DashboardHeaderProps {}
 
-export default function DashboardHeader({}: DashboardHeaderProps) {
+function DashboardHeader({}: DashboardHeaderProps) {
   const [greeting] = useState(() => {
     const hour = new Date().getHours();
     if (hour < 12) return "Bom dia";
@@ -80,3 +80,5 @@ export default function DashboardHeader({}: DashboardHeaderProps) {
     </div>
   );
 }
+
+export default memo(DashboardHeader);

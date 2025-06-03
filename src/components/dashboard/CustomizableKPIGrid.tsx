@@ -4,7 +4,7 @@ import { useDashboardKPIs } from "@/hooks/dashboard/useDashboardKPIs";
 import { useDemoMode } from "@/hooks/dashboard/useDemoMode";
 import KPICard from "./KPICard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { useMemo } from "react";
+import { useMemo, memo } from "react";
 
 const kpiConfig = {
   novos_leads: {
@@ -52,50 +52,54 @@ const kpiConfig = {
 // KPIs padrão sempre visíveis
 const DEFAULT_KPIS = ['novos_leads', 'total_leads', 'taxa_conversao', 'valor_pipeline'];
 
+// Componente individual memoizado para KPI
+const MemoizedKPICard = memo(({ kpiKey, kpiData, kpiValue, trend }: {
+  kpiKey: string;
+  kpiData: any;
+  kpiValue: number;
+  trend: any;
+}) => (
+  <KPICard
+    title={kpiData.title}
+    value={kpiData.format(kpiValue)}
+    trend={trend}
+    icon={kpiData.icon}
+  />
+));
+
 function KPIGridContent() {
   const { config, loading: configLoading } = useDashboardConfig();
   const { kpis, loading: kpisLoading } = useDashboardKPIs(config?.period_filter || "30");
   const { isDemoMode } = useDemoMode();
 
-  console.log("KPIGridContent - configLoading:", configLoading, "kpisLoading:", kpisLoading);
-  console.log("KPIGridContent - config:", config);
-  console.log("KPIGridContent - kpis:", kpis);
-  console.log("KPIGridContent - isDemoMode:", isDemoMode);
-
   const visibleKPIs = useMemo(() => {
     // Se não há configuração, usar KPIs padrão
-    if (!config || !config.layout || !config.layout.kpi_order) {
-      console.log("Usando KPIs padrão devido à falta de configuração");
-      return DEFAULT_KPIS;
-    }
-    
-    // Se não há KPIs configurados, usar padrão
-    if (!config.kpis) {
-      console.log("Usando KPIs padrão devido à falta de config.kpis");
+    if (!config || !config.layout || !config.layout.kpi_order || !config.kpis) {
       return DEFAULT_KPIS;
     }
     
     // Filtrar KPIs habilitados
     const enabled = config.layout.kpi_order.filter(kpiKey => {
-      const isEnabled = config.kpis[kpiKey as keyof typeof config.kpis];
-      console.log(`KPI ${kpiKey} habilitado:`, isEnabled);
-      return isEnabled;
+      return config.kpis[kpiKey as keyof typeof config.kpis];
     });
     
     // Se nenhum KPI habilitado, usar padrão
-    if (enabled.length === 0) {
-      console.log("Nenhum KPI habilitado, usando padrão");
-      return DEFAULT_KPIS;
-    }
-    
-    return enabled;
+    return enabled.length === 0 ? DEFAULT_KPIS : enabled;
   }, [config]);
 
-  console.log("visibleKPIs final:", visibleKPIs);
+  // Grid dinâmico baseado no número de KPIs
+  const getGridCols = useMemo(() => {
+    const count = visibleKPIs.length;
+    if (count === 1) return "grid-cols-1 max-w-sm mx-auto";
+    if (count === 2) return "grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto";
+    if (count === 3) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
+    if (count <= 4) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4";
+    if (count <= 6) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
+    return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5";
+  }, [visibleKPIs.length]);
 
   // Estados de loading
   if (configLoading || kpisLoading) {
-    console.log("Renderizando estado de loading");
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
         {Array.from({ length: 4 }).map((_, i) => (
@@ -105,29 +109,14 @@ function KPIGridContent() {
     );
   }
 
-  // Grid dinâmico baseado no número de KPIs
-  const getGridCols = (count: number) => {
-    if (count === 1) return "grid-cols-1 max-w-sm mx-auto";
-    if (count === 2) return "grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto";
-    if (count === 3) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
-    if (count <= 4) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4";
-    if (count <= 6) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
-    return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5";
-  };
-
-  console.log("Renderizando grid com", visibleKPIs.length, "KPIs");
-
   return (
-    <div className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6`}>
+    <div className={`grid ${getGridCols} gap-4 md:gap-6`}>
       {visibleKPIs.map((kpiKey) => {
         const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
         
-        if (!kpiData) {
-          console.warn(`KPI config not found for key: ${kpiKey}`);
-          return null;
-        }
+        if (!kpiData) return null;
 
-        // Verificar se a chave existe nos KPIs e garantir que é um número
+        // Verificar se a chave existe nos KPIs
         let kpiValue = 0;
         if (kpis && typeof kpis === 'object' && kpiKey in kpis) {
           const value = kpis[kpiKey as keyof typeof kpis];
@@ -146,8 +135,6 @@ function KPIGridContent() {
             trend = trendValue;
           }
         }
-
-        console.log(`Renderizando KPI ${kpiKey} com valor:`, kpiValue, "trend:", trend);
         
         return (
           <ErrorBoundary 
@@ -158,11 +145,11 @@ function KPIGridContent() {
               </div>
             }
           >
-            <KPICard
-              title={kpiData.title}
-              value={kpiData.format(kpiValue)}
+            <MemoizedKPICard
+              kpiKey={kpiKey}
+              kpiData={kpiData}
+              kpiValue={kpiValue}
               trend={trend}
-              icon={kpiData.icon}
             />
           </ErrorBoundary>
         );
@@ -171,8 +158,7 @@ function KPIGridContent() {
   );
 }
 
-export function CustomizableKPIGrid() {
-  console.log("CustomizableKPIGrid renderizando");
+export const CustomizableKPIGrid = memo(() => {
   return (
     <ErrorBoundary
       fallback={
@@ -194,4 +180,4 @@ export function CustomizableKPIGrid() {
       <KPIGridContent />
     </ErrorBoundary>
   );
-}
+});

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useDemoMode } from "@/hooks/dashboard/useDemoMode";
 import { DashboardKPIsWithTrends, defaultKPIs } from "./types/dashboardTypes";
@@ -17,50 +17,63 @@ export const useDashboardKPIs = (periodDays: string) => {
   const [loading, setLoading] = useState(true);
   const { companyId } = useCompanyData();
   const { isDemoMode, getDemoKPIs } = useDemoMode();
+  
+  // Refs para controlar requests e debounce
+  const loadController = useRef<AbortController | null>(null);
+  const loadTimer = useRef<NodeJS.Timeout | null>(null);
 
-  console.log("useDashboardKPIs - periodDays:", periodDays, "companyId:", companyId, "isDemoMode:", isDemoMode);
+  const loadKPIs = useCallback(async () => {
+    try {
+      if (isDemoMode) {
+        const demoData = getDemoKPIs();
+        setKPIs(demoData);
+        return;
+      }
+
+      if (!companyId) {
+        setKPIs(defaultKPIs);
+        return;
+      }
+
+      const result = await KPILoaderService.loadKPIs(companyId, periodDays);
+      setKPIs(result);
+    } catch (error) {
+      console.warn("Erro no carregamento de KPIs:", error);
+      setKPIs(defaultKPIs);
+    }
+  }, [companyId, periodDays, isDemoMode, getDemoKPIs]);
 
   useEffect(() => {
-    const loadData = async () => {
-      console.log("useDashboardKPIs - iniciando carregamento");
-      setLoading(true);
-      
+    // Debounce para evitar múltiplas chamadas
+    if (loadTimer.current) {
+      clearTimeout(loadTimer.current);
+    }
+
+    // Cancelar request anterior
+    if (loadController.current) {
+      loadController.current.abort();
+    }
+
+    loadController.current = new AbortController();
+    setLoading(true);
+
+    loadTimer.current = setTimeout(async () => {
       try {
-        if (isDemoMode) {
-          console.log("useDashboardKPIs - usando dados de demonstração");
-          const demoData = getDemoKPIs();
-          setKPIs(demoData);
-        } else if (companyId) {
-          console.log("useDashboardKPIs - carregando dados reais para empresa:", companyId);
-          await loadKPIs();
-        } else {
-          console.log("useDashboardKPIs - sem companyId, usando dados padrão");
-          setKPIs(defaultKPIs);
-        }
-      } catch (error) {
-        console.error("useDashboardKPIs - erro no carregamento:", error);
-        setKPIs(defaultKPIs);
+        await loadKPIs();
       } finally {
         setLoading(false);
       }
+    }, 300); // Debounce de 300ms
+
+    return () => {
+      if (loadTimer.current) {
+        clearTimeout(loadTimer.current);
+      }
+      if (loadController.current) {
+        loadController.current.abort();
+      }
     };
-
-    loadData();
-  }, [companyId, periodDays, isDemoMode, getDemoKPIs]);
-
-  const loadKPIs = async () => {
-    try {
-      console.log("useDashboardKPIs - chamando KPILoaderService");
-      const result = await KPILoaderService.loadKPIs(companyId!, periodDays);
-      console.log("useDashboardKPIs - resultado recebido:", result);
-      setKPIs(result);
-    } catch (error) {
-      console.error("useDashboardKPIs - erro no carregamento de KPIs:", error);
-      setKPIs(defaultKPIs);
-    }
-  };
-
-  console.log("useDashboardKPIs - retornando:", { kpis, loading });
+  }, [loadKPIs]);
 
   return { kpis, loading, refresh: loadKPIs };
 };

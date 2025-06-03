@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,61 +53,94 @@ const defaultConfig: DashboardConfig = {
   period_filter: "30"
 };
 
+// Cache simples para configuração
+const configCache = new Map<string, { config: DashboardConfig; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+
 export const useDashboardConfig = () => {
   const [config, setConfig] = useState<DashboardConfig>(defaultConfig);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { user } = useAuth();
   const { companyId } = useCompanyData();
-
-  console.log("useDashboardConfig - user:", !!user, "companyId:", companyId);
+  
+  // Refs para controlar requests e debounce
+  const loadConfigController = useRef<AbortController | null>(null);
+  const saveConfigTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (user && companyId) {
       loadConfig();
     } else {
-      console.log("useDashboardConfig - sem user ou companyId, usando config padrão");
       setLoading(false);
     }
+    
+    return () => {
+      if (loadConfigController.current) {
+        loadConfigController.current.abort();
+      }
+      if (saveConfigTimer.current) {
+        clearTimeout(saveConfigTimer.current);
+      }
+    };
   }, [user, companyId]);
 
   const loadConfig = async () => {
+    if (!user?.id || !companyId) return;
+    
+    // Verificar cache primeiro
+    const cacheKey = `${user.id}-${companyId}`;
+    const cached = configCache.get(cacheKey);
+    
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      setConfig(cached.config);
+      setLoading(false);
+      return;
+    }
+
+    // Cancelar request anterior se existir
+    if (loadConfigController.current) {
+      loadConfigController.current.abort();
+    }
+    
+    loadConfigController.current = new AbortController();
+
     try {
-      console.log("useDashboardConfig - carregando configuração do banco");
-      
       const { data, error } = await supabase
         .from('dashboard_configs')
         .select('config_data')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .eq('company_id', companyId)
+        .abortSignal(loadConfigController.current.signal)
         .maybeSingle();
 
       if (error && error.code !== 'PGRST116') {
-        console.error("Erro ao carregar configuração:", error);
         throw error;
       }
 
+      let finalConfig = defaultConfig;
+      
       if (data && data.config_data) {
-        console.log("useDashboardConfig - configuração carregada:", data.config_data);
         const loadedConfig = data.config_data as unknown as DashboardConfig;
         
-        // Validar e mesclar com configuração padrão para garantir consistência
-        const mergedConfig = {
+        // Validar e mesclar com configuração padrão
+        finalConfig = {
           ...defaultConfig,
           ...loadedConfig,
           kpis: { ...defaultConfig.kpis, ...loadedConfig.kpis },
           charts: { ...defaultConfig.charts, ...loadedConfig.charts },
           layout: { ...defaultConfig.layout, ...loadedConfig.layout }
         };
-        
-        setConfig(mergedConfig);
-      } else {
-        console.log("useDashboardConfig - nenhuma configuração encontrada, usando padrão");
-        setConfig(defaultConfig);
       }
-    } catch (error) {
-      console.error("Erro ao carregar configuração:", error);
-      toast.error("Erro ao carregar configurações do dashboard, usando configuração padrão");
+      
+      // Atualizar cache
+      configCache.set(cacheKey, { config: finalConfig, timestamp: Date.now() });
+      setConfig(finalConfig);
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.warn("Erro ao carregar configuração:", error);
+        toast.error("Erro ao carregar configurações do dashboard");
+      }
       setConfig(defaultConfig);
     } finally {
       setLoading(false);
@@ -117,38 +150,48 @@ export const useDashboardConfig = () => {
   const updateConfig = useCallback(async (newConfig: Partial<DashboardConfig>) => {
     const updatedConfig = { ...config, ...newConfig };
     setConfig(updatedConfig);
-    setSaving(true);
     
-    try {
-      if (!user?.id || !companyId) {
-        console.warn("useDashboardConfig - não é possível salvar sem user ou companyId");
-        return;
-      }
-
-      const { error } = await supabase
-        .from('dashboard_configs')
-        .upsert({
-          user_id: user?.id,
-          company_id: companyId,
-          config_data: updatedConfig as any
-        });
-
-      if (error) throw error;
-      toast.success("Configurações salvas com sucesso!");
-    } catch (error) {
-      console.error("Erro ao salvar configuração:", error);
-      setConfig(config); // Revert on error
-      toast.error("Erro ao salvar configurações");
-    } finally {
-      setSaving(false);
+    // Debounce para salvar
+    if (saveConfigTimer.current) {
+      clearTimeout(saveConfigTimer.current);
     }
+    
+    saveConfigTimer.current = setTimeout(async () => {
+      setSaving(true);
+      
+      try {
+        if (!user?.id || !companyId) {
+          return;
+        }
+
+        const { error } = await supabase
+          .from('dashboard_configs')
+          .upsert({
+            user_id: user.id,
+            company_id: companyId,
+            config_data: updatedConfig as any
+          });
+
+        if (error) throw error;
+        
+        // Atualizar cache
+        const cacheKey = `${user.id}-${companyId}`;
+        configCache.set(cacheKey, { config: updatedConfig, timestamp: Date.now() });
+        
+        toast.success("Configurações salvas!");
+      } catch (error) {
+        console.error("Erro ao salvar configuração:", error);
+        setConfig(config); // Revert on error
+        toast.error("Erro ao salvar configurações");
+      } finally {
+        setSaving(false);
+      }
+    }, 1000); // Debounce de 1 segundo
   }, [config, user?.id, companyId]);
 
   const resetToDefault = async () => {
     await updateConfig(defaultConfig);
   };
-
-  console.log("useDashboardConfig - retornando config:", config, "loading:", loading);
 
   return {
     config,

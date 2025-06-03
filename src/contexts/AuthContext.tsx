@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useRef } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,32 +26,78 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  
+  // Refs para controlar state e evitar múltiplas execuções
+  const isInitialized = useRef(false);
+  const authStateTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounce para mudanças de estado de auth
+  const debounceAuthChange = useCallback((event: string, newSession: Session | null) => {
+    if (authStateTimer.current) {
+      clearTimeout(authStateTimer.current);
+    }
+    
+    authStateTimer.current = setTimeout(() => {
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
+      
+      // Só navegar se já estiver inicializado e for um evento relevante
+      if (isInitialized.current) {
+        if (event === 'SIGNED_OUT') {
+          navigate("/", { replace: true });
+        } else if (event === 'SIGNED_IN' && window.location.pathname === '/') {
+          navigate("/dashboard", { replace: true });
+        }
+      }
+    }, 100);
+  }, [navigate]);
 
   useEffect(() => {
+    let mounted = true;
+    
     // Configurar listener de autenticação PRIMEIRO
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (event === 'SIGNED_OUT') {
-        navigate("/");
-      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        // Usuário acabou de fazer login ou token foi atualizado
-        // Continue na rota atual ou redirecione conforme necessário
-      }
+      if (!mounted) return;
+      debounceAuthChange(event, session);
     });
 
     // ENTÃO verificar se já existe uma sessão
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (!mounted) return;
+        
+        if (error) {
+          console.warn("Erro ao obter sessão:", error);
+          setSession(null);
+          setUser(null);
+        } else {
+          setSession(session);
+          setUser(session?.user ?? null);
+        }
+      } catch (error) {
+        console.warn("Erro na inicialização de auth:", error);
+        setSession(null);
+        setUser(null);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+          isInitialized.current = true;
+        }
+      }
+    };
+
+    initializeAuth();
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
+      if (authStateTimer.current) {
+        clearTimeout(authStateTimer.current);
+      }
     };
-  }, [navigate]);
+  }, []); // Remover navigate das dependências
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -61,7 +107,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw error;
       }
       
-      navigate("/dashboard");
+      // A navegação será feita pelo listener de auth state
     } catch (error: any) {
       toast.error(error.message || "Erro ao fazer login");
       throw error;
@@ -70,12 +116,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signUp = async (email: string, password: string, userData: any) => {
     try {
-      // Certifique-se de que userData não contém nenhum campo company_id vazio
+      // Limpar campos vazios
       if (userData.company_id === "") {
         delete userData.company_id;
       }
       
-      // Definindo o papel de usuário como "admin" por padrão para todos os novos registros
       userData.role = "admin";
       
       const { error } = await supabase.auth.signUp({
@@ -106,7 +151,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         throw error;
       }
       
-      navigate("/");
+      // A navegação será feita pelo listener de auth state
     } catch (error: any) {
       toast.error(error.message || "Erro ao fazer logout");
     }
