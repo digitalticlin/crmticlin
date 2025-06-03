@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -110,14 +111,14 @@ export default function ResponsiveSidebar() {
     return (
       <>
         {/* Mobile Header with Hamburger */}
-        <div className="md:hidden fixed top-0 left-0 right-0 z-50 glass-card h-14 flex items-center px-4 border-b border-white/10">
+        <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 flex items-center px-4 border-b bg-white/20 backdrop-blur-lg border-white/20">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="mr-3 hover:bg-white/10">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-[280px] glass-sidebar border-r border-white/10">
+            <SheetContent side="left" className="p-0 w-[280px] bg-white/20 backdrop-blur-lg border-r border-white/20">
               <div className="h-full flex flex-col">
                 <SidebarContent />
               </div>
@@ -136,7 +137,7 @@ export default function ResponsiveSidebar() {
   return (
     <div
       className={cn(
-        "hidden md:flex h-screen glass-sidebar sticky top-0 left-0 z-30 flex-col transition-all duration-300 border-r border-white/10",
+        "hidden md:flex h-screen sticky top-0 left-0 z-30 flex-col transition-all duration-300 border-r bg-white/20 backdrop-blur-lg border-white/20",
         isCollapsed ? "w-[80px]" : "w-[250px]"
       )}
     >

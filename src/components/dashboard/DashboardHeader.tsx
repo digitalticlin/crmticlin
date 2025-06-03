@@ -30,10 +30,10 @@ export default function DashboardHeader({}: DashboardHeaderProps) {
   const email = user?.email || "";
 
   return (
-    <div className="flex justify-between items-center mb-8">
+    <div className="flex justify-between items-center mb-8 rounded-2xl bg-white/15 backdrop-blur-lg border border-white/20 p-6 shadow-lg">
       <div>
-        <h1 className="text-2xl font-bold">{greeting}, Admin</h1>
-        <p className="text-muted-foreground">Bem-vindo de volta ao seu dashboard</p>
+        <h1 className="text-2xl font-bold text-gray-900">{greeting}, Admin</h1>
+        <p className="text-gray-700 font-medium">Bem-vindo de volta ao seu dashboard</p>
       </div>
       <div className="flex items-center gap-4">
         {/* Botão de tema */}
@@ -42,6 +42,7 @@ export default function DashboardHeader({}: DashboardHeaderProps) {
           size="icon"
           aria-label="Trocar tema"
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+          className="hover:bg-white/20 rounded-xl backdrop-blur-sm"
         >
           {theme === "dark" ? (
             <Sun className="w-5 h-5" />
@@ -51,7 +52,12 @@ export default function DashboardHeader({}: DashboardHeaderProps) {
         </Button>
 
         {/* Botão de notificações */}
-        <Button variant="ghost" size="icon" aria-label="Notificações">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          aria-label="Notificações"
+          className="hover:bg-white/20 rounded-xl backdrop-blur-sm"
+        >
           <Bell className="w-5 h-5" />
         </Button>
 

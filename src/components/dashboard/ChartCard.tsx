@@ -1,6 +1,5 @@
 
 import { ReactNode } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 interface ChartCardProps {
@@ -8,26 +7,21 @@ interface ChartCardProps {
   description?: string;
   children: ReactNode;
   className?: string;
-  action?: ReactNode;
 }
 
-export default function ChartCard({
-  title,
-  description,
-  children,
-  className,
-  action
-}: ChartCardProps) {
+export default function ChartCard({ title, description, children, className }: ChartCardProps) {
   return (
-    <Card className={cn("glass-card border-0 overflow-hidden", className)}>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <div>
-          <CardTitle className="text-lg font-medium">{title}</CardTitle>
-          {description && <p className="text-sm text-muted-foreground">{description}</p>}
-        </div>
-        {action && <div>{action}</div>}
-      </CardHeader>
-      <CardContent className="pt-0">{children}</CardContent>
-    </Card>
+    <div className={cn(
+      "rounded-3xl bg-white/20 backdrop-blur-lg border border-white/20 shadow-2xl p-6 space-y-4 transition-all duration-500 hover:shadow-3xl hover:scale-[1.01] hover:bg-white/25 animate-fade-in",
+      className
+    )}>
+      <div className="space-y-1">
+        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        {description && (
+          <p className="text-sm text-gray-700 font-medium">{description}</p>
+        )}
+      </div>
+      {children}
+    </div>
   );
 }
