@@ -5,154 +5,126 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { SidebarProvider } from "@/contexts/SidebarContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
-import WhatsAppChat from "./pages/WhatsAppChat";
-import SalesFunnel from "./pages/SalesFunnel";
-import Settings from "./pages/Settings";
-import Clients from "./pages/Clients";
-import Team from "./pages/Team";
-import Plans from "./pages/Plans";
-import Automation from "./pages/Automation";
-import AIAgents from "./pages/AIAgents";
-import Integration from "./pages/Integration";
 import Register from "./pages/Register";
+import Dashboard from "./pages/Dashboard";
+import SalesFunnel from "./pages/SalesFunnel";
+import WhatsAppChat from "./pages/WhatsAppChat";
+import Clients from "./pages/Clients";
+import Automation from "./pages/Automation";
+import Integration from "./pages/Integration";
+import AIAgents from "./pages/AIAgents";
+import Plans from "./pages/Plans";
+import Settings from "./pages/Settings";
+import Team from "./pages/Team";
 import GlobalAdmin from "./pages/GlobalAdmin";
-import ConfirmEmail from "./pages/ConfirmEmail";
-import ConfirmEmailInstructions from "./pages/ConfirmEmailInstructions";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import ConfirmEmail from "./pages/ConfirmEmail";
+import ConfirmEmailInstructions from "./pages/ConfirmEmailInstructions";
 import VPSDiagnostic from "./pages/VPSDiagnostic";
 import NotFound from "./pages/NotFound";
-import "./App.css";
 
 const queryClient = new QueryClient();
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <BrowserRouter>
-          <AuthProvider>
+      <AuthProvider>
+        <SidebarProvider>
+          <TooltipProvider>
             <Toaster />
             <Sonner />
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/confirm-email" element={<ConfirmEmail />} />
-              <Route path="/confirm-email-instructions" element={<ConfirmEmailInstructions />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route
-                path="/dashboard"
-                element={
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/confirm-email" element={<ConfirmEmail />} />
+                <Route path="/confirm-email-instructions" element={<ConfirmEmailInstructions />} />
+                
+                <Route path="/dashboard" element={
                   <ProtectedRoute>
                     <Dashboard />
                   </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/chat"
-                element={
-                  <ProtectedRoute>
-                    <WhatsAppChat />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/whatsapp-chat"
-                element={
-                  <ProtectedRoute>
-                    <WhatsAppChat />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/sales-funnel"
-                element={
+                } />
+                
+                <Route path="/sales-funnel" element={
                   <ProtectedRoute>
                     <SalesFunnel />
                   </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/settings"
-                element={
+                } />
+                
+                <Route path="/chat" element={
                   <ProtectedRoute>
-                    <Settings />
+                    <WhatsAppChat />
                   </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/clients"
-                element={
+                } />
+                
+                <Route path="/clients" element={
                   <ProtectedRoute>
                     <Clients />
                   </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/team"
-                element={
-                  <ProtectedRoute>
-                    <Team />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/plans"
-                element={
-                  <ProtectedRoute>
-                    <Plans />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/automation"
-                element={
+                } />
+                
+                <Route path="/automation" element={
                   <ProtectedRoute>
                     <Automation />
                   </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/ai-agents"
-                element={
-                  <ProtectedRoute>
-                    <AIAgents />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/integration"
-                element={
+                } />
+                
+                <Route path="/integration" element={
                   <ProtectedRoute>
                     <Integration />
                   </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/global-admin"
-                element={
+                } />
+                
+                <Route path="/ai-agents" element={
+                  <ProtectedRoute>
+                    <AIAgents />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/plans" element={
+                  <ProtectedRoute>
+                    <Plans />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/settings" element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/team" element={
+                  <ProtectedRoute>
+                    <Team />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/global-admin" element={
                   <ProtectedRoute>
                     <GlobalAdmin />
                   </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/vps-diagnostic"
-                element={
+                } />
+                
+                <Route path="/vps-diagnostic" element={
                   <ProtectedRoute>
                     <VPSDiagnostic />
                   </ProtectedRoute>
-                }
-              />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
+                } />
+                
+                <Route path="/404" element={<NotFound />} />
+                <Route path="*" element={<Navigate to="/404" replace />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </SidebarProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

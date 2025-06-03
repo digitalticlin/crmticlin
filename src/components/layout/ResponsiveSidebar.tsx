@@ -21,9 +21,10 @@ import SidebarLogo from "./SidebarLogo";
 import SidebarNavGroup from "./SidebarNavGroup";
 import SidebarFooter from "./SidebarFooter";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSidebar } from "@/contexts/SidebarContext";
 
 export default function ResponsiveSidebar() {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isCollapsed, toggleSidebar } = useSidebar();
   const [mobileOpen, setMobileOpen] = useState(false);
   const isMobile = useIsMobile();
 
@@ -102,7 +103,7 @@ export default function ResponsiveSidebar() {
       </div>
       <SidebarFooter 
         isCollapsed={isCollapsed && !isMobile} 
-        toggleCollapse={() => setIsCollapsed(!isCollapsed)} 
+        toggleCollapse={toggleSidebar} 
       />
     </>
   );

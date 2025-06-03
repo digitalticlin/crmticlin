@@ -7,11 +7,19 @@ import CustomizableChartsSection from "@/components/dashboard/CustomizableCharts
 import PeriodFilter from "@/components/dashboard/PeriodFilter";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSidebar } from "@/contexts/SidebarContext";
 import { cn } from "@/lib/utils";
 import { memo } from "react";
 
 function Dashboard() {
   const isMobile = useIsMobile();
+  const { isCollapsed } = useSidebar();
+
+  // Calcular margem baseada no estado do sidebar
+  const getMainMargin = () => {
+    if (isMobile) return "ml-0";
+    return isCollapsed ? "ml-[80px]" : "ml-[250px]";
+  };
 
   return (
     <ErrorBoundary>
@@ -41,10 +49,10 @@ function Dashboard() {
         {/* Sidebar fixo */}
         <ResponsiveSidebar />
         
-        {/* Conteúdo principal com margem lateral para o sidebar fixo */}
+        {/* Conteúdo principal com margem lateral dinâmica para o sidebar */}
         <div className={cn(
-          "relative z-10",
-          isMobile ? "ml-0" : "ml-[250px]" // Espaço para sidebar no desktop
+          "relative z-10 transition-all duration-300",
+          getMainMargin()
         )}>
           <main className="h-screen overflow-auto">
             <div className={cn(

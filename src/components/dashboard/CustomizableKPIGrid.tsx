@@ -85,15 +85,32 @@ function KPIGridContent() {
     return enabled.length === 0 ? DEFAULT_KPIS : enabled;
   }, [config]);
 
-  // Grid dinâmico baseado no número de KPIs
+  // Grid dinâmico melhorado com largura máxima e breakpoints otimizados
   const getGridCols = useMemo(() => {
     const count = visibleKPIs.length;
-    if (count === 1) return "grid-cols-1 max-w-sm mx-auto";
-    if (count === 2) return "grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto";
-    if (count === 3) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3";
-    if (count <= 4) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4";
-    if (count <= 6) return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
-    return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5";
+    
+    // Base classes com container máximo
+    let baseClasses = "w-full mx-auto";
+    
+    // Telas pequenas (mobile): máximo 1-2 colunas
+    if (count === 1) {
+      return `${baseClasses} grid-cols-1 max-w-sm`;
+    }
+    if (count === 2) {
+      return `${baseClasses} grid-cols-1 sm:grid-cols-2 max-w-2xl`;
+    }
+    if (count === 3) {
+      return `${baseClasses} grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 max-w-4xl`;
+    }
+    if (count <= 4) {
+      return `${baseClasses} grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 max-w-6xl`;
+    }
+    if (count <= 6) {
+      return `${baseClasses} grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 max-w-7xl`;
+    }
+    
+    // Máximo 5 colunas em telas ultrawide com container limitado
+    return `${baseClasses} grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 max-w-7xl`;
   }, [visibleKPIs.length]);
 
   // Estados de loading - sempre mostrar pelo menos os KPIs padrão
@@ -166,7 +183,7 @@ export const CustomizableKPIGrid = memo(() => {
   return (
     <ErrorBoundary
       fallback={
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-6xl mx-auto">
           {DEFAULT_KPIS.map((kpiKey) => {
             const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
             return (
