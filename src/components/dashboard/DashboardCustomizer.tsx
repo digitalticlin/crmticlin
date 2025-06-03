@@ -3,9 +3,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
-import { Settings, RotateCcw, Eye, EyeOff } from "lucide-react";
+import { Settings, RotateCcw, Eye, EyeOff, GripVertical } from "lucide-react";
 import { useDashboardConfig, DashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { Separator } from "@/components/ui/separator";
+import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautiful-dnd";
 
 const kpiLabels = {
   novos_leads: "Novos Leads",
@@ -47,6 +48,42 @@ export default function DashboardCustomizer() {
         [chartKey]: !prev.charts[chartKey]
       }
     }));
+  };
+
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+
+    const { source, destination, draggableId } = result;
+    
+    if (source.droppableId === destination.droppableId && source.index === destination.index) {
+      return;
+    }
+
+    if (source.droppableId === 'kpis-list') {
+      const newKpiOrder = Array.from(tempConfig.layout.kpi_order);
+      const [removed] = newKpiOrder.splice(source.index, 1);
+      newKpiOrder.splice(destination.index, 0, removed);
+
+      setTempConfig(prev => ({
+        ...prev,
+        layout: {
+          ...prev.layout,
+          kpi_order: newKpiOrder
+        }
+      }));
+    } else if (source.droppableId === 'charts-list') {
+      const newChartOrder = Array.from(tempConfig.layout.chart_order);
+      const [removed] = newChartOrder.splice(source.index, 1);
+      newChartOrder.splice(destination.index, 0, removed);
+
+      setTempConfig(prev => ({
+        ...prev,
+        layout: {
+          ...prev.layout,
+          chart_order: newChartOrder
+        }
+      }));
+    }
   };
 
   const handleSave = async () => {
@@ -115,99 +152,151 @@ export default function DashboardCustomizer() {
             </p>
           </SheetHeader>
 
-          <div className="flex-1 px-8 pb-8 space-y-8 overflow-y-auto">
-            {/* KPIs Section */}
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent rounded-3xl blur-sm"></div>
-              <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-6 border border-white/20 shadow-2xl">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-[#D3D800] to-yellow-500 rounded-xl flex items-center justify-center shadow-lg">
-                    <span className="text-gray-900 font-bold text-lg">📊</span>
-                  </div>
-                  <h3 className="text-xl font-bold text-white">Principais</h3>
-                </div>
-                
-                <div className="space-y-4">
-                  {Object.entries(kpiLabels).map(([key, label]) => (
-                    <div key={key} className="group relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-[#D3D800]/20 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
-                      <div className="relative flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-[#D3D800]/30 transition-all duration-300">
-                        <Label htmlFor={key} className="text-base font-medium text-white cursor-pointer group-hover:text-[#D3D800] transition-colors">
-                          {label}
-                        </Label>
-                        <button
-                          onClick={() => handleKPIToggle(key as keyof DashboardConfig['kpis'])}
-                          className="p-2 rounded-xl hover:bg-white/20 transition-all duration-300 hover:scale-110 active:scale-95"
-                        >
-                          {tempConfig.kpis[key as keyof DashboardConfig['kpis']] ? (
-                            <Eye className="w-6 h-6 text-[#D3D800] drop-shadow-lg" />
-                          ) : (
-                            <EyeOff className="w-6 h-6 text-white/40 hover:text-white/60" />
-                          )}
-                        </button>
-                      </div>
+          <DragDropContext onDragEnd={handleDragEnd}>
+            <div className="flex-1 px-8 pb-8 space-y-8 overflow-y-auto">
+              {/* KPIs Section */}
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent rounded-3xl blur-sm"></div>
+                <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-6 border border-white/20 shadow-2xl">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-gradient-to-br from-[#D3D800] to-yellow-500 rounded-xl flex items-center justify-center shadow-lg">
+                      <span className="text-gray-900 font-bold text-lg">📊</span>
                     </div>
-                  ))}
+                    <h3 className="text-xl font-bold text-white">Principais</h3>
+                  </div>
+                  
+                  <Droppable droppableId="kpis-list">
+                    {(provided, snapshot) => (
+                      <div
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}
+                        className={`space-y-4 ${snapshot.isDraggingOver ? 'bg-white/5 rounded-2xl p-2' : ''}`}
+                      >
+                        {tempConfig.layout.kpi_order.map((key, index) => (
+                          <Draggable key={key} draggableId={key} index={index}>
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className={`group relative ${snapshot.isDragging ? 'z-50' : ''}`}
+                              >
+                                <div className="absolute inset-0 bg-gradient-to-r from-[#D3D800]/20 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+                                <div className={`relative flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-[#D3D800]/30 transition-all duration-300 ${snapshot.isDragging ? 'bg-white/20 shadow-2xl scale-105' : ''}`}>
+                                  <div className="flex items-center gap-3">
+                                    <div
+                                      {...provided.dragHandleProps}
+                                      className="p-1 rounded-lg hover:bg-white/20 transition-all duration-300 cursor-grab active:cursor-grabbing"
+                                    >
+                                      <GripVertical className="w-4 h-4 text-white/60 hover:text-[#D3D800]" />
+                                    </div>
+                                    <Label htmlFor={key} className="text-base font-medium text-white cursor-pointer group-hover:text-[#D3D800] transition-colors">
+                                      {kpiLabels[key as keyof typeof kpiLabels]}
+                                    </Label>
+                                  </div>
+                                  <button
+                                    onClick={() => handleKPIToggle(key as keyof DashboardConfig['kpis'])}
+                                    className="p-2 rounded-xl hover:bg-white/20 transition-all duration-300 hover:scale-110 active:scale-95"
+                                  >
+                                    {tempConfig.kpis[key as keyof DashboardConfig['kpis']] ? (
+                                      <Eye className="w-6 h-6 text-[#D3D800] drop-shadow-lg" />
+                                    ) : (
+                                      <EyeOff className="w-6 h-6 text-white/40 hover:text-white/60" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
                 </div>
               </div>
-            </div>
 
-            <Separator className="bg-gradient-to-r from-transparent via-[#D3D800]/50 to-transparent h-[2px]" />
+              <Separator className="bg-gradient-to-r from-transparent via-[#D3D800]/50 to-transparent h-[2px]" />
 
-            {/* Charts Section */}
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent rounded-3xl blur-sm"></div>
-              <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-6 border border-white/20 shadow-2xl">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-br from-[#D3D800] to-yellow-500 rounded-xl flex items-center justify-center shadow-lg">
-                    <span className="text-gray-900 font-bold text-lg">📈</span>
-                  </div>
-                  <h3 className="text-xl font-bold text-white">Gráficos</h3>
-                </div>
-                
-                <div className="space-y-4">
-                  {Object.entries(chartLabels).map(([key, label]) => (
-                    <div key={key} className="group relative">
-                      <div className="absolute inset-0 bg-gradient-to-r from-[#D3D800]/20 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
-                      <div className="relative flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-[#D3D800]/30 transition-all duration-300">
-                        <Label htmlFor={key} className="text-base font-medium text-white cursor-pointer group-hover:text-[#D3D800] transition-colors">
-                          {label}
-                        </Label>
-                        <button
-                          onClick={() => handleChartToggle(key as keyof DashboardConfig['charts'])}
-                          className="p-2 rounded-xl hover:bg-white/20 transition-all duration-300 hover:scale-110 active:scale-95"
-                        >
-                          {tempConfig.charts[key as keyof DashboardConfig['charts']] ? (
-                            <Eye className="w-6 h-6 text-[#D3D800] drop-shadow-lg" />
-                          ) : (
-                            <EyeOff className="w-6 h-6 text-white/40 hover:text-white/60" />
-                          )}
-                        </button>
-                      </div>
+              {/* Charts Section */}
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-white/5 to-transparent rounded-3xl blur-sm"></div>
+                <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-6 border border-white/20 shadow-2xl">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 bg-gradient-to-br from-[#D3D800] to-yellow-500 rounded-xl flex items-center justify-center shadow-lg">
+                      <span className="text-gray-900 font-bold text-lg">📈</span>
                     </div>
-                  ))}
+                    <h3 className="text-xl font-bold text-white">Gráficos</h3>
+                  </div>
+                  
+                  <Droppable droppableId="charts-list">
+                    {(provided, snapshot) => (
+                      <div
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}
+                        className={`space-y-4 ${snapshot.isDraggingOver ? 'bg-white/5 rounded-2xl p-2' : ''}`}
+                      >
+                        {tempConfig.layout.chart_order.map((key, index) => (
+                          <Draggable key={key} draggableId={key} index={index}>
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                className={`group relative ${snapshot.isDragging ? 'z-50' : ''}`}
+                              >
+                                <div className="absolute inset-0 bg-gradient-to-r from-[#D3D800]/20 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+                                <div className={`relative flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-[#D3D800]/30 transition-all duration-300 ${snapshot.isDragging ? 'bg-white/20 shadow-2xl scale-105' : ''}`}>
+                                  <div className="flex items-center gap-3">
+                                    <div
+                                      {...provided.dragHandleProps}
+                                      className="p-1 rounded-lg hover:bg-white/20 transition-all duration-300 cursor-grab active:cursor-grabbing"
+                                    >
+                                      <GripVertical className="w-4 h-4 text-white/60 hover:text-[#D3D800]" />
+                                    </div>
+                                    <Label htmlFor={key} className="text-base font-medium text-white cursor-pointer group-hover:text-[#D3D800] transition-colors">
+                                      {chartLabels[key as keyof typeof chartLabels]}
+                                    </Label>
+                                  </div>
+                                  <button
+                                    onClick={() => handleChartToggle(key as keyof DashboardConfig['charts'])}
+                                    className="p-2 rounded-xl hover:bg-white/20 transition-all duration-300 hover:scale-110 active:scale-95"
+                                  >
+                                    {tempConfig.charts[key as keyof DashboardConfig['charts']] ? (
+                                      <Eye className="w-6 h-6 text-[#D3D800] drop-shadow-lg" />
+                                    ) : (
+                                      <EyeOff className="w-6 h-6 text-white/40 hover:text-white/60" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
                 </div>
               </div>
-            </div>
 
-            {/* Actions */}
-            <div className="flex justify-between gap-4 pt-4">
-              <Button 
-                variant="outline" 
-                onClick={() => setOpen(false)}
-                className="flex-1 bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/30 backdrop-blur-lg rounded-2xl font-medium transition-all duration-300 hover:scale-105 py-6"
-              >
-                Cancelar
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={handleSave}
-                className="flex-1 bg-white/10 border border-[#D3D800]/30 text-[#D3D800] hover:bg-[#D3D800]/20 hover:border-[#D3D800]/50 backdrop-blur-lg rounded-2xl font-medium transition-all duration-300 hover:scale-105 py-6"
-              >
-                Salvar
-              </Button>
+              {/* Actions */}
+              <div className="flex justify-between gap-4 pt-4">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setOpen(false)}
+                  className="flex-1 bg-white/10 border-white/20 text-white hover:bg-white/20 hover:border-white/30 backdrop-blur-lg rounded-2xl font-medium transition-all duration-300 hover:scale-105 py-6"
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={handleSave}
+                  className="flex-1 bg-white/10 border border-[#D3D800]/30 text-[#D3D800] hover:bg-[#D3D800]/20 hover:border-[#D3D800]/50 backdrop-blur-lg rounded-2xl font-medium transition-all duration-300 hover:scale-105 py-6"
+                >
+                  Salvar
+                </Button>
+              </div>
             </div>
-          </div>
+          </DragDropContext>
         </div>
       </SheetContent>
     </Sheet>
