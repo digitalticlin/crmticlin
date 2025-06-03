@@ -19,7 +19,7 @@ export default function ChartCard({
   action
 }: ChartCardProps) {
   return (
-    <Card className={cn("glass-card border-0 overflow-hidden", className)}>
+    <Card className={cn("shadow-sm", className)}>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <div>
           <CardTitle className="text-lg font-medium">{title}</CardTitle>

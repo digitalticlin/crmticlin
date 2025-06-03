@@ -21,10 +21,7 @@ export default function StatCard({
 }: StatCardProps) {
   return (
     <Card 
-      className={cn(
-        "overflow-hidden glass-card border-0", 
-        className
-      )} 
+      className={cn("shadow-sm", className)} 
       {...props}
     >
       <div className="flex h-full">

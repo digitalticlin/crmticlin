@@ -44,7 +44,6 @@ export function ModernClientsLayout({
         onSelectClient={onSelectClient} 
       />
       
-      {/* Client Details Sheet */}
       {selectedClient && (
         <ClientDetails
           client={selectedClient}
@@ -57,7 +56,6 @@ export function ModernClientsLayout({
         />
       )}
       
-      {/* Add/Edit Client Dialog */}
       <ClientDialogs
         selectedClient={selectedClient}
         isFormOpen={isFormOpen}

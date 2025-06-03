@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -26,7 +27,6 @@ export default function ResponsiveSidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const isMobile = useIsMobile();
 
-  // Close mobile sidebar when route changes
   useEffect(() => {
     setMobileOpen(false);
   }, []);
@@ -109,15 +109,14 @@ export default function ResponsiveSidebar() {
   if (isMobile) {
     return (
       <>
-        {/* Mobile Header with Hamburger */}
-        <div className="md:hidden fixed top-0 left-0 right-0 z-50 glass-card h-14 flex items-center px-4 border-b border-white/10">
+        <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 h-14 flex items-center px-4 border-b shadow-sm">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="mr-3 hover:bg-white/10">
+              <Button variant="ghost" size="icon" className="mr-3">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0 w-[280px] glass-sidebar border-r border-white/10">
+            <SheetContent side="left" className="p-0 w-[280px] bg-white dark:bg-gray-900 border-r">
               <div className="h-full flex flex-col">
                 <SidebarContent />
               </div>
@@ -126,17 +125,15 @@ export default function ResponsiveSidebar() {
           <SidebarLogo isCollapsed={false} />
         </div>
         
-        {/* Mobile spacing */}
         <div className="h-14 md:hidden" />
       </>
     );
   }
 
-  // Desktop sidebar
   return (
     <div
       className={cn(
-        "hidden md:flex h-screen glass-sidebar sticky top-0 left-0 z-30 flex-col transition-all duration-300 border-r border-white/10",
+        "hidden md:flex h-screen bg-white dark:bg-gray-900 sticky top-0 left-0 z-30 flex-col transition-all duration-300 border-r shadow-sm",
         isCollapsed ? "w-[80px]" : "w-[250px]"
       )}
     >

@@ -10,7 +10,7 @@ interface PageLayoutProps {
 
 export function PageLayout({ children, className }: PageLayoutProps) {
   return (
-    <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 overflow-hidden">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
       <ResponsiveSidebar />
       <main className={cn("flex-1 overflow-auto", className)}>
         <div className="p-4 md:p-6 space-y-6 md:space-y-8">
