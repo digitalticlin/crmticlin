@@ -51,22 +51,22 @@ const LoginForm = () => {
 
   return (
     <div className="w-full rounded-3xl bg-white/30 backdrop-blur-lg border border-white/20 shadow-2xl overflow-hidden transition-all duration-500 hover:shadow-3xl hover:scale-[1.02] hover:bg-white/35">
-      {/* Logo Section with Gradient Background */}
-      <div className="relative">
-        {/* Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-b from-yellow-400 via-gray-800 to-transparent h-32"></div>
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white h-32"></div>
+      {/* Logo Section with Brand Background */}
+      <div className="relative bg-gradient-to-br from-ticlin-400 via-ticlin-500 to-ticlin-600 p-8">
+        {/* Subtle overlay pattern */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,rgba(255,255,255,0.1)_0%,transparent_50%)] opacity-60"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(0,0,0,0.1)_0%,transparent_40%)] opacity-40"></div>
         
         {/* Logo Content */}
-        <div className="relative z-10 space-y-4 text-center animate-scale-in p-8">
+        <div className="relative z-10 space-y-4 text-center animate-scale-in">
           <div className="mb-6 flex justify-center">
             <div className="relative">
               <img
                 src="/lovable-uploads/c78e93c7-b1d1-4d36-a00e-3d5e9e5c1234.png"
                 alt="Ticlin CRM"
-                className="h-14 transition-transform duration-300 hover:scale-110 filter brightness-0 invert"
+                className="h-14 transition-transform duration-300 hover:scale-110 drop-shadow-lg"
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-white/10 opacity-20 rounded-lg blur-lg"></div>
+              <div className="absolute inset-0 bg-white/10 opacity-20 rounded-lg blur-lg"></div>
             </div>
           </div>
           
@@ -77,10 +77,13 @@ const LoginForm = () => {
             Entre com suas credenciais para continuar
           </p>
         </div>
+        
+        {/* Bottom fade effect */}
+        <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white/30 to-transparent"></div>
       </div>
 
       {/* Form Section */}
-      <div className="p-8 pt-0 space-y-8">
+      <div className="p-8 pt-6 space-y-8">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
