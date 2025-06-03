@@ -5,7 +5,7 @@ import FunnelChart from "./charts/FunnelChart";
 import PerformanceChart from "./charts/PerformanceChart";
 import TagsChart from "./charts/TagsChart";
 import DistributionChart from "./charts/DistributionChart";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 const chartComponents = {
   funil_conversao: FunnelChart,
@@ -18,12 +18,26 @@ const chartComponents = {
 export default function CustomizableChartsSection() {
   const { config, loading, configVersion } = useDashboardConfig();
 
+  // Use useMemo to recalculate visible charts when config changes
+  const visibleCharts = useMemo(() => {
+    const visible = config.layout.chart_order.filter(
+      chartKey => config.charts[chartKey as keyof typeof config.charts]
+    );
+    console.log("=== CHARTS SECTION MEMOIZED CALCULATION ===");
+    console.log("Config version:", configVersion);
+    console.log("All charts order:", config.layout.chart_order);
+    console.log("Charts visibility state:", config.charts);
+    console.log("Visible Charts:", visible);
+    return visible;
+  }, [config, configVersion]);
+
   useEffect(() => {
     console.log("=== CHARTS SECTION RE-RENDER ===");
     console.log("Config version:", configVersion);
     console.log("Current config:", config);
     console.log("Charts config:", config.charts);
-  }, [config, configVersion]);
+    console.log("Visible Charts count:", visibleCharts.length);
+  }, [config, configVersion, visibleCharts]);
 
   if (loading) {
     return (
@@ -34,16 +48,6 @@ export default function CustomizableChartsSection() {
       </div>
     );
   }
-
-  const visibleCharts = config.layout.chart_order.filter(
-    chartKey => config.charts[chartKey as keyof typeof config.charts]
-  );
-
-  console.log("=== CHARTS SECTION RENDER ===");
-  console.log("All charts order:", config.layout.chart_order);
-  console.log("Charts visibility state:", config.charts);
-  console.log("Visible Charts:", visibleCharts);
-  console.log("Total visible charts count:", visibleCharts.length);
 
   if (visibleCharts.length === 0) {
     return (
