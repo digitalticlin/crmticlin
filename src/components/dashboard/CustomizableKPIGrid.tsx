@@ -1,7 +1,6 @@
 
 import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { useDashboardKPIs } from "@/hooks/dashboard/useDashboardKPIs";
-import { useDemoMode } from "@/hooks/dashboard/useDemoMode";
 import KPICard from "./KPICard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useMemo, memo } from "react";
@@ -70,7 +69,6 @@ const MemoizedKPICard = memo(({ kpiKey, kpiData, kpiValue, trend }: {
 function KPIGridContent() {
   const { config } = useDashboardConfig();
   const { kpis, loading } = useDashboardKPIs(config?.period_filter || "30");
-  const { isDemoMode } = useDemoMode();
 
   const visibleKPIs = useMemo(() => {
     // Se não há configuração, usar KPIs padrão
@@ -98,13 +96,19 @@ function KPIGridContent() {
     return "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5";
   }, [visibleKPIs.length]);
 
-  // Estados de loading
-  if (loading && !kpis) {
+  // Estados de loading - sempre mostrar pelo menos os KPIs padrão
+  if (loading && (!kpis || !kpis.novos_leads)) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-32 bg-white/20 rounded-3xl animate-pulse" />
-        ))}
+      <div className={`grid ${getGridCols} gap-4 md:gap-6`}>
+        {visibleKPIs.map((kpiKey) => {
+          const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
+          
+          if (!kpiData) return null;
+
+          return (
+            <div key={kpiKey} className="h-32 bg-white/20 rounded-3xl animate-pulse" />
+          );
+        })}
       </div>
     );
   }

@@ -1,7 +1,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useCompanyData } from "@/hooks/useCompanyData";
-import { useDemoMode } from "@/hooks/dashboard/useDemoMode";
 import { DashboardKPIsWithTrends, defaultKPIs } from "./types/dashboardTypes";
 import { KPILoaderService } from "./services/kpiLoaderService";
 
@@ -16,16 +15,9 @@ export const useDashboardKPIs = (periodDays: string) => {
   const [kpis, setKPIs] = useState<DashboardKPIsWithTrends>(defaultKPIs);
   const [loading, setLoading] = useState(false);
   const { companyId } = useCompanyData();
-  const { isDemoMode, getDemoKPIs } = useDemoMode();
 
   const loadKPIs = useCallback(async () => {
     try {
-      if (isDemoMode) {
-        const demoData = getDemoKPIs();
-        setKPIs(demoData);
-        return;
-      }
-
       if (!companyId) {
         setKPIs(defaultKPIs);
         return;
@@ -37,7 +29,7 @@ export const useDashboardKPIs = (periodDays: string) => {
       console.warn("Erro no carregamento de KPIs:", error);
       setKPIs(defaultKPIs);
     }
-  }, [companyId, periodDays, isDemoMode, getDemoKPIs]);
+  }, [companyId, periodDays]);
 
   useEffect(() => {
     setLoading(true);

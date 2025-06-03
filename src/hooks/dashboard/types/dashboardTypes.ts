@@ -38,9 +38,9 @@ export const defaultKPIs: DashboardKPIsWithTrends = {
     novos_leads: { value: 0, isPositive: true },
     total_leads: { value: 0, isPositive: true },
     taxa_conversao: { value: 0, isPositive: true },
-    taxa_perda: { value: 0, isPositive: false },
+    taxa_perda: { value: 0, isPositive: true },
     valor_pipeline: { value: 0, isPositive: true },
     ticket_medio: { value: 0, isPositive: true },
-    tempo_resposta: { value: 0, isPositive: false },
+    tempo_resposta: { value: 0, isPositive: true },
   }
 };
