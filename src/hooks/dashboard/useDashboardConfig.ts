@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -19,7 +18,6 @@ export interface DashboardConfig {
     funil_conversao: boolean;
     performance_vendedores: boolean;
     evolucao_temporal: boolean;
-    distribuicao_fonte: boolean;
     leads_etiquetas: boolean;
   };
   layout: {
@@ -43,12 +41,11 @@ const defaultConfig: DashboardConfig = {
     funil_conversao: true,
     performance_vendedores: true,
     evolucao_temporal: true,
-    distribuicao_fonte: true,
     leads_etiquetas: true
   },
   layout: {
     kpi_order: ["novos_leads", "total_leads", "taxa_conversao", "taxa_perda", "valor_pipeline", "ticket_medio", "tempo_resposta"],
-    chart_order: ["funil_conversao", "performance_vendedores", "evolucao_temporal", "distribuicao_fonte", "leads_etiquetas"]
+    chart_order: ["funil_conversao", "performance_vendedores", "evolucao_temporal", "leads_etiquetas"]
   },
   period_filter: "30"
 };

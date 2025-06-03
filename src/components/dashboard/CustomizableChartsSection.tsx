@@ -4,19 +4,11 @@ import ChartsSection from "./ChartsSection";
 import FunnelChart from "./charts/FunnelChart";
 import PerformanceChart from "./charts/PerformanceChart";
 import TagsChart from "./charts/TagsChart";
-import ChartCard from "./ChartCard";
 
 const chartComponents = {
   funil_conversao: FunnelChart,
   performance_vendedores: PerformanceChart,
-  evolucao_temporal: () => <ChartsSection />, // Mantém o gráfico existente
-  distribuicao_fonte: () => (
-    <ChartCard title="Distribuição por Fonte" description="Em desenvolvimento">
-      <div className="h-80 flex items-center justify-center text-gray-500">
-        Gráfico de distribuição por fonte será implementado em breve
-      </div>
-    </ChartCard>
-  ),
+  evolucao_temporal: () => <ChartsSection />,
   leads_etiquetas: TagsChart
 };
 

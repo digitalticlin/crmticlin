@@ -22,7 +22,6 @@ const chartLabels = {
   funil_conversao: "Funil de Conversão",
   performance_vendedores: "Performance de Vendedores",
   evolucao_temporal: "Evolução Temporal",
-  distribuicao_fonte: "Distribuição por Fonte",
   leads_etiquetas: "Leads por Etiquetas"
 };
 
