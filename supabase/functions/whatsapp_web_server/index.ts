@@ -48,8 +48,22 @@ serve(async (req) => {
       );
     }
 
-    const { action, instanceData, vpsAction } = requestBody;
+    const { action, instanceData, vpsAction, phoneFilter, targetCompanyName } = requestBody;
     console.log('[WhatsApp Server] 🎯 Action extracted:', action);
+
+    // NOVO: Action para correção de vinculação de instância
+    if (action === 'correct_instance_binding') {
+      console.log('[WhatsApp Server] 🔧 CORREÇÃO DE VINCULAÇÃO INICIADA');
+      const { correctInstanceBinding } = await import('./instanceCorrectionService.ts');
+      return await correctInstanceBinding(supabase, phoneFilter, targetCompanyName);
+    }
+
+    // NOVO: Action para auditoria de vinculações
+    if (action === 'audit_instance_bindings') {
+      console.log('[WhatsApp Server] 🔍 AUDITORIA DE VINCULAÇÕES INICIADA');
+      const { auditInstanceBindings } = await import('./instanceCorrectionService.ts');
+      return await auditInstanceBindings(supabase);
+    }
 
     // NOVO: Action para diagnóstico VPS
     if (action === 'diagnose_vps') {
@@ -181,7 +195,8 @@ serve(async (req) => {
               'create_instance', 'delete_instance', 'get_status', 'get_qr_code', 
               'refresh_qr_code', 'check_server', 'sync_instances', 
               'list_all_instances_global', 'cleanup_orphan_instances', 
-              'mass_reconnect_instances', 'diagnose_vps', 'emergency_sync'
+              'mass_reconnect_instances', 'diagnose_vps', 'emergency_sync',
+              'correct_instance_binding', 'audit_instance_bindings'
             ]
           }),
           { 
