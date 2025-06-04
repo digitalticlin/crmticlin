@@ -38,6 +38,8 @@ export const unifiedLeads: KanbanLead[] = [
     tags: [
       { id: "tag-1", name: "Novo", color: "bg-blue-400" },
       { id: "tag-2", name: "Urgente", color: "bg-red-400" },
+      { id: "tag-9", name: "Lead Quente", color: "bg-pink-400" },
+      { id: "tag-10", name: "Premium", color: "bg-indigo-400" }
     ],
     columnId: FIXED_COLUMN_IDS.NEW_LEAD,
     notes: "Cliente interessado em planos corporativos",
@@ -65,7 +67,10 @@ export const unifiedLeads: KanbanLead[] = [
     lastMessageTime: "14:30",
     tags: [
       { id: "tag-9", name: "Lead Quente", color: "bg-pink-400" },
-      { id: "tag-10", name: "Premium", color: "bg-indigo-400" }
+      { id: "tag-10", name: "Premium", color: "bg-indigo-400" },
+      { id: "tag-13", name: "Corporativo", color: "bg-slate-400" },
+      { id: "tag-17", name: "Agência", color: "bg-sky-400" },
+      { id: "tag-6", name: "VIP", color: "bg-yellow-400" }
     ],
     columnId: FIXED_COLUMN_IDS.NEW_LEAD,
     notes: "Interessada em planos premium para empresa",
@@ -108,7 +113,8 @@ export const unifiedLeads: KanbanLead[] = [
     lastMessageTime: "12:20",
     tags: [
       { id: "tag-6", name: "VIP", color: "bg-yellow-400" },
-      { id: "tag-12", name: "Retorno", color: "bg-cyan-400" }
+      { id: "tag-12", name: "Retorno", color: "bg-cyan-400" },
+      { id: "tag-7", name: "2ª Compra", color: "bg-emerald-400" }
     ],
     columnId: "column-2",
     notes: "Cliente VIP, segunda compra este ano",
@@ -139,6 +145,7 @@ export const unifiedLeads: KanbanLead[] = [
     tags: [
       { id: "tag-4", name: "Reunião", color: "bg-green-400" },
       { id: "tag-5", name: "Desconto", color: "bg-amber-400" },
+      { id: "tag-8", name: "Preço Alto", color: "bg-orange-400" }
     ],
     columnId: "column-3",
     notes: "Negociando desconto, reunião agendada",
@@ -152,7 +159,9 @@ export const unifiedLeads: KanbanLead[] = [
     lastMessageTime: "10:30",
     tags: [
       { id: "tag-14", name: "E-commerce", color: "bg-violet-400" },
-      { id: "tag-2", name: "Urgente", color: "bg-red-400" }
+      { id: "tag-2", name: "Urgente", color: "bg-red-400" },
+      { id: "tag-16", name: "Startup", color: "bg-lime-400" },
+      { id: "tag-19", name: "Saúde", color: "bg-emerald-500" }
     ],
     columnId: "column-3", 
     notes: "E-commerce, precisa implementar rapidamente",

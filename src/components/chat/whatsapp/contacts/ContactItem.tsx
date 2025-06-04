@@ -41,42 +41,42 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
     <>
       <div
         className={cn(
-          "p-4 rounded-2xl hover:bg-white/20 cursor-pointer transition-all duration-200 relative group",
+          "p-3 rounded-2xl hover:bg-white/20 cursor-pointer transition-all duration-200 relative group",
           isSelected && "bg-white/25 shadow-lg ring-2 ring-white/30"
         )}
         onClick={() => onSelect(contact)}
       >
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-3">
           <div className="relative">
-            <Avatar className="h-14 w-14 ring-2 ring-white/20">
-              <AvatarFallback className="bg-gradient-to-br from-green-500 to-green-600 text-white text-lg font-semibold">
+            <Avatar className="h-12 w-12 ring-2 ring-white/20">
+              <AvatarFallback className="bg-gradient-to-br from-green-500 to-green-600 text-white text-base font-semibold">
                 {contact.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
               </AvatarFallback>
               <AvatarImage src={contact.avatar} alt={contact.name} />
             </Avatar>
             {contact.isOnline && (
-              <div className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-green-500 border-2 border-white shadow-sm" />
+              <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full bg-green-500 border-2 border-white shadow-sm" />
             )}
           </div>
           
           <div className="flex-1 min-w-0">
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="font-semibold text-gray-900 truncate text-lg">{contact.name}</h3>
+            <div className="flex justify-between items-start mb-1">
+              <h3 className="font-semibold text-gray-900 truncate text-base">{contact.name}</h3>
               <div className="flex items-center gap-2 ml-2">
                 {contact.lastMessageTime && (
-                  <span className="text-sm text-gray-600 whitespace-nowrap font-medium">
+                  <span className="text-xs text-gray-600 whitespace-nowrap font-medium">
                     {formatLastMessageTime(contact.lastMessageTime)}
                   </span>
                 )}
               </div>
             </div>
             
-            <div className="flex justify-between items-center mb-2">
+            <div className="flex justify-between items-center mb-1">
               <p className="text-sm text-gray-700 truncate flex-1 leading-relaxed">
                 {contact.lastMessage || "Clique para conversar"}
               </p>
               
-              {/* Corrigir condição do badge - só mostrar se unreadCount for maior que 0 */}
+              {/* Só mostrar badge se unreadCount existir e for maior que 0 */}
               {contact.unreadCount && Number(contact.unreadCount) > 0 && (
                 <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs px-2 py-1 rounded-full ml-2 shadow-sm">
                   {Number(contact.unreadCount) > 99 ? '99+' : contact.unreadCount}
@@ -84,30 +84,32 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
               )}
             </div>
             
-            {/* Tags do Lead - Forçar uma linha só */}
+            {/* Tags do Lead - Forçar uma linha só com largura limitada */}
             {contact.tags && contact.tags.length > 0 && (
-              <div className="flex items-center gap-1 mt-2 overflow-hidden whitespace-nowrap max-w-full">
-                {contact.tags.slice(0, 2).map((tag, index) => (
-                  <Badge 
-                    key={index}
-                    variant="outline" 
-                    className={cn(
-                      "text-xs border backdrop-blur-[2px] shadow-md font-semibold flex-shrink-0 max-w-[80px] truncate",
-                      getTagColor(tag)
-                    )}
-                  >
-                    {tag}
-                  </Badge>
-                ))}
-                {contact.tags.length > 2 && (
-                  <Badge 
-                    variant="outline" 
-                    className="text-xs border-white/20 text-black bg-white/30 backdrop-blur-[2px] shadow-md cursor-pointer hover:bg-white/40 transition-colors flex-shrink-0"
-                    onClick={handleTagsPlusClick}
-                  >
-                    +{contact.tags.length - 2}
-                  </Badge>
-                )}
+              <div className="flex items-center gap-1 mt-1 overflow-hidden">
+                <div className="flex items-center gap-1 min-w-0 flex-1">
+                  {contact.tags.slice(0, 2).map((tag, index) => (
+                    <Badge 
+                      key={index}
+                      variant="outline" 
+                      className={cn(
+                        "text-xs border backdrop-blur-[2px] shadow-md font-semibold flex-shrink-0 max-w-[70px] truncate",
+                        getTagColor(tag)
+                      )}
+                    >
+                      {tag}
+                    </Badge>
+                  ))}
+                  {contact.tags.length > 2 && (
+                    <Badge 
+                      variant="outline" 
+                      className="text-xs border-white/20 text-black bg-white/30 backdrop-blur-[2px] shadow-md cursor-pointer hover:bg-white/40 transition-colors flex-shrink-0"
+                      onClick={handleTagsPlusClick}
+                    >
+                      +{contact.tags.length - 2}
+                    </Badge>
+                  )}
+                </div>
               </div>
             )}
             
