@@ -9,15 +9,26 @@ export async function authenticateRequest(req: Request, supabase: any) {
 
   const token = authHeader.replace('Bearer ', '');
   
-  console.log('[Auth] Validating token...');
+  console.log('[Auth] Validating token...', {
+    tokenLength: token.length,
+    tokenPreview: `${token.substring(0, 20)}...`
+  });
   
   const { data: { user }, error } = await supabase.auth.getUser(token);
   
   if (error || !user) {
-    console.error('[Auth] Invalid token:', error?.message);
+    console.error('[Auth] Invalid token details:', {
+      error: error?.message,
+      hasUser: !!user,
+      userSub: user?.id || 'missing'
+    });
     throw new Error('Invalid authentication token');
   }
 
-  console.log(`[Auth] User authenticated: ${user.id}`);
+  console.log(`[Auth] User authenticated successfully:`, {
+    userId: user.id,
+    email: user.email
+  });
+  
   return user;
 }

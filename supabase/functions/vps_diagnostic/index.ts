@@ -25,11 +25,13 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Verificar autenticação
+    // Capturar o token original do usuário
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('Authorization header required');
     }
+
+    console.log('[VPS Diagnostic] 🔐 Token de usuário capturado para repasse');
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(
       authHeader.replace('Bearer ', '')
@@ -69,7 +71,8 @@ serve(async (req) => {
         break;
       
       case 'full_flow':
-        results.details = await testFullFlow(vpsAction || 'check_server');
+        console.log('[VPS Diagnostic] 🔄 Chamando whatsapp_web_server com token do usuário');
+        results.details = await testFullFlow(vpsAction || 'check_server', authHeader);
         break;
       
       default:
@@ -396,7 +399,7 @@ async function testVPSServices() {
   }
 }
 
-async function testFullFlow(action: string) {
+async function testFullFlow(action: string, userAuthHeader: string) {
   console.log(`[VPS Diagnostic] 🔄 Testando fluxo completo: ${action}`);
   
   const startTime = Date.now();
@@ -409,13 +412,22 @@ async function testFullFlow(action: string) {
   };
 
   try {
-    // Simular chamada completa via Edge Function whatsapp_web_server
+    // Criar cliente Supabase usando token do usuário (não SERVICE_ROLE)
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: {
+            'Authorization': userAuthHeader
+          }
+        }
+      }
     );
 
     result.flow_steps.push({ step: 'edge_function_invocation', timestamp: new Date().toISOString() });
+
+    console.log('[VPS Diagnostic] 📞 Chamando whatsapp_web_server com token do usuário...');
 
     const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
       body: {
