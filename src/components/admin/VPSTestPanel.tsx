@@ -14,6 +14,7 @@ import { VPSDeepInvestigation } from "./vps/VPSDeepInvestigation";
 import { VPSVersionDiagnostic } from "./vps/VPSVersionDiagnostic";
 import { VPSComprehensiveDiagnostic } from "./vps/VPSComprehensiveDiagnostic";
 import { VPSMessageTester } from "./vps/VPSMessageTester";
+import { VPSTokenDiscovery } from "./vps/VPSTokenDiscovery";
 
 export const VPSTestPanel = () => {
   return (
@@ -21,10 +22,13 @@ export const VPSTestPanel = () => {
       {/* Deploy Inteligente - Primeira seção */}
       <AutoDeployButton />
 
-      {/* NOVO: Diagnóstico Abrangente - FERRAMENTA PRINCIPAL */}
+      {/* NOVO: Descoberta de Token WhatsApp - FERRAMENTA PRINCIPAL */}
+      <VPSTokenDiscovery />
+
+      {/* Diagnóstico Abrangente */}
       <VPSComprehensiveDiagnostic />
 
-      {/* NOVO: Teste de Mensagens em Tempo Real */}
+      {/* Teste de Mensagens em Tempo Real */}
       <VPSMessageTester />
 
       {/* Diagnóstico de Versão */}

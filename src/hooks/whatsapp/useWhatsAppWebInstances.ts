@@ -166,6 +166,7 @@ export const useWhatsAppWebInstances = () => {
     createInstance,
     deleteInstance,
     refreshQRCode,
+    fetchInstances, // AGORA INCLUÍDO NO RETORNO
     refetch: fetchInstances, // Add refetch alias
     
     // QR Modal state
