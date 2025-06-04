@@ -52,20 +52,20 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
     }
   };
 
-  // Fetch messages for selected contact
-  const fetchMessages = async (contact: Contact) => {
-    if (!activeInstance || !contact || !isMountedRef.current) {
+  // Fetch messages for selected contact - fixed to use current selectedContact
+  const fetchMessages = async () => {
+    if (!activeInstance || !selectedContact || !isMountedRef.current) {
       return;
     }
 
     try {
       setIsLoadingMessages(true);
-      console.log('[useWhatsAppWebChat] Fetching messages for contact:', contact.id);
+      console.log('[useWhatsAppWebChat] Fetching messages for contact:', selectedContact.id);
 
       const { data: messagesData, error } = await supabase
         .from('messages')
         .select('*')
-        .eq('lead_id', contact.id)
+        .eq('lead_id', selectedContact.id)
         .eq('whatsapp_number_id', activeInstance.id)
         .order('timestamp', { ascending: true });
 
@@ -116,9 +116,7 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
       console.log('[useWhatsAppWebChat] Message sent successfully');
       
       // Refresh messages after sending
-      if (selectedContact) {
-        setTimeout(() => fetchMessages(selectedContact), 1000);
-      }
+      setTimeout(() => fetchMessages(), 1000);
     } catch (error) {
       console.error('[useWhatsAppWebChat] Error in sendMessage:', error);
       throw error;
@@ -139,7 +137,7 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
   // Load messages when selected contact changes
   useEffect(() => {
     if (selectedContact) {
-      fetchMessages(selectedContact);
+      fetchMessages();
     } else {
       setMessages([]);
     }
@@ -164,7 +162,7 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
         (payload) => {
           console.log('[useWhatsAppWebChat] New message realtime:', payload.eventType);
           if (isMountedRef.current) {
-            fetchMessages(selectedContact);
+            fetchMessages();
           }
         }
       )
