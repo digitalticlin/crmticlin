@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Search, Filter, MoreVertical } from "lucide-react";
+import { Search, Menu, PenSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -31,18 +31,26 @@ export const WhatsAppChatFilters = ({
   ];
 
   return (
-    <div className="p-6 border-b border-white/10 space-y-4">
+    <div className="p-4 border-b border-white/10 space-y-3">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900">Conversas</h1>
-        <div className="flex items-center gap-2">
+        <h1 className="text-xl font-medium text-gray-900">Conversas</h1>
+        <div className="flex items-center gap-1">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="w-8 h-8 rounded-full hover:bg-white/20 transition-colors"
+          >
+            <PenSquare className="h-4 w-4 text-gray-700" />
+          </Button>
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="ghost" 
                 size="icon"
-                className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
+                className="w-8 h-8 rounded-full hover:bg-white/20 transition-colors"
               >
-                <Filter className="h-5 w-5 text-gray-700" />
+                <Menu className="h-4 w-4 text-gray-700" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-white/90 backdrop-blur-md border-white/30">
@@ -57,23 +65,15 @@ export const WhatsAppChatFilters = ({
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors"
-          >
-            <MoreVertical className="h-5 w-5 text-gray-700" />
-          </Button>
         </div>
       </div>
       
-      {/* Search Bar Moderno */}
+      {/* Search Bar Sutil */}
       <div className="relative">
-        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-500" />
         <Input
-          placeholder="Pesquisar conversas..."
-          className="pl-12 bg-white/20 backdrop-blur-sm border-white/30 text-gray-900 placeholder-gray-600 focus:bg-white/30 focus:border-white/40 h-12 rounded-xl"
+          placeholder="Pesquisar ou começar uma nova conversa"
+          className="pl-10 bg-white/15 backdrop-blur-sm border-white/20 text-gray-900 placeholder-gray-600 focus:bg-white/25 focus:border-white/30 h-10 rounded-lg text-sm"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
         />

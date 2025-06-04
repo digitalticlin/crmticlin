@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { SubtleScrollArea } from "@/components/ui/subtle-scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -96,7 +96,7 @@ export const WhatsAppContactsList = ({
             <LoadingSpinner size="lg" />
           </div>
         ) : (
-          <ScrollArea className="h-full">
+          <SubtleScrollArea className="h-full">
             <div className="p-2 space-y-1">
               {filteredContacts.map((contact) => (
                 <div
@@ -198,7 +198,7 @@ export const WhatsAppContactsList = ({
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </SubtleScrollArea>
         )}
       </div>
     </div>
