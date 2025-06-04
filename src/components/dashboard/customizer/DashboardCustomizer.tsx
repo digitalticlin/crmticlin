@@ -17,17 +17,18 @@ export default function DashboardCustomizer() {
     console.log("=== KPI TOGGLE START ===");
     console.log("Toggling KPI:", kpiKey);
     console.log("Current KPI state:", config.kpis[kpiKey]);
-    console.log("New KPI state will be:", !config.kpis[kpiKey]);
+    
+    const newKpiState = !config.kpis[kpiKey];
+    console.log("New KPI state will be:", newKpiState);
     
     const updatedConfig = {
-      ...config,
       kpis: {
         ...config.kpis,
-        [kpiKey]: !config.kpis[kpiKey]
+        [kpiKey]: newKpiState
       }
     };
     
-    console.log("Updated config:", updatedConfig);
+    console.log("Updated KPI config:", updatedConfig);
     await updateConfig(updatedConfig);
     console.log("=== KPI TOGGLE END ===");
   };
@@ -36,68 +37,76 @@ export default function DashboardCustomizer() {
     console.log("=== CHART TOGGLE START ===");
     console.log("Toggling Chart:", chartKey);
     console.log("Current Chart state:", config.charts[chartKey]);
-    console.log("New Chart state will be:", !config.charts[chartKey]);
+    
+    const newChartState = !config.charts[chartKey];
+    console.log("New Chart state will be:", newChartState);
     
     const updatedConfig = {
-      ...config,
       charts: {
         ...config.charts,
-        [chartKey]: !config.charts[chartKey]
+        [chartKey]: newChartState
       }
     };
     
-    console.log("Updated config:", updatedConfig);
+    console.log("Updated Chart config:", updatedConfig);
     await updateConfig(updatedConfig);
     console.log("=== CHART TOGGLE END ===");
   };
 
   const handleDragEnd = async (result: DropResult) => {
-    if (!result.destination) return;
+    if (!result.destination) {
+      console.log("Drag cancelled - no destination");
+      return;
+    }
 
     const { source, destination } = result;
     
     if (source.droppableId === destination.droppableId && source.index === destination.index) {
+      console.log("Drag cancelled - same position");
       return;
     }
 
     console.log("=== DRAG END START ===");
     console.log("Drag result:", result);
+    console.log("Source:", source);
+    console.log("Destination:", destination);
 
-    let updatedConfig = { ...config };
+    try {
+      if (source.droppableId === 'kpis-list') {
+        const newKpiOrder = [...config.layout.kpi_order];
+        const [removed] = newKpiOrder.splice(source.index, 1);
+        newKpiOrder.splice(destination.index, 0, removed);
 
-    if (source.droppableId === 'kpis-list') {
-      const newKpiOrder = Array.from(config.layout.kpi_order);
-      const [removed] = newKpiOrder.splice(source.index, 1);
-      newKpiOrder.splice(destination.index, 0, removed);
+        console.log("Old KPI order:", config.layout.kpi_order);
+        console.log("New KPI order:", newKpiOrder);
 
-      updatedConfig = {
-        ...updatedConfig,
-        layout: {
-          ...updatedConfig.layout,
-          kpi_order: newKpiOrder
-        }
-      };
+        await updateConfig({
+          layout: {
+            ...config.layout,
+            kpi_order: newKpiOrder
+          }
+        });
+        
+      } else if (source.droppableId === 'charts-list') {
+        const newChartOrder = [...config.layout.chart_order];
+        const [removed] = newChartOrder.splice(source.index, 1);
+        newChartOrder.splice(destination.index, 0, removed);
+
+        console.log("Old Chart order:", config.layout.chart_order);
+        console.log("New Chart order:", newChartOrder);
+
+        await updateConfig({
+          layout: {
+            ...config.layout,
+            chart_order: newChartOrder
+          }
+        });
+      }
       
-      console.log("New KPI order:", newKpiOrder);
-    } else if (source.droppableId === 'charts-list') {
-      const newChartOrder = Array.from(config.layout.chart_order);
-      const [removed] = newChartOrder.splice(source.index, 1);
-      newChartOrder.splice(destination.index, 0, removed);
-
-      updatedConfig = {
-        ...updatedConfig,
-        layout: {
-          ...updatedConfig.layout,
-          chart_order: newChartOrder
-        }
-      };
-      
-      console.log("New Chart order:", newChartOrder);
+      console.log("=== DRAG END SUCCESS ===");
+    } catch (error) {
+      console.error("=== DRAG END ERROR ===", error);
     }
-
-    console.log("Updated config after drag:", updatedConfig);
-    await updateConfig(updatedConfig);
-    console.log("=== DRAG END END ===");
   };
 
   const handleReset = async () => {

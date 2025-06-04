@@ -5,7 +5,7 @@ import FunnelChart from "./charts/FunnelChart";
 import PerformanceChart from "./charts/PerformanceChart";
 import TagsChart from "./charts/TagsChart";
 import DistributionChart from "./charts/DistributionChart";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 
 const chartComponents = {
   funil_conversao: FunnelChart,
@@ -18,26 +18,23 @@ const chartComponents = {
 export default function CustomizableChartsSection() {
   const { config, loading, configVersion } = useDashboardConfig();
 
-  // Use useMemo to recalculate visible charts when config changes
+  // Memoizar a lista de gráficos visíveis baseada na configuração
   const visibleCharts = useMemo(() => {
     const visible = config.layout.chart_order.filter(
       chartKey => config.charts[chartKey as keyof typeof config.charts]
     );
-    console.log("=== CHARTS SECTION MEMOIZED CALCULATION ===");
+    console.log("=== CHARTS SECTION VISIBLE CALCULATION ===");
     console.log("Config version:", configVersion);
     console.log("All charts order:", config.layout.chart_order);
     console.log("Charts visibility state:", config.charts);
     console.log("Visible Charts:", visible);
     return visible;
-  }, [config, configVersion]);
+  }, [config.layout.chart_order, config.charts, configVersion]);
 
-  useEffect(() => {
-    console.log("=== CHARTS SECTION RE-RENDER ===");
-    console.log("Config version:", configVersion);
-    console.log("Current config:", config);
-    console.log("Charts config:", config.charts);
-    console.log("Visible Charts count:", visibleCharts.length);
-  }, [config, configVersion, visibleCharts]);
+  console.log("=== CHARTS SECTION RENDER ===");
+  console.log("Config version:", configVersion);
+  console.log("Visible Charts count:", visibleCharts.length);
+  console.log("Loading state:", loading);
 
   if (loading) {
     return (

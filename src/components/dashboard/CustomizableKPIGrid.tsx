@@ -2,7 +2,7 @@
 import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { useDashboardKPIs } from "@/hooks/dashboard/useDashboardKPIs";
 import KPICard from "./KPICard";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 
 const kpiConfig = {
   novos_leads: {
@@ -58,26 +58,23 @@ export function CustomizableKPIGrid() {
   const { config, loading: configLoading, configVersion } = useDashboardConfig();
   const { kpis, loading: kpisLoading } = useDashboardKPIs(config.period_filter);
 
-  // Use useMemo to recalculate visible KPIs when config changes
+  // Memoizar a lista de KPIs visíveis baseada na configuração
   const visibleKPIs = useMemo(() => {
     const visible = config.layout.kpi_order.filter(
       kpiKey => config.kpis[kpiKey as keyof typeof config.kpis]
     );
-    console.log("=== KPI GRID MEMOIZED CALCULATION ===");
+    console.log("=== KPI GRID VISIBLE CALCULATION ===");
     console.log("Config version:", configVersion);
     console.log("All KPIs order:", config.layout.kpi_order);
     console.log("KPIs visibility state:", config.kpis);
     console.log("Visible KPIs:", visible);
     return visible;
-  }, [config, configVersion]);
+  }, [config.layout.kpi_order, config.kpis, configVersion]);
 
-  useEffect(() => {
-    console.log("=== KPI GRID RE-RENDER ===");
-    console.log("Config version:", configVersion);
-    console.log("Current config:", config);
-    console.log("KPIs config:", config.kpis);
-    console.log("Visible KPIs count:", visibleKPIs.length);
-  }, [config, configVersion, visibleKPIs]);
+  console.log("=== KPI GRID RENDER ===");
+  console.log("Config version:", configVersion);
+  console.log("Visible KPIs count:", visibleKPIs.length);
+  console.log("Loading states - config:", configLoading, "kpis:", kpisLoading);
 
   if (configLoading || kpisLoading) {
     return (

@@ -15,7 +15,14 @@ interface DraggableItemProps {
 
 export const DraggableItem = React.forwardRef<HTMLDivElement, DraggableItemProps>(
   ({ dragHandleProps, isDragging, isEnabled, label, onToggle, ...props }, ref) => {
-    console.log("DraggableItem render:", { label, isEnabled, isDragging });
+    console.log(`DraggableItem [${label}] render:`, { isEnabled, isDragging });
+    
+    const handleToggleClick = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      console.log(`Toggle clicked for: ${label}, current state: ${isEnabled}, will become: ${!isEnabled}`);
+      onToggle();
+    };
     
     return (
       <div
@@ -37,10 +44,8 @@ export const DraggableItem = React.forwardRef<HTMLDivElement, DraggableItemProps
             </Label>
           </div>
           <button
-            onClick={() => {
-              console.log("Toggle clicked for:", label, "current state:", isEnabled);
-              onToggle();
-            }}
+            type="button"
+            onClick={handleToggleClick}
             className="p-2 rounded-xl hover:bg-white/20 transition-all duration-300 hover:scale-110 active:scale-95"
           >
             {isEnabled ? (

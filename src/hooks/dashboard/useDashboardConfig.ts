@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -60,6 +60,21 @@ export const useDashboardConfig = () => {
   const [configVersion, setConfigVersion] = useState(0);
   const { user } = useAuth();
   const { companyId } = useCompanyData();
+  
+  // Refs para controle de state e debounce
+  const pendingUpdatesRef = useRef<Partial<DashboardConfig> | null>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (user && companyId) {
@@ -69,7 +84,7 @@ export const useDashboardConfig = () => {
 
   const loadConfig = async () => {
     try {
-      console.log("Loading dashboard config...");
+      console.log("=== LOADING CONFIG ===");
       const { data, error } = await supabase
         .from('dashboard_configs')
         .select('config_data')
@@ -81,12 +96,12 @@ export const useDashboardConfig = () => {
         throw error;
       }
 
-      if (data) {
+      if (data && isMountedRef.current) {
         console.log("Config loaded from database:", data.config_data);
-        const newConfig = data.config_data as unknown as DashboardConfig;
-        setConfig(newConfig);
-        setConfigVersion(Date.now()); // Use timestamp for unique version
-      } else {
+        const loadedConfig = data.config_data as unknown as DashboardConfig;
+        setConfig(loadedConfig);
+        setConfigVersion(Date.now());
+      } else if (isMountedRef.current) {
         console.log("No config found, creating default...");
         await createDefaultConfig();
       }
@@ -94,7 +109,9 @@ export const useDashboardConfig = () => {
       console.error("Erro ao carregar configuração:", error);
       toast.error("Erro ao carregar configurações do dashboard");
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -109,50 +126,76 @@ export const useDashboardConfig = () => {
         });
 
       if (error) throw error;
-      console.log("Default config created");
-      setConfig(defaultConfig);
-      setConfigVersion(Date.now());
+      
+      if (isMountedRef.current) {
+        console.log("Default config created");
+        setConfig(defaultConfig);
+        setConfigVersion(Date.now());
+      }
     } catch (error) {
       console.error("Erro ao criar configuração padrão:", error);
     }
   };
 
-  const updateConfig = async (newConfig: Partial<DashboardConfig>) => {
-    const updatedConfig = { ...config, ...newConfig };
-    console.log("=== UPDATE CONFIG ===");
-    console.log("Old config:", config);
-    console.log("New config:", updatedConfig);
+  const debouncedSave = useCallback(async (configToSave: DashboardConfig) => {
+    if (!isMountedRef.current) return;
     
-    // Update state immediately and force re-render with new version
-    setConfig(updatedConfig);
-    const newVersion = Date.now();
-    setConfigVersion(newVersion);
     setSaving(true);
     
     try {
-      console.log("Saving config to database:", updatedConfig);
+      console.log("=== SAVING CONFIG ===", configToSave);
       const { error } = await supabase
         .from('dashboard_configs')
         .upsert({
           user_id: user?.id,
           company_id: companyId,
-          config_data: updatedConfig as any
+          config_data: configToSave as any
         });
 
       if (error) throw error;
 
-      console.log("Config saved successfully with version:", newVersion);
+      console.log("Config saved successfully");
       toast.success("Configurações salvas com sucesso!");
     } catch (error) {
       console.error("Erro ao salvar configuração:", error);
-      // Revert to previous config on error
-      setConfig(config);
-      setConfigVersion(Date.now());
       toast.error("Erro ao salvar configurações");
     } finally {
-      setSaving(false);
+      if (isMountedRef.current) {
+        setSaving(false);
+      }
     }
-  };
+  }, [user?.id, companyId]);
+
+  const updateConfig = useCallback(async (newConfig: Partial<DashboardConfig>) => {
+    if (!isMountedRef.current) return;
+    
+    const updatedConfig = { ...config, ...newConfig };
+    
+    console.log("=== UPDATE CONFIG IMMEDIATE ===");
+    console.log("Old config:", config);
+    console.log("New config updates:", newConfig);
+    console.log("Final config:", updatedConfig);
+    
+    // Atualização imediata do estado para UI responsiva
+    setConfig(updatedConfig);
+    const newVersion = Date.now();
+    setConfigVersion(newVersion);
+    
+    // Debounce para salvar no banco
+    pendingUpdatesRef.current = updatedConfig;
+    
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    saveTimeoutRef.current = setTimeout(() => {
+      if (pendingUpdatesRef.current && isMountedRef.current) {
+        debouncedSave(pendingUpdatesRef.current);
+        pendingUpdatesRef.current = null;
+      }
+    }, 300); // Debounce de 300ms
+    
+  }, [config, debouncedSave]);
 
   const resetToDefault = async () => {
     await updateConfig(defaultConfig);
