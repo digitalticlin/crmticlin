@@ -16,12 +16,14 @@ export const useActiveWhatsAppInstance = (companyId: string | null) => {
     const fetchActiveInstance = async () => {
       setLoading(true);
       try {
+        console.log('[useActiveWhatsAppInstance] Fetching active instance for company:', companyId);
+
         const { data, error } = await supabase
           .from('whatsapp_instances')
           .select('*')
           .eq('company_id', companyId)
           .eq('connection_type', 'web')
-          .eq('connection_status', 'connected')
+          .eq('connection_status', 'open') // CORRIGIDO: Usar 'open' ao invés de 'connected'
           .order('created_at', { ascending: false })
           .limit(1);
 
@@ -29,6 +31,13 @@ export const useActiveWhatsAppInstance = (companyId: string | null) => {
 
         if (data && data.length > 0) {
           const instance = data[0];
+          console.log('[useActiveWhatsAppInstance] ✅ Active instance found:', {
+            id: instance.id,
+            instanceName: instance.instance_name,
+            status: instance.connection_status,
+            phone: instance.phone
+          });
+
           setActiveInstance({
             id: instance.id,
             instance_name: instance.instance_name,
@@ -43,10 +52,11 @@ export const useActiveWhatsAppInstance = (companyId: string | null) => {
             company_id: instance.company_id
           });
         } else {
+          console.log('[useActiveWhatsAppInstance] ❌ No active instance found');
           setActiveInstance(null);
         }
       } catch (error) {
-        console.error('Error fetching active WhatsApp instance:', error);
+        console.error('[useActiveWhatsAppInstance] ❌ Error fetching active instance:', error);
         setActiveInstance(null);
       } finally {
         setLoading(false);

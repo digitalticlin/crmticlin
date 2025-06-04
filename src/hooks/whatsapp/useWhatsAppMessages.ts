@@ -73,7 +73,7 @@ export const useWhatsAppMessages = (
       });
 
       const result = await WhatsAppWebService.sendMessage(
-        activeInstance.id, // CORRIGIDO: Passar activeInstance.id em vez de vps_instance_id
+        activeInstance.id, // CORRIGIDO: Usar activeInstance.id correto
         selectedContact.phone, 
         text
       );

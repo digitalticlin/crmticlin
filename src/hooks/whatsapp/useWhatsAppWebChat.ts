@@ -114,6 +114,7 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
   const sendMessage = useCallback(async (text: string): Promise<boolean> => {
     if (!selectedContact || !activeInstance || !text.trim()) {
       console.warn('[WhatsApp Web Chat] Cannot send message: missing data');
+      toast.error('Dados insuficientes para envio');
       return false;
     }
 
@@ -152,16 +153,16 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
       if (result.success) {
         console.log('[WhatsApp Web Chat] ✅ Message sent successfully');
         
-        // Remover mensagem otimista e buscar mensagens reais
+        // Remover mensagem otimista
         setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
         
         // Atualizar dados após envio (com delay para dar tempo do webhook processar)
-        setTimeout(() => {
-          fetchMessages();
-          fetchContacts();
+        setTimeout(async () => {
+          await fetchMessages();
+          await fetchContacts();
         }, 1000);
 
-        toast.success('Mensagem enviada com sucesso');
+        toast.success('Mensagem enviada');
         return true;
       } else {
         console.error('[WhatsApp Web Chat] ❌ Failed to send message:', result.error);
@@ -169,7 +170,7 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
         // Remover mensagem otimista em caso de erro
         setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
         
-        toast.error(`Erro ao enviar mensagem: ${result.error}`);
+        toast.error(`Erro ao enviar: ${result.error}`);
         return false;
       }
     } catch (error) {
@@ -178,7 +179,7 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
       // Remover mensagem otimista em caso de erro
       setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
       
-      toast.error('Erro ao enviar mensagem');
+      toast.error('Erro inesperado ao enviar mensagem');
       return false;
     } finally {
       setIsSending(false);

@@ -22,8 +22,8 @@ export class MessageSendingService {
       // Get instance data from database - BUSCAR vps_instance_id PELO ID
       const { data: instance, error: instanceError } = await supabase
         .from('whatsapp_instances')
-        .select('vps_instance_id, connection_status, company_id')
-        .eq('id', instanceId) // CORRIGIDO: Buscar pelo ID da instância
+        .select('vps_instance_id, connection_status, company_id, instance_name')
+        .eq('id', instanceId)
         .single();
 
       if (instanceError || !instance) {
@@ -34,13 +34,15 @@ export class MessageSendingService {
       console.log('[MessageSending] 🔍 Instance data found:', {
         vpsInstanceId: instance.vps_instance_id,
         connectionStatus: instance.connection_status,
-        companyId: instance.company_id
+        companyId: instance.company_id,
+        instanceName: instance.instance_name
       });
 
       if (instance.connection_status !== 'open') {
         console.error('[MessageSending] ❌ Instance not ready:', {
           status: instance.connection_status,
-          instanceId
+          instanceId,
+          instanceName: instance.instance_name
         });
         throw new Error(`Instance not ready. Status: ${instance.connection_status}`);
       }
@@ -56,7 +58,8 @@ export class MessageSendingService {
       console.log('[MessageSending] 🚀 Sending to VPS:', {
         url: vpsUrl,
         vpsInstanceId: instance.vps_instance_id,
-        phone
+        phone,
+        hasAuthToken: !!VPS_CONFIG.authToken
       });
 
       const response = await fetch(vpsUrl, {
@@ -73,7 +76,8 @@ export class MessageSendingService {
         console.error('[MessageSending] ❌ VPS request failed:', {
           status: response.status,
           statusText: response.statusText,
-          errorText: errorText.substring(0, 200)
+          errorText: errorText.substring(0, 200),
+          url: vpsUrl
         });
         throw new Error(`VPS send failed: ${response.status} - ${errorText}`);
       }
@@ -112,6 +116,8 @@ export class MessageSendingService {
       if (saveError) {
         console.error('[MessageSending] ⚠️ Failed to save message to DB:', saveError);
         // Não falhar o envio se não conseguir salvar no banco
+      } else {
+        console.log('[MessageSending] ✅ Message saved to database successfully');
       }
 
       const duration = Date.now() - startTime;
@@ -136,7 +142,8 @@ export class MessageSendingService {
         error: error instanceof Error ? error.message : error,
         duration: `${duration}ms`,
         instanceId,
-        phone
+        phone,
+        stack: error instanceof Error ? error.stack : undefined
       });
       
       return {
