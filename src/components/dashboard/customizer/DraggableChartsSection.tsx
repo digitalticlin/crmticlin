@@ -59,10 +59,10 @@ export function DraggableChartsSection({ config, onChartToggle }: DraggableChart
                       ref={provided.innerRef}
                       {...provided.draggableProps}
                       className={`
-                        flex items-center justify-between p-4 rounded-xl border backdrop-blur-sm transition-all duration-200
+                        flex items-center justify-between p-4 rounded-xl border backdrop-blur-sm transition-all duration-200 transform
                         ${snapshot.isDragging 
                           ? 'bg-white/25 border-[#D3D800]/60 shadow-xl scale-105' 
-                          : 'bg-white/15 border-white/20 hover:bg-white/20'
+                          : 'bg-white/15 border-white/20 hover:bg-white/20 hover:scale-102'
                         }
                       `}
                     >
@@ -83,10 +83,10 @@ export function DraggableChartsSection({ config, onChartToggle }: DraggableChart
                       <Switch
                         checked={isEnabled}
                         onCheckedChange={() => {
-                          console.log(`🔄 Switch clicked for ${chartKey}: ${isEnabled} -> ${!isEnabled}`);
+                          console.log(`🔄 INSTANT TOGGLE ${chartKey}: ${isEnabled} -> ${!isEnabled}`);
                           onChartToggle(chartKey as keyof DashboardConfig['charts']);
                         }}
-                        className="data-[state=checked]:bg-[#D3D800] data-[state=unchecked]:bg-white/20 transition-all duration-200"
+                        className="data-[state=checked]:bg-[#D3D800] data-[state=unchecked]:bg-white/20 transition-all duration-200 transform hover:scale-110"
                       />
                     </div>
                   )}

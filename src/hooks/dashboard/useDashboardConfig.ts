@@ -5,12 +5,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { DashboardConfig, defaultConfig } from "./types/dashboardConfigTypes";
 import { DashboardConfigService } from "./services/dashboardConfigService";
-import { mergeConfigUpdates, validateConfig, deepClone } from "./utils/configUtils";
+import { validateConfig, deepClone } from "./utils/configUtils";
 
 export { type DashboardConfig } from "./types/dashboardConfigTypes";
 
 export const useDashboardConfig = () => {
-  // Estados principais
+  // Estados principais simplificados
   const [config, setConfig] = useState<DashboardConfig>(defaultConfig);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -23,8 +23,6 @@ export const useDashboardConfig = () => {
   // Refs para controle interno
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
-  const pendingConfigRef = useRef<DashboardConfig | null>(null);
-  const savePromiseRef = useRef<Promise<void> | null>(null);
   const isInitializedRef = useRef(false);
 
   // Cleanup effect
@@ -52,24 +50,22 @@ export const useDashboardConfig = () => {
     try {
       setLoading(true);
       console.log("=== LOADING CONFIG ===");
-      console.log("User ID:", user.id, "Company ID:", companyId);
       
       const loadedConfig = await DashboardConfigService.retryOperation(
         () => DashboardConfigService.loadConfig(user.id, companyId)
       );
       
       if (loadedConfig && validateConfig(loadedConfig) && isMountedRef.current) {
-        console.log("✅ Config loaded from database:", loadedConfig);
+        console.log("✅ Config loaded:", loadedConfig);
         setConfig(loadedConfig);
         setConfigVersion(prev => prev + 1);
         isInitializedRef.current = true;
       } else if (isMountedRef.current) {
-        console.log("❌ No valid config found, creating initial config");
+        console.log("❌ Creating initial config");
         await createInitialConfig();
       }
     } catch (error) {
       console.error("❌ Error loading config:", error);
-      toast.error("Erro ao carregar configurações do dashboard");
       if (isMountedRef.current) {
         setConfig(defaultConfig);
         setConfigVersion(prev => prev + 1);
@@ -86,104 +82,58 @@ export const useDashboardConfig = () => {
     if (!user?.id || !companyId) return;
     
     try {
-      console.log("🔨 Creating initial config in database");
+      console.log("🔨 Creating initial config");
       await DashboardConfigService.retryOperation(
         () => DashboardConfigService.saveConfig(user.id, companyId, defaultConfig)
       );
-      console.log("✅ Initial config created successfully");
+      console.log("✅ Initial config created");
       setConfig(defaultConfig);
       setConfigVersion(prev => prev + 1);
       isInitializedRef.current = true;
-      toast.success("Dashboard configurado com sucesso!");
     } catch (error) {
       console.error("❌ Error creating initial config:", error);
-      toast.error("Erro ao inicializar configurações");
       setConfig(defaultConfig);
       setConfigVersion(prev => prev + 1);
       isInitializedRef.current = true;
     }
   };
 
-  const saveConfigToDatabase = async (configToSave: DashboardConfig): Promise<void> => {
-    if (!user?.id || !companyId || !isMountedRef.current) return;
-    
-    setSaving(true);
-    
-    try {
-      console.log("💾 Saving config to database:", configToSave);
-      await DashboardConfigService.retryOperation(
-        () => DashboardConfigService.saveConfig(user.id, companyId, configToSave)
-      );
-      
-      console.log("✅ Config saved successfully");
-    } catch (error) {
-      console.error("❌ Error saving config:", error);
-      toast.error("Erro ao salvar configurações");
-      throw error;
-    } finally {
-      if (isMountedRef.current) {
-        setSaving(false);
-      }
-    }
-  };
-
-  // Debounced save function
+  // Save com debounce apenas para persistência
   const scheduleSave = useCallback((configToSave: DashboardConfig) => {
-    pendingConfigRef.current = configToSave;
-    
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
     
-    saveTimeoutRef.current = setTimeout(() => {
-      if (isMountedRef.current && pendingConfigRef.current) {
-        const configToSave = pendingConfigRef.current;
-        pendingConfigRef.current = null;
-        
-        if (!savePromiseRef.current) {
-          savePromiseRef.current = saveConfigToDatabase(configToSave)
-            .finally(() => {
-              savePromiseRef.current = null;
-            });
+    saveTimeoutRef.current = setTimeout(async () => {
+      if (!isMountedRef.current || !user?.id || !companyId) return;
+      
+      setSaving(true);
+      try {
+        console.log("💾 Saving config");
+        await DashboardConfigService.retryOperation(
+          () => DashboardConfigService.saveConfig(user.id, companyId, configToSave)
+        );
+        console.log("✅ Config saved");
+      } catch (error) {
+        console.error("❌ Save error:", error);
+        toast.error("Erro ao salvar configurações");
+      } finally {
+        if (isMountedRef.current) {
+          setSaving(false);
         }
       }
-    }, 100); // Reduced delay for faster saves
-  }, []);
+    }, 500);
+  }, [user?.id, companyId]);
 
-  // Handler principal de atualização - simplificado
-  const updateConfig = useCallback((newConfig: Partial<DashboardConfig>) => {
-    console.log("=== UPDATE CONFIG TRIGGERED ===");
-    console.log("Updates:", newConfig);
-    
-    if (!isMountedRef.current || !isInitializedRef.current) {
-      console.warn("⚠️ Update config called before initialization");
-      return;
-    }
-    
-    setConfig(currentConfig => {
-      const updatedConfig = mergeConfigUpdates(deepClone(currentConfig), newConfig);
-      console.log("📝 Final updated config:", updatedConfig);
-      
-      // Schedule save
-      scheduleSave(updatedConfig);
-      
-      return updatedConfig;
-    });
-    
-    // Force immediate re-render
-    setConfigVersion(prev => prev + 1);
-  }, [scheduleSave]);
-
-  // Handlers específicos - simplificados para atualização instantânea
+  // HANDLERS SIMPLIFICADOS - SEM DEBOUNCE PARA UI
   const handleKPIToggle = useCallback((kpiKey: keyof DashboardConfig['kpis']) => {
-    console.log("=== KPI TOGGLE HANDLER ===");
-    console.log("KPI Key:", kpiKey);
-    
     if (!isInitializedRef.current) return;
+    
+    console.log(`🎯 INSTANT KPI TOGGLE: ${kpiKey}`);
     
     setConfig(currentConfig => {
       const newValue = !currentConfig.kpis[kpiKey];
-      console.log(`Toggling ${kpiKey}: ${currentConfig.kpis[kpiKey]} -> ${newValue}`);
+      console.log(`${kpiKey}: ${currentConfig.kpis[kpiKey]} -> ${newValue}`);
       
       const newConfig = {
         ...currentConfig,
@@ -193,25 +143,24 @@ export const useDashboardConfig = () => {
         }
       };
       
-      // Schedule save
+      // Save em background
       scheduleSave(newConfig);
       
       return newConfig;
     });
     
-    // Force immediate re-render
+    // FORÇAR RE-RENDER IMEDIATO
     setConfigVersion(prev => prev + 1);
   }, [scheduleSave]);
 
   const handleChartToggle = useCallback((chartKey: keyof DashboardConfig['charts']) => {
-    console.log("=== CHART TOGGLE HANDLER ===");
-    console.log("Chart Key:", chartKey);
-    
     if (!isInitializedRef.current) return;
+    
+    console.log(`📈 INSTANT CHART TOGGLE: ${chartKey}`);
     
     setConfig(currentConfig => {
       const newValue = !currentConfig.charts[chartKey];
-      console.log(`Toggling ${chartKey}: ${currentConfig.charts[chartKey]} -> ${newValue}`);
+      console.log(`${chartKey}: ${currentConfig.charts[chartKey]} -> ${newValue}`);
       
       const newConfig = {
         ...currentConfig,
@@ -221,21 +170,44 @@ export const useDashboardConfig = () => {
         }
       };
       
-      // Schedule save
+      // Save em background
       scheduleSave(newConfig);
       
       return newConfig;
     });
     
-    // Force immediate re-render
+    // FORÇAR RE-RENDER IMEDIATO
+    setConfigVersion(prev => prev + 1);
+  }, [scheduleSave]);
+
+  const updateConfig = useCallback((newConfig: Partial<DashboardConfig>) => {
+    if (!isMountedRef.current || !isInitializedRef.current) return;
+    
+    console.log("📝 UPDATE CONFIG:", newConfig);
+    
+    setConfig(currentConfig => {
+      const updatedConfig = {
+        ...currentConfig,
+        ...newConfig,
+        kpis: { ...currentConfig.kpis, ...(newConfig.kpis || {}) },
+        charts: { ...currentConfig.charts, ...(newConfig.charts || {}) },
+        layout: { ...currentConfig.layout, ...(newConfig.layout || {}) }
+      };
+      
+      scheduleSave(updatedConfig);
+      return updatedConfig;
+    });
+    
     setConfigVersion(prev => prev + 1);
   }, [scheduleSave]);
 
   const resetToDefault = useCallback(() => {
-    console.log("=== RESET TO DEFAULT ===");
+    console.log("🔄 RESET TO DEFAULT");
     const defaultConfigCopy = deepClone(defaultConfig);
-    updateConfig(defaultConfigCopy);
-  }, [updateConfig]);
+    setConfig(defaultConfigCopy);
+    setConfigVersion(prev => prev + 1);
+    scheduleSave(defaultConfigCopy);
+  }, [scheduleSave]);
 
   return {
     config,

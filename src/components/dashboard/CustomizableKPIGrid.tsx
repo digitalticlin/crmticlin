@@ -58,23 +58,27 @@ export function CustomizableKPIGrid() {
   const { config, loading: configLoading, configVersion } = useDashboardConfig();
   const { kpis, loading: kpisLoading } = useDashboardKPIs(config.period_filter);
 
-  // Log quando a configuração mudar
+  // Criar hash reativo para detectar mudanças
+  const kpiStateHash = useMemo(() => {
+    const enabledKpis = Object.entries(config.kpis)
+      .filter(([_, enabled]) => enabled)
+      .map(([key]) => key)
+      .sort()
+      .join(',');
+    return `${configVersion}-${enabledKpis}`;
+  }, [config.kpis, configVersion]);
+
   useEffect(() => {
-    console.log("=== KPI GRID RENDER ===");
-    console.log("Config version:", configVersion);
-    console.log("KPIs config:", config.kpis);
-    console.log("Period filter:", config.period_filter);
-  }, [config.kpis, config.period_filter, configVersion]);
+    console.log("🎯 KPI GRID REACTIVE UPDATE");
+    console.log("Hash:", kpiStateHash);
+    console.log("Enabled KPIs:", Object.entries(config.kpis).filter(([_, enabled]) => enabled));
+  }, [kpiStateHash, config.kpis]);
 
   const visibleKPIs = useMemo(() => {
     const visible = config.layout.kpi_order.filter(
-      kpiKey => {
-        const isVisible = config.kpis[kpiKey as keyof typeof config.kpis];
-        console.log(`📊 KPI ${kpiKey} visibility:`, isVisible);
-        return isVisible;
-      }
+      kpiKey => config.kpis[kpiKey as keyof typeof config.kpis]
     );
-    console.log("✅ Visible KPIs calculated:", visible);
+    console.log("✅ VISIBLE KPIs:", visible);
     return visible;
   }, [config.layout.kpi_order, config.kpis, configVersion]);
 
@@ -107,8 +111,11 @@ export function CustomizableKPIGrid() {
 
   return (
     <div 
-      key={`kpi-grid-${configVersion}`}
-      className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6 transition-all duration-300 ease-in-out`}
+      key={kpiStateHash}
+      className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6 transition-all duration-300 ease-in-out transform`}
+      style={{
+        animation: "fade-in 0.3s ease-out"
+      }}
     >
       {visibleKPIs.map((kpiKey, index) => {
         const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
@@ -123,9 +130,12 @@ export function CustomizableKPIGrid() {
         
         return (
           <div
-            key={`${kpiKey}-${configVersion}`}
-            className="animate-fade-in"
-            style={{ animationDelay: `${index * 50}ms` }}
+            key={`${kpiKey}-${kpiStateHash}`}
+            className="animate-fade-in transform transition-all duration-200"
+            style={{ 
+              animationDelay: `${index * 50}ms`,
+              transform: "scale(1)"
+            }}
           >
             <KPICard
               title={kpiData.title}

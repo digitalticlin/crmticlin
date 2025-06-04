@@ -18,23 +18,27 @@ const chartComponents = {
 export default function CustomizableChartsSection() {
   const { config, loading, configVersion } = useDashboardConfig();
 
-  // Log quando a configuração mudar
+  // Criar hash reativo para detectar mudanças
+  const chartStateHash = useMemo(() => {
+    const enabledCharts = Object.entries(config.charts)
+      .filter(([_, enabled]) => enabled)
+      .map(([key]) => key)
+      .sort()
+      .join(',');
+    return `${configVersion}-${enabledCharts}`;
+  }, [config.charts, configVersion]);
+
   useEffect(() => {
-    console.log("=== CHARTS SECTION RENDER ===");
-    console.log("Config version:", configVersion);
-    console.log("Charts config:", config.charts);
-    console.log("Chart order:", config.layout.chart_order);
-  }, [config.charts, config.layout.chart_order, configVersion]);
+    console.log("📈 CHARTS REACTIVE UPDATE");
+    console.log("Hash:", chartStateHash);
+    console.log("Enabled Charts:", Object.entries(config.charts).filter(([_, enabled]) => enabled));
+  }, [chartStateHash, config.charts]);
 
   const visibleCharts = useMemo(() => {
     const visible = config.layout.chart_order.filter(
-      chartKey => {
-        const isVisible = config.charts[chartKey as keyof typeof config.charts];
-        console.log(`📈 Chart ${chartKey} visibility:`, isVisible);
-        return isVisible;
-      }
+      chartKey => config.charts[chartKey as keyof typeof config.charts]
     );
-    console.log("✅ Visible Charts calculated:", visible);
+    console.log("✅ VISIBLE CHARTS:", visible);
     return visible;
   }, [config.layout.chart_order, config.charts, configVersion]);
 
@@ -50,7 +54,7 @@ export default function CustomizableChartsSection() {
 
   if (visibleCharts.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-600">
+      <div className="text-center py-8 text-gray-600 animate-fade-in">
         <p>Nenhum gráfico selecionado. Configure o dashboard para visualizar os gráficos.</p>
       </div>
     );
@@ -65,8 +69,11 @@ export default function CustomizableChartsSection() {
 
   return (
     <div 
-      key={`charts-section-${configVersion}`}
-      className={`grid ${getGridCols(visibleCharts.length)} gap-6 transition-all duration-300 ease-in-out`}
+      key={chartStateHash}
+      className={`grid ${getGridCols(visibleCharts.length)} gap-6 transition-all duration-300 ease-in-out transform`}
+      style={{
+        animation: "fade-in 0.3s ease-out"
+      }}
     >
       {visibleCharts.map((chartKey, index) => {
         const ChartComponent = chartComponents[chartKey as keyof typeof chartComponents];
@@ -84,9 +91,12 @@ export default function CustomizableChartsSection() {
         
         return (
           <div
-            key={`${chartKey}-${configVersion}`}
-            className="animate-fade-in"
-            style={{ animationDelay: `${index * 100}ms` }}
+            key={`${chartKey}-${chartStateHash}`}
+            className="animate-fade-in transform transition-all duration-200"
+            style={{ 
+              animationDelay: `${index * 100}ms`,
+              transform: "scale(1)"
+            }}
           >
             <ChartComponent />
           </div>
