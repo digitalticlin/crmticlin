@@ -77,48 +77,15 @@ export const WhatsAppChatLayout = ({
         isDetailsSidebarOpen && "lg:mr-96"
       )}>
         {selectedContact ? (
-          <>
-            {/* Chat Header with Details Button */}
-            <div className="bg-white/20 backdrop-blur-sm border-b border-white/30 p-4 flex items-center justify-between relative z-10">
-              <div className="flex items-center gap-3">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onSelectContact(null)}
-                  className="lg:hidden text-gray-700 hover:text-gray-900 hover:bg-white/20"
-                >
-                  ←
-                </Button>
-                <div>
-                  <h2 className="text-gray-900 font-medium">{selectedContact.name}</h2>
-                  <p className="text-gray-600 text-sm">
-                    {selectedContact.isOnline ? 'online' : `+${selectedContact.phone}`}
-                  </p>
-                </div>
-              </div>
-              
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsDetailsSidebarOpen(!isDetailsSidebarOpen)}
-                className={cn(
-                  "text-gray-700 hover:text-gray-900 hover:bg-white/20",
-                  isDetailsSidebarOpen && "bg-white/30 text-gray-900"
-                )}
-              >
-                <Info className="h-5 w-5" />
-              </Button>
-            </div>
-
-            <WhatsAppChatArea
-              selectedContact={selectedContact}
-              messages={messages}
-              onSendMessage={onSendMessage}
-              onBack={() => onSelectContact(null)}
-              isLoadingMessages={isLoadingMessages}
-              isSending={isSending}
-            />
-          </>
+          <WhatsAppChatArea
+            selectedContact={selectedContact}
+            messages={messages}
+            onSendMessage={onSendMessage}
+            onBack={() => onSelectContact(null)}
+            isLoadingMessages={isLoadingMessages}
+            isSending={isSending}
+            onOpenDetails={() => setIsDetailsSidebarOpen(!isDetailsSidebarOpen)}
+          />
         ) : (
           <WhatsAppEmptyState />
         )}
@@ -133,4 +100,3 @@ export const WhatsAppChatLayout = ({
       />
     </div>
   );
-};

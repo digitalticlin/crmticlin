@@ -1,17 +1,19 @@
 
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Phone, Video, Search, MoreVertical } from "lucide-react";
+import { ArrowLeft, Phone, Info } from "lucide-react";
 import { Contact } from "@/types/chat";
 
 interface WhatsAppChatHeaderProps {
   selectedContact: Contact;
   onBack: () => void;
+  onOpenDetails: () => void;
 }
 
 export const WhatsAppChatHeader = ({
   selectedContact,
   onBack,
+  onOpenDetails,
 }: WhatsAppChatHeaderProps) => {
   return (
     <div className="p-4 bg-[#202c33] border-b border-[#313d45] flex items-center gap-3">
@@ -24,7 +26,7 @@ export const WhatsAppChatHeader = ({
         <ArrowLeft className="h-5 w-5" />
       </Button>
       
-      <div className="flex items-center gap-3 flex-1 cursor-pointer hover:bg-[#2a3942] rounded-lg p-2 -m-2 transition-colors">
+      <div className="flex items-center gap-3 flex-1 cursor-pointer hover:bg-[#2a3942] rounded-lg p-2 -m-2 transition-colors" onClick={onOpenDetails}>
         <div className="relative">
           <Avatar className="h-10 w-10">
             <AvatarFallback className="bg-[#6b7c85] text-white">
@@ -47,16 +49,10 @@ export const WhatsAppChatHeader = ({
       
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" className="text-[#8696a0] hover:text-[#e9edef] hover:bg-[#2a3942]">
-          <Video className="h-5 w-5" />
-        </Button>
-        <Button variant="ghost" size="icon" className="text-[#8696a0] hover:text-[#e9edef] hover:bg-[#2a3942]">
           <Phone className="h-5 w-5" />
         </Button>
-        <Button variant="ghost" size="icon" className="text-[#8696a0] hover:text-[#e9edef] hover:bg-[#2a3942]">
-          <Search className="h-5 w-5" />
-        </Button>
-        <Button variant="ghost" size="icon" className="text-[#8696a0] hover:text-[#e9edef] hover:bg-[#2a3942]">
-          <MoreVertical className="h-5 w-5" />
+        <Button variant="ghost" size="icon" className="text-[#8696a0] hover:text-[#e9edef] hover:bg-[#2a3942]" onClick={onOpenDetails}>
+          <Info className="h-5 w-5" />
         </Button>
       </div>
     </div>
