@@ -1,3 +1,4 @@
+
 import { AutoDeployButton } from "./hostinger/AutoDeployButton";
 import { PortTestDiagnostic } from "./vps/PortTestDiagnostic";
 import { VPSInfoCard } from "./vps/VPSInfoCard";
@@ -20,10 +21,14 @@ import { VPSSecretManager } from "./vps/VPSSecretManager";
 import { VPSSupabaseSyncTest } from "./VPSSupabaseSyncTest";
 import { VPSTokenSynchronizer } from "./vps/VPSTokenSynchronizer";
 import { VPSInstanceCreationTester } from "./vps/VPSInstanceCreationTester";
+import { VPSEndpointDiscovery as VPSEndpointDiscoveryNew } from "./vps/VPSEndpointDiscovery";
 
 export const VPSTestPanel = () => {
   return (
     <div className="space-y-6">
+      {/* NOVO: Descoberta Automática de Endpoints VPS - FERRAMENTA PRINCIPAL */}
+      <VPSEndpointDiscoveryNew />
+
       {/* NOVO: Sincronização e Correção de Token VPS - FERRAMENTA PRINCIPAL */}
       <VPSTokenSynchronizer />
 
