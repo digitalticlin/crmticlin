@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,8 +11,7 @@ import {
   RefreshCw,
   CheckCircle,
   XCircle,
-  AlertTriangle,
-  Sync
+  AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -170,7 +168,7 @@ export const VPSInstancesSimplified = () => {
               variant="default"
               className="bg-blue-600 hover:bg-blue-700"
             >
-              <Sync className="h-4 w-4 mr-2" />
+              <RefreshCw className="h-4 w-4 mr-2" />
               Sincronizar Órfãs
             </Button>
           </div>
