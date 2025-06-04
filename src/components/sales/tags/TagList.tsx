@@ -1,6 +1,7 @@
 
 import { KanbanTag } from "@/types/kanban";
 import { cn } from "@/lib/utils";
+import { getFunnelStageColor } from "@/utils/tagColors";
 
 interface TagListProps {
   tags: KanbanTag[];
@@ -25,7 +26,7 @@ export const TagList = ({ tags, selectedTags, onToggleTag }: TagListProps) => {
             <div 
               className={cn(
                 "w-3 h-3 rounded-full", 
-                tag.color
+                getFunnelStageColor(tag.color)
               )}
             />
             <span className="text-sm truncate">{tag.name}</span>

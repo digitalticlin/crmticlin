@@ -1,6 +1,7 @@
 
 import { KanbanTag } from "@/types/kanban";
 import { cn } from "@/lib/utils";
+import { getTagStyleClasses } from "@/utils/tagColors";
 
 interface LeadCardTagsProps {
   tags: KanbanTag[];
@@ -13,8 +14,8 @@ export const LeadCardTags = ({ tags }: LeadCardTagsProps) => {
         <span
           key={tag.id}
           className={cn(
-            "px-2.5 py-0.5 text-xs font-semibold rounded-full backdrop-blur-[2px] shadow-md border border-white/20 bg-white/40 text-black transition-all duration-200",
-            tag.color
+            "px-2.5 py-0.5 text-xs font-semibold rounded-full backdrop-blur-[2px] shadow-md transition-all duration-200",
+            getTagStyleClasses(tag.color)
           )}
         >
           {tag.name}

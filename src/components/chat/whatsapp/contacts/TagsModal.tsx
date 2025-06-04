@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { unifiedTags } from "@/data/unifiedFakeData";
+import { getTagStyleClasses } from "@/utils/tagColors";
 
 interface TagsModalProps {
   isOpen: boolean;
@@ -16,9 +17,9 @@ export const TagsModal = ({ isOpen, onClose, contactName, tags }: TagsModalProps
   const getTagColor = (tagName: string) => {
     const unifiedTag = unifiedTags.find(tag => tag.name === tagName);
     if (unifiedTag) {
-      return unifiedTag.color;
+      return getTagStyleClasses(unifiedTag.color);
     }
-    return 'bg-gray-400';
+    return getTagStyleClasses('bg-gray-400');
   };
 
   return (
@@ -38,7 +39,7 @@ export const TagsModal = ({ isOpen, onClose, contactName, tags }: TagsModalProps
                   key={index}
                   variant="outline" 
                   className={cn(
-                    "text-sm border backdrop-blur-[2px] shadow-md font-semibold text-white border-white/20",
+                    "text-sm font-semibold backdrop-blur-[2px] shadow-md",
                     getTagColor(tag)
                   )}
                 >
