@@ -21,7 +21,7 @@ export const useWhatsAppMessages = (
 
     setIsLoadingMessages(true);
     try {
-      console.log('[useWhatsAppMessages] Fetching messages for:', {
+      console.log('[useWhatsAppMessages FASE 3] Fetching messages for:', {
         leadId: selectedContact.id,
         instanceId: activeInstance.id
       });
@@ -46,13 +46,16 @@ export const useWhatsAppMessages = (
         }),
         status: msg.status === 'sent' ? 'sent' : msg.status === 'delivered' ? 'delivered' : 'read',
         isIncoming: !msg.from_me,
-        fromMe: msg.from_me
+        fromMe: msg.from_me,
+        timestamp: msg.timestamp,
+        mediaType: msg.media_type || 'text',
+        mediaUrl: msg.media_url
       }));
       
-      console.log('[useWhatsAppMessages] ✅ Messages fetched:', chatMessages.length);
+      console.log('[useWhatsAppMessages FASE 3] ✅ Messages fetched:', chatMessages.length);
       setMessages(chatMessages);
     } catch (error) {
-      console.error('[useWhatsAppMessages] ❌ Error fetching messages:', error);
+      console.error('[useWhatsAppMessages FASE 3] ❌ Error fetching messages:', error);
     } finally {
       setIsLoadingMessages(false);
     }
@@ -60,35 +63,35 @@ export const useWhatsAppMessages = (
 
   const sendMessage = async (text: string) => {
     if (!selectedContact || !activeInstance || !text.trim()) {
-      console.warn('[useWhatsAppMessages] Cannot send message: missing data');
+      console.warn('[useWhatsAppMessages FASE 3] Cannot send message: missing data');
       return false;
     }
 
     setIsSending(true);
     try {
-      console.log('[useWhatsAppMessages] 📤 Sending message:', {
-        instanceId: activeInstance.id, // CORRIGIDO: Usar activeInstance.id
+      console.log('[useWhatsAppMessages FASE 3] 📤 Sending message:', {
+        instanceId: activeInstance.id,
         phone: selectedContact.phone,
         textLength: text.length
       });
 
       const result = await WhatsAppWebService.sendMessage(
-        activeInstance.id, // CORRIGIDO: Usar activeInstance.id correto
+        activeInstance.id,
         selectedContact.phone, 
         text
       );
 
       if (result.success) {
-        console.log('[useWhatsAppMessages] ✅ Message sent successfully');
+        console.log('[useWhatsAppMessages FASE 3] ✅ Message sent successfully');
         // Refresh messages to get the sent message
         await fetchMessages();
         return true;
       } else {
-        console.error('[useWhatsAppMessages] ❌ Failed to send message:', result.error);
+        console.error('[useWhatsAppMessages FASE 3] ❌ Failed to send message:', result.error);
         return false;
       }
     } catch (error) {
-      console.error('[useWhatsAppMessages] ❌ Error sending message:', error);
+      console.error('[useWhatsAppMessages FASE 3] ❌ Error sending message:', error);
       return false;
     } finally {
       setIsSending(false);

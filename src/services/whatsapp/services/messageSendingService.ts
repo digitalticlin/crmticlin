@@ -12,7 +12,7 @@ export class MessageSendingService {
     const startTime = Date.now();
     
     try {
-      console.log('[MessageSending] 📤 Iniciando envio de mensagem:', {
+      console.log('[MessageSending FASE 3] 📤 Iniciando envio de mensagem:', {
         instanceId,
         phone,
         messageLength: message.length,
@@ -27,19 +27,19 @@ export class MessageSendingService {
         .single();
 
       if (instanceError || !instance) {
-        console.error('[MessageSending] ❌ Instance not found:', { instanceId, instanceError });
+        console.error('[MessageSending FASE 3] ❌ Instance not found:', { instanceId, instanceError });
         throw new Error(`Instance not found: ${instanceId}`);
       }
 
-      console.log('[MessageSending] 🔍 Instance data found:', {
+      console.log('[MessageSending FASE 3] 🔍 Instance data found:', {
         vpsInstanceId: instance.vps_instance_id,
         connectionStatus: instance.connection_status,
         companyId: instance.company_id,
         instanceName: instance.instance_name
       });
 
-      if (instance.connection_status !== 'open') {
-        console.error('[MessageSending] ❌ Instance not ready:', {
+      if (!['ready', 'open'].includes(instance.connection_status)) {
+        console.error('[MessageSending FASE 3] ❌ Instance not ready:', {
           status: instance.connection_status,
           instanceId,
           instanceName: instance.instance_name
@@ -47,18 +47,22 @@ export class MessageSendingService {
         throw new Error(`Instance not ready. Status: ${instance.connection_status}`);
       }
 
+      // Clean phone number
+      const cleanPhone = phone.replace(/\D/g, '');
+      const formattedPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+
       // Send message directly to VPS server usando vps_instance_id
       const vpsUrl = `${VPS_CONFIG.baseUrl}/send`;
       const requestBody = {
-        instanceId: instance.vps_instance_id, // USAR vps_instance_id para o VPS
-        phone,
+        instanceId: instance.vps_instance_id,
+        phone: formattedPhone,
         message
       };
 
-      console.log('[MessageSending] 🚀 Sending to VPS:', {
+      console.log('[MessageSending FASE 3] 🚀 Sending to VPS:', {
         url: vpsUrl,
         vpsInstanceId: instance.vps_instance_id,
-        phone,
+        phone: formattedPhone,
         hasAuthToken: !!VPS_CONFIG.authToken
       });
 
@@ -73,7 +77,7 @@ export class MessageSendingService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('[MessageSending] ❌ VPS request failed:', {
+        console.error('[MessageSending FASE 3] ❌ VPS request failed:', {
           status: response.status,
           statusText: response.statusText,
           errorText: errorText.substring(0, 200),
@@ -83,7 +87,7 @@ export class MessageSendingService {
       }
 
       const result = await response.json();
-      console.log('[MessageSending] ✅ VPS response received:', {
+      console.log('[MessageSending FASE 3] ✅ VPS response received:', {
         success: result.success,
         messageId: result.messageId,
         duration: `${Date.now() - startTime}ms`
@@ -94,16 +98,16 @@ export class MessageSendingService {
       }
 
       // Save message to database
-      const leadId = await this.getOrCreateLead(instanceId, phone, instance.company_id);
+      const leadId = await this.getOrCreateLead(instanceId, cleanPhone, instance.company_id);
       
-      console.log('[MessageSending] 💾 Saving message to database:', {
+      console.log('[MessageSending FASE 3] 💾 Saving message to database:', {
         leadId,
         instanceId,
         messageId: result.messageId
       });
 
       const { error: saveError } = await supabase.from('messages').insert({
-        whatsapp_number_id: instanceId, // USAR instanceId do banco
+        whatsapp_number_id: instanceId,
         lead_id: leadId,
         text: message,
         from_me: true,
@@ -114,14 +118,24 @@ export class MessageSendingService {
       });
 
       if (saveError) {
-        console.error('[MessageSending] ⚠️ Failed to save message to DB:', saveError);
+        console.error('[MessageSending FASE 3] ⚠️ Failed to save message to DB:', saveError);
         // Não falhar o envio se não conseguir salvar no banco
       } else {
-        console.log('[MessageSending] ✅ Message saved to database successfully');
+        console.log('[MessageSending FASE 3] ✅ Message saved to database successfully');
       }
 
+      // Update lead with last message info
+      await supabase
+        .from('leads')
+        .update({
+          last_message: message,
+          last_message_time: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', leadId);
+
       const duration = Date.now() - startTime;
-      console.log('[MessageSending] ✅ Message sent successfully:', {
+      console.log('[MessageSending FASE 3] ✅ Message sent successfully:', {
         messageId: result.messageId,
         duration: `${duration}ms`,
         leadId
@@ -138,7 +152,7 @@ export class MessageSendingService {
 
     } catch (error) {
       const duration = Date.now() - startTime;
-      console.error('[MessageSending] ❌ Error sending message:', {
+      console.error('[MessageSending FASE 3] ❌ Error sending message:', {
         error: error instanceof Error ? error.message : error,
         duration: `${duration}ms`,
         instanceId,
@@ -160,7 +174,7 @@ export class MessageSendingService {
   ): Promise<string> {
     const cleanPhone = phone.replace(/\D/g, '');
     
-    console.log('[MessageSending] 🔍 Getting or creating lead:', {
+    console.log('[MessageSending FASE 3] 🔍 Getting or creating lead:', {
       whatsappNumberId,
       cleanPhone,
       companyId
@@ -175,12 +189,12 @@ export class MessageSendingService {
       .single();
 
     if (existingLead) {
-      console.log('[MessageSending] ✅ Existing lead found:', existingLead.id);
+      console.log('[MessageSending FASE 3] ✅ Existing lead found:', existingLead.id);
       return existingLead.id;
     }
 
     // Create new lead
-    console.log('[MessageSending] 🆕 Creating new lead');
+    console.log('[MessageSending FASE 3] 🆕 Creating new lead');
     const { data: newLead, error } = await supabase
       .from('leads')
       .insert({
@@ -195,11 +209,11 @@ export class MessageSendingService {
       .single();
 
     if (error || !newLead) {
-      console.error('[MessageSending] ❌ Failed to create lead:', error);
+      console.error('[MessageSending FASE 3] ❌ Failed to create lead:', error);
       throw new Error('Failed to create lead');
     }
 
-    console.log('[MessageSending] ✅ New lead created:', newLead.id);
+    console.log('[MessageSending FASE 3] ✅ New lead created:', newLead.id);
     return newLead.id;
   }
 }

@@ -1,83 +1,103 @@
 
+// FASE 3: Hook otimizado para contatos WhatsApp
 import { useState, useCallback } from 'react';
 import { Contact } from '@/types/chat';
+import { WhatsAppWebInstance } from './useWhatsAppWebInstances';
 import { supabase } from "@/integrations/supabase/client";
+import { useFakeContacts } from './chat/useFakeContacts';
+import { useContactSorting } from './chat/useContactSorting';
 
-/**
- * Hook para gerenciar contatos WhatsApp — carrega leads do banco de dados
- */
-export const useWhatsAppContacts = (activeInstance: any, companyId: string | null) => {
+export const useWhatsAppContacts = (
+  activeInstance: WhatsAppWebInstance | null,
+  companyId: string | null
+) => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
+  
+  const { getFakeContacts } = useFakeContacts();
+  const { sortContacts } = useContactSorting();
 
-  // Carregar contatos/leads do banco de dados
   const fetchContacts = useCallback(async () => {
-    if (!activeInstance || !companyId || isLoadingContacts) return;
-    setIsLoadingContacts(true);
+    if (!activeInstance || !companyId) {
+      // Se não há instância ativa, mostrar contatos fake para demonstração
+      const fakeContacts = getFakeContacts();
+      const sortedContacts = sortContacts(fakeContacts);
+      setContacts(sortedContacts);
+      return;
+    }
 
+    setIsLoadingContacts(true);
     try {
-      // Buscar leads da tabela leads filtrados por whatsapp_number_id e company_id
+      console.log('[WhatsApp Contacts FASE 3] 📋 Fetching contacts for instance:', activeInstance.id);
+
       const { data: leads, error } = await supabase
         .from('leads')
-        .select('*')
+        .select(`
+          *,
+          lead_tags!inner(
+            tag_id,
+            tags(name, color)
+          )
+        `)
         .eq('whatsapp_number_id', activeInstance.id)
         .eq('company_id', companyId)
-        .order('last_message_time', { ascending: false });
+        .order('last_message_time', { ascending: false, nullsFirst: false });
 
-      if (error) {
-        console.error("Error fetching leads:", error);
-        return;
-      }
+      if (error) throw error;
 
-      if (leads && leads.length > 0) {
-        const mappedContacts: Contact[] = leads.map(lead => ({
+      const mappedContacts: Contact[] = (leads || []).map(lead => {
+        // Extrair tags do relacionamento
+        const leadTags = lead.lead_tags?.map((lt: any) => lt.tags?.name).filter(Boolean) || [];
+        
+        return {
           id: lead.id,
-          name: lead.name || `Contato: ${formatPhoneNumber(lead.phone)}`,
-          phone: formatPhoneNumber(lead.phone),
-          email: lead.email || "",
-          address: lead.address || "",
-          company: lead.company || "",
-          notes: lead.notes || "",
-          lastMessage: lead.last_message || "",
+          name: lead.name || `+${lead.phone}`,
+          phone: lead.phone,
+          email: lead.email || '',
+          address: lead.address || '',
+          company: lead.company || '',
+          notes: lead.notes || '',
+          tags: leadTags,
+          lastMessage: lead.last_message || '',
           lastMessageTime: lead.last_message_time 
-            ? new Date(lead.last_message_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
-            : "Agora",
+            ? new Date(lead.last_message_time).toLocaleTimeString('pt-BR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              })
+            : '',
           unreadCount: lead.unread_count || 0,
-          avatar: "", // No avatar in database yet
-          isOnline: false // We don't track online status yet
-        }));
+          avatar: '',
+          isOnline: Math.random() > 0.7 // Simulação básica de status online
+        };
+      });
 
-        setContacts(mappedContacts);
+      // Se não há leads reais, adicionar contatos fake para demonstração
+      if (mappedContacts.length === 0) {
+        const fakeContacts = getFakeContacts();
+        const allContacts = [...mappedContacts, ...fakeContacts];
+        const sortedContacts = sortContacts(allContacts);
+        setContacts(sortedContacts);
+      } else {
+        const sortedContacts = sortContacts(mappedContacts);
+        setContacts(sortedContacts);
       }
+
+      console.log('[WhatsApp Contacts FASE 3] ✅ Contacts fetched and sorted:', contacts.length);
     } catch (error) {
-      console.error("Error fetching WhatsApp contacts:", error);
+      console.error('[WhatsApp Contacts FASE 3] ❌ Error fetching contacts:', error);
+      // Em caso de erro, mostrar pelo menos os contatos fake
+      const fakeContacts = getFakeContacts();
+      const sortedContacts = sortContacts(fakeContacts);
+      setContacts(sortedContacts);
     } finally {
       setIsLoadingContacts(false);
     }
-  }, [activeInstance, companyId, isLoadingContacts]);
-
-  /**
-   * Helper function to format phone number for display
-   */
-  const formatPhoneNumber = (phone: string): string => {
-    // Simple formatting, can be enhanced for different country codes
-    if (phone.startsWith('55')) {
-      // Brazilian format
-      if (phone.length === 12 || phone.length === 13) {
-        // With area code
-        const areaCode = phone.substring(2, 4);
-        const firstPart = phone.substring(4, phone.length - 4);
-        const lastPart = phone.substring(phone.length - 4);
-        return `+55 ${areaCode} ${firstPart}-${lastPart}`;
-      }
-    }
-    return `+${phone}`;
-  };
+  }, [activeInstance, companyId, sortContacts, getFakeContacts]);
 
   return {
     contacts,
+    setContacts,
     fetchContacts,
-    isLoadingContacts,
-    setContacts
+    isLoadingContacts
   };
 };

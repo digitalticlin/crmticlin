@@ -1,53 +1,39 @@
 
-import { useState, useEffect } from 'react';
-import { supabase } from "@/integrations/supabase/client";
+// FASE 3: Hook para gerenciar notas de contatos
+import { useState, useCallback } from 'react';
 import { Contact } from '@/types/chat';
+import { supabase } from "@/integrations/supabase/client";
 
-/**
- * Hook to manage contact notes
- */
 export const useContactNotes = (selectedContact: Contact | null) => {
-  const [contactNotes, setContactNotes] = useState("");
-  
-  // Load contact notes when a contact is selected
-  useEffect(() => {
-    const loadContactNotes = async () => {
-      if (selectedContact) {
-        try {
-          const { data: lead } = await supabase
-            .from('leads')
-            .select('notes')
-            .eq('id', selectedContact.id)
-            .single();
-            
-          if (lead) {
-            setContactNotes(lead.notes || "");
-          }
-        } catch (error) {
-          console.error("Error loading contact notes:", error);
-        }
-      }
-    };
-    
-    loadContactNotes();
+  const [contactNotes, setContactNotes] = useState<string>('');
+
+  // Update contact notes in database
+  const updateContactNotes = useCallback(async (notes: string) => {
+    if (!selectedContact) return;
+
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({ notes })
+        .eq('id', selectedContact.id);
+
+      if (error) throw error;
+      
+      setContactNotes(notes);
+      console.log('[Contact Notes FASE 3] ✅ Notes updated successfully');
+    } catch (error) {
+      console.error('[Contact Notes FASE 3] ❌ Error updating notes:', error);
+    }
   }, [selectedContact]);
 
-  // Handler for updating contact notes
-  const updateContactNotes = async () => {
-    if (!selectedContact) return;
-    
-    try {
-      await supabase
-        .from('leads')
-        .update({ notes: contactNotes })
-        .eq('id', selectedContact.id);
-        
-      return true;
-    } catch (error) {
-      console.error("Error updating contact notes:", error);
-      return false;
+  // Load notes when contact changes
+  React.useEffect(() => {
+    if (selectedContact?.notes) {
+      setContactNotes(selectedContact.notes);
+    } else {
+      setContactNotes('');
     }
-  };
+  }, [selectedContact]);
 
   return {
     contactNotes,

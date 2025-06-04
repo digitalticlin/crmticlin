@@ -1,28 +1,28 @@
 
-import { useCallback } from 'react';
+// FASE 3: Utilitário para ordenação de contatos
 import { Contact } from '@/types/chat';
 
-/**
- * Hook para ordenação de contatos
- */
 export const useContactSorting = () => {
-  const sortContacts = useCallback((contactsList: Contact[]) => {
-    return [...contactsList].sort((a, b) => {
-      // Conversas não lidas primeiro
-      if (a.unreadCount && a.unreadCount > 0 && (!b.unreadCount || b.unreadCount === 0)) return -1;
-      if ((!a.unreadCount || a.unreadCount === 0) && b.unreadCount && b.unreadCount > 0) return 1;
+  const sortContacts = (contacts: Contact[]): Contact[] => {
+    return [...contacts].sort((a, b) => {
+      // Primeiro: contatos com mensagens não lidas
+      if (a.unreadCount && !b.unreadCount) return -1;
+      if (!a.unreadCount && b.unreadCount) return 1;
       
-      // Depois ordenar por última mensagem (mais recente primeiro)
-      if (!a.lastMessageTime && !b.lastMessageTime) return 0;
-      if (!a.lastMessageTime) return 1;
-      if (!b.lastMessageTime) return -1;
+      // Segundo: ordenar por última mensagem (mais recente primeiro)
+      if (a.lastMessageTime && b.lastMessageTime) {
+        // Se ambos têm timestamp, comparar
+        const timeA = new Date(a.lastMessageTime).getTime();
+        const timeB = new Date(b.lastMessageTime).getTime();
+        if (!isNaN(timeA) && !isNaN(timeB)) {
+          return timeB - timeA;
+        }
+      }
       
-      // Comparar timestamps convertidos para números para ordenação correta
-      const timeA = new Date(a.lastMessageTime).getTime();
-      const timeB = new Date(b.lastMessageTime).getTime();
-      return timeB - timeA;
+      // Terceiro: ordenar alfabeticamente por nome
+      return a.name.localeCompare(b.name);
     });
-  }, []);
+  };
 
   return { sortContacts };
 };
