@@ -1,195 +1,90 @@
 
-import { useState, useEffect } from "react";
-import { Contact } from "@/types/chat";
-import { v4 as uuidv4 } from "uuid";
-import { toast } from "sonner";
+import { useState } from 'react';
+import { Contact } from '@/types/chat';
 
-export function useClientManagement() {
-  // State for clients list
-  const [clients, setClients] = useState<Contact[]>([]);
+export const useClientManagement = () => {
+  const [clients, setClients] = useState<Contact[]>([
+    {
+      id: "1",
+      name: "Ana Silva",
+      phone: "+55 11 99999-1234",
+      email: "ana.silva@email.com",
+      address: "Rua das Flores, 123, São Paulo - SP",
+      company: "Tech Solutions",
+      documentId: "123.456.789-01",
+      tags: ["VIP", "Cliente Ativo"],
+      notes: "Cliente muito satisfeita com os serviços. Sempre pontual nos pagamentos.",
+      assignedUser: "João Santos",
+      lastMessageTime: "2024-01-15",
+      lastMessage: "Obrigada pelo excelente trabalho!",
+      avatar: "",
+      createdAt: "2024-01-15T08:00:00Z",
+      deals: [
+        {
+          id: "d1",
+          status: "won",
+          value: 15000,
+          date: "2024-01-10",
+          note: "Projeto de e-commerce concluído com sucesso"
+        }
+      ]
+    },
+    {
+      id: "2",
+      name: "Carlos Mendes", 
+      phone: "+55 11 98888-5678",
+      email: "carlos.mendes@empresa.com",
+      address: "Av. Paulista, 456, São Paulo - SP",
+      company: "Inovação Ltda",
+      documentId: "987.654.321-09",
+      tags: ["Cliente Premium"],
+      notes: "Cliente corporativo com demandas regulares. Boa relação comercial.",
+      assignedUser: "Maria Costa",
+      lastMessageTime: "2024-01-16",
+      lastMessage: "Vamos agendar a próxima fase do projeto.",
+      avatar: "",
+      createdAt: "2024-01-16T09:00:00Z",
+      deals: [
+        {
+          id: "d2",
+          status: "won",
+          value: 25000,
+          date: "2024-01-05",
+          note: "Sistema de gestão implementado"
+        }
+      ]
+    }
+  ]);
+
   const [selectedClient, setSelectedClient] = useState<Contact | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  
-  // Load initial data (in a real app, this would come from an API)
-  useEffect(() => {
-    // For demonstration, we'll load some sample data
-    const sampleClients: Contact[] = [
-      {
-        id: "1",
-        name: "João Silva",
-        phone: "+55 11 98765-4321",
-        email: "joao.silva@email.com",
-        tags: ["Cliente VIP", "Proposta Enviada"],
-        notes: "Cliente interessado no plano premium. Agendar demonstração.",
-        purchaseValue: 1500,
-        assignedUser: "Ana Costa",
-        createdAt: "10/04/2025",
-        company: "Tech Solutions Ltda.",
-        deals: [
-          {
-            id: "deal1",
-            status: "won",
-            value: 1500,
-            date: "12/05/2025",
-            note: "Cliente aceitou proposta do plano básico"
-          }
-        ]
-      },
-      {
-        id: "2",
-        name: "Maria Oliveira",
-        phone: "+55 11 91234-5678",
-        email: "maria.oliveira@email.com",
-        tags: ["Potencial Cliente"],
-        address: "Av. Paulista, 1000 - São Paulo, SP",
-        createdAt: "15/03/2025",
-        company: "Oliveira Consultoria"
-      },
-      {
-        id: "3",
-        name: "Pedro Almeida",
-        phone: "+55 11 97777-8888",
-        email: "pedro.almeida@email.com",
-        purchaseValue: 750,
-        createdAt: "22/02/2025",
-        company: "Tech Solutions Ltda."
-      },
-      {
-        id: "4",
-        name: "Ana Santos",
-        phone: "+55 11 96666-5555",
-        tags: ["Aguardando Proposta"],
-        assignedUser: "Carlos Ferreira",
-        createdAt: "05/01/2025",
-        company: "Construções Santos"
-      },
-      {
-        id: "5",
-        name: "Carlos Mendes",
-        phone: "+55 11 95555-4444",
-        email: "carlos.mendes@email.com",
-        notes: "Cliente indicado pelo João Silva",
-        createdAt: "30/04/2025"
-      },
-    ];
-    
-    setClients(sampleClients);
-  }, []);
 
-  // Handle selecting a client
-  const handleSelectClient = (client: Contact) => {
+  const updateClient = (clientId: string, updates: Partial<Contact>) => {
+    setClients(prev => prev.map(client => 
+      client.id === clientId ? { ...client, ...updates } : client
+    ));
+    
+    if (selectedClient?.id === clientId) {
+      setSelectedClient(prev => prev ? { ...prev, ...updates } : null);
+    }
+  };
+
+  const openClientDetails = (client: Contact) => {
     setSelectedClient(client);
     setIsDetailsOpen(true);
   };
 
-  // Handle adding a new client
-  const handleAddClient = () => {
+  const closeClientDetails = () => {
     setSelectedClient(null);
-    setIsEditing(false);
-    setIsFormOpen(true);
-  };
-
-  // Handle editing a client
-  const handleEditClient = (client: Contact) => {
-    setSelectedClient(client);
-    setIsEditing(true);
     setIsDetailsOpen(false);
-    setIsFormOpen(true);
-  };
-
-  // Handle form submission
-  const handleFormSubmit = (data: any) => {
-    if (isEditing && selectedClient) {
-      // Update existing client
-      const updatedClient = {
-        ...selectedClient,
-        ...data
-      };
-      
-      setClients(clients.map(c => 
-        c.id === selectedClient.id ? updatedClient : c
-      ));
-      
-      setSelectedClient(updatedClient);
-      toast.success("Cliente atualizado com sucesso");
-    } else {
-      // Add new client
-      const newClient = {
-        id: uuidv4(),
-        ...data
-      };
-      
-      setClients([...clients, newClient]);
-      toast.success("Cliente adicionado com sucesso");
-    }
-    
-    setIsFormOpen(false);
-  };
-
-  // Handle updating client notes
-  const handleUpdateNotes = (notes: string) => {
-    if (!selectedClient) return;
-    
-    const updatedClient = {
-      ...selectedClient,
-      notes
-    };
-    
-    setClients(clients.map(c => 
-      c.id === selectedClient.id ? updatedClient : c
-    ));
-    
-    setSelectedClient(updatedClient);
-  };
-
-  // Handle updating assigned user
-  const handleUpdateAssignedUser = (assignedUser: string) => {
-    if (!selectedClient) return;
-    
-    const updatedClient = {
-      ...selectedClient,
-      assignedUser
-    };
-    
-    setClients(clients.map(c => 
-      c.id === selectedClient.id ? updatedClient : c
-    ));
-    
-    setSelectedClient(updatedClient);
-  };
-
-  // Handle updating purchase value
-  const handleUpdatePurchaseValue = (purchaseValue: number | undefined) => {
-    if (!selectedClient) return;
-    
-    const updatedClient = {
-      ...selectedClient,
-      purchaseValue
-    };
-    
-    setClients(clients.map(c => 
-      c.id === selectedClient.id ? updatedClient : c
-    ));
-    
-    setSelectedClient(updatedClient);
   };
 
   return {
     clients,
     selectedClient,
     isDetailsOpen,
-    isFormOpen,
-    isEditing,
-    setIsDetailsOpen,
-    setIsFormOpen,
-    handleSelectClient,
-    handleAddClient,
-    handleEditClient,
-    handleFormSubmit,
-    handleUpdateNotes,
-    handleUpdateAssignedUser,
-    handleUpdatePurchaseValue
+    updateClient,
+    openClientDetails,
+    closeClientDetails
   };
-}
+};
