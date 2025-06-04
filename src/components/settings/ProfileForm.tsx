@@ -1,7 +1,5 @@
 
-import { Phone } from "lucide-react";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import { Phone, Mail, User, Hash } from "lucide-react";
 
 interface ProfileFormProps {
   email: string;
@@ -31,73 +29,60 @@ const ProfileForm = ({
   setCompanyName
 }: ProfileFormProps) => {
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-6 sm:grid-cols-2">
       <div className="space-y-2">
-        <Label htmlFor="name">Nome completo</Label>
-        <Input 
-          id="name" 
+        <label className="text-sm font-medium text-white/90 flex items-center space-x-2">
+          <User className="h-4 w-4 text-blue-400" />
+          <span>Nome completo</span>
+        </label>
+        <input 
+          className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/50 transition-all duration-200"
           value={fullName} 
           onChange={(e) => setFullName(e.target.value)} 
+          placeholder="Seu nome completo"
         />
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input 
-          id="email" 
+        <label className="text-sm font-medium text-white/90 flex items-center space-x-2">
+          <Mail className="h-4 w-4 text-green-400" />
+          <span>Email</span>
+        </label>
+        <input 
+          className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-green-400/50 focus:border-green-400/50 transition-all duration-200"
           value={email} 
           onChange={handleEmailChange} 
+          placeholder="seu@email.com"
         />
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="username">Nome de usuário</Label>
-        <Input 
-          id="username" 
+        <label className="text-sm font-medium text-white/90 flex items-center space-x-2">
+          <Hash className="h-4 w-4 text-purple-400" />
+          <span>Nome de usuário</span>
+        </label>
+        <input 
+          className="w-full px-4 py-3 bg-white/5 border border-white/30 rounded-xl text-white/70 cursor-not-allowed"
           value={username} 
           readOnly
+          placeholder="username"
         />
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-white/60">
           Gerado automaticamente com base no email
         </p>
       </div>
       
       <div className="space-y-2">
-        <Label htmlFor="company" className="flex items-center">
-          RAZAO SOCIAL ou NOME
-          <span className="ml-1 text-red-500">*</span>
-        </Label>
-        <Input 
-          id="company" 
-          value={companyName}
-          onChange={(e) => setCompanyName(e.target.value)}
-          required
+        <label className="text-sm font-medium text-white/90 flex items-center space-x-2">
+          <Phone className="h-4 w-4 text-[#D3D800]" />
+          <span>WhatsApp</span>
+        </label>
+        <input 
+          className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#D3D800]/50 focus:border-[#D3D800]/50 transition-all duration-200"
+          value={whatsapp}
+          onChange={(e) => setWhatsapp(e.target.value)}
+          placeholder="(11) 99999-9999"
         />
-        <p className="text-xs text-muted-foreground">
-          Campo obrigatório para conexão de WhatsApp
-        </p>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="documentId">CPF/CNPJ</Label>
-        <Input 
-          id="documentId" 
-          value={documentId}
-          onChange={(e) => setDocumentId(e.target.value)}
-        />
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="whatsapp">WhatsApp</Label>
-        <div className="relative">
-          <Phone className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input 
-            id="whatsapp" 
-            className="pl-8"
-            value={whatsapp}
-            onChange={(e) => setWhatsapp(e.target.value)}
-          />
-        </div>
       </div>
     </div>
   );

@@ -1,20 +1,12 @@
 
-import { Loader2 } from "lucide-react";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Loader2, User, Building2, Shield, Camera, Save, X } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 import { useProfileSettings } from "@/hooks/useProfileSettings";
 import ProfileAvatar from "./ProfileAvatar";
 import ProfileForm from "./ProfileForm";
 import SecuritySection from "./SecuritySection";
 import ProfileActions from "./ProfileActions";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
 
 const ProfileSettings = () => {
   const isMobile = useIsMobile();
@@ -39,11 +31,15 @@ const ProfileSettings = () => {
 
   if (loading) {
     return (
-      <Card className="glass-card border-0">
-        <CardContent className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-ticlin" />
-        </CardContent>
-      </Card>
+      <div className="min-h-[500px] flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="relative mx-auto w-12 h-12">
+            <div className="absolute inset-0 rounded-full border-2 border-[#D3D800]/30"></div>
+            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#D3D800] animate-spin"></div>
+          </div>
+          <p className="text-sm text-white/70">Carregando perfil...</p>
+        </div>
+      </div>
     );
   }
 
@@ -52,20 +48,36 @@ const ProfileSettings = () => {
   };
 
   return (
-    <Card className="glass-card border-0">
-      <CardHeader className={cn("pb-4", isMobile && "px-4 pt-4")}>
-        <CardTitle className={isMobile ? "text-lg" : "text-xl"}>Perfil</CardTitle>
-        <CardDescription className={isMobile ? "text-sm" : ""}>
-          Gerencie suas informações de perfil e dados da conta
-        </CardDescription>
-      </CardHeader>
-      <CardContent className={cn("space-y-6", isMobile && "px-4 pb-4")}>
+    <div className="space-y-8">
+      {/* Avatar Section */}
+      <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl p-8 animate-fade-in">
+        <div className="flex items-center space-x-4 mb-6">
+          <div className="p-3 bg-gradient-to-r from-[#D3D800]/20 to-[#D3D800]/10 rounded-2xl">
+            <Camera className="h-6 w-6 text-[#D3D800]" />
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-white">Foto do Perfil</h3>
+            <p className="text-white/70">Personalize sua foto de perfil</p>
+          </div>
+        </div>
+        
         <ProfileAvatar 
           avatarUrl={avatarUrl} 
           fullName={fullName} 
         />
-        
-        <Separator className="bg-white/20 dark:bg-white/10" />
+      </div>
+
+      {/* Personal Information */}
+      <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "100ms" }}>
+        <div className="flex items-center space-x-4 mb-6">
+          <div className="p-3 bg-gradient-to-r from-blue-500/20 to-blue-400/10 rounded-2xl">
+            <User className="h-6 w-6 text-blue-400" />
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-white">Informações Pessoais</h3>
+            <p className="text-white/70">Gerencie seus dados pessoais e de contato</p>
+          </div>
+        </div>
         
         <ProfileForm
           email={email}
@@ -80,26 +92,102 @@ const ProfileSettings = () => {
           setWhatsapp={setWhatsapp}
           setCompanyName={setCompanyName}
         />
+      </div>
+
+      {/* Company Information */}
+      <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "200ms" }}>
+        <div className="flex items-center space-x-4 mb-6">
+          <div className="p-3 bg-gradient-to-r from-purple-500/20 to-purple-400/10 rounded-2xl">
+            <Building2 className="h-6 w-6 text-purple-400" />
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-white">Informações da Empresa</h3>
+            <p className="text-white/70">Dados da sua organização</p>
+          </div>
+        </div>
         
-        <Separator className="bg-white/20 dark:bg-white/10" />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-white/90 flex items-center">
+              RAZÃO SOCIAL ou NOME
+              <span className="ml-1 text-red-400">*</span>
+            </label>
+            <input 
+              className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#D3D800]/50 focus:border-[#D3D800]/50 transition-all duration-200"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              required
+              placeholder="Nome da empresa"
+            />
+            <p className="text-xs text-white/60">
+              Campo obrigatório para conexão de WhatsApp
+            </p>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-white/90">CPF/CNPJ</label>
+            <input 
+              className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#D3D800]/50 focus:border-[#D3D800]/50 transition-all duration-200"
+              value={documentId}
+              onChange={(e) => setDocumentId(e.target.value)}
+              placeholder="000.000.000-00"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Security Section */}
+      <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "300ms" }}>
+        <div className="flex items-center space-x-4 mb-6">
+          <div className="p-3 bg-gradient-to-r from-red-500/20 to-red-400/10 rounded-2xl">
+            <Shield className="h-6 w-6 text-red-400" />
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-white">Segurança da Conta</h3>
+            <p className="text-white/70">Gerencie a segurança da sua conta</p>
+          </div>
+        </div>
         
         <SecuritySection 
           email={email}
           onChangePassword={handleChangePassword}
         />
-        
+      </div>
+
+      {/* Actions */}
+      <div className="flex justify-end animate-fade-in" style={{ animationDelay: "400ms" }}>
         <div className={cn(
-          "flex space-x-2",
-          isMobile ? "flex-col space-x-0 space-y-2" : "justify-end"
+          "flex gap-4",
+          isMobile ? "flex-col w-full" : "flex-row"
         )}>
-          <ProfileActions 
-            saving={saving}
-            onSave={handleSaveChanges}
-            onCancel={handleCancel}
-          />
+          <button
+            onClick={handleCancel}
+            className="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl transition-all duration-200 hover:scale-105 flex items-center justify-center space-x-2"
+          >
+            <X className="h-4 w-4" />
+            <span>Cancelar</span>
+          </button>
+          
+          <button
+            onClick={handleSaveChanges}
+            disabled={saving}
+            className="px-6 py-3 bg-gradient-to-r from-[#D3D800] to-[#D3D800]/80 hover:from-[#D3D800]/90 hover:to-[#D3D800]/70 text-black font-semibold rounded-xl transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+          >
+            {saving ? (
+              <>
+                <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                <span>Salvando...</span>
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                <span>Salvar Alterações</span>
+              </>
+            )}
+          </button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 
