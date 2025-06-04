@@ -87,8 +87,10 @@ export function DraggableKPISection({ config, onKPIToggle }: DraggableKPISection
                       <Switch
                         checked={isEnabled}
                         onCheckedChange={() => {
-                          console.log(`🔄 SWITCH TOGGLE ${kpiKey}: ${isEnabled} -> ${!isEnabled}`);
+                          console.log(`🔄 SWITCH TOGGLE CLICKED ${kpiKey}: ${isEnabled} -> ${!isEnabled}`);
+                          console.log("🔄 CALLING onKPIToggle handler...");
                           onKPIToggle(kpiKey as keyof DashboardConfig['kpis']);
+                          console.log("🔄 onKPIToggle handler CALLED");
                         }}
                         className="data-[state=checked]:bg-[#D3D800] data-[state=unchecked]:bg-white/20 transition-all duration-200 transform hover:scale-110"
                       />

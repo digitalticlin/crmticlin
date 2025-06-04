@@ -10,16 +10,16 @@ export const createConfigHandlers = (
   scheduleSave: (config: DashboardConfig) => void,
   isInitializedRef: React.MutableRefObject<boolean>
 ) => {
-  // ETAPA 2: Handler KPI com propagação imediata e síncrona
+  // CORREÇÃO 3: Handler KPI com propagação IMEDIATA sem setTimeout
   const handleKPIToggle = useCallback((kpiKey: keyof DashboardConfig['kpis']) => {
     if (!isInitializedRef.current) {
       console.log("❌ KPI Toggle blocked - not initialized");
       return;
     }
     
-    console.log(`🎯 INSTANT KPI TOGGLE START: ${kpiKey}`);
+    console.log(`🎯 IMMEDIATE KPI TOGGLE: ${kpiKey}`);
     
-    // Força update ANTES da mudança para garantir sincronia
+    // Force update ANTES da mudança
     triggerForceUpdate();
     
     setConfig(currentConfig => {
@@ -35,32 +35,27 @@ export const createConfigHandlers = (
       };
       
       console.log("🔄 NEW KPI CONFIG:", newConfig.kpis);
-      
-      // Schedule save após mudança
       scheduleSave(newConfig);
-      
-      // Força update adicional APÓS mudança
-      setTimeout(() => {
-        console.log("🚀 POST-KPI FORCE UPDATE");
-        triggerForceUpdate();
-      }, 0);
       
       return newConfig;
     });
     
+    // Force update APÓS mudança (imediato)
+    triggerForceUpdate();
+    
     console.log(`✅ KPI TOGGLE COMPLETE: ${kpiKey}`);
   }, [setConfig, triggerForceUpdate, scheduleSave, isInitializedRef]);
 
-  // ETAPA 2: Handler Chart com propagação imediata e síncrona
+  // CORREÇÃO 4: Handler Chart com propagação IMEDIATA sem setTimeout
   const handleChartToggle = useCallback((chartKey: keyof DashboardConfig['charts']) => {
     if (!isInitializedRef.current) {
       console.log("❌ Chart Toggle blocked - not initialized");
       return;
     }
     
-    console.log(`📈 INSTANT CHART TOGGLE START: ${chartKey}`);
+    console.log(`📈 IMMEDIATE CHART TOGGLE: ${chartKey}`);
     
-    // Força update ANTES da mudança para garantir sincronia
+    // Force update ANTES da mudança
     triggerForceUpdate();
     
     setConfig(currentConfig => {
@@ -76,18 +71,13 @@ export const createConfigHandlers = (
       };
       
       console.log("🔄 NEW CHART CONFIG:", newConfig.charts);
-      
-      // Schedule save após mudança
       scheduleSave(newConfig);
-      
-      // Força update adicional APÓS mudança
-      setTimeout(() => {
-        console.log("🚀 POST-CHART FORCE UPDATE");
-        triggerForceUpdate();
-      }, 0);
       
       return newConfig;
     });
+    
+    // Force update APÓS mudança (imediato)
+    triggerForceUpdate();
     
     console.log(`✅ CHART TOGGLE COMPLETE: ${chartKey}`);
   }, [setConfig, triggerForceUpdate, scheduleSave, isInitializedRef]);
@@ -109,9 +99,10 @@ export const createConfigHandlers = (
       };
       
       scheduleSave(updatedConfig);
-      setTimeout(() => triggerForceUpdate(), 0);
       return updatedConfig;
     });
+    
+    triggerForceUpdate();
   }, [setConfig, triggerForceUpdate, scheduleSave, isInitializedRef]);
 
   const resetToDefault = useCallback(() => {
@@ -121,7 +112,7 @@ export const createConfigHandlers = (
     triggerForceUpdate();
     setConfig(defaultConfigCopy);
     scheduleSave(defaultConfigCopy);
-    setTimeout(() => triggerForceUpdate(), 0);
+    triggerForceUpdate();
   }, [setConfig, triggerForceUpdate, scheduleSave]);
 
   return {

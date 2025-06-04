@@ -8,26 +8,30 @@ import PeriodFilter from "@/components/dashboard/PeriodFilter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { cn } from "@/lib/utils";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 export default function Dashboard() {
   const isMobile = useIsMobile();
   const { config, forceUpdate, loading } = useDashboardConfig();
 
-  // BONUS: Monitoramento robusto de mudanças
+  // CORREÇÃO 11: Timestamp para keys robustas dos componentes principais
+  const dashboardTimestamp = useMemo(() => Date.now(), [forceUpdate]);
+
+  // Monitoramento robusto de mudanças
   useEffect(() => {
     console.log("🏠 DASHBOARD RENDER - STATE CHECK");
     console.log("ForceUpdate:", forceUpdate);
     console.log("Loading:", loading);
     console.log("Config KPIs:", config.kpis);
     console.log("Config Charts:", config.charts);
+    console.log("Dashboard Timestamp:", dashboardTimestamp);
     
     // Health check do estado
     const enabledKpis = Object.values(config.kpis).filter(Boolean).length;
     const enabledCharts = Object.values(config.charts).filter(Boolean).length;
     
     console.log(`📊 Health Check - KPIs enabled: ${enabledKpis}, Charts enabled: ${enabledCharts}`);
-  }, [forceUpdate, config, loading]);
+  }, [forceUpdate, config, loading, dashboardTimestamp]);
 
   return (
     <div className="flex min-h-screen bg-gray-200 relative overflow-hidden">
@@ -41,7 +45,6 @@ export default function Dashboard() {
         }}
       ></div>
       
-      {/* Elementos flutuantes para profundidade */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 left-20 w-72 h-72 bg-white/5 rounded-full blur-2xl animate-pulse"></div>
         <div className="absolute bottom-20 right-20 w-96 h-96 bg-gray-300/10 rounded-full blur-xl animate-pulse delay-1000"></div>
@@ -58,7 +61,6 @@ export default function Dashboard() {
         )}>
           <DashboardHeader />
           
-          {/* Card Análise de Performance - Layout alinhado horizontalmente */}
           <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-4 md:p-6 shadow-md">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="flex-1">
@@ -76,12 +78,12 @@ export default function Dashboard() {
             </div>
           </div>
           
-          {/* ETAPA 5: Componentes com keys robustas baseadas no forceUpdate */}
-          <div key={`dashboard-kpi-${forceUpdate}`}>
+          {/* CORREÇÃO 12: Keys robustas com forceUpdate + timestamp */}
+          <div key={`dashboard-kpi-${forceUpdate}-${dashboardTimestamp}`}>
             <CustomizableKPIGrid />
           </div>
           
-          <div key={`dashboard-charts-${forceUpdate}`}>
+          <div key={`dashboard-charts-${forceUpdate}-${dashboardTimestamp}`}>
             <CustomizableChartsSection />
           </div>
         </div>

@@ -83,8 +83,10 @@ export function DraggableChartsSection({ config, onChartToggle }: DraggableChart
                       <Switch
                         checked={isEnabled}
                         onCheckedChange={() => {
-                          console.log(`🔄 SWITCH TOGGLE ${chartKey}: ${isEnabled} -> ${!isEnabled}`);
+                          console.log(`🔄 SWITCH TOGGLE CLICKED ${chartKey}: ${isEnabled} -> ${!isEnabled}`);
+                          console.log("🔄 CALLING onChartToggle handler...");
                           onChartToggle(chartKey as keyof DashboardConfig['charts']);
+                          console.log("🔄 onChartToggle handler CALLED");
                         }}
                         className="data-[state=checked]:bg-[#D3D800] data-[state=unchecked]:bg-white/20 transition-all duration-200 transform hover:scale-110"
                       />

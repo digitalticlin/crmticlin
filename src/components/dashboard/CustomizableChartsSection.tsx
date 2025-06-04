@@ -18,44 +18,26 @@ const chartComponents = {
 export default function CustomizableChartsSection() {
   const { config, loading, forceUpdate } = useDashboardConfig();
 
-  // ETAPA 3: Hash específico baseado nos valores true/false reais + força update
-  const chartStateHash = useMemo(() => {
-    // Criar hash específico dos estados dos Charts
-    const chartStates = Object.entries(config.charts)
-      .map(([key, enabled]) => `${key}:${enabled}`)
-      .sort()
-      .join('|');
-    
-    // Incluir ordem dos Charts no hash
-    const chartOrder = config.layout.chart_order.join(',');
-    
-    const hash = `chart-${forceUpdate}-${chartStates}-${chartOrder}`;
-    console.log("📈 CHART HASH GENERATED:", hash);
-    return hash;
-  }, [config.charts, config.layout.chart_order, forceUpdate]);
-
-  // ETAPA 3: Monitora mudanças em tempo real
-  useEffect(() => {
-    console.log("📈 CHARTS REACTIVE UPDATE");
-    console.log("Hash:", chartStateHash);
-    console.log("Force Update:", forceUpdate);
-    console.log("Config Charts:", config.charts);
-    
-    // Log detalhado dos Charts habilitados
-    const enabledCharts = Object.entries(config.charts)
-      .filter(([_, enabled]) => enabled)
-      .map(([key]) => key);
-    console.log("Enabled Charts:", enabledCharts);
-  }, [chartStateHash, config.charts, forceUpdate]);
-
-  // ETAPA 3: Lista de Charts visíveis com dependência do forceUpdate
+  // CORREÇÃO 8: useMemo com TODAS as dependencies necessárias incluindo forceUpdate
   const visibleCharts = useMemo(() => {
     const visible = config.layout.chart_order.filter(
       chartKey => config.charts[chartKey as keyof typeof config.charts]
     );
-    console.log("✅ VISIBLE CHARTS CALCULATED:", visible);
+    console.log("✅ CHARTS VISIBLE RECALCULATED:", visible, "forceUpdate:", forceUpdate);
     return visible;
-  }, [config.layout.chart_order, config.charts, forceUpdate, chartStateHash]); // ETAPA 3: Incluindo hash no deps
+  }, [config.layout.chart_order, config.charts, forceUpdate]); // INCLUINDO forceUpdate
+
+  // CORREÇÃO 9: Timestamp para keys únicas + enabled state
+  const renderTimestamp = useMemo(() => Date.now(), [forceUpdate, config.charts]);
+
+  // Monitoramento de mudanças
+  useEffect(() => {
+    console.log("📈 CHARTS REACTIVE UPDATE");
+    console.log("Force Update:", forceUpdate);
+    console.log("Config Charts:", config.charts);
+    console.log("Visible Charts:", visibleCharts);
+    console.log("Render Timestamp:", renderTimestamp);
+  }, [forceUpdate, config.charts, visibleCharts, renderTimestamp]);
 
   if (loading) {
     return (
@@ -84,7 +66,6 @@ export default function CustomizableChartsSection() {
 
   return (
     <div 
-      key={chartStateHash} // ETAPA 3: Key baseada no hash específico
       className={`grid ${getGridCols(visibleCharts.length)} gap-6 transition-all duration-300 ease-in-out transform`}
       style={{
         animation: "fade-in 0.3s ease-out"
@@ -92,6 +73,7 @@ export default function CustomizableChartsSection() {
     >
       {visibleCharts.map((chartKey, index) => {
         const ChartComponent = chartComponents[chartKey as keyof typeof chartComponents];
+        const isEnabled = config.charts[chartKey as keyof typeof config.charts];
         
         if (!ChartComponent) {
           console.error(`❌ Component not found for chart key: ${chartKey}`);
@@ -102,11 +84,14 @@ export default function CustomizableChartsSection() {
           );
         }
         
-        console.log(`📊 Rendering Chart: ${chartKey}`);
+        console.log(`📊 Rendering Chart: ${chartKey} enabled:${isEnabled}`);
+        
+        // CORREÇÃO 10: Key robusta com forceUpdate + enabled + timestamp + index
+        const robustKey = `${chartKey}-${forceUpdate}-${isEnabled}-${renderTimestamp}-${index}`;
         
         return (
           <div
-            key={`${chartKey}-${chartStateHash}-${index}`} // ETAPA 3: Key específica com hash e index
+            key={robustKey}
             className="animate-fade-in transform transition-all duration-200"
             style={{ 
               animationDelay: `${index * 100}ms`,

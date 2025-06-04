@@ -58,44 +58,26 @@ export function CustomizableKPIGrid() {
   const { config, loading: configLoading, forceUpdate } = useDashboardConfig();
   const { kpis, loading: kpisLoading } = useDashboardKPIs(config.period_filter);
 
-  // ETAPA 3: Hash específico baseado nos valores true/false reais + força update
-  const kpiStateHash = useMemo(() => {
-    // Criar hash específico dos estados dos KPIs
-    const kpiStates = Object.entries(config.kpis)
-      .map(([key, enabled]) => `${key}:${enabled}`)
-      .sort()
-      .join('|');
-    
-    // Incluir ordem dos KPIs no hash
-    const kpiOrder = config.layout.kpi_order.join(',');
-    
-    const hash = `kpi-${forceUpdate}-${kpiStates}-${kpiOrder}`;
-    console.log("🎯 KPI HASH GENERATED:", hash);
-    return hash;
-  }, [config.kpis, config.layout.kpi_order, forceUpdate]);
-
-  // ETAPA 3: Monitora mudanças em tempo real
-  useEffect(() => {
-    console.log("🎯 KPI GRID REACTIVE UPDATE");
-    console.log("Hash:", kpiStateHash);
-    console.log("Force Update:", forceUpdate);
-    console.log("Config KPIs:", config.kpis);
-    
-    // Log detalhado dos KPIs habilitados
-    const enabledKpis = Object.entries(config.kpis)
-      .filter(([_, enabled]) => enabled)
-      .map(([key]) => key);
-    console.log("Enabled KPIs:", enabledKpis);
-  }, [kpiStateHash, config.kpis, forceUpdate]);
-
-  // ETAPA 3: Lista de KPIs visíveis com dependência do forceUpdate
+  // CORREÇÃO 5: useMemo com TODAS as dependencies necessárias incluindo forceUpdate
   const visibleKPIs = useMemo(() => {
     const visible = config.layout.kpi_order.filter(
       kpiKey => config.kpis[kpiKey as keyof typeof config.kpis]
     );
-    console.log("✅ VISIBLE KPIs CALCULATED:", visible);
+    console.log("✅ KPI VISIBLE RECALCULATED:", visible, "forceUpdate:", forceUpdate);
     return visible;
-  }, [config.layout.kpi_order, config.kpis, forceUpdate, kpiStateHash]); // ETAPA 3: Incluindo hash no deps
+  }, [config.layout.kpi_order, config.kpis, forceUpdate]); // INCLUINDO forceUpdate
+
+  // CORREÇÃO 6: Timestamp para keys únicas + enabled state
+  const renderTimestamp = useMemo(() => Date.now(), [forceUpdate, config.kpis]);
+
+  // Monitoramento de mudanças
+  useEffect(() => {
+    console.log("🎯 KPI GRID REACTIVE UPDATE");
+    console.log("Force Update:", forceUpdate);
+    console.log("Config KPIs:", config.kpis);
+    console.log("Visible KPIs:", visibleKPIs);
+    console.log("Render Timestamp:", renderTimestamp);
+  }, [forceUpdate, config.kpis, visibleKPIs, renderTimestamp]);
 
   if (configLoading || kpisLoading) {
     return (
@@ -126,7 +108,6 @@ export function CustomizableKPIGrid() {
 
   return (
     <div 
-      key={kpiStateHash} // ETAPA 3: Key baseada no hash específico
       className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6 transition-all duration-300 ease-in-out transform`}
       style={{
         animation: "fade-in 0.3s ease-out"
@@ -135,17 +116,21 @@ export function CustomizableKPIGrid() {
       {visibleKPIs.map((kpiKey, index) => {
         const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
         const value = kpis[kpiKey as keyof typeof kpis];
+        const isEnabled = config.kpis[kpiKey as keyof typeof config.kpis];
         
         if (!kpiData) {
           console.warn(`❌ KPI config not found for key: ${kpiKey}`);
           return null;
         }
         
-        console.log(`🎯 Rendering KPI: ${kpiKey} with value:`, value);
+        console.log(`🎯 Rendering KPI: ${kpiKey} enabled:${isEnabled} value:`, value);
+        
+        // CORREÇÃO 7: Key robusta com forceUpdate + enabled + timestamp + index
+        const robustKey = `${kpiKey}-${forceUpdate}-${isEnabled}-${renderTimestamp}-${index}`;
         
         return (
           <div
-            key={`${kpiKey}-${kpiStateHash}-${index}`} // ETAPA 3: Key específica com hash e index
+            key={robustKey}
             className="animate-fade-in transform transition-all duration-200"
             style={{ 
               animationDelay: `${index * 50}ms`,
