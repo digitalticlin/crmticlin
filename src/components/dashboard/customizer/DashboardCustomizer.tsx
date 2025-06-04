@@ -6,6 +6,7 @@ import { Settings } from "lucide-react";
 import { useDashboardConfig, DashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
 import { CustomizerSidebar } from "./CustomizerSidebar";
+import { useCallback } from "react";
 
 export default function DashboardCustomizer() {
   const { config, loading, updateConfig, resetToDefault } = useDashboardConfig();
@@ -13,41 +14,57 @@ export default function DashboardCustomizer() {
 
   console.log("🎛️ DashboardCustomizer render - config:", config);
 
-  const handleKPIToggle = (kpiKey: keyof DashboardConfig['kpis']) => {
+  const handleKPIToggle = useCallback((kpiKey: keyof DashboardConfig['kpis']) => {
+    console.log("=== KPI TOGGLE TRIGGERED ===");
+    console.log("KPI Key:", kpiKey);
+    console.log("Current config before toggle:", config);
+    
     const currentValue = config.kpis[kpiKey];
     const newValue = !currentValue;
     
-    console.log("=== KPI TOGGLE ===");
-    console.log("KPI Key:", kpiKey);
     console.log("Current value:", currentValue);
     console.log("New value:", newValue);
     
-    updateConfig({
+    const updatePayload = {
       kpis: {
         ...config.kpis,
         [kpiKey]: newValue
       }
-    });
-  };
+    };
+    
+    console.log("Update payload:", updatePayload);
+    
+    updateConfig(updatePayload);
+    
+    console.log("✅ KPI toggle completed");
+  }, [config, updateConfig]);
 
-  const handleChartToggle = (chartKey: keyof DashboardConfig['charts']) => {
+  const handleChartToggle = useCallback((chartKey: keyof DashboardConfig['charts']) => {
+    console.log("=== CHART TOGGLE TRIGGERED ===");
+    console.log("Chart Key:", chartKey);
+    console.log("Current config before toggle:", config);
+    
     const currentValue = config.charts[chartKey];
     const newValue = !currentValue;
     
-    console.log("=== CHART TOGGLE ===");
-    console.log("Chart Key:", chartKey);
     console.log("Current value:", currentValue);
     console.log("New value:", newValue);
     
-    updateConfig({
+    const updatePayload = {
       charts: {
         ...config.charts,
         [chartKey]: newValue
       }
-    });
-  };
+    };
+    
+    console.log("Update payload:", updatePayload);
+    
+    updateConfig(updatePayload);
+    
+    console.log("✅ Chart toggle completed");
+  }, [config, updateConfig]);
 
-  const handleDragEnd = (result: DropResult) => {
+  const handleDragEnd = useCallback((result: DropResult) => {
     if (!result.destination) {
       console.log("❌ Drag cancelled - no destination");
       return;
@@ -94,7 +111,7 @@ export default function DashboardCustomizer() {
     } catch (error) {
       console.error("❌ Drag error:", error);
     }
-  };
+  }, [config.layout, updateConfig]);
 
   if (loading) return null;
 

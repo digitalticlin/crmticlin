@@ -1,11 +1,22 @@
 
 import { DashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { Droppable, Draggable } from "react-beautiful-dnd";
-import { DraggableItem } from "./DraggableItem";
+import { Switch } from "@/components/ui/switch";
+import { GripVertical, TrendingUp, Users, UserPlus, MessageSquare } from "lucide-react";
 
-const kpiLabels: Record<keyof DashboardConfig['kpis'], string> = {
+const kpiIcons = {
+  novos_leads: UserPlus,
+  total_leads: Users,
+  taxa_conversao: TrendingUp,
+  taxa_perda: TrendingUp,
+  valor_pipeline: TrendingUp,
+  ticket_medio: TrendingUp,
+  tempo_resposta: MessageSquare
+};
+
+const kpiLabels = {
   novos_leads: "Novos Leads",
-  total_leads: "Total de Leads",
+  total_leads: "Total de Leads", 
   taxa_conversao: "Taxa de Conversão",
   taxa_perda: "Taxa de Perda",
   valor_pipeline: "Valor do Pipeline",
@@ -19,20 +30,21 @@ interface DraggableKPISectionProps {
 }
 
 export function DraggableKPISection({ config, onKPIToggle }: DraggableKPISectionProps) {
-  console.log("DraggableKPISection - config.kpis:", config.kpis);
-  console.log("DraggableKPISection - kpi_order:", config.layout.kpi_order);
+  console.log("🎯 DraggableKPISection render - config.kpis:", config.kpis);
+
+  const handleToggle = (kpiKey: keyof DashboardConfig['kpis']) => {
+    console.log("🔄 KPI Toggle clicked:", kpiKey);
+    console.log("Current value before toggle:", config.kpis[kpiKey]);
+    onKPIToggle(kpiKey);
+  };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
-          📊 Indicadores (KPIs)
-        </h3>
-        <p className="text-white/70 text-sm">
-          Selecione e reordene os indicadores do dashboard
-        </p>
-      </div>
-
+    <div>
+      <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+        <TrendingUp className="w-5 h-5" />
+        Indicadores (KPIs)
+      </h3>
+      
       <Droppable droppableId="kpis-list">
         {(provided) => (
           <div
@@ -41,24 +53,49 @@ export function DraggableKPISection({ config, onKPIToggle }: DraggableKPISection
             className="space-y-3"
           >
             {config.layout.kpi_order.map((kpiKey, index) => {
+              const IconComponent = kpiIcons[kpiKey as keyof typeof kpiIcons];
               const isEnabled = config.kpis[kpiKey as keyof typeof config.kpis];
-              console.log(`KPI ${kpiKey} - isEnabled:`, isEnabled);
+              
+              console.log(`📊 Rendering KPI ${kpiKey}: enabled=${isEnabled}`);
               
               return (
-                <Draggable key={kpiKey} draggableId={kpiKey} index={index}>
+                <Draggable 
+                  key={kpiKey} 
+                  draggableId={kpiKey} 
+                  index={index}
+                >
                   {(provided, snapshot) => (
-                    <DraggableItem
+                    <div
                       ref={provided.innerRef}
                       {...provided.draggableProps}
-                      dragHandleProps={provided.dragHandleProps}
-                      isDragging={snapshot.isDragging}
-                      isEnabled={isEnabled}
-                      label={kpiLabels[kpiKey as keyof typeof kpiLabels]}
-                      onToggle={() => {
-                        console.log("onKPIToggle called for:", kpiKey);
-                        onKPIToggle(kpiKey as keyof DashboardConfig['kpis']);
-                      }}
-                    />
+                      className={`
+                        flex items-center justify-between p-4 rounded-xl border backdrop-blur-sm transition-all duration-200
+                        ${snapshot.isDragging 
+                          ? 'bg-white/25 border-[#D3D800]/60 shadow-xl' 
+                          : 'bg-white/15 border-white/20 hover:bg-white/20'
+                        }
+                      `}
+                    >
+                      <div className="flex items-center gap-3 flex-1">
+                        <div {...provided.dragHandleProps}>
+                          <GripVertical className="w-4 h-4 text-white/60 hover:text-white transition-colors cursor-grab" />
+                        </div>
+                        
+                        {IconComponent && (
+                          <IconComponent className="w-4 h-4 text-[#D3D800]" />
+                        )}
+                        
+                        <span className="text-white font-medium">
+                          {kpiLabels[kpiKey as keyof typeof kpiLabels]}
+                        </span>
+                      </div>
+                      
+                      <Switch
+                        checked={isEnabled}
+                        onCheckedChange={() => handleToggle(kpiKey as keyof DashboardConfig['kpis'])}
+                        className="data-[state=checked]:bg-[#D3D800] data-[state=unchecked]:bg-white/20"
+                      />
+                    </div>
                   )}
                 </Draggable>
               );

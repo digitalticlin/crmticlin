@@ -1,9 +1,18 @@
 
 import { DashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { Droppable, Draggable } from "react-beautiful-dnd";
-import { DraggableItem } from "./DraggableItem";
+import { Switch } from "@/components/ui/switch";
+import { GripVertical, BarChart3, Users, TrendingUp, Tag, PieChart } from "lucide-react";
 
-const chartLabels: Record<keyof DashboardConfig['charts'], string> = {
+const chartIcons = {
+  funil_conversao: BarChart3,
+  performance_vendedores: Users,
+  evolucao_temporal: TrendingUp,
+  leads_etiquetas: Tag,
+  distribuicao_fonte: PieChart
+};
+
+const chartLabels = {
   funil_conversao: "Funil de Conversão",
   performance_vendedores: "Performance dos Vendedores",
   evolucao_temporal: "Evolução Temporal",
@@ -17,20 +26,21 @@ interface DraggableChartsSectionProps {
 }
 
 export function DraggableChartsSection({ config, onChartToggle }: DraggableChartsSectionProps) {
-  console.log("DraggableChartsSection - config.charts:", config.charts);
-  console.log("DraggableChartsSection - chart_order:", config.layout.chart_order);
+  console.log("📈 DraggableChartsSection render - config.charts:", config.charts);
+
+  const handleToggle = (chartKey: keyof DashboardConfig['charts']) => {
+    console.log("🔄 Chart Toggle clicked:", chartKey);
+    console.log("Current value before toggle:", config.charts[chartKey]);
+    onChartToggle(chartKey);
+  };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
-          📈 Gráficos
-        </h3>
-        <p className="text-white/70 text-sm">
-          Selecione e reordene os gráficos do dashboard
-        </p>
-      </div>
-
+    <div>
+      <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+        <BarChart3 className="w-5 h-5" />
+        Gráficos
+      </h3>
+      
       <Droppable droppableId="charts-list">
         {(provided) => (
           <div
@@ -39,24 +49,49 @@ export function DraggableChartsSection({ config, onChartToggle }: DraggableChart
             className="space-y-3"
           >
             {config.layout.chart_order.map((chartKey, index) => {
+              const IconComponent = chartIcons[chartKey as keyof typeof chartIcons];
               const isEnabled = config.charts[chartKey as keyof typeof config.charts];
-              console.log(`Chart ${chartKey} - isEnabled:`, isEnabled);
+              
+              console.log(`📊 Rendering Chart ${chartKey}: enabled=${isEnabled}`);
               
               return (
-                <Draggable key={chartKey} draggableId={chartKey} index={index}>
+                <Draggable 
+                  key={chartKey} 
+                  draggableId={chartKey} 
+                  index={index}
+                >
                   {(provided, snapshot) => (
-                    <DraggableItem
+                    <div
                       ref={provided.innerRef}
                       {...provided.draggableProps}
-                      dragHandleProps={provided.dragHandleProps}
-                      isDragging={snapshot.isDragging}
-                      isEnabled={isEnabled}
-                      label={chartLabels[chartKey as keyof typeof chartLabels]}
-                      onToggle={() => {
-                        console.log("onChartToggle called for:", chartKey);
-                        onChartToggle(chartKey as keyof DashboardConfig['charts']);
-                      }}
-                    />
+                      className={`
+                        flex items-center justify-between p-4 rounded-xl border backdrop-blur-sm transition-all duration-200
+                        ${snapshot.isDragging 
+                          ? 'bg-white/25 border-[#D3D800]/60 shadow-xl' 
+                          : 'bg-white/15 border-white/20 hover:bg-white/20'
+                        }
+                      `}
+                    >
+                      <div className="flex items-center gap-3 flex-1">
+                        <div {...provided.dragHandleProps}>
+                          <GripVertical className="w-4 h-4 text-white/60 hover:text-white transition-colors cursor-grab" />
+                        </div>
+                        
+                        {IconComponent && (
+                          <IconComponent className="w-4 h-4 text-[#D3D800]" />
+                        )}
+                        
+                        <span className="text-white font-medium">
+                          {chartLabels[chartKey as keyof typeof chartLabels]}
+                        </span>
+                      </div>
+                      
+                      <Switch
+                        checked={isEnabled}
+                        onCheckedChange={() => handleToggle(chartKey as keyof DashboardConfig['charts'])}
+                        className="data-[state=checked]:bg-[#D3D800] data-[state=unchecked]:bg-white/20"
+                      />
+                    </div>
                   )}
                 </Draggable>
               );
