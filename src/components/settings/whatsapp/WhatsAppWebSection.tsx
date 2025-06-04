@@ -7,7 +7,7 @@ import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstance
 import { AutoQRCodeModal } from "./AutoQRCodeModal";
 import { ConnectWhatsAppButton } from "./ConnectWhatsAppButton";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, MessageSquare } from "lucide-react";
 import { ImprovedConnectWhatsAppButton } from "./ImprovedConnectWhatsAppButton";
 import { ImprovedQRCodeModal } from "./ImprovedQRCodeModal";
 import { useCompanyData } from "@/hooks/useCompanyData";
@@ -86,24 +86,29 @@ export const WhatsAppWebSection = () => {
       {/* Title Card with Add Button */}
       <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-xl font-semibold text-gray-800">Instâncias WhatsApp</h3>
-            <p className="text-gray-600 mt-1">Conecte e gerencie suas conexões do WhatsApp</p>
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-gradient-to-r from-green-500/20 to-green-400/10 rounded-2xl">
+              <MessageSquare className="h-6 w-6 text-green-500" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-gray-800">Instâncias WhatsApp</h3>
+              <p className="text-gray-600 mt-1">Conecte e gerencie suas conexões do WhatsApp</p>
+            </div>
           </div>
           
           <button
             onClick={handleAutoConnect}
             disabled={autoConnectState.isConnecting || instancesLoading || companyLoading}
-            className="px-6 py-3 bg-gradient-to-r from-[#D3D800] to-[#D3D800]/80 hover:from-[#D3D800]/90 hover:to-[#D3D800]/70 text-black font-semibold rounded-xl transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+            className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
           >
             {autoConnectState.isConnecting ? (
               <>
-                <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 <span>Conectando...</span>
               </>
             ) : (
               <>
-                <Plus className="h-4 w-4" />
+                <MessageSquare className="h-4 w-4" />
                 <span>Adicionar WhatsApp</span>
               </>
             )}
@@ -115,7 +120,7 @@ export const WhatsAppWebSection = () => {
       {instancesLoading || companyLoading ? (
         <div className="flex justify-center py-12">
           <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-[#D3D800]" />
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-green-500" />
             <p className="text-sm text-gray-600">Carregando instâncias...</p>
           </div>
         </div>
@@ -134,24 +139,24 @@ export const WhatsAppWebSection = () => {
       ) : (
         <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-12 text-center">
           <div className="max-w-md mx-auto">
-            <div className="w-16 h-16 bg-[#D3D800]/20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Plus className="h-8 w-8 text-[#D3D800]" />
+            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MessageSquare className="h-8 w-8 text-green-500" />
             </div>
             <h3 className="text-xl font-semibold text-gray-800 mb-2">Nenhuma instância conectada</h3>
             <p className="text-gray-600 mb-6">Conecte seu primeiro WhatsApp para começar a usar o sistema</p>
             <button
               onClick={handleAutoConnect}
               disabled={autoConnectState.isConnecting}
-              className="px-6 py-3 bg-gradient-to-r from-[#D3D800] to-[#D3D800]/80 hover:from-[#D3D800]/90 hover:to-[#D3D800]/70 text-black font-semibold rounded-xl transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 mx-auto"
+              className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold rounded-xl transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 mx-auto"
             >
               {autoConnectState.isConnecting ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   <span>Conectando...</span>
                 </>
               ) : (
                 <>
-                  <Plus className="h-4 w-4" />
+                  <MessageSquare className="h-4 w-4" />
                   <span>Conectar WhatsApp</span>
                 </>
               )}

@@ -3,7 +3,7 @@ import { WhatsAppErrorAlert } from "./whatsapp/WhatsAppErrorAlert";
 import { WhatsAppWebSection } from "./whatsapp/WhatsAppWebSection";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
-import { MessageSquare, Wifi } from "lucide-react";
+import { Wifi } from "lucide-react";
 
 const WhatsAppSettings = () => {
   console.log('[WhatsAppSettings] Component rendering - WhatsApp Web.js only');
@@ -42,20 +42,8 @@ const WhatsAppSettings = () => {
         </div>
       )}
 
-      {/* Instances Section */}
-      <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in">
-        <div className="flex items-center space-x-4 mb-6">
-          <div className="p-3 bg-gradient-to-r from-[#D3D800]/20 to-[#D3D800]/10 rounded-2xl">
-            <MessageSquare className="h-6 w-6 text-[#D3D800]" />
-          </div>
-          <div>
-            <h3 className="text-xl font-semibold text-gray-800">Instâncias WhatsApp</h3>
-            <p className="text-gray-700">Conecte e gerencie suas instâncias do WhatsApp</p>
-          </div>
-        </div>
-
-        <WhatsAppWebSection />
-      </div>
+      {/* WhatsApp Section - Removido o card wrapper */}
+      <WhatsAppWebSection />
     </div>
   );
 };
