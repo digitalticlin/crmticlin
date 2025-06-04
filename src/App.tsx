@@ -1,4 +1,5 @@
 
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +8,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useAuthMonitoring } from "@/hooks/useAuthMonitoring";
+import { AuthHealthMonitor } from "@/components/debug/AuthHealthMonitor";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import WhatsAppChat from "./pages/WhatsAppChat";
@@ -63,6 +65,7 @@ function AppContent() {
     <>
       <Toaster />
       <Sonner />
+      <AuthHealthMonitor />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/register" element={<Register />} />
