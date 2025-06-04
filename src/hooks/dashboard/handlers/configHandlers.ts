@@ -1,5 +1,5 @@
 
-import { useCallback } from "react";
+import { useCallback, useLayoutEffect, useRef } from "react";
 import { DashboardConfig, defaultConfig } from "../types/dashboardConfigTypes";
 import { deepClone } from "../utils/configUtils";
 
@@ -10,7 +10,21 @@ export const createConfigHandlers = (
   scheduleSave: (config: DashboardConfig) => void,
   isInitializedRef: React.MutableRefObject<boolean>
 ) => {
-  // ETAPA 2: Handler KPI com fluxo síncrono linear
+  // ETAPA 4: Estado otimista para atualização imediata
+  const optimisticStateRef = useRef<{
+    kpis?: Partial<DashboardConfig['kpis']>;
+    charts?: Partial<DashboardConfig['charts']>;
+  }>({});
+
+  // ETAPA 2: Função para flush imediato do estado
+  const flushStateAndUpdate = useCallback(() => {
+    // Forçar flush do React batching
+    setTimeout(() => {
+      triggerForceUpdate();
+    }, 0);
+  }, [triggerForceUpdate]);
+
+  // ETAPA 1: Handler KPI com sincronização perfeita
   const handleKPIToggle = useCallback((kpiKey: keyof DashboardConfig['kpis']) => {
     if (!isInitializedRef.current) {
       console.log("❌ KPI Toggle blocked - not initialized");
@@ -20,10 +34,20 @@ export const createConfigHandlers = (
     const timestamp = Date.now();
     console.log(`🎯 KPI TOGGLE START [${timestamp}]: ${kpiKey}`);
     
+    // ETAPA 4: Atualização otimista imediata
+    const newValue = !config.kpis[kpiKey];
+    optimisticStateRef.current = {
+      ...optimisticStateRef.current,
+      kpis: {
+        ...optimisticStateRef.current.kpis,
+        [kpiKey]: newValue
+      }
+    };
+    
+    console.log(`⚡ OPTIMISTIC UPDATE [${timestamp}]: ${kpiKey} = ${newValue}`);
+    
+    // Atualização imediata do estado
     setConfig(currentConfig => {
-      const newValue = !currentConfig.kpis[kpiKey];
-      console.log(`${kpiKey}: ${currentConfig.kpis[kpiKey]} -> ${newValue} [${timestamp}]`);
-      
       const newConfig = {
         ...currentConfig,
         kpis: {
@@ -32,18 +56,19 @@ export const createConfigHandlers = (
         }
       };
       
-      console.log(`📊 NEW KPI CONFIG [${timestamp}]:`, newConfig.kpis);
+      console.log(`📊 CONFIG UPDATED [${timestamp}]:`, newConfig.kpis);
       scheduleSave(newConfig);
+      
+      // ETAPA 2: Flush imediato após setState
+      flushStateAndUpdate();
       
       return newConfig;
     });
     
-    // ETAPA 2: triggerForceUpdate IMEDIATAMENTE após setConfig
-    triggerForceUpdate();
     console.log(`✅ KPI TOGGLE COMPLETE [${timestamp}]: ${kpiKey}`);
-  }, [setConfig, scheduleSave, triggerForceUpdate, isInitializedRef]);
+  }, [config.kpis, setConfig, scheduleSave, flushStateAndUpdate, isInitializedRef]);
 
-  // ETAPA 2: Handler Chart com fluxo síncrono linear
+  // ETAPA 1: Handler Chart com sincronização perfeita
   const handleChartToggle = useCallback((chartKey: keyof DashboardConfig['charts']) => {
     if (!isInitializedRef.current) {
       console.log("❌ Chart Toggle blocked - not initialized");
@@ -53,10 +78,20 @@ export const createConfigHandlers = (
     const timestamp = Date.now();
     console.log(`📈 CHART TOGGLE START [${timestamp}]: ${chartKey}`);
     
+    // ETAPA 4: Atualização otimista imediata
+    const newValue = !config.charts[chartKey];
+    optimisticStateRef.current = {
+      ...optimisticStateRef.current,
+      charts: {
+        ...optimisticStateRef.current.charts,
+        [chartKey]: newValue
+      }
+    };
+    
+    console.log(`⚡ OPTIMISTIC UPDATE [${timestamp}]: ${chartKey} = ${newValue}`);
+    
+    // Atualização imediata do estado
     setConfig(currentConfig => {
-      const newValue = !currentConfig.charts[chartKey];
-      console.log(`${chartKey}: ${currentConfig.charts[chartKey]} -> ${newValue} [${timestamp}]`);
-      
       const newConfig = {
         ...currentConfig,
         charts: {
@@ -65,16 +100,17 @@ export const createConfigHandlers = (
         }
       };
       
-      console.log(`📊 NEW CHART CONFIG [${timestamp}]:`, newConfig.charts);
+      console.log(`📊 CONFIG UPDATED [${timestamp}]:`, newConfig.charts);
       scheduleSave(newConfig);
+      
+      // ETAPA 2: Flush imediato após setState
+      flushStateAndUpdate();
       
       return newConfig;
     });
     
-    // ETAPA 2: triggerForceUpdate IMEDIATAMENTE após setConfig
-    triggerForceUpdate();
     console.log(`✅ CHART TOGGLE COMPLETE [${timestamp}]: ${chartKey}`);
-  }, [setConfig, scheduleSave, triggerForceUpdate, isInitializedRef]);
+  }, [config.charts, setConfig, scheduleSave, flushStateAndUpdate, isInitializedRef]);
 
   const updateConfig = useCallback((newConfig: Partial<DashboardConfig>) => {
     if (!isInitializedRef.current) return;
@@ -92,26 +128,37 @@ export const createConfigHandlers = (
       };
       
       scheduleSave(updatedConfig);
+      flushStateAndUpdate();
       return updatedConfig;
     });
-    
-    triggerForceUpdate();
-  }, [setConfig, scheduleSave, triggerForceUpdate, isInitializedRef]);
+  }, [setConfig, scheduleSave, flushStateAndUpdate, isInitializedRef]);
 
   const resetToDefault = useCallback(() => {
     const timestamp = Date.now();
     console.log(`🔄 RESET TO DEFAULT [${timestamp}]`);
     const defaultConfigCopy = deepClone(defaultConfig);
     
+    // Limpar estado otimista
+    optimisticStateRef.current = {};
+    
     setConfig(defaultConfigCopy);
     scheduleSave(defaultConfigCopy);
-    triggerForceUpdate();
-  }, [setConfig, scheduleSave, triggerForceUpdate]);
+    flushStateAndUpdate();
+  }, [setConfig, scheduleSave, flushStateAndUpdate]);
+
+  // ETAPA 4: Função para obter estado atual (otimista + real)
+  const getCurrentState = useCallback(() => {
+    return {
+      kpis: { ...config.kpis, ...optimisticStateRef.current.kpis },
+      charts: { ...config.charts, ...optimisticStateRef.current.charts }
+    };
+  }, [config.kpis, config.charts]);
 
   return {
     handleKPIToggle,
     handleChartToggle,
     updateConfig,
-    resetToDefault
+    resetToDefault,
+    getCurrentState
   };
 };

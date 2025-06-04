@@ -2,7 +2,7 @@
 import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { useDashboardKPIs } from "@/hooks/dashboard/useDashboardKPIs";
 import KPICard from "./KPICard";
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useLayoutEffect } from "react";
 
 const kpiConfig = {
   novos_leads: {
@@ -55,24 +55,39 @@ const kpiConfig = {
 };
 
 export function CustomizableKPIGrid() {
-  const { config, loading: configLoading, forceUpdate } = useDashboardConfig();
+  const { config, loading: configLoading, forceUpdate, getCurrentState } = useDashboardConfig();
   const { kpis, loading: kpisLoading } = useDashboardKPIs(config.period_filter);
 
-  // ETAPA 3: Dependencies simplificadas - apenas essenciais
+  // ETAPA 3: useMemo otimizado com dependências sincronizadas
   const visibleKPIs = useMemo(() => {
+    // ETAPA 4: Usar estado otimista se disponível
+    const currentState = getCurrentState ? getCurrentState() : { kpis: config.kpis };
+    
     const visible = config.layout.kpi_order.filter(
-      kpiKey => config.kpis[kpiKey as keyof typeof config.kpis]
+      kpiKey => currentState.kpis[kpiKey as keyof typeof currentState.kpis]
     );
+    
     const timestamp = Date.now();
     console.log(`✅ KPI VISIBLE RECALCULATED [${timestamp}]:`, {
       visible,
       forceUpdate,
-      configKPIs: config.kpis
+      configKPIs: config.kpis,
+      optimisticKPIs: currentState.kpis
     });
     return visible;
-  }, [config.layout.kpi_order, config.kpis, forceUpdate]);
+  }, [config.layout.kpi_order, config.kpis, forceUpdate, getCurrentState]);
 
-  // ETAPA 5: Validação - tracking do fluxo
+  // ETAPA 2: useLayoutEffect para sincronização DOM imediata
+  useLayoutEffect(() => {
+    const timestamp = Date.now();
+    console.log(`🎯 KPI GRID LAYOUT EFFECT [${timestamp}]:`, {
+      forceUpdate,
+      visibleKPIs,
+      configKPIs: config.kpis
+    });
+  }, [forceUpdate, visibleKPIs, config.kpis]);
+
+  // ETAPA 5: Debug temporal - tracking do fluxo
   useEffect(() => {
     const timestamp = Date.now();
     console.log(`🎯 KPI GRID UPDATE [${timestamp}]:`, {
@@ -111,15 +126,18 @@ export function CustomizableKPIGrid() {
 
   return (
     <div 
-      className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6 transition-all duration-300 ease-in-out transform`}
+      className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6 transition-all duration-150 ease-out transform`}
       style={{
-        animation: "fade-in 0.3s ease-out"
+        animation: "fade-in 0.15s ease-out"
       }}
     >
       {visibleKPIs.map((kpiKey, index) => {
         const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
         const value = kpis[kpiKey as keyof typeof kpis];
-        const isEnabled = config.kpis[kpiKey as keyof typeof config.kpis];
+        
+        // ETAPA 4: Usar estado otimista para isEnabled
+        const currentState = getCurrentState ? getCurrentState() : { kpis: config.kpis };
+        const isEnabled = currentState.kpis[kpiKey as keyof typeof currentState.kpis];
         
         if (!kpiData) {
           console.warn(`❌ KPI config not found for key: ${kpiKey}`);
@@ -129,15 +147,15 @@ export function CustomizableKPIGrid() {
         const timestamp = Date.now();
         console.log(`🎯 Rendering KPI [${timestamp}]: ${kpiKey} enabled:${isEnabled} value:`, value);
         
-        // ETAPA 3: Key simplificada - apenas forceUpdate + isEnabled
-        const reactiveKey = `kpi-${kpiKey}-${forceUpdate}-${isEnabled}`;
+        // ETAPA 3: Key com timestamp para forçar re-render
+        const reactiveKey = `kpi-${kpiKey}-${forceUpdate}-${isEnabled}-${timestamp}`;
         
         return (
           <div
             key={reactiveKey}
-            className="animate-fade-in transform transition-all duration-200"
+            className="animate-fade-in transform transition-all duration-150"
             style={{ 
-              animationDelay: `${index * 50}ms`,
+              animationDelay: `${index * 25}ms`,
               transform: "scale(1)"
             }}
           >

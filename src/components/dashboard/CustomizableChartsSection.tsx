@@ -5,7 +5,7 @@ import FunnelChart from "./charts/FunnelChart";
 import PerformanceChart from "./charts/PerformanceChart";
 import TagsChart from "./charts/TagsChart";
 import DistributionChart from "./charts/DistributionChart";
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useLayoutEffect } from "react";
 
 const chartComponents = {
   funil_conversao: FunnelChart,
@@ -16,23 +16,38 @@ const chartComponents = {
 };
 
 export default function CustomizableChartsSection() {
-  const { config, loading, forceUpdate } = useDashboardConfig();
+  const { config, loading, forceUpdate, getCurrentState } = useDashboardConfig();
 
-  // ETAPA 3: Dependencies simplificadas - apenas essenciais
+  // ETAPA 3: useMemo otimizado com dependências sincronizadas
   const visibleCharts = useMemo(() => {
+    // ETAPA 4: Usar estado otimista se disponível
+    const currentState = getCurrentState ? getCurrentState() : { charts: config.charts };
+    
     const visible = config.layout.chart_order.filter(
-      chartKey => config.charts[chartKey as keyof typeof config.charts]
+      chartKey => currentState.charts[chartKey as keyof typeof currentState.charts]
     );
+    
     const timestamp = Date.now();
     console.log(`✅ CHARTS VISIBLE RECALCULATED [${timestamp}]:`, {
       visible,
       forceUpdate,
-      configCharts: config.charts
+      configCharts: config.charts,
+      optimisticCharts: currentState.charts
     });
     return visible;
-  }, [config.layout.chart_order, config.charts, forceUpdate]);
+  }, [config.layout.chart_order, config.charts, forceUpdate, getCurrentState]);
 
-  // ETAPA 5: Validação - tracking do fluxo
+  // ETAPA 2: useLayoutEffect para sincronização DOM imediata
+  useLayoutEffect(() => {
+    const timestamp = Date.now();
+    console.log(`📈 CHARTS LAYOUT EFFECT [${timestamp}]:`, {
+      forceUpdate,
+      visibleCharts,
+      configCharts: config.charts
+    });
+  }, [forceUpdate, visibleCharts, config.charts]);
+
+  // ETAPA 5: Debug temporal - tracking do fluxo
   useEffect(() => {
     const timestamp = Date.now();
     console.log(`📈 CHARTS UPDATE [${timestamp}]:`, {
@@ -69,14 +84,17 @@ export default function CustomizableChartsSection() {
 
   return (
     <div 
-      className={`grid ${getGridCols(visibleCharts.length)} gap-6 transition-all duration-300 ease-in-out transform`}
+      className={`grid ${getGridCols(visibleCharts.length)} gap-6 transition-all duration-150 ease-out transform`}
       style={{
-        animation: "fade-in 0.3s ease-out"
+        animation: "fade-in 0.15s ease-out"
       }}
     >
       {visibleCharts.map((chartKey, index) => {
         const ChartComponent = chartComponents[chartKey as keyof typeof chartComponents];
-        const isEnabled = config.charts[chartKey as keyof typeof config.charts];
+        
+        // ETAPA 4: Usar estado otimista para isEnabled
+        const currentState = getCurrentState ? getCurrentState() : { charts: config.charts };
+        const isEnabled = currentState.charts[chartKey as keyof typeof currentState.charts];
         
         if (!ChartComponent) {
           console.error(`❌ Component not found for chart key: ${chartKey}`);
@@ -90,15 +108,15 @@ export default function CustomizableChartsSection() {
         const timestamp = Date.now();
         console.log(`📊 Rendering Chart [${timestamp}]: ${chartKey} enabled:${isEnabled}`);
         
-        // ETAPA 3: Key simplificada - apenas forceUpdate + isEnabled
-        const reactiveKey = `chart-${chartKey}-${forceUpdate}-${isEnabled}`;
+        // ETAPA 3: Key com timestamp para forçar re-render
+        const reactiveKey = `chart-${chartKey}-${forceUpdate}-${isEnabled}-${timestamp}`;
         
         return (
           <div
             key={reactiveKey}
-            className="animate-fade-in transform transition-all duration-200"
+            className="animate-fade-in transform transition-all duration-150"
             style={{ 
-              animationDelay: `${index * 100}ms`,
+              animationDelay: `${index * 50}ms`,
               transform: "scale(1)"
             }}
           >
