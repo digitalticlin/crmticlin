@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { WhatsAppWebInstanceCard } from "./WhatsAppWebInstanceCard";
@@ -5,19 +6,15 @@ import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstance
 import { AutoQRCodeModal } from "./AutoQRCodeModal";
 import { ConnectWhatsAppButton } from "./ConnectWhatsAppButton";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, MessageSquare, Bug } from "lucide-react";
+import { Loader2, MessageSquare } from "lucide-react";
 import { ImprovedConnectWhatsAppButton } from "./ImprovedConnectWhatsAppButton";
 import { ImprovedQRCodeModal } from "./ImprovedQRCodeModal";
 import { useCompanyData } from "@/hooks/useCompanyData";
-import { VPSConnectivityTest } from "./VPSConnectivityTest";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Button } from "@/components/ui/button";
 
 export const WhatsAppWebSection = () => {
   console.log('[WhatsAppWebSection] Component rendering - WhatsApp Web.js only');
   
   const [userEmail, setUserEmail] = useState<string>("");
-  const [showDiagnostic, setShowDiagnostic] = useState(true); // Iniciar aberto para ver o teste
   const { companyId, loading: companyLoading } = useCompanyData();
   
   const {
@@ -83,26 +80,6 @@ export const WhatsAppWebSection = () => {
 
   return (
     <div className="space-y-6">
-      {/* Painel de Diagnóstico VPS - TESTE PÓS-ATUALIZAÇÃO DO TOKEN */}
-      <Collapsible open={showDiagnostic} onOpenChange={setShowDiagnostic}>
-        <div className="bg-blue-50/50 backdrop-blur-xl rounded-3xl border border-blue-200/30 shadow-2xl p-4">
-          <CollapsibleTrigger asChild>
-            <Button variant="outline" className="w-full justify-between">
-              <div className="flex items-center gap-2">
-                <Bug className="h-4 w-4" />
-                Diagnóstico VPS - Pós-Atualização Token
-              </div>
-              <span className="text-xs text-gray-500">
-                {showDiagnostic ? 'Ocultar' : 'Mostrar'} teste de conectividade
-              </span>
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-4">
-            <VPSConnectivityTest />
-          </CollapsibleContent>
-        </div>
-      </Collapsible>
-
       {/* Title Card with Add Button */}
       <div className="bg-white/30 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-6">
         <div className="flex items-center justify-between">
