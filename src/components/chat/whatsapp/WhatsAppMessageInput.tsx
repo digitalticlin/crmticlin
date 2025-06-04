@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Smile, Paperclip, Mic, Plus } from "lucide-react";
+import { Send, Smile, Paperclip, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface WhatsAppMessageInputProps {
@@ -27,7 +27,6 @@ const EMOJIS = [
   "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣",
   "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰",
   "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜",
-  "🤪", "🤨", "🧐", "🤓", "😎", "🤩", "🥳", "😏",
   "👍", "👎", "👌", "✌️", "🤞", "🤟", "🤘", "🤙",
   "👈", "👉", "👆", "👇", "☝️", "✋", "🤚", "🖐",
   "🖖", "👋", "🤏", "✊", "👊", "🤛", "🤜", "💪"
@@ -70,7 +69,6 @@ export const WhatsAppMessageInput = ({
     const newMessage = message.slice(0, cursorPosition) + emoji + message.slice(cursorPosition);
     setMessage(newMessage);
     
-    // Restore cursor position
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.setSelectionRange(cursorPosition + emoji.length, cursorPosition + emoji.length);
@@ -87,30 +85,30 @@ export const WhatsAppMessageInput = ({
   };
 
   return (
-    <div className="p-4 bg-[#202c33] border-t border-[#313d45]">
+    <div className="p-6 bg-white/10 backdrop-blur-md border-t border-white/20">
       {/* Quick Messages Bar */}
       {showQuickMessages && (
-        <div className="mb-3 p-3 bg-[#2a3942] rounded-lg">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-[#8696a0]">Mensagens Rápidas</span>
+        <div className="mb-4 p-4 bg-white/20 backdrop-blur-sm rounded-2xl border border-white/30">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium text-gray-700">Mensagens Rápidas</span>
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={() => setShowQuickMessages(false)}
-              className="text-[#8696a0] hover:text-[#e9edef] h-6 px-2"
+              className="text-gray-600 hover:text-gray-900 hover:bg-white/20 h-6 px-2 rounded-lg"
             >
               ✕
             </Button>
           </div>
           <ScrollArea className="max-h-32">
-            <div className="grid gap-1">
+            <div className="grid gap-2">
               {QUICK_MESSAGES.map((quickMsg, index) => (
                 <Button
                   key={index}
                   variant="ghost"
                   size="sm"
                   onClick={() => handleQuickMessage(quickMsg)}
-                  className="justify-start text-left text-[#e9edef] hover:bg-[#313d45] h-8 px-2"
+                  className="justify-start text-left text-gray-700 hover:bg-white/30 hover:text-gray-900 h-8 px-3 rounded-lg transition-colors"
                 >
                   {quickMsg}
                 </Button>
@@ -121,30 +119,34 @@ export const WhatsAppMessageInput = ({
       )}
 
       {/* Message Input */}
-      <div className="flex items-end gap-2">
+      <div className="flex items-end gap-3">
         {/* Quick Actions */}
-        <div className="flex gap-1">
+        <div className="flex gap-2">
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="icon" className="text-[#8696a0] hover:text-[#e9edef] hover:bg-[#2a3942]">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-gray-600 hover:text-gray-900 hover:bg-white/20 w-12 h-12 rounded-full transition-colors"
+              >
                 <Plus className="h-5 w-5" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent side="top" className="w-48 p-2 bg-[#2a3942] border-[#313d45]">
-              <div className="grid gap-1">
+            <PopoverContent side="top" className="w-56 p-3 bg-white/90 backdrop-blur-md border-white/30 shadow-xl">
+              <div className="grid gap-2">
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   onClick={() => setShowQuickMessages(!showQuickMessages)}
-                  className="justify-start text-[#e9edef] hover:bg-[#313d45]"
+                  className="justify-start text-gray-700 hover:bg-white/50"
                 >
                   💬 Mensagens Rápidas
                 </Button>
-                <Button variant="ghost" size="sm" className="justify-start text-[#e9edef] hover:bg-[#313d45]">
+                <Button variant="ghost" size="sm" className="justify-start text-gray-700 hover:bg-white/50">
                   <Paperclip className="h-4 w-4 mr-2" />
                   Anexar Arquivo
                 </Button>
-                <Button variant="ghost" size="sm" className="justify-start text-[#e9edef] hover:bg-[#313d45]">
+                <Button variant="ghost" size="sm" className="justify-start text-gray-700 hover:bg-white/50">
                   📷 Câmera
                 </Button>
               </div>
@@ -163,28 +165,32 @@ export const WhatsAppMessageInput = ({
             }}
             onKeyPress={handleKeyPress}
             placeholder="Digite uma mensagem..."
-            className="resize-none bg-[#2a3942] border-[#313d45] text-[#e9edef] placeholder-[#8696a0] pr-20 min-h-[44px] max-h-[120px]"
+            className="resize-none bg-white/20 backdrop-blur-sm border-white/30 text-gray-900 placeholder-gray-600 pr-20 min-h-[56px] max-h-[120px] rounded-2xl focus:bg-white/30 focus:border-white/40"
             rows={1}
           />
           
           {/* Emoji Button */}
-          <div className="absolute right-2 bottom-2 flex gap-1">
+          <div className="absolute right-3 bottom-3 flex gap-1">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-[#8696a0] hover:text-[#e9edef]">
-                  <Smile className="h-4 w-4" />
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-10 w-10 text-gray-600 hover:text-gray-900 hover:bg-white/20 rounded-full"
+                >
+                  <Smile className="h-5 w-5" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent side="top" className="w-80 p-3 bg-[#2a3942] border-[#313d45]">
+              <PopoverContent side="top" className="w-80 p-4 bg-white/90 backdrop-blur-md border-white/30 shadow-xl">
                 <ScrollArea className="h-48">
-                  <div className="grid grid-cols-8 gap-1">
+                  <div className="grid grid-cols-8 gap-2">
                     {EMOJIS.map((emoji, index) => (
                       <Button
                         key={index}
                         variant="ghost"
                         size="sm"
                         onClick={() => handleEmojiSelect(emoji)}
-                        className="h-8 w-8 p-0 hover:bg-[#313d45] text-lg"
+                        className="h-10 w-10 p-0 hover:bg-white/50 text-lg rounded-lg"
                       >
                         {emoji}
                       </Button>
@@ -196,20 +202,19 @@ export const WhatsAppMessageInput = ({
           </div>
         </div>
 
-        {/* Send/Voice Button */}
-        {message.trim() ? (
-          <Button
-            onClick={handleSend}
-            disabled={isSending}
-            className="bg-[#00a884] hover:bg-[#008f72] text-white h-11 w-11 p-0"
-          >
-            <Send className="h-5 w-5" />
-          </Button>
-        ) : (
-          <Button variant="ghost" size="icon" className="text-[#8696a0] hover:text-[#e9edef] hover:bg-[#2a3942] h-11 w-11">
-            <Mic className="h-5 w-5" />
-          </Button>
-        )}
+        {/* Send Button */}
+        <Button
+          onClick={handleSend}
+          disabled={!message.trim() || isSending}
+          className={cn(
+            "h-12 w-12 p-0 rounded-full transition-all duration-200 shadow-lg",
+            message.trim() && !isSending
+              ? "bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/25 hover:shadow-blue-500/40" 
+              : "bg-gray-300 text-gray-500 cursor-not-allowed"
+          )}
+        >
+          <Send className="h-5 w-5" />
+        </Button>
       </div>
     </div>
   );

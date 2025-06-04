@@ -31,45 +31,33 @@ export const WhatsAppContactsList = ({
 
   const formatLastMessageTime = (timeString: string) => {
     if (!timeString) return '';
-    
-    const now = new Date();
-    const messageTime = new Date(timeString);
-    const diffInMinutes = Math.floor((now.getTime() - messageTime.getTime()) / (1000 * 60));
-    
-    if (diffInMinutes < 1) return 'agora';
-    if (diffInMinutes < 60) return `${diffInMinutes}m`;
-    
-    const diffInHours = Math.floor(diffInMinutes / 60);
-    if (diffInHours < 24) return `${diffInHours}h`;
-    
-    const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 7) return `${diffInDays}d`;
-    
-    return messageTime.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    return timeString;
   };
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="p-4 bg-[#202c33] border-b border-[#313d45]">
+    <div className="h-full flex flex-col bg-white/5 backdrop-blur-sm border-r border-white/20">
+      {/* Header Moderno */}
+      <div className="p-6 border-b border-white/10">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-medium text-[#e9edef]">Conversas</h1>
-          <MoreVertical className="h-5 w-5 text-[#8696a0] cursor-pointer hover:text-[#e9edef]" />
+          <h1 className="text-2xl font-semibold text-gray-900">Conversas</h1>
+          <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors cursor-pointer">
+            <MoreVertical className="h-5 w-5 text-gray-700" />
+          </div>
         </div>
         
-        {/* Search Bar */}
+        {/* Search Bar Moderno */}
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#8696a0]" />
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
           <Input
-            placeholder="Pesquisar contatos..."
-            className="pl-10 bg-[#2a3942] border-none text-[#e9edef] placeholder-[#8696a0] focus:bg-[#2a3942] h-9"
+            placeholder="Pesquisar conversas..."
+            className="pl-12 bg-white/20 backdrop-blur-sm border-white/30 text-gray-900 placeholder-gray-600 focus:bg-white/30 focus:border-white/40 h-12 rounded-xl"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
 
-      {/* Contacts List */}
+      {/* Contacts List Moderno */}
       <div className="flex-1 relative">
         {isLoading ? (
           <div className="flex items-center justify-center h-32">
@@ -77,69 +65,63 @@ export const WhatsAppContactsList = ({
           </div>
         ) : (
           <ScrollArea className="h-full">
-            <div className="divide-y divide-[#313d45]">
+            <div className="p-2">
               {filteredContacts.map((contact) => (
                 <div
                   key={contact.id}
                   className={cn(
-                    "p-3 hover:bg-[#2a3942] cursor-pointer transition-colors relative",
-                    selectedContact?.id === contact.id && "bg-[#2a3942]"
+                    "p-4 rounded-2xl mb-2 hover:bg-white/20 cursor-pointer transition-all duration-200 relative group",
+                    selectedContact?.id === contact.id && "bg-white/25 shadow-lg ring-2 ring-white/30"
                   )}
                   onClick={() => onSelectContact(contact)}
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-4">
                     <div className="relative">
-                      <Avatar className="h-12 w-12">
-                        <AvatarFallback className="bg-[#6b7c85] text-white text-sm">
+                      <Avatar className="h-14 w-14 ring-2 ring-white/20">
+                        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-lg font-semibold">
                           {contact.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
                         </AvatarFallback>
                         <AvatarImage src={contact.avatar} alt={contact.name} />
                       </Avatar>
                       {contact.isOnline && (
-                        <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-[#00d9ff] border-2 border-[#0b141a]" />
+                        <div className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-green-500 border-2 border-white shadow-sm" />
                       )}
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start mb-1">
-                        <h3 className="font-medium text-[#e9edef] truncate">{contact.name}</h3>
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-semibold text-gray-900 truncate text-lg">{contact.name}</h3>
                         <div className="flex items-center gap-2 ml-2">
                           {contact.lastMessageTime && (
-                            <span className="text-xs text-[#8696a0] whitespace-nowrap">
+                            <span className="text-sm text-gray-600 whitespace-nowrap font-medium">
                               {formatLastMessageTime(contact.lastMessageTime)}
                             </span>
                           )}
                         </div>
                       </div>
                       
-                      <div className="flex justify-between items-center">
-                        <p className="text-sm text-[#8696a0] truncate flex-1">
+                      <div className="flex justify-between items-center mb-2">
+                        <p className="text-sm text-gray-700 truncate flex-1 leading-relaxed">
                           {contact.lastMessage || "Clique para conversar"}
                         </p>
                         
                         {contact.unreadCount > 0 && (
                           <Badge 
-                            variant="default" 
-                            className="bg-[#00a884] text-black text-xs px-2 py-1 rounded-full ml-2"
+                            className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 rounded-full ml-2 shadow-sm"
                           >
                             {contact.unreadCount > 99 ? '99+' : contact.unreadCount}
                           </Badge>
                         )}
                       </div>
                       
-                      {/* Indicadores adicionais */}
-                      <div className="flex items-center gap-2 mt-1">
-                        {contact.purchaseValue && contact.purchaseValue > 0 && (
-                          <Badge variant="outline" className="text-xs border-[#00a884] text-[#00a884]">
-                            R$ {contact.purchaseValue.toLocaleString('pt-BR')}
-                          </Badge>
-                        )}
-                        {contact.company && (
-                          <Badge variant="outline" className="text-xs border-[#8696a0] text-[#8696a0]">
+                      {/* Company Info */}
+                      {contact.company && (
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs border-gray-400 text-gray-600 bg-white/30">
                             {contact.company}
                           </Badge>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -147,11 +129,14 @@ export const WhatsAppContactsList = ({
               
               {filteredContacts.length === 0 && !isLoading && (
                 <div className="p-8 text-center">
-                  <p className="text-[#8696a0]">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/20 flex items-center justify-center">
+                    <Search className="h-8 w-8 text-gray-500" />
+                  </div>
+                  <p className="text-gray-600 text-lg font-medium">
                     {searchQuery ? 'Nenhum contato encontrado' : 'Nenhuma conversa ainda'}
                   </p>
                   {!searchQuery && (
-                    <p className="text-[#8696a0] text-sm mt-2">
+                    <p className="text-gray-500 text-sm mt-2">
                       As conversas aparecerão aqui quando você receber mensagens
                     </p>
                   )}
