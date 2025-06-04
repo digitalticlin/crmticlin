@@ -127,3 +127,67 @@ export function isActiveVPSInstance(vpsInstance: any): boolean {
   const activeStatuses = ['open', 'authenticated', 'ready'];
   return activeStatuses.includes(vpsInstance.status);
 }
+
+// NOVA FUNÇÃO: Excluir instâncias órfãs desconectadas do banco
+export async function deleteOrphanedDisconnectedInstances(supabase: any, dbInstances: any[], vpsInstances: any[]) {
+  console.log(`[Cleanup] 🧹 Iniciando limpeza de instâncias órfãs desconectadas`);
+  
+  const deletedInstances = [];
+  const DISCONNECTED_THRESHOLD_HOURS = 24; // 24 horas sem aparecer no VPS
+  
+  for (const dbInstance of dbInstances) {
+    // Verificar se a instância do banco não existe no VPS
+    const existsInVPS = vpsInstances.some(vps => vps.instanceId === dbInstance.vps_instance_id);
+    
+    if (!existsInVPS) {
+      // Verificar se está desconectada há mais de X horas
+      const lastUpdate = new Date(dbInstance.updated_at || dbInstance.created_at);
+      const hoursDisconnected = (Date.now() - lastUpdate.getTime()) / (1000 * 60 * 60);
+      
+      // Verificar se está realmente desconectada (não apenas ausente temporariamente)
+      const isDisconnected = ['disconnected', 'closed', 'error'].includes(dbInstance.connection_status);
+      
+      if (hoursDisconnected > DISCONNECTED_THRESHOLD_HOURS && isDisconnected) {
+        try {
+          console.log(`[Cleanup] 🗑️ Excluindo instância órfã desconectada: ${dbInstance.instance_name} (órfã há ${Math.round(hoursDisconnected)}h)`);
+          
+          const { error } = await supabase
+            .from('whatsapp_instances')
+            .delete()
+            .eq('id', dbInstance.id);
+          
+          if (error) {
+            console.error(`[Cleanup] ❌ Erro ao excluir instância ${dbInstance.instance_name}:`, error);
+            deletedInstances.push({
+              action: 'delete_failed',
+              instanceId: dbInstance.id,
+              instance_name: dbInstance.instance_name,
+              error: error.message
+            });
+          } else {
+            console.log(`[Cleanup] ✅ Instância órfã excluída: ${dbInstance.instance_name}`);
+            deletedInstances.push({
+              action: 'deleted',
+              instanceId: dbInstance.id,
+              instance_name: dbInstance.instance_name,
+              hours_disconnected: Math.round(hoursDisconnected)
+            });
+          }
+        } catch (error) {
+          console.error(`[Cleanup] ❌ Erro ao processar exclusão de ${dbInstance.instance_name}:`, error);
+          deletedInstances.push({
+            action: 'delete_error',
+            instanceId: dbInstance.id,
+            instance_name: dbInstance.instance_name,
+            error: error.message
+          });
+        }
+      } else {
+        console.log(`[Cleanup] ⏳ Instância órfã ainda dentro do prazo: ${dbInstance.instance_name} (órfã há ${Math.round(hoursDisconnected)}h, status: ${dbInstance.connection_status})`);
+      }
+    }
+  }
+  
+  console.log(`[Cleanup] 🏁 Limpeza finalizada: ${deletedInstances.filter(d => d.action === 'deleted').length} instâncias excluídas`);
+  return deletedInstances;
+}
