@@ -7,6 +7,8 @@ type NavItemData = {
   icon: React.ElementType;
   label: string;
   href: string;
+  className?: string;
+  comingSoon?: boolean;
 };
 
 type SidebarNavGroupProps = {
@@ -25,6 +27,8 @@ const SidebarNavGroup = ({ items, isCollapsed, className = "" }: SidebarNavGroup
           label={item.label}
           href={item.href}
           isCollapsed={isCollapsed}
+          className={item.className}
+          comingSoon={item.comingSoon}
         />
       ))}
       

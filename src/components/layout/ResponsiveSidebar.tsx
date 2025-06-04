@@ -38,17 +38,20 @@ export default function ResponsiveSidebar() {
       icon: LayoutDashboard,
       label: "Dashboard",
       href: "/dashboard",
+      comingSoon: false
     },
     {
       icon: Kanban,
       label: "Funil de Vendas",
       href: "/sales-funnel",
+      comingSoon: false
     },
     {
       icon: MessageSquare,
       label: "Chat",
       href: "/whatsapp-chat",
-      className: "text-green-600"
+      className: "text-green-600",
+      comingSoon: false
     }
   ];
 
@@ -57,21 +60,25 @@ export default function ResponsiveSidebar() {
       icon: Users,
       label: "Clientes",
       href: "/clients",
+      comingSoon: true
     },
     {
       icon: ListPlus,
       label: "Automação",
       href: "/automation",
+      comingSoon: true
     },
     {
       icon: Cable,
       label: "Integração",
       href: "/integration",
+      comingSoon: true
     },
     {
       icon: Bot,
       label: "Agentes IA",
       href: "/ai-agents",
+      comingSoon: true
     }
   ];
 
@@ -80,11 +87,13 @@ export default function ResponsiveSidebar() {
       icon: CreditCard,
       label: "Planos",
       href: "/plans",
+      comingSoon: true
     },
     {
       icon: Settings,
       label: "Configurações",
       href: "/settings",
+      comingSoon: false
     }
   ];
 
