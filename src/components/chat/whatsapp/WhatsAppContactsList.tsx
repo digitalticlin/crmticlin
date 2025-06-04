@@ -29,17 +29,19 @@ export const WhatsAppContactsList = ({
   });
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col">
       {/* Header com Filtros */}
-      <WhatsAppChatFilters
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        activeFilter={activeFilter}
-        onFilterChange={setActiveFilter}
-      />
+      <div className="flex-shrink-0">
+        <WhatsAppChatFilters
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+        />
+      </div>
 
       {/* Lista de Contatos com Scroll Independente */}
-      <div className="flex-1 relative">
+      <div className="flex-1 min-h-0">
         {isLoading ? (
           <div className="flex items-center justify-center h-32">
             <LoadingSpinner size="lg" />

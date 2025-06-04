@@ -19,28 +19,30 @@ export const ContactsList = ({
   activeFilter
 }: ContactsListProps) => {
   return (
-    <ScrollArea className="h-full">
-      <div className="space-y-1 p-2">
-        {contacts.map((contact) => (
-          <ContactItem
-            key={contact.id}
-            contact={contact}
-            isSelected={selectedContact?.id === contact.id}
-            onSelect={onSelectContact}
-          />
-        ))}
-        
-        {contacts.length === 0 && (
-          <div className="flex items-center justify-center h-32 text-center">
-            <p className="text-gray-600 text-sm">
-              {searchQuery 
-                ? "Nenhum contato encontrado" 
-                : "Nenhuma conversa ainda"
-              }
-            </p>
-          </div>
-        )}
-      </div>
-    </ScrollArea>
+    <div className="h-full">
+      <ScrollArea className="h-full w-full">
+        <div className="space-y-1 p-2">
+          {contacts.map((contact) => (
+            <ContactItem
+              key={contact.id}
+              contact={contact}
+              isSelected={selectedContact?.id === contact.id}
+              onSelect={onSelectContact}
+            />
+          ))}
+          
+          {contacts.length === 0 && (
+            <div className="flex items-center justify-center h-32 text-center">
+              <p className="text-gray-600 text-sm">
+                {searchQuery 
+                  ? "Nenhum contato encontrado" 
+                  : "Nenhuma conversa ainda"
+                }
+              </p>
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+    </div>
   );
 };
