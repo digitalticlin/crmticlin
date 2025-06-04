@@ -55,33 +55,47 @@ const kpiConfig = {
 };
 
 export function CustomizableKPIGrid() {
-  const { config, loading: configLoading, forceUpdate } = useDashboardConfig(); // ETAPA 3: Usando forceUpdate
+  const { config, loading: configLoading, forceUpdate } = useDashboardConfig();
   const { kpis, loading: kpisLoading } = useDashboardKPIs(config.period_filter);
 
-  // ETAPA 3: Hash baseado diretamente no config + forceUpdate
+  // ETAPA 3: Hash específico baseado nos valores true/false reais + força update
   const kpiStateHash = useMemo(() => {
-    const enabledKpis = Object.entries(config.kpis)
-      .filter(([_, enabled]) => enabled)
-      .map(([key]) => key)
+    // Criar hash específico dos estados dos KPIs
+    const kpiStates = Object.entries(config.kpis)
+      .map(([key, enabled]) => `${key}:${enabled}`)
       .sort()
-      .join(',');
-    return `${forceUpdate}-${enabledKpis}`;
-  }, [config.kpis, forceUpdate]);
+      .join('|');
+    
+    // Incluir ordem dos KPIs no hash
+    const kpiOrder = config.layout.kpi_order.join(',');
+    
+    const hash = `kpi-${forceUpdate}-${kpiStates}-${kpiOrder}`;
+    console.log("🎯 KPI HASH GENERATED:", hash);
+    return hash;
+  }, [config.kpis, config.layout.kpi_order, forceUpdate]);
 
+  // ETAPA 3: Monitora mudanças em tempo real
   useEffect(() => {
     console.log("🎯 KPI GRID REACTIVE UPDATE");
     console.log("Hash:", kpiStateHash);
     console.log("Force Update:", forceUpdate);
-    console.log("Enabled KPIs:", Object.entries(config.kpis).filter(([_, enabled]) => enabled));
+    console.log("Config KPIs:", config.kpis);
+    
+    // Log detalhado dos KPIs habilitados
+    const enabledKpis = Object.entries(config.kpis)
+      .filter(([_, enabled]) => enabled)
+      .map(([key]) => key);
+    console.log("Enabled KPIs:", enabledKpis);
   }, [kpiStateHash, config.kpis, forceUpdate]);
 
+  // ETAPA 3: Lista de KPIs visíveis com dependência do forceUpdate
   const visibleKPIs = useMemo(() => {
     const visible = config.layout.kpi_order.filter(
       kpiKey => config.kpis[kpiKey as keyof typeof config.kpis]
     );
-    console.log("✅ VISIBLE KPIs:", visible);
+    console.log("✅ VISIBLE KPIs CALCULATED:", visible);
     return visible;
-  }, [config.layout.kpi_order, config.kpis, forceUpdate]); // ETAPA 3: Incluindo forceUpdate
+  }, [config.layout.kpi_order, config.kpis, forceUpdate, kpiStateHash]); // ETAPA 3: Incluindo hash no deps
 
   if (configLoading || kpisLoading) {
     return (
@@ -112,7 +126,7 @@ export function CustomizableKPIGrid() {
 
   return (
     <div 
-      key={kpiStateHash} // ETAPA 3: Key baseada no hash direto
+      key={kpiStateHash} // ETAPA 3: Key baseada no hash específico
       className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6 transition-all duration-300 ease-in-out transform`}
       style={{
         animation: "fade-in 0.3s ease-out"
@@ -131,7 +145,7 @@ export function CustomizableKPIGrid() {
         
         return (
           <div
-            key={`${kpiKey}-${kpiStateHash}`} // ETAPA 3: Key com hash
+            key={`${kpiKey}-${kpiStateHash}-${index}`} // ETAPA 3: Key específica com hash e index
             className="animate-fade-in transform transition-all duration-200"
             style={{ 
               animationDelay: `${index * 50}ms`,

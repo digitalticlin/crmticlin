@@ -16,32 +16,46 @@ const chartComponents = {
 };
 
 export default function CustomizableChartsSection() {
-  const { config, loading, forceUpdate } = useDashboardConfig(); // ETAPA 3: Usando forceUpdate
+  const { config, loading, forceUpdate } = useDashboardConfig();
 
-  // ETAPA 3: Hash baseado diretamente no config + forceUpdate
+  // ETAPA 3: Hash específico baseado nos valores true/false reais + força update
   const chartStateHash = useMemo(() => {
-    const enabledCharts = Object.entries(config.charts)
-      .filter(([_, enabled]) => enabled)
-      .map(([key]) => key)
+    // Criar hash específico dos estados dos Charts
+    const chartStates = Object.entries(config.charts)
+      .map(([key, enabled]) => `${key}:${enabled}`)
       .sort()
-      .join(',');
-    return `${forceUpdate}-${enabledCharts}`;
-  }, [config.charts, forceUpdate]);
+      .join('|');
+    
+    // Incluir ordem dos Charts no hash
+    const chartOrder = config.layout.chart_order.join(',');
+    
+    const hash = `chart-${forceUpdate}-${chartStates}-${chartOrder}`;
+    console.log("📈 CHART HASH GENERATED:", hash);
+    return hash;
+  }, [config.charts, config.layout.chart_order, forceUpdate]);
 
+  // ETAPA 3: Monitora mudanças em tempo real
   useEffect(() => {
     console.log("📈 CHARTS REACTIVE UPDATE");
     console.log("Hash:", chartStateHash);
     console.log("Force Update:", forceUpdate);
-    console.log("Enabled Charts:", Object.entries(config.charts).filter(([_, enabled]) => enabled));
+    console.log("Config Charts:", config.charts);
+    
+    // Log detalhado dos Charts habilitados
+    const enabledCharts = Object.entries(config.charts)
+      .filter(([_, enabled]) => enabled)
+      .map(([key]) => key);
+    console.log("Enabled Charts:", enabledCharts);
   }, [chartStateHash, config.charts, forceUpdate]);
 
+  // ETAPA 3: Lista de Charts visíveis com dependência do forceUpdate
   const visibleCharts = useMemo(() => {
     const visible = config.layout.chart_order.filter(
       chartKey => config.charts[chartKey as keyof typeof config.charts]
     );
-    console.log("✅ VISIBLE CHARTS:", visible);
+    console.log("✅ VISIBLE CHARTS CALCULATED:", visible);
     return visible;
-  }, [config.layout.chart_order, config.charts, forceUpdate]); // ETAPA 3: Incluindo forceUpdate
+  }, [config.layout.chart_order, config.charts, forceUpdate, chartStateHash]); // ETAPA 3: Incluindo hash no deps
 
   if (loading) {
     return (
@@ -70,7 +84,7 @@ export default function CustomizableChartsSection() {
 
   return (
     <div 
-      key={chartStateHash} // ETAPA 3: Key baseada no hash direto
+      key={chartStateHash} // ETAPA 3: Key baseada no hash específico
       className={`grid ${getGridCols(visibleCharts.length)} gap-6 transition-all duration-300 ease-in-out transform`}
       style={{
         animation: "fade-in 0.3s ease-out"
@@ -92,7 +106,7 @@ export default function CustomizableChartsSection() {
         
         return (
           <div
-            key={`${chartKey}-${chartStateHash}`} // ETAPA 3: Key com hash
+            key={`${chartKey}-${chartStateHash}-${index}`} // ETAPA 3: Key específica com hash e index
             className="animate-fade-in transform transition-all duration-200"
             style={{ 
               animationDelay: `${index * 100}ms`,

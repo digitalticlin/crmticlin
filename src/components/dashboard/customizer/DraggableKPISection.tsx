@@ -30,7 +30,7 @@ interface DraggableKPISectionProps {
 }
 
 export function DraggableKPISection({ config, onKPIToggle }: DraggableKPISectionProps) {
-  console.log("🎯 DraggableKPISection render - config.kpis:", config.kpis);
+  console.log("🎯 DraggableKPISection RENDER - config.kpis:", config.kpis);
 
   return (
     <div>
@@ -50,7 +50,7 @@ export function DraggableKPISection({ config, onKPIToggle }: DraggableKPISection
               const IconComponent = kpiIcons[kpiKey as keyof typeof kpiIcons];
               const isEnabled = config.kpis[kpiKey as keyof typeof config.kpis];
               
-              console.log(`📊 Rendering KPI ${kpiKey}: enabled=${isEnabled}`);
+              console.log(`📊 Rendering KPI Toggle ${kpiKey}: enabled=${isEnabled}`);
               
               return (
                 <Draggable 
@@ -87,7 +87,7 @@ export function DraggableKPISection({ config, onKPIToggle }: DraggableKPISection
                       <Switch
                         checked={isEnabled}
                         onCheckedChange={() => {
-                          console.log(`🔄 INSTANT TOGGLE ${kpiKey}: ${isEnabled} -> ${!isEnabled}`);
+                          console.log(`🔄 SWITCH TOGGLE ${kpiKey}: ${isEnabled} -> ${!isEnabled}`);
                           onKPIToggle(kpiKey as keyof DashboardConfig['kpis']);
                         }}
                         className="data-[state=checked]:bg-[#D3D800] data-[state=unchecked]:bg-white/20 transition-all duration-200 transform hover:scale-110"

@@ -26,7 +26,7 @@ interface DraggableChartsSectionProps {
 }
 
 export function DraggableChartsSection({ config, onChartToggle }: DraggableChartsSectionProps) {
-  console.log("📈 DraggableChartsSection render - config.charts:", config.charts);
+  console.log("📈 DraggableChartsSection RENDER - config.charts:", config.charts);
 
   return (
     <div>
@@ -46,7 +46,7 @@ export function DraggableChartsSection({ config, onChartToggle }: DraggableChart
               const IconComponent = chartIcons[chartKey as keyof typeof chartIcons];
               const isEnabled = config.charts[chartKey as keyof typeof config.charts];
               
-              console.log(`📊 Rendering Chart ${chartKey}: enabled=${isEnabled}`);
+              console.log(`📊 Rendering Chart Toggle ${chartKey}: enabled=${isEnabled}`);
               
               return (
                 <Draggable 
@@ -83,7 +83,7 @@ export function DraggableChartsSection({ config, onChartToggle }: DraggableChart
                       <Switch
                         checked={isEnabled}
                         onCheckedChange={() => {
-                          console.log(`🔄 INSTANT TOGGLE ${chartKey}: ${isEnabled} -> ${!isEnabled}`);
+                          console.log(`🔄 SWITCH TOGGLE ${chartKey}: ${isEnabled} -> ${!isEnabled}`);
                           onChartToggle(chartKey as keyof DashboardConfig['charts']);
                         }}
                         className="data-[state=checked]:bg-[#D3D800] data-[state=unchecked]:bg-white/20 transition-all duration-200 transform hover:scale-110"

@@ -12,11 +12,22 @@ import { useEffect } from "react";
 
 export default function Dashboard() {
   const isMobile = useIsMobile();
-  const { forceUpdate } = useDashboardConfig(); // ETAPA 3: Usando forceUpdate
+  const { config, forceUpdate, loading } = useDashboardConfig();
 
+  // BONUS: Monitoramento robusto de mudanças
   useEffect(() => {
-    console.log("Dashboard render - forceUpdate:", forceUpdate);
-  }, [forceUpdate]);
+    console.log("🏠 DASHBOARD RENDER - STATE CHECK");
+    console.log("ForceUpdate:", forceUpdate);
+    console.log("Loading:", loading);
+    console.log("Config KPIs:", config.kpis);
+    console.log("Config Charts:", config.charts);
+    
+    // Health check do estado
+    const enabledKpis = Object.values(config.kpis).filter(Boolean).length;
+    const enabledCharts = Object.values(config.charts).filter(Boolean).length;
+    
+    console.log(`📊 Health Check - KPIs enabled: ${enabledKpis}, Charts enabled: ${enabledCharts}`);
+  }, [forceUpdate, config, loading]);
 
   return (
     <div className="flex min-h-screen bg-gray-200 relative overflow-hidden">
@@ -32,12 +43,9 @@ export default function Dashboard() {
       
       {/* Elementos flutuantes para profundidade */}
       <div className="absolute inset-0 overflow-hidden">
-        {/* Large floating orbs - Opacidade reduzida */}
         <div className="absolute top-20 left-20 w-72 h-72 bg-white/5 rounded-full blur-2xl animate-pulse"></div>
         <div className="absolute bottom-20 right-20 w-96 h-96 bg-gray-300/10 rounded-full blur-xl animate-pulse delay-1000"></div>
         <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-white/3 rounded-full blur-2xl animate-pulse delay-500"></div>
-        
-        {/* Subtle grid pattern - Opacidade reduzida */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[length:50px_50px] opacity-15"></div>
       </div>
 
@@ -53,30 +61,27 @@ export default function Dashboard() {
           {/* Card Análise de Performance - Layout alinhado horizontalmente */}
           <div className="rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 p-4 md:p-6 shadow-md">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              {/* Título */}
               <div className="flex-1">
                 <h2 className="text-lg font-semibold text-gray-900">Análise de Performance</h2>
                 <p className="text-sm text-gray-800">Visualize seus dados e métricas em tempo real</p>
               </div>
               
-              {/* Filtro centralizado */}
               <div className="flex justify-center md:justify-start">
                 <PeriodFilter />
               </div>
               
-              {/* Botão Personalizar */}
               <div className="flex justify-end">
                 <DashboardCustomizer />
               </div>
             </div>
           </div>
           
-          {/* ETAPA 3: Componentes com key baseada no forceUpdate para garantir re-render */}
-          <div key={`kpi-${forceUpdate}`}>
+          {/* ETAPA 5: Componentes com keys robustas baseadas no forceUpdate */}
+          <div key={`dashboard-kpi-${forceUpdate}`}>
             <CustomizableKPIGrid />
           </div>
           
-          <div key={`charts-${forceUpdate}`}>
+          <div key={`dashboard-charts-${forceUpdate}`}>
             <CustomizableChartsSection />
           </div>
         </div>

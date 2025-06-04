@@ -8,7 +8,7 @@ import { DragDropContext, DropResult } from "react-beautiful-dnd";
 import { CustomizerSidebar } from "./CustomizerSidebar";
 import { useCallback, memo } from "react";
 
-// ETAPA 4: Memoizar o componente para otimizar performance
+// ETAPA 4: Memoizar para otimizar performance
 const DashboardCustomizer = memo(() => {
   const { 
     config, 
@@ -17,14 +17,14 @@ const DashboardCustomizer = memo(() => {
     resetToDefault, 
     handleKPIToggle, 
     handleChartToggle,
-    forceUpdate // ETAPA 3: Usando forceUpdate
+    forceUpdate
   } = useDashboardConfig();
   
   const [open, setOpen] = useState(false);
 
-  console.log("🎛️ DashboardCustomizer render - config:", config, "forceUpdate:", forceUpdate);
+  console.log("🎛️ DashboardCustomizer render - forceUpdate:", forceUpdate);
 
-  // ETAPA 4: Memoizar o handleDragEnd para evitar re-renders
+  // ETAPA 4: Handler otimizado com logs de debug
   const handleDragEnd = useCallback((result: DropResult) => {
     if (!result.destination) {
       console.log("❌ Drag cancelled - no destination");
@@ -38,7 +38,7 @@ const DashboardCustomizer = memo(() => {
       return;
     }
 
-    console.log("=== DRAG END ===", { source, destination });
+    console.log("=== DRAG END START ===", { source, destination });
 
     try {
       if (source.droppableId === 'kpis-list') {
@@ -69,10 +69,28 @@ const DashboardCustomizer = memo(() => {
           }
         });
       }
+      
+      console.log("✅ DRAG END SUCCESS");
     } catch (error) {
       console.error("❌ Drag error:", error);
     }
   }, [config.layout, updateConfig]);
+
+  // ETAPA 4: Handlers wrapper com logs
+  const handleKPIToggleWithLog = useCallback((kpiKey: keyof DashboardConfig['kpis']) => {
+    console.log(`🔄 CUSTOMIZER KPI TOGGLE: ${kpiKey}`);
+    handleKPIToggle(kpiKey);
+  }, [handleKPIToggle]);
+
+  const handleChartToggleWithLog = useCallback((chartKey: keyof DashboardConfig['charts']) => {
+    console.log(`🔄 CUSTOMIZER CHART TOGGLE: ${chartKey}`);
+    handleChartToggle(chartKey);
+  }, [handleChartToggle]);
+
+  const handleResetWithLog = useCallback(() => {
+    console.log("🔄 CUSTOMIZER RESET");
+    resetToDefault();
+  }, [resetToDefault]);
 
   if (loading) return null;
 
@@ -101,9 +119,9 @@ const DashboardCustomizer = memo(() => {
         <DragDropContext onDragEnd={handleDragEnd}>
           <CustomizerSidebar
             config={config}
-            onKPIToggle={handleKPIToggle}
-            onChartToggle={handleChartToggle}
-            onReset={resetToDefault}
+            onKPIToggle={handleKPIToggleWithLog}
+            onChartToggle={handleChartToggleWithLog}
+            onReset={handleResetWithLog}
           />
         </DragDropContext>
       </SheetContent>
