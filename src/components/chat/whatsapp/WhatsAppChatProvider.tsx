@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useEffect } from "react";
 import { useWhatsAppWebChat } from "@/hooks/whatsapp/useWhatsAppWebChat";
-import { useAuthContext } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useSearchParams } from "react-router-dom";
 
@@ -20,8 +20,8 @@ export const useWhatsAppChatContext = () => {
 };
 
 export const WhatsAppChatProvider = ({ children }: { children: React.ReactNode }) => {
-  const { user } = useAuthContext();
-  const { companyId, isLoading: companyLoading } = useCompanyData();
+  const { user } = useAuth();
+  const { companyId, loading: companyLoading } = useCompanyData();
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('leadId');
   
