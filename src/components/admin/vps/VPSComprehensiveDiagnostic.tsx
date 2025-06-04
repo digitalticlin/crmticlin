@@ -3,259 +3,380 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { CheckCircle, XCircle, Clock, AlertTriangle, Server, Copy } from "lucide-react";
+import { toast } from "sonner";
+import { 
+  Activity, 
+  AlertTriangle, 
+  CheckCircle, 
+  Clock, 
+  Database, 
+  Server, 
+  Wifi, 
+  Zap,
+  RefreshCw,
+  Bug,
+  Settings,
+  MessageSquare
+} from "lucide-react";
 
-interface DiagnosticResult {
-  step: string;
-  success: boolean;
+interface DiagnosticTest {
+  test: string;
+  status: 'success' | 'error' | 'warning';
   details: any;
-  responseTime?: number;
-  error?: string;
+  duration: number;
+  timestamp: string;
 }
 
-interface DiagnosticResponse {
-  timestamp: string;
-  vpsConfig: any;
-  diagnostics: DiagnosticResult[];
-  analysis: {
+interface DiagnosticResult {
+  testType: string;
+  totalDuration: number;
+  summary: {
     totalTests: number;
-    successfulTests: number;
-    failedTests: number;
-    avgResponseTime: number;
-    recommendations: string[];
+    successCount: number;
+    errorCount: number;
+    warningCount: number;
+    overallStatus: string;
   };
-  hostingerGuidance: any;
+  tests: DiagnosticTest[];
+  timestamp: string;
+  recommendations: Array<{
+    priority: string;
+    issue: string;
+    solution: string;
+  }>;
 }
 
 export const VPSComprehensiveDiagnostic = () => {
-  const [testing, setTesting] = useState(false);
-  const [results, setResults] = useState<DiagnosticResponse | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
+  const [results, setResults] = useState<DiagnosticResult | null>(null);
+  const [activeTest, setActiveTest] = useState<string>('full');
 
-  const runComprehensiveDiagnostic = async () => {
+  const runDiagnostic = async (testType: string) => {
     try {
-      setTesting(true);
-      toast.info("🔍 Executando diagnóstico completo da VPS...");
+      setIsRunning(true);
+      setActiveTest(testType);
+      
+      toast.info(`Executando diagnóstico: ${getTestLabel(testType)}...`);
 
       const { data, error } = await supabase.functions.invoke('vps_comprehensive_diagnostic', {
-        body: {}
+        body: { testType }
       });
 
       if (error) {
         throw new Error(error.message);
       }
 
-      setResults(data);
-      
-      const analysis = data.analysis;
-      if (analysis.failedTests === 0) {
-        toast.success("✅ Todos os testes passaram! VPS está funcionando corretamente.");
-      } else if (analysis.successfulTests > 0) {
-        toast.warning(`⚠️ ${analysis.failedTests} de ${analysis.totalTests} testes falharam.`);
+      if (data.success) {
+        setResults(data.diagnostic);
+        toast.success(`Diagnóstico ${getTestLabel(testType)} concluído!`);
       } else {
-        toast.error("❌ Todos os testes falharam. VPS não está acessível.");
+        throw new Error(data.error || 'Erro no diagnóstico');
       }
 
     } catch (error: any) {
       console.error('Erro no diagnóstico:', error);
-      toast.error(`❌ Falha no diagnóstico: ${error.message}`);
+      toast.error(`Erro: ${error.message}`);
     } finally {
-      setTesting(false);
+      setIsRunning(false);
     }
   };
 
-  const getStepIcon = (result: DiagnosticResult) => {
-    if (result.success) {
-      return <CheckCircle className="h-4 w-4 text-green-600" />;
-    } else {
-      return <XCircle className="h-4 w-4 text-red-600" />;
-    }
-  };
-
-  const getStepTitle = (step: string) => {
-    const titles: Record<string, string> = {
-      '1_basic_connectivity': '1. Conectividade Básica',
-      '2_authentication_test': '2. Teste de Autenticação',
-      '3_instance_create_endpoint': '3. Endpoint /instance/create',
-      '4_endpoint__instances': '4. Endpoint /instances',
-      '4_endpoint__status': '5. Endpoint /status'
+  const getTestLabel = (testType: string) => {
+    const labels = {
+      full: 'Completo',
+      connectivity: 'Conectividade',
+      instances: 'Instâncias',
+      sync: 'Sincronização',
+      auth: 'Autenticação',
+      performance: 'Performance',
+      webhook: 'Webhook'
     };
-    return titles[step] || step;
+    return labels[testType as keyof typeof labels] || testType;
   };
 
-  const copyHostingerCommand = () => {
-    if (!results) return;
-    
-    const command = `curl -X POST http://31.97.24.222:3001/instance/create \\
-  -H "Authorization: Bearer default-token" \\
-  -H "Content-Type: application/json" \\
-  -d '{"instanceId":"test_123","sessionName":"test","webhookUrl":"https://test.com/webhook","companyId":"test-uuid"}'`;
-    
-    navigator.clipboard.writeText(command);
-    toast.success("Comando curl copiado! Execute diretamente na VPS para testar.");
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'success': return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'error': return <AlertTriangle className="h-4 w-4 text-red-600" />;
+      case 'warning': return <Clock className="h-4 w-4 text-yellow-600" />;
+      default: return <Activity className="h-4 w-4 text-gray-600" />;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const variants = {
+      success: 'default',
+      error: 'destructive',
+      warning: 'secondary'
+    };
+    return (
+      <Badge variant={variants[status as keyof typeof variants] as any}>
+        {status.toUpperCase()}
+      </Badge>
+    );
+  };
+
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'CRÍTICO': return 'text-red-600 border-red-200 bg-red-50';
+      case 'ALTO': return 'text-orange-600 border-orange-200 bg-orange-50';
+      case 'MÉDIO': return 'text-yellow-600 border-yellow-200 bg-yellow-50';
+      default: return 'text-blue-600 border-blue-200 bg-blue-50';
+    }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Server className="h-5 w-5 text-blue-600" />
-            <CardTitle>Diagnóstico Completo VPS</CardTitle>
-          </div>
-          <Button 
-            onClick={runComprehensiveDiagnostic} 
-            disabled={testing}
-            className="flex items-center gap-2"
-          >
-            {testing ? (
-              <>
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                Diagnosticando...
-              </>
-            ) : (
-              <>
-                <Server className="h-4 w-4" />
-                Executar Diagnóstico
-              </>
-            )}
-          </Button>
-        </div>
-      </CardHeader>
-      
-      <CardContent>
-        {!results && (
-          <div className="text-center py-8 text-muted-foreground">
-            <Server className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Execute o diagnóstico para verificar todos os aspectos da VPS</p>
-            <p className="text-sm mt-2">Testará conectividade, autenticação, endpoints e mais</p>
-          </div>
-        )}
-
-        {results && (
-          <div className="space-y-6">
-            {/* Resumo Geral */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="text-center p-3 border rounded">
-                <div className="text-2xl font-bold text-blue-600">
-                  {results.analysis.totalTests}
-                </div>
-                <div className="text-sm text-muted-foreground">Total de Testes</div>
-              </div>
-              <div className="text-center p-3 border rounded">
-                <div className="text-2xl font-bold text-green-600">
-                  {results.analysis.successfulTests}
-                </div>
-                <div className="text-sm text-muted-foreground">Sucessos</div>
-              </div>
-              <div className="text-center p-3 border rounded">
-                <div className="text-2xl font-bold text-red-600">
-                  {results.analysis.failedTests}
-                </div>
-                <div className="text-sm text-muted-foreground">Falhas</div>
-              </div>
-              <div className="text-center p-3 border rounded">
-                <div className="text-2xl font-bold text-purple-600">
-                  {Math.round(results.analysis.avgResponseTime || 0)}ms
-                </div>
-                <div className="text-sm text-muted-foreground">Tempo Médio</div>
-              </div>
+    <div className="space-y-6">
+      {/* Controles de Diagnóstico */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Bug className="h-5 w-5 text-blue-600" />
+              <CardTitle>Diagnóstico Abrangente VPS</CardTitle>
             </div>
+            {results && (
+              <div className="flex items-center gap-2">
+                {getStatusIcon(results.summary.overallStatus)}
+                <span className="text-sm text-muted-foreground">
+                  {results.timestamp && new Date(results.timestamp).toLocaleString('pt-BR')}
+                </span>
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Button
+              onClick={() => runDiagnostic('full')}
+              disabled={isRunning}
+              variant={activeTest === 'full' ? 'default' : 'outline'}
+              className="flex items-center gap-2"
+            >
+              <Activity className="h-4 w-4" />
+              Completo
+            </Button>
+            <Button
+              onClick={() => runDiagnostic('connectivity')}
+              disabled={isRunning}
+              variant={activeTest === 'connectivity' ? 'default' : 'outline'}
+              className="flex items-center gap-2"
+            >
+              <Wifi className="h-4 w-4" />
+              Conectividade
+            </Button>
+            <Button
+              onClick={() => runDiagnostic('instances')}
+              disabled={isRunning}
+              variant={activeTest === 'instances' ? 'default' : 'outline'}
+              className="flex items-center gap-2"
+            >
+              <Server className="h-4 w-4" />
+              Instâncias
+            </Button>
+            <Button
+              onClick={() => runDiagnostic('sync')}
+              disabled={isRunning}
+              variant={activeTest === 'sync' ? 'default' : 'outline'}
+              className="flex items-center gap-2"
+            >
+              <Database className="h-4 w-4" />
+              Sync
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+            <Button
+              onClick={() => runDiagnostic('auth')}
+              disabled={isRunning}
+              variant={activeTest === 'auth' ? 'default' : 'outline'}
+              className="flex items-center gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Auth
+            </Button>
+            <Button
+              onClick={() => runDiagnostic('performance')}
+              disabled={isRunning}
+              variant={activeTest === 'performance' ? 'default' : 'outline'}
+              className="flex items-center gap-2"
+            >
+              <Zap className="h-4 w-4" />
+              Performance
+            </Button>
+            <Button
+              onClick={() => runDiagnostic('webhook')}
+              disabled={isRunning}
+              variant={activeTest === 'webhook' ? 'default' : 'outline'}
+              className="flex items-center gap-2"
+            >
+              <MessageSquare className="h-4 w-4" />
+              Webhook
+            </Button>
+          </div>
 
-            {/* Resultados Detalhados */}
-            <div>
-              <h4 className="font-medium mb-3">Resultados dos Testes:</h4>
-              <div className="space-y-3">
-                {results.diagnostics.map((result, index) => (
-                  <div key={index} className="border rounded p-4">
-                    <div className="flex items-center justify-between mb-2">
+          {isRunning && (
+            <div className="flex items-center justify-center gap-2 mt-4 p-4 bg-blue-50 rounded-lg">
+              <RefreshCw className="h-4 w-4 animate-spin text-blue-600" />
+              <span className="text-blue-700">
+                Executando diagnóstico {getTestLabel(activeTest)}...
+              </span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Resultados */}
+      {results && (
+        <Tabs defaultValue="summary" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="summary">Resumo</TabsTrigger>
+            <TabsTrigger value="tests">Testes</TabsTrigger>
+            <TabsTrigger value="recommendations">Recomendações</TabsTrigger>
+            <TabsTrigger value="details">Detalhes</TabsTrigger>
+          </TabsList>
+
+          {/* Resumo */}
+          <TabsContent value="summary">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  {getStatusIcon(results.summary.overallStatus)}
+                  Resumo do Diagnóstico
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {results.summary.totalTests}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Total de Testes</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-600">
+                      {results.summary.successCount}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Sucessos</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-yellow-600">
+                      {results.summary.warningCount}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Avisos</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-red-600">
+                      {results.summary.errorCount}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Erros</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-600">
+                      {results.totalDuration}ms
+                    </div>
+                    <div className="text-sm text-muted-foreground">Duração</div>
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  <h4 className="font-medium mb-3">Status Geral</h4>
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(results.summary.overallStatus)}
+                    <span className="text-sm text-muted-foreground">
+                      Diagnóstico executado em {new Date(results.timestamp).toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Testes */}
+          <TabsContent value="tests">
+            <div className="space-y-4">
+              {results.tests.map((test, index) => (
+                <Card key={index}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        {getStepIcon(result)}
-                        <span className="font-medium">{getStepTitle(result.step)}</span>
+                        {getStatusIcon(test.status)}
+                        <CardTitle className="text-lg">{test.test}</CardTitle>
                       </div>
                       <div className="flex items-center gap-2">
-                        {result.responseTime && (
-                          <Badge variant="outline" className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {result.responseTime}ms
-                          </Badge>
-                        )}
-                        <Badge variant={result.success ? "default" : "destructive"}>
-                          {result.success ? "SUCESSO" : "FALHA"}
-                        </Badge>
+                        {getStatusBadge(test.status)}
+                        <span className="text-sm text-muted-foreground">
+                          {test.duration}ms
+                        </span>
                       </div>
                     </div>
-                    
-                    {result.error && (
-                      <div className="text-sm text-red-600 mb-2">
-                        Erro: {result.error}
-                      </div>
-                    )}
-                    
-                    {result.details && (
-                      <div className="text-sm text-muted-foreground">
-                        <details className="cursor-pointer">
-                          <summary>Ver detalhes</summary>
-                          <pre className="mt-2 p-2 bg-gray-50 rounded text-xs overflow-x-auto">
-                            {JSON.stringify(result.details, null, 2)}
-                          </pre>
-                        </details>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <pre className="text-xs overflow-x-auto max-h-40">
+                        {JSON.stringify(test.details, null, 2)}
+                      </pre>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
+          </TabsContent>
 
-            {/* Recomendações */}
-            {results.analysis.recommendations.length > 0 && (
-              <div className="border border-orange-200 rounded-lg p-4 bg-orange-50">
-                <div className="flex items-center gap-2 mb-3">
-                  <AlertTriangle className="h-5 w-5 text-orange-600" />
-                  <h4 className="font-medium text-orange-800">Recomendações:</h4>
+          {/* Recomendações */}
+          <TabsContent value="recommendations">
+            <div className="space-y-4">
+              {results.recommendations.length > 0 ? (
+                results.recommendations.map((rec, index) => (
+                  <Card key={index} className={`border ${getPriorityColor(rec.priority)}`}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-start gap-3">
+                        <Badge variant="outline" className="mt-1">
+                          {rec.priority}
+                        </Badge>
+                        <div className="flex-1">
+                          <h4 className="font-medium mb-2">{rec.issue}</h4>
+                          <p className="text-sm text-muted-foreground">{rec.solution}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center text-green-600">
+                      <CheckCircle className="h-12 w-12 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium mb-2">Tudo Funcionando!</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Nenhuma recomendação necessária. O sistema está operando corretamente.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Detalhes */}
+          <TabsContent value="details">
+            <Card>
+              <CardHeader>
+                <CardTitle>Detalhes Técnicos Completos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-gray-900 text-green-400 p-4 rounded-lg">
+                  <pre className="text-xs overflow-x-auto max-h-96">
+                    {JSON.stringify(results, null, 2)}
+                  </pre>
                 </div>
-                <ul className="space-y-2">
-                  {results.analysis.recommendations.map((rec, index) => (
-                    <li key={index} className="text-sm text-orange-700 flex items-start gap-2">
-                      <span className="text-orange-500 mt-1">•</span>
-                      {rec}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Comando Hostinger */}
-            <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium text-blue-800">Teste Manual (conforme Hostinger):</h4>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={copyHostingerCommand}
-                >
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copiar Comando
-                </Button>
-              </div>
-              <p className="text-sm text-blue-700 mb-2">
-                Execute este comando diretamente na VPS para testar localmente:
-              </p>
-              <pre className="text-xs bg-blue-100 p-2 rounded overflow-x-auto">
-                curl -X POST http://31.97.24.222:3001/instance/create \<br/>
-                &nbsp;&nbsp;-H "Authorization: Bearer default-token" \<br/>
-                &nbsp;&nbsp;-H "Content-Type: application/json" \<br/>
-                &nbsp;&nbsp;-d '{`{"instanceId":"test_123","sessionName":"test","webhookUrl":"https://test.com/webhook","companyId":"test-uuid"}`}'
-              </pre>
-            </div>
-
-            <div className="text-xs text-muted-foreground text-center">
-              Diagnóstico executado em: {new Date(results.timestamp).toLocaleString('pt-BR')}
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      )}
+    </div>
   );
 };

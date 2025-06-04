@@ -2,8 +2,9 @@
 import { useCallback, useRef } from 'react';
 import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
 import { VPS_CONFIG } from '@/services/whatsapp/config/vpsConfig';
+import { loopDetection } from './loopDetectionService';
 
-// FASE 2: Sync Inteligente - apenas quando necessário
+// FASE 3: Sync Inteligente com detecção de loops
 export const useIntelligentSync = (companyId: string | null, companyLoading: boolean) => {
   const lastSyncDataRef = useRef<{
     instancesHash: string;
@@ -24,8 +25,16 @@ export const useIntelligentSync = (companyId: string | null, companyLoading: boo
     return btoa(JSON.stringify(relevantData));
   };
 
-  // Sync inteligente - só executa se houve mudanças reais
+  // Sync inteligente com proteção contra loops
   const performIntelligentSync = useCallback(async (force = false) => {
+    // FASE 3: Verificar proteção contra loops
+    const syncEndpoint = 'intelligent-sync';
+    
+    if (!loopDetection.recordRequest(syncEndpoint)) {
+      console.warn('[Intelligent Sync] 🔄 Sync bloqueado por detecção de loop');
+      return { success: false, reason: 'loop_detected', blocked: true };
+    }
+
     if (!companyId || companyLoading || !isMountedRef.current) {
       console.log('[Intelligent Sync] ⏭️ Condições não atendidas para sync');
       return { success: false, reason: 'conditions_not_met' };
@@ -48,7 +57,7 @@ export const useIntelligentSync = (companyId: string | null, companyLoading: boo
     syncInProgressRef.current = true;
 
     try {
-      console.log('[Intelligent Sync] 🧠 Iniciando sync inteligente FASE 2');
+      console.log('[Intelligent Sync] 🧠 Iniciando sync inteligente FASE 3 (com proteção anti-loop)');
       
       // Primeiro, buscar estado atual da VPS
       const vpsResult = await WhatsAppWebService.getServerInfo();
@@ -87,7 +96,8 @@ export const useIntelligentSync = (companyId: string | null, companyLoading: boo
           success: true, 
           reason: 'changes_synced',
           summary: syncResult.data?.summary,
-          changesDetected: hasChanges
+          changesDetected: hasChanges,
+          loopStats: loopDetection.getEndpointStats(syncEndpoint)
         };
       } else {
         console.error('[Intelligent Sync] ❌ Falha no sync:', syncResult.error);
@@ -116,11 +126,17 @@ export const useIntelligentSync = (companyId: string | null, companyLoading: boo
     return await performIntelligentSync(true);
   }, [performIntelligentSync]);
 
+  // Obter estatísticas de loops
+  const getLoopStats = useCallback(() => {
+    return loopDetection.getAllStats();
+  }, []);
+
   return {
     performIntelligentSync,
     forceFullSync,
     cleanup,
     isInProgress: () => syncInProgressRef.current,
-    getLastSyncInfo: () => lastSyncDataRef.current
+    getLastSyncInfo: () => lastSyncDataRef.current,
+    getLoopStats // NOVO: estatísticas de detecção de loops
   };
 };

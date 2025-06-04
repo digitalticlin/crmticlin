@@ -12,6 +12,8 @@ import { VPSConnectionDiagnostic } from "./VPSConnectionDiagnostic";
 import { VPSEndpointDiscovery } from "./VPSEndpointDiscovery";
 import { VPSDeepInvestigation } from "./vps/VPSDeepInvestigation";
 import { VPSVersionDiagnostic } from "./vps/VPSVersionDiagnostic";
+import { VPSComprehensiveDiagnostic } from "./vps/VPSComprehensiveDiagnostic";
+import { VPSMessageTester } from "./vps/VPSMessageTester";
 
 export const VPSTestPanel = () => {
   return (
@@ -19,7 +21,13 @@ export const VPSTestPanel = () => {
       {/* Deploy Inteligente - Primeira seção */}
       <AutoDeployButton />
 
-      {/* Diagnóstico de Versão - NOVA FERRAMENTA PRINCIPAL */}
+      {/* NOVO: Diagnóstico Abrangente - FERRAMENTA PRINCIPAL */}
+      <VPSComprehensiveDiagnostic />
+
+      {/* NOVO: Teste de Mensagens em Tempo Real */}
+      <VPSMessageTester />
+
+      {/* Diagnóstico de Versão */}
       <VPSVersionDiagnostic />
 
       {/* Investigação Técnica Profunda */}
