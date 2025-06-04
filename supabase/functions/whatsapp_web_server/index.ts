@@ -48,30 +48,37 @@ serve(async (req) => {
       );
     }
 
-    const { action, instanceData, vpsAction, phoneFilter, targetCompanyName } = requestBody;
+    const { action, instanceData, vpsAction, phoneFilter, targetCompanyName, userEmail } = requestBody;
     console.log('[WhatsApp Server] 🎯 Action extracted:', action);
 
-    // NOVO: Action para correção de vinculação de instância
+    // NOVO: Action para vincular instância ao usuário correto
+    if (action === 'bind_instance_to_user') {
+      console.log('[WhatsApp Server] 🔗 VINCULAÇÃO DE INSTÂNCIA AO USUÁRIO INICIADA');
+      const { bindInstanceToUser } = await import('./instanceUserBinding.ts');
+      return await bindInstanceToUser(supabase, phoneFilter, userEmail);
+    }
+
+    // Action para correção de vinculação de instância
     if (action === 'correct_instance_binding') {
       console.log('[WhatsApp Server] 🔧 CORREÇÃO DE VINCULAÇÃO INICIADA');
       const { correctInstanceBinding } = await import('./instanceCorrectionService.ts');
       return await correctInstanceBinding(supabase, phoneFilter, targetCompanyName);
     }
 
-    // NOVO: Action para auditoria de vinculações
+    // Action para auditoria de vinculações
     if (action === 'audit_instance_bindings') {
       console.log('[WhatsApp Server] 🔍 AUDITORIA DE VINCULAÇÕES INICIADA');
       const { auditInstanceBindings } = await import('./instanceCorrectionService.ts');
       return await auditInstanceBindings(supabase);
     }
 
-    // NOVO: Action para diagnóstico VPS
+    // Action para diagnóstico VPS
     if (action === 'diagnose_vps') {
       console.log('[WhatsApp Server] 🔍 DIAGNÓSTICO VPS INICIADO');
       return await diagnoseVPSInstances(supabase);
     }
 
-    // NOVO: Action para sincronização de emergência
+    // Action para sincronização de emergência
     if (action === 'emergency_sync') {
       console.log('[WhatsApp Server] 🆘 SINCRONIZAÇÃO DE EMERGÊNCIA INICIADA');
       return await emergencySync(supabase);
@@ -196,7 +203,8 @@ serve(async (req) => {
               'refresh_qr_code', 'check_server', 'sync_instances', 
               'list_all_instances_global', 'cleanup_orphan_instances', 
               'mass_reconnect_instances', 'diagnose_vps', 'emergency_sync',
-              'correct_instance_binding', 'audit_instance_bindings'
+              'correct_instance_binding', 'audit_instance_bindings',
+              'bind_instance_to_user'
             ]
           }),
           { 

@@ -12,7 +12,7 @@ import ConfigPanel from "@/components/admin/ConfigPanel";
 import { WhatsAppSyncTest } from "@/components/admin/WhatsAppSyncTest";
 import { SyncLogsPanel } from "@/components/admin/SyncLogsPanel";
 import { SimpleVPSDiagnostic } from "@/components/admin/SimpleVPSDiagnostic";
-import { VPSInstancesPanel } from "@/components/admin/VPSInstancesPanel";
+import { VPSInstancesSimplified } from "@/components/admin/VPSInstancesSimplified";
 import { VPSDiagnosticPanel } from "@/components/admin/VPSDiagnosticPanel";
 
 export default function GlobalAdmin() {
@@ -71,12 +71,12 @@ export default function GlobalAdmin() {
             <TabsContent value="instances">
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-xl font-semibold mb-2">Monitoramento de Instâncias VPS</h2>
+                  <h2 className="text-xl font-semibold mb-2">Instâncias WhatsApp - Visualização Simplificada</h2>
                   <p className="text-muted-foreground mb-6">
-                    Visualização completa de todas as instâncias WhatsApp na VPS com controle por usuário e empresa
+                    Controle simples e direto das instâncias WhatsApp na VPS com correção automática
                   </p>
                 </div>
-                <VPSInstancesPanel />
+                <VPSInstancesSimplified />
               </div>
             </TabsContent>
 
