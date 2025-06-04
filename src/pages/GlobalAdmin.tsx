@@ -5,7 +5,7 @@ import GlobalAdminSidebar from "@/components/admin/GlobalAdminSidebar";
 import CompaniesPanel from "@/components/admin/CompaniesPanel";
 import UsersPanel from "@/components/admin/UsersPanel";
 import PlansPanel from "@/components/admin/PlansPanel";
-import WhatsAppWebAdminPanel from "@/components/admin/WhatsAppWebAdminPanel";
+import SimplifiedWhatsAppPanel from "@/components/admin/SimplifiedWhatsAppPanel";
 import LogsPanel from "@/components/admin/LogsPanel";
 import SupportPanel from "@/components/admin/SupportPanel";
 import ConfigPanel from "@/components/admin/ConfigPanel";
@@ -53,7 +53,15 @@ export default function GlobalAdmin() {
             </TabsContent>
             
             <TabsContent value="whatsapp">
-              <WhatsAppWebAdminPanel />
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-semibold mb-2">Gerenciamento WhatsApp Web.js</h2>
+                  <p className="text-muted-foreground mb-6">
+                    Controle completo do servidor WhatsApp com ferramentas simplificadas e eficientes
+                  </p>
+                </div>
+                <SimplifiedWhatsAppPanel />
+              </div>
             </TabsContent>
             
             <TabsContent value="sync">
