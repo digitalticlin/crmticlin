@@ -57,9 +57,9 @@ export const WhatsAppChatLayout = ({
 
   return (
     <div className="h-full flex overflow-hidden relative z-10">
-      {/* Painel Esquerdo - Lista de Conversas com card transparente */}
+      {/* Painel Esquerdo - Lista de Conversas com espaçamento e cantos arredondados */}
       <div className={cn(
-        "w-full max-w-[400px] flex flex-col bg-white/10 backdrop-blur-md border-r border-white/20 relative z-10",
+        "w-full max-w-[400px] flex flex-col relative z-10",
         selectedContact ? "hidden lg:flex" : "flex"
       )}>
         <WhatsAppContactsList
@@ -70,11 +70,11 @@ export const WhatsAppChatLayout = ({
         />
       </div>
 
-      {/* Painel Central - Área de Chat com card transparente */}
+      {/* Painel Central - Área de Chat */}
       <div className={cn(
-        "flex-1 flex flex-col bg-white/10 backdrop-blur-md relative z-10",
+        "flex-1 flex flex-col bg-white/10 backdrop-blur-md relative z-10 m-2 ml-0 rounded-xl overflow-hidden",
         !selectedContact && "hidden lg:flex",
-        isDetailsSidebarOpen && "lg:pr-96"
+        isDetailsSidebarOpen && "lg:mr-96"
       )}>
         {selectedContact ? (
           <>

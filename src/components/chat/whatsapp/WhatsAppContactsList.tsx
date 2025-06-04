@@ -1,13 +1,12 @@
 
 import { useState } from "react";
-import { Search, MoreVertical } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Contact } from "@/types/chat";
 import { LoadingSpinner } from "@/components/ui/spinner";
+import { WhatsAppChatFilters } from "./WhatsAppChatFilters";
 
 interface WhatsAppContactsListProps {
   contacts: Contact[];
@@ -23,41 +22,74 @@ export const WhatsAppContactsList = ({
   isLoading
 }: WhatsAppContactsListProps) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState("all");
 
-  const filteredContacts = contacts.filter(contact =>
-    contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    contact.phone.includes(searchQuery)
-  );
+  // Filter and sort contacts
+  const filteredContacts = contacts
+    .filter(contact => {
+      // Search filter
+      const matchesSearch = contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           contact.phone.includes(searchQuery);
+      
+      // Status filter
+      const matchesFilter = (() => {
+        switch (activeFilter) {
+          case "unread":
+            return contact.unreadCount && contact.unreadCount > 0;
+          case "archived":
+            return false; // Implementar arquivados futuramente
+          case "groups":
+            return false; // Implementar grupos futuramente
+          default:
+            return true;
+        }
+      })();
+
+      return matchesSearch && matchesFilter;
+    })
+    .sort((a, b) => {
+      // Ordenar por última mensagem (mais recente primeiro)
+      if (!a.lastMessageTime && !b.lastMessageTime) return 0;
+      if (!a.lastMessageTime) return 1;
+      if (!b.lastMessageTime) return -1;
+      
+      // Conversões não lidas primeiro
+      if (a.unreadCount && !b.unreadCount) return -1;
+      if (!a.unreadCount && b.unreadCount) return 1;
+      
+      return b.lastMessageTime.localeCompare(a.lastMessageTime);
+    });
 
   const formatLastMessageTime = (timeString: string) => {
     if (!timeString) return '';
     return timeString;
   };
 
-  return (
-    <div className="h-full flex flex-col bg-white/5 backdrop-blur-sm border-r border-white/20">
-      {/* Header Moderno */}
-      <div className="p-6 border-b border-white/10">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-semibold text-gray-900">Conversas</h1>
-          <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors cursor-pointer">
-            <MoreVertical className="h-5 w-5 text-gray-700" />
-          </div>
-        </div>
-        
-        {/* Search Bar Moderno */}
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
-          <Input
-            placeholder="Pesquisar conversas..."
-            className="pl-12 bg-white/20 backdrop-blur-sm border-white/30 text-gray-900 placeholder-gray-600 focus:bg-white/30 focus:border-white/40 h-12 rounded-xl"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-      </div>
+  // Função para obter cor da tag (integrada com funil)
+  const getTagColor = (tagName: string) => {
+    const colors = [
+      'bg-green-100 text-green-800 border-green-200',
+      'bg-blue-100 text-blue-800 border-blue-200',
+      'bg-purple-100 text-purple-800 border-purple-200',
+      'bg-orange-100 text-orange-800 border-orange-200',
+      'bg-pink-100 text-pink-800 border-pink-200',
+      'bg-indigo-100 text-indigo-800 border-indigo-200'
+    ];
+    const index = tagName.length % colors.length;
+    return colors[index];
+  };
 
-      {/* Contacts List Moderno */}
+  return (
+    <div className="h-full flex flex-col bg-white/5 backdrop-blur-sm border-r border-white/20 m-2 mr-0 rounded-xl overflow-hidden">
+      {/* Header com Filtros */}
+      <WhatsAppChatFilters
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        activeFilter={activeFilter}
+        onFilterChange={setActiveFilter}
+      />
+
+      {/* Lista de Contatos com Scroll Independente */}
       <div className="flex-1 relative">
         {isLoading ? (
           <div className="flex items-center justify-center h-32">
@@ -65,12 +97,12 @@ export const WhatsAppContactsList = ({
           </div>
         ) : (
           <ScrollArea className="h-full">
-            <div className="p-2">
+            <div className="p-2 space-y-1">
               {filteredContacts.map((contact) => (
                 <div
                   key={contact.id}
                   className={cn(
-                    "p-4 rounded-2xl mb-2 hover:bg-white/20 cursor-pointer transition-all duration-200 relative group",
+                    "p-4 rounded-2xl hover:bg-white/20 cursor-pointer transition-all duration-200 relative group",
                     selectedContact?.id === contact.id && "bg-white/25 shadow-lg ring-2 ring-white/30"
                   )}
                   onClick={() => onSelectContact(contact)}
@@ -78,7 +110,7 @@ export const WhatsAppContactsList = ({
                   <div className="flex items-start gap-4">
                     <div className="relative">
                       <Avatar className="h-14 w-14 ring-2 ring-white/20">
-                        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-lg font-semibold">
+                        <AvatarFallback className="bg-gradient-to-br from-green-500 to-green-600 text-white text-lg font-semibold">
                           {contact.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
                         </AvatarFallback>
                         <AvatarImage src={contact.avatar} alt={contact.name} />
@@ -105,18 +137,39 @@ export const WhatsAppContactsList = ({
                           {contact.lastMessage || "Clique para conversar"}
                         </p>
                         
-                        {contact.unreadCount > 0 && (
-                          <Badge 
-                            className="bg-blue-500 hover:bg-blue-600 text-white text-xs px-2 py-1 rounded-full ml-2 shadow-sm"
-                          >
+                        {contact.unreadCount && contact.unreadCount > 0 && (
+                          <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs px-2 py-1 rounded-full ml-2 shadow-sm">
                             {contact.unreadCount > 99 ? '99+' : contact.unreadCount}
                           </Badge>
                         )}
                       </div>
                       
+                      {/* Tags do Lead */}
+                      {contact.tags && contact.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {contact.tags.slice(0, 2).map((tag, index) => (
+                            <Badge 
+                              key={index}
+                              variant="outline" 
+                              className={cn(
+                                "text-xs border",
+                                getTagColor(tag)
+                              )}
+                            >
+                              {tag}
+                            </Badge>
+                          ))}
+                          {contact.tags.length > 2 && (
+                            <Badge variant="outline" className="text-xs border-gray-300 text-gray-600 bg-gray-50">
+                              +{contact.tags.length - 2}
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                      
                       {/* Company Info */}
                       {contact.company && (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 mt-1">
                           <Badge variant="outline" className="text-xs border-gray-400 text-gray-600 bg-white/30">
                             {contact.company}
                           </Badge>
@@ -130,12 +183,14 @@ export const WhatsAppContactsList = ({
               {filteredContacts.length === 0 && !isLoading && (
                 <div className="p-8 text-center">
                   <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/20 flex items-center justify-center">
-                    <Search className="h-8 w-8 text-gray-500" />
+                    <div className="h-8 w-8 text-gray-500">💬</div>
                   </div>
                   <p className="text-gray-600 text-lg font-medium">
-                    {searchQuery ? 'Nenhum contato encontrado' : 'Nenhuma conversa ainda'}
+                    {searchQuery || activeFilter !== "all" 
+                      ? 'Nenhuma conversa encontrada' 
+                      : 'Nenhuma conversa ainda'}
                   </p>
-                  {!searchQuery && (
+                  {!searchQuery && activeFilter === "all" && (
                     <p className="text-gray-500 text-sm mt-2">
                       As conversas aparecerão aqui quando você receber mensagens
                     </p>

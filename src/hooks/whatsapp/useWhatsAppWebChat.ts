@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Contact, Message } from '@/types/chat';
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +16,51 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
+  // Função para ordenar contatos automaticamente
+  const sortContacts = useCallback((contactsList: Contact[]) => {
+    return [...contactsList].sort((a, b) => {
+      // Conversas não lidas primeiro
+      if (a.unreadCount && a.unreadCount > 0 && (!b.unreadCount || b.unreadCount === 0)) return -1;
+      if ((!a.unreadCount || a.unreadCount === 0) && b.unreadCount && b.unreadCount > 0) return 1;
+      
+      // Depois ordenar por última mensagem (mais recente primeiro)
+      if (!a.lastMessageTime && !b.lastMessageTime) return 0;
+      if (!a.lastMessageTime) return 1;
+      if (!b.lastMessageTime) return -1;
+      
+      // Comparar timestamps convertidos para números para ordenação correta
+      const timeA = new Date(a.lastMessageTime).getTime();
+      const timeB = new Date(b.lastMessageTime).getTime();
+      return timeB - timeA;
+    });
+  }, []);
+
+  // Função para mover contato para o topo quando receber nova mensagem
+  const moveContactToTop = useCallback((contactId: string) => {
+    setContacts(prevContacts => {
+      const contactIndex = prevContacts.findIndex(c => c.id === contactId);
+      if (contactIndex === -1) return prevContacts;
+      
+      const updatedContacts = [...prevContacts];
+      const [contact] = updatedContacts.splice(contactIndex, 1);
+      
+      // Atualizar timestamp da última mensagem para agora
+      const updatedContact = {
+        ...contact,
+        lastMessageTime: new Date().toLocaleTimeString('pt-BR', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        })
+      };
+      
+      // Inserir no topo
+      updatedContacts.unshift(updatedContact);
+      
+      console.log('[WhatsApp Web Chat] 📈 Moved contact to top:', contact.name);
+      return updatedContacts;
+    });
+  }, []);
+
   // Buscar contatos (leads) da instância ativa
   const fetchContacts = useCallback(async () => {
     if (!activeInstance) {
@@ -30,42 +74,55 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
 
       const { data: leads, error } = await supabase
         .from('leads')
-        .select('*')
+        .select(`
+          *,
+          lead_tags!inner(
+            tag_id,
+            tags(name, color)
+          )
+        `)
         .eq('whatsapp_number_id', activeInstance.id)
         .eq('company_id', activeInstance.company_id)
         .order('last_message_time', { ascending: false, nullsFirst: false });
 
       if (error) throw error;
 
-      const mappedContacts: Contact[] = (leads || []).map(lead => ({
-        id: lead.id,
-        name: lead.name || `+${lead.phone}`,
-        phone: lead.phone,
-        email: lead.email || '',
-        address: lead.address || '',
-        company: lead.company || '',
-        notes: lead.notes || '',
-        lastMessage: lead.last_message || '',
-        lastMessageTime: lead.last_message_time 
-          ? new Date(lead.last_message_time).toLocaleTimeString('pt-BR', { 
-              hour: '2-digit', 
-              minute: '2-digit' 
-            })
-          : '',
-        unreadCount: lead.unread_count || 0,
-        avatar: '',
-        isOnline: Math.random() > 0.7 // Simulação básica de status online
-      }));
+      const mappedContacts: Contact[] = (leads || []).map(lead => {
+        // Extrair tags do relacionamento
+        const leadTags = lead.lead_tags?.map((lt: any) => lt.tags?.name).filter(Boolean) || [];
+        
+        return {
+          id: lead.id,
+          name: lead.name || `+${lead.phone}`,
+          phone: lead.phone,
+          email: lead.email || '',
+          address: lead.address || '',
+          company: lead.company || '',
+          notes: lead.notes || '',
+          tags: leadTags,
+          lastMessage: lead.last_message || '',
+          lastMessageTime: lead.last_message_time 
+            ? new Date(lead.last_message_time).toLocaleTimeString('pt-BR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              })
+            : '',
+          unreadCount: lead.unread_count || 0,
+          avatar: '',
+          isOnline: Math.random() > 0.7 // Simulação básica de status online
+        };
+      });
 
-      console.log('[WhatsApp Web Chat] ✅ Contacts fetched:', mappedContacts.length);
-      setContacts(mappedContacts);
+      const sortedContacts = sortContacts(mappedContacts);
+      console.log('[WhatsApp Web Chat] ✅ Contacts fetched and sorted:', sortedContacts.length);
+      setContacts(sortedContacts);
     } catch (error) {
       console.error('[WhatsApp Web Chat] ❌ Error fetching contacts:', error);
       toast.error('Erro ao carregar contatos');
     } finally {
       setIsLoadingContacts(false);
     }
-  }, [activeInstance]);
+  }, [activeInstance, sortContacts]);
 
   // Buscar mensagens do contato selecionado
   const fetchMessages = useCallback(async () => {
@@ -186,7 +243,7 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
     }
   }, [selectedContact, activeInstance, fetchMessages, fetchContacts]);
 
-  // Configurar realtime para novas mensagens
+  // Configurar realtime para novas mensagens com movimentação automática
   useEffect(() => {
     if (!activeInstance) return;
 
@@ -205,8 +262,15 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
         (payload) => {
           console.log('[WhatsApp Web Chat] 🔄 Nova mensagem recebida via realtime:', payload);
           
+          const newMessage = payload.new as any;
+          
+          // Mover contato para o topo se recebeu nova mensagem
+          if (newMessage.lead_id && !newMessage.from_me) {
+            moveContactToTop(newMessage.lead_id);
+          }
+          
           // Se é mensagem do contato selecionado, atualizar mensagens
-          if (selectedContact && payload.new.lead_id === selectedContact.id) {
+          if (selectedContact && newMessage.lead_id === selectedContact.id) {
             console.log('[WhatsApp Web Chat] Updating messages for selected contact');
             fetchMessages();
           }
@@ -222,7 +286,7 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
       console.log('[WhatsApp Web Chat] 🧹 Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
-  }, [activeInstance, selectedContact, fetchMessages, fetchContacts]);
+  }, [activeInstance, selectedContact, fetchMessages, fetchContacts, moveContactToTop]);
 
   // Carregar contatos quando instância mudar
   useEffect(() => {
