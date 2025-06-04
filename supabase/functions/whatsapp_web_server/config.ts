@@ -10,11 +10,10 @@ export const VPS_CONFIG = {
   get baseUrl() {
     return `http://${this.host}:${this.port}`;
   },
-  // TOKEN CORRIGIDO: Usar a secret VPS_API_TOKEN corretamente
   authToken: Deno.env.get('VPS_API_TOKEN') || 'default-token'
 };
 
-// Helper function to get VPS headers with CORRECT authentication
+// Helper function to get VPS headers with authentication
 export const getVPSHeaders = () => {
   const token = VPS_CONFIG.authToken;
   console.log(`[VPS Config] Using token: ${token.substring(0, 10)}... (length: ${token.length})`);
@@ -48,19 +47,18 @@ export const isRealQRCode = (qrCode: string | null): boolean => {
   return !knownFakePatterns.some(pattern => base64Part.includes(pattern));
 };
 
-// CORREÇÃO: Função de validação de versão atualizada
+// CORREÇÃO: Função de validação de versão corrigida para aceitar 3.5.0+
 export const isValidVersion = (versionString: string): boolean => {
   if (!versionString) return false;
   
   // Versões válidas conhecidas do WhatsApp Web.js
   const validVersions = [
-    '3.5.0', // Versão atual da VPS
+    '3.5.0', // Versão atual da VPS - VÁLIDA
     '3.4.0',
     '3.3.0',
     '3.2.0',
     '3.1.0',
-    '3.0.0',
-    '2.15.0'
+    '3.0.0'
   ];
   
   // Verificar se é uma versão exata conhecida
@@ -79,7 +77,7 @@ export const isValidVersion = (versionString: string): boolean => {
   const minorNum = parseInt(minor);
   const patchNum = parseInt(patch);
   
-  // Considerar válido se major >= 3 (versões modernas)
+  // Aceitar todas as versões 3.x como válidas (correção principal)
   if (majorNum >= 3) {
     return true;
   }
@@ -92,7 +90,7 @@ export const isValidVersion = (versionString: string): boolean => {
   return false;
 };
 
-// NOVO: Função de teste de conectividade VPS aprimorada
+// Função de teste de conectividade VPS corrigida
 export const testVPSConnection = async (): Promise<{success: boolean, error?: string, details?: any}> => {
   try {
     console.log('[VPS Test] 🔧 Testando conectividade VPS...');
@@ -113,7 +111,7 @@ export const testVPSConnection = async (): Promise<{success: boolean, error?: st
       try {
         const data = JSON.parse(responseText);
         
-        // CORREÇÃO: Validar versão corretamente
+        // CORREÇÃO: Validar versão corretamente (aceitar 3.5.0 como válida)
         if (data.version && isValidVersion(data.version)) {
           console.log('[VPS Test] ✅ VPS conectado com versão válida:', data.version);
         } else {
@@ -142,7 +140,7 @@ export const testVPSConnection = async (): Promise<{success: boolean, error?: st
   }
 };
 
-console.log('[Config] VPS Config initialized (FIXED v2):');
+console.log('[Config] VPS Config initialized (FIXED v2 - Phase 2):');
 console.log('[Config] Host:', VPS_CONFIG.host);
 console.log('[Config] Port:', VPS_CONFIG.port);
 console.log('[Config] Base URL:', VPS_CONFIG.baseUrl);

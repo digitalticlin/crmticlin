@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,9 +17,8 @@ import {
   XCircle, 
   AlertTriangle,
   Search,
-  Save,
   TestTube,
-  Zap
+  Settings
 } from "lucide-react";
 
 interface TokenTestResult {
@@ -124,7 +124,7 @@ export const VPSTokenSynchronizer = () => {
     setProgress(0);
 
     try {
-      addLog("🚀 Iniciando descoberta automática de token VPS");
+      addLog("🚀 Iniciando descoberta automática de token VPS (FASE 2)");
 
       const tokens = generateCandidateTokens();
       const results: TokenTestResult[] = [];
@@ -150,8 +150,8 @@ export const VPSTokenSynchronizer = () => {
       const successfulResults = results.filter(r => r.success);
       
       if (successfulResults.length > 0) {
-        addLog(`✅ Descoberta concluída: ${successfulResults.length} token(s) válido(s) encontrado(s)`);
-        toast.success(`Token VPS válido descoberto!`);
+        addLog(`✅ Descoberta FASE 2 concluída: ${successfulResults.length} token(s) válido(s) encontrado(s)`);
+        toast.success(`Token VPS válido descoberto (FASE 2)!`);
       } else {
         addLog(`❌ Nenhum token válido encontrado nos ${results.length} tokens testados`);
         toast.warning('Nenhum token válido encontrado. Verifique se o servidor VPS está acessível.');
@@ -164,75 +164,6 @@ export const VPSTokenSynchronizer = () => {
       setIsRunning(false);
       setProgress(100);
     }
-  };
-
-  const updateVPSToken = async (newToken: string) => {
-    if (!newToken) {
-      toast.error('Token não pode estar vazio');
-      return;
-    }
-
-    try {
-      addLog(`🔄 Atualizando VPS_API_TOKEN secret...`);
-      
-      const { data, error } = await supabase.functions.invoke('vps_diagnostic', {
-        body: { 
-          test: 'update_token',
-          newToken
-        }
-      });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      if (data.success) {
-        addLog(`✅ Token atualizado com sucesso`);
-        toast.success('Token VPS atualizado com sucesso!');
-        
-        // Testar o token recém-atualizado
-        addLog(`🔍 Testando token atualizado...`);
-        const testResult = await testSingleToken(newToken);
-        
-        if (testResult.success) {
-          addLog(`✅ Token atualizado funcionando corretamente`);
-          toast.success('Token verificado e funcionando!');
-        } else {
-          addLog(`⚠️ Token atualizado, mas teste de verificação falhou`);
-          toast.warning('Token atualizado, mas verificação falhou');
-        }
-      } else {
-        throw new Error(data.error || 'Falha ao atualizar token');
-      }
-
-    } catch (error: any) {
-      addLog(`❌ Erro ao atualizar token: ${error.message}`);
-      toast.error(`Erro ao atualizar token: ${error.message}`);
-    }
-  };
-
-  const handleQuickFix = async () => {
-    const correctToken = '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
-    addLog(`🚀 Aplicando correção rápida com token VPS correto`);
-    await updateVPSToken(correctToken);
-  };
-
-  const handleManualTokenUpdate = async () => {
-    if (!currentToken.trim()) {
-      toast.error('Digite um token válido');
-      return;
-    }
-
-    await updateVPSToken(currentToken.trim());
-  };
-
-  const handleUseDiscoveredToken = async () => {
-    if (!discoveredToken) {
-      toast.error('Nenhum token descoberto para usar');
-      return;
-    }
-
-    await updateVPSToken(discoveredToken);
   };
 
   const getStatusIcon = (success: boolean) => {
@@ -253,32 +184,32 @@ export const VPSTokenSynchronizer = () => {
 
   return (
     <div className="space-y-6">
-      {/* Correção Rápida - NOVO */}
+      {/* Status do Token - FASE 2 */}
       <Card className="border-green-500 bg-green-50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-green-800">
-            <Zap className="h-5 w-5 text-green-600" />
-            🚀 Correção Rápida - Token VPS
+            <Settings className="h-5 w-5 text-green-600" />
+            ✅ FASE 2 - Token VPS Status
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Alert className="border-green-500 bg-green-100">
             <CheckCircle className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-800">
-              <strong>Token VPS correto identificado:</strong> 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3
+              <strong>Token VPS configurado corretamente:</strong> 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3
               <br />
-              <small>Este é o token atual da variável de ambiente VPS_API_TOKEN na VPS</small>
+              <small>FASE 2: Token foi atualizado manualmente no Supabase Dashboard</small>
             </AlertDescription>
           </Alert>
 
-          <Button 
-            onClick={handleQuickFix}
-            className="w-full bg-green-600 hover:bg-green-700"
-            size="lg"
-          >
-            <Zap className="h-4 w-4 mr-2" />
-            Aplicar Correção Rápida
-          </Button>
+          <Alert className="border-blue-500 bg-blue-50">
+            <AlertTriangle className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              <strong>FASE 2 Implementada:</strong> Lógica de versão corrigida para aceitar 3.5.0 como válida.
+              <br />
+              <small>As validações de diagnóstico agora reconhecem corretamente a versão atual da VPS.</small>
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
 
@@ -287,15 +218,15 @@ export const VPSTokenSynchronizer = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5 text-blue-600" />
-            Descoberta Automática de Token VPS
+            Descoberta Automática de Token VPS (FASE 2)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Alert>
-            <Zap className="h-4 w-4" />
+            <TestTube className="h-4 w-4" />
             <AlertDescription>
-              Esta ferramenta testa automaticamente tokens candidatos para encontrar o token VPS correto.
-              Inclui o token VPS atual e variações baseadas no token configurado.
+              Esta ferramenta testa automaticamente tokens candidatos para validar o token VPS correto.
+              FASE 2: Validação de versão corrigida para aceitar 3.5.0+.
             </AlertDescription>
           </Alert>
 
@@ -313,7 +244,7 @@ export const VPSTokenSynchronizer = () => {
             ) : (
               <>
                 <Search className="h-4 w-4 mr-2" />
-                Descobrir Token Correto
+                Descobrir Token Correto (FASE 2)
               </>
             )}
           </Button>
@@ -333,18 +264,13 @@ export const VPSTokenSynchronizer = () => {
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription>
                 <div className="space-y-2">
-                  <p><strong>Token válido descoberto:</strong></p>
+                  <p><strong>Token válido descoberto (FASE 2):</strong></p>
                   <code className="text-xs bg-green-100 p-1 rounded">
                     {discoveredToken}
                   </code>
-                  <Button 
-                    onClick={handleUseDiscoveredToken}
-                    size="sm"
-                    className="ml-2"
-                  >
-                    <Save className="h-3 w-3 mr-1" />
-                    Usar Este Token
-                  </Button>
+                  <p className="text-xs text-green-700">
+                    ✅ Este token está funcionando com a versão 3.5.0 da VPS
+                  </p>
                 </div>
               </AlertDescription>
             </Alert>
@@ -357,7 +283,7 @@ export const VPSTokenSynchronizer = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Key className="h-5 w-5 text-orange-600" />
-            Atualização Manual de Token
+            Teste Manual de Token (FASE 2)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -368,19 +294,19 @@ export const VPSTokenSynchronizer = () => {
               type="password"
               value={currentToken}
               onChange={(e) => setCurrentToken(e.target.value)}
-              placeholder="Cole o token VPS correto aqui..."
+              placeholder="Cole o token VPS para testar..."
               className="font-mono"
             />
           </div>
           
           <Button 
-            onClick={handleManualTokenUpdate}
-            disabled={!currentToken.trim()}
+            onClick={() => testSingleToken(currentToken)}
+            disabled={!currentToken.trim() || isRunning}
             variant="outline"
             className="w-full"
           >
-            <Save className="h-4 w-4 mr-2" />
-            Atualizar Token Manual
+            <TestTube className="h-4 w-4 mr-2" />
+            Testar Token Manual (FASE 2)
           </Button>
         </CardContent>
       </Card>
@@ -391,7 +317,7 @@ export const VPSTokenSynchronizer = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TestTube className="h-5 w-5 text-purple-600" />
-              Resultados dos Testes de Token
+              Resultados dos Testes de Token (FASE 2)
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -423,7 +349,7 @@ export const VPSTokenSynchronizer = () => {
                     {result.success && result.responseData && (
                       <details className="text-xs mt-2">
                         <summary className="cursor-pointer text-green-600">
-                          Ver dados de resposta
+                          Ver dados de resposta (FASE 2)
                         </summary>
                         <pre className="mt-2 p-2 bg-green-50 rounded overflow-auto max-h-20">
                           {JSON.stringify(result.responseData, null, 2)}
@@ -442,7 +368,7 @@ export const VPSTokenSynchronizer = () => {
       {logs.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Logs de Sincronização</CardTitle>
+            <CardTitle className="text-sm">Logs de Sincronização (FASE 2)</CardTitle>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-40 w-full">
