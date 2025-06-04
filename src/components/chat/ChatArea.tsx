@@ -49,8 +49,7 @@ export const ChatArea = ({
         onResize={(size) => setPanelSize({...panelSize, info: size})}
       >
         <ContactInfoPanel
-          selectedContact={selectedContact}
-          onOpenContactDetails={onOpenContactDetails}
+          contact={selectedContact}
         />
       </ResizablePanel>
     </ResizablePanelGroup>

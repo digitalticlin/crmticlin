@@ -37,6 +37,13 @@ export function ModernClientsLayout({
   onDetailsOpenChange,
   onFormOpenChange
 }: ModernClientsLayoutProps) {
+  const handleUpdateContact = (updates: Partial<Contact>) => {
+    if (selectedClient) {
+      // Implementar lógica de atualização aqui
+      console.log('Updating contact:', updates);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <ModernClientsList 
@@ -47,13 +54,10 @@ export function ModernClientsLayout({
       {/* Client Details Sheet */}
       {selectedClient && (
         <ClientDetails
-          client={selectedClient}
+          selectedContact={selectedClient}
           isOpen={isDetailsOpen}
-          onOpenChange={onDetailsOpenChange}
-          onEdit={onEditClient}
-          onUpdateNotes={onUpdateNotes}
-          onUpdateAssignedUser={onUpdateAssignedUser}
-          onUpdatePurchaseValue={onUpdatePurchaseValue}
+          onClose={() => onDetailsOpenChange(false)}
+          onUpdateContact={handleUpdateContact}
         />
       )}
       

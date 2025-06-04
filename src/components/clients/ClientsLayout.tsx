@@ -38,6 +38,13 @@ export function ClientsLayout({
   onDetailsOpenChange,
   onFormOpenChange
 }: ClientsLayoutProps) {
+  const handleUpdateContact = (updates: Partial<Contact>) => {
+    if (selectedClient) {
+      // Implementar lógica de atualização aqui
+      console.log('Updating contact:', updates);
+    }
+  };
+
   return (
     <main className="flex-1 flex flex-col h-full overflow-hidden">
       <ClientsHeader onAddClient={onAddClient} />
@@ -52,13 +59,10 @@ export function ClientsLayout({
       {/* Client Details Sheet */}
       {selectedClient && (
         <ClientDetails
-          client={selectedClient}
+          selectedContact={selectedClient}
           isOpen={isDetailsOpen}
-          onOpenChange={onDetailsOpenChange}
-          onEdit={onEditClient}
-          onUpdateNotes={onUpdateNotes}
-          onUpdateAssignedUser={onUpdateAssignedUser}
-          onUpdatePurchaseValue={onUpdatePurchaseValue}
+          onClose={() => onDetailsOpenChange(false)}
+          onUpdateContact={handleUpdateContact}
         />
       )}
       
