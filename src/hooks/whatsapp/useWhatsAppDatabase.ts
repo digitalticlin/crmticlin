@@ -1,103 +1,99 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { WhatsAppWebInstance } from './useWhatsAppWebInstances';
 
-// Database-only hook - NO VPS requests, only Supabase queries
-export const useWhatsAppDatabase = (companyId: string | null, companyLoading: boolean) => {
+export const useWhatsAppDatabase = () => {
   const [instances, setInstances] = useState<WhatsAppWebInstance[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  
-  const isMountedRef = useRef(true);
 
-  // Fetch instances from database only
-  const fetchInstancesFromDB = async () => {
-    if (!companyId || companyLoading || !isMountedRef.current) {
-      return;
-    }
-
+  const fetchInstances = async () => {
+    console.log('[useWhatsAppDatabase] Fetching instances from database only...');
+    
     try {
-      console.log('[useWhatsAppDatabase] Fetching instances from database only...');
-      setLoading(true);
-      setError(null);
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return;
 
-      const { data: instancesData, error: fetchError } = await supabase
+      // Get user company
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', userData.user.id)
+        .single();
+
+      if (!profile?.company_id) return;
+
+      // Fetch instances
+      const { data: instancesData } = await supabase
         .from('whatsapp_instances')
         .select('*')
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false });
+        .eq('company_id', profile.company_id)
+        .eq('connection_type', 'web');
 
-      if (fetchError) {
-        throw fetchError;
-      }
-
-      if (isMountedRef.current) {
-        const mappedInstances: WhatsAppWebInstance[] = (instancesData || []).map(instance => ({
+      if (instancesData) {
+        // Transform database data to match interface
+        const transformedInstances: WhatsAppWebInstance[] = instancesData.map(instance => ({
           id: instance.id,
-          instance_name: instance.instance_name || '',
-          connection_type: instance.connection_type || 'web',
-          server_url: instance.server_url || '',
-          vps_instance_id: instance.vps_instance_id || '',
+          instance_name: instance.instance_name,
+          phone: instance.phone,
+          company_id: instance.company_id,
+          connection_status: instance.connection_status,
           web_status: instance.web_status || '',
-          connection_status: instance.connection_status || 'disconnected',
           qr_code: instance.qr_code,
-          phone: instance.phone || '',
+          vps_instance_id: instance.vps_instance_id || '',
+          server_url: instance.server_url || '',
+          created_at: instance.created_at,
+          updated_at: instance.updated_at,
           profile_name: instance.profile_name,
-          company_id: instance.company_id
+          profile_pic_url: instance.profile_pic_url,
+          connection_type: instance.connection_type
         }));
-
-        console.log('[useWhatsAppDatabase] Instances loaded from DB:', mappedInstances.length);
-        setInstances(mappedInstances);
+        
+        setInstances(transformedInstances);
+        console.log('[useWhatsAppDatabase] Instances loaded from DB:', transformedInstances.length);
       }
-    } catch (error: any) {
-      if (isMountedRef.current) {
-        console.error('[useWhatsAppDatabase] Error fetching instances:', error);
-        setError(error.message);
-      }
+    } catch (error) {
+      console.error('[useWhatsAppDatabase] Error fetching instances:', error);
     } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   };
 
-  // Get active instance (connected)
-  const getActiveInstance = () => {
-    return instances.find(instance => 
-      instance.connection_type === 'web' && 
-      instance.connection_status === 'connected'
-    ) || null;
+  const deleteInstance = async (instanceId: string) => {
+    try {
+      const { error } = await supabase
+        .from('whatsapp_instances')
+        .delete()
+        .eq('id', instanceId);
+
+      if (error) throw error;
+
+      // Remove from local state
+      setInstances(prev => prev.filter(instance => instance.id !== instanceId));
+      
+      console.log('[useWhatsAppDatabase] Instance deleted from database');
+    } catch (error) {
+      console.error('[useWhatsAppDatabase] Error deleting instance:', error);
+      throw error;
+    }
   };
 
-  // Initial load
   useEffect(() => {
-    if (companyId && !companyLoading) {
-      fetchInstancesFromDB();
-    }
-  }, [companyId, companyLoading]);
-
-  // Realtime subscription for whatsapp_instances table
-  useEffect(() => {
-    if (!companyId) return;
-
     console.log('[useWhatsAppDatabase] Setting up realtime subscription for instances...');
+    
+    fetchInstances();
 
     const channel = supabase
-      .channel(`whatsapp-instances-db-${companyId}`)
+      .channel('whatsapp-instances-changes')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'whatsapp_instances',
-          filter: `company_id=eq.${companyId}`
+          table: 'whatsapp_instances'
         },
-        (payload) => {
-          console.log('[useWhatsAppDatabase] Realtime update:', payload.eventType);
-          if (isMountedRef.current) {
-            fetchInstancesFromDB();
-          }
+        () => {
+          fetchInstances();
         }
       )
       .subscribe();
@@ -106,20 +102,12 @@ export const useWhatsAppDatabase = (companyId: string | null, companyLoading: bo
       console.log('[useWhatsAppDatabase] Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
-  }, [companyId]);
-
-  // Cleanup
-  useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-    };
   }, []);
 
   return {
     instances,
     loading,
-    error,
-    refetch: fetchInstancesFromDB,
-    getActiveInstance
+    deleteInstance,
+    refetchInstances: fetchInstances
   };
 };
