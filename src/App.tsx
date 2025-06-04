@@ -82,14 +82,6 @@ function AppContent() {
           }
         />
         <Route
-          path="/chat"
-          element={
-            <ProtectedRoute>
-              <WhatsAppChat />
-            </ProtectedRoute>
-          }
-        />
-        <Route
           path="/whatsapp-chat"
           element={
             <ProtectedRoute>
