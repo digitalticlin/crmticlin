@@ -22,7 +22,7 @@ export const WhatsAppChatArea = ({
   isSending
 }: WhatsAppChatAreaProps) => {
   return (
-    <div className="h-full flex flex-col bg-[#0b141a]">
+    <div className="h-full flex flex-col bg-white/5 backdrop-blur-sm relative z-10">
       <WhatsAppChatHeader 
         selectedContact={selectedContact} 
         onBack={onBack}

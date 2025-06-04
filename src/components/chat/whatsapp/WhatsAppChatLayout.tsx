@@ -56,10 +56,10 @@ export const WhatsAppChatLayout = ({
   };
 
   return (
-    <div className="h-full flex overflow-hidden">
+    <div className="h-full flex overflow-hidden relative z-10">
       {/* Painel Esquerdo - Lista de Conversas com card transparente */}
       <div className={cn(
-        "w-full max-w-[400px] flex flex-col bg-white/10 backdrop-blur-md border-r border-white/20",
+        "w-full max-w-[400px] flex flex-col bg-white/10 backdrop-blur-md border-r border-white/20 relative z-10",
         selectedContact ? "hidden lg:flex" : "flex"
       )}>
         <WhatsAppContactsList
@@ -72,14 +72,14 @@ export const WhatsAppChatLayout = ({
 
       {/* Painel Central - Área de Chat com card transparente */}
       <div className={cn(
-        "flex-1 flex flex-col bg-white/10 backdrop-blur-md",
+        "flex-1 flex flex-col bg-white/10 backdrop-blur-md relative z-10",
         !selectedContact && "hidden lg:flex",
         isDetailsSidebarOpen && "lg:pr-96"
       )}>
         {selectedContact ? (
           <>
             {/* Chat Header with Details Button */}
-            <div className="bg-white/20 backdrop-blur-sm border-b border-white/30 p-4 flex items-center justify-between">
+            <div className="bg-white/20 backdrop-blur-sm border-b border-white/30 p-4 flex items-center justify-between relative z-10">
               <div className="flex items-center gap-3">
                 <Button
                   variant="ghost"

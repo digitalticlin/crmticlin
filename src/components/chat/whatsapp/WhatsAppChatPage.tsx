@@ -72,7 +72,7 @@ const WhatsAppChatContent = () => {
       <ResponsiveSidebar />
       
       <main className={cn(
-        "fixed top-0 right-0 bottom-0 z-10 overflow-hidden",
+        "fixed top-0 right-0 bottom-0 z-20 overflow-hidden",
         isMobile ? "left-0 pt-14" : "left-[250px]"
       )}>
         <WhatsAppChatTabs />
