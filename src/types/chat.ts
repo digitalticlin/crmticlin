@@ -36,4 +36,8 @@ export interface Message {
   status: "sent" | "delivered" | "read";
   mediaType?: "text" | "image" | "video" | "audio" | "document";
   mediaUrl?: string;
+  // Additional properties used by components
+  sender?: "user" | "contact";
+  time?: string;
+  isIncoming?: boolean;
 }
