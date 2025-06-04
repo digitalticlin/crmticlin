@@ -14,6 +14,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { VPSInstanceCorrection } from './VPSInstanceCorrection';
 
 interface VPSInstance {
   instanceId: string;
@@ -141,6 +142,9 @@ export const VPSInstancesSimplified = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Correção Manual - NOVO */}
+      <VPSInstanceCorrection />
 
       {/* Controles */}
       <Card>
