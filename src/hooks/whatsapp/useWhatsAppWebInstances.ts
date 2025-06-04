@@ -1,178 +1,181 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
+import { useAuth } from '@/contexts/AuthContext';
+import { useCompanyData } from '@/hooks/useCompanyData';
 import { useInstanceActions } from './services/instanceActionsService';
-import { toast } from 'sonner';
 
 export interface WhatsAppWebInstance {
   id: string;
   instance_name: string;
   phone: string;
-  company_id: string;
   connection_status: string;
-  web_status: string;
-  qr_code: string | null;
-  vps_instance_id: string;
-  server_url: string;
-  created_at: string;
-  updated_at: string;
-  profile_name?: string;
-  profile_pic_url?: string;
-  connection_type: string;
+  web_status?: string;
+  qr_code?: string;
+  date_connected?: string;
+  date_disconnected?: string;
+  vps_instance_id?: string;
+  server_url?: string;
+  updated_at?: string;
 }
 
 export const useWhatsAppWebInstances = () => {
   const [instances, setInstances] = useState<WhatsAppWebInstance[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [showQRModal, setShowQRModal] = useState(false);
-  const [selectedQRCode, setSelectedQRCode] = useState<string | null>(null);
-  const [selectedInstanceName, setSelectedInstanceName] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  const { user } = useAuth();
+  const { companyId } = useCompanyData();
 
   // Fetch instances from database
-  const fetchInstances = useCallback(async () => {
-    console.log('[Hook] 📊 Fetching WhatsApp Web instances...');
-    setIsLoading(true);
-    
+  const fetchInstances = async () => {
+    if (!companyId) return;
+
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
-        throw new Error('User not authenticated');
-      }
+      setIsLoading(true);
+      setError(null);
 
-      // Get user company
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('company_id')
-        .eq('id', userData.user.id)
-        .single();
+      console.log('[WhatsApp Web Instances] 📋 Buscando instâncias da empresa:', companyId);
 
-      if (!profile?.company_id) {
-        throw new Error('User company not found');
-      }
-
-      // Fetch instances for user's company
-      const { data: instancesData, error } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('whatsapp_instances')
         .select('*')
-        .eq('company_id', profile.company_id)
+        .eq('company_id', companyId)
         .eq('connection_type', 'web')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('[Hook] ❌ Error fetching instances:', error);
-        throw error;
+      if (fetchError) {
+        throw fetchError;
       }
 
-      console.log(`[Hook] ✅ Found ${instancesData?.length || 0} instances`);
-      setInstances(instancesData || []);
+      console.log('[WhatsApp Web Instances] ✅ Instâncias carregadas:', data?.length || 0);
+      setInstances(data || []);
 
-    } catch (error: any) {
-      console.error('[Hook] 💥 Error in fetchInstances:', error);
-      toast.error(`Erro ao buscar instâncias: ${error.message}`);
-      setInstances([]);
+    } catch (err: any) {
+      console.error('[WhatsApp Web Instances] ❌ Erro ao buscar instâncias:', err);
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  };
 
-  // Create instance with QR modal
-  const createInstance = useCallback(async (instanceName: string) => {
-    console.log('[Hook] 🆕 Creating WhatsApp Web instance:', instanceName);
-    setIsConnecting(true);
-    
+  // CORREÇÃO FASE 3.1: Função para atualizar QR Code de uma instância específica
+  const refreshInstanceQRCode = async (instanceId: string) => {
     try {
-      const result = await WhatsAppWebService.createInstance(instanceName);
-      
-      if (result.success && result.instance) {
-        console.log('[Hook] ✅ Instance created successfully:', result.instance);
-        
-        // Show QR Modal immediately if QR code is available
-        if (result.instance.qr_code) {
-          console.log('[Hook] 📱 Opening QR Modal...');
-          setSelectedQRCode(result.instance.qr_code);
-          setSelectedInstanceName(result.instance.instance_name);
-          setShowQRModal(true);
-          
-          toast.success(`Instância "${instanceName}" criada! Escaneie o QR Code.`);
-        } else {
-          toast.warning(`Instância "${instanceName}" criada, mas QR Code não disponível.`);
-        }
-        
-        // Refresh instances list
-        await fetchInstances();
-        return result.instance;
-      } else {
-        throw new Error(result.error || 'Failed to create instance');
+      console.log('[WhatsApp Web Instances] 🔄 Atualizando QR Code (FASE 3.1):', instanceId);
+
+      const instance = instances.find(i => i.id === instanceId);
+      if (!instance?.vps_instance_id) {
+        throw new Error('VPS Instance ID não encontrado');
       }
+
+      // Chamar Edge Function para obter QR Code atualizado
+      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+        body: {
+          action: 'refresh_qr_code',
+          instanceData: {
+            instanceId: instance.vps_instance_id
+          }
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Falha ao atualizar QR Code');
+      }
+
+      console.log('[WhatsApp Web Instances] ✅ QR Code atualizado com sucesso');
+
+      // Recarregar instâncias para obter dados atualizados
+      await fetchInstances();
+
+      return {
+        success: true,
+        qrCode: data.qrCode
+      };
+
     } catch (error: any) {
-      console.error('[Hook] ❌ Create instance error:', error);
-      toast.error(`Erro ao criar instância: ${error.message}`);
-      throw error;
-    } finally {
-      setIsConnecting(false);
+      console.error('[WhatsApp Web Instances] ❌ Erro ao atualizar QR Code:', error);
+      return {
+        success: false,
+        error: error.message
+      };
     }
-  }, [fetchInstances]);
+  };
 
-  // Get instance actions
-  const { deleteInstance, refreshQRCode } = useInstanceActions(fetchInstances);
+  // Use instance actions service
+  const { createInstance, deleteInstance, refreshQRCode } = useInstanceActions(fetchInstances);
 
-  // Close QR Modal
-  const closeQRModal = useCallback(() => {
-    console.log('[Hook] 🔐 Closing QR Modal');
-    setShowQRModal(false);
-    setSelectedQRCode(null);
-    setSelectedInstanceName('');
-  }, []);
-
-  // Auto-fetch instances on mount
+  // CORREÇÃO FASE 3.1: Buscar QR Code atualizado automaticamente para instâncias em waiting_scan
   useEffect(() => {
-    fetchInstances();
-  }, [fetchInstances]);
+    if (!instances.length) return;
 
-  // Setup real-time updates
+    const checkForQRUpdates = () => {
+      instances.forEach(async (instance) => {
+        if (instance.web_status === 'waiting_scan' && instance.vps_instance_id) {
+          // Verificar se QR code precisa ser atualizado (opcional - apenas se necessário)
+          const lastUpdate = instance.updated_at ? new Date(instance.updated_at) : new Date(0);
+          const now = new Date();
+          const timeDiff = now.getTime() - lastUpdate.getTime();
+          
+          // Atualizar QR Code se a última atualização foi há mais de 30 segundos
+          if (timeDiff > 30000) {
+            console.log('[WhatsApp Web Instances] 🔄 Auto-refresh QR Code para:', instance.instance_name);
+            await refreshInstanceQRCode(instance.id);
+          }
+        }
+      });
+    };
+
+    // Verificar atualizações a cada 30 segundos
+    const interval = setInterval(checkForQRUpdates, 30000);
+
+    return () => clearInterval(interval);
+  }, [instances]);
+
+  // Real-time subscriptions for instance updates
   useEffect(() => {
-    console.log('[Hook] 🔄 Setting up real-time updates...');
-    
+    if (!companyId) return;
+
+    console.log('[WhatsApp Web Instances] 🔄 Configurando real-time updates para empresa:', companyId);
+
     const channel = supabase
-      .channel('whatsapp-instances-changes')
+      .channel('whatsapp-instances-updates')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'whatsapp_instances'
+          table: 'whatsapp_instances',
+          filter: `company_id=eq.${companyId}`
         },
         (payload) => {
-          console.log('[Hook] 📡 Real-time update:', payload);
-          fetchInstances(); // Refresh on any change
+          console.log('[WhatsApp Web Instances] 📡 Real-time update:', payload);
+          fetchInstances(); // Recarregar dados quando houver mudanças
         }
       )
       .subscribe();
 
     return () => {
-      console.log('[Hook] 🔄 Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [fetchInstances]);
+  }, [companyId]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchInstances();
+  }, [companyId]);
 
   return {
     instances,
     isLoading,
-    loading: isLoading, // Alias for compatibility
-    isConnecting,
-    error: null, // Add error state for compatibility
+    error,
+    refetch: fetchInstances,
     createInstance,
     deleteInstance,
-    refreshQRCode,
-    fetchInstances, // AGORA INCLUÍDO NO RETORNO
-    refetch: fetchInstances, // Add refetch alias
-    
-    // QR Modal state
-    showQRModal,
-    selectedQRCode,
-    selectedInstanceName,
-    closeQRModal
+    refreshQRCode: refreshInstanceQRCode
   };
 };
