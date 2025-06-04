@@ -21,9 +21,10 @@ import SidebarLogo from "./SidebarLogo";
 import SidebarNavGroup from "./SidebarNavGroup";
 import SidebarFooter from "./SidebarFooter";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSidebar } from "@/contexts/SidebarContext";
 
 export default function ResponsiveSidebar() {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { isCollapsed, toggleCollapse } = useSidebar();
   const [mobileOpen, setMobileOpen] = useState(false);
   const isMobile = useIsMobile();
 
@@ -102,7 +103,7 @@ export default function ResponsiveSidebar() {
       </div>
       <SidebarFooter 
         isCollapsed={isCollapsed && !isMobile} 
-        toggleCollapse={() => setIsCollapsed(!isCollapsed)} 
+        toggleCollapse={toggleCollapse} 
       />
     </>
   );
@@ -110,7 +111,7 @@ export default function ResponsiveSidebar() {
   if (isMobile) {
     return (
       <>
-        {/* ETAPA 2: Mobile Header fixo */}
+        {/* Mobile Header fixo */}
         <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 flex items-center px-4 border-b bg-white/25 backdrop-blur-lg border-white/30">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -130,7 +131,7 @@ export default function ResponsiveSidebar() {
     );
   }
 
-  // ETAPA 2: Desktop sidebar fixo
+  // Desktop sidebar fixo
   return (
     <div
       className={cn(

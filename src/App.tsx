@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { SidebarProvider } from "@/contexts/SidebarContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { useAuthMonitoring } from "@/hooks/useAuthMonitoring";
 import Index from "./pages/Index";
@@ -179,7 +180,9 @@ function App() {
       <TooltipProvider>
         <BrowserRouter>
           <AuthProvider>
-            <AppContent />
+            <SidebarProvider>
+              <AppContent />
+            </SidebarProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

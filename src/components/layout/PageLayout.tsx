@@ -2,6 +2,8 @@
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import ResponsiveSidebar from "@/components/layout/ResponsiveSidebar";
+import { useSidebar } from "@/contexts/SidebarContext";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface PageLayoutProps {
   children: ReactNode;
@@ -9,6 +11,9 @@ interface PageLayoutProps {
 }
 
 export function PageLayout({ children, className }: PageLayoutProps) {
+  const { isCollapsed } = useSidebar();
+  const isMobile = useIsMobile();
+
   return (
     <div className="h-screen w-full overflow-hidden relative">
       {/* Fundo gradiente fixo igual ao Dashboard */}
@@ -34,8 +39,12 @@ export function PageLayout({ children, className }: PageLayoutProps) {
       
       {/* Container principal com scroll independente */}
       <main className={cn(
-        "fixed top-0 right-0 bottom-0 z-10 overflow-auto",
-        "left-0 md:left-[250px]", // Ajuste para largura do sidebar
+        "fixed top-0 right-0 bottom-0 z-10 overflow-auto transition-all duration-300",
+        isMobile 
+          ? "left-0" 
+          : isCollapsed 
+            ? "left-[80px]" 
+            : "left-[250px]",
         className
       )}>
         <div className="p-4 md:p-6 space-y-6 md:space-y-8 min-h-full">

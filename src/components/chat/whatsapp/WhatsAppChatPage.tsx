@@ -4,10 +4,12 @@ import ResponsiveSidebar from "@/components/layout/ResponsiveSidebar";
 import { WhatsAppChatTabs } from "./WhatsAppChatTabs";
 import { WhatsAppChatProvider, useWhatsAppChatContext } from "./WhatsAppChatProvider";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSidebar } from "@/contexts/SidebarContext";
 import { cn } from "@/lib/utils";
 
 const WhatsAppChatContent = () => {
   const { companyLoading } = useWhatsAppChatContext();
+  const { isCollapsed } = useSidebar();
   const isMobile = useIsMobile();
 
   if (companyLoading) {
@@ -34,8 +36,12 @@ const WhatsAppChatContent = () => {
         <ResponsiveSidebar />
         
         <main className={cn(
-          "fixed top-0 right-0 bottom-0 z-10 overflow-auto",
-          isMobile ? "left-0 pt-14" : "left-[250px]"
+          "fixed top-0 right-0 bottom-0 z-10 overflow-auto transition-all duration-300",
+          isMobile 
+            ? "left-0 pt-14" 
+            : isCollapsed 
+              ? "left-[80px]" 
+              : "left-[250px]"
         )}>
           <div className="flex h-full items-center justify-center">
             <div className="text-center">
@@ -72,8 +78,12 @@ const WhatsAppChatContent = () => {
       <ResponsiveSidebar />
       
       <main className={cn(
-        "fixed top-0 right-0 bottom-0 z-20 overflow-hidden",
-        isMobile ? "left-0 pt-14" : "left-[250px]"
+        "fixed top-0 right-0 bottom-0 z-20 overflow-hidden transition-all duration-300",
+        isMobile 
+          ? "left-0 pt-14" 
+          : isCollapsed 
+            ? "left-[80px]" 
+            : "left-[250px]"
       )}>
         <WhatsAppChatTabs />
       </main>
