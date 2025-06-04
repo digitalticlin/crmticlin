@@ -34,7 +34,7 @@ async function makeVPSRequest(url: string, options: RequestInit, retries = 3): P
 }
 
 export async function createWhatsAppInstance(supabase: any, instanceData: InstanceData, userId: string) {
-  console.log('[Instance Management] 🚀 INICIANDO criação WhatsApp Web.js instance:', instanceData);
+  console.log('[Instance Management] 🚀 INICIANDO criação WhatsApp Web.js instance (FASE 3):', instanceData);
 
   // PASSO 1: Testar conectividade VPS ANTES de qualquer coisa
   console.log('[Instance Management] 🔧 PASSO 1: Testando conectividade VPS...');
@@ -97,13 +97,14 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
     throw new Error(`Instância com nome "${instanceData.instanceName}" já existe. Tente com outro nome.`);
   }
 
-  // PASSO 4: Create instance na VPS com CORREÇÃO de autenticação
-  console.log('[Instance Management] 🔧 PASSO 4: Criando instância na VPS...');
+  // PASSO 4: Create instance na VPS com CORREÇÃO de endpoint (FASE 3)
+  console.log('[Instance Management] 🔧 PASSO 4: Criando instância na VPS (FASE 3 - endpoint correto)...');
   let vpsResult;
   try {
     // Payload structure CORRIGIDO
     const payload = {
       instanceId: vpsInstanceId,
+      instanceName: instanceData.instanceName,
       sessionName: instanceData.instanceName,
       webhookUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/webhook_whatsapp_web`,
       companyId: profile.company_id
@@ -111,9 +112,12 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
     
     console.log('[Instance Management] 📤 Payload:', JSON.stringify(payload, null, 2));
     console.log('[Instance Management] 🔑 Headers:', getVPSHeaders());
-    console.log('[Instance Management] 🎯 URL:', `${VPS_CONFIG.baseUrl}/instance/create`);
     
-    const vpsResponse = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/create`, {
+    // CORREÇÃO FASE 3: Usar endpoint correto confirmado via SSH
+    const correctEndpoint = `${VPS_CONFIG.baseUrl}/instance/create`;
+    console.log('[Instance Management] 🎯 URL (FASE 3):', correctEndpoint);
+    
+    const vpsResponse = await makeVPSRequest(correctEndpoint, {
       method: 'POST',
       headers: getVPSHeaders(),
       body: JSON.stringify(payload)
@@ -125,7 +129,7 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
     if (vpsResponse.ok) {
       try {
         vpsResult = JSON.parse(responseText);
-        console.log('[Instance Management] ✅ VPS creation response:', vpsResult);
+        console.log('[Instance Management] ✅ VPS creation response (FASE 3):', vpsResult);
       } catch (parseError) {
         console.error('[Instance Management] ❌ Erro ao fazer parse da resposta VPS:', parseError);
         throw new Error(`VPS retornou resposta inválida: ${responseText}`);
@@ -150,7 +154,7 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
         throw new Error('VPS retornou QR Code falso. WhatsApp Web.js não foi inicializado corretamente. Tente novamente.');
       }
       
-      console.log('[Instance Management] ✅ VPS retornou QR CODE REAL - prosseguindo...');
+      console.log('[Instance Management] ✅ VPS retornou QR CODE REAL (FASE 3) - prosseguindo...');
       
     } else {
       console.error(`[Instance Management] ❌ VPS creation failed with status ${vpsResponse.status}: ${responseText}`);
@@ -183,7 +187,7 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
     if (dbError) {
       console.error('[Instance Management] ❌ Database error after VPS success:', dbError);
       
-      // Se banco falha, tentar limpar VPS
+      // Se banco falha, tentar limpar VPS usando endpoint correto
       try {
         await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/delete`, {
           method: 'POST',
@@ -197,7 +201,7 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
       throw new Error(`Erro no banco de dados: ${dbError.message}`);
     }
 
-    console.log('[Instance Management] 🎉 SUCESSO TOTAL! Instance ID:', dbInstance.id);
+    console.log('[Instance Management] 🎉 SUCESSO TOTAL FASE 3! Instance ID:', dbInstance.id);
 
     return new Response(
       JSON.stringify({
@@ -217,7 +221,7 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
 }
 
 export async function deleteWhatsAppInstance(supabase: any, instanceId: string) {
-  console.log('[Instance Management] Deleting WhatsApp Web.js instance:', instanceId);
+  console.log('[Instance Management] Deleting WhatsApp Web.js instance (FASE 3):', instanceId);
 
   const { data: instance } = await supabase
     .from('whatsapp_instances')
@@ -228,9 +232,9 @@ export async function deleteWhatsAppInstance(supabase: any, instanceId: string) 
   if (!instance?.vps_instance_id) {
     console.log('[Instance Management] No VPS instance ID found, only deleting from database');
   } else {
-    // Use CORRECT delete endpoint with proper headers
+    // Use CORRECT delete endpoint with proper headers (FASE 3)
     try {
-      console.log('[Instance Management] Deleting from VPS with corrected authentication');
+      console.log('[Instance Management] Deleting from VPS with corrected authentication (FASE 3)');
       
       await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/delete`, {
         method: 'POST',
@@ -241,7 +245,7 @@ export async function deleteWhatsAppInstance(supabase: any, instanceId: string) 
         })
       });
       
-      console.log('[Instance Management] Successfully deleted from VPS');
+      console.log('[Instance Management] Successfully deleted from VPS (FASE 3)');
     } catch (deleteError) {
       console.error('[Instance Management] VPS delete error:', deleteError);
       // Continue with database deletion even if VPS delete fails
@@ -258,7 +262,7 @@ export async function deleteWhatsAppInstance(supabase: any, instanceId: string) 
     throw new Error(`Database delete error: ${deleteError.message}`);
   }
 
-  console.log('[Instance Management] Instance successfully deleted from database');
+  console.log('[Instance Management] Instance successfully deleted from database (FASE 3)');
 
   return new Response(
     JSON.stringify({ success: true }),

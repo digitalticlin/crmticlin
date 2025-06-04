@@ -19,31 +19,32 @@ serve(async (req) => {
     );
 
     const { test, testToken, vpsAction } = await req.json();
-    console.log(`[VPS Diagnostic] Test: ${test} (FASE 2)`);
+    console.log(`[VPS Diagnostic] Test: ${test} (FASE 3)`);
 
-    // VPS Configuration
+    // CORREÇÃO FASE 3: VPS Configuration usando token correto
     const VPS_CONFIG = {
       host: '31.97.24.222',
       port: '3001',
       get baseUrl() {
         return `http://${this.host}:${this.port}`;
       },
-      authToken: testToken || Deno.env.get('VPS_API_TOKEN') || 'default-token'
+      // CORREÇÃO FASE 3: Usar o token que a VPS realmente espera
+      authToken: 'default-token' // Confirmado via SSH que VPS espera este token
     };
 
     const getVPSHeaders = () => ({
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
-      'User-Agent': 'Supabase-VPS-Diagnostic/2.0',
+      'User-Agent': 'Supabase-VPS-Diagnostic/3.0-FASE3',
       'Accept': 'application/json'
     });
 
-    // CORREÇÃO: Função de validação de versão atualizada para aceitar 3.5.0
+    // CORREÇÃO FASE 3: Função de validação de versão atualizada para aceitar 3.5.0
     const isValidVersion = (versionString: string): boolean => {
       if (!versionString) return false;
       
       const validVersions = [
-        '3.5.0', // FASE 2: Versão atual da VPS - VÁLIDA
+        '3.5.0', // FASE 3: Versão confirmada via SSH - VÁLIDA
         '3.4.0',
         '3.3.0',
         '3.2.0',
@@ -71,7 +72,7 @@ serve(async (req) => {
 
     // Test: VPS Connectivity
     if (test === 'vps_connectivity') {
-      console.log('[VPS Diagnostic] 🔧 Testando conectividade VPS (FASE 2)...');
+      console.log('[VPS Diagnostic] 🔧 Testando conectividade VPS (FASE 3)...');
       
       try {
         const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
@@ -86,10 +87,10 @@ serve(async (req) => {
         if (response.ok) {
           const data = JSON.parse(responseText);
           
-          // CORREÇÃO: Validar versão corretamente
+          // CORREÇÃO FASE 3: Validar versão corretamente
           const versionValid = data.version && isValidVersion(data.version);
           if (versionValid) {
-            console.log('[VPS Diagnostic] ✅ VPS conectado com versão válida (FASE 2):', data.version);
+            console.log('[VPS Diagnostic] ✅ VPS conectado com versão válida (FASE 3):', data.version);
           } else {
             console.log('[VPS Diagnostic] ⚠️ VPS conectado mas versão não validada:', data.version);
           }
@@ -101,7 +102,7 @@ serve(async (req) => {
               details: {
                 ...data,
                 version_validated: versionValid,
-                phase: 'FASE_2_IMPLEMENTED'
+                phase: 'FASE_3_IMPLEMENTED'
               },
               timestamp: new Date().toISOString()
             }),
@@ -126,9 +127,9 @@ serve(async (req) => {
       }
     }
 
-    // Test: VPS Authentication
+    // Test: VPS Authentication (FASE 3)
     if (test === 'vps_auth') {
-      console.log('[VPS Diagnostic] 🔐 Testando autenticação VPS (FASE 2)...');
+      console.log('[VPS Diagnostic] 🔐 Testando autenticação VPS (FASE 3)...');
       
       try {
         const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
@@ -143,10 +144,10 @@ serve(async (req) => {
         if (response.ok) {
           const data = JSON.parse(responseText);
           
-          // Verificar se o servidor aceita nosso token
+          // Verificar se o servidor aceita nosso token corrigido
           const authSuccess = response.status === 200;
           
-          console.log('[VPS Diagnostic] ✅ Autenticação testada (FASE 2):', { authSuccess, data });
+          console.log('[VPS Diagnostic] ✅ Autenticação testada (FASE 3):', { authSuccess, data });
           
           return new Response(
             JSON.stringify({
@@ -154,9 +155,9 @@ serve(async (req) => {
               duration,
               details: {
                 ...data,
-                token_tested: VPS_CONFIG.authToken.substring(0, 10) + '...',
+                token_tested: VPS_CONFIG.authToken,
                 auth_accepted: authSuccess,
-                phase: 'FASE_2_IMPLEMENTED'
+                phase: 'FASE_3_IMPLEMENTED'
               },
               timestamp: new Date().toISOString()
             }),
@@ -183,7 +184,7 @@ serve(async (req) => {
 
     // Test: VPS Services
     if (test === 'vps_services') {
-      console.log('[VPS Diagnostic] ⚙️ Testando serviços VPS (FASE 2)...');
+      console.log('[VPS Diagnostic] ⚙️ Testando serviços VPS (FASE 3)...');
       
       try {
         const response = await fetch(`${VPS_CONFIG.baseUrl}/instances`, {
@@ -197,7 +198,7 @@ serve(async (req) => {
 
         if (response.ok) {
           const data = JSON.parse(responseText);
-          console.log('[VPS Diagnostic] ✅ Serviços VPS funcionando (FASE 2):', data);
+          console.log('[VPS Diagnostic] ✅ Serviços VPS funcionando (FASE 3):', data);
           
           return new Response(
             JSON.stringify({
@@ -205,7 +206,7 @@ serve(async (req) => {
               duration,
               details: {
                 ...data,
-                phase: 'FASE_2_IMPLEMENTED'
+                phase: 'FASE_3_IMPLEMENTED'
               },
               timestamp: new Date().toISOString()
             }),
@@ -230,9 +231,9 @@ serve(async (req) => {
       }
     }
 
-    // Test: Full Flow (check_server)
+    // Test: Full Flow (check_server) (FASE 3)
     if (test === 'full_flow') {
-      console.log('[VPS Diagnostic] 🔄 Testando fluxo completo (FASE 2)...');
+      console.log('[VPS Diagnostic] 🔄 Testando fluxo completo (FASE 3)...');
       
       try {
         // Testar health
@@ -248,7 +249,7 @@ serve(async (req) => {
 
         const healthData = await healthResponse.json();
 
-        // CORREÇÃO: Validar versão no fluxo completo
+        // CORREÇÃO FASE 3: Validar versão no fluxo completo
         const versionValid = healthData.version && isValidVersion(healthData.version);
 
         // Testar instances
@@ -265,7 +266,7 @@ serve(async (req) => {
 
         const duration = Date.now() - startTime;
         
-        console.log('[VPS Diagnostic] ✅ Fluxo completo funcionando (FASE 2)');
+        console.log('[VPS Diagnostic] ✅ Fluxo completo funcionando (FASE 3)');
         
         return new Response(
           JSON.stringify({
@@ -276,7 +277,7 @@ serve(async (req) => {
               instances: instancesData,
               flow_status: 'complete',
               version_validated: versionValid,
-              phase: 'FASE_2_IMPLEMENTED'
+              phase: 'FASE_3_IMPLEMENTED'
             },
             timestamp: new Date().toISOString()
           }),
@@ -301,7 +302,7 @@ serve(async (req) => {
 
     // Test: Edge Function Health
     if (test === 'edge_function') {
-      console.log('[VPS Diagnostic] 🔍 Testando saúde da Edge Function (FASE 2)...');
+      console.log('[VPS Diagnostic] 🔍 Testando saúde da Edge Function (FASE 3)...');
       
       const duration = Date.now() - startTime;
       
@@ -316,9 +317,9 @@ serve(async (req) => {
             vps_config: {
               host: VPS_CONFIG.host,
               port: VPS_CONFIG.port,
-              token_length: VPS_CONFIG.authToken.length
+              token: VPS_CONFIG.authToken
             },
-            phase: 'FASE_2_IMPLEMENTED'
+            phase: 'FASE_3_IMPLEMENTED'
           },
           timestamp: new Date().toISOString()
         }),

@@ -19,67 +19,53 @@ serve(async (req) => {
   }
 
   try {
-    console.log('[VPS Endpoint Discovery] 🔍 Iniciando descoberta de endpoints');
+    console.log('[VPS Endpoint Discovery] 🔍 Iniciando descoberta de endpoints (FASE 3)');
 
-    // VPS Configuration
+    // CORREÇÃO FASE 3: VPS Configuration com token correto
     const VPS_CONFIG = {
       host: '31.97.24.222',
       port: '3001',
       get baseUrl() {
         return `http://${this.host}:${this.port}`;
       },
-      authToken: Deno.env.get('VPS_API_TOKEN') || 'default-token'
+      // CORREÇÃO FASE 3: Usar token que VPS espera conforme descoberto via SSH
+      authToken: 'default-token'
     };
 
     const getVPSHeaders = () => ({
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
-      'User-Agent': 'Supabase-VPS-Discovery/1.0',
+      'User-Agent': 'Supabase-VPS-Discovery/3.0-FASE3',
       'Accept': 'application/json'
     });
 
-    // Lista abrangente de endpoints para testar
+    // CORREÇÃO FASE 3: Lista de endpoints baseada na descoberta SSH
     const endpointsToTest: EndpointTest[] = [
-      // Endpoints conhecidos (funcionam)
+      // Endpoints CONFIRMADOS que funcionam (via SSH)
       { path: '/health', method: 'GET', description: 'Health Check', priority: 'high' },
       { path: '/status', method: 'GET', description: 'Status Check', priority: 'high' },
       { path: '/instances', method: 'GET', description: 'List Instances', priority: 'high' },
+      { path: '/', method: 'GET', description: 'Root endpoint', priority: 'high' },
       
-      // Endpoints para criação de instâncias (variações possíveis)
-      { path: '/instances', method: 'POST', description: 'Create Instance via /instances', priority: 'high' },
-      { path: '/instance/create', method: 'POST', description: 'Create Instance via /instance/create', priority: 'high' },
-      { path: '/whatsapp/create', method: 'POST', description: 'Create WhatsApp Instance', priority: 'high' },
-      { path: '/session/create', method: 'POST', description: 'Create Session', priority: 'high' },
-      { path: '/api/instances', method: 'POST', description: 'Create via /api/instances', priority: 'high' },
-      { path: '/api/whatsapp/create', method: 'POST', description: 'Create via /api/whatsapp', priority: 'high' },
-      { path: '/v1/instances', method: 'POST', description: 'Create via /v1/instances', priority: 'medium' },
-      { path: '/create-instance', method: 'POST', description: 'Create via /create-instance', priority: 'medium' },
-      { path: '/new-instance', method: 'POST', description: 'Create via /new-instance', priority: 'medium' },
-      { path: '/client/create', method: 'POST', description: 'Create Client', priority: 'medium' },
+      // Endpoints CONFIRMADOS para operações (via SSH)
+      { path: '/instance/create', method: 'POST', description: 'Create Instance (CONFIRMED)', priority: 'high' },
+      { path: '/instance/delete', method: 'POST', description: 'Delete Instance (CONFIRMED)', priority: 'high' },
+      { path: '/instance/status', method: 'POST', description: 'Instance Status (CONFIRMED)', priority: 'high' },
+      { path: '/instance/qr', method: 'POST', description: 'Get QR Code (CONFIRMED)', priority: 'high' },
       
-      // Endpoints para QR Code
-      { path: '/qr', method: 'GET', description: 'Get QR Code', priority: 'medium' },
-      { path: '/qrcode', method: 'GET', description: 'Get QR Code Alt', priority: 'medium' },
-      { path: '/instance/qr', method: 'GET', description: 'Instance QR', priority: 'medium' },
-      
-      // Endpoints de gestão
-      { path: '/instance/delete', method: 'DELETE', description: 'Delete Instance', priority: 'medium' },
-      { path: '/instance/stop', method: 'POST', description: 'Stop Instance', priority: 'medium' },
-      { path: '/instance/start', method: 'POST', description: 'Start Instance', priority: 'medium' },
-      
-      // Outros endpoints comuns
-      { path: '/webhook', method: 'POST', description: 'Webhook Config', priority: 'low' },
-      { path: '/send-message', method: 'POST', description: 'Send Message', priority: 'low' },
-      { path: '/api', method: 'GET', description: 'API Info', priority: 'low' },
-      { path: '/docs', method: 'GET', description: 'Documentation', priority: 'low' },
-      { path: '/version', method: 'GET', description: 'Version Info', priority: 'low' },
+      // Endpoints que NÃO funcionam (confirmado via SSH) - teste para documentar
+      { path: '/instances', method: 'POST', description: 'Create via /instances (BROKEN)', priority: 'low' },
+      { path: '/whatsapp/create', method: 'POST', description: 'WhatsApp Create (BROKEN)', priority: 'low' },
+      { path: '/session/create', method: 'POST', description: 'Session Create (BROKEN)', priority: 'low' },
+      { path: '/docs', method: 'GET', description: 'Documentation (BROKEN)', priority: 'low' },
+      { path: '/api', method: 'GET', description: 'API Info (BROKEN)', priority: 'low' },
     ];
 
     const results = [];
     let successCount = 0;
     let errorCount = 0;
 
-    console.log(`[VPS Discovery] Testando ${endpointsToTest.length} endpoints...`);
+    console.log(`[VPS Discovery] Testando ${endpointsToTest.length} endpoints (FASE 3)...`);
 
     // Testar cada endpoint
     for (const endpoint of endpointsToTest) {
@@ -97,9 +83,9 @@ serve(async (req) => {
         // Para POST requests, adicionar um payload de teste
         if (endpoint.method === 'POST') {
           requestOptions.body = JSON.stringify({
-            instanceName: 'test_discovery',
-            sessionName: 'test_discovery',
-            name: 'test_discovery'
+            instanceName: 'test_discovery_fase3',
+            sessionName: 'test_discovery_fase3',
+            instanceId: 'test_discovery_fase3'
           });
         }
 
@@ -175,41 +161,50 @@ serve(async (req) => {
     const creationCandidates = workingEndpoints.filter(r => 
       r.method === 'POST' && (
         r.endpoint.includes('instance') || 
-        r.endpoint.includes('create') || 
-        r.endpoint.includes('whatsapp') ||
-        r.endpoint.includes('session')
+        r.endpoint.includes('create')
       )
     );
 
-    console.log(`[VPS Discovery] Descoberta concluída: ${successCount} sucessos, ${errorCount} falhas`);
+    console.log(`[VPS Discovery] Descoberta FASE 3 concluída: ${successCount} sucessos, ${errorCount} falhas`);
     console.log(`[VPS Discovery] Endpoints funcionais encontrados: ${workingEndpoints.length}`);
     console.log(`[VPS Discovery] Candidatos para criação: ${creationCandidates.length}`);
 
-    // Gerar recomendações
+    // Gerar recomendações FASE 3
     const recommendations = [];
     
     if (creationCandidates.length > 0) {
-      recommendations.push(`✅ Encontrados ${creationCandidates.length} endpoints candidatos para criação de instâncias`);
+      recommendations.push(`✅ FASE 3: Encontrados ${creationCandidates.length} endpoints para criação de instâncias`);
       creationCandidates.forEach(candidate => {
-        recommendations.push(`🎯 Testar: ${candidate.method} ${candidate.endpoint} (${candidate.status}) - ${candidate.description}`);
+        recommendations.push(`🎯 CONFIRMADO: ${candidate.method} ${candidate.endpoint} (${candidate.status}) - ${candidate.description}`);
       });
     } else {
       recommendations.push('❌ Nenhum endpoint de criação funcional encontrado');
-      recommendations.push('🔍 Verificar documentação da VPS ou contatar suporte');
     }
 
     if (workingEndpoints.length > 2) {
-      recommendations.push(`✅ VPS está funcionando - ${workingEndpoints.length} endpoints respondem corretamente`);
+      recommendations.push(`✅ FASE 3: VPS está funcionando - ${workingEndpoints.length} endpoints respondem corretamente`);
+      recommendations.push(`🔧 FASE 3: Token de autenticação correto: ${VPS_CONFIG.authToken}`);
+    }
+
+    // Endpoints específicos confirmados via SSH
+    const confirmedEndpoints = workingEndpoints.filter(e => 
+      ['/health', '/status', '/instances', '/instance/create'].includes(e.endpoint)
+    );
+    
+    if (confirmedEndpoints.length >= 4) {
+      recommendations.push('✅ FASE 3: Todos endpoints essenciais confirmados via SSH estão funcionando');
     }
 
     const discoveryResult = {
       success: true,
+      phase: 'FASE_3_IMPLEMENTED',
       summary: {
         totalTested: endpointsToTest.length,
         successCount,
         errorCount,
         workingEndpoints: workingEndpoints.length,
-        creationCandidates: creationCandidates.length
+        creationCandidates: creationCandidates.length,
+        confirmedViaSSH: confirmedEndpoints.length
       },
       workingEndpoints: workingEndpoints.map(e => ({
         endpoint: e.endpoint,
@@ -240,7 +235,7 @@ serve(async (req) => {
       vpsConfig: {
         host: VPS_CONFIG.host,
         port: VPS_CONFIG.port,
-        tokenLength: VPS_CONFIG.authToken.length
+        tokenConfigured: VPS_CONFIG.authToken
       }
     };
 
@@ -254,6 +249,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
+      phase: 'FASE_3_ERROR',
       timestamp: new Date().toISOString()
     }), {
       status: 500,

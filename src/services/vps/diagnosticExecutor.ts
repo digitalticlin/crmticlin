@@ -5,11 +5,11 @@ import type { ComprehensiveDiagnostic } from './types';
 export class DiagnosticExecutor {
   
   static async executePlan(): Promise<ComprehensiveDiagnostic> {
-    console.log('[Diagnostic Executor] 🚀 EXECUTANDO PLANO DE ANÁLISE VPS - PÓS-ATUALIZAÇÃO TOKEN');
+    console.log('[Diagnostic Executor] 🚀 EXECUTANDO PLANO DE ANÁLISE VPS - FASE 3');
     
     try {
-      // FASE 1: EXECUÇÃO DOS TESTES
-      console.log('[Diagnostic Executor] 📋 FASE 1: Executando testes via Edge Function...');
+      // FASE 1: EXECUÇÃO DOS TESTES COM CORREÇÕES FASE 3
+      console.log('[Diagnostic Executor] 📋 FASE 1: Executando testes via Edge Function (FASE 3)...');
       const diagnostic = await VPSDiagnosticService.runComprehensiveDiagnostic();
       
       // FASE 2: ANÁLISE DETALHADA
@@ -24,7 +24,7 @@ export class DiagnosticExecutor {
       return diagnostic;
       
     } catch (error) {
-      console.error('[Diagnostic Executor] ❌ Erro durante execução do plano:', error);
+      console.error('[Diagnostic Executor] ❌ Erro durante execução do plano FASE 3:', error);
       throw error;
     }
   }
