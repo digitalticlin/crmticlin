@@ -10,14 +10,14 @@ const WhatsAppSettings = () => {
   
   const {
     instances,
-    loading: instancesLoading,
+    isLoading,
     error,
     refetch
-  } = useWhatsAppWebInstances(companyId, companyLoading);
+  } = useWhatsAppWebInstances();
 
   console.log('[WhatsAppSettings] WhatsApp Web instances loaded:', {
     instancesCount: instances.length,
-    loading: instancesLoading,
+    loading: isLoading,
     companyLoading
   });
 

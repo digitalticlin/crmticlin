@@ -5,7 +5,7 @@ import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
 import { useInstanceActions } from './services/instanceActionsService';
 import { toast } from 'sonner';
 
-interface WhatsAppInstance {
+export interface WhatsAppWebInstance {
   id: string;
   instance_name: string;
   phone: string;
@@ -17,10 +17,12 @@ interface WhatsAppInstance {
   server_url: string;
   created_at: string;
   updated_at: string;
+  profile_name?: string;
+  profile_pic_url?: string;
 }
 
 export const useWhatsAppWebInstances = () => {
-  const [instances, setInstances] = useState<WhatsAppInstance[]>([]);
+  const [instances, setInstances] = useState<WhatsAppWebInstance[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
@@ -157,11 +159,13 @@ export const useWhatsAppWebInstances = () => {
   return {
     instances,
     isLoading,
+    loading: isLoading, // Alias for compatibility
     isConnecting,
+    error: null, // Add error state for compatibility
     createInstance,
     deleteInstance,
     refreshQRCode,
-    fetchInstances,
+    refetch: fetchInstances, // Add refetch alias
     
     // QR Modal state
     showQRModal,
