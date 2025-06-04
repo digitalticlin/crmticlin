@@ -10,7 +10,7 @@ export const createConfigHandlers = (
   scheduleSave: (config: DashboardConfig) => void,
   isInitializedRef: React.MutableRefObject<boolean>
 ) => {
-  // CORREÇÃO: Handler KPI com propagação ÚNICA e imediata
+  // CORREÇÃO ETAPA 4: Handler KPI com triggerForceUpdate SINCRONIZADO
   const handleKPIToggle = useCallback((kpiKey: keyof DashboardConfig['kpis']) => {
     if (!isInitializedRef.current) {
       console.log("❌ KPI Toggle blocked - not initialized");
@@ -35,13 +35,16 @@ export const createConfigHandlers = (
       console.log(`📊 NEW KPI CONFIG [${timestamp}]:`, newConfig.kpis);
       scheduleSave(newConfig);
       
+      // CORREÇÃO: triggerForceUpdate APÓS config update
+      setTimeout(() => triggerForceUpdate(), 0);
+      
       return newConfig;
     });
     
     console.log(`✅ KPI TOGGLE COMPLETE [${timestamp}]: ${kpiKey}`);
-  }, [setConfig, scheduleSave, isInitializedRef]);
+  }, [setConfig, scheduleSave, triggerForceUpdate, isInitializedRef]);
 
-  // CORREÇÃO: Handler Chart com propagação ÚNICA e imediata
+  // CORREÇÃO ETAPA 4: Handler Chart com triggerForceUpdate SINCRONIZADO
   const handleChartToggle = useCallback((chartKey: keyof DashboardConfig['charts']) => {
     if (!isInitializedRef.current) {
       console.log("❌ Chart Toggle blocked - not initialized");
@@ -66,11 +69,14 @@ export const createConfigHandlers = (
       console.log(`📊 NEW CHART CONFIG [${timestamp}]:`, newConfig.charts);
       scheduleSave(newConfig);
       
+      // CORREÇÃO: triggerForceUpdate APÓS config update
+      setTimeout(() => triggerForceUpdate(), 0);
+      
       return newConfig;
     });
     
     console.log(`✅ CHART TOGGLE COMPLETE [${timestamp}]: ${chartKey}`);
-  }, [setConfig, scheduleSave, isInitializedRef]);
+  }, [setConfig, scheduleSave, triggerForceUpdate, isInitializedRef]);
 
   const updateConfig = useCallback((newConfig: Partial<DashboardConfig>) => {
     if (!isInitializedRef.current) return;
@@ -88,9 +94,10 @@ export const createConfigHandlers = (
       };
       
       scheduleSave(updatedConfig);
+      setTimeout(() => triggerForceUpdate(), 0);
       return updatedConfig;
     });
-  }, [setConfig, scheduleSave, isInitializedRef]);
+  }, [setConfig, scheduleSave, triggerForceUpdate, isInitializedRef]);
 
   const resetToDefault = useCallback(() => {
     const timestamp = Date.now();
@@ -99,7 +106,8 @@ export const createConfigHandlers = (
     
     setConfig(defaultConfigCopy);
     scheduleSave(defaultConfigCopy);
-  }, [setConfig, scheduleSave]);
+    setTimeout(() => triggerForceUpdate(), 0);
+  }, [setConfig, scheduleSave, triggerForceUpdate]);
 
   return {
     handleKPIToggle,

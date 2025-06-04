@@ -14,12 +14,18 @@ export default function Dashboard() {
   const isMobile = useIsMobile();
   const { config, forceUpdate, loading, renderCount } = useDashboardConfig();
 
-  // CORREÇÃO: Hash baseado no config real para keys consistentes
+  // CORREÇÃO ETAPA 2: ConfigHash com forceUpdate nas dependencies
   const configHash = useMemo(() => {
-    return JSON.stringify({ kpis: config.kpis, charts: config.charts });
-  }, [config.kpis, config.charts]);
+    const hash = JSON.stringify({ 
+      kpis: config.kpis, 
+      charts: config.charts,
+      forceUpdate, // CRÍTICO: incluir forceUpdate
+      renderCount
+    });
+    return hash;
+  }, [config.kpis, config.charts, forceUpdate, renderCount]);
 
-  // Monitoramento robusto de mudanças do dashboard
+  // CORREÇÃO ETAPA 5: Debugging robusto do dashboard
   useEffect(() => {
     const timestamp = Date.now();
     console.log(`🏠 DASHBOARD RENDER STATE CHECK [${timestamp}]:`, {
@@ -28,7 +34,7 @@ export default function Dashboard() {
       loading,
       configKPIs: config.kpis,
       configCharts: config.charts,
-      configHash: configHash.slice(0, 50) + '...',
+      configHash: configHash.slice(-20),
       enabledKpis: Object.values(config.kpis).filter(Boolean).length,
       enabledCharts: Object.values(config.charts).filter(Boolean).length
     });
@@ -79,12 +85,12 @@ export default function Dashboard() {
             </div>
           </div>
           
-          {/* CORREÇÃO: Keys robustas baseadas no hash real do config */}
-          <div key={`dashboard-kpi-${configHash.slice(-16)}`}>
+          {/* CORREÇÃO ETAPA 3: Keys verdadeiramente reativas */}
+          <div key={`dashboard-kpi-${forceUpdate}-${renderCount}`}>
             <CustomizableKPIGrid />
           </div>
           
-          <div key={`dashboard-charts-${configHash.slice(-16)}`}>
+          <div key={`dashboard-charts-${forceUpdate}-${renderCount}`}>
             <CustomizableChartsSection />
           </div>
         </div>

@@ -13,11 +13,11 @@ export const useDashboardState = () => {
   const isInitializedRef = useRef(false);
   const renderCountRef = useRef(0);
 
-  // CORREÇÃO DEFINITIVA: Single force update sem race condition
+  // CORREÇÃO ETAPA 1: Trigger imediato sem setTimeout
   const triggerForceUpdate = () => {
     renderCountRef.current += 1;
     const timestamp = Date.now();
-    console.log(`🔄 FORCE UPDATE TRIGGERED [${timestamp}] - Render Count: ${renderCountRef.current}`);
+    console.log(`🔄 IMMEDIATE FORCE UPDATE [${timestamp}] - Render Count: ${renderCountRef.current}`);
     
     setForceUpdate(prev => {
       const newValue = prev + 1;
@@ -26,7 +26,7 @@ export const useDashboardState = () => {
     });
   };
 
-  // CORREÇÃO: setConfig com propagação garantida e single force update
+  // CORREÇÃO ETAPA 1: Remover setTimeout, execução imediata
   const setConfigWithUpdate = (newConfigOrUpdater: DashboardConfig | ((prev: DashboardConfig) => DashboardConfig)) => {
     const timestamp = Date.now();
     console.log(`📝 CONFIG UPDATE START [${timestamp}]`);
@@ -42,11 +42,9 @@ export const useDashboardState = () => {
         renderCount: renderCountRef.current
       });
       
-      // Force update APÓS mudança do estado (pequeno delay para garantir que React processe)
-      setTimeout(() => {
-        triggerForceUpdate();
-        console.log(`✅ CONFIG UPDATE COMPLETE [${timestamp}]`);
-      }, 10);
+      // CORREÇÃO: Force update IMEDIATO após setState
+      triggerForceUpdate();
+      console.log(`✅ CONFIG UPDATE COMPLETE [${timestamp}]`);
       
       return newConfig;
     });

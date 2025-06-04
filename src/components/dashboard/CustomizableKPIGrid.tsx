@@ -58,12 +58,20 @@ export function CustomizableKPIGrid() {
   const { config, loading: configLoading, forceUpdate, renderCount } = useDashboardConfig();
   const { kpis, loading: kpisLoading } = useDashboardKPIs(config.period_filter);
 
-  // CORREÇÃO: Keys baseadas no hash real do config + timestamp
+  // CORREÇÃO ETAPA 2: ConfigHash com forceUpdate nas dependencies
   const configHash = useMemo(() => {
-    return JSON.stringify(config.kpis) + JSON.stringify(config.layout.kpi_order);
-  }, [config.kpis, config.layout.kpi_order]);
+    const hash = JSON.stringify({ 
+      kpis: config.kpis, 
+      layout: config.layout.kpi_order,
+      forceUpdate, // CRÍTICO: incluir forceUpdate
+      renderCount
+    });
+    const timestamp = Date.now();
+    console.log(`🎯 KPI ConfigHash recalculated [${timestamp}]:`, hash.slice(0, 100) + '...');
+    return hash;
+  }, [config.kpis, config.layout.kpi_order, forceUpdate, renderCount]);
 
-  // CORREÇÃO: Simplified visible KPIs calculation
+  // CORREÇÃO ETAPA 2: VisibleKPIs com dependencies corretas
   const visibleKPIs = useMemo(() => {
     const visible = config.layout.kpi_order.filter(
       kpiKey => config.kpis[kpiKey as keyof typeof config.kpis]
@@ -73,12 +81,12 @@ export function CustomizableKPIGrid() {
       visible,
       forceUpdate,
       renderCount,
-      configHash: configHash.slice(0, 50) + '...'
+      configHash: configHash.slice(-20)
     });
     return visible;
-  }, [config.layout.kpi_order, config.kpis, configHash]);
+  }, [config.layout.kpi_order, config.kpis, forceUpdate, renderCount, configHash]);
 
-  // Monitoramento robusto de mudanças
+  // CORREÇÃO ETAPA 5: Debugging robusto
   useEffect(() => {
     const timestamp = Date.now();
     console.log(`🎯 KPI GRID REACTIVE UPDATE [${timestamp}]:`, {
@@ -86,7 +94,7 @@ export function CustomizableKPIGrid() {
       renderCount,
       configKPIs: config.kpis,
       visibleKPIs,
-      configHash: configHash.slice(0, 50) + '...'
+      configHash: configHash.slice(-20)
     });
   }, [forceUpdate, renderCount, config.kpis, visibleKPIs, configHash]);
 
@@ -137,12 +145,12 @@ export function CustomizableKPIGrid() {
         const timestamp = Date.now();
         console.log(`🎯 Rendering KPI [${timestamp}]: ${kpiKey} enabled:${isEnabled} value:`, value);
         
-        // CORREÇÃO: Key robusta baseada no hash real do config
-        const robustKey = `kpi-${kpiKey}-${configHash.slice(-8)}-${isEnabled}-${index}`;
+        // CORREÇÃO ETAPA 3: Key verdadeiramente reativa
+        const reactiveKey = `kpi-${kpiKey}-${forceUpdate}-${isEnabled}-${renderCount}-${timestamp}`;
         
         return (
           <div
-            key={robustKey}
+            key={reactiveKey}
             className="animate-fade-in transform transition-all duration-200"
             style={{ 
               animationDelay: `${index * 50}ms`,
