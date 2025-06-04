@@ -11,8 +11,6 @@ export interface KanbanLead {
   id: string;
   name: string;
   phone: string;
-  email?: string;
-  company?: string;
   lastMessage: string;
   lastMessageTime: string;
   tags: KanbanTag[];
@@ -20,8 +18,6 @@ export interface KanbanLead {
   columnId?: string; // Add columnId to track which column a lead belongs to
   purchaseValue?: number; // Add purchaseValue to track the lead's purchase amount
   assignedUser?: string; // Add assignedUser to track who is responsible for the lead
-  kanbanStageId?: string;
-  createdAt?: string;
 }
 
 export interface KanbanColumn {

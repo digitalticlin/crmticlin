@@ -1,678 +1,270 @@
 
+import { KanbanLead, KanbanTag, FIXED_COLUMN_IDS } from "@/types/kanban";
 import { Contact } from "@/types/chat";
-import { KanbanLead, KanbanTag } from "@/types/kanban";
 
-export const kanbanTags = [
-  { id: "1", name: "Importante", color: "red" },
-  { id: "2", name: "Em Andamento", color: "blue" },
-  { id: "3", name: "Concluído", color: "green" },
-  { id: "4", name: "Aguardando", color: "yellow" },
-  { id: "5", name: "Cancelado", color: "gray" },
-];
-
-export const contacts: Contact[] = [
-  {
-    id: "1",
-    name: "João Silva",
-    phone: "+55 11 91234-5678",
-    email: "joao.silva@example.com",
-    address: "Rua Exemplo, 123",
-    tags: ["Importante", "Em Andamento"],
-    notes: "Cliente antigo, sempre paga em dia.",
-    assignedUser: "Maria Souza",
-    lastMessageTime: "10:00",
-    lastMessage: "Tudo certo com o projeto?",
-    unreadCount: 0,
-    avatar: "https://github.com/shadcn.png",
-    company: "Empresa A",
-    createdAt: "2021-09-01T10:00:00.000Z",
-    deals: [
-      {
-        id: "1",
-        status: "won",
-        value: 1000,
-        date: "2021-08-01",
-        note: "Primeiro negócio fechado"
-      }
-    ],
-    isOnline: true
-  },
-  {
-    id: "2",
-    name: "Maria Souza",
-    phone: "+55 11 92345-6789",
-    email: "maria.souza@example.com",
-    address: "Avenida Teste, 456",
-    tags: ["Concluído"],
-    notes: "Entregou tudo antes do prazo.",
-    assignedUser: "João Silva",
-    lastMessageTime: "11:00",
-    lastMessage: "Projeto finalizado com sucesso!",
-    unreadCount: 1,
-    avatar: "https://github.com/mrmartineau.png",
-    company: "Empresa B",
-    createdAt: "2021-09-01T11:00:00.000Z",
-    deals: [
-      {
-        id: "2",
-        status: "lost",
-        value: 2000,
-        date: "2021-08-01",
-        note: "Não aprovou o orçamento"
-      }
-    ],
-    isOnline: false
-  },
-  {
-    id: "3",
-    name: "Carlos Ferreira",
-    phone: "+55 11 93456-7890",
-    email: "carlos.ferreira@example.com",
-    address: "Rua dos Bobos, 0",
-    tags: ["Aguardando"],
-    notes: "Aguardando aprovação do orçamento.",
-    assignedUser: "Maria Souza",
-    lastMessageTime: "12:00",
-    lastMessage: "Ainda não recebi o orçamento.",
-    unreadCount: 2,
-    avatar: "https://github.com/leeerob.png",
-    company: "Empresa C",
-    createdAt: "2021-09-01T12:00:00.000Z",
-    deals: [],
-    isOnline: true
-  },
-  {
-    id: "4",
-    name: "Ana Paula",
-    phone: "+55 11 94567-8901",
-    email: "ana.paula@example.com",
-    address: "Avenida Principal, 789",
-    tags: ["Cancelado"],
-    notes: "Cancelou o contrato.",
-    assignedUser: "João Silva",
-    lastMessageTime: "13:00",
-    lastMessage: "Não tenho mais interesse.",
-    unreadCount: 3,
-    avatar: "https://github.com/emilkowalski.png",
-    company: "Empresa D",
-    createdAt: "2021-09-01T13:00:00.000Z",
-    deals: [],
-    isOnline: false
-  },
-  {
-    id: "5",
-    name: "Ricardo Oliveira",
-    phone: "+55 11 95678-9012",
-    email: "ricardo.oliveira@example.com",
-    address: "Rua Secundária, 101",
-    tags: ["Importante", "Concluído"],
-    notes: "Cliente VIP, sempre indica novos clientes.",
-    assignedUser: "Maria Souza",
-    lastMessageTime: "14:00",
-    lastMessage: "Indiquei um novo cliente para vocês.",
-    unreadCount: 0,
-    avatar: "https://github.com/rauchg.png",
-    company: "Empresa E",
-    createdAt: "2021-09-01T14:00:00.000Z",
-    deals: [
-      {
-        id: "3",
-        status: "won",
-        value: 3000,
-        date: "2021-08-01",
-        note: "Segundo negócio fechado"
-      }
-    ],
-    isOnline: true
-  },
-  {
-    id: "6",
-    name: "Fernanda Lima",
-    phone: "+55 11 96789-0123",
-    email: "fernanda.lima@example.com",
-    address: "Avenida Central, 202",
-    tags: ["Em Andamento"],
-    notes: "Projeto em fase de testes.",
-    assignedUser: "João Silva",
-    lastMessageTime: "15:00",
-    lastMessage: "Estamos quase finalizando os testes.",
-    unreadCount: 1,
-    avatar: "https://github.com/steventey.png",
-    company: "Empresa F",
-    createdAt: "2021-09-01T15:00:00.000Z",
-    deals: [],
-    isOnline: false
-  },
-  {
-    id: "7",
-    name: "Paulo Roberto",
-    phone: "+55 11 97890-1234",
-    email: "paulo.roberto@example.com",
-    address: "Rua Lateral, 303",
-    tags: ["Aguardando"],
-    notes: "Aguardando feedback do cliente.",
-    assignedUser: "Maria Souza",
-    lastMessageTime: "16:00",
-    lastMessage: "Aguardando seu feedback.",
-    unreadCount: 2,
-    avatar: "https://github.com/ztanner.png",
-    company: "Empresa G",
-    createdAt: "2021-09-01T16:00:00.000Z",
-    deals: [],
-    isOnline: true
-  },
-  {
-    id: "8",
-    name: "Juliana Garcia",
-    phone: "+55 11 98901-2345",
-    email: "juliana.garcia@example.com",
-    address: "Avenida Paralela, 404",
-    tags: ["Cancelado"],
-    notes: "Cancelou o serviço por falta de verba.",
-    assignedUser: "João Silva",
-    lastMessageTime: "17:00",
-    lastMessage: "Infelizmente, não temos verba para continuar.",
-    unreadCount: 3,
-    avatar: "https://github.com/pacocoursey.png",
-    company: "Empresa H",
-    createdAt: "2021-09-01T17:00:00.000Z",
-    deals: [],
-    isOnline: false
-  },
-  {
-    id: "9",
-    name: "Lucas Mendes",
-    phone: "+55 11 99012-3456",
-    email: "lucas.mendes@example.com",
-    address: "Rua Transversal, 505",
-    tags: ["Importante", "Em Andamento"],
-    notes: "Cliente estratégico, grande potencial de crescimento.",
-    assignedUser: "Maria Souza",
-    lastMessageTime: "18:00",
-    lastMessage: "Vamos marcar uma reunião para discutir o futuro.",
-    unreadCount: 0,
-    avatar: "https://github.com/rauchg.png",
-    company: "Empresa I",
-    createdAt: "2021-09-01T18:00:00.000Z",
-    deals: [
-      {
-        id: "4",
-        status: "won",
-        value: 4000,
-        date: "2021-08-01",
-        note: "Quarto negócio fechado"
-      }
-    ],
-    isOnline: true
-  },
-  {
-    id: "10",
-    name: "Beatriz Costa",
-    phone: "+55 11 90123-4567",
-    email: "beatriz.costa@example.com",
-    address: "Avenida Diagonal, 606",
-    tags: ["Concluído"],
-    notes: "Entregou tudo antes do prazo, cliente muito satisfeita.",
-    assignedUser: "João Silva",
-    lastMessageTime: "19:00",
-    lastMessage: "Adorei o resultado, muito obrigada!",
-    unreadCount: 1,
-    avatar: "https://github.com/steventey.png",
-    company: "Empresa J",
-    createdAt: "2021-09-01T19:00:00.000Z",
-    deals: [],
-    isOnline: false
-  }
-];
-
-export const leads: KanbanLead[] = [
-  {
-    id: "1",
-    name: "João Silva",
-    phone: "+55 11 91234-5678",
-    email: "joao.silva@example.com",
-    company: "Empresa A",
-    notes: "Cliente antigo, sempre paga em dia.",
-    kanbanStageId: "1",
-    tags: [
-      { id: "1", name: "Importante", color: "purple" },
-      { id: "2", name: "Em Andamento", color: "blue" }
-    ],
-    assignedUser: "Maria Souza",
-    lastMessage: "Tudo certo com o projeto?",
-    lastMessageTime: "10:00",
-    createdAt: "2021-09-01T10:00:00.000Z"
-  },
-  {
-    id: "2",
-    name: "Maria Souza",
-    phone: "+55 11 92345-6789",
-    email: "maria.souza@example.com",
-    company: "Empresa B",
-    notes: "Entregou tudo antes do prazo.",
-    kanbanStageId: "2",
-    tags: [
-      { id: "3", name: "Concluído", color: "green" }
-    ],
-    assignedUser: "João Silva",
-    lastMessage: "Projeto finalizado com sucesso!",
-    lastMessageTime: "11:00",
-    createdAt: "2021-09-01T11:00:00.000Z"
-  },
-  {
-    id: "3",
-    name: "Carlos Ferreira",
-    phone: "+55 11 93456-7890",
-    email: "carlos.ferreira@example.com",
-    company: "Empresa C",
-    notes: "Aguardando aprovação do orçamento.",
-    kanbanStageId: "3",
-    tags: [
-      { id: "4", name: "Aguardando", color: "yellow" }
-    ],
-    assignedUser: "Maria Souza",
-    lastMessage: "Ainda não recebi o orçamento.",
-    lastMessageTime: "12:00",
-    createdAt: "2021-09-01T12:00:00.000Z"
-  },
-  {
-    id: "4",
-    name: "Ana Paula",
-    phone: "+55 11 94567-8901",
-    email: "ana.paula@example.com",
-    company: "Empresa D",
-    notes: "Cancelou o contrato.",
-    kanbanStageId: "4",
-    tags: [
-      { id: "5", name: "Cancelado", color: "gray" }
-    ],
-    assignedUser: "João Silva",
-    lastMessage: "Não tenho mais interesse.",
-    lastMessageTime: "13:00",
-    createdAt: "2021-09-01T13:00:00.000Z"
-  },
-  {
-    id: "5",
-    name: "Ricardo Oliveira",
-    phone: "+55 11 95678-9012",
-    email: "ricardo.oliveira@example.com",
-    company: "Empresa E",
-    notes: "Cliente VIP, sempre indica novos clientes.",
-    kanbanStageId: "1",
-    tags: [
-      { id: "1", name: "Importante", color: "purple" },
-      { id: "3", name: "Concluído", color: "green" }
-    ],
-    assignedUser: "Maria Souza",
-    lastMessage: "Indiquei um novo cliente para vocês.",
-    lastMessageTime: "14:00",
-    createdAt: "2021-09-01T14:00:00.000Z"
-  },
-  {
-    id: "6",
-    name: "Fernanda Lima",
-    phone: "+55 11 96789-0123",
-    email: "fernanda.lima@example.com",
-    company: "Empresa F",
-    notes: "Projeto em fase de testes.",
-    kanbanStageId: "2",
-    tags: [
-      { id: "2", name: "Em Andamento", color: "blue" }
-    ],
-    assignedUser: "João Silva",
-    lastMessage: "Estamos quase finalizando os testes.",
-    lastMessageTime: "15:00",
-    createdAt: "2021-09-01T15:00:00.000Z"
-  },
-  {
-    id: "7",
-    name: "Paulo Roberto",
-    phone: "+55 11 97890-1234",
-    email: "paulo.roberto@example.com",
-    company: "Empresa G",
-    notes: "Aguardando feedback do cliente.",
-    kanbanStageId: "3",
-    tags: [
-      { id: "4", name: "Aguardando", color: "yellow" }
-    ],
-    assignedUser: "Maria Souza",
-    lastMessage: "Aguardando seu feedback.",
-    lastMessageTime: "16:00",
-    createdAt: "2021-09-01T16:00:00.000Z"
-  },
-  {
-    id: "8",
-    name: "Juliana Garcia",
-    phone: "+55 11 98901-2345",
-    email: "juliana.garcia@example.com",
-    company: "Empresa H",
-    notes: "Cancelou o serviço por falta de verba.",
-    kanbanStageId: "4",
-    tags: [
-      { id: "5", name: "Cancelado", color: "gray" }
-    ],
-    assignedUser: "João Silva",
-    lastMessage: "Infelizmente, não temos verba para continuar.",
-    lastMessageTime: "17:00",
-    createdAt: "2021-09-01T17:00:00.000Z"
-  },
-  {
-    id: "9",
-    name: "Lucas Mendes",
-    phone: "+55 11 99012-3456",
-    email: "lucas.mendes@example.com",
-    company: "Empresa I",
-    notes: "Cliente estratégico, grande potencial de crescimento.",
-    kanbanStageId: "1",
-    tags: [
-      { id: "1", name: "Importante", color: "purple" },
-      { id: "2", name: "Em Andamento", color: "blue" }
-    ],
-    assignedUser: "Maria Souza",
-    lastMessage: "Vamos marcar uma reunião para discutir o futuro.",
-    lastMessageTime: "18:00",
-    createdAt: "2021-09-01T18:00:00.000Z"
-  },
-  {
-    id: "10",
-    name: "Beatriz Costa",
-    phone: "+55 11 90123-4567",
-    email: "beatriz.costa@example.com",
-    company: "Empresa J",
-    notes: "Entregou tudo antes do prazo, cliente muito satisfeita.",
-    kanbanStageId: "2",
-    tags: [
-      { id: "3", name: "Concluído", color: "green" }
-    ],
-    assignedUser: "João Silva",
-    lastMessage: "Adorei o resultado, muito obrigada!",
-    lastMessageTime: "19:00",
-    createdAt: "2021-09-01T19:00:00.000Z"
-  }
-];
-
+// Tags unificadas para funil e chat
 export const unifiedTags: KanbanTag[] = [
-  { id: "1", name: "VIP", color: "purple" },
-  { id: "2", name: "Urgente", color: "red" },
-  { id: "3", name: "Interessado", color: "blue" },
-  { id: "4", name: "Quente", color: "orange" },
-  { id: "5", name: "Negociando", color: "yellow" },
-  { id: "6", name: "Proposta Enviada", color: "cyan" },
-  { id: "7", name: "Cliente", color: "green" },
-  { id: "8", name: "Perdido", color: "gray" },
-  { id: "9", name: "Prospecção", color: "pink" }
+  { id: "tag-1", name: "Novo", color: "bg-blue-400" },
+  { id: "tag-2", name: "Urgente", color: "bg-red-400" },
+  { id: "tag-3", name: "Proposta Enviada", color: "bg-purple-400" },
+  { id: "tag-4", name: "Reunião", color: "bg-green-400" },
+  { id: "tag-5", name: "Desconto", color: "bg-amber-400" },
+  { id: "tag-6", name: "VIP", color: "bg-yellow-400" },
+  { id: "tag-7", name: "2ª Compra", color: "bg-emerald-400" },
+  { id: "tag-8", name: "Preço Alto", color: "bg-orange-400" },
+  { id: "tag-9", name: "Lead Quente", color: "bg-pink-400" },
+  { id: "tag-10", name: "Premium", color: "bg-indigo-400" },
+  { id: "tag-11", name: "Interessado", color: "bg-teal-400" },
+  { id: "tag-12", name: "Retorno", color: "bg-cyan-400" },
+  { id: "tag-13", name: "Corporativo", color: "bg-slate-400" },
+  { id: "tag-14", name: "E-commerce", color: "bg-violet-400" },
+  { id: "tag-15", name: "Freelancer", color: "bg-rose-400" },
+  { id: "tag-16", name: "Startup", color: "bg-lime-400" },
+  { id: "tag-17", name: "Agência", color: "bg-sky-400" },
+  { id: "tag-18", name: "Educação", color: "bg-stone-400" },
+  { id: "tag-19", name: "Saúde", color: "bg-emerald-500" },
+  { id: "tag-20", name: "LGPD", color: "bg-gray-400" }
 ];
 
-export const unifiedContacts: Contact[] = [
+// 10 leads unificados para funil e chat
+export const unifiedLeads: KanbanLead[] = [
+  // ENTRADA DE LEAD - 4 leads
   {
-    id: "1",
-    name: "Ana Silva",
-    phone: "+55 11 99999-1234",
-    email: "ana.silva@email.com",
-    address: "Rua das Flores, 123, São Paulo - SP",
-    company: "Tech Solutions",
-    documentId: "123.456.789-01",
-    tags: ["VIP", "Interessado"],
-    notes: "Cliente em potencial para projeto de e-commerce. Demonstrou interesse em soluções personalizadas.",
-    assignedUser: "João Santos",
+    id: "lead-1",
+    name: "João Silva",
+    phone: "+5511987654321",
+    lastMessage: "Olá, gostaria de saber mais sobre o serviço",
     lastMessageTime: "10:30",
-    lastMessage: "Estou interessada em saber mais sobre os preços",
-    unreadCount: 3,
-    avatar: "",
-    createdAt: "2024-01-15T08:00:00Z",
-    deals: [
-      {
-        id: "d1",
-        status: "won",
-        value: 15000,
-        date: "2024-01-10",
-        note: "Projeto de e-commerce concluído com sucesso"
-      }
+    tags: [
+      { id: "tag-1", name: "Novo", color: "bg-blue-400" },
+      { id: "tag-2", name: "Urgente", color: "bg-red-400" },
+      { id: "tag-9", name: "Lead Quente", color: "bg-pink-400" },
+      { id: "tag-10", name: "Premium", color: "bg-indigo-400" }
     ],
-    isOnline: true
+    columnId: FIXED_COLUMN_IDS.NEW_LEAD,
+    notes: "Cliente interessado em planos corporativos",
+    purchaseValue: 2500
   },
   {
-    id: "2", 
-    name: "Carlos Mendes",
-    phone: "+55 11 98888-5678",
-    email: "carlos.mendes@empresa.com",
-    address: "Av. Paulista, 456, São Paulo - SP",
-    company: "Inovação Ltda",
-    documentId: "987.654.321-09",
-    tags: ["Urgente", "Negociando"],
-    notes: "Urgência na implementação do sistema. Prazo apertado mas orçamento flexível.",
-    assignedUser: "Maria Costa",
-    lastMessageTime: "09:45",
-    lastMessage: "Quando podemos agendar uma reunião?",
-    unreadCount: 1,
-    avatar: "",
-    createdAt: "2024-01-16T09:00:00Z",
-    deals: [],
-    isOnline: false
-  },
-  {
-    id: "3",
-    name: "Mariana Almeida",
-    phone: "+55 11 97777-4321",
-    email: "mariana.almeida@corp.com",
-    address: "Rua Augusta, 789, São Paulo - SP",
-    company: "Global Solutions",
-    documentId: "456.789.012-34",
-    tags: ["Proposta Enviada"],
-    notes: "Aguardando feedback sobre a proposta. Cliente com grande potencial de receita.",
-    assignedUser: "Pedro Silva",
-    lastMessageTime: "14:20",
-    lastMessage: "A proposta foi enviada ontem. Alguma dúvida?",
-    unreadCount: 0,
-    avatar: "",
-    createdAt: "2024-01-17T10:00:00Z",
-    deals: [],
-    isOnline: true
-  },
-  {
-    id: "4",
-    name: "Roberto Souza",
-    phone: "+55 11 96666-9876",
-    email: "roberto.souza@tech.br",
-    address: "Av. Faria Lima, 1010, São Paulo - SP",
-    company: "TechNow",
-    documentId: "789.012.345-67",
-    tags: ["Cliente"],
-    notes: "Cliente fiel. Sempre renova os contratos e está aberto a novas soluções.",
-    assignedUser: "Ana Oliveira",
-    lastMessageTime: "16:55",
-    lastMessage: "Tudo certo com a renovação do contrato.",
-    unreadCount: 0,
-    avatar: "",
-    createdAt: "2024-01-18T11:00:00Z",
-    deals: [
-      {
-        id: "d2",
-        status: "won",
-        value: 30000,
-        date: "2024-01-15",
-        note: "Renovação de contrato anual"
-      }
-    ],
-    isOnline: false
-  },
-  {
-    id: "5",
-    name: "Juliana Costa",
-    phone: "+55 11 95555-5432",
-    email: "juliana.costa@consult.com",
-    address: "Rua Haddock Lobo, 1515, São Paulo - SP",
-    company: "Consulting Experts",
-    documentId: "234.567.890-12",
-    tags: ["Perdido"],
-    notes: "Não mostrou interesse na proposta. Orçamento fora da realidade do cliente.",
-    assignedUser: "João Santos",
-    lastMessageTime: "11:11",
-    lastMessage: "Agradecemos o contato, mas não temos interesse no momento.",
-    unreadCount: 0,
-    avatar: "",
-    createdAt: "2024-01-19T12:00:00Z",
-    deals: [],
-    isOnline: true
-  },
-  {
-    id: "6",
-    name: "Ricardo Pereira",
-    phone: "+55 11 94444-8765",
-    email: "ricardo.pereira@sales.com",
-    address: "Av. Brigadeiro Faria Lima, 2020, São Paulo - SP",
-    company: "SalesUp",
-    documentId: "567.890.123-45",
-    tags: ["Prospecção"],
-    notes: "Iniciando contato. Apresentar soluções de CRM e automação de vendas.",
-    assignedUser: "Maria Costa",
-    lastMessageTime: "17:30",
-    lastMessage: "Olá, Ricardo! Podemos agendar uma breve apresentação?",
-    unreadCount: 2,
-    avatar: "",
-    createdAt: "2024-01-20T13:00:00Z",
-    deals: [],
-    isOnline: false
-  },
-  {
-    id: "7",
-    name: "Fernanda Oliveira",
-    phone: "+55 11 93333-2109",
-    email: "fernanda.oliveira@market.com",
-    address: "Rua Oscar Freire, 2525, São Paulo - SP",
-    company: "MarketPlus",
-    documentId: "890.123.456-78",
-    tags: ["Negociando"],
-    notes: "Em negociação avançada. Ajustar proposta para fechar o negócio.",
-    assignedUser: "Pedro Silva",
-    lastMessageTime: "08:00",
-    lastMessage: "Podemos ajustar o preço para fecharmos o contrato?",
-    unreadCount: 1,
-    avatar: "",
-    createdAt: "2024-01-21T14:00:00Z",
-    deals: [],
-    isOnline: true
-  },
-  {
-    id: "8",
-    name: "Paulo Santos",
-    phone: "+55 11 92222-6543",
-    email: "paulo.santos@digital.com",
-    address: "Av. Rebouças, 3030, São Paulo - SP",
-    company: "DigitalTech",
-    documentId: "345.678.901-23",
-    tags: ["Cliente"],
-    notes: "Cliente satisfeito com os resultados. Avaliar novas oportunidades.",
-    assignedUser: "Ana Oliveira",
-    lastMessageTime: "19:45",
-    lastMessage: "Os resultados da campanha foram excelentes!",
-    unreadCount: 0,
-    avatar: "",
-    createdAt: "2024-01-22T15:00:00Z",
-    deals: [
-      {
-        id: "d3",
-        status: "won",
-        value: 18000,
-        date: "2024-01-20",
-        note: "Campanha de marketing digital"
-      }
-    ],
-    isOnline: false
-  },
-  {
-    id: "9",
-    name: "Camila Rodrigues",
-    phone: "+55 11 91111-4321",
-    email: "camila.rodrigues@soft.com",
-    address: "Rua da Consolação, 3535, São Paulo - SP",
-    company: "SoftSolutions",
-    documentId: "678.901.234-56",
-    tags: ["Proposta Enviada"],
-    notes: "Aguardando aprovação da proposta. Cliente com interesse em soluções de software.",
-    assignedUser: "João Santos",
-    lastMessageTime: "13:30",
-    lastMessage: "A proposta foi enviada. Aguardamos seu feedback.",
-    unreadCount: 3,
-    avatar: "",
-    createdAt: "2024-01-23T16:00:00Z",
-    deals: [],
-    isOnline: true
-  },
-  {
-    id: "10",
-    name: "Thiago Almeida",
-    phone: "+55 11 90000-9876",
-    email: "thiago.almeida@cloud.com",
-    address: "Av. Paulista, 4040, São Paulo - SP",
-    company: "CloudServices",
-    documentId: "901.234.567-89",
-    tags: ["Perdido"],
-    notes: "Cliente optou por outra solução. Não insistir no contato.",
-    assignedUser: "Maria Costa",
+    id: "lead-2", 
+    name: "Maria Oliveira",
+    phone: "+5511912345678",
+    lastMessage: "Qual o preço do plano básico?",
     lastMessageTime: "09:15",
-    lastMessage: "Optamos por outra solução. Agradecemos o contato.",
-    unreadCount: 0,
-    avatar: "",
-    createdAt: "2024-01-24T17:00:00Z",
-    deals: [],
-    isOnline: false
+    tags: [
+      { id: "tag-1", name: "Novo", color: "bg-blue-400" },
+      { id: "tag-9", name: "Lead Quente", color: "bg-pink-400" }
+    ],
+    columnId: FIXED_COLUMN_IDS.NEW_LEAD,
+    notes: "Cliente interessado no plano básico, enviar proposta",
+    purchaseValue: 800
+  },
+  {
+    id: "lead-3",
+    name: "Ana Silva", 
+    phone: "+5511876543210",
+    lastMessage: "Oi! Gostaria de saber mais sobre os planos",
+    lastMessageTime: "14:30",
+    tags: [
+      { id: "tag-9", name: "Lead Quente", color: "bg-pink-400" },
+      { id: "tag-10", name: "Premium", color: "bg-indigo-400" },
+      { id: "tag-13", name: "Corporativo", color: "bg-slate-400" },
+      { id: "tag-17", name: "Agência", color: "bg-sky-400" },
+      { id: "tag-6", name: "VIP", color: "bg-yellow-400" }
+    ],
+    columnId: FIXED_COLUMN_IDS.NEW_LEAD,
+    notes: "Interessada em planos premium para empresa",
+    purchaseValue: 5000
+  },
+  {
+    id: "lead-4",
+    name: "Carlos Oliveira",
+    phone: "+5511765432109", 
+    lastMessage: "Perfeito! Quando podemos agendar?",
+    lastMessageTime: "13:45",
+    tags: [
+      { id: "tag-11", name: "Interessado", color: "bg-teal-400" },
+      { id: "tag-4", name: "Reunião", color: "bg-green-400" }
+    ],
+    columnId: FIXED_COLUMN_IDS.NEW_LEAD,
+    notes: "Quer agendar reunião para próxima semana",
+    purchaseValue: 1200
+  },
+
+  // EM CONTATO - 3 leads
+  {
+    id: "lead-5",
+    name: "Pedro Santos", 
+    phone: "+5511777788888",
+    lastMessage: "Vou analisar a proposta, obrigado!",
+    lastMessageTime: "Ontem",
+    tags: [
+      { id: "tag-3", name: "Proposta Enviada", color: "bg-purple-400" },
+    ],
+    columnId: "column-2",
+    notes: "Proposta enviada ontem, aguardando retorno",
+    purchaseValue: 3500
+  },
+  {
+    id: "lead-6", 
+    name: "Mariana Costa",
+    phone: "+5511654321098",
+    lastMessage: "Obrigada pelo atendimento! 😊",
+    lastMessageTime: "12:20",
+    tags: [
+      { id: "tag-6", name: "VIP", color: "bg-yellow-400" },
+      { id: "tag-12", name: "Retorno", color: "bg-cyan-400" },
+      { id: "tag-7", name: "2ª Compra", color: "bg-emerald-400" }
+    ],
+    columnId: "column-2",
+    notes: "Cliente VIP, segunda compra este ano",
+    purchaseValue: 7500
+  },
+  {
+    id: "lead-7",
+    name: "Roberto Santos",
+    phone: "+5511543210987",
+    lastMessage: "Precisamos de uma proposta para 50 usuários", 
+    lastMessageTime: "11:15",
+    tags: [
+      { id: "tag-13", name: "Corporativo", color: "bg-slate-400" },
+      { id: "tag-2", name: "Urgente", color: "bg-red-400" }
+    ],
+    columnId: "column-2",
+    notes: "Empresa grande, proposta para 50 licenças",
+    purchaseValue: 15000
+  },
+
+  // NEGOCIAÇÃO - 3 leads  
+  {
+    id: "lead-8",
+    name: "Ana Pereira",
+    phone: "+5511666655555", 
+    lastMessage: "Podemos agendar uma reunião?",
+    lastMessageTime: "Seg",
+    tags: [
+      { id: "tag-4", name: "Reunião", color: "bg-green-400" },
+      { id: "tag-5", name: "Desconto", color: "bg-amber-400" },
+      { id: "tag-8", name: "Preço Alto", color: "bg-orange-400" }
+    ],
+    columnId: "column-3",
+    notes: "Negociando desconto, reunião agendada",
+    purchaseValue: 4200
+  },
+  {
+    id: "lead-9", 
+    name: "Juliana Fernandes",
+    phone: "+5511432109876",
+    lastMessage: "Qual o prazo para implementação?",
+    lastMessageTime: "10:30",
+    tags: [
+      { id: "tag-14", name: "E-commerce", color: "bg-violet-400" },
+      { id: "tag-2", name: "Urgente", color: "bg-red-400" },
+      { id: "tag-16", name: "Startup", color: "bg-lime-400" },
+      { id: "tag-19", name: "Saúde", color: "bg-emerald-500" }
+    ],
+    columnId: "column-3", 
+    notes: "E-commerce, precisa implementar rapidamente",
+    purchaseValue: 6800
+  },
+  {
+    id: "lead-10",
+    name: "Pedro Almeida", 
+    phone: "+5511321098765",
+    lastMessage: "Vou analisar e te retorno",
+    lastMessageTime: "09:45",
+    tags: [
+      { id: "tag-15", name: "Freelancer", color: "bg-rose-400" },
+      { id: "tag-5", name: "Desconto", color: "bg-amber-400" }
+    ],
+    columnId: "column-3",
+    notes: "Freelancer, negociando desconto especial",
+    purchaseValue: 980
   }
 ];
 
-// Função para converter lead em contato
+// Função para converter lead do funil para contato do chat
 export const convertLeadToContact = (lead: KanbanLead): Contact => {
   return {
     id: lead.id,
     name: lead.name,
-    phone: lead.phone,
-    email: lead.email,
-    company: lead.company,
-    notes: lead.notes,
-    assignedUser: lead.assignedUser,
+    phone: lead.phone.replace("+", ""),
+    email: `${lead.name.toLowerCase().replace(/\s+/g, '.')}@email.com`,
+    address: "",
+    company: getCompanyFromTags(lead.tags),
+    notes: lead.notes || "",
+    tags: lead.tags.map(tag => tag.name),
     lastMessage: lead.lastMessage,
     lastMessageTime: lead.lastMessageTime,
-    createdAt: lead.createdAt,
-    tags: lead.tags?.map(tag => tag.name) || [],
-    unreadCount: 0,
+    unreadCount: getUnreadCount(lead.id),
     avatar: "",
     isOnline: Math.random() > 0.5,
-    deals: []
+    purchaseValue: lead.purchaseValue,
+    assignedUser: lead.assignedUser
   };
 };
 
-const generateFakeLeads = (count: number = 50): KanbanLead[] => {
-  const tags = unifiedTags;
-  const users = ["João Santos", "Maria Costa", "Pedro Silva", "Ana Oliveira"];
-  
-  const firstNames = ["Ana", "Carlos", "Maria", "João", "Paula", "Roberto", "Juliana", "Ricardo", "Fernanda", "Marcos"];
-  const lastNames = ["Silva", "Santos", "Oliveira", "Costa", "Ferreira", "Rodrigues", "Almeida", "Pereira", "Lima", "Gomes"];
-  const companies = ["Tech Solutions", "Inovação Ltda", "Digital Corp", "StartUp XYZ", "Empresa ABC", "Negócios 360", "Soluções Tech", "Criativa LTDA"];
-
-  return Array.from({ length: count }, (_, i) => {
-    const randomTags = tags
-      .filter(() => Math.random() > 0.7)
-      .slice(0, Math.floor(Math.random() * 3) + 1);
-    const randomUser = users[Math.floor(Math.random() * users.length)];
-    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
-    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
-    const company = companies[Math.floor(Math.random() * companies.length)];
-
-    return {
-      id: `lead-${i + 1}`,
-      name: `${firstName} ${lastName}`,
-      phone: `+55 11 9${Math.floor(Math.random() * 9000 + 1000)}-${Math.floor(Math.random() * 9000 + 1000)}`,
-      email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${company.toLowerCase().replace(/\s+/g, '')}.com`,
-      company,
-      notes: `Anotações sobre ${firstName} ${lastName}. Cliente em potencial para nossos serviços.`,
-      kanbanStageId: "1",
-      tags: randomTags,
-      assignedUser: randomUser,
-      lastMessage: "Última mensagem do cliente...",
-      lastMessageTime: `${Math.floor(Math.random() * 24)}:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`,
-      createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-    };
-  });
+// Função para converter contato do chat para lead do funil  
+export const convertContactToLead = (contact: Contact): KanbanLead => {
+  return {
+    id: contact.id,
+    name: contact.name,
+    phone: contact.phone.startsWith("+") ? contact.phone : `+${contact.phone}`,
+    lastMessage: contact.lastMessage || "",
+    lastMessageTime: contact.lastMessageTime || "",
+    tags: (contact.tags || []).map((tagName, index) => ({
+      id: `tag-${index + 1}`,
+      name: tagName,
+      color: getTagColorByName(tagName)
+    })),
+    notes: contact.notes,
+    columnId: FIXED_COLUMN_IDS.NEW_LEAD,
+    purchaseValue: contact.purchaseValue,
+    assignedUser: contact.assignedUser
+  };
 };
 
-export const unifiedLeads = generateFakeLeads();
+// Função auxiliar para obter empresa das tags
+function getCompanyFromTags(tags: KanbanTag[]): string {
+  const companyTags = {
+    "Corporativo": "Consultoria RH",
+    "E-commerce": "E-commerce Plus", 
+    "Freelancer": "Freelancer",
+    "Startup": "Startup Innovation",
+    "Agência": "Agência Criativa",
+    "Educação": "Educação Online",
+    "Saúde": "Clínica Médica",
+    "Premium": "Tech Solutions",
+    "VIP": "Marketing Digital"
+  };
+
+  for (const tag of tags) {
+    if (companyTags[tag.name as keyof typeof companyTags]) {
+      return companyTags[tag.name as keyof typeof companyTags];
+    }
+  }
+  return "";
+}
+
+// Função auxiliar para obter cor da tag por nome
+function getTagColorByName(tagName: string): string {
+  const tag = unifiedTags.find(t => t.name === tagName);
+  return tag?.color || "bg-gray-400";
+}
+
+// Função auxiliar para simular contagem de não lidas
+function getUnreadCount(leadId: string): number {
+  const unreadMap: { [key: string]: number } = {
+    "lead-1": 3,
+    "lead-2": 1, 
+    "lead-3": 3,
+    "lead-4": 1,
+    "lead-5": 0,
+    "lead-6": 0,
+    "lead-7": 2,
+    "lead-8": 0,
+    "lead-9": 5, 
+    "lead-10": 0
+  };
+  return unreadMap[leadId] || 0;
+}
