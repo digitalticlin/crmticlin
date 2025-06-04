@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -578,7 +577,7 @@ export const VPSSupabaseSyncTest = () => {
       hostinger_proxy: <HardDrive className="h-4 w-4" />,
       whatsapp_server: <Database className="h-4 w-4" />,
       database_sync: <Database className="h-4 w-4" />,
-      instance_synchronization: <Sync className="h-4 w-4" />,
+      instance_synchronization: <RotateCcw className="h-4 w-4" />,
       message_flow: <Activity className="h-4 w-4" />,
       realtime_updates: <RefreshCw className="h-4 w-4" />,
       complete_integration: <CheckCircle className="h-4 w-4" />
