@@ -192,10 +192,14 @@ export const useWhatsAppWebInstances = () => {
     selectedInstanceName,
     refetch: fetchInstances,
     fetchInstances,
+    // CORREÇÃO FASE 3.1.2: createInstance modificado para retornar instância criada com QR Code
     createInstance: async (instanceName: string) => {
       setIsConnecting(true);
       try {
+        console.log('[Hook] 🚀 Creating instance - FASE 3.1.2:', instanceName);
         const result = await createInstance(instanceName);
+        
+        // Retornar a instância criada para que o componente possa capturar o QR Code
         return result;
       } finally {
         setIsConnecting(false);

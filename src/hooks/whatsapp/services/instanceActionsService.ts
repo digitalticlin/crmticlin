@@ -4,17 +4,21 @@ import { toast } from 'sonner';
 import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
 
 export const useInstanceActions = (fetchInstances: () => Promise<void>) => {
-  // Create instance with better error handling
+  // CORREÇÃO FASE 3.1.2: Create instance modificado para retornar instância com QR Code
   const createInstance = useCallback(async (instanceName: string) => {
     try {
-      console.log('[Hook] 🆕 Creating instance:', instanceName);
+      console.log('[Hook] 🆕 Creating instance - FASE 3.1.2:', instanceName);
       
       const result = await WhatsAppWebService.createInstance(instanceName);
       
       if (result.success && result.instance) {
-        console.log('[Hook] ✅ Instance created successfully');
+        console.log('[Hook] ✅ Instance created successfully - FASE 3.1.2');
+        console.log('[Hook] 🎯 QR Code presente na resposta:', !!result.instance.qr_code);
+        
         toast.success(`Instância "${instanceName}" criada com sucesso!`);
         await fetchInstances();
+        
+        // FASE 3.1.2: Retornar instância completa com QR Code para o componente
         return result.instance;
       } else {
         throw new Error(result.error || 'Failed to create instance');

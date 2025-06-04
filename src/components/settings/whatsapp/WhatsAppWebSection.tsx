@@ -48,10 +48,32 @@ export const WhatsAppWebSection = () => {
     getUser();
   }, []);
 
+  // CORREÇÃO FASE 3.1.2: Novo handleConnect que captura QR Code e abre modal automaticamente
   const handleConnect = async () => {
-    console.log('[WhatsAppWebSection] Connect requested');
+    console.log('[WhatsAppWebSection] Connect requested - FASE 3.1.2');
     const instanceName = `whatsapp_${Date.now()}`;
-    await createInstance(instanceName);
+    
+    try {
+      // Criar instância e capturar resultado com QR Code
+      const createdInstance = await createInstance(instanceName);
+      
+      if (createdInstance && createdInstance.qr_code) {
+        console.log('[WhatsAppWebSection] ✅ QR Code capturado da criação:', createdInstance.qr_code.substring(0, 50) + '...');
+        
+        // Abrir modal automaticamente com QR Code
+        setLocalSelectedQRCode(createdInstance.qr_code);
+        setLocalSelectedInstanceName(createdInstance.instance_name);
+        setLocalShowQRModal(true);
+        
+        toast.success(`Instância "${instanceName}" criada! Escaneie o QR Code para conectar.`);
+      } else {
+        console.log('[WhatsAppWebSection] ⚠️ Instância criada mas sem QR Code imediato');
+        toast.success(`Instância "${instanceName}" criada! Use o botão "Ver QR" para conectar.`);
+      }
+    } catch (error) {
+      console.error('[WhatsAppWebSection] ❌ Erro na criação:', error);
+      // Toast de erro já é exibido pelo createInstance
+    }
   };
 
   const handleDeleteInstance = async (instanceId: string) => {
