@@ -1,18 +1,19 @@
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { unifiedTags } from "@/data/unifiedFakeData";
 import { getTagStyleClasses } from "@/utils/tagColors";
 
-interface TagsModalProps {
-  isOpen: boolean;
-  onClose: () => void;
+interface TagsPopoverProps {
   contactName: string;
   tags: string[];
+  children: React.ReactNode;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-export const TagsModal = ({ isOpen, onClose, contactName, tags }: TagsModalProps) => {
+export const TagsPopover = ({ contactName, tags, children, open, onOpenChange }: TagsPopoverProps) => {
   // Função para obter cor da tag sincronizada com o funil
   const getTagColor = (tagName: string) => {
     const unifiedTag = unifiedTags.find(tag => tag.name === tagName);
@@ -23,15 +24,21 @@ export const TagsModal = ({ isOpen, onClose, contactName, tags }: TagsModalProps
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 backdrop-blur-md">
-        <DialogHeader>
-          <DialogTitle className="text-gray-900 font-semibold">
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <PopoverTrigger asChild>
+        {children}
+      </PopoverTrigger>
+      <PopoverContent 
+        className="w-72 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 backdrop-blur-md shadow-lg"
+        side="bottom"
+        align="start"
+        sideOffset={4}
+      >
+        <div className="space-y-3">
+          <h4 className="text-sm font-semibold text-gray-900">
             Etiquetas - {contactName}
-          </DialogTitle>
-        </DialogHeader>
-        
-        <div className="mt-4">
+          </h4>
+          
           {tags.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {tags.map((tag, index) => (
@@ -53,7 +60,7 @@ export const TagsModal = ({ isOpen, onClose, contactName, tags }: TagsModalProps
             </p>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </PopoverContent>
+    </Popover>
   );
 };

@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { Contact } from "@/types/chat";
 import { unifiedTags } from "@/data/unifiedFakeData";
 import { useState } from "react";
-import { TagsModal } from "./TagsModal";
+import { TagsPopover } from "./TagsPopover";
 import { getTagStyleClasses } from "@/utils/tagColors";
 
 interface ContactItemProps {
@@ -15,7 +15,7 @@ interface ContactItemProps {
 }
 
 export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps) => {
-  const [showTagsModal, setShowTagsModal] = useState(false);
+  const [showTagsPopover, setShowTagsPopover] = useState(false);
 
   const formatLastMessageTime = (timeString: string) => {
     if (!timeString) return '';
@@ -31,11 +31,6 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
     }
     // Fallback para tags não encontradas
     return 'border-2 border-gray-500 bg-gray-500/20 text-gray-800';
-  };
-
-  const handleTagsPlusClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowTagsModal(true);
   };
 
   // Combinar tags e company em um único array para o limite de 2 itens
@@ -104,7 +99,7 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
                       key={index}
                       variant="outline" 
                       className={cn(
-                        "text-xs font-semibold flex-shrink-0 max-w-[90px] truncate px-3 py-1",
+                        "text-[11px] font-semibold flex-shrink-0 max-w-[80px] truncate px-2 py-0.5",
                         item.type === 'tag' 
                           ? getTagColor(item.value)
                           : 'border-2 border-gray-500 bg-gray-500/20 text-gray-800'
@@ -115,13 +110,19 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
                   ))}
                   {/* Botão "+x" apenas se houver mais de 2 itens no total */}
                   {remainingCount > 0 && (
-                    <Badge 
-                      variant="outline" 
-                      className="text-xs border-2 border-gray-500 bg-gray-500/20 text-gray-800 cursor-pointer hover:bg-gray-500/30 transition-colors flex-shrink-0 min-w-[32px] px-2 py-1"
-                      onClick={handleTagsPlusClick}
+                    <TagsPopover
+                      contactName={contact.name}
+                      tags={contact.tags || []}
+                      open={showTagsPopover}
+                      onOpenChange={setShowTagsPopover}
                     >
-                      +{remainingCount}
-                    </Badge>
+                      <Badge 
+                        variant="outline" 
+                        className="text-[11px] border-2 border-gray-500 bg-gray-500/20 text-gray-800 cursor-pointer hover:bg-gray-500/30 transition-colors flex-shrink-0 min-w-[28px] px-1.5 py-0.5"
+                      >
+                        +{remainingCount}
+                      </Badge>
+                    </TagsPopover>
                   )}
                 </div>
               </div>
@@ -129,14 +130,6 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
           </div>
         </div>
       </div>
-
-      {/* Modal de Tags */}
-      <TagsModal
-        isOpen={showTagsModal}
-        onClose={() => setShowTagsModal(false)}
-        contactName={contact.name}
-        tags={contact.tags || []}
-      />
     </>
   );
 };
