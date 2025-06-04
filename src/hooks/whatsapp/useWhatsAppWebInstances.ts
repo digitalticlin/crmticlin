@@ -33,8 +33,14 @@ export const useWhatsAppWebInstances = () => {
   // Use specialized hooks
   const { instances, isLoading, error, fetchInstances, refetch } = useInstancesData();
   const { generateIntelligentInstanceName } = useIntelligentNaming();
-  const { refreshInstanceQRCode } = useInstanceQRCode(instances, fetchInstances);
-  const { createInstance, deleteInstance, refreshQRCode } = useInstanceActions(fetchInstances);
+  
+  // CORREÇÃO: Criar wrapper function que retorna void para compatibilidade de tipos
+  const fetchInstancesVoid = async () => {
+    await fetchInstances();
+  };
+  
+  const { refreshInstanceQRCode } = useInstanceQRCode(instances, fetchInstancesVoid);
+  const { createInstance, deleteInstance, refreshQRCode } = useInstanceActions(fetchInstancesVoid);
 
   // Close QR Modal
   const closeQRModal = () => {
