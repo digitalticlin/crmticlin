@@ -1,130 +1,216 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { Contact } from '@/types/chat';
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Contact, Message } from '@/types/chat';
 import { WhatsAppWebInstance } from './useWhatsAppWebInstances';
-import { toast } from "sonner";
-import { useFakeContacts } from './chat/useFakeContacts';
-import { useContactSorting } from './chat/useContactSorting';
-import { useContactMovement } from './chat/useContactMovement';
-import { useWhatsAppChatMessages } from './chat/useWhatsAppChatMessages';
-import { useWhatsAppChatRealtime } from './chat/useWhatsAppChatRealtime';
+import { useChatDatabase } from './useChatDatabase';
 
-/**
- * Hook especializado para chat WhatsApp Web.js - experiência real
- */
+// Chat-specific hook that only reads from database
 export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [isSending, setIsSending] = useState(false);
 
-  // Hooks auxiliares
-  const { getFakeContacts } = useFakeContacts();
-  const { sortContacts } = useContactSorting();
-  const { moveContactToTop } = useContactMovement();
-  
-  // Hook de mensagens
-  const {
-    messages,
-    isLoadingMessages,
-    isSending,
-    fetchMessages,
-    sendMessage
-  } = useWhatsAppChatMessages(selectedContact, activeInstance);
+  const isMountedRef = useRef(true);
+  const { mapLeadToContact, mapDbMessageToMessage } = useChatDatabase();
 
-  // Buscar contatos (leads) da instância ativa
-  const fetchContacts = useCallback(async () => {
-    if (!activeInstance) {
-      // Se não há instância ativa, mostrar contatos fake para demonstração
-      const fakeContacts = getFakeContacts();
-      const sortedContacts = sortContacts(fakeContacts);
-      setContacts(sortedContacts);
+  // Fetch contacts (leads) from database
+  const fetchContacts = async () => {
+    if (!activeInstance || !isMountedRef.current) {
       return;
     }
 
-    setIsLoadingContacts(true);
     try {
-      console.log('[WhatsApp Web Chat] 📋 Fetching contacts for instance:', activeInstance.id);
+      setIsLoadingContacts(true);
+      console.log('[useWhatsAppWebChat] Fetching contacts from database...');
 
-      const { data: leads, error } = await supabase
+      const { data: leadsData, error } = await supabase
         .from('leads')
-        .select(`
-          *,
-          lead_tags!inner(
-            tag_id,
-            tags(name, color)
-          )
-        `)
+        .select('*')
         .eq('whatsapp_number_id', activeInstance.id)
-        .eq('company_id', activeInstance.company_id)
-        .order('last_message_time', { ascending: false, nullsFirst: false });
+        .order('updated_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[useWhatsAppWebChat] Error fetching contacts:', error);
+        return;
+      }
 
-      const mappedContacts: Contact[] = (leads || []).map(lead => {
-        // Extrair tags do relacionamento
-        const leadTags = lead.lead_tags?.map((lt: any) => lt.tags?.name).filter(Boolean) || [];
-        
-        return {
-          id: lead.id,
-          name: lead.name || `+${lead.phone}`,
-          phone: lead.phone,
-          email: lead.email || '',
-          address: lead.address || '',
-          company: lead.company || '',
-          notes: lead.notes || '',
-          tags: leadTags,
-          lastMessage: lead.last_message || '',
-          lastMessageTime: lead.last_message_time 
-            ? new Date(lead.last_message_time).toLocaleTimeString('pt-BR', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              })
-            : '',
-          unreadCount: lead.unread_count || 0,
-          avatar: '',
-          isOnline: Math.random() > 0.7 // Simulação básica de status online
-        };
+      if (isMountedRef.current && leadsData) {
+        const mappedContacts = leadsData.map(lead => mapLeadToContact(lead));
+        setContacts(mappedContacts);
+        console.log('[useWhatsAppWebChat] Contacts loaded:', mappedContacts.length);
+      }
+    } catch (error) {
+      console.error('[useWhatsAppWebChat] Error in fetchContacts:', error);
+    } finally {
+      if (isMountedRef.current) {
+        setIsLoadingContacts(false);
+      }
+    }
+  };
+
+  // Fetch messages for selected contact
+  const fetchMessages = async (contact: Contact) => {
+    if (!activeInstance || !contact || !isMountedRef.current) {
+      return;
+    }
+
+    try {
+      setIsLoadingMessages(true);
+      console.log('[useWhatsAppWebChat] Fetching messages for contact:', contact.id);
+
+      const { data: messagesData, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('lead_id', contact.id)
+        .eq('whatsapp_number_id', activeInstance.id)
+        .order('timestamp', { ascending: true });
+
+      if (error) {
+        console.error('[useWhatsAppWebChat] Error fetching messages:', error);
+        return;
+      }
+
+      if (isMountedRef.current && messagesData) {
+        const mappedMessages = messagesData.map(msg => mapDbMessageToMessage(msg));
+        setMessages(mappedMessages);
+        console.log('[useWhatsAppWebChat] Messages loaded:', mappedMessages.length);
+      }
+    } catch (error) {
+      console.error('[useWhatsAppWebChat] Error in fetchMessages:', error);
+    } finally {
+      if (isMountedRef.current) {
+        setIsLoadingMessages(false);
+      }
+    }
+  };
+
+  // Send message (this would use an Edge Function to send via VPS)
+  const sendMessage = async (text: string) => {
+    if (!selectedContact || !activeInstance || !text.trim()) {
+      return;
+    }
+
+    try {
+      setIsSending(true);
+      console.log('[useWhatsAppWebChat] Sending message via Edge Function...');
+
+      // Call Edge Function to send message via VPS
+      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+        body: {
+          action: 'send_message',
+          instanceId: activeInstance.vps_instance_id,
+          to: selectedContact.phone.replace(/\D/g, ''), // Clean phone number
+          message: text
+        }
       });
 
-      // Se não há leads reais, adicionar contatos fake para demonstração
-      const fakeContacts = getFakeContacts();
-      const allContacts = [...mappedContacts, ...fakeContacts];
+      if (error) {
+        console.error('[useWhatsAppWebChat] Error sending message:', error);
+        throw error;
+      }
 
-      const sortedContacts = sortContacts(allContacts);
-      console.log('[WhatsApp Web Chat] ✅ Contacts fetched and sorted:', sortedContacts.length);
-      setContacts(sortedContacts);
+      console.log('[useWhatsAppWebChat] Message sent successfully');
+      
+      // Refresh messages after sending
+      if (selectedContact) {
+        setTimeout(() => fetchMessages(selectedContact), 1000);
+      }
     } catch (error) {
-      console.error('[WhatsApp Web Chat] ❌ Error fetching contacts:', error);
-      // Em caso de erro, mostrar pelo menos os contatos fake
-      const fakeContacts = getFakeContacts();
-      const sortedContacts = sortContacts(fakeContacts);
-      setContacts(sortedContacts);
-      toast.error('Erro ao carregar contatos - mostrando dados de demonstração');
+      console.error('[useWhatsAppWebChat] Error in sendMessage:', error);
+      throw error;
     } finally {
-      setIsLoadingContacts(false);
+      setIsSending(false);
     }
-  }, [activeInstance, sortContacts, getFakeContacts]);
+  };
 
-  // Configurar realtime para novas mensagens
-  useWhatsAppChatRealtime(
-    activeInstance,
-    selectedContact,
-    fetchMessages,
-    fetchContacts,
-    moveContactToTop,
-    setContacts
-  );
-
-  // Carregar contatos quando instância mudar
+  // Load contacts when active instance changes
   useEffect(() => {
-    fetchContacts();
-  }, [fetchContacts]);
+    if (activeInstance) {
+      fetchContacts();
+    } else {
+      setContacts([]);
+    }
+  }, [activeInstance]);
 
-  // Carregar mensagens quando contato selecionado mudar
+  // Load messages when selected contact changes
   useEffect(() => {
-    fetchMessages();
-  }, [fetchMessages]);
+    if (selectedContact) {
+      fetchMessages(selectedContact);
+    } else {
+      setMessages([]);
+    }
+  }, [selectedContact]);
+
+  // Realtime subscription for messages
+  useEffect(() => {
+    if (!activeInstance || !selectedContact) return;
+
+    console.log('[useWhatsAppWebChat] Setting up realtime for messages...');
+
+    const channel = supabase
+      .channel(`messages-${selectedContact.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `lead_id=eq.${selectedContact.id}`
+        },
+        (payload) => {
+          console.log('[useWhatsAppWebChat] New message realtime:', payload.eventType);
+          if (isMountedRef.current) {
+            fetchMessages(selectedContact);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeInstance, selectedContact]);
+
+  // Realtime subscription for contacts (leads)
+  useEffect(() => {
+    if (!activeInstance) return;
+
+    console.log('[useWhatsAppWebChat] Setting up realtime for contacts...');
+
+    const channel = supabase
+      .channel(`leads-${activeInstance.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'leads',
+          filter: `whatsapp_number_id=eq.${activeInstance.id}`
+        },
+        (payload) => {
+          console.log('[useWhatsAppWebChat] Contacts realtime update:', payload.eventType);
+          if (isMountedRef.current) {
+            fetchContacts();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [activeInstance]);
+
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   return {
     contacts,
