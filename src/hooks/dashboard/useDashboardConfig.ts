@@ -10,11 +10,11 @@ import { validateConfig, deepClone } from "./utils/configUtils";
 export { type DashboardConfig } from "./types/dashboardConfigTypes";
 
 export const useDashboardConfig = () => {
-  // Estados principais simplificados
+  // Estados principais simplificados - ETAPA 1: Estado síncrono
   const [config, setConfig] = useState<DashboardConfig>(defaultConfig);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [configVersion, setConfigVersion] = useState(0);
+  const [forceUpdate, setForceUpdate] = useState(0); // ETAPA 2: Force update simples
   
   // Hooks sempre chamados na mesma ordem
   const { user } = useAuth();
@@ -58,7 +58,7 @@ export const useDashboardConfig = () => {
       if (loadedConfig && validateConfig(loadedConfig) && isMountedRef.current) {
         console.log("✅ Config loaded:", loadedConfig);
         setConfig(loadedConfig);
-        setConfigVersion(prev => prev + 1);
+        setForceUpdate(prev => prev + 1);
         isInitializedRef.current = true;
       } else if (isMountedRef.current) {
         console.log("❌ Creating initial config");
@@ -68,7 +68,7 @@ export const useDashboardConfig = () => {
       console.error("❌ Error loading config:", error);
       if (isMountedRef.current) {
         setConfig(defaultConfig);
-        setConfigVersion(prev => prev + 1);
+        setForceUpdate(prev => prev + 1);
         isInitializedRef.current = true;
       }
     } finally {
@@ -88,17 +88,17 @@ export const useDashboardConfig = () => {
       );
       console.log("✅ Initial config created");
       setConfig(defaultConfig);
-      setConfigVersion(prev => prev + 1);
+      setForceUpdate(prev => prev + 1);
       isInitializedRef.current = true;
     } catch (error) {
       console.error("❌ Error creating initial config:", error);
       setConfig(defaultConfig);
-      setConfigVersion(prev => prev + 1);
+      setForceUpdate(prev => prev + 1);
       isInitializedRef.current = true;
     }
   };
 
-  // Save com debounce apenas para persistência
+  // ETAPA 1: Save com debounce apenas para persistência
   const scheduleSave = useCallback((configToSave: DashboardConfig) => {
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
@@ -125,7 +125,7 @@ export const useDashboardConfig = () => {
     }, 500);
   }, [user?.id, companyId]);
 
-  // HANDLERS SIMPLIFICADOS - SEM DEBOUNCE PARA UI
+  // ETAPA 1: HANDLERS TOTALMENTE SÍNCRONOS - SEM DEBOUNCE
   const handleKPIToggle = useCallback((kpiKey: keyof DashboardConfig['kpis']) => {
     if (!isInitializedRef.current) return;
     
@@ -149,8 +149,8 @@ export const useDashboardConfig = () => {
       return newConfig;
     });
     
-    // FORÇAR RE-RENDER IMEDIATO
-    setConfigVersion(prev => prev + 1);
+    // ETAPA 2: FORÇAR RE-RENDER IMEDIATO E SIMPLES
+    setForceUpdate(prev => prev + 1);
   }, [scheduleSave]);
 
   const handleChartToggle = useCallback((chartKey: keyof DashboardConfig['charts']) => {
@@ -176,8 +176,8 @@ export const useDashboardConfig = () => {
       return newConfig;
     });
     
-    // FORÇAR RE-RENDER IMEDIATO
-    setConfigVersion(prev => prev + 1);
+    // ETAPA 2: FORÇAR RE-RENDER IMEDIATO E SIMPLES
+    setForceUpdate(prev => prev + 1);
   }, [scheduleSave]);
 
   const updateConfig = useCallback((newConfig: Partial<DashboardConfig>) => {
@@ -198,14 +198,14 @@ export const useDashboardConfig = () => {
       return updatedConfig;
     });
     
-    setConfigVersion(prev => prev + 1);
+    setForceUpdate(prev => prev + 1);
   }, [scheduleSave]);
 
   const resetToDefault = useCallback(() => {
     console.log("🔄 RESET TO DEFAULT");
     const defaultConfigCopy = deepClone(defaultConfig);
     setConfig(defaultConfigCopy);
-    setConfigVersion(prev => prev + 1);
+    setForceUpdate(prev => prev + 1);
     scheduleSave(defaultConfigCopy);
   }, [scheduleSave]);
 
@@ -213,7 +213,7 @@ export const useDashboardConfig = () => {
     config,
     loading,
     saving,
-    configVersion,
+    forceUpdate, // ETAPA 2: Retornando force update simples
     updateConfig,
     resetToDefault,
     handleKPIToggle,

@@ -12,11 +12,11 @@ import { useEffect } from "react";
 
 export default function Dashboard() {
   const isMobile = useIsMobile();
-  const { configVersion } = useDashboardConfig();
+  const { forceUpdate } = useDashboardConfig(); // ETAPA 3: Usando forceUpdate
 
   useEffect(() => {
-    console.log("Dashboard render - configVersion:", configVersion);
-  }, [configVersion]);
+    console.log("Dashboard render - forceUpdate:", forceUpdate);
+  }, [forceUpdate]);
 
   return (
     <div className="flex min-h-screen bg-gray-200 relative overflow-hidden">
@@ -71,8 +71,14 @@ export default function Dashboard() {
             </div>
           </div>
           
-          <CustomizableKPIGrid />
-          <CustomizableChartsSection />
+          {/* ETAPA 3: Componentes com key baseada no forceUpdate para garantir re-render */}
+          <div key={`kpi-${forceUpdate}`}>
+            <CustomizableKPIGrid />
+          </div>
+          
+          <div key={`charts-${forceUpdate}`}>
+            <CustomizableChartsSection />
+          </div>
         </div>
       </main>
     </div>

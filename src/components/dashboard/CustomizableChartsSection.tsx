@@ -16,23 +16,24 @@ const chartComponents = {
 };
 
 export default function CustomizableChartsSection() {
-  const { config, loading, configVersion } = useDashboardConfig();
+  const { config, loading, forceUpdate } = useDashboardConfig(); // ETAPA 3: Usando forceUpdate
 
-  // Criar hash reativo para detectar mudanças
+  // ETAPA 3: Hash baseado diretamente no config + forceUpdate
   const chartStateHash = useMemo(() => {
     const enabledCharts = Object.entries(config.charts)
       .filter(([_, enabled]) => enabled)
       .map(([key]) => key)
       .sort()
       .join(',');
-    return `${configVersion}-${enabledCharts}`;
-  }, [config.charts, configVersion]);
+    return `${forceUpdate}-${enabledCharts}`;
+  }, [config.charts, forceUpdate]);
 
   useEffect(() => {
     console.log("📈 CHARTS REACTIVE UPDATE");
     console.log("Hash:", chartStateHash);
+    console.log("Force Update:", forceUpdate);
     console.log("Enabled Charts:", Object.entries(config.charts).filter(([_, enabled]) => enabled));
-  }, [chartStateHash, config.charts]);
+  }, [chartStateHash, config.charts, forceUpdate]);
 
   const visibleCharts = useMemo(() => {
     const visible = config.layout.chart_order.filter(
@@ -40,7 +41,7 @@ export default function CustomizableChartsSection() {
     );
     console.log("✅ VISIBLE CHARTS:", visible);
     return visible;
-  }, [config.layout.chart_order, config.charts, configVersion]);
+  }, [config.layout.chart_order, config.charts, forceUpdate]); // ETAPA 3: Incluindo forceUpdate
 
   if (loading) {
     return (
@@ -69,7 +70,7 @@ export default function CustomizableChartsSection() {
 
   return (
     <div 
-      key={chartStateHash}
+      key={chartStateHash} // ETAPA 3: Key baseada no hash direto
       className={`grid ${getGridCols(visibleCharts.length)} gap-6 transition-all duration-300 ease-in-out transform`}
       style={{
         animation: "fade-in 0.3s ease-out"
@@ -91,7 +92,7 @@ export default function CustomizableChartsSection() {
         
         return (
           <div
-            key={`${chartKey}-${chartStateHash}`}
+            key={`${chartKey}-${chartStateHash}`} // ETAPA 3: Key com hash
             className="animate-fade-in transform transition-all duration-200"
             style={{ 
               animationDelay: `${index * 100}ms`,

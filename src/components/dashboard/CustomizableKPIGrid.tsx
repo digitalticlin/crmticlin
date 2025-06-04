@@ -55,24 +55,25 @@ const kpiConfig = {
 };
 
 export function CustomizableKPIGrid() {
-  const { config, loading: configLoading, configVersion } = useDashboardConfig();
+  const { config, loading: configLoading, forceUpdate } = useDashboardConfig(); // ETAPA 3: Usando forceUpdate
   const { kpis, loading: kpisLoading } = useDashboardKPIs(config.period_filter);
 
-  // Criar hash reativo para detectar mudanças
+  // ETAPA 3: Hash baseado diretamente no config + forceUpdate
   const kpiStateHash = useMemo(() => {
     const enabledKpis = Object.entries(config.kpis)
       .filter(([_, enabled]) => enabled)
       .map(([key]) => key)
       .sort()
       .join(',');
-    return `${configVersion}-${enabledKpis}`;
-  }, [config.kpis, configVersion]);
+    return `${forceUpdate}-${enabledKpis}`;
+  }, [config.kpis, forceUpdate]);
 
   useEffect(() => {
     console.log("🎯 KPI GRID REACTIVE UPDATE");
     console.log("Hash:", kpiStateHash);
+    console.log("Force Update:", forceUpdate);
     console.log("Enabled KPIs:", Object.entries(config.kpis).filter(([_, enabled]) => enabled));
-  }, [kpiStateHash, config.kpis]);
+  }, [kpiStateHash, config.kpis, forceUpdate]);
 
   const visibleKPIs = useMemo(() => {
     const visible = config.layout.kpi_order.filter(
@@ -80,7 +81,7 @@ export function CustomizableKPIGrid() {
     );
     console.log("✅ VISIBLE KPIs:", visible);
     return visible;
-  }, [config.layout.kpi_order, config.kpis, configVersion]);
+  }, [config.layout.kpi_order, config.kpis, forceUpdate]); // ETAPA 3: Incluindo forceUpdate
 
   if (configLoading || kpisLoading) {
     return (
@@ -111,7 +112,7 @@ export function CustomizableKPIGrid() {
 
   return (
     <div 
-      key={kpiStateHash}
+      key={kpiStateHash} // ETAPA 3: Key baseada no hash direto
       className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6 transition-all duration-300 ease-in-out transform`}
       style={{
         animation: "fade-in 0.3s ease-out"
@@ -130,7 +131,7 @@ export function CustomizableKPIGrid() {
         
         return (
           <div
-            key={`${kpiKey}-${kpiStateHash}`}
+            key={`${kpiKey}-${kpiStateHash}`} // ETAPA 3: Key com hash
             className="animate-fade-in transform transition-all duration-200"
             style={{ 
               animationDelay: `${index * 50}ms`,

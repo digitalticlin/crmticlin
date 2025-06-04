@@ -6,22 +6,25 @@ import { Settings } from "lucide-react";
 import { useDashboardConfig, DashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { DragDropContext, DropResult } from "react-beautiful-dnd";
 import { CustomizerSidebar } from "./CustomizerSidebar";
-import { useCallback } from "react";
+import { useCallback, memo } from "react";
 
-export default function DashboardCustomizer() {
+// ETAPA 4: Memoizar o componente para otimizar performance
+const DashboardCustomizer = memo(() => {
   const { 
     config, 
     loading, 
     updateConfig, 
     resetToDefault, 
     handleKPIToggle, 
-    handleChartToggle 
+    handleChartToggle,
+    forceUpdate // ETAPA 3: Usando forceUpdate
   } = useDashboardConfig();
   
   const [open, setOpen] = useState(false);
 
-  console.log("🎛️ DashboardCustomizer render - config:", config);
+  console.log("🎛️ DashboardCustomizer render - config:", config, "forceUpdate:", forceUpdate);
 
+  // ETAPA 4: Memoizar o handleDragEnd para evitar re-renders
   const handleDragEnd = useCallback((result: DropResult) => {
     if (!result.destination) {
       console.log("❌ Drag cancelled - no destination");
@@ -106,4 +109,8 @@ export default function DashboardCustomizer() {
       </SheetContent>
     </Sheet>
   );
-}
+});
+
+DashboardCustomizer.displayName = "DashboardCustomizer";
+
+export default DashboardCustomizer;
