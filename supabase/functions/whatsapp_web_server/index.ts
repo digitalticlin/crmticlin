@@ -5,6 +5,7 @@ import { corsHeaders, testVPSConnection } from './config.ts';
 import { createWhatsAppInstance, deleteWhatsAppInstance } from './instanceManagement.ts';
 import { getInstanceStatus, getQRCode } from './instanceStatusService.ts';
 import { getQRCodeFromVPS, updateQRCodeInDatabase } from './qrCodeService.ts';
+import { authenticateRequest } from './authentication.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -17,12 +18,18 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // CORREÇÃO FASE 3.1.1: Autenticar usuário ANTES de processar qualquer ação
+    const user = await authenticateRequest(req, supabase);
+    console.log(`[WhatsApp Server] 🔐 Usuário autenticado: ${user.id} (${user.email})`);
+
     const { action, instanceData, vpsAction } = await req.json();
-    console.log(`[WhatsApp Server] 🔧 Action: ${action} (FASE 3.1)`);
+    console.log(`[WhatsApp Server] 🔧 Action: ${action} (FASE 3.1.1 - com auth corrigida)`);
 
     switch (action) {
       case 'create_instance':
-        return await createWhatsAppInstance(supabase, instanceData, req);
+        // CORREÇÃO FASE 3.1.1: Passar userId correto ao invés do objeto req
+        console.log(`[WhatsApp Server] 🚀 Criando instância para usuário: ${user.id}`);
+        return await createWhatsAppInstance(supabase, instanceData, user.id);
 
       case 'delete_instance':
         return await deleteWhatsAppInstance(supabase, instanceData.instanceId);
@@ -34,7 +41,7 @@ serve(async (req) => {
         return await getQRCode(instanceData.instanceId);
 
       case 'refresh_qr_code':
-        console.log('[WhatsApp Server] 🔄 Atualizando QR Code (FASE 3.1)');
+        console.log('[WhatsApp Server] 🔄 Atualizando QR Code (FASE 3.1.1)');
         const qrResult = await getQRCodeFromVPS(instanceData.instanceId);
         
         if (qrResult.success) {
@@ -64,7 +71,7 @@ serve(async (req) => {
         }
 
       case 'check_server':
-        console.log('[WhatsApp Server] 🔍 Verificando servidor (FASE 3.1)');
+        console.log('[WhatsApp Server] 🔍 Verificando servidor (FASE 3.1.1)');
         const vpsTest = await testVPSConnection();
         
         return new Response(
@@ -78,8 +85,7 @@ serve(async (req) => {
         );
 
       case 'sync_instances':
-        console.log('[WhatsApp Server] 🔄 Sincronizando instâncias (FASE 3.1)');
-        // Implementação básica - pode ser expandida conforme necessário
+        console.log('[WhatsApp Server] 🔄 Sincronizando instâncias (FASE 3.1.1)');
         return new Response(
           JSON.stringify({
             success: true,
@@ -103,7 +109,24 @@ serve(async (req) => {
     }
 
   } catch (error) {
-    console.error('[WhatsApp Server] ❌ Erro geral:', error);
+    console.error('[WhatsApp Server] ❌ Erro geral (FASE 3.1.1):', error);
+    
+    // CORREÇÃO FASE 3.1.1: Melhor tratamento de erros de autenticação
+    if (error.message.includes('Authorization') || error.message.includes('authentication')) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Authentication failed',
+          details: error.message,
+          timestamp: new Date().toISOString()
+        }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+    
     return new Response(
       JSON.stringify({ 
         success: false, 
