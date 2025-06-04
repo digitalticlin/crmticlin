@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { InstanceProfileSection } from "./InstanceProfileSection";
-import { InstanceInfoGrid } from "./InstanceInfoGrid";
 import { InstanceActionButton } from "./InstanceActionButton";
 import { InstanceStatusMessages } from "./InstanceStatusMessages";
 
@@ -28,21 +27,14 @@ export function WhatsAppWebInstanceCard({
                      instance.connection_status === 'open';
 
   return (
-    <Card className={`transition-all duration-200 hover:shadow-lg bg-white/10 backdrop-blur-xl border border-white/30 ${
+    <Card className={`transition-all duration-200 hover:shadow-lg bg-white/10 backdrop-blur-xl border border-white/30 rounded-3xl ${
       isConnected ? 'border-green-300 bg-green-50/20' : ''
     }`}>
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <InstanceProfileSection instance={instance} />
-        </div>
+      <CardHeader className="pb-3">
+        <InstanceProfileSection instance={instance} />
       </CardHeader>
 
-      <CardContent className="space-y-4">
-        <InstanceInfoGrid 
-          connectionStatus={instance.connection_status}
-          qrCode={instance.qr_code}
-        />
-
+      <CardContent className="space-y-3">
         <InstanceStatusMessages
           connectionStatus={instance.connection_status}
           qrCode={instance.qr_code}

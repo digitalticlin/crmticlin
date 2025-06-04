@@ -34,19 +34,14 @@ export function InstanceProfileSection({ instance }: InstanceProfileSectionProps
         .toUpperCase();
     }
     
-    if (instance.phone) {
-      return instance.phone.slice(-2);
-    }
-    
     return 'WA';
   };
 
   const getInstanceDisplayName = () => {
-    const name = instance.instance_name;
-    if (name.match(/^[a-zA-Z0-9]+\d+$/)) {
-      return name;
+    if (instance.profile_name) {
+      return instance.profile_name;
     }
-    return name;
+    return instance.instance_name;
   };
 
   return (
@@ -55,7 +50,7 @@ export function InstanceProfileSection({ instance }: InstanceProfileSectionProps
         {instance.profile_pic_url ? (
           <AvatarImage src={instance.profile_pic_url} alt={instance.profile_name || 'Profile'} />
         ) : null}
-        <AvatarFallback className="bg-[#D3D800]/20 text-[#D3D800] font-semibold">
+        <AvatarFallback className="bg-green-500/20 text-green-700 font-semibold text-sm">
           {getProfileInitials()}
         </AvatarFallback>
       </Avatar>
@@ -63,7 +58,7 @@ export function InstanceProfileSection({ instance }: InstanceProfileSectionProps
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 mb-1">
           <CardTitle className="text-lg font-semibold text-gray-800 truncate">
-            {instance.profile_name || getInstanceDisplayName()}
+            {getInstanceDisplayName()}
           </CardTitle>
           <InstanceStatusBadge connectionStatus={instance.connection_status} />
         </div>
