@@ -2,35 +2,16 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Send, Smile, Paperclip, Plus } from "lucide-react";
+import { Send } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { QuickMessagesPanel } from "./input/QuickMessagesPanel";
+import { EmojiPicker } from "./input/EmojiPicker";
+import { QuickActionsPopover } from "./input/QuickActionsPopover";
 
 interface WhatsAppMessageInputProps {
   onSendMessage: (message: string) => void;
   isSending: boolean;
 }
-
-const QUICK_MESSAGES = [
-  "Olá! Como posso ajudá-lo?",
-  "Obrigado pelo contato!",
-  "Vou verificar para você.",
-  "Posso ligar para você?",
-  "Tem alguma dúvida?",
-  "Aguardo seu retorno.",
-  "Ótimo! Vamos prosseguir.",
-  "Perfeito! Obrigado.",
-];
-
-const EMOJIS = [
-  "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣",
-  "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰",
-  "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜",
-  "👍", "👎", "👌", "✌️", "🤞", "🤟", "🤘", "🤙",
-  "👈", "👉", "👆", "👇", "☝️", "✋", "🤚", "🖐",
-  "🖖", "👋", "🤏", "✊", "👊", "🤛", "🤜", "💪"
-];
 
 export const WhatsAppMessageInput = ({
   onSendMessage,
@@ -84,74 +65,25 @@ export const WhatsAppMessageInput = ({
     }
   };
 
+  const toggleQuickMessages = () => {
+    setShowQuickMessages(!showQuickMessages);
+  };
+
   return (
     <div className="p-6 bg-white/10 backdrop-blur-md border-t border-white/20">
-      {/* Quick Messages Bar */}
+      {/* Quick Messages Panel */}
       {showQuickMessages && (
-        <div className="mb-4 p-4 bg-white/20 backdrop-blur-sm rounded-2xl border border-white/30">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium text-gray-700">Mensagens Rápidas</span>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setShowQuickMessages(false)}
-              className="text-gray-600 hover:text-gray-900 hover:bg-white/20 h-6 px-2 rounded-lg"
-            >
-              ✕
-            </Button>
-          </div>
-          <ScrollArea className="max-h-32">
-            <div className="grid gap-2">
-              {QUICK_MESSAGES.map((quickMsg, index) => (
-                <Button
-                  key={index}
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleQuickMessage(quickMsg)}
-                  className="justify-start text-left text-gray-700 hover:bg-white/30 hover:text-gray-900 h-8 px-3 rounded-lg transition-colors"
-                >
-                  {quickMsg}
-                </Button>
-              ))}
-            </div>
-          </ScrollArea>
-        </div>
+        <QuickMessagesPanel
+          onQuickMessage={handleQuickMessage}
+          onClose={() => setShowQuickMessages(false)}
+        />
       )}
 
       {/* Message Input */}
       <div className="flex items-end gap-3">
         {/* Quick Actions */}
         <div className="flex gap-2">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="text-gray-600 hover:text-gray-900 hover:bg-white/20 w-12 h-12 rounded-full transition-colors"
-              >
-                <Plus className="h-5 w-5" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent side="top" className="w-56 p-3 bg-white/90 backdrop-blur-md border-white/30 shadow-xl">
-              <div className="grid gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setShowQuickMessages(!showQuickMessages)}
-                  className="justify-start text-gray-700 hover:bg-white/50"
-                >
-                  💬 Mensagens Rápidas
-                </Button>
-                <Button variant="ghost" size="sm" className="justify-start text-gray-700 hover:bg-white/50">
-                  <Paperclip className="h-4 w-4 mr-2" />
-                  Anexar Arquivo
-                </Button>
-                <Button variant="ghost" size="sm" className="justify-start text-gray-700 hover:bg-white/50">
-                  📷 Câmera
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <QuickActionsPopover onToggleQuickMessages={toggleQuickMessages} />
         </div>
 
         {/* Text Input */}
@@ -171,34 +103,7 @@ export const WhatsAppMessageInput = ({
           
           {/* Emoji Button */}
           <div className="absolute right-3 bottom-3 flex gap-1">
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-10 w-10 text-gray-600 hover:text-gray-900 hover:bg-white/20 rounded-full"
-                >
-                  <Smile className="h-5 w-5" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent side="top" className="w-80 p-4 bg-white/90 backdrop-blur-md border-white/30 shadow-xl">
-                <ScrollArea className="h-48">
-                  <div className="grid grid-cols-8 gap-2">
-                    {EMOJIS.map((emoji, index) => (
-                      <Button
-                        key={index}
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEmojiSelect(emoji)}
-                        className="h-10 w-10 p-0 hover:bg-white/50 text-lg rounded-lg"
-                      >
-                        {emoji}
-                      </Button>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </PopoverContent>
-            </Popover>
+            <EmojiPicker onEmojiSelect={handleEmojiSelect} />
           </div>
         </div>
 
