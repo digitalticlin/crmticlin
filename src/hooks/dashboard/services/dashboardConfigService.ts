@@ -23,7 +23,7 @@ export class DashboardConfigService {
 
     if (data) {
       console.log("Config loaded from database:", data.config_data);
-      return data.config_data as DashboardConfig;
+      return data.config_data as unknown as DashboardConfig;
     }
 
     console.log("No config found in database");
