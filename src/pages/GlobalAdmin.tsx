@@ -15,9 +15,10 @@ import { VPSTestPanel } from "@/components/admin/VPSTestPanel";
 import { DeployManager } from "@/components/admin/deploy/DeployManager";
 import { WhatsAppDiagnostic } from "@/components/settings/whatsapp/WhatsAppDiagnostic";
 import { VPSHealthDiagnostic } from "@/components/settings/whatsapp/VPSHealthDiagnostic";
+import { VPSDiagnosticRunner } from "@/components/admin/VPSDiagnosticRunner";
 
 export default function GlobalAdmin() {
-  const [activeTab, setActiveTab] = useState("companies");
+  const [activeTab, setActiveTab] = useState("diagnostic-runner");
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 overflow-hidden">
@@ -33,6 +34,7 @@ export default function GlobalAdmin() {
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="grid grid-cols-12 w-full">
+              <TabsTrigger value="diagnostic-runner">Diagnóstico Auto</TabsTrigger>
               <TabsTrigger value="companies">Empresas</TabsTrigger>
               <TabsTrigger value="users">Usuários</TabsTrigger>
               <TabsTrigger value="plans">Planos</TabsTrigger>
@@ -44,8 +46,11 @@ export default function GlobalAdmin() {
               <TabsTrigger value="deploy">Deploy Auto</TabsTrigger>
               <TabsTrigger value="logs">Logs</TabsTrigger>
               <TabsTrigger value="support">Suporte</TabsTrigger>
-              <TabsTrigger value="config">Configurações</TabsTrigger>
             </TabsList>
+            
+            <TabsContent value="diagnostic-runner">
+              <VPSDiagnosticRunner />
+            </TabsContent>
             
             <TabsContent value="companies">
               <CompaniesPanel />
