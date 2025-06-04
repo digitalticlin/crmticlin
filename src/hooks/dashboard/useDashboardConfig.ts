@@ -61,8 +61,6 @@ export const useDashboardConfig = () => {
   const { user } = useAuth();
   const { companyId } = useCompanyData();
   
-  // Refs para controle de state e debounce
-  const pendingUpdatesRef = useRef<DashboardConfig | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
   const lastSavedConfigRef = useRef<DashboardConfig>(defaultConfig);
@@ -84,12 +82,19 @@ export const useDashboardConfig = () => {
   }, [user, companyId]);
 
   const loadConfig = async () => {
+    if (!user?.id || !companyId) return;
+    
     try {
       console.log("=== LOADING CONFIG ===");
+      console.log("User ID:", user.id, "Company ID:", companyId);
+      
+      // Primeiro, limpar duplicatas se existirem
+      await cleanupDuplicateConfigs();
+      
       const { data, error } = await supabase
         .from('dashboard_configs')
         .select('config_data')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .eq('company_id', companyId)
         .single();
 
@@ -104,12 +109,19 @@ export const useDashboardConfig = () => {
         lastSavedConfigRef.current = loadedConfig;
         setConfigVersion(Date.now());
       } else if (isMountedRef.current) {
-        console.log("No config found, creating default...");
-        await createDefaultConfig();
+        console.log("No config found, using default config");
+        setConfig(defaultConfig);
+        lastSavedConfigRef.current = defaultConfig;
+        setConfigVersion(Date.now());
       }
     } catch (error) {
       console.error("Erro ao carregar configuração:", error);
       toast.error("Erro ao carregar configurações do dashboard");
+      if (isMountedRef.current) {
+        setConfig(defaultConfig);
+        lastSavedConfigRef.current = defaultConfig;
+        setConfigVersion(Date.now());
+      }
     } finally {
       if (isMountedRef.current) {
         setLoading(false);
@@ -117,49 +129,56 @@ export const useDashboardConfig = () => {
     }
   };
 
-  const createDefaultConfig = async () => {
+  const cleanupDuplicateConfigs = async () => {
+    if (!user?.id || !companyId) return;
+    
     try {
-      const { error } = await supabase
+      const { data: duplicates } = await supabase
         .from('dashboard_configs')
-        .insert({
-          user_id: user?.id,
-          company_id: companyId,
-          config_data: defaultConfig as any
-        });
+        .select('id, created_at')
+        .eq('user_id', user.id)
+        .eq('company_id', companyId)
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      
-      if (isMountedRef.current) {
-        console.log("Default config created");
-        setConfig(defaultConfig);
-        lastSavedConfigRef.current = defaultConfig;
-        setConfigVersion(Date.now());
+      if (duplicates && duplicates.length > 1) {
+        console.log(`Found ${duplicates.length} duplicate configs, cleaning up...`);
+        const idsToDelete = duplicates.slice(1).map(d => d.id);
+        
+        await supabase
+          .from('dashboard_configs')
+          .delete()
+          .in('id', idsToDelete);
+        
+        console.log("Duplicate configs cleaned up");
       }
     } catch (error) {
-      console.error("Erro ao criar configuração padrão:", error);
+      console.error("Error cleaning up duplicates:", error);
     }
   };
 
-  const debouncedSave = useCallback(async (configToSave: DashboardConfig) => {
-    if (!isMountedRef.current) return;
+  const saveConfig = async (configToSave: DashboardConfig) => {
+    if (!user?.id || !companyId || !isMountedRef.current) return;
     
     setSaving(true);
     
     try {
       console.log("=== SAVING CONFIG ===", configToSave);
+      
       const { error } = await supabase
         .from('dashboard_configs')
         .upsert({
-          user_id: user?.id,
+          user_id: user.id,
           company_id: companyId,
-          config_data: configToSave as any
+          config_data: configToSave
+        }, {
+          onConflict: 'user_id,company_id'
         });
 
       if (error) throw error;
 
       lastSavedConfigRef.current = configToSave;
       console.log("Config saved successfully");
-      toast.success("Configurações salvas com sucesso!");
+      toast.success("Configurações salvas!");
     } catch (error) {
       console.error("Erro ao salvar configuração:", error);
       toast.error("Erro ao salvar configurações");
@@ -174,12 +193,12 @@ export const useDashboardConfig = () => {
         setSaving(false);
       }
     }
-  }, [user?.id, companyId]);
+  };
 
-  const updateConfig = useCallback(async (newConfig: Partial<DashboardConfig>) => {
+  const updateConfig = useCallback((newConfig: Partial<DashboardConfig>) => {
     if (!isMountedRef.current) return;
     
-    // Merge completo para garantir que temos uma configuração válida
+    // Merge completo para garantir configuração válida
     const updatedConfig: DashboardConfig = {
       kpis: { ...config.kpis, ...(newConfig.kpis || {}) },
       charts: { ...config.charts, ...(newConfig.charts || {}) },
@@ -187,10 +206,8 @@ export const useDashboardConfig = () => {
       period_filter: newConfig.period_filter || config.period_filter
     };
     
-    console.log("=== UPDATE CONFIG IMMEDIATE ===");
-    console.log("Old config:", config);
-    console.log("New config updates:", newConfig);
-    console.log("Final config:", updatedConfig);
+    console.log("=== UPDATE CONFIG ===");
+    console.log("New config:", updatedConfig);
     
     // Atualização imediata do estado para UI responsiva
     setConfig(updatedConfig);
@@ -198,23 +215,21 @@ export const useDashboardConfig = () => {
     setConfigVersion(newVersion);
     
     // Debounce para salvar no banco
-    pendingUpdatesRef.current = updatedConfig;
-    
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
     
     saveTimeoutRef.current = setTimeout(() => {
-      if (pendingUpdatesRef.current && isMountedRef.current) {
-        debouncedSave(pendingUpdatesRef.current);
-        pendingUpdatesRef.current = null;
+      if (isMountedRef.current) {
+        saveConfig(updatedConfig);
       }
-    }, 300); // Debounce de 300ms
+    }, 500); // Debounce de 500ms
     
-  }, [config, debouncedSave]);
+  }, [config, user?.id, companyId]);
 
   const resetToDefault = async () => {
-    await updateConfig(defaultConfig);
+    console.log("=== RESET TO DEFAULT ===");
+    updateConfig(defaultConfig);
   };
 
   return {

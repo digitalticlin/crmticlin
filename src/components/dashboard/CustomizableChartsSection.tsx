@@ -18,23 +18,16 @@ const chartComponents = {
 export default function CustomizableChartsSection() {
   const { config, loading, configVersion } = useDashboardConfig();
 
-  // Memoizar a lista de gráficos visíveis baseada na configuração
   const visibleCharts = useMemo(() => {
     const visible = config.layout.chart_order.filter(
       chartKey => config.charts[chartKey as keyof typeof config.charts]
     );
-    console.log("=== CHARTS SECTION VISIBLE CALCULATION ===");
+    console.log("=== CHARTS SECTION RENDER ===");
     console.log("Config version:", configVersion);
-    console.log("All charts order:", config.layout.chart_order);
-    console.log("Charts visibility state:", config.charts);
+    console.log("Charts config:", config.charts);
     console.log("Visible Charts:", visible);
     return visible;
   }, [config.layout.chart_order, config.charts, configVersion]);
-
-  console.log("=== CHARTS SECTION RENDER ===");
-  console.log("Config version:", configVersion);
-  console.log("Visible Charts count:", visibleCharts.length);
-  console.log("Loading state:", loading);
 
   if (loading) {
     return (
@@ -54,7 +47,6 @@ export default function CustomizableChartsSection() {
     );
   }
 
-  // Grid dinâmico baseado no número de charts
   const getGridCols = (count: number) => {
     if (count === 1) return "grid-cols-1 max-w-4xl mx-auto";
     if (count === 2) return "grid-cols-1 lg:grid-cols-2";
@@ -63,7 +55,7 @@ export default function CustomizableChartsSection() {
   };
 
   return (
-    <div className={`grid ${getGridCols(visibleCharts.length)} gap-6`}>
+    <div className={`grid ${getGridCols(visibleCharts.length)} gap-6 transition-all duration-500`}>
       {visibleCharts.map((chartKey) => {
         const ChartComponent = chartComponents[chartKey as keyof typeof chartComponents];
         

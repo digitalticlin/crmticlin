@@ -58,23 +58,16 @@ export function CustomizableKPIGrid() {
   const { config, loading: configLoading, configVersion } = useDashboardConfig();
   const { kpis, loading: kpisLoading } = useDashboardKPIs(config.period_filter);
 
-  // Memoizar a lista de KPIs visíveis baseada na configuração
   const visibleKPIs = useMemo(() => {
     const visible = config.layout.kpi_order.filter(
       kpiKey => config.kpis[kpiKey as keyof typeof config.kpis]
     );
-    console.log("=== KPI GRID VISIBLE CALCULATION ===");
+    console.log("=== KPI GRID RENDER ===");
     console.log("Config version:", configVersion);
-    console.log("All KPIs order:", config.layout.kpi_order);
-    console.log("KPIs visibility state:", config.kpis);
+    console.log("KPIs config:", config.kpis);
     console.log("Visible KPIs:", visible);
     return visible;
   }, [config.layout.kpi_order, config.kpis, configVersion]);
-
-  console.log("=== KPI GRID RENDER ===");
-  console.log("Config version:", configVersion);
-  console.log("Visible KPIs count:", visibleKPIs.length);
-  console.log("Loading states - config:", configLoading, "kpis:", kpisLoading);
 
   if (configLoading || kpisLoading) {
     return (
@@ -94,7 +87,6 @@ export function CustomizableKPIGrid() {
     );
   }
 
-  // Grid dinâmico baseado no número de KPIs
   const getGridCols = (count: number) => {
     if (count === 1) return "grid-cols-1 max-w-sm mx-auto";
     if (count === 2) return "grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto";
@@ -105,7 +97,7 @@ export function CustomizableKPIGrid() {
   };
 
   return (
-    <div className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6`}>
+    <div className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6 transition-all duration-500`}>
       {visibleKPIs.map((kpiKey) => {
         const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
         const value = kpis[kpiKey as keyof typeof kpis];

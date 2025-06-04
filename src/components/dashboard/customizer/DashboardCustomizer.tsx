@@ -11,49 +11,31 @@ export default function DashboardCustomizer() {
   const { config, loading, updateConfig, resetToDefault } = useDashboardConfig();
   const [open, setOpen] = useState(false);
 
-  console.log("DashboardCustomizer render - current config:", config);
+  console.log("DashboardCustomizer render - config version:", config);
 
-  const handleKPIToggle = async (kpiKey: keyof DashboardConfig['kpis']) => {
-    console.log("=== KPI TOGGLE START ===");
-    console.log("Toggling KPI:", kpiKey);
-    console.log("Current KPI state:", config.kpis[kpiKey]);
+  const handleKPIToggle = (kpiKey: keyof DashboardConfig['kpis']) => {
+    console.log("=== KPI TOGGLE ===", kpiKey, "from", config.kpis[kpiKey], "to", !config.kpis[kpiKey]);
     
-    const newKpiState = !config.kpis[kpiKey];
-    console.log("New KPI state will be:", newKpiState);
-    
-    const updatedConfig = {
+    updateConfig({
       kpis: {
         ...config.kpis,
-        [kpiKey]: newKpiState
+        [kpiKey]: !config.kpis[kpiKey]
       }
-    };
-    
-    console.log("Updated KPI config:", updatedConfig);
-    await updateConfig(updatedConfig);
-    console.log("=== KPI TOGGLE END ===");
+    });
   };
 
-  const handleChartToggle = async (chartKey: keyof DashboardConfig['charts']) => {
-    console.log("=== CHART TOGGLE START ===");
-    console.log("Toggling Chart:", chartKey);
-    console.log("Current Chart state:", config.charts[chartKey]);
+  const handleChartToggle = (chartKey: keyof DashboardConfig['charts']) => {
+    console.log("=== CHART TOGGLE ===", chartKey, "from", config.charts[chartKey], "to", !config.charts[chartKey]);
     
-    const newChartState = !config.charts[chartKey];
-    console.log("New Chart state will be:", newChartState);
-    
-    const updatedConfig = {
+    updateConfig({
       charts: {
         ...config.charts,
-        [chartKey]: newChartState
+        [chartKey]: !config.charts[chartKey]
       }
-    };
-    
-    console.log("Updated Chart config:", updatedConfig);
-    await updateConfig(updatedConfig);
-    console.log("=== CHART TOGGLE END ===");
+    });
   };
 
-  const handleDragEnd = async (result: DropResult) => {
+  const handleDragEnd = (result: DropResult) => {
     if (!result.destination) {
       console.log("Drag cancelled - no destination");
       return;
@@ -66,10 +48,7 @@ export default function DashboardCustomizer() {
       return;
     }
 
-    console.log("=== DRAG END START ===");
-    console.log("Drag result:", result);
-    console.log("Source:", source);
-    console.log("Destination:", destination);
+    console.log("=== DRAG END ===", { source, destination });
 
     try {
       if (source.droppableId === 'kpis-list') {
@@ -77,10 +56,9 @@ export default function DashboardCustomizer() {
         const [removed] = newKpiOrder.splice(source.index, 1);
         newKpiOrder.splice(destination.index, 0, removed);
 
-        console.log("Old KPI order:", config.layout.kpi_order);
         console.log("New KPI order:", newKpiOrder);
 
-        await updateConfig({
+        updateConfig({
           layout: {
             ...config.layout,
             kpi_order: newKpiOrder
@@ -92,27 +70,18 @@ export default function DashboardCustomizer() {
         const [removed] = newChartOrder.splice(source.index, 1);
         newChartOrder.splice(destination.index, 0, removed);
 
-        console.log("Old Chart order:", config.layout.chart_order);
         console.log("New Chart order:", newChartOrder);
 
-        await updateConfig({
+        updateConfig({
           layout: {
             ...config.layout,
             chart_order: newChartOrder
           }
         });
       }
-      
-      console.log("=== DRAG END SUCCESS ===");
     } catch (error) {
-      console.error("=== DRAG END ERROR ===", error);
+      console.error("Drag error:", error);
     }
-  };
-
-  const handleReset = async () => {
-    console.log("=== RESET START ===");
-    await resetToDefault();
-    console.log("=== RESET END ===");
   };
 
   if (loading) return null;
@@ -144,7 +113,7 @@ export default function DashboardCustomizer() {
             config={config}
             onKPIToggle={handleKPIToggle}
             onChartToggle={handleChartToggle}
-            onReset={handleReset}
+            onReset={resetToDefault}
           />
         </DragDropContext>
       </SheetContent>
