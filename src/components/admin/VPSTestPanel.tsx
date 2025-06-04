@@ -17,10 +17,14 @@ import { VPSMessageTester } from "./vps/VPSMessageTester";
 import { VPSTokenDiscovery } from "./vps/VPSTokenDiscovery";
 import { HostingerTokenForm } from "./hostinger/HostingerTokenForm";
 import { WhatsAppTokenGenerator } from "./vps/WhatsAppTokenGenerator";
+import { VPSSecretManager } from "./vps/VPSSecretManager";
 
 export const VPSTestPanel = () => {
   return (
     <div className="space-y-6">
+      {/* NOVO: Gerenciador de Secrets e Diagnósticos Automatizados - FERRAMENTA PRINCIPAL */}
+      <VPSSecretManager />
+
       {/* Deploy Inteligente - Primeira seção */}
       <AutoDeployButton />
 
