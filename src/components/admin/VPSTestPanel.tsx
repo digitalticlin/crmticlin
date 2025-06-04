@@ -1,4 +1,3 @@
-
 import { AutoDeployButton } from "./hostinger/AutoDeployButton";
 import { PortTestDiagnostic } from "./vps/PortTestDiagnostic";
 import { VPSInfoCard } from "./vps/VPSInfoCard";
@@ -19,10 +18,18 @@ import { HostingerTokenForm } from "./hostinger/HostingerTokenForm";
 import { WhatsAppTokenGenerator } from "./vps/WhatsAppTokenGenerator";
 import { VPSSecretManager } from "./vps/VPSSecretManager";
 import { VPSSupabaseSyncTest } from "./VPSSupabaseSyncTest";
+import { VPSTokenSynchronizer } from "./vps/VPSTokenSynchronizer";
+import { VPSInstanceCreationTester } from "./vps/VPSInstanceCreationTester";
 
 export const VPSTestPanel = () => {
   return (
     <div className="space-y-6">
+      {/* NOVO: Sincronização e Correção de Token VPS - FERRAMENTA PRINCIPAL */}
+      <VPSTokenSynchronizer />
+
+      {/* NOVO: Teste de Criação de Instância - FERRAMENTA PRINCIPAL */}
+      <VPSInstanceCreationTester />
+
       {/* NOVO: Teste Completo de Sincronização VPS-Supabase - FERRAMENTA PRINCIPAL */}
       <VPSSupabaseSyncTest />
 

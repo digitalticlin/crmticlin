@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -11,6 +10,7 @@ interface DiagnosticRequest {
   test: 'edge_function' | 'vps_connectivity' | 'vps_auth' | 'vps_services' | 'full_flow' | 'update_token' | 'comprehensive_health';
   vpsAction?: string;
   newToken?: string;
+  testToken?: string; // NOVO: token específico para teste
 }
 
 serve(async (req) => {
@@ -42,7 +42,7 @@ serve(async (req) => {
       throw new Error('Invalid authentication');
     }
 
-    const { test, vpsAction, newToken }: DiagnosticRequest = await req.json();
+    const { test, vpsAction, newToken, testToken }: DiagnosticRequest = await req.json();
     console.log(`[VPS Diagnostic] 🎯 Teste: ${test}`);
 
     const results: any = {
@@ -68,15 +68,15 @@ serve(async (req) => {
         break;
       
       case 'vps_connectivity':
-        results.details = await testVPSConnectivity();
+        results.details = await testVPSConnectivity(testToken);
         break;
       
       case 'vps_auth':
-        results.details = await testVPSAuthentication();
+        results.details = await testVPSAuthentication(testToken);
         break;
       
       case 'vps_services':
-        results.details = await testVPSServices();
+        results.details = await testVPSServices(testToken);
         break;
       
       case 'full_flow':
@@ -319,18 +319,23 @@ async function testEdgeFunction() {
   }
 }
 
-async function testVPSConnectivity() {
+async function testVPSConnectivity(testToken?: string) {
   console.log('[VPS Diagnostic] 🌐 Testando conectividade VPS...');
   
   const startTime = Date.now();
   const vpsHost = Deno.env.get('VPS_HOST') || '31.97.24.222';
   const vpsPort = Deno.env.get('VPS_PORT') || '3001';
   const baseUrl = `http://${vpsHost}:${vpsPort}`;
+  
+  // Usar token de teste se fornecido, senão usar o padrão
+  const apiToken = testToken || Deno.env.get('VPS_API_TOKEN') || 'wapp_TYXt5I3uIewmPts4EosF8M5DjbkyP0h4';
 
   const result = {
     success: false,
     duration: 0,
     vps_config: { host: vpsHost, port: vpsPort, baseUrl },
+    token_used: testToken ? 'test_token' : 'env_token',
+    token_preview: `${apiToken.substring(0, 10)}...`,
     connectivity: {},
     dns_resolution: {},
     port_accessibility: {},
@@ -379,11 +384,17 @@ async function testVPSConnectivity() {
       };
     }
 
-    // Teste 3: Endpoint de health check aprimorado
+    // Teste 3: Endpoint de health check aprimorado com token
     try {
       const healthStart = Date.now();
       const response = await fetch(`${baseUrl}/health`, {
         method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiToken}`,
+          'User-Agent': 'Supabase-VPS-Diagnostic/2.0',
+          'Accept': 'application/json'
+        },
         signal: AbortSignal.timeout(10000)
       });
       
@@ -446,14 +457,16 @@ async function testVPSConnectivity() {
   }
 }
 
-async function testVPSAuthentication() {
+async function testVPSAuthentication(testToken?: string) {
   console.log('[VPS Diagnostic] 🔐 Testando autenticação VPS...');
   
   const startTime = Date.now();
   const vpsHost = Deno.env.get('VPS_HOST') || '31.97.24.222';
   const vpsPort = Deno.env.get('VPS_PORT') || '3001';
-  const apiToken = Deno.env.get('VPS_API_TOKEN') || 'wapp_TYXt5I3uIewmPts4EosF8M5DjbkyP0h4';
   const baseUrl = `http://${vpsHost}:${vpsPort}`;
+  
+  // Usar token de teste se fornecido, senão usar o padrão
+  const apiToken = testToken || Deno.env.get('VPS_API_TOKEN') || 'wapp_TYXt5I3uIewmPts4EosF8M5DjbkyP0h4';
 
   const result = {
     success: false,
@@ -462,7 +475,8 @@ async function testVPSAuthentication() {
       has_token: !!apiToken,
       token_length: apiToken.length,
       token_preview: `${apiToken.substring(0, 8)}...`,
-      token_format_valid: apiToken.startsWith('wapp_')
+      token_format_valid: apiToken.startsWith('wapp_'),
+      token_source: testToken ? 'test_token' : 'environment'
     },
     auth_test: {},
     endpoints_tested: []
@@ -483,7 +497,9 @@ async function testVPSAuthentication() {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${apiToken}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'User-Agent': 'Supabase-VPS-Auth-Test/2.0',
+            'Accept': 'application/json'
           },
           signal: AbortSignal.timeout(8000)
         });
@@ -527,7 +543,8 @@ async function testVPSAuthentication() {
     result.auth_test = {
       successful_endpoints: successfulEndpoints,
       total_endpoints: result.endpoints_tested.length,
-      success_rate: `${Math.round((successfulEndpoints / result.endpoints_tested.length) * 100)}%`
+      success_rate: `${Math.round((successfulEndpoints / result.endpoints_tested.length) * 100)}%`,
+      token_validation: result.success ? 'valid' : 'invalid'
     };
 
     result.duration = Date.now() - startTime;
@@ -545,13 +562,13 @@ async function testVPSAuthentication() {
   }
 }
 
-async function testVPSServices() {
+async function testVPSServices(testToken?: string) {
   console.log('[VPS Diagnostic] ⚙️ Testando serviços VPS...');
   
   const startTime = Date.now();
   const vpsHost = Deno.env.get('VPS_HOST') || '31.97.24.222';
   const vpsPort = Deno.env.get('VPS_PORT') || '3001';
-  const apiToken = Deno.env.get('VPS_API_TOKEN') || 'wapp_TYXt5I3uIewmPts4EosF8M5DjbkyP0h4';
+  const apiToken = testToken || Deno.env.get('VPS_API_TOKEN') || 'wapp_TYXt5I3uIewmPts4EosF8M5DjbkyP0h4';
   const baseUrl = `http://${vpsHost}:${vpsPort}`;
 
   const result = {
