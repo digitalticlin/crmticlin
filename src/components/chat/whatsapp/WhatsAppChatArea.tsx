@@ -11,7 +11,7 @@ interface WhatsAppChatAreaProps {
   onBack: () => void;
   isLoadingMessages: boolean;
   isSending: boolean;
-  onOpenDetails: () => void;
+  onEditLead: () => void;
 }
 
 export const WhatsAppChatArea = ({
@@ -21,14 +21,14 @@ export const WhatsAppChatArea = ({
   onBack,
   isLoadingMessages,
   isSending,
-  onOpenDetails
+  onEditLead
 }: WhatsAppChatAreaProps) => {
   return (
     <div className="h-full flex flex-col bg-white/5 backdrop-blur-sm relative z-10">
       <WhatsAppChatHeader 
         selectedContact={selectedContact} 
         onBack={onBack}
-        onOpenDetails={onOpenDetails}
+        onEditLead={onEditLead}
       />
       <WhatsAppMessagesList 
         messages={messages} 

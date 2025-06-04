@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import React from "react";
 import { cn } from "@/lib/utils";
@@ -55,6 +54,10 @@ export const WhatsAppChatLayout = ({
     setUpdatedContacts(newContacts);
   };
 
+  const handleEditLead = () => {
+    setIsDetailsSidebarOpen(true);
+  };
+
   return (
     <div className="h-full flex overflow-hidden relative z-10">
       {/* Painel Esquerdo - Lista de Conversas com glassmorphism */}
@@ -84,7 +87,7 @@ export const WhatsAppChatLayout = ({
             onBack={() => onSelectContact(null)}
             isLoadingMessages={isLoadingMessages}
             isSending={isSending}
-            onOpenDetails={() => setIsDetailsSidebarOpen(!isDetailsSidebarOpen)}
+            onEditLead={handleEditLead}
           />
         ) : (
           <WhatsAppEmptyState />

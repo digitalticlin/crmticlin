@@ -1,19 +1,19 @@
 
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Phone, Info } from "lucide-react";
+import { ArrowLeft, Phone, Edit } from "lucide-react";
 import { Contact } from "@/types/chat";
 
 interface WhatsAppChatHeaderProps {
   selectedContact: Contact;
   onBack: () => void;
-  onOpenDetails: () => void;
+  onEditLead: () => void;
 }
 
 export const WhatsAppChatHeader = ({
   selectedContact,
   onBack,
-  onOpenDetails,
+  onEditLead,
 }: WhatsAppChatHeaderProps) => {
   return (
     <div className="p-4 bg-white/10 backdrop-blur-md border-b border-white/20 flex items-center gap-3">
@@ -26,7 +26,7 @@ export const WhatsAppChatHeader = ({
         <ArrowLeft className="h-5 w-5" />
       </Button>
       
-      <div className="flex items-center gap-3 flex-1 cursor-pointer hover:bg-white/20 rounded-lg p-2 -m-2 transition-colors" onClick={onOpenDetails}>
+      <div className="flex items-center gap-3 flex-1 cursor-pointer hover:bg-white/20 rounded-lg p-2 -m-2 transition-colors">
         <div className="relative">
           <Avatar className="h-10 w-10">
             <AvatarFallback className="bg-gradient-to-br from-green-500 to-green-600 text-white">
@@ -48,11 +48,11 @@ export const WhatsAppChatHeader = ({
       </div>
       
       <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" className="text-gray-700 hover:text-gray-900 hover:bg-white/20" onClick={onEditLead}>
+          <Edit className="h-5 w-5" />
+        </Button>
         <Button variant="ghost" size="icon" className="text-gray-700 hover:text-gray-900 hover:bg-white/20">
           <Phone className="h-5 w-5" />
-        </Button>
-        <Button variant="ghost" size="icon" className="text-gray-700 hover:text-gray-900 hover:bg-white/20" onClick={onOpenDetails}>
-          <Info className="h-5 w-5" />
         </Button>
       </div>
     </div>
