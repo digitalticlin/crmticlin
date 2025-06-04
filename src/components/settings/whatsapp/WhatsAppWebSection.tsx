@@ -1,7 +1,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { WhatsAppErrorAlert } from "./WhatsAppErrorAlert";
 import { WhatsAppWebInstanceCard } from "./WhatsAppWebInstanceCard";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { AutoQRCodeModal } from "./AutoQRCodeModal";
@@ -81,8 +80,6 @@ export const WhatsAppWebSection = () => {
 
   return (
     <div className="space-y-6">
-      <WhatsAppErrorAlert lastError={error} />
-      
       {/* Title Card with Add Button */}
       <div className="bg-white/30 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-6">
         <div className="flex items-center justify-between">
