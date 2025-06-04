@@ -69,10 +69,10 @@ export const LeadDetailsSidebar = ({
   const currentContact = { ...selectedContact, ...editedContact };
 
   return (
-    <div className="fixed right-0 top-0 bottom-0 w-96 bg-white/80 backdrop-blur-sm border-l border-white/20 z-50 transform transition-transform duration-300 shadow-xl">
+    <div className="fixed right-0 top-0 bottom-0 w-80 bg-white/10 backdrop-blur-md border-l border-white/20 z-50 transform transition-transform duration-300 shadow-xl">
       <div className="h-full flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/20 bg-white/40 backdrop-blur-sm">
+        <div className="flex items-center justify-between p-6 border-b border-white/20 bg-white/20 backdrop-blur-sm">
           <h2 className="text-xl font-semibold text-gray-800">Detalhes do Lead</h2>
           <Button 
             variant="ghost" 
@@ -87,7 +87,7 @@ export const LeadDetailsSidebar = ({
         <ScrollArea className="flex-1 p-6">
           <div className="space-y-6">
             {/* Informações Básicas */}
-            <div className="bg-white/60 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/30">
+            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/30">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
                   <User className="h-5 w-5 text-blue-600" />
@@ -216,7 +216,7 @@ export const LeadDetailsSidebar = ({
             </div>
 
             {/* Notas */}
-            <div className="bg-white/60 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/30">
+            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/30">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">Notas</h3>
               <Textarea
                 value={editedContact.notes || currentContact.notes || ''}
@@ -228,7 +228,7 @@ export const LeadDetailsSidebar = ({
             </div>
 
             {/* Histórico de Vendas */}
-            <div className="bg-white/60 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/30">
+            <div className="bg-white/20 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/30">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">Histórico de Vendas</h3>
               
               <div className="space-y-3">

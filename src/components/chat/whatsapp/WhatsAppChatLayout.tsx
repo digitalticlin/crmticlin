@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import React from "react";
 import { cn } from "@/lib/utils";
@@ -123,7 +122,7 @@ export const WhatsAppChatLayout = ({
             minSize={50}
             className={cn(
               "relative",
-              isDetailsSidebarOpen && "mr-96"
+              isDetailsSidebarOpen && "mr-80"
             )}
           >
             <div className="h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg overflow-hidden relative z-10">
