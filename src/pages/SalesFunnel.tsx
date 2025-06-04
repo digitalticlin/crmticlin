@@ -1,7 +1,8 @@
+
 import { useState } from "react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { ModernPageHeader } from "@/components/layout/ModernPageHeader";
-import { useSalesFunnel } from "@/hooks/salesFunnel/useSalesFunnel";
+import { useSalesFunnel } from "@/hooks/useSalesFunnel";
 import { KanbanBoard } from "@/components/sales/KanbanBoard";
 import { LeadDetailSidebar } from "@/components/sales/LeadDetailSidebar";
 import { toast } from "sonner";
@@ -40,8 +41,10 @@ export default function SalesFunnel() {
     moveLeadToStage
   } = useSalesFunnel();
 
+  // Função para abrir o chat com o lead selecionado
   const handleOpenChat = (lead: KanbanLead) => {
-    navigate('/chat');
+    // Navegar para o chat passando o ID do lead como parâmetro
+    navigate(`/whatsapp-chat?leadId=${lead.id}`);
   };
 
   const handleMoveToWonLost = async (lead: KanbanLead, status: "won" | "lost") => {

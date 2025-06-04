@@ -3,6 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Contact } from "@/types/chat";
+import { unifiedTags } from "@/data/unifiedFakeData";
 
 interface ContactItemProps {
   contact: Contact;
@@ -16,18 +17,15 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
     return timeString;
   };
 
-  // Função para obter cor da tag (integrada com funil)
+  // Função para obter cor da tag sincronizada com o funil
   const getTagColor = (tagName: string) => {
-    const colors = [
-      'bg-green-100 text-green-800 border-green-200',
-      'bg-blue-100 text-blue-800 border-blue-200',
-      'bg-purple-100 text-purple-800 border-purple-200',
-      'bg-orange-100 text-orange-800 border-orange-200',
-      'bg-pink-100 text-pink-800 border-pink-200',
-      'bg-indigo-100 text-indigo-800 border-indigo-200'
-    ];
-    const index = tagName.length % colors.length;
-    return colors[index];
+    const unifiedTag = unifiedTags.find(tag => tag.name === tagName);
+    if (unifiedTag) {
+      // Converter a cor do funil para o estilo do chat com opacidade
+      return `bg-white/40 text-black border-white/20`;
+    }
+    // Fallback para tags não encontradas
+    return 'bg-white/40 text-black border-white/20';
   };
 
   return (
@@ -75,7 +73,7 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
             )}
           </div>
           
-          {/* Tags do Lead */}
+          {/* Tags do Lead - Sincronizadas com o funil */}
           {contact.tags && contact.tags.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {contact.tags.slice(0, 2).map((tag, index) => (
@@ -83,7 +81,7 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
                   key={index}
                   variant="outline" 
                   className={cn(
-                    "text-xs border",
+                    "text-xs border backdrop-blur-[2px] shadow-md font-semibold",
                     getTagColor(tag)
                   )}
                 >
@@ -91,7 +89,7 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
                 </Badge>
               ))}
               {contact.tags.length > 2 && (
-                <Badge variant="outline" className="text-xs border-gray-300 text-gray-600 bg-gray-50">
+                <Badge variant="outline" className="text-xs border-white/20 text-black bg-white/30 backdrop-blur-[2px] shadow-md">
                   +{contact.tags.length - 2}
                 </Badge>
               )}
@@ -101,7 +99,7 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
           {/* Company Info */}
           {contact.company && (
             <div className="flex items-center gap-2 mt-1">
-              <Badge variant="outline" className="text-xs border-gray-400 text-gray-600 bg-white/30">
+              <Badge variant="outline" className="text-xs border-white/20 text-black bg-white/30 backdrop-blur-[2px] shadow-md">
                 {contact.company}
               </Badge>
             </div>

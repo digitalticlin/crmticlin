@@ -13,10 +13,9 @@ export const LeadCardTags = ({ tags }: LeadCardTagsProps) => {
         <span
           key={tag.id}
           className={cn(
-            "px-2.5 py-0.5 text-xs font-semibold rounded-full backdrop-blur-[2px] shadow-md border border-white/20 bg-white/40 text-black",
+            "px-2.5 py-0.5 text-xs font-semibold rounded-full backdrop-blur-[2px] shadow-md border border-white/20 bg-white/40 text-black transition-all duration-200",
             tag.color
           )}
-          style={{ transition: "all 0.2s" }}
         >
           {tag.name}
         </span>
