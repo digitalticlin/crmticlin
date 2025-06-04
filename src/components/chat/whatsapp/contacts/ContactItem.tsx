@@ -76,23 +76,23 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
                 {contact.lastMessage || "Clique para conversar"}
               </p>
               
-              {/* Só mostrar o badge se unreadCount for maior que 0 */}
-              {contact.unreadCount && contact.unreadCount > 0 && (
+              {/* Corrigir condição do badge - só mostrar se unreadCount for maior que 0 */}
+              {contact.unreadCount && Number(contact.unreadCount) > 0 && (
                 <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs px-2 py-1 rounded-full ml-2 shadow-sm">
-                  {contact.unreadCount > 99 ? '99+' : contact.unreadCount}
+                  {Number(contact.unreadCount) > 99 ? '99+' : contact.unreadCount}
                 </Badge>
               )}
             </div>
             
-            {/* Tags do Lead - Sincronizadas com o funil */}
+            {/* Tags do Lead - Forçar uma linha só */}
             {contact.tags && contact.tags.length > 0 && (
-              <div className="flex flex-nowrap gap-1 mt-2 overflow-hidden">
+              <div className="flex items-center gap-1 mt-2 overflow-hidden whitespace-nowrap max-w-full">
                 {contact.tags.slice(0, 2).map((tag, index) => (
                   <Badge 
                     key={index}
                     variant="outline" 
                     className={cn(
-                      "text-xs border backdrop-blur-[2px] shadow-md font-semibold flex-shrink-0",
+                      "text-xs border backdrop-blur-[2px] shadow-md font-semibold flex-shrink-0 max-w-[80px] truncate",
                       getTagColor(tag)
                     )}
                   >
