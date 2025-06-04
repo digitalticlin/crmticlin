@@ -56,10 +56,10 @@ export const WhatsAppChatLayout = ({
   };
 
   return (
-    <div className="h-full flex bg-[#111b21] text-white overflow-hidden">
-      {/* Painel Esquerdo - Lista de Conversas */}
+    <div className="h-full flex overflow-hidden">
+      {/* Painel Esquerdo - Lista de Conversas com card transparente */}
       <div className={cn(
-        "w-full max-w-[400px] border-r border-[#313d45] flex flex-col bg-[#0b141a]",
+        "w-full max-w-[400px] flex flex-col bg-white/10 backdrop-blur-md border-r border-white/20",
         selectedContact ? "hidden lg:flex" : "flex"
       )}>
         <WhatsAppContactsList
@@ -70,28 +70,28 @@ export const WhatsAppChatLayout = ({
         />
       </div>
 
-      {/* Painel Central - Área de Chat */}
+      {/* Painel Central - Área de Chat com card transparente */}
       <div className={cn(
-        "flex-1 flex flex-col bg-[#0b141a]",
+        "flex-1 flex flex-col bg-white/10 backdrop-blur-md",
         !selectedContact && "hidden lg:flex",
         isDetailsSidebarOpen && "lg:pr-96"
       )}>
         {selectedContact ? (
           <>
             {/* Chat Header with Details Button */}
-            <div className="bg-[#202c33] border-b border-[#313d45] p-4 flex items-center justify-between">
+            <div className="bg-white/20 backdrop-blur-sm border-b border-white/30 p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => onSelectContact(null)}
-                  className="lg:hidden text-[#8696a0] hover:text-[#e9edef]"
+                  className="lg:hidden text-gray-700 hover:text-gray-900 hover:bg-white/20"
                 >
                   ←
                 </Button>
                 <div>
-                  <h2 className="text-[#e9edef] font-medium">{selectedContact.name}</h2>
-                  <p className="text-[#8696a0] text-sm">
+                  <h2 className="text-gray-900 font-medium">{selectedContact.name}</h2>
+                  <p className="text-gray-600 text-sm">
                     {selectedContact.isOnline ? 'online' : `+${selectedContact.phone}`}
                   </p>
                 </div>
@@ -102,8 +102,8 @@ export const WhatsAppChatLayout = ({
                 size="icon"
                 onClick={() => setIsDetailsSidebarOpen(!isDetailsSidebarOpen)}
                 className={cn(
-                  "text-[#8696a0] hover:text-[#e9edef]",
-                  isDetailsSidebarOpen && "bg-[#2a3942] text-[#00a884]"
+                  "text-gray-700 hover:text-gray-900 hover:bg-white/20",
+                  isDetailsSidebarOpen && "bg-white/30 text-gray-900"
                 )}
               >
                 <Info className="h-5 w-5" />
