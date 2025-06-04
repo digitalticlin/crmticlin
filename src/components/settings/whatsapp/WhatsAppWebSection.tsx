@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { WhatsAppErrorAlert } from "./WhatsAppErrorAlert";
@@ -10,7 +11,6 @@ import { Loader2, MessageSquare } from "lucide-react";
 import { ImprovedConnectWhatsAppButton } from "./ImprovedConnectWhatsAppButton";
 import { ImprovedQRCodeModal } from "./ImprovedQRCodeModal";
 import { useCompanyData } from "@/hooks/useCompanyData";
-import { WhatsAppDiagnostic } from "./WhatsAppDiagnostic";
 
 export const WhatsAppWebSection = () => {
   console.log('[WhatsAppWebSection] Component rendering - WhatsApp Web.js only');
@@ -82,9 +82,6 @@ export const WhatsAppWebSection = () => {
   return (
     <div className="space-y-6">
       <WhatsAppErrorAlert lastError={error} />
-      
-      {/* Componente de Diagnóstico */}
-      <WhatsAppDiagnostic />
       
       {/* Title Card with Add Button */}
       <div className="bg-white/30 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-6">

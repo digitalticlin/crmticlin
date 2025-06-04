@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import GlobalAdminSidebar from "@/components/admin/GlobalAdminSidebar";
@@ -12,6 +13,8 @@ import { WhatsAppSyncTest } from "@/components/admin/WhatsAppSyncTest";
 import { SyncLogsPanel } from "@/components/admin/SyncLogsPanel";
 import { VPSTestPanel } from "@/components/admin/VPSTestPanel";
 import { DeployManager } from "@/components/admin/deploy/DeployManager";
+import { WhatsAppDiagnostic } from "@/components/settings/whatsapp/WhatsAppDiagnostic";
+import { VPSHealthDiagnostic } from "@/components/settings/whatsapp/VPSHealthDiagnostic";
 
 export default function GlobalAdmin() {
   const [activeTab, setActiveTab] = useState("companies");
@@ -29,11 +32,12 @@ export default function GlobalAdmin() {
           </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid grid-cols-11 w-full">
+            <TabsList className="grid grid-cols-12 w-full">
               <TabsTrigger value="companies">Empresas</TabsTrigger>
               <TabsTrigger value="users">Usuários</TabsTrigger>
               <TabsTrigger value="plans">Planos</TabsTrigger>
               <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
+              <TabsTrigger value="diagnostic">Diagnóstico</TabsTrigger>
               <TabsTrigger value="sync">Sincronização</TabsTrigger>
               <TabsTrigger value="sync-logs">Logs Sync</TabsTrigger>
               <TabsTrigger value="vps">Deploy VPS</TabsTrigger>
@@ -57,6 +61,22 @@ export default function GlobalAdmin() {
             
             <TabsContent value="whatsapp">
               <WhatsAppWebAdminPanel />
+            </TabsContent>
+            
+            <TabsContent value="diagnostic">
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-semibold mb-2">Diagnóstico WhatsApp</h2>
+                  <p className="text-muted-foreground mb-6">
+                    Ferramentas de diagnóstico e sincronização do sistema WhatsApp
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <WhatsAppDiagnostic />
+                  <VPSHealthDiagnostic />
+                </div>
+              </div>
             </TabsContent>
             
             <TabsContent value="sync">
