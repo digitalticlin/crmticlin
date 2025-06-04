@@ -110,7 +110,7 @@ export default function ResponsiveSidebar() {
   if (isMobile) {
     return (
       <>
-        {/* Mobile Header with Hamburger */}
+        {/* ETAPA 2: Mobile Header fixo */}
         <div className="md:hidden fixed top-0 left-0 right-0 z-50 h-14 flex items-center px-4 border-b bg-white/25 backdrop-blur-lg border-white/30">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -126,18 +126,15 @@ export default function ResponsiveSidebar() {
           </Sheet>
           <SidebarLogo isCollapsed={false} />
         </div>
-        
-        {/* Mobile spacing */}
-        <div className="h-14 md:hidden" />
       </>
     );
   }
 
-  // Desktop sidebar
+  // ETAPA 2: Desktop sidebar fixo
   return (
     <div
       className={cn(
-        "hidden md:flex h-screen sticky top-0 left-0 z-30 flex-col transition-all duration-300 border-r bg-white/25 backdrop-blur-lg border-white/30",
+        "fixed top-0 left-0 bottom-0 z-30 flex-col transition-all duration-300 border-r bg-white/25 backdrop-blur-lg border-white/30 hidden md:flex",
         isCollapsed ? "w-[80px]" : "w-[250px]"
       )}
     >
