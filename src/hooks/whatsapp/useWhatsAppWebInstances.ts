@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCompanyData } from '@/hooks/useCompanyData';
 import { useInstanceActions } from './services/instanceActionsService';
+import { extractUsernameFromEmail, generateSequentialInstanceName } from '@/utils/instanceNaming';
 
 export interface WhatsAppWebInstance {
   id: string;
@@ -32,6 +33,47 @@ export const useWhatsAppWebInstances = () => {
   
   const { user } = useAuth();
   const { companyId } = useCompanyData();
+
+  // FASE 3.1.3: Função para gerar nome inteligente de instância
+  const generateIntelligentInstanceName = async (userEmail: string): Promise<string> => {
+    try {
+      console.log('[WhatsApp Web Instances] 🎯 FASE 3.1.3: Gerando nome inteligente para:', userEmail);
+      
+      if (!userEmail || !companyId) {
+        console.log('[WhatsApp Web Instances] ⚠️ Email ou company_id não disponível, usando fallback');
+        return `whatsapp_${Date.now()}`;
+      }
+
+      // Extrair username do email (digitalticlin@gmail.com → digitalticlin)
+      const username = extractUsernameFromEmail(userEmail);
+      console.log('[WhatsApp Web Instances] 📧 Username extraído:', username);
+
+      // Buscar nomes de instâncias existentes da empresa
+      const { data: existingInstances, error } = await supabase
+        .from('whatsapp_instances')
+        .select('instance_name')
+        .eq('company_id', companyId);
+
+      if (error) {
+        console.error('[WhatsApp Web Instances] ❌ Erro ao buscar instâncias existentes:', error);
+        return `${username}_${Date.now()}`;
+      }
+
+      const existingNames = existingInstances?.map(i => i.instance_name) || [];
+      console.log('[WhatsApp Web Instances] 📋 Nomes existentes:', existingNames);
+
+      // Gerar nome sequencial (digitalticlin, digitalticlin1, digitalticlin2...)
+      const intelligentName = generateSequentialInstanceName(username, existingNames);
+      console.log('[WhatsApp Web Instances] ✅ Nome inteligente gerado:', intelligentName);
+
+      return intelligentName;
+
+    } catch (error) {
+      console.error('[WhatsApp Web Instances] ❌ Erro na geração de nome inteligente:', error);
+      // Fallback para timestamp se algo der errado
+      return `whatsapp_${Date.now()}`;
+    }
+  };
 
   // Fetch instances from database
   const fetchInstances = async () => {
@@ -192,11 +234,13 @@ export const useWhatsAppWebInstances = () => {
     selectedInstanceName,
     refetch: fetchInstances,
     fetchInstances,
+    // FASE 3.1.3: Exportar função de nomenclatura inteligente
+    generateIntelligentInstanceName,
     // CORREÇÃO FASE 3.1.2: createInstance modificado para retornar instância criada com QR Code
     createInstance: async (instanceName: string) => {
       setIsConnecting(true);
       try {
-        console.log('[Hook] 🚀 Creating instance - FASE 3.1.2:', instanceName);
+        console.log('[Hook] 🚀 Creating instance - FASE 3.1.3:', instanceName);
         const result = await createInstance(instanceName);
         
         // Retornar a instância criada para que o componente possa capturar o QR Code

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { WhatsAppWebInstanceCard } from "./WhatsAppWebInstanceCard";
@@ -24,7 +23,8 @@ export const WhatsAppWebSection = () => {
     isConnecting,
     createInstance,
     deleteInstance,
-    refreshQRCode
+    refreshQRCode,
+    generateIntelligentInstanceName
   } = useWhatsAppWebInstances();
 
   // Load current user data
@@ -48,10 +48,13 @@ export const WhatsAppWebSection = () => {
     getUser();
   }, []);
 
-  // CORREÇÃO FASE 3.1.2: Novo handleConnect que captura QR Code e abre modal automaticamente
+  // FASE 3.1.3: handleConnect com nomenclatura inteligente
   const handleConnect = async () => {
-    console.log('[WhatsAppWebSection] Connect requested - FASE 3.1.2');
-    const instanceName = `whatsapp_${Date.now()}`;
+    console.log('[WhatsAppWebSection] Connect requested - FASE 3.1.3 (nomenclatura inteligente)');
+    
+    // FASE 3.1.3: Gerar nome inteligente baseado no email do usuário
+    const instanceName = await generateIntelligentInstanceName(userEmail);
+    console.log('[WhatsAppWebSection] 🎯 Nome inteligente gerado:', instanceName);
     
     try {
       // Criar instância e capturar resultado com QR Code
