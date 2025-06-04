@@ -80,7 +80,7 @@ export const WhatsAppContactsList = ({
   };
 
   return (
-    <div className="h-full flex flex-col bg-white/5 backdrop-blur-sm border-r border-white/20 m-2 mr-0 rounded-xl overflow-hidden">
+    <div className="h-full flex flex-col overflow-hidden">
       {/* Header com Filtros */}
       <WhatsAppChatFilters
         searchQuery={searchQuery}

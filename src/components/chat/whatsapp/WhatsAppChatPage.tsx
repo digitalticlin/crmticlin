@@ -101,7 +101,13 @@ const WhatsAppChatMainContent = () => {
             ? "left-[80px]" 
             : "left-[250px]"
       )}>
-        <WhatsAppChatTabs />
+        {/* Container com padding igual ao Dashboard */}
+        <div className={cn(
+          "p-4 md:p-6 h-full",
+          isMobile && "pt-6"
+        )}>
+          <WhatsAppChatTabs />
+        </div>
       </main>
     </div>
   );

@@ -56,10 +56,10 @@ export const WhatsAppChatLayout = ({
   };
 
   return (
-    <div className="h-full flex overflow-hidden relative z-10">
-      {/* Painel Esquerdo - Lista de Conversas com espaçamento e cantos arredondados */}
+    <div className="h-full flex gap-6 overflow-hidden relative z-10">
+      {/* Painel Esquerdo - Lista de Conversas com glassmorphism */}
       <div className={cn(
-        "w-full max-w-[400px] flex flex-col relative z-10",
+        "w-full max-w-[400px] flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10",
         selectedContact ? "hidden lg:flex" : "flex"
       )}>
         <WhatsAppContactsList
@@ -70,9 +70,9 @@ export const WhatsAppChatLayout = ({
         />
       </div>
 
-      {/* Painel Central - Área de Chat */}
+      {/* Painel Central - Área de Chat com glassmorphism */}
       <div className={cn(
-        "flex-1 flex flex-col bg-white/10 backdrop-blur-md relative z-10 m-2 ml-0 rounded-xl overflow-hidden",
+        "flex-1 flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg overflow-hidden relative z-10",
         !selectedContact && "hidden lg:flex",
         isDetailsSidebarOpen && "lg:mr-96"
       )}>
