@@ -23,7 +23,7 @@ const LoadingSpinner = () => (
         <div className="absolute inset-0 rounded-full border-2 border-[#D3D800]/30"></div>
         <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#D3D800] animate-spin"></div>
       </div>
-      <p className="text-sm text-white/70">Carregando configurações...</p>
+      <p className="text-sm text-gray-700">Carregando configurações...</p>
     </div>
   </div>
 );
@@ -38,7 +38,7 @@ const SettingsTabs = () => {
     <div className="space-y-8">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
         <TabsList className={cn(
-          "grid h-auto p-2 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl",
+          "grid h-auto p-2 bg-white/35 backdrop-blur-xl border border-white/30 rounded-2xl shadow-2xl",
           isMobile ? "grid-cols-1 w-full gap-2" : "grid-cols-3 w-fit mx-auto"
         )}>
           <TabsTrigger 
@@ -47,8 +47,8 @@ const SettingsTabs = () => {
               "relative overflow-hidden transition-all duration-300 rounded-xl px-6 py-4",
               "data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#D3D800]/20 data-[state=active]:to-[#D3D800]/10",
               "data-[state=active]:backdrop-blur-lg data-[state=active]:border data-[state=active]:border-[#D3D800]/30",
-              "data-[state=active]:shadow-lg data-[state=active]:text-white",
-              "hover:bg-white/10 text-white/80 hover:text-white",
+              "data-[state=active]:shadow-lg data-[state=active]:text-gray-800",
+              "hover:bg-white/20 text-gray-700 hover:text-gray-800",
               isMobile ? "justify-start" : "justify-center"
             )}
           >
@@ -67,8 +67,8 @@ const SettingsTabs = () => {
               "relative overflow-hidden transition-all duration-300 rounded-xl px-6 py-4",
               "data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#D3D800]/20 data-[state=active]:to-[#D3D800]/10",
               "data-[state=active]:backdrop-blur-lg data-[state=active]:border data-[state=active]:border-[#D3D800]/30",
-              "data-[state=active]:shadow-lg data-[state=active]:text-white",
-              "hover:bg-white/10 text-white/80 hover:text-white",
+              "data-[state=active]:shadow-lg data-[state=active]:text-gray-800",
+              "hover:bg-white/20 text-gray-700 hover:text-gray-800",
               isMobile ? "justify-start" : "justify-center"
             )}
           >
@@ -87,8 +87,8 @@ const SettingsTabs = () => {
               "relative overflow-hidden transition-all duration-300 rounded-xl px-6 py-4",
               "data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#D3D800]/20 data-[state=active]:to-[#D3D800]/10",
               "data-[state=active]:backdrop-blur-lg data-[state=active]:border data-[state=active]:border-[#D3D800]/30",
-              "data-[state=active]:shadow-lg data-[state=active]:text-white",
-              "hover:bg-white/10 text-white/80 hover:text-white",
+              "data-[state=active]:shadow-lg data-[state=active]:text-gray-800",
+              "hover:bg-white/20 text-gray-700 hover:text-gray-800",
               isMobile ? "justify-start" : "justify-center"
             )}
           >

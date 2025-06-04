@@ -37,7 +37,7 @@ const ProfileSettings = () => {
             <div className="absolute inset-0 rounded-full border-2 border-[#D3D800]/30"></div>
             <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#D3D800] animate-spin"></div>
           </div>
-          <p className="text-sm text-white/70">Carregando perfil...</p>
+          <p className="text-sm text-gray-700">Carregando perfil...</p>
         </div>
       </div>
     );
@@ -50,14 +50,14 @@ const ProfileSettings = () => {
   return (
     <div className="space-y-8">
       {/* Avatar Section */}
-      <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl p-8 animate-fade-in">
+      <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in">
         <div className="flex items-center space-x-4 mb-6">
           <div className="p-3 bg-gradient-to-r from-[#D3D800]/20 to-[#D3D800]/10 rounded-2xl">
             <Camera className="h-6 w-6 text-[#D3D800]" />
           </div>
           <div>
-            <h3 className="text-xl font-semibold text-white">Foto do Perfil</h3>
-            <p className="text-white/70">Personalize sua foto de perfil</p>
+            <h3 className="text-xl font-semibold text-gray-800">Foto do Perfil</h3>
+            <p className="text-gray-700">Personalize sua foto de perfil</p>
           </div>
         </div>
         
@@ -68,14 +68,14 @@ const ProfileSettings = () => {
       </div>
 
       {/* Personal Information */}
-      <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "100ms" }}>
+      <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "100ms" }}>
         <div className="flex items-center space-x-4 mb-6">
           <div className="p-3 bg-gradient-to-r from-blue-500/20 to-blue-400/10 rounded-2xl">
             <User className="h-6 w-6 text-blue-400" />
           </div>
           <div>
-            <h3 className="text-xl font-semibold text-white">Informações Pessoais</h3>
-            <p className="text-white/70">Gerencie seus dados pessoais e de contato</p>
+            <h3 className="text-xl font-semibold text-gray-800">Informações Pessoais</h3>
+            <p className="text-gray-700">Gerencie seus dados pessoais e de contato</p>
           </div>
         </div>
         
@@ -95,39 +95,39 @@ const ProfileSettings = () => {
       </div>
 
       {/* Company Information */}
-      <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "200ms" }}>
+      <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "200ms" }}>
         <div className="flex items-center space-x-4 mb-6">
           <div className="p-3 bg-gradient-to-r from-purple-500/20 to-purple-400/10 rounded-2xl">
             <Building2 className="h-6 w-6 text-purple-400" />
           </div>
           <div>
-            <h3 className="text-xl font-semibold text-white">Informações da Empresa</h3>
-            <p className="text-white/70">Dados da sua organização</p>
+            <h3 className="text-xl font-semibold text-gray-800">Informações da Empresa</h3>
+            <p className="text-gray-700">Dados da sua organização</p>
           </div>
         </div>
         
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-white/90 flex items-center">
+            <label className="text-sm font-medium text-gray-800 flex items-center">
               RAZÃO SOCIAL ou NOME
-              <span className="ml-1 text-red-400">*</span>
+              <span className="ml-1 text-red-500">*</span>
             </label>
             <input 
-              className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#D3D800]/50 focus:border-[#D3D800]/50 transition-all duration-200"
+              className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-xl text-gray-800 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-[#D3D800]/50 focus:border-[#D3D800]/50 transition-all duration-200"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               required
               placeholder="Nome da empresa"
             />
-            <p className="text-xs text-white/60">
+            <p className="text-xs text-gray-600">
               Campo obrigatório para conexão de WhatsApp
             </p>
           </div>
           
           <div className="space-y-2">
-            <label className="text-sm font-medium text-white/90">CPF/CNPJ</label>
+            <label className="text-sm font-medium text-gray-800">CPF/CNPJ</label>
             <input 
-              className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-[#D3D800]/50 focus:border-[#D3D800]/50 transition-all duration-200"
+              className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-xl text-gray-800 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-[#D3D800]/50 focus:border-[#D3D800]/50 transition-all duration-200"
               value={documentId}
               onChange={(e) => setDocumentId(e.target.value)}
               placeholder="000.000.000-00"
@@ -137,14 +137,14 @@ const ProfileSettings = () => {
       </div>
 
       {/* Security Section */}
-      <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "300ms" }}>
+      <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "300ms" }}>
         <div className="flex items-center space-x-4 mb-6">
           <div className="p-3 bg-gradient-to-r from-red-500/20 to-red-400/10 rounded-2xl">
             <Shield className="h-6 w-6 text-red-400" />
           </div>
           <div>
-            <h3 className="text-xl font-semibold text-white">Segurança da Conta</h3>
-            <p className="text-white/70">Gerencie a segurança da sua conta</p>
+            <h3 className="text-xl font-semibold text-gray-800">Segurança da Conta</h3>
+            <p className="text-gray-700">Gerencie a segurança da sua conta</p>
           </div>
         </div>
         
@@ -162,7 +162,7 @@ const ProfileSettings = () => {
         )}>
           <button
             onClick={handleCancel}
-            className="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl transition-all duration-200 hover:scale-105 flex items-center justify-center space-x-2"
+            className="px-6 py-3 bg-white/20 hover:bg-white/30 border border-white/30 text-gray-800 rounded-xl transition-all duration-200 hover:scale-105 flex items-center justify-center space-x-2"
           >
             <X className="h-4 w-4" />
             <span>Cancelar</span>

@@ -19,8 +19,8 @@ const SecuritySection = ({ email, onChangePassword }: SecuritySectionProps) => {
           <span className="font-medium">Alterar Senha</span>
         </button>
         
-        <p className="text-sm text-white/60 flex items-start space-x-2">
-          <Shield className="h-4 w-4 text-white/40 mt-0.5 flex-shrink-0" />
+        <p className="text-sm text-gray-700 flex items-start space-x-2">
+          <Shield className="h-4 w-4 text-gray-600 mt-0.5 flex-shrink-0" />
           <span>Um email será enviado com instruções para alterar sua senha de forma segura</span>
         </p>
       </div>
