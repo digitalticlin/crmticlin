@@ -84,6 +84,12 @@ serve(async (req) => {
       return await emergencySync(supabase);
     }
 
+    // Action para sincronizar instâncias órfãs
+    if (action === 'sync_orphan_instances') {
+      console.log('[WhatsApp Server] 🔄 SINCRONIZAÇÃO DE INSTÂNCIAS ÓRFÃS INICIADA');
+      return await syncOrphanInstances(supabase);
+    }
+
     // Autenticar usuário com logs detalhados
     let user;
     try {
@@ -204,7 +210,7 @@ serve(async (req) => {
               'list_all_instances_global', 'cleanup_orphan_instances', 
               'mass_reconnect_instances', 'diagnose_vps', 'emergency_sync',
               'correct_instance_binding', 'audit_instance_bindings',
-              'bind_instance_to_user'
+              'bind_instance_to_user', 'sync_orphan_instances'
             ]
           }),
           { 
@@ -440,6 +446,131 @@ async function emergencySync(supabase: any) {
 
   } catch (error) {
     console.error('[Emergency Sync] ❌ Erro na sincronização:', error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+}
+
+// NOVA FUNÇÃO: Sincronizar instâncias órfãs automaticamente
+async function syncOrphanInstances(supabase: any) {
+  console.log('[Sync Orphans] 🔄 Iniciando sincronização automática de órfãs...');
+  
+  try {
+    // 1. Buscar instâncias da VPS
+    const vpsResponse = await listInstances();
+    const vpsData = await vpsResponse.json();
+    
+    if (!vpsData.success) {
+      throw new Error('Falha ao buscar instâncias da VPS');
+    }
+
+    const vpsInstances = vpsData.instances || [];
+    console.log('[Sync Orphans] VPS instances found:', vpsInstances.length);
+
+    // 2. Buscar instâncias existentes no Supabase
+    const { data: dbInstances, error: dbError } = await supabase
+      .from('whatsapp_instances')
+      .select('id, vps_instance_id')
+      .eq('connection_type', 'web');
+
+    if (dbError) {
+      throw new Error('Erro ao buscar instâncias do Supabase: ' + dbError.message);
+    }
+
+    const existingVpsIds = new Set(dbInstances?.map(db => db.vps_instance_id) || []);
+    console.log('[Sync Orphans] Existing in Supabase:', existingVpsIds.size);
+
+    let syncedOrphans = 0;
+    let deletedOrphans = 0;
+    let errors = [];
+
+    // 3. Processar cada instância da VPS
+    for (const vpsInstance of vpsInstances) {
+      try {
+        const isOrphan = !existingVpsIds.has(vpsInstance.instanceId);
+        
+        if (isOrphan) {
+          if (vpsInstance.phone && vpsInstance.phone.trim() !== '') {
+            // Órfã com telefone: sincronizar para o Supabase
+            console.log('[Sync Orphans] 📱 Sincronizando órfã com telefone:', vpsInstance.instanceId);
+            
+            // Buscar primeira empresa ativa para associar temporariamente
+            const { data: firstCompany, error: companyError } = await supabase
+              .from('companies')
+              .select('id')
+              .eq('active', true)
+              .limit(1)
+              .single();
+
+            if (companyError || !firstCompany) {
+              console.error('[Sync Orphans] ❌ Nenhuma empresa ativa encontrada');
+              errors.push(`${vpsInstance.instanceId}: Nenhuma empresa ativa para associar`);
+              continue;
+            }
+
+            // Criar entrada no Supabase para órfã com telefone
+            const { data: newInstance, error: insertError } = await supabase
+              .from('whatsapp_instances')
+              .insert({
+                instance_name: `orphan_${vpsInstance.instanceId.slice(-8)}`,
+                phone: vpsInstance.phone,
+                company_id: firstCompany.id,
+                connection_type: 'web',
+                server_url: 'http://31.97.24.222:3001',
+                vps_instance_id: vpsInstance.instanceId,
+                web_status: vpsInstance.status === 'open' ? 'ready' : 'disconnected',
+                connection_status: vpsInstance.status || 'unknown',
+                profile_name: vpsInstance.profileName,
+                profile_pic_url: vpsInstance.profilePictureUrl
+              })
+              .select()
+              .single();
+
+            if (insertError) {
+              console.error('[Sync Orphans] ❌ Erro ao inserir órfã com telefone:', insertError);
+              errors.push(`${vpsInstance.instanceId}: ${insertError.message}`);
+            } else {
+              console.log('[Sync Orphans] ✅ Órfã com telefone sincronizada:', vpsInstance.instanceId);
+              syncedOrphans++;
+            }
+
+          } else {
+            // Órfã sem telefone: pode ser excluída (comentado por segurança)
+            console.log('[Sync Orphans] 🗑️ Órfã sem telefone detectada (não excluída):', vpsInstance.instanceId);
+            // TODO: Implementar exclusão automática após confirmação
+            // deletedOrphans++;
+          }
+        }
+      } catch (instanceError) {
+        console.error('[Sync Orphans] ❌ Erro ao processar instância:', vpsInstance.instanceId, instanceError);
+        errors.push(`${vpsInstance.instanceId}: ${instanceError.message}`);
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        syncedOrphans,
+        deletedOrphans,
+        totalVpsInstances: vpsInstances.length,
+        errors,
+        message: `Sincronização concluída: ${syncedOrphans} órfãs sincronizadas, ${deletedOrphans} excluídas`,
+        timestamp: new Date().toISOString()
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('[Sync Orphans] ❌ Erro na sincronização:', error);
     return new Response(
       JSON.stringify({
         success: false,

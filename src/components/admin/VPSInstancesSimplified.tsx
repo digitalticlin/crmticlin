@@ -13,7 +13,7 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
-  UserCheck
+  Sync
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -51,20 +51,18 @@ export const VPSInstancesSimplified = () => {
     }
   };
 
-  const fixInstance8888WithUser = async () => {
-    if (!confirm('Vincular instância 8888 ao usuário contatoluizantoniooliveira@hotmail.com da SolucionaCon?')) {
+  const syncOrphanInstances = async () => {
+    if (!confirm('Sincronizar todas as instâncias órfãs que possuem telefone para o Supabase?')) {
       return;
     }
 
     setIsLoading(true);
     try {
-      console.log('[VPS Instances Simplified] 🔗 Iniciando vinculação da instância 8888...');
+      console.log('[VPS Instances Simplified] 🔄 Iniciando sincronização de órfãs...');
       
       const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
         body: { 
-          action: 'bind_instance_to_user',
-          phoneFilter: '8888',
-          userEmail: 'contatoluizantoniooliveira@hotmail.com'
+          action: 'sync_orphan_instances'
         }
       });
 
@@ -73,18 +71,20 @@ export const VPSInstancesSimplified = () => {
         throw error;
       }
 
-      console.log('[VPS Instances Simplified] ✅ Resposta da vinculação:', data);
+      console.log('[VPS Instances Simplified] ✅ Resposta da sincronização:', data);
 
       if (data.success) {
-        toast.success(`Instância vinculada com sucesso! Nome: ${data.instanceName}`);
-        toast.success(`Usuário: ${data.user.name} (${data.user.company})`);
+        toast.success(`Sincronização concluída! ${data.syncedOrphans} órfãs sincronizadas`);
+        if (data.errors && data.errors.length > 0) {
+          toast.warning(`${data.errors.length} erros durante a sincronização`);
+        }
         loadInstances();
       } else {
-        toast.error('Falha na vinculação: ' + data.error);
+        toast.error('Falha na sincronização: ' + data.error);
       }
     } catch (error: any) {
       console.error('[VPS Instances Simplified] 💥 Erro inesperado:', error);
-      toast.error('Erro ao vincular instância: ' + error.message);
+      toast.error('Erro ao sincronizar órfãs: ' + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -147,7 +147,7 @@ export const VPSInstancesSimplified = () => {
       {/* Controles */}
       <Card>
         <CardHeader>
-          <CardTitle>Ações Rápidas</CardTitle>
+          <CardTitle>Ações de Sincronização</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4">
@@ -165,18 +165,18 @@ export const VPSInstancesSimplified = () => {
             </Button>
             
             <Button 
-              onClick={fixInstance8888WithUser}
+              onClick={syncOrphanInstances}
               disabled={isLoading}
               variant="default"
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-blue-600 hover:bg-blue-700"
             >
-              <UserCheck className="h-4 w-4 mr-2" />
-              Vincular Instância 8888 ao Usuário
+              <Sync className="h-4 w-4 mr-2" />
+              Sincronizar Órfãs
             </Button>
           </div>
           
           <p className="text-sm text-muted-foreground mt-2">
-            A ação irá vincular a instância com telefone final 8888 ao usuário contatoluizantoniooliveira@hotmail.com
+            A sincronização irá adicionar no Supabase todas as instâncias órfãs que possuem número de telefone para facilitar o gerenciamento.
           </p>
         </CardContent>
       </Card>
