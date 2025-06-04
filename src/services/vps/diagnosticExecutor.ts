@@ -1,9 +1,10 @@
 
 import { VPSDiagnosticService } from './diagnosticService';
+import type { ComprehensiveDiagnostic } from './diagnosticService';
 
 export class DiagnosticExecutor {
   
-  static async executePlan(): Promise<void> {
+  static async executePlan(): Promise<ComprehensiveDiagnostic> {
     console.log('[Diagnostic Executor] 🚀 EXECUTANDO PLANO DE ANÁLISE VPS - PÓS-ATUALIZAÇÃO TOKEN');
     
     try {

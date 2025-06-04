@@ -10,7 +10,7 @@ interface DiagnosticResult {
   recommendations?: string[];
 }
 
-interface ComprehensiveDiagnostic {
+export interface ComprehensiveDiagnostic {
   overallStatus: 'healthy' | 'warning' | 'critical';
   totalTests: number;
   successCount: number;
