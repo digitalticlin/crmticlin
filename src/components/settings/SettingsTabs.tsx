@@ -38,7 +38,7 @@ const SettingsTabs = () => {
     <div className="space-y-8">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
         <TabsList className={cn(
-          "grid h-auto p-2 bg-white/35 backdrop-blur-xl border border-white/30 rounded-2xl shadow-2xl",
+          "grid h-auto p-2 bg-white/20 backdrop-blur-xl border border-white/30 rounded-2xl shadow-2xl",
           isMobile ? "grid-cols-1 w-full gap-2" : "grid-cols-3 w-fit mx-auto"
         )}>
           <TabsTrigger 

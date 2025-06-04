@@ -84,7 +84,7 @@ export const WhatsAppWebSection = () => {
       <WhatsAppErrorAlert lastError={error} />
       
       {/* Title Card with Add Button */}
-      <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-6">
+      <div className="bg-white/30 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <div className="p-3 bg-gradient-to-r from-green-500/20 to-green-400/10 rounded-2xl">
@@ -137,7 +137,7 @@ export const WhatsAppWebSection = () => {
           ))}
         </div>
       ) : (
-        <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-12 text-center">
+        <div className="bg-white/30 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-12 text-center">
           <div className="max-w-md mx-auto">
             <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
               <MessageSquare className="h-8 w-8 text-green-500" />

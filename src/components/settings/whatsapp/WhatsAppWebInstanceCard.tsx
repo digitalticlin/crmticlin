@@ -27,7 +27,7 @@ export function WhatsAppWebInstanceCard({
                      instance.connection_status === 'open';
 
   return (
-    <Card className={`transition-all duration-200 hover:shadow-lg bg-white/10 backdrop-blur-xl border border-white/30 rounded-3xl ${
+    <Card className={`transition-all duration-200 hover:shadow-lg bg-white/30 backdrop-blur-xl border border-white/30 rounded-3xl ${
       isConnected ? 'border-green-300 bg-green-50/20' : ''
     }`}>
       <CardHeader className="pb-3">
