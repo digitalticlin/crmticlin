@@ -23,7 +23,7 @@ export class DashboardConfigService {
 
     if (data) {
       console.log("Config loaded from database:", data.config_data);
-      return data.config_data as unknown as DashboardConfig;
+      return data.config_data as DashboardConfig;
     }
 
     console.log("No config found in database");
@@ -38,7 +38,7 @@ export class DashboardConfigService {
       .upsert({
         user_id: userId,
         company_id: companyId,
-        config_data: config
+        config_data: config as any // Cast to any to satisfy Json type requirement
       }, {
         onConflict: 'user_id,company_id'
       });
