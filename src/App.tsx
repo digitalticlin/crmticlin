@@ -26,7 +26,6 @@ import ConfirmEmail from "./pages/ConfirmEmail";
 import ConfirmEmailInstructions from "./pages/ConfirmEmailInstructions";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
-import VPSDiagnostic from "./pages/VPSDiagnostic";
 import NotFound from "./pages/NotFound";
 import "./App.css";
 
@@ -157,14 +156,6 @@ function AppContent() {
           element={
             <ProtectedRoute>
               <GlobalAdmin />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/vps-diagnostic"
-          element={
-            <ProtectedRoute>
-              <VPSDiagnostic />
             </ProtectedRoute>
           }
         />

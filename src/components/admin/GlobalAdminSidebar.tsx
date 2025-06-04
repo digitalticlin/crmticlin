@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Building2, Users, CreditCard, MessageSquare, FileText, LifeBuoy, Settings, ChevronRight, ChevronLeft, RefreshCcw, Activity, Server, Search } from "lucide-react";
+import { Building2, Users, CreditCard, MessageSquare, FileText, LifeBuoy, Settings, ChevronRight, ChevronLeft, RefreshCw, Activity, Server } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SidebarLogo from "@/components/layout/SidebarLogo";
 import { Separator } from "@/components/ui/separator";
@@ -35,13 +35,8 @@ const GlobalAdminSidebar = ({ activeTab, setActiveTab }: GlobalAdminSidebarProps
       label: "WhatsApp",
     },
     {
-      id: "diagnostic",
-      icon: Search,
-      label: "Diagnóstico",
-    },
-    {
       id: "sync",
-      icon: RefreshCcw,
+      icon: RefreshCw,
       label: "Sincronização",
     },
     {
@@ -58,16 +53,6 @@ const GlobalAdminSidebar = ({ activeTab, setActiveTab }: GlobalAdminSidebarProps
       id: "logs",
       icon: FileText,
       label: "Logs",
-    },
-    {
-      id: "support",
-      icon: LifeBuoy,
-      label: "Suporte",
-    },
-    {
-      id: "config",
-      icon: Settings,
-      label: "Configurações",
     },
   ];
 
