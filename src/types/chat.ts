@@ -1,4 +1,3 @@
-
 import { KanbanTag } from "./kanban";
 
 export interface Deal {
@@ -15,18 +14,18 @@ export interface Contact {
   phone: string;
   email?: string;
   address?: string;
+  documentId?: string; // CPF/CNPJ field
   tags?: string[];
   notes?: string;
-  purchaseValue?: number;
   assignedUser?: string;
   lastMessageTime?: string;
   lastMessage?: string;
   unreadCount?: number;
   avatar?: string;
-  company?: string;  // Field for company name
-  createdAt?: string; // Field for creation date
-  deals?: Deal[]; // Field for deal history
-  isOnline?: boolean; // New field for online status
+  company?: string;
+  createdAt?: string;
+  deals?: Deal[];
+  isOnline?: boolean;
 }
 
 export interface Message {
@@ -35,8 +34,8 @@ export interface Message {
   sender: "user" | "contact";
   time: string;
   status?: "sent" | "delivered" | "read";
-  isIncoming?: boolean; // New field to indicate if the message is incoming
-  fromMe?: boolean; // Alternative field for compatibility
+  isIncoming?: boolean;
+  fromMe?: boolean;
 }
 
 export interface ChatMessage {

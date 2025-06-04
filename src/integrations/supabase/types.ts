@@ -579,6 +579,7 @@ export type Database = {
           company: string | null
           company_id: string
           created_at: string | null
+          document_id: string | null
           email: string | null
           funnel_id: string | null
           id: string
@@ -599,6 +600,7 @@ export type Database = {
           company?: string | null
           company_id: string
           created_at?: string | null
+          document_id?: string | null
           email?: string | null
           funnel_id?: string | null
           id?: string
@@ -619,6 +621,7 @@ export type Database = {
           company?: string | null
           company_id?: string
           created_at?: string | null
+          document_id?: string | null
           email?: string | null
           funnel_id?: string | null
           id?: string
