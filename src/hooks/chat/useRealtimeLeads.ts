@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Contact } from '@/types/chat';
@@ -8,6 +9,7 @@ interface UseRealtimeLeadsProps {
   fetchContacts: () => Promise<void>;
   fetchMessages?: () => Promise<void>;
   receiveNewLead: (lead: any) => void;
+  activeInstanceId: string | null; // CORRIGIDO: Adicionado activeInstanceId
 }
 
 /**
@@ -18,16 +20,13 @@ export const useRealtimeLeads = ({
   fetchContacts,
   fetchMessages,
   receiveNewLead,
+  activeInstanceId // CORRIGIDO: Recebendo activeInstanceId
 }: UseRealtimeLeadsProps) => {
-
-  // Get active instance ID (assuming first instance for now)
-  // TODO: This should be improved to get the actual active instance
-  const activeInstanceId = selectedContact?.id ? "instance-id" : null; // Placeholder
 
   // Setup realtime messages subscription
   useRealtimeMessages({
     selectedContact,
-    activeInstanceId,
+    activeInstanceId, // CORRIGIDO: Passando activeInstanceId correto
     onNewMessage: async () => {
       if (fetchMessages) {
         await fetchMessages();
@@ -39,7 +38,9 @@ export const useRealtimeLeads = ({
   });
 
   useEffect(() => {
-    console.log('[Realtime Leads] Setting up leads subscription');
+    if (!activeInstanceId) return;
+
+    console.log('[Realtime Leads] Setting up leads subscription for instance:', activeInstanceId);
 
     const channel = supabase
       .channel('leads-changes')
@@ -48,7 +49,8 @@ export const useRealtimeLeads = ({
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'leads'
+          table: 'leads',
+          filter: `whatsapp_number_id=eq.${activeInstanceId}` // CORRIGIDO: Filtrar por instância
         },
         (payload) => {
           console.log('[Realtime Leads] New lead received:', payload);
@@ -65,7 +67,8 @@ export const useRealtimeLeads = ({
         {
           event: 'UPDATE',
           schema: 'public',
-          table: 'leads'
+          table: 'leads',
+          filter: `whatsapp_number_id=eq.${activeInstanceId}` // CORRIGIDO: Filtrar por instância
         },
         (payload) => {
           console.log('[Realtime Leads] Lead updated:', payload);
@@ -80,5 +83,5 @@ export const useRealtimeLeads = ({
       console.log('[Realtime Leads] Cleaning up subscription');
       supabase.removeChannel(channel);
     };
-  }, [fetchContacts, receiveNewLead]);
+  }, [fetchContacts, receiveNewLead, activeInstanceId]); // CORRIGIDO: Adicionado activeInstanceId nas dependências
 };

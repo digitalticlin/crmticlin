@@ -81,6 +81,7 @@ export const useWhatsAppChat = (userEmail: string) => {
     setContactNotes,
     updateContactNotes,
     fetchContacts,
-    fetchMessages
+    fetchMessages,
+    activeInstance // CORRIGIDO: Retornando activeInstance
   };
 };

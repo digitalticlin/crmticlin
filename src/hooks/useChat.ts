@@ -28,6 +28,7 @@ export function useChat() {
     isLoadingContacts: isLoadingWhatsAppContacts,
     isLoadingMessages,
     fetchMessages,
+    activeInstance // CORRIGIDO: Obtendo activeInstance
   } = useWhatsAppChat(userEmail);
 
   // Contact Notes Management
@@ -43,6 +44,7 @@ export function useChat() {
     fetchContacts,
     fetchMessages,
     receiveNewLead,
+    activeInstanceId: activeInstance?.id || null // CORRIGIDO: Passando ID da instância ativa
   });
 
   // Chat Actions (Send Message, Manual Refresh)

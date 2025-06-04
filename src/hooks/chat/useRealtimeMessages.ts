@@ -42,10 +42,12 @@ export const useRealtimeMessages = ({
           
           // Se a mensagem é para o contato selecionado, atualizar mensagens
           if (selectedContact && newMessage.lead_id === selectedContact.id) {
+            console.log('[Realtime Messages] Message for selected contact, updating messages');
             onNewMessage();
           }
           
           // Sempre atualizar a lista de contatos para mostrar a nova mensagem
+          console.log('[Realtime Messages] Updating contact list');
           onContactUpdate();
         }
       )
