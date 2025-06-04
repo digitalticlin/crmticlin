@@ -4,6 +4,7 @@ import { useWhatsAppWebChat } from "@/hooks/whatsapp/useWhatsAppWebChat";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useSearchParams } from "react-router-dom";
+import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 
 interface WhatsAppChatContextType extends ReturnType<typeof useWhatsAppWebChat> {
   companyLoading: boolean;
@@ -25,7 +26,14 @@ export const WhatsAppChatProvider = ({ children }: { children: React.ReactNode }
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('leadId');
   
-  const chatData = useWhatsAppWebChat(user?.email || '');
+  // Get the active WhatsApp Web instance
+  const { instances } = useWhatsAppWebInstances(companyId, companyLoading);
+  const activeInstance = instances.find(instance => 
+    instance.connection_type === 'web' && 
+    instance.connection_status === 'connected'
+  ) || null;
+
+  const chatData = useWhatsAppWebChat(activeInstance);
 
   // Auto-selecionar contato quando leadId for fornecido via URL
   useEffect(() => {
