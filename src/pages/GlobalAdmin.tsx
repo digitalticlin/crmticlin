@@ -13,6 +13,7 @@ import { WhatsAppSyncTest } from "@/components/admin/WhatsAppSyncTest";
 import { SyncLogsPanel } from "@/components/admin/SyncLogsPanel";
 import { SimpleVPSDiagnostic } from "@/components/admin/SimpleVPSDiagnostic";
 import { VPSInstancesPanel } from "@/components/admin/VPSInstancesPanel";
+import { VPSDiagnosticPanel } from "@/components/admin/VPSDiagnosticPanel";
 
 export default function GlobalAdmin() {
   const [activeTab, setActiveTab] = useState("companies");
@@ -30,12 +31,13 @@ export default function GlobalAdmin() {
           </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid grid-cols-9 w-full">
+            <TabsList className="grid grid-cols-10 w-full">
               <TabsTrigger value="companies">Empresas</TabsTrigger>
               <TabsTrigger value="users">Usuários</TabsTrigger>
               <TabsTrigger value="plans">Planos</TabsTrigger>
               <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
               <TabsTrigger value="instances">Instâncias</TabsTrigger>
+              <TabsTrigger value="diagnostic">Diagnóstico</TabsTrigger>
               <TabsTrigger value="sync">Sincronização</TabsTrigger>
               <TabsTrigger value="sync-logs">Logs Sync</TabsTrigger>
               <TabsTrigger value="vps">VPS</TabsTrigger>
@@ -75,6 +77,18 @@ export default function GlobalAdmin() {
                   </p>
                 </div>
                 <VPSInstancesPanel />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="diagnostic">
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-semibold mb-2">Diagnóstico Completo VPS ↔ Supabase</h2>
+                  <p className="text-muted-foreground mb-6">
+                    Ferramentas avançadas para investigar e corrigir problemas de sincronização entre VPS e Supabase
+                  </p>
+                </div>
+                <VPSDiagnosticPanel />
               </div>
             </TabsContent>
             

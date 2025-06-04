@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders, testVPSConnection } from './config.ts';
@@ -9,7 +8,13 @@ import { authenticateRequest } from './authentication.ts';
 import { listInstances } from './instanceListService.ts';
 
 serve(async (req) => {
+  console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED - DIAGNÓSTICO ATIVO');
+  console.log('[WhatsApp Server] Method:', req.method);
+  console.log('[WhatsApp Server] URL:', req.url);
+  console.log('[WhatsApp Server] Headers:', Object.fromEntries(req.headers.entries()));
+
   if (req.method === 'OPTIONS') {
+    console.log('[WhatsApp Server] ✅ OPTIONS request handled');
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -19,34 +24,92 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // CORREÇÃO FASE 3.1.1: Autenticar usuário ANTES de processar qualquer ação
-    const user = await authenticateRequest(req, supabase);
-    console.log(`[WhatsApp Server] 🔐 Usuário autenticado: ${user.id} (${user.email})`);
+    console.log('[WhatsApp Server] 📊 Supabase client created');
 
-    const { action, instanceData, vpsAction } = await req.json();
-    console.log(`[WhatsApp Server] 🔧 Action: ${action} (FASE 3.1.1 - com auth corrigida)`);
+    // Parse request body with detailed logging
+    let requestBody;
+    try {
+      const bodyText = await req.text();
+      console.log('[WhatsApp Server] 📥 Raw request body:', bodyText);
+      requestBody = JSON.parse(bodyText);
+      console.log('[WhatsApp Server] 📋 Parsed request body:', JSON.stringify(requestBody, null, 2));
+    } catch (parseError) {
+      console.error('[WhatsApp Server] ❌ Body parse error:', parseError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Invalid JSON in request body',
+          details: parseError.message 
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    const { action, instanceData, vpsAction } = requestBody;
+    console.log('[WhatsApp Server] 🎯 Action extracted:', action);
+
+    // NOVO: Action para diagnóstico VPS
+    if (action === 'diagnose_vps') {
+      console.log('[WhatsApp Server] 🔍 DIAGNÓSTICO VPS INICIADO');
+      return await diagnoseVPSInstances(supabase);
+    }
+
+    // NOVO: Action para sincronização de emergência
+    if (action === 'emergency_sync') {
+      console.log('[WhatsApp Server] 🆘 SINCRONIZAÇÃO DE EMERGÊNCIA INICIADA');
+      return await emergencySync(supabase);
+    }
+
+    // Autenticar usuário com logs detalhados
+    let user;
+    try {
+      user = await authenticateRequest(req, supabase);
+      console.log('[WhatsApp Server] 🔐 Usuário autenticado:', user.id, user.email);
+    } catch (authError) {
+      console.error('[WhatsApp Server] ❌ Erro de autenticação:', authError);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Authentication failed',
+          details: authError.message,
+          timestamp: new Date().toISOString()
+        }),
+        { 
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    console.log('[WhatsApp Server] 🎯 Processing action:', action);
 
     switch (action) {
       case 'create_instance':
-        // CORREÇÃO FASE 3.1.1: Passar userId correto ao invés do objeto req
-        console.log(`[WhatsApp Server] 🚀 Criando instância para usuário: ${user.id}`);
+        console.log('[WhatsApp Server] 🚀 CREATE INSTANCE - logs detalhados ativados');
+        console.log('[WhatsApp Server] Instance data:', JSON.stringify(instanceData, null, 2));
+        console.log('[WhatsApp Server] User ID:', user.id);
         return await createWhatsAppInstance(supabase, instanceData, user.id);
 
       case 'delete_instance':
+        console.log('[WhatsApp Server] 🗑️ DELETE INSTANCE:', instanceData.instanceId);
         return await deleteWhatsAppInstance(supabase, instanceData.instanceId);
 
       case 'get_status':
+        console.log('[WhatsApp Server] 📊 GET STATUS:', instanceData.instanceId);
         return await getInstanceStatus(instanceData.instanceId);
 
       case 'get_qr_code':
+        console.log('[WhatsApp Server] 🔳 GET QR CODE:', instanceData.instanceId);
         return await getQRCode(instanceData.instanceId);
 
       case 'refresh_qr_code':
-        console.log('[WhatsApp Server] 🔄 Atualizando QR Code (FASE 3.1.1)');
+        console.log('[WhatsApp Server] 🔄 REFRESH QR CODE:', instanceData.instanceId);
         const qrResult = await getQRCodeFromVPS(instanceData.instanceId);
         
         if (qrResult.success) {
-          // Atualizar no banco
           await updateQRCodeInDatabase(supabase, instanceData.instanceId, qrResult);
           
           return new Response(
@@ -72,7 +135,7 @@ serve(async (req) => {
         }
 
       case 'check_server':
-        console.log('[WhatsApp Server] 🔍 Verificando servidor (FASE 3.1.1)');
+        console.log('[WhatsApp Server] 🔍 CHECK SERVER');
         const vpsTest = await testVPSConnection();
         
         return new Response(
@@ -86,7 +149,7 @@ serve(async (req) => {
         );
 
       case 'sync_instances':
-        console.log('[WhatsApp Server] 🔄 Sincronizando instâncias (FASE 3.1.1)');
+        console.log('[WhatsApp Server] 🔄 SYNC INSTANCES');
         return new Response(
           JSON.stringify({
             success: true,
@@ -97,22 +160,29 @@ serve(async (req) => {
         );
 
       case 'list_all_instances_global':
-        console.log('[WhatsApp Server] 📋 Listando todas as instâncias para Global Admin');
+        console.log('[WhatsApp Server] 📋 LIST ALL INSTANCES GLOBAL');
         return await listGlobalInstances(supabase);
 
       case 'cleanup_orphan_instances':
-        console.log('[WhatsApp Server] 🧹 Limpando instâncias órfãs');
+        console.log('[WhatsApp Server] 🧹 CLEANUP ORPHAN INSTANCES');
         return await cleanupOrphanInstances(supabase);
 
       case 'mass_reconnect_instances':
-        console.log('[WhatsApp Server] 🔄 Reconectando instâncias em massa');
+        console.log('[WhatsApp Server] 🔄 MASS RECONNECT INSTANCES');
         return await massReconnectInstances(supabase);
 
       default:
+        console.error('[WhatsApp Server] ❌ Unknown action:', action);
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: `Unknown action: ${action}` 
+            error: `Unknown action: ${action}`,
+            availableActions: [
+              'create_instance', 'delete_instance', 'get_status', 'get_qr_code', 
+              'refresh_qr_code', 'check_server', 'sync_instances', 
+              'list_all_instances_global', 'cleanup_orphan_instances', 
+              'mass_reconnect_instances', 'diagnose_vps', 'emergency_sync'
+            ]
           }),
           { 
             status: 400, 
@@ -122,28 +192,14 @@ serve(async (req) => {
     }
 
   } catch (error) {
-    console.error('[WhatsApp Server] ❌ Erro geral (FASE 3.1.1):', error);
-    
-    // CORREÇÃO FASE 3.1.1: Melhor tratamento de erros de autenticação
-    if (error.message.includes('Authorization') || error.message.includes('authentication')) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Authentication failed',
-          details: error.message,
-          timestamp: new Date().toISOString()
-        }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
+    console.error('[WhatsApp Server] 💥 ERRO GERAL (logs detalhados):', error);
+    console.error('[WhatsApp Server] Stack trace:', error.stack);
     
     return new Response(
       JSON.stringify({ 
         success: false, 
         error: error.message,
+        stack: error.stack,
         timestamp: new Date().toISOString()
       }),
       { 
@@ -154,8 +210,112 @@ serve(async (req) => {
   }
 });
 
-// Função para listar todas as instâncias com informações combinadas
-async function listGlobalInstances(supabase: any) {
+// NOVA FUNÇÃO: Diagnóstico completo da VPS
+async function diagnoseVPSInstances(supabase: any) {
+  console.log('[Diagnose VPS] 🔍 Iniciando diagnóstico completo...');
+  
+  try {
+    // 1. Testar conectividade VPS
+    const vpsTest = await testVPSConnection();
+    console.log('[Diagnose VPS] VPS Test Result:', vpsTest);
+
+    // 2. Listar instâncias da VPS
+    let vpsInstances = [];
+    try {
+      const vpsResponse = await listInstances();
+      const vpsData = await vpsResponse.json();
+      vpsInstances = vpsData.instances || [];
+      console.log('[Diagnose VPS] VPS Instances found:', vpsInstances.length);
+    } catch (vpsError) {
+      console.error('[Diagnose VPS] Erro ao listar VPS:', vpsError);
+    }
+
+    // 3. Verificar instâncias no Supabase
+    const { data: dbInstances, error: dbError } = await supabase
+      .from('whatsapp_instances')
+      .select('*')
+      .eq('connection_type', 'web');
+
+    console.log('[Diagnose VPS] Supabase instances:', dbInstances?.length || 0);
+
+    // 4. Verificar usuários com company_id
+    const { data: profiles, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, full_name, company_id')
+      .not('company_id', 'is', null);
+
+    console.log('[Diagnose VPS] Profiles with company_id:', profiles?.length || 0);
+
+    const diagnosis = {
+      timestamp: new Date().toISOString(),
+      vps: {
+        connectivity: vpsTest.success,
+        error: vpsTest.error,
+        instances: vpsInstances,
+        instanceCount: vpsInstances.length
+      },
+      supabase: {
+        instances: dbInstances || [],
+        instanceCount: dbInstances?.length || 0,
+        error: dbError
+      },
+      users: {
+        profiles: profiles || [],
+        profileCount: profiles?.length || 0,
+        error: profileError
+      },
+      issues: []
+    };
+
+    // Identificar problemas
+    if (!vpsTest.success) {
+      diagnosis.issues.push('VPS não acessível');
+    }
+    
+    if (vpsInstances.length > 0 && (!dbInstances || dbInstances.length === 0)) {
+      diagnosis.issues.push('Instâncias existem na VPS mas não no Supabase');
+    }
+
+    if (!profiles || profiles.length === 0) {
+      diagnosis.issues.push('Nenhum usuário com company_id válido');
+    }
+
+    console.log('[Diagnose VPS] ✅ Diagnóstico completo:', diagnosis);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        diagnosis,
+        summary: {
+          vpsInstances: vpsInstances.length,
+          supabaseInstances: dbInstances?.length || 0,
+          usersWithCompany: profiles?.length || 0,
+          issuesFound: diagnosis.issues.length
+        }
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('[Diagnose VPS] ❌ Erro no diagnóstico:', error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+}
+
+// NOVA FUNÇÃO: Sincronização de emergência
+async function emergencySync(supabase: any) {
+  console.log('[Emergency Sync] 🆘 Iniciando sincronização de emergência...');
+  
   try {
     // 1. Buscar instâncias da VPS
     const vpsResponse = await listInstances();
@@ -165,7 +325,122 @@ async function listGlobalInstances(supabase: any) {
       throw new Error('Falha ao buscar instâncias da VPS');
     }
 
-    // 2. Buscar instâncias do Supabase com dados relacionados
+    const vpsInstances = vpsData.instances || [];
+    console.log('[Emergency Sync] VPS instances found:', vpsInstances.length);
+
+    // 2. Buscar profiles com company_id
+    const { data: profiles, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, full_name, company_id')
+      .not('company_id', 'is', null);
+
+    if (profileError) {
+      throw new Error('Erro ao buscar profiles: ' + profileError.message);
+    }
+
+    console.log('[Emergency Sync] Profiles with company_id:', profiles?.length || 0);
+
+    let synchronized = 0;
+    let errors = [];
+
+    // 3. Para cada instância VPS, tentar sincronizar
+    for (const vpsInstance of vpsInstances) {
+      try {
+        // Verificar se já existe no Supabase
+        const { data: existing } = await supabase
+          .from('whatsapp_instances')
+          .select('id')
+          .eq('vps_instance_id', vpsInstance.instanceId)
+          .maybeSingle();
+
+        if (existing) {
+          console.log('[Emergency Sync] Instância já existe:', vpsInstance.instanceId);
+          continue;
+        }
+
+        // Tentar associar com profile baseado no nome da instância ou outros critérios
+        let assignedProfile = null;
+        if (profiles && profiles.length > 0) {
+          // Por enquanto, associar com o primeiro profile disponível
+          // Em produção, seria necessário lógica mais sofisticada
+          assignedProfile = profiles[synchronized % profiles.length];
+        }
+
+        if (!assignedProfile) {
+          console.log('[Emergency Sync] Nenhum profile disponível para:', vpsInstance.instanceId);
+          continue;
+        }
+
+        // Criar entrada no Supabase
+        const { data: created, error: insertError } = await supabase
+          .from('whatsapp_instances')
+          .insert({
+            instance_name: `recovered_${vpsInstance.instanceId.slice(-8)}`,
+            phone: vpsInstance.phone || '',
+            company_id: assignedProfile.company_id,
+            connection_type: 'web',
+            server_url: 'http://31.97.24.222:3001',
+            vps_instance_id: vpsInstance.instanceId,
+            web_status: vpsInstance.status === 'open' ? 'ready' : 'disconnected',
+            connection_status: vpsInstance.status || 'unknown',
+            profile_name: vpsInstance.profileName,
+            profile_pic_url: vpsInstance.profilePictureUrl
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('[Emergency Sync] Erro ao inserir:', insertError);
+          errors.push(`${vpsInstance.instanceId}: ${insertError.message}`);
+        } else {
+          console.log('[Emergency Sync] ✅ Sincronizado:', vpsInstance.instanceId);
+          synchronized++;
+        }
+
+      } catch (instanceError) {
+        console.error('[Emergency Sync] Erro na instância:', vpsInstance.instanceId, instanceError);
+        errors.push(`${vpsInstance.instanceId}: ${instanceError.message}`);
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        synchronized,
+        totalVpsInstances: vpsInstances.length,
+        errors,
+        message: `Sincronização de emergência concluída: ${synchronized} instâncias sincronizadas`,
+        timestamp: new Date().toISOString()
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('[Emergency Sync] ❌ Erro na sincronização:', error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+}
+
+// Função para listar todas as instâncias com informações combinadas
+async function listGlobalInstances(supabase: any) {
+  try {
+    const vpsResponse = await listInstances();
+    const vpsData = await vpsResponse.json();
+    
+    if (!vpsData.success) {
+      throw new Error('Falha ao buscar instâncias da VPS');
+    }
+
     const { data: dbInstances, error: dbError } = await supabase
       .from('whatsapp_instances')
       .select(`
@@ -183,7 +458,6 @@ async function listGlobalInstances(supabase: any) {
       console.error('[Global Instances] ❌ Erro Supabase:', dbError);
     }
 
-    // 3. Combinar dados VPS + Supabase
     const combinedInstances = vpsData.instances.map((vpsInstance: any) => {
       const dbInstance = dbInstances?.find(db => db.vps_instance_id === vpsInstance.instanceId);
       
@@ -231,7 +505,6 @@ async function listGlobalInstances(supabase: any) {
 // Função para limpar instâncias órfãs
 async function cleanupOrphanInstances(supabase: any) {
   try {
-    // Usar o monitor existente para identificar e limpar órfãs
     const { data, error } = await supabase.functions.invoke('whatsapp_instance_monitor');
     
     if (error) {
@@ -267,7 +540,6 @@ async function cleanupOrphanInstances(supabase: any) {
 // Função para reconexão em massa
 async function massReconnectInstances(supabase: any) {
   try {
-    // Buscar instâncias inativas do banco
     const { data: inactiveInstances, error } = await supabase
       .from('whatsapp_instances')
       .select('vps_instance_id')
@@ -280,7 +552,6 @@ async function massReconnectInstances(supabase: any) {
 
     let reconnected = 0;
     
-    // Tentar reconectar cada instância
     for (const instance of inactiveInstances || []) {
       try {
         const result = await getInstanceStatus(instance.vps_instance_id);

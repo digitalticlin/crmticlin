@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Building2, Users, CreditCard, MessageSquare, FileText, LifeBuoy, Settings, ChevronRight, ChevronLeft, RefreshCw, Activity, Server, Monitor } from "lucide-react";
+import { Building2, Users, CreditCard, MessageSquare, FileText, LifeBuoy, Settings, ChevronRight, ChevronLeft, RefreshCw, Activity, Server, Monitor, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SidebarLogo from "@/components/layout/SidebarLogo";
 import { Separator } from "@/components/ui/separator";
@@ -38,6 +38,11 @@ const GlobalAdminSidebar = ({ activeTab, setActiveTab }: GlobalAdminSidebarProps
       id: "instances",
       icon: Monitor,
       label: "Instâncias VPS",
+    },
+    {
+      id: "diagnostic",
+      icon: Search,
+      label: "Diagnóstico",
     },
     {
       id: "sync",
