@@ -12,26 +12,27 @@ import { useEffect, useMemo } from "react";
 
 export default function Dashboard() {
   const isMobile = useIsMobile();
-  const { config, forceUpdate, loading } = useDashboardConfig();
+  const { config, forceUpdate, loading, renderCount } = useDashboardConfig();
 
-  // CORREÇÃO 11: Timestamp para keys robustas dos componentes principais
-  const dashboardTimestamp = useMemo(() => Date.now(), [forceUpdate]);
+  // CORREÇÃO: Hash baseado no config real para keys consistentes
+  const configHash = useMemo(() => {
+    return JSON.stringify({ kpis: config.kpis, charts: config.charts });
+  }, [config.kpis, config.charts]);
 
-  // Monitoramento robusto de mudanças
+  // Monitoramento robusto de mudanças do dashboard
   useEffect(() => {
-    console.log("🏠 DASHBOARD RENDER - STATE CHECK");
-    console.log("ForceUpdate:", forceUpdate);
-    console.log("Loading:", loading);
-    console.log("Config KPIs:", config.kpis);
-    console.log("Config Charts:", config.charts);
-    console.log("Dashboard Timestamp:", dashboardTimestamp);
-    
-    // Health check do estado
-    const enabledKpis = Object.values(config.kpis).filter(Boolean).length;
-    const enabledCharts = Object.values(config.charts).filter(Boolean).length;
-    
-    console.log(`📊 Health Check - KPIs enabled: ${enabledKpis}, Charts enabled: ${enabledCharts}`);
-  }, [forceUpdate, config, loading, dashboardTimestamp]);
+    const timestamp = Date.now();
+    console.log(`🏠 DASHBOARD RENDER STATE CHECK [${timestamp}]:`, {
+      forceUpdate,
+      renderCount,
+      loading,
+      configKPIs: config.kpis,
+      configCharts: config.charts,
+      configHash: configHash.slice(0, 50) + '...',
+      enabledKpis: Object.values(config.kpis).filter(Boolean).length,
+      enabledCharts: Object.values(config.charts).filter(Boolean).length
+    });
+  }, [forceUpdate, renderCount, config, loading, configHash]);
 
   return (
     <div className="flex min-h-screen bg-gray-200 relative overflow-hidden">
@@ -78,12 +79,12 @@ export default function Dashboard() {
             </div>
           </div>
           
-          {/* CORREÇÃO 12: Keys robustas com forceUpdate + timestamp */}
-          <div key={`dashboard-kpi-${forceUpdate}-${dashboardTimestamp}`}>
+          {/* CORREÇÃO: Keys robustas baseadas no hash real do config */}
+          <div key={`dashboard-kpi-${configHash.slice(-16)}`}>
             <CustomizableKPIGrid />
           </div>
           
-          <div key={`dashboard-charts-${forceUpdate}-${dashboardTimestamp}`}>
+          <div key={`dashboard-charts-${configHash.slice(-16)}`}>
             <CustomizableChartsSection />
           </div>
         </div>

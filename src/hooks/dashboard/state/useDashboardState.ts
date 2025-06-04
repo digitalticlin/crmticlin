@@ -11,37 +11,45 @@ export const useDashboardState = () => {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
   const isInitializedRef = useRef(false);
+  const renderCountRef = useRef(0);
 
-  // CORREÇÃO 1: Force update síncrono e imediato sem delay
+  // CORREÇÃO DEFINITIVA: Single force update sem race condition
   const triggerForceUpdate = () => {
-    console.log("🔄 IMMEDIATE FORCE UPDATE TRIGGERED");
+    renderCountRef.current += 1;
+    const timestamp = Date.now();
+    console.log(`🔄 FORCE UPDATE TRIGGERED [${timestamp}] - Render Count: ${renderCountRef.current}`);
+    
     setForceUpdate(prev => {
       const newValue = prev + 1;
-      console.log(`Force update: ${prev} -> ${newValue}`);
+      console.log(`📊 Force update: ${prev} -> ${newValue} [${timestamp}]`);
       return newValue;
     });
   };
 
-  // CORREÇÃO 2: setConfig direto sem setTimeout para propagação imediata
+  // CORREÇÃO: setConfig com propagação garantida e single force update
   const setConfigWithUpdate = (newConfigOrUpdater: DashboardConfig | ((prev: DashboardConfig) => DashboardConfig)) => {
-    console.log("📝 DIRECT CONFIG UPDATE - NO DELAY");
-    
-    // Force update ANTES da mudança
-    triggerForceUpdate();
+    const timestamp = Date.now();
+    console.log(`📝 CONFIG UPDATE START [${timestamp}]`);
     
     setConfig(currentConfig => {
       const newConfig = typeof newConfigOrUpdater === 'function' 
         ? newConfigOrUpdater(currentConfig) 
         : newConfigOrUpdater;
       
-      console.log("Current config:", currentConfig);
-      console.log("New config:", newConfig);
+      console.log(`📊 Config changed [${timestamp}]:`, {
+        kpis: newConfig.kpis,
+        charts: newConfig.charts,
+        renderCount: renderCountRef.current
+      });
+      
+      // Force update APÓS mudança do estado (pequeno delay para garantir que React processe)
+      setTimeout(() => {
+        triggerForceUpdate();
+        console.log(`✅ CONFIG UPDATE COMPLETE [${timestamp}]`);
+      }, 10);
       
       return newConfig;
     });
-    
-    // Force update APÓS a mudança (sem setTimeout)
-    triggerForceUpdate();
   };
 
   return {
@@ -55,6 +63,7 @@ export const useDashboardState = () => {
     triggerForceUpdate,
     saveTimeoutRef,
     isMountedRef,
-    isInitializedRef
+    isInitializedRef,
+    renderCount: renderCountRef.current
   };
 };

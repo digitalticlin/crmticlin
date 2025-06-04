@@ -26,7 +26,8 @@ interface DraggableChartsSectionProps {
 }
 
 export function DraggableChartsSection({ config, onChartToggle }: DraggableChartsSectionProps) {
-  console.log("📈 DraggableChartsSection RENDER - config.charts:", config.charts);
+  const timestamp = Date.now();
+  console.log(`📈 DraggableChartsSection RENDER [${timestamp}] - config.charts:`, config.charts);
 
   return (
     <div>
@@ -46,7 +47,7 @@ export function DraggableChartsSection({ config, onChartToggle }: DraggableChart
               const IconComponent = chartIcons[chartKey as keyof typeof chartIcons];
               const isEnabled = config.charts[chartKey as keyof typeof config.charts];
               
-              console.log(`📊 Rendering Chart Toggle ${chartKey}: enabled=${isEnabled}`);
+              console.log(`📊 Rendering Chart Toggle [${timestamp}] ${chartKey}: enabled=${isEnabled}`);
               
               return (
                 <Draggable 
@@ -83,10 +84,11 @@ export function DraggableChartsSection({ config, onChartToggle }: DraggableChart
                       <Switch
                         checked={isEnabled}
                         onCheckedChange={() => {
-                          console.log(`🔄 SWITCH TOGGLE CLICKED ${chartKey}: ${isEnabled} -> ${!isEnabled}`);
-                          console.log("🔄 CALLING onChartToggle handler...");
+                          const switchTimestamp = Date.now();
+                          console.log(`🔄 SWITCH TOGGLE CLICKED [${switchTimestamp}] ${chartKey}: ${isEnabled} -> ${!isEnabled}`);
+                          console.log(`🔄 CALLING onChartToggle handler [${switchTimestamp}]...`);
                           onChartToggle(chartKey as keyof DashboardConfig['charts']);
-                          console.log("🔄 onChartToggle handler CALLED");
+                          console.log(`🔄 onChartToggle handler CALLED [${switchTimestamp}]`);
                         }}
                         className="data-[state=checked]:bg-[#D3D800] data-[state=unchecked]:bg-white/20 transition-all duration-200 transform hover:scale-110"
                       />

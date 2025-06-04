@@ -10,21 +10,19 @@ export const createConfigHandlers = (
   scheduleSave: (config: DashboardConfig) => void,
   isInitializedRef: React.MutableRefObject<boolean>
 ) => {
-  // CORREÇÃO 3: Handler KPI com propagação IMEDIATA sem setTimeout
+  // CORREÇÃO: Handler KPI com propagação ÚNICA e imediata
   const handleKPIToggle = useCallback((kpiKey: keyof DashboardConfig['kpis']) => {
     if (!isInitializedRef.current) {
       console.log("❌ KPI Toggle blocked - not initialized");
       return;
     }
     
-    console.log(`🎯 IMMEDIATE KPI TOGGLE: ${kpiKey}`);
-    
-    // Force update ANTES da mudança
-    triggerForceUpdate();
+    const timestamp = Date.now();
+    console.log(`🎯 KPI TOGGLE START [${timestamp}]: ${kpiKey}`);
     
     setConfig(currentConfig => {
       const newValue = !currentConfig.kpis[kpiKey];
-      console.log(`${kpiKey}: ${currentConfig.kpis[kpiKey]} -> ${newValue}`);
+      console.log(`${kpiKey}: ${currentConfig.kpis[kpiKey]} -> ${newValue} [${timestamp}]`);
       
       const newConfig = {
         ...currentConfig,
@@ -34,33 +32,28 @@ export const createConfigHandlers = (
         }
       };
       
-      console.log("🔄 NEW KPI CONFIG:", newConfig.kpis);
+      console.log(`📊 NEW KPI CONFIG [${timestamp}]:`, newConfig.kpis);
       scheduleSave(newConfig);
       
       return newConfig;
     });
     
-    // Force update APÓS mudança (imediato)
-    triggerForceUpdate();
-    
-    console.log(`✅ KPI TOGGLE COMPLETE: ${kpiKey}`);
-  }, [setConfig, triggerForceUpdate, scheduleSave, isInitializedRef]);
+    console.log(`✅ KPI TOGGLE COMPLETE [${timestamp}]: ${kpiKey}`);
+  }, [setConfig, scheduleSave, isInitializedRef]);
 
-  // CORREÇÃO 4: Handler Chart com propagação IMEDIATA sem setTimeout
+  // CORREÇÃO: Handler Chart com propagação ÚNICA e imediata
   const handleChartToggle = useCallback((chartKey: keyof DashboardConfig['charts']) => {
     if (!isInitializedRef.current) {
       console.log("❌ Chart Toggle blocked - not initialized");
       return;
     }
     
-    console.log(`📈 IMMEDIATE CHART TOGGLE: ${chartKey}`);
-    
-    // Force update ANTES da mudança
-    triggerForceUpdate();
+    const timestamp = Date.now();
+    console.log(`📈 CHART TOGGLE START [${timestamp}]: ${chartKey}`);
     
     setConfig(currentConfig => {
       const newValue = !currentConfig.charts[chartKey];
-      console.log(`${chartKey}: ${currentConfig.charts[chartKey]} -> ${newValue}`);
+      console.log(`${chartKey}: ${currentConfig.charts[chartKey]} -> ${newValue} [${timestamp}]`);
       
       const newConfig = {
         ...currentConfig,
@@ -70,24 +63,20 @@ export const createConfigHandlers = (
         }
       };
       
-      console.log("🔄 NEW CHART CONFIG:", newConfig.charts);
+      console.log(`📊 NEW CHART CONFIG [${timestamp}]:`, newConfig.charts);
       scheduleSave(newConfig);
       
       return newConfig;
     });
     
-    // Force update APÓS mudança (imediato)
-    triggerForceUpdate();
-    
-    console.log(`✅ CHART TOGGLE COMPLETE: ${chartKey}`);
-  }, [setConfig, triggerForceUpdate, scheduleSave, isInitializedRef]);
+    console.log(`✅ CHART TOGGLE COMPLETE [${timestamp}]: ${chartKey}`);
+  }, [setConfig, scheduleSave, isInitializedRef]);
 
   const updateConfig = useCallback((newConfig: Partial<DashboardConfig>) => {
     if (!isInitializedRef.current) return;
     
-    console.log("📝 UPDATE CONFIG:", newConfig);
-    
-    triggerForceUpdate();
+    const timestamp = Date.now();
+    console.log(`📝 UPDATE CONFIG [${timestamp}]:`, newConfig);
     
     setConfig(currentConfig => {
       const updatedConfig = {
@@ -101,19 +90,16 @@ export const createConfigHandlers = (
       scheduleSave(updatedConfig);
       return updatedConfig;
     });
-    
-    triggerForceUpdate();
-  }, [setConfig, triggerForceUpdate, scheduleSave, isInitializedRef]);
+  }, [setConfig, scheduleSave, isInitializedRef]);
 
   const resetToDefault = useCallback(() => {
-    console.log("🔄 RESET TO DEFAULT");
+    const timestamp = Date.now();
+    console.log(`🔄 RESET TO DEFAULT [${timestamp}]`);
     const defaultConfigCopy = deepClone(defaultConfig);
     
-    triggerForceUpdate();
     setConfig(defaultConfigCopy);
     scheduleSave(defaultConfigCopy);
-    triggerForceUpdate();
-  }, [setConfig, triggerForceUpdate, scheduleSave]);
+  }, [setConfig, scheduleSave]);
 
   return {
     handleKPIToggle,

@@ -30,7 +30,8 @@ interface DraggableKPISectionProps {
 }
 
 export function DraggableKPISection({ config, onKPIToggle }: DraggableKPISectionProps) {
-  console.log("🎯 DraggableKPISection RENDER - config.kpis:", config.kpis);
+  const timestamp = Date.now();
+  console.log(`🎯 DraggableKPISection RENDER [${timestamp}] - config.kpis:`, config.kpis);
 
   return (
     <div>
@@ -50,7 +51,7 @@ export function DraggableKPISection({ config, onKPIToggle }: DraggableKPISection
               const IconComponent = kpiIcons[kpiKey as keyof typeof kpiIcons];
               const isEnabled = config.kpis[kpiKey as keyof typeof config.kpis];
               
-              console.log(`📊 Rendering KPI Toggle ${kpiKey}: enabled=${isEnabled}`);
+              console.log(`📊 Rendering KPI Toggle [${timestamp}] ${kpiKey}: enabled=${isEnabled}`);
               
               return (
                 <Draggable 
@@ -87,10 +88,11 @@ export function DraggableKPISection({ config, onKPIToggle }: DraggableKPISection
                       <Switch
                         checked={isEnabled}
                         onCheckedChange={() => {
-                          console.log(`🔄 SWITCH TOGGLE CLICKED ${kpiKey}: ${isEnabled} -> ${!isEnabled}`);
-                          console.log("🔄 CALLING onKPIToggle handler...");
+                          const switchTimestamp = Date.now();
+                          console.log(`🔄 SWITCH TOGGLE CLICKED [${switchTimestamp}] ${kpiKey}: ${isEnabled} -> ${!isEnabled}`);
+                          console.log(`🔄 CALLING onKPIToggle handler [${switchTimestamp}]...`);
                           onKPIToggle(kpiKey as keyof DashboardConfig['kpis']);
-                          console.log("🔄 onKPIToggle handler CALLED");
+                          console.log(`🔄 onKPIToggle handler CALLED [${switchTimestamp}]`);
                         }}
                         className="data-[state=checked]:bg-[#D3D800] data-[state=unchecked]:bg-white/20 transition-all duration-200 transform hover:scale-110"
                       />

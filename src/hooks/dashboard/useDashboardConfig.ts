@@ -24,7 +24,8 @@ export const useDashboardConfig = () => {
     triggerForceUpdate,
     saveTimeoutRef,
     isMountedRef,
-    isInitializedRef
+    isInitializedRef,
+    renderCount
   } = useDashboardState();
 
   // Cleanup effect
@@ -69,6 +70,7 @@ export const useDashboardConfig = () => {
     loading,
     saving,
     forceUpdate,
+    renderCount,
     ...handlers
   };
 };
