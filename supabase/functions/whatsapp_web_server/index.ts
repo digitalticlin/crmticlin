@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from './config.ts';
@@ -7,6 +6,7 @@ import { authenticateRequest } from './authentication.ts';
 import { createWhatsAppInstance, deleteWhatsAppInstance } from './instanceManagement.ts';
 import { getInstanceStatus, getQRCode, checkServerHealth, getServerInfo, syncInstances } from './statusOperations.ts';
 import { sendMessage } from './messageOperations.ts';
+import { listInstances } from './instanceListService.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -69,7 +69,11 @@ serve(async (req) => {
       case 'send_message':
         console.log(`[WhatsApp Web Server] Sending message via instance: ${instanceData.instanceId}`);
         return await sendMessage(instanceData.instanceId!, instanceData.phone!, instanceData.message!);
-        
+      
+      case 'list_instances':
+        console.log('[WhatsApp Web Server] 📋 Listando instâncias');
+        return await listInstances();
+
       default:
         console.error(`[WhatsApp Web Server] Unknown action: ${action}`);
         throw new Error(`Unknown action: ${action}`);
