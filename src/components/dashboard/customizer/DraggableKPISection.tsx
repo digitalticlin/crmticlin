@@ -3,7 +3,6 @@ import { DashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { Droppable, Draggable } from "react-beautiful-dnd";
 import { Switch } from "@/components/ui/switch";
 import { GripVertical, TrendingUp, Users, UserPlus, MessageSquare } from "lucide-react";
-import { useCallback } from "react";
 
 const kpiIcons = {
   novos_leads: UserPlus,
@@ -32,19 +31,6 @@ interface DraggableKPISectionProps {
 
 export function DraggableKPISection({ config, onKPIToggle }: DraggableKPISectionProps) {
   console.log("🎯 DraggableKPISection render - config.kpis:", config.kpis);
-
-  // Handler específico e estável para cada toggle
-  const handleToggle = useCallback((kpiKey: keyof DashboardConfig['kpis'], currentValue: boolean) => {
-    console.log("=== KPI TOGGLE CLICKED ===");
-    console.log("KPI Key:", kpiKey);
-    console.log("Current value:", currentValue);
-    console.log("Will change to:", !currentValue);
-    
-    // Chamar o handler passado como prop
-    onKPIToggle(kpiKey);
-    
-    console.log("✅ KPI toggle event dispatched");
-  }, [onKPIToggle]);
 
   return (
     <div>
@@ -99,9 +85,11 @@ export function DraggableKPISection({ config, onKPIToggle }: DraggableKPISection
                       </div>
                       
                       <Switch
-                        key={`${kpiKey}-${isEnabled}-${config.kpis[kpiKey as keyof typeof config.kpis]}`}
                         checked={isEnabled}
-                        onCheckedChange={() => handleToggle(kpiKey as keyof DashboardConfig['kpis'], isEnabled)}
+                        onCheckedChange={() => {
+                          console.log(`🔄 Switch clicked for ${kpiKey}: ${isEnabled} -> ${!isEnabled}`);
+                          onKPIToggle(kpiKey as keyof DashboardConfig['kpis']);
+                        }}
                         className="data-[state=checked]:bg-[#D3D800] data-[state=unchecked]:bg-white/20"
                       />
                     </div>
