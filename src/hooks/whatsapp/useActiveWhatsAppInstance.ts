@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppWebInstance } from './useWhatsAppWebInstances';
 
 /**
- * Hook para obter a instância WhatsApp ativa do usuário atual
+ * Hook para obter as instâncias WhatsApp ativas do usuário atual
+ * Agora sincroniza com as instâncias configuradas pelo usuário
  */
 export const useActiveWhatsAppInstance = (companyId: string | null) => {
   const [activeInstance, setActiveInstance] = useState<WhatsAppWebInstance | null>(null);
@@ -16,14 +17,15 @@ export const useActiveWhatsAppInstance = (companyId: string | null) => {
     const fetchActiveInstance = async () => {
       setLoading(true);
       try {
-        console.log('[useActiveWhatsAppInstance] Fetching active instance for company:', companyId);
+        console.log('[useActiveWhatsAppInstance] Fetching instances for company:', companyId);
 
+        // Buscar todas as instâncias da empresa (não apenas as conectadas)
+        // Para sincronizar com as configurações do usuário
         const { data, error } = await supabase
           .from('whatsapp_instances')
           .select('*')
           .eq('company_id', companyId)
           .eq('connection_type', 'web')
-          .eq('connection_status', 'open') // CORRIGIDO: Usar 'open' ao invés de 'connected'
           .order('created_at', { ascending: false })
           .limit(1);
 
@@ -31,7 +33,7 @@ export const useActiveWhatsAppInstance = (companyId: string | null) => {
 
         if (data && data.length > 0) {
           const instance = data[0];
-          console.log('[useActiveWhatsAppInstance] ✅ Active instance found:', {
+          console.log('[useActiveWhatsAppInstance] ✅ Instance found:', {
             id: instance.id,
             instanceName: instance.instance_name,
             status: instance.connection_status,
@@ -52,11 +54,11 @@ export const useActiveWhatsAppInstance = (companyId: string | null) => {
             company_id: instance.company_id
           });
         } else {
-          console.log('[useActiveWhatsAppInstance] ❌ No active instance found');
+          console.log('[useActiveWhatsAppInstance] No instances found for company');
           setActiveInstance(null);
         }
       } catch (error) {
-        console.error('[useActiveWhatsAppInstance] ❌ Error fetching active instance:', error);
+        console.error('[useActiveWhatsAppInstance] ❌ Error fetching instances:', error);
         setActiveInstance(null);
       } finally {
         setLoading(false);
@@ -64,6 +66,29 @@ export const useActiveWhatsAppInstance = (companyId: string | null) => {
     };
 
     fetchActiveInstance();
+
+    // Configurar realtime para sincronizar mudanças nas instâncias
+    const channel = supabase
+      .channel(`whatsapp-instances-${companyId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'whatsapp_instances',
+          filter: `company_id=eq.${companyId}`
+        },
+        (payload) => {
+          console.log('[useActiveWhatsAppInstance] 📡 Instance update received:', payload.eventType);
+          fetchActiveInstance();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[useActiveWhatsAppInstance] 🧹 Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
   }, [companyId]);
 
   return { activeInstance, loading };
