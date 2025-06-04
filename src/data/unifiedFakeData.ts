@@ -1,5 +1,6 @@
+
 import { Contact } from "@/types/chat";
-import { KanbanLead, KanbanStage, KanbanTag } from "@/types/kanban";
+import { KanbanLead, KanbanTag } from "@/types/kanban";
 
 export const kanbanTags = [
   { id: "1", name: "Importante", color: "red" },
@@ -7,14 +8,6 @@ export const kanbanTags = [
   { id: "3", name: "Concluído", color: "green" },
   { id: "4", name: "Aguardando", color: "yellow" },
   { id: "5", name: "Cancelado", color: "gray" },
-];
-
-export const kanbanStages: KanbanStage[] = [
-  { id: "1", title: "Backlog", color: "gray", order: 1, isFixed: true },
-  { id: "2", title: "Em Andamento", color: "blue", order: 2, isFixed: false },
-  { id: "3", title: "Em Revisão", color: "yellow", order: 3, isFixed: false },
-  { id: "4", title: "Concluído", color: "green", order: 4, isFixed: true, isWon: true },
-  { id: "5", title: "Cancelado", color: "red", order: 5, isFixed: true, isLost: true }
 ];
 
 export const contacts: Contact[] = [
@@ -241,7 +234,10 @@ export const leads: KanbanLead[] = [
     company: "Empresa A",
     notes: "Cliente antigo, sempre paga em dia.",
     kanbanStageId: "1",
-    tags: ["Importante", "Em Andamento"],
+    tags: [
+      { id: "1", name: "Importante", color: "purple" },
+      { id: "2", name: "Em Andamento", color: "blue" }
+    ],
     assignedUser: "Maria Souza",
     lastMessage: "Tudo certo com o projeto?",
     lastMessageTime: "10:00",
@@ -255,7 +251,9 @@ export const leads: KanbanLead[] = [
     company: "Empresa B",
     notes: "Entregou tudo antes do prazo.",
     kanbanStageId: "2",
-    tags: ["Concluído"],
+    tags: [
+      { id: "3", name: "Concluído", color: "green" }
+    ],
     assignedUser: "João Silva",
     lastMessage: "Projeto finalizado com sucesso!",
     lastMessageTime: "11:00",
@@ -269,7 +267,9 @@ export const leads: KanbanLead[] = [
     company: "Empresa C",
     notes: "Aguardando aprovação do orçamento.",
     kanbanStageId: "3",
-    tags: ["Aguardando"],
+    tags: [
+      { id: "4", name: "Aguardando", color: "yellow" }
+    ],
     assignedUser: "Maria Souza",
     lastMessage: "Ainda não recebi o orçamento.",
     lastMessageTime: "12:00",
@@ -283,7 +283,9 @@ export const leads: KanbanLead[] = [
     company: "Empresa D",
     notes: "Cancelou o contrato.",
     kanbanStageId: "4",
-    tags: ["Cancelado"],
+    tags: [
+      { id: "5", name: "Cancelado", color: "gray" }
+    ],
     assignedUser: "João Silva",
     lastMessage: "Não tenho mais interesse.",
     lastMessageTime: "13:00",
@@ -297,7 +299,10 @@ export const leads: KanbanLead[] = [
     company: "Empresa E",
     notes: "Cliente VIP, sempre indica novos clientes.",
     kanbanStageId: "1",
-    tags: ["Importante", "Concluído"],
+    tags: [
+      { id: "1", name: "Importante", color: "purple" },
+      { id: "3", name: "Concluído", color: "green" }
+    ],
     assignedUser: "Maria Souza",
     lastMessage: "Indiquei um novo cliente para vocês.",
     lastMessageTime: "14:00",
@@ -311,7 +316,9 @@ export const leads: KanbanLead[] = [
     company: "Empresa F",
     notes: "Projeto em fase de testes.",
     kanbanStageId: "2",
-    tags: ["Em Andamento"],
+    tags: [
+      { id: "2", name: "Em Andamento", color: "blue" }
+    ],
     assignedUser: "João Silva",
     lastMessage: "Estamos quase finalizando os testes.",
     lastMessageTime: "15:00",
@@ -325,7 +332,9 @@ export const leads: KanbanLead[] = [
     company: "Empresa G",
     notes: "Aguardando feedback do cliente.",
     kanbanStageId: "3",
-    tags: ["Aguardando"],
+    tags: [
+      { id: "4", name: "Aguardando", color: "yellow" }
+    ],
     assignedUser: "Maria Souza",
     lastMessage: "Aguardando seu feedback.",
     lastMessageTime: "16:00",
@@ -339,7 +348,9 @@ export const leads: KanbanLead[] = [
     company: "Empresa H",
     notes: "Cancelou o serviço por falta de verba.",
     kanbanStageId: "4",
-    tags: ["Cancelado"],
+    tags: [
+      { id: "5", name: "Cancelado", color: "gray" }
+    ],
     assignedUser: "João Silva",
     lastMessage: "Infelizmente, não temos verba para continuar.",
     lastMessageTime: "17:00",
@@ -353,7 +364,10 @@ export const leads: KanbanLead[] = [
     company: "Empresa I",
     notes: "Cliente estratégico, grande potencial de crescimento.",
     kanbanStageId: "1",
-    tags: ["Importante", "Em Andamento"],
+    tags: [
+      { id: "1", name: "Importante", color: "purple" },
+      { id: "2", name: "Em Andamento", color: "blue" }
+    ],
     assignedUser: "Maria Souza",
     lastMessage: "Vamos marcar uma reunião para discutir o futuro.",
     lastMessageTime: "18:00",
@@ -367,7 +381,9 @@ export const leads: KanbanLead[] = [
     company: "Empresa J",
     notes: "Entregou tudo antes do prazo, cliente muito satisfeita.",
     kanbanStageId: "2",
-    tags: ["Concluído"],
+    tags: [
+      { id: "3", name: "Concluído", color: "green" }
+    ],
     assignedUser: "João Silva",
     lastMessage: "Adorei o resultado, muito obrigada!",
     lastMessageTime: "19:00",
@@ -376,23 +392,15 @@ export const leads: KanbanLead[] = [
 ];
 
 export const unifiedTags: KanbanTag[] = [
-  { id: "1", name: "VIP", color: "purple", kanbanStageId: "1" },
-  { id: "2", name: "Urgente", color: "red", kanbanStageId: "1" },
-  { id: "3", name: "Interessado", color: "blue", kanbanStageId: "2" },
-  { id: "4", name: "Quente", color: "orange", kanbanStageId: "2" },
-  { id: "5", name: "Negociando", color: "yellow", kanbanStageId: "3" },
-  { id: "6", name: "Proposta Enviada", color: "cyan", kanbanStageId: "3" },
-  { id: "7", name: "Cliente", color: "green", kanbanStageId: "4" },
-  { id: "8", name: "Perdido", color: "gray", kanbanStageId: "5" },
-  { id: "9", name: "Prospecção", color: "pink", kanbanStageId: "1" }
-];
-
-export const unifiedKanbanStages: KanbanStage[] = [
-  { id: "1", title: "Leads", color: "blue", order: 1, isFixed: true },
-  { id: "2", title: "Interessados", color: "orange", order: 2, isFixed: false },
-  { id: "3", title: "Negociação", color: "yellow", order: 3, isFixed: false },
-  { id: "4", title: "Vendas", color: "green", order: 4, isFixed: true, isWon: true },
-  { id: "5", title: "Perdidos", color: "red", order: 5, isFixed: true, isLost: true }
+  { id: "1", name: "VIP", color: "purple" },
+  { id: "2", name: "Urgente", color: "red" },
+  { id: "3", name: "Interessado", color: "blue" },
+  { id: "4", name: "Quente", color: "orange" },
+  { id: "5", name: "Negociando", color: "yellow" },
+  { id: "6", name: "Proposta Enviada", color: "cyan" },
+  { id: "7", name: "Cliente", color: "green" },
+  { id: "8", name: "Perdido", color: "gray" },
+  { id: "9", name: "Prospecção", color: "pink" }
 ];
 
 export const unifiedContacts: Contact[] = [
@@ -612,8 +620,28 @@ export const unifiedContacts: Contact[] = [
   }
 ];
 
+// Função para converter lead em contato
+export const convertLeadToContact = (lead: KanbanLead): Contact => {
+  return {
+    id: lead.id,
+    name: lead.name,
+    phone: lead.phone,
+    email: lead.email,
+    company: lead.company,
+    notes: lead.notes,
+    assignedUser: lead.assignedUser,
+    lastMessage: lead.lastMessage,
+    lastMessageTime: lead.lastMessageTime,
+    createdAt: lead.createdAt,
+    tags: lead.tags?.map(tag => tag.name) || [],
+    unreadCount: 0,
+    avatar: "",
+    isOnline: Math.random() > 0.5,
+    deals: []
+  };
+};
+
 const generateFakeLeads = (count: number = 50): KanbanLead[] => {
-  const stages = unifiedKanbanStages;
   const tags = unifiedTags;
   const users = ["João Santos", "Maria Costa", "Pedro Silva", "Ana Oliveira"];
   
@@ -622,7 +650,6 @@ const generateFakeLeads = (count: number = 50): KanbanLead[] => {
   const companies = ["Tech Solutions", "Inovação Ltda", "Digital Corp", "StartUp XYZ", "Empresa ABC", "Negócios 360", "Soluções Tech", "Criativa LTDA"];
 
   return Array.from({ length: count }, (_, i) => {
-    const randomStage = stages[Math.floor(Math.random() * stages.length)];
     const randomTags = tags
       .filter(() => Math.random() > 0.7)
       .slice(0, Math.floor(Math.random() * 3) + 1);
@@ -638,7 +665,7 @@ const generateFakeLeads = (count: number = 50): KanbanLead[] => {
       email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${company.toLowerCase().replace(/\s+/g, '')}.com`,
       company,
       notes: `Anotações sobre ${firstName} ${lastName}. Cliente em potencial para nossos serviços.`,
-      kanbanStageId: randomStage.id,
+      kanbanStageId: "1",
       tags: randomTags,
       assignedUser: randomUser,
       lastMessage: "Última mensagem do cliente...",

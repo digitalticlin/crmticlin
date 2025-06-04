@@ -58,6 +58,8 @@ export const useClientManagement = () => {
 
   const [selectedClient, setSelectedClient] = useState<Contact | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   const updateClient = (clientId: string, updates: Partial<Contact>) => {
     setClients(prev => prev.map(client => 
@@ -79,12 +81,84 @@ export const useClientManagement = () => {
     setIsDetailsOpen(false);
   };
 
+  const handleSelectClient = (client: Contact) => {
+    setSelectedClient(client);
+    setIsDetailsOpen(true);
+  };
+
+  const handleAddClient = () => {
+    setIsFormOpen(true);
+    setIsEditing(false);
+  };
+
+  const handleEditClient = (client: Contact) => {
+    setSelectedClient(client);
+    setIsFormOpen(true);
+    setIsEditing(true);
+  };
+
+  const handleFormSubmit = (clientData: Partial<Contact>) => {
+    if (isEditing && selectedClient) {
+      updateClient(selectedClient.id, clientData);
+    } else {
+      const newClient: Contact = {
+        id: Date.now().toString(),
+        name: clientData.name || '',
+        phone: clientData.phone || '',
+        email: clientData.email,
+        address: clientData.address,
+        company: clientData.company,
+        documentId: clientData.documentId,
+        tags: clientData.tags || [],
+        notes: clientData.notes || '',
+        assignedUser: clientData.assignedUser || '',
+        lastMessageTime: new Date().toISOString(),
+        lastMessage: '',
+        avatar: '',
+        createdAt: new Date().toISOString(),
+        deals: []
+      };
+      setClients(prev => [...prev, newClient]);
+    }
+    setIsFormOpen(false);
+    setIsEditing(false);
+  };
+
+  const handleUpdateNotes = (notes: string) => {
+    if (selectedClient) {
+      updateClient(selectedClient.id, { notes });
+    }
+  };
+
+  const handleUpdateAssignedUser = (user: string) => {
+    if (selectedClient) {
+      updateClient(selectedClient.id, { assignedUser: user });
+    }
+  };
+
+  const handleUpdatePurchaseValue = (value: number) => {
+    // Esta função está sendo mantida para compatibilidade, mas não faz nada
+    // pois removemos purchaseValue do tipo Contact
+    console.log('Purchase value update requested:', value);
+  };
+
   return {
     clients,
     selectedClient,
     isDetailsOpen,
+    isFormOpen,
+    isEditing,
+    setIsDetailsOpen,
+    setIsFormOpen,
     updateClient,
     openClientDetails,
-    closeClientDetails
+    closeClientDetails,
+    handleSelectClient,
+    handleAddClient,
+    handleEditClient,
+    handleFormSubmit,
+    handleUpdateNotes,
+    handleUpdateAssignedUser,
+    handleUpdatePurchaseValue
   };
 };
