@@ -11,26 +11,36 @@ export default function DashboardCustomizer() {
   const { config, loading, updateConfig, resetToDefault } = useDashboardConfig();
   const [open, setOpen] = useState(false);
 
-  console.log("DashboardCustomizer render - config version:", config);
+  console.log("DashboardCustomizer render - config:", config);
 
   const handleKPIToggle = (kpiKey: keyof DashboardConfig['kpis']) => {
-    console.log("=== KPI TOGGLE ===", kpiKey, "from", config.kpis[kpiKey], "to", !config.kpis[kpiKey]);
+    const currentValue = config.kpis[kpiKey];
+    const newValue = !currentValue;
+    
+    console.log("=== KPI TOGGLE ===");
+    console.log("KPI Key:", kpiKey);
+    console.log("Current value:", currentValue);
+    console.log("New value:", newValue);
     
     updateConfig({
       kpis: {
-        ...config.kpis,
-        [kpiKey]: !config.kpis[kpiKey]
+        [kpiKey]: newValue
       }
     });
   };
 
   const handleChartToggle = (chartKey: keyof DashboardConfig['charts']) => {
-    console.log("=== CHART TOGGLE ===", chartKey, "from", config.charts[chartKey], "to", !config.charts[chartKey]);
+    const currentValue = config.charts[chartKey];
+    const newValue = !currentValue;
+    
+    console.log("=== CHART TOGGLE ===");
+    console.log("Chart Key:", chartKey);
+    console.log("Current value:", currentValue);
+    console.log("New value:", newValue);
     
     updateConfig({
       charts: {
-        ...config.charts,
-        [chartKey]: !config.charts[chartKey]
+        [chartKey]: newValue
       }
     });
   };
@@ -60,7 +70,7 @@ export default function DashboardCustomizer() {
 
         updateConfig({
           layout: {
-            ...config.layout,
+            chart_order: config.layout.chart_order,
             kpi_order: newKpiOrder
           }
         });
@@ -74,7 +84,7 @@ export default function DashboardCustomizer() {
 
         updateConfig({
           layout: {
-            ...config.layout,
+            kpi_order: config.layout.kpi_order,
             chart_order: newChartOrder
           }
         });

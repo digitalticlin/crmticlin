@@ -1,11 +1,11 @@
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { DashboardConfig, defaultConfig } from "./types/dashboardConfigTypes";
 import { DashboardConfigService } from "./services/dashboardConfigService";
-import { mergeConfigUpdates } from "./utils/configUtils";
+import { mergeConfigUpdates, validateConfig, deepClone } from "./utils/configUtils";
 
 export { type DashboardConfig } from "./types/dashboardConfigTypes";
 
@@ -19,7 +19,8 @@ export const useDashboardConfig = () => {
   
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
-  const lastSavedConfigRef = useRef<DashboardConfig>(defaultConfig);
+  const pendingConfigRef = useRef<DashboardConfig | null>(null);
+  const savePromiseRef = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -41,16 +42,18 @@ export const useDashboardConfig = () => {
     if (!user?.id || !companyId) return;
     
     try {
-      const loadedConfig = await DashboardConfigService.loadConfig(user.id, companyId);
+      setLoading(true);
+      const loadedConfig = await DashboardConfigService.retryOperation(
+        () => DashboardConfigService.loadConfig(user.id, companyId)
+      );
       
-      if (loadedConfig && isMountedRef.current) {
+      if (loadedConfig && validateConfig(loadedConfig) && isMountedRef.current) {
+        console.log("Setting loaded config:", loadedConfig);
         setConfig(loadedConfig);
-        lastSavedConfigRef.current = loadedConfig;
         setConfigVersion(Date.now());
       } else if (isMountedRef.current) {
-        console.log("No config found, using default config");
+        console.log("No valid config found, using default config");
         setConfig(defaultConfig);
-        lastSavedConfigRef.current = defaultConfig;
         setConfigVersion(Date.now());
       }
     } catch (error) {
@@ -58,7 +61,6 @@ export const useDashboardConfig = () => {
       toast.error("Erro ao carregar configurações do dashboard");
       if (isMountedRef.current) {
         setConfig(defaultConfig);
-        lastSavedConfigRef.current = defaultConfig;
         setConfigVersion(Date.now());
       }
     } finally {
@@ -68,25 +70,22 @@ export const useDashboardConfig = () => {
     }
   };
 
-  const saveConfig = async (configToSave: DashboardConfig) => {
+  const saveConfigToDatabase = async (configToSave: DashboardConfig): Promise<void> => {
     if (!user?.id || !companyId || !isMountedRef.current) return;
     
     setSaving(true);
     
     try {
-      await DashboardConfigService.saveConfig(user.id, companyId, configToSave);
+      await DashboardConfigService.retryOperation(
+        () => DashboardConfigService.saveConfig(user.id, companyId, configToSave)
+      );
       
-      lastSavedConfigRef.current = configToSave;
+      console.log("Config saved successfully:", configToSave);
       toast.success("Configurações salvas!");
     } catch (error) {
       console.error("Erro ao salvar configuração:", error);
       toast.error("Erro ao salvar configurações");
-      
-      // Rollback on error
-      if (isMountedRef.current) {
-        setConfig(lastSavedConfigRef.current);
-        setConfigVersion(Date.now());
-      }
+      throw error;
     } finally {
       if (isMountedRef.current) {
         setSaving(false);
@@ -94,35 +93,52 @@ export const useDashboardConfig = () => {
     }
   };
 
-  const updateConfig = useCallback((newConfig: Partial<DashboardConfig>) => {
+  const updateConfig = (newConfig: Partial<DashboardConfig>) => {
     if (!isMountedRef.current) return;
     
-    const updatedConfig = mergeConfigUpdates(config, newConfig);
+    console.log("=== UPDATE CONFIG CALLED ===");
+    console.log("Current config:", config);
+    console.log("Updates:", newConfig);
     
-    console.log("=== UPDATE CONFIG ===");
-    console.log("New config:", updatedConfig);
+    // Clonar config atual para evitar mutações
+    const currentConfigCopy = deepClone(config);
+    const updatedConfig = mergeConfigUpdates(currentConfigCopy, newConfig);
     
-    // Immediate state update for responsive UI
+    console.log("Final updated config:", updatedConfig);
+    
+    // Update imediato na UI
     setConfig(updatedConfig);
-    const newVersion = Date.now();
-    setConfigVersion(newVersion);
+    setConfigVersion(Date.now());
     
-    // Debounce database save
+    // Armazenar config pendente
+    pendingConfigRef.current = updatedConfig;
+    
+    // Cancelar timeout anterior
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
     
+    // Debounce do salvamento
     saveTimeoutRef.current = setTimeout(() => {
-      if (isMountedRef.current) {
-        saveConfig(updatedConfig);
+      if (isMountedRef.current && pendingConfigRef.current) {
+        const configToSave = pendingConfigRef.current;
+        pendingConfigRef.current = null;
+        
+        // Evitar múltiplos saves simultâneos
+        if (!savePromiseRef.current) {
+          savePromiseRef.current = saveConfigToDatabase(configToSave)
+            .finally(() => {
+              savePromiseRef.current = null;
+            });
+        }
       }
-    }, 500); // 500ms debounce
-    
-  }, [config, user?.id, companyId]);
+    }, 800);
+  };
 
-  const resetToDefault = async () => {
+  const resetToDefault = () => {
     console.log("=== RESET TO DEFAULT ===");
-    updateConfig(defaultConfig);
+    const defaultConfigCopy = deepClone(defaultConfig);
+    updateConfig(defaultConfigCopy);
   };
 
   return {

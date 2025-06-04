@@ -7,17 +7,15 @@ export class DashboardConfigService {
     console.log("=== LOADING CONFIG ===");
     console.log("User ID:", userId, "Company ID:", companyId);
     
-    // First, cleanup duplicates if they exist
-    await this.cleanupDuplicateConfigs(userId, companyId);
-    
     const { data, error } = await supabase
       .from('dashboard_configs')
       .select('config_data')
       .eq('user_id', userId)
       .eq('company_id', companyId)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
+      console.error("Error loading config:", error);
       throw error;
     }
 
@@ -33,43 +31,79 @@ export class DashboardConfigService {
   static async saveConfig(userId: string, companyId: string, config: DashboardConfig): Promise<void> {
     console.log("=== SAVING CONFIG ===", config);
     
-    const { error } = await supabase
+    // Primeira tentativa com upsert
+    const { error: upsertError } = await supabase
       .from('dashboard_configs')
       .upsert({
         user_id: userId,
         company_id: companyId,
-        config_data: config as any // Cast to any to satisfy Json type requirement
+        config_data: config as any,
+        updated_at: new Date().toISOString()
       }, {
         onConflict: 'user_id,company_id'
       });
 
-    if (error) throw error;
-    
-    console.log("Config saved successfully");
+    if (!upsertError) {
+      console.log("Config saved successfully with upsert");
+      return;
+    }
+
+    console.warn("Upsert failed, trying update/insert fallback:", upsertError);
+
+    // Fallback: tentar update primeiro
+    const { error: updateError } = await supabase
+      .from('dashboard_configs')
+      .update({
+        config_data: config as any,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', userId)
+      .eq('company_id', companyId);
+
+    if (!updateError) {
+      console.log("Config updated successfully with fallback");
+      return;
+    }
+
+    console.warn("Update failed, trying insert:", updateError);
+
+    // Se update falhou, tentar insert
+    const { error: insertError } = await supabase
+      .from('dashboard_configs')
+      .insert({
+        user_id: userId,
+        company_id: companyId,
+        config_data: config as any
+      });
+
+    if (insertError) {
+      console.error("All save attempts failed:", insertError);
+      throw insertError;
+    }
+
+    console.log("Config inserted successfully with fallback");
   }
 
-  static async cleanupDuplicateConfigs(userId: string, companyId: string): Promise<void> {
-    try {
-      const { data: duplicates } = await supabase
-        .from('dashboard_configs')
-        .select('id, created_at')
-        .eq('user_id', userId)
-        .eq('company_id', companyId)
-        .order('created_at', { ascending: false });
+  static async retryOperation<T>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    delay: number = 500
+  ): Promise<T> {
+    let lastError: Error;
 
-      if (duplicates && duplicates.length > 1) {
-        console.log(`Found ${duplicates.length} duplicate configs, cleaning up...`);
-        const idsToDelete = duplicates.slice(1).map(d => d.id);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error as Error;
+        console.warn(`Attempt ${attempt} failed:`, error);
         
-        await supabase
-          .from('dashboard_configs')
-          .delete()
-          .in('id', idsToDelete);
-        
-        console.log("Duplicate configs cleaned up");
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, delay * attempt));
+        }
       }
-    } catch (error) {
-      console.error("Error cleaning up duplicates:", error);
     }
+
+    throw lastError!;
   }
 }
