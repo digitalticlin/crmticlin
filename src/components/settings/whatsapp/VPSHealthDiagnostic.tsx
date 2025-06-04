@@ -15,7 +15,7 @@ interface VPSHealthData {
   port: number;
   active_instances: number;
   auth_token_configured: boolean;
-  endpoints_available: string[];
+  endpoints_available?: string[]; // Make this optional
   timestamp: string;
 }
 
@@ -130,16 +130,18 @@ export function VPSHealthDiagnostic() {
               </div>
             </div>
             
-            <div>
-              <label className="text-sm font-medium text-gray-600">Endpoints Disponíveis</label>
-              <div className="mt-2 flex flex-wrap gap-1">
-                {healthData.endpoints_available.map((endpoint) => (
-                  <Badge key={endpoint} variant="outline" className="text-xs">
-                    {endpoint}
-                  </Badge>
-                ))}
+            {healthData.endpoints_available && healthData.endpoints_available.length > 0 && (
+              <div>
+                <label className="text-sm font-medium text-gray-600">Endpoints Disponíveis</label>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {healthData.endpoints_available.map((endpoint) => (
+                    <Badge key={endpoint} variant="outline" className="text-xs">
+                      {endpoint}
+                    </Badge>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
             
             {lastCheck && (
               <p className="text-xs text-gray-500">
