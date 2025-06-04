@@ -13,6 +13,22 @@ export const useWhatsAppMessages = (
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
+  // Helper function to normalize status
+  const normalizeStatus = (status: string | null): "sent" | "delivered" | "read" => {
+    if (status === 'delivered') return 'delivered';
+    if (status === 'read') return 'read';
+    return 'sent'; // default
+  };
+
+  // Helper function to normalize media type
+  const normalizeMediaType = (mediaType: string | null): "text" | "image" | "video" | "audio" | "document" => {
+    if (mediaType === 'image') return 'image';
+    if (mediaType === 'video') return 'video';
+    if (mediaType === 'audio') return 'audio';
+    if (mediaType === 'document') return 'document';
+    return 'text'; // default
+  };
+
   const fetchMessages = async () => {
     if (!selectedContact || !activeInstance) {
       setMessages([]);
@@ -44,11 +60,11 @@ export const useWhatsAppMessages = (
           hour: '2-digit', 
           minute: '2-digit' 
         }),
-        status: msg.status === 'sent' ? 'sent' : msg.status === 'delivered' ? 'delivered' : 'read',
+        status: normalizeStatus(msg.status),
         isIncoming: !msg.from_me,
         fromMe: msg.from_me,
         timestamp: msg.timestamp,
-        mediaType: msg.media_type || 'text',
+        mediaType: normalizeMediaType(msg.media_type),
         mediaUrl: msg.media_url
       }));
       

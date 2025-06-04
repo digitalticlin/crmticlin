@@ -14,6 +14,22 @@ export const useWhatsAppChatMessages = (
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
+  // Helper function to normalize status
+  const normalizeStatus = (status: string | null): "sent" | "delivered" | "read" => {
+    if (status === 'delivered') return 'delivered';
+    if (status === 'read') return 'read';
+    return 'sent'; // default
+  };
+
+  // Helper function to normalize media type
+  const normalizeMediaType = (mediaType: string | null): "text" | "image" | "video" | "audio" | "document" => {
+    if (mediaType === 'image') return 'image';
+    if (mediaType === 'video') return 'video';
+    if (mediaType === 'audio') return 'audio';
+    if (mediaType === 'document') return 'document';
+    return 'text'; // default
+  };
+
   // Fetch messages for selected contact
   const fetchMessages = useCallback(async () => {
     if (!selectedContact || !activeInstance) {
@@ -43,8 +59,8 @@ export const useWhatsAppChatMessages = (
         text: msg.text || '',
         fromMe: msg.from_me,
         timestamp: msg.timestamp,
-        status: msg.status || 'sent',
-        mediaType: msg.media_type || 'text',
+        status: normalizeStatus(msg.status),
+        mediaType: normalizeMediaType(msg.media_type),
         mediaUrl: msg.media_url,
         // Compatibility fields for UI
         sender: msg.from_me ? 'user' : 'contact',

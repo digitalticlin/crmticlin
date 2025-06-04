@@ -1,6 +1,6 @@
 
 // FASE 3: Hook para gerenciar notas de contatos
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Contact } from '@/types/chat';
 import { supabase } from "@/integrations/supabase/client";
 
