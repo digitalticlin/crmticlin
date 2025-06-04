@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { QuickMessagesPanel } from "./input/QuickMessagesPanel";
 import { EmojiPicker } from "./input/EmojiPicker";
 import { QuickActionsPopover } from "./input/QuickActionsPopover";
+import { QuickMessagesPopover } from "./input/QuickMessagesPopover";
 
 interface WhatsAppMessageInputProps {
   onSendMessage: (message: string) => void;
@@ -65,13 +66,9 @@ export const WhatsAppMessageInput = ({
     }
   };
 
-  const toggleQuickMessages = () => {
-    setShowQuickMessages(!showQuickMessages);
-  };
-
   return (
     <div className="p-6 bg-white/10 backdrop-blur-md border-t border-white/20">
-      {/* Quick Messages Panel */}
+      {/* Quick Messages Panel - mantido para compatibilidade */}
       {showQuickMessages && (
         <QuickMessagesPanel
           onQuickMessage={handleQuickMessage}
@@ -81,9 +78,10 @@ export const WhatsAppMessageInput = ({
 
       {/* Message Input */}
       <div className="flex items-end gap-3">
-        {/* Quick Actions */}
+        {/* Actions - Separados em dois botões */}
         <div className="flex gap-2">
-          <QuickActionsPopover onToggleQuickMessages={toggleQuickMessages} />
+          <QuickActionsPopover />
+          <QuickMessagesPopover onQuickMessage={handleQuickMessage} />
         </div>
 
         {/* Text Input */}
