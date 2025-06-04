@@ -62,9 +62,10 @@ export const useDashboardConfig = () => {
   const { companyId } = useCompanyData();
   
   // Refs para controle de state e debounce
-  const pendingUpdatesRef = useRef<Partial<DashboardConfig> | null>(null);
+  const pendingUpdatesRef = useRef<DashboardConfig | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
+  const lastSavedConfigRef = useRef<DashboardConfig>(defaultConfig);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -100,6 +101,7 @@ export const useDashboardConfig = () => {
         console.log("Config loaded from database:", data.config_data);
         const loadedConfig = data.config_data as unknown as DashboardConfig;
         setConfig(loadedConfig);
+        lastSavedConfigRef.current = loadedConfig;
         setConfigVersion(Date.now());
       } else if (isMountedRef.current) {
         console.log("No config found, creating default...");
@@ -130,6 +132,7 @@ export const useDashboardConfig = () => {
       if (isMountedRef.current) {
         console.log("Default config created");
         setConfig(defaultConfig);
+        lastSavedConfigRef.current = defaultConfig;
         setConfigVersion(Date.now());
       }
     } catch (error) {
@@ -154,11 +157,18 @@ export const useDashboardConfig = () => {
 
       if (error) throw error;
 
+      lastSavedConfigRef.current = configToSave;
       console.log("Config saved successfully");
       toast.success("Configurações salvas com sucesso!");
     } catch (error) {
       console.error("Erro ao salvar configuração:", error);
       toast.error("Erro ao salvar configurações");
+      
+      // Rollback em caso de erro
+      if (isMountedRef.current) {
+        setConfig(lastSavedConfigRef.current);
+        setConfigVersion(Date.now());
+      }
     } finally {
       if (isMountedRef.current) {
         setSaving(false);
@@ -169,7 +179,13 @@ export const useDashboardConfig = () => {
   const updateConfig = useCallback(async (newConfig: Partial<DashboardConfig>) => {
     if (!isMountedRef.current) return;
     
-    const updatedConfig = { ...config, ...newConfig };
+    // Merge completo para garantir que temos uma configuração válida
+    const updatedConfig: DashboardConfig = {
+      kpis: { ...config.kpis, ...(newConfig.kpis || {}) },
+      charts: { ...config.charts, ...(newConfig.charts || {}) },
+      layout: { ...config.layout, ...(newConfig.layout || {}) },
+      period_filter: newConfig.period_filter || config.period_filter
+    };
     
     console.log("=== UPDATE CONFIG IMMEDIATE ===");
     console.log("Old config:", config);
