@@ -112,8 +112,8 @@ export const WhatsAppMessageInput = ({
           className={cn(
             "h-12 w-12 p-0 rounded-full transition-all duration-200 shadow-lg",
             message.trim() && !isSending
-              ? "bg-blue-500 hover:bg-blue-600 text-white shadow-blue-500/25 hover:shadow-blue-500/40" 
-              : "bg-gray-300 text-gray-500 cursor-not-allowed"
+              ? "bg-green-500 hover:bg-green-600 text-white shadow-green-500/25 hover:shadow-green-500/40 border-2 border-green-400 hover:border-green-300" 
+              : "bg-gray-300 text-gray-500 cursor-not-allowed border-2 border-transparent"
           )}
         >
           <Send className="h-5 w-5" />
