@@ -6,12 +6,14 @@ import { CustomizableKPIGrid } from "@/components/dashboard/CustomizableKPIGrid"
 import CustomizableChartsSection from "@/components/dashboard/CustomizableChartsSection";
 import PeriodFilter from "@/components/dashboard/PeriodFilter";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSidebar } from "@/contexts/SidebarContext";
 import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 
 export default function Dashboard() {
   const isMobile = useIsMobile();
+  const { isCollapsed } = useSidebar();
   const { config, forceUpdate, loading } = useDashboardConfig();
 
   // ETAPA 5: Validação - monitoring da página
@@ -53,8 +55,12 @@ export default function Dashboard() {
       
       {/* ETAPA 3: Container principal com scroll independente */}
       <main className={cn(
-        "fixed top-0 right-0 bottom-0 z-10 overflow-auto",
-        isMobile ? "left-0 pt-14" : "left-[250px]" // Ajuste para largura do sidebar
+        "fixed top-0 right-0 bottom-0 z-10 overflow-auto transition-all duration-300",
+        isMobile 
+          ? "left-0 pt-14" 
+          : isCollapsed 
+            ? "left-[80px]" 
+            : "left-[250px]"
       )}>
         <div className={cn(
           "p-4 md:p-6 space-y-6 md:space-y-8 min-h-full",
