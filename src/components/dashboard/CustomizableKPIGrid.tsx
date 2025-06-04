@@ -60,23 +60,21 @@ export function CustomizableKPIGrid() {
 
   // Log quando a configuração mudar
   useEffect(() => {
-    console.log("=== KPI GRID CONFIG CHANGED ===");
+    console.log("=== KPI GRID RENDER ===");
     console.log("Config version:", configVersion);
     console.log("KPIs config:", config.kpis);
-  }, [config.kpis, configVersion]);
+    console.log("Period filter:", config.period_filter);
+  }, [config.kpis, config.period_filter, configVersion]);
 
   const visibleKPIs = useMemo(() => {
     const visible = config.layout.kpi_order.filter(
       kpiKey => {
         const isVisible = config.kpis[kpiKey as keyof typeof config.kpis];
-        console.log(`KPI ${kpiKey} visibility:`, isVisible);
+        console.log(`📊 KPI ${kpiKey} visibility:`, isVisible);
         return isVisible;
       }
     );
-    console.log("=== KPI GRID RENDER ===");
-    console.log("Config version:", configVersion);
-    console.log("KPIs config:", config.kpis);
-    console.log("Visible KPIs:", visible);
+    console.log("✅ Visible KPIs calculated:", visible);
     return visible;
   }, [config.layout.kpi_order, config.kpis, configVersion]);
 
@@ -117,11 +115,11 @@ export function CustomizableKPIGrid() {
         const value = kpis[kpiKey as keyof typeof kpis];
         
         if (!kpiData) {
-          console.warn(`KPI config not found for key: ${kpiKey}`);
+          console.warn(`❌ KPI config not found for key: ${kpiKey}`);
           return null;
         }
         
-        console.log(`Rendering KPI: ${kpiKey} with value:`, value);
+        console.log(`🎯 Rendering KPI: ${kpiKey} with value:`, value);
         
         return (
           <KPICard

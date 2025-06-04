@@ -21,6 +21,7 @@ export const useDashboardConfig = () => {
   const isMountedRef = useRef(true);
   const pendingConfigRef = useRef<DashboardConfig | null>(null);
   const savePromiseRef = useRef<Promise<void> | null>(null);
+  const isInitializedRef = useRef(false);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -33,7 +34,7 @@ export const useDashboardConfig = () => {
   }, []);
 
   useEffect(() => {
-    if (user && companyId) {
+    if (user && companyId && !isInitializedRef.current) {
       loadConfig();
     }
   }, [user, companyId]);
@@ -43,30 +44,57 @@ export const useDashboardConfig = () => {
     
     try {
       setLoading(true);
+      console.log("=== LOADING CONFIG ===");
+      console.log("User ID:", user.id, "Company ID:", companyId);
+      
       const loadedConfig = await DashboardConfigService.retryOperation(
         () => DashboardConfigService.loadConfig(user.id, companyId)
       );
       
       if (loadedConfig && validateConfig(loadedConfig) && isMountedRef.current) {
-        console.log("Setting loaded config:", loadedConfig);
+        console.log("✅ Config loaded from database:", loadedConfig);
         setConfig(loadedConfig);
         setConfigVersion(prev => prev + 1);
+        isInitializedRef.current = true;
       } else if (isMountedRef.current) {
-        console.log("No valid config found, using default config");
-        setConfig(defaultConfig);
-        setConfigVersion(prev => prev + 1);
+        console.log("❌ No valid config found, creating initial config");
+        // Criar registro inicial no banco de dados
+        await createInitialConfig();
       }
     } catch (error) {
-      console.error("Erro ao carregar configuração:", error);
+      console.error("❌ Error loading config:", error);
       toast.error("Erro ao carregar configurações do dashboard");
       if (isMountedRef.current) {
         setConfig(defaultConfig);
         setConfigVersion(prev => prev + 1);
+        isInitializedRef.current = true;
       }
     } finally {
       if (isMountedRef.current) {
         setLoading(false);
       }
+    }
+  };
+
+  const createInitialConfig = async () => {
+    if (!user?.id || !companyId) return;
+    
+    try {
+      console.log("🔨 Creating initial config in database");
+      await DashboardConfigService.retryOperation(
+        () => DashboardConfigService.saveConfig(user.id, companyId, defaultConfig)
+      );
+      console.log("✅ Initial config created successfully");
+      setConfig(defaultConfig);
+      setConfigVersion(prev => prev + 1);
+      isInitializedRef.current = true;
+      toast.success("Dashboard configurado com sucesso!");
+    } catch (error) {
+      console.error("❌ Error creating initial config:", error);
+      toast.error("Erro ao inicializar configurações");
+      setConfig(defaultConfig);
+      setConfigVersion(prev => prev + 1);
+      isInitializedRef.current = true;
     }
   };
 
@@ -76,14 +104,15 @@ export const useDashboardConfig = () => {
     setSaving(true);
     
     try {
+      console.log("💾 Saving config to database:", configToSave);
       await DashboardConfigService.retryOperation(
         () => DashboardConfigService.saveConfig(user.id, companyId, configToSave)
       );
       
-      console.log("Config saved successfully:", configToSave);
+      console.log("✅ Config saved successfully");
       toast.success("Configurações salvas!");
     } catch (error) {
-      console.error("Erro ao salvar configuração:", error);
+      console.error("❌ Error saving config:", error);
       toast.error("Erro ao salvar configurações");
       throw error;
     } finally {
@@ -94,7 +123,10 @@ export const useDashboardConfig = () => {
   };
 
   const updateConfig = (newConfig: Partial<DashboardConfig>) => {
-    if (!isMountedRef.current) return;
+    if (!isMountedRef.current || !isInitializedRef.current) {
+      console.warn("⚠️ Update config called before initialization");
+      return;
+    }
     
     console.log("=== UPDATE CONFIG CALLED ===");
     console.log("Current config:", config);
@@ -104,15 +136,22 @@ export const useDashboardConfig = () => {
     const currentConfigCopy = deepClone(config);
     const updatedConfig = mergeConfigUpdates(currentConfigCopy, newConfig);
     
-    console.log("Final updated config:", updatedConfig);
+    console.log("📝 Final updated config:", updatedConfig);
     
     // Update imediato na UI com incremento da versão
     setConfig(updatedConfig);
     setConfigVersion(prev => {
       const newVersion = prev + 1;
-      console.log("Config version updated to:", newVersion);
+      console.log("🔄 Config version updated to:", newVersion);
       return newVersion;
     });
+    
+    // Forçar re-renderização imediata
+    setTimeout(() => {
+      if (isMountedRef.current) {
+        setConfigVersion(prev => prev + 1);
+      }
+    }, 0);
     
     // Armazenar config pendente
     pendingConfigRef.current = updatedConfig;

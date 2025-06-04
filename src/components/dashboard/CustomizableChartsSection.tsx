@@ -20,23 +20,21 @@ export default function CustomizableChartsSection() {
 
   // Log quando a configuração mudar
   useEffect(() => {
-    console.log("=== CHARTS SECTION CONFIG CHANGED ===");
+    console.log("=== CHARTS SECTION RENDER ===");
     console.log("Config version:", configVersion);
     console.log("Charts config:", config.charts);
-  }, [config.charts, configVersion]);
+    console.log("Chart order:", config.layout.chart_order);
+  }, [config.charts, config.layout.chart_order, configVersion]);
 
   const visibleCharts = useMemo(() => {
     const visible = config.layout.chart_order.filter(
       chartKey => {
         const isVisible = config.charts[chartKey as keyof typeof config.charts];
-        console.log(`Chart ${chartKey} visibility:`, isVisible);
+        console.log(`📈 Chart ${chartKey} visibility:`, isVisible);
         return isVisible;
       }
     );
-    console.log("=== CHARTS SECTION RENDER ===");
-    console.log("Config version:", configVersion);
-    console.log("Charts config:", config.charts);
-    console.log("Visible Charts:", visible);
+    console.log("✅ Visible Charts calculated:", visible);
     return visible;
   }, [config.layout.chart_order, config.charts, configVersion]);
 
@@ -74,7 +72,7 @@ export default function CustomizableChartsSection() {
         const ChartComponent = chartComponents[chartKey as keyof typeof chartComponents];
         
         if (!ChartComponent) {
-          console.error(`Component not found for chart key: ${chartKey}`);
+          console.error(`❌ Component not found for chart key: ${chartKey}`);
           return (
             <div key={chartKey} className="rounded-3xl bg-white/35 backdrop-blur-lg border border-white/30 shadow-2xl p-6">
               <p className="text-gray-600">Componente não encontrado para: {chartKey}</p>
@@ -82,7 +80,7 @@ export default function CustomizableChartsSection() {
           );
         }
         
-        console.log(`Rendering Chart: ${chartKey}`);
+        console.log(`📊 Rendering Chart: ${chartKey}`);
         
         return <ChartComponent key={`${chartKey}-${configVersion}`} />;
       })}

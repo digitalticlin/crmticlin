@@ -11,7 +11,7 @@ export default function DashboardCustomizer() {
   const { config, loading, updateConfig, resetToDefault } = useDashboardConfig();
   const [open, setOpen] = useState(false);
 
-  console.log("DashboardCustomizer render - config:", config);
+  console.log("🎛️ DashboardCustomizer render - config:", config);
 
   const handleKPIToggle = (kpiKey: keyof DashboardConfig['kpis']) => {
     const currentValue = config.kpis[kpiKey];
@@ -49,14 +49,14 @@ export default function DashboardCustomizer() {
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) {
-      console.log("Drag cancelled - no destination");
+      console.log("❌ Drag cancelled - no destination");
       return;
     }
 
     const { source, destination } = result;
     
     if (source.droppableId === destination.droppableId && source.index === destination.index) {
-      console.log("Drag cancelled - same position");
+      console.log("❌ Drag cancelled - same position");
       return;
     }
 
@@ -68,7 +68,7 @@ export default function DashboardCustomizer() {
         const [removed] = newKpiOrder.splice(source.index, 1);
         newKpiOrder.splice(destination.index, 0, removed);
 
-        console.log("New KPI order:", newKpiOrder);
+        console.log("📊 New KPI order:", newKpiOrder);
 
         updateConfig({
           layout: {
@@ -82,7 +82,7 @@ export default function DashboardCustomizer() {
         const [removed] = newChartOrder.splice(source.index, 1);
         newChartOrder.splice(destination.index, 0, removed);
 
-        console.log("New Chart order:", newChartOrder);
+        console.log("📈 New Chart order:", newChartOrder);
 
         updateConfig({
           layout: {
@@ -92,7 +92,7 @@ export default function DashboardCustomizer() {
         });
       }
     } catch (error) {
-      console.error("Drag error:", error);
+      console.error("❌ Drag error:", error);
     }
   };
 
