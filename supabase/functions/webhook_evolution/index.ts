@@ -52,7 +52,7 @@ serve(async (req: Request) => {
           { headers: corsHeaders, status: 400 });
       }
       
-      // CORRIGIDO: Buscar na tabela whatsapp_instances em vez de whatsapp_numbers
+      // CORRIGIDO: Buscar instância usando evolution_instance_name
       const { data: whatsappInstance, error: instanceError } = await supabase
         .from('whatsapp_instances')
         .select('id, company_id, n8n_webhook_url')

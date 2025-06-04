@@ -3,7 +3,7 @@ export async function handleMessageEvent(supabase: any, instanceId: string, data
   console.log('[Webhook] 💬 Handling message event for instance:', instanceId);
   
   try {
-    // Get WhatsApp instance
+    // CORRIGIDO: Buscar por vps_instance_id
     const { data: whatsappInstance, error: instanceError } = await supabase
       .from('whatsapp_instances')
       .select('id, company_id')
