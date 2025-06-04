@@ -145,7 +145,7 @@ export class VPSDiagnosticService {
   }
 
   // CORREÇÃO: Função de validação de versão atualizada para aceitar 3.5.0
-  private static isValidVersion(versionString: string): boolean => {
+  private static isValidVersion(versionString: string): boolean {
     if (!versionString) return false;
     
     // Lista de versões válidas atualizada
