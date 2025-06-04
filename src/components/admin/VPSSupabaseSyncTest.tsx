@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +32,19 @@ export const VPSSupabaseSyncTest = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
+
+  // Executar teste automaticamente quando o componente for montado
+  useEffect(() => {
+    const executeAutomaticTest = async () => {
+      addLog("🤖 Executando teste automático...");
+      await runCompleteTest();
+    };
+
+    // Aguardar um pouco antes de executar para garantir que o componente foi renderizado
+    const timer = setTimeout(executeAutomaticTest, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -96,21 +109,26 @@ export const VPSSupabaseSyncTest = () => {
       // TESTE 9: Updates em Tempo Real
       await runRealtimeUpdates();
       
-      // TESTE 10: Integração Completa
+      // TESTE 10: Integração Completa (aguardar estado atualizar)
+      await new Promise(resolve => setTimeout(resolve, 500)); // Aguardar state updates
       await runCompleteIntegration();
 
       addLog("✅ Todos os testes de sincronização concluídos");
       
-      const successCount = testResults.filter(t => t.status === 'success').length;
-      const totalTests = testResults.length;
-      
-      if (successCount === totalTests) {
-        toast.success("🎉 Sincronização VPS-Supabase funcionando perfeitamente!");
-      } else if (successCount >= totalTests * 0.8) {
-        toast.warning(`⚠️ Sincronização com alguns problemas (${successCount}/${totalTests} OK)`);
-      } else {
-        toast.error(`❌ Sincronização com problemas críticos (${successCount}/${totalTests} OK)`);
-      }
+      // Aguardar mais um pouco para garantir que todos os estados foram atualizados
+      setTimeout(() => {
+        const finalResults = testResults.filter(t => t.name !== 'complete_integration');
+        const successCount = finalResults.filter(t => t.status === 'success').length;
+        const totalTests = finalResults.length;
+        
+        if (successCount === totalTests) {
+          toast.success("🎉 Sincronização VPS-Supabase funcionando perfeitamente!");
+        } else if (successCount >= totalTests * 0.8) {
+          toast.warning(`⚠️ Sincronização com alguns problemas (${successCount}/${totalTests} OK)`);
+        } else {
+          toast.error(`❌ Sincronização com problemas críticos (${successCount}/${totalTests} OK)`);
+        }
+      }, 1000);
 
     } catch (error: any) {
       addLog(`💥 Erro geral no teste: ${error.message}`);
@@ -490,9 +508,15 @@ export const VPSSupabaseSyncTest = () => {
     const startTime = Date.now();
     
     try {
-      const successCount = testResults.filter(t => t.status === 'success').length;
-      const totalTests = testResults.length - 1; // Excluir este próprio teste
-      const successRate = (successCount / totalTests) * 100;
+      // Usar uma função para obter os resultados atuais em tempo real
+      const getCurrentResults = () => {
+        return testResults.filter(t => t.name !== 'complete_integration');
+      };
+
+      const currentResults = getCurrentResults();
+      const successCount = currentResults.filter(t => t.status === 'success').length;
+      const totalTests = currentResults.length;
+      const successRate = totalTests > 0 ? (successCount / totalTests) * 100 : 0;
 
       const duration = Date.now() - startTime;
 
@@ -523,7 +547,7 @@ export const VPSSupabaseSyncTest = () => {
         });
         addLog(`⚠️ Integração BOA (${successRate.toFixed(1)}% sucesso)`);
       } else {
-        throw new Error(`Taxa de sucesso baixa: ${successRate.toFixed(1)}%`);
+        throw new Error(`Taxa de sucesso baixa: ${successRate.toFixed(1)}% (${successCount}/${totalTests})`);
       }
 
     } catch (error: any) {
@@ -611,6 +635,7 @@ export const VPSSupabaseSyncTest = () => {
           <CardTitle className="flex items-center gap-2">
             <RotateCcw className="h-5 w-5 text-blue-600" />
             Teste Completo de Sincronização VPS-Supabase
+            {isRunning && <Badge variant="secondary">Executando Automaticamente...</Badge>}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -619,6 +644,7 @@ export const VPSSupabaseSyncTest = () => {
             <AlertDescription>
               Este teste verifica toda a integração entre Supabase e VPS: conectividade, autenticação,
               sincronização de dados, fluxo de mensagens e updates em tempo real.
+              {isRunning ? " O teste está sendo executado automaticamente..." : " O teste será executado automaticamente quando a página carregar."}
             </AlertDescription>
           </Alert>
 
@@ -636,7 +662,7 @@ export const VPSSupabaseSyncTest = () => {
             ) : (
               <>
                 <RotateCcw className="h-4 w-4 mr-2" />
-                Executar Teste Completo
+                Executar Teste Novamente
               </>
             )}
           </Button>
