@@ -29,7 +29,7 @@ export const TagsPopover = ({ contactName, tags, children, open, onOpenChange }:
         {children}
       </PopoverTrigger>
       <PopoverContent 
-        className="w-72 bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 backdrop-blur-md shadow-lg"
+        className="w-72 bg-white border border-gray-200 shadow-lg rounded-lg p-4"
         side="bottom"
         align="start"
         sideOffset={4}
@@ -46,7 +46,7 @@ export const TagsPopover = ({ contactName, tags, children, open, onOpenChange }:
                   key={index}
                   variant="outline" 
                   className={cn(
-                    "text-sm font-semibold backdrop-blur-[2px] shadow-md",
+                    "text-sm font-semibold",
                     getTagColor(tag)
                   )}
                 >

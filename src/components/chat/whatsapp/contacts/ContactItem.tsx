@@ -1,4 +1,3 @@
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -31,6 +30,12 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
     }
     // Fallback para tags não encontradas
     return 'border-2 border-gray-500 bg-gray-500/20 text-gray-800';
+  };
+
+  // Handler para evitar propagação do clique no "+x"
+  const handleTagsPlusClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowTagsPopover(true);
   };
 
   // Combinar tags e company em um único array para o limite de 2 itens
@@ -119,6 +124,7 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
                       <Badge 
                         variant="outline" 
                         className="text-[11px] border-2 border-gray-500 bg-gray-500/20 text-gray-800 cursor-pointer hover:bg-gray-500/30 transition-colors flex-shrink-0 min-w-[28px] px-1.5 py-0.5"
+                        onClick={handleTagsPlusClick}
                       >
                         +{remainingCount}
                       </Badge>
