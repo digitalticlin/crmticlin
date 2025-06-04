@@ -78,7 +78,7 @@ export const WhatsAppMessagesList = ({ messages, isLoading }: WhatsAppMessagesLi
                   "max-w-[75%] rounded-2xl p-4 shadow-lg relative backdrop-blur-sm",
                   message.isIncoming 
                     ? "bg-white/60 text-gray-900 rounded-bl-md border border-white/30" 
-                    : "bg-gradient-to-r from-green-500 to-green-600 text-white rounded-br-md shadow-green-500/25"
+                    : "bg-green-500/40 border-2 border-green-500 text-white rounded-br-md shadow-green-500/25"
                 )}
               >
                 <p className="break-words leading-relaxed">{message.text}</p>
