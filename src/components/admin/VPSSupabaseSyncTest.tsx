@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { 
   Database, 
   Server, 
-  Sync, 
+  RotateCcw, 
   CheckCircle, 
   XCircle, 
   AlertTriangle,
@@ -610,7 +610,7 @@ export const VPSSupabaseSyncTest = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Sync className="h-5 w-5 text-blue-600" />
+            <RotateCcw className="h-5 w-5 text-blue-600" />
             Teste Completo de Sincronização VPS-Supabase
           </CardTitle>
         </CardHeader>
@@ -636,7 +636,7 @@ export const VPSSupabaseSyncTest = () => {
               </>
             ) : (
               <>
-                <Sync className="h-4 w-4 mr-2" />
+                <RotateCcw className="h-4 w-4 mr-2" />
                 Executar Teste Completo
               </>
             )}
