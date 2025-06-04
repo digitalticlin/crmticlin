@@ -66,6 +66,7 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
               {contact.lastMessage || "Clique para conversar"}
             </p>
             
+            {/* Só mostrar o badge se unreadCount for maior que 0 */}
             {contact.unreadCount && contact.unreadCount > 0 && (
               <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs px-2 py-1 rounded-full ml-2 shadow-sm">
                 {contact.unreadCount > 99 ? '99+' : contact.unreadCount}

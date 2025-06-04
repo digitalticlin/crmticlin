@@ -1,8 +1,7 @@
 
-import { Contact } from "@/types/chat";
-import { SubtleScrollArea } from "@/components/ui/subtle-scroll-area";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { ContactItem } from "./ContactItem";
-import { EmptyContactsState } from "./EmptyContactsState";
+import { Contact } from "@/types/chat";
 
 interface ContactsListProps {
   contacts: Contact[];
@@ -20,8 +19,8 @@ export const ContactsList = ({
   activeFilter
 }: ContactsListProps) => {
   return (
-    <SubtleScrollArea className="h-full">
-      <div className="p-2 space-y-1">
+    <ScrollArea className="h-full">
+      <div className="space-y-1 p-2">
         {contacts.map((contact) => (
           <ContactItem
             key={contact.id}
@@ -32,12 +31,16 @@ export const ContactsList = ({
         ))}
         
         {contacts.length === 0 && (
-          <EmptyContactsState 
-            searchQuery={searchQuery}
-            activeFilter={activeFilter}
-          />
+          <div className="flex items-center justify-center h-32 text-center">
+            <p className="text-gray-600 text-sm">
+              {searchQuery 
+                ? "Nenhum contato encontrado" 
+                : "Nenhuma conversa ainda"
+              }
+            </p>
+          </div>
         )}
       </div>
-    </SubtleScrollArea>
+    </ScrollArea>
   );
 };
