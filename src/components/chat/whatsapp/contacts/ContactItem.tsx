@@ -6,6 +6,7 @@ import { Contact } from "@/types/chat";
 import { unifiedTags } from "@/data/unifiedFakeData";
 import { useState } from "react";
 import { TagsModal } from "./TagsModal";
+import { getTagStyleClasses } from "@/utils/tagColors";
 
 interface ContactItemProps {
   contact: Contact;
@@ -25,11 +26,11 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
   const getTagColor = (tagName: string) => {
     const unifiedTag = unifiedTags.find(tag => tag.name === tagName);
     if (unifiedTag) {
-      // Converter a cor do funil para o estilo do chat com opacidade
-      return `bg-white/40 text-black border-white/20`;
+      // Usar as cores corretas do padrão de etiquetas
+      return getTagStyleClasses(unifiedTag.color);
     }
     // Fallback para tags não encontradas
-    return 'bg-white/40 text-black border-white/20';
+    return 'border-2 border-gray-500 bg-gray-500/20 text-gray-800';
   };
 
   const handleTagsPlusClick = (e: React.MouseEvent) => {
@@ -94,7 +95,7 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
                       key={index}
                       variant="outline" 
                       className={cn(
-                        "text-xs border backdrop-blur-[2px] shadow-md font-semibold flex-shrink-0 max-w-[80px] truncate",
+                        "text-xs font-semibold flex-shrink-0 max-w-[80px] truncate",
                         getTagColor(tag)
                       )}
                     >
@@ -105,7 +106,7 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
                   {contact.tags.length > 2 && (
                     <Badge 
                       variant="outline" 
-                      className="text-xs border-white/20 text-black bg-white/30 backdrop-blur-[2px] shadow-md cursor-pointer hover:bg-white/40 transition-colors flex-shrink-0 min-w-[24px]"
+                      className="text-xs border-2 border-gray-500 bg-gray-500/20 text-gray-800 cursor-pointer hover:bg-gray-500/30 transition-colors flex-shrink-0 min-w-[24px]"
                       onClick={handleTagsPlusClick}
                     >
                       +{contact.tags.length - 2}
@@ -118,7 +119,7 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
             {/* Company Info */}
             {contact.company && (
               <div className="flex items-center gap-2 mt-1">
-                <Badge variant="outline" className="text-xs border-white/20 text-black bg-white/30 backdrop-blur-[2px] shadow-md">
+                <Badge variant="outline" className="text-xs border-2 border-gray-500 bg-gray-500/20 text-gray-800">
                   {contact.company}
                 </Badge>
               </div>
