@@ -5,7 +5,7 @@ import FunnelChart from "./charts/FunnelChart";
 import PerformanceChart from "./charts/PerformanceChart";
 import TagsChart from "./charts/TagsChart";
 import DistributionChart from "./charts/DistributionChart";
-import { useMemo, useEffect, useLayoutEffect } from "react";
+import { useMemo, useEffect } from "react";
 
 const chartComponents = {
   funil_conversao: FunnelChart,
@@ -18,44 +18,33 @@ const chartComponents = {
 export default function CustomizableChartsSection() {
   const { config, loading, forceUpdate, getCurrentState } = useDashboardConfig();
 
-  // ETAPA 3: useMemo otimizado com dependências sincronizadas
+  // ETAPA 3: useMemo otimizado - dependências simplificadas
   const visibleCharts = useMemo(() => {
-    // ETAPA 4: Usar estado otimista se disponível
-    const currentState = getCurrentState ? getCurrentState() : { charts: config.charts };
+    // ETAPA 1: Usar estado otimista sempre atualizado
+    const currentState = getCurrentState();
     
     const visible = config.layout.chart_order.filter(
       chartKey => currentState.charts[chartKey as keyof typeof currentState.charts]
     );
     
     const timestamp = Date.now();
-    console.log(`✅ CHARTS VISIBLE RECALCULATED [${timestamp}]:`, {
+    console.log(`✅ CHARTS VISIBLE INSTANT [${timestamp}]:`, {
       visible,
       forceUpdate,
-      configCharts: config.charts,
-      optimisticCharts: currentState.charts
+      lastUpdate: currentState.lastUpdate
     });
     return visible;
-  }, [config.layout.chart_order, config.charts, forceUpdate, getCurrentState]);
+  }, [config.layout.chart_order, forceUpdate, getCurrentState]);
 
-  // ETAPA 2: useLayoutEffect para sincronização DOM imediata
-  useLayoutEffect(() => {
-    const timestamp = Date.now();
-    console.log(`📈 CHARTS LAYOUT EFFECT [${timestamp}]:`, {
-      forceUpdate,
-      visibleCharts,
-      configCharts: config.charts
-    });
-  }, [forceUpdate, visibleCharts, config.charts]);
-
-  // ETAPA 5: Debug temporal - tracking do fluxo
+  // ETAPA 5: Debug tracking otimizado
   useEffect(() => {
     const timestamp = Date.now();
-    console.log(`📈 CHARTS UPDATE [${timestamp}]:`, {
+    console.log(`📈 CHARTS UPDATED [${timestamp}]:`, {
       forceUpdate,
-      visibleCharts,
-      configCharts: config.charts
+      visibleCount: visibleCharts.length,
+      visibleCharts
     });
-  }, [forceUpdate, visibleCharts, config.charts]);
+  }, [forceUpdate, visibleCharts]);
 
   if (loading) {
     return (
@@ -84,16 +73,16 @@ export default function CustomizableChartsSection() {
 
   return (
     <div 
-      className={`grid ${getGridCols(visibleCharts.length)} gap-6 transition-all duration-150 ease-out transform`}
+      className={`grid ${getGridCols(visibleCharts.length)} gap-6 transition-all duration-100 ease-out`}
       style={{
-        animation: "fade-in 0.15s ease-out"
+        animation: "fade-in 0.1s ease-out"
       }}
     >
       {visibleCharts.map((chartKey, index) => {
         const ChartComponent = chartComponents[chartKey as keyof typeof chartComponents];
         
-        // ETAPA 4: Usar estado otimista para isEnabled
-        const currentState = getCurrentState ? getCurrentState() : { charts: config.charts };
+        // ETAPA 1: Usar estado otimista para feedback instantâneo
+        const currentState = getCurrentState();
         const isEnabled = currentState.charts[chartKey as keyof typeof currentState.charts];
         
         if (!ChartComponent) {
@@ -105,18 +94,15 @@ export default function CustomizableChartsSection() {
           );
         }
         
-        const timestamp = Date.now();
-        console.log(`📊 Rendering Chart [${timestamp}]: ${chartKey} enabled:${isEnabled}`);
-        
-        // ETAPA 3: Key com timestamp para forçar re-render
-        const reactiveKey = `chart-${chartKey}-${forceUpdate}-${isEnabled}-${timestamp}`;
+        // ETAPA 3: Key simplificada baseada apenas no forceUpdate
+        const reactiveKey = `chart-${chartKey}-${forceUpdate}`;
         
         return (
           <div
             key={reactiveKey}
-            className="animate-fade-in transform transition-all duration-150"
+            className="animate-fade-in transform transition-all duration-100"
             style={{ 
-              animationDelay: `${index * 50}ms`,
+              animationDelay: `${index * 30}ms`,
               transform: "scale(1)"
             }}
           >

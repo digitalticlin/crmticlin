@@ -10,18 +10,29 @@ export const createConfigHandlers = (
   scheduleSave: (config: DashboardConfig) => void,
   isInitializedRef: React.MutableRefObject<boolean>
 ) => {
-  // ETAPA 4: Estado otimista para atualização imediata
+  // ETAPA 1: Estado otimista melhorado para sincronização instantânea
   const optimisticStateRef = useRef<{
     kpis?: Partial<DashboardConfig['kpis']>;
     charts?: Partial<DashboardConfig['charts']>;
+    lastUpdate?: number;
   }>({});
 
-  // ETAPA 2: Função para flush imediato do estado
-  const flushStateAndUpdate = useCallback(() => {
-    // Forçar flush do React batching
-    setTimeout(() => {
-      triggerForceUpdate();
-    }, 0);
+  // ETAPA 1: Função para aplicar estado otimista imediatamente
+  const applyOptimisticUpdate = useCallback((type: 'kpis' | 'charts', key: string, value: boolean) => {
+    const timestamp = Date.now();
+    optimisticStateRef.current = {
+      ...optimisticStateRef.current,
+      [type]: {
+        ...optimisticStateRef.current[type],
+        [key]: value
+      },
+      lastUpdate: timestamp
+    };
+    
+    console.log(`⚡ OPTIMISTIC APPLIED [${timestamp}]: ${type}.${key} = ${value}`);
+    
+    // ETAPA 1: Trigger imediato para re-render
+    triggerForceUpdate();
   }, [triggerForceUpdate]);
 
   // ETAPA 1: Handler KPI com sincronização perfeita
@@ -32,21 +43,14 @@ export const createConfigHandlers = (
     }
     
     const timestamp = Date.now();
-    console.log(`🎯 KPI TOGGLE START [${timestamp}]: ${kpiKey}`);
-    
-    // ETAPA 4: Atualização otimista imediata
     const newValue = !config.kpis[kpiKey];
-    optimisticStateRef.current = {
-      ...optimisticStateRef.current,
-      kpis: {
-        ...optimisticStateRef.current.kpis,
-        [kpiKey]: newValue
-      }
-    };
     
-    console.log(`⚡ OPTIMISTIC UPDATE [${timestamp}]: ${kpiKey} = ${newValue}`);
+    console.log(`🎯 KPI TOGGLE INSTANT [${timestamp}]: ${kpiKey} -> ${newValue}`);
     
-    // Atualização imediata do estado
+    // ETAPA 1: Aplicar estado otimista ANTES do setState
+    applyOptimisticUpdate('kpis', kpiKey, newValue);
+    
+    // ETAPA 1: Estado real atualizado em paralelo
     setConfig(currentConfig => {
       const newConfig = {
         ...currentConfig,
@@ -56,17 +60,14 @@ export const createConfigHandlers = (
         }
       };
       
-      console.log(`📊 CONFIG UPDATED [${timestamp}]:`, newConfig.kpis);
+      console.log(`📊 CONFIG SYNCED [${timestamp}]:`, newConfig.kpis);
       scheduleSave(newConfig);
-      
-      // ETAPA 2: Flush imediato após setState
-      flushStateAndUpdate();
       
       return newConfig;
     });
     
     console.log(`✅ KPI TOGGLE COMPLETE [${timestamp}]: ${kpiKey}`);
-  }, [config.kpis, setConfig, scheduleSave, flushStateAndUpdate, isInitializedRef]);
+  }, [config.kpis, setConfig, scheduleSave, applyOptimisticUpdate, isInitializedRef]);
 
   // ETAPA 1: Handler Chart com sincronização perfeita
   const handleChartToggle = useCallback((chartKey: keyof DashboardConfig['charts']) => {
@@ -76,21 +77,14 @@ export const createConfigHandlers = (
     }
     
     const timestamp = Date.now();
-    console.log(`📈 CHART TOGGLE START [${timestamp}]: ${chartKey}`);
-    
-    // ETAPA 4: Atualização otimista imediata
     const newValue = !config.charts[chartKey];
-    optimisticStateRef.current = {
-      ...optimisticStateRef.current,
-      charts: {
-        ...optimisticStateRef.current.charts,
-        [chartKey]: newValue
-      }
-    };
     
-    console.log(`⚡ OPTIMISTIC UPDATE [${timestamp}]: ${chartKey} = ${newValue}`);
+    console.log(`📈 CHART TOGGLE INSTANT [${timestamp}]: ${chartKey} -> ${newValue}`);
     
-    // Atualização imediata do estado
+    // ETAPA 1: Aplicar estado otimista ANTES do setState
+    applyOptimisticUpdate('charts', chartKey, newValue);
+    
+    // ETAPA 1: Estado real atualizado em paralelo
     setConfig(currentConfig => {
       const newConfig = {
         ...currentConfig,
@@ -100,17 +94,14 @@ export const createConfigHandlers = (
         }
       };
       
-      console.log(`📊 CONFIG UPDATED [${timestamp}]:`, newConfig.charts);
+      console.log(`📊 CONFIG SYNCED [${timestamp}]:`, newConfig.charts);
       scheduleSave(newConfig);
-      
-      // ETAPA 2: Flush imediato após setState
-      flushStateAndUpdate();
       
       return newConfig;
     });
     
     console.log(`✅ CHART TOGGLE COMPLETE [${timestamp}]: ${chartKey}`);
-  }, [config.charts, setConfig, scheduleSave, flushStateAndUpdate, isInitializedRef]);
+  }, [config.charts, setConfig, scheduleSave, applyOptimisticUpdate, isInitializedRef]);
 
   const updateConfig = useCallback((newConfig: Partial<DashboardConfig>) => {
     if (!isInitializedRef.current) return;
@@ -128,10 +119,10 @@ export const createConfigHandlers = (
       };
       
       scheduleSave(updatedConfig);
-      flushStateAndUpdate();
+      triggerForceUpdate();
       return updatedConfig;
     });
-  }, [setConfig, scheduleSave, flushStateAndUpdate, isInitializedRef]);
+  }, [setConfig, scheduleSave, triggerForceUpdate, isInitializedRef]);
 
   const resetToDefault = useCallback(() => {
     const timestamp = Date.now();
@@ -143,14 +134,18 @@ export const createConfigHandlers = (
     
     setConfig(defaultConfigCopy);
     scheduleSave(defaultConfigCopy);
-    flushStateAndUpdate();
-  }, [setConfig, scheduleSave, flushStateAndUpdate]);
+    triggerForceUpdate();
+  }, [setConfig, scheduleSave, triggerForceUpdate]);
 
-  // ETAPA 4: Função para obter estado atual (otimista + real)
+  // ETAPA 1: Função getCurrentState mais reativa
   const getCurrentState = useCallback(() => {
+    const optimisticKpis = optimisticStateRef.current.kpis || {};
+    const optimisticCharts = optimisticStateRef.current.charts || {};
+    
     return {
-      kpis: { ...config.kpis, ...optimisticStateRef.current.kpis },
-      charts: { ...config.charts, ...optimisticStateRef.current.charts }
+      kpis: { ...config.kpis, ...optimisticKpis },
+      charts: { ...config.charts, ...optimisticCharts },
+      lastUpdate: optimisticStateRef.current.lastUpdate || 0
     };
   }, [config.kpis, config.charts]);
 

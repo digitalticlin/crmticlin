@@ -2,7 +2,7 @@
 import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { useDashboardKPIs } from "@/hooks/dashboard/useDashboardKPIs";
 import KPICard from "./KPICard";
-import { useMemo, useEffect, useLayoutEffect } from "react";
+import { useMemo, useEffect } from "react";
 
 const kpiConfig = {
   novos_leads: {
@@ -58,44 +58,33 @@ export function CustomizableKPIGrid() {
   const { config, loading: configLoading, forceUpdate, getCurrentState } = useDashboardConfig();
   const { kpis, loading: kpisLoading } = useDashboardKPIs(config.period_filter);
 
-  // ETAPA 3: useMemo otimizado com dependências sincronizadas
+  // ETAPA 3: useMemo otimizado - dependências simplificadas
   const visibleKPIs = useMemo(() => {
-    // ETAPA 4: Usar estado otimista se disponível
-    const currentState = getCurrentState ? getCurrentState() : { kpis: config.kpis };
+    // ETAPA 1: Usar estado otimista sempre atualizado
+    const currentState = getCurrentState();
     
     const visible = config.layout.kpi_order.filter(
       kpiKey => currentState.kpis[kpiKey as keyof typeof currentState.kpis]
     );
     
     const timestamp = Date.now();
-    console.log(`✅ KPI VISIBLE RECALCULATED [${timestamp}]:`, {
+    console.log(`✅ KPI VISIBLE INSTANT [${timestamp}]:`, {
       visible,
       forceUpdate,
-      configKPIs: config.kpis,
-      optimisticKPIs: currentState.kpis
+      lastUpdate: currentState.lastUpdate
     });
     return visible;
-  }, [config.layout.kpi_order, config.kpis, forceUpdate, getCurrentState]);
+  }, [config.layout.kpi_order, forceUpdate, getCurrentState]);
 
-  // ETAPA 2: useLayoutEffect para sincronização DOM imediata
-  useLayoutEffect(() => {
-    const timestamp = Date.now();
-    console.log(`🎯 KPI GRID LAYOUT EFFECT [${timestamp}]:`, {
-      forceUpdate,
-      visibleKPIs,
-      configKPIs: config.kpis
-    });
-  }, [forceUpdate, visibleKPIs, config.kpis]);
-
-  // ETAPA 5: Debug temporal - tracking do fluxo
+  // ETAPA 5: Debug tracking otimizado
   useEffect(() => {
     const timestamp = Date.now();
-    console.log(`🎯 KPI GRID UPDATE [${timestamp}]:`, {
+    console.log(`🎯 KPI GRID UPDATED [${timestamp}]:`, {
       forceUpdate,
-      visibleKPIs,
-      configKPIs: config.kpis
+      visibleCount: visibleKPIs.length,
+      visibleKPIs
     });
-  }, [forceUpdate, visibleKPIs, config.kpis]);
+  }, [forceUpdate, visibleKPIs]);
 
   if (configLoading || kpisLoading) {
     return (
@@ -109,7 +98,7 @@ export function CustomizableKPIGrid() {
 
   if (visibleKPIs.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-600">
+      <div className="text-center py-8 text-gray-600 animate-fade-in">
         <p>Nenhum KPI selecionado. Configure o dashboard para visualizar os dados.</p>
       </div>
     );
@@ -126,17 +115,17 @@ export function CustomizableKPIGrid() {
 
   return (
     <div 
-      className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6 transition-all duration-150 ease-out transform`}
+      className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6 transition-all duration-100 ease-out`}
       style={{
-        animation: "fade-in 0.15s ease-out"
+        animation: "fade-in 0.1s ease-out"
       }}
     >
       {visibleKPIs.map((kpiKey, index) => {
         const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
         const value = kpis[kpiKey as keyof typeof kpis];
         
-        // ETAPA 4: Usar estado otimista para isEnabled
-        const currentState = getCurrentState ? getCurrentState() : { kpis: config.kpis };
+        // ETAPA 1: Usar estado otimista para feedback instantâneo
+        const currentState = getCurrentState();
         const isEnabled = currentState.kpis[kpiKey as keyof typeof currentState.kpis];
         
         if (!kpiData) {
@@ -144,18 +133,15 @@ export function CustomizableKPIGrid() {
           return null;
         }
         
-        const timestamp = Date.now();
-        console.log(`🎯 Rendering KPI [${timestamp}]: ${kpiKey} enabled:${isEnabled} value:`, value);
-        
-        // ETAPA 3: Key com timestamp para forçar re-render
-        const reactiveKey = `kpi-${kpiKey}-${forceUpdate}-${isEnabled}-${timestamp}`;
+        // ETAPA 3: Key simplificada baseada apenas no forceUpdate
+        const reactiveKey = `kpi-${kpiKey}-${forceUpdate}`;
         
         return (
           <div
             key={reactiveKey}
-            className="animate-fade-in transform transition-all duration-150"
+            className="animate-fade-in transform transition-all duration-100"
             style={{ 
-              animationDelay: `${index * 25}ms`,
+              animationDelay: `${index * 20}ms`,
               transform: "scale(1)"
             }}
           >
