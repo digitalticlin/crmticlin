@@ -1,4 +1,5 @@
 
+
 export interface Contact {
   id: string;
   name: string;
@@ -32,7 +33,7 @@ export interface Message {
   id: string;
   text: string;
   fromMe: boolean;
-  timestamp: string;
+  timestamp?: string; // Make optional since some messages use 'time' instead
   status: "sent" | "delivered" | "read";
   mediaType?: "text" | "image" | "video" | "audio" | "document";
   mediaUrl?: string;
@@ -41,3 +42,4 @@ export interface Message {
   time?: string;
   isIncoming?: boolean;
 }
+
