@@ -101,7 +101,7 @@ export const WhatsAppChatLayout = ({
             maxSize={50}
             className="relative"
           >
-            <div className="h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10 mr-1">
+            <div className="h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
               <WhatsAppContactsList
                 contacts={updatedContacts}
                 selectedContact={selectedContact}
@@ -111,10 +111,10 @@ export const WhatsAppChatLayout = ({
             </div>
           </ResizablePanel>
 
-          {/* Handle para redimensionar */}
+          {/* Handle para redimensionar - SEM ícone */}
           <ResizableHandle 
-            withHandle={true}
-            className="w-2 bg-transparent hover:bg-white/10 transition-colors duration-200 rounded-full mx-1 border-0 relative group"
+            withHandle={false}
+            className="w-1 bg-transparent hover:bg-white/10 transition-colors duration-200 rounded-full border-0 relative group"
           />
 
           {/* Painel da Área de Chat */}
@@ -126,7 +126,7 @@ export const WhatsAppChatLayout = ({
               isDetailsSidebarOpen && "mr-96"
             )}
           >
-            <div className="h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg overflow-hidden relative z-10 ml-1">
+            <div className="h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg overflow-hidden relative z-10">
               {selectedContact ? (
                 <WhatsAppChatArea
                   selectedContact={selectedContact}
