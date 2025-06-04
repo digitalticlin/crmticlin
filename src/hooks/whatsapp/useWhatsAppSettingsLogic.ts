@@ -135,7 +135,7 @@ export const useWhatsAppSettingsLogic = () => {
       console.log('[useWhatsAppSettingsLogic] Executando sync controlado...');
       
       // Usar refetch do hook que já tem controle de estabilidade
-      await whatsAppHooks.fetchInstances();
+      await whatsAppHooks.refetch();
       
       if (!isUnmountedRef.current) {
         toast.success("Status do WhatsApp sincronizado com sucesso!");
@@ -151,7 +151,7 @@ export const useWhatsAppSettingsLogic = () => {
         syncInProgressRef.current = false;
       }
     }
-  }, [whatsAppHooks.instances.length, whatsAppHooks.fetchInstances]);
+  }, [whatsAppHooks.instances.length, whatsAppHooks.refetch]);
 
   // Refresh com throttling
   const refreshUserInstances = useCallback(() => {
@@ -159,11 +159,11 @@ export const useWhatsAppSettingsLogic = () => {
     
     if (userEmail && !isUnmountedRef.current && !syncInProgressRef.current) {
       console.log('[useWhatsAppSettingsLogic] Executando refresh controlado');
-      whatsAppHooks.fetchInstances();
+      whatsAppHooks.refetch();
     } else {
       console.log('[useWhatsAppSettingsLogic] Refresh ignorado - condições não atendidas');
     }
-  }, [userEmail, whatsAppHooks.fetchInstances]);
+  }, [userEmail, whatsAppHooks.refetch]);
 
   console.log('[useWhatsAppSettingsLogic] Hook retornando dados FASE 3');
 

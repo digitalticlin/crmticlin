@@ -12,6 +12,10 @@ export const WhatsAppWebSection = () => {
   console.log('[WhatsAppWebSection] Component rendering - WhatsApp Web.js only');
   
   const [userEmail, setUserEmail] = useState<string>("");
+  const [localShowQRModal, setLocalShowQRModal] = useState(false);
+  const [localSelectedQRCode, setLocalSelectedQRCode] = useState<string | null>(null);
+  const [localSelectedInstanceName, setLocalSelectedInstanceName] = useState<string>('');
+  
   const { companyId, loading: companyLoading } = useCompanyData();
   
   const {
@@ -20,11 +24,7 @@ export const WhatsAppWebSection = () => {
     isConnecting,
     createInstance,
     deleteInstance,
-    refreshQRCode,
-    showQRModal,
-    selectedQRCode,
-    selectedInstanceName,
-    closeQRModal
+    refreshQRCode
   } = useWhatsAppWebInstances();
 
   // Load current user data
@@ -61,7 +61,28 @@ export const WhatsAppWebSection = () => {
 
   const handleRefreshQR = async (instanceId: string) => {
     console.log('[WhatsAppWebSection] Refreshing QR code for instance:', instanceId);
-    await refreshQRCode(instanceId);
+    const result = await refreshQRCode(instanceId);
+    
+    if (result.success && result.qrCode) {
+      const instance = instances.find(i => i.id === instanceId);
+      setLocalSelectedQRCode(result.qrCode);
+      setLocalSelectedInstanceName(instance?.instance_name || '');
+      setLocalShowQRModal(true);
+    }
+  };
+
+  const handleShowQR = (instance: any) => {
+    if (instance.qr_code) {
+      setLocalSelectedQRCode(instance.qr_code);
+      setLocalSelectedInstanceName(instance.instance_name);
+      setLocalShowQRModal(true);
+    }
+  };
+
+  const closeQRModal = () => {
+    setLocalShowQRModal(false);
+    setLocalSelectedQRCode(null);
+    setLocalSelectedInstanceName('');
   };
 
   return (
@@ -115,7 +136,7 @@ export const WhatsAppWebSection = () => {
               instance={instance}
               onRefreshQR={handleRefreshQR}
               onDelete={handleDeleteInstance}
-              onShowQR={() => {}}
+              onShowQR={() => handleShowQR(instance)}
             />
           ))}
         </div>
@@ -149,10 +170,10 @@ export const WhatsAppWebSection = () => {
       )}
 
       <ImprovedQRCodeModal
-        isOpen={showQRModal}
+        isOpen={localShowQRModal}
         onOpenChange={(open) => !open && closeQRModal()}
-        qrCodeUrl={selectedQRCode}
-        instanceName={selectedInstanceName}
+        qrCodeUrl={localSelectedQRCode}
+        instanceName={localSelectedInstanceName}
       />
     </div>
   );

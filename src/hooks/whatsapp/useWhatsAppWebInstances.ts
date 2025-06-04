@@ -17,12 +17,18 @@ export interface WhatsAppWebInstance {
   vps_instance_id?: string;
   server_url?: string;
   updated_at?: string;
+  profile_name?: string;
+  profile_pic_url?: string;
 }
 
 export const useWhatsAppWebInstances = () => {
   const [instances, setInstances] = useState<WhatsAppWebInstance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [selectedQRCode, setSelectedQRCode] = useState<string | null>(null);
+  const [selectedInstanceName, setSelectedInstanceName] = useState<string>('');
   
   const { user } = useAuth();
   const { companyId } = useCompanyData();
@@ -109,6 +115,13 @@ export const useWhatsAppWebInstances = () => {
   // Use instance actions service
   const { createInstance, deleteInstance, refreshQRCode } = useInstanceActions(fetchInstances);
 
+  // Close QR Modal
+  const closeQRModal = () => {
+    setShowQRModal(false);
+    setSelectedQRCode(null);
+    setSelectedInstanceName('');
+  };
+
   // CORREÇÃO FASE 3.1: Buscar QR Code atualizado automaticamente para instâncias em waiting_scan
   useEffect(() => {
     if (!instances.length) return;
@@ -172,10 +185,24 @@ export const useWhatsAppWebInstances = () => {
   return {
     instances,
     isLoading,
+    isConnecting,
     error,
+    showQRModal,
+    selectedQRCode,
+    selectedInstanceName,
     refetch: fetchInstances,
-    createInstance,
+    fetchInstances,
+    createInstance: async (instanceName: string) => {
+      setIsConnecting(true);
+      try {
+        const result = await createInstance(instanceName);
+        return result;
+      } finally {
+        setIsConnecting(false);
+      }
+    },
     deleteInstance,
-    refreshQRCode: refreshInstanceQRCode
+    refreshQRCode: refreshInstanceQRCode,
+    closeQRModal
   };
 };
