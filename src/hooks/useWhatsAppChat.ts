@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Contact } from '@/types/chat';
 import { useWhatsAppDatabase } from './whatsapp/useWhatsAppDatabase';
@@ -16,7 +15,7 @@ export const useWhatsAppChat = (userEmail: string) => {
   const companyId = useCompanyResolver(userEmail);
 
   // Use database-only approach
-  const { instances, getActiveInstance } = useWhatsAppDatabase(companyId, false);
+  const { instances, getActiveInstance } = useWhatsAppDatabase();
   const activeInstance = getActiveInstance();
 
   // Use the new WhatsApp Web chat hook

@@ -27,7 +27,7 @@ export const WhatsAppChatProvider = ({ children }: { children: React.ReactNode }
   const leadId = searchParams.get('leadId');
   
   // Use database-only hook instead of VPS hook
-  const { instances, getActiveInstance } = useWhatsAppDatabase(companyId, companyLoading);
+  const { instances, getActiveInstance } = useWhatsAppDatabase();
   const activeInstance = getActiveInstance();
 
   console.log('[WhatsAppChatProvider] Using database-only approach, active instance:', activeInstance?.instance_name);
