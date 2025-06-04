@@ -1,5 +1,5 @@
 
-import { VPS_CONFIG, corsHeaders, getVPSHeaders, isRealQRCode } from './config.ts';
+import { VPS_CONFIG, corsHeaders, getVPSHeaders, isRealQRCode, testVPSConnection } from './config.ts';
 import { InstanceData } from './types.ts';
 
 async function makeVPSRequest(url: string, options: RequestInit, retries = 3): Promise<Response> {
@@ -34,7 +34,18 @@ async function makeVPSRequest(url: string, options: RequestInit, retries = 3): P
 }
 
 export async function createWhatsAppInstance(supabase: any, instanceData: InstanceData, userId: string) {
-  console.log('[Instance Management] Creating WhatsApp Web.js instance:', instanceData);
+  console.log('[Instance Management] 🚀 INICIANDO criação WhatsApp Web.js instance:', instanceData);
+
+  // PASSO 1: Testar conectividade VPS ANTES de qualquer coisa
+  console.log('[Instance Management] 🔧 PASSO 1: Testando conectividade VPS...');
+  const vpsTest = await testVPSConnection();
+  
+  if (!vpsTest.success) {
+    console.error('[Instance Management] ❌ VPS não acessível:', vpsTest.error);
+    throw new Error(`VPS inacessível: ${vpsTest.error}`);
+  }
+  
+  console.log('[Instance Management] ✅ VPS acessível - prosseguindo...');
 
   // Get user company
   const { data: profile } = await supabase
@@ -50,8 +61,8 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
   // Generate unique VPS instance ID
   const vpsInstanceId = `whatsapp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
-  // FASE 1: Check for orphaned instances and clean them up
-  console.log('[Instance Management] Checking for orphaned instances...');
+  // PASSO 2: Check for orphaned instances and clean them up
+  console.log('[Instance Management] 🧹 PASSO 2: Limpando instâncias órfãs...');
   const { data: orphanedInstances } = await supabase
     .from('whatsapp_instances')
     .select('id, instance_name, vps_instance_id')
@@ -64,7 +75,7 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
     // Delete orphaned instances (those without proper VPS connection)
     for (const orphan of orphanedInstances) {
       if (!orphan.vps_instance_id || orphan.vps_instance_id === '') {
-        console.log(`[Instance Management] Cleaning up orphaned instance: ${orphan.id}`);
+        console.log(`[Instance Management] 🗑️ Cleaning up orphaned instance: ${orphan.id}`);
         await supabase
           .from('whatsapp_instances')
           .delete()
@@ -73,7 +84,8 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
     }
   }
 
-  // FASE 2: Validate instance name uniqueness before proceeding
+  // PASSO 3: Validate instance name uniqueness
+  console.log('[Instance Management] 🔍 PASSO 3: Validando unicidade do nome...');
   const { data: existingInstance } = await supabase
     .from('whatsapp_instances')
     .select('id')
@@ -85,31 +97,11 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
     throw new Error(`Instância com nome "${instanceData.instanceName}" já existe. Tente com outro nome.`);
   }
 
-  // FASE 3: Test VPS connectivity
-  try {
-    console.log('[Instance Management] Testing VPS connectivity...');
-    const healthResponse = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/health`, {
-      method: 'GET',
-      headers: getVPSHeaders()
-    }, 2);
-
-    if (!healthResponse.ok) {
-      throw new Error(`VPS health check failed: ${healthResponse.status}`);
-    }
-
-    const healthData = await healthResponse.json();
-    console.log('[Instance Management] VPS health check passed:', healthData);
-  } catch (healthError) {
-    console.error('[Instance Management] VPS health check failed:', healthError);
-    throw new Error(`VPS não está respondendo: ${healthError.message}`);
-  }
-
-  // FASE 4: Create instance using CORRECT endpoint and payload format - AGUARDAR QR REAL
+  // PASSO 4: Create instance na VPS com CORREÇÃO de autenticação
+  console.log('[Instance Management] 🔧 PASSO 4: Criando instância na VPS...');
   let vpsResult;
   try {
-    console.log('[Instance Management] Creating instance with corrected authentication and waiting for REAL QR');
-    
-    // Payload structure with corrected authentication
+    // Payload structure CORRIGIDO
     const payload = {
       instanceId: vpsInstanceId,
       sessionName: instanceData.instanceName,
@@ -117,9 +109,9 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
       companyId: profile.company_id
     };
     
-    console.log('[Instance Management] Using payload:', payload);
-    console.log('[Instance Management] Using URL:', `${VPS_CONFIG.baseUrl}/instance/create`);
-    console.log('[Instance Management] Using Headers:', getVPSHeaders());
+    console.log('[Instance Management] 📤 Payload:', JSON.stringify(payload, null, 2));
+    console.log('[Instance Management] 🔑 Headers:', getVPSHeaders());
+    console.log('[Instance Management] 🎯 URL:', `${VPS_CONFIG.baseUrl}/instance/create`);
     
     const vpsResponse = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/create`, {
       method: 'POST',
@@ -127,9 +119,17 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
       body: JSON.stringify(payload)
     });
 
+    const responseText = await vpsResponse.text();
+    console.log('[Instance Management] 📥 VPS Raw Response:', responseText);
+
     if (vpsResponse.ok) {
-      vpsResult = await vpsResponse.json();
-      console.log('[Instance Management] VPS creation response:', vpsResult);
+      try {
+        vpsResult = JSON.parse(responseText);
+        console.log('[Instance Management] ✅ VPS creation response:', vpsResult);
+      } catch (parseError) {
+        console.error('[Instance Management] ❌ Erro ao fazer parse da resposta VPS:', parseError);
+        throw new Error(`VPS retornou resposta inválida: ${responseText}`);
+      }
       
       // VALIDAÇÃO CRÍTICA: Verificar se VPS realmente retornou sucesso E QR code real
       if (!vpsResult.success) {
@@ -143,29 +143,27 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
       
       // Validar se QR code é real
       const qrIsReal = isRealQRCode(vpsResult.qrCode);
-      console.log(`[Instance Management] QR Code validation - Is Real: ${qrIsReal}`);
+      console.log(`[Instance Management] 🔍 QR Code validation - Is Real: ${qrIsReal}`);
       
       if (!qrIsReal) {
-        console.error('[Instance Management] VPS returned fake QR code - FALHA CRÍTICA');
+        console.error('[Instance Management] ❌ VPS returned fake QR code - FALHA CRÍTICA');
         throw new Error('VPS retornou QR Code falso. WhatsApp Web.js não foi inicializado corretamente. Tente novamente.');
       }
       
-      console.log('[Instance Management] ✅ VPS retornou QR CODE REAL - prosseguindo com salvamento');
+      console.log('[Instance Management] ✅ VPS retornou QR CODE REAL - prosseguindo...');
       
     } else {
-      const errorText = await vpsResponse.text();
-      console.error(`[Instance Management] VPS creation failed with status ${vpsResponse.status}: ${errorText}`);
-      throw new Error(`VPS creation failed: ${vpsResponse.status} - ${errorText}`);
+      console.error(`[Instance Management] ❌ VPS creation failed with status ${vpsResponse.status}: ${responseText}`);
+      throw new Error(`VPS creation failed: ${vpsResponse.status} - ${responseText}`);
     }
   } catch (vpsError) {
-    console.error('[Instance Management] VPS creation error:', vpsError);
+    console.error('[Instance Management] 💥 VPS creation error:', vpsError);
     throw new Error(`Erro na criação VPS: ${vpsError.message}`);
   }
 
-  // FASE 5: Create database record ONLY AFTER VPS confirms success with REAL QR
+  // PASSO 5: Salvar no banco APENAS após sucesso da VPS
+  console.log('[Instance Management] 💾 PASSO 5: Salvando no banco...');
   try {
-    console.log('[Instance Management] VPS instance created successfully with REAL QR, now saving to database...');
-    
     const { data: dbInstance, error: dbError } = await supabase
       .from('whatsapp_instances')
       .insert({
@@ -183,9 +181,9 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
       .single();
 
     if (dbError) {
-      console.error('[Instance Management] Database error after VPS success:', dbError);
+      console.error('[Instance Management] ❌ Database error after VPS success:', dbError);
       
-      // If database fails, try to cleanup VPS instance
+      // Se banco falha, tentar limpar VPS
       try {
         await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/delete`, {
           method: 'POST',
@@ -193,13 +191,13 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
           body: JSON.stringify({ instanceId: vpsInstanceId })
         });
       } catch (cleanupError) {
-        console.error('[Instance Management] Failed to cleanup VPS instance after DB error:', cleanupError);
+        console.error('[Instance Management] ❌ Failed to cleanup VPS instance after DB error:', cleanupError);
       }
       
       throw new Error(`Erro no banco de dados: ${dbError.message}`);
     }
 
-    console.log('[Instance Management] ✅ Instance successfully created in database with REAL QR and ID:', dbInstance.id);
+    console.log('[Instance Management] 🎉 SUCESSO TOTAL! Instance ID:', dbInstance.id);
 
     return new Response(
       JSON.stringify({
@@ -213,7 +211,7 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
     );
 
   } catch (error) {
-    console.error('[Instance Management] Unexpected error during database operation:', error);
+    console.error('[Instance Management] 💥 Unexpected error during database operation:', error);
     throw error;
   }
 }

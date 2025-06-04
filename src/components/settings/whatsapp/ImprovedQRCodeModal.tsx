@@ -1,64 +1,51 @@
 
-import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { RefreshCw, Loader2, QrCode, CheckCircle, AlertCircle, Clock } from "lucide-react";
-import { useQRCodeValidation } from "@/hooks/whatsapp/useQRCodeValidation";
-import { useRetryableOperation } from "@/hooks/whatsapp/useRetryableOperation";
+import { QrCode, Smartphone, CheckCircle, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
 
 interface ImprovedQRCodeModalProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  qrCode: string | null;
-  isLoading: boolean;
-  onRefresh: () => Promise<string | null>;
+  qrCodeUrl: string | null;
+  instanceName: string;
 }
 
 export function ImprovedQRCodeModal({ 
   isOpen, 
   onOpenChange, 
-  qrCode, 
-  isLoading,
-  onRefresh 
+  qrCodeUrl, 
+  instanceName 
 }: ImprovedQRCodeModalProps) {
-  const [countdown, setCountdown] = useState(120); // 2 minutos
-  const { validateQRCode } = useQRCodeValidation();
-  const qrValidation = validateQRCode(qrCode);
+  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes countdown
+  const [isExpired, setIsExpired] = useState(false);
 
-  const retryableRefresh = useRetryableOperation(
-    onRefresh,
-    {
-      maxRetries: 3,
-      delayMs: 2000,
-      backoffMultiplier: 1.5
-    }
-  );
-
-  // Countdown timer para QR code
+  // Countdown timer
   useEffect(() => {
-    if (!isOpen || !qrValidation.isValid) return;
-
+    if (!isOpen) return;
+    
+    setTimeLeft(300);
+    setIsExpired(false);
+    
     const timer = setInterval(() => {
-      setCountdown(prev => {
+      setTimeLeft((prev) => {
         if (prev <= 1) {
-          retryableRefresh.execute();
-          return 120; // Reset countdown
+          setIsExpired(true);
+          clearInterval(timer);
+          return 0;
         }
         return prev - 1;
       });
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isOpen, qrValidation.isValid, retryableRefresh.execute]);
-
-  // Reset countdown quando QR code muda
-  useEffect(() => {
-    if (qrValidation.isValid) {
-      setCountdown(120);
-    }
-  }, [qrCode, qrValidation.isValid]);
+  }, [isOpen]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -66,151 +53,101 @@ export function ImprovedQRCodeModal({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const getProgressValue = () => {
-    return ((120 - countdown) / 120) * 100;
+  const handleClose = () => {
+    console.log('[QR Modal] 🔐 Fechando modal');
+    onOpenChange(false);
   };
+
+  console.log('[QR Modal] 📱 Renderizando modal:', { 
+    isOpen, 
+    hasQR: !!qrCodeUrl, 
+    instanceName,
+    timeLeft,
+    isExpired 
+  });
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <QrCode className="h-5 w-5" />
+            <QrCode className="h-5 w-5 text-green-600" />
             Conectar WhatsApp
           </DialogTitle>
+          <DialogDescription>
+            Escaneie o QR Code para conectar sua conta WhatsApp à instância "{instanceName}"
+          </DialogDescription>
         </DialogHeader>
         
-        <div className="flex flex-col items-center justify-center py-4">
-          {isLoading || retryableRefresh.isLoading ? (
-            <div className="text-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-green-600" />
-              <p className="text-sm font-medium">
-                {retryableRefresh.retryCount > 0 
-                  ? `Tentativa ${retryableRefresh.retryCount + 1} - Gerando QR Code...`
-                  : "Gerando QR Code..."
-                }
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Aguarde enquanto o WhatsApp Web.js é inicializado
-              </p>
-            </div>
-          ) : qrCode && qrValidation.isValid ? (
+        <div className="flex flex-col items-center justify-center py-6">
+          {qrCodeUrl && !isExpired ? (
             <>
-              <div className="bg-white p-4 rounded-lg mb-4 border relative">
+              <div className="bg-white p-4 rounded-lg border-2 border-green-200 mb-4">
                 <img 
-                  src={qrCode} 
-                  alt="QR Code WhatsApp" 
-                  className="w-64 h-64"
+                  src={qrCodeUrl} 
+                  alt="QR Code para conexão do WhatsApp" 
+                  className="w-64 h-64 object-contain"
                 />
-                
-                {/* Countdown overlay */}
-                <div className="absolute top-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-xs flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {formatTime(countdown)}
-                </div>
-              </div>
-
-              {/* Progress bar para countdown */}
-              <div className="w-full mb-4">
-                <div className="flex justify-between text-xs text-gray-600 mb-1">
-                  <span>QR Code válido</span>
-                  <span>Auto-renovação em {formatTime(countdown)}</span>
-                </div>
-                <Progress value={getProgressValue()} className="h-2" />
               </div>
               
-              <div className="text-center space-y-2">
-                <p className="text-sm font-medium">Como conectar:</p>
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <p>1. Abra o WhatsApp no seu celular</p>
-                  <p>2. Vá em Menu → Aparelhos conectados</p>
-                  <p>3. Toque em "Conectar um aparelho"</p>
-                  <p>4. Escaneie este QR code</p>
+              <div className="text-center mb-4">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-green-700">
+                    QR Code válido por: {formatTime(timeLeft)}
+                  </span>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  O código expira automaticamente por segurança
+                </p>
               </div>
-              
-              <Button 
-                variant="outline" 
-                onClick={() => retryableRefresh.execute()}
-                className="mt-4"
-                size="sm"
-                disabled={retryableRefresh.isLoading}
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Atualizar QR Code
-              </Button>
             </>
-          ) : qrValidation.isPlaceholder ? (
+          ) : isExpired ? (
             <div className="text-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-orange-500" />
-              <p className="text-sm font-medium">WhatsApp Web.js inicializando...</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {qrValidation.errorMessage}
+              <AlertCircle className="h-12 w-12 mx-auto mb-3 text-orange-500" />
+              <h3 className="font-medium text-orange-700 mb-2">QR Code Expirado</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                O QR Code expirou por segurança. Feche este modal e tente criar uma nova instância.
               </p>
-              <Button 
-                variant="outline" 
-                onClick={() => retryableRefresh.execute()}
-                className="mt-4"
-                size="sm"
-                disabled={retryableRefresh.isLoading}
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Tentar novamente
-              </Button>
             </div>
           ) : (
             <div className="text-center py-8">
-              <QrCode className="h-8 w-8 mx-auto mb-4 text-gray-400" />
-              <p className="text-sm font-medium">Erro ao gerar QR Code</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                {qrValidation.errorMessage || retryableRefresh.error || 'Tente novamente'}
+              <AlertCircle className="h-12 w-12 mx-auto mb-3 text-red-500" />
+              <h3 className="font-medium text-red-700 mb-2">QR Code Indisponível</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Não foi possível obter o QR Code. Tente novamente.
               </p>
-              
-              {retryableRefresh.error && (
-                <Alert variant="destructive" className="mt-4 text-left">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription className="text-xs">
-                    {retryableRefresh.error}
-                  </AlertDescription>
-                </Alert>
-              )}
-              
-              <Button 
-                onClick={() => retryableRefresh.execute()}
-                className="mt-4"
-                size="sm"
-                disabled={retryableRefresh.isLoading}
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                {retryableRefresh.isLoading ? 'Gerando...' : 'Gerar QR Code'}
-              </Button>
+            </div>
+          )}
+          
+          {qrCodeUrl && !isExpired && (
+            <div className="bg-blue-50 p-4 rounded-lg w-full">
+              <div className="flex items-start gap-3">
+                <Smartphone className="h-5 w-5 text-blue-600 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-blue-900 mb-1">Como conectar:</p>
+                  <ol className="text-blue-700 space-y-1 text-xs">
+                    <li>1. Abra o WhatsApp no seu celular</li>
+                    <li>2. Vá em ⚙️ <strong>Configurações</strong></li>
+                    <li>3. Toque em <strong>Aparelhos conectados</strong></li>
+                    <li>4. Toque em <strong>Conectar um aparelho</strong></li>
+                    <li>5. Escaneie este QR Code</li>
+                  </ol>
+                </div>
+              </div>
             </div>
           )}
         </div>
-
-        {retryableRefresh.error && retryableRefresh.canRetry && (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription className="flex items-center justify-between">
-              <span className="text-sm">Houve um problema. Tentar novamente?</span>
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={() => retryableRefresh.reset()}
-              >
-                Reset
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <Button 
-          variant="outline" 
-          onClick={() => onOpenChange(false)}
-          className="w-full"
-        >
-          Fechar
-        </Button>
+        
+        <div className="flex justify-center">
+          <Button 
+            variant="outline" 
+            onClick={handleClose}
+            className="w-full"
+          >
+            {isExpired ? 'Fechar e Tentar Novamente' : 'Fechar'}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

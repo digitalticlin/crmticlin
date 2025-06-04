@@ -1,295 +1,172 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { WhatsAppWebInstance } from './types/whatsappWebTypes';
-import { useIntelligentSync } from './services/intelligentSyncService';
-import { useInstanceDatabase } from './services/instanceDatabaseService';
+import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
 import { useInstanceActions } from './services/instanceActionsService';
-import { useAutoConnect } from './services/autoConnectService';
-import { useConnectionStatusManager } from './services/connectionStatusService';
-import { useWhatsAppLogging } from './services/enhancedLoggingService';
-import { useStabilityService } from './services/stabilityService';
-import { VPS_CONFIG, validateVPSHealth } from '@/services/whatsapp/config/vpsConfig';
+import { toast } from 'sonner';
 
-export type { WhatsAppWebInstance } from './types/whatsappWebTypes';
+interface WhatsAppInstance {
+  id: string;
+  instance_name: string;
+  phone: string;
+  company_id: string;
+  connection_status: string;
+  web_status: string;
+  qr_code: string | null;
+  vps_instance_id: string;
+  server_url: string;
+  created_at: string;
+  updated_at: string;
+}
 
-// FASE 3: Hook com sistema de estabilidade anti-loop
-export const useWhatsAppWebInstances = (companyId: string | null, companyLoading: boolean) => {
-  const [instances, setInstances] = useState<WhatsAppWebInstance[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [syncStats, setSyncStats] = useState<any>(null);
-  
-  const syncIntervalRef = useRef<NodeJS.Timeout>();
-  const healthCheckIntervalRef = useRef<NodeJS.Timeout>();
-  const isMountedRef = useRef(true);
-  
-  // NOVO: Serviço de estabilidade
-  const { 
-    shouldAllowOperation, 
-    reportHealthCheck, 
-    forceReset, 
-    getStabilityState,
-    cleanup: stabilityCleanup 
-  } = useStabilityService();
-  
-  // Use enhanced services
-  const { performIntelligentSync, forceFullSync, cleanup: syncCleanup, isInProgress, getLastSyncInfo } = useIntelligentSync(companyId, companyLoading);
-  const { fetchInstances: fetchInstancesFromDB } = useInstanceDatabase(companyId, companyLoading);
-  const { updateInstanceStatus, getInstanceStatus, cleanup: statusCleanup } = useConnectionStatusManager();
-  const { logSyncOperation, logError } = useWhatsAppLogging();
+export const useWhatsAppWebInstances = () => {
+  const [instances, setInstances] = useState<WhatsAppInstance[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [selectedQRCode, setSelectedQRCode] = useState<string | null>(null);
+  const [selectedInstanceName, setSelectedInstanceName] = useState<string>('');
 
-  // Enhanced fetch instances com validação de estabilidade
-  const fetchInstances = async () => {
-    if (!isMountedRef.current || !shouldAllowOperation('fetch')) return;
+  // Fetch instances from database
+  const fetchInstances = useCallback(async () => {
+    console.log('[Hook] 📊 Fetching WhatsApp Web instances...');
+    setIsLoading(true);
     
     try {
-      console.log('[Hook FASE 3] 📥 Buscando instâncias com controle de estabilidade...');
-      const startTime = Date.now();
-      
-      const fetchedInstances = await fetchInstancesFromDB();
-      
-      if (isMountedRef.current) {
-        fetchedInstances.forEach(instance => {
-          updateInstanceStatus(
-            instance.id,
-            instance.connection_status || 'disconnected',
-            instance.web_status,
-            undefined
-          );
-        });
-
-        const duration = Date.now() - startTime;
-        console.log('[Hook FASE 3] ✅ Instâncias carregadas:', {
-          count: fetchedInstances.length,
-          duration: `${duration}ms`
-        });
-
-        setInstances(fetchedInstances);
-        setError(null);
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        throw new Error('User not authenticated');
       }
+
+      // Get user company
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', userData.user.id)
+        .single();
+
+      if (!profile?.company_id) {
+        throw new Error('User company not found');
+      }
+
+      // Fetch instances for user's company
+      const { data: instancesData, error } = await supabase
+        .from('whatsapp_instances')
+        .select('*')
+        .eq('company_id', profile.company_id)
+        .eq('connection_type', 'web')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('[Hook] ❌ Error fetching instances:', error);
+        throw error;
+      }
+
+      console.log(`[Hook] ✅ Found ${instancesData?.length || 0} instances`);
+      setInstances(instancesData || []);
+
     } catch (error: any) {
-      if (isMountedRef.current) {
-        logError('fetch-instances', error);
-        setError(error.message);
-      }
+      console.error('[Hook] 💥 Error in fetchInstances:', error);
+      toast.error(`Erro ao buscar instâncias: ${error.message}`);
+      setInstances([]);
     } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
-      }
+      setIsLoading(false);
     }
-  };
+  }, []);
 
-  // Use action services
-  const { createInstance, deleteInstance, refreshQRCode } = useInstanceActions(fetchInstances);
-  const { autoConnectState, startAutoConnection, closeQRModal, openQRModal } = useAutoConnect(createInstance);
-
-  // Enhanced VPS health check com sistema de estabilidade
-  const checkVPSHealth = async () => {
-    if (!isMountedRef.current || !shouldAllowOperation('health')) return;
-    
-    const startTime = Date.now();
+  // Create instance with QR modal
+  const createInstance = useCallback(async (instanceName: string) => {
+    console.log('[Hook] 🆕 Creating WhatsApp Web instance:', instanceName);
+    setIsConnecting(true);
     
     try {
-      const health = await validateVPSHealth();
-      const duration = Date.now() - startTime;
+      const result = await WhatsAppWebService.createInstance(instanceName);
       
-      if (isMountedRef.current) {
-        reportHealthCheck(health.healthy, health.error);
+      if (result.success && result.instance) {
+        console.log('[Hook] ✅ Instance created successfully:', result.instance);
         
-        if (!health.healthy) {
-          setError(health.error || 'VPS não está respondendo');
+        // Show QR Modal immediately if QR code is available
+        if (result.instance.qr_code) {
+          console.log('[Hook] 📱 Opening QR Modal...');
+          setSelectedQRCode(result.instance.qr_code);
+          setSelectedInstanceName(result.instance.instance_name);
+          setShowQRModal(true);
+          
+          toast.success(`Instância "${instanceName}" criada! Escaneie o QR Code.`);
         } else {
-          setError(null);
+          toast.warning(`Instância "${instanceName}" criada, mas QR Code não disponível.`);
         }
+        
+        // Refresh instances list
+        await fetchInstances();
+        return result.instance;
+      } else {
+        throw new Error(result.error || 'Failed to create instance');
       }
     } catch (error: any) {
-      if (isMountedRef.current) {
-        reportHealthCheck(false, error.message);
-        setError(error.message);
-      }
+      console.error('[Hook] ❌ Create instance error:', error);
+      toast.error(`Erro ao criar instância: ${error.message}`);
+      throw error;
+    } finally {
+      setIsConnecting(false);
     }
-  };
+  }, [fetchInstances]);
 
-  // Enhanced cleanup com sistema de estabilidade
+  // Get instance actions
+  const { deleteInstance, refreshQRCode } = useInstanceActions(fetchInstances);
+
+  // Close QR Modal
+  const closeQRModal = useCallback(() => {
+    console.log('[Hook] 🔐 Closing QR Modal');
+    setShowQRModal(false);
+    setSelectedQRCode(null);
+    setSelectedInstanceName('');
+  }, []);
+
+  // Auto-fetch instances on mount
   useEffect(() => {
-    isMountedRef.current = true;
-    
-    return () => {
-      console.log('[Hook FASE 3] 🧹 Iniciando cleanup com sistema de estabilidade...');
-      
-      // Cleanup all services
-      syncCleanup();
-      statusCleanup();
-      stabilityCleanup();
-      
-      // Clear intervals
-      if (syncIntervalRef.current) {
-        clearInterval(syncIntervalRef.current);
-      }
-      if (healthCheckIntervalRef.current) {
-        clearInterval(healthCheckIntervalRef.current);
-      }
-      
-      console.log('[Hook FASE 3] ✅ Cleanup concluído');
-    };
-  }, [syncCleanup, statusCleanup, stabilityCleanup]);
+    fetchInstances();
+  }, [fetchInstances]);
 
-  // Sistema de auto-sync inteligente com controle de estabilidade
+  // Setup real-time updates
   useEffect(() => {
-    if (!companyId || companyLoading) return;
-
-    console.log('[Hook FASE 3] 🛡️ Iniciando sistema protegido contra loops');
+    console.log('[Hook] 🔄 Setting up real-time updates...');
     
-    // Initial operations
-    const initialOperations = async () => {
-      if (!isMountedRef.current) return;
-      
-      // Health check first
-      await checkVPSHealth();
-      
-      // Only sync if VPS is healthy
-      const stabilityState = getStabilityState();
-      if (stabilityState.isVPSHealthy && shouldAllowOperation('sync')) {
-        const result = await performIntelligentSync(false);
-        logSyncOperation('initial', result);
-        setSyncStats(result);
-      }
-      
-      await fetchInstances();
-    };
-    
-    initialOperations();
-    
-    // Controlled auto-sync with stability checks
-    syncIntervalRef.current = setInterval(async () => {
-      if (!isMountedRef.current || isInProgress()) return;
-      
-      const stabilityState = getStabilityState();
-      
-      // Só executar sync se estável e permitido
-      if (stabilityState.isVPSHealthy && shouldAllowOperation('sync')) {
-        console.log('[Hook FASE 3] ⏰ Auto-sync controlado executando...');
-        const result = await performIntelligentSync(false);
-        
-        logSyncOperation('automatic', result);
-        setSyncStats(result);
-        
-        if (result.success && !result.skipped) {
-          await fetchInstances();
-        }
-      } else {
-        console.log('[Hook FASE 3] ⏸️ Auto-sync suspenso - aguardando estabilidade');
-      }
-    }, VPS_CONFIG.sync.interval);
-
-    // Controlled health check interval
-    healthCheckIntervalRef.current = setInterval(async () => {
-      if (isMountedRef.current) {
-        await checkVPSHealth();
-      }
-    }, VPS_CONFIG.sync.healthCheckInterval);
-
-    return () => {
-      if (syncIntervalRef.current) {
-        clearInterval(syncIntervalRef.current);
-      }
-      if (healthCheckIntervalRef.current) {
-        clearInterval(healthCheckIntervalRef.current);
-      }
-      console.log('[Hook FASE 3] 🛑 Sistema de auto-sync protegido parado');
-    };
-  }, [companyId, companyLoading, performIntelligentSync, isInProgress, shouldAllowOperation, getStabilityState]);
-
-  // Initial load
-  useEffect(() => {
-    if (companyId && !companyLoading) {
-      fetchInstances();
-    }
-  }, [companyId, companyLoading]);
-
-  // Realtime subscription com controle de estabilidade
-  useEffect(() => {
-    if (!companyId) return;
-
-    console.log('[Hook FASE 3] 🔔 Configurando realtime protegido para empresa:', companyId);
-
     const channel = supabase
-      .channel(`whatsapp-instances-${companyId}`)
+      .channel('whatsapp-instances-changes')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'whatsapp_instances',
-          filter: `company_id=eq.${companyId}`
+          table: 'whatsapp_instances'
         },
         (payload) => {
-          console.log('[Hook FASE 3] 📡 Realtime update:', payload.eventType);
-          
-          if (isMountedRef.current) {
-            const stabilityState = getStabilityState();
-            
-            // Só processar se estável
-            if (stabilityState.isVPSHealthy && shouldAllowOperation('sync')) {
-              performIntelligentSync(false).then(result => {
-                logSyncOperation('realtime-triggered', result);
-                if (result.success && !result.skipped) {
-                  fetchInstances();
-                }
-              });
-            } else {
-              console.log('[Hook FASE 3] ⏸️ Realtime suspenso - aguardando estabilidade');
-              // Apenas fetch local sem sync VPS
-              fetchInstances();
-            }
-          }
+          console.log('[Hook] 📡 Real-time update:', payload);
+          fetchInstances(); // Refresh on any change
         }
       )
       .subscribe();
 
     return () => {
-      console.log('[Hook FASE 3] 🔕 Limpando realtime subscription protegido');
+      console.log('[Hook] 🔄 Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
-  }, [companyId, performIntelligentSync, shouldAllowOperation, getStabilityState]);
-
-  // Enhanced refetch function com controle de estabilidade
-  const refetch = async () => {
-    console.log('[Hook FASE 3] 🔄 Refetch manual com controle de estabilidade');
-    
-    // Health check first
-    await checkVPSHealth();
-    
-    const stabilityState = getStabilityState();
-    if (stabilityState.isVPSHealthy && shouldAllowOperation('sync')) {
-      const result = await forceFullSync();
-      logSyncOperation('manual-refetch', result);
-      setSyncStats(result);
-    }
-    await fetchInstances();
-  };
+  }, [fetchInstances]);
 
   return {
     instances,
-    loading,
-    error,
+    isLoading,
+    isConnecting,
     createInstance,
     deleteInstance,
     refreshQRCode,
-    startAutoConnection,
-    closeQRModal,
-    openQRModal,
-    autoConnectState,
-    refetch,
-    // FASE 3: Novos campos de estabilidade
-    isInProgress: isInProgress(),
-    checkVPSHealth,
-    syncStats,
-    getLastSyncInfo: getLastSyncInfo(),
-    getInstanceStatus: (id: string) => getInstanceStatus(id),
-    // Controles de estabilidade
-    stabilityState: getStabilityState(),
-    forceStabilityReset: forceReset
+    fetchInstances,
+    
+    // QR Modal state
+    showQRModal,
+    selectedQRCode,
+    selectedInstanceName,
+    closeQRModal
   };
 };

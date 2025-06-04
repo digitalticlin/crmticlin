@@ -10,15 +10,22 @@ export const VPS_CONFIG = {
   get baseUrl() {
     return `http://${this.host}:${this.port}`;
   },
-  // FIX CRÍTICO: Usar a secret configurada corretamente
+  // CORREÇÃO CRÍTICA: Usar a secret VPS_API_TOKEN corretamente
   authToken: Deno.env.get('VPS_API_TOKEN') || 'default-token'
 };
 
-// Helper function to get VPS headers with correct authentication
-export const getVPSHeaders = () => ({
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${VPS_CONFIG.authToken}`
-});
+// Helper function to get VPS headers with CORRECT authentication
+export const getVPSHeaders = () => {
+  const token = VPS_CONFIG.authToken;
+  console.log(`[VPS Config] Using token: ${token.substring(0, 10)}... (length: ${token.length})`);
+  
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
+    'User-Agent': 'Supabase-WhatsApp-Integration/2.0',
+    'Accept': 'application/json'
+  };
+};
 
 // Helper function to validate QR code is real (not placeholder)
 export const isRealQRCode = (qrCode: string | null): boolean => {
@@ -41,7 +48,50 @@ export const isRealQRCode = (qrCode: string | null): boolean => {
   return !knownFakePatterns.some(pattern => base64Part.includes(pattern));
 };
 
-console.log('[Config] VPS Config initialized:');
+// NOVO: Função de teste de conectividade VPS aprimorada
+export const testVPSConnection = async (): Promise<{success: boolean, error?: string, details?: any}> => {
+  try {
+    console.log('[VPS Test] 🔧 Testando conectividade VPS...');
+    console.log('[VPS Test] URL:', VPS_CONFIG.baseUrl);
+    console.log('[VPS Test] Token length:', VPS_CONFIG.authToken.length);
+    
+    const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
+      method: 'GET',
+      headers: getVPSHeaders(),
+      signal: AbortSignal.timeout(10000)
+    });
+
+    const responseText = await response.text();
+    console.log('[VPS Test] Response status:', response.status);
+    console.log('[VPS Test] Response text:', responseText);
+
+    if (response.ok) {
+      try {
+        const data = JSON.parse(responseText);
+        console.log('[VPS Test] ✅ VPS conectado:', data);
+        return { success: true, details: data };
+      } catch {
+        return { success: true, details: { raw: responseText } };
+      }
+    } else {
+      console.error('[VPS Test] ❌ VPS retornou erro:', response.status, responseText);
+      return { 
+        success: false, 
+        error: `VPS Error ${response.status}: ${responseText}`,
+        details: { status: response.status, response: responseText }
+      };
+    }
+  } catch (error) {
+    console.error('[VPS Test] 💥 Erro de conectividade:', error);
+    return { 
+      success: false, 
+      error: `Connectivity Error: ${error.message}`,
+      details: { error: error.message }
+    };
+  }
+};
+
+console.log('[Config] VPS Config initialized (FIXED):');
 console.log('[Config] Host:', VPS_CONFIG.host);
 console.log('[Config] Port:', VPS_CONFIG.port);
 console.log('[Config] Base URL:', VPS_CONFIG.baseUrl);
