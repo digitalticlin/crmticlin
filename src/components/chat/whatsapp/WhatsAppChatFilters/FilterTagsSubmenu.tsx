@@ -1,6 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { unifiedTags } from "@/data/unifiedFakeData";
 import { getTagStyleClasses } from "@/utils/tagColors";
@@ -25,26 +26,28 @@ export const FilterTagsSubmenu = ({ onBack, onItemClick }: FilterTagsSubmenuProp
         <h4 className="text-sm font-medium text-gray-700">Etiquetas</h4>
       </div>
       
-      <div className="grid gap-0.5 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-white/30 scrollbar-track-transparent">
-        {unifiedTags.map((tag) => (
-          <Button 
-            key={tag.id}
-            variant="ghost" 
-            size="sm" 
-            className="justify-start text-gray-700 hover:bg-white/30 hover:text-gray-900 rounded-xl transition-all duration-200 h-auto py-1.5 px-2"
-            onClick={() => onItemClick(`tag-${tag.id}`)}
-          >
-            <Badge 
-              className={cn(
-                "text-xs mr-2 font-semibold",
-                getTagStyleClasses(tag.color)
-              )}
+      <ScrollArea className="h-48">
+        <div className="grid gap-0.5 pr-3">
+          {unifiedTags.map((tag) => (
+            <Button 
+              key={tag.id}
+              variant="ghost" 
+              size="sm" 
+              className="justify-start text-gray-700 hover:bg-white/30 hover:text-gray-900 rounded-xl transition-all duration-200 h-auto py-1.5 px-2"
+              onClick={() => onItemClick(`tag-${tag.id}`)}
             >
-              {tag.name}
-            </Badge>
-          </Button>
-        ))}
-      </div>
+              <Badge 
+                className={cn(
+                  "text-xs mr-2 font-semibold",
+                  getTagStyleClasses(tag.color)
+                )}
+              >
+                {tag.name}
+              </Badge>
+            </Button>
+          ))}
+        </div>
+      </ScrollArea>
     </div>
   );
 };
