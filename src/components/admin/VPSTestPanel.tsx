@@ -15,12 +15,20 @@ import { VPSVersionDiagnostic } from "./vps/VPSVersionDiagnostic";
 import { VPSComprehensiveDiagnostic } from "./vps/VPSComprehensiveDiagnostic";
 import { VPSMessageTester } from "./vps/VPSMessageTester";
 import { VPSTokenDiscovery } from "./vps/VPSTokenDiscovery";
+import { HostingerTokenForm } from "./hostinger/HostingerTokenForm";
+import { WhatsAppTokenGenerator } from "./vps/WhatsAppTokenGenerator";
 
 export const VPSTestPanel = () => {
   return (
     <div className="space-y-6">
       {/* Deploy Inteligente - Primeira seção */}
       <AutoDeployButton />
+
+      {/* NOVO: Configuração de Tokens - SEÇÃO PRINCIPAL */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <HostingerTokenForm />
+        <WhatsAppTokenGenerator />
+      </div>
 
       {/* NOVO: Descoberta de Token WhatsApp - FERRAMENTA PRINCIPAL */}
       <VPSTokenDiscovery />
