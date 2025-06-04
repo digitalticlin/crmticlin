@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Building2, Users, CreditCard, MessageSquare, FileText, LifeBuoy, Settings, ChevronRight, ChevronLeft, RefreshCw, Activity, Server } from "lucide-react";
+import { Building2, Users, CreditCard, MessageSquare, FileText, LifeBuoy, Settings, ChevronRight, ChevronLeft, RefreshCw, Activity, Server, Monitor } from "lucide-react";
 import { cn } from "@/lib/utils";
 import SidebarLogo from "@/components/layout/SidebarLogo";
 import { Separator } from "@/components/ui/separator";
@@ -33,6 +33,11 @@ const GlobalAdminSidebar = ({ activeTab, setActiveTab }: GlobalAdminSidebarProps
       id: "whatsapp",
       icon: MessageSquare,
       label: "WhatsApp",
+    },
+    {
+      id: "instances",
+      icon: Monitor,
+      label: "Instâncias VPS",
     },
     {
       id: "sync",

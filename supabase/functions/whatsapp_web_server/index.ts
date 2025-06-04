@@ -6,6 +6,7 @@ import { createWhatsAppInstance, deleteWhatsAppInstance } from './instanceManage
 import { getInstanceStatus, getQRCode } from './instanceStatusService.ts';
 import { getQRCodeFromVPS, updateQRCodeInDatabase } from './qrCodeService.ts';
 import { authenticateRequest } from './authentication.ts';
+import { listInstances } from './instanceListService.ts';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -95,6 +96,18 @@ serve(async (req) => {
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
 
+      case 'list_all_instances_global':
+        console.log('[WhatsApp Server] 📋 Listando todas as instâncias para Global Admin');
+        return await listGlobalInstances(supabase);
+
+      case 'cleanup_orphan_instances':
+        console.log('[WhatsApp Server] 🧹 Limpando instâncias órfãs');
+        return await cleanupOrphanInstances(supabase);
+
+      case 'mass_reconnect_instances':
+        console.log('[WhatsApp Server] 🔄 Reconectando instâncias em massa');
+        return await massReconnectInstances(supabase);
+
       default:
         return new Response(
           JSON.stringify({ 
@@ -140,3 +153,168 @@ serve(async (req) => {
     );
   }
 });
+
+// Função para listar todas as instâncias com informações combinadas
+async function listGlobalInstances(supabase: any) {
+  try {
+    // 1. Buscar instâncias da VPS
+    const vpsResponse = await listInstances();
+    const vpsData = await vpsResponse.json();
+    
+    if (!vpsData.success) {
+      throw new Error('Falha ao buscar instâncias da VPS');
+    }
+
+    // 2. Buscar instâncias do Supabase com dados relacionados
+    const { data: dbInstances, error: dbError } = await supabase
+      .from('whatsapp_instances')
+      .select(`
+        *,
+        profiles:company_id (
+          full_name,
+          companies:company_id (
+            name
+          )
+        )
+      `)
+      .eq('connection_type', 'web');
+
+    if (dbError) {
+      console.error('[Global Instances] ❌ Erro Supabase:', dbError);
+    }
+
+    // 3. Combinar dados VPS + Supabase
+    const combinedInstances = vpsData.instances.map((vpsInstance: any) => {
+      const dbInstance = dbInstances?.find(db => db.vps_instance_id === vpsInstance.instanceId);
+      
+      return {
+        instanceId: vpsInstance.instanceId,
+        status: vpsInstance.status,
+        phone: vpsInstance.phone,
+        profileName: vpsInstance.profileName,
+        profilePictureUrl: vpsInstance.profilePictureUrl,
+        isOrphan: !dbInstance,
+        companyName: dbInstance?.profiles?.companies?.name || null,
+        userName: dbInstance?.profiles?.full_name || null,
+        companyId: dbInstance?.company_id || null,
+        userId: dbInstance?.profiles?.id || null,
+        lastSeen: dbInstance?.updated_at || null
+      };
+    });
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        instances: combinedInstances,
+        timestamp: new Date().toISOString()
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('[Global Instances] ❌ Erro:', error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message,
+        instances: [],
+        timestamp: new Date().toISOString()
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+}
+
+// Função para limpar instâncias órfãs
+async function cleanupOrphanInstances(supabase: any) {
+  try {
+    // Usar o monitor existente para identificar e limpar órfãs
+    const { data, error } = await supabase.functions.invoke('whatsapp_instance_monitor');
+    
+    if (error) {
+      throw new Error('Erro no monitor: ' + error.message);
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        deleted: data.results?.deleted || 0,
+        message: 'Limpeza de órfãs concluída',
+        timestamp: new Date().toISOString()
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('[Cleanup Orphans] ❌ Erro:', error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+}
+
+// Função para reconexão em massa
+async function massReconnectInstances(supabase: any) {
+  try {
+    // Buscar instâncias inativas do banco
+    const { data: inactiveInstances, error } = await supabase
+      .from('whatsapp_instances')
+      .select('vps_instance_id')
+      .eq('connection_type', 'web')
+      .neq('connection_status', 'open');
+
+    if (error) {
+      throw new Error('Erro ao buscar instâncias: ' + error.message);
+    }
+
+    let reconnected = 0;
+    
+    // Tentar reconectar cada instância
+    for (const instance of inactiveInstances || []) {
+      try {
+        const result = await getInstanceStatus(instance.vps_instance_id);
+        if (result.ok) {
+          reconnected++;
+        }
+      } catch (error) {
+        console.error(`[Mass Reconnect] Erro em ${instance.vps_instance_id}:`, error);
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        processed: inactiveInstances?.length || 0,
+        reconnected,
+        message: 'Reconexão em massa iniciada',
+        timestamp: new Date().toISOString()
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('[Mass Reconnect] ❌ Erro:', error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+}

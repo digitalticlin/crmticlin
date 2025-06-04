@@ -12,6 +12,7 @@ import ConfigPanel from "@/components/admin/ConfigPanel";
 import { WhatsAppSyncTest } from "@/components/admin/WhatsAppSyncTest";
 import { SyncLogsPanel } from "@/components/admin/SyncLogsPanel";
 import { SimpleVPSDiagnostic } from "@/components/admin/SimpleVPSDiagnostic";
+import { VPSInstancesPanel } from "@/components/admin/VPSInstancesPanel";
 
 export default function GlobalAdmin() {
   const [activeTab, setActiveTab] = useState("companies");
@@ -29,11 +30,12 @@ export default function GlobalAdmin() {
           </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid grid-cols-8 w-full">
+            <TabsList className="grid grid-cols-9 w-full">
               <TabsTrigger value="companies">Empresas</TabsTrigger>
               <TabsTrigger value="users">Usuários</TabsTrigger>
               <TabsTrigger value="plans">Planos</TabsTrigger>
               <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
+              <TabsTrigger value="instances">Instâncias</TabsTrigger>
               <TabsTrigger value="sync">Sincronização</TabsTrigger>
               <TabsTrigger value="sync-logs">Logs Sync</TabsTrigger>
               <TabsTrigger value="vps">VPS</TabsTrigger>
@@ -61,6 +63,18 @@ export default function GlobalAdmin() {
                   </p>
                 </div>
                 <SimplifiedWhatsAppPanel />
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="instances">
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-semibold mb-2">Monitoramento de Instâncias VPS</h2>
+                  <p className="text-muted-foreground mb-6">
+                    Visualização completa de todas as instâncias WhatsApp na VPS com controle por usuário e empresa
+                  </p>
+                </div>
+                <VPSInstancesPanel />
               </div>
             </TabsContent>
             
