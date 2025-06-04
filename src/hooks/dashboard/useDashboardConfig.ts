@@ -50,18 +50,18 @@ export const useDashboardConfig = () => {
       if (loadedConfig && validateConfig(loadedConfig) && isMountedRef.current) {
         console.log("Setting loaded config:", loadedConfig);
         setConfig(loadedConfig);
-        setConfigVersion(Date.now());
+        setConfigVersion(prev => prev + 1);
       } else if (isMountedRef.current) {
         console.log("No valid config found, using default config");
         setConfig(defaultConfig);
-        setConfigVersion(Date.now());
+        setConfigVersion(prev => prev + 1);
       }
     } catch (error) {
       console.error("Erro ao carregar configuração:", error);
       toast.error("Erro ao carregar configurações do dashboard");
       if (isMountedRef.current) {
         setConfig(defaultConfig);
-        setConfigVersion(Date.now());
+        setConfigVersion(prev => prev + 1);
       }
     } finally {
       if (isMountedRef.current) {
@@ -106,9 +106,13 @@ export const useDashboardConfig = () => {
     
     console.log("Final updated config:", updatedConfig);
     
-    // Update imediato na UI
+    // Update imediato na UI com incremento da versão
     setConfig(updatedConfig);
-    setConfigVersion(Date.now());
+    setConfigVersion(prev => {
+      const newVersion = prev + 1;
+      console.log("Config version updated to:", newVersion);
+      return newVersion;
+    });
     
     // Armazenar config pendente
     pendingConfigRef.current = updatedConfig;

@@ -2,7 +2,7 @@
 import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { useDashboardKPIs } from "@/hooks/dashboard/useDashboardKPIs";
 import KPICard from "./KPICard";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 
 const kpiConfig = {
   novos_leads: {
@@ -58,9 +58,20 @@ export function CustomizableKPIGrid() {
   const { config, loading: configLoading, configVersion } = useDashboardConfig();
   const { kpis, loading: kpisLoading } = useDashboardKPIs(config.period_filter);
 
+  // Log quando a configuração mudar
+  useEffect(() => {
+    console.log("=== KPI GRID CONFIG CHANGED ===");
+    console.log("Config version:", configVersion);
+    console.log("KPIs config:", config.kpis);
+  }, [config.kpis, configVersion]);
+
   const visibleKPIs = useMemo(() => {
     const visible = config.layout.kpi_order.filter(
-      kpiKey => config.kpis[kpiKey as keyof typeof config.kpis]
+      kpiKey => {
+        const isVisible = config.kpis[kpiKey as keyof typeof config.kpis];
+        console.log(`KPI ${kpiKey} visibility:`, isVisible);
+        return isVisible;
+      }
     );
     console.log("=== KPI GRID RENDER ===");
     console.log("Config version:", configVersion);
@@ -97,7 +108,10 @@ export function CustomizableKPIGrid() {
   };
 
   return (
-    <div className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6 transition-all duration-500`}>
+    <div 
+      key={`kpi-grid-${configVersion}`}
+      className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6 transition-all duration-500`}
+    >
       {visibleKPIs.map((kpiKey) => {
         const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
         const value = kpis[kpiKey as keyof typeof kpis];
@@ -111,7 +125,7 @@ export function CustomizableKPIGrid() {
         
         return (
           <KPICard
-            key={`${kpiKey}-${configVersion}`}
+            key={`${kpiKey}-${configVersion}-${value}`}
             title={kpiData.title}
             value={kpiData.format(value)}
             trend={kpiData.trend}

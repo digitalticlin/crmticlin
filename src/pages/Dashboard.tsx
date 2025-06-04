@@ -8,12 +8,15 @@ import PeriodFilter from "@/components/dashboard/PeriodFilter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { cn } from "@/lib/utils";
+import { useEffect } from "react";
 
 export default function Dashboard() {
   const isMobile = useIsMobile();
   const { configVersion } = useDashboardConfig();
 
-  console.log("Dashboard render - configVersion:", configVersion);
+  useEffect(() => {
+    console.log("Dashboard render - configVersion:", configVersion);
+  }, [configVersion]);
 
   return (
     <div className="flex min-h-screen bg-gray-200 relative overflow-hidden">
@@ -68,8 +71,8 @@ export default function Dashboard() {
             </div>
           </div>
           
-          <CustomizableKPIGrid key={`kpi-grid-${configVersion}`} />
-          <CustomizableChartsSection key={`charts-section-${configVersion}`} />
+          <CustomizableKPIGrid />
+          <CustomizableChartsSection />
         </div>
       </main>
     </div>

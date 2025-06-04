@@ -5,7 +5,7 @@ import FunnelChart from "./charts/FunnelChart";
 import PerformanceChart from "./charts/PerformanceChart";
 import TagsChart from "./charts/TagsChart";
 import DistributionChart from "./charts/DistributionChart";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 
 const chartComponents = {
   funil_conversao: FunnelChart,
@@ -18,9 +18,20 @@ const chartComponents = {
 export default function CustomizableChartsSection() {
   const { config, loading, configVersion } = useDashboardConfig();
 
+  // Log quando a configuração mudar
+  useEffect(() => {
+    console.log("=== CHARTS SECTION CONFIG CHANGED ===");
+    console.log("Config version:", configVersion);
+    console.log("Charts config:", config.charts);
+  }, [config.charts, configVersion]);
+
   const visibleCharts = useMemo(() => {
     const visible = config.layout.chart_order.filter(
-      chartKey => config.charts[chartKey as keyof typeof config.charts]
+      chartKey => {
+        const isVisible = config.charts[chartKey as keyof typeof config.charts];
+        console.log(`Chart ${chartKey} visibility:`, isVisible);
+        return isVisible;
+      }
     );
     console.log("=== CHARTS SECTION RENDER ===");
     console.log("Config version:", configVersion);
@@ -55,7 +66,10 @@ export default function CustomizableChartsSection() {
   };
 
   return (
-    <div className={`grid ${getGridCols(visibleCharts.length)} gap-6 transition-all duration-500`}>
+    <div 
+      key={`charts-section-${configVersion}`}
+      className={`grid ${getGridCols(visibleCharts.length)} gap-6 transition-all duration-500`}
+    >
       {visibleCharts.map((chartKey) => {
         const ChartComponent = chartComponents[chartKey as keyof typeof chartComponents];
         
