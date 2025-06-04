@@ -18,10 +18,14 @@ import { VPSTokenDiscovery } from "./vps/VPSTokenDiscovery";
 import { HostingerTokenForm } from "./hostinger/HostingerTokenForm";
 import { WhatsAppTokenGenerator } from "./vps/WhatsAppTokenGenerator";
 import { VPSSecretManager } from "./vps/VPSSecretManager";
+import { VPSSupabaseSyncTest } from "./VPSSupabaseSyncTest";
 
 export const VPSTestPanel = () => {
   return (
     <div className="space-y-6">
+      {/* NOVO: Teste Completo de Sincronização VPS-Supabase - FERRAMENTA PRINCIPAL */}
+      <VPSSupabaseSyncTest />
+
       {/* NOVO: Gerenciador de Secrets e Diagnósticos Automatizados - FERRAMENTA PRINCIPAL */}
       <VPSSecretManager />
 
