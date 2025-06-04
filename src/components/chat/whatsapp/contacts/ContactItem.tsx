@@ -95,7 +95,7 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
                       key={index}
                       variant="outline" 
                       className={cn(
-                        "text-xs font-semibold flex-shrink-0 max-w-[80px] truncate",
+                        "text-xs font-semibold flex-shrink-0 max-w-[90px] truncate px-3 py-1",
                         getTagColor(tag)
                       )}
                     >
@@ -106,7 +106,7 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
                   {contact.tags.length > 2 && (
                     <Badge 
                       variant="outline" 
-                      className="text-xs border-2 border-gray-500 bg-gray-500/20 text-gray-800 cursor-pointer hover:bg-gray-500/30 transition-colors flex-shrink-0 min-w-[24px]"
+                      className="text-xs border-2 border-gray-500 bg-gray-500/20 text-gray-800 cursor-pointer hover:bg-gray-500/30 transition-colors flex-shrink-0 min-w-[32px] px-2 py-1"
                       onClick={handleTagsPlusClick}
                     >
                       +{contact.tags.length - 2}
@@ -119,7 +119,7 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
             {/* Company Info */}
             {contact.company && (
               <div className="flex items-center gap-2 mt-1">
-                <Badge variant="outline" className="text-xs border-2 border-gray-500 bg-gray-500/20 text-gray-800">
+                <Badge variant="outline" className="text-xs border-2 border-gray-500 bg-gray-500/20 text-gray-800 px-3 py-1">
                   {contact.company}
                 </Badge>
               </div>
