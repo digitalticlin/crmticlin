@@ -18,7 +18,7 @@ export const WhatsAppChatTabs = () => {
   } = useWhatsAppChatContext();
 
   return (
-    <div className="h-full flex flex-col relative z-10">
+    <Tabs defaultValue="chat" className="h-full flex flex-col relative z-10">
       {/* Header com tabs - usando card transparente padrão */}
       <div className="bg-white/10 backdrop-blur-md border-b border-white/20 p-4 relative z-10">
         <TabsList className="bg-white/20 backdrop-blur-sm border border-white/30 h-12">
@@ -37,26 +37,24 @@ export const WhatsAppChatTabs = () => {
         </TabsList>
       </div>
       
-      <Tabs defaultValue="chat" className="flex-1 flex flex-col overflow-hidden relative z-10">
-        <TabsContent value="chat" className="flex-1 m-0 overflow-hidden relative z-10">
-          <WhatsAppChatLayout
-            contacts={contacts}
-            selectedContact={selectedContact}
-            onSelectContact={setSelectedContact}
-            messages={messages}
-            onSendMessage={sendMessage}
-            isLoadingContacts={isLoadingContacts}
-            isLoadingMessages={isLoadingMessages}
-            isSending={isSending}
-          />
-        </TabsContent>
-        
-        <TabsContent value="monitor" className="flex-1 m-0 p-4 overflow-auto relative z-10">
-          <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 shadow-lg">
-            <WhatsAppStatusMonitor userEmail={userEmail} />
-          </div>
-        </TabsContent>
-      </Tabs>
-    </div>
+      <TabsContent value="chat" className="flex-1 m-0 overflow-hidden relative z-10">
+        <WhatsAppChatLayout
+          contacts={contacts}
+          selectedContact={selectedContact}
+          onSelectContact={setSelectedContact}
+          messages={messages}
+          onSendMessage={sendMessage}
+          isLoadingContacts={isLoadingContacts}
+          isLoadingMessages={isLoadingMessages}
+          isSending={isSending}
+        />
+      </TabsContent>
+      
+      <TabsContent value="monitor" className="flex-1 m-0 p-4 overflow-auto relative z-10">
+        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-6 shadow-lg">
+          <WhatsAppStatusMonitor userEmail={userEmail} />
+        </div>
+      </TabsContent>
+    </Tabs>
   );
 };
