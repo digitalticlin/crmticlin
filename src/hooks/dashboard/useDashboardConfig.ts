@@ -1,222 +1,74 @@
 
-import { useState, useEffect, useRef, useCallback } from "react";
-import { toast } from "sonner";
+import { useCallback, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyData } from "@/hooks/useCompanyData";
-import { DashboardConfig, defaultConfig } from "./types/dashboardConfigTypes";
-import { DashboardConfigService } from "./services/dashboardConfigService";
-import { validateConfig, deepClone } from "./utils/configUtils";
+import { useDashboardState } from "./state/useDashboardState";
+import { useConfigInitialization } from "./initialization/useConfigInitialization";
+import { createConfigHandlers } from "./handlers/configHandlers";
+import { configOperations } from "./operations/configOperations";
 
 export { type DashboardConfig } from "./types/dashboardConfigTypes";
 
 export const useDashboardConfig = () => {
-  // Estados principais simplificados - ETAPA 1: Estado síncrono
-  const [config, setConfig] = useState<DashboardConfig>(defaultConfig);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [forceUpdate, setForceUpdate] = useState(0); // ETAPA 2: Force update simples
-  
-  // Hooks sempre chamados na mesma ordem
   const { user } = useAuth();
   const { companyId } = useCompanyData();
   
-  // Refs para controle interno
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isMountedRef = useRef(true);
-  const isInitializedRef = useRef(false);
+  const {
+    config,
+    setConfig,
+    loading,
+    setLoading,
+    saving,
+    setSaving,
+    forceUpdate,
+    triggerForceUpdate,
+    saveTimeoutRef,
+    isMountedRef,
+    isInitializedRef
+  } = useDashboardState();
 
   // Cleanup effect
   useEffect(() => {
-    isMountedRef.current = true;
     return () => {
-      isMountedRef.current = false;
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, []);
+  }, [saveTimeoutRef]);
 
-  // Load config effect
-  useEffect(() => {
-    if (user && companyId && !isInitializedRef.current) {
-      console.log("🔄 Loading config for user:", user.id, "company:", companyId);
-      loadConfig();
-    }
-  }, [user, companyId]);
+  // Create save scheduler
+  const scheduleSave = useCallback((configToSave: any) => {
+    if (!isMountedRef.current || !user?.id || !companyId) return;
+    
+    const saveScheduler = configOperations.createSaveScheduler(user.id, companyId, setSaving);
+    saveScheduler(configToSave, saveTimeoutRef);
+  }, [user?.id, companyId, setSaving, saveTimeoutRef, isMountedRef]);
 
-  const loadConfig = async () => {
-    if (!user?.id || !companyId) return;
-    
-    try {
-      setLoading(true);
-      console.log("=== LOADING CONFIG ===");
-      
-      const loadedConfig = await DashboardConfigService.retryOperation(
-        () => DashboardConfigService.loadConfig(user.id, companyId)
-      );
-      
-      if (loadedConfig && validateConfig(loadedConfig) && isMountedRef.current) {
-        console.log("✅ Config loaded:", loadedConfig);
-        setConfig(loadedConfig);
-        setForceUpdate(prev => prev + 1);
-        isInitializedRef.current = true;
-      } else if (isMountedRef.current) {
-        console.log("❌ Creating initial config");
-        await createInitialConfig();
-      }
-    } catch (error) {
-      console.error("❌ Error loading config:", error);
-      if (isMountedRef.current) {
-        setConfig(defaultConfig);
-        setForceUpdate(prev => prev + 1);
-        isInitializedRef.current = true;
-      }
-    } finally {
-      if (isMountedRef.current) {
-        setLoading(false);
-      }
-    }
-  };
+  // Initialize config
+  useConfigInitialization(
+    user,
+    companyId,
+    setConfig,
+    setLoading,
+    triggerForceUpdate,
+    isMountedRef,
+    isInitializedRef
+  );
 
-  const createInitialConfig = async () => {
-    if (!user?.id || !companyId) return;
-    
-    try {
-      console.log("🔨 Creating initial config");
-      await DashboardConfigService.retryOperation(
-        () => DashboardConfigService.saveConfig(user.id, companyId, defaultConfig)
-      );
-      console.log("✅ Initial config created");
-      setConfig(defaultConfig);
-      setForceUpdate(prev => prev + 1);
-      isInitializedRef.current = true;
-    } catch (error) {
-      console.error("❌ Error creating initial config:", error);
-      setConfig(defaultConfig);
-      setForceUpdate(prev => prev + 1);
-      isInitializedRef.current = true;
-    }
-  };
-
-  // ETAPA 1: Save com debounce apenas para persistência
-  const scheduleSave = useCallback((configToSave: DashboardConfig) => {
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-    
-    saveTimeoutRef.current = setTimeout(async () => {
-      if (!isMountedRef.current || !user?.id || !companyId) return;
-      
-      setSaving(true);
-      try {
-        console.log("💾 Saving config");
-        await DashboardConfigService.retryOperation(
-          () => DashboardConfigService.saveConfig(user.id, companyId, configToSave)
-        );
-        console.log("✅ Config saved");
-      } catch (error) {
-        console.error("❌ Save error:", error);
-        toast.error("Erro ao salvar configurações");
-      } finally {
-        if (isMountedRef.current) {
-          setSaving(false);
-        }
-      }
-    }, 500);
-  }, [user?.id, companyId]);
-
-  // ETAPA 1: HANDLERS TOTALMENTE SÍNCRONOS - SEM DEBOUNCE
-  const handleKPIToggle = useCallback((kpiKey: keyof DashboardConfig['kpis']) => {
-    if (!isInitializedRef.current) return;
-    
-    console.log(`🎯 INSTANT KPI TOGGLE: ${kpiKey}`);
-    
-    setConfig(currentConfig => {
-      const newValue = !currentConfig.kpis[kpiKey];
-      console.log(`${kpiKey}: ${currentConfig.kpis[kpiKey]} -> ${newValue}`);
-      
-      const newConfig = {
-        ...currentConfig,
-        kpis: {
-          ...currentConfig.kpis,
-          [kpiKey]: newValue
-        }
-      };
-      
-      // Save em background
-      scheduleSave(newConfig);
-      
-      return newConfig;
-    });
-    
-    // ETAPA 2: FORÇAR RE-RENDER IMEDIATO E SIMPLES
-    setForceUpdate(prev => prev + 1);
-  }, [scheduleSave]);
-
-  const handleChartToggle = useCallback((chartKey: keyof DashboardConfig['charts']) => {
-    if (!isInitializedRef.current) return;
-    
-    console.log(`📈 INSTANT CHART TOGGLE: ${chartKey}`);
-    
-    setConfig(currentConfig => {
-      const newValue = !currentConfig.charts[chartKey];
-      console.log(`${chartKey}: ${currentConfig.charts[chartKey]} -> ${newValue}`);
-      
-      const newConfig = {
-        ...currentConfig,
-        charts: {
-          ...currentConfig.charts,
-          [chartKey]: newValue
-        }
-      };
-      
-      // Save em background
-      scheduleSave(newConfig);
-      
-      return newConfig;
-    });
-    
-    // ETAPA 2: FORÇAR RE-RENDER IMEDIATO E SIMPLES
-    setForceUpdate(prev => prev + 1);
-  }, [scheduleSave]);
-
-  const updateConfig = useCallback((newConfig: Partial<DashboardConfig>) => {
-    if (!isMountedRef.current || !isInitializedRef.current) return;
-    
-    console.log("📝 UPDATE CONFIG:", newConfig);
-    
-    setConfig(currentConfig => {
-      const updatedConfig = {
-        ...currentConfig,
-        ...newConfig,
-        kpis: { ...currentConfig.kpis, ...(newConfig.kpis || {}) },
-        charts: { ...currentConfig.charts, ...(newConfig.charts || {}) },
-        layout: { ...currentConfig.layout, ...(newConfig.layout || {}) }
-      };
-      
-      scheduleSave(updatedConfig);
-      return updatedConfig;
-    });
-    
-    setForceUpdate(prev => prev + 1);
-  }, [scheduleSave]);
-
-  const resetToDefault = useCallback(() => {
-    console.log("🔄 RESET TO DEFAULT");
-    const defaultConfigCopy = deepClone(defaultConfig);
-    setConfig(defaultConfigCopy);
-    setForceUpdate(prev => prev + 1);
-    scheduleSave(defaultConfigCopy);
-  }, [scheduleSave]);
+  // Create handlers
+  const handlers = createConfigHandlers(
+    config,
+    setConfig,
+    triggerForceUpdate,
+    scheduleSave,
+    isInitializedRef
+  );
 
   return {
     config,
     loading,
     saving,
-    forceUpdate, // ETAPA 2: Retornando force update simples
-    updateConfig,
-    resetToDefault,
-    handleKPIToggle,
-    handleChartToggle
+    forceUpdate,
+    ...handlers
   };
 };
