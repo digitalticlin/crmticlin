@@ -1,6 +1,6 @@
 
 import { VPSDiagnosticService } from './diagnosticService';
-import type { ComprehensiveDiagnostic } from './diagnosticService';
+import type { ComprehensiveDiagnostic } from './types';
 
 export class DiagnosticExecutor {
   

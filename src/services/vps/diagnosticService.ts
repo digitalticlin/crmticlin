@@ -94,3 +94,6 @@ export class VPSDiagnosticService {
     return ReportFormatter.formatDiagnosticReport(diagnostic);
   }
 }
+
+// Export the type for external use
+export type { ComprehensiveDiagnostic };
