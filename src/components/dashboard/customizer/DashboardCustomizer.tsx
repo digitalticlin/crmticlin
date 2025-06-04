@@ -9,60 +9,18 @@ import { CustomizerSidebar } from "./CustomizerSidebar";
 import { useCallback } from "react";
 
 export default function DashboardCustomizer() {
-  const { config, loading, updateConfig, resetToDefault } = useDashboardConfig();
+  const { 
+    config, 
+    loading, 
+    updateConfig, 
+    resetToDefault, 
+    handleKPIToggle, 
+    handleChartToggle 
+  } = useDashboardConfig();
+  
   const [open, setOpen] = useState(false);
 
   console.log("🎛️ DashboardCustomizer render - config:", config);
-
-  const handleKPIToggle = useCallback((kpiKey: keyof DashboardConfig['kpis']) => {
-    console.log("=== KPI TOGGLE TRIGGERED ===");
-    console.log("KPI Key:", kpiKey);
-    console.log("Current config before toggle:", config);
-    
-    const currentValue = config.kpis[kpiKey];
-    const newValue = !currentValue;
-    
-    console.log("Current value:", currentValue);
-    console.log("New value:", newValue);
-    
-    const updatePayload = {
-      kpis: {
-        ...config.kpis,
-        [kpiKey]: newValue
-      }
-    };
-    
-    console.log("Update payload:", updatePayload);
-    
-    updateConfig(updatePayload);
-    
-    console.log("✅ KPI toggle completed");
-  }, [config, updateConfig]);
-
-  const handleChartToggle = useCallback((chartKey: keyof DashboardConfig['charts']) => {
-    console.log("=== CHART TOGGLE TRIGGERED ===");
-    console.log("Chart Key:", chartKey);
-    console.log("Current config before toggle:", config);
-    
-    const currentValue = config.charts[chartKey];
-    const newValue = !currentValue;
-    
-    console.log("Current value:", currentValue);
-    console.log("New value:", newValue);
-    
-    const updatePayload = {
-      charts: {
-        ...config.charts,
-        [chartKey]: newValue
-      }
-    };
-    
-    console.log("Update payload:", updatePayload);
-    
-    updateConfig(updatePayload);
-    
-    console.log("✅ Chart toggle completed");
-  }, [config, updateConfig]);
 
   const handleDragEnd = useCallback((result: DropResult) => {
     if (!result.destination) {

@@ -3,6 +3,7 @@ import { DashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { Droppable, Draggable } from "react-beautiful-dnd";
 import { Switch } from "@/components/ui/switch";
 import { GripVertical, BarChart3, Users, TrendingUp, Tag, PieChart } from "lucide-react";
+import { useCallback } from "react";
 
 const chartIcons = {
   funil_conversao: BarChart3,
@@ -28,11 +29,18 @@ interface DraggableChartsSectionProps {
 export function DraggableChartsSection({ config, onChartToggle }: DraggableChartsSectionProps) {
   console.log("📈 DraggableChartsSection render - config.charts:", config.charts);
 
-  const handleToggle = (chartKey: keyof DashboardConfig['charts']) => {
-    console.log("🔄 Chart Toggle clicked:", chartKey);
-    console.log("Current value before toggle:", config.charts[chartKey]);
+  // Handler específico e estável para cada toggle
+  const handleToggle = useCallback((chartKey: keyof DashboardConfig['charts'], currentValue: boolean) => {
+    console.log("=== CHART TOGGLE CLICKED ===");
+    console.log("Chart Key:", chartKey);
+    console.log("Current value:", currentValue);
+    console.log("Will change to:", !currentValue);
+    
+    // Chamar o handler passado como prop
     onChartToggle(chartKey);
-  };
+    
+    console.log("✅ Chart toggle event dispatched");
+  }, [onChartToggle]);
 
   return (
     <div>
@@ -87,8 +95,9 @@ export function DraggableChartsSection({ config, onChartToggle }: DraggableChart
                       </div>
                       
                       <Switch
+                        key={`${chartKey}-${isEnabled}-${config.charts[chartKey as keyof typeof config.charts]}`}
                         checked={isEnabled}
-                        onCheckedChange={() => handleToggle(chartKey as keyof DashboardConfig['charts'])}
+                        onCheckedChange={() => handleToggle(chartKey as keyof DashboardConfig['charts'], isEnabled)}
                         className="data-[state=checked]:bg-[#D3D800] data-[state=unchecked]:bg-white/20"
                       />
                     </div>

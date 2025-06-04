@@ -10,20 +10,29 @@ import { mergeConfigUpdates, validateConfig, deepClone } from "./utils/configUti
 export { type DashboardConfig } from "./types/dashboardConfigTypes";
 
 export const useDashboardConfig = () => {
+  // Estados principais
   const [config, setConfig] = useState<DashboardConfig>(defaultConfig);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [configVersion, setConfigVersion] = useState(0);
+  
+  // Hooks sempre chamados na mesma ordem
   const { user } = useAuth();
   const { companyId } = useCompanyData();
   
+  // Refs para evitar stale closures
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
   const pendingConfigRef = useRef<DashboardConfig | null>(null);
   const savePromiseRef = useRef<Promise<void> | null>(null);
   const isInitializedRef = useRef(false);
   const currentConfigRef = useRef<DashboardConfig>(defaultConfig);
+  const updateHandlersRef = useRef<{
+    kpiToggle: (kpiKey: keyof DashboardConfig['kpis']) => void;
+    chartToggle: (chartKey: keyof DashboardConfig['charts']) => void;
+  } | null>(null);
 
+  // Cleanup effect
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
@@ -34,8 +43,10 @@ export const useDashboardConfig = () => {
     };
   }, []);
 
+  // Load config effect
   useEffect(() => {
     if (user && companyId && !isInitializedRef.current) {
+      console.log("🔄 Loading config for user:", user.id, "company:", companyId);
       loadConfig();
     }
   }, [user, companyId]);
@@ -43,6 +54,7 @@ export const useDashboardConfig = () => {
   // Sempre manter currentConfigRef atualizado
   useEffect(() => {
     currentConfigRef.current = config;
+    console.log("📝 Config ref updated:", config);
   }, [config]);
 
   const loadConfig = async () => {
@@ -131,23 +143,26 @@ export const useDashboardConfig = () => {
     }
   };
 
+  // Handler principal de atualização - ESTÁVEL
   const updateConfig = useCallback((newConfig: Partial<DashboardConfig>) => {
+    console.log("=== UPDATE CONFIG TRIGGERED ===");
+    console.log("Is initialized:", isInitializedRef.current);
+    console.log("Is mounted:", isMountedRef.current);
+    console.log("Updates:", newConfig);
+    
     if (!isMountedRef.current || !isInitializedRef.current) {
       console.warn("⚠️ Update config called before initialization");
       return;
     }
     
-    console.log("=== UPDATE CONFIG CALLED ===");
-    console.log("Current config from ref:", currentConfigRef.current);
-    console.log("Updates:", newConfig);
-    
     // Usar sempre o config atual do ref para evitar stale closures
     const currentConfigCopy = deepClone(currentConfigRef.current);
     const updatedConfig = mergeConfigUpdates(currentConfigCopy, newConfig);
     
+    console.log("📝 Current config:", currentConfigCopy);
     console.log("📝 Final updated config:", updatedConfig);
     
-    // Update imediato na UI e refs
+    // Update IMEDIATO na UI e refs
     setConfig(updatedConfig);
     currentConfigRef.current = updatedConfig;
     
@@ -158,7 +173,7 @@ export const useDashboardConfig = () => {
       return newVersion;
     });
     
-    // Armazenar config pendente
+    // Armazenar config pendente para save
     pendingConfigRef.current = updatedConfig;
     
     // Cancelar timeout anterior
@@ -166,7 +181,7 @@ export const useDashboardConfig = () => {
       clearTimeout(saveTimeoutRef.current);
     }
     
-    // Debounce do salvamento
+    // Debounce do salvamento (reduzido para 300ms)
     saveTimeoutRef.current = setTimeout(() => {
       if (isMountedRef.current && pendingConfigRef.current) {
         const configToSave = pendingConfigRef.current;
@@ -180,14 +195,65 @@ export const useDashboardConfig = () => {
             });
         }
       }
-    }, 500); // Reduzido para resposta mais rápida
-  }, [user?.id, companyId]);
+    }, 300);
+  }, []); // SEM DEPENDÊNCIAS para evitar stale closures
+
+  // Handlers específicos ESTÁVEIS
+  const handleKPIToggle = useCallback((kpiKey: keyof DashboardConfig['kpis']) => {
+    console.log("=== KPI TOGGLE HANDLER ===");
+    console.log("KPI Key:", kpiKey);
+    console.log("Current config from ref:", currentConfigRef.current);
+    
+    const currentValue = currentConfigRef.current.kpis[kpiKey];
+    const newValue = !currentValue;
+    
+    console.log("Current KPI value:", currentValue);
+    console.log("New KPI value:", newValue);
+    
+    updateConfig({
+      kpis: {
+        ...currentConfigRef.current.kpis,
+        [kpiKey]: newValue
+      }
+    });
+    
+    console.log("✅ KPI toggle completed");
+  }, []); // SEM DEPENDÊNCIAS
+
+  const handleChartToggle = useCallback((chartKey: keyof DashboardConfig['charts']) => {
+    console.log("=== CHART TOGGLE HANDLER ===");
+    console.log("Chart Key:", chartKey);
+    console.log("Current config from ref:", currentConfigRef.current);
+    
+    const currentValue = currentConfigRef.current.charts[chartKey];
+    const newValue = !currentValue;
+    
+    console.log("Current Chart value:", currentValue);
+    console.log("New Chart value:", newValue);
+    
+    updateConfig({
+      charts: {
+        ...currentConfigRef.current.charts,
+        [chartKey]: newValue
+      }
+    });
+    
+    console.log("✅ Chart toggle completed");
+  }, []); // SEM DEPENDÊNCIAS
 
   const resetToDefault = useCallback(() => {
     console.log("=== RESET TO DEFAULT ===");
     const defaultConfigCopy = deepClone(defaultConfig);
     updateConfig(defaultConfigCopy);
-  }, [updateConfig]);
+  }, []); // SEM DEPENDÊNCIAS
+
+  // Atualizar ref dos handlers
+  useEffect(() => {
+    updateHandlersRef.current = {
+      kpiToggle: handleKPIToggle,
+      chartToggle: handleChartToggle
+    };
+  }, [handleKPIToggle, handleChartToggle]);
 
   return {
     config,
@@ -195,6 +261,8 @@ export const useDashboardConfig = () => {
     saving,
     configVersion,
     updateConfig,
-    resetToDefault
+    resetToDefault,
+    handleKPIToggle,
+    handleChartToggle
   };
 };
