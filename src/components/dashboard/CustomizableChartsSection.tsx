@@ -66,9 +66,9 @@ export default function CustomizableChartsSection() {
   return (
     <div 
       key={`charts-section-${configVersion}`}
-      className={`grid ${getGridCols(visibleCharts.length)} gap-6 transition-all duration-500`}
+      className={`grid ${getGridCols(visibleCharts.length)} gap-6 transition-all duration-300 ease-in-out`}
     >
-      {visibleCharts.map((chartKey) => {
+      {visibleCharts.map((chartKey, index) => {
         const ChartComponent = chartComponents[chartKey as keyof typeof chartComponents];
         
         if (!ChartComponent) {
@@ -82,7 +82,15 @@ export default function CustomizableChartsSection() {
         
         console.log(`📊 Rendering Chart: ${chartKey}`);
         
-        return <ChartComponent key={`${chartKey}-${configVersion}`} />;
+        return (
+          <div
+            key={`${chartKey}-${configVersion}`}
+            className="animate-fade-in"
+            style={{ animationDelay: `${index * 100}ms` }}
+          >
+            <ChartComponent />
+          </div>
+        );
       })}
     </div>
   );

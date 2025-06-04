@@ -116,7 +116,6 @@ export const useDashboardConfig = () => {
       );
       
       console.log("✅ Config saved successfully");
-      toast.success("Configurações salvas!");
     } catch (error) {
       console.error("❌ Error saving config:", error);
       toast.error("Erro ao salvar configurações");
@@ -128,11 +127,32 @@ export const useDashboardConfig = () => {
     }
   };
 
-  // Handler principal de atualização - sempre atualizado
+  // Debounced save function
+  const scheduleSave = useCallback((configToSave: DashboardConfig) => {
+    pendingConfigRef.current = configToSave;
+    
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    saveTimeoutRef.current = setTimeout(() => {
+      if (isMountedRef.current && pendingConfigRef.current) {
+        const configToSave = pendingConfigRef.current;
+        pendingConfigRef.current = null;
+        
+        if (!savePromiseRef.current) {
+          savePromiseRef.current = saveConfigToDatabase(configToSave)
+            .finally(() => {
+              savePromiseRef.current = null;
+            });
+        }
+      }
+    }, 100); // Reduced delay for faster saves
+  }, []);
+
+  // Handler principal de atualização - simplificado
   const updateConfig = useCallback((newConfig: Partial<DashboardConfig>) => {
     console.log("=== UPDATE CONFIG TRIGGERED ===");
-    console.log("Is initialized:", isInitializedRef.current);
-    console.log("Is mounted:", isMountedRef.current);
     console.log("Updates:", newConfig);
     
     if (!isMountedRef.current || !isInitializedRef.current) {
@@ -140,59 +160,30 @@ export const useDashboardConfig = () => {
       return;
     }
     
-    // Usar setConfig com função para garantir estado mais atual
     setConfig(currentConfig => {
-      const currentConfigCopy = deepClone(currentConfig);
-      const updatedConfig = mergeConfigUpdates(currentConfigCopy, newConfig);
-      
-      console.log("📝 Current config:", currentConfigCopy);
+      const updatedConfig = mergeConfigUpdates(deepClone(currentConfig), newConfig);
       console.log("📝 Final updated config:", updatedConfig);
       
-      // Armazenar config pendente para save
-      pendingConfigRef.current = updatedConfig;
-      
-      // Cancelar timeout anterior
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-      
-      // Debounce do salvamento
-      saveTimeoutRef.current = setTimeout(() => {
-        if (isMountedRef.current && pendingConfigRef.current) {
-          const configToSave = pendingConfigRef.current;
-          pendingConfigRef.current = null;
-          
-          if (!savePromiseRef.current) {
-            savePromiseRef.current = saveConfigToDatabase(configToSave)
-              .finally(() => {
-                savePromiseRef.current = null;
-              });
-          }
-        }
-      }, 300);
+      // Schedule save
+      scheduleSave(updatedConfig);
       
       return updatedConfig;
     });
     
-    // Forçar re-renderização
-    setConfigVersion(prev => {
-      const newVersion = prev + 1;
-      console.log("🔄 Config version updated to:", newVersion);
-      return newVersion;
-    });
-  }, [user?.id, companyId]);
+    // Force immediate re-render
+    setConfigVersion(prev => prev + 1);
+  }, [scheduleSave]);
 
-  // Handlers específicos - sempre usam o estado atual via setConfig
+  // Handlers específicos - simplificados para atualização instantânea
   const handleKPIToggle = useCallback((kpiKey: keyof DashboardConfig['kpis']) => {
     console.log("=== KPI TOGGLE HANDLER ===");
     console.log("KPI Key:", kpiKey);
     
+    if (!isInitializedRef.current) return;
+    
     setConfig(currentConfig => {
-      const currentValue = currentConfig.kpis[kpiKey];
-      const newValue = !currentValue;
-      
-      console.log("Current KPI value:", currentValue);
-      console.log("New KPI value:", newValue);
+      const newValue = !currentConfig.kpis[kpiKey];
+      console.log(`Toggling ${kpiKey}: ${currentConfig.kpis[kpiKey]} -> ${newValue}`);
       
       const newConfig = {
         ...currentConfig,
@@ -202,44 +193,25 @@ export const useDashboardConfig = () => {
         }
       };
       
-      // Trigger save
-      pendingConfigRef.current = newConfig;
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
+      // Schedule save
+      scheduleSave(newConfig);
       
-      saveTimeoutRef.current = setTimeout(() => {
-        if (isMountedRef.current && pendingConfigRef.current) {
-          const configToSave = pendingConfigRef.current;
-          pendingConfigRef.current = null;
-          
-          if (!savePromiseRef.current) {
-            savePromiseRef.current = saveConfigToDatabase(configToSave)
-              .finally(() => {
-                savePromiseRef.current = null;
-              });
-          }
-        }
-      }, 300);
-      
-      console.log("✅ KPI toggle completed");
       return newConfig;
     });
     
-    // Force re-render
+    // Force immediate re-render
     setConfigVersion(prev => prev + 1);
-  }, [user?.id, companyId]);
+  }, [scheduleSave]);
 
   const handleChartToggle = useCallback((chartKey: keyof DashboardConfig['charts']) => {
     console.log("=== CHART TOGGLE HANDLER ===");
     console.log("Chart Key:", chartKey);
     
+    if (!isInitializedRef.current) return;
+    
     setConfig(currentConfig => {
-      const currentValue = currentConfig.charts[chartKey];
-      const newValue = !currentValue;
-      
-      console.log("Current Chart value:", currentValue);
-      console.log("New Chart value:", newValue);
+      const newValue = !currentConfig.charts[chartKey];
+      console.log(`Toggling ${chartKey}: ${currentConfig.charts[chartKey]} -> ${newValue}`);
       
       const newConfig = {
         ...currentConfig,
@@ -249,33 +221,15 @@ export const useDashboardConfig = () => {
         }
       };
       
-      // Trigger save
-      pendingConfigRef.current = newConfig;
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
+      // Schedule save
+      scheduleSave(newConfig);
       
-      saveTimeoutRef.current = setTimeout(() => {
-        if (isMountedRef.current && pendingConfigRef.current) {
-          const configToSave = pendingConfigRef.current;
-          pendingConfigRef.current = null;
-          
-          if (!savePromiseRef.current) {
-            savePromiseRef.current = saveConfigToDatabase(configToSave)
-              .finally(() => {
-                savePromiseRef.current = null;
-              });
-          }
-        }
-      }, 300);
-      
-      console.log("✅ Chart toggle completed");
       return newConfig;
     });
     
-    // Force re-render
+    // Force immediate re-render
     setConfigVersion(prev => prev + 1);
-  }, [user?.id, companyId]);
+  }, [scheduleSave]);
 
   const resetToDefault = useCallback(() => {
     console.log("=== RESET TO DEFAULT ===");

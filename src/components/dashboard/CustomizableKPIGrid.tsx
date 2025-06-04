@@ -108,9 +108,9 @@ export function CustomizableKPIGrid() {
   return (
     <div 
       key={`kpi-grid-${configVersion}`}
-      className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6 transition-all duration-500`}
+      className={`grid ${getGridCols(visibleKPIs.length)} gap-4 md:gap-6 transition-all duration-300 ease-in-out`}
     >
-      {visibleKPIs.map((kpiKey) => {
+      {visibleKPIs.map((kpiKey, index) => {
         const kpiData = kpiConfig[kpiKey as keyof typeof kpiConfig];
         const value = kpis[kpiKey as keyof typeof kpis];
         
@@ -122,13 +122,18 @@ export function CustomizableKPIGrid() {
         console.log(`🎯 Rendering KPI: ${kpiKey} with value:`, value);
         
         return (
-          <KPICard
-            key={`${kpiKey}-${configVersion}-${value}`}
-            title={kpiData.title}
-            value={kpiData.format(value)}
-            trend={kpiData.trend}
-            icon={kpiData.icon}
-          />
+          <div
+            key={`${kpiKey}-${configVersion}`}
+            className="animate-fade-in"
+            style={{ animationDelay: `${index * 50}ms` }}
+          >
+            <KPICard
+              title={kpiData.title}
+              value={kpiData.format(value)}
+              trend={kpiData.trend}
+              icon={kpiData.icon}
+            />
+          </div>
         );
       })}
     </div>

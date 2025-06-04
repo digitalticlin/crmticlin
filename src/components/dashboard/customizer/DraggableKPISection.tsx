@@ -65,7 +65,7 @@ export function DraggableKPISection({ config, onKPIToggle }: DraggableKPISection
                       className={`
                         flex items-center justify-between p-4 rounded-xl border backdrop-blur-sm transition-all duration-200
                         ${snapshot.isDragging 
-                          ? 'bg-white/25 border-[#D3D800]/60 shadow-xl' 
+                          ? 'bg-white/25 border-[#D3D800]/60 shadow-xl scale-105' 
                           : 'bg-white/15 border-white/20 hover:bg-white/20'
                         }
                       `}
@@ -90,7 +90,7 @@ export function DraggableKPISection({ config, onKPIToggle }: DraggableKPISection
                           console.log(`🔄 Switch clicked for ${kpiKey}: ${isEnabled} -> ${!isEnabled}`);
                           onKPIToggle(kpiKey as keyof DashboardConfig['kpis']);
                         }}
-                        className="data-[state=checked]:bg-[#D3D800] data-[state=unchecked]:bg-white/20"
+                        className="data-[state=checked]:bg-[#D3D800] data-[state=unchecked]:bg-white/20 transition-all duration-200"
                       />
                     </div>
                   )}
