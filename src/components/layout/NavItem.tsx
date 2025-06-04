@@ -33,12 +33,12 @@ const NavItem = ({ icon: Icon, label, href, isCollapsed, className, comingSoon =
         "w-full flex items-center justify-start gap-3 px-3 py-2.5 rounded-xl group relative overflow-hidden",
         "transition-all duration-300 ease-out",
         comingSoon 
-          ? "opacity-60 cursor-not-allowed hover:bg-gray-100/50" 
+          ? "cursor-not-allowed hover:bg-gray-100/50 relative" 
           : "hover:scale-[1.02] hover:translate-x-1",
         isActive && !comingSoon
           ? "bg-gradient-to-r from-white/40 to-white/25 text-gray-900 font-semibold border border-white/40 shadow-lg backdrop-blur-md nav-item-active" 
           : comingSoon
-          ? "text-gray-500"
+          ? "text-gray-700"
           : "hover:bg-white/25 hover:backdrop-blur-lg hover:border hover:border-white/30 hover:shadow-lg text-gray-700 hover:text-gray-900 nav-item-hover",
         className
       )}
@@ -53,6 +53,13 @@ const NavItem = ({ icon: Icon, label, href, isCollapsed, className, comingSoon =
           : !comingSoon && "group-hover:opacity-50 bg-gradient-to-r from-white/10 to-transparent"
       )} />
       
+      {/* Blocked indicator line */}
+      {comingSoon && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="w-full h-0.5 bg-gray-400 transform rotate-12 opacity-60" />
+        </div>
+      )}
+      
       {/* Icon with glow effect */}
       <div className={cn(
         "relative z-10 transition-all duration-300",
@@ -63,20 +70,20 @@ const NavItem = ({ icon: Icon, label, href, isCollapsed, className, comingSoon =
           isActive && !comingSoon
             ? "text-ticlin-600 drop-shadow-sm" 
             : comingSoon
-            ? "text-gray-400"
+            ? "text-gray-600"
             : "group-hover:text-gray-800 group-hover:scale-110"
         )} />
       </div>
       
       {/* Label with slide effect */}
       {!isCollapsed && (
-        <div className="flex items-center justify-between flex-1">
+        <div className="flex items-center justify-between flex-1 relative z-10">
           <span className={cn(
-            "relative z-10 transition-all duration-300 text-sm",
+            "transition-all duration-300 text-sm",
             isActive && !comingSoon
               ? "text-gray-900 font-semibold" 
               : comingSoon
-              ? "text-gray-500"
+              ? "text-gray-700"
               : "group-hover:text-gray-900 group-hover:translate-x-0.5"
           )}>
             {label}

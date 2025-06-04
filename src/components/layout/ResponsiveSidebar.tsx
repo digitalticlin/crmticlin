@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -50,7 +49,6 @@ export default function ResponsiveSidebar() {
       icon: MessageSquare,
       label: "Chat",
       href: "/whatsapp-chat",
-      className: "text-green-600",
       comingSoon: false
     }
   ];
