@@ -24,6 +24,7 @@ export default function DashboardCustomizer() {
     
     updateConfig({
       kpis: {
+        ...config.kpis,
         [kpiKey]: newValue
       }
     });
@@ -40,6 +41,7 @@ export default function DashboardCustomizer() {
     
     updateConfig({
       charts: {
+        ...config.charts,
         [chartKey]: newValue
       }
     });
@@ -70,7 +72,7 @@ export default function DashboardCustomizer() {
 
         updateConfig({
           layout: {
-            chart_order: config.layout.chart_order,
+            ...config.layout,
             kpi_order: newKpiOrder
           }
         });
@@ -84,7 +86,7 @@ export default function DashboardCustomizer() {
 
         updateConfig({
           layout: {
-            kpi_order: config.layout.kpi_order,
+            ...config.layout,
             chart_order: newChartOrder
           }
         });
