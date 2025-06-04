@@ -11,40 +11,33 @@ export const useDashboardState = () => {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
   const isInitializedRef = useRef(false);
-  const renderCountRef = useRef(0);
 
-  // CORREÇÃO ETAPA 1: Trigger imediato sem setTimeout
+  // ETAPA 1: Função triggerForceUpdate simplificada e síncrona
   const triggerForceUpdate = () => {
-    renderCountRef.current += 1;
     const timestamp = Date.now();
-    console.log(`🔄 IMMEDIATE FORCE UPDATE [${timestamp}] - Render Count: ${renderCountRef.current}`);
+    console.log(`🔄 FORCE UPDATE TRIGGER [${timestamp}]`);
     
     setForceUpdate(prev => {
       const newValue = prev + 1;
-      console.log(`📊 Force update: ${prev} -> ${newValue} [${timestamp}]`);
+      console.log(`📊 ForceUpdate: ${prev} -> ${newValue} [${timestamp}]`);
       return newValue;
     });
   };
 
-  // CORREÇÃO ETAPA 1: Remover setTimeout, execução imediata
+  // ETAPA 1: setConfig simples SEM triggerForceUpdate interno
   const setConfigWithUpdate = (newConfigOrUpdater: DashboardConfig | ((prev: DashboardConfig) => DashboardConfig)) => {
     const timestamp = Date.now();
-    console.log(`📝 CONFIG UPDATE START [${timestamp}]`);
+    console.log(`📝 CONFIG UPDATE [${timestamp}]`);
     
     setConfig(currentConfig => {
       const newConfig = typeof newConfigOrUpdater === 'function' 
         ? newConfigOrUpdater(currentConfig) 
         : newConfigOrUpdater;
       
-      console.log(`📊 Config changed [${timestamp}]:`, {
+      console.log(`📊 Config updated [${timestamp}]:`, {
         kpis: newConfig.kpis,
-        charts: newConfig.charts,
-        renderCount: renderCountRef.current
+        charts: newConfig.charts
       });
-      
-      // CORREÇÃO: Force update IMEDIATO após setState
-      triggerForceUpdate();
-      console.log(`✅ CONFIG UPDATE COMPLETE [${timestamp}]`);
       
       return newConfig;
     });
@@ -61,7 +54,6 @@ export const useDashboardState = () => {
     triggerForceUpdate,
     saveTimeoutRef,
     isMountedRef,
-    isInitializedRef,
-    renderCount: renderCountRef.current
+    isInitializedRef
   };
 };

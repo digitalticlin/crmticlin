@@ -55,23 +55,10 @@ const kpiConfig = {
 };
 
 export function CustomizableKPIGrid() {
-  const { config, loading: configLoading, forceUpdate, renderCount } = useDashboardConfig();
+  const { config, loading: configLoading, forceUpdate } = useDashboardConfig();
   const { kpis, loading: kpisLoading } = useDashboardKPIs(config.period_filter);
 
-  // CORREÇÃO ETAPA 2: ConfigHash com forceUpdate nas dependencies
-  const configHash = useMemo(() => {
-    const hash = JSON.stringify({ 
-      kpis: config.kpis, 
-      layout: config.layout.kpi_order,
-      forceUpdate, // CRÍTICO: incluir forceUpdate
-      renderCount
-    });
-    const timestamp = Date.now();
-    console.log(`🎯 KPI ConfigHash recalculated [${timestamp}]:`, hash.slice(0, 100) + '...');
-    return hash;
-  }, [config.kpis, config.layout.kpi_order, forceUpdate, renderCount]);
-
-  // CORREÇÃO ETAPA 2: VisibleKPIs com dependencies corretas
+  // ETAPA 3: Dependencies simplificadas - apenas essenciais
   const visibleKPIs = useMemo(() => {
     const visible = config.layout.kpi_order.filter(
       kpiKey => config.kpis[kpiKey as keyof typeof config.kpis]
@@ -80,23 +67,20 @@ export function CustomizableKPIGrid() {
     console.log(`✅ KPI VISIBLE RECALCULATED [${timestamp}]:`, {
       visible,
       forceUpdate,
-      renderCount,
-      configHash: configHash.slice(-20)
+      configKPIs: config.kpis
     });
     return visible;
-  }, [config.layout.kpi_order, config.kpis, forceUpdate, renderCount, configHash]);
+  }, [config.layout.kpi_order, config.kpis, forceUpdate]);
 
-  // CORREÇÃO ETAPA 5: Debugging robusto
+  // ETAPA 5: Validação - tracking do fluxo
   useEffect(() => {
     const timestamp = Date.now();
-    console.log(`🎯 KPI GRID REACTIVE UPDATE [${timestamp}]:`, {
+    console.log(`🎯 KPI GRID UPDATE [${timestamp}]:`, {
       forceUpdate,
-      renderCount,
-      configKPIs: config.kpis,
       visibleKPIs,
-      configHash: configHash.slice(-20)
+      configKPIs: config.kpis
     });
-  }, [forceUpdate, renderCount, config.kpis, visibleKPIs, configHash]);
+  }, [forceUpdate, visibleKPIs, config.kpis]);
 
   if (configLoading || kpisLoading) {
     return (
@@ -145,8 +129,8 @@ export function CustomizableKPIGrid() {
         const timestamp = Date.now();
         console.log(`🎯 Rendering KPI [${timestamp}]: ${kpiKey} enabled:${isEnabled} value:`, value);
         
-        // CORREÇÃO ETAPA 3: Key verdadeiramente reativa
-        const reactiveKey = `kpi-${kpiKey}-${forceUpdate}-${isEnabled}-${renderCount}-${timestamp}`;
+        // ETAPA 3: Key simplificada - apenas forceUpdate + isEnabled
+        const reactiveKey = `kpi-${kpiKey}-${forceUpdate}-${isEnabled}`;
         
         return (
           <div

@@ -1,4 +1,3 @@
-
 import ResponsiveSidebar from "@/components/layout/ResponsiveSidebar";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardCustomizer from "@/components/dashboard/customizer/DashboardCustomizer";
@@ -8,37 +7,24 @@ import PeriodFilter from "@/components/dashboard/PeriodFilter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useDashboardConfig } from "@/hooks/dashboard/useDashboardConfig";
 import { cn } from "@/lib/utils";
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 
 export default function Dashboard() {
   const isMobile = useIsMobile();
-  const { config, forceUpdate, loading, renderCount } = useDashboardConfig();
+  const { config, forceUpdate, loading } = useDashboardConfig();
 
-  // CORREÇÃO ETAPA 2: ConfigHash com forceUpdate nas dependencies
-  const configHash = useMemo(() => {
-    const hash = JSON.stringify({ 
-      kpis: config.kpis, 
-      charts: config.charts,
-      forceUpdate, // CRÍTICO: incluir forceUpdate
-      renderCount
-    });
-    return hash;
-  }, [config.kpis, config.charts, forceUpdate, renderCount]);
-
-  // CORREÇÃO ETAPA 5: Debugging robusto do dashboard
+  // ETAPA 5: Validação - monitoring da página
   useEffect(() => {
     const timestamp = Date.now();
-    console.log(`🏠 DASHBOARD RENDER STATE CHECK [${timestamp}]:`, {
+    console.log(`🏠 DASHBOARD RENDER [${timestamp}]:`, {
       forceUpdate,
-      renderCount,
       loading,
       configKPIs: config.kpis,
       configCharts: config.charts,
-      configHash: configHash.slice(-20),
       enabledKpis: Object.values(config.kpis).filter(Boolean).length,
       enabledCharts: Object.values(config.charts).filter(Boolean).length
     });
-  }, [forceUpdate, renderCount, config, loading, configHash]);
+  }, [forceUpdate, config, loading]);
 
   return (
     <div className="flex min-h-screen bg-gray-200 relative overflow-hidden">
@@ -85,12 +71,12 @@ export default function Dashboard() {
             </div>
           </div>
           
-          {/* CORREÇÃO ETAPA 3: Keys verdadeiramente reativas */}
-          <div key={`dashboard-kpi-${forceUpdate}-${renderCount}`}>
+          {/* ETAPA 3: Keys simplificadas baseadas apenas no forceUpdate */}
+          <div key={`dashboard-kpi-${forceUpdate}`}>
             <CustomizableKPIGrid />
           </div>
           
-          <div key={`dashboard-charts-${forceUpdate}-${renderCount}`}>
+          <div key={`dashboard-charts-${forceUpdate}`}>
             <CustomizableChartsSection />
           </div>
         </div>

@@ -16,22 +16,9 @@ const chartComponents = {
 };
 
 export default function CustomizableChartsSection() {
-  const { config, loading, forceUpdate, renderCount } = useDashboardConfig();
+  const { config, loading, forceUpdate } = useDashboardConfig();
 
-  // CORREÇÃO ETAPA 2: ConfigHash com forceUpdate nas dependencies
-  const configHash = useMemo(() => {
-    const hash = JSON.stringify({ 
-      charts: config.charts, 
-      layout: config.layout.chart_order,
-      forceUpdate, // CRÍTICO: incluir forceUpdate
-      renderCount
-    });
-    const timestamp = Date.now();
-    console.log(`📈 CHARTS ConfigHash recalculated [${timestamp}]:`, hash.slice(0, 100) + '...');
-    return hash;
-  }, [config.charts, config.layout.chart_order, forceUpdate, renderCount]);
-
-  // CORREÇÃO ETAPA 2: VisibleCharts com dependencies corretas
+  // ETAPA 3: Dependencies simplificadas - apenas essenciais
   const visibleCharts = useMemo(() => {
     const visible = config.layout.chart_order.filter(
       chartKey => config.charts[chartKey as keyof typeof config.charts]
@@ -40,23 +27,20 @@ export default function CustomizableChartsSection() {
     console.log(`✅ CHARTS VISIBLE RECALCULATED [${timestamp}]:`, {
       visible,
       forceUpdate,
-      renderCount,
-      configHash: configHash.slice(-20)
+      configCharts: config.charts
     });
     return visible;
-  }, [config.layout.chart_order, config.charts, forceUpdate, renderCount, configHash]);
+  }, [config.layout.chart_order, config.charts, forceUpdate]);
 
-  // CORREÇÃO ETAPA 5: Debugging robusto
+  // ETAPA 5: Validação - tracking do fluxo
   useEffect(() => {
     const timestamp = Date.now();
-    console.log(`📈 CHARTS REACTIVE UPDATE [${timestamp}]:`, {
+    console.log(`📈 CHARTS UPDATE [${timestamp}]:`, {
       forceUpdate,
-      renderCount,
-      configCharts: config.charts,
       visibleCharts,
-      configHash: configHash.slice(-20)
+      configCharts: config.charts
     });
-  }, [forceUpdate, renderCount, config.charts, visibleCharts, configHash]);
+  }, [forceUpdate, visibleCharts, config.charts]);
 
   if (loading) {
     return (
@@ -106,8 +90,8 @@ export default function CustomizableChartsSection() {
         const timestamp = Date.now();
         console.log(`📊 Rendering Chart [${timestamp}]: ${chartKey} enabled:${isEnabled}`);
         
-        // CORREÇÃO ETAPA 3: Key verdadeiramente reativa
-        const reactiveKey = `chart-${chartKey}-${forceUpdate}-${isEnabled}-${renderCount}-${timestamp}`;
+        // ETAPA 3: Key simplificada - apenas forceUpdate + isEnabled
+        const reactiveKey = `chart-${chartKey}-${forceUpdate}-${isEnabled}`;
         
         return (
           <div

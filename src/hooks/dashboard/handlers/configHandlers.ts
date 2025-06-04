@@ -10,7 +10,7 @@ export const createConfigHandlers = (
   scheduleSave: (config: DashboardConfig) => void,
   isInitializedRef: React.MutableRefObject<boolean>
 ) => {
-  // CORREÇÃO ETAPA 4: Handler KPI com triggerForceUpdate SINCRONIZADO
+  // ETAPA 2: Handler KPI com fluxo síncrono linear
   const handleKPIToggle = useCallback((kpiKey: keyof DashboardConfig['kpis']) => {
     if (!isInitializedRef.current) {
       console.log("❌ KPI Toggle blocked - not initialized");
@@ -35,16 +35,15 @@ export const createConfigHandlers = (
       console.log(`📊 NEW KPI CONFIG [${timestamp}]:`, newConfig.kpis);
       scheduleSave(newConfig);
       
-      // CORREÇÃO: triggerForceUpdate APÓS config update
-      setTimeout(() => triggerForceUpdate(), 0);
-      
       return newConfig;
     });
     
+    // ETAPA 2: triggerForceUpdate IMEDIATAMENTE após setConfig
+    triggerForceUpdate();
     console.log(`✅ KPI TOGGLE COMPLETE [${timestamp}]: ${kpiKey}`);
   }, [setConfig, scheduleSave, triggerForceUpdate, isInitializedRef]);
 
-  // CORREÇÃO ETAPA 4: Handler Chart com triggerForceUpdate SINCRONIZADO
+  // ETAPA 2: Handler Chart com fluxo síncrono linear
   const handleChartToggle = useCallback((chartKey: keyof DashboardConfig['charts']) => {
     if (!isInitializedRef.current) {
       console.log("❌ Chart Toggle blocked - not initialized");
@@ -69,12 +68,11 @@ export const createConfigHandlers = (
       console.log(`📊 NEW CHART CONFIG [${timestamp}]:`, newConfig.charts);
       scheduleSave(newConfig);
       
-      // CORREÇÃO: triggerForceUpdate APÓS config update
-      setTimeout(() => triggerForceUpdate(), 0);
-      
       return newConfig;
     });
     
+    // ETAPA 2: triggerForceUpdate IMEDIATAMENTE após setConfig
+    triggerForceUpdate();
     console.log(`✅ CHART TOGGLE COMPLETE [${timestamp}]: ${chartKey}`);
   }, [setConfig, scheduleSave, triggerForceUpdate, isInitializedRef]);
 
@@ -94,9 +92,10 @@ export const createConfigHandlers = (
       };
       
       scheduleSave(updatedConfig);
-      setTimeout(() => triggerForceUpdate(), 0);
       return updatedConfig;
     });
+    
+    triggerForceUpdate();
   }, [setConfig, scheduleSave, triggerForceUpdate, isInitializedRef]);
 
   const resetToDefault = useCallback(() => {
@@ -106,7 +105,7 @@ export const createConfigHandlers = (
     
     setConfig(defaultConfigCopy);
     scheduleSave(defaultConfigCopy);
-    setTimeout(() => triggerForceUpdate(), 0);
+    triggerForceUpdate();
   }, [setConfig, scheduleSave, triggerForceUpdate]);
 
   return {
