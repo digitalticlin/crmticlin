@@ -38,6 +38,15 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
     setShowTagsModal(true);
   };
 
+  // Combinar tags e company em um único array para o limite de 2 itens
+  const allTagItems = [
+    ...(contact.tags || []).map(tag => ({ type: 'tag', value: tag })),
+    ...(contact.company ? [{ type: 'company', value: contact.company }] : [])
+  ];
+
+  const visibleItems = allTagItems.slice(0, 2);
+  const remainingCount = allTagItems.length - 2;
+
   return (
     <>
       <div
@@ -85,43 +94,36 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
               )}
             </div>
             
-            {/* Tags do Lead - Limitadas a 2 tags + botão "+x" em uma linha só */}
-            {contact.tags && contact.tags.length > 0 && (
+            {/* Tags + Company - Limitadas a 2 itens no total + botão "+x" */}
+            {allTagItems.length > 0 && (
               <div className="flex items-center gap-1 mt-1 overflow-hidden">
                 <div className="flex items-center gap-1 flex-nowrap">
-                  {/* Mostrar apenas as primeiras 2 tags */}
-                  {contact.tags.slice(0, 2).map((tag, index) => (
+                  {/* Mostrar apenas os primeiros 2 itens (tags + company) */}
+                  {visibleItems.map((item, index) => (
                     <Badge 
                       key={index}
                       variant="outline" 
                       className={cn(
                         "text-xs font-semibold flex-shrink-0 max-w-[90px] truncate px-3 py-1",
-                        getTagColor(tag)
+                        item.type === 'tag' 
+                          ? getTagColor(item.value)
+                          : 'border-2 border-gray-500 bg-gray-500/20 text-gray-800'
                       )}
                     >
-                      {tag}
+                      {item.value}
                     </Badge>
                   ))}
-                  {/* Botão "+x" apenas se houver mais de 2 tags */}
-                  {contact.tags.length > 2 && (
+                  {/* Botão "+x" apenas se houver mais de 2 itens no total */}
+                  {remainingCount > 0 && (
                     <Badge 
                       variant="outline" 
                       className="text-xs border-2 border-gray-500 bg-gray-500/20 text-gray-800 cursor-pointer hover:bg-gray-500/30 transition-colors flex-shrink-0 min-w-[32px] px-2 py-1"
                       onClick={handleTagsPlusClick}
                     >
-                      +{contact.tags.length - 2}
+                      +{remainingCount}
                     </Badge>
                   )}
                 </div>
-              </div>
-            )}
-            
-            {/* Company Info */}
-            {contact.company && (
-              <div className="flex items-center gap-2 mt-1">
-                <Badge variant="outline" className="text-xs border-2 border-gray-500 bg-gray-500/20 text-gray-800 px-3 py-1">
-                  {contact.company}
-                </Badge>
               </div>
             )}
           </div>
