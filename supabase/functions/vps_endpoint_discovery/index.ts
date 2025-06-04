@@ -1,6 +1,5 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,15 +7,11 @@ const corsHeaders = {
 };
 
 interface EndpointTest {
-  endpoint: string;
+  path: string;
   method: string;
   description: string;
-  payload?: any;
-  expected_status?: number[];
+  priority: 'high' | 'medium' | 'low';
 }
-
-const VPS_HOST = '31.97.24.222';
-const VPS_PORTS = [3001, 80, 8080, 3000, 9000, 5000];
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -24,277 +19,245 @@ serve(async (req) => {
   }
 
   try {
-    console.log('[VPS Discovery] Starting comprehensive VPS endpoint discovery...');
-    
-    const results = {
-      timestamp: new Date().toISOString(),
-      vps_host: VPS_HOST,
-      tested_ports: VPS_PORTS,
-      discoveries: [] as any[],
-      working_endpoints: [] as any[],
-      recommended_config: null as any,
-      whatsapp_structure: null as any
+    console.log('[VPS Endpoint Discovery] 🔍 Iniciando descoberta de endpoints');
+
+    // VPS Configuration
+    const VPS_CONFIG = {
+      host: '31.97.24.222',
+      port: '3001',
+      get baseUrl() {
+        return `http://${this.host}:${this.port}`;
+      },
+      authToken: Deno.env.get('VPS_API_TOKEN') || 'default-token'
     };
 
-    // Endpoints comuns para testar em cada porta
-    const commonEndpoints: EndpointTest[] = [
-      // Health/Status endpoints
-      { endpoint: '/health', method: 'GET', description: 'Health check' },
-      { endpoint: '/status', method: 'GET', description: 'Server status' },
-      { endpoint: '/info', method: 'GET', description: 'Server info' },
-      { endpoint: '/api/health', method: 'GET', description: 'API health' },
-      { endpoint: '/api/status', method: 'GET', description: 'API status' },
+    const getVPSHeaders = () => ({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+      'User-Agent': 'Supabase-VPS-Discovery/1.0',
+      'Accept': 'application/json'
+    });
+
+    // Lista abrangente de endpoints para testar
+    const endpointsToTest: EndpointTest[] = [
+      // Endpoints conhecidos (funcionam)
+      { path: '/health', method: 'GET', description: 'Health Check', priority: 'high' },
+      { path: '/status', method: 'GET', description: 'Status Check', priority: 'high' },
+      { path: '/instances', method: 'GET', description: 'List Instances', priority: 'high' },
       
-      // WhatsApp Web.js specific
-      { endpoint: '/create', method: 'POST', description: 'Create instance', payload: { instanceId: 'test', sessionName: 'test' } },
-      { endpoint: '/create-instance', method: 'POST', description: 'Create instance alt', payload: { instanceName: 'test' } },
-      { endpoint: '/instance/create', method: 'POST', description: 'Instance create', payload: { name: 'test' } },
-      { endpoint: '/whatsapp/create', method: 'POST', description: 'WhatsApp create', payload: { instance: 'test' } },
+      // Endpoints para criação de instâncias (variações possíveis)
+      { path: '/instances', method: 'POST', description: 'Create Instance via /instances', priority: 'high' },
+      { path: '/instance/create', method: 'POST', description: 'Create Instance via /instance/create', priority: 'high' },
+      { path: '/whatsapp/create', method: 'POST', description: 'Create WhatsApp Instance', priority: 'high' },
+      { path: '/session/create', method: 'POST', description: 'Create Session', priority: 'high' },
+      { path: '/api/instances', method: 'POST', description: 'Create via /api/instances', priority: 'high' },
+      { path: '/api/whatsapp/create', method: 'POST', description: 'Create via /api/whatsapp', priority: 'high' },
+      { path: '/v1/instances', method: 'POST', description: 'Create via /v1/instances', priority: 'medium' },
+      { path: '/create-instance', method: 'POST', description: 'Create via /create-instance', priority: 'medium' },
+      { path: '/new-instance', method: 'POST', description: 'Create via /new-instance', priority: 'medium' },
+      { path: '/client/create', method: 'POST', description: 'Create Client', priority: 'medium' },
       
-      // QR Code endpoints
-      { endpoint: '/qr', method: 'GET', description: 'Get QR code' },
-      { endpoint: '/qr/test', method: 'GET', description: 'Get QR code with instance' },
-      { endpoint: '/instance/qr', method: 'GET', description: 'Instance QR' },
-      { endpoint: '/whatsapp/qr', method: 'GET', description: 'WhatsApp QR' },
+      // Endpoints para QR Code
+      { path: '/qr', method: 'GET', description: 'Get QR Code', priority: 'medium' },
+      { path: '/qrcode', method: 'GET', description: 'Get QR Code Alt', priority: 'medium' },
+      { path: '/instance/qr', method: 'GET', description: 'Instance QR', priority: 'medium' },
       
-      // Instance management
-      { endpoint: '/instances', method: 'GET', description: 'List instances' },
-      { endpoint: '/instance/list', method: 'GET', description: 'List instances alt' },
-      { endpoint: '/whatsapp/instances', method: 'GET', description: 'WhatsApp instances' },
+      // Endpoints de gestão
+      { path: '/instance/delete', method: 'DELETE', description: 'Delete Instance', priority: 'medium' },
+      { path: '/instance/stop', method: 'POST', description: 'Stop Instance', priority: 'medium' },
+      { path: '/instance/start', method: 'POST', description: 'Start Instance', priority: 'medium' },
       
-      // Delete endpoints
-      { endpoint: '/delete', method: 'POST', description: 'Delete instance', payload: { instanceId: 'test' } },
-      { endpoint: '/instance/delete', method: 'POST', description: 'Delete instance alt', payload: { name: 'test' } },
-      { endpoint: '/whatsapp/delete', method: 'POST', description: 'WhatsApp delete', payload: { instance: 'test' } },
-      
-      // Evolution API compatibility
-      { endpoint: '/instance/create', method: 'POST', description: 'Evolution create', payload: { instanceName: 'test' } },
-      { endpoint: '/instance/connect/test', method: 'GET', description: 'Evolution connect' },
-      { endpoint: '/instance/qrcode/test', method: 'GET', description: 'Evolution QR' },
-      { endpoint: '/instance/logout/test', method: 'DELETE', description: 'Evolution logout' },
-      
-      // Common patterns
-      { endpoint: '/', method: 'GET', description: 'Root endpoint' },
-      { endpoint: '/api', method: 'GET', description: 'API root' },
-      { endpoint: '/docs', method: 'GET', description: 'Documentation' },
-      { endpoint: '/swagger', method: 'GET', description: 'Swagger docs' }
+      // Outros endpoints comuns
+      { path: '/webhook', method: 'POST', description: 'Webhook Config', priority: 'low' },
+      { path: '/send-message', method: 'POST', description: 'Send Message', priority: 'low' },
+      { path: '/api', method: 'GET', description: 'API Info', priority: 'low' },
+      { path: '/docs', method: 'GET', description: 'Documentation', priority: 'low' },
+      { path: '/version', method: 'GET', description: 'Version Info', priority: 'low' },
     ];
 
-    console.log(`[VPS Discovery] Testing ${VPS_PORTS.length} ports with ${commonEndpoints.length} endpoints each...`);
+    const results = [];
+    let successCount = 0;
+    let errorCount = 0;
 
-    // Testar cada porta
-    for (const port of VPS_PORTS) {
-      const baseUrl = `http://${VPS_HOST}:${port}`;
-      console.log(`[VPS Discovery] Testing port ${port}...`);
+    console.log(`[VPS Discovery] Testando ${endpointsToTest.length} endpoints...`);
+
+    // Testar cada endpoint
+    for (const endpoint of endpointsToTest) {
+      const startTime = Date.now();
       
-      const portResults = {
-        port,
-        baseUrl,
-        responding: false,
-        endpoints: [] as any[],
-        server_info: null as any
-      };
-
-      // Teste básico de conectividade
       try {
-        const healthResponse = await fetch(`${baseUrl}/health`, {
-          method: 'GET',
-          signal: AbortSignal.timeout(5000)
-        });
+        console.log(`[VPS Discovery] Testando: ${endpoint.method} ${endpoint.path}`);
         
-        portResults.responding = true;
-        console.log(`[VPS Discovery] Port ${port} is responding!`);
-        
-        // Se responde, testar todos os endpoints
-        for (const test of commonEndpoints) {
-          try {
-            const testUrl = `${baseUrl}${test.endpoint}`;
-            console.log(`[VPS Discovery] Testing ${test.method} ${testUrl}`);
-            
-            const response = await fetch(testUrl, {
-              method: test.method,
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer default-token'
-              },
-              body: test.payload ? JSON.stringify(test.payload) : undefined,
-              signal: AbortSignal.timeout(8000)
-            });
+        const requestOptions: RequestInit = {
+          method: endpoint.method,
+          headers: getVPSHeaders(),
+          signal: AbortSignal.timeout(8000) // 8s timeout
+        };
 
-            let responseData = null;
-            let responseText = '';
-            
-            try {
-              responseText = await response.text();
-              responseData = JSON.parse(responseText);
-            } catch {
-              responseData = responseText;
-            }
-
-            const endpointResult = {
-              endpoint: test.endpoint,
-              method: test.method,
-              description: test.description,
-              status: response.status,
-              success: response.ok,
-              response_data: responseData,
-              response_headers: Object.fromEntries(response.headers),
-              content_type: response.headers.get('content-type'),
-              working: response.status < 400 && response.status !== 404
-            };
-
-            portResults.endpoints.push(endpointResult);
-
-            if (endpointResult.working) {
-              results.working_endpoints.push({
-                ...endpointResult,
-                full_url: testUrl,
-                port
-              });
-              console.log(`[VPS Discovery] ✅ Working: ${test.method} ${testUrl} (${response.status})`);
-            } else {
-              console.log(`[VPS Discovery] ❌ Failed: ${test.method} ${testUrl} (${response.status})`);
-            }
-
-          } catch (error) {
-            console.log(`[VPS Discovery] ⚠️ Error testing ${test.endpoint}: ${error.message}`);
-            portResults.endpoints.push({
-              endpoint: test.endpoint,
-              method: test.method,
-              description: test.description,
-              status: 0,
-              success: false,
-              error: error.message,
-              working: false
-            });
-          }
-        }
-
-        // Tentar obter informações do servidor
-        try {
-          const infoResponse = await fetch(`${baseUrl}/status`, {
-            method: 'GET',
-            signal: AbortSignal.timeout(5000)
+        // Para POST requests, adicionar um payload de teste
+        if (endpoint.method === 'POST') {
+          requestOptions.body = JSON.stringify({
+            instanceName: 'test_discovery',
+            sessionName: 'test_discovery',
+            name: 'test_discovery'
           });
-          
-          if (infoResponse.ok) {
-            const infoData = await infoResponse.json();
-            portResults.server_info = infoData;
-          }
-        } catch (error) {
-          console.log(`[VPS Discovery] Could not get server info for port ${port}: ${error.message}`);
         }
 
-      } catch (error) {
-        console.log(`[VPS Discovery] Port ${port} not responding: ${error.message}`);
-      }
+        const response = await fetch(`${VPS_CONFIG.baseUrl}${endpoint.path}`, requestOptions);
+        const duration = Date.now() - startTime;
+        
+        let responseData = '';
+        let isJson = false;
+        
+        try {
+          const contentType = response.headers.get('content-type') || '';
+          if (contentType.includes('application/json')) {
+            responseData = JSON.stringify(await response.json());
+            isJson = true;
+          } else {
+            responseData = await response.text();
+          }
+        } catch {
+          responseData = 'Could not parse response';
+        }
 
-      results.discoveries.push(portResults);
+        const result = {
+          endpoint: endpoint.path,
+          method: endpoint.method,
+          description: endpoint.description,
+          priority: endpoint.priority,
+          status: response.status,
+          statusText: response.statusText,
+          success: response.ok,
+          duration,
+          isJson,
+          responseLength: responseData.length,
+          responseSample: responseData.substring(0, 200),
+          headers: Object.fromEntries(response.headers.entries()),
+          timestamp: new Date().toISOString()
+        };
+
+        results.push(result);
+
+        if (response.ok) {
+          successCount++;
+          console.log(`[VPS Discovery] ✅ ${endpoint.method} ${endpoint.path}: ${response.status}`);
+        } else {
+          errorCount++;
+          console.log(`[VPS Discovery] ❌ ${endpoint.method} ${endpoint.path}: ${response.status} ${response.statusText}`);
+        }
+
+      } catch (error: any) {
+        const duration = Date.now() - startTime;
+        errorCount++;
+        
+        const result = {
+          endpoint: endpoint.path,
+          method: endpoint.method,
+          description: endpoint.description,
+          priority: endpoint.priority,
+          status: 0,
+          statusText: 'ERROR',
+          success: false,
+          duration,
+          error: error.message,
+          timestamp: new Date().toISOString()
+        };
+
+        results.push(result);
+        console.log(`[VPS Discovery] 💥 ${endpoint.method} ${endpoint.path}: ${error.message}`);
+      }
     }
 
-    // Analisar resultados e criar recomendações
-    const workingPorts = results.discoveries.filter(d => d.responding);
-    const workingEndpoints = results.working_endpoints;
-
-    console.log(`[VPS Discovery] Found ${workingPorts.length} responding ports and ${workingEndpoints.length} working endpoints`);
-
-    // Identificar padrões para WhatsApp
-    const whatsappPatterns = {
-      create_endpoints: workingEndpoints.filter(e => 
-        e.endpoint.includes('create') && e.method === 'POST'
-      ),
-      qr_endpoints: workingEndpoints.filter(e => 
-        e.endpoint.includes('qr') && e.method === 'GET'
-      ),
-      list_endpoints: workingEndpoints.filter(e => 
-        (e.endpoint.includes('instance') || e.endpoint.includes('list')) && e.method === 'GET'
-      ),
-      delete_endpoints: workingEndpoints.filter(e => 
-        e.endpoint.includes('delete') && (e.method === 'POST' || e.method === 'DELETE')
-      ),
-      status_endpoints: workingEndpoints.filter(e => 
-        (e.endpoint.includes('status') || e.endpoint.includes('health')) && e.method === 'GET'
+    // Análise dos resultados
+    const workingEndpoints = results.filter(r => r.success);
+    const failedEndpoints = results.filter(r => !r.success);
+    const creationCandidates = workingEndpoints.filter(r => 
+      r.method === 'POST' && (
+        r.endpoint.includes('instance') || 
+        r.endpoint.includes('create') || 
+        r.endpoint.includes('whatsapp') ||
+        r.endpoint.includes('session')
       )
+    );
+
+    console.log(`[VPS Discovery] Descoberta concluída: ${successCount} sucessos, ${errorCount} falhas`);
+    console.log(`[VPS Discovery] Endpoints funcionais encontrados: ${workingEndpoints.length}`);
+    console.log(`[VPS Discovery] Candidatos para criação: ${creationCandidates.length}`);
+
+    // Gerar recomendações
+    const recommendations = [];
+    
+    if (creationCandidates.length > 0) {
+      recommendations.push(`✅ Encontrados ${creationCandidates.length} endpoints candidatos para criação de instâncias`);
+      creationCandidates.forEach(candidate => {
+        recommendations.push(`🎯 Testar: ${candidate.method} ${candidate.endpoint} (${candidate.status}) - ${candidate.description}`);
+      });
+    } else {
+      recommendations.push('❌ Nenhum endpoint de criação funcional encontrado');
+      recommendations.push('🔍 Verificar documentação da VPS ou contatar suporte');
+    }
+
+    if (workingEndpoints.length > 2) {
+      recommendations.push(`✅ VPS está funcionando - ${workingEndpoints.length} endpoints respondem corretamente`);
+    }
+
+    const discoveryResult = {
+      success: true,
+      summary: {
+        totalTested: endpointsToTest.length,
+        successCount,
+        errorCount,
+        workingEndpoints: workingEndpoints.length,
+        creationCandidates: creationCandidates.length
+      },
+      workingEndpoints: workingEndpoints.map(e => ({
+        endpoint: e.endpoint,
+        method: e.method,
+        status: e.status,
+        description: e.description,
+        isJson: e.isJson,
+        priority: e.priority
+      })),
+      creationCandidates: creationCandidates.map(e => ({
+        endpoint: e.endpoint,
+        method: e.method,
+        status: e.status,
+        description: e.description,
+        priority: e.priority,
+        responseSample: e.responseSample
+      })),
+      failedEndpoints: failedEndpoints.map(e => ({
+        endpoint: e.endpoint,
+        method: e.method,
+        status: e.status,
+        error: e.error || e.statusText,
+        priority: e.priority
+      })),
+      recommendations,
+      fullResults: results,
+      timestamp: new Date().toISOString(),
+      vpsConfig: {
+        host: VPS_CONFIG.host,
+        port: VPS_CONFIG.port,
+        tokenLength: VPS_CONFIG.authToken.length
+      }
     };
 
-    results.whatsapp_structure = whatsappPatterns;
+    return new Response(JSON.stringify(discoveryResult), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
 
-    // Criar configuração recomendada
-    if (workingPorts.length > 0) {
-      const bestPort = workingPorts[0];
-      const baseUrl = bestPort.baseUrl;
-      
-      results.recommended_config = {
-        baseUrl,
-        port: bestPort.port,
-        endpoints: {
-          health: whatsappPatterns.status_endpoints[0]?.endpoint || '/health',
-          create: whatsappPatterns.create_endpoints[0]?.endpoint || '/create',
-          qr: whatsappPatterns.qr_endpoints[0]?.endpoint || '/qr',
-          instances: whatsappPatterns.list_endpoints[0]?.endpoint || '/instances',
-          delete: whatsappPatterns.delete_endpoints[0]?.endpoint || '/delete'
-        },
-        payload_format: {
-          create: whatsappPatterns.create_endpoints[0]?.response_data || 'unknown',
-          delete: whatsappPatterns.delete_endpoints[0]?.response_data || 'unknown'
-        },
-        server_type: 'unknown'
-      };
-
-      // Tentar identificar tipo de servidor
-      if (bestPort.server_info) {
-        if (bestPort.server_info.server?.includes('whatsapp-web.js')) {
-          results.recommended_config.server_type = 'whatsapp-web.js';
-        } else if (bestPort.server_info.server?.includes('evolution')) {
-          results.recommended_config.server_type = 'evolution-api';
-        }
-      }
-    }
-
-    console.log('[VPS Discovery] Discovery complete!');
-    console.log(`[VPS Discovery] Working endpoints found: ${workingEndpoints.length}`);
-    console.log(`[VPS Discovery] Recommended config:`, results.recommended_config);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        data: results,
-        summary: {
-          total_ports_tested: VPS_PORTS.length,
-          responding_ports: workingPorts.length,
-          working_endpoints: workingEndpoints.length,
-          recommended_base_url: results.recommended_config?.baseUrl,
-          next_steps: [
-            'Review the working endpoints',
-            'Update VPS_CONFIG with recommended settings',
-            'Test the recommended endpoints',
-            'Update instance management code'
-          ]
-        }
-      }),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
-      }
-    );
-
-  } catch (error) {
-    console.error('[VPS Discovery] Error:', error);
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message,
-        timestamp: new Date().toISOString()
-      }),
-      { 
-        status: 500, 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
-      }
-    );
+  } catch (error: any) {
+    console.error('[VPS Discovery] ❌ Erro geral:', error);
+    
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 });
