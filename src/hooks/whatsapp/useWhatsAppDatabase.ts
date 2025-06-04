@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { WhatsAppWebInstance } from './useWhatsAppWebInstances';
 
-export const useWhatsAppDatabase = () => {
+export const useWhatsAppDatabase = (companyId?: string | null, companyLoading?: boolean) => {
   const [instances, setInstances] = useState<WhatsAppWebInstance[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -78,6 +78,17 @@ export const useWhatsAppDatabase = () => {
     }
   };
 
+  const getActiveInstance = () => {
+    if (instances.length === 0) return undefined;
+    
+    // Get the first connected instance or the first one available
+    const connectedInstance = instances.find(
+      instance => instance.connection_status === 'connected'
+    );
+    
+    return connectedInstance || instances[0];
+  };
+
   useEffect(() => {
     console.log('[useWhatsAppDatabase] Setting up realtime subscription for instances...');
     
@@ -108,6 +119,7 @@ export const useWhatsAppDatabase = () => {
     instances,
     loading,
     deleteInstance,
+    getActiveInstance,
     refetchInstances: fetchInstances
   };
 };

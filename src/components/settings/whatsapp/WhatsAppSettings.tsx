@@ -1,6 +1,6 @@
 
-import { WhatsAppWebSection } from "./whatsapp/WhatsAppWebSection";
-import { VPSTokenDiagnostic } from "./whatsapp/VPSTokenDiagnostic";
+import { WhatsAppWebSection } from "./WhatsAppWebSection";
+import { VPSTokenDiagnostic } from "./VPSTokenDiagnostic";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 
