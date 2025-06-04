@@ -8,40 +8,48 @@ import { useInstanceActions } from './services/instanceActionsService';
 import { useAutoConnect } from './services/autoConnectService';
 import { useConnectionStatusManager } from './services/connectionStatusService';
 import { useWhatsAppLogging } from './services/enhancedLoggingService';
+import { useStabilityService } from './services/stabilityService';
 import { VPS_CONFIG, validateVPSHealth } from '@/services/whatsapp/config/vpsConfig';
 
 export type { WhatsAppWebInstance } from './types/whatsappWebTypes';
 
-// FASE 2: Hook principal otimizado com sync inteligente e logs detalhados
+// FASE 3: Hook com sistema de estabilidade anti-loop
 export const useWhatsAppWebInstances = (companyId: string | null, companyLoading: boolean) => {
   const [instances, setInstances] = useState<WhatsAppWebInstance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [vpsHealthy, setVpsHealthy] = useState<boolean>(true);
   const [syncStats, setSyncStats] = useState<any>(null);
   
   const syncIntervalRef = useRef<NodeJS.Timeout>();
   const healthCheckIntervalRef = useRef<NodeJS.Timeout>();
   const isMountedRef = useRef(true);
   
-  // Use enhanced services - FASE 2
+  // NOVO: Serviço de estabilidade
+  const { 
+    shouldAllowOperation, 
+    reportHealthCheck, 
+    forceReset, 
+    getStabilityState,
+    cleanup: stabilityCleanup 
+  } = useStabilityService();
+  
+  // Use enhanced services
   const { performIntelligentSync, forceFullSync, cleanup: syncCleanup, isInProgress, getLastSyncInfo } = useIntelligentSync(companyId, companyLoading);
   const { fetchInstances: fetchInstancesFromDB } = useInstanceDatabase(companyId, companyLoading);
   const { updateInstanceStatus, getInstanceStatus, cleanup: statusCleanup } = useConnectionStatusManager();
   const { logSyncOperation, logError } = useWhatsAppLogging();
 
-  // Enhanced fetch instances with status management
+  // Enhanced fetch instances com validação de estabilidade
   const fetchInstances = async () => {
-    if (!isMountedRef.current) return;
+    if (!isMountedRef.current || !shouldAllowOperation('fetch')) return;
     
     try {
-      console.log('[Hook FASE 2] 📥 Buscando instâncias otimizado...');
+      console.log('[Hook FASE 3] 📥 Buscando instâncias com controle de estabilidade...');
       const startTime = Date.now();
       
       const fetchedInstances = await fetchInstancesFromDB();
       
       if (isMountedRef.current) {
-        // Atualizar status de cada instância
         fetchedInstances.forEach(instance => {
           updateInstanceStatus(
             instance.id,
@@ -52,7 +60,7 @@ export const useWhatsAppWebInstances = (companyId: string | null, companyLoading
         });
 
         const duration = Date.now() - startTime;
-        console.log('[Hook FASE 2] ✅ Instâncias carregadas:', {
+        console.log('[Hook FASE 3] ✅ Instâncias carregadas:', {
           count: fetchedInstances.length,
           duration: `${duration}ms`
         });
@@ -76,34 +84,44 @@ export const useWhatsAppWebInstances = (companyId: string | null, companyLoading
   const { createInstance, deleteInstance, refreshQRCode } = useInstanceActions(fetchInstances);
   const { autoConnectState, startAutoConnection, closeQRModal, openQRModal } = useAutoConnect(createInstance);
 
-  // Enhanced VPS health check with detailed logging
+  // Enhanced VPS health check com sistema de estabilidade
   const checkVPSHealth = async () => {
-    if (!isMountedRef.current) return;
+    if (!isMountedRef.current || !shouldAllowOperation('health')) return;
     
     const startTime = Date.now();
-    const health = await validateVPSHealth();
-    const duration = Date.now() - startTime;
     
-    if (isMountedRef.current) {
-      setVpsHealthy(health.healthy);
+    try {
+      const health = await validateVPSHealth();
+      const duration = Date.now() - startTime;
       
-      if (!health.healthy) {
-        logError('vps-health-check', { error: health.error, duration });
-        setError(health.error || 'VPS não está respondendo');
+      if (isMountedRef.current) {
+        reportHealthCheck(health.healthy, health.error);
+        
+        if (!health.healthy) {
+          setError(health.error || 'VPS não está respondendo');
+        } else {
+          setError(null);
+        }
+      }
+    } catch (error: any) {
+      if (isMountedRef.current) {
+        reportHealthCheck(false, error.message);
+        setError(error.message);
       }
     }
   };
 
-  // Enhanced cleanup - FASE 2
+  // Enhanced cleanup com sistema de estabilidade
   useEffect(() => {
     isMountedRef.current = true;
     
     return () => {
-      console.log('[Hook FASE 2] 🧹 Iniciando cleanup otimizado...');
+      console.log('[Hook FASE 3] 🧹 Iniciando cleanup com sistema de estabilidade...');
       
-      // Cleanup services
+      // Cleanup all services
       syncCleanup();
       statusCleanup();
+      stabilityCleanup();
       
       // Clear intervals
       if (syncIntervalRef.current) {
@@ -113,50 +131,59 @@ export const useWhatsAppWebInstances = (companyId: string | null, companyLoading
         clearInterval(healthCheckIntervalRef.current);
       }
       
-      console.log('[Hook FASE 2] ✅ Cleanup concluído');
+      console.log('[Hook FASE 3] ✅ Cleanup concluído');
     };
-  }, [syncCleanup, statusCleanup]);
+  }, [syncCleanup, statusCleanup, stabilityCleanup]);
 
-  // Enhanced auto-sync with intelligent sync - FASE 2
+  // Sistema de auto-sync inteligente com controle de estabilidade
   useEffect(() => {
     if (!companyId || companyLoading) return;
 
-    console.log('[Hook FASE 2] 🧠 Iniciando sync inteligente automático');
+    console.log('[Hook FASE 3] 🛡️ Iniciando sistema protegido contra loops');
     
-    // Initial sync
-    const initialSync = async () => {
+    // Initial operations
+    const initialOperations = async () => {
       if (!isMountedRef.current) return;
       
       // Health check first
       await checkVPSHealth();
       
-      if (vpsHealthy) {
+      // Only sync if VPS is healthy
+      const stabilityState = getStabilityState();
+      if (stabilityState.isVPSHealthy && shouldAllowOperation('sync')) {
         const result = await performIntelligentSync(false);
         logSyncOperation('initial', result);
         setSyncStats(result);
       }
+      
       await fetchInstances();
     };
     
-    initialSync();
+    initialOperations();
     
-    // Intelligent auto-sync with longer interval
+    // Controlled auto-sync with stability checks
     syncIntervalRef.current = setInterval(async () => {
       if (!isMountedRef.current || isInProgress()) return;
       
-      console.log('[Hook FASE 2] ⏰ Sync inteligente automático executando...');
-      const result = await performIntelligentSync(false);
+      const stabilityState = getStabilityState();
       
-      logSyncOperation('automatic', result);
-      setSyncStats(result);
-      
-      // Só buscar do DB se houve mudanças reais
-      if (result.success && !result.skipped) {
-        await fetchInstances();
+      // Só executar sync se estável e permitido
+      if (stabilityState.isVPSHealthy && shouldAllowOperation('sync')) {
+        console.log('[Hook FASE 3] ⏰ Auto-sync controlado executando...');
+        const result = await performIntelligentSync(false);
+        
+        logSyncOperation('automatic', result);
+        setSyncStats(result);
+        
+        if (result.success && !result.skipped) {
+          await fetchInstances();
+        }
+      } else {
+        console.log('[Hook FASE 3] ⏸️ Auto-sync suspenso - aguardando estabilidade');
       }
     }, VPS_CONFIG.sync.interval);
 
-    // VPS health check interval
+    // Controlled health check interval
     healthCheckIntervalRef.current = setInterval(async () => {
       if (isMountedRef.current) {
         await checkVPSHealth();
@@ -170,9 +197,9 @@ export const useWhatsAppWebInstances = (companyId: string | null, companyLoading
       if (healthCheckIntervalRef.current) {
         clearInterval(healthCheckIntervalRef.current);
       }
-      console.log('[Hook FASE 2] 🛑 Auto-sync inteligente parado');
+      console.log('[Hook FASE 3] 🛑 Sistema de auto-sync protegido parado');
     };
-  }, [companyId, companyLoading, performIntelligentSync, vpsHealthy, isInProgress]);
+  }, [companyId, companyLoading, performIntelligentSync, isInProgress, shouldAllowOperation, getStabilityState]);
 
   // Initial load
   useEffect(() => {
@@ -181,11 +208,11 @@ export const useWhatsAppWebInstances = (companyId: string | null, companyLoading
     }
   }, [companyId, companyLoading]);
 
-  // Enhanced realtime subscription - FASE 2
+  // Realtime subscription com controle de estabilidade
   useEffect(() => {
     if (!companyId) return;
 
-    console.log('[Hook FASE 2] 🔔 Configurando realtime otimizado para empresa:', companyId);
+    console.log('[Hook FASE 3] 🔔 Configurando realtime protegido para empresa:', companyId);
 
     const channel = supabase
       .channel(`whatsapp-instances-${companyId}`)
@@ -198,36 +225,45 @@ export const useWhatsAppWebInstances = (companyId: string | null, companyLoading
           filter: `company_id=eq.${companyId}`
         },
         (payload) => {
-          console.log('[Hook FASE 2] 📡 Realtime update:', payload.eventType);
+          console.log('[Hook FASE 3] 📡 Realtime update:', payload.eventType);
           
           if (isMountedRef.current) {
-            // Usar sync inteligente em vez de sync forçado
-            performIntelligentSync(false).then(result => {
-              logSyncOperation('realtime-triggered', result);
-              if (result.success && !result.skipped) {
-                fetchInstances();
-              }
-            });
+            const stabilityState = getStabilityState();
+            
+            // Só processar se estável
+            if (stabilityState.isVPSHealthy && shouldAllowOperation('sync')) {
+              performIntelligentSync(false).then(result => {
+                logSyncOperation('realtime-triggered', result);
+                if (result.success && !result.skipped) {
+                  fetchInstances();
+                }
+              });
+            } else {
+              console.log('[Hook FASE 3] ⏸️ Realtime suspenso - aguardando estabilidade');
+              // Apenas fetch local sem sync VPS
+              fetchInstances();
+            }
           }
         }
       )
       .subscribe();
 
     return () => {
-      console.log('[Hook FASE 2] 🔕 Limpando realtime subscription');
+      console.log('[Hook FASE 3] 🔕 Limpando realtime subscription protegido');
       supabase.removeChannel(channel);
     };
-  }, [companyId, performIntelligentSync]);
+  }, [companyId, performIntelligentSync, shouldAllowOperation, getStabilityState]);
 
-  // Enhanced refetch function - FASE 2
+  // Enhanced refetch function com controle de estabilidade
   const refetch = async () => {
-    console.log('[Hook FASE 2] 🔄 Refetch manual otimizado solicitado');
+    console.log('[Hook FASE 3] 🔄 Refetch manual com controle de estabilidade');
     
     // Health check first
     await checkVPSHealth();
     
-    if (vpsHealthy) {
-      const result = await forceFullSync(); // Force full sync for manual refresh
+    const stabilityState = getStabilityState();
+    if (stabilityState.isVPSHealthy && shouldAllowOperation('sync')) {
+      const result = await forceFullSync();
       logSyncOperation('manual-refetch', result);
       setSyncStats(result);
     }
@@ -246,12 +282,14 @@ export const useWhatsAppWebInstances = (companyId: string | null, companyLoading
     openQRModal,
     autoConnectState,
     refetch,
-    // FASE 2: Novos campos para monitoramento avançado
-    vpsHealthy,
+    // FASE 3: Novos campos de estabilidade
     isInProgress: isInProgress(),
     checkVPSHealth,
     syncStats,
     getLastSyncInfo: getLastSyncInfo(),
-    getInstanceStatus: (id: string) => getInstanceStatus(id)
+    getInstanceStatus: (id: string) => getInstanceStatus(id),
+    // Controles de estabilidade
+    stabilityState: getStabilityState(),
+    forceStabilityReset: forceReset
   };
 };

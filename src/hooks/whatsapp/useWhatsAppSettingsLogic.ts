@@ -7,73 +7,74 @@ import { useWhatsAppRealtime } from "@/hooks/whatsapp/useWhatsAppRealtime";
 import { useCompanyData } from "@/hooks/useCompanyData";
 
 export const useWhatsAppSettingsLogic = () => {
-  console.log('[useWhatsAppSettingsLogic] Hook initializing');
+  console.log('[useWhatsAppSettingsLogic] Hook initializing FASE 3 - com controle de estabilidade');
   
   const [userEmail, setUserEmail] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isSyncingAll, setIsSyncingAll] = useState(false);
   
-  // Refs para controlar execuções e evitar loops
+  // Controles de estabilidade para prevenir loops
   const userDataLoadedRef = useRef(false);
-  const syncExecutedRef = useRef(false);
   const isUnmountedRef = useRef(false);
-  const lastFetchTimeRef = useRef(0);
+  const lastSyncTimeRef = useRef(0);
+  const syncInProgressRef = useRef(false);
 
   const { companyId, loading: companyLoading } = useCompanyData();
 
-  // Cleanup no desmonte do componente
+  // Cleanup melhorado
   useEffect(() => {
     isUnmountedRef.current = false;
     return () => {
       isUnmountedRef.current = true;
-      console.log('[useWhatsAppSettingsLogic] Component unmounting, cleaning up');
+      syncInProgressRef.current = false;
+      console.log('[useWhatsAppSettingsLogic] Component unmounting FASE 3');
     };
   }, []);
 
-  // Load current user data - APENAS UMA VEZ
+  // Load user data - APENAS UMA VEZ com controle rigoroso
   useEffect(() => {
-    console.log('[useWhatsAppSettingsLogic] User data effect triggered');
+    console.log('[useWhatsAppSettingsLogic] User data effect FASE 3');
     
     if (userDataLoadedRef.current || isUnmountedRef.current) {
-      console.log('[useWhatsAppSettingsLogic] User data already loaded or component unmounted, skipping');
+      console.log('[useWhatsAppSettingsLogic] User data já carregado ou componente desmontado');
       return;
     }
     
     const getUser = async () => {
       try {
-        console.log('[useWhatsAppSettingsLogic] Fetching user data...');
+        console.log('[useWhatsAppSettingsLogic] Buscando dados do usuário...');
         setIsLoading(true);
         
         const { data: { user }, error } = await supabase.auth.getUser();
         
-        if (isUnmountedRef.current) return; // Verificar se ainda está montado
+        if (isUnmountedRef.current) return;
         
         if (error) {
-          console.error("Error getting user:", error);
-          toast.error("Could not load user data");
+          console.error("Erro ao obter usuário:", error);
+          toast.error("Não foi possível carregar dados do usuário");
           return;
         }
         
         if (user) {
-          console.log('[useWhatsAppSettingsLogic] User found:', user.email);
+          console.log('[useWhatsAppSettingsLogic] Usuário encontrado:', user.email);
           setUserEmail(user.email || "");
           userDataLoadedRef.current = true;
 
-          // Check if user is a SuperAdmin
+          // Verificar se é SuperAdmin
           const { data: superAdmin, error: superAdminError } = await supabase.rpc('is_super_admin');
           
-          if (isUnmountedRef.current) return; // Verificar novamente
+          if (isUnmountedRef.current) return;
           
           if (!superAdminError) {
             setIsSuperAdmin(superAdmin || false);
-            console.log('[useWhatsAppSettingsLogic] SuperAdmin status:', superAdmin);
+            console.log('[useWhatsAppSettingsLogic] Status SuperAdmin:', superAdmin);
           }
         }
       } catch (error) {
         if (isUnmountedRef.current) return;
-        console.error("Error fetching user:", error);
-        toast.error("An error occurred while loading user data");
+        console.error("Erro ao buscar usuário:", error);
+        toast.error("Erro ao carregar dados do usuário");
       } finally {
         if (!isUnmountedRef.current) {
           setIsLoading(false);
@@ -82,71 +83,89 @@ export const useWhatsAppSettingsLogic = () => {
     };
     
     getUser();
-  }, []); // Empty dependency array - executa apenas uma vez
+  }, []); // Dependency array vazia - executa apenas uma vez
 
-  // Initialize realtime only when userEmail is available
-  console.log('[useWhatsAppSettingsLogic] Setting up realtime for:', userEmail);
+  // Initialize realtime apenas quando userEmail disponível
+  console.log('[useWhatsAppSettingsLogic] Configurando realtime para:', userEmail);
   useWhatsAppRealtime(userEmail);
 
-  // Get WhatsApp instances and related functions - CORRIGIDO: passando companyLoading
-  console.log('[useWhatsAppSettingsLogic] Initializing WhatsApp hooks for:', userEmail);
+  // WhatsApp instances hook com nova funcionalidade de estabilidade
+  console.log('[useWhatsAppSettingsLogic] Inicializando WhatsApp hooks FASE 3 para:', userEmail);
   const whatsAppHooks = useWhatsAppWebInstances(companyId, companyLoading);
 
-  console.log('[useWhatsAppSettingsLogic] WhatsApp instances loaded:', whatsAppHooks.instances.length);
+  console.log('[useWhatsAppSettingsLogic] WhatsApp instances carregadas:', whatsAppHooks.instances.length);
 
-  // Handle sync all for company com proteção contra execução simultânea
+  // Sync controlado para empresa com proteção anti-loop melhorada
   const handleSyncAllForCompany = useCallback(async () => {
-    console.log('[useWhatsAppSettingsLogic] handleSyncAllForCompany called');
+    console.log('[useWhatsAppSettingsLogic] handleSyncAllForCompany FASE 3');
     
     if (!whatsAppHooks.instances.length) {
       toast.error("Nenhuma instância WhatsApp encontrada para atualizar.");
       return;
     }
-    if (isSyncingAll || isUnmountedRef.current) {
-      console.log('[useWhatsAppSettingsLogic] Sync already in progress or component unmounted, skipping');
+
+    // Proteção anti-loop rigorosa
+    const now = Date.now();
+    const timeSinceLastSync = now - lastSyncTimeRef.current;
+    const MIN_SYNC_INTERVAL = 30000; // 30 segundos mínimo entre syncs
+
+    if (syncInProgressRef.current) {
+      console.log('[useWhatsAppSettingsLogic] Sync já em progresso, ignorando');
+      toast.warning("Sincronização já em andamento, aguarde...");
+      return;
+    }
+
+    if (timeSinceLastSync < MIN_SYNC_INTERVAL) {
+      const remainingTime = Math.round((MIN_SYNC_INTERVAL - timeSinceLastSync) / 1000);
+      console.log(`[useWhatsAppSettingsLogic] Sync throttled - ${remainingTime}s restantes`);
+      toast.warning(`Aguarde ${remainingTime}s antes de sincronizar novamente`);
+      return;
+    }
+
+    if (isUnmountedRef.current) {
+      console.log('[useWhatsAppSettingsLogic] Componente desmontado, cancelando sync');
       return;
     }
     
     try {
+      syncInProgressRef.current = true;
       setIsSyncingAll(true);
-      const instancesForSync = whatsAppHooks.instances.map(instance => ({
-        id: instance.id,
-        instance_name: instance.instance_name
-      }));
-      console.log('[useWhatsAppSettingsLogic] Syncing instances:', instancesForSync.length);
+      lastSyncTimeRef.current = now;
+      
+      console.log('[useWhatsAppSettingsLogic] Executando sync controlado...');
+      
+      // Usar refetch do hook que já tem controle de estabilidade
+      await whatsAppHooks.refetch();
       
       if (!isUnmountedRef.current) {
-        toast.success("Status do WhatsApp da empresa sincronizado!");
-        refreshUserInstances();
+        toast.success("Status do WhatsApp sincronizado com sucesso!");
       }
-    } catch (e) {
+    } catch (error: any) {
       if (!isUnmountedRef.current) {
-        console.error('[useWhatsAppSettingsLogic] Sync failed:', e);
-        toast.error("Falha ao sincronizar status das instâncias da empresa.");
+        console.error('[useWhatsAppSettingsLogic] Sync falhou:', error);
+        toast.error("Falha ao sincronizar: " + error.message);
       }
     } finally {
       if (!isUnmountedRef.current) {
         setIsSyncingAll(false);
+        syncInProgressRef.current = false;
       }
     }
-  }, [whatsAppHooks.instances, isSyncingAll]);
+  }, [whatsAppHooks.instances.length, whatsAppHooks.refetch]);
 
-  // Refresh user instances com throttling
+  // Refresh com throttling
   const refreshUserInstances = useCallback(() => {
-    const now = Date.now();
-    if (now - lastFetchTimeRef.current < 5000) { // 5 segundos de throttling
-      console.log('[useWhatsAppSettingsLogic] refreshUserInstances throttled');
-      return;
-    }
+    console.log('[useWhatsAppSettingsLogic] refreshUserInstances FASE 3');
     
-    console.log('[useWhatsAppSettingsLogic] refreshUserInstances called for:', userEmail);
-    if (userEmail && !isUnmountedRef.current) {
-      lastFetchTimeRef.current = now;
+    if (userEmail && !isUnmountedRef.current && !syncInProgressRef.current) {
+      console.log('[useWhatsAppSettingsLogic] Executando refresh controlado');
       whatsAppHooks.refetch();
+    } else {
+      console.log('[useWhatsAppSettingsLogic] Refresh ignorado - condições não atendidas');
     }
   }, [userEmail, whatsAppHooks.refetch]);
 
-  console.log('[useWhatsAppSettingsLogic] Hook returning data');
+  console.log('[useWhatsAppSettingsLogic] Hook retornando dados FASE 3');
 
   return {
     userEmail,
