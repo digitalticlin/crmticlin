@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,7 +32,7 @@ interface TokenTestResult {
 
 export const VPSTokenSynchronizer = () => {
   const [isRunning, setIsRunning] = useState(false);
-  const [currentToken, setCurrentToken] = useState('');
+  const [currentToken, setCurrentToken] = useState('3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3');
   const [candidateTokens, setCandidateTokens] = useState<string[]>([]);
   const [testResults, setTestResults] = useState<TokenTestResult[]>([]);
   const [progress, setProgress] = useState(0);
@@ -48,19 +47,15 @@ export const VPSTokenSynchronizer = () => {
 
   const generateCandidateTokens = () => {
     const baseTokens = [
-      'wapp_TYXt5I3uIewmPts4EosF8M5DjbkyP0h4', // Token atual conhecido
-      'wapp_default_token_2024',
-      'wapp_ticlin_production_key',
-      'wapp_server_auth_token',
-      'whatsapp_web_js_token',
+      '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3', // Token VPS correto
+      'wapp_TYXt5I3uIewmPts4EosF8M5DjbkyP0h4', // Token antigo Supabase
+      'default-token', // Token fallback
     ];
 
     // Gerar variações do token atual
     const variations = [];
-    if (currentToken) {
+    if (currentToken && !baseTokens.includes(currentToken)) {
       variations.push(currentToken);
-      variations.push(currentToken.replace('wapp_', ''));
-      variations.push(`wapp_${currentToken}`);
     }
 
     const allTokens = [...new Set([...baseTokens, ...variations])];
@@ -216,6 +211,12 @@ export const VPSTokenSynchronizer = () => {
     }
   };
 
+  const handleQuickFix = async () => {
+    const correctToken = '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
+    addLog(`🚀 Aplicando correção rápida com token VPS correto`);
+    await updateVPSToken(correctToken);
+  };
+
   const handleManualTokenUpdate = async () => {
     if (!currentToken.trim()) {
       toast.error('Digite um token válido');
@@ -252,6 +253,35 @@ export const VPSTokenSynchronizer = () => {
 
   return (
     <div className="space-y-6">
+      {/* Correção Rápida - NOVO */}
+      <Card className="border-green-500 bg-green-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-green-800">
+            <Zap className="h-5 w-5 text-green-600" />
+            🚀 Correção Rápida - Token VPS
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert className="border-green-500 bg-green-100">
+            <CheckCircle className="h-4 w-4 text-green-600" />
+            <AlertDescription className="text-green-800">
+              <strong>Token VPS correto identificado:</strong> 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3
+              <br />
+              <small>Este é o token atual da variável de ambiente VPS_API_TOKEN na VPS</small>
+            </AlertDescription>
+          </Alert>
+
+          <Button 
+            onClick={handleQuickFix}
+            className="w-full bg-green-600 hover:bg-green-700"
+            size="lg"
+          >
+            <Zap className="h-4 w-4 mr-2" />
+            Aplicar Correção Rápida
+          </Button>
+        </CardContent>
+      </Card>
+
       {/* Descoberta Automática */}
       <Card>
         <CardHeader>
@@ -265,7 +295,7 @@ export const VPSTokenSynchronizer = () => {
             <Zap className="h-4 w-4" />
             <AlertDescription>
               Esta ferramenta testa automaticamente tokens candidatos para encontrar o token VPS correto.
-              Inclui tokens conhecidos e variações baseadas no token atual.
+              Inclui o token VPS atual e variações baseadas no token configurado.
             </AlertDescription>
           </Alert>
 

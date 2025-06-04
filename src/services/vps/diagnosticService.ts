@@ -22,6 +22,7 @@ export interface ComprehensiveDiagnostic {
     authentication: 'ok' | 'failed';
     services: 'ok' | 'partial' | 'failed';
     flow: 'ok' | 'failed';
+    version: 'ok' | 'outdated' | 'unknown';
   };
   recommendations: string[];
   timestamp: string;
@@ -30,7 +31,7 @@ export interface ComprehensiveDiagnostic {
 export class VPSDiagnosticService {
   
   static async runComprehensiveDiagnostic(): Promise<ComprehensiveDiagnostic> {
-    console.log('[VPS Diagnostic Service] 🚀 Iniciando diagnóstico completo pós-atualização token');
+    console.log('[VPS Diagnostic Service] 🚀 Iniciando diagnóstico completo pós-correção token');
     
     const startTime = Date.now();
     const results: DiagnosticResult[] = [];
@@ -86,7 +87,7 @@ export class VPSDiagnosticService {
       }
     }
 
-    // Análise dos resultados
+    // Análise dos resultados CORRIGIDA
     const analysis = this.analyzeResults(results);
     const overallStatus = this.determineOverallStatus(analysis);
     const recommendations = this.generateRecommendations(results, analysis);
@@ -119,19 +120,50 @@ export class VPSDiagnosticService {
     const services = results.find(r => r.test === 'Serviços VPS');
     const flow = results.find(r => r.test === 'Fluxo Completo (check_server)');
 
+    // CORREÇÃO: Análise de versão melhorada
+    let versionStatus: 'ok' | 'outdated' | 'unknown' = 'unknown';
+    
+    // Verificar versão nos detalhes de conectividade
+    if (connectivity?.success && connectivity.details?.version) {
+      const version = connectivity.details.version;
+      if (this.isValidVersion(version)) {
+        versionStatus = 'ok';
+      } else {
+        versionStatus = 'outdated';
+      }
+    }
+
     return {
       connectivity: connectivity?.success ? 'ok' : 'failed' as 'ok' | 'degraded' | 'failed',
       authentication: authentication?.success ? 'ok' : 'failed' as 'ok' | 'failed',
       services: services?.success ? 'ok' : 'failed' as 'ok' | 'partial' | 'failed',
-      flow: flow?.success ? 'ok' : 'failed' as 'ok' | 'failed'
+      flow: flow?.success ? 'ok' : 'failed' as 'ok' | 'failed',
+      version: versionStatus
     };
+  }
+
+  private static isValidVersion(versionString: string): boolean {
+    if (!versionString) return false;
+    
+    // CORREÇÃO: Lista de versões válidas atualizada
+    const validVersions = [
+      '3.5.0', // Versão atual da VPS
+      '3.4.0',
+      '3.3.0',
+      '3.2.0',
+      '3.1.0',
+      '3.0.0'
+    ];
+    
+    return validVersions.includes(versionString);
   }
 
   private static determineOverallStatus(analysis: any): 'healthy' | 'warning' | 'critical' {
     const failedComponents = Object.values(analysis).filter(status => status === 'failed').length;
+    const outdatedComponents = Object.values(analysis).filter(status => status === 'outdated').length;
     
-    if (failedComponents === 0) return 'healthy';
-    if (failedComponents <= 1) return 'warning';
+    if (failedComponents === 0 && outdatedComponents === 0) return 'healthy';
+    if (failedComponents <= 1 || outdatedComponents > 0) return 'warning';
     return 'critical';
   }
 
@@ -144,8 +176,8 @@ export class VPSDiagnosticService {
     }
 
     if (analysis.authentication === 'failed') {
-      recommendations.push('🔐 Verificar se o token VPS_API_TOKEN foi atualizado corretamente no Supabase');
-      recommendations.push('🔐 Confirmar se o token na VPS corresponde ao configurado no Supabase');
+      recommendations.push('🔐 TOKEN CORRIGIDO: Usar "Correção Rápida" no VPS Token Synchronizer');
+      recommendations.push('🔐 Token correto: 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3');
     }
 
     if (analysis.services === 'failed') {
@@ -156,6 +188,14 @@ export class VPSDiagnosticService {
     if (analysis.flow === 'failed') {
       recommendations.push('🔄 Verificar integração completa entre Supabase Edge Functions e VPS');
       recommendations.push('🔄 Testar criação manual de instância para identificar ponto de falha');
+    }
+
+    // CORREÇÃO: Mensagem de versão atualizada
+    if (analysis.version === 'outdated') {
+      recommendations.push('📦 Versão do WhatsApp Web.js pode estar desatualizada');
+      recommendations.push('📦 Considerar atualização para versão mais recente se houver problemas');
+    } else if (analysis.version === 'ok') {
+      recommendations.push('✅ Versão do WhatsApp Web.js está atualizada (3.5.0)');
     }
 
     // Recomendações específicas baseadas nos detalhes
@@ -179,11 +219,13 @@ export class VPSDiagnosticService {
       'ok': '✅',
       'degraded': '⚠️',
       'partial': '⚠️',
-      'failed': '❌'
+      'failed': '❌',
+      'outdated': '📦',
+      'unknown': '❓'
     };
 
     let report = `
-# 📋 DIAGNÓSTICO VPS - PÓS-ATUALIZAÇÃO TOKEN
+# 📋 DIAGNÓSTICO VPS - PÓS-CORREÇÃO TOKEN
 
 ## ${statusEmoji[diagnostic.overallStatus]} STATUS GERAL: ${diagnostic.overallStatus.toUpperCase()}
 
@@ -201,6 +243,7 @@ export class VPSDiagnosticService {
 | 🔐 Autenticação VPS | ${analysisEmoji[diagnostic.analysis.authentication]} | ${diagnostic.analysis.authentication.toUpperCase()} |
 | ⚙️ Serviços VPS | ${analysisEmoji[diagnostic.analysis.services]} | ${diagnostic.analysis.services.toUpperCase()} |
 | 🔄 Fluxo Completo | ${analysisEmoji[diagnostic.analysis.flow]} | ${diagnostic.analysis.flow.toUpperCase()} |
+| 📦 Versão WhatsApp | ${analysisEmoji[diagnostic.analysis.version]} | ${diagnostic.analysis.version.toUpperCase()} |
 
 ## 📊 DETALHES DOS TESTES
 `;
@@ -221,7 +264,7 @@ export class VPSDiagnosticService {
 
     if (diagnostic.recommendations.length > 0) {
       report += `
-## 🔧 RECOMENDAÇÕES DE CORREÇÃO
+## 🔧 RECOMENDAÇÕES
 
 ${diagnostic.recommendations.map(rec => `- ${rec}`).join('\n')}
 `;

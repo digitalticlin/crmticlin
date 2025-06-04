@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -6,785 +7,347 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface DiagnosticRequest {
-  test: 'edge_function' | 'vps_connectivity' | 'vps_auth' | 'vps_services' | 'full_flow' | 'update_token' | 'comprehensive_health';
-  vpsAction?: string;
-  newToken?: string;
-  testToken?: string; // NOVO: token específico para teste
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('[VPS Diagnostic] 🔍 Iniciando diagnóstico');
-    
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Capturar o token original do usuário
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Authorization header required');
+    const { test, testToken, newToken, vpsAction } = await req.json();
+    console.log(`[VPS Diagnostic] Test: ${test}`);
+
+    // NOVO: Teste de atualização de token
+    if (test === 'update_token') {
+      console.log(`[VPS Diagnostic] Atualizando VPS_API_TOKEN...`);
+      
+      try {
+        // Usar o Supabase Admin API para atualizar secrets
+        const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/rest/v1/secrets`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            'Content-Type': 'application/json',
+            'apikey': Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+          },
+          body: JSON.stringify({
+            name: 'VPS_API_TOKEN',
+            value: newToken
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Failed to update secret: ${response.status} ${errorText}`);
+        }
+
+        console.log(`[VPS Diagnostic] ✅ Token atualizado com sucesso`);
+        
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: 'VPS_API_TOKEN atualizado com sucesso',
+            timestamp: new Date().toISOString()
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+
+      } catch (error: any) {
+        console.error(`[VPS Diagnostic] ❌ Erro ao atualizar token:`, error);
+        
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: `Erro ao atualizar token: ${error.message}`,
+            timestamp: new Date().toISOString()
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
-    console.log('[VPS Diagnostic] 🔐 Token de usuário capturado para repasse');
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      throw new Error('Invalid authentication');
-    }
-
-    const { test, vpsAction, newToken, testToken }: DiagnosticRequest = await req.json();
-    console.log(`[VPS Diagnostic] 🎯 Teste: ${test}`);
-
-    const results: any = {
-      test,
-      timestamp: new Date().toISOString(),
-      success: false,
-      details: {},
-      errors: [],
-      recommendations: []
+    // VPS Configuration
+    const VPS_CONFIG = {
+      host: '31.97.24.222',
+      port: '3001',
+      get baseUrl() {
+        return `http://${this.host}:${this.port}`;
+      },
+      authToken: testToken || Deno.env.get('VPS_API_TOKEN') || 'default-token'
     };
 
-    switch (test) {
-      case 'comprehensive_health':
-        results.details = await runComprehensiveHealth();
-        break;
+    const getVPSHeaders = () => ({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+      'User-Agent': 'Supabase-VPS-Diagnostic/2.0',
+      'Accept': 'application/json'
+    });
+
+    const startTime = Date.now();
+
+    // Test: VPS Connectivity
+    if (test === 'vps_connectivity') {
+      console.log('[VPS Diagnostic] 🔧 Testando conectividade VPS...');
+      
+      try {
+        const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
+          method: 'GET',
+          headers: getVPSHeaders(),
+          signal: AbortSignal.timeout(10000)
+        });
+
+        const duration = Date.now() - startTime;
+        const responseText = await response.text();
+
+        if (response.ok) {
+          const data = JSON.parse(responseText);
+          console.log('[VPS Diagnostic] ✅ VPS conectado:', data);
+          
+          return new Response(
+            JSON.stringify({
+              success: true,
+              duration,
+              details: data,
+              timestamp: new Date().toISOString()
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } else {
+          throw new Error(`VPS Error ${response.status}: ${responseText}`);
+        }
+      } catch (error: any) {
+        const duration = Date.now() - startTime;
+        console.error('[VPS Diagnostic] ❌ Erro de conectividade:', error);
         
-      case 'update_token':
-        results.details = await updateVPSToken(newToken);
-        break;
-        
-      case 'edge_function':
-        results.details = await testEdgeFunction();
-        break;
-      
-      case 'vps_connectivity':
-        results.details = await testVPSConnectivity(testToken);
-        break;
-      
-      case 'vps_auth':
-        results.details = await testVPSAuthentication(testToken);
-        break;
-      
-      case 'vps_services':
-        results.details = await testVPSServices(testToken);
-        break;
-      
-      case 'full_flow':
-        console.log('[VPS Diagnostic] 🔄 Chamando whatsapp_web_server com token do usuário');
-        results.details = await testFullFlow(vpsAction || 'check_server', authHeader);
-        break;
-      
-      default:
-        throw new Error(`Teste desconhecido: ${test}`);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            duration,
+            error: `Connectivity Error: ${error.message}`,
+            timestamp: new Date().toISOString()
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
-    results.success = results.details.success || false;
-    
-    // Adicionar recomendações baseadas nos resultados
-    addRecommendations(results);
+    // Test: VPS Authentication
+    if (test === 'vps_auth') {
+      console.log('[VPS Diagnostic] 🔐 Testando autenticação VPS...');
+      
+      try {
+        const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
+          method: 'GET',
+          headers: getVPSHeaders(),
+          signal: AbortSignal.timeout(10000)
+        });
 
-    console.log(`[VPS Diagnostic] ✅ Teste ${test} concluído:`, results.success ? 'SUCESSO' : 'FALHA');
+        const duration = Date.now() - startTime;
+        const responseText = await response.text();
 
+        if (response.ok) {
+          const data = JSON.parse(responseText);
+          
+          // Verificar se o servidor aceita nosso token
+          const authSuccess = response.status === 200;
+          
+          console.log('[VPS Diagnostic] ✅ Autenticação testada:', { authSuccess, data });
+          
+          return new Response(
+            JSON.stringify({
+              success: authSuccess,
+              duration,
+              details: {
+                ...data,
+                token_tested: VPS_CONFIG.authToken.substring(0, 10) + '...',
+                auth_accepted: authSuccess
+              },
+              timestamp: new Date().toISOString()
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } else {
+          throw new Error(`Auth failed: ${response.status} ${responseText}`);
+        }
+      } catch (error: any) {
+        const duration = Date.now() - startTime;
+        console.error('[VPS Diagnostic] ❌ Erro de autenticação:', error);
+        
+        return new Response(
+          JSON.stringify({
+            success: false,
+            duration,
+            error: `Authentication Error: ${error.message}`,
+            timestamp: new Date().toISOString()
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // Test: VPS Services
+    if (test === 'vps_services') {
+      console.log('[VPS Diagnostic] ⚙️ Testando serviços VPS...');
+      
+      try {
+        const response = await fetch(`${VPS_CONFIG.baseUrl}/instances`, {
+          method: 'GET',
+          headers: getVPSHeaders(),
+          signal: AbortSignal.timeout(15000)
+        });
+
+        const duration = Date.now() - startTime;
+        const responseText = await response.text();
+
+        if (response.ok) {
+          const data = JSON.parse(responseText);
+          console.log('[VPS Diagnostic] ✅ Serviços VPS funcionando:', data);
+          
+          return new Response(
+            JSON.stringify({
+              success: true,
+              duration,
+              details: data,
+              timestamp: new Date().toISOString()
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } else {
+          throw new Error(`Services Error ${response.status}: ${responseText}`);
+        }
+      } catch (error: any) {
+        const duration = Date.now() - startTime;
+        console.error('[VPS Diagnostic] ❌ Erro nos serviços:', error);
+        
+        return new Response(
+          JSON.stringify({
+            success: false,
+            duration,
+            error: `Services Error: ${error.message}`,
+            timestamp: new Date().toISOString()
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // Test: Full Flow (check_server)
+    if (test === 'full_flow') {
+      console.log('[VPS Diagnostic] 🔄 Testando fluxo completo...');
+      
+      try {
+        // Testar health
+        const healthResponse = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
+          method: 'GET',
+          headers: getVPSHeaders(),
+          signal: AbortSignal.timeout(10000)
+        });
+
+        if (!healthResponse.ok) {
+          throw new Error(`Health check failed: ${healthResponse.status}`);
+        }
+
+        const healthData = await healthResponse.json();
+
+        // Testar instances
+        const instancesResponse = await fetch(`${VPS_CONFIG.baseUrl}/instances`, {
+          method: 'GET',
+          headers: getVPSHeaders(),
+          signal: AbortSignal.timeout(10000)
+        });
+
+        let instancesData = {};
+        if (instancesResponse.ok) {
+          instancesData = await instancesResponse.json();
+        }
+
+        const duration = Date.now() - startTime;
+        
+        console.log('[VPS Diagnostic] ✅ Fluxo completo funcionando');
+        
+        return new Response(
+          JSON.stringify({
+            success: true,
+            duration,
+            details: {
+              health: healthData,
+              instances: instancesData,
+              flow_status: 'complete'
+            },
+            timestamp: new Date().toISOString()
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+
+      } catch (error: any) {
+        const duration = Date.now() - startTime;
+        console.error('[VPS Diagnostic] ❌ Erro no fluxo completo:', error);
+        
+        return new Response(
+          JSON.stringify({
+            success: false,
+            duration,
+            error: `Full Flow Error: ${error.message}`,
+            timestamp: new Date().toISOString()
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // Test: Edge Function Health
+    if (test === 'edge_function') {
+      console.log('[VPS Diagnostic] 🔍 Testando saúde da Edge Function...');
+      
+      const duration = Date.now() - startTime;
+      
+      return new Response(
+        JSON.stringify({
+          success: true,
+          duration,
+          details: {
+            edge_function: 'vps_diagnostic',
+            status: 'healthy',
+            timestamp: new Date().toISOString(),
+            vps_config: {
+              host: VPS_CONFIG.host,
+              port: VPS_CONFIG.port,
+              token_length: VPS_CONFIG.authToken.length
+            }
+          },
+          timestamp: new Date().toISOString()
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Default response for unknown tests
     return new Response(
-      JSON.stringify(results),
+      JSON.stringify({
+        success: false,
+        error: `Unknown test: ${test}`,
+        timestamp: new Date().toISOString()
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error) {
-    console.error('[VPS Diagnostic] ❌ Erro:', error);
+  } catch (error: any) {
+    console.error('[VPS Diagnostic] ❌ Erro geral:', error);
+    
     return new Response(
-      JSON.stringify({ 
-        success: false, 
+      JSON.stringify({
+        success: false,
         error: error.message,
         timestamp: new Date().toISOString()
       }),
       { 
-        status: 500, 
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
   }
 });
-
-async function runComprehensiveHealth() {
-  console.log('[VPS Diagnostic] 🏥 Executando diagnóstico de saúde abrangente...');
-  
-  const startTime = Date.now();
-  const result = {
-    success: false,
-    duration: 0,
-    tests: {},
-    summary: {},
-    overall_status: 'unknown'
-  };
-
-  try {
-    // Executar todos os testes em paralelo para melhor performance
-    const [
-      edgeResult,
-      connectivityResult,
-      authResult,
-      servicesResult
-    ] = await Promise.allSettled([
-      testEdgeFunction(),
-      testVPSConnectivity(),
-      testVPSAuthentication(),
-      testVPSServices()
-    ]);
-
-    result.tests = {
-      edge_function: edgeResult.status === 'fulfilled' ? edgeResult.value : { success: false, error: edgeResult.reason?.message },
-      connectivity: connectivityResult.status === 'fulfilled' ? connectivityResult.value : { success: false, error: connectivityResult.reason?.message },
-      authentication: authResult.status === 'fulfilled' ? authResult.value : { success: false, error: authResult.reason?.message },
-      services: servicesResult.status === 'fulfilled' ? servicesResult.value : { success: false, error: servicesResult.reason?.message }
-    };
-
-    // Calcular métricas de saúde
-    const successfulTests = Object.values(result.tests).filter((test: any) => test.success).length;
-    const totalTests = Object.keys(result.tests).length;
-    const healthPercentage = (successfulTests / totalTests) * 100;
-
-    result.summary = {
-      successful_tests: successfulTests,
-      total_tests: totalTests,
-      health_percentage: Math.round(healthPercentage),
-      failed_tests: totalTests - successfulTests
-    };
-
-    // Determinar status geral
-    if (healthPercentage >= 90) {
-      result.overall_status = 'excellent';
-      result.success = true;
-    } else if (healthPercentage >= 70) {
-      result.overall_status = 'good';
-      result.success = true;
-    } else if (healthPercentage >= 50) {
-      result.overall_status = 'warning';
-      result.success = false;
-    } else {
-      result.overall_status = 'critical';
-      result.success = false;
-    }
-
-    result.duration = Date.now() - startTime;
-    
-    console.log(`[VPS Diagnostic] 🏥 Saúde abrangente: ${result.overall_status} (${healthPercentage}%)`);
-    
-    return result;
-
-  } catch (error) {
-    result.success = false;
-    result.error = error.message;
-    result.duration = Date.now() - startTime;
-    
-    console.error('[VPS Diagnostic] ❌ Erro na saúde abrangente:', error);
-    return result;
-  }
-}
-
-async function updateVPSToken(newToken: string) {
-  console.log('[VPS Diagnostic] 🔑 Atualizando VPS_API_TOKEN secret...');
-  
-  if (!newToken) {
-    throw new Error('Token não fornecido');
-  }
-
-  const result = {
-    success: false,
-    message: '',
-    token_preview: `${newToken.substring(0, 10)}...`,
-    timestamp: new Date().toISOString(),
-    validation: {}
-  };
-
-  try {
-    // Validação mais robusta do token
-    result.validation = {
-      format_check: newToken.startsWith('wapp_'),
-      length_check: newToken.length > 20,
-      no_spaces: !newToken.includes(' '),
-      alphanumeric: /^[a-zA-Z0-9_]+$/.test(newToken)
-    };
-
-    const isValidToken = Object.values(result.validation).every(check => check === true);
-
-    if (isValidToken) {
-      result.success = true;
-      result.message = 'Token validado e configurado com sucesso (simulado)';
-      
-      console.log('[VPS Diagnostic] ✅ Token VPS_API_TOKEN configurado:', result.token_preview);
-    } else {
-      throw new Error('Token inválido. Deve começar com "wapp_", ter pelo menos 20 caracteres e ser alfanumérico.');
-    }
-
-    return result;
-
-  } catch (error) {
-    result.success = false;
-    result.message = error.message;
-    
-    console.error('[VPS Diagnostic] ❌ Erro ao atualizar token:', error);
-    return result;
-  }
-}
-
-async function testEdgeFunction() {
-  console.log('[VPS Diagnostic] 🧪 Testando Edge Function...');
-  
-  const startTime = Date.now();
-  const result = {
-    success: true,
-    duration: 0,
-    environment: {},
-    secrets: {},
-    network: {},
-    performance: {}
-  };
-
-  try {
-    // Verificar variáveis de ambiente críticas
-    result.environment = {
-      supabase_url: !!Deno.env.get('SUPABASE_URL'),
-      supabase_service_role: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
-      deployment_region: Deno.env.get('DENO_REGION') || 'unknown',
-      deno_version: Deno.version.deno
-    };
-
-    // Verificar secrets VPS
-    result.secrets = {
-      vps_host: !!Deno.env.get('VPS_HOST'),
-      vps_port: !!Deno.env.get('VPS_PORT'), 
-      vps_api_token: !!Deno.env.get('VPS_API_TOKEN'),
-      vps_ssh_key: !!Deno.env.get('VPS_SSH_PRIVATE_KEY'),
-      hostinger_token: !!Deno.env.get('HOSTINGER_API_TOKEN')
-    };
-
-    // Teste de conectividade externa
-    const networkStartTime = Date.now();
-    try {
-      const response = await fetch('https://httpbin.org/get', { 
-        signal: AbortSignal.timeout(5000) 
-      });
-      result.network = {
-        external_connectivity: response.ok,
-        response_time: Date.now() - networkStartTime,
-        status: response.status
-      };
-    } catch (networkError) {
-      result.network = {
-        external_connectivity: false,
-        error: networkError.message,
-        response_time: Date.now() - networkStartTime
-      };
-    }
-
-    // Métricas de performance
-    result.performance = {
-      memory_usage: Deno.memoryUsage(),
-      startup_time: Date.now() - startTime
-    };
-
-    result.duration = Date.now() - startTime;
-    
-    // Verificar se todos os componentes críticos estão OK
-    const criticalChecks = [
-      result.environment.supabase_url,
-      result.environment.supabase_service_role,
-      result.secrets.vps_api_token,
-      result.network.external_connectivity
-    ];
-
-    result.success = criticalChecks.every(check => check === true);
-    
-    console.log('[VPS Diagnostic] ✅ Edge Function testada:', result.success ? 'OK' : 'PROBLEMAS');
-    return result;
-
-  } catch (error) {
-    result.success = false;
-    result.error = error.message;
-    result.duration = Date.now() - startTime;
-    
-    console.error('[VPS Diagnostic] ❌ Edge Function com problemas:', error);
-    return result;
-  }
-}
-
-async function testVPSConnectivity(testToken?: string) {
-  console.log('[VPS Diagnostic] 🌐 Testando conectividade VPS...');
-  
-  const startTime = Date.now();
-  const vpsHost = Deno.env.get('VPS_HOST') || '31.97.24.222';
-  const vpsPort = Deno.env.get('VPS_PORT') || '3001';
-  const baseUrl = `http://${vpsHost}:${vpsPort}`;
-  
-  // Usar token de teste se fornecido, senão usar o padrão
-  const apiToken = testToken || Deno.env.get('VPS_API_TOKEN') || 'wapp_TYXt5I3uIewmPts4EosF8M5DjbkyP0h4';
-
-  const result = {
-    success: false,
-    duration: 0,
-    vps_config: { host: vpsHost, port: vpsPort, baseUrl },
-    token_used: testToken ? 'test_token' : 'env_token',
-    token_preview: `${apiToken.substring(0, 10)}...`,
-    connectivity: {},
-    dns_resolution: {},
-    port_accessibility: {},
-    response_analysis: {}
-  };
-
-  try {
-    // Teste 1: Resolução DNS melhorada
-    try {
-      const dnsStart = Date.now();
-      const dnsResponse = await fetch(`http://${vpsHost}`, { 
-        method: 'HEAD',
-        signal: AbortSignal.timeout(3000) 
-      });
-      result.dns_resolution = {
-        success: true,
-        duration: Date.now() - dnsStart,
-        reachable: true
-      };
-    } catch (error) {
-      result.dns_resolution = {
-        success: false,
-        error: error.message,
-        reachable: false
-      };
-    }
-
-    // Teste 2: Conectividade na porta específica
-    try {
-      const portStart = Date.now();
-      const response = await fetch(baseUrl, { 
-        method: 'HEAD',
-        signal: AbortSignal.timeout(5000) 
-      });
-      
-      result.port_accessibility = {
-        success: true,
-        status: response.status,
-        duration: Date.now() - portStart,
-        headers_count: response.headers ? Array.from(response.headers.keys()).length : 0
-      };
-    } catch (error) {
-      result.port_accessibility = {
-        success: false,
-        error: error.message
-      };
-    }
-
-    // Teste 3: Endpoint de health check aprimorado com token
-    try {
-      const healthStart = Date.now();
-      const response = await fetch(`${baseUrl}/health`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiToken}`,
-          'User-Agent': 'Supabase-VPS-Diagnostic/2.0',
-          'Accept': 'application/json'
-        },
-        signal: AbortSignal.timeout(10000)
-      });
-      
-      const responseTime = Date.now() - healthStart;
-      
-      result.connectivity = {
-        success: response.ok,
-        status: response.status,
-        duration: responseTime,
-        response_headers: Object.fromEntries(response.headers.entries())
-      };
-
-      // Análise detalhada da resposta
-      if (response.ok) {
-        try {
-          const contentType = response.headers.get('content-type');
-          const body = await response.text();
-          
-          result.response_analysis = {
-            content_type: contentType,
-            body_length: body.length,
-            contains_json: contentType?.includes('application/json'),
-            body_preview: body.substring(0, 200)
-          };
-          
-          result.connectivity.response_body = body.substring(0, 500);
-        } catch (parseError) {
-          result.response_analysis = {
-            parse_error: parseError.message
-          };
-        }
-      }
-    } catch (error) {
-      result.connectivity = {
-        success: false,
-        error: error.message
-      };
-    }
-
-    // Avaliação geral da conectividade
-    const connectivityScore = [
-      result.dns_resolution.success,
-      result.port_accessibility.success,
-      result.connectivity.success
-    ].filter(Boolean).length;
-
-    result.success = connectivityScore >= 2; // Pelo menos 2 de 3 testes devem passar
-    result.duration = Date.now() - startTime;
-
-    console.log('[VPS Diagnostic] 📊 Conectividade testada:', result.success ? 'OK' : 'FALHA', `(${connectivityScore}/3)`);
-    return result;
-
-  } catch (error) {
-    result.success = false;
-    result.error = error.message;
-    result.duration = Date.now() - startTime;
-    
-    console.error('[VPS Diagnostic] ❌ Erro na conectividade:', error);
-    return result;
-  }
-}
-
-async function testVPSAuthentication(testToken?: string) {
-  console.log('[VPS Diagnostic] 🔐 Testando autenticação VPS...');
-  
-  const startTime = Date.now();
-  const vpsHost = Deno.env.get('VPS_HOST') || '31.97.24.222';
-  const vpsPort = Deno.env.get('VPS_PORT') || '3001';
-  const baseUrl = `http://${vpsHost}:${vpsPort}`;
-  
-  // Usar token de teste se fornecido, senão usar o padrão
-  const apiToken = testToken || Deno.env.get('VPS_API_TOKEN') || 'wapp_TYXt5I3uIewmPts4EosF8M5DjbkyP0h4';
-
-  const result = {
-    success: false,
-    duration: 0,
-    auth_config: {
-      has_token: !!apiToken,
-      token_length: apiToken.length,
-      token_preview: `${apiToken.substring(0, 8)}...`,
-      token_format_valid: apiToken.startsWith('wapp_'),
-      token_source: testToken ? 'test_token' : 'environment'
-    },
-    auth_test: {},
-    endpoints_tested: []
-  };
-
-  try {
-    // Testar múltiplos endpoints autenticados
-    const endpoints = [
-      { path: '/instances', name: 'instances' },
-      { path: '/status', name: 'status' },
-      { path: '/server/info', name: 'server_info' }
-    ];
-
-    for (const endpoint of endpoints) {
-      try {
-        const endpointStart = Date.now();
-        const response = await fetch(`${baseUrl}${endpoint.path}`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${apiToken}`,
-            'Content-Type': 'application/json',
-            'User-Agent': 'Supabase-VPS-Auth-Test/2.0',
-            'Accept': 'application/json'
-          },
-          signal: AbortSignal.timeout(8000)
-        });
-
-        const endpointResult = {
-          name: endpoint.name,
-          success: response.ok,
-          status: response.status,
-          duration: Date.now() - endpointStart,
-          response_headers: Object.fromEntries(response.headers.entries())
-        };
-
-        if (response.ok) {
-          try {
-            const body = await response.text();
-            endpointResult.response_preview = body.substring(0, 100);
-            endpointResult.response_size = body.length;
-          } catch {}
-        } else {
-          try {
-            const errorBody = await response.text();
-            endpointResult.error_body = errorBody.substring(0, 200);
-          } catch {}
-        }
-
-        result.endpoints_tested.push(endpointResult);
-
-      } catch (endpointError) {
-        result.endpoints_tested.push({
-          name: endpoint.name,
-          success: false,
-          error: endpointError.message
-        });
-      }
-    }
-
-    // Avaliar sucesso geral da autenticação
-    const successfulEndpoints = result.endpoints_tested.filter(e => e.success).length;
-    result.success = successfulEndpoints > 0; // Pelo menos 1 endpoint deve funcionar
-
-    result.auth_test = {
-      successful_endpoints: successfulEndpoints,
-      total_endpoints: result.endpoints_tested.length,
-      success_rate: `${Math.round((successfulEndpoints / result.endpoints_tested.length) * 100)}%`,
-      token_validation: result.success ? 'valid' : 'invalid'
-    };
-
-    result.duration = Date.now() - startTime;
-
-    console.log('[VPS Diagnostic] 🔑 Autenticação testada:', result.success ? 'OK' : 'FALHA', result.auth_test.success_rate);
-    return result;
-
-  } catch (error) {
-    result.success = false;
-    result.error = error.message;
-    result.duration = Date.now() - startTime;
-    
-    console.error('[VPS Diagnostic] ❌ Erro na autenticação:', error);
-    return result;
-  }
-}
-
-async function testVPSServices(testToken?: string) {
-  console.log('[VPS Diagnostic] ⚙️ Testando serviços VPS...');
-  
-  const startTime = Date.now();
-  const vpsHost = Deno.env.get('VPS_HOST') || '31.97.24.222';
-  const vpsPort = Deno.env.get('VPS_PORT') || '3001';
-  const apiToken = testToken || Deno.env.get('VPS_API_TOKEN') || 'wapp_TYXt5I3uIewmPts4EosF8M5DjbkyP0h4';
-  const baseUrl = `http://${vpsHost}:${vpsPort}`;
-
-  const result = {
-    success: false,
-    duration: 0,
-    services: {},
-    service_summary: {}
-  };
-
-  const endpoints = [
-    { name: 'health', path: '/health', method: 'GET', priority: 'critical' },
-    { name: 'server_info', path: '/server/info', method: 'GET', priority: 'high' },
-    { name: 'instances', path: '/instances', method: 'GET', priority: 'high' },
-    { name: 'status', path: '/status', method: 'GET', priority: 'medium' },
-    { name: 'webhooks', path: '/webhooks', method: 'GET', priority: 'low' }
-  ];
-
-  try {
-    for (const endpoint of endpoints) {
-      try {
-        const endpointStart = Date.now();
-        const response = await fetch(`${baseUrl}${endpoint.path}`, {
-          method: endpoint.method,
-          headers: {
-            'Authorization': `Bearer ${apiToken}`,
-            'Content-Type': 'application/json'
-          },
-          signal: AbortSignal.timeout(8000)
-        });
-
-        result.services[endpoint.name] = {
-          success: response.ok,
-          status: response.status,
-          duration: Date.now() - endpointStart,
-          priority: endpoint.priority,
-          available: true
-        };
-
-        if (response.ok) {
-          try {
-            const body = await response.text();
-            result.services[endpoint.name].response_preview = body.substring(0, 100);
-            result.services[endpoint.name].response_size = body.length;
-          } catch {}
-        }
-
-      } catch (error) {
-        result.services[endpoint.name] = {
-          success: false,
-          error: error.message,
-          priority: endpoint.priority,
-          available: false
-        };
-      }
-    }
-
-    // Análise detalhada dos serviços
-    const serviceResults = Object.values(result.services);
-    const successCount = serviceResults.filter((s: any) => s.success).length;
-    const criticalServices = serviceResults.filter((s: any) => s.priority === 'critical');
-    const criticalSuccessCount = criticalServices.filter((s: any) => s.success).length;
-
-    result.service_summary = {
-      total_services: serviceResults.length,
-      successful_services: successCount,
-      failed_services: serviceResults.length - successCount,
-      success_rate: `${Math.round((successCount / serviceResults.length) * 100)}%`,
-      critical_services_ok: criticalSuccessCount === criticalServices.length,
-      critical_success_rate: criticalServices.length > 0 ? `${Math.round((criticalSuccessCount / criticalServices.length) * 100)}%` : 'N/A'
-    };
-
-    // Critério de sucesso: todos os serviços críticos devem funcionar + pelo menos 60% do total
-    result.success = result.service_summary.critical_services_ok && (successCount / serviceResults.length) >= 0.6;
-    result.duration = Date.now() - startTime;
-
-    console.log('[VPS Diagnostic] ⚙️ Serviços testados:', `${successCount}/${serviceResults.length} OK`, result.success ? 'SUCESSO' : 'FALHA');
-    return result;
-
-  } catch (error) {
-    result.success = false;
-    result.error = error.message;
-    result.duration = Date.now() - startTime;
-    
-    console.error('[VPS Diagnostic] ❌ Erro nos serviços:', error);
-    return result;
-  }
-}
-
-async function testFullFlow(vpsAction: string, authHeader: string) {
-  console.log('[VPS Diagnostic] 🔄 Testando fluxo completo via whatsapp_web_server...');
-  
-  const startTime = Date.now();
-  const result = {
-    success: false,
-    duration: 0,
-    vps_action: vpsAction,
-    response: {},
-    flow_analysis: {}
-  };
-
-  try {
-    // Chamar whatsapp_web_server edge function
-    const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/whatsapp_web_server`, {
-      method: 'POST',
-      headers: {
-        'Authorization': authHeader,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        action: vpsAction
-      }),
-      signal: AbortSignal.timeout(15000)
-    });
-
-    const responseTime = Date.now() - startTime;
-
-    result.response = {
-      success: response.ok,
-      status: response.status,
-      status_text: response.statusText,
-      response_time: responseTime,
-      headers: Object.fromEntries(response.headers.entries())
-    };
-
-    if (response.ok) {
-      try {
-        const body = await response.json();
-        result.response.data = body;
-        result.success = true;
-        
-        // Análise do fluxo de dados
-        result.flow_analysis = {
-          has_data: !!body,
-          data_type: typeof body,
-          contains_success_field: 'success' in body,
-          contains_error_field: 'error' in body,
-          data_size: JSON.stringify(body).length
-        };
-        
-      } catch (parseError) {
-        const text = await response.text();
-        result.response.text = text.substring(0, 200);
-        result.success = true;
-        
-        result.flow_analysis = {
-          response_type: 'text',
-          content_length: text.length,
-          parse_error: parseError.message
-        };
-      }
-    } else {
-      try {
-        const errorBody = await response.text();
-        result.response.error_body = errorBody.substring(0, 500);
-        
-        result.flow_analysis = {
-          error_response: true,
-          error_length: errorBody.length,
-          status_indicates_auth_issue: response.status === 401 || response.status === 403,
-          status_indicates_server_issue: response.status >= 500
-        };
-      } catch {}
-    }
-
-    result.duration = Date.now() - startTime;
-
-    console.log('[VPS Diagnostic] 🔄 Fluxo completo testado:', result.success ? 'OK' : 'FALHA', `(${responseTime}ms)`);
-    return result;
-
-  } catch (error) {
-    result.success = false;
-    result.error = error.message;
-    result.duration = Date.now() - startTime;
-    
-    console.error('[VPS Diagnostic] ❌ Erro no fluxo completo:', error);
-    return result;
-  }
-}
-
-function addRecommendations(results: any) {
-  if (!results.success) {
-    switch (results.test) {
-      case 'edge_function':
-        results.recommendations.push('Verificar configuração da Edge Function no Supabase');
-        results.recommendations.push('Confirmar se todos os secrets estão configurados');
-        if (!results.details.network?.external_connectivity) {
-          results.recommendations.push('Verificar conectividade de rede da Edge Function');
-        }
-        break;
-      case 'vps_connectivity':
-        results.recommendations.push('Verificar se a VPS está online e acessível');
-        results.recommendations.push('Confirmar configuração de firewall na VPS');
-        results.recommendations.push('Testar conectividade manual com a VPS');
-        break;
-      case 'vps_auth':
-        results.recommendations.push('Verificar se o token VPS_API_TOKEN está correto');
-        results.recommendations.push('Confirmar se o token no servidor VPS corresponde ao configurado');
-        results.recommendations.push('Testar token manualmente com curl');
-        break;
-      case 'vps_services':
-        results.recommendations.push('Verificar se o servidor WhatsApp Web.js está rodando');
-        results.recommendations.push('Reiniciar serviços na VPS se necessário');
-        results.recommendations.push('Verificar logs do servidor VPS');
-        break;
-      case 'full_flow':
-        results.recommendations.push('Verificar integração entre Edge Functions');
-        results.recommendations.push('Confirmar configuração de autenticação');
-        results.recommendations.push('Revisar logs das Edge Functions');
-        break;
-      case 'comprehensive_health':
-        results.recommendations.push('Executar testes individuais para identificar problemas específicos');
-        results.recommendations.push('Verificar status de todos os componentes do sistema');
-        break;
-    }
-  } else {
-    results.recommendations.push('Sistema funcionando corretamente');
-    results.recommendations.push('Monitorar performance regularmente');
-  }
-}

@@ -10,7 +10,7 @@ export const VPS_CONFIG = {
   get baseUrl() {
     return `http://${this.host}:${this.port}`;
   },
-  // CORREÇÃO CRÍTICA: Usar a secret VPS_API_TOKEN corretamente
+  // TOKEN CORRIGIDO: Usar a secret VPS_API_TOKEN corretamente
   authToken: Deno.env.get('VPS_API_TOKEN') || 'default-token'
 };
 
@@ -48,6 +48,50 @@ export const isRealQRCode = (qrCode: string | null): boolean => {
   return !knownFakePatterns.some(pattern => base64Part.includes(pattern));
 };
 
+// CORREÇÃO: Função de validação de versão atualizada
+export const isValidVersion = (versionString: string): boolean => {
+  if (!versionString) return false;
+  
+  // Versões válidas conhecidas do WhatsApp Web.js
+  const validVersions = [
+    '3.5.0', // Versão atual da VPS
+    '3.4.0',
+    '3.3.0',
+    '3.2.0',
+    '3.1.0',
+    '3.0.0',
+    '2.15.0'
+  ];
+  
+  // Verificar se é uma versão exata conhecida
+  if (validVersions.includes(versionString)) {
+    return true;
+  }
+  
+  // Verificar padrão semver (major.minor.patch)
+  const semverPattern = /^(\d+)\.(\d+)\.(\d+)$/;
+  const match = versionString.match(semverPattern);
+  
+  if (!match) return false;
+  
+  const [, major, minor, patch] = match;
+  const majorNum = parseInt(major);
+  const minorNum = parseInt(minor);
+  const patchNum = parseInt(patch);
+  
+  // Considerar válido se major >= 3 (versões modernas)
+  if (majorNum >= 3) {
+    return true;
+  }
+  
+  // Para versões 2.x, aceitar apenas 2.15.0+
+  if (majorNum === 2 && minorNum >= 15) {
+    return true;
+  }
+  
+  return false;
+};
+
 // NOVO: Função de teste de conectividade VPS aprimorada
 export const testVPSConnection = async (): Promise<{success: boolean, error?: string, details?: any}> => {
   try {
@@ -68,7 +112,14 @@ export const testVPSConnection = async (): Promise<{success: boolean, error?: st
     if (response.ok) {
       try {
         const data = JSON.parse(responseText);
-        console.log('[VPS Test] ✅ VPS conectado:', data);
+        
+        // CORREÇÃO: Validar versão corretamente
+        if (data.version && isValidVersion(data.version)) {
+          console.log('[VPS Test] ✅ VPS conectado com versão válida:', data.version);
+        } else {
+          console.log('[VPS Test] ⚠️ VPS conectado mas versão não reconhecida:', data.version);
+        }
+        
         return { success: true, details: data };
       } catch {
         return { success: true, details: { raw: responseText } };
@@ -91,7 +142,7 @@ export const testVPSConnection = async (): Promise<{success: boolean, error?: st
   }
 };
 
-console.log('[Config] VPS Config initialized (FIXED):');
+console.log('[Config] VPS Config initialized (FIXED v2):');
 console.log('[Config] Host:', VPS_CONFIG.host);
 console.log('[Config] Port:', VPS_CONFIG.port);
 console.log('[Config] Base URL:', VPS_CONFIG.baseUrl);
