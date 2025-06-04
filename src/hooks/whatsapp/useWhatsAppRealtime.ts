@@ -7,17 +7,34 @@ import { toast } from 'sonner';
 export const useWhatsAppRealtime = (userEmail: string) => {
   const { instances } = useWhatsAppInstanceState();
   const { updateInstance } = useWhatsAppInstanceActions();
+  
+  // CORREÇÃO 1: Debounce melhorado para evitar loops
   const lastUpdateRef = useRef<number>(0);
   const updateTimeoutRef = useRef<NodeJS.Timeout>();
+  const channelRef = useRef<any>(null);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
-    if (!userEmail) return;
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
-    console.log('[WhatsApp Realtime] Setting up comprehensive realtime subscription');
+  useEffect(() => {
+    if (!userEmail || !isMountedRef.current) return;
+
+    console.log('[WhatsApp Realtime] 🔄 Configurando real-time otimizado (anti-loop)');
     
-    // Canal para instâncias do WhatsApp
-    const instancesChannel = supabase
-      .channel('whatsapp-instances-realtime')
+    // CORREÇÃO 2: Canal único consolidado para evitar múltiplas subscriptions
+    if (channelRef.current) {
+      console.log('[WhatsApp Realtime] 🧹 Removendo canal anterior');
+      supabase.removeChannel(channelRef.current);
+    }
+
+    // Canal consolidado para todas as mudanças relacionadas ao WhatsApp
+    channelRef.current = supabase
+      .channel(`whatsapp-realtime-${userEmail}`)
       .on(
         'postgres_changes',
         {
@@ -26,15 +43,11 @@ export const useWhatsAppRealtime = (userEmail: string) => {
           table: 'whatsapp_instances'
         },
         (payload) => {
-          console.log('[WhatsApp Realtime] Instance change:', payload);
-          handleInstanceChange(payload);
+          if (!isMountedRef.current) return;
+          console.log('[WhatsApp Realtime] 📡 Instance change (debounced):', payload);
+          handleInstanceChangeDebounced(payload);
         }
       )
-      .subscribe();
-
-    // Canal para mensagens
-    const messagesChannel = supabase
-      .channel('whatsapp-messages-realtime')
       .on(
         'postgres_changes',
         {
@@ -43,33 +56,21 @@ export const useWhatsAppRealtime = (userEmail: string) => {
           table: 'messages'
         },
         (payload) => {
-          console.log('[WhatsApp Realtime] New message:', payload);
+          if (!isMountedRef.current) return;
+          console.log('[WhatsApp Realtime] 💬 New message:', payload);
           handleNewMessage(payload);
         }
       )
       .subscribe();
 
-    // Canal para leads
-    const leadsChannel = supabase
-      .channel('whatsapp-leads-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'leads'
-        },
-        (payload) => {
-          console.log('[WhatsApp Realtime] Lead change:', payload);
-          handleLeadChange(payload);
-        }
-      )
-      .subscribe();
-
-    const handleInstanceChange = (payload: any) => {
+    // CORREÇÃO 3: Debounce rigoroso para evitar loops
+    const handleInstanceChangeDebounced = (payload: any) => {
       const now = Date.now();
-      if (now - lastUpdateRef.current < 2000) {
-        console.log('[WhatsApp Realtime] Instance update debounced');
+      const timeSinceLastUpdate = now - lastUpdateRef.current;
+      
+      // CRÍTICO: Debounce de 3 segundos para evitar loops
+      if (timeSinceLastUpdate < 3000) {
+        console.log('[WhatsApp Realtime] ⏸️ Update debounced (anti-loop)');
         return;
       }
 
@@ -78,25 +79,23 @@ export const useWhatsAppRealtime = (userEmail: string) => {
       }
 
       updateTimeoutRef.current = setTimeout(() => {
-        processInstanceUpdate(payload);
-        lastUpdateRef.current = Date.now();
-      }, 500);
+        if (isMountedRef.current) {
+          processInstanceUpdate(payload);
+          lastUpdateRef.current = Date.now();
+        }
+      }, 1000); // 1 segundo de delay adicional
     };
 
     const handleNewMessage = (payload: any) => {
       const messageData = payload.new;
       
-      // Notificar nova mensagem se não for do usuário
-      if (!messageData.from_me) {
+      // Notificar apenas mensagens importantes
+      if (!messageData.from_me && messageData.text) {
         toast.info(`Nova mensagem recebida`, {
-          description: `${messageData.text || 'Mídia'}`
+          description: `${messageData.text.substring(0, 50)}${messageData.text.length > 50 ? '...' : ''}`,
+          duration: 3000
         });
       }
-    };
-
-    const handleLeadChange = (payload: any) => {
-      console.log('[WhatsApp Realtime] Lead update processed');
-      // Aqui pode implementar lógica adicional para leads se necessário
     };
 
     const processInstanceUpdate = (payload: any) => {
@@ -106,36 +105,42 @@ export const useWhatsAppRealtime = (userEmail: string) => {
         const newRecord = payload.new as any;
         
         if (newRecord.instance_name?.toLowerCase().startsWith(instancePrefix)) {
-          // Fix status mapping - recognize 'ready' and 'open' as connected
-          const isConnected = newRecord.connection_status === 'open' || 
-                             newRecord.connection_status === 'ready' || 
-                             newRecord.connection_status === 'connected';
+          // CORREÇÃO 4: Mapeamento otimizado de status
+          const isConnected = ['open', 'ready', 'connected'].includes(newRecord.connection_status);
 
-          // Notificar mudanças importantes de status
+          // Log apenas mudanças significativas de status
           if (payload.eventType === 'UPDATE' && payload.old) {
             const oldStatus = payload.old.connection_status;
             const newStatus = newRecord.connection_status;
             
-            console.log('[WhatsApp Realtime] Status change detected:', { oldStatus, newStatus });
-            
             if (oldStatus !== newStatus) {
-              if (isConnected) {
+              console.log('[WhatsApp Realtime] 📊 Status change:', { 
+                instance: newRecord.instance_name,
+                oldStatus, 
+                newStatus,
+                timestamp: new Date().toISOString()
+              });
+              
+              // Notificações apenas para mudanças críticas
+              if (oldStatus === 'connecting' && isConnected) {
                 toast.success(`WhatsApp conectado`, {
-                  description: `Instância ${newRecord.instance_name} está pronta`
+                  description: `${newRecord.instance_name} está pronto`,
+                  duration: 5000
                 });
-              } else if (newStatus === 'disconnected') {
+              } else if (isConnected && newStatus === 'disconnected') {
                 toast.warning(`WhatsApp desconectado`, {
-                  description: `Instância ${newRecord.instance_name} foi desconectada`
+                  description: `${newRecord.instance_name} foi desconectada`,
+                  duration: 5000
                 });
               }
             }
           }
 
-          // Atualizar estado local com status correto
+          // Atualizar estado local apenas se realmente necessário
           const mappedInstance = {
             id: newRecord.id,
             instanceName: newRecord.instance_name,
-            connected: isConnected, // Use the corrected connected status
+            connected: isConnected,
             qrCodeUrl: newRecord.qr_code,
             phoneNumber: newRecord.phone,
             vps_instance_id: newRecord.vps_instance_id,
@@ -155,31 +160,29 @@ export const useWhatsAppRealtime = (userEmail: string) => {
             updated_at: newRecord.updated_at
           };
 
-          console.log('[WhatsApp Realtime] Updating instance with corrected status:', {
-            instanceId: newRecord.id,
-            connection_status: newRecord.connection_status,
-            isConnected,
-            profile_name: newRecord.profile_name,
-            phone: newRecord.phone
-          });
-
           updateInstance(newRecord.id, mappedInstance);
         }
       }
     };
 
+    // CORREÇÃO 5: Cleanup melhorado
     return () => {
-      console.log('[WhatsApp Realtime] Cleaning up comprehensive subscriptions');
+      console.log('[WhatsApp Realtime] 🧹 Cleanup completo executado');
+      isMountedRef.current = false;
+      
       if (updateTimeoutRef.current) {
         clearTimeout(updateTimeoutRef.current);
       }
-      supabase.removeChannel(instancesChannel);
-      supabase.removeChannel(messagesChannel);
-      supabase.removeChannel(leadsChannel);
+      
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
   }, [userEmail, updateInstance]);
 
   return {
-    isConnected: instances.length > 0
+    isConnected: instances.length > 0,
+    activeChannels: channelRef.current ? 1 : 0 // Para debug
   };
 };

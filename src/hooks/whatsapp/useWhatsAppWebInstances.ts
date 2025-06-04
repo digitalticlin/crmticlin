@@ -43,29 +43,28 @@ export const useWhatsAppWebInstances = () => {
     setSelectedInstanceName('');
   };
 
-  // CORREÇÃO FASE 3.1: Buscar QR Code atualizado automaticamente para instâncias em waiting_scan
+  // CORREÇÃO 6: QR Code polling otimizado - reduzir de 30s para 90s
   useEffect(() => {
     if (!instances.length) return;
 
     const checkForQRUpdates = () => {
       instances.forEach(async (instance) => {
         if (instance.web_status === 'waiting_scan' && instance.vps_instance_id) {
-          // Verificar se QR code precisa ser atualizado (opcional - apenas se necessário)
           const lastUpdate = instance.updated_at ? new Date(instance.updated_at) : new Date(0);
           const now = new Date();
           const timeDiff = now.getTime() - lastUpdate.getTime();
           
-          // Atualizar QR Code se a última atualização foi há mais de 30 segundos
-          if (timeDiff > 30000) {
-            console.log('[WhatsApp Web Instances] 🔄 Auto-refresh QR Code para:', instance.instance_name);
+          // CORREÇÃO: Aumentar intervalo de 30s para 90s para reduzir carga
+          if (timeDiff > 90000) { // 90 segundos ao invés de 30
+            console.log('[WhatsApp Web Instances] 🔄 Auto-refresh QR Code (90s interval):', instance.instance_name);
             await refreshInstanceQRCode(instance.id);
           }
         }
       });
     };
 
-    // Verificar atualizações a cada 30 segundos
-    const interval = setInterval(checkForQRUpdates, 30000);
+    // CORREÇÃO: Verificar a cada 60 segundos ao invés de 30
+    const interval = setInterval(checkForQRUpdates, 60000);
 
     return () => clearInterval(interval);
   }, [instances, refreshInstanceQRCode]);
@@ -80,16 +79,12 @@ export const useWhatsAppWebInstances = () => {
     selectedInstanceName,
     refetch,
     fetchInstances,
-    // FASE 3.1.3: Exportar função de nomenclatura inteligente
     generateIntelligentInstanceName,
-    // CORREÇÃO FASE 3.1.2: createInstance modificado para retornar instância criada com QR Code
     createInstance: async (instanceName: string) => {
       setIsConnecting(true);
       try {
-        console.log('[Hook] 🚀 Creating instance - FASE 3.1.3:', instanceName);
+        console.log('[Hook] 🚀 Creating instance (otimizado):', instanceName);
         const result = await createInstance(instanceName);
-        
-        // Retornar a instância criada para que o componente possa capturar o QR Code
         return result;
       } finally {
         setIsConnecting(false);
