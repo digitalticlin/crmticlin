@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Contact, Message } from '@/types/chat';
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +26,8 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
 
     setIsLoadingContacts(true);
     try {
+      console.log('[WhatsApp Web Chat] 📋 Fetching contacts for instance:', activeInstance.id);
+
       const { data: leads, error } = await supabase
         .from('leads')
         .select('*')
@@ -54,9 +57,10 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
         isOnline: Math.random() > 0.7 // Simulação básica de status online
       }));
 
+      console.log('[WhatsApp Web Chat] ✅ Contacts fetched:', mappedContacts.length);
       setContacts(mappedContacts);
     } catch (error) {
-      console.error('Error fetching contacts:', error);
+      console.error('[WhatsApp Web Chat] ❌ Error fetching contacts:', error);
       toast.error('Erro ao carregar contatos');
     } finally {
       setIsLoadingContacts(false);
@@ -72,6 +76,8 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
 
     setIsLoadingMessages(true);
     try {
+      console.log('[WhatsApp Web Chat] 💬 Fetching messages for contact:', selectedContact.id);
+
       const { data: dbMessages, error } = await supabase
         .from('messages')
         .select('*')
@@ -94,22 +100,44 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
         fromMe: msg.from_me
       }));
 
+      console.log('[WhatsApp Web Chat] ✅ Messages fetched:', mappedMessages.length);
       setMessages(mappedMessages);
     } catch (error) {
-      console.error('Error fetching messages:', error);
+      console.error('[WhatsApp Web Chat] ❌ Error fetching messages:', error);
       toast.error('Erro ao carregar mensagens');
     } finally {
       setIsLoadingMessages(false);
     }
   }, [selectedContact, activeInstance]);
 
-  // Enviar mensagem via WhatsApp Web.js - MÉTODO ATUALIZADO
+  // Enviar mensagem via WhatsApp Web.js - VERSÃO MELHORADA COM OTIMIZAÇÃO
   const sendMessage = useCallback(async (text: string): Promise<boolean> => {
-    if (!selectedContact || !activeInstance || !text.trim()) return false;
+    if (!selectedContact || !activeInstance || !text.trim()) {
+      console.warn('[WhatsApp Web Chat] Cannot send message: missing data');
+      return false;
+    }
 
     setIsSending(true);
+    
+    // MENSAGEM OTIMISTA - Mostrar imediatamente
+    const optimisticMessage: Message = {
+      id: `temp-${Date.now()}`,
+      text: text.trim(),
+      sender: 'user',
+      time: new Date().toLocaleTimeString('pt-BR', { 
+        hour: '2-digit', 
+        minute: '2-digit' 
+      }),
+      status: 'sent',
+      isIncoming: false,
+      fromMe: true
+    };
+
+    // Adicionar mensagem otimista à lista
+    setMessages(prev => [...prev, optimisticMessage]);
+
     try {
-      console.log('[WhatsApp Web Chat] Sending message:', {
+      console.log('[WhatsApp Web Chat] 📤 Sending message:', {
         instanceId: activeInstance.id,
         phone: selectedContact.phone,
         text: text.trim()
@@ -122,23 +150,12 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
       );
 
       if (result.success) {
-        // Adicionar mensagem otimista
-        const optimisticMessage: Message = {
-          id: `temp-${Date.now()}`,
-          text: text.trim(),
-          sender: 'user',
-          time: new Date().toLocaleTimeString('pt-BR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          }),
-          status: 'sent',
-          isIncoming: false,
-          fromMe: true
-        };
-
-        setMessages(prev => [...prev, optimisticMessage]);
+        console.log('[WhatsApp Web Chat] ✅ Message sent successfully');
         
-        // Atualizar dados após envio
+        // Remover mensagem otimista e buscar mensagens reais
+        setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+        
+        // Atualizar dados após envio (com delay para dar tempo do webhook processar)
         setTimeout(() => {
           fetchMessages();
           fetchContacts();
@@ -147,11 +164,20 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
         toast.success('Mensagem enviada com sucesso');
         return true;
       } else {
+        console.error('[WhatsApp Web Chat] ❌ Failed to send message:', result.error);
+        
+        // Remover mensagem otimista em caso de erro
+        setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+        
         toast.error(`Erro ao enviar mensagem: ${result.error}`);
         return false;
       }
     } catch (error) {
-      console.error('[WhatsApp Web Chat] Error sending message:', error);
+      console.error('[WhatsApp Web Chat] ❌ Error sending message:', error);
+      
+      // Remover mensagem otimista em caso de erro
+      setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+      
       toast.error('Erro ao enviar mensagem');
       return false;
     } finally {
@@ -162,6 +188,8 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
   // Configurar realtime para novas mensagens
   useEffect(() => {
     if (!activeInstance) return;
+
+    console.log('[WhatsApp Web Chat] 🔄 Setting up realtime for instance:', activeInstance.id);
 
     const channel = supabase
       .channel('whatsapp-messages')
@@ -174,20 +202,23 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
           filter: `whatsapp_number_id=eq.${activeInstance.id}`
         },
         (payload) => {
-          console.log('Nova mensagem recebida:', payload);
+          console.log('[WhatsApp Web Chat] 🔄 Nova mensagem recebida via realtime:', payload);
           
           // Se é mensagem do contato selecionado, atualizar mensagens
           if (selectedContact && payload.new.lead_id === selectedContact.id) {
+            console.log('[WhatsApp Web Chat] Updating messages for selected contact');
             fetchMessages();
           }
           
           // Sempre atualizar lista de contatos
+          console.log('[WhatsApp Web Chat] Updating contacts list');
           fetchContacts();
         }
       )
       .subscribe();
 
     return () => {
+      console.log('[WhatsApp Web Chat] 🧹 Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
   }, [activeInstance, selectedContact, fetchMessages, fetchContacts]);

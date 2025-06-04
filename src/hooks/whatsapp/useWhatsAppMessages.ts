@@ -21,6 +21,11 @@ export const useWhatsAppMessages = (
 
     setIsLoadingMessages(true);
     try {
+      console.log('[useWhatsAppMessages] Fetching messages for:', {
+        leadId: selectedContact.id,
+        instanceId: activeInstance.id
+      });
+
       const { data, error } = await supabase
         .from('messages')
         .select('*')
@@ -44,33 +49,46 @@ export const useWhatsAppMessages = (
         fromMe: msg.from_me
       }));
       
+      console.log('[useWhatsAppMessages] ✅ Messages fetched:', chatMessages.length);
       setMessages(chatMessages);
     } catch (error) {
-      console.error('Error fetching messages:', error);
+      console.error('[useWhatsAppMessages] ❌ Error fetching messages:', error);
     } finally {
       setIsLoadingMessages(false);
     }
   };
 
   const sendMessage = async (text: string) => {
-    if (!selectedContact || !activeInstance || !text.trim()) return false;
+    if (!selectedContact || !activeInstance || !text.trim()) {
+      console.warn('[useWhatsAppMessages] Cannot send message: missing data');
+      return false;
+    }
 
     setIsSending(true);
     try {
+      console.log('[useWhatsAppMessages] 📤 Sending message:', {
+        instanceId: activeInstance.id, // CORRIGIDO: Usar activeInstance.id
+        phone: selectedContact.phone,
+        textLength: text.length
+      });
+
       const result = await WhatsAppWebService.sendMessage(
-        activeInstance.vps_instance_id, 
+        activeInstance.id, // CORRIGIDO: Passar activeInstance.id em vez de vps_instance_id
         selectedContact.phone, 
         text
       );
 
       if (result.success) {
+        console.log('[useWhatsAppMessages] ✅ Message sent successfully');
         // Refresh messages to get the sent message
         await fetchMessages();
         return true;
+      } else {
+        console.error('[useWhatsAppMessages] ❌ Failed to send message:', result.error);
+        return false;
       }
-      return false;
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('[useWhatsAppMessages] ❌ Error sending message:', error);
       return false;
     } finally {
       setIsSending(false);
