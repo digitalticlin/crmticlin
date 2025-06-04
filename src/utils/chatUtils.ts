@@ -1,3 +1,4 @@
+
 import { Contact, Message } from "@/types/chat";
 
 // Select a contact and generate dummy messages
@@ -20,14 +21,17 @@ export function selectContact(
       time: "09:30",
       isIncoming: false,
       sender: "user",
-      status: "read"
+      status: "read",
+      fromMe: true
     },
     {
       id: "msg2",
       text: "Estou interessado nos seus serviços. Pode me dar mais informações?",
       time: "09:32",
       isIncoming: true,
-      sender: "contact"
+      sender: "contact",
+      fromMe: false,
+      status: "read"
     },
     {
       id: "msg3",
@@ -35,14 +39,17 @@ export function selectContact(
       time: "09:34",
       isIncoming: false,
       sender: "user",
-      status: "read"
+      status: "read",
+      fromMe: true
     },
     {
       id: "msg4",
       text: "Esse valor cabe no meu orçamento. Como funciona a integração?",
       time: "09:37",
       isIncoming: true,
-      sender: "contact"
+      sender: "contact",
+      fromMe: false,
+      status: "read"
     },
     {
       id: "msg5",
@@ -50,14 +57,17 @@ export function selectContact(
       time: "09:40",
       isIncoming: false,
       sender: "user",
-      status: "delivered"
+      status: "delivered",
+      fromMe: true
     },
     {
       id: "msg6",
       text: contact.lastMessage || "",
       time: contact.lastMessageTime || "",
       isIncoming: true,
-      sender: "contact"
+      sender: "contact",
+      fromMe: false,
+      status: "read"
     },
   ];
   
@@ -88,7 +98,8 @@ export function sendMessage(
     time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     isIncoming: false,
     sender: "user",
-    status: "sent"
+    status: "sent",
+    fromMe: true
   };
   
   setMessages([...messages, newMsg]);
