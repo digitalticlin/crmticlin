@@ -1,117 +1,65 @@
 
-import { useState } from "react";
-import { Building2, Users, CreditCard, MessageSquare, FileText, LifeBuoy, Settings, ChevronRight, ChevronLeft, RefreshCw, Activity, Server, Monitor, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import SidebarLogo from "@/components/layout/SidebarLogo";
-import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { 
+  Users, 
+  Building, 
+  CreditCard, 
+  MessageSquare, 
+  Settings, 
+  FileText, 
+  HelpCircle,
+  Activity,
+  Database,
+  Server,
+  Sync
+} from "lucide-react";
 
 interface GlobalAdminSidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
 }
 
-const GlobalAdminSidebar = ({ activeTab, setActiveTab }: GlobalAdminSidebarProps) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
-  
-  const adminNavItems = [
-    {
-      id: "companies",
-      icon: Building2,
-      label: "Empresas",
-    },
-    {
-      id: "users",
-      icon: Users,
-      label: "Usuários",
-    },
-    {
-      id: "plans",
-      icon: CreditCard,
-      label: "Planos",
-    },
-    {
-      id: "whatsapp",
-      icon: MessageSquare,
-      label: "WhatsApp",
-    },
-    {
-      id: "instances",
-      icon: Monitor,
-      label: "Instâncias VPS",
-    },
-    {
-      id: "diagnostic",
-      icon: Search,
-      label: "Diagnóstico",
-    },
-    {
-      id: "sync",
-      icon: RefreshCw,
-      label: "Sincronização",
-    },
-    {
-      id: "sync-logs",
-      icon: Activity,
-      label: "Logs Sync",
-    },
-    {
-      id: "vps",
-      icon: Server,
-      label: "VPS",
-    },
-    {
-      id: "logs",
-      icon: FileText,
-      label: "Logs",
-    },
-  ];
+const sidebarItems = [
+  { id: "companies", label: "Empresas", icon: Building },
+  { id: "users", label: "Usuários", icon: Users },
+  { id: "plans", label: "Planos", icon: CreditCard },
+  { id: "whatsapp", label: "WhatsApp & Instâncias", icon: MessageSquare },
+  { id: "diagnostic", label: "Diagnóstico", icon: Activity },
+  { id: "persistence", label: "Persistência", icon: Database },
+  { id: "sync", label: "Sincronização", icon: Sync },
+  { id: "sync-logs", label: "Logs Sync", icon: FileText },
+  { id: "vps", label: "VPS", icon: Server },
+  { id: "logs", label: "Logs", icon: FileText },
+];
 
+export default function GlobalAdminSidebar({ activeTab, setActiveTab }: GlobalAdminSidebarProps) {
   return (
-    <div
-      className={cn(
-        "h-screen bg-admin-sidebar sticky top-0 left-0 z-30 flex flex-col transition-all duration-300 shadow-lg border-r",
-        isCollapsed ? "w-[80px]" : "w-[250px]"
-      )}
-    >
-      <div className="p-4 flex items-center justify-center">
-        <SidebarLogo isCollapsed={isCollapsed} />
-        {!isCollapsed && <span className="ml-2 text-xl font-bold text-ticlin">Admin</span>}
+    <div className="w-64 bg-white border-r border-gray-200 p-4">
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold text-gray-800">Admin Global</h2>
+        <p className="text-sm text-gray-500">Painel de controle</p>
       </div>
-
-      <Separator />
-
-      <div className="flex flex-col flex-1 py-6 px-2 gap-1">
-        {adminNavItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setActiveTab(item.id)}
-            className={cn(
-              "w-full flex items-center px-3 py-2 rounded-lg transition-colors",
-              activeTab === item.id 
-                ? "bg-[#d3d800]/20 text-[#d3d800] font-medium" 
-                : "hover:bg-gray-100 dark:hover:bg-gray-800"
-            )}
-          >
-            <item.icon className="h-5 w-5" />
-            {!isCollapsed && <span className="ml-3">{item.label}</span>}
-          </button>
-        ))}
-      </div>
-
-      <div className="p-4 border-t">
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="w-full p-2 flex justify-center rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
-        >
-          {isCollapsed ? (
-            <ChevronRight className="h-5 w-5" />
-          ) : (
-            <ChevronLeft className="h-5 w-5" />
-          )}
-        </button>
-      </div>
+      
+      <nav className="space-y-2">
+        {sidebarItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Button
+              key={item.id}
+              variant={activeTab === item.id ? "default" : "ghost"}
+              className={cn(
+                "w-full justify-start",
+                activeTab === item.id && "bg-blue-600 text-white hover:bg-blue-700"
+              )}
+              onClick={() => setActiveTab(item.id)}
+            >
+              <Icon className="mr-2 h-4 w-4" />
+              {item.label}
+            </Button>
+          );
+        })}
+      </nav>
     </div>
   );
-};
-
-export default GlobalAdminSidebar;
+}

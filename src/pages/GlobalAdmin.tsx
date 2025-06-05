@@ -1,19 +1,18 @@
+
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import GlobalAdminSidebar from "@/components/admin/GlobalAdminSidebar";
 import CompaniesPanel from "@/components/admin/CompaniesPanel";
 import UsersPanel from "@/components/admin/UsersPanel";
 import PlansPanel from "@/components/admin/PlansPanel";
-import { ModernWhatsAppPanel } from "@/components/admin/ModernWhatsAppPanel";
+import { UnifiedWhatsAppPanel } from "@/components/admin/UnifiedWhatsAppPanel";
 import LogsPanel from "@/components/admin/LogsPanel";
 import SupportPanel from "@/components/admin/SupportPanel";
 import ConfigPanel from "@/components/admin/ConfigPanel";
 import { WhatsAppSyncTest } from "@/components/admin/WhatsAppSyncTest";
 import { SyncLogsPanel } from "@/components/admin/SyncLogsPanel";
 import { SimpleVPSDiagnostic } from "@/components/admin/SimpleVPSDiagnostic";
-import { VPSInstancesSimplified } from "@/components/admin/VPSInstancesSimplified";
 import { VPSDiagnosticPanel } from "@/components/admin/VPSDiagnosticPanel";
-import { OrphanInstanceManager } from "@/components/settings/whatsapp/OrphanInstanceManager";
 import { VPSPersistenceDiagnostic } from "@/components/admin/VPSPersistenceDiagnostic";
 
 export default function GlobalAdmin() {
@@ -32,12 +31,11 @@ export default function GlobalAdmin() {
           </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid grid-cols-11 w-full">
+            <TabsList className="grid grid-cols-10 w-full">
               <TabsTrigger value="companies">Empresas</TabsTrigger>
               <TabsTrigger value="users">Usuários</TabsTrigger>
               <TabsTrigger value="plans">Planos</TabsTrigger>
-              <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
-              <TabsTrigger value="instances">Instâncias</TabsTrigger>
+              <TabsTrigger value="whatsapp">WhatsApp & Instâncias</TabsTrigger>
               <TabsTrigger value="diagnostic">Diagnóstico</TabsTrigger>
               <TabsTrigger value="persistence">Persistência</TabsTrigger>
               <TabsTrigger value="sync">Sincronização</TabsTrigger>
@@ -61,29 +59,12 @@ export default function GlobalAdmin() {
             <TabsContent value="whatsapp">
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-xl font-semibold mb-2">Gerenciamento WhatsApp</h2>
+                  <h2 className="text-xl font-semibold mb-2">Gerenciamento WhatsApp & Instâncias</h2>
                   <p className="text-muted-foreground mb-6">
-                    Painel moderno para monitorar e gerenciar todas as conexões WhatsApp da plataforma
+                    Painel unificado para monitorar, gerenciar e recuperar instâncias WhatsApp
                   </p>
                 </div>
-                <ModernWhatsAppPanel />
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="instances">
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl font-semibold mb-2">Gerenciamento de Instâncias WhatsApp</h2>
-                  <p className="text-muted-foreground mb-6">
-                    Painel completo para gerenciar instâncias órfãs e vinculações de usuário
-                  </p>
-                </div>
-                
-                {/* Painel de Órfãs - NOVO */}
-                <OrphanInstanceManager />
-                
-                {/* Painel Simplificado - Existente */}
-                <VPSInstancesSimplified />
+                <UnifiedWhatsAppPanel />
               </div>
             </TabsContent>
 
