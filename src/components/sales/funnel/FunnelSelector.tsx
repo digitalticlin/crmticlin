@@ -39,7 +39,7 @@ export function FunnelSelector({
       <DropdownMenuTrigger asChild>
         <Button 
           variant="outline" 
-          className="bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-800 hover:text-gray-900 min-w-[200px] justify-between font-medium"
+          className="bg-white/30 backdrop-blur-sm border-white/40 hover:bg-white/50 text-gray-800 hover:text-gray-900 min-w-[200px] justify-between font-medium shadow-sm"
         >
           <span className="truncate">
             {selectedFunnel?.name || "Selecionar Funil"}
@@ -47,13 +47,13 @@ export function FunnelSelector({
           <ChevronDown className="w-4 h-4 ml-2" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-[200px] bg-white border-gray-200 shadow-lg z-50">
+      <DropdownMenuContent align="start" className="w-[200px] bg-white/95 backdrop-blur-md border-white/50 shadow-glass z-50">
         {funnels.map(funnel => (
           <DropdownMenuItem
             key={funnel.id}
             onClick={() => onSelectFunnel(funnel)}
-            className={`cursor-pointer text-gray-800 hover:bg-gray-50 ${
-              selectedFunnel?.id === funnel.id ? 'bg-gray-100' : ''
+            className={`cursor-pointer text-gray-800 hover:bg-white/60 backdrop-blur-sm ${
+              selectedFunnel?.id === funnel.id ? 'bg-white/40' : ''
             }`}
           >
             <span className="truncate">{funnel.name}</span>
@@ -61,8 +61,8 @@ export function FunnelSelector({
         ))}
         {isAdmin && (
           <>
-            <DropdownMenuSeparator className="bg-gray-200" />
-            <DropdownMenuItem onClick={handleCreateFunnel} className="cursor-pointer text-gray-800 hover:bg-gray-50">
+            <DropdownMenuSeparator className="bg-white/30" />
+            <DropdownMenuItem onClick={handleCreateFunnel} className="cursor-pointer text-gray-800 hover:bg-white/60 backdrop-blur-sm">
               <Plus className="w-4 h-4 mr-2" />
               Criar Novo Funil
             </DropdownMenuItem>
