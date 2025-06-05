@@ -1,5 +1,5 @@
 
-import { ClientData } from "@/hooks/useRealClientManagement";
+import { ClientData } from "@/hooks/clients/types";
 import { ClientsListTable } from "@/components/clients/ClientsListTable";
 import { RealClientDetails } from "@/components/clients/RealClientDetails";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";

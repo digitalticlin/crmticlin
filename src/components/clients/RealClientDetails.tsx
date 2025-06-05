@@ -1,5 +1,5 @@
 
-import { ClientData } from "@/hooks/useRealClientManagement";
+import { ClientData } from "@/hooks/clients/types";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

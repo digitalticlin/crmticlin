@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { ClientData } from "@/hooks/useRealClientManagement";
+import { ClientData } from "@/hooks/clients/types";
 import { Input } from "@/components/ui/input";
 import { Search, Edit, Trash2, FileSpreadsheet, Phone, Mail, Building } from "lucide-react";
 import { 
