@@ -3,7 +3,6 @@ import { useState } from "react";
 import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
 import { ColumnHeader } from "./column/ColumnHeader";
 import { ColumnContent } from "./column/ColumnContent";
-import { ColumnColorBar } from "./column/ColumnColorBar";
 
 interface KanbanColumnProps {
   column: IKanbanColumn;
@@ -33,21 +32,24 @@ export const KanbanColumn = ({
 
   return (
     <div
-      className="relative bg-white/60 dark:bg-white/5 backdrop-blur-sm rounded-2xl border-0 shadow-lg flex flex-col min-w-[290px] max-w-[320px] w-full md:h-[72vh] h-[540px] transition-all duration-200 hover:shadow-xl"
+      className="relative bg-white/15 backdrop-blur-xl border border-white/25 rounded-3xl flex flex-col min-w-[320px] max-w-[350px] w-full h-[75vh] transition-all duration-300 hover:shadow-2xl hover:bg-white/20 group"
       style={{
-        boxShadow: "0 8px 32px 0 rgba(31,38,135,0.1)",
-        marginBottom: 0,
-        zIndex: 10,
         overflow: isAnyCardHovered ? "visible" : "hidden"
       }}
     >
-      <ColumnColorBar color={columnColor} />
+      {/* Barra de Cor no Topo */}
+      <div 
+        className="h-1.5 rounded-t-3xl"
+        style={{ backgroundColor: columnColor }}
+      />
+      
       <ColumnHeader
         column={column}
         onColumnUpdate={onColumnUpdate}
         onColumnDelete={onColumnDelete}
       />
-      <div className="flex-1 overflow-y-auto px-2 pb-2 pt-4">
+      
+      <div className="flex-1 overflow-y-auto px-4 pb-4 pt-2">
         <ColumnContent
           columnId={column.id}
           leads={column.leads}

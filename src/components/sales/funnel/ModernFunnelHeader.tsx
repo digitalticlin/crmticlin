@@ -1,0 +1,75 @@
+
+import { Funnel } from "@/types/funnel";
+import { TrendingUp, Users, Target, Award, AlertCircle } from "lucide-react";
+
+interface ModernFunnelHeaderProps {
+  selectedFunnel: Funnel;
+  totalLeads: number;
+  wonLeads: number;
+  lostLeads: number;
+}
+
+export function ModernFunnelHeader({ 
+  selectedFunnel, 
+  totalLeads, 
+  wonLeads, 
+  lostLeads 
+}: ModernFunnelHeaderProps) {
+  const activeLeads = totalLeads - wonLeads - lostLeads;
+  const conversionRate = totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0;
+
+  return (
+    <div className="bg-white/15 backdrop-blur-xl border border-white/25 rounded-3xl p-8 shadow-2xl">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        {/* Título e Descrição */}
+        <div className="space-y-2">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+            {selectedFunnel.name}
+          </h1>
+          <p className="text-lg text-gray-600 max-w-2xl">
+            {selectedFunnel.description || "Gerencie seus leads e oportunidades de vendas"}
+          </p>
+        </div>
+
+        {/* Métricas em Cards */}
+        <div className="flex flex-wrap gap-4">
+          <div className="bg-white/20 backdrop-blur-lg rounded-2xl p-4 min-w-[120px] border border-white/30">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-500/20 rounded-xl">
+                <Users className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-800">{activeLeads}</p>
+                <p className="text-sm text-gray-600">Ativos</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/20 backdrop-blur-lg rounded-2xl p-4 min-w-[120px] border border-white/30">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-500/20 rounded-xl">
+                <Award className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-800">{wonLeads}</p>
+                <p className="text-sm text-gray-600">Ganhos</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white/20 backdrop-blur-lg rounded-2xl p-4 min-w-[120px] border border-white/30">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-ticlin/20 rounded-xl">
+                <TrendingUp className="w-5 h-5 text-ticlin-dark" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-800">{conversionRate}%</p>
+                <p className="text-sm text-gray-600">Conversão</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

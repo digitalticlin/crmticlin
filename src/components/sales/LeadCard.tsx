@@ -50,11 +50,11 @@ export const LeadCard = ({
       {...provided.draggableProps}
       {...provided.dragHandleProps}
       className={cn(
-        "bg-white/90 dark:bg-white/10 backdrop-blur-sm mb-4 rounded-xl border-0 shadow-md transition-all duration-300 p-4 cursor-pointer group",
-        "w-[96%] max-w-[380px] mx-auto",
+        "bg-white/25 backdrop-blur-lg border border-white/30 mb-4 rounded-2xl transition-all duration-300 p-5 cursor-pointer group relative",
+        "w-[96%] max-w-[380px] mx-auto hover:shadow-xl",
         isDragging || isClone
-          ? "scale-105 z-[99999] opacity-90 shadow-2xl border-blue-500 border-2 pointer-events-none"
-          : "hover:scale-105 hover:z-30 hover:relative hover:shadow-xl hover:bg-white/95 dark:hover:bg-white/15",
+          ? "scale-105 z-[99999] opacity-90 shadow-2xl border-ticlin/50 border-2 pointer-events-none bg-white/40"
+          : "hover:scale-[1.02] hover:z-30 hover:relative hover:bg-white/35",
         isWon && "border-l-[4px] border-l-green-500",
         isLost && "border-l-[4px] border-l-red-500"
       )}
@@ -63,7 +63,7 @@ export const LeadCard = ({
         ...(isDragging || isClone
           ? {
               transformOrigin: "center",
-              boxShadow: "0 20px 40px 0 rgba(0,0,0,0.15)",
+              boxShadow: "0 25px 50px 0 rgba(0,0,0,0.15), 0 0 0 1px rgba(211,216,0,0.5)",
               transition: "transform 0.18s cubic-bezier(.16,.83,.81,1), opacity 0.13s, box-shadow 0.18s",
               zIndex: 99999,
               pointerEvents: "none",
@@ -75,7 +75,7 @@ export const LeadCard = ({
       onMouseLeave={onMouseLeave}
     >
       <LeadCardContent lead={lead} isWonLostView={isWonLostView} />
-      <div className="flex justify-between items-center mt-3">
+      <div className="flex justify-between items-center mt-4">
         <LeadCardTags tags={lead.tags} />
         <LeadCardActions
           onMoveToWon={onMoveToWon}

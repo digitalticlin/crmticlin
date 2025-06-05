@@ -1,7 +1,6 @@
 
 import { useState } from "react";
 import { PageLayout } from "@/components/layout/PageLayout";
-import { ModernPageHeader } from "@/components/layout/ModernPageHeader";
 import { useRealSalesFunnel } from "@/hooks/salesFunnel/useRealSalesFunnel";
 import { useNewLeadIntegration } from "@/hooks/salesFunnel/useNewLeadIntegration";
 import { KanbanBoard } from "@/components/sales/KanbanBoard";
@@ -9,9 +8,8 @@ import { LeadDetailSidebar } from "@/components/sales/LeadDetailSidebar";
 import { toast } from "sonner";
 import { KanbanLead } from "@/types/kanban";
 import { useNavigate } from "react-router-dom";
-import { FunnelActionsBar } from "@/components/sales/funnel/FunnelActionsBar";
-import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { ModernFunnelHeader } from "@/components/sales/funnel/ModernFunnelHeader";
+import { ModernFunnelControlBar } from "@/components/sales/funnel/ModernFunnelControlBar";
 import { useFunnelManagement } from "@/hooks/salesFunnel/useFunnelManagement";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -22,7 +20,6 @@ export default function SalesFunnel() {
   const { companyId } = useCompanyData();
   const { isAdmin } = useUserRole();
   
-  // Gerenciamento de múltiplos funis
   const {
     funnels,
     selectedFunnel,
@@ -50,16 +47,13 @@ export default function SalesFunnel() {
     moveLeadToStage
   } = useRealSalesFunnel(selectedFunnel?.id);
 
-  // Integração com novos leads do chat
   useNewLeadIntegration(selectedFunnel?.id);
 
-  // Função para abrir o chat com o lead selecionado
   const handleOpenChat = (lead: KanbanLead) => {
     navigate(`/whatsapp-chat?leadId=${lead.id}`);
   };
 
   const handleMoveToWonLost = async (lead: KanbanLead, status: "won" | "lost") => {
-    // Encontrar o estágio correto baseado no is_won/is_lost
     const targetColumn = columns.find(col => 
       status === "won" ? col.title === "GANHO" : col.title === "PERDIDO"
     );
@@ -71,7 +65,6 @@ export default function SalesFunnel() {
   };
 
   const returnLeadToFunnel = async (lead: KanbanLead) => {
-    // Encontrar o primeiro estágio que não seja ganho/perdido
     const targetColumn = columns.find(col => col.title === "ENTRADA DE LEAD");
     
     if (targetColumn) {
@@ -80,30 +73,20 @@ export default function SalesFunnel() {
     }
   };
 
-  // Wrapper para createFunnel que não retorna nada
   const handleCreateFunnel = async (name: string, description?: string): Promise<void> => {
     await createFunnel(name, description);
   };
 
-  const addLeadAction = (
-    <Button 
-      className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 py-2.5 font-medium shadow-lg transition-all duration-200 hover:shadow-xl"
-      onClick={() => toast.info("Adicionar lead manualmente (em breve!)")}
-    >
-      <Plus className="h-4 w-4 mr-2" />
-      Adicionar Lead
-    </Button>
-  );
-
   if (funnelLoading) {
     return (
       <PageLayout>
-        <ModernPageHeader 
-          title="Funil de Vendas" 
-          description="Carregando funis..."
-        />
-        <div className="flex items-center justify-center h-64">
-          <p className="text-gray-500">Carregando dados dos funis...</p>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="bg-white/20 backdrop-blur-xl border border-white/30 rounded-3xl p-8 shadow-2xl">
+            <div className="flex items-center gap-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-ticlin"></div>
+              <p className="text-lg font-medium text-gray-700">Carregando funis...</p>
+            </div>
+          </div>
         </div>
       </PageLayout>
     );
@@ -112,21 +95,30 @@ export default function SalesFunnel() {
   if (!selectedFunnel) {
     return (
       <PageLayout>
-        <ModernPageHeader 
-          title="Funil de Vendas" 
-          description="Nenhum funil encontrado"
-          action={isAdmin ? addLeadAction : undefined}
-        />
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <p className="text-gray-500 mb-4">
-              {isAdmin ? "Nenhum funil encontrado. Crie seu primeiro funil para começar." : "Nenhum funil disponível para você."}
-            </p>
+        <div className="min-h-screen flex items-center justify-center p-6">
+          <div className="bg-white/20 backdrop-blur-xl border border-white/30 rounded-3xl p-12 shadow-2xl max-w-md w-full text-center">
+            <div className="mb-6">
+              <div className="w-20 h-20 bg-gradient-to-br from-ticlin/20 to-ticlin/40 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <svg className="w-10 h-10 text-ticlin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">Nenhum Funil Encontrado</h3>
+              <p className="text-gray-600 mb-6">
+                {isAdmin ? "Crie seu primeiro funil para começar a gerenciar leads" : "Nenhum funil disponível para você"}
+              </p>
+            </div>
+            
             {isAdmin && (
-              <Button onClick={() => handleCreateFunnel("Funil Principal", "Funil principal de vendas")}>
-                <Plus className="h-4 w-4 mr-2" />
+              <button
+                onClick={() => handleCreateFunnel("Funil Principal", "Funil principal de vendas")}
+                className="bg-gradient-to-r from-ticlin to-ticlin-dark text-black font-semibold py-3 px-6 rounded-2xl hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-2 mx-auto"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
                 Criar Primeiro Funil
-              </Button>
+              </button>
             )}
           </div>
         </div>
@@ -136,14 +128,17 @@ export default function SalesFunnel() {
 
   return (
     <PageLayout>
-      <ModernPageHeader 
-        title="Funil de Vendas" 
-        description={`Gerencie seus leads e oportunidades - ${selectedFunnel.name}`}
-        action={addLeadAction}
-      />
+      <div className="space-y-6">
+        {/* Header Moderno */}
+        <ModernFunnelHeader 
+          selectedFunnel={selectedFunnel}
+          totalLeads={columns.reduce((acc, col) => acc + col.leads.length, 0)}
+          wonLeads={columns.find(col => col.title === "GANHO")?.leads.length || 0}
+          lostLeads={columns.find(col => col.title === "PERDIDO")?.leads.length || 0}
+        />
 
-      <div className="mb-6">
-        <FunnelActionsBar 
+        {/* Barra de Controles Moderna */}
+        <ModernFunnelControlBar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           onAddColumn={() => addColumn("Nova etapa")}
@@ -155,21 +150,24 @@ export default function SalesFunnel() {
           onCreateFunnel={handleCreateFunnel}
           isAdmin={isAdmin}
         />
+        
+        {/* Board do Kanban */}
+        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 shadow-2xl">
+          <KanbanBoard
+            columns={columns}
+            onColumnsChange={() => {}}
+            onOpenLeadDetail={openLeadDetail}
+            onColumnUpdate={updateColumn}
+            onColumnDelete={deleteColumn}
+            onOpenChat={handleOpenChat}
+            onMoveToWonLost={handleMoveToWonLost}
+            onReturnToFunnel={returnLeadToFunnel}
+            isWonLostView={activeTab === "won-lost"}
+          />
+        </div>
       </div>
       
-      <div className="flex-1 w-full min-w-0 max-w-full flex flex-col items-center justify-center px-0 pt-0">
-        <KanbanBoard
-          columns={columns}
-          onColumnsChange={() => {}} // Não usado mais - movimentação é feita via moveLeadToStage
-          onOpenLeadDetail={openLeadDetail}
-          onColumnUpdate={updateColumn}
-          onColumnDelete={deleteColumn}
-          onOpenChat={handleOpenChat}
-          onMoveToWonLost={handleMoveToWonLost}
-          onReturnToFunnel={returnLeadToFunnel}
-        />
-      </div>
-      
+      {/* Sidebar de Detalhes */}
       <LeadDetailSidebar
         isOpen={isLeadDetailOpen}
         onOpenChange={setIsLeadDetailOpen}
