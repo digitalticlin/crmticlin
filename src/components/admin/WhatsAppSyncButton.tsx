@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { RefreshCcw, Loader2, Clock, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -84,12 +84,12 @@ export const WhatsAppSyncButton = () => {
   };
 
   // Verificar status da sincronização automática ao carregar
-  useState(() => {
+  useEffect(() => {
     checkAutoSyncStatus();
     // Verificar a cada 2 minutos
     const interval = setInterval(checkAutoSyncStatus, 2 * 60 * 1000);
     return () => clearInterval(interval);
-  });
+  }, []);
 
   const getStatusIcon = () => {
     switch (autoSyncStatus) {
