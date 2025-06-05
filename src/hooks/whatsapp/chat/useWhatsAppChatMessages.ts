@@ -145,7 +145,7 @@ export const useWhatsAppChatMessages = (
     fetchMessages();
   }, [fetchMessages]);
 
-  // CORRIGIDO: Realtime subscription mais eficiente
+  // CORRIGIDO: Realtime subscription mais eficiente com type checking
   useEffect(() => {
     if (!activeInstance || !selectedContact) return;
 
@@ -162,11 +162,17 @@ export const useWhatsAppChatMessages = (
           filter: `lead_id=eq.${selectedContact.id}`
         },
         (payload) => {
-          console.log('[WhatsApp Chat Messages FASE 3] 🔄 Realtime message update:', {
-            event: payload.eventType,
-            fromMe: payload.new?.from_me,
-            text: payload.new?.text?.substring(0, 30)
-          });
+          console.log('[WhatsApp Chat Messages FASE 3] 🔄 Realtime message update:', payload);
+          
+          // CORRIGIDO: Add type checking for payload.new
+          if (payload.new && typeof payload.new === 'object' && 'from_me' in payload.new && 'text' in payload.new) {
+            const messageData = payload.new as any;
+            console.log('[WhatsApp Chat Messages FASE 3] 🔄 Message details:', {
+              event: payload.eventType,
+              fromMe: messageData.from_me,
+              text: messageData.text?.substring(0, 30)
+            });
+          }
           
           // Refresh messages on any change
           fetchMessages();
