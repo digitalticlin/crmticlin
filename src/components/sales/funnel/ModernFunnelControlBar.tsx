@@ -62,33 +62,36 @@ export const ModernFunnelControlBar = ({
 
   return (
     <div className="flex items-center justify-between w-full bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl p-4 shadow-glass">
-      {/* Lado Esquerdo - Tabs */}
-      <div className="flex items-center gap-1 bg-white/20 backdrop-blur-sm rounded-xl p-1 border border-white/20">
-        {/* Tab Funil de Vendas (apenas botão, sem dropdown) */}
-        <FunnelTabButton
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          funnels={funnels}
-          selectedFunnel={selectedFunnel}
-          onSelectFunnel={onSelectFunnel}
-          onCreateFunnel={onCreateFunnel}
-          isAdmin={isAdmin}
-        />
+      {/* Lado Esquerdo - Tabs e Botão de Alterar Funil */}
+      <div className="flex items-center gap-3">
+        {/* Card dos Tabs */}
+        <div className="flex items-center gap-1 bg-white/20 backdrop-blur-sm rounded-xl p-1 border border-white/20">
+          {/* Tab Funil de Vendas */}
+          <FunnelTabButton
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            funnels={funnels}
+            selectedFunnel={selectedFunnel}
+            onSelectFunnel={onSelectFunnel}
+            onCreateFunnel={onCreateFunnel}
+            isAdmin={isAdmin}
+          />
 
-        {/* Tab Ganhos e Perdidos */}
-        <WonLostTabButton
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-        />
+          {/* Tab Ganhos e Perdidos */}
+          <WonLostTabButton
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+          />
+        </div>
 
-        {/* Botão de seleção de funil (novo botão centralizado) */}
+        {/* Botão de seleção de funil (agora fora do card) */}
         {activeTab === "funnel" && (
           <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
                 size="sm"
-                className="ml-2 bg-white/30 backdrop-blur-sm border-white/40 hover:bg-white/50 text-gray-800 hover:text-gray-900 font-medium shadow-sm"
+                className="bg-white/30 backdrop-blur-sm border-white/40 hover:bg-white/50 text-gray-800 hover:text-gray-900 font-medium shadow-sm"
               >
                 <span className="truncate">Alterar Funil</span>
                 <ChevronDown className="w-4 h-4" />
