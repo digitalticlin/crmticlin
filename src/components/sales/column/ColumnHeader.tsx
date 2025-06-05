@@ -23,21 +23,30 @@ import { Input } from "@/components/ui/input";
 
 interface ColumnHeaderProps {
   column: KanbanColumn;
-  onColumnUpdate: (updatedColumn: KanbanColumn) => void;
-  onColumnDelete: (columnId: string) => void;
+  isHovered: boolean;
+  canEdit: boolean;
+  onUpdate: (field: keyof KanbanColumn, value: any) => void;
+  onDelete: () => void;
 }
 
 export const ColumnHeader = ({
   column,
-  onColumnUpdate,
-  onColumnDelete
+  isHovered,
+  canEdit,
+  onUpdate,
+  onDelete
 }: ColumnHeaderProps) => {
   const [editingColumn, setEditingColumn] = useState<KanbanColumn | null>(null);
+  
   const updateColumn = () => {
     if (!editingColumn || !editingColumn.title.trim()) return;
-    onColumnUpdate(editingColumn);
+    onUpdate('title', editingColumn.title);
+    if (editingColumn.color) {
+      onUpdate('color', editingColumn.color);
+    }
     setEditingColumn(null);
   };
+  
   const isFixed = column.isFixed === true;
   const displayTitle = column.id === FIXED_COLUMN_IDS.NEW_LEAD ? "Entrada de leads" : column.title;
 
@@ -46,7 +55,7 @@ export const ColumnHeader = ({
       <h3 className="font-semibold font-inter text-lg truncate text-gray-900">{displayTitle}</h3>
       <div className="flex items-center gap-2">
         <span className="bg-gray-100 text-gray-800 font-bold rounded-xl px-3 py-0.5 text-xs border border-gray-300">{column.leads.length}</span>
-        {!isFixed && (
+        {canEdit && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-gray-600 hover:bg-gray-100 transition-all">
@@ -156,7 +165,7 @@ export const ColumnHeader = ({
                     <DialogClose asChild>
                       <Button 
                         variant="destructive"
-                        onClick={() => onColumnDelete(column.id)}
+                        onClick={onDelete}
                       >
                         Excluir
                       </Button>
