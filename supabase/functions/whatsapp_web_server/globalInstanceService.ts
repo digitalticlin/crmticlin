@@ -1,12 +1,24 @@
 import { corsHeaders } from './config.ts';
 import { VPS_CONFIG, getVPSHeaders } from './config.ts';
+import { syncAllInstances } from './instanceSyncDedicatedService.ts';
 
 export async function listAllInstancesGlobal(supabase: any) {
   const actionId = `list_global_${Date.now()}`;
   console.log(`[Global Instances] 🌐 Listando todas as instâncias [${actionId}]`);
   
   try {
-    // 1. Buscar instâncias na VPS
+    // SIMPLIFICADO: Usar o sync dedicado primeiro
+    console.log('[Global Instances] 🔄 Executando sync dedicado primeiro...');
+    const syncResult = await syncAllInstances(supabase);
+    const syncData = await syncResult.json();
+    
+    if (!syncData.success) {
+      console.warn('[Global Instances] ⚠️ Sync falhou, continuando com dados atuais');
+    } else {
+      console.log('[Global Instances] ✅ Sync concluído:', syncData.summary);
+    }
+
+    // 1. Buscar instâncias na VPS (após sync)
     const vpsResponse = await fetch(`${VPS_CONFIG.baseUrl}/instances`, {
       method: 'GET',
       headers: getVPSHeaders(),
@@ -20,7 +32,7 @@ export async function listAllInstancesGlobal(supabase: any) {
     const vpsData = await vpsResponse.json();
     console.log(`[Global Instances] 📊 VPS retornou ${vpsData.instances?.length || 0} instâncias`);
 
-    // 2. Buscar instâncias no Supabase para comparação
+    // 2. Buscar instâncias no Supabase (após sync)
     const { data: supabaseInstances } = await supabase
       .from('whatsapp_instances')
       .select(`
@@ -36,64 +48,9 @@ export async function listAllInstancesGlobal(supabase: any) {
       `)
       .eq('connection_type', 'web');
 
-    const supabaseInstanceIds = (supabaseInstances || [])
-      .map(i => i.vps_instance_id)
-      .filter(Boolean);
-
-    // 3. NOVO: Sincronizar automaticamente as instâncias órfãs
-    const orphanInstances = (vpsData.instances || []).filter(vpsInstance => 
-      !supabaseInstanceIds.includes(vpsInstance.instanceId)
-    );
-
-    console.log(`[Global Instances] 🔄 Sincronizando ${orphanInstances.length} instâncias órfãs...`);
-
-    // Salvar instâncias órfãs no Supabase
-    for (const orphan of orphanInstances) {
-      try {
-        const { error: insertError } = await supabase
-          .from('whatsapp_instances')
-          .insert({
-            instance_name: `orphan_${orphan.instanceId.slice(-8)}`,
-            phone: orphan.phone || null,
-            company_id: null, // Órfã - será vinculada depois
-            connection_type: 'web',
-            server_url: VPS_CONFIG.baseUrl,
-            vps_instance_id: orphan.instanceId,
-            web_status: orphan.status === 'open' ? 'ready' : 'connecting',
-            connection_status: orphan.status === 'open' ? 'ready' : 'connecting',
-            profile_name: orphan.profileName,
-            date_connected: orphan.status === 'open' ? new Date().toISOString() : null
-          });
-
-        if (insertError) {
-          console.error(`[Global Instances] ❌ Erro ao inserir órfã ${orphan.instanceId}:`, insertError);
-        } else {
-          console.log(`[Global Instances] ✅ Órfã ${orphan.instanceId} sincronizada`);
-        }
-      } catch (err) {
-        console.error(`[Global Instances] ❌ Erro inesperado ao sincronizar ${orphan.instanceId}:`, err);
-      }
-    }
-
-    // 4. Recarregar instâncias do Supabase após sincronização
-    const { data: updatedSupabaseInstances } = await supabase
-      .from('whatsapp_instances')
-      .select(`
-        *,
-        companies!whatsapp_instances_company_id_fkey (
-          id,
-          name
-        ),
-        profiles!whatsapp_instances_company_id_fkey (
-          id,
-          full_name
-        )
-      `)
-      .eq('connection_type', 'web');
-
-    // 5. Processar instâncias e marcar órfãs
+    // 3. Processar instâncias
     const processedInstances = (vpsData.instances || []).map((vpsInstance: any) => {
-      const linkedInstance = updatedSupabaseInstances?.find(si => si.vps_instance_id === vpsInstance.instanceId);
+      const linkedInstance = supabaseInstances?.find(si => si.vps_instance_id === vpsInstance.instanceId);
       const isOrphan = !linkedInstance?.company_id;
       
       return {
@@ -121,7 +78,7 @@ export async function listAllInstancesGlobal(supabase: any) {
           total: processedInstances.length,
           orphans: processedInstances.filter(i => i.isOrphan).length,
           active: processedInstances.filter(i => i.status === 'open').length,
-          synced: orphanInstances.length
+          sync_summary: syncData.success ? syncData.summary : null
         },
         actionId
       }),

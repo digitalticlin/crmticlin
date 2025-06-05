@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.177.1/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { corsHeaders } from './config.ts';
@@ -17,6 +16,7 @@ import {
   bindInstanceToUser, 
   bindOrphanInstanceById 
 } from './instanceUserBinding.ts';
+import { syncAllInstances } from './instanceSyncDedicatedService.ts';
 
 Deno.serve(async (req) => {
   console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED - VERSÃO CORRIGIDA ATIVA');
@@ -69,6 +69,10 @@ Deno.serve(async (req) => {
       case 'delete_instance':
         console.log('[WhatsApp Server] 🗑️ DELETE INSTANCE');
         return await deleteWhatsAppInstance(supabase, body.instanceData.instanceId);
+
+      case 'sync_all_instances':
+        console.log('[WhatsApp Server] 🔄 SYNC ALL INSTANCES (DEDICATED)');
+        return await syncAllInstances(supabase);
 
       case 'list_all_instances_global':
         console.log('[WhatsApp Server] 🌐 LIST ALL INSTANCES GLOBAL');
