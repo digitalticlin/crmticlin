@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,25 +55,32 @@ export const VPSInstanceCreationTester = () => {
     });
   };
 
+  // CORREÇÃO ROBUSTA: Polling QR Code com parâmetros corretos e retry inteligente
   const pollForQRCode = async (instanceId: string) => {
     setQrCodePolling(true);
-    addLog("🔄 PASSO 4B: Iniciando polling para QR Code...");
+    addLog("🔄 PASSO 4B: Iniciando polling ROBUSTO para QR Code...");
     
-    const maxAttempts = 6;
-    const delayMs = 5000;
+    const maxAttempts = 8; // Aumentado para 8 tentativas
+    const delayMs = 10000; // Aumentado para 10 segundos entre tentativas
     
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
-        addLog(`📱 Tentativa ${attempt}/${maxAttempts} para obter QR Code`);
+        addLog(`📱 Tentativa ${attempt}/${maxAttempts} para obter QR Code (delay: ${delayMs}ms)`);
         
+        // CORREÇÃO: Usar instanceId do banco (não vps_instance_id)
         const { data: qrData, error: qrError } = await supabase.functions.invoke('whatsapp_web_server', {
           body: { 
             action: 'get_qr_code_async',
-            instanceData: { instanceId }
+            instanceData: { 
+              instanceId: instanceId // ID do banco, não vps_instance_id
+            }
           }
         });
 
+        addLog(`📋 Resposta tentativa ${attempt}: ${JSON.stringify(qrData, null, 2)}`);
+
         if (qrError) {
+          addLog(`❌ Erro Supabase na tentativa ${attempt}: ${JSON.stringify(qrError)}`);
           throw new Error(qrError.message);
         }
 
@@ -85,31 +93,53 @@ export const VPSInstanceCreationTester = () => {
               attempts: attempt, 
               hasQrCode: true, 
               cached: qrData.cached,
-              qrCodeLength: qrData.qrCode.length 
+              qrCodeLength: qrData.qrCode.length,
+              instanceName: qrData.instanceName,
+              message: qrData.message
             },
             timestamp: new Date().toISOString()
           });
           setQrCodePolling(false);
           return;
         } else if (qrData.waiting) {
-          addLog(`⏳ QR Code ainda não disponível (tentativa ${attempt})`);
+          addLog(`⏳ QR Code ainda não disponível (tentativa ${attempt}) - ${qrData.message || 'Aguardando...'}`);
+          
+          if (attempt < maxAttempts) {
+            const actualDelay = qrData.retryAfter || delayMs;
+            addLog(`😴 Aguardando ${actualDelay/1000}s antes da próxima tentativa...`);
+            await new Promise(resolve => setTimeout(resolve, actualDelay));
+          }
+        } else {
+          const errorMsg = qrData.error || 'Falha ao obter QR Code';
+          addLog(`❌ Erro na tentativa ${attempt}: ${errorMsg}`);
+          
+          // Se for erro definitivo (não de timing), parar
+          if (!qrData.waiting && !errorMsg.includes('ainda não')) {
+            throw new Error(errorMsg);
+          }
+          
           if (attempt < maxAttempts) {
             addLog(`😴 Aguardando ${delayMs/1000}s antes da próxima tentativa...`);
             await new Promise(resolve => setTimeout(resolve, delayMs));
           }
-        } else {
-          throw new Error(qrData.error || 'Falha ao obter QR Code');
         }
 
       } catch (error: any) {
         addLog(`❌ Erro na tentativa ${attempt}: ${error.message}`);
+        
         if (attempt === maxAttempts) {
           updateTestResult('qr_code_polling', {
             success: false,
             duration: maxAttempts * delayMs,
-            error: `QR Code não disponível após ${maxAttempts} tentativas`,
+            error: `QR Code não disponível após ${maxAttempts} tentativas: ${error.message}`,
             timestamp: new Date().toISOString()
           });
+        } else {
+          // Para erros de rede/timeout, aguardar antes de tentar novamente
+          if (error.message.includes('timeout') || error.message.includes('network')) {
+            addLog(`🔄 Erro de rede/timeout - aguardando antes de retry...`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+          }
         }
       }
     }
@@ -127,7 +157,7 @@ export const VPSInstanceCreationTester = () => {
     const instanceName = testInstanceName || `test_instance_${Date.now()}`;
     
     try {
-      addLog(`🚀 Iniciando teste de criação de instância (CORREÇÃO PERMANENTE): ${instanceName}`);
+      addLog(`🚀 Iniciando teste de criação de instância (CORREÇÃO ROBUSTA): ${instanceName}`);
 
       // PASSO 1: Testar conectividade VPS
       addLog("🔍 PASSO 1: Testando conectividade VPS...");
@@ -199,8 +229,8 @@ export const VPSInstanceCreationTester = () => {
         throw error;
       }
 
-      // PASSO 3: Criar instância WhatsApp (CORREÇÃO PERMANENTE)
-      addLog(`📱 PASSO 3: Criando instância WhatsApp (CORREÇÃO PERMANENTE): ${instanceName}...`);
+      // PASSO 3: Criar instância WhatsApp (CORREÇÃO ROBUSTA)
+      addLog(`📱 PASSO 3: Criando instância WhatsApp (CORREÇÃO ROBUSTA): ${instanceName}...`);
       const step3Start = Date.now();
       
       try {
@@ -227,7 +257,7 @@ export const VPSInstanceCreationTester = () => {
           throw new Error(errorMsg);
         }
 
-        const instanceId = createData.instance?.id || createData.instance?.instanceId;
+        const instanceId = createData.instance?.id;
         if (!instanceId) {
           addLog(`❌ ID da instância não encontrado na resposta`);
           throw new Error('ID da instância não retornado');
@@ -243,13 +273,14 @@ export const VPSInstanceCreationTester = () => {
             hasImmediateQR: !!createData.instance?.qr_code,
             vpsInstanceId: createData.instance?.vps_instance_id,
             connectionStatus: createData.instance?.connection_status,
-            webStatus: createData.instance?.web_status
+            webStatus: createData.instance?.web_status,
+            instanceName: createData.instance?.instance_name
           },
           timestamp: new Date().toISOString()
         });
         addLog(`✅ PASSO 3: Instância criada com sucesso - ID: ${instanceId}`);
 
-        // PASSO 4: Verificar QR Code (CORREÇÃO PERMANENTE)
+        // PASSO 4: Verificar QR Code (CORREÇÃO ROBUSTA)
         if (createData.instance?.qr_code) {
           addLog("✅ PASSO 4A: QR Code já disponível na criação!");
           updateTestResult('immediate_qr_code', {
@@ -259,7 +290,7 @@ export const VPSInstanceCreationTester = () => {
             timestamp: new Date().toISOString()
           });
         } else {
-          addLog("⏳ PASSO 4A: QR Code não disponível imediatamente - isso é normal com a CORREÇÃO PERMANENTE!");
+          addLog("⏳ PASSO 4A: QR Code não disponível imediatamente - iniciando polling ROBUSTO!");
           updateTestResult('immediate_qr_code', {
             success: true, // Não é erro!
             duration: 0,
@@ -267,7 +298,7 @@ export const VPSInstanceCreationTester = () => {
             timestamp: new Date().toISOString()
           });
           
-          // Iniciar polling para QR Code
+          // Iniciar polling para QR Code com correção robusta
           await pollForQRCode(instanceId);
         }
 
@@ -286,7 +317,7 @@ export const VPSInstanceCreationTester = () => {
         throw error;
       }
 
-      addLog("🎉 Teste de criação de instância concluído com sucesso (CORREÇÃO PERMANENTE)!");
+      addLog("🎉 Teste de criação de instância concluído com sucesso (CORREÇÃO ROBUSTA)!");
       toast.success("Teste de instância concluído com sucesso!");
 
     } catch (error: any) {
@@ -349,7 +380,7 @@ export const VPSInstanceCreationTester = () => {
       vps_authentication: 'Autenticação VPS',
       instance_creation: 'Criação de Instância',
       immediate_qr_code: 'QR Code Imediato',
-      qr_code_polling: 'Polling QR Code'
+      qr_code_polling: 'Polling QR Code ROBUSTO'
     };
     return titles[step as keyof typeof titles] || step;
   };
@@ -361,16 +392,16 @@ export const VPSInstanceCreationTester = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TestTube className="h-5 w-5 text-purple-600" />
-            Teste de Criação de Instância WhatsApp (CORREÇÃO PERMANENTE)
+            Teste de Criação de Instância WhatsApp (CORREÇÃO ROBUSTA)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Alert>
             <MessageSquare className="h-4 w-4" />
             <AlertDescription>
-              <strong>CORREÇÃO PERMANENTE APLICADA:</strong> Este teste agora valida que a criação de instâncias 
-              funciona mesmo quando o QR Code não está disponível imediatamente. O sistema aguarda assincronamente 
-              pelo QR Code sem falhar. Esta versão é mais robusta e tolerante a falhas de timing.
+              <strong>CORREÇÃO ROBUSTA APLICADA:</strong> Este teste agora inclui validação robusta do polling QR Code,
+              com retry inteligente, timeouts ajustados (10s), melhor tratamento de erros, e parâmetros corretos.
+              O sistema agora é mais tolerante a timing da VPS e fornece feedback claro sobre o progresso.
             </AlertDescription>
           </Alert>
 
@@ -380,7 +411,7 @@ export const VPSInstanceCreationTester = () => {
               id="testInstanceName"
               value={testInstanceName}
               onChange={(e) => setTestInstanceName(e.target.value)}
-              placeholder="Ex: teste_instancia_001"
+              placeholder="Ex: teste_instancia_robusta_001"
             />
             <p className="text-xs text-muted-foreground">
               Se vazio, será gerado automaticamente
@@ -401,12 +432,12 @@ export const VPSInstanceCreationTester = () => {
               ) : qrCodePolling ? (
                 <>
                   <Clock className="h-4 w-4 mr-2 animate-pulse" />
-                  Aguardando QR Code...
+                  Polling QR Code ROBUSTO...
                 </>
               ) : (
                 <>
                   <Play className="h-4 w-4 mr-2" />
-                  Executar Teste Completo
+                  Executar Teste ROBUSTO
                 </>
               )}
             </Button>
@@ -442,7 +473,7 @@ export const VPSInstanceCreationTester = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <QrCode className="h-5 w-5 text-green-600" />
-              Resultados do Teste (CORREÇÃO PERMANENTE)
+              Resultados do Teste (CORREÇÃO ROBUSTA)
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -489,7 +520,7 @@ export const VPSInstanceCreationTester = () => {
       {logs.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Logs de Execução (CORREÇÃO PERMANENTE)</CardTitle>
+            <CardTitle className="text-sm">Logs de Execução (CORREÇÃO ROBUSTA)</CardTitle>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-40 w-full">
