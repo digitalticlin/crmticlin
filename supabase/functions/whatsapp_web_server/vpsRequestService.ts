@@ -83,3 +83,35 @@ export async function createVPSInstance(payload: any): Promise<any> {
     throw error;
   }
 }
+
+// Função específica para deletar instância na VPS
+export async function deleteVPSInstance(vpsInstanceId: string, instanceName?: string): Promise<any> {
+  console.log('[VPS Delete] 🗑️ Deletando instância na VPS:', { vpsInstanceId, instanceName });
+  
+  try {
+    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/delete`, {
+      method: 'POST',
+      headers: getVPSHeaders(),
+      body: JSON.stringify({ 
+        instanceId: vpsInstanceId,
+        instanceName: instanceName || vpsInstanceId
+      })
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      console.log('[VPS Delete] ✅ Instância deletada com sucesso:', data);
+      return {
+        success: true,
+        ...data
+      };
+    } else {
+      const errorText = await response.text();
+      console.error('[VPS Delete] ❌ Falha ao deletar instância:', errorText);
+      throw new Error(`VPS deletion failed: ${response.status} - ${errorText}`);
+    }
+  } catch (error) {
+    console.error('[VPS Delete] 💥 Erro crítico na deleção:', error);
+    throw error;
+  }
+}
