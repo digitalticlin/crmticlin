@@ -19,7 +19,7 @@ export const WhatsAppWebSectionHeader = ({
   const isDisabled = isConnecting || isLoading || companyLoading;
 
   return (
-    <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+    <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -27,11 +27,11 @@ export const WhatsAppWebSectionHeader = ({
               <MessageSquare className="h-6 w-6 text-green-600" />
             </div>
             <div>
-              <CardTitle className="text-xl text-green-900">
-                WhatsApp Web.js (CORREÇÃO ROBUSTA)
+              <CardTitle className="text-xl">
+                WhatsApp Web.js
               </CardTitle>
-              <p className="text-sm text-green-700 mt-1">
-                Gerencie suas conexões WhatsApp - Modal automático ativo
+              <p className="text-sm text-muted-foreground mt-1">
+                Gerencie suas conexões WhatsApp
               </p>
             </div>
           </div>
@@ -39,13 +39,13 @@ export const WhatsAppWebSectionHeader = ({
           <Button
             onClick={onConnect}
             disabled={isDisabled}
-            className="bg-green-600 hover:bg-green-700 text-white shadow-lg"
+            className="bg-green-600 hover:bg-green-700 text-white"
             size="lg"
           >
             {isConnecting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                {isConnecting ? 'Criando & Preparando QR...' : 'Conectando...'}
+                Conectando...
               </>
             ) : (
               <>
@@ -56,15 +56,6 @@ export const WhatsAppWebSectionHeader = ({
           </Button>
         </div>
       </CardHeader>
-      
-      <CardContent>
-        <div className="bg-green-100/50 rounded-lg p-3 border border-green-200">
-          <p className="text-xs text-green-800">
-            <strong>NOVO:</strong> O modal QR Code agora abre automaticamente após criar a instância. 
-            Se demorar, aguarde alguns segundos ou use o botão "Ver QR" manualmente.
-          </p>
-        </div>
-      </CardContent>
     </Card>
   );
 };

@@ -63,9 +63,9 @@ export const useAutomaticQRPolling = (): AutoQRPollingHook => {
           const timeoutId = setTimeout(pollForQR, delay);
           setPollingTimeoutId(timeoutId);
         } else if (attempt >= maxAttempts) {
-          console.log('[Auto QR Polling] ⏰ Timeout atingido');
+          console.log('[Auto QR Polling] ⏰ Timeout atingido - parando silenciosamente');
           setIsPolling(false);
-          toast.info(`QR Code para "${instanceName}" não está pronto ainda. Use o botão "Ver QR" quando disponível.`);
+          // Removido: toast de timeout para não incomodar o usuário
         }
 
       } catch (error: any) {
@@ -76,7 +76,7 @@ export const useAutomaticQRPolling = (): AutoQRPollingHook => {
           setPollingTimeoutId(timeoutId);
         } else {
           setIsPolling(false);
-          toast.error(`Erro ao obter QR Code para "${instanceName}". Tente usar o botão "Ver QR".`);
+          // Removido: toast de erro para não incomodar o usuário
         }
       }
     };
