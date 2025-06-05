@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { formatPhoneForWhatsApp, validatePhone } from "@/utils/phoneFormatter";
+import { cleanPhoneNumber, validatePhone } from "@/utils/phoneFormatter";
 import { useCompanyData } from "../useCompanyData";
 
 export interface CreateLeadData {
@@ -29,19 +29,19 @@ export const useLeadCreation = () => {
         throw new Error("Company ID not found");
       }
 
-      // Validar telefone
-      if (!validatePhone(data.phone)) {
+      // CORREÇÃO: Limpar telefone antes de validar
+      const cleanPhone = cleanPhoneNumber(data.phone);
+
+      // Validar telefone limpo
+      if (!validatePhone(cleanPhone)) {
         throw new Error("Telefone inválido");
       }
 
-      // Formatar telefone para WhatsApp
-      const formattedPhone = formatPhoneForWhatsApp(data.phone);
-
-      // Verificar se já existe um lead com este telefone
+      // Verificar se já existe um lead com este telefone limpo
       const { data: existingLead } = await supabase
         .from("leads")
         .select("id")
-        .eq("phone", formattedPhone)
+        .eq("phone", cleanPhone) // CORREÇÃO: Usar telefone limpo
         .eq("company_id", companyId)
         .maybeSingle();
 
@@ -67,7 +67,7 @@ export const useLeadCreation = () => {
         .from("leads")
         .insert({
           name: data.name,
-          phone: formattedPhone,
+          phone: cleanPhone, // CORREÇÃO: Salvar telefone limpo
           email: data.email,
           company: data.company,
           address: data.address,

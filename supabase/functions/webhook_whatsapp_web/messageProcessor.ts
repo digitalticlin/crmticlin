@@ -1,4 +1,15 @@
 
+// Função para limpar telefone
+function cleanPhoneNumber(phone: string): string {
+  if (!phone) return '';
+  
+  return phone
+    .replace(/@c\.us$/, '')
+    .replace(/@s\.whatsapp\.net$/, '')
+    .replace(/@g\.us$/, '')
+    .replace(/\D/g, '');
+}
+
 export async function processIncomingMessage(supabase: any, instance: any, messageData: any) {
   console.log('[Message Processor] 📨 Processando mensagens:', messageData);
   
@@ -24,8 +35,14 @@ export async function processIncomingMessage(supabase: any, instance: any, messa
         const remoteJid = messageKey.remoteJid;
         const messageId = messageKey.id;
         
-        // Extrair número do telefone
-        const phoneNumber = remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '');
+        // CORREÇÃO: Extrair e limpar número do telefone
+        const rawPhone = remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '');
+        const phoneNumber = cleanPhoneNumber(rawPhone);
+        
+        if (!phoneNumber) {
+          console.log('[Message Processor] ⚠️ Telefone inválido após limpeza:', rawPhone);
+          continue;
+        }
         
         // Extrair texto da mensagem
         let messageText = '';
@@ -121,7 +138,8 @@ export async function processIncomingMessage(supabase: any, instance: any, messa
 }
 
 async function getOrCreateLead(supabase: any, whatsappNumberId: string, phone: string, companyId: string): Promise<string> {
-  const cleanPhone = phone.replace(/\D/g, '');
+  // CORREÇÃO: Garantir que o telefone esteja limpo
+  const cleanPhone = cleanPhoneNumber(phone);
   
   console.log('[Message Processor] 🔍 Getting or creating lead:', {
     whatsappNumberId,
@@ -142,13 +160,13 @@ async function getOrCreateLead(supabase: any, whatsappNumberId: string, phone: s
     return existingLead.id;
   }
 
-  // Create new lead
+  // CORREÇÃO: Create new lead com nome baseado no telefone limpo
   console.log('[Message Processor] 🆕 Creating new lead');
   const { data: newLead, error } = await supabase
     .from('leads')
     .insert({
       phone: cleanPhone,
-      name: `+${cleanPhone}`,
+      name: `Lead-${cleanPhone.substring(cleanPhone.length - 4)}`, // CORREÇÃO: Nome limpo
       whatsapp_number_id: whatsappNumberId,
       company_id: companyId,
       last_message: 'Conversa iniciada',

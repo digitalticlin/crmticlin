@@ -5,18 +5,36 @@ import { extractTextMessage } from "../utils/helpers.ts";
 import { LeadData, ExistingLead } from "./leadTypes.ts";
 import { findOrCreateKanbanStageId } from "./kanbanStageService.ts";
 
+// Função para limpar telefone (equivalente ao frontend)
+function cleanPhoneNumber(phone: string): string {
+  if (!phone) return '';
+  
+  return phone
+    .replace(/@c\.us$/, '')
+    .replace(/@s\.whatsapp\.net$/, '')
+    .replace(/@g\.us$/, '')
+    .replace(/\D/g, '');
+}
+
 export async function processLead(
   supabase: SupabaseClient,
   phone: string,
   companyId: string,
-  whatsappInstanceId: string, // CORRIGIDO: renomeado de whatsappNumberId
+  whatsappInstanceId: string,
   messageData: any
 ): Promise<{ leadId: string; leadCreated: boolean; error?: string }> {
   try {
+    // CORREÇÃO: Limpar telefone antes de usar
+    const cleanPhone = cleanPhoneNumber(phone);
+    
+    if (!cleanPhone) {
+      return { leadId: "", leadCreated: false, error: "Telefone inválido após limpeza" };
+    }
+
     const { data: existingLead, error: leadError } = await supabase
       .from('leads')
       .select('id, unread_count')
-      .eq('phone', phone)
+      .eq('phone', cleanPhone) // CORREÇÃO: Usar telefone limpo
       .eq('company_id', companyId)
       .maybeSingle() as { data: ExistingLead | null, error: any };
 
@@ -30,15 +48,16 @@ export async function processLead(
 
     if (!existingLead) {
       const pushName = messageData.pushName || null;
-      const leadName = pushName ? pushName : `Lead-${phone.substring(phone.length - 4)}`;
+      // CORREÇÃO: Nome do lead sem @c.us
+      const leadName = pushName ? pushName : `Lead-${cleanPhone.substring(cleanPhone.length - 4)}`;
       
       const kanbanStageId = await findOrCreateKanbanStageId(supabase, companyId);
 
       const leadPayload: LeadData = {
         company_id: companyId,
-        whatsapp_number_id: whatsappInstanceId, // CORRIGIDO: usar whatsappInstanceId
+        whatsapp_number_id: whatsappInstanceId,
         name: leadName,
-        phone: phone,
+        phone: cleanPhone, // CORREÇÃO: Salvar telefone limpo
         kanban_stage_id: kanbanStageId,
         last_message: extractTextMessage(messageData),
         last_message_time: new Date().toISOString(),

@@ -1,7 +1,7 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { VPS_CONFIG } from "../config/vpsConfig";
 import { ServiceResponse } from "../types/whatsappWebTypes";
+import { cleanPhoneNumber } from "@/utils/phoneFormatter";
 
 export class MessageSendingService {
   static async sendMessage(
@@ -22,9 +22,13 @@ export class MessageSendingService {
       const instance = await this.getWhatsAppInstance(instanceId);
       this.validateInstanceStatus(instance);
 
-      const cleanPhone = this.formatPhoneNumber(phone);
-      const vpsResponse = await this.sendToVPS(instance.vps_instance_id, cleanPhone, message);
+      // CORREÇÃO: Usar cleanPhoneNumber para garantir telefone limpo
+      const cleanPhone = cleanPhoneNumber(phone);
+      const formattedPhone = this.formatPhoneForSending(cleanPhone);
       
+      const vpsResponse = await this.sendToVPS(instance.vps_instance_id, formattedPhone, message);
+      
+      // CORREÇÃO: Usar telefone limpo para buscar/criar lead
       const leadId = await this.getOrCreateLead(instanceId, cleanPhone, instance.company_id);
       
       // CORREÇÃO: Forçar salvamento da mensagem enviada mesmo se VPS falhar
@@ -116,9 +120,16 @@ export class MessageSendingService {
     }
   }
 
-  private static formatPhoneNumber(phone: string): string {
-    const cleanPhone = phone.replace(/\D/g, '');
-    return cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+  // CORREÇÃO: Nova função para formatar telefone para envio (adiciona @c.us)
+  private static formatPhoneForSending(cleanPhone: string): string {
+    let formattedNumber = cleanPhone;
+    
+    // Adicionar código do país se necessário
+    if (!formattedNumber.startsWith('55')) {
+      formattedNumber = '55' + formattedNumber;
+    }
+    
+    return formattedNumber;
   }
 
   private static async sendToVPS(vpsInstanceId: string, formattedPhone: string, message: string) {
@@ -219,7 +230,8 @@ export class MessageSendingService {
     phone: string, 
     companyId: string
   ): Promise<string> {
-    const cleanPhone = phone.replace(/\D/g, '');
+    // CORREÇÃO: Garantir que o telefone esteja limpo
+    const cleanPhone = cleanPhoneNumber(phone);
     
     console.log('[MessageSending] 🔍 Getting or creating lead:', {
       whatsappNumberId,
@@ -240,13 +252,13 @@ export class MessageSendingService {
       return existingLead.id;
     }
 
-    // Create new lead
+    // CORREÇÃO: Create new lead com nome baseado no telefone limpo
     console.log('[MessageSending] 🆕 Creating new lead');
     const { data: newLead, error } = await supabase
       .from('leads')
       .insert({
         phone: cleanPhone,
-        name: `+${cleanPhone}`,
+        name: `Lead-${cleanPhone.substring(cleanPhone.length - 4)}`, // CORREÇÃO: Nome limpo
         whatsapp_number_id: whatsappNumberId,
         company_id: companyId,
         last_message: 'Conversa iniciada',

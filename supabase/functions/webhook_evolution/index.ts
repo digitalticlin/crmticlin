@@ -11,6 +11,17 @@ import { forwardToN8N } from "./services/n8nService.ts";
 const supabaseUrl = Deno.env.get("SUPABASE_URL") || "https://kigyebrhfoljnydfipcr.supabase.co";
 const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY") || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtpZ3llYnJoZm9sam55ZGZpcGNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcxMDU0OTUsImV4cCI6MjA2MjY4MTQ5NX0.348qSsRPai26TFU87MDv0yE4i_pQmLYMQW9d7n5AN-A";
 
+// Função para limpar telefone
+function cleanPhoneNumber(phone: string): string {
+  if (!phone) return '';
+  
+  return phone
+    .replace(/@c\.us$/, '')
+    .replace(/@s\.whatsapp\.net$/, '')
+    .replace(/@g\.us$/, '')
+    .replace(/\D/g, '');
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -43,7 +54,16 @@ serve(async (req: Request) => {
           { headers: corsHeaders, status: 400 });
       }
       
-      const phone = phoneMatch[1];
+      // CORREÇÃO: Limpar telefone antes de processar
+      const rawPhone = phoneMatch[1];
+      const phone = cleanPhoneNumber(rawPhone);
+      
+      if (!phone) {
+        console.error("Telefone inválido após limpeza:", rawPhone);
+        return new Response(JSON.stringify({ success: false, error: "Telefone inválido" }), 
+          { headers: corsHeaders, status: 400 });
+      }
+      
       const instanceName = payload.instance;
       
       if (!instanceName) {
@@ -71,7 +91,7 @@ serve(async (req: Request) => {
       
       const { leadId, leadCreated, error: leadProcessingError } = await processLead(
         supabase,
-        phone,
+        phone, // CORREÇÃO: Passar telefone limpo
         companyId,
         whatsappInstanceId,
         messageData

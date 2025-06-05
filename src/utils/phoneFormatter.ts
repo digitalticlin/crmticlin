@@ -1,7 +1,18 @@
 
+export const cleanPhoneNumber = (phone: string): string => {
+  if (!phone) return '';
+  
+  // Remove @c.us, @s.whatsapp.net e outros sufixos do WhatsApp
+  return phone
+    .replace(/@c\.us$/, '')
+    .replace(/@s\.whatsapp\.net$/, '')
+    .replace(/@g\.us$/, '') // grupos
+    .replace(/\D/g, ''); // remove todos os caracteres não numéricos restantes
+};
+
 export const formatPhoneForWhatsApp = (phone: string): string => {
-  // Remove todos os caracteres não numéricos
-  const numbersOnly = phone.replace(/\D/g, '');
+  // Primeiro limpa o telefone
+  const cleanPhone = cleanPhoneNumber(phone);
   
   // Se já está no formato @c.us, retorna como está
   if (phone.includes('@c.us')) {
@@ -9,7 +20,7 @@ export const formatPhoneForWhatsApp = (phone: string): string => {
   }
   
   // Remove o código do país se for brasileiro (55)
-  let formattedNumber = numbersOnly;
+  let formattedNumber = cleanPhone;
   
   // Se começar com 55 e tem mais de 11 dígitos, remove o 55
   if (formattedNumber.startsWith('55') && formattedNumber.length > 11) {
@@ -30,24 +41,24 @@ export const formatPhoneForWhatsApp = (phone: string): string => {
 };
 
 export const formatPhoneDisplay = (phone: string): string => {
-  // Remove @c.us se existir e todos os caracteres não numéricos
-  const numbersOnly = phone.replace('@c.us', '').replace(/\D/g, '');
+  // Primeiro limpa o telefone
+  const cleanPhone = cleanPhoneNumber(phone);
   
   // Formata para exibição: +55 (11) 99999-9999
-  if (numbersOnly.length >= 11) {
-    const countryCode = numbersOnly.substring(0, 2);
-    const areaCode = numbersOnly.substring(2, 4);
-    const firstPart = numbersOnly.substring(4, 9);
-    const secondPart = numbersOnly.substring(9);
+  if (cleanPhone.length >= 11) {
+    const countryCode = cleanPhone.substring(0, 2);
+    const areaCode = cleanPhone.substring(2, 4);
+    const firstPart = cleanPhone.substring(4, 9);
+    const secondPart = cleanPhone.substring(9);
     
     return `+${countryCode} (${areaCode}) ${firstPart}-${secondPart}`;
   }
   
-  // Se for menor que 11 dígitos, só remove @c.us e retorna o número limpo
-  return numbersOnly;
+  // Se for menor que 11 dígitos, retorna o número limpo
+  return cleanPhone;
 };
 
 export const validatePhone = (phone: string): boolean => {
-  const numbersOnly = phone.replace(/\D/g, '');
-  return numbersOnly.length >= 10 && numbersOnly.length <= 15;
+  const cleanPhone = cleanPhoneNumber(phone);
+  return cleanPhone.length >= 10 && cleanPhone.length <= 15;
 };
