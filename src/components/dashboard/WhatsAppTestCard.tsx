@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,7 @@ import { useWhatsAppDatabase } from "@/hooks/whatsapp/useWhatsAppDatabase";
 
 export function WhatsAppTestCard() {
   const { companyId, loading: companyLoading } = useCompanyData();
-  const { instances, loading: instancesLoading } = useWhatsAppDatabase();
+  const { instances, isLoading: instancesLoading } = useWhatsAppDatabase();
 
   const connectedInstances = instances.filter(i => i.connection_status === 'connected');
   const disconnectedInstances = instances.filter(i => i.connection_status !== 'connected');
