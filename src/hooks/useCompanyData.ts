@@ -11,15 +11,17 @@ export const useCompanyData = () => {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // CORREÇÃO: Carregar company_id otimizado
+  // CORREÇÃO: Carregar company_id sem loops infinitos
   useEffect(() => {
+    let isMounted = true;
+    
     const loadUserCompany = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
           console.log('[Company Data] Usuário não autenticado');
-          setLoading(false);
+          if (isMounted) setLoading(false);
           return;
         }
 
@@ -29,39 +31,59 @@ export const useCompanyData = () => {
           .from('profiles')
           .select('company_id')
           .eq('id', user.id)
-          .single();
+          .maybeSingle(); // CORREÇÃO: usar maybeSingle ao invés de single
 
-        if (error) {
+        if (error && error.code !== 'PGRST116') {
           console.error("[Company Data] Erro ao carregar perfil:", error);
+          if (isMounted) setLoading(false);
+          return;
+        }
+
+        // CORREÇÃO: Se não há profile, criar um simples sem loop
+        if (!profile) {
+          console.log('[Company Data] Profile não existe, criando...');
           
-          // CORREÇÃO: Se não há profile, criar um automaticamente
-          if (error.code === 'PGRST116') {
-            console.log('[Company Data] Profile não existe, será criado automaticamente pelo trigger');
-            // Aguardar um pouco para o trigger criar o profile
-            setTimeout(() => loadUserCompany(), 1000);
-            return;
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert({
+              id: user.id,
+              full_name: user.email?.split('@')[0] || 'Usuário',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+
+          if (insertError) {
+            console.error('[Company Data] Erro ao criar profile:', insertError);
+          } else {
+            console.log('[Company Data] Profile criado com sucesso');
           }
           
-          setLoading(false);
+          if (isMounted) setLoading(false);
           return;
         }
 
         if (profile?.company_id) {
           console.log('[Company Data] Company ID encontrado:', profile.company_id);
-          setCompanyId(profile.company_id);
-          await fetchCompanyData(profile.company_id);
+          if (isMounted) {
+            setCompanyId(profile.company_id);
+            await fetchCompanyData(profile.company_id);
+          }
         } else {
           console.log('[Company Data] Nenhum company_id encontrado no profile');
-          setLoading(false);
+          if (isMounted) setLoading(false);
         }
       } catch (error) {
         console.error("[Company Data] Erro ao carregar dados da empresa:", error);
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     loadUserCompany();
-  }, []);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, []); // CORREÇÃO: dependências vazias para evitar loops
   
   /**
    * Fetches company data based on company ID
@@ -75,7 +97,7 @@ export const useCompanyData = () => {
         .from('companies')
         .select('name')
         .eq('id', id)
-        .single();
+        .maybeSingle(); // CORREÇÃO: usar maybeSingle
         
       if (error) {
         console.error('[Company Data] Erro ao buscar empresa:', error);

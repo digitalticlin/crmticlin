@@ -11,22 +11,18 @@ export const useInstancesData = () => {
   
   const { companyId } = useCompanyData();
   
-  // CORREÇÃO: Refs otimizados para melhor performance
+  // CORREÇÃO: Refs simples sem timeouts complexos
   const isMountedRef = useRef(true);
   const lastFetchRef = useRef<number>(0);
-  const fetchTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
-      if (fetchTimeoutRef.current) {
-        clearTimeout(fetchTimeoutRef.current);
-      }
     };
   }, []);
 
-  // CORREÇÃO: Debounce reduzido de 5s para 500ms para responsividade
+  // CORREÇÃO: Fetch simples sem debounce excessivo
   const fetchInstances = useCallback(async (): Promise<WhatsAppWebInstance[]> => {
     if (!companyId || !isMountedRef.current) {
       console.log('[Instances Data] ⏭️ Fetch ignorado - sem empresa ou desmontado');
@@ -36,9 +32,9 @@ export const useInstancesData = () => {
     const now = Date.now();
     const timeSinceLast = now - lastFetchRef.current;
     
-    // CRÍTICO: Reduzir debounce de 5s para 500ms para melhor UX
-    if (timeSinceLast < 500) {
-      console.log('[Instances Data] ⏸️ Fetch debounced - aguardando', Math.round((500 - timeSinceLast) / 1000), 's');
+    // CORREÇÃO: Debounce reduzido para 200ms
+    if (timeSinceLast < 200) {
+      console.log('[Instances Data] ⏸️ Fetch debounced');
       return instances;
     }
 
@@ -47,7 +43,7 @@ export const useInstancesData = () => {
       setError(null);
       lastFetchRef.current = now;
 
-      console.log('[Instances Data] 📊 Buscando instâncias (otimizado):', companyId);
+      console.log('[Instances Data] 📊 Buscando instâncias:', companyId);
 
       const { data, error: fetchError } = await supabase
         .from('whatsapp_instances')
@@ -79,7 +75,7 @@ export const useInstancesData = () => {
         company_id: instance.company_id
       }));
 
-      console.log(`[Instances Data] ✅ ${mappedInstances.length} instâncias carregadas (responsivo)`);
+      console.log(`[Instances Data] ✅ ${mappedInstances.length} instâncias carregadas`);
       
       if (isMountedRef.current) {
         setInstances(mappedInstances);
@@ -100,11 +96,11 @@ export const useInstancesData = () => {
     }
   }, [companyId, instances]);
 
-  // CORREÇÃO: Real-time com debounce reduzido
+  // CORREÇÃO: Real-time simples sem debounce excessivo
   useEffect(() => {
     if (!companyId || !isMountedRef.current) return;
 
-    console.log('[Instances Data] 🔄 Configurando real-time (responsivo):', companyId);
+    console.log('[Instances Data] 🔄 Configurando real-time:', companyId);
 
     const channel = supabase
       .channel(`whatsapp-instances-data-${companyId}`)
@@ -119,31 +115,20 @@ export const useInstancesData = () => {
         (payload) => {
           if (!isMountedRef.current) return;
           
-          console.log('[Instances Data] 📡 Real-time update (responsivo):', payload);
+          console.log('[Instances Data] 📡 Real-time update:', payload);
           
-          // CRÍTICO: Reduzir debounce de 2s para 300ms
-          if (fetchTimeoutRef.current) {
-            clearTimeout(fetchTimeoutRef.current);
-          }
-          
-          fetchTimeoutRef.current = setTimeout(() => {
-            if (isMountedRef.current) {
-              fetchInstances();
-            }
-          }, 300); // 300ms de debounce para responsividade
+          // CORREÇÃO: Update imediato sem timeout
+          fetchInstances();
         }
       )
       .subscribe();
 
     return () => {
-      if (fetchTimeoutRef.current) {
-        clearTimeout(fetchTimeoutRef.current);
-      }
       supabase.removeChannel(channel);
     };
   }, [companyId, fetchInstances]);
 
-  // CORREÇÃO: Initial fetch otimizado
+  // CORREÇÃO: Initial fetch simples
   useEffect(() => {
     if (companyId && isMountedRef.current) {
       fetchInstances();

@@ -8,9 +8,7 @@ export const useWhatsAppRealtime = (userEmail: string) => {
   const { instances } = useWhatsAppInstanceState();
   const { updateInstance } = useWhatsAppInstanceActions();
   
-  // CORREÇÃO: Debounce melhorado para responsividade
-  const lastUpdateRef = useRef<number>(0);
-  const updateTimeoutRef = useRef<NodeJS.Timeout>();
+  // CORREÇÃO: Refs simples sem debounce complexo
   const channelRef = useRef<any>(null);
   const isMountedRef = useRef(true);
 
@@ -24,9 +22,9 @@ export const useWhatsAppRealtime = (userEmail: string) => {
   useEffect(() => {
     if (!userEmail || !isMountedRef.current) return;
 
-    console.log('[WhatsApp Realtime] 🔄 Configurando real-time otimizado (responsivo)');
+    console.log('[WhatsApp Realtime] 🔄 Configurando real-time');
     
-    // CORREÇÃO: Canal único consolidado para evitar múltiplas subscriptions
+    // CORREÇÃO: Remover canal anterior se existir
     if (channelRef.current) {
       console.log('[WhatsApp Realtime] 🧹 Removendo canal anterior');
       supabase.removeChannel(channelRef.current);
@@ -44,8 +42,8 @@ export const useWhatsAppRealtime = (userEmail: string) => {
         },
         (payload) => {
           if (!isMountedRef.current) return;
-          console.log('[WhatsApp Realtime] 📡 Instance change (responsivo):', payload);
-          handleInstanceChangeDebounced(payload);
+          console.log('[WhatsApp Realtime] 📡 Instance change:', payload);
+          processInstanceUpdate(payload);
         }
       )
       .on(
@@ -62,29 +60,6 @@ export const useWhatsAppRealtime = (userEmail: string) => {
         }
       )
       .subscribe();
-
-    // CORREÇÃO: Debounce reduzido de 3s para 500ms para responsividade
-    const handleInstanceChangeDebounced = (payload: any) => {
-      const now = Date.now();
-      const timeSinceLastUpdate = now - lastUpdateRef.current;
-      
-      // CRÍTICO: Reduzir debounce de 3s para 500ms para melhor UX
-      if (timeSinceLastUpdate < 500) {
-        console.log('[WhatsApp Realtime] ⏸️ Update debounced (responsivo)');
-        return;
-      }
-
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
-
-      updateTimeoutRef.current = setTimeout(() => {
-        if (isMountedRef.current) {
-          processInstanceUpdate(payload);
-          lastUpdateRef.current = Date.now();
-        }
-      }, 200); // 200ms de delay para responsividade
-    };
 
     const handleNewMessage = (payload: any) => {
       const messageData = payload.new;
@@ -105,7 +80,7 @@ export const useWhatsAppRealtime = (userEmail: string) => {
         const newRecord = payload.new as any;
         
         if (newRecord.instance_name?.toLowerCase().startsWith(instancePrefix)) {
-          // CORREÇÃO: Mapeamento otimizado de status
+          // CORREÇÃO: Mapeamento simples de status
           const isConnected = ['open', 'ready', 'connected'].includes(newRecord.connection_status);
 
           // Log apenas mudanças significativas de status
@@ -117,8 +92,7 @@ export const useWhatsAppRealtime = (userEmail: string) => {
               console.log('[WhatsApp Realtime] 📊 Status change:', { 
                 instance: newRecord.instance_name,
                 oldStatus, 
-                newStatus,
-                timestamp: new Date().toISOString()
+                newStatus
               });
               
               // Notificações apenas para mudanças críticas
@@ -136,7 +110,7 @@ export const useWhatsAppRealtime = (userEmail: string) => {
             }
           }
 
-          // Atualizar estado local apenas se realmente necessário
+          // Atualizar estado local
           const mappedInstance = {
             id: newRecord.id,
             instanceName: newRecord.instance_name,
@@ -165,14 +139,10 @@ export const useWhatsAppRealtime = (userEmail: string) => {
       }
     };
 
-    // CORREÇÃO: Cleanup melhorado
+    // CORREÇÃO: Cleanup simples
     return () => {
-      console.log('[WhatsApp Realtime] 🧹 Cleanup completo executado');
+      console.log('[WhatsApp Realtime] 🧹 Cleanup executado');
       isMountedRef.current = false;
-      
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
       
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
@@ -183,6 +153,6 @@ export const useWhatsAppRealtime = (userEmail: string) => {
 
   return {
     isConnected: instances.length > 0,
-    activeChannels: channelRef.current ? 1 : 0 // Para debug
+    activeChannels: channelRef.current ? 1 : 0
   };
 };
