@@ -1,8 +1,10 @@
+
 import { serve } from 'https://deno.land/std@0.177.1/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { corsHeaders } from './config.ts';
 import { authenticateUser } from './authentication.ts';
 import { createWhatsAppInstance } from './instanceCreationService.ts';
+import { getQRCodeAsync } from './qrCodeAsyncService.ts';
 import { 
   listAllInstancesGlobal, 
   syncOrphanInstances, 
@@ -58,6 +60,10 @@ Deno.serve(async (req) => {
       case 'create_instance':
         console.log('[WhatsApp Server] 🆕 CREATE INSTANCE');
         return await createWhatsAppInstance(supabase, body.instanceData, user.id);
+
+      case 'get_qr_code_async':
+        console.log('[WhatsApp Server] 🔳 GET QR CODE ASYNC');
+        return await getQRCodeAsync(supabase, body.instanceData.instanceId, user.id);
 
       case 'list_all_instances_global':
         console.log('[WhatsApp Server] 🌐 LIST ALL INSTANCES GLOBAL');
