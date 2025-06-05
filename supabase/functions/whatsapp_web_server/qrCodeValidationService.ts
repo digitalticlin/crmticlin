@@ -16,13 +16,39 @@ export async function validateQRCodeParams(instanceId: string, userId: string) {
 }
 
 export async function validateInstanceAccess(supabase: any, instanceId: string, userId: string) {
-  console.log('[QR Validation] 🔍 Buscando instância no banco...');
+  console.log('[QR Validation] 🔍 Buscando instância no banco (CORREÇÃO DEFINITIVA)...');
+  console.log('[QR Validation] 📋 Instance ID recebido:', instanceId);
   
-  const { data: instance, error: instanceError } = await supabase
-    .from('whatsapp_instances')
-    .select('vps_instance_id, company_id, qr_code, instance_name, connection_status, web_status')
-    .eq('id', instanceId)
-    .maybeSingle();
+  // CORREÇÃO DEFINITIVA: Primeiro tentar buscar pelo ID do Supabase (formato UUID)
+  let instance = null;
+  let instanceError = null;
+
+  // Verificar se é um UUID válido (Supabase ID)
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(instanceId);
+  
+  if (isUUID) {
+    console.log('[QR Validation] 🔍 Buscando por Supabase ID (UUID):', instanceId);
+    
+    const { data, error } = await supabase
+      .from('whatsapp_instances')
+      .select('vps_instance_id, company_id, qr_code, instance_name, connection_status, web_status')
+      .eq('id', instanceId)
+      .maybeSingle();
+    
+    instance = data;
+    instanceError = error;
+  } else {
+    console.log('[QR Validation] 🔍 Buscando por VPS Instance ID (string):', instanceId);
+    
+    const { data, error } = await supabase
+      .from('whatsapp_instances')
+      .select('vps_instance_id, company_id, qr_code, instance_name, connection_status, web_status')
+      .eq('vps_instance_id', instanceId)
+      .maybeSingle();
+    
+    instance = data;
+    instanceError = error;
+  }
 
   if (instanceError) {
     console.error('[QR Validation] ❌ ERRO NO BANCO (instância):', instanceError);

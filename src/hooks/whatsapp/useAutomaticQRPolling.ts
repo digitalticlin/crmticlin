@@ -26,7 +26,8 @@ export const useAutomaticQRPolling = (): AutoQRPollingHook => {
     instanceName: string,
     onQRCodeFound: (qrCode: string) => void
   ) => {
-    console.log('[Auto QR Polling] 🚀 Iniciando polling automático para:', instanceName);
+    console.log('[Auto QR Polling] 🚀 Iniciando polling automático (CORREÇÃO DEFINITIVA) para:', instanceName);
+    console.log('[Auto QR Polling] 📋 Instance ID usado:', instanceId);
     setIsPolling(true);
 
     const maxAttempts = 12; // 2 minutos total
@@ -38,19 +39,23 @@ export const useAutomaticQRPolling = (): AutoQRPollingHook => {
       console.log(`[Auto QR Polling] 📱 Tentativa ${attempt}/${maxAttempts} para ${instanceName}`);
 
       try {
+        // CORREÇÃO CRÍTICA: Usar instanceId (Supabase ID) diretamente
         const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
           body: {
             action: 'get_qr_code_async',
-            instanceData: { instanceId }
+            instanceData: { 
+              instanceId: instanceId  // CORREÇÃO: Usar instanceId correto
+            }
           }
         });
 
         if (error) {
+          console.error('[Auto QR Polling] ❌ Erro na requisição:', error);
           throw new Error(error.message);
         }
 
         if (data.success && data.qrCode) {
-          console.log('[Auto QR Polling] ✅ QR Code encontrado!');
+          console.log('[Auto QR Polling] ✅ QR Code encontrado! Parando polling.');
           setIsPolling(false);
           onQRCodeFound(data.qrCode);
           return;
@@ -65,7 +70,6 @@ export const useAutomaticQRPolling = (): AutoQRPollingHook => {
         } else if (attempt >= maxAttempts) {
           console.log('[Auto QR Polling] ⏰ Timeout atingido - parando silenciosamente');
           setIsPolling(false);
-          // Removido: toast de timeout para não incomodar o usuário
         }
 
       } catch (error: any) {
@@ -76,7 +80,6 @@ export const useAutomaticQRPolling = (): AutoQRPollingHook => {
           setPollingTimeoutId(timeoutId);
         } else {
           setIsPolling(false);
-          // Removido: toast de erro para não incomodar o usuário
         }
       }
     };

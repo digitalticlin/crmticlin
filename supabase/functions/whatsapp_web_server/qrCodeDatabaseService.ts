@@ -20,17 +20,38 @@ export async function checkCachedQRCode(instance: any) {
 }
 
 export async function updateQRCodeInDatabase(supabase: any, instanceId: string, qrCode: string) {
-  console.log('[QR Database] 🎉 QR Code REAL obtido - atualizando banco');
+  console.log('[QR Database] 🎉 QR Code REAL obtido - atualizando banco (CORREÇÃO DEFINITIVA)');
+  console.log('[QR Database] 📋 Instance ID para atualização:', instanceId);
   
   try {
-    const { error: updateError } = await supabase
-      .from('whatsapp_instances')
-      .update({ 
-        qr_code: qrCode,
-        web_status: 'waiting_scan',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', instanceId);
+    // CORREÇÃO DEFINITIVA: Verificar se é UUID (Supabase ID) ou string (VPS Instance ID)
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(instanceId);
+    
+    let updateQuery;
+    
+    if (isUUID) {
+      console.log('[QR Database] 🔄 Atualizando por Supabase ID (UUID)');
+      updateQuery = supabase
+        .from('whatsapp_instances')
+        .update({ 
+          qr_code: qrCode,
+          web_status: 'waiting_scan',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', instanceId);
+    } else {
+      console.log('[QR Database] 🔄 Atualizando por VPS Instance ID');
+      updateQuery = supabase
+        .from('whatsapp_instances')
+        .update({ 
+          qr_code: qrCode,
+          web_status: 'waiting_scan',
+          updated_at: new Date().toISOString()
+        })
+        .eq('vps_instance_id', instanceId);
+    }
+
+    const { error: updateError } = await updateQuery;
 
     if (updateError) {
       console.error('[QR Database] ⚠️ Erro ao atualizar QR Code no banco:', updateError);
