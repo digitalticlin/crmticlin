@@ -1,8 +1,12 @@
 
+
 import { WhatsAppInstance, MessageData } from './types.ts';
 
 export async function processIncomingMessage(supabase: any, instance: WhatsAppInstance, messageData: MessageData) {
   console.log('[Message Processor] 📨 Processing incoming message');
+  
+  // LOG DETALHADO: Estrutura completa dos dados recebidos
+  console.log('[Message Processor] 🔍 DADOS COMPLETOS RECEBIDOS:', JSON.stringify(messageData, null, 2));
   
   try {
     const message = messageData.messages?.[0];
@@ -14,6 +18,9 @@ export async function processIncomingMessage(supabase: any, instance: WhatsAppIn
         reason: 'no_message'
       };
     }
+
+    // LOG DETALHADO: Dados da mensagem específica
+    console.log('[Message Processor] 🔍 DADOS DA MENSAGEM:', JSON.stringify(message, null, 2));
 
     // NOVA VERIFICAÇÃO: Bloquear mensagens de grupos
     const remoteJid = message.key?.remoteJid;
@@ -32,6 +39,16 @@ export async function processIncomingMessage(supabase: any, instance: WhatsAppIn
                        '[Mídia]';
     
     const isFromMe = message.key?.fromMe || false;
+    
+    // LOG DETALHADO: Valores extraídos
+    console.log('[Message Processor] 🔍 VALORES EXTRAÍDOS:');
+    console.log('[Message Processor] 📞 fromNumber:', fromNumber);
+    console.log('[Message Processor] 💬 messageText:', messageText);
+    console.log('[Message Processor] 📤 isFromMe (CRITICAL):', isFromMe);
+    console.log('[Message Processor] 🏢 Company:', instance.companies?.name);
+    console.log('[Message Processor] 🆔 Instance ID:', instance.id);
+    console.log('[Message Processor] 🔑 Remote JID:', remoteJid);
+    console.log('[Message Processor] 🔑 External ID:', message.key?.id);
     
     console.log('[Message Processor] 👤 From:', fromNumber, '| Company:', instance.companies?.name);
     console.log('[Message Processor] 💬 Message:', messageText);
@@ -85,6 +102,7 @@ export async function processIncomingMessage(supabase: any, instance: WhatsAppIn
     }
 
     // CORREÇÃO CRÍTICA: Verificar se mensagem já existe antes de salvar
+    console.log('[Message Processor] 🔍 Verificando se mensagem já existe...');
     const { data: existingMessage } = await supabase
       .from('messages')
       .select('id')
@@ -101,18 +119,23 @@ export async function processIncomingMessage(supabase: any, instance: WhatsAppIn
       };
     }
 
+    // LOG DETALHADO: Dados que serão inseridos
+    const messageToInsert = {
+      lead_id: lead.id,
+      whatsapp_number_id: instance.id,
+      text: messageText,
+      from_me: isFromMe,
+      timestamp: new Date().toISOString(),
+      external_id: message.key?.id,
+      status: isFromMe ? 'sent' : 'received'
+    };
+    
+    console.log('[Message Processor] 🔍 DADOS PARA INSERIR NO BANCO:', JSON.stringify(messageToInsert, null, 2));
+
     // CORRIGIDO: Salvar TODAS as mensagens (enviadas e recebidas) do app nativo
     const { error: messageError } = await supabase
       .from('messages')
-      .insert({
-        lead_id: lead.id,
-        whatsapp_number_id: instance.id,
-        text: messageText,
-        from_me: isFromMe,
-        timestamp: new Date().toISOString(),
-        external_id: message.key?.id,
-        status: isFromMe ? 'sent' : 'received'
-      });
+      .insert(messageToInsert);
 
     if (messageError) {
       console.error('[Message Processor] ❌ Error saving message:', messageError);
@@ -132,6 +155,16 @@ export async function processIncomingMessage(supabase: any, instance: WhatsAppIn
       external_id: message.key?.id
     });
     
+    // LOG FINAL DE SUCESSO
+    console.log('[Message Processor] 🎉 PROCESSAMENTO COMPLETO - SUCESSO!');
+    console.log('[Message Processor] 📊 RESUMO:', {
+      fromMe: isFromMe,
+      leadId: lead.id,
+      messageId: message.key?.id,
+      company: instance.companies?.name,
+      processed: true
+    });
+    
     return {
       success: true,
       processed: true,
@@ -142,6 +175,12 @@ export async function processIncomingMessage(supabase: any, instance: WhatsAppIn
 
   } catch (error) {
     console.error('[Message Processor] ❌ Error processing message:', error);
+    console.error('[Message Processor] ❌ ERRO DETALHADO:', {
+      error: error.message,
+      stack: error.stack,
+      messageData: JSON.stringify(messageData, null, 2)
+    });
     throw error;
   }
 }
+
