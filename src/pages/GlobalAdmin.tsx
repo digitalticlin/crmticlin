@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import GlobalAdminSidebar from "@/components/admin/GlobalAdminSidebar";
@@ -15,6 +14,7 @@ import { SimpleVPSDiagnostic } from "@/components/admin/SimpleVPSDiagnostic";
 import { VPSInstancesSimplified } from "@/components/admin/VPSInstancesSimplified";
 import { VPSDiagnosticPanel } from "@/components/admin/VPSDiagnosticPanel";
 import { OrphanInstanceManager } from "@/components/settings/whatsapp/OrphanInstanceManager";
+import { VPSPersistenceDiagnostic } from "@/components/admin/VPSPersistenceDiagnostic";
 
 export default function GlobalAdmin() {
   const [activeTab, setActiveTab] = useState("companies");
@@ -32,13 +32,14 @@ export default function GlobalAdmin() {
           </div>
           
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid grid-cols-10 w-full">
+            <TabsList className="grid grid-cols-11 w-full">
               <TabsTrigger value="companies">Empresas</TabsTrigger>
               <TabsTrigger value="users">Usuários</TabsTrigger>
               <TabsTrigger value="plans">Planos</TabsTrigger>
               <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
               <TabsTrigger value="instances">Instâncias</TabsTrigger>
               <TabsTrigger value="diagnostic">Diagnóstico</TabsTrigger>
+              <TabsTrigger value="persistence">Persistência</TabsTrigger>
               <TabsTrigger value="sync">Sincronização</TabsTrigger>
               <TabsTrigger value="sync-logs">Logs Sync</TabsTrigger>
               <TabsTrigger value="vps">VPS</TabsTrigger>
@@ -95,6 +96,18 @@ export default function GlobalAdmin() {
                   </p>
                 </div>
                 <VPSDiagnosticPanel />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="persistence">
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-semibold mb-2">Diagnóstico de Persistência VPS</h2>
+                  <p className="text-muted-foreground mb-6">
+                    Verificar conectividade, autenticação e sistema de persistência de instâncias na VPS
+                  </p>
+                </div>
+                <VPSPersistenceDiagnostic />
               </div>
             </TabsContent>
             
