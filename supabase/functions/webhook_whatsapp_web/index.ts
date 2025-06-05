@@ -129,9 +129,19 @@ async function processIncomingMessage(supabase: any, instance: any, messageData:
   try {
     const message = messageData.messages?.[0];
     if (!message || message.key?.fromMe) {
-      console.log('[Webhook WhatsApp Web] ⏭️ Mensagem ignorada (grupo ou enviada por mim)');
+      console.log('[Webhook WhatsApp Web] ⏭️ Mensagem ignorada (enviada por mim)');
       return new Response(
         JSON.stringify({ success: true, processed: false, reason: 'message_ignored' }),
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // NOVA VERIFICAÇÃO: Bloquear mensagens de grupos
+    const remoteJid = message.key?.remoteJid;
+    if (remoteJid?.includes('@g.us')) {
+      console.log('[Webhook WhatsApp Web] 🚫 Mensagem de grupo ignorada:', remoteJid);
+      return new Response(
+        JSON.stringify({ success: true, processed: false, reason: 'group_message_blocked' }),
         { headers: { 'Content-Type': 'application/json' } }
       );
     }
