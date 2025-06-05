@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { corsHeaders } from "./config.ts";
@@ -15,6 +14,7 @@ import {
   massReconnectInstances,
   bindInstanceToUser
 } from "./globalInstanceService.ts";
+import { processIncomingWebhook } from "./webhookService.ts";
 
 // CORREÇÃO: Auth helper melhorado
 async function authenticateUser(request: Request, supabase: any) {
@@ -281,7 +281,18 @@ serve(async (req) => {
       throw new Error('No action specified in request');
     }
 
-    // Authenticate user
+    // NOVO: Processar webhook se for um webhook direto
+    if (action === 'webhook' || body.event) {
+      console.log('[WhatsApp Server] 🔔 WEBHOOK RECEIVED');
+      const result = await processIncomingWebhook(supabase, body);
+      
+      return new Response(
+        JSON.stringify(result),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Authenticate user for regular actions
     const user = await authenticateUser(req, supabase);
     console.log('[WhatsApp Server] 🔐 Usuário autenticado:', user.id, user.email);
 
@@ -336,7 +347,6 @@ serve(async (req) => {
         
         return await getQRCodeAsync(supabase, body.instanceData.instanceId, user.id);
 
-      // CORREÇÃO CRÍTICA: Adicionar alias para refresh_qr_code
       case 'refresh_qr_code':
         console.log('[WhatsApp Server] 📱 REFRESH QR CODE (alias para get_qr_code_async)');
         
@@ -346,17 +356,14 @@ serve(async (req) => {
         
         return await getQRCodeAsync(supabase, body.instanceData.instanceId, user.id);
 
-      // NOVO: Action para verificar saúde do servidor VPS
       case 'check_server':
         console.log('[WhatsApp Server] 🏥 CHECK SERVER HEALTH');
         return await checkServerHealth();
 
-      // NOVO: Action para obter informações do servidor
       case 'get_server_info':
         console.log('[WhatsApp Server] 📊 GET SERVER INFO');
         return await getServerInfo();
 
-      // NOVO: Action para enviar mensagens
       case 'send_message':
         console.log('[WhatsApp Server] 📤 SEND MESSAGE');
         
@@ -370,7 +377,6 @@ serve(async (req) => {
           body.instanceData.message
         );
 
-      // NOVO: Action para obter status de instância
       case 'get_status':
         console.log('[WhatsApp Server] 📊 GET INSTANCE STATUS');
         
@@ -380,7 +386,6 @@ serve(async (req) => {
         
         return await getInstanceStatus(body.instanceData.instanceId);
 
-      // NOVO: Action para sincronizar instâncias
       case 'sync_instances':
         console.log('[WhatsApp Server] 🔄 SYNC INSTANCES');
         return await syncInstancesWithVPS(supabase);

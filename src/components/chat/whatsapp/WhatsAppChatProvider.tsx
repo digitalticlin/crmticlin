@@ -1,13 +1,13 @@
 
 import React, { createContext, useContext, useEffect } from "react";
-import { useWhatsAppWebChat } from "@/hooks/whatsapp/useWhatsAppWebChat";
+import { useWhatsAppWebChatIntegrated } from "@/hooks/whatsapp/useWhatsAppWebChatIntegrated";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useSearchParams } from "react-router-dom";
 import { useWhatsAppDatabase } from "@/hooks/whatsapp/useWhatsAppDatabase";
 import { toast } from 'sonner';
 
-interface WhatsAppChatContextType extends ReturnType<typeof useWhatsAppWebChat> {
+interface WhatsAppChatContextType extends ReturnType<typeof useWhatsAppWebChatIntegrated> {
   companyLoading: boolean;
   instanceHealth: {
     score: number;
@@ -33,7 +33,7 @@ export const WhatsAppChatProvider = ({ children }: { children: React.ReactNode }
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('leadId');
   
-  // FASE 4: Usar banco de dados estabilizado
+  // Usar sistema de banco de dados estabilizado
   const { 
     instances, 
     getActiveInstance, 
@@ -45,9 +45,9 @@ export const WhatsAppChatProvider = ({ children }: { children: React.ReactNode }
   
   const activeInstance = getActiveInstance();
 
-  console.log('[WhatsAppChatProvider] Usando sistema estabilizado, instância ativa:', activeInstance?.instance_name);
+  console.log('[WhatsAppChatProvider] Usando sistema integrado, instância ativa:', activeInstance?.instance_name);
 
-  // FASE 4: Verificar saúde antes de permitir chat
+  // Verificar saúde antes de permitir chat
   useEffect(() => {
     if (activeInstance && !isHealthy) {
       toast.warning(`⚠️ Saúde das conexões: ${healthScore}% - Podem ocorrer instabilidades`);
@@ -56,9 +56,14 @@ export const WhatsAppChatProvider = ({ children }: { children: React.ReactNode }
     if (totalInstances > 0 && connectedInstances === 0) {
       toast.error('🚨 Nenhuma instância WhatsApp conectada - Chat indisponível');
     }
+
+    // Notificar quando webhook estiver configurado
+    if (activeInstance && ['open', 'ready'].includes(activeInstance.connection_status)) {
+      toast.success('🔔 Sistema de mensagens ativo - Recebimento automático habilitado');
+    }
   }, [activeInstance, isHealthy, healthScore, totalInstances, connectedInstances]);
 
-  const chatData = useWhatsAppWebChat(activeInstance);
+  const chatData = useWhatsAppWebChatIntegrated(activeInstance);
 
   // Auto-selecionar contato quando leadId for fornecido via URL
   useEffect(() => {
