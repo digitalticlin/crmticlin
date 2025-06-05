@@ -15,7 +15,7 @@ export const WhatsAppAdminPanel = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Shield className="h-5 w-5 text-red-500" />
-          Painel de Administração WhatsApp
+          Painel de Administração WhatsApp - Admin Global
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -23,7 +23,7 @@ export const WhatsAppAdminPanel = () => {
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="test" className="gap-2">
               <TestTube className="h-4 w-4" />
-              Teste
+              Teste Sync
             </TabsTrigger>
             <TabsTrigger value="sync" className="gap-2">
               <Globe className="h-4 w-4" />

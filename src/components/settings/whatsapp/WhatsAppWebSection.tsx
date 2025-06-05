@@ -7,7 +7,6 @@ import { WhatsAppWebLoadingState } from "./WhatsAppWebLoadingState";
 import { WhatsAppWebEmptyState } from "./WhatsAppWebEmptyState";
 import { WhatsAppWebQRModal } from "./WhatsAppWebQRModal";
 import { WhatsAppAdminPanel } from "./WhatsAppAdminPanel";
-import { TestSyncButton } from "@/components/admin/TestSyncButton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -63,7 +62,7 @@ export const WhatsAppWebSection = () => {
         companyLoading={false}
       />
 
-      {/* Admin Tools para super admins */}
+      {/* Admin Tools para super admins - SEM TestSyncButton */}
       {isAdmin && (
         <Card className="bg-yellow-50 border-yellow-200">
           <CardHeader>
@@ -72,8 +71,6 @@ export const WhatsAppWebSection = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <TestSyncButton />
-            
             <div className="flex gap-2">
               <button
                 onClick={() => setShowAdminPanel(!showAdminPanel)}

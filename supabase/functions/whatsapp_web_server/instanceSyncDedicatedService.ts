@@ -20,10 +20,11 @@ export async function syncAllInstances(supabase: any) {
 
       if (vpsResponse.ok) {
         const vpsData = await vpsResponse.json();
-        vpsInstances = vpsData.instances || [];
+        vpsInstances = vpsData.instances || vpsData || [];
         console.log(`[Dedicated Sync] ✅ VPS retornou ${vpsInstances.length} instâncias`);
       } else {
-        throw new Error(`VPS error: ${vpsResponse.status}`);
+        const errorText = await vpsResponse.text();
+        throw new Error(`VPS error ${vpsResponse.status}: ${errorText}`);
       }
     } catch (vpsError) {
       console.error('[Dedicated Sync] ❌ Erro ao acessar VPS:', vpsError);

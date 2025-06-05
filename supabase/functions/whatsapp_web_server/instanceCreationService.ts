@@ -1,5 +1,5 @@
 
-import { corsHeaders, VPS_CONFIG, getVPSHeaders } from './config.ts';
+import { corsHeaders, VPS_CONFIG } from './config.ts';
 import { createVPSInstance } from './vpsRequestService.ts';
 
 export async function createWhatsAppInstance(supabase: any, instanceData: any, userId: string) {
