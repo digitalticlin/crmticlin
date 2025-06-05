@@ -1,7 +1,7 @@
 
 import { createContext, useContext, ReactNode } from "react";
 import { KanbanColumn, KanbanLead } from "@/types/kanban";
-import { Funnel } from "@/types/funnel";
+import { Funnel, KanbanStage } from "@/types/funnel";
 import { KanbanTag } from "@/types/kanban";
 
 interface SalesFunnelContextValue {
@@ -18,6 +18,7 @@ interface SalesFunnelContextValue {
   isLeadDetailOpen: boolean;
   setIsLeadDetailOpen: (open: boolean) => void;
   availableTags: KanbanTag[];
+  stages: KanbanStage[];
 
   // Actions
   addColumn: (title: string) => void;

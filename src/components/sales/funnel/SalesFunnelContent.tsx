@@ -24,6 +24,7 @@ export const SalesFunnelContent = () => {
     isLeadDetailOpen,
     setIsLeadDetailOpen,
     availableTags,
+    stages,
     addColumn,
     updateColumn,
     deleteColumn,
@@ -35,17 +36,16 @@ export const SalesFunnelContent = () => {
     updateLeadAssignedUser,
     updateLeadName,
     moveLeadToStage,
-    isAdmin,
-    stages
+    isAdmin
   } = useSalesFunnelContext();
 
   // Obter leads das colunas Ganho e Perdido para os filtros (buscar das stages completas)
   const wonLostLeads = stages
-    .filter(stage => stage.title === "GANHO" || stage.title === "PERDIDO")
+    ?.filter(stage => stage.title === "GANHO" || stage.title === "PERDIDO")
     .flatMap(stage => {
       // Buscar leads dessa stage no contexto completo
       return []; // TODO: implementar busca dos leads de ganho/perdido
-    });
+    }) || [];
 
   // Hook para filtros na página Ganhos e Perdidos
   const wonLostFilters = useWonLostFilters(wonLostLeads, availableTags);
@@ -53,7 +53,7 @@ export const SalesFunnelContent = () => {
   // Filtrar colunas para mostrar apenas Ganhos e Perdidos na aba won-lost
   const displayColumns = activeTab === "won-lost" 
     ? stages
-        .filter(stage => stage.title === "GANHO" || stage.title === "PERDIDO")
+        ?.filter(stage => stage.title === "GANHO" || stage.title === "PERDIDO")
         .map(stage => ({
           id: stage.id,
           title: stage.title,
@@ -61,7 +61,7 @@ export const SalesFunnelContent = () => {
           color: stage.color || "#e0e0e0",
           isFixed: stage.is_fixed || false,
           isHidden: false
-        }))
+        })) || []
     : columns;
 
   const handleOpenChat = (lead: KanbanLead) => {
@@ -69,7 +69,7 @@ export const SalesFunnelContent = () => {
   };
 
   const handleMoveToWonLost = async (lead: KanbanLead, status: "won" | "lost") => {
-    const targetStage = stages.find(stage => 
+    const targetStage = stages?.find(stage => 
       status === "won" ? stage.title === "GANHO" : stage.title === "PERDIDO"
     );
     
@@ -80,7 +80,7 @@ export const SalesFunnelContent = () => {
   };
 
   const returnLeadToFunnel = async (lead: KanbanLead) => {
-    const targetStage = stages.find(stage => stage.title === "ENTRADA DE LEAD");
+    const targetStage = stages?.find(stage => stage.title === "ENTRADA DE LEAD");
     
     if (targetStage) {
       await moveLeadToStage(lead, targetStage.id);
@@ -98,8 +98,8 @@ export const SalesFunnelContent = () => {
       <ModernFunnelHeader 
         selectedFunnel={selectedFunnel!}
         totalLeads={columns.reduce((acc, col) => acc + col.leads.length, 0)}
-        wonLeads={stages.find(stage => stage.title === "GANHO")?.leads?.length || 0}
-        lostLeads={stages.find(stage => stage.title === "PERDIDO")?.leads?.length || 0}
+        wonLeads={stages?.find(stage => stage.title === "GANHO")?.leads?.length || 0}
+        lostLeads={stages?.find(stage => stage.title === "PERDIDO")?.leads?.length || 0}
         activeTab={activeTab}
       />
 

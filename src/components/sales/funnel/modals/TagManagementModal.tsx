@@ -1,23 +1,15 @@
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Edit2, Plus, Save, X } from "lucide-react";
+import { useSalesFunnelContext } from "../SalesFunnelProvider";
 import { useTagDatabase } from "@/hooks/salesFunnel/useTagDatabase";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { toast } from "sonner";
-
-const tagSchema = z.object({
-  name: z.string().min(1, "Nome é obrigatório").max(50, "Nome muito longo"),
-  color: z.string().regex(/^#[0-9A-F]{6}$/i, "Cor deve ser um código hexadecimal válido")
-});
 
 interface TagManagementModalProps {
   isOpen: boolean;
@@ -25,60 +17,67 @@ interface TagManagementModalProps {
 }
 
 export const TagManagementModal = ({ isOpen, onClose }: TagManagementModalProps) => {
+  const { availableTags } = useSalesFunnelContext();
   const { companyId } = useCompanyData();
-  const { tags, createTag, updateTag, deleteTag, isLoading } = useTagDatabase(companyId);
+  const { createTag, updateTag, deleteTag, loadTags } = useTagDatabase(companyId);
+  
   const [editingTag, setEditingTag] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [newTagName, setNewTagName] = useState("");
+  const [newTagColor, setNewTagColor] = useState("#3b82f6");
+  const [editName, setEditName] = useState("");
+  const [editColor, setEditColor] = useState("");
 
-  const form = useForm<z.infer<typeof tagSchema>>({
-    resolver: zodResolver(tagSchema),
-    defaultValues: {
-      name: "",
-      color: "#3b82f6"
-    }
-  });
+  const handleStartEdit = (tag: any) => {
+    setEditingTag(tag.id);
+    setEditName(tag.name);
+    setEditColor(tag.color);
+  };
 
-  const handleCreateTag = async (data: z.infer<typeof tagSchema>) => {
+  const handleSaveEdit = async () => {
+    if (!editingTag || !editName.trim()) return;
+    
     try {
-      await createTag(data);
-      form.reset();
-      setIsCreating(false);
-      toast.success("Tag criada com sucesso!");
+      await updateTag(editingTag, editName, editColor);
+      setEditingTag(null);
+      await loadTags();
+      toast.success("Etiqueta atualizada com sucesso!");
     } catch (error) {
-      toast.error("Erro ao criar tag");
+      toast.error("Erro ao atualizar etiqueta");
     }
   };
 
-  const handleUpdateTag = async (tagId: string, data: z.infer<typeof tagSchema>) => {
+  const handleCancelEdit = () => {
+    setEditingTag(null);
+    setEditName("");
+    setEditColor("");
+  };
+
+  const handleCreateTag = async () => {
+    if (!newTagName.trim()) return;
+
     try {
-      await updateTag(tagId, data);
-      setEditingTag(null);
-      toast.success("Tag atualizada com sucesso!");
+      await createTag(newTagName, newTagColor);
+      setNewTagName("");
+      setNewTagColor("#3b82f6");
+      setIsCreating(false);
+      await loadTags();
+      toast.success("Nova etiqueta criada com sucesso!");
     } catch (error) {
-      toast.error("Erro ao atualizar tag");
+      toast.error("Erro ao criar etiqueta");
     }
   };
 
   const handleDeleteTag = async (tagId: string) => {
-    if (confirm("Tem certeza que deseja excluir esta tag?")) {
-      try {
-        await deleteTag(tagId);
-        toast.success("Tag excluída com sucesso!");
-      } catch (error) {
-        toast.error("Erro ao excluir tag");
-      }
+    if (!confirm("Tem certeza que deseja excluir esta etiqueta?")) return;
+
+    try {
+      await deleteTag(tagId);
+      await loadTags();
+      toast.success("Etiqueta excluída com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao excluir etiqueta");
     }
-  };
-
-  const startEditing = (tag: any) => {
-    setEditingTag(tag.id);
-    form.setValue("name", tag.name);
-    form.setValue("color", tag.color);
-  };
-
-  const cancelEditing = () => {
-    setEditingTag(null);
-    form.reset();
   };
 
   return (
@@ -92,61 +91,42 @@ export const TagManagementModal = ({ isOpen, onClose }: TagManagementModalProps)
 
         <div className="space-y-4">
           {/* Lista de Tags */}
-          <div className="max-h-60 overflow-y-auto space-y-2">
-            {tags.map((tag) => (
-              <div key={tag.id} className="flex items-center justify-between p-3 bg-white/10 rounded-lg border border-white/20">
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {availableTags.map((tag) => (
+              <div key={tag.id} className="flex items-center gap-3 p-3 bg-white/10 rounded-lg border border-white/20">
                 {editingTag === tag.id ? (
-                  <Form {...form}>
-                    <form 
-                      onSubmit={form.handleSubmit((data) => handleUpdateTag(tag.id, data))}
-                      className="flex items-center gap-2 flex-1"
-                    >
-                      <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem className="flex-1">
-                            <FormControl>
-                              <Input {...field} className="h-8" />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="color"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <input
-                                type="color"
-                                {...field}
-                                className="w-8 h-8 rounded border border-white/20"
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <Button type="submit" size="sm" variant="ghost">
-                        <Save className="w-4 h-4" />
-                      </Button>
-                      <Button type="button" size="sm" variant="ghost" onClick={cancelEditing}>
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </form>
-                  </Form>
+                  <div className="flex items-center gap-2 flex-1">
+                    <Input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="flex-1"
+                    />
+                    <input
+                      type="color"
+                      value={editColor}
+                      onChange={(e) => setEditColor(e.target.value)}
+                      className="w-10 h-10 rounded border border-white/20"
+                    />
+                    <Button size="sm" onClick={handleSaveEdit}>
+                      <Save className="w-4 h-4" />
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={handleCancelEdit}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
                 ) : (
                   <>
-                    <div className="flex items-center gap-2">
-                      <Badge style={{ backgroundColor: tag.color, color: "#fff" }}>
-                        {tag.name}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center gap-1">
+                    <Badge 
+                      style={{ backgroundColor: tag.color, color: 'white' }}
+                      className="px-3 py-1"
+                    >
+                      {tag.name}
+                    </Badge>
+                    <div className="flex items-center gap-1 ml-auto">
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() => startEditing(tag)}
+                        onClick={() => handleStartEdit(tag)}
                       >
                         <Edit2 className="w-4 h-4" />
                       </Button>
@@ -167,55 +147,36 @@ export const TagManagementModal = ({ isOpen, onClose }: TagManagementModalProps)
 
           {/* Criar Nova Tag */}
           {isCreating ? (
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(handleCreateTag)} className="space-y-3">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome da Tag</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Digite o nome da tag" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+            <div className="space-y-3 p-4 bg-white/5 rounded-lg border border-white/10">
+              <Label>Nova Etiqueta</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={newTagName}
+                  onChange={(e) => setNewTagName(e.target.value)}
+                  placeholder="Nome da etiqueta"
+                  className="flex-1"
                 />
-                <FormField
-                  control={form.control}
-                  name="color"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cor</FormLabel>
-                      <FormControl>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="color"
-                            {...field}
-                            className="w-12 h-10 rounded border border-white/20"
-                          />
-                          <Input {...field} placeholder="#3b82f6" className="flex-1" />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                <input
+                  type="color"
+                  value={newTagColor}
+                  onChange={(e) => setNewTagColor(e.target.value)}
+                  className="w-12 h-10 rounded border border-white/20"
                 />
-                <div className="flex gap-2">
-                  <Button type="submit" disabled={isLoading}>
-                    <Save className="w-4 h-4 mr-2" />
-                    Salvar
-                  </Button>
-                  <Button type="button" variant="outline" onClick={() => {
-                    setIsCreating(false);
-                    form.reset();
-                  }}>
-                    Cancelar
-                  </Button>
-                </div>
-              </form>
-            </Form>
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleCreateTag} className="bg-gradient-to-r from-ticlin to-ticlin-dark text-black">
+                  <Save className="w-4 h-4 mr-2" />
+                  Salvar
+                </Button>
+                <Button variant="outline" onClick={() => {
+                  setIsCreating(false);
+                  setNewTagName("");
+                  setNewTagColor("#3b82f6");
+                }}>
+                  Cancelar
+                </Button>
+              </div>
+            </div>
           ) : (
             <Button
               onClick={() => setIsCreating(true)}
