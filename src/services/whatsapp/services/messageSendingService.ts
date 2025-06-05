@@ -19,7 +19,7 @@ export class MessageSendingService {
         timestamp: new Date().toISOString()
       });
 
-      // Get instance data from database - BUSCAR vps_instance_id PELO ID
+      // CORRIGIDO: Get instance data from database - BUSCAR POR ID (UUID)
       const { data: instance, error: instanceError } = await supabase
         .from('whatsapp_instances')
         .select('vps_instance_id, connection_status, company_id, instance_name')
@@ -97,7 +97,7 @@ export class MessageSendingService {
         throw new Error(result.error || 'VPS returned success: false');
       }
 
-      // Save message to database
+      // CORRIGIDO: Save message to database using instanceId (UUID) directly
       const leadId = await this.getOrCreateLead(instanceId, cleanPhone, instance.company_id);
       
       console.log('[MessageSending FASE 3] 💾 Saving message to database:', {
@@ -107,7 +107,7 @@ export class MessageSendingService {
       });
 
       const { error: saveError } = await supabase.from('messages').insert({
-        whatsapp_number_id: instanceId,
+        whatsapp_number_id: instanceId, // USING UUID directly
         lead_id: leadId,
         text: message,
         from_me: true,
@@ -118,8 +118,14 @@ export class MessageSendingService {
       });
 
       if (saveError) {
-        console.error('[MessageSending FASE 3] ⚠️ Failed to save message to DB:', saveError);
-        // Não falhar o envio se não conseguir salvar no banco
+        console.error('[MessageSending FASE 3] ❌ Failed to save message to DB:', saveError);
+        // Log detalhado do erro para debug
+        console.error('[MessageSending FASE 3] ❌ Save error details:', {
+          error: saveError,
+          instanceId,
+          leadId,
+          messageText: message.substring(0, 50)
+        });
       } else {
         console.log('[MessageSending FASE 3] ✅ Message saved to database successfully');
       }

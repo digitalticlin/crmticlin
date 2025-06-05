@@ -221,6 +221,12 @@ async function processIncomingMessage(supabase: any, instance: any, messageData:
 
     if (messageError) {
       console.error('[Webhook WhatsApp Web] ❌ Erro ao salvar mensagem:', messageError);
+      console.error('[Webhook WhatsApp Web] ❌ Detalhes da mensagem que falhou:', {
+        lead_id: lead.id,
+        whatsapp_number_id: instance.id,
+        from_me: isFromMe,
+        text: messageText.substring(0, 50)
+      });
       return new Response(
         JSON.stringify({ success: false, error: messageError.message }),
         { status: 500, headers: { 'Content-Type': 'application/json' } }
