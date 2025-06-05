@@ -5,9 +5,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useSearchParams } from "react-router-dom";
 import { useWhatsAppDatabase } from "@/hooks/whatsapp/useWhatsAppDatabase";
+import { toast } from 'sonner';
 
 interface WhatsAppChatContextType extends ReturnType<typeof useWhatsAppWebChat> {
   companyLoading: boolean;
+  instanceHealth: {
+    score: number;
+    isHealthy: boolean;
+    connectedInstances: number;
+    totalInstances: number;
+  };
 }
 
 const WhatsAppChatContext = createContext<WhatsAppChatContextType | null>(null);
@@ -26,11 +33,30 @@ export const WhatsAppChatProvider = ({ children }: { children: React.ReactNode }
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('leadId');
   
-  // Use database-only hook instead of VPS hook
-  const { instances, getActiveInstance } = useWhatsAppDatabase();
+  // FASE 4: Usar banco de dados estabilizado
+  const { 
+    instances, 
+    getActiveInstance, 
+    healthScore, 
+    isHealthy,
+    totalInstances,
+    connectedInstances
+  } = useWhatsAppDatabase();
+  
   const activeInstance = getActiveInstance();
 
-  console.log('[WhatsAppChatProvider] Using database-only approach, active instance:', activeInstance?.instance_name);
+  console.log('[WhatsAppChatProvider] Usando sistema estabilizado, instância ativa:', activeInstance?.instance_name);
+
+  // FASE 4: Verificar saúde antes de permitir chat
+  useEffect(() => {
+    if (activeInstance && !isHealthy) {
+      toast.warning(`⚠️ Saúde das conexões: ${healthScore}% - Podem ocorrer instabilidades`);
+    }
+    
+    if (totalInstances > 0 && connectedInstances === 0) {
+      toast.error('🚨 Nenhuma instância WhatsApp conectada - Chat indisponível');
+    }
+  }, [activeInstance, isHealthy, healthScore, totalInstances, connectedInstances]);
 
   const chatData = useWhatsAppWebChat(activeInstance);
 
@@ -47,7 +73,13 @@ export const WhatsAppChatProvider = ({ children }: { children: React.ReactNode }
 
   const value: WhatsAppChatContextType = {
     ...chatData,
-    companyLoading
+    companyLoading,
+    instanceHealth: {
+      score: healthScore,
+      isHealthy,
+      connectedInstances,
+      totalInstances
+    }
   };
 
   return (
