@@ -6,6 +6,8 @@ import { getInstanceStatus, getQRCode } from './instanceStatusService.ts';
 import { getQRCodeFromVPS, updateQRCodeInDatabase } from './qrCodeService.ts';
 import { authenticateRequest } from './authentication.ts';
 import { listInstances } from './instanceListService.ts';
+import { configureGlobalWebhook, autoConfigureInstanceWebhook, checkGlobalWebhookStatus } from './globalWebhookConfig.ts';
+import { executeMultiTenantSync } from './multiTenantSync.ts';
 
 serve(async (req) => {
   console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED - DIAGNÓSTICO ATIVO');
@@ -94,6 +96,41 @@ serve(async (req) => {
     if (action === 'auto_sync_instances') {
       console.log('[WhatsApp Server] 🔄 SINCRONIZAÇÃO AUTOMÁTICA INICIADA');
       return await autoSyncInstances(supabase);
+    }
+
+    // NOVO: Action para configurar webhook global
+    if (action === 'configure_global_webhook') {
+      console.log('[WhatsApp Server] 🌐 CONFIGURAÇÃO GLOBAL DO WEBHOOK INICIADA');
+      return await configureGlobalWebhook(supabase);
+    }
+
+    // NOVO: Action para verificar status do webhook global
+    if (action === 'check_global_webhook_status') {
+      console.log('[WhatsApp Server] 🔍 VERIFICAÇÃO DO WEBHOOK GLOBAL INICIADA');
+      return await checkGlobalWebhookStatus();
+    }
+
+    // NOVO: Action para sincronização multi-tenant
+    if (action === 'execute_multi_tenant_sync') {
+      console.log('[WhatsApp Server] 🏢 SINCRONIZAÇÃO MULTI-TENANT INICIADA');
+      return await executeMultiTenantSync(supabase);
+    }
+
+    // NOVO: Action para auto-configurar webhook de instância
+    if (action === 'auto_configure_instance_webhook') {
+      console.log('[WhatsApp Server] 🔧 AUTO-CONFIGURAÇÃO DE WEBHOOK INICIADA');
+      const instanceId = instanceData?.instanceId || instanceData?.vpsInstanceId;
+      if (!instanceId) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'instanceId é obrigatório' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const result = await autoConfigureInstanceWebhook(supabase, instanceId);
+      return new Response(
+        JSON.stringify(result),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Autenticar usuário com logs detalhados
@@ -216,7 +253,10 @@ serve(async (req) => {
               'list_all_instances_global', 'cleanup_orphan_instances', 
               'mass_reconnect_instances', 'diagnose_vps', 'emergency_sync',
               'correct_instance_binding', 'audit_instance_bindings',
-              'bind_instance_to_user', 'sync_orphan_instances', 'auto_sync_instances'
+              'bind_instance_to_user', 'sync_orphan_instances', 'auto_sync_instances',
+              // NOVOS:
+              'configure_global_webhook', 'check_global_webhook_status',
+              'execute_multi_tenant_sync', 'auto_configure_instance_webhook'
             ]
           }),
           { 
