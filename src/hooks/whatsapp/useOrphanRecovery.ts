@@ -1,6 +1,6 @@
 
 import { useState, useCallback } from 'react';
-import { OrphanInstanceRecoveryService, OrphanInstance } from '@/services/whatsapp/orphanInstanceRecoveryService';
+import { OrphanInstanceRecoveryService, OrphanInstance } from '@/services/whatsapp/orphan';
 import { useCompanyData } from '@/hooks/useCompanyData';
 import { toast } from 'sonner';
 

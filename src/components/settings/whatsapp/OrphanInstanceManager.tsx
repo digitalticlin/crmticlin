@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useOrphanRecovery } from '@/hooks/whatsapp/useOrphanRecovery';
-import { OrphanInstance } from '@/services/whatsapp/orphanInstanceRecoveryService';
+import { OrphanInstance } from '@/services/whatsapp/orphan';
 import { 
   Search, 
   RefreshCw, 
