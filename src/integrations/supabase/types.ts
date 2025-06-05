@@ -1307,6 +1307,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      increment_unread_count: {
+        Args: { lead_uuid: string }
+        Returns: undefined
+      }
       is_company_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -1314,6 +1318,10 @@ export type Database = {
       is_super_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      mark_messages_as_read: {
+        Args: { lead_uuid: string }
+        Returns: undefined
       }
       user_can_access_lead: {
         Args: { lead_id: string }
