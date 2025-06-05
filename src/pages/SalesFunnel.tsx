@@ -18,7 +18,7 @@ export default function SalesFunnel() {
     funnels,
     selectedFunnel,
     setSelectedFunnel,
-    createFunnel,
+    createFunnel: originalCreateFunnel,
     loading: funnelLoading
   } = useFunnelManagement(companyId);
 
@@ -42,6 +42,11 @@ export default function SalesFunnel() {
   } = useRealSalesFunnel(selectedFunnel?.id);
 
   useNewLeadIntegration(selectedFunnel?.id);
+
+  // Wrapper function to match the expected interface
+  const createFunnel = async (name: string, description?: string): Promise<void> => {
+    await originalCreateFunnel(name, description);
+  };
 
   if (funnelLoading) {
     return <FunnelLoadingState />;
