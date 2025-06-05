@@ -39,6 +39,17 @@ export const WhatsAppWebSection = () => {
   // Verificar se é super admin para mostrar painel de admin
   const isAdmin = user?.email?.includes('digitalticlin') || false;
 
+  // Função para criar instância (corrigindo interface)
+  const handleCreateInstance = async () => {
+    const instanceName = `WhatsApp_${Date.now()}`;
+    await createInstance(instanceName);
+  };
+
+  // Função para mostrar QR Code
+  const handleShowQR = (instance: any) => {
+    // Implementar lógica para mostrar QR Code se necessário
+  };
+
   if (isLoading) {
     return <WhatsAppWebLoadingState />;
   }
@@ -46,9 +57,10 @@ export const WhatsAppWebSection = () => {
   return (
     <div className="space-y-6">
       <WhatsAppWebSectionHeader 
-        onCreateInstance={createInstance}
+        onConnect={handleCreateInstance}
         isConnecting={isConnecting}
-        onRefresh={refetch}
+        isLoading={isLoading}
+        companyLoading={false}
       />
 
       {/* Admin Tools para super admins */}
@@ -83,19 +95,23 @@ export const WhatsAppWebSection = () => {
       )}
 
       {instances.length === 0 ? (
-        <WhatsAppWebEmptyState onCreateInstance={createInstance} />
+        <WhatsAppWebEmptyState 
+          onConnect={handleCreateInstance}
+          isConnecting={isConnecting}
+        />
       ) : (
         <WhatsAppWebInstancesGrid 
           instances={instances}
-          onRefreshQRCode={refreshQRCode}
-          onDeleteInstance={deleteInstance}
+          onRefreshQR={refreshQRCode}
+          onDelete={deleteInstance}
+          onShowQR={handleShowQR}
         />
       )}
 
       <WhatsAppWebQRModal 
         isOpen={showQRModal}
-        onClose={closeQRModal}
-        qrCode={selectedQRCode}
+        onOpenChange={closeQRModal}
+        qrCodeUrl={selectedQRCode}
         instanceName={selectedInstanceName}
       />
     </div>
