@@ -13,10 +13,12 @@ import {
   CheckCircle,
   AlertTriangle,
   Server,
-  Zap
+  Zap,
+  TestTube
 } from "lucide-react";
 import { useInstancesData } from "@/hooks/whatsapp/useInstancesData";
 import { useStabilizedInstanceSync } from "@/hooks/whatsapp/useStabilizedInstanceSync";
+import { VPSInstanceCreationTester } from "@/components/admin/vps/VPSInstanceCreationTester";
 import { toast } from "sonner";
 
 export const ModernWhatsAppPanel = () => {
@@ -153,6 +155,22 @@ export const ModernWhatsAppPanel = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Teste de Criação de Instância */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TestTube className="h-5 w-5 text-purple-600" />
+            Diagnóstico de Criação de Instâncias
+          </CardTitle>
+          <p className="text-sm text-gray-600">
+            Use este teste para identificar em qual etapa está ocorrendo o erro de criação de instâncias WhatsApp
+          </p>
+        </CardHeader>
+        <CardContent>
+          <VPSInstanceCreationTester />
+        </CardContent>
+      </Card>
 
       {/* Status do sistema */}
       <Card>
