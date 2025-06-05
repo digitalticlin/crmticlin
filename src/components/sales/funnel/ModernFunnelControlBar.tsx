@@ -63,10 +63,10 @@ export function ModernFunnelControlBar({
   return (
     <>
       <div className="bg-white/15 backdrop-blur-xl border border-white/25 rounded-3xl p-4 shadow-2xl">
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
           
           {/* Linha principal - Todos os controles */}
-          <div className="flex flex-col lg:flex-row lg:items-center gap-4 justify-between">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-3 justify-between">
             
             {/* Lado Esquerdo - Seletor, Botão e Filtros */}
             <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 flex-1">
@@ -138,7 +138,7 @@ export function ModernFunnelControlBar({
                 {/* Botão Adicionar Lead */}
                 <Button
                   onClick={onAddLead}
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-2xl px-4 py-2 h-auto shadow-lg transition-all duration-300 hover:shadow-xl transform hover:scale-105"
+                  className="bg-white/20 backdrop-blur-lg border border-white/30 hover:bg-white/30 text-gray-700 hover:text-gray-800 rounded-2xl px-4 py-2 h-auto shadow-lg transition-all duration-300 hover:shadow-xl transform hover:scale-105"
                 >
                   <Plus className="w-4 h-4 mr-1" />
                   <span className="hidden sm:inline">Lead</span>
@@ -147,7 +147,7 @@ export function ModernFunnelControlBar({
                 {/* Botão Adicionar Etapa */}
                 <Button
                   onClick={onAddColumn}
-                  className="bg-gradient-to-r from-ticlin to-ticlin-dark hover:from-ticlin-dark hover:to-ticlin text-black rounded-2xl px-4 py-2 h-auto shadow-lg transition-all duration-300 hover:shadow-xl transform hover:scale-105"
+                  className="bg-white/20 backdrop-blur-lg border border-white/30 hover:bg-white/30 text-gray-700 hover:text-gray-800 rounded-2xl px-4 py-2 h-auto shadow-lg transition-all duration-300 hover:shadow-xl transform hover:scale-105"
                 >
                   <Plus className="w-4 h-4 mr-1" />
                   <span className="hidden sm:inline">Etapa</span>
