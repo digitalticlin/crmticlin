@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -58,25 +59,25 @@ export default function ResponsiveSidebar() {
       icon: Users,
       label: "Clientes",
       href: "/clients",
-      comingSoon: true
+      comingSoon: false
     },
     {
       icon: ListPlus,
       label: "Automação",
       href: "/automation",
-      comingSoon: true
+      comingSoon: false
     },
     {
       icon: Cable,
       label: "Integração",
       href: "/integration",
-      comingSoon: true
+      comingSoon: false
     },
     {
       icon: Bot,
       label: "Agentes IA",
       href: "/ai-agents",
-      comingSoon: true
+      comingSoon: false
     }
   ];
 
@@ -85,7 +86,7 @@ export default function ResponsiveSidebar() {
       icon: CreditCard,
       label: "Planos",
       href: "/plans",
-      comingSoon: true
+      comingSoon: false
     },
     {
       icon: Settings,
