@@ -80,6 +80,11 @@ export default function SalesFunnel() {
     }
   };
 
+  // Wrapper para createFunnel que não retorna nada
+  const handleCreateFunnel = async (name: string, description?: string): Promise<void> => {
+    await createFunnel(name, description);
+  };
+
   const addLeadAction = (
     <Button 
       className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 py-2.5 font-medium shadow-lg transition-all duration-200 hover:shadow-xl"
@@ -118,7 +123,7 @@ export default function SalesFunnel() {
               {isAdmin ? "Nenhum funil encontrado. Crie seu primeiro funil para começar." : "Nenhum funil disponível para você."}
             </p>
             {isAdmin && (
-              <Button onClick={() => createFunnel("Funil Principal", "Funil principal de vendas")}>
+              <Button onClick={() => handleCreateFunnel("Funil Principal", "Funil principal de vendas")}>
                 <Plus className="h-4 w-4 mr-2" />
                 Criar Primeiro Funil
               </Button>
@@ -147,7 +152,7 @@ export default function SalesFunnel() {
           funnels={funnels}
           selectedFunnel={selectedFunnel}
           onSelectFunnel={setSelectedFunnel}
-          onCreateFunnel={createFunnel}
+          onCreateFunnel={handleCreateFunnel}
           isAdmin={isAdmin}
         />
       </div>
