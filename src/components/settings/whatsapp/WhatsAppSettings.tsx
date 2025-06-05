@@ -1,28 +1,11 @@
 
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { WhatsAppWebSection } from "./WhatsAppWebSection";
-import { WhatsAppAdminPanel } from "./WhatsAppAdminPanel";
 
 export const WhatsAppSettings = () => {
   const { companyId, loading: companyLoading } = useCompanyData();
-  const { data: profile } = useQuery({
-    queryKey: ['profile'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuário não encontrado');
-      
-      const { data } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      
-      return data;
-    },
-  });
 
   const { data: instances, isLoading, refetch } = useQuery({
     queryKey: ['whatsappInstances', companyId],
@@ -57,8 +40,6 @@ export const WhatsAppSettings = () => {
     );
   }
 
-  const isAdmin = profile?.role === 'admin';
-
   return (
     <div className="space-y-6">
       <div>
@@ -68,16 +49,8 @@ export const WhatsAppSettings = () => {
         </p>
       </div>
 
-      {/* Painel de Administração - Apenas para Admins */}
-      {isAdmin && (
-        <div className="mb-8">
-          <WhatsAppAdminPanel />
-        </div>
-      )}
-
       {/* Seção Principal do WhatsApp Web.js */}
       <WhatsAppWebSection />
     </div>
   );
 };
-

@@ -1,96 +1,83 @@
 
 import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useInstancesData } from "@/hooks/whatsapp/useInstancesData";
-import { useStabilizedInstanceSync } from "@/hooks/whatsapp/useStabilizedInstanceSync";
+import { Shield, Settings, Database, Globe, TestTube, Wrench } from "lucide-react";
 import { OrphanInstanceManager } from "@/components/admin/OrphanInstanceManager";
-import { WhatsAppPanelHeader } from "@/components/admin/whatsapp/WhatsAppPanelHeader";
-import { WhatsAppStatsGrid } from "@/components/admin/whatsapp/WhatsAppStatsGrid";
-import { WhatsAppInstancesTab } from "@/components/admin/whatsapp/WhatsAppInstancesTab";
-import { WhatsAppDiagnosticTab } from "@/components/admin/whatsapp/WhatsAppDiagnosticTab";
-import { WhatsAppSystemTab } from "@/components/admin/whatsapp/WhatsAppSystemTab";
-import { toast } from "sonner";
+import { VPSInstanceCorrection } from "@/components/admin/VPSInstanceCorrection";
+import { WhatsAppDiagnostic } from "@/components/settings/whatsapp/WhatsAppDiagnostic";
+import { GlobalInstanceSync } from "@/components/admin/GlobalInstanceSync";
+import { TestSyncButton } from "@/components/admin/TestSyncButton";
+import { WhatsAppAdminPanel } from "@/components/admin/WhatsAppAdminPanel";
 
 export const UnifiedWhatsAppPanel = () => {
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  
-  const { instances, isLoading, refetch } = useInstancesData();
-  const { 
-    syncCount, 
-    healthScore, 
-    isHealthy, 
-    lastSync,
-    refetch: forceSync 
-  } = useStabilizedInstanceSync();
-
-  const connectedInstances = instances.filter(i => 
-    ['open', 'ready', 'connected'].includes(i.connection_status)
-  );
-  
-  const disconnectedInstances = instances.filter(i => 
-    !['open', 'ready', 'connected'].includes(i.connection_status)
-  );
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    try {
-      await Promise.all([refetch(), forceSync()]);
-      toast.success("Dados atualizados com sucesso!");
-    } catch (error) {
-      toast.error("Erro ao atualizar dados");
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
-      <WhatsAppPanelHeader 
-        onRefresh={handleRefresh}
-        isRefreshing={isRefreshing}
-      />
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Gestão WhatsApp Global</h1>
+        <p className="text-gray-600 mt-1">
+          Administração completa das instâncias WhatsApp
+        </p>
+      </div>
 
-      <WhatsAppStatsGrid 
-        connectedInstances={connectedInstances}
-        disconnectedInstances={disconnectedInstances}
-        totalInstances={instances.length}
-        healthScore={healthScore}
-        isHealthy={isHealthy}
-      />
+      {/* Ferramentas de Administração Globais */}
+      <Card className="bg-yellow-50 border-yellow-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-yellow-800">
+            <Wrench className="h-5 w-5" />
+            Ferramentas de Administração Global
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="test" className="w-full">
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="test" className="gap-2">
+                <TestTube className="h-4 w-4" />
+                Teste Sync
+              </TabsTrigger>
+              <TabsTrigger value="sync" className="gap-2">
+                <Globe className="h-4 w-4" />
+                Sincronização
+              </TabsTrigger>
+              <TabsTrigger value="orphans" className="gap-2">
+                <Database className="h-4 w-4" />
+                Órfãs
+              </TabsTrigger>
+              <TabsTrigger value="correction" className="gap-2">
+                <Settings className="h-4 w-4" />
+                Correção
+              </TabsTrigger>
+              <TabsTrigger value="diagnostic" className="gap-2">
+                <Shield className="h-4 w-4" />
+                Diagnóstico
+              </TabsTrigger>
+            </TabsList>
 
-      <Tabs defaultValue="instances" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="instances">Instâncias Ativas</TabsTrigger>
-          <TabsTrigger value="orphans">Instâncias Órfãs</TabsTrigger>
-          <TabsTrigger value="diagnostic">Diagnóstico</TabsTrigger>
-          <TabsTrigger value="system">Sistema</TabsTrigger>
-        </TabsList>
+            <TabsContent value="test" className="mt-6">
+              <TestSyncButton />
+            </TabsContent>
 
-        <TabsContent value="instances" className="space-y-6">
-          <WhatsAppInstancesTab 
-            instances={instances}
-            isLoading={isLoading}
-          />
-        </TabsContent>
+            <TabsContent value="sync" className="mt-6">
+              <GlobalInstanceSync />
+            </TabsContent>
 
-        <TabsContent value="orphans" className="space-y-6">
-          <OrphanInstanceManager />
-        </TabsContent>
+            <TabsContent value="orphans" className="mt-6">
+              <OrphanInstanceManager />
+            </TabsContent>
 
-        <TabsContent value="diagnostic" className="space-y-6">
-          <WhatsAppDiagnosticTab />
-        </TabsContent>
+            <TabsContent value="correction" className="mt-6">
+              <VPSInstanceCorrection />
+            </TabsContent>
 
-        <TabsContent value="system" className="space-y-6">
-          <WhatsAppSystemTab 
-            isHealthy={isHealthy}
-            syncCount={syncCount}
-            lastSync={lastSync?.toISOString()}
-            connectedInstances={connectedInstances}
-            disconnectedInstances={disconnectedInstances}
-          />
-        </TabsContent>
-      </Tabs>
+            <TabsContent value="diagnostic" className="mt-6">
+              <WhatsAppDiagnostic />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      {/* Painel de Administração Original */}
+      <WhatsAppAdminPanel />
     </div>
   );
 };
