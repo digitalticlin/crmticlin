@@ -40,12 +40,13 @@ export const WhatsAppWebSection = () => {
         maxAttempts={maxAttempts}
       />
 
-      {/* Header com botão de conectar */}
+      {/* Header com botão de conectar - Modernizado */}
       <WhatsAppWebSectionHeader
         onConnect={handleConnect}
         isConnecting={isConnectingOrPolling}
         isLoading={isLoading}
         companyLoading={companyLoading}
+        isWaitingForQR={isWaitingForQR}
       />
 
       {/* Grid de instâncias ou estado vazio */}
