@@ -1,99 +1,95 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RefreshCcw, Loader2, CheckCircle, XCircle } from "lucide-react";
-import { toast } from "sonner";
+import { RefreshCw, CheckCircle, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const TestSyncButton = () => {
-  const [isRunning, setIsRunning] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [lastResult, setLastResult] = useState<any>(null);
 
-  const executeSyncTest = async () => {
-    setIsRunning(true);
-    setResult(null);
-    
-    console.log("🔄 Executando teste de sincronização...");
+  const executeDedicatedSync = async () => {
+    setIsLoading(true);
     
     try {
+      console.log('[Test Sync] 🔄 Executando sync dedicado...');
+      
       const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
         body: {
-          action: 'sync_instances'
+          action: 'sync_all_instances'
         }
       });
-
-      console.log("📥 Resposta da edge function:", data);
-      console.log("❌ Erro (se houver):", error);
 
       if (error) {
         throw error;
       }
 
-      setResult(data);
+      console.log('[Test Sync] ✅ Resultado do sync:', data);
+      setLastResult(data);
       
-      if (data && data.success) {
-        toast.success("Sincronização executada com sucesso!");
+      if (data.success) {
+        toast.success(`Sync concluído! ${data.results?.added || 0} adicionadas, ${data.results?.updated || 0} atualizadas`);
       } else {
-        toast.error("Falha na sincronização: " + (data?.error || "Erro desconhecido"));
+        toast.error(`Sync falhou: ${data.error}`);
       }
       
     } catch (error: any) {
-      console.error("💥 Erro na sincronização:", error);
-      setResult({ success: false, error: error.message });
-      toast.error("Erro na sincronização: " + error.message);
+      console.error('[Test Sync] ❌ Erro:', error);
+      toast.error(`Erro no sync: ${error.message}`);
+      setLastResult({ success: false, error: error.message });
     } finally {
-      setIsRunning(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <Card className="bg-white/30 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <RefreshCcw className="h-5 w-5 text-blue-500" />
-          Teste de Sincronização VPS → Supabase
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
         <Button
-          onClick={executeSyncTest}
-          disabled={isRunning}
-          className="gap-2 w-full"
-          size="lg"
+          onClick={executeDedicatedSync}
+          disabled={isLoading}
+          variant="outline"
+          className="gap-2"
         >
-          {isRunning ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Executando Sincronização...
-            </>
-          ) : (
-            <>
-              <RefreshCcw className="h-4 w-4" />
-              Executar Sincronização de Teste
-            </>
-          )}
+          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          {isLoading ? 'Sincronizando...' : 'Testar Sync Dedicado'}
         </Button>
+      </div>
 
-        {result && (
-          <div className="mt-4 p-4 bg-white/20 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              {result.success ? (
-                <CheckCircle className="h-4 w-4 text-green-500" />
-              ) : (
-                <XCircle className="h-4 w-4 text-red-500" />
-              )}
-              <span className="font-medium">
-                {result.success ? "Sucesso" : "Falha"}
-              </span>
-            </div>
-            
-            <pre className="text-xs bg-black/20 p-2 rounded overflow-auto max-h-60">
-              {JSON.stringify(result, null, 2)}
-            </pre>
+      {lastResult && (
+        <div className="p-4 border rounded-lg space-y-2">
+          <div className="flex items-center gap-2">
+            {lastResult.success ? (
+              <CheckCircle className="h-5 w-5 text-green-500" />
+            ) : (
+              <AlertCircle className="h-5 w-5 text-red-500" />
+            )}
+            <span className="font-medium">
+              {lastResult.success ? 'Sucesso' : 'Falha'}
+            </span>
           </div>
-        )}
-      </CardContent>
-    </Card>
+          
+          {lastResult.summary && (
+            <div className="text-sm space-y-1">
+              <div>VPS: {lastResult.summary.vps_instances} instâncias</div>
+              <div>Supabase: {lastResult.summary.supabase_instances} instâncias</div>
+              <div>Órfãs encontradas: {lastResult.summary.orphans_found}</div>
+              <div>Adicionadas: {lastResult.summary.added}</div>
+              <div>Atualizadas: {lastResult.summary.updated}</div>
+              {lastResult.summary.errors_count > 0 && (
+                <div className="text-red-600">Erros: {lastResult.summary.errors_count}</div>
+              )}
+            </div>
+          )}
+          
+          {lastResult.error && (
+            <div className="text-red-600 text-sm">
+              Erro: {lastResult.error}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 };

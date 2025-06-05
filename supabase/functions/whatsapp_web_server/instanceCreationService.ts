@@ -1,176 +1,111 @@
 
-import { VPS_CONFIG, corsHeaders, testVPSConnection, isRealQRCode } from './config.ts';
-import { InstanceData } from './types.ts';
+import { corsHeaders, VPS_CONFIG, getVPSHeaders } from './config.ts';
 import { createVPSInstance } from './vpsRequestService.ts';
-import { waitForQRCode, updateQRCodeInDatabase } from './qrCodePollingService.ts';
 
-// Validação simplificada de parâmetros
-async function validateInstanceCreationParams(instanceData: InstanceData, userId: string) {
-  if (!instanceData?.instanceName) {
-    throw new Error('Nome da instância é obrigatório');
-  }
-  
-  if (!userId) {
-    throw new Error('ID do usuário é obrigatório');
-  }
-  
-  console.log('[Instance Creation] ✅ Parâmetros validados');
-}
-
-// Obter dados da empresa do usuário
-async function getUserCompany(supabase: any, userId: string) {
-  console.log('[Instance Creation] 👤 Buscando dados do usuário:', userId);
-  
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('company_id')
-    .eq('id', userId)
-    .single();
-
-  if (profileError || !profile?.company_id) {
-    console.error('[Instance Creation] ❌ Erro ao buscar perfil:', profileError);
-    throw new Error('Usuário não possui empresa associada');
-  }
-
-  console.log('[Instance Creation] ✅ Empresa encontrada:', profile.company_id);
-  return profile;
-}
-
-// Validar unicidade do nome da instância
-async function validateInstanceNameUniqueness(supabase: any, companyId: string, instanceName: string) {
-  console.log('[Instance Creation] 🔍 Validando unicidade do nome:', instanceName);
-  
-  const { data: existing, error } = await supabase
-    .from('whatsapp_instances')
-    .select('id')
-    .eq('company_id', companyId)
-    .eq('instance_name', instanceName)
-    .single();
-
-  if (existing) {
-    throw new Error(`Já existe uma instância com o nome "${instanceName}"`);
-  }
-
-  console.log('[Instance Creation] ✅ Nome da instância é único');
-}
-
-export async function createWhatsAppInstance(supabase: any, instanceData: InstanceData, userId: string) {
-  console.log('[Instance Creation] 🚀 INICIANDO criação WhatsApp Web.js instance:', instanceData);
-  console.log(`[Instance Creation] 👤 User ID recebido: ${userId}`);
+export async function createWhatsAppInstance(supabase: any, instanceData: any, userId: string) {
+  const creationId = `create_${Date.now()}`;
+  console.log(`[Instance Creation] 🚀 CRIANDO INSTÂNCIA [${creationId}]:`, instanceData);
 
   try {
-    // PASSO 1: Validar parâmetros de entrada
-    await validateInstanceCreationParams(instanceData, userId);
-
-    // PASSO 2: Testar conectividade VPS
-    console.log('[Instance Creation] 🔧 PASSO 1: Testando conectividade VPS...');
-    const vpsTest = await testVPSConnection();
+    const { instanceName } = instanceData;
     
-    if (!vpsTest.success) {
-      console.error('[Instance Creation] ❌ VPS não acessível:', vpsTest.error);
-      throw new Error(`VPS inacessível: ${vpsTest.error}`);
+    if (!instanceName) {
+      throw new Error('Nome da instância é obrigatório');
     }
-    
-    console.log('[Instance Creation] ✅ VPS acessível - prosseguindo...');
 
-    // PASSO 3: Obter dados da empresa do usuário
-    const profile = await getUserCompany(supabase, userId);
+    // 1. Verificar se já existe instância com esse nome
+    const { data: existingInstance } = await supabase
+      .from('whatsapp_instances')
+      .select('id, instance_name')
+      .eq('instance_name', instanceName)
+      .single();
 
-    // PASSO 4: Validar unicidade do nome
-    await validateInstanceNameUniqueness(supabase, profile.company_id, instanceData.instanceName);
+    if (existingInstance) {
+      throw new Error(`Já existe uma instância com o nome "${instanceName}"`);
+    }
 
-    // PASSO 5: Gerar ID único para VPS
-    const vpsInstanceId = `whatsapp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // 2. Gerar ID único para VPS
+    const vpsInstanceId = `whatsapp_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+    console.log(`[Instance Creation] 📱 VPS Instance ID gerado: ${vpsInstanceId}`);
 
-    // PASSO 6: Criar instância na VPS
-    console.log('[Instance Creation] 🔧 Criando instância na VPS...');
-    const payload = {
+    // 3. Criar instância na VPS
+    const vpsPayload = {
       instanceId: vpsInstanceId,
-      instanceName: instanceData.instanceName,
-      sessionName: instanceData.instanceName,
-      webhookUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/whatsapp_web_server`,
-      companyId: profile.company_id
+      instanceName: instanceName,
+      token: VPS_CONFIG.apiToken,
+      qrcode: true,
+      webhook: true,
+      webhook_by_events: false,
+      webhookEvents: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE"]
     };
 
-    const vpsResult = await createVPSInstance(payload);
-    console.log('[Instance Creation] ✅ Instância criada na VPS - Resultado:', vpsResult);
-
-    // PASSO 7: Salvar no banco IMEDIATAMENTE (CORREÇÃO: phone null permitido)
-    console.log('[Instance Creation] 💾 Salvando no banco IMEDIATAMENTE (PHONE NULL PERMITIDO)...');
+    console.log('[Instance Creation] 🌐 Enviando para VPS:', vpsPayload);
+    const vpsResult = await createVPSInstance(vpsPayload);
     
-    const instanceToSave = {
-      instance_name: instanceData.instanceName,
-      phone: null, // CORREÇÃO: NULL permitido agora no banco
-      company_id: profile.company_id,
+    if (!vpsResult.success) {
+      throw new Error(`Falha ao criar instância na VPS: ${vpsResult.error || 'Erro desconhecido'}`);
+    }
+
+    console.log('[Instance Creation] ✅ Instância criada na VPS com sucesso');
+
+    // 4. Buscar dados do usuário
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', userId)
+      .single();
+
+    if (!userProfile?.company_id) {
+      throw new Error('Usuário não possui empresa associada');
+    }
+
+    // 5. Salvar no Supabase
+    const instanceRecord = {
+      instance_name: instanceName,
+      vps_instance_id: vpsInstanceId,
+      company_id: userProfile.company_id,
       connection_type: 'web',
       server_url: VPS_CONFIG.baseUrl,
-      vps_instance_id: vpsInstanceId,
-      web_status: 'waiting_scan',
+      web_status: 'connecting',
       connection_status: 'connecting',
-      qr_code: vpsResult.qrCode || null
+      qr_code: vpsResult.qrCode || null,
+      created_at: new Date().toISOString()
     };
 
-    console.log('[Instance Creation] 📋 Dados para salvar (PHONE NULL PERMITIDO):', instanceToSave);
-
-    const { data: dbInstance, error: dbError } = await supabase
+    const { data: savedInstance, error: saveError } = await supabase
       .from('whatsapp_instances')
-      .insert(instanceToSave)
+      .insert(instanceRecord)
       .select()
       .single();
 
-    if (dbError) {
-      console.error('[Instance Creation] ❌ ERRO CRÍTICO - Database error after VPS success:', dbError);
-      console.error('[Instance Creation] 📋 Dados que causaram erro:', instanceToSave);
-      throw new Error(`Erro CRÍTICO no banco de dados: ${dbError.message}`);
+    if (saveError) {
+      console.error('[Instance Creation] ❌ Erro ao salvar no Supabase:', saveError);
+      throw new Error(`Erro ao salvar instância: ${saveError.message}`);
     }
 
-    console.log('[Instance Creation] 🎉 INSTÂNCIA SALVA COM SUCESSO no banco (PHONE NULL):', dbInstance);
-
-    // PASSO 8: Tentar obter QR Code real se não veio inicialmente
-    let finalQRCode = vpsResult.qrCode;
-    
-    if (!finalQRCode || !isRealQRCode(finalQRCode)) {
-      console.log('[Instance Creation] 🔄 QR Code não disponível - iniciando polling...');
-      
-      const polledQRCode = await waitForQRCode(vpsInstanceId);
-      
-      if (polledQRCode) {
-        const updated = await updateQRCodeInDatabase(supabase, dbInstance.id, polledQRCode);
-        if (updated) {
-          finalQRCode = polledQRCode;
-          console.log('[Instance Creation] 🎉 QR Code obtido via polling e atualizado no banco!');
-        }
-      }
-    }
-
-    console.log('[Instance Creation] 🎉 SUCESSO TOTAL! Instance ID:', dbInstance.id);
+    console.log(`[Instance Creation] ✅ Instância salva no Supabase [${creationId}]:`, savedInstance.id);
 
     return new Response(
       JSON.stringify({
         success: true,
-        instance: {
-          ...dbInstance,
-          qr_code: finalQRCode
-        }
+        instance: savedInstance,
+        vpsInstanceId: vpsInstanceId,
+        qrCode: vpsResult.qrCode,
+        creationId,
+        message: 'Instância criada com sucesso'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: any) {
-    console.error('[Instance Creation] 💥 ERRO GERAL:', error);
-    console.error('[Instance Creation] Stack trace:', error.stack);
+    console.error(`[Instance Creation] ❌ ERRO GERAL [${creationId}]:`, error);
     
     return new Response(
       JSON.stringify({
         success: false,
         error: error.message,
-        action: 'error_handling_improved',
-        timestamp: new Date().toISOString(),
-        details: {
-          step: 'creation_process',
-          userId: userId,
-          instanceName: instanceData?.instanceName
-        }
+        creationId,
+        timestamp: new Date().toISOString()
       }),
       { 
         status: 500,
