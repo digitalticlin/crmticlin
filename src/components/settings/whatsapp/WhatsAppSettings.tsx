@@ -1,36 +1,84 @@
-
-import { WhatsAppWebSection } from "./WhatsAppWebSection";
-import { VPSTokenDiagnostic } from "./VPSTokenDiagnostic";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useCompanyData } from "@/hooks/useCompanyData";
-import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
+import { WhatsAppWebSection } from "./WhatsAppWebSection";
+import { WhatsAppAdminPanel } from "./WhatsAppAdminPanel";
 
-const WhatsAppSettings = () => {
+export const WhatsAppSettings = () => {
+  const { companyId, isLoading: companyLoading } = useCompanyData();
+  const { data: profile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não encontrado');
+      
+      const { data } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      
+      return data;
+    },
+  });
+
+  const { data: instances, isLoading, refetch } = useQuery({
+    queryKey: ['whatsappInstances', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      const { data } = await supabase
+        .from('whatsapp_instances')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('connection_type', 'web')
+        .order('created_at', { ascending: false });
+      return data;
+    },
+    enabled: !!companyId,
+  });
+
   console.log('[WhatsAppSettings] Component rendering - WhatsApp Web.js only');
-  
-  const { companyId, loading: companyLoading } = useCompanyData();
-  
-  const {
-    instances,
-    isLoading,
-    error,
-    refetch
-  } = useWhatsAppWebInstances();
-
   console.log('[WhatsAppSettings] WhatsApp Web instances loaded:', {
-    instancesCount: instances.length,
+    instancesCount: instances?.length || 0,
     loading: isLoading,
     companyLoading
   });
 
+  if (companyLoading || isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+          <div className="h-32 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  const isAdmin = profile?.role === 'admin';
+
   return (
-    <div className="space-y-8">
-      {/* Diagnóstico de Token VPS - Primeira seção para resolver problemas */}
-      <VPSTokenDiagnostic />
-      
-      {/* WhatsApp Section - Interface limpa sem cards de VPS */}
-      <WhatsAppWebSection />
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Configurações do WhatsApp</h1>
+        <p className="text-gray-600 mt-2">
+          Gerencie suas conexões do WhatsApp Web.js
+        </p>
+      </div>
+
+      {/* Painel de Administração - Apenas para Admins */}
+      {isAdmin && (
+        <div className="mb-8">
+          <WhatsAppAdminPanel />
+        </div>
+      )}
+
+      {/* Seção Principal do WhatsApp Web.js */}
+      <WhatsAppWebSection 
+        instances={instances || []} 
+        isLoading={isLoading}
+        onRefresh={refetch}
+      />
     </div>
   );
 };
-
-export default WhatsAppSettings;
