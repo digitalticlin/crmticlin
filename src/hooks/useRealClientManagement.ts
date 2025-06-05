@@ -38,6 +38,29 @@ export function useRealClientManagement() {
   const { companyId } = useCompanyData();
   const queryClient = useQueryClient();
 
+  // Buscar primeira instância WhatsApp da empresa para usar como padrão
+  const { data: defaultWhatsAppInstance } = useQuery({
+    queryKey: ["default-whatsapp", companyId],
+    queryFn: async () => {
+      if (!companyId) return null;
+      
+      const { data, error } = await supabase
+        .from("whatsapp_instances")
+        .select("id")
+        .eq("company_id", companyId)
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Erro ao buscar instância WhatsApp:", error);
+        return null;
+      }
+
+      return data;
+    },
+    enabled: !!companyId,
+  });
+
   // Buscar clientes do banco de dados
   const clientsQuery = useQuery({
     queryKey: ["clients", companyId],
@@ -55,7 +78,20 @@ export function useRealClientManagement() {
         throw error;
       }
 
-      return data || [];
+      // Mapear os dados da tabela leads para nossa interface ClientData
+      return (data || []).map(lead => ({
+        id: lead.id,
+        name: lead.name || "Nome não informado",
+        phone: lead.phone,
+        email: lead.email,
+        address: lead.address,
+        company: lead.company,
+        notes: lead.notes,
+        purchase_value: lead.purchase_value,
+        created_at: lead.created_at,
+        updated_at: lead.updated_at,
+        company_id: lead.company_id,
+      }));
     },
     enabled: !!companyId,
   });
@@ -65,6 +101,10 @@ export function useRealClientManagement() {
     mutationFn: async (clientData: ClientFormData) => {
       if (!companyId) {
         throw new Error("Company ID não encontrado");
+      }
+
+      if (!defaultWhatsAppInstance?.id) {
+        throw new Error("Nenhuma instância WhatsApp encontrada. Configure uma instância WhatsApp primeiro.");
       }
 
       // Limpar e validar telefone
@@ -96,6 +136,7 @@ export function useRealClientManagement() {
           notes: clientData.notes,
           purchase_value: clientData.purchase_value,
           company_id: companyId,
+          whatsapp_number_id: defaultWhatsAppInstance.id, // Campo obrigatório
         })
         .select()
         .single();
