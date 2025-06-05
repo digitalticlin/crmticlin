@@ -67,9 +67,11 @@ export const ModernFunnelControlBar = ({
     }
   };
 
-  const handleFunnelButtonClick = () => {
+  const handleFunnelButtonClick = (e: React.MouseEvent) => {
     if (activeTab === "won-lost") {
-      // Se estiver na aba "Ganhos e Perdidos", volta para o funil
+      // Se estiver na aba "Ganhos e Perdidos", volta para o funil sem abrir o dropdown
+      e.preventDefault();
+      e.stopPropagation();
       setActiveTab("funnel");
     }
     // Se já estiver na aba "funnel", o dropdown abre automaticamente pelo DropdownMenuTrigger
