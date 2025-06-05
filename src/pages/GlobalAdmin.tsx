@@ -14,6 +14,7 @@ import { SyncLogsPanel } from "@/components/admin/SyncLogsPanel";
 import { SimpleVPSDiagnostic } from "@/components/admin/SimpleVPSDiagnostic";
 import { VPSInstancesSimplified } from "@/components/admin/VPSInstancesSimplified";
 import { VPSDiagnosticPanel } from "@/components/admin/VPSDiagnosticPanel";
+import { OrphanInstanceManager } from "@/components/settings/whatsapp/OrphanInstanceManager";
 
 export default function GlobalAdmin() {
   const [activeTab, setActiveTab] = useState("companies");
@@ -71,11 +72,16 @@ export default function GlobalAdmin() {
             <TabsContent value="instances">
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-xl font-semibold mb-2">Instâncias WhatsApp - Visualização Simplificada</h2>
+                  <h2 className="text-xl font-semibold mb-2">Gerenciamento de Instâncias WhatsApp</h2>
                   <p className="text-muted-foreground mb-6">
-                    Controle simples e direto das instâncias WhatsApp na VPS com correção automática
+                    Painel completo para gerenciar instâncias órfãs e vinculações de usuário
                   </p>
                 </div>
+                
+                {/* Painel de Órfãs - NOVO */}
+                <OrphanInstanceManager />
+                
+                {/* Painel Simplificado - Existente */}
                 <VPSInstancesSimplified />
               </div>
             </TabsContent>

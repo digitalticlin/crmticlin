@@ -5,6 +5,13 @@ import { corsHeaders } from "./config.ts";
 import { createWhatsAppInstance, deleteWhatsAppInstance } from "./instanceManagement.ts";
 import { getQRCodeFromVPS } from "./qrCodeService.ts";
 import { getQRCodeAsync } from "./qrCodeAsyncService.ts";
+import { 
+  listAllInstancesGlobal, 
+  syncOrphanInstances, 
+  cleanupOrphanInstances, 
+  massReconnectInstances,
+  bindInstanceToUser
+} from "./globalInstanceService.ts";
 
 // CORREÇÃO: Auth helper melhorado
 async function authenticateUser(request: Request, supabase: any) {
@@ -134,6 +141,32 @@ serve(async (req) => {
         }
         
         return await getQRCodeAsync(supabase, body.instanceData.instanceId, user.id);
+
+      // NOVAS ACTIONS PARA PAINEL DE ÓRFÃS
+      case 'list_all_instances_global':
+        console.log('[WhatsApp Server] 🌐 LIST ALL INSTANCES GLOBAL');
+        return await listAllInstancesGlobal(supabase);
+
+      case 'sync_orphan_instances':
+        console.log('[WhatsApp Server] 🔄 SYNC ORPHAN INSTANCES');
+        return await syncOrphanInstances(supabase);
+
+      case 'cleanup_orphan_instances':
+        console.log('[WhatsApp Server] 🧹 CLEANUP ORPHAN INSTANCES');
+        return await cleanupOrphanInstances(supabase);
+
+      case 'mass_reconnect_instances':
+        console.log('[WhatsApp Server] 🔌 MASS RECONNECT INSTANCES');
+        return await massReconnectInstances(supabase);
+
+      case 'bind_instance_to_user':
+        console.log('[WhatsApp Server] 🔗 BIND INSTANCE TO USER');
+        
+        if (!body.instanceData) {
+          throw new Error('Instance data is required for bind_instance_to_user action');
+        }
+        
+        return await bindInstanceToUser(supabase, body.instanceData);
 
       default:
         throw new Error(`Unknown action: ${action}`);
