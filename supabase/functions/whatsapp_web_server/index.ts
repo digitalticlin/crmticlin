@@ -430,19 +430,22 @@ serve(async (req) => {
       case 'bind_instance_to_user':
         console.log('[WhatsApp Server] 🔗 BIND INSTANCE TO USER');
         
-        if (!body.instanceData) {
-          throw new Error('Instance data is required for bind_instance_to_user action');
-        }
-
-        // CORREÇÃO: Verificar se é vinculação por ID específico ou por telefone
-        if (body.instanceData.instanceId && body.instanceData.userEmail) {
+        // CORREÇÃO CRÍTICA: Verificar corretamente os parâmetros enviados
+        if (body.instanceData && body.instanceData.instanceId && body.instanceData.userEmail) {
           console.log('[WhatsApp Server] 🔗 BIND ORPHAN BY VPS INSTANCE ID');
           return await bindOrphanInstanceById(supabase, body.instanceData.instanceId, body.instanceData.userEmail);
         } else if (body.phoneFilter && body.userEmail) {
           console.log('[WhatsApp Server] 🔗 BIND BY PHONE FILTER');
           return await bindByPhone(supabase, body.phoneFilter, body.userEmail);
         } else {
-          throw new Error('Invalid parameters for bind_instance_to_user action. Need either instanceId+userEmail or phoneFilter+userEmail');
+          console.error('[WhatsApp Server] ❌ Invalid parameters received:', {
+            hasInstanceData: !!body.instanceData,
+            instanceId: body.instanceData?.instanceId,
+            userEmail: body.instanceData?.userEmail,
+            phoneFilter: body.phoneFilter,
+            rootUserEmail: body.userEmail
+          });
+          throw new Error('Invalid parameters for bind_instance_to_user action. Need either instanceData.instanceId+instanceData.userEmail or phoneFilter+userEmail');
         }
 
       default:
