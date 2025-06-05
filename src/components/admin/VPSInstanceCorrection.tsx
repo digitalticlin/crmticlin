@@ -5,13 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, UserCheck, Building2 } from 'lucide-react';
+import { Search, UserCheck, Building2, Shield, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export const VPSInstanceCorrection = () => {
   const [phoneFilter, setPhoneFilter] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const correctInstanceBinding = async () => {
     if (!phoneFilter.trim() || !userEmail.trim()) {
@@ -53,6 +54,11 @@ export const VPSInstanceCorrection = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDeleteClick = () => {
+    setShowDeleteConfirm(true);
+    setTimeout(() => setShowDeleteConfirm(false), 3000);
   };
 
   return (
@@ -105,6 +111,38 @@ export const VPSInstanceCorrection = () => {
               </>
             )}
           </Button>
+
+          {/* BLINDAGEM: Botão de exclusão protegido */}
+          <div className="mt-6 p-4 border border-orange-200 rounded-lg bg-orange-50">
+            <div className="flex items-center gap-2 mb-2">
+              <Shield className="h-4 w-4 text-orange-600" />
+              <span className="text-sm font-medium text-orange-800">Área Protegida</span>
+            </div>
+            <p className="text-xs text-orange-700 mb-3">
+              Exclusão de instâncias é uma operação crítica que pode causar perda de dados.
+            </p>
+            
+            {!showDeleteConfirm ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDeleteClick}
+                className="border-orange-300 text-orange-700 hover:bg-orange-100"
+              >
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                Solicitar Exclusão
+              </Button>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-red-600 font-medium">
+                  ⚠️ Função de exclusão bloqueada por segurança
+                </p>
+                <p className="text-xs text-gray-600">
+                  Entre em contato com o administrador do sistema para exclusões.
+                </p>
+              </div>
+            )}
+          </div>
           
           <div className="text-sm text-muted-foreground">
             <p><strong>Exemplo de uso:</strong></p>
