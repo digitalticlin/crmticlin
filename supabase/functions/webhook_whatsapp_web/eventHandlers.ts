@@ -1,18 +1,20 @@
 
-// FASE 3: Handlers para eventos de instância
+// FASE 1: Handlers para eventos de instância com logs melhorados
 export async function handleInstanceCreatedEvent(supabase: any, instanceId: string, data: any) {
-  console.log('[Webhook FASE 3] 🆕 Instance created event:', instanceId);
+  console.log('[Webhook FASE 1] 🆕 Instance created event:', instanceId);
+  console.log('[Webhook FASE 1] 📋 Creation data:', JSON.stringify(data, null, 2));
   
   try {
     // Log the event but don't create automatically - let sync handle adoption
-    console.log('[Webhook FASE 3] 📝 Instance created on VPS, will be adopted by sync process');
+    console.log('[Webhook FASE 1] 📝 Instance created on VPS, will be adopted by sync process');
   } catch (error) {
-    console.error('[Webhook FASE 3] ❌ Exception in handleInstanceCreatedEvent:', error);
+    console.error('[Webhook FASE 1] ❌ Exception in handleInstanceCreatedEvent:', error);
   }
 }
 
 export async function handleInstanceDestroyedEvent(supabase: any, instanceId: string, data: any) {
-  console.log('[Webhook FASE 3] 🗑️ Instance destroyed event:', instanceId);
+  console.log('[Webhook FASE 1] 🗑️ Instance destroyed event:', instanceId);
+  console.log('[Webhook FASE 1] 📋 Destruction data:', JSON.stringify(data, null, 2));
   
   try {
     const { error } = await supabase
@@ -26,17 +28,18 @@ export async function handleInstanceDestroyedEvent(supabase: any, instanceId: st
       .eq('vps_instance_id', instanceId);
 
     if (error) {
-      console.error('[Webhook FASE 3] ❌ Error updating destroyed status:', error);
+      console.error('[Webhook FASE 1] ❌ Error updating destroyed status:', error);
     } else {
-      console.log('[Webhook FASE 3] ✅ Instance marked as destroyed');
+      console.log('[Webhook FASE 1] ✅ Instance marked as destroyed');
     }
   } catch (error) {
-    console.error('[Webhook FASE 3] ❌ Exception in handleInstanceDestroyedEvent:', error);
+    console.error('[Webhook FASE 1] ❌ Exception in handleInstanceDestroyedEvent:', error);
   }
 }
 
 export async function handleDisconnectedEvent(supabase: any, instanceId: string, data: any) {
-  console.log('[Webhook FASE 3] 🔌 Disconnected event for instance:', instanceId);
+  console.log('[Webhook FASE 1] 🔌 Disconnected event for instance:', instanceId);
+  console.log('[Webhook FASE 1] 📋 Disconnection data:', JSON.stringify(data, null, 2));
   
   try {
     const { error } = await supabase
@@ -50,17 +53,18 @@ export async function handleDisconnectedEvent(supabase: any, instanceId: string,
       .eq('vps_instance_id', instanceId);
 
     if (error) {
-      console.error('[Webhook FASE 3] ❌ Error updating disconnected status:', error);
+      console.error('[Webhook FASE 1] ❌ Error updating disconnected status:', error);
     } else {
-      console.log('[Webhook FASE 3] ✅ Instance marked as disconnected');
+      console.log('[Webhook FASE 1] ✅ Instance marked as disconnected');
     }
   } catch (error) {
-    console.error('[Webhook FASE 3] ❌ Exception in handleDisconnectedEvent:', error);
+    console.error('[Webhook FASE 1] ❌ Exception in handleDisconnectedEvent:', error);
   }
 }
 
 export async function handleAuthFailureEvent(supabase: any, instanceId: string, data: any) {
-  console.log('[Webhook FASE 3] ❌ Auth failure event for instance:', instanceId);
+  console.log('[Webhook FASE 1] ❌ Auth failure event for instance:', instanceId);
+  console.log('[Webhook FASE 1] 📋 Failure data:', JSON.stringify(data, null, 2));
   
   try {
     const { error } = await supabase
@@ -74,11 +78,11 @@ export async function handleAuthFailureEvent(supabase: any, instanceId: string, 
       .eq('vps_instance_id', instanceId);
 
     if (error) {
-      console.error('[Webhook FASE 3] ❌ Error updating auth failure status:', error);
+      console.error('[Webhook FASE 1] ❌ Error updating auth failure status:', error);
     } else {
-      console.log('[Webhook FASE 3] ✅ Auth failure status updated');
+      console.log('[Webhook FASE 1] ✅ Auth failure status updated');
     }
   } catch (error) {
-    console.error('[Webhook FASE 3] ❌ Exception in handleAuthFailureEvent:', error);
+    console.error('[Webhook FASE 1] ❌ Exception in handleAuthFailureEvent:', error);
   }
 }

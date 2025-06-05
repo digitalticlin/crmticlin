@@ -1,6 +1,8 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { handleQREvent, handleAuthenticatedEvent, handleReadyEvent } from './connectionHandlers.ts';
+import { handleInstanceCreatedEvent, handleInstanceDestroyedEvent, handleDisconnectedEvent, handleAuthFailureEvent } from './eventHandlers.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,9 +10,9 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  console.log('[Webhook Multi-Tenant] 🌐 WEBHOOK GLOBAL RECEBIDO');
-  console.log('[Webhook Multi-Tenant] Method:', req.method);
-  console.log('[Webhook Multi-Tenant] Headers:', Object.fromEntries(req.headers.entries()));
+  console.log('[Webhook FASE 1] 🌐 WEBHOOK GLOBAL RECEBIDO - CORREÇÃO CRÍTICA ATIVA');
+  console.log('[Webhook FASE 1] Method:', req.method);
+  console.log('[Webhook FASE 1] Headers:', Object.fromEntries(req.headers.entries()));
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -24,7 +26,7 @@ serve(async (req) => {
 
     // Parse webhook payload
     const webhookData = await req.json();
-    console.log('[Webhook Multi-Tenant] 📋 Payload recebido:', JSON.stringify(webhookData, null, 2));
+    console.log('[Webhook FASE 1] 📋 Payload recebido:', JSON.stringify(webhookData, null, 2));
 
     // Extrair dados da mensagem
     const { 
@@ -35,12 +37,58 @@ serve(async (req) => {
     } = webhookData;
 
     if (!instanceName) {
-      console.log('[Webhook Multi-Tenant] ⚠️ instanceName não fornecido');
+      console.log('[Webhook FASE 1] ⚠️ instanceName não fornecido');
       return new Response('instanceName é obrigatório', { status: 400 });
     }
 
-    console.log('[Webhook Multi-Tenant] 🏢 Processando para instância:', instanceName);
-    console.log('[Webhook Multi-Tenant] 📡 Evento:', event);
+    console.log('[Webhook FASE 1] 🏢 Processando para instância:', instanceName);
+    console.log('[Webhook FASE 1] 📡 Evento:', event);
+
+    // FASE 1: Processar eventos de conexão específicos
+    if (event === 'qr.update' || event === 'qr') {
+      console.log('[Webhook FASE 1] 📱 QR Code event detected');
+      await handleQREvent(supabase, instanceName, messageData);
+      return new Response(
+        JSON.stringify({ success: true, event: 'qr_processed', instanceName }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (event === 'authenticated') {
+      console.log('[Webhook FASE 1] 🔐 Authentication event detected');
+      await handleAuthenticatedEvent(supabase, instanceName, messageData);
+      return new Response(
+        JSON.stringify({ success: true, event: 'authenticated_processed', instanceName }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (event === 'ready') {
+      console.log('[Webhook FASE 1] ✅ READY EVENT DETECTED - CRITICAL PROCESSING');
+      await handleReadyEvent(supabase, instanceName, messageData);
+      return new Response(
+        JSON.stringify({ success: true, event: 'ready_processed', instanceName }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (event === 'disconnected') {
+      console.log('[Webhook FASE 1] 🔌 Disconnection event detected');
+      await handleDisconnectedEvent(supabase, instanceName, messageData);
+      return new Response(
+        JSON.stringify({ success: true, event: 'disconnected_processed', instanceName }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (event === 'auth_failure') {
+      console.log('[Webhook FASE 1] ❌ Auth failure event detected');
+      await handleAuthFailureEvent(supabase, instanceName, messageData);
+      return new Response(
+        JSON.stringify({ success: true, event: 'auth_failure_processed', instanceName }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Processar mensagem usando o sistema multi-tenant
     const result = await processMultiTenantMessage(supabase, {
@@ -51,7 +99,7 @@ serve(async (req) => {
     });
 
     if (!result.success) {
-      console.error('[Webhook Multi-Tenant] ❌ Erro no processamento:', result.error);
+      console.error('[Webhook FASE 1] ❌ Erro no processamento:', result.error);
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -66,7 +114,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('[Webhook Multi-Tenant] ✅ Mensagem processada com sucesso:', result);
+    console.log('[Webhook FASE 1] ✅ Mensagem processada com sucesso:', result);
 
     return new Response(
       JSON.stringify({ 
@@ -80,7 +128,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('[Webhook Multi-Tenant] 💥 Erro no webhook:', error);
+    console.error('[Webhook FASE 1] 💥 Erro no webhook:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
@@ -96,12 +144,12 @@ serve(async (req) => {
 });
 
 /**
- * Sincronização multi-tenant
+ * FASE 1: Sincronização multi-tenant melhorada
  * Processa mensagens identificando a empresa via vps_instance_id
  */
 async function processMultiTenantMessage(supabase: any, messageData: any) {
   const processId = `process_${Date.now()}`;
-  console.log(`[Multi-Tenant] 🏢 Processando mensagem multi-tenant [${processId}]:`, messageData);
+  console.log(`[Multi-Tenant FASE 1] 🏢 Processando mensagem multi-tenant [${processId}]:`, messageData);
 
   try {
     const { instanceName, data: webhookData, event } = messageData;
@@ -111,7 +159,7 @@ async function processMultiTenantMessage(supabase: any, messageData: any) {
     }
 
     // 1. CRÍTICO: Buscar instância pelo vps_instance_id
-    console.log(`[Multi-Tenant] 🔍 Buscando instância: ${instanceName}`);
+    console.log(`[Multi-Tenant FASE 1] 🔍 Buscando instância: ${instanceName}`);
     
     const { data: instance, error: instanceError } = await supabase
       .from('whatsapp_instances')
@@ -127,9 +175,9 @@ async function processMultiTenantMessage(supabase: any, messageData: any) {
       .single();
 
     if (instanceError || !instance) {
-      console.error(`[Multi-Tenant] ❌ Instância não encontrada: ${instanceName}`, instanceError);
+      console.error(`[Multi-Tenant FASE 1] ❌ Instância não encontrada: ${instanceName}`, instanceError);
       
-      // Log do erro para debug
+      // FASE 2: Log do erro para debug
       await supabase
         .from('sync_logs')
         .insert({
@@ -142,7 +190,7 @@ async function processMultiTenantMessage(supabase: any, messageData: any) {
       return { success: false, error: 'Instância não encontrada', instanceName };
     }
 
-    console.log(`[Multi-Tenant] ✅ Instância encontrada:`, {
+    console.log(`[Multi-Tenant FASE 1] ✅ Instância encontrada:`, {
       id: instance.id,
       company: instance.companies?.name,
       company_id: instance.company_id
@@ -157,7 +205,7 @@ async function processMultiTenantMessage(supabase: any, messageData: any) {
       result = await processConnectionUpdate(supabase, instance, webhookData, processId);
     }
 
-    // 3. Log do processamento
+    // 3. FASE 2: Log do processamento
     await supabase
       .from('sync_logs')
       .insert({
@@ -175,8 +223,9 @@ async function processMultiTenantMessage(supabase: any, messageData: any) {
     return result;
 
   } catch (error) {
-    console.error(`[Multi-Tenant] ❌ Erro no processamento [${processId}]:`, error);
+    console.error(`[Multi-Tenant FASE 1] ❌ Erro no processamento [${processId}]:`, error);
     
+    // FASE 2: Log do erro
     await supabase
       .from('sync_logs')
       .insert({
@@ -192,7 +241,7 @@ async function processMultiTenantMessage(supabase: any, messageData: any) {
 
 // Função auxiliar para processar mensagens recebidas
 async function processIncomingMessage(supabase: any, instance: any, messageData: any, processId: string) {
-  console.log(`[Multi-Tenant] 📨 Processando mensagem recebida [${processId}]`);
+  console.log(`[Multi-Tenant FASE 1] 📨 Processando mensagem recebida [${processId}]`);
   
   try {
     const message = messageData.messages?.[0];
@@ -203,8 +252,8 @@ async function processIncomingMessage(supabase: any, instance: any, messageData:
                        message.message?.extendedTextMessage?.text || 
                        '[Mídia]';
     
-    console.log(`[Multi-Tenant] 👤 De: ${fromNumber} | Empresa: ${instance.companies?.name}`);
-    console.log(`[Multi-Tenant] 💬 Mensagem: ${messageText}`);
+    console.log(`[Multi-Tenant FASE 1] 👤 De: ${fromNumber} | Empresa: ${instance.companies?.name}`);
+    console.log(`[Multi-Tenant FASE 1] 💬 Mensagem: ${messageText}`);
 
     // Buscar ou criar lead
     let { data: lead, error: leadError } = await supabase
@@ -216,7 +265,7 @@ async function processIncomingMessage(supabase: any, instance: any, messageData:
       .single();
 
     if (leadError || !lead) {
-      console.log(`[Multi-Tenant] 👤 Criando novo lead para empresa ${instance.company_id}`);
+      console.log(`[Multi-Tenant FASE 1] 👤 Criando novo lead para empresa ${instance.company_id}`);
       
       const { data: newLead, error: createError } = await supabase
         .from('leads')
@@ -233,12 +282,12 @@ async function processIncomingMessage(supabase: any, instance: any, messageData:
         .single();
 
       if (createError) {
-        console.error(`[Multi-Tenant] ❌ Erro ao criar lead:`, createError);
+        console.error(`[Multi-Tenant FASE 1] ❌ Erro ao criar lead:`, createError);
         return { success: false, error: createError.message };
       }
       
       lead = newLead;
-      console.log(`[Multi-Tenant] ✅ Lead criado: ${lead.id}`);
+      console.log(`[Multi-Tenant FASE 1] ✅ Lead criado: ${lead.id}`);
     } else {
       // Atualizar lead existente
       await supabase
@@ -250,7 +299,7 @@ async function processIncomingMessage(supabase: any, instance: any, messageData:
         })
         .eq('id', lead.id);
       
-      console.log(`[Multi-Tenant] ✅ Lead atualizado: ${lead.id}`);
+      console.log(`[Multi-Tenant FASE 1] ✅ Lead atualizado: ${lead.id}`);
     }
 
     // Salvar mensagem
@@ -267,22 +316,22 @@ async function processIncomingMessage(supabase: any, instance: any, messageData:
       });
 
     if (messageError) {
-      console.error(`[Multi-Tenant] ❌ Erro ao salvar mensagem:`, messageError);
+      console.error(`[Multi-Tenant FASE 1] ❌ Erro ao salvar mensagem:`, messageError);
       return { success: false, error: messageError.message };
     }
 
-    console.log(`[Multi-Tenant] ✅ Mensagem salva para empresa ${instance.companies?.name}`);
+    console.log(`[Multi-Tenant FASE 1] ✅ Mensagem salva para empresa ${instance.companies?.name}`);
     return { success: true, processed: true, leadId: lead.id };
 
   } catch (error) {
-    console.error(`[Multi-Tenant] ❌ Erro ao processar mensagem:`, error);
+    console.error(`[Multi-Tenant FASE 1] ❌ Erro ao processar mensagem:`, error);
     return { success: false, error: error.message };
   }
 }
 
 // Função auxiliar para processar atualizações de conexão
 async function processConnectionUpdate(supabase: any, instance: any, connectionData: any, processId: string) {
-  console.log(`[Multi-Tenant] 🔗 Processando atualização de conexão [${processId}]`);
+  console.log(`[Multi-Tenant FASE 1] 🔗 Processando atualização de conexão [${processId}]`);
   
   try {
     const connectionStatus = connectionData.connection || 'unknown';
@@ -296,11 +345,11 @@ async function processConnectionUpdate(supabase: any, instance: any, connectionD
       })
       .eq('id', instance.id);
 
-    console.log(`[Multi-Tenant] ✅ Status atualizado para ${instance.companies?.name}: ${connectionStatus}`);
+    console.log(`[Multi-Tenant FASE 1] ✅ Status atualizado para ${instance.companies?.name}: ${connectionStatus}`);
     return { success: true, processed: true, status: connectionStatus };
     
   } catch (error) {
-    console.error(`[Multi-Tenant] ❌ Erro ao atualizar conexão:`, error);
+    console.error(`[Multi-Tenant FASE 1] ❌ Erro ao atualizar conexão:`, error);
     return { success: false, error: error.message };
   }
 }
