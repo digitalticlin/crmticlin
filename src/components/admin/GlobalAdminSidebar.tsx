@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { 
@@ -12,7 +11,7 @@ import {
   Activity,
   Database,
   Server,
-  Sync
+  RefreshCw
 } from "lucide-react";
 
 interface GlobalAdminSidebarProps {
@@ -27,7 +26,7 @@ const sidebarItems = [
   { id: "whatsapp", label: "WhatsApp & Instâncias", icon: MessageSquare },
   { id: "diagnostic", label: "Diagnóstico", icon: Activity },
   { id: "persistence", label: "Persistência", icon: Database },
-  { id: "sync", label: "Sincronização", icon: Sync },
+  { id: "sync", label: "Sincronização", icon: RefreshCw },
   { id: "sync-logs", label: "Logs Sync", icon: FileText },
   { id: "vps", label: "VPS", icon: Server },
   { id: "logs", label: "Logs", icon: FileText },
