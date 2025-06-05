@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.177.1/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { corsHeaders } from './config.ts';
@@ -17,6 +18,7 @@ import {
   bindOrphanInstanceById 
 } from './instanceUserBinding.ts';
 import { syncAllInstances } from './instanceSyncDedicatedService.ts';
+import { deleteVPSInstanceCleanup } from './vpsCleanupService.ts';
 
 Deno.serve(async (req) => {
   console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED - VERSÃO CORRIGIDA ATIVA');
@@ -44,6 +46,12 @@ Deno.serve(async (req) => {
 
     const action = body.action;
     console.log('[WhatsApp Server] 🎯 Action extracted:', action);
+
+    // Ação especial para cleanup de VPS - não requer autenticação (chamada por trigger)
+    if (action === 'delete_vps_instance_cleanup') {
+      console.log('[WhatsApp Server] 🧹 VPS CLEANUP (triggered by database)');
+      return await deleteVPSInstanceCleanup(supabase, body.vps_instance_id, body.instance_name);
+    }
 
     // Authenticate user for most actions
     const authResult = await authenticateUser(req, supabase);
