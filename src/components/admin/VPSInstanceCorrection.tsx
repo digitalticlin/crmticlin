@@ -14,47 +14,54 @@ export const VPSInstanceCorrection = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Função para vincular instância órfã específica - CORRIGIDA
+  // CORREÇÃO: Função para vincular instância órfã específica com logs detalhados
   const correctOrphanInstance = async () => {
     if (!instanceId.trim() || !userEmail.trim()) {
       toast.error('Preencha o ID da instância e o email do usuário');
       return;
     }
 
+    console.log('[Instance Correction] 🔧 Iniciando vinculação órfã:', { instanceId: instanceId.trim(), userEmail: userEmail.trim() });
+
     setIsLoading(true);
     try {
-      console.log('[Instance Correction] 🔧 Vinculando instância órfã:', { instanceId, userEmail });
-
-      // CORREÇÃO: Usar parâmetros corretos para vinculação por ID específico
-      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
-        body: {
-          action: 'bind_instance_to_user',
-          instanceData: {
-            instanceId: instanceId.trim(),
-            userEmail: userEmail.trim()
-          }
+      // CORREÇÃO CRÍTICA: Usar parâmetros corretos para vinculação por ID específico
+      const requestBody = {
+        action: 'bind_instance_to_user',
+        instanceData: {
+          instanceId: instanceId.trim(),
+          userEmail: userEmail.trim()
         }
+      };
+
+      console.log('[Instance Correction] 📤 Enviando requisição:', requestBody);
+
+      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+        body: requestBody
       });
 
       if (error) {
         console.error('[Instance Correction] ❌ Erro na edge function:', error);
-        throw error;
+        toast.error(`Erro na vinculação: ${error.message}`);
+        return;
       }
 
-      console.log('[Instance Correction] ✅ Resposta da vinculação:', data);
+      console.log('[Instance Correction] 📥 Resposta da vinculação:', data);
 
-      if (data.success) {
-        toast.success(`Instância órfã vinculada com sucesso ao usuário ${data.user?.name || userEmail}`);
+      if (data && data.success) {
+        toast.success(`Instância órfã vinculada com sucesso ao usuário ${data.user?.name || userEmail}!`);
         
         // Limpar campos após sucesso
         setInstanceId('');
         setUserEmail('');
       } else {
-        toast.error('Falha na vinculação: ' + data.error);
+        const errorMessage = data?.error || 'Erro desconhecido na vinculação';
+        console.error('[Instance Correction] ❌ Falha na vinculação:', errorMessage);
+        toast.error(`Falha na vinculação: ${errorMessage}`);
       }
     } catch (error: any) {
       console.error('[Instance Correction] 💥 Erro inesperado:', error);
-      toast.error('Erro ao vincular instância órfã: ' + error.message);
+      toast.error(`Erro inesperado ao vincular instância órfã: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -66,37 +73,44 @@ export const VPSInstanceCorrection = () => {
       return;
     }
 
+    console.log('[Instance Correction] 🔧 Iniciando correção por telefone:', { phoneFilter: phoneFilter.trim(), userEmail: userEmail.trim() });
+
     setIsLoading(true);
     try {
-      console.log('[Instance Correction] 🔧 Iniciando correção manual:', { phoneFilter, userEmail });
+      const requestBody = {
+        action: 'bind_instance_to_user',
+        phoneFilter: phoneFilter.trim(),
+        userEmail: userEmail.trim()
+      };
+
+      console.log('[Instance Correction] 📤 Enviando requisição por telefone:', requestBody);
 
       const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
-        body: {
-          action: 'bind_instance_to_user',
-          phoneFilter: phoneFilter.trim(),
-          userEmail: userEmail.trim()
-        }
+        body: requestBody
       });
 
       if (error) {
         console.error('[Instance Correction] ❌ Erro na edge function:', error);
-        throw error;
+        toast.error(`Erro na correção: ${error.message}`);
+        return;
       }
 
-      console.log('[Instance Correction] ✅ Resposta da correção:', data);
+      console.log('[Instance Correction] 📥 Resposta da correção:', data);
 
-      if (data.success) {
-        toast.success(`Instância vinculada com sucesso ao usuário ${data.user?.name} (${data.user?.company})`);
+      if (data && data.success) {
+        toast.success(`Instância vinculada com sucesso ao usuário ${data.user?.name} (${data.user?.company})!`);
         
         // Limpar campos após sucesso
         setPhoneFilter('');
         setUserEmail('');
       } else {
-        toast.error('Falha na correção: ' + data.error);
+        const errorMessage = data?.error || 'Erro desconhecido na correção';
+        console.error('[Instance Correction] ❌ Falha na correção:', errorMessage);
+        toast.error(`Falha na correção: ${errorMessage}`);
       }
     } catch (error: any) {
       console.error('[Instance Correction] 💥 Erro inesperado:', error);
-      toast.error('Erro ao corrigir vinculação: ' + error.message);
+      toast.error(`Erro inesperado ao corrigir vinculação: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
