@@ -184,4 +184,122 @@ export class WhatsAppWebService {
       };
     }
   }
+
+  // Método faltante: checkServerHealth
+  static async checkServerHealth() {
+    try {
+      console.log('[WhatsApp Web Service] 🏥 Checking server health...');
+
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('User not authenticated');
+      }
+
+      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+        body: {
+          action: 'check_server_health'
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Server health check failed');
+      }
+
+      return {
+        success: true,
+        data: data.data
+      };
+
+    } catch (error) {
+      console.error('[WhatsApp Web Service] ❌ Error checking server health:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  // Método faltante: getServerInfo
+  static async getServerInfo() {
+    try {
+      console.log('[WhatsApp Web Service] 📊 Getting server info...');
+
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('User not authenticated');
+      }
+
+      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+        body: {
+          action: 'get_server_info'
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to get server info');
+      }
+
+      return {
+        success: true,
+        data: data.data,
+        instances: data.instances || []
+      };
+
+    } catch (error) {
+      console.error('[WhatsApp Web Service] ❌ Error getting server info:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  // Método faltante: syncInstances
+  static async syncInstances() {
+    try {
+      console.log('[WhatsApp Web Service] 🔄 Syncing instances...');
+
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('User not authenticated');
+      }
+
+      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+        body: {
+          action: 'sync_all_instances'
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to sync instances');
+      }
+
+      return {
+        success: true,
+        data: data.data
+      };
+
+    } catch (error) {
+      console.error('[WhatsApp Web Service] ❌ Error syncing instances:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
 }

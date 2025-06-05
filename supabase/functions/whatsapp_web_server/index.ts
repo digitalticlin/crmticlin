@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.177.1/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { corsHeaders } from './config.ts';
@@ -82,6 +81,14 @@ Deno.serve(async (req) => {
         console.log('[WhatsApp Server] 🔄 SYNC ALL INSTANCES (DEDICATED)');
         return await syncAllInstances(supabase);
 
+      case 'check_server_health':
+        console.log('[WhatsApp Server] 🏥 CHECK SERVER HEALTH');
+        return await checkServerHealth();
+
+      case 'get_server_info':
+        console.log('[WhatsApp Server] 📊 GET SERVER INFO');
+        return await getServerInfo();
+
       case 'list_all_instances_global':
         console.log('[WhatsApp Server] 🌐 LIST ALL INSTANCES GLOBAL');
         return await listAllInstancesGlobal(supabase);
@@ -98,7 +105,6 @@ Deno.serve(async (req) => {
         console.log('[WhatsApp Server] 🔄 MASS RECONNECT INSTANCES');
         return await massReconnectInstances(supabase);
 
-      // CORREÇÃO CRÍTICA: Adicionar configuração de webhook
       case 'configure_webhook':
         console.log('[WhatsApp Server] 🔗 CONFIGURE WEBHOOK');
         const { instanceId, webhookUrl } = body.instanceData;
@@ -134,7 +140,6 @@ Deno.serve(async (req) => {
       case 'bind_instance_to_user':
         console.log('[WhatsApp Server] 🔗 BIND INSTANCE TO USER');
         
-        // CORREÇÃO: Verificar se é vinculação por VPS instance ID ou por telefone
         console.log('[WhatsApp Server] Request body details:', {
           hasInstanceData: !!body.instanceData,
           instanceData: body.instanceData,
