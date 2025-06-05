@@ -14,7 +14,8 @@ export const useChatDatabase = () => {
       notes: lead.notes,
       lastMessage: lead.last_message,
       lastMessageTime: lead.last_message_time,
-      unreadCount: lead.unread_count || 0, // Garantir que sempre tenha um valor
+      // CORREÇÃO: Garantir que zero não seja exibido
+      unreadCount: lead.unread_count && lead.unread_count > 0 ? lead.unread_count : undefined,
       createdAt: lead.created_at,
       assignedUser: lead.owner_id,
       purchaseValue: lead.purchase_value,

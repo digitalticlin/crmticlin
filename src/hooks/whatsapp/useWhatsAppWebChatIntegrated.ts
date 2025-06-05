@@ -159,11 +159,11 @@ export const useWhatsAppWebChatIntegrated = (activeInstance: WhatsAppWebInstance
       
       const success = await UnreadMessagesService.markAsRead(contact.id);
       if (success) {
-        // Atualizar localmente o contador para UI responsiva
+        // CORREÇÃO: Atualizar localmente o contador para undefined em vez de 0
         setContacts(prevContacts => 
           prevContacts.map(c => 
             c.id === contact.id 
-              ? { ...c, unreadCount: 0 }
+              ? { ...c, unreadCount: undefined }
               : c
           )
         );
@@ -246,7 +246,13 @@ export const useWhatsAppWebChatIntegrated = (activeInstance: WhatsAppWebInstance
             setContacts(prevContacts => 
               prevContacts.map(contact => 
                 contact.id === updatedLead.id 
-                  ? { ...contact, unreadCount: updatedLead.unread_count || 0 }
+                  ? { 
+                      ...contact, 
+                      // CORREÇÃO: Usar undefined se unread_count for 0 ou falsy
+                      unreadCount: updatedLead.unread_count && updatedLead.unread_count > 0 
+                        ? updatedLead.unread_count 
+                        : undefined 
+                    }
                   : contact
               )
             );

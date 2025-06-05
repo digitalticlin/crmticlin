@@ -14,6 +14,8 @@ export const LeadCardHeader = ({ lead, isWonLostView = false }: LeadCardHeaderPr
   const isNewLead = lead.columnId === FIXED_COLUMN_IDS.NEW_LEAD;
   const nameIsId = isNewLead && lead.name.startsWith("ID:");
   const displayName = lead.name || lead.phone;
+  
+  // CORREÇÃO: Verificar se há mensagens não lidas de forma mais rigorosa
   const hasUnreadMessages = lead.unreadCount && lead.unreadCount > 0;
 
   // Aumentar limite do nome já que não temos mais o horário
@@ -46,6 +48,7 @@ export const LeadCardHeader = ({ lead, isWonLostView = false }: LeadCardHeaderPr
           </Badge>
         )}
         
+        {/* CORREÇÃO: Só mostrar badge se realmente houver mensagens não lidas */}
         {hasUnreadMessages && (
           <div className="flex items-center gap-1 bg-red-500 text-white rounded-full px-2 py-1 text-xs flex-shrink-0">
             <MessageCircle className="h-3 w-3" />

@@ -42,6 +42,9 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
   const visibleItems = allTagItems.slice(0, 2);
   const remainingCount = allTagItems.length - 2;
 
+  // CORREÇÃO: Verificar se há mensagens não lidas de forma mais rigorosa
+  const hasUnreadMessages = contact.unreadCount && contact.unreadCount > 0;
+
   return (
     <>
       <div
@@ -81,10 +84,10 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
                 {contact.lastMessage || "Clique para conversar"}
               </p>
               
-              {/* Só mostrar badge se unreadCount existir e for maior que 0 */}
-              {contact.unreadCount && Number(contact.unreadCount) > 0 && (
+              {/* CORREÇÃO: Só mostrar badge se realmente houver mensagens não lidas */}
+              {hasUnreadMessages && (
                 <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs px-1.5 py-0.5 rounded-full ml-2 shadow-sm">
-                  {Number(contact.unreadCount) > 99 ? '99+' : contact.unreadCount}
+                  {contact.unreadCount! > 99 ? '99+' : contact.unreadCount}
                 </Badge>
               )}
             </div>

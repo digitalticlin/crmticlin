@@ -43,46 +43,52 @@ export const ContactsList = ({
       
       <ScrollArea className="flex-1">
         <div className="divide-y divide-gray-200 dark:divide-gray-700">
-          {filteredContacts.map((contact) => (
-            <div
-              key={contact.id}
-              className={cn(
-                "p-3 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer",
-                selectedContact?.id === contact.id && "bg-gray-100 dark:bg-gray-800"
-              )}
-              onClick={() => onSelectContact(contact)}
-            >
-              <div className="flex items-start gap-3">
-                <Avatar className="h-10 w-10 relative">
-                  <AvatarFallback>
-                    {contact.name.split(' ').map(n => n[0]).join('')}
-                  </AvatarFallback>
-                  <AvatarImage src={contact.avatar} alt={contact.name} />
-                  {contact.isOnline && (
-                    <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white dark:border-gray-900" />
+          {filteredContacts.map((contact) => {
+            // CORREÇÃO: Verificar se há mensagens não lidas de forma mais rigorosa
+            const hasUnreadMessages = contact.unreadCount && contact.unreadCount > 0;
+            
+            return (
+              <div
+                key={contact.id}
+                className={cn(
+                  "p-3 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer",
+                  selectedContact?.id === contact.id && "bg-gray-100 dark:bg-gray-800"
+                )}
+                onClick={() => onSelectContact(contact)}
+              >
+                <div className="flex items-start gap-3">
+                  <Avatar className="h-10 w-10 relative">
+                    <AvatarFallback>
+                      {contact.name.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                    <AvatarImage src={contact.avatar} alt={contact.name} />
+                    {contact.isOnline && (
+                      <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white dark:border-gray-900" />
+                    )}
+                  </Avatar>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-medium truncate">{contact.name}</h3>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {contact.lastMessageTime}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {contact.lastMessage}
+                    </p>
+                  </div>
+                  
+                  {/* CORREÇÃO: Só mostrar badge se realmente houver mensagens não lidas */}
+                  {hasUnreadMessages && (
+                    <div className="bg-ticlin text-black rounded-full h-5 min-w-[20px] flex items-center justify-center text-xs font-medium">
+                      {contact.unreadCount}
+                    </div>
                   )}
-                </Avatar>
-                
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-medium truncate">{contact.name}</h3>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      {contact.lastMessageTime}
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground truncate">
-                    {contact.lastMessage}
-                  </p>
                 </div>
-                
-                {contact.unreadCount ? (
-                  <div className="bg-ticlin text-black rounded-full h-5 min-w-[20px] flex items-center justify-center text-xs font-medium">
-                    {contact.unreadCount}
-                  </div>
-                ) : null}
               </div>
-            </div>
-          ))}
+            );
+          })}
           
           {filteredContacts.length === 0 && (
             <div className="p-8 text-center">
