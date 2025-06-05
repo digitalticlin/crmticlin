@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { useRealSalesFunnel } from "@/hooks/salesFunnel/useRealSalesFunnel";
@@ -135,6 +134,7 @@ export default function SalesFunnel() {
           totalLeads={columns.reduce((acc, col) => acc + col.leads.length, 0)}
           wonLeads={columns.find(col => col.title === "GANHO")?.leads.length || 0}
           lostLeads={columns.find(col => col.title === "PERDIDO")?.leads.length || 0}
+          activeTab={activeTab}
         />
 
         {/* Barra de Controles Moderna */}

@@ -7,16 +7,29 @@ interface ModernFunnelHeaderProps {
   totalLeads: number;
   wonLeads: number;
   lostLeads: number;
+  activeTab: string;
 }
 
 export function ModernFunnelHeader({ 
   selectedFunnel, 
   totalLeads, 
   wonLeads, 
-  lostLeads 
+  lostLeads,
+  activeTab 
 }: ModernFunnelHeaderProps) {
   const activeLeads = totalLeads - wonLeads - lostLeads;
   const conversionRate = totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0;
+
+  // Título e descrição baseados na aba ativa
+  const headerContent = activeTab === "won-lost" 
+    ? {
+        title: "Ganhos e Perdidos",
+        description: "Visualize os resultados finais dos seus leads"
+      }
+    : {
+        title: selectedFunnel.name,
+        description: selectedFunnel.description || "Gerencie seus leads e oportunidades de vendas"
+      };
 
   return (
     <div className="bg-white/15 backdrop-blur-xl border border-white/25 rounded-3xl p-8 shadow-2xl">
@@ -24,26 +37,28 @@ export function ModernFunnelHeader({
         {/* Título e Descrição */}
         <div className="space-y-2">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-            {selectedFunnel.name}
+            {headerContent.title}
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl">
-            {selectedFunnel.description || "Gerencie seus leads e oportunidades de vendas"}
+            {headerContent.description}
           </p>
         </div>
 
         {/* Métricas em Cards */}
         <div className="flex flex-wrap gap-4">
-          <div className="bg-white/20 backdrop-blur-lg rounded-2xl p-4 min-w-[120px] border border-white/30">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/20 rounded-xl">
-                <Users className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-800">{activeLeads}</p>
-                <p className="text-sm text-gray-600">Ativos</p>
+          {activeTab === "funnel" && (
+            <div className="bg-white/20 backdrop-blur-lg rounded-2xl p-4 min-w-[120px] border border-white/30">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-500/20 rounded-xl">
+                  <Users className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-800">{activeLeads}</p>
+                  <p className="text-sm text-gray-600">Ativos</p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           <div className="bg-white/20 backdrop-blur-lg rounded-2xl p-4 min-w-[120px] border border-white/30">
             <div className="flex items-center gap-3">
@@ -56,6 +71,20 @@ export function ModernFunnelHeader({
               </div>
             </div>
           </div>
+
+          {activeTab === "won-lost" && (
+            <div className="bg-white/20 backdrop-blur-lg rounded-2xl p-4 min-w-[120px] border border-white/30">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-500/20 rounded-xl">
+                  <AlertCircle className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-800">{lostLeads}</p>
+                  <p className="text-sm text-gray-600">Perdidos</p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="bg-white/20 backdrop-blur-lg rounded-2xl p-4 min-w-[120px] border border-white/30">
             <div className="flex items-center gap-3">
