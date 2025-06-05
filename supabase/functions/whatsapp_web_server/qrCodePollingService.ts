@@ -1,14 +1,13 @@
-
 import { VPS_CONFIG, getVPSHeaders, isRealQRCode } from './config.ts';
 import { makeVPSRequest } from './vpsRequestService.ts';
 
-export async function waitForQRCode(vpsInstanceId: string, maxAttempts = 15, delayMs = 2000): Promise<string | null> {
-  console.log(`[QR Polling] 🔄 Iniciando polling OTIMIZADO para QR Code: ${vpsInstanceId}`);
-  console.log(`[QR Polling] 📊 Configuração RÁPIDA: ${maxAttempts} tentativas, ${delayMs}ms intervalo`);
+export async function waitForQRCode(vpsInstanceId: string, maxAttempts = 8, delayMs = 1500): Promise<string | null> {
+  console.log(`[QR Polling] 🔄 Iniciando polling ULTRA-RÁPIDO para QR Code: ${vpsInstanceId}`);
+  console.log(`[QR Polling] 📊 Configuração ULTRA-RÁPIDA: ${maxAttempts} tentativas, ${delayMs}ms intervalo`);
   
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      console.log(`[QR Polling] 🎯 Tentativa RÁPIDA ${attempt}/${maxAttempts} para obter QR Code`);
+      console.log(`[QR Polling] ⚡ Tentativa ULTRA-RÁPIDA ${attempt}/${maxAttempts} para obter QR Code`);
       
       const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/qr`, {
         method: 'POST',
@@ -18,18 +17,18 @@ export async function waitForQRCode(vpsInstanceId: string, maxAttempts = 15, del
 
       if (response.ok) {
         const data = await response.json();
-        console.log(`[QR Polling] 📥 Resposta VPS OTIMIZADA (tentativa ${attempt}):`, {
+        console.log(`[QR Polling] 📥 Resposta VPS ULTRA-RÁPIDA (tentativa ${attempt}):`, {
           hasQrCode: !!data.qrCode,
           qrCodeLength: data.qrCode?.length || 0,
           status: data.status
         });
         
         if (data.qrCode && isRealQRCode(data.qrCode)) {
-          console.log(`[QR Polling] ✅ QR Code REAL obtido RAPIDAMENTE na tentativa ${attempt}!`);
+          console.log(`[QR Polling] ✅ QR Code REAL obtido ULTRA-RAPIDAMENTE na tentativa ${attempt}!`);
           console.log(`[QR Polling] 📏 Tamanho do QR Code: ${data.qrCode.length} caracteres`);
           return data.qrCode;
         } else {
-          console.log(`[QR Polling] ⏳ QR Code ainda não disponível (tentativa ${attempt}) - POLLING RÁPIDO...`);
+          console.log(`[QR Polling] ⏳ QR Code ainda não disponível (tentativa ${attempt}) - POLLING ULTRA-RÁPIDO...`);
         }
       } else {
         const errorText = await response.text();
@@ -37,30 +36,38 @@ export async function waitForQRCode(vpsInstanceId: string, maxAttempts = 15, del
         
         // Se é 404 e contém mensagem de "ainda não foi gerado", continuar tentando
         if (response.status === 404 && (errorText.includes('ainda não foi gerado') || errorText.includes('inicializando'))) {
-          console.log(`[QR Polling] 🔄 VPS ainda inicializando - continuando polling OTIMIZADO...`);
+          console.log(`[QR Polling] 🔄 VPS ainda inicializando - continuando polling ULTRA-RÁPIDO...`);
         }
       }
       
-      // OTIMIZAÇÃO: Aguardar menos tempo nas primeiras tentativas
+      // OTIMIZAÇÃO ULTRA-RÁPIDA: Polling progressivo mais agressivo
       if (attempt < maxAttempts) {
-        const adaptiveDelay = attempt <= 5 ? delayMs : delayMs + 1000; // Primeiro 5 tentativas: 2s, depois 3s
-        console.log(`[QR Polling] 😴 Aguardando OTIMIZADO ${adaptiveDelay}ms antes da próxima tentativa...`);
+        let adaptiveDelay;
+        if (attempt <= 3) {
+          adaptiveDelay = delayMs; // Primeiras 3: 1.5s
+        } else if (attempt <= 6) {
+          adaptiveDelay = delayMs + 500; // Tentativas 4-6: 2s
+        } else {
+          adaptiveDelay = delayMs + 1000; // Últimas: 2.5s
+        }
+        
+        console.log(`[QR Polling] 😴 Aguardando ULTRA-RÁPIDO ${adaptiveDelay}ms antes da próxima tentativa...`);
         await new Promise(resolve => setTimeout(resolve, adaptiveDelay));
       }
       
     } catch (error) {
       console.error(`[QR Polling] ❌ Erro na tentativa ${attempt}:`, error);
       
-      // OTIMIZAÇÃO: Para erros de rede, aguardar menos tempo antes de tentar novamente
+      // OTIMIZAÇÃO: Para erros de rede, aguardar menos tempo - 1s fixo
       if (attempt < maxAttempts) {
-        const backoffDelay = delayMs * Math.pow(1.2, attempt - 1); // Backoff mais suave
-        console.log(`[QR Polling] 🔄 Aplicando backoff OTIMIZADO: ${backoffDelay}ms`);
-        await new Promise(resolve => setTimeout(resolve, Math.min(backoffDelay, 5000))); // Max 5s
+        const backoffDelay = 1000; // 1 segundo fixo para retry
+        console.log(`[QR Polling] 🔄 Aplicando backoff ULTRA-RÁPIDO: ${backoffDelay}ms`);
+        await new Promise(resolve => setTimeout(resolve, backoffDelay));
       }
     }
   }
   
-  console.log(`[QR Polling] ⏰ Timeout OTIMIZADO após ${maxAttempts} tentativas - QR Code não obtido`);
+  console.log(`[QR Polling] ⏰ Timeout ULTRA-RÁPIDO após ${maxAttempts} tentativas - QR Code não obtido`);
   return null;
 }
 

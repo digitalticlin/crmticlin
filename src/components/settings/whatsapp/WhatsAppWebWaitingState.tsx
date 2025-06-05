@@ -13,12 +13,30 @@ export const WhatsAppWebWaitingState = ({
   isWaitingForQR, 
   instanceName,
   currentAttempt = 0,
-  maxAttempts = 20
+  maxAttempts = 12 // Atualizado para 12
 }: WhatsAppWebWaitingStateProps) => {
   if (!isWaitingForQR) return null;
 
   const progressPercentage = maxAttempts > 0 ? Math.min((currentAttempt / maxAttempts) * 100, 100) : 0;
-  const estimatedTimeLeft = Math.max(0, (maxAttempts - currentAttempt) * 2);
+  
+  // Cálculo mais preciso do tempo estimado baseado nos novos intervalos
+  let estimatedTimeLeft = 0;
+  const remainingAttempts = maxAttempts - currentAttempt;
+  
+  if (remainingAttempts > 0) {
+    // Calcular tempo baseado nos intervalos progressivos
+    let timeForRemainingAttempts = 0;
+    for (let i = currentAttempt + 1; i <= maxAttempts; i++) {
+      if (i <= 3) {
+        timeForRemainingAttempts += 1.5; // 1.5s
+      } else if (i <= 6) {
+        timeForRemainingAttempts += 2; // 2s
+      } else {
+        timeForRemainingAttempts += 2.5; // 2.5s
+      }
+    }
+    estimatedTimeLeft = Math.ceil(timeForRemainingAttempts);
+  }
 
   return (
     <Alert className="border-blue-200 bg-blue-50">
