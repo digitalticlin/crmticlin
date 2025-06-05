@@ -1,110 +1,187 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { MessageSendingService } from "./services/messageSendingService";
 
 export class WhatsAppWebService {
-  private static async makeAuthenticatedRequest(action: string, data: any) {
-    const startTime = Date.now();
-    console.log(`[WhatsApp Web Service] 🚀 Iniciando ${action}:`, {
-      action,
-      data: { ...data, timestamp: new Date().toISOString() }
-    });
-    
+  static async createInstance(instanceName: string) {
     try {
-      const { data: result, error } = await supabase.functions.invoke('whatsapp_web_server', {
+      console.log('[WhatsApp Web Service] 🚀 Creating instance:', instanceName);
+
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('User not authenticated');
+      }
+
+      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
         body: {
-          action,
-          instanceData: data
+          action: 'create_instance',
+          instanceData: {
+            instanceName
+          }
         }
       });
 
-      const duration = Date.now() - startTime;
-      
       if (error) {
-        console.error(`[WhatsApp Web Service] ❌ Erro Supabase (${action}):`, {
-          error,
-          duration: `${duration}ms`,
-          action
-        });
+        console.error('[WhatsApp Web Service] ❌ Supabase function error:', error);
         throw new Error(error.message);
       }
 
-      if (!result.success) {
-        console.error(`[WhatsApp Web Service] ❌ Falha na operação (${action}):`, {
-          error: result.error,
-          duration: `${duration}ms`,
-          action,
-          result
-        });
-        throw new Error(result.error || `Failed to ${action}`);
+      if (!data.success) {
+        console.error('[WhatsApp Web Service] ❌ Function returned error:', data.error);
+        throw new Error(data.error || 'Failed to create instance');
       }
 
-      console.log(`[WhatsApp Web Service] ✅ Sucesso (${action}):`, {
-        duration: `${duration}ms`,
-        action,
-        hasQrCode: action === 'get_qr_code_async' ? !!result.qrCode : undefined,
-        permanentMode: result.permanent_mode || false,
-        autoReconnect: result.auto_reconnect || false,
-        instanceId: data.instanceId || data.instanceName
-      });
+      console.log('[WhatsApp Web Service] ✅ Instance created successfully');
+      return {
+        success: true,
+        instance: data.instance
+      };
 
-      return result;
     } catch (error) {
-      const duration = Date.now() - startTime;
-      console.error(`[WhatsApp Web Service] 💥 Erro inesperado (${action}):`, {
-        error: error instanceof Error ? error.message : error,
-        duration: `${duration}ms`,
-        action,
-        stack: error instanceof Error ? error.stack : undefined
-      });
-      throw error;
+      console.error('[WhatsApp Web Service] ❌ Error creating instance:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
     }
   }
 
-  static async createInstance(instanceName: string) {
-    return this.makeAuthenticatedRequest('create_instance', {
-      instanceName
-    });
+  static async getQRCode(instanceId: string) {
+    try {
+      console.log('[WhatsApp Web Service] 📱 Getting QR code for:', instanceId);
+
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('User not authenticated');
+      }
+
+      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+        body: {
+          action: 'get_qr_code_async',
+          instanceData: {
+            instanceId
+          }
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (!data.success && !data.waiting) {
+        throw new Error(data.error || 'Failed to get QR code');
+      }
+
+      return {
+        success: data.success,
+        qrCode: data.qrCode,
+        waiting: data.waiting,
+        error: data.error
+      };
+
+    } catch (error) {
+      console.error('[WhatsApp Web Service] ❌ Error getting QR code:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
   }
 
   static async deleteInstance(instanceId: string) {
-    return this.makeAuthenticatedRequest('delete_instance', {
-      instanceId
-    });
-  }
+    try {
+      console.log('[WhatsApp Web Service] 🗑️ Deleting instance:', instanceId);
 
-  static async getQRCode(instanceId: string) {
-    // CORREÇÃO: Usar get_qr_code_async ao invés de get_qr_code
-    return this.makeAuthenticatedRequest('get_qr_code_async', {
-      instanceId
-    });
-  }
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('User not authenticated');
+      }
 
-  static async getStatus(instanceId: string) {
-    return this.makeAuthenticatedRequest('get_status', {
-      instanceId
-    });
-  }
+      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+        body: {
+          action: 'delete_instance',
+          instanceData: {
+            instanceId
+          }
+        }
+      });
 
-  static async checkServerHealth() {
-    return this.makeAuthenticatedRequest('check_server', {});
-  }
+      if (error) {
+        throw new Error(error.message);
+      }
 
-  static async getServerInfo() {
-    return this.makeAuthenticatedRequest('get_server_info', {});
-  }
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to delete instance');
+      }
 
-  static async syncInstances() {
-    return this.makeAuthenticatedRequest('sync_instances', {});
+      return { success: true };
+
+    } catch (error) {
+      console.error('[WhatsApp Web Service] ❌ Error deleting instance:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
   }
 
   static async sendMessage(instanceId: string, phone: string, message: string) {
-    console.log('[WhatsApp Web Service] 📤 Sending message:', {
-      instanceId,
-      phone,
-      messageLength: message.length
-    });
+    try {
+      console.log('[WhatsApp Web Service] 📤 Sending message:', { instanceId, phone, messageLength: message.length });
 
-    return MessageSendingService.sendMessage(instanceId, phone, message);
+      // Get instance data
+      const { data: instance } = await supabase
+        .from('whatsapp_instances')
+        .select('vps_instance_id, company_id')
+        .eq('id', instanceId)
+        .single();
+
+      if (!instance || !instance.vps_instance_id) {
+        throw new Error('Instance not found or not connected');
+      }
+
+      // Send to VPS directly
+      const response = await fetch('http://31.97.24.222:3001/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer default-token'
+        },
+        body: JSON.stringify({
+          instanceId: instance.vps_instance_id,
+          phone: phone.replace(/\D/g, ''),
+          message
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`VPS send failed: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'VPS returned success: false');
+      }
+
+      console.log('[WhatsApp Web Service] ✅ Message sent successfully');
+      return {
+        success: true,
+        data: {
+          messageId: result.messageId,
+          timestamp: result.timestamp || new Date().toISOString()
+        }
+      };
+
+    } catch (error) {
+      console.error('[WhatsApp Web Service] ❌ Error sending message:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
   }
 }

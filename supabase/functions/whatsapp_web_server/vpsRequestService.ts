@@ -1,26 +1,18 @@
 
 import { VPS_CONFIG, getVPSHeaders } from './config.ts';
-import { makeVPSRequest } from './vpsRequest.ts';
 
 export async function createVPSInstance(payload: any) {
   console.log('[VPS Request Service] 🚀 Criando instância na VPS:', payload);
   
   try {
-    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/create`, {
+    const response = await fetch(`${VPS_CONFIG.baseUrl}/instance/create`, {
       method: 'POST',
       headers: getVPSHeaders(),
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(VPS_CONFIG.timeout)
     });
 
-    if (response.ok) {
-      const data = await response.json();
-      console.log('[VPS Request Service] ✅ Instância criada com sucesso:', data);
-      return {
-        success: true,
-        data: data,
-        qrCode: data.qrcode || null
-      };
-    } else {
+    if (!response.ok) {
       const errorText = await response.text();
       console.error('[VPS Request Service] ❌ Erro ao criar instância:', response.status, errorText);
       return {
@@ -28,6 +20,14 @@ export async function createVPSInstance(payload: any) {
         error: `VPS error ${response.status}: ${errorText}`
       };
     }
+
+    const data = await response.json();
+    console.log('[VPS Request Service] ✅ Instância criada com sucesso:', data);
+    return {
+      success: true,
+      data: data,
+      qrCode: data.qrcode || null
+    };
   } catch (error: any) {
     console.error('[VPS Request Service] ❌ Erro na requisição:', error);
     return {
@@ -41,19 +41,13 @@ export async function getVPSInstanceQR(instanceId: string) {
   console.log('[VPS Request Service] 📱 Buscando QR Code:', instanceId);
   
   try {
-    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/${instanceId}/qrcode`, {
+    const response = await fetch(`${VPS_CONFIG.baseUrl}/instance/${instanceId}/qr`, {
       method: 'GET',
-      headers: getVPSHeaders()
+      headers: getVPSHeaders(),
+      signal: AbortSignal.timeout(VPS_CONFIG.timeout)
     });
 
-    if (response.ok) {
-      const data = await response.json();
-      console.log('[VPS Request Service] ✅ QR Code obtido:', !!data.qrcode);
-      return {
-        success: true,
-        qrCode: data.qrcode || null
-      };
-    } else {
+    if (!response.ok) {
       const errorText = await response.text();
       console.error('[VPS Request Service] ❌ Erro ao obter QR:', response.status, errorText);
       return {
@@ -61,6 +55,13 @@ export async function getVPSInstanceQR(instanceId: string) {
         error: `VPS error ${response.status}: ${errorText}`
       };
     }
+
+    const data = await response.json();
+    console.log('[VPS Request Service] ✅ QR Code obtido:', !!data.qrCode);
+    return {
+      success: true,
+      qrCode: data.qrCode || null
+    };
   } catch (error: any) {
     console.error('[VPS Request Service] ❌ Erro na requisição QR:', error);
     return {
@@ -74,17 +75,14 @@ export async function deleteVPSInstance(instanceId: string) {
   console.log('[VPS Request Service] 🗑️ Deletando instância:', instanceId);
   
   try {
-    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/${instanceId}`, {
-      method: 'DELETE',
-      headers: getVPSHeaders()
+    const response = await fetch(`${VPS_CONFIG.baseUrl}/instance/delete`, {
+      method: 'POST',
+      headers: getVPSHeaders(),
+      body: JSON.stringify({ instanceId }),
+      signal: AbortSignal.timeout(VPS_CONFIG.timeout)
     });
 
-    if (response.ok) {
-      console.log('[VPS Request Service] ✅ Instância deletada com sucesso');
-      return {
-        success: true
-      };
-    } else {
+    if (!response.ok) {
       const errorText = await response.text();
       console.error('[VPS Request Service] ❌ Erro ao deletar:', response.status, errorText);
       return {
@@ -92,6 +90,11 @@ export async function deleteVPSInstance(instanceId: string) {
         error: `VPS error ${response.status}: ${errorText}`
       };
     }
+
+    console.log('[VPS Request Service] ✅ Instância deletada com sucesso');
+    return {
+      success: true
+    };
   } catch (error: any) {
     console.error('[VPS Request Service] ❌ Erro na requisição delete:', error);
     return {
@@ -105,19 +108,13 @@ export async function getVPSInstances() {
   console.log('[VPS Request Service] 📊 Buscando todas as instâncias da VPS');
   
   try {
-    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instances`, {
+    const response = await fetch(`${VPS_CONFIG.baseUrl}/instances`, {
       method: 'GET',
-      headers: getVPSHeaders()
+      headers: getVPSHeaders(),
+      signal: AbortSignal.timeout(VPS_CONFIG.timeout)
     });
 
-    if (response.ok) {
-      const data = await response.json();
-      console.log('[VPS Request Service] ✅ Instâncias obtidas:', data?.instances?.length || 0);
-      return {
-        success: true,
-        instances: data.instances || data || []
-      };
-    } else {
+    if (!response.ok) {
       const errorText = await response.text();
       console.error('[VPS Request Service] ❌ Erro ao buscar instâncias:', response.status, errorText);
       return {
@@ -126,6 +123,13 @@ export async function getVPSInstances() {
         instances: []
       };
     }
+
+    const data = await response.json();
+    console.log('[VPS Request Service] ✅ Instâncias obtidas:', data?.instances?.length || 0);
+    return {
+      success: true,
+      instances: data.instances || data || []
+    };
   } catch (error: any) {
     console.error('[VPS Request Service] ❌ Erro na requisição de instâncias:', error);
     return {

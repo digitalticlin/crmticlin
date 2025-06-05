@@ -1,44 +1,72 @@
 
-import { WhatsAppInstance, ConnectionData } from './types.ts';
-
-export async function processConnectionUpdate(supabase: any, instance: WhatsAppInstance, connectionData: ConnectionData) {
-  console.log('[Connection Processor] 🔌 Processing connection update');
+export async function processConnectionUpdate(supabase: any, instance: any, connectionData: any) {
+  console.log('[Connection Processor] 🔌 Processando atualização de conexão:', connectionData);
   
   try {
-    const { connection, lastDisconnect } = connectionData;
+    const { connection, lastDisconnect, qr } = connectionData;
     
-    // Atualizar status da instância
+    let newStatus = 'disconnected';
+    let newWebStatus = 'disconnected';
+    
+    // Mapear status do WhatsApp Web.js para nosso formato
+    if (connection === 'open') {
+      newStatus = 'ready';
+      newWebStatus = 'ready';
+    } else if (connection === 'connecting') {
+      newStatus = 'connecting';
+      newWebStatus = 'connecting';
+    } else if (connection === 'close') {
+      newStatus = 'disconnected';
+      newWebStatus = 'disconnected';
+    }
+
+    // Atualizar no banco
     const updateData: any = {
-      connection_status: connection?.state || 'unknown',
+      connection_status: newStatus,
+      web_status: newWebStatus,
       updated_at: new Date().toISOString()
     };
 
-    if (connection?.state === 'open') {
+    // Se conectou, limpar QR code
+    if (connection === 'open') {
+      updateData.qr_code = null;
       updateData.date_connected = new Date().toISOString();
-      updateData.web_status = 'connected';
-    } else if (connection?.state === 'close') {
+    }
+
+    // Se desconectou, registrar data
+    if (connection === 'close') {
       updateData.date_disconnected = new Date().toISOString();
-      updateData.web_status = 'disconnected';
     }
 
     const { error: updateError } = await supabase
       .from('whatsapp_instances')
       .update(updateData)
-      .eq('id', instance.id);
+      .eq('vps_instance_id', instance.vps_instance_id);
 
     if (updateError) {
-      console.error('[Connection Processor] ❌ Error updating status:', updateError);
-      throw updateError;
+      console.error('[Connection Processor] ❌ Erro ao atualizar status:', updateError);
+      return {
+        success: false,
+        error: updateError.message
+      };
     }
 
-    console.log('[Connection Processor] ✅ Status updated:', updateData);
+    console.log('[Connection Processor] ✅ Status atualizado:', {
+      connection_status: newStatus,
+      web_status: newWebStatus
+    });
+
     return {
       success: true,
-      processed: true
+      status: newStatus,
+      web_status: newWebStatus
     };
 
   } catch (error) {
-    console.error('[Connection Processor] ❌ Error processing connection:', error);
-    throw error;
+    console.error('[Connection Processor] ❌ Erro:', error);
+    return {
+      success: false,
+      error: error.message
+    };
   }
 }

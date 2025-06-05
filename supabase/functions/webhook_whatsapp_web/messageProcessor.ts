@@ -1,184 +1,167 @@
 
-import { WhatsAppInstance, MessageData } from './types.ts';
-
-export async function processIncomingMessage(supabase: any, instance: WhatsAppInstance, messageData: MessageData) {
-  console.log('[Message Processor] 📨 Processing incoming message');
-  
-  // LOG DETALHADO: Estrutura completa dos dados recebidos
-  console.log('[Message Processor] 🔍 DADOS COMPLETOS RECEBIDOS:', JSON.stringify(messageData, null, 2));
+export async function processIncomingMessage(supabase: any, instance: any, messageData: any) {
+  console.log('[Message Processor] 📨 Processando mensagens:', messageData);
   
   try {
-    const message = messageData.messages?.[0];
-    if (!message) {
-      console.log('[Message Processor] ⏭️ No message found');
-      return {
-        success: true,
-        processed: false,
-        reason: 'no_message'
-      };
+    if (!messageData.messages || !Array.isArray(messageData.messages)) {
+      console.log('[Message Processor] ⚠️ Nenhuma mensagem no payload');
+      return { success: true, processed: false };
     }
 
-    // LOG DETALHADO: Dados da mensagem específica
-    console.log('[Message Processor] 🔍 DADOS DA MENSAGEM:', JSON.stringify(message, null, 2));
-
-    // NOVA VERIFICAÇÃO: Bloquear mensagens de grupos
-    const remoteJid = message.key?.remoteJid;
-    if (remoteJid?.includes('@g.us')) {
-      console.log('[Message Processor] 🚫 Group message ignored:', remoteJid);
-      return {
-        success: true,
-        processed: false,
-        reason: 'group_message_blocked'
-      };
-    }
-
-    const fromNumber = message.key?.remoteJid?.replace('@s.whatsapp.net', '');
-    const messageText = message.message?.conversation || 
-                       message.message?.extendedTextMessage?.text || 
-                       '[Mídia]';
+    let processedCount = 0;
     
-    const isFromMe = message.key?.fromMe || false;
-    
-    // LOG DETALHADO: Valores extraídos
-    console.log('[Message Processor] 🔍 VALORES EXTRAÍDOS:');
-    console.log('[Message Processor] 📞 fromNumber:', fromNumber);
-    console.log('[Message Processor] 💬 messageText:', messageText);
-    console.log('[Message Processor] 📤 isFromMe (CRITICAL):', isFromMe);
-    console.log('[Message Processor] 🏢 Company:', instance.companies?.name);
-    console.log('[Message Processor] 🆔 Instance ID:', instance.id);
-    console.log('[Message Processor] 🔑 Remote JID:', remoteJid);
-    console.log('[Message Processor] 🔑 External ID:', message.key?.id);
-    
-    console.log('[Message Processor] 👤 From:', fromNumber, '| Company:', instance.companies?.name);
-    console.log('[Message Processor] 💬 Message:', messageText);
-    console.log('[Message Processor] 📤 From me:', isFromMe);
+    for (const message of messageData.messages) {
+      try {
+        const messageKey = message.key;
+        const messageContent = message.message;
+        
+        if (!messageKey || !messageContent) {
+          console.log('[Message Processor] ⚠️ Mensagem sem key ou content');
+          continue;
+        }
 
-    // Buscar ou criar lead
-    let { data: lead, error: leadError } = await supabase
-      .from('leads')
-      .select('*')
-      .eq('phone', fromNumber)
-      .eq('whatsapp_number_id', instance.id)
-      .eq('company_id', instance.company_id)
-      .maybeSingle();
+        const fromMe = messageKey.fromMe === true;
+        const remoteJid = messageKey.remoteJid;
+        const messageId = messageKey.id;
+        
+        // Extrair número do telefone
+        const phoneNumber = remoteJid.replace('@s.whatsapp.net', '').replace('@c.us', '');
+        
+        // Extrair texto da mensagem
+        let messageText = '';
+        if (messageContent.conversation) {
+          messageText = messageContent.conversation;
+        } else if (messageContent.extendedTextMessage?.text) {
+          messageText = messageContent.extendedTextMessage.text;
+        } else if (messageContent.imageMessage?.caption) {
+          messageText = messageContent.imageMessage.caption;
+        }
 
-    if (leadError || !lead) {
-      console.log('[Message Processor] 👤 Creating new lead');
-      
-      const { data: newLead, error: createError } = await supabase
-        .from('leads')
-        .insert({
-          phone: fromNumber,
-          name: fromNumber,
-          whatsapp_number_id: instance.id,
-          company_id: instance.company_id,
-          last_message: messageText,
-          last_message_time: new Date().toISOString(),
-          unread_count: isFromMe ? 0 : 1
-        })
-        .select()
-        .single();
+        if (!messageText) {
+          console.log('[Message Processor] ⚠️ Mensagem sem texto');
+          continue;
+        }
 
-      if (createError) {
-        console.error('[Message Processor] ❌ Error creating lead:', createError);
-        throw createError;
+        console.log('[Message Processor] 📝 Processando mensagem:', {
+          fromMe,
+          phone: phoneNumber,
+          text: messageText.substring(0, 50) + '...',
+          messageId
+        });
+
+        // 1. Verificar se mensagem já existe
+        const { data: existingMessage } = await supabase
+          .from('messages')
+          .select('id')
+          .eq('external_id', messageId)
+          .eq('whatsapp_number_id', instance.id)
+          .single();
+
+        if (existingMessage) {
+          console.log('[Message Processor] ⚠️ Mensagem já existe:', messageId);
+          continue;
+        }
+
+        // 2. Buscar ou criar lead
+        const leadId = await getOrCreateLead(supabase, instance.id, phoneNumber, instance.company_id);
+        
+        // 3. Salvar mensagem
+        const { error: messageError } = await supabase
+          .from('messages')
+          .insert({
+            whatsapp_number_id: instance.id,
+            lead_id: leadId,
+            text: messageText,
+            from_me: fromMe,
+            status: 'delivered',
+            external_id: messageId,
+            media_type: 'text',
+            timestamp: new Date().toISOString()
+          });
+
+        if (messageError) {
+          console.error('[Message Processor] ❌ Erro ao salvar mensagem:', messageError);
+          continue;
+        }
+
+        // 4. Atualizar lead com última mensagem
+        await supabase
+          .from('leads')
+          .update({
+            last_message: messageText,
+            last_message_time: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            unread_count: fromMe ? 0 : supabase.raw('unread_count + 1')
+          })
+          .eq('id', leadId);
+
+        processedCount++;
+        console.log('[Message Processor] ✅ Mensagem salva:', messageId);
+
+      } catch (messageError) {
+        console.error('[Message Processor] ❌ Erro ao processar mensagem individual:', messageError);
       }
-      
-      lead = newLead;
-      console.log('[Message Processor] ✅ Lead created:', lead.id);
-    } else {
-      // Atualizar lead existente - CORRIGIDO: Apenas incrementar unread se não for mensagem enviada por mim
-      await supabase
-        .from('leads')
-        .update({
-          last_message: messageText,
-          last_message_time: new Date().toISOString(),
-          unread_count: isFromMe ? lead.unread_count : (lead.unread_count || 0) + 1
-        })
-        .eq('id', lead.id);
-      
-      console.log('[Message Processor] ✅ Lead updated:', lead.id);
     }
 
-    // CORREÇÃO CRÍTICA: Verificar se mensagem já existe antes de salvar
-    console.log('[Message Processor] 🔍 Verificando se mensagem já existe...');
-    const { data: existingMessage } = await supabase
-      .from('messages')
-      .select('id')
-      .eq('external_id', message.key?.id)
-      .eq('whatsapp_number_id', instance.id)
-      .maybeSingle();
-
-    if (existingMessage) {
-      console.log('[Message Processor] ⏭️ Message already exists, skipping:', message.key?.id);
-      return {
-        success: true,
-        processed: false,
-        reason: 'message_already_exists'
-      };
-    }
-
-    // LOG DETALHADO: Dados que serão inseridos
-    const messageToInsert = {
-      lead_id: lead.id,
-      whatsapp_number_id: instance.id,
-      text: messageText,
-      from_me: isFromMe,
-      timestamp: new Date().toISOString(),
-      external_id: message.key?.id,
-      status: isFromMe ? 'sent' : 'received'
-    };
-    
-    console.log('[Message Processor] 🔍 DADOS PARA INSERIR NO BANCO:', JSON.stringify(messageToInsert, null, 2));
-
-    // CORRIGIDO: Salvar TODAS as mensagens (enviadas e recebidas) do app nativo
-    const { error: messageError } = await supabase
-      .from('messages')
-      .insert(messageToInsert);
-
-    if (messageError) {
-      console.error('[Message Processor] ❌ Error saving message:', messageError);
-      console.error('[Message Processor] ❌ Message details that failed:', {
-        lead_id: lead.id,
-        whatsapp_number_id: instance.id,
-        from_me: isFromMe,
-        text: messageText.substring(0, 50),
-        external_id: message.key?.id
-      });
-      throw messageError;
-    }
-
-    console.log('[Message Processor] ✅ Message saved:', { 
-      fromMe: isFromMe, 
-      text: messageText.substring(0, 50) + '...',
-      external_id: message.key?.id
-    });
-    
-    // LOG FINAL DE SUCESSO
-    console.log('[Message Processor] 🎉 PROCESSAMENTO COMPLETO - SUCESSO!');
-    console.log('[Message Processor] 📊 RESUMO:', {
-      fromMe: isFromMe,
-      leadId: lead.id,
-      messageId: message.key?.id,
-      company: instance.companies?.name,
-      processed: true
-    });
+    console.log(`[Message Processor] ✅ Processamento concluído: ${processedCount} mensagens`);
     
     return {
       success: true,
-      processed: true,
-      leadId: lead.id,
-      fromMe: isFromMe,
-      company: instance.companies?.name
+      processed: processedCount,
+      total: messageData.messages.length
     };
 
   } catch (error) {
-    console.error('[Message Processor] ❌ Error processing message:', error);
-    console.error('[Message Processor] ❌ ERRO DETALHADO:', {
-      error: error.message,
-      stack: error.stack,
-      messageData: JSON.stringify(messageData, null, 2)
-    });
-    throw error;
+    console.error('[Message Processor] ❌ Erro geral:', error);
+    return {
+      success: false,
+      error: error.message
+    };
   }
+}
+
+async function getOrCreateLead(supabase: any, whatsappNumberId: string, phone: string, companyId: string): Promise<string> {
+  const cleanPhone = phone.replace(/\D/g, '');
+  
+  console.log('[Message Processor] 🔍 Getting or creating lead:', {
+    whatsappNumberId,
+    cleanPhone,
+    companyId
+  });
+  
+  // Try to find existing lead
+  const { data: existingLead } = await supabase
+    .from('leads')
+    .select('id')
+    .eq('phone', cleanPhone)
+    .eq('whatsapp_number_id', whatsappNumberId)
+    .single();
+
+  if (existingLead) {
+    console.log('[Message Processor] ✅ Existing lead found:', existingLead.id);
+    return existingLead.id;
+  }
+
+  // Create new lead
+  console.log('[Message Processor] 🆕 Creating new lead');
+  const { data: newLead, error } = await supabase
+    .from('leads')
+    .insert({
+      phone: cleanPhone,
+      name: `+${cleanPhone}`,
+      whatsapp_number_id: whatsappNumberId,
+      company_id: companyId,
+      last_message: 'Conversa iniciada',
+      last_message_time: new Date().toISOString()
+    })
+    .select('id')
+    .single();
+
+  if (error || !newLead) {
+    console.error('[Message Processor] ❌ Failed to create lead:', error);
+    throw new Error('Failed to create lead');
+  }
+
+  console.log('[Message Processor] ✅ New lead created:', newLead.id);
+  return newLead.id;
 }

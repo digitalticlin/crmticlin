@@ -1,37 +1,50 @@
 
-import { WhatsAppInstance, QRData } from './types.ts';
-
-export async function processQRUpdate(supabase: any, instance: WhatsAppInstance, qrData: QRData) {
-  console.log('[QR Processor] 🔳 Processing QR Code update');
+export async function processQRUpdate(supabase: any, instance: any, qrData: any) {
+  console.log('[QR Processor] 📱 Processando atualização de QR:', qrData);
   
   try {
-    const { qr } = qrData;
+    const { qrCode } = qrData;
     
-    if (qr) {
-      const { error: updateError } = await supabase
-        .from('whatsapp_instances')
-        .update({
-          qr_code: qr,
-          web_status: 'waiting_scan',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', instance.id);
-
-      if (updateError) {
-        console.error('[QR Processor] ❌ Error updating QR:', updateError);
-        throw updateError;
-      }
-
-      console.log('[QR Processor] ✅ QR Code updated');
+    if (!qrCode) {
+      console.log('[QR Processor] ⚠️ QR Code vazio');
+      return {
+        success: true,
+        processed: false
+      };
     }
+
+    // Atualizar QR code no banco
+    const { error: updateError } = await supabase
+      .from('whatsapp_instances')
+      .update({
+        qr_code: qrCode,
+        web_status: 'waiting_scan',
+        connection_status: 'waiting_scan',
+        updated_at: new Date().toISOString()
+      })
+      .eq('vps_instance_id', instance.vps_instance_id);
+
+    if (updateError) {
+      console.error('[QR Processor] ❌ Erro ao atualizar QR:', updateError);
+      return {
+        success: false,
+        error: updateError.message
+      };
+    }
+
+    console.log('[QR Processor] ✅ QR Code atualizado no banco');
 
     return {
       success: true,
-      processed: true
+      qrCode: qrCode,
+      status: 'waiting_scan'
     };
 
   } catch (error) {
-    console.error('[QR Processor] ❌ Error processing QR:', error);
-    throw error;
+    console.error('[QR Processor] ❌ Erro:', error);
+    return {
+      success: false,
+      error: error.message
+    };
   }
 }
