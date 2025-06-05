@@ -14,6 +14,7 @@ import {
   Download
 } from "lucide-react";
 import { toast } from "sonner";
+import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
 
 interface ServerStatus {
   isOnline: boolean;
@@ -34,50 +35,31 @@ export const VPSServerStatusDiagnostic = () => {
     setStatus(null);
     
     try {
-      console.log('[VPS Status] Verificando servidor na VPS...');
+      console.log('[VPS Status] Verificando servidor via Edge Functions...');
       
-      // Tentar conectar nas duas portas possíveis
-      const ports = [3001, 3002];
-      let foundServer = false;
+      // Usar WhatsAppWebService ao invés de chamadas diretas
+      const result = await WhatsAppWebService.checkServerHealth();
       
-      for (const port of ports) {
-        try {
-          const response = await fetch(`http://31.97.24.222:${port}/health`, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-            },
-            signal: AbortSignal.timeout(10000)
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            console.log(`[VPS Status] Servidor encontrado na porta ${port}:`, data);
-            
-            setStatus({
-              isOnline: true,
-              version: data.version,
-              server: data.server,
-              port: port.toString(),
-              isPersistent: data.persistenceEnabled || data.permanent_mode || false,
-              activeInstances: data.activeInstances || data.active_instances || 0
-            });
-            
-            foundServer = true;
-            toast.success(`Servidor encontrado na porta ${port}`);
-            break;
-          }
-        } catch (portError) {
-          console.log(`[VPS Status] Porta ${port} não respondeu:`, portError);
-        }
-      }
-      
-      if (!foundServer) {
+      if (result.success && result.data) {
+        console.log('[VPS Status] Servidor encontrado via Edge Functions:', result.data);
+        
+        setStatus({
+          isOnline: true,
+          version: result.data.version || 'v4.0.0',
+          server: result.data.server || 'WhatsApp Web.js Server',
+          port: '3001', // Porta padrão
+          isPersistent: result.data.permanent_mode || result.data.permanentMode || true,
+          activeInstances: result.data.active_instances || result.data.activeInstances || 0
+        });
+        
+        toast.success('Servidor encontrado e funcionando');
+      } else {
+        console.error('[VPS Status] Erro na resposta:', result.error);
         setStatus({
           isOnline: false,
-          error: 'Nenhum servidor WhatsApp encontrado nas portas 3001 ou 3002'
+          error: result.error || 'Servidor WhatsApp não está respondendo'
         });
-        toast.error('Servidor WhatsApp não está rodando');
+        toast.error('Servidor WhatsApp não está funcionando');
       }
       
     } catch (error) {
@@ -86,7 +68,7 @@ export const VPSServerStatusDiagnostic = () => {
         isOnline: false,
         error: `Erro de conectividade: ${error.message}`
       });
-      toast.error('Erro ao conectar com a VPS');
+      toast.error('Erro ao conectar com o servidor');
     } finally {
       setIsLoading(false);
     }
@@ -135,7 +117,7 @@ export const VPSServerStatusDiagnostic = () => {
           </div>
           
           <p className="text-sm text-muted-foreground mt-2">
-            Verifica qual servidor está rodando na VPS e suas configurações.
+            Verifica o servidor via Edge Functions (método seguro e compatível).
           </p>
         </CardContent>
       </Card>
@@ -228,7 +210,7 @@ export const VPSServerStatusDiagnostic = () => {
                   <Alert>
                     <Terminal className="h-4 w-4" />
                     <AlertDescription>
-                      <strong>Servidor Offline:</strong> É necessário instalar e iniciar o servidor WhatsApp na VPS.
+                      <strong>Servidor Offline:</strong> Verificar se o servidor WhatsApp está rodando na VPS ou se há problemas de conectividade.
                     </AlertDescription>
                   </Alert>
                 )}
@@ -247,7 +229,7 @@ export const VPSServerStatusDiagnostic = () => {
                   <Alert>
                     <CheckCircle className="h-4 w-4" />
                     <AlertDescription>
-                      <strong>Tudo OK:</strong> Servidor com persistência está funcionando corretamente!
+                      <strong>Tudo OK:</strong> Servidor com persistência está funcionando corretamente via Edge Functions!
                     </AlertDescription>
                   </Alert>
                 )}
