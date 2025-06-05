@@ -95,12 +95,12 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
     const vpsResult = await createVPSInstance(payload);
     console.log('[Instance Creation] ✅ Instância criada na VPS - Resultado:', vpsResult);
 
-    // PASSO 7: Salvar no banco IMEDIATAMENTE (CORREÇÃO: phone null)
-    console.log('[Instance Creation] 💾 Salvando no banco IMEDIATAMENTE (CORREÇÃO CONSTRAINT)...');
+    // PASSO 7: Salvar no banco IMEDIATAMENTE (CORREÇÃO: phone null permitido)
+    console.log('[Instance Creation] 💾 Salvando no banco IMEDIATAMENTE (PHONE NULL PERMITIDO)...');
     
     const instanceToSave = {
       instance_name: instanceData.instanceName,
-      phone: null, // CORREÇÃO: null ao invés de '' para evitar constraint violation
+      phone: null, // CORREÇÃO: NULL permitido agora no banco
       company_id: profile.company_id,
       connection_type: 'web',
       server_url: VPS_CONFIG.baseUrl,
@@ -110,7 +110,7 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
       qr_code: vpsResult.qrCode || null
     };
 
-    console.log('[Instance Creation] 📋 Dados para salvar (CORREÇÃO):', instanceToSave);
+    console.log('[Instance Creation] 📋 Dados para salvar (PHONE NULL PERMITIDO):', instanceToSave);
 
     const { data: dbInstance, error: dbError } = await supabase
       .from('whatsapp_instances')
@@ -124,7 +124,7 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
       throw new Error(`Erro CRÍTICO no banco de dados: ${dbError.message}`);
     }
 
-    console.log('[Instance Creation] 🎉 INSTÂNCIA SALVA COM SUCESSO no banco (CORREÇÃO):', dbInstance);
+    console.log('[Instance Creation] 🎉 INSTÂNCIA SALVA COM SUCESSO no banco (PHONE NULL):', dbInstance);
 
     // PASSO 8: Tentar obter QR Code real se não veio inicialmente
     let finalQRCode = vpsResult.qrCode;

@@ -1189,7 +1189,7 @@ export type Database = {
           instance_name: string
           number: string | null
           owner_jid: string | null
-          phone: string
+          phone: string | null
           profile_name: string | null
           profile_pic_url: string | null
           qr_code: string | null
@@ -1212,7 +1212,7 @@ export type Database = {
           instance_name: string
           number?: string | null
           owner_jid?: string | null
-          phone: string
+          phone?: string | null
           profile_name?: string | null
           profile_pic_url?: string | null
           qr_code?: string | null
@@ -1235,7 +1235,7 @@ export type Database = {
           instance_name?: string
           number?: string | null
           owner_jid?: string | null
-          phone?: string
+          phone?: string | null
           profile_name?: string | null
           profile_pic_url?: string | null
           qr_code?: string | null

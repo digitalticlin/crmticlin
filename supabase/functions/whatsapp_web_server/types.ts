@@ -1,34 +1,21 @@
 
-export interface VPSCredentials {
-  host: string;
-  port: number;
-  baseUrl: string;
-  authToken?: string;
-}
-
-export interface RequestBody {
-  action: string;
-  instanceData: InstanceData;
-}
-
 export interface InstanceData {
   instanceName: string;
-  instanceId?: string;
-  serverUrl?: string;
-  phone?: string;
-  message?: string;
+  sessionName?: string;
+  webhookUrl?: string;
+  companyId?: string;
 }
 
-export interface ServiceResponse {
+export interface VPSInstanceResult {
   success: boolean;
-  data?: any;
+  vpsInstanceId?: string;
+  qrCode?: string;
   error?: string;
+}
+
+export interface CreateInstanceResponse {
+  success: boolean;
   instance?: any;
-  qrCode?: string;
-}
-
-export interface QRCodeResponse {
-  success: boolean;
-  qrCode?: string;
   error?: string;
+  details?: any;
 }
