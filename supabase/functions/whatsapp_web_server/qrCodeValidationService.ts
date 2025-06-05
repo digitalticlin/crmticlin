@@ -57,6 +57,16 @@ export async function validateInstanceAccess(supabase: any, instanceId: string, 
 
   if (!instance) {
     console.error('[QR Validation] ❌ INSTÂNCIA NÃO ENCONTRADA:', instanceId);
+    
+    // CORREÇÃO: Tentar buscar todas as instâncias para debug
+    const { data: allInstances, error: allError } = await supabase
+      .from('whatsapp_instances')
+      .select('id, vps_instance_id, instance_name, company_id')
+      .limit(10);
+    
+    console.log('[QR Validation] 🔍 DEBUG - Instâncias no banco:', allInstances);
+    console.log('[QR Validation] 🔍 DEBUG - Total instâncias:', allInstances?.length || 0);
+    
     throw new Error('Instância não encontrada no banco de dados');
   }
 

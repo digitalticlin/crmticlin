@@ -15,6 +15,7 @@ import {
   bindInstanceToUser
 } from "./globalInstanceService.ts";
 import { processIncomingWebhook } from "./webhookService.ts";
+import { configureWebhookForInstance, removeWebhookForInstance } from "./webhookConfigurationService.ts";
 
 // CORREÇÃO: Auth helper melhorado
 async function authenticateUser(request: Request, supabase: any) {
@@ -301,7 +302,7 @@ serve(async (req) => {
 
     switch (action) {
       case 'create_instance':
-        console.log('[WhatsApp Server] 🚀 CREATE INSTANCE - CORREÇÃO CRÍTICA ativada');
+        console.log('[WhatsApp Server] 🚀 CREATE INSTANCE - CORREÇÃO FINAL');
         console.log('[WhatsApp Server] Instance data:', JSON.stringify(body.instanceData, null, 2));
         console.log('[WhatsApp Server] User ID:', user.id);
         
@@ -355,6 +356,24 @@ serve(async (req) => {
         }
         
         return await getQRCodeAsync(supabase, body.instanceData.instanceId, user.id);
+
+      case 'configure_webhook':
+        console.log('[WhatsApp Server] 🔧 CONFIGURE WEBHOOK');
+        
+        if (!body.instanceData?.instanceId) {
+          throw new Error('Instance ID is required for configure_webhook action');
+        }
+        
+        return await configureWebhookForInstance(body.instanceData.instanceId);
+
+      case 'remove_webhook':
+        console.log('[WhatsApp Server] 🗑️ REMOVE WEBHOOK');
+        
+        if (!body.instanceData?.instanceId) {
+          throw new Error('Instance ID is required for remove_webhook action');
+        }
+        
+        return await removeWebhookForInstance(body.instanceData.instanceId);
 
       case 'check_server':
         console.log('[WhatsApp Server] 🏥 CHECK SERVER HEALTH');

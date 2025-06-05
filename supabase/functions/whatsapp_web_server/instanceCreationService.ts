@@ -11,7 +11,7 @@ import {
 } from './instanceValidationService.ts';
 
 export async function createWhatsAppInstance(supabase: any, instanceData: InstanceData, userId: string) {
-  console.log('[Instance Creation] 🚀 INICIANDO criação WhatsApp Web.js instance (CORREÇÃO PERMANENTE):', instanceData);
+  console.log('[Instance Creation] 🚀 INICIANDO criação WhatsApp Web.js instance (CORREÇÃO FINAL):', instanceData);
   console.log(`[Instance Creation] 👤 User ID recebido: ${userId}`);
 
   try {
@@ -45,39 +45,47 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
       instanceId: vpsInstanceId,
       instanceName: instanceData.instanceName,
       sessionName: instanceData.instanceName,
-      webhookUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/webhook_whatsapp_web`,
+      webhookUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/whatsapp_web_server`,
       companyId: profile.company_id
     };
 
     const vpsResult = await createVPSInstance(payload);
-    console.log('[Instance Creation] ✅ Instância criada na VPS - QR Code será obtido posteriormente se necessário');
+    console.log('[Instance Creation] ✅ Instância criada na VPS - Resultado:', vpsResult);
 
-    // PASSO 7: Salvar no banco
-    console.log('[Instance Creation] 💾 Salvando no banco...');
-    let finalQRCode = vpsResult.qrCode;
+    // PASSO 7: Salvar no banco IMEDIATAMENTE
+    console.log('[Instance Creation] 💾 Salvando no banco IMEDIATAMENTE...');
     
+    const instanceToSave = {
+      instance_name: instanceData.instanceName,
+      phone: '',
+      company_id: profile.company_id,
+      connection_type: 'web',
+      server_url: VPS_CONFIG.baseUrl,
+      vps_instance_id: vpsInstanceId,
+      web_status: 'waiting_scan',
+      connection_status: 'connecting',
+      qr_code: vpsResult.qrCode || null
+    };
+
+    console.log('[Instance Creation] 📋 Dados para salvar:', instanceToSave);
+
     const { data: dbInstance, error: dbError } = await supabase
       .from('whatsapp_instances')
-      .insert({
-        instance_name: instanceData.instanceName,
-        phone: '',
-        company_id: profile.company_id,
-        connection_type: 'web',
-        server_url: VPS_CONFIG.baseUrl,
-        vps_instance_id: vpsInstanceId,
-        web_status: 'waiting_scan',
-        connection_status: 'connecting',
-        qr_code: finalQRCode
-      })
+      .insert(instanceToSave)
       .select()
       .single();
 
     if (dbError) {
-      console.error('[Instance Creation] ❌ Database error after VPS success:', dbError);
-      throw new Error(`Erro no banco de dados: ${dbError.message}`);
+      console.error('[Instance Creation] ❌ ERRO CRÍTICO - Database error after VPS success:', dbError);
+      console.error('[Instance Creation] 📋 Dados que causaram erro:', instanceToSave);
+      throw new Error(`Erro CRÍTICO no banco de dados: ${dbError.message}`);
     }
 
+    console.log('[Instance Creation] 🎉 INSTÂNCIA SALVA COM SUCESSO no banco:', dbInstance);
+
     // PASSO 8: Tentar obter QR Code real se não veio inicialmente
+    let finalQRCode = vpsResult.qrCode;
+    
     if (!finalQRCode || !isRealQRCode(finalQRCode)) {
       console.log('[Instance Creation] 🔄 QR Code não disponível - iniciando polling...');
       
@@ -114,7 +122,12 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
         success: false,
         error: error.message,
         action: 'error_handling_improved',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        details: {
+          step: 'creation_process',
+          userId: userId,
+          instanceName: instanceData?.instanceName
+        }
       }),
       { 
         status: 500,

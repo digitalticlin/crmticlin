@@ -23,11 +23,32 @@ export async function processIncomingWebhook(supabase: any, webhookData: any) {
       `)
       .eq('vps_instance_id', instanceName)
       .eq('connection_type', 'web')
-      .single();
+      .maybeSingle();
 
     if (instanceError || !instance) {
       console.error('[Webhook Service] ❌ Instância não encontrada:', instanceName);
-      return { success: false, error: 'Instância não encontrada', instanceName };
+      
+      // CORREÇÃO: Tentar buscar por instance_name como fallback
+      const { data: fallbackInstance, error: fallbackError } = await supabase
+        .from('whatsapp_instances')
+        .select(`
+          *,
+          companies!whatsapp_instances_company_id_fkey (
+            id,
+            name
+          )
+        `)
+        .eq('instance_name', instanceName)
+        .eq('connection_type', 'web')
+        .maybeSingle();
+
+      if (fallbackError || !fallbackInstance) {
+        console.error('[Webhook Service] ❌ Instância não encontrada nem por VPS ID nem por nome:', instanceName);
+        return { success: false, error: 'Instância não encontrada', instanceName };
+      }
+      
+      instance = fallbackInstance;
+      console.log('[Webhook Service] ✅ Instância encontrada via fallback (nome):', instance.instance_name);
     }
 
     console.log('[Webhook Service] ✅ Instância encontrada:', {
@@ -39,6 +60,11 @@ export async function processIncomingWebhook(supabase: any, webhookData: any) {
     // Processar mensagem baseado no evento
     if (event === 'messages.upsert' && messageData.messages) {
       return await processIncomingMessage(supabase, instance, messageData);
+    }
+
+    // Processar mudanças de status da conexão
+    if (event === 'connection.update') {
+      return await processConnectionUpdate(supabase, instance, messageData);
     }
 
     return { success: true, processed: false };
@@ -73,7 +99,7 @@ async function processIncomingMessage(supabase: any, instance: any, messageData:
       .eq('phone', fromNumber)
       .eq('whatsapp_number_id', instance.id)
       .eq('company_id', instance.company_id)
-      .single();
+      .maybeSingle();
 
     if (leadError || !lead) {
       console.log('[Webhook Service] 👤 Criando novo lead');
@@ -136,6 +162,45 @@ async function processIncomingMessage(supabase: any, instance: any, messageData:
 
   } catch (error) {
     console.error('[Webhook Service] ❌ Erro ao processar mensagem:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+async function processConnectionUpdate(supabase: any, instance: any, connectionData: any) {
+  console.log('[Webhook Service] 🔌 Processando atualização de conexão');
+  
+  try {
+    const { connection, lastDisconnect } = connectionData;
+    
+    // Atualizar status da instância
+    const updateData: any = {
+      connection_status: connection?.state || 'unknown',
+      updated_at: new Date().toISOString()
+    };
+
+    if (connection?.state === 'open') {
+      updateData.date_connected = new Date().toISOString();
+      updateData.web_status = 'connected';
+    } else if (connection?.state === 'close') {
+      updateData.date_disconnected = new Date().toISOString();
+      updateData.web_status = 'disconnected';
+    }
+
+    const { error: updateError } = await supabase
+      .from('whatsapp_instances')
+      .update(updateData)
+      .eq('id', instance.id);
+
+    if (updateError) {
+      console.error('[Webhook Service] ❌ Erro ao atualizar status:', updateError);
+      return { success: false, error: updateError.message };
+    }
+
+    console.log('[Webhook Service] ✅ Status atualizado:', updateData);
+    return { success: true, processed: true };
+
+  } catch (error) {
+    console.error('[Webhook Service] ❌ Erro ao processar conexão:', error);
     return { success: false, error: error.message };
   }
 }
