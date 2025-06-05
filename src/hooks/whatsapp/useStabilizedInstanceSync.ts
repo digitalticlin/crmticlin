@@ -16,7 +16,7 @@ interface StabilizedSyncState {
 
 /**
  * FASE 1: Hook de Sync Estabilizado com Anti-Órfão
- * - Debounce reduzido (1s)
+ * - Debounce reduzido (500ms)
  * - Heartbeat a cada 30s
  * - Sistema de adoção de órfãs
  * - Retry automático
@@ -47,7 +47,7 @@ export const useStabilizedInstanceSync = () => {
     };
   }, []);
 
-  // FASE 1: Sync otimizado com debounce de 1s
+  // CORREÇÃO: Sync otimizado com debounce de 500ms
   const performOptimizedSync = useCallback(async (forceRefresh = false): Promise<any[]> => {
     if (!companyId || !isMountedRef.current) {
       return [];
@@ -56,9 +56,9 @@ export const useStabilizedInstanceSync = () => {
     const now = Date.now();
     const timeSinceLast = now - lastFetchRef.current;
     
-    // Debounce reduzido para 1 segundo (vs 5s anterior)
-    if (!forceRefresh && timeSinceLast < 1000) {
-      console.log('[Stabilized Sync] ⏸️ Debounce ativo - aguardando', Math.round((1000 - timeSinceLast) / 1000), 's');
+    // CORREÇÃO: Debounce reduzido para 500ms para responsividade
+    if (!forceRefresh && timeSinceLast < 500) {
+      console.log('[Stabilized Sync] ⏸️ Debounce ativo - aguardando', Math.round((500 - timeSinceLast) / 1000), 's');
       return state.instances;
     }
 
@@ -82,7 +82,7 @@ export const useStabilizedInstanceSync = () => {
       }
 
       const instances = data || [];
-      console.log(`[Stabilized Sync] ✅ ${instances.length} instâncias carregadas (otimizado)`);
+      console.log(`[Stabilized Sync] ✅ ${instances.length} instâncias carregadas (responsivo)`);
       
       // Calcular métricas de saúde
       const connectedInstances = instances.filter(i => ['open', 'ready'].includes(i.connection_status));
@@ -100,7 +100,7 @@ export const useStabilizedInstanceSync = () => {
           healthScore
         }));
 
-        // FASE 2: Auto-healing para órfãs
+        // Sistema de healing para órfãs
         if (orphanInstances.length > 0) {
           console.warn(`[Stabilized Sync] 🚨 ${orphanInstances.length} instâncias órfãs detectadas`);
           await performOrphanHealing(orphanInstances);
@@ -119,7 +119,7 @@ export const useStabilizedInstanceSync = () => {
           healthScore: Math.max(0, prev.healthScore - 10)
         }));
 
-        // FASE 1: Retry automático em caso de erro
+        // Retry automático em caso de erro
         scheduleRetry();
       }
       return [];
@@ -176,7 +176,7 @@ export const useStabilizedInstanceSync = () => {
       }
 
       // Refresh após healing
-      setTimeout(() => performOptimizedSync(true), 2000);
+      setTimeout(() => performOptimizedSync(true), 1000);
       
     } catch (error) {
       console.error('[Orphan Healing] 💥 Erro no processo de cura:', error);
@@ -217,7 +217,7 @@ export const useStabilizedInstanceSync = () => {
     };
   }, [companyId, performOptimizedSync]);
 
-  // FASE 1: Real-time melhorado com menos debounce
+  // CORREÇÃO: Real-time com debounce reduzido
   useEffect(() => {
     if (!companyId) return;
 
@@ -238,12 +238,12 @@ export const useStabilizedInstanceSync = () => {
           
           console.log('[Stabilized Sync] 📡 Real-time update (estabilizado):', payload.eventType);
           
-          // Real-time com menos delay (500ms vs 2s anterior)
+          // CORREÇÃO: Real-time com menos delay (200ms vs 500ms anterior)
           setTimeout(() => {
             if (isMountedRef.current) {
               performOptimizedSync(true);
             }
-          }, 500);
+          }, 200);
         }
       )
       .subscribe();

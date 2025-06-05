@@ -8,7 +8,7 @@ export const useWhatsAppRealtime = (userEmail: string) => {
   const { instances } = useWhatsAppInstanceState();
   const { updateInstance } = useWhatsAppInstanceActions();
   
-  // CORREÇÃO 1: Debounce melhorado para evitar loops
+  // CORREÇÃO: Debounce melhorado para responsividade
   const lastUpdateRef = useRef<number>(0);
   const updateTimeoutRef = useRef<NodeJS.Timeout>();
   const channelRef = useRef<any>(null);
@@ -24,9 +24,9 @@ export const useWhatsAppRealtime = (userEmail: string) => {
   useEffect(() => {
     if (!userEmail || !isMountedRef.current) return;
 
-    console.log('[WhatsApp Realtime] 🔄 Configurando real-time otimizado (anti-loop)');
+    console.log('[WhatsApp Realtime] 🔄 Configurando real-time otimizado (responsivo)');
     
-    // CORREÇÃO 2: Canal único consolidado para evitar múltiplas subscriptions
+    // CORREÇÃO: Canal único consolidado para evitar múltiplas subscriptions
     if (channelRef.current) {
       console.log('[WhatsApp Realtime] 🧹 Removendo canal anterior');
       supabase.removeChannel(channelRef.current);
@@ -44,7 +44,7 @@ export const useWhatsAppRealtime = (userEmail: string) => {
         },
         (payload) => {
           if (!isMountedRef.current) return;
-          console.log('[WhatsApp Realtime] 📡 Instance change (debounced):', payload);
+          console.log('[WhatsApp Realtime] 📡 Instance change (responsivo):', payload);
           handleInstanceChangeDebounced(payload);
         }
       )
@@ -63,14 +63,14 @@ export const useWhatsAppRealtime = (userEmail: string) => {
       )
       .subscribe();
 
-    // CORREÇÃO 3: Debounce rigoroso para evitar loops
+    // CORREÇÃO: Debounce reduzido de 3s para 500ms para responsividade
     const handleInstanceChangeDebounced = (payload: any) => {
       const now = Date.now();
       const timeSinceLastUpdate = now - lastUpdateRef.current;
       
-      // CRÍTICO: Debounce de 3 segundos para evitar loops
-      if (timeSinceLastUpdate < 3000) {
-        console.log('[WhatsApp Realtime] ⏸️ Update debounced (anti-loop)');
+      // CRÍTICO: Reduzir debounce de 3s para 500ms para melhor UX
+      if (timeSinceLastUpdate < 500) {
+        console.log('[WhatsApp Realtime] ⏸️ Update debounced (responsivo)');
         return;
       }
 
@@ -83,7 +83,7 @@ export const useWhatsAppRealtime = (userEmail: string) => {
           processInstanceUpdate(payload);
           lastUpdateRef.current = Date.now();
         }
-      }, 1000); // 1 segundo de delay adicional
+      }, 200); // 200ms de delay para responsividade
     };
 
     const handleNewMessage = (payload: any) => {
@@ -105,7 +105,7 @@ export const useWhatsAppRealtime = (userEmail: string) => {
         const newRecord = payload.new as any;
         
         if (newRecord.instance_name?.toLowerCase().startsWith(instancePrefix)) {
-          // CORREÇÃO 4: Mapeamento otimizado de status
+          // CORREÇÃO: Mapeamento otimizado de status
           const isConnected = ['open', 'ready', 'connected'].includes(newRecord.connection_status);
 
           // Log apenas mudanças significativas de status
@@ -165,7 +165,7 @@ export const useWhatsAppRealtime = (userEmail: string) => {
       }
     };
 
-    // CORREÇÃO 5: Cleanup melhorado
+    // CORREÇÃO: Cleanup melhorado
     return () => {
       console.log('[WhatsApp Realtime] 🧹 Cleanup completo executado');
       isMountedRef.current = false;

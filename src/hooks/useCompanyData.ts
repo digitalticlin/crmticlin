@@ -11,16 +11,19 @@ export const useCompanyData = () => {
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Carregar company_id automaticamente quando o hook é inicializado
+  // CORREÇÃO: Carregar company_id otimizado
   useEffect(() => {
     const loadUserCompany = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
+          console.log('[Company Data] Usuário não autenticado');
           setLoading(false);
           return;
         }
+
+        console.log('[Company Data] Carregando dados para usuário:', user.email);
 
         const { data: profile, error } = await supabase
           .from('profiles')
@@ -29,18 +32,30 @@ export const useCompanyData = () => {
           .single();
 
         if (error) {
-          console.error("Error loading user profile:", error);
+          console.error("[Company Data] Erro ao carregar perfil:", error);
+          
+          // CORREÇÃO: Se não há profile, criar um automaticamente
+          if (error.code === 'PGRST116') {
+            console.log('[Company Data] Profile não existe, será criado automaticamente pelo trigger');
+            // Aguardar um pouco para o trigger criar o profile
+            setTimeout(() => loadUserCompany(), 1000);
+            return;
+          }
+          
           setLoading(false);
           return;
         }
 
         if (profile?.company_id) {
+          console.log('[Company Data] Company ID encontrado:', profile.company_id);
           setCompanyId(profile.company_id);
           await fetchCompanyData(profile.company_id);
+        } else {
+          console.log('[Company Data] Nenhum company_id encontrado no profile');
+          setLoading(false);
         }
       } catch (error) {
-        console.error("Error loading user company:", error);
-      } finally {
+        console.error("[Company Data] Erro ao carregar dados da empresa:", error);
         setLoading(false);
       }
     };
@@ -54,19 +69,28 @@ export const useCompanyData = () => {
    */
   const fetchCompanyData = async (id: string) => {
     try {
+      console.log('[Company Data] Buscando dados da empresa:', id);
+      
       const { data: company, error } = await supabase
         .from('companies')
         .select('name')
         .eq('id', id)
         .single();
         
-      if (error) throw error;
+      if (error) {
+        console.error('[Company Data] Erro ao buscar empresa:', error);
+        throw error;
+      }
         
       if (company) {
+        console.log('[Company Data] Empresa encontrada:', company.name);
         setCompanyName(company.name);
       }
+      
+      setLoading(false);
     } catch (error) {
-      console.error("Error fetching company data:", error);
+      console.error("[Company Data] Erro ao buscar dados da empresa:", error);
+      setLoading(false);
     }
   };
   
@@ -84,6 +108,8 @@ export const useCompanyData = () => {
       
       // If no companyId, create a new company
       if (!companyId && name.trim()) {
+        console.log('[Company Data] Criando nova empresa:', name);
+        
         const { data: newCompany, error: newCompanyError } = await supabase
           .from('companies')
           .insert({
@@ -99,11 +125,14 @@ export const useCompanyData = () => {
         }
         
         if (newCompany) {
+          console.log('[Company Data] Nova empresa criada:', newCompany.id);
           setCompanyId(newCompany.id);
           return newCompany.id;
         }
       } else if (companyId) {
         // Update existing company
+        console.log('[Company Data] Atualizando empresa existente:', companyId);
+        
         const { error: companyError } = await supabase
           .from('companies')
           .update({
@@ -121,7 +150,7 @@ export const useCompanyData = () => {
       
       return null;
     } catch (error: any) {
-      console.error("Error saving company:", error);
+      console.error("[Company Data] Erro ao salvar empresa:", error);
       toast.error(error.message || "Não foi possível salvar os dados da empresa");
       return null;
     }
