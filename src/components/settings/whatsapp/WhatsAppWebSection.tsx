@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
+import { useAutomaticQRPolling } from "@/hooks/whatsapp/useAutomaticQRPolling";
 import { ImprovedQRCodeModal } from "./ImprovedQRCodeModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyData } from "@/hooks/useCompanyData";
@@ -11,12 +12,13 @@ import { WhatsAppWebEmptyState } from "./WhatsAppWebEmptyState";
 import { WhatsAppWebLoadingState } from "./WhatsAppWebLoadingState";
 
 export const WhatsAppWebSection = () => {
-  console.log('[WhatsAppWebSection] Component rendering - WhatsApp Web.js only');
+  console.log('[WhatsAppWebSection] Component rendering - CORREÇÃO ROBUSTA QR AUTO');
   
   const [userEmail, setUserEmail] = useState<string>("");
   const [localShowQRModal, setLocalShowQRModal] = useState(false);
   const [localSelectedQRCode, setLocalSelectedQRCode] = useState<string | null>(null);
   const [localSelectedInstanceName, setLocalSelectedInstanceName] = useState<string>('');
+  const [isWaitingForQR, setIsWaitingForQR] = useState(false);
   
   const { companyId, loading: companyLoading } = useCompanyData();
   
@@ -29,6 +31,8 @@ export const WhatsAppWebSection = () => {
     refreshQRCode,
     generateIntelligentInstanceName
   } = useWhatsAppWebInstances();
+
+  const { isPolling, startPolling, stopPolling } = useAutomaticQRPolling();
 
   // Load current user data
   useEffect(() => {
@@ -51,34 +55,50 @@ export const WhatsAppWebSection = () => {
     getUser();
   }, []);
 
-  // FASE 3.1.3: handleConnect com nomenclatura inteligente
+  // CORREÇÃO ROBUSTA: handleConnect com modal automático
   const handleConnect = async () => {
-    console.log('[WhatsAppWebSection] Connect requested - FASE 3.1.3 (nomenclatura inteligente)');
+    console.log('[WhatsAppWebSection] 🚀 CORREÇÃO ROBUSTA: Connect requested');
     
-    // FASE 3.1.3: Gerar nome inteligente baseado no email do usuário
     const instanceName = await generateIntelligentInstanceName(userEmail);
-    console.log('[WhatsAppWebSection] 🎯 Nome inteligente gerado:', instanceName);
+    console.log('[WhatsAppWebSection] 🎯 Nome gerado:', instanceName);
     
     try {
-      // Criar instância e capturar resultado com QR Code
+      console.log('[WhatsAppWebSection] 📱 Criando instância...');
       const createdInstance = await createInstance(instanceName);
       
-      if (createdInstance && createdInstance.qr_code) {
-        console.log('[WhatsAppWebSection] ✅ QR Code capturado da criação:', createdInstance.qr_code.substring(0, 50) + '...');
-        
-        // Abrir modal automaticamente com QR Code
-        setLocalSelectedQRCode(createdInstance.qr_code);
-        setLocalSelectedInstanceName(createdInstance.instance_name);
-        setLocalShowQRModal(true);
-        
-        toast.success(`Instância "${instanceName}" criada! Escaneie o QR Code para conectar.`);
-      } else {
-        console.log('[WhatsAppWebSection] ⚠️ Instância criada mas sem QR Code imediato');
-        toast.success(`Instância "${instanceName}" criada! Use o botão "Ver QR" para conectar.`);
+      if (createdInstance) {
+        if (createdInstance.qr_code) {
+          // QR Code disponível imediatamente - abrir modal
+          console.log('[WhatsAppWebSection] ✅ QR Code imediato disponível!');
+          setLocalSelectedQRCode(createdInstance.qr_code);
+          setLocalSelectedInstanceName(createdInstance.instance_name);
+          setLocalShowQRModal(true);
+          toast.success(`Instância "${instanceName}" criada! Escaneie o QR Code.`);
+        } else {
+          // QR Code não disponível - iniciar polling automático
+          console.log('[WhatsAppWebSection] ⏳ Iniciando polling automático para QR Code...');
+          setIsWaitingForQR(true);
+          setLocalSelectedInstanceName(createdInstance.instance_name);
+          
+          toast.info(`Instância "${instanceName}" criada! Preparando QR Code...`);
+          
+          await startPolling(
+            createdInstance.id,
+            createdInstance.instance_name,
+            (qrCode: string) => {
+              console.log('[WhatsAppWebSection] 🎉 QR Code recebido via polling!');
+              setLocalSelectedQRCode(qrCode);
+              setLocalShowQRModal(true);
+              setIsWaitingForQR(false);
+              toast.success('QR Code pronto! Escaneie para conectar.');
+            }
+          );
+        }
       }
     } catch (error) {
       console.error('[WhatsAppWebSection] ❌ Erro na criação:', error);
-      // Toast de erro já é exibido pelo createInstance
+      setIsWaitingForQR(false);
+      stopPolling();
     }
   };
 
@@ -108,17 +128,46 @@ export const WhatsAppWebSection = () => {
   };
 
   const closeQRModal = () => {
+    console.log('[WhatsAppWebSection] 🔐 Fechando modal e parando polling');
     setLocalShowQRModal(false);
     setLocalSelectedQRCode(null);
     setLocalSelectedInstanceName('');
+    setIsWaitingForQR(false);
+    stopPolling();
   };
+
+  // Cleanup polling ao desmontar
+  useEffect(() => {
+    return () => {
+      stopPolling();
+    };
+  }, [stopPolling]);
+
+  const isConnectingOrPolling = isConnecting || isPolling || isWaitingForQR;
 
   return (
     <div className="space-y-6">
+      {/* Status de Polling Visual */}
+      {isWaitingForQR && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+            <div>
+              <p className="text-sm font-medium text-blue-900">
+                Preparando QR Code para "{localSelectedInstanceName}"...
+              </p>
+              <p className="text-xs text-blue-700">
+                O modal abrirá automaticamente quando estiver pronto
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Title Card with Add Button */}
       <WhatsAppWebSectionHeader
         onConnect={handleConnect}
-        isConnecting={isConnecting}
+        isConnecting={isConnectingOrPolling}
         isLoading={isLoading}
         companyLoading={companyLoading}
       />
@@ -136,7 +185,7 @@ export const WhatsAppWebSection = () => {
       ) : (
         <WhatsAppWebEmptyState
           onConnect={handleConnect}
-          isConnecting={isConnecting}
+          isConnecting={isConnectingOrPolling}
         />
       )}
 
