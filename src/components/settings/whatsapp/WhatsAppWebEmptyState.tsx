@@ -13,7 +13,7 @@ export const WhatsAppWebEmptyState = ({
   isConnecting
 }: WhatsAppWebEmptyStateProps) => {
   return (
-    <ModernCard className="border-2 border-dashed border-green-300/50 bg-green-50/20">
+    <ModernCard className="border-2 border-dashed border-green-300/50 bg-green-50/30">
       <ModernCardHeader>
         <div className="flex flex-col items-center text-center space-y-6 py-8">
           <div className="p-6 bg-green-100/70 rounded-2xl">

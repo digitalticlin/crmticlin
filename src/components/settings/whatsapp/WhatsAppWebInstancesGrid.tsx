@@ -17,7 +17,7 @@ export const WhatsAppWebInstancesGrid = ({
   onShowQR
 }: WhatsAppWebInstancesGridProps) => {
   return (
-    <ModernCard>
+    <ModernCard className="bg-white/60">
       <ModernCardHeader>
         <ModernCardTitle className="flex items-center gap-2">
           <span>Suas Instâncias WhatsApp</span>

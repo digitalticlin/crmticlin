@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export const WhatsAppWebLoadingState = () => {
   return (
     <div className="space-y-4">
-      <ModernCard>
+      <ModernCard className="bg-white/60">
         <ModernCardHeader>
           <div className="flex items-center gap-4">
             <div className="p-3 bg-green-100/70 rounded-xl">
@@ -29,7 +29,7 @@ export const WhatsAppWebLoadingState = () => {
         </ModernCardContent>
       </ModernCard>
 
-      <ModernCard>
+      <ModernCard className="bg-white/60">
         <ModernCardContent className="p-6">
           <div className="flex items-center justify-center">
             <div className="text-center space-y-2">

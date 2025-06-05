@@ -23,13 +23,13 @@ export const WhatsAppWebSectionHeader = ({
   const showLoadingState = isConnecting || isWaitingForQR;
 
   return (
-    <ModernCard className={`transition-all duration-300 ${showLoadingState ? 'border-green-300 bg-green-50/30' : ''}`}>
+    <ModernCard className={`transition-all duration-300 ${showLoadingState ? 'border-green-300/50 bg-green-50/30' : 'bg-white/60'}`}>
       <ModernCardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className={`p-3 rounded-xl transition-all duration-300 ${
               showLoadingState 
-                ? 'bg-green-100 animate-pulse' 
+                ? 'bg-green-100/70 animate-pulse' 
                 : 'bg-green-100/70'
             }`}>
               {showLoadingState ? (
@@ -75,7 +75,7 @@ export const WhatsAppWebSectionHeader = ({
         
         {showLoadingState && (
           <div className="mt-4 space-y-3">
-            <Progress value={33} className="w-full h-2 bg-green-100" />
+            <Progress value={33} className="w-full h-2 bg-green-100/50" />
             <div className="flex items-center justify-between text-xs text-green-700">
               <span>Criando instância...</span>
               <span>Preparando QR Code</span>
