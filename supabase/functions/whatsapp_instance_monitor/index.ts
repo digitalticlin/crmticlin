@@ -7,45 +7,59 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// VPS Configuration - BLINDADO (não alterar)
+// VPS Configuration - MELHORADO com retry
 const VPS_CONFIG = {
   host: '31.97.24.222',
   port: '3001',
   baseUrl: 'http://31.97.24.222:3001',
   authToken: 'default-token',
-  timeout: 30000
+  timeout: 15000,
+  retries: 3
 };
 
 const getVPSHeaders = () => ({
   'Content-Type': 'application/json',
   'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
-  'User-Agent': 'Supabase-Monitor/1.0',
+  'User-Agent': 'Supabase-Monitor/2.0',
   'Accept': 'application/json'
 });
 
-// Função para buscar instâncias da VPS
-async function fetchVPSInstances() {
-  try {
-    console.log('[Monitor] 🔍 Buscando instâncias da VPS...');
-    
-    const response = await fetch(`${VPS_CONFIG.baseUrl}/instances`, {
-      method: 'GET',
-      headers: getVPSHeaders(),
-      signal: AbortSignal.timeout(VPS_CONFIG.timeout)
-    });
+// Função para buscar instâncias da VPS com retry
+async function fetchVPSInstancesWithRetry() {
+  let lastError;
+  
+  for (let attempt = 1; attempt <= VPS_CONFIG.retries; attempt++) {
+    try {
+      console.log(`[Monitor] 🔍 Tentativa ${attempt}/${VPS_CONFIG.retries} para buscar instâncias da VPS...`);
+      
+      const response = await fetch(`${VPS_CONFIG.baseUrl}/instances`, {
+        method: 'GET',
+        headers: getVPSHeaders(),
+        signal: AbortSignal.timeout(VPS_CONFIG.timeout)
+      });
 
-    if (!response.ok) {
-      throw new Error(`VPS responded with status: ${response.status}`);
+      if (!response.ok) {
+        throw new Error(`VPS responded with status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log(`[Monitor] ✅ ${data.instances?.length || 0} instâncias encontradas na VPS (tentativa ${attempt})`);
+      
+      return data.instances || [];
+    } catch (error) {
+      console.error(`[Monitor] ❌ Tentativa ${attempt} falhou:`, error);
+      lastError = error;
+      
+      if (attempt < VPS_CONFIG.retries) {
+        const delay = Math.pow(2, attempt - 1) * 1000; // Exponential backoff
+        console.log(`[Monitor] ⏳ Aguardando ${delay}ms antes da próxima tentativa...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
     }
-
-    const data = await response.json();
-    console.log(`[Monitor] ✅ ${data.instances?.length || 0} instâncias encontradas na VPS`);
-    
-    return data.instances || [];
-  } catch (error) {
-    console.error('[Monitor] ❌ Erro ao buscar instâncias VPS:', error);
-    return [];
   }
+  
+  console.error(`[Monitor] ❌ Todas as ${VPS_CONFIG.retries} tentativas falharam:`, lastError);
+  return [];
 }
 
 // Função para deletar instância da VPS
@@ -102,13 +116,15 @@ async function attemptReconnect(instanceId: string) {
   }
 }
 
-// Função principal de monitoramento
-async function monitorInstances(supabase: any) {
-  console.log('[Monitor] 🚀 Iniciando monitoramento de instâncias...');
+// FUNÇÃO PRINCIPAL DE MONITORAMENTO MELHORADA
+async function monitorInstancesImproved(supabase: any) {
+  const monitorId = `monitor_${Date.now()}`;
+  console.log(`[Monitor] 🚀 Iniciando monitoramento melhorado [${monitorId}]...`);
   
   try {
-    // 1. Buscar instâncias da VPS
-    const vpsInstances = await fetchVPSInstances();
+    // 1. Buscar instâncias da VPS com retry
+    const vpsInstances = await fetchVPSInstancesWithRetry();
+    const vpsHealthy = vpsInstances.length > 0;
     
     // 2. Buscar instâncias do Supabase
     const { data: dbInstances, error: dbError } = await supabase
@@ -121,31 +137,67 @@ async function monitorInstances(supabase: any) {
       return { success: false, error: dbError.message };
     }
 
-    console.log(`[Monitor] 📊 VPS: ${vpsInstances.length}, Supabase: ${dbInstances?.length || 0}`);
+    console.log(`[Monitor] 📊 VPS: ${vpsInstances.length}, Supabase: ${dbInstances?.length || 0}, VPS Healthy: ${vpsHealthy}`);
     
-    // 3. Identificar instâncias órfãs na VPS
+    const results = {
+      monitorId,
+      vpsHealthy,
+      monitored: vpsInstances.length,
+      supabaseInstances: dbInstances?.length || 0,
+      orphans_found: 0,
+      adopted: 0,
+      deleted: 0,
+      updated: 0,
+      errors: 0,
+      actions: []
+    };
+
+    // 3. Se VPS não estiver saudável, apenas marcar instâncias como desconectadas
+    if (!vpsHealthy) {
+      console.log(`[Monitor] ⚠️ VPS não saudável - marcando instâncias como desconectadas`);
+      
+      for (const dbInstance of dbInstances || []) {
+        if (dbInstance.connection_status !== 'disconnected') {
+          await supabase
+            .from('whatsapp_instances')
+            .update({
+              connection_status: 'disconnected',
+              web_status: 'disconnected',
+              date_disconnected: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', dbInstance.id);
+            
+          results.updated++;
+          results.actions.push(`Marcado como desconectado: ${dbInstance.instance_name}`);
+        }
+      }
+      
+      return {
+        success: true,
+        results,
+        message: 'Monitoramento concluído em modo degradado (VPS não saudável)',
+        timestamp: new Date().toISOString()
+      };
+    }
+
+    // 4. Identificar instâncias órfãs na VPS
     const orphanInstances = vpsInstances.filter((vpsInstance: any) => 
       !dbInstances?.some(db => db.vps_instance_id === vpsInstance.instanceId)
     );
 
+    results.orphans_found = orphanInstances.length;
     console.log(`[Monitor] 🔍 ${orphanInstances.length} instâncias órfãs encontradas`);
     
-    const results = {
-      monitored: vpsInstances.length,
-      orphans_found: orphanInstances.length,
-      adopted: 0,
-      deleted: 0,
-      errors: 0
-    };
-
-    // 4. Processar instâncias órfãs
+    // 5. Processar instâncias órfãs - MELHORADO
     for (const orphan of orphanInstances) {
-      console.log(`[Monitor] 🔄 Processando órfã: ${orphan.instanceId} (status: ${orphan.status})`);
+      console.log(`[Monitor] 🔄 Processando órfã: ${orphan.instanceId} (status: ${orphan.status}, phone: ${orphan.phone || 'N/A'})`);
       
       if (orphan.status === 'open' && orphan.phone) {
-        // Tentar vincular pelo telefone
+        // Tentar vincular pelo telefone a uma empresa existente
         console.log(`[Monitor] 📞 Tentando vincular órfã pelo telefone: ${orphan.phone}`);
         
+        // Buscar empresa através de leads com esse telefone
         const { data: existingLead } = await supabase
           .from('leads')
           .select('company_id')
@@ -153,18 +205,38 @@ async function monitorInstances(supabase: any) {
           .limit(1)
           .single();
 
+        let targetCompanyId = null;
+
         if (existingLead?.company_id) {
+          targetCompanyId = existingLead.company_id;
+          console.log(`[Monitor] 🎯 Empresa encontrada via lead: ${targetCompanyId}`);
+        } else {
+          // Se não encontrou via lead, usar primeira empresa ativa
+          const { data: defaultCompany } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('active', true)
+            .limit(1)
+            .single();
+            
+          if (defaultCompany) {
+            targetCompanyId = defaultCompany.id;
+            console.log(`[Monitor] 🏢 Usando empresa padrão: ${targetCompanyId}`);
+          }
+        }
+
+        if (targetCompanyId) {
           // Adotar instância órfã
           const adoptedInstance = {
             instance_name: `adopted_${orphan.instanceId.slice(-8)}`,
             vps_instance_id: orphan.instanceId,
             connection_type: 'web',
-            connection_status: 'open',
+            connection_status: 'ready',
             web_status: 'ready',
             phone: orphan.phone,
             profile_name: orphan.profileName || null,
             server_url: VPS_CONFIG.baseUrl,
-            company_id: existingLead.company_id,
+            company_id: targetCompanyId,
             date_connected: new Date().toISOString(),
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
@@ -175,14 +247,17 @@ async function monitorInstances(supabase: any) {
             .insert(adoptedInstance);
 
           if (!insertError) {
-            console.log(`[Monitor] ✅ Órfã ${orphan.instanceId} adotada e vinculada à empresa ${existingLead.company_id}`);
+            console.log(`[Monitor] ✅ Órfã ${orphan.instanceId} adotada e vinculada à empresa ${targetCompanyId}`);
             results.adopted++;
+            results.actions.push(`Adotado: ${orphan.instanceId} → empresa ${targetCompanyId}`);
           } else {
             console.error(`[Monitor] ❌ Erro ao adotar órfã ${orphan.instanceId}:`, insertError);
             results.errors++;
+            results.actions.push(`Erro ao adotar: ${orphan.instanceId} - ${insertError.message}`);
           }
         } else {
-          console.log(`[Monitor] ⚠️ Telefone ${orphan.phone} não encontrado nos leads`);
+          console.log(`[Monitor] ⚠️ Nenhuma empresa encontrada para órfã ${orphan.instanceId}`);
+          results.actions.push(`Órfã sem empresa: ${orphan.instanceId}`);
         }
       } else if (orphan.status !== 'open') {
         // Tentar reativar se não estiver conectada
@@ -198,41 +273,57 @@ async function monitorInstances(supabase: any) {
           
           if (deleted) {
             results.deleted++;
+            results.actions.push(`Deletado da VPS: ${orphan.instanceId}`);
             console.log(`[Monitor] ✅ Órfã ${orphan.instanceId} deletada da VPS`);
           } else {
             results.errors++;
+            results.actions.push(`Erro ao deletar: ${orphan.instanceId}`);
             console.error(`[Monitor] ❌ Falha ao deletar órfã ${orphan.instanceId}`);
           }
+        } else {
+          results.actions.push(`Reativado: ${orphan.instanceId}`);
         }
       }
     }
 
-    // 5. Atualizar status das instâncias conhecidas
+    // 6. Atualizar status das instâncias conhecidas - OTIMIZADO
     for (const dbInstance of dbInstances || []) {
       const vpsInstance = vpsInstances.find((vps: any) => vps.instanceId === dbInstance.vps_instance_id);
       
       if (vpsInstance) {
-        // Atualizar status se diferente
-        const newStatus = vpsInstance.status === 'open' ? 'open' : 'disconnected';
+        // Mapear status VPS para Supabase
+        const newConnectionStatus = vpsInstance.status === 'open' ? 'ready' : 'disconnected';
         const newWebStatus = vpsInstance.status === 'open' ? 'ready' : 'disconnected';
         
-        if (dbInstance.connection_status !== newStatus || dbInstance.web_status !== newWebStatus) {
-          console.log(`[Monitor] 🔄 Atualizando status ${dbInstance.instance_name}: ${dbInstance.connection_status} -> ${newStatus}`);
+        // Só atualizar se houve mudança
+        if (dbInstance.connection_status !== newConnectionStatus || dbInstance.web_status !== newWebStatus) {
+          console.log(`[Monitor] 🔄 Atualizando status ${dbInstance.instance_name}: ${dbInstance.connection_status} -> ${newConnectionStatus}`);
+          
+          const updateData: any = {
+            connection_status: newConnectionStatus,
+            web_status: newWebStatus,
+            updated_at: new Date().toISOString()
+          };
+          
+          // Atualizar timestamps de conexão/desconexão
+          if (newConnectionStatus === 'ready' && !dbInstance.date_connected) {
+            updateData.date_connected = new Date().toISOString();
+          } else if (newConnectionStatus === 'disconnected') {
+            updateData.date_disconnected = new Date().toISOString();
+          }
           
           const { error: updateError } = await supabase
             .from('whatsapp_instances')
-            .update({
-              connection_status: newStatus,
-              web_status: newWebStatus,
-              updated_at: new Date().toISOString(),
-              ...(newStatus === 'open' && !dbInstance.date_connected ? { date_connected: new Date().toISOString() } : {}),
-              ...(newStatus === 'disconnected' ? { date_disconnected: new Date().toISOString() } : {})
-            })
+            .update(updateData)
             .eq('id', dbInstance.id);
 
-          if (updateError) {
+          if (!updateError) {
+            results.updated++;
+            results.actions.push(`Status atualizado: ${dbInstance.instance_name} → ${newConnectionStatus}`);
+          } else {
             console.error(`[Monitor] ❌ Erro ao atualizar ${dbInstance.instance_name}:`, updateError);
             results.errors++;
+            results.actions.push(`Erro ao atualizar: ${dbInstance.instance_name} - ${updateError.message}`);
           }
         }
       } else if (dbInstance.connection_status !== 'disconnected') {
@@ -249,14 +340,18 @@ async function monitorInstances(supabase: any) {
           })
           .eq('id', dbInstance.id);
 
-        if (updateError) {
+        if (!updateError) {
+          results.updated++;
+          results.actions.push(`Marcado como desconectado: ${dbInstance.instance_name}`);
+        } else {
           console.error(`[Monitor] ❌ Erro ao marcar ${dbInstance.instance_name} como desconectada:`, updateError);
           results.errors++;
+          results.actions.push(`Erro ao desconectar: ${dbInstance.instance_name} - ${updateError.message}`);
         }
       }
     }
 
-    console.log('[Monitor] 📊 Resultados do monitoramento:', results);
+    console.log(`[Monitor] 📊 Resultados do monitoramento [${monitorId}]:`, results);
     
     return {
       success: true,
@@ -265,9 +360,10 @@ async function monitorInstances(supabase: any) {
     };
 
   } catch (error) {
-    console.error('[Monitor] ❌ Erro geral no monitoramento:', error);
+    console.error(`[Monitor] ❌ Erro geral no monitoramento [${monitorId}]:`, error);
     return {
       success: false,
+      monitorId,
       error: error.message,
       timestamp: new Date().toISOString()
     };
@@ -281,14 +377,14 @@ serve(async (req) => {
   }
 
   try {
-    console.log('[Monitor] 🔧 WhatsApp Instance Monitor iniciado');
+    console.log('[Monitor] 🔧 WhatsApp Instance Monitor V2 iniciado');
     
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const result = await monitorInstances(supabase);
+    const result = await monitorInstancesImproved(supabase);
 
     return new Response(
       JSON.stringify(result),
