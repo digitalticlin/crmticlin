@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { MoreVertical, Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,13 +43,13 @@ export const ColumnHeader = ({
 
   return (
     <div className="p-4 flex items-center justify-between border-b border-slate-200/15 bg-transparent">
-      <h3 className={cn("font-semibold font-inter text-lg truncate", isFixed && "text-ticlin")}>{displayTitle}</h3>
+      <h3 className="font-semibold font-inter text-lg truncate text-gray-900">{displayTitle}</h3>
       <div className="flex items-center gap-2">
-        <span className="bg-ticlin/20 text-ticlin font-bold rounded-xl px-3 py-0.5 text-xs">{column.leads.length}</span>
+        <span className="bg-gray-100 text-gray-800 font-bold rounded-xl px-3 py-0.5 text-xs border border-gray-300">{column.leads.length}</span>
         {!isFixed && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-ticlin group-hover:bg-ticlin/10 transition-all">
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-gray-600 hover:bg-gray-100 transition-all">
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
