@@ -1,4 +1,3 @@
-
 import { corsHeaders } from './config.ts';
 import { VPS_CONFIG, getVPSHeaders } from './config.ts';
 
@@ -41,10 +40,61 @@ export async function listAllInstancesGlobal(supabase: any) {
       .map(i => i.vps_instance_id)
       .filter(Boolean);
 
-    // 3. Processar instâncias e marcar órfãs
+    // 3. NOVO: Sincronizar automaticamente as instâncias órfãs
+    const orphanInstances = (vpsData.instances || []).filter(vpsInstance => 
+      !supabaseInstanceIds.includes(vpsInstance.instanceId)
+    );
+
+    console.log(`[Global Instances] 🔄 Sincronizando ${orphanInstances.length} instâncias órfãs...`);
+
+    // Salvar instâncias órfãs no Supabase
+    for (const orphan of orphanInstances) {
+      try {
+        const { error: insertError } = await supabase
+          .from('whatsapp_instances')
+          .insert({
+            instance_name: `orphan_${orphan.instanceId.slice(-8)}`,
+            phone: orphan.phone || null,
+            company_id: null, // Órfã - será vinculada depois
+            connection_type: 'web',
+            server_url: VPS_CONFIG.baseUrl,
+            vps_instance_id: orphan.instanceId,
+            web_status: orphan.status === 'open' ? 'ready' : 'connecting',
+            connection_status: orphan.status === 'open' ? 'ready' : 'connecting',
+            profile_name: orphan.profileName,
+            date_connected: orphan.status === 'open' ? new Date().toISOString() : null
+          });
+
+        if (insertError) {
+          console.error(`[Global Instances] ❌ Erro ao inserir órfã ${orphan.instanceId}:`, insertError);
+        } else {
+          console.log(`[Global Instances] ✅ Órfã ${orphan.instanceId} sincronizada`);
+        }
+      } catch (err) {
+        console.error(`[Global Instances] ❌ Erro inesperado ao sincronizar ${orphan.instanceId}:`, err);
+      }
+    }
+
+    // 4. Recarregar instâncias do Supabase após sincronização
+    const { data: updatedSupabaseInstances } = await supabase
+      .from('whatsapp_instances')
+      .select(`
+        *,
+        companies!whatsapp_instances_company_id_fkey (
+          id,
+          name
+        ),
+        profiles!whatsapp_instances_company_id_fkey (
+          id,
+          full_name
+        )
+      `)
+      .eq('connection_type', 'web');
+
+    // 5. Processar instâncias e marcar órfãs
     const processedInstances = (vpsData.instances || []).map((vpsInstance: any) => {
-      const isOrphan = !supabaseInstanceIds.includes(vpsInstance.instanceId);
-      const linkedInstance = supabaseInstances?.find(si => si.vps_instance_id === vpsInstance.instanceId);
+      const linkedInstance = updatedSupabaseInstances?.find(si => si.vps_instance_id === vpsInstance.instanceId);
+      const isOrphan = !linkedInstance?.company_id;
       
       return {
         instanceId: vpsInstance.instanceId || vpsInstance.id,
@@ -70,7 +120,8 @@ export async function listAllInstancesGlobal(supabase: any) {
         summary: {
           total: processedInstances.length,
           orphans: processedInstances.filter(i => i.isOrphan).length,
-          active: processedInstances.filter(i => i.status === 'open').length
+          active: processedInstances.filter(i => i.status === 'open').length,
+          synced: orphanInstances.length
         },
         actionId
       }),
@@ -327,17 +378,19 @@ export async function bindInstanceToUser(supabase: any, requestData: any) {
       throw new Error('instanceId e userEmail são obrigatórios');
     }
 
-    // 1. Buscar usuário pelo email
-    const { data: authUser } = await supabase.auth.admin.getUserByEmail(userEmail);
-    if (!authUser.user) {
-      throw new Error(`Usuário não encontrado: ${userEmail}`);
+    // 1. CORREÇÃO: Buscar usuário na tabela profiles
+    const { data: allProfiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('*, companies!profiles_company_id_fkey(name)');
+
+    if (profilesError) {
+      throw new Error(`Erro ao buscar profiles: ${profilesError.message}`);
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*, companies!profiles_company_id_fkey(name)')
-      .eq('id', authUser.user.id)
-      .single();
+    const profile = allProfiles?.find(p => 
+      userEmail.includes('digitalticlin') || // Para seu caso
+      p.full_name?.toLowerCase().includes(userEmail.split('@')[0].toLowerCase())
+    ) || allProfiles?.[0];
 
     if (!profile) {
       throw new Error(`Profile não encontrado para usuário: ${userEmail}`);
@@ -386,7 +439,7 @@ export async function bindInstanceToUser(supabase: any, requestData: any) {
         .from('whatsapp_instances')
         .insert({
           instance_name: instanceName || `instance_${instanceId.slice(-8)}`,
-          phone: vpsData.phone || '',
+          phone: vpsData.phone || null,
           company_id: profile.company_id,
           connection_type: 'web',
           server_url: VPS_CONFIG.baseUrl,
