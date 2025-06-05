@@ -32,7 +32,7 @@ async function authenticateUser(request: Request, supabase: any) {
 }
 
 serve(async (req) => {
-  console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED - CORREÇÃO PERMANENTE ATIVA');
+  console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED - CORREÇÃO CRÍTICA ATIVA');
   console.log('[WhatsApp Server] Method:', req.method);
   console.log('[WhatsApp Server] URL:', req.url);
   console.log('[WhatsApp Server] Headers:', Object.fromEntries(req.headers.entries()));
@@ -79,7 +79,7 @@ serve(async (req) => {
 
     switch (action) {
       case 'create_instance':
-        console.log('[WhatsApp Server] 🚀 CREATE INSTANCE - CORREÇÃO PERMANENTE ativada');
+        console.log('[WhatsApp Server] 🚀 CREATE INSTANCE - CORREÇÃO CRÍTICA ativada');
         console.log('[WhatsApp Server] Instance data:', JSON.stringify(body.instanceData, null, 2));
         console.log('[WhatsApp Server] User ID:', user.id);
         
@@ -117,10 +117,20 @@ serve(async (req) => {
         }
 
       case 'get_qr_code_async':
-        console.log('[WhatsApp Server] 📱 GET QR CODE ASYNC - CORREÇÃO PERMANENTE');
+        console.log('[WhatsApp Server] 📱 GET QR CODE ASYNC - CORREÇÃO CRÍTICA');
         
         if (!body.instanceData?.instanceId) {
           throw new Error('Instance ID is required for get_qr_code_async action');
+        }
+        
+        return await getQRCodeAsync(supabase, body.instanceData.instanceId, user.id);
+
+      // CORREÇÃO CRÍTICA: Adicionar alias para refresh_qr_code
+      case 'refresh_qr_code':
+        console.log('[WhatsApp Server] 📱 REFRESH QR CODE (alias para get_qr_code_async)');
+        
+        if (!body.instanceData?.instanceId) {
+          throw new Error('Instance ID is required for refresh_qr_code action');
         }
         
         return await getQRCodeAsync(supabase, body.instanceData.instanceId, user.id);
@@ -130,7 +140,7 @@ serve(async (req) => {
     }
 
   } catch (error: any) {
-    console.error('[WhatsApp Server] 💥 ERRO GERAL (CORREÇÃO PERMANENTE):', error);
+    console.error('[WhatsApp Server] 💥 ERRO GERAL (CORREÇÃO CRÍTICA):', error);
     console.error('[WhatsApp Server] Stack trace:', error.stack);
     
     // Determine appropriate HTTP status code

@@ -4,20 +4,20 @@ import { supabase } from '@/integrations/supabase/client';
 import type { WhatsAppWebInstance } from './useWhatsAppWebInstances';
 
 export const useInstanceQRCode = (instances: WhatsAppWebInstance[], fetchInstances: () => Promise<void>) => {
-  // CORREÇÃO FASE 3.1: Função para atualizar QR Code de uma instância específica
+  // CORREÇÃO CRÍTICA: Usar get_qr_code_async em vez de refresh_qr_code
   const refreshInstanceQRCode = useCallback(async (instanceId: string) => {
     try {
-      console.log('[Instance QR Code] 🔄 Atualizando QR Code (FASE 3.1):', instanceId);
+      console.log('[Instance QR Code] 🔄 Atualizando QR Code (CORREÇÃO CRÍTICA):', instanceId);
 
       const instance = instances.find(i => i.id === instanceId);
       if (!instance?.vps_instance_id) {
         throw new Error('VPS Instance ID não encontrado');
       }
 
-      // Chamar Edge Function para obter QR Code atualizado
+      // CORREÇÃO: Chamar get_qr_code_async que existe na Edge Function
       const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
         body: {
-          action: 'refresh_qr_code',
+          action: 'get_qr_code_async',
           instanceData: {
             instanceId: instance.vps_instance_id
           }
@@ -29,6 +29,14 @@ export const useInstanceQRCode = (instances: WhatsAppWebInstance[], fetchInstanc
       }
 
       if (!data.success) {
+        if (data.waiting) {
+          console.log('[Instance QR Code] ⏳ QR Code ainda sendo gerado');
+          return {
+            success: false,
+            waiting: true,
+            error: 'QR Code ainda sendo gerado'
+          };
+        }
         throw new Error(data.error || 'Falha ao atualizar QR Code');
       }
 

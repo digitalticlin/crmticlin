@@ -89,7 +89,7 @@ export const useWhatsAppWebInstances = () => {
     createInstance: async (instanceName: string) => {
       setIsConnecting(true);
       try {
-        console.log('[Hook] 🚀 Creating instance (otimizado):', instanceName);
+        console.log('[Hook] 🚀 Creating instance (CORREÇÃO CRÍTICA):', instanceName);
         const result = await createInstance(instanceName);
         return result;
       } finally {
@@ -97,7 +97,11 @@ export const useWhatsAppWebInstances = () => {
       }
     },
     deleteInstance,
-    refreshQRCode: refreshInstanceQRCode,
+    // CORREÇÃO CRÍTICA: Modificar refreshQRCode para retornar dados corretos
+    refreshQRCode: async (instanceId: string) => {
+      const result = await refreshInstanceQRCode(instanceId);
+      return result;
+    },
     closeQRModal
   };
 };
