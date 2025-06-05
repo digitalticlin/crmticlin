@@ -1,8 +1,8 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { corsHeaders } from "./config.ts";
-import { createWhatsAppInstance, deleteWhatsAppInstance } from "./instanceManagement.ts";
+import { createWhatsAppInstance } from "./instanceCreationService.ts";
+import { deleteWhatsAppInstance } from "./instanceDeletionService.ts";
 import { getQRCodeFromVPS } from "./qrCodeService.ts";
 import { getQRCodeAsync } from "./qrCodeAsyncService.ts";
 import { checkServerHealth, getServerInfo } from "./serverHealthService.ts";
@@ -253,7 +253,7 @@ async function syncAllInstancesWithVPS(supabase: any) {
             web_status: vpsInstance.status || 'unknown',
             server_url: VPS_CONFIG.baseUrl,
             date_connected: vpsInstance.status === 'ready' ? new Date().toISOString() : null,
-            // Usar UUID placeholder para órfãs - serão vinculadas depois
+            // Usar UUID placeholder para órfãos - serão vinculadas depois
             company_id: '00000000-0000-0000-0000-000000000000'
           };
           
