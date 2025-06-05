@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 import { corsHeaders } from "./config.ts";
@@ -18,7 +19,7 @@ import { bindInstanceToUser as bindByPhone, bindOrphanInstanceById } from "./ins
 import { processIncomingWebhook } from "./webhookService.ts";
 import { configureWebhookForInstance, removeWebhookForInstance } from "./webhookConfigurationService.ts";
 
-// CORREÇÃO: Auth helper melhorado
+// Auth helper melhorado
 async function authenticateUser(request: Request, supabase: any) {
   const authHeader = request.headers.get('authorization');
   if (!authHeader) {
@@ -43,7 +44,7 @@ async function authenticateUser(request: Request, supabase: any) {
   return user;
 }
 
-// NOVO: Função para enviar mensagens via VPS
+// Função para enviar mensagens via VPS
 async function sendMessageViaVPS(instanceId: string, phone: string, message: string) {
   console.log('[Send Message] 📤 Sending message via VPS:', { instanceId, phone, messageLength: message.length });
   
@@ -90,7 +91,7 @@ async function sendMessageViaVPS(instanceId: string, phone: string, message: str
   }
 }
 
-// NOVO: Função para obter status de instância específica
+// Função para obter status de instância específica
 async function getInstanceStatus(instanceId: string) {
   console.log('[Instance Status] 📊 Getting status for instance:', instanceId);
   
@@ -132,118 +133,200 @@ async function getInstanceStatus(instanceId: string) {
   }
 }
 
-// NOVO: Função para sincronizar TODAS as instâncias (órfãs e vinculadas)
+// FUNÇÃO CORRIGIDA: Sincronizar TODAS as instâncias (melhorada com logs detalhados)
 async function syncAllInstancesWithVPS(supabase: any) {
-  console.log('[Sync All Instances] 🔄 Starting complete instances synchronization...');
+  const syncId = `sync_${Date.now()}`;
+  console.log(`[Sync All Instances] 🔄 INICIANDO sincronização completa [${syncId}]`);
   
   try {
-    // Obter todas as instâncias da VPS
+    // ETAPA 1: Buscar instâncias da VPS com logs detalhados
+    console.log(`[${syncId}] 📡 Consultando VPS em: ${VPS_CONFIG.baseUrl}/instances`);
+    console.log(`[${syncId}] 🔑 Headers da requisição:`, getVPSHeaders());
+    
     const vpsResponse = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instances`, {
       method: 'GET',
       headers: getVPSHeaders()
     });
 
     if (!vpsResponse.ok) {
-      throw new Error(`VPS instances request failed: ${vpsResponse.status}`);
+      const errorText = await vpsResponse.text();
+      console.error(`[${syncId}] ❌ Falha na requisição VPS:`, { status: vpsResponse.status, error: errorText });
+      throw new Error(`VPS instances request failed: ${vpsResponse.status} - ${errorText}`);
     }
 
     const vpsData = await vpsResponse.json();
     const vpsInstances = vpsData.instances || [];
     
-    console.log('[Sync All Instances] 📋 VPS instances found:', vpsInstances.length);
+    console.log(`[${syncId}] ✅ VPS respondeu com sucesso:`);
+    console.log(`[${syncId}] 📊 Total de instâncias na VPS: ${vpsInstances.length}`);
+    console.log(`[${syncId}] 📋 Detalhes das instâncias VPS:`, vpsInstances.map(i => ({
+      instanceId: i.instanceId,
+      sessionName: i.sessionName,
+      status: i.status,
+      phone: i.phone,
+      isReady: i.isReady
+    })));
 
-    // Obter instâncias do Supabase
+    // ETAPA 2: Buscar instâncias do Supabase
+    console.log(`[${syncId}] 💾 Consultando instâncias do Supabase...`);
     const { data: supabaseInstances, error: supabaseError } = await supabase
       .from('whatsapp_instances')
       .select('*')
       .eq('connection_type', 'web');
 
     if (supabaseError) {
+      console.error(`[${syncId}] ❌ Erro ao consultar Supabase:`, supabaseError);
       throw new Error(`Supabase query failed: ${supabaseError.message}`);
     }
 
-    console.log('[Sync All Instances] 📋 Supabase instances found:', supabaseInstances?.length || 0);
+    console.log(`[${syncId}] 💾 Supabase retornou ${supabaseInstances?.length || 0} instâncias`);
+    if (supabaseInstances?.length > 0) {
+      console.log(`[${syncId}] 📋 Instâncias existentes no Supabase:`, supabaseInstances.map(i => ({
+        id: i.id,
+        vps_instance_id: i.vps_instance_id,
+        instance_name: i.instance_name,
+        phone: i.phone,
+        company_id: i.company_id
+      })));
+    }
 
-    // Lógica de sincronização COMPLETA
+    // ETAPA 3: Lógica de sincronização melhorada
     let syncedCount = 0;
     let createdCount = 0;
     let updatedCount = 0;
+    let errorCount = 0;
+    const syncLog = [];
+
+    console.log(`[${syncId}] 🔄 Iniciando processamento de ${vpsInstances.length} instâncias...`);
 
     for (const vpsInstance of vpsInstances) {
-      const existing = supabaseInstances?.find(si => si.vps_instance_id === vpsInstance.instanceId);
-      
-      if (existing) {
-        // Atualizar instância existente
-        const { error: updateError } = await supabase
-          .from('whatsapp_instances')
-          .update({
-            connection_status: vpsInstance.status || 'unknown',
-            web_status: vpsInstance.state || 'unknown',
+      try {
+        console.log(`[${syncId}] 🔍 Processando instância: ${vpsInstance.instanceId}`);
+        
+        const existing = supabaseInstances?.find(si => si.vps_instance_id === vpsInstance.instanceId);
+        
+        if (existing) {
+          // Atualizar instância existente
+          console.log(`[${syncId}] 🔄 Atualizando instância existente: ${existing.id}`);
+          
+          const updateData = {
+            connection_status: vpsInstance.status === 'ready' ? 'ready' : 
+                             vpsInstance.status === 'waiting_scan' ? 'connecting' : 
+                             'disconnected',
+            web_status: vpsInstance.status || 'unknown',
             phone: vpsInstance.phone || existing.phone || 'Unknown',
             profile_name: vpsInstance.profileName || existing.profile_name,
             profile_pic_url: vpsInstance.profilePictureUrl || existing.profile_pic_url,
             updated_at: new Date().toISOString()
-          })
-          .eq('id', existing.id);
+          };
+          
+          console.log(`[${syncId}] 📝 Dados de atualização:`, updateData);
 
-        if (!updateError) {
-          updatedCount++;
+          const { error: updateError } = await supabase
+            .from('whatsapp_instances')
+            .update(updateData)
+            .eq('id', existing.id);
+
+          if (updateError) {
+            console.error(`[${syncId}] ❌ Erro ao atualizar instância ${existing.id}:`, updateError);
+            errorCount++;
+            syncLog.push(`❌ Erro ao atualizar ${vpsInstance.instanceId}: ${updateError.message}`);
+          } else {
+            console.log(`[${syncId}] ✅ Instância atualizada com sucesso: ${existing.id}`);
+            updatedCount++;
+            syncLog.push(`✅ Atualizada: ${vpsInstance.instanceId} (${vpsInstance.sessionName})`);
+          }
+        } else {
+          // Criar nova instância
+          console.log(`[${syncId}] 🆕 Criando nova instância: ${vpsInstance.instanceId}`);
+          
+          const instanceData = {
+            vps_instance_id: vpsInstance.instanceId,
+            instance_name: vpsInstance.sessionName || vpsInstance.instanceId,
+            phone: vpsInstance.phone || 'Unknown',
+            profile_name: vpsInstance.profileName || null,
+            profile_pic_url: vpsInstance.profilePictureUrl || null,
+            connection_type: 'web',
+            connection_status: vpsInstance.status === 'ready' ? 'ready' : 
+                             vpsInstance.status === 'waiting_scan' ? 'connecting' : 
+                             'disconnected',
+            web_status: vpsInstance.status || 'unknown',
+            server_url: VPS_CONFIG.baseUrl,
+            date_connected: vpsInstance.status === 'ready' ? new Date().toISOString() : null,
+            // Usar UUID placeholder para órfãs - serão vinculadas depois
+            company_id: '00000000-0000-0000-0000-000000000000'
+          };
+          
+          console.log(`[${syncId}] 📝 Dados de criação:`, instanceData);
+
+          const { data: newInstance, error: insertError } = await supabase
+            .from('whatsapp_instances')
+            .insert(instanceData)
+            .select()
+            .single();
+
+          if (insertError) {
+            console.error(`[${syncId}] ❌ Erro ao criar instância ${vpsInstance.instanceId}:`, insertError);
+            errorCount++;
+            syncLog.push(`❌ Erro ao criar ${vpsInstance.instanceId}: ${insertError.message}`);
+          } else {
+            console.log(`[${syncId}] ✅ Nova instância criada com sucesso:`, newInstance.id);
+            createdCount++;
+            syncLog.push(`🆕 Criada: ${vpsInstance.instanceId} (${vpsInstance.sessionName})`);
+          }
         }
-      } else {
-        // Criar nova instância (órfã ou não) - TODAS APARECERÃO NO SUPABASE
-        const instanceData = {
-          vps_instance_id: vpsInstance.instanceId,
-          instance_name: vpsInstance.sessionName || vpsInstance.instanceId,
-          phone: vpsInstance.phone || 'Unknown',
-          profile_name: vpsInstance.profileName,
-          profile_pic_url: vpsInstance.profilePictureUrl,
-          connection_type: 'web',
-          connection_status: vpsInstance.status || 'unknown',
-          web_status: vpsInstance.state || 'unknown',
-          // Se tiver informações de empresa, usar; senão, usar placeholder para órfã
-          company_id: vpsInstance.companyId || '00000000-0000-0000-0000-000000000000'
-        };
-
-        const { error: insertError } = await supabase
-          .from('whatsapp_instances')
-          .insert(instanceData);
-
-        if (!insertError) {
-          createdCount++;
-        }
+        
+        syncedCount++;
+      } catch (instanceError) {
+        console.error(`[${syncId}] 💥 Erro ao processar instância ${vpsInstance.instanceId}:`, instanceError);
+        errorCount++;
+        syncLog.push(`💥 Erro crítico em ${vpsInstance.instanceId}: ${instanceError.message}`);
       }
-      
-      syncedCount++;
     }
 
-    console.log('[Sync All Instances] ✅ Complete synchronization finished:', {
-      syncedCount,
-      createdCount,
-      updatedCount
-    });
+    // ETAPA 4: Relatório final detalhado
+    console.log(`[${syncId}] 🏁 SINCRONIZAÇÃO CONCLUÍDA:`);
+    console.log(`[${syncId}] 📊 Estatísticas finais:`);
+    console.log(`[${syncId}]   - Total processadas: ${syncedCount}`);
+    console.log(`[${syncId}]   - Novas criadas: ${createdCount}`);
+    console.log(`[${syncId}]   - Atualizadas: ${updatedCount}`);
+    console.log(`[${syncId}]   - Erros: ${errorCount}`);
+    console.log(`[${syncId}]   - VPS total: ${vpsInstances.length}`);
+    console.log(`[${syncId}]   - Supabase anterior: ${supabaseInstances?.length || 0}`);
+    
+    console.log(`[${syncId}] 📋 Log detalhado:`, syncLog);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         data: {
+          syncId,
           syncedCount,
           createdCount,
           updatedCount,
+          errorCount,
           vpsInstancesCount: vpsInstances.length,
           supabaseInstancesCount: supabaseInstances?.length || 0,
-          message: 'Todas as instâncias da VPS foram sincronizadas para o Supabase'
-        }
+          syncLog,
+          message: `Sincronização concluída: ${createdCount} criadas, ${updatedCount} atualizadas, ${errorCount} erros`
+        },
+        timestamp: new Date().toISOString()
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('[Sync All Instances] 💥 Synchronization error:', error);
+    console.error(`[${syncId}] 💥 ERRO CRÍTICO na sincronização:`, error);
     return new Response(
       JSON.stringify({ 
         success: false, 
         error: error.message,
-        timestamp: new Date().toISOString()
+        syncId,
+        timestamp: new Date().toISOString(),
+        details: {
+          vps_url: VPS_CONFIG.baseUrl,
+          vps_headers: getVPSHeaders()
+        }
       }),
       { 
         status: 500, 
@@ -254,10 +337,9 @@ async function syncAllInstancesWithVPS(supabase: any) {
 }
 
 serve(async (req) => {
-  console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED - CORREÇÃO CRÍTICA ATIVA');
+  console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED - VERSÃO CORRIGIDA ATIVA');
   console.log('[WhatsApp Server] Method:', req.method);
   console.log('[WhatsApp Server] URL:', req.url);
-  console.log('[WhatsApp Server] Headers:', Object.fromEntries(req.headers.entries()));
 
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -292,7 +374,7 @@ serve(async (req) => {
       throw new Error('No action specified in request');
     }
 
-    // NOVO: Processar webhook se for um webhook direto
+    // Processar webhook se for um webhook direto
     if (action === 'webhook' || body.event) {
       console.log('[WhatsApp Server] 🔔 WEBHOOK RECEIVED');
       const result = await processIncomingWebhook(supabase, body);
@@ -312,7 +394,7 @@ serve(async (req) => {
 
     switch (action) {
       case 'create_instance':
-        console.log('[WhatsApp Server] 🚀 CREATE INSTANCE - CORREÇÃO FINAL');
+        console.log('[WhatsApp Server] 🚀 CREATE INSTANCE');
         console.log('[WhatsApp Server] Instance data:', JSON.stringify(body.instanceData, null, 2));
         console.log('[WhatsApp Server] User ID:', user.id);
         
@@ -350,7 +432,7 @@ serve(async (req) => {
         }
 
       case 'get_qr_code_async':
-        console.log('[WhatsApp Server] 📱 GET QR CODE ASYNC - CORREÇÃO CRÍTICA');
+        console.log('[WhatsApp Server] 📱 GET QR CODE ASYNC');
         
         if (!body.instanceData?.instanceId) {
           throw new Error('Instance ID is required for get_qr_code_async action');
@@ -416,7 +498,7 @@ serve(async (req) => {
         return await getInstanceStatus(body.instanceData.instanceId);
 
       case 'sync_instances':
-        console.log('[WhatsApp Server] 🔄 SYNC ALL INSTANCES (INCLUINDO ÓRFÃS)');
+        console.log('[WhatsApp Server] 🔄 SYNC ALL INSTANCES (VERSÃO CORRIGIDA)');
         return await syncAllInstancesWithVPS(supabase);
 
       // ACTIONS EXISTENTES PARA PAINEL DE ÓRFÃS
@@ -437,7 +519,7 @@ serve(async (req) => {
         return await massReconnectInstances(supabase);
 
       case 'bind_instance_to_user':
-        console.log('[WhatsApp Server] 🔗 BIND INSTANCE TO USER - CORREÇÃO CRÍTICA');
+        console.log('[WhatsApp Server] 🔗 BIND INSTANCE TO USER');
         console.log('[WhatsApp Server] Request body details:', {
           hasInstanceData: !!body.instanceData,
           instanceData: body.instanceData,
@@ -445,7 +527,6 @@ serve(async (req) => {
           userEmail: body.userEmail
         });
         
-        // CORREÇÃO CRÍTICA: Verificar corretamente os parâmetros enviados
         if (body.instanceData && body.instanceData.instanceId && body.instanceData.userEmail) {
           console.log('[WhatsApp Server] 🔗 BIND ORPHAN BY VPS INSTANCE ID');
           console.log('[WhatsApp Server] Parameters:', {
@@ -476,7 +557,7 @@ serve(async (req) => {
     }
 
   } catch (error: any) {
-    console.error('[WhatsApp Server] 💥 ERRO GERAL (CORREÇÃO CRÍTICA):', error);
+    console.error('[WhatsApp Server] 💥 ERRO GERAL:', error);
     console.error('[WhatsApp Server] Stack trace:', error.stack);
     
     // Determine appropriate HTTP status code
@@ -494,7 +575,7 @@ serve(async (req) => {
       JSON.stringify({
         success: false,
         error: error.message,
-        action: 'error_handling_improved',
+        action: 'error_handling',
         timestamp: new Date().toISOString(),
         details: {
           name: error.name,

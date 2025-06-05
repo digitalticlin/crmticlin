@@ -12,11 +12,14 @@ import { supabase } from "@/integrations/supabase/client";
 interface SyncResult {
   success: boolean;
   data?: {
+    syncId?: string;
     syncedCount: number;
     createdCount: number;
     updatedCount: number;
+    errorCount?: number;
     vpsInstancesCount: number;
     supabaseInstancesCount: number;
+    syncLog?: string[];
     message: string;
   };
   error?: string;
@@ -30,7 +33,7 @@ export const GlobalInstanceSync = () => {
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
     setLogs(prev => [...prev, `[${timestamp}] ${message}`]);
-    console.log(`[Global Sync] ${message}`);
+    console.log(`[Global Sync UI] ${message}`);
   };
 
   const executeGlobalSync = async () => {
@@ -39,9 +42,10 @@ export const GlobalInstanceSync = () => {
     setResult(null);
     
     addLog("🚀 Iniciando sincronização global de instâncias...");
+    addLog("📡 Esta operação pode levar alguns segundos...");
 
     try {
-      addLog("📡 Enviando requisição para sincronizar todas as instâncias...");
+      addLog("🔐 Verificando autenticação...");
       
       const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
         body: {
@@ -49,39 +53,67 @@ export const GlobalInstanceSync = () => {
         }
       });
 
+      addLog("📥 Resposta recebida do servidor");
+
       if (error) {
         addLog(`❌ Erro na requisição: ${error.message}`);
+        console.error('[Global Sync UI] Supabase function error:', error);
         throw error;
       }
 
-      addLog("✅ Resposta recebida da sincronização");
-      console.log('[Global Sync] Resposta completa:', data);
+      console.log('[Global Sync UI] Resposta completa:', data);
 
       if (data && data.success) {
         const summary = data.data || data.summary || {};
         
-        addLog(`📊 Sincronização concluída com sucesso!`);
-        addLog(`🔄 Instâncias atualizadas: ${summary.updatedCount || summary.updated || 0}`);
+        addLog(`✅ Sincronização concluída com sucesso!`);
         addLog(`🆕 Instâncias criadas: ${summary.createdCount || summary.created || 0}`);
-        addLog(`📋 Total VPS: ${summary.vpsInstancesCount || summary.total_vps_instances || 0}`);
+        addLog(`🔄 Instâncias atualizadas: ${summary.updatedCount || summary.updated || 0}`);
+        addLog(`📊 Total VPS: ${summary.vpsInstancesCount || summary.total_vps_instances || 0}`);
         addLog(`💾 Total Supabase: ${summary.supabaseInstancesCount || summary.total_db_instances || 0}`);
+        
+        if (summary.errorCount && summary.errorCount > 0) {
+          addLog(`⚠️ Erros encontrados: ${summary.errorCount}`);
+        }
+
+        // Adicionar logs detalhados se disponíveis
+        if (summary.syncLog && Array.isArray(summary.syncLog)) {
+          addLog("📋 Detalhes da sincronização:");
+          summary.syncLog.forEach((logEntry: string) => {
+            addLog(`  ${logEntry}`);
+          });
+        }
         
         setResult({
           success: true,
           data: {
+            syncId: summary.syncId || 'unknown',
             syncedCount: summary.syncedCount || (summary.updatedCount + summary.createdCount) || 0,
             createdCount: summary.createdCount || summary.created || 0,
             updatedCount: summary.updatedCount || summary.updated || 0,
+            errorCount: summary.errorCount || 0,
             vpsInstancesCount: summary.vpsInstancesCount || summary.total_vps_instances || 0,
             supabaseInstancesCount: summary.supabaseInstancesCount || summary.total_db_instances || 0,
-            message: data.message || 'Sincronização global executada com sucesso'
+            syncLog: summary.syncLog || [],
+            message: data.message || summary.message || 'Sincronização global executada com sucesso'
           }
         });
 
-        toast.success(`Sincronização concluída! ${summary.createdCount || 0} instâncias órfãs adicionadas ao Supabase`);
+        const successMessage = summary.createdCount > 0 
+          ? `Sincronização concluída! ${summary.createdCount} instâncias órfãs adicionadas ao Supabase`
+          : `Sincronização concluída! ${summary.updatedCount || 0} instâncias atualizadas`;
+        
+        toast.success(successMessage);
       } else {
         const errorMessage = data?.error || 'Erro desconhecido na sincronização';
         addLog(`❌ Falha na sincronização: ${errorMessage}`);
+        
+        // Log adicional de debugging
+        addLog("🔍 Dados de debug do erro:");
+        if (data?.details) {
+          addLog(`   VPS URL: ${data.details.vps_url || 'N/A'}`);
+          addLog(`   Headers: ${JSON.stringify(data.details.vps_headers || {})}`);
+        }
         
         setResult({
           success: false,
@@ -94,6 +126,8 @@ export const GlobalInstanceSync = () => {
       const errorMessage = error.message || 'Erro inesperado';
       addLog(`💥 Erro inesperado: ${errorMessage}`);
       
+      console.error('[Global Sync UI] Unexpected error:', error);
+      
       setResult({
         success: false,
         error: errorMessage
@@ -102,6 +136,7 @@ export const GlobalInstanceSync = () => {
       toast.error(`Erro na sincronização: ${errorMessage}`);
     } finally {
       setIsRunning(false);
+      addLog("🏁 Processo de sincronização finalizado");
     }
   };
 
@@ -198,6 +233,18 @@ export const GlobalInstanceSync = () => {
                   </div>
                 </div>
 
+                {/* Mostrar erros se houver */}
+                {result.data.errorCount && result.data.errorCount > 0 && (
+                  <div className="p-4 bg-yellow-50 rounded-lg">
+                    <p className="text-yellow-800 font-medium">
+                      ⚠️ {result.data.errorCount} erro(s) encontrado(s) durante a sincronização
+                    </p>
+                    <p className="text-yellow-700 text-sm mt-1">
+                      Verifique os logs para mais detalhes
+                    </p>
+                  </div>
+                )}
+
                 <div className="p-4 bg-green-50 rounded-lg">
                   <p className="text-green-800 font-medium">
                     ✅ {result.data.message}
@@ -205,6 +252,11 @@ export const GlobalInstanceSync = () => {
                   {result.data.createdCount > 0 && (
                     <p className="text-green-700 text-sm mt-1">
                       {result.data.createdCount} instâncias órfãs foram adicionadas ao Supabase e agora podem ser vinculadas a usuários.
+                    </p>
+                  )}
+                  {result.data.syncId && (
+                    <p className="text-green-600 text-xs mt-2">
+                      ID da Sincronização: {result.data.syncId}
                     </p>
                   )}
                 </div>
@@ -245,7 +297,6 @@ export const GlobalInstanceSync = () => {
         </Card>
       )}
 
-      {/* Informações sobre o processo */}
       <Card className="bg-white/30 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-sm">
