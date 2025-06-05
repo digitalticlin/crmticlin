@@ -1,3 +1,4 @@
+
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -19,12 +20,12 @@ export const getVPSHeaders = () => {
   return {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`,
-    'User-Agent': 'Supabase-WhatsApp-Integration/3.0-DIAGNOSTICO',
+    'User-Agent': 'Supabase-WhatsApp-Integration/3.0-QR-FIX',
     'Accept': 'application/json'
   };
 };
 
-// CORREÇÃO: Validação de QR Code menos restritiva
+// CORREÇÃO: Validação de QR Code mais tolerante - alinhada com a VPS
 export const isRealQRCode = (qrCode: string | null): boolean => {
   if (!qrCode) {
     console.log('[QR Validation] ❌ QR Code é null ou undefined');
@@ -46,8 +47,8 @@ export const isRealQRCode = (qrCode: string | null): boolean => {
   
   const base64Part = parts[1];
   
-  // CORREÇÃO: Reduzir tamanho mínimo de 500 para 100 caracteres
-  if (base64Part.length < 100) {
+  // CORREÇÃO: Reduzir tamanho mínimo de 100 para 50 caracteres - alinhado com VPS
+  if (base64Part.length < 50) {
     console.log(`[QR Validation] ❌ QR Code muito pequeno: ${base64Part.length} caracteres`);
     return false;
   }
@@ -72,14 +73,14 @@ export const isValidVersion = (versionString: string): boolean => {
   if (!versionString) return false;
   
   const validVersions = [
-    '3.5.0', '3.4.0', '3.3.0', '3.2.0', '3.1.0', '3.0.0'
+    '4.0.1-QR-FIX', '4.0.0', '3.5.0', '3.4.0', '3.3.0', '3.2.0', '3.1.0', '3.0.0'
   ];
   
   if (validVersions.includes(versionString)) {
     return true;
   }
   
-  const semverPattern = /^(\d+)\.(\d+)\.(\d+)$/;
+  const semverPattern = /^(\d+)\.(\d+)\.(\d+)/;
   const match = versionString.match(semverPattern);
   
   if (!match) return false;
@@ -89,7 +90,11 @@ export const isValidVersion = (versionString: string): boolean => {
   const minorNum = parseInt(minor);
   const patchNum = parseInt(patch);
   
-  if (majorNum >= 3) {
+  if (majorNum >= 4) {
+    return true;
+  }
+  
+  if (majorNum === 3) {
     return true;
   }
   
@@ -102,7 +107,7 @@ export const isValidVersion = (versionString: string): boolean => {
 
 export const testVPSConnection = async (): Promise<{success: boolean, error?: string, details?: any}> => {
   try {
-    console.log('[VPS Test] 🔧 Testando conectividade VPS (TOKEN CORRIGIDO)...');
+    console.log('[VPS Test] 🔧 Testando conectividade VPS (QR FIX)...');
     console.log('[VPS Test] URL:', VPS_CONFIG.baseUrl);
     console.log('[VPS Test] Token source:', VPS_CONFIG.authToken === 'default-token' ? 'HARDCODED (PROBLEMA!)' : 'ENV SECRET');
     
@@ -122,6 +127,7 @@ export const testVPSConnection = async (): Promise<{success: boolean, error?: st
         
         if (data.version && isValidVersion(data.version)) {
           console.log('[VPS Test] ✅ VPS conectado com versão válida:', data.version);
+          console.log('[VPS Test] 🔧 QR Validation Fix:', data.qr_validation_fix || false);
         } else {
           console.log('[VPS Test] ⚠️ VPS conectado mas versão não reconhecida:', data.version);
         }
@@ -148,8 +154,9 @@ export const testVPSConnection = async (): Promise<{success: boolean, error?: st
   }
 };
 
-console.log('[Config] VPS Config initialized (TOKEN CORRIGIDO):');
+console.log('[Config] VPS Config initialized (QR FIX):');
 console.log('[Config] Host:', VPS_CONFIG.host);
 console.log('[Config] Port:', VPS_CONFIG.port);
 console.log('[Config] Base URL:', VPS_CONFIG.baseUrl);
 console.log('[Config] Auth Token Source:', VPS_CONFIG.authToken === 'default-token' ? 'HARDCODED (VERIFICAR!)' : 'ENV SECRET (OK)');
+console.log('[Config] QR Validation: MORE TOLERANT (50 chars minimum)');

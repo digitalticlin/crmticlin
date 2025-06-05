@@ -32,7 +32,7 @@ async function makeVPSRequest(url: string, options: RequestInit, retries = 3): P
 }
 
 export async function fetchQRCodeFromVPS(vpsInstanceId: string) {
-  console.log('[QR VPS] 🔄 Buscando QR Code na VPS com retry melhorado...');
+  console.log('[QR VPS] 🔄 Buscando QR Code na VPS com validação corrigida...');
   
   try {
     const vpsResponse = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/qr`, {
@@ -45,8 +45,50 @@ export async function fetchQRCodeFromVPS(vpsInstanceId: string) {
       const errorText = await vpsResponse.text();
       console.error(`[QR VPS] ❌ VPS retornou erro: ${vpsResponse.status} - ${errorText}`);
       
-      // Verificar se é erro esperado de QR Code ainda não gerado
+      // CORREÇÃO: Tentar fallback para endpoint /instance/status se /instance/qr falhar
       if (vpsResponse.status === 404) {
+        console.log('[QR VPS] 🔄 Tentando fallback para endpoint /instance/status...');
+        
+        try {
+          const statusResponse = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/status`, {
+            method: 'POST',
+            headers: getVPSHeaders(),
+            body: JSON.stringify({ instanceId: vpsInstanceId })
+          });
+
+          if (statusResponse.ok) {
+            const statusData = await statusResponse.json();
+            console.log('[QR VPS] 📋 Status response data:', {
+              hasQrCode: !!statusData.status?.qrCode,
+              qrCodeLength: statusData.status?.qrCode?.length || 0,
+              status: statusData.status?.connectionStatus
+            });
+
+            if (statusData.status?.qrCode && isRealQRCode(statusData.status.qrCode)) {
+              console.log('[QR VPS] 🎉 QR Code obtido via FALLBACK do status endpoint');
+              return {
+                success: true,
+                qrCode: statusData.status.qrCode,
+                status: statusData.status.connectionStatus || 'waiting_scan',
+                source: 'fallback_status_endpoint'
+              };
+            } else if (statusData.status?.qrCode && statusData.status.qrCode.startsWith('data:image/')) {
+              // FALLBACK ADICIONAL: Se QR existe mas validação falha, ainda retornar
+              console.log('[QR VPS] ⚠️ QR Code do status falhou na validação - retornando mesmo assim');
+              return {
+                success: true,
+                qrCode: statusData.status.qrCode,
+                status: statusData.status.connectionStatus || 'waiting_scan',
+                source: 'fallback_status_endpoint_bypassed_validation',
+                warning: 'QR Code pode não estar totalmente válido'
+              };
+            }
+          }
+        } catch (fallbackError) {
+          console.error('[QR VPS] ❌ Erro no fallback status:', fallbackError);
+        }
+        
+        // Se chegou até aqui, QR ainda não está pronto
         try {
           const errorData = JSON.parse(errorText);
           if (errorData.error && 
@@ -57,7 +99,7 @@ export async function fetchQRCodeFromVPS(vpsInstanceId: string) {
             return {
               success: false,
               waiting: true,
-              retryAfter: 5000, // Retry mais rápido
+              retryAfter: 5000,
               message: 'QR Code ainda sendo gerado. Continuando polling...'
             };
           }
@@ -78,7 +120,8 @@ export async function fetchQRCodeFromVPS(vpsInstanceId: string) {
         hasQrCode: !!vpsData.qrCode,
         qrCodeLength: vpsData.qrCode?.length || 0,
         status: vpsData.status,
-        success: vpsData.success
+        success: vpsData.success,
+        validation: vpsData.validation
       });
       
       if (vpsData.qrCode && isRealQRCode(vpsData.qrCode)) {
@@ -87,7 +130,18 @@ export async function fetchQRCodeFromVPS(vpsInstanceId: string) {
         return {
           success: true,
           qrCode: vpsData.qrCode,
-          status: vpsData.status || 'waiting_scan'
+          status: vpsData.status || 'waiting_scan',
+          validation: vpsData.validation || 'passed'
+        };
+      } else if (vpsData.qrCode && vpsData.qrCode.startsWith('data:image/') && vpsData.validation === 'bypassed_for_compatibility') {
+        // CORREÇÃO: Aceitar QR Code que passou pelo bypass da VPS
+        console.log('[QR VPS] ⚠️ QR Code com validação bypass - aceitando para compatibilidade');
+        return {
+          success: true,
+          qrCode: vpsData.qrCode,
+          status: vpsData.status || 'waiting_scan',
+          validation: 'bypassed_compatibility',
+          warning: vpsData.warning
         };
       } else {
         console.log('[QR VPS] ⏳ QR Code ainda não está pronto na VPS');
