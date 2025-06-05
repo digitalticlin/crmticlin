@@ -22,7 +22,7 @@ export const useWhatsAppWebSectionLogic = () => {
     generateIntelligentInstanceName
   } = useWhatsAppWebInstances();
 
-  const { isPolling, startPolling, stopPolling } = useAutomaticQRPolling();
+  const { isPolling, currentAttempt, maxAttempts, startPolling, stopPolling } = useAutomaticQRPolling();
 
   // Load current user data
   useEffect(() => {
@@ -53,38 +53,40 @@ export const useWhatsAppWebSectionLogic = () => {
   }, [stopPolling]);
 
   const handleConnect = async () => {
-    console.log('[WhatsAppWebSection] 🚀 Connect requested');
+    console.log('[WhatsAppWebSection] 🚀 Connect requested - OTIMIZADO');
     
     const instanceName = await generateIntelligentInstanceName(userEmail);
     console.log('[WhatsAppWebSection] 🎯 Nome gerado:', instanceName);
     
     try {
-      console.log('[WhatsAppWebSection] 📱 Criando instância...');
+      console.log('[WhatsAppWebSection] 📱 Criando instância RÁPIDA...');
       const createdInstance = await createInstance(instanceName);
       
       if (createdInstance) {
         setLocalSelectedInstanceName(createdInstance.instance_name);
         
+        // OTIMIZAÇÃO CRÍTICA: Abrir modal IMEDIATAMENTE (mesmo sem QR Code)
+        console.log('[WhatsAppWebSection] 🎯 ABRINDO MODAL IMEDIATAMENTE para melhor UX');
+        setLocalShowQRModal(true);
+        setIsWaitingForQR(true);
+        
         if (createdInstance.qr_code) {
-          // QR Code disponível imediatamente - abrir modal
-          console.log('[WhatsAppWebSection] ✅ QR Code imediato disponível!');
+          // QR Code disponível imediatamente - preencher modal já aberto
+          console.log('[WhatsAppWebSection] ✅ QR Code imediato disponível - preenchendo modal!');
           setLocalSelectedQRCode(createdInstance.qr_code);
-          setLocalShowQRModal(true);
-          toast.success(`Instância "${instanceName}" criada! Escaneie o QR Code.`);
+          setIsWaitingForQR(false);
+          toast.success(`QR Code pronto! Escaneie para conectar.`);
         } else {
-          // QR Code não disponível - iniciar polling automático
-          console.log('[WhatsAppWebSection] ⏳ Iniciando polling automático...');
-          setIsWaitingForQR(true);
-          
+          // QR Code não disponível - modal já está aberto, iniciar polling
+          console.log('[WhatsAppWebSection] ⏳ Modal aberto - iniciando polling OTIMIZADO...');
           toast.info(`Instância "${instanceName}" criada! Preparando QR Code...`);
           
           await startPolling(
             createdInstance.id,
             createdInstance.instance_name,
             (qrCode: string) => {
-              console.log('[WhatsAppWebSection] 🎉 QR Code recebido - abrindo modal!');
+              console.log('[WhatsAppWebSection] 🎉 QR Code recebido - preenchendo modal já aberto!');
               setLocalSelectedQRCode(qrCode);
-              setLocalShowQRModal(true);
               setIsWaitingForQR(false);
               toast.success('QR Code pronto! Escaneie para conectar.');
             }
@@ -94,6 +96,7 @@ export const useWhatsAppWebSectionLogic = () => {
     } catch (error) {
       console.error('[WhatsAppWebSection] ❌ Erro na criação:', error);
       setIsWaitingForQR(false);
+      setLocalShowQRModal(false); // Fechar modal se deu erro
       stopPolling();
     }
   };
@@ -124,7 +127,7 @@ export const useWhatsAppWebSectionLogic = () => {
   };
 
   const closeQRModal = () => {
-    console.log('[WhatsAppWebSection] 🔐 Fechando modal');
+    console.log('[WhatsAppWebSection] 🔐 Fechando modal otimizado');
     setLocalShowQRModal(false);
     setLocalSelectedQRCode(null);
     setLocalSelectedInstanceName('');
@@ -132,7 +135,7 @@ export const useWhatsAppWebSectionLogic = () => {
     stopPolling();
   };
 
-  const isConnectingOrPolling = isConnecting || isPolling || isWaitingForQR;
+  const isConnectingOrPolling = isConnecting || isPolling;
 
   return {
     instances,
@@ -142,6 +145,8 @@ export const useWhatsAppWebSectionLogic = () => {
     localSelectedQRCode,
     localSelectedInstanceName,
     isWaitingForQR,
+    currentAttempt,
+    maxAttempts,
     handleConnect,
     handleDeleteInstance,
     handleRefreshQR,

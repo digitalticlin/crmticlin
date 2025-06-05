@@ -9,7 +9,7 @@ import { WhatsAppWebWaitingState } from "./WhatsAppWebWaitingState";
 import { WhatsAppWebQRModal } from "./WhatsAppWebQRModal";
 
 export const WhatsAppWebSection = () => {
-  console.log('[WhatsAppWebSection] Component rendering');
+  console.log('[WhatsAppWebSection] Component rendering - OTIMIZADO');
   
   const { companyId, loading: companyLoading } = useCompanyData();
   
@@ -21,6 +21,8 @@ export const WhatsAppWebSection = () => {
     localSelectedQRCode,
     localSelectedInstanceName,
     isWaitingForQR,
+    currentAttempt,
+    maxAttempts,
     handleConnect,
     handleDeleteInstance,
     handleRefreshQR,
@@ -30,10 +32,12 @@ export const WhatsAppWebSection = () => {
 
   return (
     <div className="space-y-6">
-      {/* Status de Preparação */}
+      {/* Status de Preparação - OTIMIZADO */}
       <WhatsAppWebWaitingState
         isWaitingForQR={isWaitingForQR}
         instanceName={localSelectedInstanceName}
+        currentAttempt={currentAttempt}
+        maxAttempts={maxAttempts}
       />
 
       {/* Header com botão de conectar */}
@@ -61,12 +65,15 @@ export const WhatsAppWebSection = () => {
         />
       )}
 
-      {/* Modal QR Code */}
+      {/* Modal QR Code - OTIMIZADO */}
       <WhatsAppWebQRModal
         isOpen={localShowQRModal}
         onOpenChange={(open) => !open && closeQRModal()}
         qrCodeUrl={localSelectedQRCode}
         instanceName={localSelectedInstanceName}
+        isWaitingForQR={isWaitingForQR}
+        currentAttempt={currentAttempt}
+        maxAttempts={maxAttempts}
       />
     </div>
   );

@@ -7,7 +7,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { QrCode, Smartphone, CheckCircle, AlertCircle } from "lucide-react";
+import { QrCode, Smartphone, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 
 interface ImprovedQRCodeModalProps {
@@ -15,13 +15,19 @@ interface ImprovedQRCodeModalProps {
   onOpenChange: (open: boolean) => void;
   qrCodeUrl: string | null;
   instanceName: string;
+  isWaitingForQR?: boolean;
+  currentAttempt?: number;
+  maxAttempts?: number;
 }
 
 export function ImprovedQRCodeModal({ 
   isOpen, 
   onOpenChange, 
   qrCodeUrl, 
-  instanceName 
+  instanceName,
+  isWaitingForQR = false,
+  currentAttempt = 0,
+  maxAttempts = 20
 }: ImprovedQRCodeModalProps) {
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes countdown
   const [isExpired, setIsExpired] = useState(false);
@@ -54,16 +60,22 @@ export function ImprovedQRCodeModal({
   };
 
   const handleClose = () => {
-    console.log('[QR Modal] 🔐 Fechando modal');
+    console.log('[QR Modal] 🔐 Fechando modal otimizado');
     onOpenChange(false);
   };
 
-  console.log('[QR Modal] 📱 Renderizando modal:', { 
+  // Calculate progress percentage
+  const progressPercentage = maxAttempts > 0 ? Math.min((currentAttempt / maxAttempts) * 100, 100) : 0;
+
+  console.log('[QR Modal] 📱 Renderizando modal OTIMIZADO:', { 
     isOpen, 
     hasQR: !!qrCodeUrl, 
     instanceName,
     timeLeft,
-    isExpired 
+    isExpired,
+    isWaitingForQR,
+    currentAttempt,
+    maxAttempts
   });
 
   return (
@@ -75,12 +87,41 @@ export function ImprovedQRCodeModal({
             Conectar WhatsApp
           </DialogTitle>
           <DialogDescription>
-            Escaneie o QR Code para conectar sua conta WhatsApp à instância "{instanceName}"
+            {isWaitingForQR 
+              ? `Preparando QR Code para a instância "${instanceName}"...`
+              : `Escaneie o QR Code para conectar sua conta WhatsApp à instância "${instanceName}"`
+            }
           </DialogDescription>
         </DialogHeader>
         
         <div className="flex flex-col items-center justify-center py-6">
-          {qrCodeUrl && !isExpired ? (
+          {/* ESTADO: Aguardando QR Code */}
+          {isWaitingForQR && !qrCodeUrl ? (
+            <>
+              <div className="bg-blue-50 p-8 rounded-lg border-2 border-blue-200 mb-4 flex flex-col items-center">
+                <Loader2 className="h-12 w-12 text-blue-600 animate-spin mb-4" />
+                <div className="text-center">
+                  <h3 className="font-medium text-blue-900 mb-2">Preparando QR Code...</h3>
+                  <p className="text-sm text-blue-700 mb-3">
+                    Tentativa {currentAttempt} de {maxAttempts}
+                  </p>
+                  
+                  {/* Progress bar */}
+                  <div className="w-48 bg-blue-200 rounded-full h-2 mb-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${progressPercentage}%` }}
+                    ></div>
+                  </div>
+                  
+                  <p className="text-xs text-blue-600">
+                    Estimativa: {Math.max(0, (maxAttempts - currentAttempt) * 2)}s restantes
+                  </p>
+                </div>
+              </div>
+            </>
+          ) : qrCodeUrl && !isExpired ? (
+            /* ESTADO: QR Code disponível */
             <>
               <div className="bg-white p-4 rounded-lg border-2 border-green-200 mb-4">
                 <img 
@@ -97,12 +138,18 @@ export function ImprovedQRCodeModal({
                     QR Code válido por: {formatTime(timeLeft)}
                   </span>
                 </div>
+                {currentAttempt > 0 && (
+                  <p className="text-xs text-green-600 mb-1">
+                    ✅ Obtido na tentativa {currentAttempt} (otimizado!)
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground">
                   O código expira automaticamente por segurança
                 </p>
               </div>
             </>
           ) : isExpired ? (
+            /* ESTADO: QR Code expirado */
             <div className="text-center py-8">
               <AlertCircle className="h-12 w-12 mx-auto mb-3 text-orange-500" />
               <h3 className="font-medium text-orange-700 mb-2">QR Code Expirado</h3>
@@ -111,6 +158,7 @@ export function ImprovedQRCodeModal({
               </p>
             </div>
           ) : (
+            /* ESTADO: QR Code indisponível */
             <div className="text-center py-8">
               <AlertCircle className="h-12 w-12 mx-auto mb-3 text-red-500" />
               <h3 className="font-medium text-red-700 mb-2">QR Code Indisponível</h3>
@@ -120,7 +168,8 @@ export function ImprovedQRCodeModal({
             </div>
           )}
           
-          {qrCodeUrl && !isExpired && (
+          {/* Instruções (apenas quando QR Code estiver disponível) */}
+          {qrCodeUrl && !isExpired && !isWaitingForQR && (
             <div className="bg-blue-50 p-4 rounded-lg w-full">
               <div className="flex items-start gap-3">
                 <Smartphone className="h-5 w-5 text-blue-600 mt-0.5" />
