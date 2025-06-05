@@ -53,12 +53,12 @@ export const ModernFunnelControlBar = ({
   const [isFunnelConfigOpen, setIsFunnelConfigOpen] = useState(false);
 
   return (
-    <div className="space-y-4">
-      {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-white/5 rounded-2xl border border-white/10 w-fit">
+    <div className="flex items-center justify-between w-full bg-white/5 rounded-2xl border border-white/10 p-4">
+      {/* Lado Esquerdo - Tabs */}
+      <div className="flex items-center gap-1 bg-white/10 rounded-xl p-1">
         <button
           onClick={() => setActiveTab("funnel")}
-          className={`px-6 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
             activeTab === "funnel"
               ? "bg-white text-gray-900 shadow-lg"
               : "text-gray-700 hover:text-gray-900 hover:bg-white/20"
@@ -68,7 +68,7 @@ export const ModernFunnelControlBar = ({
         </button>
         <button
           onClick={() => setActiveTab("won-lost")}
-          className={`px-6 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
             activeTab === "won-lost"
               ? "bg-white text-gray-900 shadow-lg"
               : "text-gray-700 hover:text-gray-900 hover:bg-white/20"
@@ -78,62 +78,60 @@ export const ModernFunnelControlBar = ({
         </button>
       </div>
 
-      {/* Barra de Controles */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {/* Seletor de Funil */}
-          <FunnelSelector
-            funnels={funnels}
-            selectedFunnel={selectedFunnel}
-            onSelectFunnel={onSelectFunnel}
-            onCreateFunnel={onCreateFunnel}
-            isAdmin={isAdmin}
-          />
-        </div>
+      {/* Centro - Seletor de Funil */}
+      <div className="flex-1 flex justify-center">
+        <FunnelSelector
+          funnels={funnels}
+          selectedFunnel={selectedFunnel}
+          onSelectFunnel={onSelectFunnel}
+          onCreateFunnel={onCreateFunnel}
+          isAdmin={isAdmin}
+        />
+      </div>
 
-        <div className="flex items-center gap-2">
-          {activeTab === "funnel" && (
-            <>
-              {/* Botão de Etiquetas */}
+      {/* Lado Direito - Botões de Ação */}
+      <div className="flex items-center gap-2">
+        {activeTab === "funnel" && (
+          <>
+            {/* Botão de Etiquetas */}
+            <Button
+              onClick={() => setIsTagModalOpen(true)}
+              variant="outline"
+              size="sm"
+              className="bg-white/10 border-white/20 hover:bg-white/20 text-gray-700 hover:text-gray-900"
+            >
+              <Tag className="w-4 h-4 mr-2" />
+              Etiquetas
+            </Button>
+
+            {/* Botão de Adicionar Lead */}
+            <Button
+              onClick={() => setIsLeadModalOpen(true)}
+              variant="outline"
+              size="sm"
+              className="bg-white/10 border-white/20 hover:bg-white/20 text-gray-700 hover:text-gray-900"
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Lead
+            </Button>
+
+            {/* Botão de Configurações do Funil */}
+            {isAdmin && (
               <Button
-                onClick={() => setIsTagModalOpen(true)}
+                onClick={() => setIsFunnelConfigOpen(true)}
                 variant="outline"
                 size="sm"
                 className="bg-white/10 border-white/20 hover:bg-white/20 text-gray-700 hover:text-gray-900"
               >
-                <Tag className="w-4 h-4 mr-2" />
-                Etiquetas
+                <Settings className="w-4 h-4" />
               </Button>
+            )}
+          </>
+        )}
 
-              {/* Botão de Adicionar Lead */}
-              <Button
-                onClick={() => setIsLeadModalOpen(true)}
-                variant="outline"
-                size="sm"
-                className="bg-white/10 border-white/20 hover:bg-white/20 text-gray-700 hover:text-gray-900"
-              >
-                <UserPlus className="w-4 h-4 mr-2" />
-                Lead
-              </Button>
-
-              {/* Botão de Configurações do Funil (Engrenagem) */}
-              {isAdmin && (
-                <Button
-                  onClick={() => setIsFunnelConfigOpen(true)}
-                  variant="outline"
-                  size="sm"
-                  className="bg-white/10 border-white/20 hover:bg-white/20 text-gray-700 hover:text-gray-900"
-                >
-                  <Settings className="w-4 h-4" />
-                </Button>
-              )}
-            </>
-          )}
-
-          {activeTab === "won-lost" && wonLostFilters && (
-            <WonLostFilters {...wonLostFilters} />
-          )}
-        </div>
+        {activeTab === "won-lost" && wonLostFilters && (
+          <WonLostFilters {...wonLostFilters} />
+        )}
       </div>
 
       {/* Modais */}

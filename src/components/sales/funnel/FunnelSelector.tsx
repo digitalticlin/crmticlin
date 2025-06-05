@@ -1,6 +1,15 @@
 
+import { useState } from "react";
 import { Funnel } from "@/types/funnel";
 import { Button } from "@/components/ui/button";
+import { ChevronDown, Plus } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 interface FunnelSelectorProps {
   funnels: Funnel[];
@@ -26,24 +35,40 @@ export function FunnelSelector({
   };
 
   return (
-    <div className="flex items-center gap-2">
-      <select
-        className="border rounded px-2 py-1"
-        value={selectedFunnel?.id || ""}
-        onChange={e => {
-          const funnel = funnels.find(f => f.id === e.target.value);
-          if (funnel) onSelectFunnel(funnel);
-        }}
-      >
-        {funnels.map(f => (
-          <option key={f.id} value={f.id}>{f.name}</option>
-        ))}
-      </select>
-      {isAdmin && (
-        <Button variant="outline" size="sm" onClick={handleCreateFunnel}>
-          + Funil
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button 
+          variant="outline" 
+          className="bg-white/10 border-white/20 hover:bg-white/20 text-gray-700 hover:text-gray-900 min-w-[200px] justify-between"
+        >
+          <span className="truncate">
+            {selectedFunnel?.name || "Selecionar Funil"}
+          </span>
+          <ChevronDown className="w-4 h-4 ml-2" />
         </Button>
-      )}
-    </div>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-[200px]">
+        {funnels.map(funnel => (
+          <DropdownMenuItem
+            key={funnel.id}
+            onClick={() => onSelectFunnel(funnel)}
+            className={`cursor-pointer ${
+              selectedFunnel?.id === funnel.id ? 'bg-accent' : ''
+            }`}
+          >
+            <span className="truncate">{funnel.name}</span>
+          </DropdownMenuItem>
+        ))}
+        {isAdmin && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleCreateFunnel} className="cursor-pointer">
+              <Plus className="w-4 h-4 mr-2" />
+              Criar Novo Funil
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
