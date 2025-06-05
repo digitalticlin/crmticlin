@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export class WebhookConfigService {
-  private static readonly WEBHOOK_URL = `${supabase.supabaseUrl}/functions/v1/whatsapp_web_server`;
+  private static readonly WEBHOOK_URL = `https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/whatsapp_web_server`;
 
   static async configureWebhookForInstance(instanceId: string) {
     console.log('[Webhook Config] 🔧 Configurando webhook para instância:', instanceId);
