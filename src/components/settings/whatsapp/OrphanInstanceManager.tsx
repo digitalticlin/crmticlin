@@ -138,6 +138,11 @@ export const OrphanInstanceManager = () => {
     performHealthCheck
   } = useOrphanRecovery();
 
+  // Wrapper para compatibilizar o tipo de retorno
+  const handleAdoptOrphan = async (orphan: OrphanInstance, instanceName: string): Promise<void> => {
+    await adoptOrphan(orphan, instanceName);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -212,7 +217,7 @@ export const OrphanInstanceManager = () => {
                 <OrphanInstanceCard
                   key={orphan.instanceId}
                   orphan={orphan}
-                  onAdopt={adoptOrphan}
+                  onAdopt={handleAdoptOrphan}
                   isAdopting={isAdopting}
                 />
               ))}

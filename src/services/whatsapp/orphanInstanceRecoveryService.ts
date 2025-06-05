@@ -23,7 +23,7 @@ export class OrphanInstanceRecoveryService {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${VPS_CONFIG.token}`
+          'Authorization': `Bearer ${VPS_CONFIG.authToken}`
         }
       });
 
@@ -152,7 +152,7 @@ export class OrphanInstanceRecoveryService {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${VPS_CONFIG.token}`
+          'Authorization': `Bearer ${VPS_CONFIG.authToken}`
         }
       });
 
