@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useCompanyData } from "../useCompanyData";
 import { useStageDatabase } from "./useStageDatabase";
@@ -110,7 +111,7 @@ export const useRealSalesFunnel = (funnelId?: string) => {
       if (error) throw error;
 
       await refetchStages();
-      toast.success("Estágio adicionado com sucesso");
+      toast.success("Etágio adicionado com sucesso");
     } catch (error) {
       console.error("Erro ao adicionar estágio:", error);
       toast.error("Erro ao adicionar estágio");
