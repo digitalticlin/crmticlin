@@ -1,4 +1,10 @@
 
+// Import all services first
+import { VPSInstanceService } from './vpsInstanceService';
+import { OrphanDetectionService } from './orphanDetectionService';
+import { OrphanAdoptionService } from './orphanAdoptionService';
+import { HealthCheckService } from './healthCheckService';
+
 // Export all services and types from orphan recovery system
 export { OrphanDetectionService } from './orphanDetectionService';
 export { OrphanAdoptionService } from './orphanAdoptionService';
