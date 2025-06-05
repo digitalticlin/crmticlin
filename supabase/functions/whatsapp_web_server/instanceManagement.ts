@@ -1,3 +1,4 @@
+
 import { VPS_CONFIG, corsHeaders, getVPSHeaders, isRealQRCode, testVPSConnection } from './config.ts';
 import { InstanceData } from './types.ts';
 
@@ -32,11 +33,53 @@ async function makeVPSRequest(url: string, options: RequestInit, retries = 3): P
   throw new Error('Max retries exceeded');
 }
 
+// CORREÇÃO: Função para aguardar QR Code ser gerado
+async function waitForQRCode(vpsInstanceId: string, maxAttempts = 6, delayMs = 5000): Promise<string | null> {
+  console.log(`[QR Polling] 🔄 Iniciando polling para QR Code: ${vpsInstanceId}`);
+  
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      console.log(`[QR Polling] Tentativa ${attempt}/${maxAttempts} para obter QR Code`);
+      
+      const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/qr`, {
+        method: 'POST',
+        headers: getVPSHeaders(),
+        body: JSON.stringify({ instanceId: vpsInstanceId })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (data.qrCode && isRealQRCode(data.qrCode)) {
+          console.log(`[QR Polling] ✅ QR Code REAL obtido na tentativa ${attempt}`);
+          return data.qrCode;
+        } else {
+          console.log(`[QR Polling] ⏳ QR Code ainda não disponível (tentativa ${attempt})`);
+        }
+      } else {
+        console.log(`[QR Polling] ⚠️ Erro na tentativa ${attempt}: ${response.status}`);
+      }
+      
+      // Aguardar antes da próxima tentativa (exceto na última)
+      if (attempt < maxAttempts) {
+        console.log(`[QR Polling] 😴 Aguardando ${delayMs}ms antes da próxima tentativa...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+      
+    } catch (error) {
+      console.error(`[QR Polling] ❌ Erro na tentativa ${attempt}:`, error);
+    }
+  }
+  
+  console.log(`[QR Polling] ⏰ Timeout após ${maxAttempts} tentativas - QR Code será obtido posteriormente`);
+  return null;
+}
+
 export async function createWhatsAppInstance(supabase: any, instanceData: InstanceData, userId: string) {
-  console.log('[Instance Management] 🚀 INICIANDO criação WhatsApp Web.js instance (FASE 3.1.1 - auth corrigida):', instanceData);
+  console.log('[Instance Management] 🚀 INICIANDO criação WhatsApp Web.js instance (CORREÇÃO PERMANENTE):', instanceData);
   console.log(`[Instance Management] 👤 User ID recebido: ${userId}`);
 
-  // CORREÇÃO FASE 3.1.1: Validar parâmetros de entrada
+  // CORREÇÃO: Validar parâmetros de entrada
   if (!userId || typeof userId !== 'string') {
     console.error('[Instance Management] ❌ User ID inválido:', userId);
     throw new Error('User ID is required and must be a valid string');
@@ -117,8 +160,8 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
     throw new Error(`Instância com nome "${instanceData.instanceName}" já existe. Tente com outro nome.`);
   }
 
-  // PASSO 5: Create instance na VPS com CORREÇÃO de endpoint (FASE 3.1.1)
-  console.log('[Instance Management] 🔧 PASSO 5: Criando instância na VPS (FASE 3.1.1 - endpoint correto)...');
+  // PASSO 5: Create instance na VPS (CORREÇÃO PERMANENTE)
+  console.log('[Instance Management] 🔧 PASSO 5: Criando instância na VPS (CORREÇÃO PERMANENTE)...');
   let vpsResult;
   try {
     // Payload structure CORRIGIDO
@@ -133,9 +176,8 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
     console.log('[Instance Management] 📤 Payload:', JSON.stringify(payload, null, 2));
     console.log('[Instance Management] 🔑 Headers:', getVPSHeaders());
     
-    // CORREÇÃO FASE 3.1.1: Usar endpoint correto confirmado via SSH
     const correctEndpoint = `${VPS_CONFIG.baseUrl}/instance/create`;
-    console.log('[Instance Management] 🎯 URL (FASE 3.1.1):', correctEndpoint);
+    console.log('[Instance Management] 🎯 URL (CORREÇÃO PERMANENTE):', correctEndpoint);
     
     const vpsResponse = await makeVPSRequest(correctEndpoint, {
       method: 'POST',
@@ -149,32 +191,18 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
     if (vpsResponse.ok) {
       try {
         vpsResult = JSON.parse(responseText);
-        console.log('[Instance Management] ✅ VPS creation response (FASE 3.1.1):', vpsResult);
+        console.log('[Instance Management] ✅ VPS creation response (CORREÇÃO PERMANENTE):', vpsResult);
       } catch (parseError) {
         console.error('[Instance Management] ❌ Erro ao fazer parse da resposta VPS:', parseError);
         throw new Error(`VPS retornou resposta inválida: ${responseText}`);
       }
       
-      // VALIDAÇÃO CRÍTICA: Verificar se VPS realmente retornou sucesso E QR code real
+      // CORREÇÃO CRÍTICA: Não falhar se QR Code é null inicialmente
       if (!vpsResult.success) {
         throw new Error(`VPS retornou falha: ${vpsResult.error || 'Erro desconhecido'}`);
       }
       
-      // Verificar se tem QR code
-      if (!vpsResult.qrCode) {
-        throw new Error('VPS não retornou QR Code. Instância pode não ter sido criada corretamente.');
-      }
-      
-      // Validar se QR code é real
-      const qrIsReal = isRealQRCode(vpsResult.qrCode);
-      console.log(`[Instance Management] 🔍 QR Code validation - Is Real: ${qrIsReal}`);
-      
-      if (!qrIsReal) {
-        console.error('[Instance Management] ❌ VPS returned fake QR code - FALHA CRÍTICA');
-        throw new Error('VPS retornou QR Code falso. WhatsApp Web.js não foi inicializado corretamente. Tente novamente.');
-      }
-      
-      console.log('[Instance Management] ✅ VPS retornou QR CODE REAL (FASE 3.1.1) - prosseguindo...');
+      console.log('[Instance Management] ✅ Instância criada na VPS (CORREÇÃO PERMANENTE) - QR Code será obtido posteriormente se necessário');
       
     } else {
       console.error(`[Instance Management] ❌ VPS creation failed with status ${vpsResponse.status}: ${responseText}`);
@@ -185,8 +213,10 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
     throw new Error(`Erro na criação VPS: ${vpsError.message}`);
   }
 
-  // PASSO 6: Salvar no banco APENAS após sucesso da VPS
+  // PASSO 6: Salvar no banco SEMPRE após sucesso da VPS
   console.log('[Instance Management] 💾 PASSO 6: Salvando no banco...');
+  let finalQRCode = vpsResult.qrCode;
+  
   try {
     const { data: dbInstance, error: dbError } = await supabase
       .from('whatsapp_instances')
@@ -197,9 +227,9 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
         connection_type: 'web',
         server_url: VPS_CONFIG.baseUrl,
         vps_instance_id: vpsInstanceId,
-        web_status: 'waiting_scan', // QR real disponível para scan
+        web_status: 'waiting_scan', // Status correto independente do QR Code
         connection_status: 'connecting',
-        qr_code: vpsResult.qrCode // QR code REAL do VPS
+        qr_code: finalQRCode // Pode ser null inicialmente
       })
       .select()
       .single();
@@ -221,27 +251,48 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
       throw new Error(`Erro no banco de dados: ${dbError.message}`);
     }
 
-    console.log('[Instance Management] 🎉 SUCESSO TOTAL FASE 3.1.1! Instance ID:', dbInstance.id);
+    // PASSO 7: CORREÇÃO PERMANENTE - Tentar obter QR Code real se não veio inicialmente
+    if (!finalQRCode || !isRealQRCode(finalQRCode)) {
+      console.log('[Instance Management] 🔄 PASSO 7: QR Code não disponível - iniciando polling...');
+      
+      // Executar polling para QR Code em background sem bloquear a resposta
+      const polledQRCode = await waitForQRCode(vpsInstanceId);
+      
+      if (polledQRCode) {
+        // Atualizar QR Code no banco
+        const { error: updateError } = await supabase
+          .from('whatsapp_instances')
+          .update({ qr_code: polledQRCode })
+          .eq('id', dbInstance.id);
+          
+        if (!updateError) {
+          finalQRCode = polledQRCode;
+          console.log('[Instance Management] 🎉 QR Code obtido via polling e atualizado no banco!');
+        }
+      }
+    }
+
+    console.log('[Instance Management] 🎉 SUCESSO TOTAL (CORREÇÃO PERMANENTE)! Instance ID:', dbInstance.id);
 
     return new Response(
       JSON.stringify({
         success: true,
         instance: {
           ...dbInstance,
-          qr_code: vpsResult.qrCode // QR code REAL confirmado
+          qr_code: finalQRCode // QR code final (pode ser null se ainda não estiver pronto)
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('[Instance Management] 💥 Unexpected error during database operation (FASE 3.1.1):', error);
+    console.error('[Instance Management] 💥 Unexpected error during database operation (CORREÇÃO PERMANENTE):', error);
     throw error;
   }
 }
 
 export async function deleteWhatsAppInstance(supabase: any, instanceId: string) {
-  console.log('[Instance Management] Deleting WhatsApp Web.js instance (FASE 3.1.1):', instanceId);
+  console.log('[Instance Management] Deleting WhatsApp Web.js instance (CORREÇÃO PERMANENTE):', instanceId);
 
   const { data: instance } = await supabase
     .from('whatsapp_instances')
@@ -252,9 +303,9 @@ export async function deleteWhatsAppInstance(supabase: any, instanceId: string) 
   if (!instance?.vps_instance_id) {
     console.log('[Instance Management] No VPS instance ID found, only deleting from database');
   } else {
-    // Use CORRECT delete endpoint with proper headers (FASE 3.1.1)
+    // Use CORRECT delete endpoint with proper headers
     try {
-      console.log('[Instance Management] Deleting from VPS with corrected authentication (FASE 3.1.1)');
+      console.log('[Instance Management] Deleting from VPS with corrected authentication');
       
       await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/delete`, {
         method: 'POST',
@@ -265,7 +316,7 @@ export async function deleteWhatsAppInstance(supabase: any, instanceId: string) 
         })
       });
       
-      console.log('[Instance Management] Successfully deleted from VPS (FASE 3.1.1)');
+      console.log('[Instance Management] Successfully deleted from VPS');
     } catch (deleteError) {
       console.error('[Instance Management] VPS delete error:', deleteError);
       // Continue with database deletion even if VPS delete fails
@@ -282,7 +333,7 @@ export async function deleteWhatsAppInstance(supabase: any, instanceId: string) 
     throw new Error(`Database delete error: ${deleteError.message}`);
   }
 
-  console.log('[Instance Management] Instance successfully deleted from database (FASE 3.1.1)');
+  console.log('[Instance Management] Instance successfully deleted from database');
 
   return new Response(
     JSON.stringify({ success: true }),

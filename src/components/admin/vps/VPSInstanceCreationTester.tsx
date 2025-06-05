@@ -17,7 +17,8 @@ import {
   RefreshCw,
   Play,
   Trash2,
-  QrCode
+  QrCode,
+  Clock
 } from "lucide-react";
 
 interface InstanceTestResult {
@@ -35,6 +36,7 @@ export const VPSInstanceCreationTester = () => {
   const [testResults, setTestResults] = useState<InstanceTestResult[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
   const [createdInstanceId, setCreatedInstanceId] = useState<string | null>(null);
+  const [qrCodePolling, setQrCodePolling] = useState(false);
 
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString();
@@ -53,6 +55,70 @@ export const VPSInstanceCreationTester = () => {
     });
   };
 
+  const pollForQRCode = async (instanceId: string) => {
+    setQrCodePolling(true);
+    addLog("🔄 PASSO 4B: Iniciando polling para QR Code...");
+    
+    const maxAttempts = 6;
+    const delayMs = 5000;
+    
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        addLog(`📱 Tentativa ${attempt}/${maxAttempts} para obter QR Code`);
+        
+        const { data: qrData, error: qrError } = await supabase.functions.invoke('whatsapp_web_server', {
+          body: { 
+            action: 'get_qr_code_async',
+            instanceData: { instanceId }
+          }
+        });
+
+        if (qrError) {
+          throw new Error(qrError.message);
+        }
+
+        if (qrData.success && qrData.qrCode) {
+          addLog(`✅ QR Code obtido com sucesso na tentativa ${attempt}!`);
+          updateTestResult('qr_code_polling', {
+            success: true,
+            duration: attempt * delayMs,
+            details: { 
+              attempts: attempt, 
+              hasQrCode: true, 
+              cached: qrData.cached,
+              qrCodeLength: qrData.qrCode.length 
+            },
+            timestamp: new Date().toISOString()
+          });
+          setQrCodePolling(false);
+          return;
+        } else if (qrData.waiting) {
+          addLog(`⏳ QR Code ainda não disponível (tentativa ${attempt})`);
+          if (attempt < maxAttempts) {
+            addLog(`😴 Aguardando ${delayMs/1000}s antes da próxima tentativa...`);
+            await new Promise(resolve => setTimeout(resolve, delayMs));
+          }
+        } else {
+          throw new Error(qrData.error || 'Falha ao obter QR Code');
+        }
+
+      } catch (error: any) {
+        addLog(`❌ Erro na tentativa ${attempt}: ${error.message}`);
+        if (attempt === maxAttempts) {
+          updateTestResult('qr_code_polling', {
+            success: false,
+            duration: maxAttempts * delayMs,
+            error: `QR Code não disponível após ${maxAttempts} tentativas`,
+            timestamp: new Date().toISOString()
+          });
+        }
+      }
+    }
+    
+    setQrCodePolling(false);
+    addLog("⏰ Polling finalizado - QR Code pode estar disponível posteriormente");
+  };
+
   const runInstanceCreationTest = async () => {
     setIsRunning(true);
     setTestResults([]);
@@ -62,7 +128,7 @@ export const VPSInstanceCreationTester = () => {
     const instanceName = testInstanceName || `test_instance_${Date.now()}`;
     
     try {
-      addLog(`🚀 Iniciando teste de criação de instância: ${instanceName}`);
+      addLog(`🚀 Iniciando teste de criação de instância (CORREÇÃO PERMANENTE): ${instanceName}`);
 
       // PASSO 1: Testar conectividade VPS
       addLog("🔍 PASSO 1: Testando conectividade VPS...");
@@ -134,8 +200,8 @@ export const VPSInstanceCreationTester = () => {
         throw error;
       }
 
-      // PASSO 3: Criar instância WhatsApp
-      addLog(`📱 PASSO 3: Criando instância WhatsApp: ${instanceName}...`);
+      // PASSO 3: Criar instância WhatsApp (CORREÇÃO PERMANENTE)
+      addLog(`📱 PASSO 3: Criando instância WhatsApp (CORREÇÃO PERMANENTE): ${instanceName}...`);
       const step3Start = Date.now();
       
       try {
@@ -158,48 +224,36 @@ export const VPSInstanceCreationTester = () => {
         updateTestResult('instance_creation', {
           success: true,
           duration: step3Duration,
-          details: createData,
+          details: {
+            instanceId: instanceId,
+            hasImmediateQR: !!createData.instance?.qr_code,
+            vpsInstanceId: createData.instance?.vps_instance_id
+          },
           timestamp: new Date().toISOString()
         });
         addLog(`✅ PASSO 3: Instância criada com sucesso - ID: ${instanceId}`);
 
-        // PASSO 4: Obter QR Code
-        if (instanceId) {
-          addLog("📱 PASSO 4: Obtendo QR Code...");
-          const step4Start = Date.now();
+        // PASSO 4: Verificar QR Code (CORREÇÃO PERMANENTE)
+        if (createData.instance?.qr_code) {
+          addLog("✅ PASSO 4A: QR Code já disponível na criação!");
+          updateTestResult('immediate_qr_code', {
+            success: true,
+            duration: 0,
+            details: { qrCodeLength: createData.instance.qr_code.length },
+            timestamp: new Date().toISOString()
+          });
+        } else {
+          addLog("⏳ PASSO 4A: QR Code não disponível imediatamente - isso é normal!");
+          updateTestResult('immediate_qr_code', {
+            success: true, // Não é erro!
+            duration: 0,
+            details: { message: "QR Code será gerado assincronamente" },
+            timestamp: new Date().toISOString()
+          });
           
-          try {
-            const { data: qrData, error: qrError } = await supabase.functions.invoke('whatsapp_web_server', {
-              body: { 
-                action: 'get_qr_code',
-                instanceData: { instanceId }
-              }
-            });
-
-            const step4Duration = Date.now() - step4Start;
-
-            if (qrError || !qrData.success) {
-              throw new Error(qrData?.error || qrError?.message || 'Falha ao obter QR Code');
-            }
-
-            updateTestResult('qr_code_generation', {
-              success: true,
-              duration: step4Duration,
-              details: { hasQrCode: !!qrData.qrCode, qrCodeLength: qrData.qrCode?.length },
-              timestamp: new Date().toISOString()
-            });
-            addLog("✅ PASSO 4: QR Code gerado com sucesso");
-
-          } catch (error: any) {
-            const step4Duration = Date.now() - step4Start;
-            updateTestResult('qr_code_generation', {
-              success: false,
-              duration: step4Duration,
-              error: error.message,
-              timestamp: new Date().toISOString()
-            });
-            addLog(`⚠️ PASSO 4: ${error.message}`);
-            // Não quebrar o teste por erro de QR Code
+          // Iniciar polling para QR Code
+          if (instanceId) {
+            await pollForQRCode(instanceId);
           }
         }
 
@@ -215,7 +269,7 @@ export const VPSInstanceCreationTester = () => {
         throw error;
       }
 
-      addLog("🎉 Teste de criação de instância concluído com sucesso!");
+      addLog("🎉 Teste de criação de instância concluído com sucesso (CORREÇÃO PERMANENTE)!");
       toast.success("Teste de instância concluído com sucesso!");
 
     } catch (error: any) {
@@ -277,7 +331,8 @@ export const VPSInstanceCreationTester = () => {
       vps_connectivity: 'Conectividade VPS',
       vps_authentication: 'Autenticação VPS',
       instance_creation: 'Criação de Instância',
-      qr_code_generation: 'Geração de QR Code'
+      immediate_qr_code: 'QR Code Imediato',
+      qr_code_polling: 'Polling QR Code'
     };
     return titles[step as keyof typeof titles] || step;
   };
@@ -289,15 +344,16 @@ export const VPSInstanceCreationTester = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TestTube className="h-5 w-5 text-purple-600" />
-            Teste de Criação de Instância WhatsApp
+            Teste de Criação de Instância WhatsApp (CORREÇÃO PERMANENTE)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Alert>
             <MessageSquare className="h-4 w-4" />
             <AlertDescription>
-              Este teste verifica todo o fluxo de criação de instância WhatsApp: conectividade, 
-              autenticação, criação e geração de QR Code.
+              <strong>CORREÇÃO PERMANENTE APLICADA:</strong> Este teste agora valida que a criação de instâncias 
+              funciona mesmo quando o QR Code não está disponível imediatamente. O sistema aguarda assincronamente 
+              pelo QR Code sem falhar.
             </AlertDescription>
           </Alert>
 
@@ -317,13 +373,18 @@ export const VPSInstanceCreationTester = () => {
           <div className="flex gap-2">
             <Button 
               onClick={runInstanceCreationTest}
-              disabled={isRunning}
+              disabled={isRunning || qrCodePolling}
               className="flex-1"
             >
               {isRunning ? (
                 <>
                   <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
                   Executando Teste...
+                </>
+              ) : qrCodePolling ? (
+                <>
+                  <Clock className="h-4 w-4 mr-2 animate-pulse" />
+                  Aguardando QR Code...
                 </>
               ) : (
                 <>
@@ -337,7 +398,7 @@ export const VPSInstanceCreationTester = () => {
               <Button 
                 onClick={cleanupTestInstance}
                 variant="outline"
-                disabled={isRunning}
+                disabled={isRunning || qrCodePolling}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Limpar Teste
@@ -364,7 +425,7 @@ export const VPSInstanceCreationTester = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <QrCode className="h-5 w-5 text-green-600" />
-              Resultados do Teste
+              Resultados do Teste (CORREÇÃO PERMANENTE)
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
