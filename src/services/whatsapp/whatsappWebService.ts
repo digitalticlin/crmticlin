@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { MessageSendingService } from "./services/messageSendingService";
 
@@ -41,7 +42,7 @@ export class WhatsAppWebService {
       console.log(`[WhatsApp Web Service] ✅ Sucesso (${action}):`, {
         duration: `${duration}ms`,
         action,
-        hasQrCode: action === 'get_qr_code' ? !!result.qrCode : undefined,
+        hasQrCode: action === 'get_qr_code_async' ? !!result.qrCode : undefined,
         permanentMode: result.permanent_mode || false,
         autoReconnect: result.auto_reconnect || false,
         instanceId: data.instanceId || data.instanceName
@@ -73,7 +74,8 @@ export class WhatsAppWebService {
   }
 
   static async getQRCode(instanceId: string) {
-    return this.makeAuthenticatedRequest('get_qr_code', {
+    // CORREÇÃO: Usar get_qr_code_async ao invés de get_qr_code
+    return this.makeAuthenticatedRequest('get_qr_code_async', {
       instanceId
     });
   }

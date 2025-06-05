@@ -26,7 +26,7 @@ export const useAutomaticQRPolling = (): AutoQRPollingHook => {
     instanceName: string,
     onQRCodeFound: (qrCode: string) => void
   ) => {
-    console.log('[Auto QR Polling] 🚀 Iniciando polling automático (CORREÇÃO DEFINITIVA) para:', instanceName);
+    console.log('[Auto QR Polling] 🚀 Iniciando polling automático (CORREÇÃO FINAL) para:', instanceName);
     console.log('[Auto QR Polling] 📋 Instance ID usado:', instanceId);
     setIsPolling(true);
 
@@ -39,12 +39,12 @@ export const useAutomaticQRPolling = (): AutoQRPollingHook => {
       console.log(`[Auto QR Polling] 📱 Tentativa ${attempt}/${maxAttempts} para ${instanceName}`);
 
       try {
-        // CORREÇÃO CRÍTICA: Usar instanceId (Supabase ID) diretamente
+        // CORREÇÃO FINAL: Usar get_qr_code_async (ação correta)
         const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
           body: {
             action: 'get_qr_code_async',
             instanceData: { 
-              instanceId: instanceId  // CORREÇÃO: Usar instanceId correto
+              instanceId: instanceId
             }
           }
         });

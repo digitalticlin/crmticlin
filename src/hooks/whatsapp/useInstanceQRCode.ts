@@ -4,10 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import type { WhatsAppWebInstance } from './useWhatsAppWebInstances';
 
 export const useInstanceQRCode = (instances: WhatsAppWebInstance[], fetchInstances: () => Promise<void>) => {
-  // CORREÇÃO DEFINITIVA: Usar instanceId (Supabase ID) em vez de vps_instance_id
+  // CORREÇÃO FINAL: Usar get_qr_code_async em vez de get_qr_code_async (estava duplicado)
   const refreshInstanceQRCode = useCallback(async (instanceId: string) => {
     try {
-      console.log('[Instance QR Code] 🔄 Atualizando QR Code (CORREÇÃO DEFINITIVA):', instanceId);
+      console.log('[Instance QR Code] 🔄 Atualizando QR Code (CORREÇÃO FINAL):', instanceId);
 
       const instance = instances.find(i => i.id === instanceId);
       if (!instance) {
@@ -20,13 +20,12 @@ export const useInstanceQRCode = (instances: WhatsAppWebInstance[], fetchInstanc
         instanceName: instance.instance_name
       });
 
-      // CORREÇÃO CRÍTICA: Usar instanceId (Supabase ID) diretamente
-      // O backend irá buscar a instância pelo ID e usar o vps_instance_id internamente
+      // CORREÇÃO FINAL: Usar get_qr_code_async (ação correta)
       const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
         body: {
           action: 'get_qr_code_async',
           instanceData: {
-            instanceId: instanceId  // CORREÇÃO: Usar instanceId em vez de vps_instance_id
+            instanceId: instanceId
           }
         }
       });

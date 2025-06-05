@@ -7,12 +7,12 @@ export const useInstanceActions = (fetchInstances: () => Promise<void>) => {
   // CORREÇÃO FASE 3.1.2: Create instance modificado para retornar instância com QR Code
   const createInstance = useCallback(async (instanceName: string) => {
     try {
-      console.log('[Hook] 🆕 Creating instance - FASE 3.1.2:', instanceName);
+      console.log('[Hook] 🆕 Creating instance - CORREÇÃO FINAL:', instanceName);
       
       const result = await WhatsAppWebService.createInstance(instanceName);
       
       if (result.success && result.instance) {
-        console.log('[Hook] ✅ Instance created successfully - FASE 3.1.2');
+        console.log('[Hook] ✅ Instance created successfully - CORREÇÃO FINAL');
         console.log('[Hook] 🎯 QR Code presente na resposta:', !!result.instance.qr_code);
         
         toast.success(`Instância "${instanceName}" criada com sucesso!`);
@@ -50,18 +50,22 @@ export const useInstanceActions = (fetchInstances: () => Promise<void>) => {
     }
   }, [fetchInstances]);
 
-  // Refresh QR code
+  // CORREÇÃO: Refresh QR code usando get_qr_code_async
   const refreshQRCode = useCallback(async (instanceId: string) => {
     try {
-      console.log('[Hook] 🔄 Refreshing QR code for:', instanceId);
+      console.log('[Hook] 🔄 Refreshing QR code for (CORREÇÃO FINAL):', instanceId);
       
       const result = await WhatsAppWebService.getQRCode(instanceId);
       
       if (result.success && result.qrCode) {
-        console.log('[Hook] ✅ QR code refreshed');
+        console.log('[Hook] ✅ QR code refreshed successfully');
         toast.success('QR Code atualizado!');
         await fetchInstances();
         return result.qrCode;
+      } else if (result.waiting) {
+        console.log('[Hook] ⏳ QR code still being generated');
+        toast.info('QR Code ainda sendo gerado...');
+        return null;
       } else {
         throw new Error(result.error || 'Failed to get QR code');
       }
