@@ -1,6 +1,6 @@
 
 import { VPS_CONFIG, getVPSHeaders } from './config.ts';
-import { makeVPSRequest } from './vpsRequest.ts';
+import { makeVPSRequest } from './vpsRequestService.ts';
 import { corsHeaders } from './config.ts';
 
 export async function getQRCodeFromVPS(instanceId: string) {
