@@ -53,7 +53,7 @@ export const useWhatsAppChatMessages = (
 
       if (error) throw error;
 
-      // Convert to Message format
+      // Convert to Message format - CORRIGIDO: Incluindo TODAS as mensagens
       const chatMessages: Message[] = (data || []).map(msg => ({
         id: msg.id,
         text: msg.text || '',
@@ -71,7 +71,12 @@ export const useWhatsAppChatMessages = (
         isIncoming: !msg.from_me
       }));
 
-      console.log('[WhatsApp Chat Messages FASE 3] ✅ Messages loaded:', chatMessages.length);
+      console.log('[WhatsApp Chat Messages FASE 3] ✅ Messages loaded:', {
+        total: chatMessages.length,
+        sent: chatMessages.filter(m => m.fromMe).length,
+        received: chatMessages.filter(m => !m.fromMe).length
+      });
+      
       setMessages(chatMessages);
     } catch (error) {
       console.error('[WhatsApp Chat Messages FASE 3] ❌ Error fetching messages:', error);
@@ -114,8 +119,8 @@ export const useWhatsAppChatMessages = (
           })
           .eq('id', selectedContact.id);
 
-        // Refresh messages to show sent message
-        await fetchMessages();
+        // CORRIGIDO: Refresh messages imediatamente para mostrar a mensagem enviada
+        setTimeout(() => fetchMessages(), 500);
         return true;
       } else {
         console.error('[WhatsApp Chat Messages FASE 3] ❌ Failed to send message:', result.error);

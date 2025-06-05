@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.177.1/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
@@ -128,10 +127,10 @@ async function processIncomingMessage(supabase: any, instance: any, messageData:
   
   try {
     const message = messageData.messages?.[0];
-    if (!message || message.key?.fromMe) {
-      console.log('[Webhook WhatsApp Web] ⏭️ Mensagem ignorada (enviada por mim)');
+    if (!message) {
+      console.log('[Webhook WhatsApp Web] ⏭️ Nenhuma mensagem encontrada');
       return new Response(
-        JSON.stringify({ success: true, processed: false, reason: 'message_ignored' }),
+        JSON.stringify({ success: true, processed: false, reason: 'no_message' }),
         { headers: { 'Content-Type': 'application/json' } }
       );
     }
@@ -151,8 +150,11 @@ async function processIncomingMessage(supabase: any, instance: any, messageData:
                        message.message?.extendedTextMessage?.text || 
                        '[Mídia]';
     
+    const isFromMe = message.key?.fromMe || false;
+    
     console.log('[Webhook WhatsApp Web] 👤 De:', fromNumber, '| Empresa:', instance.companies?.name);
     console.log('[Webhook WhatsApp Web] 💬 Mensagem:', messageText);
+    console.log('[Webhook WhatsApp Web] 📤 Enviada por mim:', isFromMe);
 
     // Buscar ou criar lead
     let { data: lead, error: leadError } = await supabase
@@ -175,7 +177,7 @@ async function processIncomingMessage(supabase: any, instance: any, messageData:
           company_id: instance.company_id,
           last_message: messageText,
           last_message_time: new Date().toISOString(),
-          unread_count: 1
+          unread_count: isFromMe ? 0 : 1
         })
         .select()
         .single();
@@ -191,30 +193,30 @@ async function processIncomingMessage(supabase: any, instance: any, messageData:
       lead = newLead;
       console.log('[Webhook WhatsApp Web] ✅ Lead criado:', lead.id);
     } else {
-      // Atualizar lead existente
+      // Atualizar lead existente - CORRIGIDO: Apenas incrementar unread se não for mensagem enviada por mim
       await supabase
         .from('leads')
         .update({
           last_message: messageText,
           last_message_time: new Date().toISOString(),
-          unread_count: (lead.unread_count || 0) + 1
+          unread_count: isFromMe ? lead.unread_count : (lead.unread_count || 0) + 1
         })
         .eq('id', lead.id);
       
       console.log('[Webhook WhatsApp Web] ✅ Lead atualizado:', lead.id);
     }
 
-    // Salvar mensagem
+    // CORRIGIDO: Salvar TODAS as mensagens (enviadas e recebidas)
     const { error: messageError } = await supabase
       .from('messages')
       .insert({
         lead_id: lead.id,
         whatsapp_number_id: instance.id,
         text: messageText,
-        from_me: false,
+        from_me: isFromMe,
         timestamp: new Date().toISOString(),
         external_id: message.key?.id,
-        status: 'received'
+        status: isFromMe ? 'sent' : 'received'
       });
 
     if (messageError) {
@@ -225,12 +227,17 @@ async function processIncomingMessage(supabase: any, instance: any, messageData:
       );
     }
 
-    console.log('[Webhook WhatsApp Web] ✅ Mensagem salva');
+    console.log('[Webhook WhatsApp Web] ✅ Mensagem salva:', { 
+      fromMe: isFromMe, 
+      text: messageText.substring(0, 50) + '...'
+    });
+    
     return new Response(
       JSON.stringify({ 
         success: true, 
         processed: true, 
         leadId: lead.id,
+        fromMe: isFromMe,
         company: instance.companies?.name
       }),
       { headers: { 'Content-Type': 'application/json' } }
