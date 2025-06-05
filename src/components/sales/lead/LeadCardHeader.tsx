@@ -16,9 +16,9 @@ export const LeadCardHeader = ({ lead, isWonLostView = false }: LeadCardHeaderPr
   const displayName = lead.name || lead.phone;
   const hasUnreadMessages = lead.unreadCount && lead.unreadCount > 0;
 
-  // Truncate name if too long (limit to about half the card width)
-  const truncatedName = displayName.length > 15 
-    ? `${displayName.substring(0, 15)}...` 
+  // Aumentar limite do nome já que não temos mais o horário
+  const truncatedName = displayName.length > 25 
+    ? `${displayName.substring(0, 25)}...` 
     : displayName;
 
   return (
@@ -31,7 +31,7 @@ export const LeadCardHeader = ({ lead, isWonLostView = false }: LeadCardHeaderPr
         </AvatarFallback>
       </Avatar>
 
-      {/* Name/Phone and Unread Indicator */}
+      {/* Name/Phone and Unread Indicator - Agora com mais espaço */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
         <h4 className={cn(
           "font-inter font-bold text-sm leading-tight truncate",
@@ -53,11 +53,6 @@ export const LeadCardHeader = ({ lead, isWonLostView = false }: LeadCardHeaderPr
           </div>
         )}
       </div>
-
-      {/* Last Message Time */}
-      <span className="text-xs text-neutral-400 dark:text-neutral-300 flex-shrink-0">
-        {lead.lastMessageTime}
-      </span>
     </div>
   );
 };
