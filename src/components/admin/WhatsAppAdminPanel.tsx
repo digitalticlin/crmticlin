@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Shield, Settings, Database, Globe, TestTube } from "lucide-react";
 import { OrphanInstanceManager } from "@/components/admin/OrphanInstanceManager";
 import { VPSInstanceCorrection } from "@/components/admin/VPSInstanceCorrection";
-import { WhatsAppDiagnostic } from "./WhatsAppDiagnostic";
+import { WhatsAppDiagnostic } from "@/components/settings/whatsapp/WhatsAppDiagnostic";
 import { GlobalInstanceSync } from "@/components/admin/GlobalInstanceSync";
 import { TestSyncButton } from "@/components/admin/TestSyncButton";
 
