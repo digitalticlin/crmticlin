@@ -1,6 +1,6 @@
 
 import { corsHeaders } from './config.ts';
-import { makeVPSRequest } from './vpsRequest.ts';
+import { makeVPSRequest } from './vpsRequestService.ts';
 import { VPS_CONFIG, getVPSHeaders } from './config.ts';
 
 export async function checkServerHealth() {
