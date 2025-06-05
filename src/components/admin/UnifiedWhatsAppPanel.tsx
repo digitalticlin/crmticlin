@@ -2,13 +2,15 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Settings, Database, Globe, TestTube, Wrench } from "lucide-react";
+import { Shield, Settings, Database, Globe, TestTube, Wrench, Link, Activity } from "lucide-react";
 import { OrphanInstanceManager } from "@/components/admin/OrphanInstanceManager";
 import { VPSInstanceCorrection } from "@/components/admin/VPSInstanceCorrection";
 import { WhatsAppDiagnostic } from "@/components/settings/whatsapp/WhatsAppDiagnostic";
 import { GlobalInstanceSync } from "@/components/admin/GlobalInstanceSync";
 import { TestSyncButton } from "@/components/admin/TestSyncButton";
 import { WhatsAppAdminPanel } from "@/components/admin/WhatsAppAdminPanel";
+import { OrphanInstanceLinker } from "@/components/admin/OrphanInstanceLinker";
+import { AutoSyncMonitor } from "@/components/admin/AutoSyncMonitor";
 
 export const UnifiedWhatsAppPanel = () => {
   return (
@@ -16,7 +18,7 @@ export const UnifiedWhatsAppPanel = () => {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Gestão WhatsApp Global</h1>
         <p className="text-gray-600 mt-1">
-          Administração completa das instâncias WhatsApp
+          Administração completa das instâncias WhatsApp com sincronização automática
         </p>
       </div>
 
@@ -29,15 +31,23 @@ export const UnifiedWhatsAppPanel = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="test" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+          <Tabs defaultValue="monitor" className="w-full">
+            <TabsList className="grid w-full grid-cols-7">
+              <TabsTrigger value="monitor" className="gap-2">
+                <Activity className="h-4 w-4" />
+                Monitor
+              </TabsTrigger>
               <TabsTrigger value="test" className="gap-2">
                 <TestTube className="h-4 w-4" />
-                Teste Sync
+                Teste
               </TabsTrigger>
               <TabsTrigger value="sync" className="gap-2">
                 <Globe className="h-4 w-4" />
-                Sincronização
+                Sync
+              </TabsTrigger>
+              <TabsTrigger value="linker" className="gap-2">
+                <Link className="h-4 w-4" />
+                Vincular
               </TabsTrigger>
               <TabsTrigger value="orphans" className="gap-2">
                 <Database className="h-4 w-4" />
@@ -53,12 +63,20 @@ export const UnifiedWhatsAppPanel = () => {
               </TabsTrigger>
             </TabsList>
 
+            <TabsContent value="monitor" className="mt-6">
+              <AutoSyncMonitor />
+            </TabsContent>
+
             <TabsContent value="test" className="mt-6">
               <TestSyncButton />
             </TabsContent>
 
             <TabsContent value="sync" className="mt-6">
               <GlobalInstanceSync />
+            </TabsContent>
+
+            <TabsContent value="linker" className="mt-6">
+              <OrphanInstanceLinker />
             </TabsContent>
 
             <TabsContent value="orphans" className="mt-6">

@@ -5,6 +5,7 @@ import { getVPSInstances } from './vpsRequestService.ts';
 // Serviço dedicado APENAS para sincronização estável VPS <-> Supabase
 export async function syncAllInstances(supabase: any) {
   const syncId = `sync_all_${Date.now()}`;
+  const startTime = Date.now();
   console.log(`[Dedicated Sync] 🔄 INICIANDO sincronização completa [${syncId}]`);
   
   try {
@@ -14,6 +15,7 @@ export async function syncAllInstances(supabase: any) {
     
     if (!vpsResult.success) {
       console.error('[Dedicated Sync] ❌ Erro ao acessar VPS:', vpsResult.error);
+      await logSyncExecution(supabase, 'error', 0, 0, 0, 1, Date.now() - startTime, vpsResult.error);
       return new Response(
         JSON.stringify({
           success: false,
@@ -38,6 +40,8 @@ export async function syncAllInstances(supabase: any) {
       .eq('connection_type', 'web');
 
     if (dbError) {
+      console.error('[Dedicated Sync] ❌ Erro do banco:', dbError);
+      await logSyncExecution(supabase, 'error', 0, 0, 0, 1, Date.now() - startTime, dbError.message);
       throw new Error(`Erro do banco: ${dbError.message}`);
     }
 
@@ -69,7 +73,7 @@ export async function syncAllInstances(supabase: any) {
       errors: []
     };
 
-    // ETAPA 4: Adicionar instâncias órfãs ao Supabase
+    // ETAPA 4: Adicionar instâncias órfãs ao Supabase (CORRIGIDO PARA PERMITIR NULL)
     console.log('[Dedicated Sync] ➕ Adicionando órfãs...');
     for (const vpsId of orphanVpsIds) {
       try {
@@ -87,7 +91,7 @@ export async function syncAllInstances(supabase: any) {
             server_url: VPS_CONFIG.baseUrl,
             web_status: vpsInstance.status === 'open' ? 'ready' : 'connecting',
             connection_status: vpsInstance.status === 'open' ? 'ready' : 'connecting',
-            company_id: null, // Órfã - será vinculada depois
+            company_id: null, // AGORA PERMITIDO - Órfã será vinculada depois
             date_connected: vpsInstance.status === 'open' ? new Date().toISOString() : null
           });
 
@@ -200,11 +204,24 @@ export async function syncAllInstances(supabase: any) {
       }
     }
 
-    console.log(`[Dedicated Sync] ✅ Sincronização completa [${syncId}]:`);
+    const executionTime = Date.now() - startTime;
+    console.log(`[Dedicated Sync] ✅ Sincronização completa [${syncId}] em ${executionTime}ms:`);
     console.log(`[Dedicated Sync] - ${syncResults.added} adicionadas`);
     console.log(`[Dedicated Sync] - ${syncResults.updated} atualizadas`);
     console.log(`[Dedicated Sync] - ${syncResults.marked_dead} marcadas como mortas`);
     console.log(`[Dedicated Sync] - ${syncResults.errors.length} erros`);
+
+    // Log da execução
+    await logSyncExecution(
+      supabase, 
+      syncResults.errors.length > 0 ? 'partial' : 'success',
+      vpsInstances.length,
+      syncResults.added,
+      syncResults.updated,
+      syncResults.errors.length,
+      executionTime,
+      syncResults.errors.length > 0 ? JSON.stringify(syncResults.errors) : null
+    );
 
     return new Response(
       JSON.stringify({
@@ -221,19 +238,24 @@ export async function syncAllInstances(supabase: any) {
           marked_dead: syncResults.marked_dead,
           errors_count: syncResults.errors.length
         },
+        execution_time_ms: executionTime,
         timestamp: new Date().toISOString()
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
+    const executionTime = Date.now() - startTime;
     console.error(`[Dedicated Sync] ❌ ERRO GERAL [${syncId}]:`, error);
+    
+    await logSyncExecution(supabase, 'error', 0, 0, 0, 1, executionTime, error.message);
     
     return new Response(
       JSON.stringify({
         success: false,
         syncId,
         error: error.message,
+        execution_time_ms: executionTime,
         timestamp: new Date().toISOString()
       }),
       { 
@@ -241,5 +263,33 @@ export async function syncAllInstances(supabase: any) {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
+  }
+}
+
+// Função helper para log de execução
+async function logSyncExecution(
+  supabase: any, 
+  status: string, 
+  instancesFound: number, 
+  instancesAdded: number, 
+  instancesUpdated: number, 
+  errorsCount: number, 
+  executionDuration: number, 
+  errorDetails: string | null
+) {
+  try {
+    await supabase
+      .from('auto_sync_logs')
+      .insert({
+        status,
+        instances_found: instancesFound,
+        instances_added: instancesAdded,
+        instances_updated: instancesUpdated,
+        errors_count: errorsCount,
+        execution_duration_ms: executionDuration,
+        error_details: errorDetails ? JSON.parse(errorDetails) : null
+      });
+  } catch (err) {
+    console.error('[Dedicated Sync] ❌ Erro ao salvar log:', err);
   }
 }

@@ -191,6 +191,45 @@ export type Database = {
           },
         ]
       }
+      auto_sync_logs: {
+        Row: {
+          created_at: string | null
+          error_details: Json | null
+          errors_count: number | null
+          execution_duration_ms: number | null
+          execution_time: string | null
+          id: string
+          instances_added: number | null
+          instances_found: number | null
+          instances_updated: number | null
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          error_details?: Json | null
+          errors_count?: number | null
+          execution_duration_ms?: number | null
+          execution_time?: string | null
+          id?: string
+          instances_added?: number | null
+          instances_found?: number | null
+          instances_updated?: number | null
+          status: string
+        }
+        Update: {
+          created_at?: string | null
+          error_details?: Json | null
+          errors_count?: number | null
+          execution_duration_ms?: number | null
+          execution_time?: string | null
+          id?: string
+          instances_added?: number | null
+          instances_found?: number | null
+          instances_updated?: number | null
+          status?: string
+        }
+        Relationships: []
+      }
       broadcast_lists: {
         Row: {
           company_id: string
@@ -1178,7 +1217,7 @@ export type Database = {
       whatsapp_instances: {
         Row: {
           client_name: string | null
-          company_id: string
+          company_id: string | null
           connection_status: string | null
           connection_type: string | null
           created_at: string | null
@@ -1201,7 +1240,7 @@ export type Database = {
         }
         Insert: {
           client_name?: string | null
-          company_id: string
+          company_id?: string | null
           connection_status?: string | null
           connection_type?: string | null
           created_at?: string | null
@@ -1224,7 +1263,7 @@ export type Database = {
         }
         Update: {
           client_name?: string | null
-          company_id?: string
+          company_id?: string | null
           connection_status?: string | null
           connection_type?: string | null
           created_at?: string | null
@@ -1260,6 +1299,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_orphan_instances_count: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       get_user_company_id: {
         Args: Record<PropertyKey, never>
         Returns: string
