@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import GlobalAdminSidebar from "@/components/admin/GlobalAdminSidebar";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
@@ -7,6 +6,7 @@ import { BusinessManagementPanel } from "@/components/admin/BusinessManagementPa
 import PlansPanel from "@/components/admin/PlansPanel";
 import { SystemManagementPanel } from "@/components/admin/SystemManagementPanel";
 import { AnalyticsPanel } from "@/components/admin/AnalyticsPanel";
+import { WhatsAppTestPanel } from "@/components/admin/WhatsAppTestPanel";
 
 export default function GlobalAdmin() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -35,6 +35,18 @@ export default function GlobalAdmin() {
         return <SystemManagementPanel />;
       case "analytics":
         return <AnalyticsPanel />;
+      case "whatsapp-test":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Teste WhatsApp Web.js</h1>
+              <p className="text-gray-600 mt-1">
+                Diagnóstico e teste completo do sistema WhatsApp
+              </p>
+            </div>
+            <WhatsAppTestPanel />
+          </div>
+        );
       default:
         return <AdminDashboard />;
     }

@@ -122,7 +122,7 @@ export class MessageSendingService {
   }
 
   private static async sendToVPS(vpsInstanceId: string, formattedPhone: string, message: string) {
-    const vpsUrl = `${VPS_CONFIG.baseUrl}/send`;
+    const vpsUrl = `${VPS_CONFIG.baseUrl}${VPS_CONFIG.endpoints.sendMessage}`;
     const requestBody = {
       instanceId: vpsInstanceId,
       phone: formattedPhone,
@@ -142,7 +142,8 @@ export class MessageSendingService {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${VPS_CONFIG.authToken}`
       },
-      body: JSON.stringify(requestBody)
+      body: JSON.stringify(requestBody),
+      signal: AbortSignal.timeout(VPS_CONFIG.timeouts.message)
     });
 
     if (!response.ok) {
