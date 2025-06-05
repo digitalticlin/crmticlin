@@ -91,10 +91,10 @@ export async function bindInstanceToUser(supabase: any, phoneFilter: string, use
   }
 }
 
-// NOVA FUNÇÃO: Vincular instância órfã por ID específico
+// CORREÇÃO: Função para vincular instância órfã por VPS instance ID
 export async function bindOrphanInstanceById(supabase: any, instanceId: string, userEmail: string) {
   const bindingId = `bind_orphan_${Date.now()}`;
-  console.log(`[Orphan Instance Binding] 🔗 Vinculando órfã por ID [${bindingId}]:`, { instanceId, userEmail });
+  console.log(`[Orphan Instance Binding] 🔗 Vinculando órfã por VPS ID [${bindingId}]:`, { instanceId, userEmail });
   
   try {
     // 1. Validar parâmetros
@@ -121,12 +121,34 @@ export async function bindOrphanInstanceById(supabase: any, instanceId: string, 
 
     console.log(`[Orphan Instance Binding] 👤 Usuário encontrado:`, user);
 
-    // 3. Buscar instância pelo VPS instance ID
-    const { data: instance, error: instanceError } = await supabase
+    // 3. CORREÇÃO: Buscar instância por vps_instance_id OU por instance_name contendo o ID
+    let instance = null;
+    let instanceError = null;
+
+    // Primeiro tenta por vps_instance_id
+    const { data: instanceByVps, error: vpsError } = await supabase
       .from('whatsapp_instances')
       .select('*')
       .eq('vps_instance_id', instanceId)
-      .single();
+      .maybeSingle();
+
+    if (!vpsError && instanceByVps) {
+      instance = instanceByVps;
+    } else {
+      // Se não encontrou, tenta por instance_name ou phone contendo o ID
+      const { data: instanceByName, error: nameError } = await supabase
+        .from('whatsapp_instances')
+        .select('*')
+        .or(`instance_name.ilike.%${instanceId}%,phone.ilike.%${instanceId}%`)
+        .eq('connection_type', 'web')
+        .maybeSingle();
+
+      if (!nameError && instanceByName) {
+        instance = instanceByName;
+      } else {
+        instanceError = nameError || vpsError;
+      }
+    }
 
     if (instanceError || !instance) {
       throw new Error(`Instância órfã não encontrada com ID: ${instanceId}`);

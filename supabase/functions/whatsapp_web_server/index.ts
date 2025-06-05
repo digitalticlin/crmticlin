@@ -436,13 +436,13 @@ serve(async (req) => {
 
         // CORREÇÃO: Verificar se é vinculação por ID específico ou por telefone
         if (body.instanceData.instanceId && body.instanceData.userEmail) {
-          console.log('[WhatsApp Server] 🔗 BIND ORPHAN BY ID');
+          console.log('[WhatsApp Server] 🔗 BIND ORPHAN BY VPS INSTANCE ID');
           return await bindOrphanInstanceById(supabase, body.instanceData.instanceId, body.instanceData.userEmail);
         } else if (body.phoneFilter && body.userEmail) {
           console.log('[WhatsApp Server] 🔗 BIND BY PHONE FILTER');
           return await bindByPhone(supabase, body.phoneFilter, body.userEmail);
         } else {
-          throw new Error('Invalid parameters for bind_instance_to_user action');
+          throw new Error('Invalid parameters for bind_instance_to_user action. Need either instanceId+userEmail or phoneFilter+userEmail');
         }
 
       default:

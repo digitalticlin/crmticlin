@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,7 +25,7 @@ export const VPSInstanceCorrection = () => {
     try {
       console.log('[Instance Correction] 🔧 Vinculando instância órfã:', { instanceId, userEmail });
 
-      // CORREÇÃO: Usar a ação correta que existe na edge function
+      // CORREÇÃO: Usar parâmetros corretos para vinculação por ID específico
       const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
         body: {
           action: 'bind_instance_to_user',
