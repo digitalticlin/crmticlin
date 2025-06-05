@@ -49,6 +49,12 @@ export const FunnelTabButton = ({
     } else if (activeTab === "funnel") {
       // Se já estiver na aba "funnel", alterna o dropdown
       setIsDropdownOpen(!isDropdownOpen);
+    } else {
+      // Para qualquer outra aba, vai para funnel
+      e.preventDefault();
+      e.stopPropagation();
+      setActiveTab("funnel");
+      setIsDropdownOpen(false);
     }
   };
 
