@@ -49,7 +49,7 @@ export const KanbanColumn = ({
         onColumnDelete={onColumnDelete}
       />
       
-      <div className="flex-1 overflow-y-auto px-4 pb-4 pt-2">
+      <div className="flex-1 overflow-y-auto px-4 pb-4 pt-2 kanban-column-scrollbar">
         <ColumnContent
           columnId={column.id}
           leads={column.leads}

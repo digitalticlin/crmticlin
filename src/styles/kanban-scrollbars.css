@@ -1,0 +1,60 @@
+
+/* Scrollbars minimalistas para o Kanban */
+
+/* Scrollbar horizontal do board principal */
+.kanban-scrollbar::-webkit-scrollbar {
+  height: 6px;
+}
+
+.kanban-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.kanban-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.kanban-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* Scrollbar vertical das colunas */
+.kanban-column-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.kanban-column-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+  margin: 8px 0;
+}
+
+.kanban-column-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  transition: background 0.2s ease;
+}
+
+.kanban-column-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+/* Firefox */
+.kanban-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+}
+
+.kanban-column-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+}
+
+/* Smooth scrolling */
+.kanban-scrollbar,
+.kanban-column-scrollbar {
+  scroll-behavior: smooth;
+}

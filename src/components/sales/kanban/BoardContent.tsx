@@ -1,3 +1,4 @@
+
 import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
 import { KanbanColumn } from "../KanbanColumn";
 
@@ -10,7 +11,7 @@ interface BoardContentProps {
   onMoveToWonLost?: (lead: KanbanLead, status: "won" | "lost") => void;
   isWonLostView?: boolean;
   onReturnToFunnel?: (lead: KanbanLead) => void;
-  renderClone?: any; // add renderClone to propagate to LeadsList
+  renderClone?: any;
 }
 
 export const BoardContent = ({
@@ -26,8 +27,7 @@ export const BoardContent = ({
 }: BoardContentProps) => {
   const visibleColumns = columns.filter(column => !column.isHidden);
 
-  // Adiciona drag-to-scroll horizontal
-  // (mouse down para arrastar o board inteiro)
+  // Adiciona drag-to-scroll horizontal com scrollbar customizada
   let isDragging = false;
   let startX = 0;
   let scrollLeft = 0;
@@ -40,12 +40,14 @@ export const BoardContent = ({
     window.addEventListener("mousemove", mouseMove);
     window.addEventListener("mouseup", mouseUp);
   };
+  
   const mouseMove = (e: MouseEvent) => {
     if (!isDragging) return;
     const board = document.getElementById("kanban-board-scroll");
     if (!board) return;
     board.scrollLeft = scrollLeft - (startX - e.pageX);
   };
+  
   const mouseUp = (e: MouseEvent) => {
     isDragging = false;
     const board = document.getElementById("kanban-board-scroll");
@@ -57,11 +59,11 @@ export const BoardContent = ({
   return (
     <div
       id="kanban-board-scroll"
-      className="w-full h-full overflow-x-auto flex"
+      className="w-full h-full overflow-x-auto flex kanban-scrollbar"
       style={{ WebkitOverflowScrolling: "touch", cursor: "grab" }}
       onMouseDown={mouseDown}
     >
-      <div className="flex gap-4 md:gap-6 px-1 md:px-2 pb-8 md:pb-10 min-w-max justify-center w-full">
+      <div className="flex gap-6 px-2 pb-8 min-w-max justify-center w-full">
         {visibleColumns.map((column) => (
           <KanbanColumn
             key={column.id}

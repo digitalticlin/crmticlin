@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { useRealSalesFunnel } from "@/hooks/salesFunnel/useRealSalesFunnel";
@@ -183,20 +182,18 @@ export default function SalesFunnel() {
           } : undefined}
         />
         
-        {/* Board do Kanban */}
-        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 shadow-2xl">
-          <KanbanBoard
-            columns={displayColumns}
-            onColumnsChange={() => {}}
-            onOpenLeadDetail={openLeadDetail}
-            onColumnUpdate={activeTab === "funnel" ? updateColumn : undefined}
-            onColumnDelete={activeTab === "funnel" ? deleteColumn : undefined}
-            onOpenChat={handleOpenChat}
-            onMoveToWonLost={handleMoveToWonLost}
-            onReturnToFunnel={returnLeadToFunnel}
-            isWonLostView={activeTab === "won-lost"}
-          />
-        </div>
+        {/* Board do Kanban - sem card de fundo */}
+        <KanbanBoard
+          columns={displayColumns}
+          onColumnsChange={() => {}}
+          onOpenLeadDetail={openLeadDetail}
+          onColumnUpdate={activeTab === "funnel" ? updateColumn : undefined}
+          onColumnDelete={activeTab === "funnel" ? deleteColumn : undefined}
+          onOpenChat={handleOpenChat}
+          onMoveToWonLost={handleMoveToWonLost}
+          onReturnToFunnel={returnLeadToFunnel}
+          isWonLostView={activeTab === "won-lost"}
+        />
       </div>
       
       {/* Sidebar de Detalhes */}
