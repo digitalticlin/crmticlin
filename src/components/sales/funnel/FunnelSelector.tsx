@@ -39,7 +39,7 @@ export function FunnelSelector({
       <DropdownMenuTrigger asChild>
         <Button 
           variant="outline" 
-          className="bg-white/10 border-white/20 hover:bg-white/20 text-gray-700 hover:text-gray-900 min-w-[200px] justify-between"
+          className="bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-800 hover:text-gray-900 min-w-[200px] justify-between font-medium"
         >
           <span className="truncate">
             {selectedFunnel?.name || "Selecionar Funil"}
@@ -47,13 +47,13 @@ export function FunnelSelector({
           <ChevronDown className="w-4 h-4 ml-2" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-[200px]">
+      <DropdownMenuContent align="start" className="w-[200px] bg-white border-gray-200 shadow-lg z-50">
         {funnels.map(funnel => (
           <DropdownMenuItem
             key={funnel.id}
             onClick={() => onSelectFunnel(funnel)}
-            className={`cursor-pointer ${
-              selectedFunnel?.id === funnel.id ? 'bg-accent' : ''
+            className={`cursor-pointer text-gray-800 hover:bg-gray-50 ${
+              selectedFunnel?.id === funnel.id ? 'bg-gray-100' : ''
             }`}
           >
             <span className="truncate">{funnel.name}</span>
@@ -61,8 +61,8 @@ export function FunnelSelector({
         ))}
         {isAdmin && (
           <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleCreateFunnel} className="cursor-pointer">
+            <DropdownMenuSeparator className="bg-gray-200" />
+            <DropdownMenuItem onClick={handleCreateFunnel} className="cursor-pointer text-gray-800 hover:bg-gray-50">
               <Plus className="w-4 h-4 mr-2" />
               Criar Novo Funil
             </DropdownMenuItem>

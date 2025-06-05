@@ -53,15 +53,15 @@ export const ModernFunnelControlBar = ({
   const [isFunnelConfigOpen, setIsFunnelConfigOpen] = useState(false);
 
   return (
-    <div className="flex items-center justify-between w-full bg-white/5 rounded-2xl border border-white/10 p-4">
+    <div className="flex items-center justify-between w-full bg-white/95 backdrop-blur-sm rounded-2xl border border-gray-200 p-4 shadow-sm">
       {/* Lado Esquerdo - Tabs */}
-      <div className="flex items-center gap-1 bg-white/10 rounded-xl p-1">
+      <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
         <button
           onClick={() => setActiveTab("funnel")}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
             activeTab === "funnel"
-              ? "bg-white text-gray-900 shadow-lg"
-              : "text-gray-700 hover:text-gray-900 hover:bg-white/20"
+              ? "bg-white text-gray-900 shadow-md"
+              : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
           }`}
         >
           Funil de Vendas
@@ -70,8 +70,8 @@ export const ModernFunnelControlBar = ({
           onClick={() => setActiveTab("won-lost")}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
             activeTab === "won-lost"
-              ? "bg-white text-gray-900 shadow-lg"
-              : "text-gray-700 hover:text-gray-900 hover:bg-white/20"
+              ? "bg-white text-gray-900 shadow-md"
+              : "text-gray-700 hover:text-gray-900 hover:bg-gray-50"
           }`}
         >
           Ganhos e Perdidos
@@ -90,7 +90,7 @@ export const ModernFunnelControlBar = ({
       </div>
 
       {/* Lado Direito - Botões de Ação */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {activeTab === "funnel" && (
           <>
             {/* Botão de Etiquetas */}
@@ -98,7 +98,7 @@ export const ModernFunnelControlBar = ({
               onClick={() => setIsTagModalOpen(true)}
               variant="outline"
               size="sm"
-              className="bg-white/10 border-white/20 hover:bg-white/20 text-gray-700 hover:text-gray-900"
+              className="bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-800 hover:text-gray-900 font-medium"
             >
               <Tag className="w-4 h-4 mr-2" />
               Etiquetas
@@ -109,7 +109,7 @@ export const ModernFunnelControlBar = ({
               onClick={() => setIsLeadModalOpen(true)}
               variant="outline"
               size="sm"
-              className="bg-white/10 border-white/20 hover:bg-white/20 text-gray-700 hover:text-gray-900"
+              className="bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-800 hover:text-gray-900 font-medium"
             >
               <UserPlus className="w-4 h-4 mr-2" />
               Lead
@@ -121,7 +121,7 @@ export const ModernFunnelControlBar = ({
                 onClick={() => setIsFunnelConfigOpen(true)}
                 variant="outline"
                 size="sm"
-                className="bg-white/10 border-white/20 hover:bg-white/20 text-gray-700 hover:text-gray-900"
+                className="bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-800 hover:text-gray-900"
               >
                 <Settings className="w-4 h-4" />
               </Button>
