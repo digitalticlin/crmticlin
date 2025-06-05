@@ -100,3 +100,38 @@ export async function deleteVPSInstance(instanceId: string) {
     };
   }
 }
+
+export async function getVPSInstances() {
+  console.log('[VPS Request Service] 📊 Buscando todas as instâncias da VPS');
+  
+  try {
+    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instances`, {
+      method: 'GET',
+      headers: getVPSHeaders()
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('[VPS Request Service] ✅ Instâncias obtidas:', data?.instances?.length || 0);
+      return {
+        success: true,
+        instances: data.instances || data || []
+      };
+    } else {
+      const errorText = await response.text();
+      console.error('[VPS Request Service] ❌ Erro ao buscar instâncias:', response.status, errorText);
+      return {
+        success: false,
+        error: `VPS error ${response.status}: ${errorText}`,
+        instances: []
+      };
+    }
+  } catch (error: any) {
+    console.error('[VPS Request Service] ❌ Erro na requisição de instâncias:', error);
+    return {
+      success: false,
+      error: error.message,
+      instances: []
+    };
+  }
+}

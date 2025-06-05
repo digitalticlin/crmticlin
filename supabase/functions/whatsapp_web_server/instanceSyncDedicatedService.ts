@@ -1,6 +1,6 @@
 
 import { corsHeaders, VPS_CONFIG, getVPSHeaders } from './config.ts';
-import { makeVPSRequest } from './vpsRequest.ts';
+import { getVPSInstances } from './vpsRequestService.ts';
 
 // Serviço dedicado APENAS para sincronização estável VPS <-> Supabase
 export async function syncAllInstances(supabase: any) {
@@ -10,28 +10,14 @@ export async function syncAllInstances(supabase: any) {
   try {
     // ETAPA 1: Buscar TODAS as instâncias da VPS
     console.log('[Dedicated Sync] 📡 Buscando instâncias da VPS...');
-    let vpsInstances = [];
+    const vpsResult = await getVPSInstances();
     
-    try {
-      const vpsResponse = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instances`, {
-        method: 'GET',
-        headers: getVPSHeaders()
-      });
-
-      if (vpsResponse.ok) {
-        const vpsData = await vpsResponse.json();
-        vpsInstances = vpsData.instances || vpsData || [];
-        console.log(`[Dedicated Sync] ✅ VPS retornou ${vpsInstances.length} instâncias`);
-      } else {
-        const errorText = await vpsResponse.text();
-        throw new Error(`VPS error ${vpsResponse.status}: ${errorText}`);
-      }
-    } catch (vpsError) {
-      console.error('[Dedicated Sync] ❌ Erro ao acessar VPS:', vpsError);
+    if (!vpsResult.success) {
+      console.error('[Dedicated Sync] ❌ Erro ao acessar VPS:', vpsResult.error);
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'VPS inacessível: ' + vpsError.message,
+          error: 'VPS inacessível: ' + vpsResult.error,
           syncId
         }),
         { 
@@ -40,6 +26,9 @@ export async function syncAllInstances(supabase: any) {
         }
       );
     }
+
+    const vpsInstances = vpsResult.instances;
+    console.log(`[Dedicated Sync] ✅ VPS retornou ${vpsInstances.length} instâncias`);
 
     // ETAPA 2: Buscar TODAS as instâncias do Supabase
     console.log('[Dedicated Sync] 📊 Buscando instâncias do Supabase...');

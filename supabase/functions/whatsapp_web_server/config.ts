@@ -5,8 +5,8 @@ export const corsHeaders = {
 };
 
 export const VPS_CONFIG = {
-  baseUrl: Deno.env.get('VPS_BASE_URL') || 'http://194.163.175.226:3003',
-  apiToken: Deno.env.get('VPS_API_TOKEN') || '',
+  baseUrl: 'http://31.97.24.222:3001',
+  apiToken: Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
   timeout: 30000,
   retries: 3
 };
@@ -15,7 +15,8 @@ export function getVPSHeaders() {
   return {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${VPS_CONFIG.apiToken}`,
-    'X-API-Key': VPS_CONFIG.apiToken
+    'X-API-Key': VPS_CONFIG.apiToken,
+    'Accept': 'application/json'
   };
 }
 
