@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyData } from "@/hooks/useCompanyData";
@@ -5,7 +6,7 @@ import { WhatsAppWebSection } from "./WhatsAppWebSection";
 import { WhatsAppAdminPanel } from "./WhatsAppAdminPanel";
 
 export const WhatsAppSettings = () => {
-  const { companyId, isLoading: companyLoading } = useCompanyData();
+  const { companyId, loading: companyLoading } = useCompanyData();
   const { data: profile } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
