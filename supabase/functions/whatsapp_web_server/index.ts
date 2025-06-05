@@ -132,9 +132,9 @@ async function getInstanceStatus(instanceId: string) {
   }
 }
 
-// NOVO: Função para sincronizar instâncias
-async function syncInstancesWithVPS(supabase: any) {
-  console.log('[Sync Instances] 🔄 Starting instances synchronization...');
+// NOVO: Função para sincronizar TODAS as instâncias (órfãs e vinculadas)
+async function syncAllInstancesWithVPS(supabase: any) {
+  console.log('[Sync All Instances] 🔄 Starting complete instances synchronization...');
   
   try {
     // Obter todas as instâncias da VPS
@@ -150,7 +150,7 @@ async function syncInstancesWithVPS(supabase: any) {
     const vpsData = await vpsResponse.json();
     const vpsInstances = vpsData.instances || [];
     
-    console.log('[Sync Instances] 📋 VPS instances found:', vpsInstances.length);
+    console.log('[Sync All Instances] 📋 VPS instances found:', vpsInstances.length);
 
     // Obter instâncias do Supabase
     const { data: supabaseInstances, error: supabaseError } = await supabase
@@ -162,9 +162,9 @@ async function syncInstancesWithVPS(supabase: any) {
       throw new Error(`Supabase query failed: ${supabaseError.message}`);
     }
 
-    console.log('[Sync Instances] 📋 Supabase instances found:', supabaseInstances?.length || 0);
+    console.log('[Sync All Instances] 📋 Supabase instances found:', supabaseInstances?.length || 0);
 
-    // Lógica de sincronização
+    // Lógica de sincronização COMPLETA
     let syncedCount = 0;
     let createdCount = 0;
     let updatedCount = 0;
@@ -179,6 +179,9 @@ async function syncInstancesWithVPS(supabase: any) {
           .update({
             connection_status: vpsInstance.status || 'unknown',
             web_status: vpsInstance.state || 'unknown',
+            phone: vpsInstance.phone || existing.phone || 'Unknown',
+            profile_name: vpsInstance.profileName || existing.profile_name,
+            profile_pic_url: vpsInstance.profilePictureUrl || existing.profile_pic_url,
             updated_at: new Date().toISOString()
           })
           .eq('id', existing.id);
@@ -187,18 +190,23 @@ async function syncInstancesWithVPS(supabase: any) {
           updatedCount++;
         }
       } else {
-        // Criar nova instância órfã para posterior adoção
+        // Criar nova instância (órfã ou não) - TODAS APARECERÃO NO SUPABASE
+        const instanceData = {
+          vps_instance_id: vpsInstance.instanceId,
+          instance_name: vpsInstance.sessionName || vpsInstance.instanceId,
+          phone: vpsInstance.phone || 'Unknown',
+          profile_name: vpsInstance.profileName,
+          profile_pic_url: vpsInstance.profilePictureUrl,
+          connection_type: 'web',
+          connection_status: vpsInstance.status || 'unknown',
+          web_status: vpsInstance.state || 'unknown',
+          // Se tiver informações de empresa, usar; senão, usar placeholder para órfã
+          company_id: vpsInstance.companyId || '00000000-0000-0000-0000-000000000000'
+        };
+
         const { error: insertError } = await supabase
           .from('whatsapp_instances')
-          .insert({
-            vps_instance_id: vpsInstance.instanceId,
-            instance_name: vpsInstance.sessionName || vpsInstance.instanceId,
-            phone: 'Unknown',
-            connection_type: 'web',
-            connection_status: vpsInstance.status || 'unknown',
-            web_status: vpsInstance.state || 'unknown',
-            company_id: '00000000-0000-0000-0000-000000000000' // Placeholder para órfãs
-          });
+          .insert(instanceData);
 
         if (!insertError) {
           createdCount++;
@@ -208,7 +216,7 @@ async function syncInstancesWithVPS(supabase: any) {
       syncedCount++;
     }
 
-    console.log('[Sync Instances] ✅ Synchronization completed:', {
+    console.log('[Sync All Instances] ✅ Complete synchronization finished:', {
       syncedCount,
       createdCount,
       updatedCount
@@ -222,14 +230,15 @@ async function syncInstancesWithVPS(supabase: any) {
           createdCount,
           updatedCount,
           vpsInstancesCount: vpsInstances.length,
-          supabaseInstancesCount: supabaseInstances?.length || 0
+          supabaseInstancesCount: supabaseInstances?.length || 0,
+          message: 'Todas as instâncias da VPS foram sincronizadas para o Supabase'
         }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('[Sync Instances] 💥 Synchronization error:', error);
+    console.error('[Sync All Instances] 💥 Synchronization error:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
@@ -407,8 +416,8 @@ serve(async (req) => {
         return await getInstanceStatus(body.instanceData.instanceId);
 
       case 'sync_instances':
-        console.log('[WhatsApp Server] 🔄 SYNC INSTANCES');
-        return await syncInstancesWithVPS(supabase);
+        console.log('[WhatsApp Server] 🔄 SYNC ALL INSTANCES (INCLUINDO ÓRFÃS)');
+        return await syncAllInstancesWithVPS(supabase);
 
       // ACTIONS EXISTENTES PARA PAINEL DE ÓRFÃS
       case 'list_all_instances_global':
