@@ -53,28 +53,33 @@ export const useWhatsAppChatMessages = (
 
       if (error) throw error;
 
-      // Convert to Message format - CORRIGIDO: Incluindo TODAS as mensagens
-      const chatMessages: Message[] = (data || []).map(msg => ({
-        id: msg.id,
-        text: msg.text || '',
-        fromMe: msg.from_me,
-        timestamp: msg.timestamp,
-        status: normalizeStatus(msg.status),
-        mediaType: normalizeMediaType(msg.media_type),
-        mediaUrl: msg.media_url,
-        // Compatibility fields for UI
-        sender: msg.from_me ? 'user' : 'contact',
-        time: new Date(msg.timestamp).toLocaleTimeString('pt-BR', {
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
-        isIncoming: !msg.from_me
-      }));
+      // CORRIGIDO: Mapeamento mais robusto incluindo TODAS as mensagens
+      const chatMessages: Message[] = (data || []).map(msg => {
+        const isFromMe = msg.from_me === true;
+        
+        return {
+          id: msg.id,
+          text: msg.text || '',
+          fromMe: isFromMe,
+          timestamp: msg.timestamp,
+          status: normalizeStatus(msg.status),
+          mediaType: normalizeMediaType(msg.media_type),
+          mediaUrl: msg.media_url,
+          // Compatibility fields for UI
+          sender: isFromMe ? 'user' : 'contact',
+          time: new Date(msg.timestamp).toLocaleTimeString('pt-BR', {
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          isIncoming: !isFromMe
+        };
+      });
 
       console.log('[WhatsApp Chat Messages FASE 3] ✅ Messages loaded:', {
         total: chatMessages.length,
         sent: chatMessages.filter(m => m.fromMe).length,
-        received: chatMessages.filter(m => !m.fromMe).length
+        received: chatMessages.filter(m => !m.fromMe).length,
+        lastMessage: chatMessages[chatMessages.length - 1]?.text?.substring(0, 30)
       });
       
       setMessages(chatMessages);
@@ -100,8 +105,9 @@ export const useWhatsAppChatMessages = (
         textLength: text.length
       });
 
+      // CORRIGIDO: Usar o ID correto da instância (UUID)
       const result = await WhatsAppWebService.sendMessage(
-        activeInstance.id,
+        activeInstance.id, // Usando o UUID da instância
         selectedContact.phone,
         text
       );
@@ -119,8 +125,8 @@ export const useWhatsAppChatMessages = (
           })
           .eq('id', selectedContact.id);
 
-        // CORRIGIDO: Refresh messages imediatamente para mostrar a mensagem enviada
-        setTimeout(() => fetchMessages(), 500);
+        // CORRIGIDO: Refresh messages mais rápido para mostrar a mensagem enviada
+        setTimeout(() => fetchMessages(), 300);
         return true;
       } else {
         console.error('[WhatsApp Chat Messages FASE 3] ❌ Failed to send message:', result.error);
@@ -138,6 +144,41 @@ export const useWhatsAppChatMessages = (
   useEffect(() => {
     fetchMessages();
   }, [fetchMessages]);
+
+  // CORRIGIDO: Realtime subscription mais eficiente
+  useEffect(() => {
+    if (!activeInstance || !selectedContact) return;
+
+    console.log('[WhatsApp Chat Messages FASE 3] 🔄 Setting up realtime for messages...');
+
+    const channel = supabase
+      .channel(`messages-${selectedContact.id}-${activeInstance.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages',
+          filter: `lead_id=eq.${selectedContact.id}`
+        },
+        (payload) => {
+          console.log('[WhatsApp Chat Messages FASE 3] 🔄 Realtime message update:', {
+            event: payload.eventType,
+            fromMe: payload.new?.from_me,
+            text: payload.new?.text?.substring(0, 30)
+          });
+          
+          // Refresh messages on any change
+          fetchMessages();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[WhatsApp Chat Messages FASE 3] 🧹 Cleaning up realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [activeInstance, selectedContact, fetchMessages]);
 
   return {
     messages,

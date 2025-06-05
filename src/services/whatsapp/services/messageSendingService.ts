@@ -19,11 +19,11 @@ export class MessageSendingService {
         timestamp: new Date().toISOString()
       });
 
-      // CORRIGIDO: Get instance data from database - BUSCAR POR ID (UUID)
+      // CORRIGIDO: Buscar instância pelo UUID diretamente
       const { data: instance, error: instanceError } = await supabase
         .from('whatsapp_instances')
         .select('vps_instance_id, connection_status, company_id, instance_name')
-        .eq('id', instanceId)
+        .eq('id', instanceId) // Usando o UUID da instância
         .single();
 
       if (instanceError || !instance) {
@@ -97,17 +97,18 @@ export class MessageSendingService {
         throw new Error(result.error || 'VPS returned success: false');
       }
 
-      // CORRIGIDO: Save message to database using instanceId (UUID) directly
+      // CORRIGIDO: Salvar mensagem no banco usando instanceId (UUID) correto
       const leadId = await this.getOrCreateLead(instanceId, cleanPhone, instance.company_id);
       
       console.log('[MessageSending FASE 3] 💾 Saving message to database:', {
         leadId,
         instanceId,
-        messageId: result.messageId
+        messageId: result.messageId,
+        fromMe: true
       });
 
       const { error: saveError } = await supabase.from('messages').insert({
-        whatsapp_number_id: instanceId, // USING UUID directly
+        whatsapp_number_id: instanceId, // Usando o UUID correto da instância
         lead_id: leadId,
         text: message,
         from_me: true,
@@ -119,13 +120,15 @@ export class MessageSendingService {
 
       if (saveError) {
         console.error('[MessageSending FASE 3] ❌ Failed to save message to DB:', saveError);
-        // Log detalhado do erro para debug
         console.error('[MessageSending FASE 3] ❌ Save error details:', {
           error: saveError,
           instanceId,
           leadId,
-          messageText: message.substring(0, 50)
+          messageText: message.substring(0, 50),
+          tableName: 'messages',
+          operation: 'insert'
         });
+        // Não falhar o envio se não conseguir salvar no banco
       } else {
         console.log('[MessageSending FASE 3] ✅ Message saved to database successfully');
       }
@@ -144,7 +147,8 @@ export class MessageSendingService {
       console.log('[MessageSending FASE 3] ✅ Message sent successfully:', {
         messageId: result.messageId,
         duration: `${duration}ms`,
-        leadId
+        leadId,
+        savedToDatabase: !saveError
       });
 
       return { 
