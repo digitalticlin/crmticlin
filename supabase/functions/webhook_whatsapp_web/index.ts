@@ -206,7 +206,7 @@ async function processIncomingMessage(supabase: any, instance: any, messageData:
       console.log('[Webhook WhatsApp Web] ✅ Lead atualizado:', lead.id);
     }
 
-    // CORRIGIDO: Salvar TODAS as mensagens (enviadas e recebidas)
+    // CORRIGIDO: Salvar TODAS as mensagens (enviadas e recebidas) do app nativo
     const { error: messageError } = await supabase
       .from('messages')
       .insert({

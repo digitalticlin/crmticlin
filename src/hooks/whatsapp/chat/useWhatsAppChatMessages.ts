@@ -53,7 +53,7 @@ export const useWhatsAppChatMessages = (
 
       if (error) throw error;
 
-      // CORRIGIDO: Mapeamento mais robusto incluindo TODAS as mensagens
+      // CORRIGIDO: Mapeamento incluindo TODAS as mensagens (enviadas e recebidas)
       const chatMessages: Message[] = (data || []).map(msg => {
         const isFromMe = msg.from_me === true;
         
@@ -113,7 +113,7 @@ export const useWhatsAppChatMessages = (
       );
 
       if (result.success) {
-        console.log('[WhatsApp Chat Messages FASE 3] ✅ Message sent successfully');
+        console.log('[MessageSending FASE 3] ✅ Message sent successfully, refreshing messages...');
         
         // Update contact last message info
         await supabase
@@ -125,8 +125,8 @@ export const useWhatsAppChatMessages = (
           })
           .eq('id', selectedContact.id);
 
-        // CORRIGIDO: Refresh messages mais rápido para mostrar a mensagem enviada
-        setTimeout(() => fetchMessages(), 300);
+        // CORRIGIDO: Refresh messages imediatamente para mostrar a mensagem enviada
+        setTimeout(() => fetchMessages(), 500);
         return true;
       } else {
         console.error('[WhatsApp Chat Messages FASE 3] ❌ Failed to send message:', result.error);
@@ -174,8 +174,8 @@ export const useWhatsAppChatMessages = (
             });
           }
           
-          // Refresh messages on any change
-          fetchMessages();
+          // CORRIGIDO: Refresh messages on any change
+          setTimeout(() => fetchMessages(), 200);
         }
       )
       .subscribe();

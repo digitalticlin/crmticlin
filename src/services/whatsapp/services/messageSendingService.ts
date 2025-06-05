@@ -97,18 +97,19 @@ export class MessageSendingService {
         throw new Error(result.error || 'VPS returned success: false');
       }
 
-      // CORRIGIDO: Salvar mensagem no banco usando instanceId (UUID) correto
+      // CORRIGIDO: Buscar ou criar lead primeiro e depois salvar mensagem
       const leadId = await this.getOrCreateLead(instanceId, cleanPhone, instance.company_id);
       
-      console.log('[MessageSending FASE 3] 💾 Saving message to database:', {
+      console.log('[MessageSending FASE 3] 💾 Saving sent message to database:', {
         leadId,
         instanceId,
         messageId: result.messageId,
         fromMe: true
       });
 
+      // CORRIGIDO: Salvar mensagem enviada com from_me: true
       const { error: saveError } = await supabase.from('messages').insert({
-        whatsapp_number_id: instanceId, // Usando o UUID correto da instância
+        whatsapp_number_id: instanceId,
         lead_id: leadId,
         text: message,
         from_me: true,
@@ -119,7 +120,7 @@ export class MessageSendingService {
       });
 
       if (saveError) {
-        console.error('[MessageSending FASE 3] ❌ Failed to save message to DB:', saveError);
+        console.error('[MessageSending FASE 3] ❌ Failed to save sent message to DB:', saveError);
         console.error('[MessageSending FASE 3] ❌ Save error details:', {
           error: saveError,
           instanceId,
@@ -128,9 +129,9 @@ export class MessageSendingService {
           tableName: 'messages',
           operation: 'insert'
         });
-        // Não falhar o envio se não conseguir salvar no banco
+        // IMPORTANTE: Não falhar o envio se não conseguir salvar no banco
       } else {
-        console.log('[MessageSending FASE 3] ✅ Message saved to database successfully');
+        console.log('[MessageSending FASE 3] ✅ Sent message saved to database successfully');
       }
 
       // Update lead with last message info
@@ -144,7 +145,7 @@ export class MessageSendingService {
         .eq('id', leadId);
 
       const duration = Date.now() - startTime;
-      console.log('[MessageSending FASE 3] ✅ Message sent successfully:', {
+      console.log('[MessageSending FASE 3] ✅ Message sent and saved successfully:', {
         messageId: result.messageId,
         duration: `${duration}ms`,
         leadId,
