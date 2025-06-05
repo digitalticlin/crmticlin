@@ -38,6 +38,50 @@ export function getVPSHeaders() {
   return headers;
 }
 
+// FUNÇÃO CRÍTICA: Valida se o QR Code é real (não placeholder)
+export function isRealQRCode(qrCode: string): boolean {
+  if (!qrCode || typeof qrCode !== 'string') {
+    return false;
+  }
+  
+  // QR Code real deve ter pelo menos 100 caracteres
+  if (qrCode.length < 100) {
+    return false;
+  }
+  
+  // QR Code real normalmente começa com data: ou é uma string base64 longa
+  const isDataUrl = qrCode.startsWith('data:image/');
+  const isBase64Like = qrCode.length > 200 && /^[A-Za-z0-9+/=]+$/.test(qrCode);
+  
+  return isDataUrl || isBase64Like;
+}
+
+// Função de teste de conectividade VPS
+export async function testVPSConnection() {
+  try {
+    console.log('[VPS Test] Testando conectividade com:', VPS_CONFIG.baseUrl);
+    
+    const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
+      method: 'GET',
+      headers: getVPSHeaders(),
+      signal: AbortSignal.timeout(VPS_CONFIG.timeout)
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('[VPS Test] ✅ VPS acessível:', data);
+      return { success: true, data };
+    } else {
+      const errorText = await response.text();
+      console.error('[VPS Test] ❌ VPS retornou erro:', response.status, errorText);
+      return { success: false, error: `HTTP ${response.status}: ${errorText}` };
+    }
+  } catch (error) {
+    console.error('[VPS Test] 💥 Erro de conectividade:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 // Função para logs detalhados de configuração
 export function logVPSConfig() {
   console.log('[VPS Config] Configuração atual:', {

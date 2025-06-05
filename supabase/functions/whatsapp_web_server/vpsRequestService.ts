@@ -1,84 +1,85 @@
 
 import { VPS_CONFIG, getVPSHeaders } from './config.ts';
 
-export async function makeVPSRequest(url: string, options: RequestInit, retries = 3): Promise<Response> {
-  for (let i = 0; i < retries; i++) {
+// Função de requisição VPS com retry melhorado
+export async function makeVPSRequest(url: string, options: RequestInit): Promise<Response> {
+  console.log('[VPS Request] 📡 Fazendo requisição para:', url);
+  console.log('[VPS Request] 📋 Options:', JSON.stringify(options, null, 2));
+  
+  let lastError: Error;
+  
+  for (let attempt = 1; attempt <= VPS_CONFIG.retries; attempt++) {
     try {
-      console.log(`[VPS Request] Attempt ${i + 1}/${retries} to: ${url}`);
-      console.log(`[VPS Request] Headers:`, options.headers);
-      console.log(`[VPS Request] Body:`, options.body);
+      console.log(`[VPS Request] 🔄 Tentativa ${attempt}/${VPS_CONFIG.retries}`);
       
       const response = await fetch(url, {
         ...options,
-        signal: AbortSignal.timeout(45000), // 45 second timeout
+        signal: AbortSignal.timeout(VPS_CONFIG.timeout)
       });
       
-      console.log(`[VPS Response] Status: ${response.status} ${response.statusText}`);
-      console.log(`[VPS Response] Headers:`, Object.fromEntries(response.headers.entries()));
+      console.log(`[VPS Request] 📥 Resposta recebida - Status: ${response.status}`);
       
-      return response;
-    } catch (error) {
-      console.error(`[VPS Request] Error (attempt ${i + 1}):`, error);
-      
-      if (i === retries - 1) {
-        throw error;
+      // Se a resposta foi bem-sucedida, retornar imediatamente
+      if (response.ok) {
+        console.log(`[VPS Request] ✅ Sucesso na tentativa ${attempt}`);
+        return response;
       }
       
-      // Wait before retry (exponential backoff)
-      await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+      // Para erros 4xx, não tentar novamente (erro de configuração)
+      if (response.status >= 400 && response.status < 500) {
+        console.error(`[VPS Request] ❌ Erro 4xx (não retentável): ${response.status}`);
+        return response;
+      }
+      
+      // Para outros erros, tentar novamente
+      const errorText = await response.text();
+      console.warn(`[VPS Request] ⚠️ Erro ${response.status} na tentativa ${attempt}: ${errorText}`);
+      lastError = new Error(`HTTP ${response.status}: ${errorText}`);
+      
+    } catch (error) {
+      console.error(`[VPS Request] 💥 Erro na tentativa ${attempt}:`, error);
+      lastError = error as Error;
+    }
+    
+    // Aguardar antes da próxima tentativa (exceto na última)
+    if (attempt < VPS_CONFIG.retries) {
+      const delay = 2000 * attempt; // Delay progressivo
+      console.log(`[VPS Request] ⏳ Aguardando ${delay}ms antes da próxima tentativa...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
   
-  throw new Error('Max retries exceeded');
+  console.error(`[VPS Request] 💥 Todas as ${VPS_CONFIG.retries} tentativas falharam`);
+  throw lastError!;
 }
 
+// Função específica para criar instância na VPS
 export async function createVPSInstance(payload: any): Promise<any> {
-  console.log('[VPS Service] 📤 Creating VPS instance with payload:', JSON.stringify(payload, null, 2));
-  console.log('[VPS Service] 🔑 Headers:', getVPSHeaders());
+  console.log('[VPS Create] 🚀 Criando instância na VPS:', payload);
   
-  const correctEndpoint = `${VPS_CONFIG.baseUrl}/instance/create`;
-  console.log('[VPS Service] 🎯 URL:', correctEndpoint);
-  
-  const vpsResponse = await makeVPSRequest(correctEndpoint, {
-    method: 'POST',
-    headers: getVPSHeaders(),
-    body: JSON.stringify(payload)
-  });
-
-  const responseText = await vpsResponse.text();
-  console.log('[VPS Service] 📥 VPS Raw Response:', responseText);
-
-  if (!vpsResponse.ok) {
-    console.error(`[VPS Service] ❌ VPS creation failed with status ${vpsResponse.status}: ${responseText}`);
-    throw new Error(`VPS creation failed: ${vpsResponse.status} - ${responseText}`);
-  }
-
   try {
-    const vpsResult = JSON.parse(responseText);
-    console.log('[VPS Service] ✅ VPS creation response:', vpsResult);
+    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/create`, {
+      method: 'POST',
+      headers: getVPSHeaders(),
+      body: JSON.stringify(payload)
+    });
     
-    if (!vpsResult.success) {
-      throw new Error(`VPS retornou falha: ${vpsResult.error || 'Erro desconhecido'}`);
+    if (response.ok) {
+      const data = await response.json();
+      console.log('[VPS Create] ✅ Instância criada com sucesso:', data);
+      return {
+        success: true,
+        vpsInstanceId: payload.instanceId,
+        qrCode: data.qrCode || null,
+        ...data
+      };
+    } else {
+      const errorText = await response.text();
+      console.error('[VPS Create] ❌ Falha ao criar instância:', errorText);
+      throw new Error(`VPS creation failed: ${response.status} - ${errorText}`);
     }
-    
-    return vpsResult;
-  } catch (parseError) {
-    console.error('[VPS Service] ❌ Erro ao fazer parse da resposta VPS:', parseError);
-    throw new Error(`VPS retornou resposta inválida: ${responseText}`);
+  } catch (error) {
+    console.error('[VPS Create] 💥 Erro crítico:', error);
+    throw error;
   }
-}
-
-export async function deleteVPSInstance(vpsInstanceId: string, instanceName: string): Promise<void> {
-  console.log('[VPS Service] 🗑️ Deleting VPS instance:', vpsInstanceId);
-  
-  await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/delete`, {
-    method: 'POST',
-    headers: getVPSHeaders(),
-    body: JSON.stringify({ 
-      instanceId: vpsInstanceId,
-      instanceName: instanceName 
-    })
-  });
-  
-  console.log('[VPS Service] ✅ Successfully deleted from VPS');
 }

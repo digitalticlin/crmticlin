@@ -3,15 +3,59 @@ import { VPS_CONFIG, corsHeaders, testVPSConnection, isRealQRCode } from './conf
 import { InstanceData } from './types.ts';
 import { createVPSInstance } from './vpsRequestService.ts';
 import { waitForQRCode, updateQRCodeInDatabase } from './qrCodePollingService.ts';
-import { 
-  validateInstanceCreationParams, 
-  getUserCompany, 
-  validateInstanceNameUniqueness, 
-  cleanupOrphanedInstances 
-} from './instanceValidationService.ts';
+
+// Validação simplificada de parâmetros
+async function validateInstanceCreationParams(instanceData: InstanceData, userId: string) {
+  if (!instanceData?.instanceName) {
+    throw new Error('Nome da instância é obrigatório');
+  }
+  
+  if (!userId) {
+    throw new Error('ID do usuário é obrigatório');
+  }
+  
+  console.log('[Instance Creation] ✅ Parâmetros validados');
+}
+
+// Obter dados da empresa do usuário
+async function getUserCompany(supabase: any, userId: string) {
+  console.log('[Instance Creation] 👤 Buscando dados do usuário:', userId);
+  
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('company_id')
+    .eq('id', userId)
+    .single();
+
+  if (profileError || !profile?.company_id) {
+    console.error('[Instance Creation] ❌ Erro ao buscar perfil:', profileError);
+    throw new Error('Usuário não possui empresa associada');
+  }
+
+  console.log('[Instance Creation] ✅ Empresa encontrada:', profile.company_id);
+  return profile;
+}
+
+// Validar unicidade do nome da instância
+async function validateInstanceNameUniqueness(supabase: any, companyId: string, instanceName: string) {
+  console.log('[Instance Creation] 🔍 Validando unicidade do nome:', instanceName);
+  
+  const { data: existing, error } = await supabase
+    .from('whatsapp_instances')
+    .select('id')
+    .eq('company_id', companyId)
+    .eq('instance_name', instanceName)
+    .single();
+
+  if (existing) {
+    throw new Error(`Já existe uma instância com o nome "${instanceName}"`);
+  }
+
+  console.log('[Instance Creation] ✅ Nome da instância é único');
+}
 
 export async function createWhatsAppInstance(supabase: any, instanceData: InstanceData, userId: string) {
-  console.log('[Instance Creation] 🚀 INICIANDO criação WhatsApp Web.js instance (CORREÇÃO FINAL):', instanceData);
+  console.log('[Instance Creation] 🚀 INICIANDO criação WhatsApp Web.js instance:', instanceData);
   console.log(`[Instance Creation] 👤 User ID recebido: ${userId}`);
 
   try {
@@ -32,8 +76,7 @@ export async function createWhatsAppInstance(supabase: any, instanceData: Instan
     // PASSO 3: Obter dados da empresa do usuário
     const profile = await getUserCompany(supabase, userId);
 
-    // PASSO 4: Limpar instâncias órfãs e validar unicidade
-    await cleanupOrphanedInstances(supabase, profile.company_id, instanceData.instanceName);
+    // PASSO 4: Validar unicidade do nome
     await validateInstanceNameUniqueness(supabase, profile.company_id, instanceData.instanceName);
 
     // PASSO 5: Gerar ID único para VPS
