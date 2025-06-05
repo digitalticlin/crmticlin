@@ -30,7 +30,7 @@ export const formatPhoneForWhatsApp = (phone: string): string => {
 };
 
 export const formatPhoneDisplay = (phone: string): string => {
-  // Remove @c.us se existir
+  // Remove @c.us se existir e todos os caracteres não numéricos
   const numbersOnly = phone.replace('@c.us', '').replace(/\D/g, '');
   
   // Formata para exibição: +55 (11) 99999-9999
@@ -43,7 +43,8 @@ export const formatPhoneDisplay = (phone: string): string => {
     return `+${countryCode} (${areaCode}) ${firstPart}-${secondPart}`;
   }
   
-  return phone;
+  // Se for menor que 11 dígitos, só remove @c.us e retorna o número limpo
+  return numbersOnly;
 };
 
 export const validatePhone = (phone: string): boolean => {

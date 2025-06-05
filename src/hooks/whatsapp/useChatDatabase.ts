@@ -1,11 +1,13 @@
 
 import { Contact, Message } from '@/types/chat';
+import { formatPhoneDisplay } from '@/utils/phoneFormatter';
 
 export const useChatDatabase = () => {
   const mapLeadToContact = (lead: any): Contact => {
     return {
       id: lead.id,
-      name: lead.name || lead.phone,
+      // ATUALIZADO: Não usar telefone bruto como fallback do nome
+      name: lead.name || null,
       phone: lead.phone,
       email: lead.email,
       address: lead.address,
@@ -20,7 +22,8 @@ export const useChatDatabase = () => {
       assignedUser: lead.owner_id,
       purchaseValue: lead.purchase_value,
       deals: [],
-      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(lead.name || lead.phone)}&background=10b981&color=fff`
+      // ATUALIZADO: Usar nome formatado para avatar quando não há nome
+      avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(lead.name || formatPhoneDisplay(lead.phone))}&background=10b981&color=fff`
     };
   };
 

@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Contact } from "@/types/chat";
+import { formatPhoneDisplay } from "@/utils/phoneFormatter";
 
 interface ContactsListProps {
   contacts: Contact[];
@@ -21,10 +22,11 @@ export const ContactsList = ({
   const [searchQuery, setSearchQuery] = useState("");
 
   // Filter contacts by search query
-  const filteredContacts = contacts.filter(contact =>
-    contact.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    contact.phone.includes(searchQuery)
-  );
+  const filteredContacts = contacts.filter(contact => {
+    const displayName = contact.name || formatPhoneDisplay(contact.phone);
+    return displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           contact.phone.includes(searchQuery);
+  });
 
   return (
     <div className="h-full w-full max-w-sm border-r border-gray-200 dark:border-gray-700 flex flex-col bg-white/10 dark:bg-black/10 backdrop-blur-lg">
@@ -46,6 +48,8 @@ export const ContactsList = ({
           {filteredContacts.map((contact) => {
             // CORREÇÃO: Verificar se há mensagens não lidas de forma mais rigorosa
             const hasUnreadMessages = contact.unreadCount && contact.unreadCount > 0;
+            // ATUALIZADO: Usar telefone formatado quando nome não disponível
+            const displayName = contact.name || formatPhoneDisplay(contact.phone);
             
             return (
               <div
@@ -59,9 +63,9 @@ export const ContactsList = ({
                 <div className="flex items-start gap-3">
                   <Avatar className="h-10 w-10 relative">
                     <AvatarFallback>
-                      {contact.name.split(' ').map(n => n[0]).join('')}
+                      {displayName.split(' ').map(n => n[0]).join('')}
                     </AvatarFallback>
-                    <AvatarImage src={contact.avatar} alt={contact.name} />
+                    <AvatarImage src={contact.avatar} alt={displayName} />
                     {contact.isOnline && (
                       <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white dark:border-gray-900" />
                     )}
@@ -69,7 +73,7 @@ export const ContactsList = ({
                   
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center">
-                      <h3 className="font-medium truncate">{contact.name}</h3>
+                      <h3 className="font-medium truncate">{displayName}</h3>
                       <span className="text-xs text-muted-foreground whitespace-nowrap">
                         {contact.lastMessageTime}
                       </span>

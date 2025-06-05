@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { KanbanLead, FIXED_COLUMN_IDS } from "@/types/kanban";
 import { cn } from "@/lib/utils";
 import { MessageCircle, User } from "lucide-react";
+import { formatPhoneDisplay } from "@/utils/phoneFormatter";
 
 interface LeadCardHeaderProps {
   lead: KanbanLead;
@@ -13,7 +14,9 @@ interface LeadCardHeaderProps {
 export const LeadCardHeader = ({ lead, isWonLostView = false }: LeadCardHeaderProps) => {
   const isNewLead = lead.columnId === FIXED_COLUMN_IDS.NEW_LEAD;
   const nameIsId = isNewLead && lead.name.startsWith("ID:");
-  const displayName = lead.name || lead.phone;
+  
+  // ATUALIZADO: Usar telefone formatado quando nome não disponível ou é ID
+  const displayName = nameIsId ? formatPhoneDisplay(lead.phone) : (lead.name || formatPhoneDisplay(lead.phone));
   
   // CORREÇÃO: Verificar se há mensagens não lidas de forma mais rigorosa
   const hasUnreadMessages = lead.unreadCount && lead.unreadCount > 0;

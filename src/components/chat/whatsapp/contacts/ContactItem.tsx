@@ -8,6 +8,7 @@ import { useState } from "react";
 import { TagsPopover } from "./TagsPopover";
 import { getTagStyleClasses } from "@/utils/tagColors";
 import { MessageCircle } from "lucide-react";
+import { formatPhoneDisplay } from "@/utils/phoneFormatter";
 
 interface ContactItemProps {
   contact: Contact;
@@ -39,8 +40,8 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
   // Verificar se há mensagens não lidas
   const hasUnreadMessages = contact.unreadCount && contact.unreadCount > 0;
 
-  // Nome ou número para exibição
-  const displayName = contact.name || contact.phone;
+  // Nome ou número formatado para exibição (ATUALIZADO)
+  const displayName = contact.name || formatPhoneDisplay(contact.phone);
 
   return (
     <>
