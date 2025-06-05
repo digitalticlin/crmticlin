@@ -67,6 +67,14 @@ export const ModernFunnelControlBar = ({
     }
   };
 
+  const handleFunnelButtonClick = () => {
+    if (activeTab === "won-lost") {
+      // Se estiver na aba "Ganhos e Perdidos", volta para o funil
+      setActiveTab("funnel");
+    }
+    // Se já estiver na aba "funnel", o dropdown abre automaticamente pelo DropdownMenuTrigger
+  };
+
   return (
     <div className="flex items-center justify-between w-full bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl p-4 shadow-glass">
       {/* Lado Esquerdo - Tabs com Funnel Selector integrado */}
@@ -80,7 +88,7 @@ export const ModernFunnelControlBar = ({
                   ? "bg-white/80 text-gray-900 shadow-md backdrop-blur-sm"
                   : "text-gray-800 hover:text-gray-900 hover:bg-white/30"
               }`}
-              onClick={() => setActiveTab("funnel")}
+              onClick={handleFunnelButtonClick}
             >
               <span className="truncate">
                 {selectedFunnel?.name || "Funil de Vendas"}
@@ -88,33 +96,36 @@ export const ModernFunnelControlBar = ({
               <ChevronDown className="w-4 h-4" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent 
-            align="start" 
-            className="w-[200px] bg-white/95 backdrop-blur-md border-white/50 shadow-glass z-50"
-          >
-            {funnels.map(funnel => (
-              <DropdownMenuItem
-                key={funnel.id}
-                onClick={() => onSelectFunnel(funnel)}
-                className={`cursor-pointer text-gray-800 hover:bg-white/60 backdrop-blur-sm ${
-                  selectedFunnel?.id === funnel.id ? 'bg-white/40' : ''
-                }`}
-              >
-                <span className="truncate">{funnel.name}</span>
-              </DropdownMenuItem>
-            ))}
-            {isAdmin && (
-              <>
-                <DropdownMenuSeparator className="bg-white/30" />
-                <DropdownMenuItem 
-                  onClick={handleCreateFunnel} 
-                  className="cursor-pointer text-gray-800 hover:bg-white/60 backdrop-blur-sm"
+          {/* Só mostra o dropdown se estiver na aba funnel */}
+          {activeTab === "funnel" && (
+            <DropdownMenuContent 
+              align="start" 
+              className="w-[200px] bg-white/95 backdrop-blur-md border-white/50 shadow-glass z-50"
+            >
+              {funnels.map(funnel => (
+                <DropdownMenuItem
+                  key={funnel.id}
+                  onClick={() => onSelectFunnel(funnel)}
+                  className={`cursor-pointer text-gray-800 hover:bg-white/60 backdrop-blur-sm ${
+                    selectedFunnel?.id === funnel.id ? 'bg-white/40' : ''
+                  }`}
                 >
-                  Criar Novo Funil
+                  <span className="truncate">{funnel.name}</span>
                 </DropdownMenuItem>
-              </>
-            )}
-          </DropdownMenuContent>
+              ))}
+              {isAdmin && (
+                <>
+                  <DropdownMenuSeparator className="bg-white/30" />
+                  <DropdownMenuItem 
+                    onClick={handleCreateFunnel} 
+                    className="cursor-pointer text-gray-800 hover:bg-white/60 backdrop-blur-sm"
+                  >
+                    Criar Novo Funil
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          )}
         </DropdownMenu>
 
         {/* Tab Ganhos e Perdidos */}
