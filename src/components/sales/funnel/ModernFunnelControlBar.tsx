@@ -4,14 +4,21 @@ import { Button } from "@/components/ui/button";
 import { 
   Settings, 
   Tag, 
-  UserPlus
+  UserPlus,
+  ChevronDown
 } from "lucide-react";
-import { FunnelSelector } from "./FunnelSelector";
 import { WonLostFilters } from "./WonLostFilters";
 import { TagManagementModal } from "./modals/TagManagementModal";
 import { CreateLeadModal } from "./modals/CreateLeadModal";
 import { FunnelConfigModal } from "./modals/FunnelConfigModal";
 import { Funnel } from "@/types/funnel";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 
 interface ModernFunnelControlBarProps {
   activeTab: string;
@@ -52,20 +59,65 @@ export const ModernFunnelControlBar = ({
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
   const [isFunnelConfigOpen, setIsFunnelConfigOpen] = useState(false);
 
+  const handleCreateFunnel = async () => {
+    const name = prompt("Nome do novo funil:");
+    if (name) {
+      const description = prompt("Descrição (opcional):");
+      await onCreateFunnel(name, description || undefined);
+    }
+  };
+
   return (
     <div className="flex items-center justify-between w-full bg-white/20 backdrop-blur-md border border-white/30 rounded-2xl p-4 shadow-glass">
-      {/* Lado Esquerdo - Tabs */}
+      {/* Lado Esquerdo - Tabs com Funnel Selector integrado */}
       <div className="flex items-center gap-1 bg-white/20 backdrop-blur-sm rounded-xl p-1 border border-white/20">
-        <button
-          onClick={() => setActiveTab("funnel")}
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-            activeTab === "funnel"
-              ? "bg-white/80 text-gray-900 shadow-md backdrop-blur-sm"
-              : "text-gray-800 hover:text-gray-900 hover:bg-white/30"
-          }`}
-        >
-          Funil de Vendas
-        </button>
+        {/* Tab Funil de Vendas com Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
+                activeTab === "funnel"
+                  ? "bg-white/80 text-gray-900 shadow-md backdrop-blur-sm"
+                  : "text-gray-800 hover:text-gray-900 hover:bg-white/30"
+              }`}
+              onClick={() => setActiveTab("funnel")}
+            >
+              <span className="truncate">
+                {selectedFunnel?.name || "Funil de Vendas"}
+              </span>
+              <ChevronDown className="w-4 h-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent 
+            align="start" 
+            className="w-[200px] bg-white/95 backdrop-blur-md border-white/50 shadow-glass z-50"
+          >
+            {funnels.map(funnel => (
+              <DropdownMenuItem
+                key={funnel.id}
+                onClick={() => onSelectFunnel(funnel)}
+                className={`cursor-pointer text-gray-800 hover:bg-white/60 backdrop-blur-sm ${
+                  selectedFunnel?.id === funnel.id ? 'bg-white/40' : ''
+                }`}
+              >
+                <span className="truncate">{funnel.name}</span>
+              </DropdownMenuItem>
+            ))}
+            {isAdmin && (
+              <>
+                <DropdownMenuSeparator className="bg-white/30" />
+                <DropdownMenuItem 
+                  onClick={handleCreateFunnel} 
+                  className="cursor-pointer text-gray-800 hover:bg-white/60 backdrop-blur-sm"
+                >
+                  Criar Novo Funil
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {/* Tab Ganhos e Perdidos */}
         <button
           onClick={() => setActiveTab("won-lost")}
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
@@ -76,17 +128,6 @@ export const ModernFunnelControlBar = ({
         >
           Ganhos e Perdidos
         </button>
-      </div>
-
-      {/* Centro - Seletor de Funil */}
-      <div className="flex-1 flex justify-center">
-        <FunnelSelector
-          funnels={funnels}
-          selectedFunnel={selectedFunnel}
-          onSelectFunnel={onSelectFunnel}
-          onCreateFunnel={onCreateFunnel}
-          isAdmin={isAdmin}
-        />
       </div>
 
       {/* Lado Direito - Botões de Ação */}
