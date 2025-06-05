@@ -27,14 +27,14 @@ export const FunnelConfigModal = ({ isOpen, onClose }: FunnelConfigModalProps) =
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[700px] bg-white/10 backdrop-blur-xl border border-white/20 max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-gray-800">
+      <DialogContent className="sm:max-w-[700px] bg-white/90 backdrop-blur-xl border border-white/30 rounded-3xl shadow-glass max-h-[80vh] overflow-y-auto">
+        <DialogHeader className="pb-6">
+          <DialogTitle className="text-2xl font-bold text-gray-800 text-center">
             Configurar Funil
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           <StagesList
             stages={columns}
             onUpdateStage={handleUpdateStage}

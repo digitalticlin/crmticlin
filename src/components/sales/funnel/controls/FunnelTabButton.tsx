@@ -29,6 +29,8 @@ export const FunnelTabButton = ({
   onCreateFunnel,
   isAdmin
 }: FunnelTabButtonProps) => {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
   const handleCreateFunnel = async () => {
     const name = prompt("Nome do novo funil:");
     if (name) {
@@ -43,12 +45,15 @@ export const FunnelTabButton = ({
       e.preventDefault();
       e.stopPropagation();
       setActiveTab("funnel");
+      setIsDropdownOpen(false);
+    } else if (activeTab === "funnel") {
+      // Se já estiver na aba "funnel", alterna o dropdown
+      setIsDropdownOpen(!isDropdownOpen);
     }
-    // Se já estiver na aba "funnel", o dropdown abre automaticamente pelo DropdownMenuTrigger
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
       <DropdownMenuTrigger asChild>
         <button
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 ${
@@ -64,36 +69,33 @@ export const FunnelTabButton = ({
           <ChevronDown className="w-4 h-4" />
         </button>
       </DropdownMenuTrigger>
-      {/* Só mostra o dropdown se estiver na aba funnel */}
-      {activeTab === "funnel" && (
-        <DropdownMenuContent 
-          align="start" 
-          className="w-[200px] bg-white/95 backdrop-blur-md border-white/50 shadow-glass z-50"
-        >
-          {funnels.map(funnel => (
-            <DropdownMenuItem
-              key={funnel.id}
-              onClick={() => onSelectFunnel(funnel)}
-              className={`cursor-pointer text-gray-800 hover:bg-white/60 backdrop-blur-sm ${
-                selectedFunnel?.id === funnel.id ? 'bg-white/40' : ''
-              }`}
+      <DropdownMenuContent 
+        align="start" 
+        className="w-[200px] bg-white/95 backdrop-blur-md border-white/50 shadow-glass z-50"
+      >
+        {funnels.map(funnel => (
+          <DropdownMenuItem
+            key={funnel.id}
+            onClick={() => onSelectFunnel(funnel)}
+            className={`cursor-pointer text-gray-800 hover:bg-white/60 backdrop-blur-sm ${
+              selectedFunnel?.id === funnel.id ? 'bg-white/40' : ''
+            }`}
+          >
+            <span className="truncate">{funnel.name}</span>
+          </DropdownMenuItem>
+        ))}
+        {isAdmin && (
+          <>
+            <DropdownMenuSeparator className="bg-white/30" />
+            <DropdownMenuItem 
+              onClick={handleCreateFunnel} 
+              className="cursor-pointer text-gray-800 hover:bg-white/60 backdrop-blur-sm"
             >
-              <span className="truncate">{funnel.name}</span>
+              Criar Novo Funil
             </DropdownMenuItem>
-          ))}
-          {isAdmin && (
-            <>
-              <DropdownMenuSeparator className="bg-white/30" />
-              <DropdownMenuItem 
-                onClick={handleCreateFunnel} 
-                className="cursor-pointer text-gray-800 hover:bg-white/60 backdrop-blur-sm"
-              >
-                Criar Novo Funil
-              </DropdownMenuItem>
-            </>
-          )}
-        </DropdownMenuContent>
-      )}
+          </>
+        )}
+      </DropdownMenuContent>
     </DropdownMenu>
   );
 };
