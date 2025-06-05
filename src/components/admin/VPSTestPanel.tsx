@@ -2,7 +2,6 @@
 import { AutoDeployButton } from "./hostinger/AutoDeployButton";
 import { PortTestDiagnostic } from "./vps/PortTestDiagnostic";
 import { VPSInfoCard } from "./vps/VPSInfoCard";
-import { VPSStatusCard } from "./vps/VPSStatusCard";
 import { PortsServicesCard } from "./vps/PortsServicesCard";
 import { ServersCard } from "./vps/ServersCard";
 import { AdminActionsCard } from "./vps/AdminActionsCard";
@@ -74,11 +73,8 @@ export const VPSTestPanel = () => {
       {/* Teste de Conectividade WhatsApp Web.js */}
       <VPSConnectivityTest />
 
-      {/* Grid de Cards Principais */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <VPSInfoCard />
-        <VPSStatusCard />
-      </div>
+      {/* Grid de Card Principal - VPSInfoCard only */}
+      <VPSInfoCard />
 
       {/* Grid de Cards de Serviços */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
