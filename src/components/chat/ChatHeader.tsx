@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, Phone, Video, Search, MoreVertical } from "lucide-react";
 import { Contact } from "@/types/chat";
+import { formatPhoneDisplay } from "@/utils/phoneFormatter";
 
 interface ChatHeaderProps {
   selectedContact: Contact;
@@ -15,6 +16,9 @@ export const ChatHeader = ({
   onOpenContactDetails,
   onBack,
 }: ChatHeaderProps) => {
+  // ATUALIZADO: Usar formatPhoneDisplay quando nome não disponível
+  const displayName = selectedContact.name || formatPhoneDisplay(selectedContact.phone);
+
   return (
     <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex items-center">
       <Button
@@ -32,13 +36,13 @@ export const ChatHeader = ({
       >
         <Avatar className="h-10 w-10">
           <AvatarFallback>
-            {selectedContact.name.split(' ').map(n => n[0]).join('')}
+            {displayName.split(' ').map(n => n[0]).join('')}
           </AvatarFallback>
-          <AvatarImage src={selectedContact.avatar} alt={selectedContact.name} />
+          <AvatarImage src={selectedContact.avatar} alt={displayName} />
         </Avatar>
         
         <div>
-          <h3 className="font-medium">{selectedContact.name}</h3>
+          <h3 className="font-medium">{displayName}</h3>
           <p className="text-xs text-muted-foreground">
             {selectedContact.isOnline ? "Online" : "Offline"}
           </p>

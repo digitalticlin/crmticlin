@@ -6,6 +6,7 @@ import { SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { PencilLine, Phone } from "lucide-react";
 import { useState } from "react";
+import { formatPhoneDisplay } from "@/utils/phoneFormatter";
 
 interface LeadDetailHeaderProps {
   selectedLead: KanbanLead;
@@ -74,7 +75,7 @@ export const LeadDetailHeader = ({ selectedLead, onUpdateName }: LeadDetailHeade
       </div>
       <SheetDescription className="flex items-center gap-1">
         <Phone className="h-4 w-4" />
-        {selectedLead.phone}
+        {formatPhoneDisplay(selectedLead.phone)}
       </SheetDescription>
     </>
   );
