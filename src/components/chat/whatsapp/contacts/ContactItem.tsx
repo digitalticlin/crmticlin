@@ -7,6 +7,7 @@ import { unifiedTags } from "@/data/unifiedFakeData";
 import { useState } from "react";
 import { TagsPopover } from "./TagsPopover";
 import { getTagStyleClasses } from "@/utils/tagColors";
+import { MessageCircle } from "lucide-react";
 
 interface ContactItemProps {
   contact: Contact;
@@ -17,19 +18,12 @@ interface ContactItemProps {
 export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps) => {
   const [showTagsPopover, setShowTagsPopover] = useState(false);
 
-  const formatLastMessageTime = (timeString: string) => {
-    if (!timeString) return '';
-    return timeString;
-  };
-
   // Função para obter cor da tag sincronizada com o funil
   const getTagColor = (tagName: string) => {
     const unifiedTag = unifiedTags.find(tag => tag.name === tagName);
     if (unifiedTag) {
-      // Usar as cores corretas do padrão de etiquetas
       return getTagStyleClasses(unifiedTag.color);
     }
-    // Fallback para tags não encontradas
     return 'border-2 border-gray-500 bg-gray-500/20 text-gray-800';
   };
 
@@ -42,59 +36,54 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
   const visibleItems = allTagItems.slice(0, 2);
   const remainingCount = allTagItems.length - 2;
 
-  // CORREÇÃO: Verificar se há mensagens não lidas de forma mais rigorosa
+  // Verificar se há mensagens não lidas
   const hasUnreadMessages = contact.unreadCount && contact.unreadCount > 0;
+
+  // Nome ou número para exibição
+  const displayName = contact.name || contact.phone;
 
   return (
     <>
       <div
         className={cn(
-          "p-2 rounded-2xl hover:bg-white/20 cursor-pointer transition-all duration-200 relative group",
+          "p-3 rounded-2xl hover:bg-white/20 cursor-pointer transition-all duration-200 relative group",
           isSelected && "bg-white/25 shadow-lg ring-2 ring-white/30"
         )}
         onClick={() => onSelect(contact)}
       >
-        <div className="flex items-start gap-2">
-          <div className="relative">
-            <Avatar className="h-10 w-10 ring-2 ring-white/20">
-              <AvatarFallback className="bg-gradient-to-br from-green-500 to-green-600 text-white text-sm font-semibold">
-                {contact.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
-              </AvatarFallback>
-              <AvatarImage src={contact.avatar} alt={contact.name} />
-            </Avatar>
-            {contact.isOnline && (
-              <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-green-500 border-2 border-white shadow-sm" />
-            )}
-          </div>
+        <div className="flex items-start gap-3">
+          {/* Avatar */}
+          <Avatar className="h-10 w-10 ring-2 ring-white/20 flex-shrink-0">
+            <AvatarFallback className="bg-gradient-to-br from-green-500 to-green-600 text-white text-sm font-semibold">
+              {displayName.split(' ').map(n => n[0]).join('').substring(0, 2)}
+            </AvatarFallback>
+            <AvatarImage src={contact.avatar} alt={displayName} />
+          </Avatar>
           
           <div className="flex-1 min-w-0">
-            <div className="flex justify-between items-start">
-              <h3 className="font-semibold text-gray-900 truncate text-sm">{contact.name}</h3>
-              <div className="flex items-center gap-2 ml-2">
-                {contact.lastMessageTime && (
-                  <span className="text-xs text-gray-600 whitespace-nowrap font-medium">
-                    {formatLastMessageTime(contact.lastMessageTime)}
-                  </span>
-                )}
-              </div>
-            </div>
-            
-            <div className="flex justify-between items-center">
-              <p className="text-xs text-gray-700 truncate flex-1 leading-relaxed">
-                {contact.lastMessage || "Clique para conversar"}
-              </p>
+            {/* Header: Nome/Número + Badge de não lidas */}
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-semibold text-gray-900 truncate text-sm flex-1">
+                {displayName}
+              </h3>
               
-              {/* CORREÇÃO: Só mostrar badge se realmente houver mensagens não lidas */}
+              {/* Badge de mensagens não lidas */}
               {hasUnreadMessages && (
-                <Badge className="bg-green-500 hover:bg-green-600 text-white text-xs px-1.5 py-0.5 rounded-full ml-2 shadow-sm">
-                  {contact.unreadCount! > 99 ? '99+' : contact.unreadCount}
-                </Badge>
+                <div className="flex items-center gap-1 bg-red-500 text-white rounded-full px-2 py-1 text-xs flex-shrink-0">
+                  <MessageCircle className="h-3 w-3" />
+                  <span>{contact.unreadCount}</span>
+                </div>
               )}
             </div>
             
+            {/* Última mensagem */}
+            <p className="text-xs text-gray-700 truncate mb-2 leading-relaxed">
+              {contact.lastMessage || "Clique para conversar"}
+            </p>
+            
             {/* Tags + Company - Limitadas a 2 itens no total + botão "+x" */}
             {allTagItems.length > 0 && (
-              <div className="flex items-center gap-1 mt-1 overflow-hidden">
+              <div className="flex items-center gap-1 overflow-hidden">
                 <div className="flex items-center gap-1 flex-nowrap">
                   {/* Mostrar apenas os primeiros 2 itens (tags + company) */}
                   {visibleItems.map((item, index) => (
