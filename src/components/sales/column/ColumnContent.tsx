@@ -1,6 +1,6 @@
 
-import { KanbanLead } from "@/types/kanban";
 import { LeadsList } from "./LeadsList";
+import { KanbanLead } from "@/types/kanban";
 
 interface ColumnContentProps {
   columnId: string;
@@ -11,6 +11,10 @@ interface ColumnContentProps {
   onReturnToFunnel?: (lead: KanbanLead) => void;
   isWonLostView?: boolean;
   renderClone?: any;
+  onAnyCardMouseEnter?: () => void;
+  onAnyCardMouseLeave?: () => void;
+  wonStageId?: string;
+  lostStageId?: string;
 }
 
 export const ColumnContent = ({
@@ -22,15 +26,13 @@ export const ColumnContent = ({
   onReturnToFunnel,
   isWonLostView = false,
   renderClone,
-  // NEW props para hover handlers
   onAnyCardMouseEnter,
   onAnyCardMouseLeave,
-}: ColumnContentProps & {
-  onAnyCardMouseEnter?: () => void;
-  onAnyCardMouseLeave?: () => void;
-}) => {
+  wonStageId,
+  lostStageId
+}: ColumnContentProps) => {
   return (
-    <LeadsList 
+    <LeadsList
       columnId={columnId}
       leads={leads}
       onOpenLeadDetail={onOpenLeadDetail}
@@ -41,6 +43,8 @@ export const ColumnContent = ({
       renderClone={renderClone}
       onAnyCardMouseEnter={onAnyCardMouseEnter}
       onAnyCardMouseLeave={onAnyCardMouseLeave}
+      wonStageId={wonStageId}
+      lostStageId={lostStageId}
     />
   );
 };

@@ -1,7 +1,9 @@
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { DropResult } from "react-beautiful-dnd";
-import { KanbanColumn, KanbanLead, FIXED_COLUMN_IDS } from "@/types/kanban";
+import { KanbanColumn, KanbanLead } from "@/types/kanban";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface UseDragAndDropProps {
   columns: KanbanColumn[];
@@ -14,61 +16,38 @@ export const useDragAndDrop = ({
   columns, 
   onColumnsChange, 
   onMoveToWonLost,
-  isWonLostView = false 
+  isWonLostView = false
 }: UseDragAndDropProps) => {
-  const [isDragging, setIsDragging] = useState(false);
   const [showDropZones, setShowDropZones] = useState(false);
-  const dropZoneTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    return () => {
-      if (dropZoneTimeoutRef.current) {
-        clearTimeout(dropZoneTimeoutRef.current);
-      }
-    };
-  }, []);
+  const moveLeadToDatabase = async (leadId: string, newStageId: string) => {
+    try {
+      const { error } = await supabase
+        .from("leads")
+        .update({ kanban_stage_id: newStageId })
+        .eq("id", leadId);
 
-  const onDragStart = () => {
-    setIsDragging(true);
-    if (!isWonLostView) {
-      // Show drop zones after a short delay to reduce interface flickering
-      dropZoneTimeoutRef.current = setTimeout(() => {
-        setShowDropZones(true);
-      }, 250);
+      if (error) throw error;
+      console.log(`Lead ${leadId} movido para estágio ${newStageId}`);
+    } catch (error) {
+      console.error("Erro ao mover lead no banco:", error);
+      toast.error("Erro ao salvar mudança de etapa");
+      throw error;
     }
   };
 
-  const onDragEnd = (result: DropResult) => {
-    setIsDragging(false);
+  const onDragStart = () => {
+    setShowDropZones(true);
+  };
+
+  const onDragEnd = async (result: DropResult) => {
     setShowDropZones(false);
-    
-    if (dropZoneTimeoutRef.current) {
-      clearTimeout(dropZoneTimeoutRef.current);
-      dropZoneTimeoutRef.current = null;
-    }
-    
+
     const { destination, source, draggableId } = result;
 
-    // If dropped outside a droppable area
     if (!destination) return;
 
-    // Special handling for drop zones
-    if (destination.droppableId === 'drop-zone-won' || destination.droppableId === 'drop-zone-lost') {
-      // Find the lead that was dragged
-      const sourceColumn = columns.find(col => col.id === source.droppableId);
-      if (!sourceColumn) return;
-      
-      const draggedLead = sourceColumn.leads[source.index];
-      if (!draggedLead) return;
-      
-      const status = destination.droppableId === 'drop-zone-won' ? 'won' : 'lost';
-      if (onMoveToWonLost) {
-        onMoveToWonLost(draggedLead, status);
-      }
-      return;
-    }
-
-    // If dropped in the same position
+    // Se for na mesma coluna e mesma posição, não fazer nada
     if (
       destination.droppableId === source.droppableId &&
       destination.index === source.index
@@ -76,76 +55,71 @@ export const useDragAndDrop = ({
       return;
     }
 
-    // Find the source and destination columns
-    const sourceColumnId = source.droppableId;
-    const destColumnId = destination.droppableId;
-    
-    const sourceColumn = columns.find(col => col.id === sourceColumnId);
-    const destColumn = columns.find(col => col.id === destColumnId);
+    const sourceColumn = columns.find(col => col.id === source.droppableId);
+    const destColumn = columns.find(col => col.id === destination.droppableId);
 
-    // Safety check to prevent errors
-    if (!sourceColumn || !destColumn) {
-      console.error(`Column not found: source=${sourceColumnId}, dest=${destColumnId}`);
-      return;
+    if (!sourceColumn || !destColumn) return;
+
+    const lead = sourceColumn.leads.find(lead => lead.id === draggableId);
+    if (!lead) return;
+
+    // Verificar se é movimento para Won/Lost
+    if (onMoveToWonLost && !isWonLostView) {
+      const destStage = destColumn.title.toUpperCase();
+      if (destStage === "GANHO") {
+        try {
+          await moveLeadToDatabase(lead.id, destination.droppableId);
+          onMoveToWonLost(lead, "won");
+          toast.success("Lead marcado como ganho!");
+          return;
+        } catch (error) {
+          return; // Erro já tratado na função moveLeadToDatabase
+        }
+      } else if (destStage === "PERDIDO") {
+        try {
+          await moveLeadToDatabase(lead.id, destination.droppableId);
+          onMoveToWonLost(lead, "lost");
+          toast.success("Lead marcado como perdido!");
+          return;
+        } catch (error) {
+          return; // Erro já tratado na função moveLeadToDatabase
+        }
+      }
     }
 
-    try {
-      // If moving within the same column
-      if (source.droppableId === destination.droppableId) {
-        const newLeads = Array.from(sourceColumn.leads);
-        const [removed] = newLeads.splice(source.index, 1);
-        newLeads.splice(destination.index, 0, removed);
-
-        const newColumns = columns.map(col => {
-          if (col.id === source.droppableId) {
-            return {
-              ...col,
-              leads: newLeads,
-            };
-          }
-          return col;
-        });
-
-        onColumnsChange(newColumns);
-      } else {
-        // Moving from one column to another
-        const sourceLeads = Array.from(sourceColumn.leads);
-        const [removed] = sourceLeads.splice(source.index, 1);
-        
-        // Update the lead with its new column ID
-        const movedLead = {
-          ...removed,
-          columnId: destColumn.id
+    // Atualizar estado local primeiro (otimistic update)
+    const newColumns = columns.map(column => {
+      if (column.id === source.droppableId) {
+        return {
+          ...column,
+          leads: column.leads.filter(lead => lead.id !== draggableId)
         };
-        
-        const destLeads = Array.from(destColumn.leads);
-        destLeads.splice(destination.index, 0, movedLead);
-
-        const newColumns = columns.map(col => {
-          if (col.id === source.droppableId) {
-            return {
-              ...col,
-              leads: sourceLeads,
-            };
-          }
-          if (col.id === destination.droppableId) {
-            return {
-              ...col,
-              leads: destLeads,
-            };
-          }
-          return col;
-        });
-
-        onColumnsChange(newColumns);
       }
+      if (column.id === destination.droppableId) {
+        const newLeads = [...column.leads];
+        const updatedLead = { ...lead, columnId: destination.droppableId };
+        newLeads.splice(destination.index, 0, updatedLead);
+        return {
+          ...column,
+          leads: newLeads
+        };
+      }
+      return column;
+    });
+
+    onColumnsChange(newColumns);
+
+    // Salvar no banco de dados
+    try {
+      await moveLeadToDatabase(lead.id, destination.droppableId);
+      toast.success("Etapa alterada com sucesso!");
     } catch (error) {
-      console.error("Error during drag and drop operation:", error);
+      // Reverter mudança local se falhou no banco
+      onColumnsChange(columns);
     }
   };
 
   return {
-    isDragging,
     showDropZones,
     onDragStart,
     onDragEnd

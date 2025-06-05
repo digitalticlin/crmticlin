@@ -36,6 +36,10 @@ export const useRealSalesFunnel = (funnelId?: string) => {
     deleteColumn
   } = useStageManagement(funnelId, stages, setColumns, refetchStages, refetchLeads);
 
+  // Encontrar IDs dos estágios de ganho e perdido
+  const wonStageId = stages.find(s => s.is_won)?.id;
+  const lostStageId = stages.find(s => s.is_lost)?.id;
+
   // Função para receber novo lead (usado quando vem do chat)
   const receiveNewLead = async (leadData: any) => {
     if (!funnelId) return;
@@ -73,6 +77,8 @@ export const useRealSalesFunnel = (funnelId?: string) => {
     stages,
     leads,
     availableTags: tags,
+    wonStageId,
+    lostStageId,
     
     // Ações do funil
     addColumn,

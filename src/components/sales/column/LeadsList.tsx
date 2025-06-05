@@ -14,9 +14,10 @@ interface LeadsListProps {
   onReturnToFunnel?: (lead: KanbanLead) => void;
   isWonLostView?: boolean;
   renderClone?: any;
-  // ADD handlers para hover global do card
   onAnyCardMouseEnter?: () => void;
   onAnyCardMouseLeave?: () => void;
+  wonStageId?: string;
+  lostStageId?: string;
 }
 
 export const LeadsList = ({
@@ -29,7 +30,9 @@ export const LeadsList = ({
   isWonLostView = false,
   renderClone,
   onAnyCardMouseEnter,
-  onAnyCardMouseLeave
+  onAnyCardMouseLeave,
+  wonStageId,
+  lostStageId
 }: LeadsListProps) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const droppableId = columnId;
@@ -79,6 +82,8 @@ export const LeadsList = ({
                     setHoveredIndex(null);
                     onAnyCardMouseLeave && onAnyCardMouseLeave();
                   }}
+                  wonStageId={wonStageId}
+                  lostStageId={lostStageId}
                 />
               )}
             </Draggable>

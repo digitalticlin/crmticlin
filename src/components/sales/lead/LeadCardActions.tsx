@@ -1,13 +1,58 @@
 
 import { CheckCircle, XCircle, ArrowLeft } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface LeadCardActionsProps {
+  leadId?: string;
   onMoveToWon?: () => void;
   onMoveToLost?: () => void;
   onReturnToFunnel?: () => void;
+  wonStageId?: string;
+  lostStageId?: string;
 }
 
-export const LeadCardActions = ({ onMoveToWon, onMoveToLost, onReturnToFunnel }: LeadCardActionsProps) => {
+export const LeadCardActions = ({ 
+  leadId,
+  onMoveToWon, 
+  onMoveToLost, 
+  onReturnToFunnel,
+  wonStageId,
+  lostStageId
+}: LeadCardActionsProps) => {
+  const moveLeadToStage = async (stageId: string, statusText: string) => {
+    if (!leadId || !stageId) return;
+
+    try {
+      const { error } = await supabase
+        .from("leads")
+        .update({ kanban_stage_id: stageId })
+        .eq("id", leadId);
+
+      if (error) throw error;
+      
+      toast.success(`Lead marcado como ${statusText}!`);
+      console.log(`Lead ${leadId} movido para estágio ${stageId}`);
+    } catch (error) {
+      console.error(`Erro ao mover lead para ${statusText}:`, error);
+      toast.error(`Erro ao marcar como ${statusText}`);
+    }
+  };
+
+  const handleMoveToWon = async () => {
+    if (wonStageId) {
+      await moveLeadToStage(wonStageId, "ganho");
+    }
+    onMoveToWon?.();
+  };
+
+  const handleMoveToLost = async () => {
+    if (lostStageId) {
+      await moveLeadToStage(lostStageId, "perdido");
+    }
+    onMoveToLost?.();
+  };
+
   if (!onMoveToWon && !onMoveToLost && !onReturnToFunnel) {
     return null;
   }
@@ -30,7 +75,7 @@ export const LeadCardActions = ({ onMoveToWon, onMoveToLost, onReturnToFunnel }:
         <button 
           onClick={(e) => {
             e.stopPropagation();
-            onMoveToWon();
+            handleMoveToWon();
           }}
           title="Marcar como ganho"
           className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -42,7 +87,7 @@ export const LeadCardActions = ({ onMoveToWon, onMoveToLost, onReturnToFunnel }:
         <button 
           onClick={(e) => {
             e.stopPropagation();
-            onMoveToLost();
+            handleMoveToLost();
           }}
           title="Marcar como perdido"
           className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"

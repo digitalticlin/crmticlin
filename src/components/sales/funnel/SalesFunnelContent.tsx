@@ -36,7 +36,9 @@ export const SalesFunnelContent = () => {
     updateLeadAssignedUser,
     updateLeadName,
     moveLeadToStage,
-    isAdmin
+    isAdmin,
+    wonStageId,
+    lostStageId
   } = useSalesFunnelContext();
 
   // Obter leads das colunas Ganho e Perdido para os filtros
@@ -70,7 +72,7 @@ export const SalesFunnelContent = () => {
 
   const handleMoveToWonLost = async (lead: KanbanLead, status: "won" | "lost") => {
     const targetStage = stages?.find(stage => 
-      status === "won" ? stage.title === "GANHO" : stage.title === "PERDIDO"
+      status === "won" ? stage.is_won : stage.is_lost
     );
     
     if (targetStage) {
@@ -140,6 +142,8 @@ export const SalesFunnelContent = () => {
         onMoveToWonLost={handleMoveToWonLost}
         onReturnToFunnel={returnLeadToFunnel}
         isWonLostView={activeTab === "won-lost"}
+        wonStageId={wonStageId}
+        lostStageId={lostStageId}
       />
 
       {/* Sidebar de Detalhes */}

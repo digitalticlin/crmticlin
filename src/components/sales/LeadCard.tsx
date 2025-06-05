@@ -20,6 +20,8 @@ interface LeadCardProps {
   isClone?: boolean;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
+  wonStageId?: string;
+  lostStageId?: string;
 }
 
 export const LeadCard = ({
@@ -34,7 +36,9 @@ export const LeadCard = ({
   isDragging = false,
   isClone = false,
   onMouseEnter,
-  onMouseLeave
+  onMouseLeave,
+  wonStageId,
+  lostStageId
 }: LeadCardProps) => {
   const isWon = isWonLostView && lead.columnId === FIXED_COLUMN_IDS.WON;
   const isLost = isWonLostView && lead.columnId === FIXED_COLUMN_IDS.LOST;
@@ -82,9 +86,12 @@ export const LeadCard = ({
           <LeadCardTags tags={lead.tags} />
         </div>
         <LeadCardActions
+          leadId={lead.id}
           onMoveToWon={onMoveToWon}
           onMoveToLost={onMoveToLost}
           onReturnToFunnel={onReturnToFunnel}
+          wonStageId={wonStageId}
+          lostStageId={lostStageId}
         />
       </div>
     </div>
