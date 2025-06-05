@@ -3,66 +3,87 @@ import { useState } from "react";
 import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
 import { ColumnHeader } from "./column/ColumnHeader";
 import { ColumnContent } from "./column/ColumnContent";
+import { ColumnColorBar } from "./column/ColumnColorBar";
 
 interface KanbanColumnProps {
   column: IKanbanColumn;
   onOpenLeadDetail: (lead: KanbanLead) => void;
-  onColumnUpdate: (updatedColumn: IKanbanColumn) => void;
-  onColumnDelete: (columnId: string) => void;
+  onUpdate?: (updatedColumn: IKanbanColumn) => void;
+  onDelete?: (columnId: string) => void;
   onOpenChat?: (lead: KanbanLead) => void;
   onMoveToWonLost?: (lead: KanbanLead, status: "won" | "lost") => void;
-  isWonLostView?: boolean;
   onReturnToFunnel?: (lead: KanbanLead) => void;
+  isWonLostView?: boolean;
   renderClone?: any;
+  onAnyCardMouseEnter?: () => void;
+  onAnyCardMouseLeave?: () => void;
+  wonStageId?: string;
+  lostStageId?: string;
 }
 
 export const KanbanColumn = ({
   column,
   onOpenLeadDetail,
-  onColumnUpdate,
-  onColumnDelete,
+  onUpdate,
+  onDelete,
   onOpenChat,
   onMoveToWonLost,
-  isWonLostView = false,
   onReturnToFunnel,
-  renderClone
+  isWonLostView = false,
+  renderClone,
+  onAnyCardMouseEnter,
+  onAnyCardMouseLeave,
+  wonStageId,
+  lostStageId
 }: KanbanColumnProps) => {
-  const columnColor = column.color || "#e0e0e0";
-  const [isAnyCardHovered, setIsAnyCardHovered] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleUpdate = (field: keyof IKanbanColumn, value: any) => {
+    if (onUpdate) {
+      onUpdate({ ...column, [field]: value });
+    }
+  };
+
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(column.id);
+    }
+  };
+
+  if (column.isHidden) {
+    return null;
+  }
 
   return (
     <div
-      className="relative bg-white/15 backdrop-blur-xl border border-white/25 rounded-3xl flex flex-col min-w-[320px] max-w-[350px] w-full h-[75vh] transition-all duration-300 hover:shadow-2xl hover:bg-white/20 group"
-      style={{
-        overflow: isAnyCardHovered ? "visible" : "hidden"
-      }}
+      className="flex flex-col min-h-full w-80 bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-lg border border-white/30 rounded-2xl shadow-lg"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Barra de Cor no Topo */}
-      <div 
-        className="h-1.5 rounded-t-3xl"
-        style={{ backgroundColor: columnColor }}
-      />
+      <ColumnColorBar color={column.color} />
       
       <ColumnHeader
         column={column}
-        onColumnUpdate={onColumnUpdate}
-        onColumnDelete={onColumnDelete}
+        isHovered={isHovered}
+        canEdit={!column.isFixed && !isWonLostView}
+        onUpdate={handleUpdate}
+        onDelete={handleDelete}
       />
-      
-      <div className="flex-1 overflow-y-auto px-4 pb-4 pt-2 kanban-column-scrollbar">
-        <ColumnContent
-          columnId={column.id}
-          leads={column.leads}
-          onOpenLeadDetail={onOpenLeadDetail}
-          onOpenChat={onOpenChat}
-          onMoveToWonLost={!isWonLostView ? onMoveToWonLost : undefined}
-          onReturnToFunnel={isWonLostView ? onReturnToFunnel : undefined}
-          isWonLostView={isWonLostView}
-          renderClone={renderClone}
-          onAnyCardMouseEnter={() => setIsAnyCardHovered(true)}
-          onAnyCardMouseLeave={() => setIsAnyCardHovered(false)}
-        />
-      </div>
+
+      <ColumnContent
+        columnId={column.id}
+        leads={column.leads}
+        onOpenLeadDetail={onOpenLeadDetail}
+        onOpenChat={onOpenChat}
+        onMoveToWonLost={onMoveToWonLost}
+        onReturnToFunnel={onReturnToFunnel}
+        isWonLostView={isWonLostView}
+        renderClone={renderClone}
+        onAnyCardMouseEnter={onAnyCardMouseEnter}
+        onAnyCardMouseLeave={onAnyCardMouseLeave}
+        wonStageId={wonStageId}
+        lostStageId={lostStageId}
+      />
     </div>
   );
 };

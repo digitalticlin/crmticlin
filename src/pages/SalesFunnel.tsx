@@ -39,7 +39,9 @@ export default function SalesFunnel() {
     updateLeadPurchaseValue,
     updateLeadAssignedUser,
     updateLeadName,
-    moveLeadToStage
+    moveLeadToStage,
+    wonStageId,
+    lostStageId
   } = useRealSalesFunnel(selectedFunnel?.id);
 
   useNewLeadIntegration(selectedFunnel?.id);
@@ -85,7 +87,9 @@ export default function SalesFunnel() {
     updateLeadAssignedUser,
     updateLeadName,
     moveLeadToStage,
-    isAdmin
+    isAdmin,
+    wonStageId,
+    lostStageId
   };
 
   return (

@@ -19,6 +19,8 @@ interface SalesFunnelContextValue {
   setIsLeadDetailOpen: (open: boolean) => void;
   availableTags: KanbanTag[];
   stages: KanbanStage[];
+  wonStageId?: string;
+  lostStageId?: string;
 
   // Actions
   addColumn: (title: string) => void;

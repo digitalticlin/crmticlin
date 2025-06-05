@@ -1,17 +1,19 @@
 
-import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
-import { KanbanColumn } from "../KanbanColumn";
+import { KanbanColumn, KanbanLead } from "@/types/kanban";
+import { KanbanColumn as KanbanColumnComponent } from "@/components/sales/KanbanColumn";
 
 interface BoardContentProps {
-  columns: IKanbanColumn[];
+  columns: KanbanColumn[];
   onOpenLeadDetail: (lead: KanbanLead) => void;
-  onColumnUpdate: (updatedColumn: IKanbanColumn) => void;
-  onColumnDelete: (columnId: string) => void;
+  onColumnUpdate?: (updatedColumn: KanbanColumn) => void;
+  onColumnDelete?: (columnId: string) => void;
   onOpenChat?: (lead: KanbanLead) => void;
   onMoveToWonLost?: (lead: KanbanLead, status: "won" | "lost") => void;
-  isWonLostView?: boolean;
   onReturnToFunnel?: (lead: KanbanLead) => void;
+  isWonLostView?: boolean;
   renderClone?: any;
+  wonStageId?: string;
+  lostStageId?: string;
 }
 
 export const BoardContent = ({
@@ -21,61 +23,29 @@ export const BoardContent = ({
   onColumnDelete,
   onOpenChat,
   onMoveToWonLost,
-  isWonLostView = false,
   onReturnToFunnel,
-  renderClone
+  isWonLostView = false,
+  renderClone,
+  wonStageId,
+  lostStageId
 }: BoardContentProps) => {
-  const visibleColumns = columns.filter(column => !column.isHidden);
-
-  // Adiciona drag-to-scroll horizontal com scrollbar customizada
-  let isDragging = false;
-  let startX = 0;
-  let scrollLeft = 0;
-
-  const mouseDown = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
-    isDragging = true;
-    startX = e.pageX - (e.currentTarget.scrollLeft ?? 0);
-    scrollLeft = e.currentTarget.scrollLeft;
-    e.currentTarget.classList.add("cursor-grabbing");
-    window.addEventListener("mousemove", mouseMove);
-    window.addEventListener("mouseup", mouseUp);
-  };
-  
-  const mouseMove = (e: MouseEvent) => {
-    if (!isDragging) return;
-    const board = document.getElementById("kanban-board-scroll");
-    if (!board) return;
-    board.scrollLeft = scrollLeft - (startX - e.pageX);
-  };
-  
-  const mouseUp = (e: MouseEvent) => {
-    isDragging = false;
-    const board = document.getElementById("kanban-board-scroll");
-    if (board) board.classList.remove("cursor-grabbing");
-    window.removeEventListener("mousemove", mouseMove);
-    window.removeEventListener("mouseup", mouseUp);
-  };
-
   return (
-    <div
-      id="kanban-board-scroll"
-      className="w-full h-full overflow-x-auto flex kanban-scrollbar"
-      style={{ WebkitOverflowScrolling: "touch", cursor: "grab" }}
-      onMouseDown={mouseDown}
-    >
-      <div className="flex gap-6 px-2 pb-8 min-w-max justify-center w-full">
-        {visibleColumns.map((column) => (
-          <KanbanColumn
+    <div className="flex-1 overflow-x-auto overflow-y-hidden">
+      <div className="flex h-full min-w-max gap-6 p-6">
+        {columns.map((column) => (
+          <KanbanColumnComponent
             key={column.id}
             column={column}
             onOpenLeadDetail={onOpenLeadDetail}
-            onColumnUpdate={onColumnUpdate}
-            onColumnDelete={onColumnDelete}
+            onUpdate={onColumnUpdate}
+            onDelete={onColumnDelete}
             onOpenChat={onOpenChat}
             onMoveToWonLost={onMoveToWonLost}
-            isWonLostView={isWonLostView}
             onReturnToFunnel={onReturnToFunnel}
+            isWonLostView={isWonLostView}
             renderClone={renderClone}
+            wonStageId={wonStageId}
+            lostStageId={lostStageId}
           />
         ))}
       </div>

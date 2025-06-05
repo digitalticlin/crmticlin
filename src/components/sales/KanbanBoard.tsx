@@ -9,12 +9,14 @@ interface KanbanBoardProps {
   columns: IKanbanColumn[];
   onColumnsChange: (newColumns: IKanbanColumn[]) => void;
   onOpenLeadDetail: (lead: KanbanLead) => void;
-  onColumnUpdate: (updatedColumn: IKanbanColumn) => void;
-  onColumnDelete: (columnId: string) => void;
+  onColumnUpdate?: (updatedColumn: IKanbanColumn) => void;
+  onColumnDelete?: (columnId: string) => void;
   onOpenChat?: (lead: KanbanLead) => void;
   onMoveToWonLost?: (lead: KanbanLead, status: "won" | "lost") => void;
   onReturnToFunnel?: (lead: KanbanLead) => void;
   isWonLostView?: boolean;
+  wonStageId?: string;
+  lostStageId?: string;
 }
 
 export const KanbanBoard = ({
@@ -26,7 +28,9 @@ export const KanbanBoard = ({
   onOpenChat,
   onMoveToWonLost,
   onReturnToFunnel,
-  isWonLostView = false
+  isWonLostView = false,
+  wonStageId,
+  lostStageId
 }: KanbanBoardProps) => {
   const { 
     showDropZones, 
@@ -85,6 +89,8 @@ export const KanbanBoard = ({
           onReturnToFunnel={isWonLostView ? onReturnToFunnel : undefined}
           isWonLostView={isWonLostView}
           renderClone={renderClone}
+          wonStageId={wonStageId}
+          lostStageId={lostStageId}
         />
       </div>
     </DragDropContext>
