@@ -50,7 +50,7 @@ export const LeadCard = ({
       {...provided.draggableProps}
       {...provided.dragHandleProps}
       className={cn(
-        "bg-white/25 backdrop-blur-lg border border-white/30 mb-4 rounded-2xl transition-all duration-300 p-5 cursor-pointer group relative",
+        "bg-white/25 backdrop-blur-lg border border-white/30 mb-4 rounded-2xl transition-all duration-300 p-4 cursor-pointer group relative",
         "w-[96%] max-w-[380px] mx-auto hover:shadow-xl",
         isDragging || isClone
           ? "scale-105 z-[99999] opacity-90 shadow-2xl border-ticlin/50 border-2 pointer-events-none bg-white/40"
@@ -75,8 +75,12 @@ export const LeadCard = ({
       onMouseLeave={onMouseLeave}
     >
       <LeadCardContent lead={lead} isWonLostView={isWonLostView} />
-      <div className="flex justify-between items-center mt-4">
-        <LeadCardTags tags={lead.tags} />
+      
+      {/* Tags and Actions Footer */}
+      <div className="flex justify-between items-center mt-3 pt-2 border-t border-white/20">
+        <div className="flex-1 min-w-0 mr-2">
+          <LeadCardTags tags={lead.tags} />
+        </div>
         <LeadCardActions
           onMoveToWon={onMoveToWon}
           onMoveToLost={onMoveToLost}

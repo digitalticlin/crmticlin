@@ -1,0 +1,63 @@
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { KanbanLead, FIXED_COLUMN_IDS } from "@/types/kanban";
+import { cn } from "@/lib/utils";
+import { MessageCircle, User } from "lucide-react";
+
+interface LeadCardHeaderProps {
+  lead: KanbanLead;
+  isWonLostView?: boolean;
+}
+
+export const LeadCardHeader = ({ lead, isWonLostView = false }: LeadCardHeaderProps) => {
+  const isNewLead = lead.columnId === FIXED_COLUMN_IDS.NEW_LEAD;
+  const nameIsId = isNewLead && lead.name.startsWith("ID:");
+  const displayName = lead.name || lead.phone;
+  const hasUnreadMessages = lead.unreadCount && lead.unreadCount > 0;
+
+  // Truncate name if too long (limit to about half the card width)
+  const truncatedName = displayName.length > 15 
+    ? `${displayName.substring(0, 15)}...` 
+    : displayName;
+
+  return (
+    <div className="flex items-center gap-3 mb-3">
+      {/* Avatar */}
+      <Avatar className="h-8 w-8 flex-shrink-0">
+        <AvatarImage src={lead.avatar} alt={displayName} />
+        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xs">
+          <User className="h-4 w-4" />
+        </AvatarFallback>
+      </Avatar>
+
+      {/* Name/Phone and Unread Indicator */}
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <h4 className={cn(
+          "font-inter font-bold text-sm leading-tight truncate",
+          nameIsId && "text-amber-600 dark:text-amber-500"
+        )}>
+          {truncatedName}
+        </h4>
+        
+        {nameIsId && (
+          <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-300 text-xs px-1 py-0">
+            Editar
+          </Badge>
+        )}
+        
+        {hasUnreadMessages && (
+          <div className="flex items-center gap-1 bg-red-500 text-white rounded-full px-2 py-1 text-xs flex-shrink-0">
+            <MessageCircle className="h-3 w-3" />
+            <span>{lead.unreadCount}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Last Message Time */}
+      <span className="text-xs text-neutral-400 dark:text-neutral-300 flex-shrink-0">
+        {lead.lastMessageTime}
+      </span>
+    </div>
+  );
+};

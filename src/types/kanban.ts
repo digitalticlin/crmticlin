@@ -18,6 +18,8 @@ export interface KanbanLead {
   columnId?: string; // Add columnId to track which column a lead belongs to
   purchaseValue?: number; // Add purchaseValue to track the lead's purchase amount
   assignedUser?: string; // Add assignedUser to track who is responsible for the lead
+  avatar?: string; // Add avatar for WhatsApp profile picture
+  unreadCount?: number; // Add unreadCount for unread messages indicator
 }
 
 export interface KanbanColumn {
