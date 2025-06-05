@@ -28,18 +28,20 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
     const vpsInstanceId = `whatsapp_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
     console.log(`[Instance Creation] 📱 VPS Instance ID gerado: ${vpsInstanceId}`);
 
-    // 3. Criar instância na VPS
+    // 3. Criar instância na VPS com WEBHOOK CORRETO
+    const webhookUrl = 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web';
     const vpsPayload = {
       instanceId: vpsInstanceId,
-      instanceName: instanceName,
-      token: VPS_CONFIG.apiToken,
-      qrcode: true,
+      sessionName: instanceName,
+      webhookUrl: webhookUrl,
+      companyId: null,
+      // CORREÇÃO: Configurar webhook corretamente na criação
       webhook: true,
-      webhook_by_events: false,
-      webhookEvents: ["MESSAGES_UPSERT", "MESSAGES_UPDATE", "CONNECTION_UPDATE"]
+      webhook_by_events: true,
+      webhookEvents: ['messages.upsert', 'qr.update', 'connection.update']
     };
 
-    console.log('[Instance Creation] 🌐 Enviando para VPS:', vpsPayload);
+    console.log('[Instance Creation] 🌐 Enviando para VPS com webhook correto:', vpsPayload);
     const vpsResult = await createVPSInstance(vpsPayload);
     
     if (!vpsResult.success) {
@@ -84,6 +86,30 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
     }
 
     console.log(`[Instance Creation] ✅ Instância salva no Supabase [${creationId}]:`, savedInstance.id);
+
+    // 6. CORREÇÃO: Configurar webhook imediatamente após criação
+    try {
+      console.log('[Instance Creation] 🔗 Configurando webhook...');
+      const webhookResponse = await fetch(`${VPS_CONFIG.baseUrl}/instance/${vpsInstanceId}/webhook`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${VPS_CONFIG.authToken}`
+        },
+        body: JSON.stringify({
+          webhookUrl: webhookUrl,
+          events: ['messages.upsert', 'qr.update', 'connection.update']
+        })
+      });
+
+      if (webhookResponse.ok) {
+        console.log('[Instance Creation] ✅ Webhook configurado com sucesso');
+      } else {
+        console.error('[Instance Creation] ⚠️ Webhook não configurado, mas instância criada');
+      }
+    } catch (webhookError) {
+      console.error('[Instance Creation] ⚠️ Erro ao configurar webhook:', webhookError);
+    }
 
     return new Response(
       JSON.stringify({

@@ -98,6 +98,39 @@ Deno.serve(async (req) => {
         console.log('[WhatsApp Server] 🔄 MASS RECONNECT INSTANCES');
         return await massReconnectInstances(supabase);
 
+      // CORREÇÃO CRÍTICA: Adicionar configuração de webhook
+      case 'configure_webhook':
+        console.log('[WhatsApp Server] 🔗 CONFIGURE WEBHOOK');
+        const { instanceId, webhookUrl } = body.instanceData;
+        
+        // Fazer requisição para VPS configurar webhook
+        const vpsResponse = await fetch(`http://31.97.24.222:3001/instance/${instanceId}/webhook`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer default-token'
+          },
+          body: JSON.stringify({
+            webhookUrl: webhookUrl,
+            events: ['messages.upsert', 'qr.update', 'connection.update']
+          })
+        });
+
+        if (vpsResponse.ok) {
+          console.log('[WhatsApp Server] ✅ Webhook configurado com sucesso');
+          return new Response(
+            JSON.stringify({ success: true, message: 'Webhook configurado' }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } else {
+          const errorText = await vpsResponse.text();
+          console.error('[WhatsApp Server] ❌ Erro ao configurar webhook:', errorText);
+          return new Response(
+            JSON.stringify({ success: false, error: errorText }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
       case 'bind_instance_to_user':
         console.log('[WhatsApp Server] 🔗 BIND INSTANCE TO USER');
         

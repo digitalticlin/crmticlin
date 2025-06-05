@@ -1,4 +1,3 @@
-
 // Servidor WhatsApp Web.js com PERSISTÊNCIA implementada
 // Este arquivo deve substituir o whatsapp-server.js na VPS
 // Comando de instalação: node vps-server-persistent.js
@@ -141,32 +140,45 @@ async function initializeWhatsAppClient(instance) {
       console.log(`📱 QR Code gerado para: ${instance.instanceId}`);
       instance.qrCode = qr;
       instance.status = 'qr_ready';
-      saveInstancesState(); // Salvar estado atualizado
+      saveInstancesState();
+      
+      // CORREÇÃO: Enviar QR Code via webhook também
+      if (instance.webhookUrl) {
+        sendWebhook(instance.webhookUrl, {
+          event: 'qr.update',
+          instanceName: instance.sessionName,
+          data: { qrCode: qr },
+          timestamp: new Date().toISOString(),
+          server_url: `http://localhost:${PORT}`
+        }).catch(error => {
+          console.error(`❌ Erro ao enviar QR via webhook:`, error.message);
+        });
+      }
     });
 
     client.on('ready', () => {
       console.log(`✅ Cliente pronto para: ${instance.instanceId}`);
       instance.status = 'ready';
       instance.qrCode = null;
-      saveInstancesState(); // Salvar estado atualizado
+      saveInstancesState();
     });
 
     client.on('authenticated', () => {
       console.log(`🔐 Cliente autenticado para: ${instance.instanceId}`);
       instance.status = 'authenticated';
-      saveInstancesState(); // Salvar estado atualizado
+      saveInstancesState();
     });
 
     client.on('auth_failure', (msg) => {
       console.error(`❌ Falha na autenticação para: ${instance.instanceId}`, msg);
       instance.status = 'auth_failed';
-      saveInstancesState(); // Salvar estado atualizado
+      saveInstancesState();
     });
 
     client.on('disconnected', (reason) => {
       console.log(`🔌 Cliente desconectado: ${instance.instanceId} - ${reason}`);
       instance.status = 'disconnected';
-      saveInstancesState(); // Salvar estado atualizado
+      saveInstancesState();
     });
 
     // CORREÇÃO CRÍTICA: Capturar TODAS as mensagens (enviadas e recebidas)
@@ -257,7 +269,7 @@ async function initializeWhatsAppClient(instance) {
     console.error(`❌ Erro ao inicializar cliente: ${instance.instanceId}`, error);
     instance.status = 'error';
     instance.error = error.message;
-    saveInstancesState(); // Salvar estado atualizado
+    saveInstancesState();
   }
 }
 
@@ -356,11 +368,14 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
       });
     }
     
+    // CORREÇÃO: Definir webhook URL padrão se não fornecido
+    const finalWebhookUrl = webhookUrl || 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web';
+    
     const instance = {
       instanceId,
       sessionName,
       companyId,
-      webhookUrl,
+      webhookUrl: finalWebhookUrl,
       client: null,
       qrCode: null,
       status: 'creating',
@@ -383,6 +398,91 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
     
   } catch (error) {
     console.error('❌ Erro ao criar instância:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// CORREÇÃO: Adicionar endpoint para configurar webhook
+app.post('/instance/:instanceId/webhook', authenticateToken, async (req, res) => {
+  try {
+    const { instanceId } = req.params;
+    const { webhookUrl, events } = req.body;
+    
+    const instance = activeInstances.get(instanceId);
+    if (!instance) {
+      return res.status(404).json({
+        success: false,
+        error: 'Instância não encontrada'
+      });
+    }
+    
+    // Atualizar webhook URL da instância
+    instance.webhookUrl = webhookUrl;
+    
+    await saveInstancesState();
+    
+    console.log(`🔗 Webhook configurado para ${instanceId}: ${webhookUrl}`);
+    
+    res.json({
+      success: true,
+      message: 'Webhook configurado com sucesso',
+      webhookUrl: webhookUrl,
+      events: events || ['messages.upsert', 'qr.update', 'connection.update']
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro ao configurar webhook:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// CORREÇÃO: Adicionar endpoint para enviar mensagens
+app.post('/send', authenticateToken, async (req, res) => {
+  try {
+    const { instanceId, phone, message } = req.body;
+    
+    if (!instanceId || !phone || !message) {
+      return res.status(400).json({
+        success: false,
+        error: 'instanceId, phone e message são obrigatórios'
+      });
+    }
+    
+    const instance = activeInstances.get(instanceId);
+    if (!instance || !instance.client) {
+      return res.status(404).json({
+        success: false,
+        error: 'Instância não encontrada ou não conectada'
+      });
+    }
+    
+    if (instance.status !== 'ready') {
+      return res.status(400).json({
+        success: false,
+        error: `Instância não está pronta. Status: ${instance.status}`
+      });
+    }
+    
+    const formattedPhone = phone.includes('@') ? phone : `${phone}@s.whatsapp.net`;
+    
+    const sentMessage = await instance.client.sendMessage(formattedPhone, message);
+    
+    console.log(`📤 Mensagem enviada de ${instanceId} para ${phone}: ${message.substring(0, 50)}...`);
+    
+    res.json({
+      success: true,
+      messageId: sentMessage.id._serialized || sentMessage.id,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro ao enviar mensagem:', error);
     res.status(500).json({
       success: false,
       error: error.message

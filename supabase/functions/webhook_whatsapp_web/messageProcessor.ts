@@ -1,5 +1,4 @@
 
-
 import { WhatsAppInstance, MessageData } from './types.ts';
 
 export async function processIncomingMessage(supabase: any, instance: WhatsAppInstance, messageData: MessageData) {
@@ -183,4 +182,3 @@ export async function processIncomingMessage(supabase: any, instance: WhatsAppIn
     throw error;
   }
 }
-
