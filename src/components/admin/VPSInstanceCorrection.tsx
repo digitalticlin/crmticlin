@@ -15,7 +15,7 @@ export const VPSInstanceCorrection = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  // Função para vincular instância órfã específica
+  // Função para vincular instância órfã específica - CORRIGIDA
   const correctOrphanInstance = async () => {
     if (!instanceId.trim() || !userEmail.trim()) {
       toast.error('Preencha o ID da instância e o email do usuário');
@@ -26,11 +26,14 @@ export const VPSInstanceCorrection = () => {
     try {
       console.log('[Instance Correction] 🔧 Vinculando instância órfã:', { instanceId, userEmail });
 
+      // CORREÇÃO: Usar a ação correta que existe na edge function
       const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
         body: {
-          action: 'bind_orphan_instance',
-          instanceId: instanceId.trim(),
-          userEmail: userEmail.trim()
+          action: 'bind_instance_to_user',
+          instanceData: {
+            instanceId: instanceId.trim(),
+            userEmail: userEmail.trim()
+          }
         }
       });
 
