@@ -1,19 +1,16 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { handleQREvent, handleAuthenticatedEvent, handleReadyEvent } from './connectionHandlers.ts';
-import { handleInstanceCreatedEvent, handleInstanceDestroyedEvent, handleDisconnectedEvent, handleAuthFailureEvent } from './eventHandlers.ts';
+import { serve } from 'https://deno.land/std@0.177.1/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-serve(async (req) => {
-  console.log('[Webhook FASE 1] 🌐 WEBHOOK GLOBAL RECEBIDO - CORREÇÃO CRÍTICA ATIVA');
-  console.log('[Webhook FASE 1] Method:', req.method);
-  console.log('[Webhook FASE 1] Headers:', Object.fromEntries(req.headers.entries()));
-
+Deno.serve(async (req) => {
+  console.log('[Webhook WhatsApp Web] 📨 WEBHOOK RECEBIDO');
+  
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -24,116 +21,99 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Parse webhook payload
     const webhookData = await req.json();
-    console.log('[Webhook FASE 1] 📋 Payload recebido:', JSON.stringify(webhookData, null, 2));
+    console.log('[Webhook WhatsApp Web] Dados recebidos:', JSON.stringify(webhookData, null, 2));
 
-    // Extrair dados da mensagem
-    const { 
-      instanceName,
-      data: messageData,
-      event,
-      server_url 
-    } = webhookData;
-
+    const { instanceName, data: messageData, event } = webhookData;
+    
     if (!instanceName) {
-      console.log('[Webhook FASE 1] ⚠️ instanceName não fornecido');
-      return new Response('instanceName é obrigatório', { status: 400 });
-    }
-
-    console.log('[Webhook FASE 1] 🏢 Processando para instância:', instanceName);
-    console.log('[Webhook FASE 1] 📡 Evento:', event);
-
-    // FASE 1: Processar eventos de conexão específicos
-    if (event === 'qr.update' || event === 'qr') {
-      console.log('[Webhook FASE 1] 📱 QR Code event detected');
-      await handleQREvent(supabase, instanceName, messageData);
+      console.error('[Webhook WhatsApp Web] ❌ instanceName não fornecido');
       return new Response(
-        JSON.stringify({ success: true, event: 'qr_processed', instanceName }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: false, error: 'instanceName não fornecido' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (event === 'authenticated') {
-      console.log('[Webhook FASE 1] 🔐 Authentication event detected');
-      await handleAuthenticatedEvent(supabase, instanceName, messageData);
-      return new Response(
-        JSON.stringify({ success: true, event: 'authenticated_processed', instanceName }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Buscar instância pelo vps_instance_id
+    const { data: instance, error: instanceError } = await supabase
+      .from('whatsapp_instances')
+      .select(`
+        *,
+        companies!inner (
+          id,
+          name
+        )
+      `)
+      .eq('vps_instance_id', instanceName)
+      .eq('connection_type', 'web')
+      .maybeSingle();
+
+    if (instanceError || !instance) {
+      console.error('[Webhook WhatsApp Web] ❌ Instância não encontrada:', instanceName, instanceError);
+      
+      // CORREÇÃO: Tentar buscar por instance_name como fallback
+      const { data: fallbackInstance, error: fallbackError } = await supabase
+        .from('whatsapp_instances')
+        .select(`
+          *,
+          companies!inner (
+            id,
+            name
+          )
+        `)
+        .eq('instance_name', instanceName)
+        .eq('connection_type', 'web')
+        .maybeSingle();
+
+      if (fallbackError || !fallbackInstance) {
+        console.error('[Webhook WhatsApp Web] ❌ Instância não encontrada nem por VPS ID nem por nome:', instanceName);
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Instância não encontrada', 
+            instanceName,
+            debug: { instanceError, fallbackError }
+          }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      
+      instance = fallbackInstance;
+      console.log('[Webhook WhatsApp Web] ✅ Instância encontrada via fallback (nome):', instance.instance_name);
     }
 
-    if (event === 'ready') {
-      console.log('[Webhook FASE 1] ✅ READY EVENT DETECTED - CRITICAL PROCESSING');
-      await handleReadyEvent(supabase, instanceName, messageData);
-      return new Response(
-        JSON.stringify({ success: true, event: 'ready_processed', instanceName }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (event === 'disconnected') {
-      console.log('[Webhook FASE 1] 🔌 Disconnection event detected');
-      await handleDisconnectedEvent(supabase, instanceName, messageData);
-      return new Response(
-        JSON.stringify({ success: true, event: 'disconnected_processed', instanceName }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (event === 'auth_failure') {
-      console.log('[Webhook FASE 1] ❌ Auth failure event detected');
-      await handleAuthFailureEvent(supabase, instanceName, messageData);
-      return new Response(
-        JSON.stringify({ success: true, event: 'auth_failure_processed', instanceName }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Processar mensagem usando o sistema multi-tenant
-    const result = await processMultiTenantMessage(supabase, {
-      instanceName,
-      data: messageData,
-      event,
-      server_url
+    console.log('[Webhook WhatsApp Web] ✅ Instância encontrada:', {
+      id: instance.id,
+      company: instance.companies?.name,
+      company_id: instance.company_id
     });
 
-    if (!result.success) {
-      console.error('[Webhook FASE 1] ❌ Erro no processamento:', result.error);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: result.error,
-          instanceName,
-          event 
-        }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+    // Processar diferentes tipos de eventos
+    if (event === 'messages.upsert' && messageData.messages) {
+      return await processIncomingMessage(supabase, instance, messageData);
     }
 
-    console.log('[Webhook FASE 1] ✅ Mensagem processada com sucesso:', result);
+    if (event === 'connection.update') {
+      return await processConnectionUpdate(supabase, instance, messageData);
+    }
 
+    if (event === 'qr.update') {
+      return await processQRUpdate(supabase, instance, messageData);
+    }
+
+    console.log('[Webhook WhatsApp Web] ℹ️ Evento não processado:', event);
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        processed: true,
-        instanceName,
-        event,
-        result: result
-      }),
+      JSON.stringify({ success: true, processed: false, event }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('[Webhook FASE 1] 💥 Erro no webhook:', error);
+    console.error('[Webhook WhatsApp Web] ❌ Erro geral:', error);
     return new Response(
-      JSON.stringify({ 
-        success: false, 
+      JSON.stringify({
+        success: false,
         error: error.message,
-        timestamp: new Date().toISOString()
+        stack: error.stack
       }),
       { 
         status: 500,
@@ -143,117 +123,26 @@ serve(async (req) => {
   }
 });
 
-/**
- * FASE 1: Sincronização multi-tenant melhorada
- * Processa mensagens identificando a empresa via vps_instance_id
- */
-async function processMultiTenantMessage(supabase: any, messageData: any) {
-  const processId = `process_${Date.now()}`;
-  console.log(`[Multi-Tenant FASE 1] 🏢 Processando mensagem multi-tenant [${processId}]:`, messageData);
-
-  try {
-    const { instanceName, data: webhookData, event } = messageData;
-    
-    if (!instanceName) {
-      throw new Error('instanceName não fornecido no webhook');
-    }
-
-    // 1. CRÍTICO: Buscar instância pelo vps_instance_id
-    console.log(`[Multi-Tenant FASE 1] 🔍 Buscando instância: ${instanceName}`);
-    
-    const { data: instance, error: instanceError } = await supabase
-      .from('whatsapp_instances')
-      .select(`
-        *,
-        companies!whatsapp_instances_company_id_fkey (
-          id,
-          name
-        )
-      `)
-      .eq('vps_instance_id', instanceName)
-      .eq('connection_type', 'web')
-      .single();
-
-    if (instanceError || !instance) {
-      console.error(`[Multi-Tenant FASE 1] ❌ Instância não encontrada: ${instanceName}`, instanceError);
-      
-      // FASE 2: Log do erro para debug
-      await supabase
-        .from('sync_logs')
-        .insert({
-          function_name: 'process_multi_tenant_message',
-          status: 'error',
-          error_message: `Instância não encontrada: ${instanceName}`,
-          result: { instanceName, event, processId }
-        });
-
-      return { success: false, error: 'Instância não encontrada', instanceName };
-    }
-
-    console.log(`[Multi-Tenant FASE 1] ✅ Instância encontrada:`, {
-      id: instance.id,
-      company: instance.companies?.name,
-      company_id: instance.company_id
-    });
-
-    // 2. Processar mensagem baseado no evento
-    let result = { success: true, processed: false };
-
-    if (event === 'messages.upsert' && webhookData.messages) {
-      result = await processIncomingMessage(supabase, instance, webhookData, processId);
-    } else if (event === 'connection.update') {
-      result = await processConnectionUpdate(supabase, instance, webhookData, processId);
-    }
-
-    // 3. FASE 2: Log do processamento
-    await supabase
-      .from('sync_logs')
-      .insert({
-        function_name: 'process_multi_tenant_message',
-        status: result.success ? 'success' : 'error',
-        result: {
-          processId,
-          instanceName,
-          company_id: instance.company_id,
-          event,
-          processed: result.processed
-        }
-      });
-
-    return result;
-
-  } catch (error) {
-    console.error(`[Multi-Tenant FASE 1] ❌ Erro no processamento [${processId}]:`, error);
-    
-    // FASE 2: Log do erro
-    await supabase
-      .from('sync_logs')
-      .insert({
-        function_name: 'process_multi_tenant_message',
-        status: 'error',
-        error_message: error.message,
-        result: { processId, messageData }
-      });
-
-    return { success: false, error: error.message, processId };
-  }
-}
-
-// Função auxiliar para processar mensagens recebidas
-async function processIncomingMessage(supabase: any, instance: any, messageData: any, processId: string) {
-  console.log(`[Multi-Tenant FASE 1] 📨 Processando mensagem recebida [${processId}]`);
+async function processIncomingMessage(supabase: any, instance: any, messageData: any) {
+  console.log('[Webhook WhatsApp Web] 📨 Processando mensagem recebida');
   
   try {
     const message = messageData.messages?.[0];
-    if (!message) return { success: true, processed: false };
+    if (!message || message.key?.fromMe) {
+      console.log('[Webhook WhatsApp Web] ⏭️ Mensagem ignorada (grupo ou enviada por mim)');
+      return new Response(
+        JSON.stringify({ success: true, processed: false, reason: 'message_ignored' }),
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
     const fromNumber = message.key?.remoteJid?.replace('@s.whatsapp.net', '');
     const messageText = message.message?.conversation || 
                        message.message?.extendedTextMessage?.text || 
                        '[Mídia]';
     
-    console.log(`[Multi-Tenant FASE 1] 👤 De: ${fromNumber} | Empresa: ${instance.companies?.name}`);
-    console.log(`[Multi-Tenant FASE 1] 💬 Mensagem: ${messageText}`);
+    console.log('[Webhook WhatsApp Web] 👤 De:', fromNumber, '| Empresa:', instance.companies?.name);
+    console.log('[Webhook WhatsApp Web] 💬 Mensagem:', messageText);
 
     // Buscar ou criar lead
     let { data: lead, error: leadError } = await supabase
@@ -261,11 +150,11 @@ async function processIncomingMessage(supabase: any, instance: any, messageData:
       .select('*')
       .eq('phone', fromNumber)
       .eq('whatsapp_number_id', instance.id)
-      .eq('company_id', instance.company_id) // IMPORTANTE: Filtrar por empresa
-      .single();
+      .eq('company_id', instance.company_id)
+      .maybeSingle();
 
     if (leadError || !lead) {
-      console.log(`[Multi-Tenant FASE 1] 👤 Criando novo lead para empresa ${instance.company_id}`);
+      console.log('[Webhook WhatsApp Web] 👤 Criando novo lead');
       
       const { data: newLead, error: createError } = await supabase
         .from('leads')
@@ -273,7 +162,7 @@ async function processIncomingMessage(supabase: any, instance: any, messageData:
           phone: fromNumber,
           name: fromNumber,
           whatsapp_number_id: instance.id,
-          company_id: instance.company_id, // CRÍTICO: Vincular à empresa
+          company_id: instance.company_id,
           last_message: messageText,
           last_message_time: new Date().toISOString(),
           unread_count: 1
@@ -282,12 +171,15 @@ async function processIncomingMessage(supabase: any, instance: any, messageData:
         .single();
 
       if (createError) {
-        console.error(`[Multi-Tenant FASE 1] ❌ Erro ao criar lead:`, createError);
-        return { success: false, error: createError.message };
+        console.error('[Webhook WhatsApp Web] ❌ Erro ao criar lead:', createError);
+        return new Response(
+          JSON.stringify({ success: false, error: createError.message }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
       }
       
       lead = newLead;
-      console.log(`[Multi-Tenant FASE 1] ✅ Lead criado: ${lead.id}`);
+      console.log('[Webhook WhatsApp Web] ✅ Lead criado:', lead.id);
     } else {
       // Atualizar lead existente
       await supabase
@@ -299,7 +191,7 @@ async function processIncomingMessage(supabase: any, instance: any, messageData:
         })
         .eq('id', lead.id);
       
-      console.log(`[Multi-Tenant FASE 1] ✅ Lead atualizado: ${lead.id}`);
+      console.log('[Webhook WhatsApp Web] ✅ Lead atualizado:', lead.id);
     }
 
     // Salvar mensagem
@@ -316,40 +208,118 @@ async function processIncomingMessage(supabase: any, instance: any, messageData:
       });
 
     if (messageError) {
-      console.error(`[Multi-Tenant FASE 1] ❌ Erro ao salvar mensagem:`, messageError);
-      return { success: false, error: messageError.message };
+      console.error('[Webhook WhatsApp Web] ❌ Erro ao salvar mensagem:', messageError);
+      return new Response(
+        JSON.stringify({ success: false, error: messageError.message }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log(`[Multi-Tenant FASE 1] ✅ Mensagem salva para empresa ${instance.companies?.name}`);
-    return { success: true, processed: true, leadId: lead.id };
+    console.log('[Webhook WhatsApp Web] ✅ Mensagem salva');
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        processed: true, 
+        leadId: lead.id,
+        company: instance.companies?.name
+      }),
+      { headers: { 'Content-Type': 'application/json' } }
+    );
 
   } catch (error) {
-    console.error(`[Multi-Tenant FASE 1] ❌ Erro ao processar mensagem:`, error);
-    return { success: false, error: error.message };
+    console.error('[Webhook WhatsApp Web] ❌ Erro ao processar mensagem:', error);
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 }
 
-// Função auxiliar para processar atualizações de conexão
-async function processConnectionUpdate(supabase: any, instance: any, connectionData: any, processId: string) {
-  console.log(`[Multi-Tenant FASE 1] 🔗 Processando atualização de conexão [${processId}]`);
+async function processConnectionUpdate(supabase: any, instance: any, connectionData: any) {
+  console.log('[Webhook WhatsApp Web] 🔌 Processando atualização de conexão');
   
   try {
-    const connectionStatus = connectionData.connection || 'unknown';
+    const { connection, lastDisconnect } = connectionData;
     
-    await supabase
+    // Atualizar status da instância
+    const updateData: any = {
+      connection_status: connection?.state || 'unknown',
+      updated_at: new Date().toISOString()
+    };
+
+    if (connection?.state === 'open') {
+      updateData.date_connected = new Date().toISOString();
+      updateData.web_status = 'connected';
+    } else if (connection?.state === 'close') {
+      updateData.date_disconnected = new Date().toISOString();
+      updateData.web_status = 'disconnected';
+    }
+
+    const { error: updateError } = await supabase
       .from('whatsapp_instances')
-      .update({
-        connection_status: connectionStatus,
-        web_status: connectionStatus === 'open' ? 'ready' : 'disconnected',
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', instance.id);
 
-    console.log(`[Multi-Tenant FASE 1] ✅ Status atualizado para ${instance.companies?.name}: ${connectionStatus}`);
-    return { success: true, processed: true, status: connectionStatus };
-    
+    if (updateError) {
+      console.error('[Webhook WhatsApp Web] ❌ Erro ao atualizar status:', updateError);
+      return new Response(
+        JSON.stringify({ success: false, error: updateError.message }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log('[Webhook WhatsApp Web] ✅ Status atualizado:', updateData);
+    return new Response(
+      JSON.stringify({ success: true, processed: true }),
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+
   } catch (error) {
-    console.error(`[Multi-Tenant FASE 1] ❌ Erro ao atualizar conexão:`, error);
-    return { success: false, error: error.message };
+    console.error('[Webhook WhatsApp Web] ❌ Erro ao processar conexão:', error);
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+async function processQRUpdate(supabase: any, instance: any, qrData: any) {
+  console.log('[Webhook WhatsApp Web] 🔳 Processando atualização de QR Code');
+  
+  try {
+    const { qr } = qrData;
+    
+    if (qr) {
+      const { error: updateError } = await supabase
+        .from('whatsapp_instances')
+        .update({
+          qr_code: qr,
+          web_status: 'waiting_scan',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', instance.id);
+
+      if (updateError) {
+        console.error('[Webhook WhatsApp Web] ❌ Erro ao atualizar QR:', updateError);
+        return new Response(
+          JSON.stringify({ success: false, error: updateError.message }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log('[Webhook WhatsApp Web] ✅ QR Code atualizado');
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, processed: true }),
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('[Webhook WhatsApp Web] ❌ Erro ao processar QR:', error);
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    );
   }
 }

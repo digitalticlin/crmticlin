@@ -1,256 +1,174 @@
 
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
-import { Globe, CheckCircle, AlertCircle, RefreshCw, Settings, Users } from 'lucide-react';
-import { toast } from 'sonner';
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
+import { Globe, CheckCircle2, XCircle, RefreshCcw, Settings } from "lucide-react";
+import { GlobalWebhookService } from "@/services/whatsapp/globalWebhookService";
 
 export const GlobalWebhookManager = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [webhookStatus, setWebhookStatus] = useState<any>(null);
-  const [syncResults, setSyncResults] = useState<any>(null);
 
-  const configureGlobalWebhook = async () => {
+  const handleConfigureWebhook = async () => {
     setIsLoading(true);
     try {
-      console.log('[Global Webhook Manager] 🌐 Configurando webhook global...');
-
-      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
-        body: {
-          action: 'configure_global_webhook'
-        }
-      });
-
-      if (error) {
-        console.error('[Global Webhook Manager] ❌ Erro:', error);
-        throw error;
-      }
-
-      console.log('[Global Webhook Manager] ✅ Resposta:', data);
-
-      if (data.success) {
+      const result = await GlobalWebhookService.configureGlobalWebhook();
+      
+      if (result.success) {
         toast.success('Webhook global configurado com sucesso!');
-        setWebhookStatus(data);
-        await checkWebhookStatus(); // Verificar status após configurar
+        await checkWebhookStatus();
       } else {
-        toast.error('Falha na configuração: ' + data.error);
+        toast.error(`Erro ao configurar webhook: ${result.error}`);
       }
-    } catch (error: any) {
-      console.error('[Global Webhook Manager] 💥 Erro:', error);
-      toast.error('Erro ao configurar webhook global: ' + error.message);
+    } catch (error) {
+      console.error('Erro ao configurar webhook:', error);
+      toast.error('Erro ao configurar webhook global');
     } finally {
       setIsLoading(false);
     }
   };
 
   const checkWebhookStatus = async () => {
-    try {
-      console.log('[Global Webhook Manager] 🔍 Verificando status...');
-
-      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
-        body: {
-          action: 'check_global_webhook_status'
-        }
-      });
-
-      if (error) {
-        console.error('[Global Webhook Manager] ❌ Erro no status:', error);
-        throw error;
-      }
-
-      console.log('[Global Webhook Manager] 📊 Status:', data);
-      setWebhookStatus(data);
-
-      if (data.success) {
-        toast.success('Status verificado com sucesso');
-      } else {
-        toast.warning('Problema no webhook: ' + data.error);
-      }
-    } catch (error: any) {
-      console.error('[Global Webhook Manager] 💥 Erro no status:', error);
-      toast.error('Erro ao verificar status: ' + error.message);
-    }
-  };
-
-  const executeMultiTenantSync = async () => {
     setIsLoading(true);
     try {
-      console.log('[Global Webhook Manager] 🏢 Executando sincronização multi-tenant...');
-
-      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
-        body: {
-          action: 'execute_multi_tenant_sync'
-        }
-      });
-
-      if (error) {
-        console.error('[Global Webhook Manager] ❌ Erro na sync:', error);
-        throw error;
-      }
-
-      console.log('[Global Webhook Manager] 🔄 Resultado da sync:', data);
-      setSyncResults(data.result);
-
-      if (data.success) {
-        toast.success('Sincronização multi-tenant executada com sucesso!');
+      const result = await GlobalWebhookService.checkGlobalWebhookStatus();
+      
+      if (result.success) {
+        setWebhookStatus(result.status);
+        toast.success('Status do webhook verificado');
       } else {
-        toast.error('Falha na sincronização: ' + data.error);
+        toast.error(`Erro ao verificar status: ${result.error}`);
       }
-    } catch (error: any) {
-      console.error('[Global Webhook Manager] 💥 Erro na sync:', error);
-      toast.error('Erro na sincronização: ' + error.message);
+    } catch (error) {
+      console.error('Erro ao verificar status:', error);
+      toast.error('Erro ao verificar status do webhook');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleDisableWebhook = async () => {
+    setIsLoading(true);
+    try {
+      const result = await GlobalWebhookService.disableGlobalWebhook();
+      
+      if (result.success) {
+        toast.success('Webhook global desabilitado');
+        setWebhookStatus(null);
+      } else {
+        toast.error(`Erro ao desabilitar webhook: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Erro ao desabilitar webhook:', error);
+      toast.error('Erro ao desabilitar webhook global');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getStatusBadge = () => {
+    if (!webhookStatus) {
+      return (
+        <Badge variant="secondary" className="gap-2">
+          <XCircle className="h-3 w-3" />
+          Desconhecido
+        </Badge>
+      );
+    }
+
+    if (webhookStatus.enabled) {
+      return (
+        <Badge className="bg-green-100 text-green-800 gap-2">
+          <CheckCircle2 className="h-3 w-3" />
+          Ativo
+        </Badge>
+      );
+    }
+
+    return (
+      <Badge variant="destructive" className="gap-2">
+        <XCircle className="h-3 w-3" />
+        Inativo
+      </Badge>
+    );
+  };
+
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="h-5 w-5" />
-            Gerenciador de Webhook Global
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex gap-2">
-              <Button 
-                onClick={configureGlobalWebhook}
-                disabled={isLoading}
-                className="flex-1"
-              >
-                {isLoading ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Configurando...
-                  </>
-                ) : (
-                  <>
-                    <Settings className="h-4 w-4 mr-2" />
-                    Configurar Webhook Global
-                  </>
-                )}
-              </Button>
-              
-              <Button 
-                onClick={checkWebhookStatus}
-                variant="outline"
-                disabled={isLoading}
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Verificar Status
-              </Button>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Globe className="h-5 w-5 text-blue-600" />
+            Webhook Global Multi-Tenant
+          </div>
+          {getStatusBadge()}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="text-sm text-gray-600">
+          <p className="mb-2">
+            Configure o webhook global na VPS para receber mensagens de todas as instâncias 
+            automaticamente no sistema multi-tenant.
+          </p>
+          
+          {webhookStatus && (
+            <div className="bg-gray-50 p-3 rounded-lg space-y-2">
+              <div className="font-medium">Status Atual:</div>
+              <div className="text-xs space-y-1">
+                <div>• URL: {webhookStatus.webhookUrl || 'Não configurado'}</div>
+                <div>• Eventos: {webhookStatus.events?.join(', ') || 'Nenhum'}</div>
+                <div>• Instâncias conectadas: {webhookStatus.connectedInstances || 0}</div>
+              </div>
             </div>
+          )}
+        </div>
 
-            {webhookStatus && (
-              <div className="mt-4 p-4 border rounded-lg">
-                <h4 className="font-medium mb-2">Status do Webhook:</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={webhookStatus.success ? 'default' : 'destructive'}>
-                      {webhookStatus.success ? 'Ativo' : 'Inativo'}
-                    </Badge>
-                    {webhookStatus.webhookUrl && (
-                      <span className="text-sm text-muted-foreground">
-                        {webhookStatus.webhookUrl}
-                      </span>
-                    )}
-                  </div>
-                  {webhookStatus.globalConfigId && (
-                    <p className="text-sm">ID: {webhookStatus.globalConfigId}</p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+        <div className="flex gap-3 flex-wrap">
+          <Button 
+            onClick={handleConfigureWebhook}
+            disabled={isLoading}
+            className="gap-2"
+          >
+            <Settings className="h-4 w-4" />
+            Configurar Webhook
+          </Button>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Sincronização Multi-Tenant
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
+          <Button 
+            onClick={checkWebhookStatus}
+            disabled={isLoading}
+            variant="outline"
+            className="gap-2"
+          >
+            <RefreshCcw className="h-4 w-4" />
+            Verificar Status
+          </Button>
+
+          {webhookStatus?.enabled && (
             <Button 
-              onClick={executeMultiTenantSync}
+              onClick={handleDisableWebhook}
               disabled={isLoading}
-              className="w-full"
-              variant="outline"
+              variant="destructive"
+              className="gap-2"
             >
-              {isLoading ? (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                  Sincronizando...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Executar Sincronização Multi-Tenant
-                </>
-              )}
+              <XCircle className="h-4 w-4" />
+              Desabilitar
             </Button>
+          )}
+        </div>
 
-            {syncResults && (
-              <div className="mt-4 p-4 border rounded-lg">
-                <h4 className="font-medium mb-2">Resultados da Sincronização:</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  {syncResults.companies && (
-                    <div>
-                      <p className="font-medium">Empresas:</p>
-                      <p>Total: {syncResults.companies.totalCompanies}</p>
-                      <p>Com usuários: {syncResults.companies.companiesWithUsers}</p>
-                      <p>Com admin: {syncResults.companies.companiesWithAdmin}</p>
-                    </div>
-                  )}
-                  {syncResults.instances && (
-                    <div>
-                      <p className="font-medium">Instâncias:</p>
-                      <p>Total: {syncResults.instances.total}</p>
-                      <p>Conectadas: {syncResults.instances.connected}</p>
-                      <p>Órfãs: {syncResults.instances.orphans}</p>
-                    </div>
-                  )}
-                  {syncResults.orphanSync && (
-                    <div>
-                      <p className="font-medium">Sync Órfãs:</p>
-                      <p>Encontradas: {syncResults.orphanSync.orphansFound}</p>
-                      <p>Sincronizadas: {syncResults.orphanSync.synced}</p>
-                    </div>
-                  )}
-                  {syncResults.messages && (
-                    <div>
-                      <p className="font-medium">Mensagens:</p>
-                      <p>Amostra: {syncResults.messages.totalSampled}</p>
-                      <p>Órfãs: {syncResults.messages.orphanMessages}</p>
-                    </div>
-                  )}
-                </div>
-                <div className="mt-2 text-xs text-muted-foreground">
-                  Tempo: {syncResults.executionTime}ms | {syncResults.timestamp}
-                </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="text-sm text-muted-foreground p-4 bg-blue-50 rounded-lg">
-        <h4 className="font-medium mb-2">ℹ️ Como funciona:</h4>
-        <ul className="space-y-1">
-          <li>• <strong>Webhook Global:</strong> Configura uma URL única para receber mensagens de TODAS as instâncias</li>
-          <li>• <strong>Multi-Tenant:</strong> Separa mensagens por empresa usando o company_id</li>
-          <li>• <strong>Auto-Configuração:</strong> Novas instâncias herdam automaticamente o webhook global</li>
-          <li>• <strong>RLS:</strong> Garante que cada empresa veja apenas suas próprias mensagens</li>
-        </ul>
-      </div>
-    </div>
+        <div className="border-t pt-4">
+          <h4 className="font-medium text-sm mb-2">Como funciona:</h4>
+          <ul className="text-xs text-gray-600 space-y-1">
+            <li>• Configura webhook global na VPS (31.97.24.222:3001)</li>
+            <li>• Todas as instâncias enviam mensagens para o Supabase automaticamente</li>
+            <li>• Sistema identifica empresa por vps_instance_id</li>
+            <li>• Cria leads e mensagens automaticamente</li>
+            <li>• Suporta múltiplas empresas simultaneamente</li>
+          </ul>
+        </div>
+      </CardContent>
+    </Card>
   );
 };

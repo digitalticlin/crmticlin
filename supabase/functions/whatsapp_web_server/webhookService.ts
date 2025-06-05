@@ -16,7 +16,7 @@ export async function processIncomingWebhook(supabase: any, webhookData: any) {
       .from('whatsapp_instances')
       .select(`
         *,
-        companies!whatsapp_instances_company_id_fkey (
+        companies!inner (
           id,
           name
         )
@@ -33,7 +33,7 @@ export async function processIncomingWebhook(supabase: any, webhookData: any) {
         .from('whatsapp_instances')
         .select(`
           *,
-          companies!whatsapp_instances_company_id_fkey (
+          companies!inner (
             id,
             name
           )

@@ -13,6 +13,7 @@ import { OrphanInstanceLinker } from "@/components/admin/OrphanInstanceLinker";
 import { AutoSyncMonitor } from "@/components/admin/AutoSyncMonitor";
 import { AutoSyncConfigManager } from "@/components/admin/AutoSyncConfigManager";
 import { SystemHealthDashboard } from "@/components/admin/SystemHealthDashboard";
+import { GlobalWebhookManager } from "@/components/admin/GlobalWebhookManager";
 
 export const UnifiedWhatsAppPanel = () => {
   return (
@@ -34,10 +35,14 @@ export const UnifiedWhatsAppPanel = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="dashboard" className="w-full">
-            <TabsList className="grid w-full grid-cols-9">
+            <TabsList className="grid w-full grid-cols-10">
               <TabsTrigger value="dashboard" className="gap-2">
                 <BarChart3 className="h-4 w-4" />
                 Dashboard
+              </TabsTrigger>
+              <TabsTrigger value="webhook" className="gap-2">
+                <Globe className="h-4 w-4" />
+                Webhook
               </TabsTrigger>
               <TabsTrigger value="config" className="gap-2">
                 <Cog className="h-4 w-4" />
@@ -75,6 +80,10 @@ export const UnifiedWhatsAppPanel = () => {
 
             <TabsContent value="dashboard" className="mt-6">
               <SystemHealthDashboard />
+            </TabsContent>
+
+            <TabsContent value="webhook" className="mt-6">
+              <GlobalWebhookManager />
             </TabsContent>
 
             <TabsContent value="config" className="mt-6">
