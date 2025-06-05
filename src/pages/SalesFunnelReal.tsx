@@ -3,17 +3,16 @@ import { useState } from "react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { ModernPageHeader } from "@/components/layout/ModernPageHeader";
 import { useRealSalesFunnel } from "@/hooks/salesFunnel/useRealSalesFunnel";
-import { useNewLeadIntegration } from "@/hooks/salesFunnel/useNewLeadIntegration";
 import { KanbanBoard } from "@/components/sales/KanbanBoard";
 import { LeadDetailSidebar } from "@/components/sales/LeadDetailSidebar";
 import { toast } from "sonner";
-import { KanbanLead } from "@/types/kanban";
+import { FIXED_COLUMN_IDS, KanbanLead } from "@/types/kanban";
 import { useNavigate } from "react-router-dom";
 import { FunnelActionsBar } from "@/components/sales/funnel/FunnelActionsBar";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 
-export default function SalesFunnel() {
+export default function SalesFunnelReal() {
   const [activeTab, setActiveTab] = useState("funnel");
   const navigate = useNavigate();
   
@@ -37,15 +36,14 @@ export default function SalesFunnel() {
     moveLeadToStage
   } = useRealSalesFunnel();
 
-  // Integração com novos leads do chat
-  useNewLeadIntegration(selectedFunnel?.id);
-
   // Função para abrir o chat com o lead selecionado
   const handleOpenChat = (lead: KanbanLead) => {
     navigate(`/whatsapp-chat?leadId=${lead.id}`);
   };
 
   const handleMoveToWonLost = async (lead: KanbanLead, status: "won" | "lost") => {
+    const targetColumnId = status === "won" ? FIXED_COLUMN_IDS.WON : FIXED_COLUMN_IDS.LOST;
+    
     // Encontrar o estágio correto baseado no is_won/is_lost
     const targetColumn = columns.find(col => 
       status === "won" ? col.title === "GANHO" : col.title === "PERDIDO"
@@ -70,7 +68,7 @@ export default function SalesFunnel() {
   const addLeadAction = (
     <Button 
       className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 py-2.5 font-medium shadow-lg transition-all duration-200 hover:shadow-xl"
-      onClick={() => toast.info("Adicionar lead manualmente (em breve!)")}
+      onClick={() => toast.info("Adicionar lead (em breve!)")}
     >
       <Plus className="h-4 w-4 mr-2" />
       Adicionar Lead
