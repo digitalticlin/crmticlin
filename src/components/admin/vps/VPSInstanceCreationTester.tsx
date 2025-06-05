@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -214,11 +213,26 @@ export const VPSInstanceCreationTester = () => {
 
         const step3Duration = Date.now() - step3Start;
 
-        if (createError || !createData.success) {
-          throw new Error(createData?.error || createError?.message || 'Criação de instância falhou');
+        // Log detalhado da resposta para debug
+        addLog(`📋 Resposta completa da criação: ${JSON.stringify(createData, null, 2)}`);
+        
+        if (createError) {
+          addLog(`❌ Erro do Supabase: ${JSON.stringify(createError, null, 2)}`);
+          throw new Error(createError.message || 'Erro na invocação da função');
+        }
+
+        if (!createData || !createData.success) {
+          const errorMsg = createData?.error || 'Resposta de erro da função';
+          addLog(`❌ Função retornou erro: ${errorMsg}`);
+          throw new Error(errorMsg);
         }
 
         const instanceId = createData.instance?.id || createData.instance?.instanceId;
+        if (!instanceId) {
+          addLog(`❌ ID da instância não encontrado na resposta`);
+          throw new Error('ID da instância não retornado');
+        }
+        
         setCreatedInstanceId(instanceId);
 
         updateTestResult('instance_creation', {
@@ -227,7 +241,9 @@ export const VPSInstanceCreationTester = () => {
           details: {
             instanceId: instanceId,
             hasImmediateQR: !!createData.instance?.qr_code,
-            vpsInstanceId: createData.instance?.vps_instance_id
+            vpsInstanceId: createData.instance?.vps_instance_id,
+            connectionStatus: createData.instance?.connection_status,
+            webStatus: createData.instance?.web_status
           },
           timestamp: new Date().toISOString()
         });
@@ -243,7 +259,7 @@ export const VPSInstanceCreationTester = () => {
             timestamp: new Date().toISOString()
           });
         } else {
-          addLog("⏳ PASSO 4A: QR Code não disponível imediatamente - isso é normal!");
+          addLog("⏳ PASSO 4A: QR Code não disponível imediatamente - isso é normal com a CORREÇÃO PERMANENTE!");
           updateTestResult('immediate_qr_code', {
             success: true, // Não é erro!
             duration: 0,
@@ -252,20 +268,21 @@ export const VPSInstanceCreationTester = () => {
           });
           
           // Iniciar polling para QR Code
-          if (instanceId) {
-            await pollForQRCode(instanceId);
-          }
+          await pollForQRCode(instanceId);
         }
 
       } catch (error: any) {
         const step3Duration = Date.now() - step3Start;
+        addLog(`❌ Erro detalhado no PASSO 3: ${error.message}`);
+        addLog(`❌ Stack trace: ${error.stack}`);
+        
         updateTestResult('instance_creation', {
           success: false,
           duration: step3Duration,
           error: error.message,
+          details: { fullError: error },
           timestamp: new Date().toISOString()
         });
-        addLog(`❌ PASSO 3: ${error.message}`);
         throw error;
       }
 
@@ -353,7 +370,7 @@ export const VPSInstanceCreationTester = () => {
             <AlertDescription>
               <strong>CORREÇÃO PERMANENTE APLICADA:</strong> Este teste agora valida que a criação de instâncias 
               funciona mesmo quando o QR Code não está disponível imediatamente. O sistema aguarda assincronamente 
-              pelo QR Code sem falhar.
+              pelo QR Code sem falhar. Esta versão é mais robusta e tolerante a falhas de timing.
             </AlertDescription>
           </Alert>
 
@@ -472,7 +489,7 @@ export const VPSInstanceCreationTester = () => {
       {logs.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Logs de Execução</CardTitle>
+            <CardTitle className="text-sm">Logs de Execução (CORREÇÃO PERMANENTE)</CardTitle>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-40 w-full">

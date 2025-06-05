@@ -54,11 +54,21 @@ serve(async (req) => {
     const requestBody = await req.text();
     console.log('[WhatsApp Server] 📥 Raw request body:', requestBody);
     
-    const body = JSON.parse(requestBody);
-    console.log('[WhatsApp Server] 📋 Parsed request body:', JSON.stringify(body, null, 2));
+    let body;
+    try {
+      body = JSON.parse(requestBody);
+      console.log('[WhatsApp Server] 📋 Parsed request body:', JSON.stringify(body, null, 2));
+    } catch (parseError) {
+      console.error('[WhatsApp Server] ❌ JSON parse error:', parseError);
+      throw new Error('Invalid JSON in request body');
+    }
 
     const action = body.action;
     console.log('[WhatsApp Server] 🎯 Action extracted:', action);
+
+    if (!action) {
+      throw new Error('No action specified in request');
+    }
 
     // Authenticate user
     const user = await authenticateUser(req, supabase);
@@ -73,14 +83,28 @@ serve(async (req) => {
         console.log('[WhatsApp Server] Instance data:', JSON.stringify(body.instanceData, null, 2));
         console.log('[WhatsApp Server] User ID:', user.id);
         
+        if (!body.instanceData) {
+          throw new Error('Instance data is required for create_instance action');
+        }
+        
         return await createWhatsAppInstance(supabase, body.instanceData, user.id);
 
       case 'delete_instance':
         console.log('[WhatsApp Server] 🗑️ DELETE INSTANCE');
+        
+        if (!body.instanceData?.instanceId) {
+          throw new Error('Instance ID is required for delete_instance action');
+        }
+        
         return await deleteWhatsAppInstance(supabase, body.instanceData.instanceId);
 
       case 'get_qr_code':
         console.log('[WhatsApp Server] 📱 GET QR CODE (legacy)');
+        
+        if (!body.instanceData?.instanceId) {
+          throw new Error('Instance ID is required for get_qr_code action');
+        }
+        
         const qrResult = await getQRCodeFromVPS(body.instanceData.instanceId);
         
         if (qrResult.success) {
@@ -94,6 +118,11 @@ serve(async (req) => {
 
       case 'get_qr_code_async':
         console.log('[WhatsApp Server] 📱 GET QR CODE ASYNC - CORREÇÃO PERMANENTE');
+        
+        if (!body.instanceData?.instanceId) {
+          throw new Error('Instance ID is required for get_qr_code_async action');
+        }
+        
         return await getQRCodeAsync(supabase, body.instanceData.instanceId, user.id);
 
       default:
@@ -104,14 +133,30 @@ serve(async (req) => {
     console.error('[WhatsApp Server] 💥 ERRO GERAL (CORREÇÃO PERMANENTE):', error);
     console.error('[WhatsApp Server] Stack trace:', error.stack);
     
+    // Determine appropriate HTTP status code
+    let statusCode = 500;
+    if (error.message.includes('Invalid JSON') || 
+        error.message.includes('required') || 
+        error.message.includes('No action specified')) {
+      statusCode = 400; // Bad Request
+    } else if (error.message.includes('authentication') || 
+               error.message.includes('authorization')) {
+      statusCode = 401; // Unauthorized
+    }
+    
     return new Response(
       JSON.stringify({
         success: false,
         error: error.message,
-        action: 'error_handling_improved'
+        action: 'error_handling_improved',
+        timestamp: new Date().toISOString(),
+        details: {
+          name: error.name,
+          stack: error.stack?.split('\n').slice(0, 5) // Primeiras 5 linhas do stack
+        }
       }),
       { 
-        status: 500,
+        status: statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
