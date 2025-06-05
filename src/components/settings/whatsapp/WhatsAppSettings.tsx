@@ -1,4 +1,5 @@
 
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyData } from "@/hooks/useCompanyData";
@@ -75,11 +76,8 @@ export const WhatsAppSettings = () => {
       )}
 
       {/* Seção Principal do WhatsApp Web.js */}
-      <WhatsAppWebSection 
-        instances={instances || []} 
-        isLoading={isLoading}
-        onRefresh={refetch}
-      />
+      <WhatsAppWebSection />
     </div>
   );
 };
+
