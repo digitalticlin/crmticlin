@@ -25,8 +25,8 @@ export const mapDbMessageToMessage = (msg: any) => {
     status: normalizeStatus(msg.status),
     mediaType: normalizeMediaType(msg.media_type),
     mediaUrl: msg.media_url,
-    // Compatibility fields for UI
-    sender: isFromMe ? 'user' : 'contact',
+    // Compatibility fields for UI - ensure correct types
+    sender: isFromMe ? "user" as const : "contact" as const,
     time: new Date(msg.timestamp).toLocaleTimeString('pt-BR', {
       hour: '2-digit',
       minute: '2-digit'

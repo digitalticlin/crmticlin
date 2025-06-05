@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Contact, Message } from '@/types/chat';
 import { WhatsAppWebInstance } from '../useWhatsAppWebInstances';
 import { MessageService } from './services/messageService';
@@ -56,7 +56,7 @@ export const useWhatsAppChatMessages = (
   });
 
   // Fetch messages when dependencies change
-  useState(() => {
+  useEffect(() => {
     fetchMessages();
   }, [fetchMessages]);
 
