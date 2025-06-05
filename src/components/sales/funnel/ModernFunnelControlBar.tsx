@@ -69,14 +69,14 @@ export function ModernFunnelControlBar({
               onClick={() => setActiveTab(activeTab === "won-lost" ? "funnel" : "won-lost")}
               className={`rounded-2xl px-6 py-3 h-auto transition-all duration-300 flex items-center gap-3 font-medium shadow-lg hover:shadow-xl transform hover:scale-105
                 ${activeTab === "won-lost"
-                  ? "bg-gradient-to-r from-lime-400 to-lime-500 text-black hover:from-lime-500 hover:to-lime-600"
+                  ? "bg-white/20 backdrop-blur-lg border border-white/30 hover:bg-white/30 text-gray-700 hover:text-gray-800"
                   : "bg-white/20 backdrop-blur-lg border border-white/30 hover:bg-white/30 text-gray-700 hover:text-gray-800"}
               `}
             >
               {activeTab === "won-lost" ? (
                 <>
                   <ArrowLeft className="w-5 h-5" />
-                  VOLTAR AO FUNIL
+                  Voltar ao funil
                 </>
               ) : (
                 "GANHOS E PERDIDOS"
