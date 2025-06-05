@@ -12,6 +12,7 @@ interface UseRealtimeMessagesProps {
 
 /**
  * Hook para escutar mensagens em tempo real via Supabase
+ * Agora com foco em sincronização de unread_count
  */
 export const useRealtimeMessages = ({
   selectedContact,
@@ -48,6 +49,21 @@ export const useRealtimeMessages = ({
           
           // Sempre atualizar a lista de contatos para mostrar a nova mensagem
           console.log('[Realtime Messages] Updating contact list');
+          onContactUpdate();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'leads',
+          filter: `whatsapp_number_id=eq.${activeInstanceId}`
+        },
+        (payload) => {
+          console.log('[Realtime Messages] Lead updated (unread_count sync):', payload);
+          
+          // Atualizar contatos quando unread_count for modificado
           onContactUpdate();
         }
       )

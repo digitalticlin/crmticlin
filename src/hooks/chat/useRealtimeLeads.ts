@@ -9,24 +9,25 @@ interface UseRealtimeLeadsProps {
   fetchContacts: () => Promise<void>;
   fetchMessages?: () => Promise<void>;
   receiveNewLead: (lead: any) => void;
-  activeInstanceId: string | null; // CORRIGIDO: Adicionado activeInstanceId
+  activeInstanceId: string | null;
 }
 
 /**
  * Hook para escutar leads e mensagens em tempo real
+ * Agora otimizado para sincronização de unread_count
  */
 export const useRealtimeLeads = ({
   selectedContact,
   fetchContacts,
   fetchMessages,
   receiveNewLead,
-  activeInstanceId // CORRIGIDO: Recebendo activeInstanceId
+  activeInstanceId
 }: UseRealtimeLeadsProps) => {
 
   // Setup realtime messages subscription
   useRealtimeMessages({
     selectedContact,
-    activeInstanceId, // CORRIGIDO: Passando activeInstanceId correto
+    activeInstanceId,
     onNewMessage: async () => {
       if (fetchMessages) {
         await fetchMessages();
@@ -50,7 +51,7 @@ export const useRealtimeLeads = ({
           event: 'INSERT',
           schema: 'public',
           table: 'leads',
-          filter: `whatsapp_number_id=eq.${activeInstanceId}` // CORRIGIDO: Filtrar por instância
+          filter: `whatsapp_number_id=eq.${activeInstanceId}`
         },
         (payload) => {
           console.log('[Realtime Leads] New lead received:', payload);
@@ -68,12 +69,12 @@ export const useRealtimeLeads = ({
           event: 'UPDATE',
           schema: 'public',
           table: 'leads',
-          filter: `whatsapp_number_id=eq.${activeInstanceId}` // CORRIGIDO: Filtrar por instância
+          filter: `whatsapp_number_id=eq.${activeInstanceId}`
         },
         (payload) => {
-          console.log('[Realtime Leads] Lead updated:', payload);
+          console.log('[Realtime Leads] Lead updated (sync unread_count):', payload);
           
-          // Refresh contacts list when leads are updated
+          // Refresh contacts list when leads are updated (principalmente unread_count)
           fetchContacts();
         }
       )
@@ -83,5 +84,5 @@ export const useRealtimeLeads = ({
       console.log('[Realtime Leads] Cleaning up subscription');
       supabase.removeChannel(channel);
     };
-  }, [fetchContacts, receiveNewLead, activeInstanceId]); // CORRIGIDO: Adicionado activeInstanceId nas dependências
+  }, [fetchContacts, receiveNewLead, activeInstanceId]);
 };

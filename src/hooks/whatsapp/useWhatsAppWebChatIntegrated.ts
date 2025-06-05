@@ -6,6 +6,7 @@ import { WhatsAppWebInstance } from './useWhatsAppWebInstances';
 import { useChatDatabase } from './useChatDatabase';
 import { WebhookConfigService } from '@/services/whatsapp/webhookConfigService';
 import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
+import { UnreadMessagesService } from '@/services/whatsapp/unreadMessagesService';
 
 export const useWhatsAppWebChatIntegrated = (activeInstance: WhatsAppWebInstance | null) => {
   const [contacts, setContacts] = useState<Contact[]>([]);
@@ -148,6 +149,31 @@ export const useWhatsAppWebChatIntegrated = (activeInstance: WhatsAppWebInstance
     }
   };
 
+  // Função para definir contato selecionado e marcar mensagens como lidas
+  const setSelectedContactAndMarkAsRead = async (contact: Contact | null) => {
+    console.log('[WhatsApp Chat Integrated] 📖 Selecionando contato:', contact?.name);
+    
+    // Se há um contato anterior e ele tem mensagens não lidas, manter o estado atual
+    // Se o novo contato é diferente, marcar as mensagens como lidas
+    if (contact && contact.unreadCount && contact.unreadCount > 0) {
+      console.log('[WhatsApp Chat Integrated] 🔄 Marcando mensagens como lidas para:', contact.name);
+      
+      const success = await UnreadMessagesService.markAsRead(contact.id);
+      if (success) {
+        // Atualizar localmente o contador para UI responsiva
+        setContacts(prevContacts => 
+          prevContacts.map(c => 
+            c.id === contact.id 
+              ? { ...c, unreadCount: 0 }
+              : c
+          )
+        );
+      }
+    }
+    
+    setSelectedContact(contact);
+  };
+
   // Load contacts when active instance changes
   useEffect(() => {
     if (activeInstance) {
@@ -196,11 +222,11 @@ export const useWhatsAppWebChatIntegrated = (activeInstance: WhatsAppWebInstance
     };
   }, [activeInstance, selectedContact]);
 
-  // Realtime subscription for contacts (leads)
+  // Realtime subscription for contacts (leads) - com foco em unread_count
   useEffect(() => {
     if (!activeInstance) return;
 
-    console.log('[WhatsApp Chat Integrated] Setting up realtime for contacts...');
+    console.log('[WhatsApp Chat Integrated] Setting up realtime for contacts/unread counts...');
 
     const channel = supabase
       .channel(`leads-integrated-${activeInstance.id}`)
@@ -214,6 +240,19 @@ export const useWhatsAppWebChatIntegrated = (activeInstance: WhatsAppWebInstance
         },
         (payload) => {
           console.log('[WhatsApp Chat Integrated] Contacts realtime update:', payload.eventType);
+          
+          // Se é uma atualização e envolve unread_count, atualizar imediatamente
+          if (payload.eventType === 'UPDATE' && payload.new) {
+            const updatedLead = payload.new as any;
+            setContacts(prevContacts => 
+              prevContacts.map(contact => 
+                contact.id === updatedLead.id 
+                  ? { ...contact, unreadCount: updatedLead.unread_count || 0 }
+                  : contact
+              )
+            );
+          }
+          
           if (isMountedRef.current) {
             fetchContacts();
           }
@@ -236,7 +275,7 @@ export const useWhatsAppWebChatIntegrated = (activeInstance: WhatsAppWebInstance
   return {
     contacts,
     selectedContact,
-    setSelectedContact,
+    setSelectedContact: setSelectedContactAndMarkAsRead, // Usar função que marca como lida
     messages,
     sendMessage,
     isLoadingContacts,
