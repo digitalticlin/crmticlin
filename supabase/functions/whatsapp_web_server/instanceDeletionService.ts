@@ -6,39 +6,68 @@ export async function deleteWhatsAppInstance(supabase: any, instanceId: string) 
   console.log('[Instance Deletion] 🗑️ Deleting WhatsApp Web.js instance:', instanceId);
 
   try {
-    const { data: instance } = await supabase
+    // Buscar dados da instância antes de deletar
+    const { data: instance, error: fetchError } = await supabase
       .from('whatsapp_instances')
-      .select('vps_instance_id, instance_name')
+      .select('vps_instance_id, instance_name, phone')
       .eq('id', instanceId)
       .single();
 
-    if (!instance?.vps_instance_id) {
-      console.log('[Instance Deletion] No VPS instance ID found, only deleting from database');
-    } else {
-      try {
-        console.log('[Instance Deletion] Deleting from VPS with corrected authentication');
-        await deleteVPSInstance(instance.vps_instance_id, instance.instance_name);
-        console.log('[Instance Deletion] Successfully deleted from VPS');
-      } catch (deleteError) {
-        console.error('[Instance Deletion] VPS delete error:', deleteError);
-        // Continue with database deletion even if VPS delete fails
-      }
+    if (fetchError) {
+      console.error('[Instance Deletion] ❌ Error fetching instance:', fetchError);
+      throw new Error(`Erro ao buscar instância: ${fetchError.message}`);
     }
 
-    // Delete from database
+    if (!instance) {
+      console.error('[Instance Deletion] ❌ Instance not found:', instanceId);
+      throw new Error('Instância não encontrada');
+    }
+
+    console.log('[Instance Deletion] 📱 Instance found:', {
+      id: instanceId,
+      vps_instance_id: instance.vps_instance_id,
+      instance_name: instance.instance_name,
+      phone: instance.phone
+    });
+
+    // Tentar deletar da VPS se houver vps_instance_id
+    if (instance.vps_instance_id) {
+      try {
+        console.log('[Instance Deletion] 🌐 Deleting from VPS:', instance.vps_instance_id);
+        await deleteVPSInstance(instance.vps_instance_id, instance.instance_name);
+        console.log('[Instance Deletion] ✅ Successfully deleted from VPS');
+      } catch (deleteError) {
+        console.error('[Instance Deletion] ⚠️ VPS delete error (continuing):', deleteError);
+        // Continue com a deleção do banco mesmo se a VPS falhar
+      }
+    } else {
+      console.log('[Instance Deletion] ℹ️ No VPS instance ID, skipping VPS deletion');
+    }
+
+    // Deletar do banco de dados
+    console.log('[Instance Deletion] 🗄️ Deleting from database:', instanceId);
     const { error: deleteError } = await supabase
       .from('whatsapp_instances')
       .delete()
       .eq('id', instanceId);
 
     if (deleteError) {
-      throw new Error(`Database delete error: ${deleteError.message}`);
+      console.error('[Instance Deletion] ❌ Database delete error:', deleteError);
+      throw new Error(`Erro ao deletar do banco: ${deleteError.message}`);
     }
 
-    console.log('[Instance Deletion] Instance successfully deleted from database');
+    console.log('[Instance Deletion] ✅ Instance successfully deleted from database');
 
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({
+        success: true,
+        message: 'Instância deletada com sucesso',
+        deletedInstance: {
+          id: instanceId,
+          instance_name: instance.instance_name,
+          phone: instance.phone
+        }
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
@@ -49,7 +78,7 @@ export async function deleteWhatsAppInstance(supabase: any, instanceId: string) 
       JSON.stringify({
         success: false,
         error: error.message,
-        action: 'deletion_error_handling',
+        action: 'delete_instance',
         timestamp: new Date().toISOString()
       }),
       { 

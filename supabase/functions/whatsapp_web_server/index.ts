@@ -5,6 +5,7 @@ import { corsHeaders } from './config.ts';
 import { authenticateUser } from './authentication.ts';
 import { createWhatsAppInstance } from './instanceCreationService.ts';
 import { getQRCodeAsync } from './qrCodeAsyncService.ts';
+import { deleteWhatsAppInstance } from './instanceDeletionService.ts';
 import { 
   listAllInstancesGlobal, 
   syncOrphanInstances, 
@@ -64,6 +65,10 @@ Deno.serve(async (req) => {
       case 'get_qr_code_async':
         console.log('[WhatsApp Server] 🔳 GET QR CODE ASYNC');
         return await getQRCodeAsync(supabase, body.instanceData.instanceId, user.id);
+
+      case 'delete_instance':
+        console.log('[WhatsApp Server] 🗑️ DELETE INSTANCE');
+        return await deleteWhatsAppInstance(supabase, body.instanceData.instanceId);
 
       case 'list_all_instances_global':
         console.log('[WhatsApp Server] 🌐 LIST ALL INSTANCES GLOBAL');
