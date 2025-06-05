@@ -1,4 +1,3 @@
-
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -10,12 +9,12 @@ export const VPS_CONFIG = {
   get baseUrl() {
     return `http://${this.host}:${this.port}`;
   },
-  authToken: 'default-token'
+  authToken: Deno.env.get('VPS_API_TOKEN') || 'default-token'
 };
 
 export const getVPSHeaders = () => {
   const token = VPS_CONFIG.authToken;
-  console.log(`[VPS Config] Using token: ${token.substring(0, 10)}... (length: ${token.length})`);
+  console.log(`[VPS Config] Using token from env: ${token ? token.substring(0, 10) + '...' : 'NOT SET'} (length: ${token?.length || 0})`);
   
   return {
     'Content-Type': 'application/json',
@@ -103,9 +102,9 @@ export const isValidVersion = (versionString: string): boolean => {
 
 export const testVPSConnection = async (): Promise<{success: boolean, error?: string, details?: any}> => {
   try {
-    console.log('[VPS Test] 🔧 Testando conectividade VPS (DIAGNÓSTICO)...');
+    console.log('[VPS Test] 🔧 Testando conectividade VPS (TOKEN CORRIGIDO)...');
     console.log('[VPS Test] URL:', VPS_CONFIG.baseUrl);
-    console.log('[VPS Test] Token:', VPS_CONFIG.authToken);
+    console.log('[VPS Test] Token source:', VPS_CONFIG.authToken === 'default-token' ? 'HARDCODED (PROBLEMA!)' : 'ENV SECRET');
     
     const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
       method: 'GET',
@@ -149,8 +148,8 @@ export const testVPSConnection = async (): Promise<{success: boolean, error?: st
   }
 };
 
-console.log('[Config] VPS Config initialized (DIAGNÓSTICO ATIVO):');
+console.log('[Config] VPS Config initialized (TOKEN CORRIGIDO):');
 console.log('[Config] Host:', VPS_CONFIG.host);
 console.log('[Config] Port:', VPS_CONFIG.port);
 console.log('[Config] Base URL:', VPS_CONFIG.baseUrl);
-console.log('[Config] Auth Token:', VPS_CONFIG.authToken);
+console.log('[Config] Auth Token Source:', VPS_CONFIG.authToken === 'default-token' ? 'HARDCODED (VERIFICAR!)' : 'ENV SECRET (OK)');
