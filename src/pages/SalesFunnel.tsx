@@ -48,6 +48,11 @@ export default function SalesFunnel() {
 
   useNewLeadIntegration(selectedFunnel?.id);
 
+  // Filtrar colunas para mostrar apenas Ganhos e Perdidos na aba won-lost
+  const displayColumns = activeTab === "won-lost" 
+    ? columns.filter(col => col.title === "GANHO" || col.title === "PERDIDO")
+    : columns;
+
   const handleOpenChat = (lead: KanbanLead) => {
     navigate(`/whatsapp-chat?leadId=${lead.id}`);
   };
@@ -99,7 +104,7 @@ export default function SalesFunnel() {
             <div className="mb-6">
               <div className="w-20 h-20 bg-gradient-to-br from-ticlin/20 to-ticlin/40 rounded-full mx-auto mb-4 flex items-center justify-center">
                 <svg className="w-10 h-10 text-ticlin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
               <h3 className="text-2xl font-bold text-gray-800 mb-2">Nenhum Funil Encontrado</h3>
@@ -154,11 +159,11 @@ export default function SalesFunnel() {
         {/* Board do Kanban */}
         <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 shadow-2xl">
           <KanbanBoard
-            columns={columns}
+            columns={displayColumns}
             onColumnsChange={() => {}}
             onOpenLeadDetail={openLeadDetail}
-            onColumnUpdate={updateColumn}
-            onColumnDelete={deleteColumn}
+            onColumnUpdate={activeTab === "funnel" ? updateColumn : undefined}
+            onColumnDelete={activeTab === "funnel" ? deleteColumn : undefined}
             onOpenChat={handleOpenChat}
             onMoveToWonLost={handleMoveToWonLost}
             onReturnToFunnel={returnLeadToFunnel}

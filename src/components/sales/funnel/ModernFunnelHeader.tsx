@@ -44,9 +44,9 @@ export function ModernFunnelHeader({
           </p>
         </div>
 
-        {/* Métricas em Cards */}
-        <div className="flex flex-wrap gap-4">
-          {activeTab === "funnel" && (
+        {/* Métricas em Cards - apenas no funil principal */}
+        {activeTab === "funnel" && (
+          <div className="flex flex-wrap gap-4">
             <div className="bg-white/20 backdrop-blur-lg rounded-2xl p-4 min-w-[120px] border border-white/30">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-500/20 rounded-xl">
@@ -58,21 +58,19 @@ export function ModernFunnelHeader({
                 </div>
               </div>
             </div>
-          )}
 
-          <div className="bg-white/20 backdrop-blur-lg rounded-2xl p-4 min-w-[120px] border border-white/30">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-500/20 rounded-xl">
-                <Award className="w-5 h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-800">{wonLeads}</p>
-                <p className="text-sm text-gray-600">Ganhos</p>
+            <div className="bg-white/20 backdrop-blur-lg rounded-2xl p-4 min-w-[120px] border border-white/30">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-green-500/20 rounded-xl">
+                  <Award className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-800">{wonLeads}</p>
+                  <p className="text-sm text-gray-600">Ganhos</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          {activeTab === "won-lost" && (
             <div className="bg-white/20 backdrop-blur-lg rounded-2xl p-4 min-w-[120px] border border-white/30">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-red-500/20 rounded-xl">
@@ -84,20 +82,20 @@ export function ModernFunnelHeader({
                 </div>
               </div>
             </div>
-          )}
 
-          <div className="bg-white/20 backdrop-blur-lg rounded-2xl p-4 min-w-[120px] border border-white/30">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-ticlin/20 rounded-xl">
-                <TrendingUp className="w-5 h-5 text-ticlin-dark" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-800">{conversionRate}%</p>
-                <p className="text-sm text-gray-600">Conversão</p>
+            <div className="bg-white/20 backdrop-blur-lg rounded-2xl p-4 min-w-[120px] border border-white/30">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-ticlin/20 rounded-xl">
+                  <TrendingUp className="w-5 h-5 text-ticlin-dark" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-gray-800">{conversionRate}%</p>
+                  <p className="text-sm text-gray-600">Conversão</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
