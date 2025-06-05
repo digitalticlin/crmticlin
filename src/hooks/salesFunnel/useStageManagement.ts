@@ -1,100 +1,147 @@
 
-import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { KanbanColumn, KanbanLead } from "@/types/kanban";
+import { KanbanStage } from "@/types/funnel";
+import { useCompanyData } from "../useCompanyData";
 
-export interface KanbanStage {
-  id: string;
-  title: string;
-  color?: string;
-  is_fixed?: boolean;
-  is_won?: boolean;
-  is_lost?: boolean;
-  order_position: number;
-  funnel_id: string;
-  company_id: string;
-}
+export const useStageManagement = (
+  funnelId?: string, 
+  stages: KanbanStage[] = [], 
+  setColumns?: (fn: (prev: KanbanColumn[]) => KanbanColumn[]) => void,
+  refetchStages?: () => void,
+  refetchLeads?: () => void
+) => {
+  const { companyId } = useCompanyData();
 
-export function useStageManagement(
-  funnelId: string,
-  companyId: string,
-  limit: number = 7
-) {
-  const [stages, setStages] = useState<KanbanStage[]>([]);
-  const [loading, setLoading] = useState(false);
+  // Função para mover lead entre estágios
+  const moveLeadToStage = async (lead: KanbanLead, newColumnId: string) => {
+    if (!funnelId) {
+      toast.error("Funil não selecionado");
+      return;
+    }
 
-  useEffect(() => {
-    if (funnelId && companyId) loadStages();
-    // eslint-disable-next-line
-  }, [funnelId, companyId]);
+    try {
+      // Atualizar no banco
+      const { error } = await supabase
+        .from("leads")
+        .update({ 
+          kanban_stage_id: newColumnId,
+          funnel_id: funnelId 
+        })
+        .eq("id", lead.id);
 
-  const loadStages = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("kanban_stages")
-      .select("*")
-      .eq("funnel_id", funnelId)
-      .order("order_position", { ascending: true });
-    if (!error && data) setStages(data);
-    setLoading(false);
-  };
+      if (error) throw error;
 
-  // CREATE
-  const addStage = async (title: string, color: string = "#e0e0e0") => {
-    if (stages.length >= limit) throw new Error("Limite de etapas atingido.");
-    const { data, error } = await supabase
-      .from("kanban_stages")
-      .insert({
-        company_id: companyId,
-        funnel_id: funnelId,
-        title,
-        color,
-        is_fixed: false,
-        order_position:
-          (stages[stages.length - 1]?.order_position || 0) + 1,
-      })
-      .select()
-      .single();
-    if (!error && data) {
-      setStages((prev) => [...prev, data]);
-      await loadStages();
+      // Atualizar estado local se setColumns estiver disponível
+      if (setColumns) {
+        setColumns(prevColumns => 
+          prevColumns.map(col => ({
+            ...col,
+            leads: col.id === lead.columnId
+              ? col.leads.filter(l => l.id !== lead.id)
+              : col.id === newColumnId
+              ? [{ ...lead, columnId: newColumnId }, ...col.leads]
+              : col.leads
+          }))
+        );
+      }
+
+      toast.success("Lead movido com sucesso");
+    } catch (error) {
+      console.error("Erro ao mover lead:", error);
+      toast.error("Erro ao mover lead");
     }
   };
 
-  // UPDATE
-  const updateStage = async (stageId: string, updates: Partial<KanbanStage>) => {
-    const { data, error } = await supabase
-      .from("kanban_stages")
-      .update(updates)
-      .eq("id", stageId)
-      .select()
-      .single();
-    if (!error && data) {
-      setStages((prev) =>
-        prev.map((s) => (s.id === stageId ? { ...s, ...updates } : s))
-      );
-      await loadStages();
+  // Função para adicionar nova coluna (estágio)
+  const addColumn = async (title: string, color: string = "#e0e0e0") => {
+    if (!funnelId) {
+      toast.error("Funil não selecionado");
+      return;
+    }
+
+    try {
+      const maxOrder = Math.max(...stages.map(s => s.order_position), 0);
+      
+      const { error } = await supabase
+        .from("kanban_stages")
+        .insert({
+          title,
+          color,
+          company_id: companyId,
+          funnel_id: funnelId,
+          order_position: maxOrder + 1,
+          is_fixed: false,
+          is_won: false,
+          is_lost: false
+        });
+
+      if (error) throw error;
+
+      if (refetchStages) await refetchStages();
+      toast.success("Estágio adicionado com sucesso");
+    } catch (error) {
+      console.error("Erro ao adicionar estágio:", error);
+      toast.error("Erro ao adicionar estágio");
     }
   };
 
-  // DELETE
-  const removeStage = async (stageId: string) => {
-    const { error } = await supabase
-      .from("kanban_stages")
-      .delete()
-      .eq("id", stageId);
-    if (!error) {
-      setStages((prev) => prev.filter((s) => s.id !== stageId));
-      await loadStages();
+  // Função para atualizar coluna (estágio)
+  const updateColumn = async (updatedColumn: KanbanColumn) => {
+    try {
+      const { error } = await supabase
+        .from("kanban_stages")
+        .update({
+          title: updatedColumn.title,
+          color: updatedColumn.color
+        })
+        .eq("id", updatedColumn.id);
+
+      if (error) throw error;
+
+      if (refetchStages) await refetchStages();
+      toast.success("Estágio atualizado com sucesso");
+    } catch (error) {
+      console.error("Erro ao atualizar estágio:", error);
+      toast.error("Erro ao atualizar estágio");
+    }
+  };
+
+  // Função para deletar coluna (estágio)
+  const deleteColumn = async (columnId: string) => {
+    try {
+      // Primeiro, mover todos os leads para o primeiro estágio disponível
+      const firstStage = stages.find(s => !s.is_won && !s.is_lost);
+      
+      if (firstStage && firstStage.id !== columnId) {
+        await supabase
+          .from("leads")
+          .update({ kanban_stage_id: firstStage.id })
+          .eq("kanban_stage_id", columnId);
+      }
+
+      // Depois deletar o estágio
+      const { error } = await supabase
+        .from("kanban_stages")
+        .delete()
+        .eq("id", columnId);
+
+      if (error) throw error;
+
+      if (refetchStages) await refetchStages();
+      if (refetchLeads) await refetchLeads();
+      toast.success("Estágio removido com sucesso");
+    } catch (error) {
+      console.error("Erro ao remover estágio:", error);
+      toast.error("Erro ao remover estágio");
     }
   };
 
   return {
-    stages,
-    loading,
-    addStage,
-    updateStage,
-    removeStage,
-    setStages,
-    loadStages,
+    moveLeadToStage,
+    addColumn,
+    updateColumn,
+    deleteColumn
   };
-}
+};

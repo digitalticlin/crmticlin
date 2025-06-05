@@ -1,7 +1,6 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { 
   Settings, 
   Tag, 
@@ -146,7 +145,6 @@ export const ModernFunnelControlBar = ({
       <CreateLeadModal
         isOpen={isLeadModalOpen}
         onClose={() => setIsLeadModalOpen(false)}
-        stages={[]} // Será preenchido pelo contexto
       />
 
       <FunnelConfigModal

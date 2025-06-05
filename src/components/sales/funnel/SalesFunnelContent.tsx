@@ -39,7 +39,7 @@ export const SalesFunnelContent = () => {
     isAdmin
   } = useSalesFunnelContext();
 
-  // Obter leads das colunas Ganho e Perdido para os filtros (buscar das stages completas)
+  // Obter leads das colunas Ganho e Perdido para os filtros
   const wonLostLeads = stages
     ?.filter(stage => stage.title === "GANHO" || stage.title === "PERDIDO")
     .flatMap(stage => {
@@ -98,8 +98,8 @@ export const SalesFunnelContent = () => {
       <ModernFunnelHeader 
         selectedFunnel={selectedFunnel!}
         totalLeads={columns.reduce((acc, col) => acc + col.leads.length, 0)}
-        wonLeads={stages?.find(stage => stage.title === "GANHO")?.leads?.length || 0}
-        lostLeads={stages?.find(stage => stage.title === "PERDIDO")?.leads?.length || 0}
+        wonLeads={0}
+        lostLeads={0}
         activeTab={activeTab}
       />
 

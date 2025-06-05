@@ -12,12 +12,11 @@ import { useSalesFunnelContext } from "../SalesFunnelProvider";
 interface CreateLeadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  stages: any[];
 }
 
-export const CreateLeadModal = ({ isOpen, onClose, stages }: CreateLeadModalProps) => {
+export const CreateLeadModal = ({ isOpen, onClose }: CreateLeadModalProps) => {
   const { createLead, isLoading } = useLeadCreation();
-  const { stages: contextStages, availableTags } = useSalesFunnelContext();
+  const { stages, availableTags } = useSalesFunnelContext();
   
   const [formData, setFormData] = useState({
     name: "",
@@ -31,7 +30,7 @@ export const CreateLeadModal = ({ isOpen, onClose, stages }: CreateLeadModalProp
     notes: ""
   });
 
-  const availableStages = contextStages?.filter(stage => 
+  const availableStages = stages?.filter(stage => 
     stage.title !== "GANHO" && stage.title !== "PERDIDO"
   ) || [];
 
