@@ -169,18 +169,84 @@ async function initializeWhatsAppClient(instance) {
       saveInstancesState(); // Salvar estado atualizado
     });
 
+    // CORREÇÃO CRÍTICA: Capturar TODAS as mensagens (enviadas e recebidas)
     client.on('message_create', async (message) => {
+      console.log(`📨 EVENTO message_create capturado para ${instance.instanceId}:`, {
+        from: message.from,
+        to: message.to,
+        fromMe: message.fromMe,
+        body: message.body?.substring(0, 50) + '...',
+        timestamp: new Date().toISOString()
+      });
+      
       if (instance.webhookUrl) {
         try {
           await sendWebhook(instance.webhookUrl, {
             event: 'messages.upsert',
             instanceName: instance.sessionName,
-            data: { messages: [message] },
+            data: { 
+              messages: [{
+                key: {
+                  id: message.id._serialized || message.id,
+                  remoteJid: message.fromMe ? message.to : message.from,
+                  fromMe: message.fromMe
+                },
+                message: {
+                  conversation: message.body,
+                  extendedTextMessage: {
+                    text: message.body
+                  }
+                }
+              }] 
+            },
             timestamp: new Date().toISOString(),
             server_url: `http://localhost:${PORT}`
           });
+          
+          console.log(`✅ Webhook enviado com sucesso para mensagem ${message.fromMe ? 'ENVIADA' : 'RECEBIDA'}`);
         } catch (error) {
-          console.error(`❌ Erro ao enviar webhook: ${error.message}`);
+          console.error(`❌ Erro ao enviar webhook para ${instance.instanceId}:`, error.message);
+        }
+      }
+    });
+
+    // ADICIONAL: Capturar mensagens recebidas também
+    client.on('message', async (message) => {
+      console.log(`📥 EVENTO message (recebida) capturado para ${instance.instanceId}:`, {
+        from: message.from,
+        fromMe: message.fromMe,
+        body: message.body?.substring(0, 50) + '...',
+        timestamp: new Date().toISOString()
+      });
+      
+      // Só processar se não for fromMe (para evitar duplicação com message_create)
+      if (!message.fromMe && instance.webhookUrl) {
+        try {
+          await sendWebhook(instance.webhookUrl, {
+            event: 'messages.upsert',
+            instanceName: instance.sessionName,
+            data: { 
+              messages: [{
+                key: {
+                  id: message.id._serialized || message.id,
+                  remoteJid: message.from,
+                  fromMe: false
+                },
+                message: {
+                  conversation: message.body,
+                  extendedTextMessage: {
+                    text: message.body
+                  }
+                }
+              }] 
+            },
+            timestamp: new Date().toISOString(),
+            server_url: `http://localhost:${PORT}`
+          });
+          
+          console.log(`✅ Webhook enviado para mensagem RECEBIDA`);
+        } catch (error) {
+          console.error(`❌ Erro ao enviar webhook:`, error.message);
         }
       }
     });
@@ -198,6 +264,13 @@ async function initializeWhatsAppClient(instance) {
 // Função para enviar webhook
 async function sendWebhook(webhookUrl, data) {
   const fetch = (await import('node-fetch')).default;
+  
+  console.log(`🔗 Enviando webhook para: ${webhookUrl}`, {
+    event: data.event,
+    instanceName: data.instanceName,
+    messageType: data.data?.messages?.[0]?.key?.fromMe ? 'SENT' : 'RECEIVED',
+    timestamp: data.timestamp
+  });
   
   await fetch(webhookUrl, {
     method: 'POST',
