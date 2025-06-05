@@ -23,8 +23,16 @@ app.use(express.json());
 // Token para autenticação
 const API_TOKEN = process.env.VPS_API_TOKEN || 'default-token';
 
-// URL do webhook Supabase
-const SUPABASE_WEBHOOK_URL = process.env.SUPABASE_WEBHOOK_URL || 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web';
+// URL do webhook Supabase - GLOBAL
+let GLOBAL_WEBHOOK_URL = process.env.SUPABASE_WEBHOOK_URL || 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web';
+let GLOBAL_WEBHOOK_EVENTS = ['messages.upsert', 'connection.update'];
+let GLOBAL_WEBHOOK_CONFIG = {
+  active: true,
+  url: GLOBAL_WEBHOOK_URL,
+  events: GLOBAL_WEBHOOK_EVENTS,
+  description: 'Webhook global para multi-tenant CRM',
+  configuredAt: new Date().toISOString()
+};
 
 // Armazenar instâncias ativas com estado de reconexão
 const activeInstances = new Map();
@@ -37,12 +45,22 @@ const RECONNECT_CONFIG = {
   sessionBackupInterval: 60000
 };
 
-// Função para enviar webhook ao Supabase
+// Função para enviar webhook ao Supabase - ATUALIZADA PARA USAR CONFIG GLOBAL
 async function sendWebhookToSupabase(event, instanceId, data = {}) {
+  if (!GLOBAL_WEBHOOK_CONFIG.active) {
+    console.log(`⚠️ [v${SERVER_VERSION}] Webhook global desativado - não enviando evento ${event}`);
+    return;
+  }
+
+  if (!GLOBAL_WEBHOOK_CONFIG.events.includes(event)) {
+    console.log(`⚠️ [v${SERVER_VERSION}] Evento ${event} não está na lista de eventos configurados`);
+    return;
+  }
+
   try {
     console.log(`📡 [v${SERVER_VERSION}] Enviando webhook: ${event} para instância ${instanceId}`);
     
-    const response = await fetch(SUPABASE_WEBHOOK_URL, {
+    const response = await fetch(GLOBAL_WEBHOOK_CONFIG.url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -50,9 +68,10 @@ async function sendWebhookToSupabase(event, instanceId, data = {}) {
       },
       body: JSON.stringify({
         event,
-        instanceId,
+        instanceName: instanceId,
         data,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        server_url: `http://localhost:${PORT}`
       })
     });
 
@@ -266,7 +285,10 @@ function setupClientEvents(instanceId, client, instance) {
     instance.lastActivity = new Date().toISOString();
     
     // Enviar webhook de desconexão
-    await sendWebhookToSupabase('disconnected', instanceId, { reason });
+    await sendWebhookToSupabase('connection.update', instanceId, { 
+      connection: 'close',
+      reason 
+    });
     
     // Iniciar reconexão automática se não foi desconexão manual
     if (reason !== 'LOGOUT' && !instance.manualDisconnect) {
@@ -286,26 +308,40 @@ function setupClientEvents(instanceId, client, instance) {
     await sendWebhookToSupabase('auth_failure', instanceId, { message: msg });
   });
 
-  // Escutar mensagens recebidas
+  // Escutar mensagens recebidas - WEBHOOK MULTI-TENANT
   client.on('message', async (message) => {
     try {
       console.log(`💬 [v${SERVER_VERSION}] Mensagem recebida em ${instanceId}:`, message.from);
       
-      // Enviar webhook de mensagem
-      await sendWebhookToSupabase('message', instanceId, {
-        id: message.id._serialized,
-        from: message.from,
-        to: message.to,
-        body: message.body,
-        type: message.type,
-        timestamp: message.timestamp,
-        notifyName: message._data.notifyName || null,
-        mediaUrl: message.hasMedia ? 'pending' : null
+      // Enviar webhook de mensagem para processamento multi-tenant
+      await sendWebhookToSupabase('messages.upsert', instanceId, {
+        messages: [{
+          key: {
+            id: message.id._serialized,
+            remoteJid: message.from,
+            fromMe: message.fromMe
+          },
+          message: {
+            conversation: message.body,
+            extendedTextMessage: message.body ? { text: message.body } : null
+          }
+        }]
       });
       
     } catch (error) {
       console.error(`❌ [v${SERVER_VERSION}] Erro ao processar mensagem para ${instanceId}:`, error);
     }
+  });
+
+  // Status de conexão
+  client.on('change_state', async (state) => {
+    console.log(`🔄 [v${SERVER_VERSION}] Mudança de estado ${instanceId}:`, state);
+    instance.connectionState = state;
+    
+    await sendWebhookToSupabase('connection.update', instanceId, { 
+      connection: state === 'CONNECTED' ? 'open' : 'close',
+      state 
+    });
   });
 }
 
@@ -341,6 +377,146 @@ function startSessionBackup() {
     }
   }, RECONNECT_CONFIG.sessionBackupInterval);
 }
+
+// ===== NOVO ENDPOINT PARA CONFIGURAÇÃO GLOBAL DO WEBHOOK =====
+app.post('/webhook/global', authenticateToken, async (req, res) => {
+  console.log(`🌐 [v${SERVER_VERSION}] Configurando webhook global`);
+
+  try {
+    const { webhookUrl, events, description } = req.body;
+
+    if (!webhookUrl) {
+      return res.status(400).json({
+        success: false,
+        error: 'webhookUrl é obrigatório',
+        version: SERVER_VERSION
+      });
+    }
+
+    // Validar URL do webhook
+    try {
+      new URL(webhookUrl);
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        error: 'webhookUrl deve ser uma URL válida',
+        version: SERVER_VERSION
+      });
+    }
+
+    // Atualizar configuração global
+    GLOBAL_WEBHOOK_URL = webhookUrl;
+    GLOBAL_WEBHOOK_EVENTS = events || ['messages.upsert', 'connection.update'];
+    GLOBAL_WEBHOOK_CONFIG = {
+      active: true,
+      url: webhookUrl,
+      events: GLOBAL_WEBHOOK_EVENTS,
+      description: description || 'Webhook global configurado via API',
+      configuredAt: new Date().toISOString(),
+      totalInstances: activeInstances.size
+    };
+
+    console.log(`✅ [v${SERVER_VERSION}] Webhook global configurado:`, GLOBAL_WEBHOOK_CONFIG);
+
+    // Testar webhook se solicitado
+    const testWebhook = req.body.testWebhook || false;
+    let testResult = null;
+
+    if (testWebhook) {
+      try {
+        console.log(`🧪 [v${SERVER_VERSION}] Testando webhook global...`);
+        
+        const testResponse = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${API_TOKEN}`
+          },
+          body: JSON.stringify({
+            event: 'webhook.test',
+            instanceName: 'test-instance',
+            data: {
+              message: 'Teste de configuração do webhook global',
+              timestamp: new Date().toISOString(),
+              server_version: SERVER_VERSION
+            },
+            server_url: `http://localhost:${PORT}`
+          })
+        });
+
+        testResult = {
+          success: testResponse.ok,
+          status: testResponse.status,
+          statusText: testResponse.statusText,
+          responseTime: Date.now()
+        };
+
+        if (testResponse.ok) {
+          console.log(`✅ [v${SERVER_VERSION}] Teste do webhook bem-sucedido`);
+        } else {
+          console.log(`⚠️ [v${SERVER_VERSION}] Teste do webhook falhou: ${testResponse.status}`);
+        }
+      } catch (testError) {
+        console.error(`❌ [v${SERVER_VERSION}] Erro no teste do webhook:`, testError.message);
+        testResult = {
+          success: false,
+          error: testError.message
+        };
+      }
+    }
+
+    res.json({
+      success: true,
+      message: 'Webhook global configurado com sucesso',
+      config: GLOBAL_WEBHOOK_CONFIG,
+      testResult,
+      affectedInstances: activeInstances.size,
+      version: SERVER_VERSION,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error(`❌ [v${SERVER_VERSION}] Erro na configuração do webhook global:`, error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      version: SERVER_VERSION
+    });
+  }
+});
+
+// ===== ENDPOINT PARA STATUS DO WEBHOOK GLOBAL =====
+app.get('/webhook/status', authenticateToken, (req, res) => {
+  console.log(`📊 [v${SERVER_VERSION}] Verificando status do webhook global`);
+
+  res.json({
+    success: true,
+    globalWebhook: GLOBAL_WEBHOOK_CONFIG,
+    activeInstances: activeInstances.size,
+    instancesList: Array.from(activeInstances.keys()),
+    server: {
+      version: SERVER_VERSION,
+      port: PORT,
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString()
+    }
+  });
+});
+
+// ===== ENDPOINT PARA DESATIVAR WEBHOOK GLOBAL =====
+app.delete('/webhook/global', authenticateToken, (req, res) => {
+  console.log(`🗑️ [v${SERVER_VERSION}] Desativando webhook global`);
+
+  GLOBAL_WEBHOOK_CONFIG.active = false;
+  GLOBAL_WEBHOOK_CONFIG.deactivatedAt = new Date().toISOString();
+
+  res.json({
+    success: true,
+    message: 'Webhook global desativado',
+    config: GLOBAL_WEBHOOK_CONFIG,
+    version: SERVER_VERSION
+  });
+});
 
 // ===== NOVO ENDPOINT PARA ENVIO DE MENSAGENS =====
 app.post('/send', authenticateToken, async (req, res) => {
@@ -420,7 +596,7 @@ app.get('/health', (req, res) => {
     permanent_mode: true,
     health_check_enabled: true,
     auto_reconnect_enabled: true,
-    webhook_url: SUPABASE_WEBHOOK_URL,
+    global_webhook: GLOBAL_WEBHOOK_CONFIG,
     endpoints_available: [
       '/health',
       '/status',
@@ -429,7 +605,9 @@ app.get('/health', (req, res) => {
       '/instance/delete',
       '/instance/status',
       '/instance/qr',
-      '/send'
+      '/send',
+      '/webhook/global',
+      '/webhook/status'
     ]
   });
 });
@@ -448,13 +626,18 @@ app.get('/status', (req, res) => {
   });
 });
 
-// Endpoint raiz
+// Endpoint raiz - ATUALIZADO
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: 'WhatsApp Web.js Server v3.5 funcionando - QR Real OBRIGATÓRIO',
+    message: 'WhatsApp Web.js Server v4.0 - Webhook Global Configurável',
     version: SERVER_VERSION,
     hash: SERVER_HASH,
+    globalWebhook: {
+      active: GLOBAL_WEBHOOK_CONFIG.active,
+      url: GLOBAL_WEBHOOK_CONFIG.url,
+      events: GLOBAL_WEBHOOK_CONFIG.events
+    },
     endpoints: [
       'GET /health',
       'GET /status', 
@@ -463,7 +646,10 @@ app.get('/', (req, res) => {
       'POST /instance/delete',
       'POST /instance/status',
       'POST /instance/qr',
-      'POST /send'
+      'POST /send',
+      'POST /webhook/global - NOVO!',
+      'GET /webhook/status - NOVO!',
+      'DELETE /webhook/global - NOVO!'
     ],
     timestamp: new Date().toISOString(),
     auth_configured: API_TOKEN !== 'default-token'
@@ -841,12 +1027,15 @@ app.use((error, req, res, next) => {
 
 // Iniciar servidor
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 WhatsApp Web.js Server v${SERVER_VERSION} - MODO PERMANENTE rodando na porta ${PORT}`);
+  console.log(`🚀 WhatsApp Web.js Server v${SERVER_VERSION} - MODO PERMANENTE com Webhook Global rodando na porta ${PORT}`);
   console.log(`🔄 Auto-reconexão habilitada`);
   console.log(`💾 Backup automático de sessões habilitado`);
   console.log(`🔍 Health check habilitado (intervalo: ${RECONNECT_CONFIG.healthCheckInterval}ms)`);
-  console.log(`📡 Webhook automático habilitado: ${SUPABASE_WEBHOOK_URL}`);
+  console.log(`🌐 Webhook global configurável habilitado: ${GLOBAL_WEBHOOK_CONFIG.url}`);
+  console.log(`📡 Eventos monitorados: ${GLOBAL_WEBHOOK_CONFIG.events.join(', ')}`);
   console.log(`💚 Health: http://localhost:${PORT}/health`);
+  console.log(`🌐 Webhook Config: POST http://localhost:${PORT}/webhook/global`);
+  console.log(`📊 Webhook Status: GET http://localhost:${PORT}/webhook/status`);
   console.log(`🔑 Token: ${API_TOKEN === 'default-token' ? '⚠️  USANDO TOKEN PADRÃO' : '✅ Token configurado'}`);
   
   // Criar diretórios necessários
