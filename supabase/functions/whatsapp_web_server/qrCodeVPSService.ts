@@ -5,11 +5,10 @@ async function makeVPSRequest(url: string, options: RequestInit, retries = 3): P
   for (let i = 0; i < retries; i++) {
     try {
       console.log(`[QR VPS] 🔄 Tentativa ${i + 1}/${retries} para: ${url}`);
-      console.log(`[QR VPS] 📤 Headers:`, options.headers);
       
       const response = await fetch(url, {
         ...options,
-        signal: AbortSignal.timeout(20000), // 20 segundos timeout
+        signal: AbortSignal.timeout(30000), // 30 segundos timeout
       });
       
       console.log(`[QR VPS] 📥 Status: ${response.status} ${response.statusText}`);
@@ -22,7 +21,8 @@ async function makeVPSRequest(url: string, options: RequestInit, retries = 3): P
         throw error;
       }
       
-      const delay = Math.pow(2, i) * 1000;
+      // Backoff exponencial mais agressivo para retry de rede
+      const delay = Math.pow(2, i) * 2000; // 2s, 4s, 8s
       console.log(`[QR VPS] ⏳ Aguardando ${delay}ms antes da próxima tentativa...`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
@@ -32,7 +32,7 @@ async function makeVPSRequest(url: string, options: RequestInit, retries = 3): P
 }
 
 export async function fetchQRCodeFromVPS(vpsInstanceId: string) {
-  console.log('[QR VPS] 🔄 Buscando QR Code na VPS...');
+  console.log('[QR VPS] 🔄 Buscando QR Code na VPS com retry melhorado...');
   
   try {
     const vpsResponse = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/qr`, {
@@ -45,41 +45,45 @@ export async function fetchQRCodeFromVPS(vpsInstanceId: string) {
       const errorText = await vpsResponse.text();
       console.error(`[QR VPS] ❌ VPS retornou erro: ${vpsResponse.status} - ${errorText}`);
       
-      let errorMessage = `VPS retornou status ${vpsResponse.status}`;
-      
-      try {
-        const errorData = JSON.parse(errorText);
-        if (errorData.error) {
-          errorMessage = errorData.error;
+      // Verificar se é erro esperado de QR Code ainda não gerado
+      if (vpsResponse.status === 404) {
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.error && 
+              (errorData.error.includes('ainda não foi gerado') || 
+               errorData.error.includes('inicializando') ||
+               errorData.error.includes('waiting_scan'))) {
+            console.log('[QR VPS] ⏳ QR Code ainda sendo gerado pela VPS (esperado)');
+            return {
+              success: false,
+              waiting: true,
+              retryAfter: 5000, // Retry mais rápido
+              message: 'QR Code ainda sendo gerado. Continuando polling...'
+            };
+          }
+        } catch (parseError) {
+          console.error('[QR VPS] ❌ Erro ao fazer parse do erro da VPS:', parseError);
         }
-        
-        if (errorText.includes('ainda não foi gerado') || 
-            errorText.includes('inicializando') ||
-            errorText.includes('waiting_scan')) {
-          console.log('[QR VPS] ⏳ QR Code ainda sendo gerado pela VPS (normal)');
-          return {
-            success: false,
-            waiting: true,
-            retryAfter: 10000,
-            message: 'QR Code ainda sendo gerado. Tente novamente em alguns segundos.'
-          };
-        }
-      } catch (parseError) {
-        console.error('[QR VPS] ❌ Erro ao fazer parse do erro da VPS:', parseError);
       }
       
-      throw new Error(errorMessage);
+      throw new Error(`VPS retornou status ${vpsResponse.status}: ${errorText}`);
     }
 
     const responseText = await vpsResponse.text();
-    console.log('[QR VPS] 📥 VPS Raw Response:', responseText);
+    console.log('[QR VPS] 📥 VPS Raw Response:', responseText.substring(0, 200) + '...');
     
     try {
       const vpsData = JSON.parse(responseText);
-      console.log('[QR VPS] 📋 VPS Parsed Data:', vpsData);
+      console.log('[QR VPS] 📋 VPS Parsed Data:', {
+        hasQrCode: !!vpsData.qrCode,
+        qrCodeLength: vpsData.qrCode?.length || 0,
+        status: vpsData.status,
+        success: vpsData.success
+      });
       
       if (vpsData.qrCode && isRealQRCode(vpsData.qrCode)) {
         console.log('[QR VPS] 🎉 QR Code REAL obtido da VPS');
+        console.log('[QR VPS] 📏 Tamanho: ', vpsData.qrCode.length, 'caracteres');
         return {
           success: true,
           qrCode: vpsData.qrCode,
@@ -90,13 +94,13 @@ export async function fetchQRCodeFromVPS(vpsInstanceId: string) {
         return {
           success: false,
           waiting: true,
-          retryAfter: 10000,
-          message: 'QR Code ainda sendo gerado. Tente novamente em alguns segundos.'
+          retryAfter: 5000,
+          message: 'QR Code ainda sendo gerado. Continuando polling...'
         };
       }
     } catch (parseError) {
       console.error('[QR VPS] ❌ Erro ao fazer parse da resposta VPS:', parseError);
-      throw new Error(`VPS retornou resposta inválida: ${responseText}`);
+      throw new Error(`VPS retornou resposta inválida: ${responseText.substring(0, 100)}...`);
     }
 
   } catch (fetchError) {
