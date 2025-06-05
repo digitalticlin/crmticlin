@@ -1,28 +1,25 @@
-
 import { useState, useEffect } from "react";
 import { useCompanyData } from "../useCompanyData";
-import { useFunnelManagement } from "./useFunnelManagement";
 import { useStageDatabase } from "./useStageDatabase";
 import { useLeadsDatabase } from "./useLeadsDatabase";
 import { useTagDatabase } from "./useTagDatabase";
-import { KanbanColumn, KanbanLead, FIXED_COLUMN_IDS } from "@/types/kanban";
+import { KanbanColumn, KanbanLead } from "@/types/kanban";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export const useRealSalesFunnel = () => {
+export const useRealSalesFunnel = (funnelId?: string) => {
   const [selectedLead, setSelectedLead] = useState<KanbanLead | null>(null);
   const [isLeadDetailOpen, setIsLeadDetailOpen] = useState(false);
   const [columns, setColumns] = useState<KanbanColumn[]>([]);
 
   const { companyId } = useCompanyData();
-  const { funnels, selectedFunnel, setSelectedFunnel, createFunnel } = useFunnelManagement(companyId);
-  const { stages, refetchStages } = useStageDatabase(selectedFunnel?.id);
-  const { leads, refetchLeads, updateLead, addTagToLead, removeTagFromLead } = useLeadsDatabase(selectedFunnel?.id);
+  const { stages, refetchStages } = useStageDatabase(funnelId);
+  const { leads, refetchLeads, updateLead, addTagToLead, removeTagFromLead } = useLeadsDatabase(funnelId);
   const { tags, createTag } = useTagDatabase(companyId);
 
   // Converter stages e leads do banco para formato de colunas do Kanban
   useEffect(() => {
-    if (!stages.length || !selectedFunnel) {
+    if (!stages.length || !funnelId) {
       setColumns([]);
       return;
     }
@@ -41,7 +38,7 @@ export const useRealSalesFunnel = () => {
     });
 
     setColumns(newColumns);
-  }, [stages, leads, selectedFunnel]);
+  }, [stages, leads, funnelId]);
 
   // Função para abrir detalhes do lead
   const openLeadDetail = (lead: KanbanLead) => {
@@ -51,7 +48,7 @@ export const useRealSalesFunnel = () => {
 
   // Função para mover lead entre estágios
   const moveLeadToStage = async (lead: KanbanLead, newColumnId: string) => {
-    if (!selectedFunnel) {
+    if (!funnelId) {
       toast.error("Funil não selecionado");
       return;
     }
@@ -62,7 +59,7 @@ export const useRealSalesFunnel = () => {
         .from("leads")
         .update({ 
           kanban_stage_id: newColumnId,
-          funnel_id: selectedFunnel.id 
+          funnel_id: funnelId 
         })
         .eq("id", lead.id);
 
@@ -89,7 +86,7 @@ export const useRealSalesFunnel = () => {
 
   // Função para adicionar nova coluna (estágio)
   const addColumn = async (title: string, color: string = "#e0e0e0") => {
-    if (!selectedFunnel) {
+    if (!funnelId) {
       toast.error("Funil não selecionado");
       return;
     }
@@ -103,7 +100,7 @@ export const useRealSalesFunnel = () => {
           title,
           color,
           company_id: companyId,
-          funnel_id: selectedFunnel.id,
+          funnel_id: funnelId,
           order_position: maxOrder + 1,
           is_fixed: false,
           is_won: false,
@@ -247,7 +244,7 @@ export const useRealSalesFunnel = () => {
 
   // Função para receber novo lead (usado quando vem do chat)
   const receiveNewLead = async (leadData: Partial<KanbanLead>) => {
-    if (!selectedFunnel) return;
+    if (!funnelId) return;
 
     const entryStage = stages.find(s => s.title === "ENTRADA DE LEAD");
     if (!entryStage) return;
@@ -257,7 +254,7 @@ export const useRealSalesFunnel = () => {
         .from("leads")
         .update({
           kanban_stage_id: entryStage.id,
-          funnel_id: selectedFunnel.id
+          funnel_id: funnelId
         })
         .eq("id", leadData.id);
 
@@ -279,9 +276,6 @@ export const useRealSalesFunnel = () => {
     setIsLeadDetailOpen,
     
     // Dados do funil
-    funnels,
-    selectedFunnel,
-    setSelectedFunnel,
     stages,
     leads,
     availableTags: tags,

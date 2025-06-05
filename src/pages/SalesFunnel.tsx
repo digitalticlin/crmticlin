@@ -12,17 +12,30 @@ import { useNavigate } from "react-router-dom";
 import { FunnelActionsBar } from "@/components/sales/funnel/FunnelActionsBar";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { useFunnelManagement } from "@/hooks/salesFunnel/useFunnelManagement";
+import { useCompanyData } from "@/hooks/useCompanyData";
+import { useUserRole } from "@/hooks/useUserRole";
 
 export default function SalesFunnel() {
   const [activeTab, setActiveTab] = useState("funnel");
   const navigate = useNavigate();
+  const { companyId } = useCompanyData();
+  const { isAdmin } = useUserRole();
   
+  // Gerenciamento de múltiplos funis
+  const {
+    funnels,
+    selectedFunnel,
+    setSelectedFunnel,
+    createFunnel,
+    loading: funnelLoading
+  } = useFunnelManagement(companyId);
+
   const {
     columns,
     selectedLead,
     isLeadDetailOpen,
     setIsLeadDetailOpen,
-    selectedFunnel,
     availableTags,
     addColumn,
     updateColumn,
@@ -35,7 +48,7 @@ export default function SalesFunnel() {
     updateLeadAssignedUser,
     updateLeadName,
     moveLeadToStage
-  } = useRealSalesFunnel();
+  } = useRealSalesFunnel(selectedFunnel?.id);
 
   // Integração com novos leads do chat
   useNewLeadIntegration(selectedFunnel?.id);
@@ -77,15 +90,40 @@ export default function SalesFunnel() {
     </Button>
   );
 
+  if (funnelLoading) {
+    return (
+      <PageLayout>
+        <ModernPageHeader 
+          title="Funil de Vendas" 
+          description="Carregando funis..."
+        />
+        <div className="flex items-center justify-center h-64">
+          <p className="text-gray-500">Carregando dados dos funis...</p>
+        </div>
+      </PageLayout>
+    );
+  }
+
   if (!selectedFunnel) {
     return (
       <PageLayout>
         <ModernPageHeader 
           title="Funil de Vendas" 
-          description="Carregando funil..."
+          description="Nenhum funil encontrado"
+          action={isAdmin ? addLeadAction : undefined}
         />
         <div className="flex items-center justify-center h-64">
-          <p className="text-gray-500">Carregando dados do funil...</p>
+          <div className="text-center">
+            <p className="text-gray-500 mb-4">
+              {isAdmin ? "Nenhum funil encontrado. Crie seu primeiro funil para começar." : "Nenhum funil disponível para você."}
+            </p>
+            {isAdmin && (
+              <Button onClick={() => createFunnel("Funil Principal", "Funil principal de vendas")}>
+                <Plus className="h-4 w-4 mr-2" />
+                Criar Primeiro Funil
+              </Button>
+            )}
+          </div>
         </div>
       </PageLayout>
     );
@@ -105,9 +143,12 @@ export default function SalesFunnel() {
           setActiveTab={setActiveTab}
           onAddColumn={() => addColumn("Nova etapa")}
           onManageTags={() => toast.info("Gerenciar etiquetas (em breve!)")}
-          onCreateNewFunnel={() => toast.info("Criar novo funil (em breve!)")}
-          onSwitchFunnel={() => toast.info("Alternar entre funis (em breve!)")}
           onAddLead={() => toast.info("Adicionar lead (em breve!)")}
+          funnels={funnels}
+          selectedFunnel={selectedFunnel}
+          onSelectFunnel={setSelectedFunnel}
+          onCreateFunnel={createFunnel}
+          isAdmin={isAdmin}
         />
       </div>
       
