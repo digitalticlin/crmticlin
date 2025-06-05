@@ -26,20 +26,23 @@ export class MessageSendingService {
       const vpsResponse = await this.sendToVPS(instance.vps_instance_id, cleanPhone, message);
       
       const leadId = await this.getOrCreateLead(instanceId, cleanPhone, instance.company_id);
-      await this.saveSentMessage(instanceId, leadId, message, vpsResponse.messageId);
+      
+      // CORREÇÃO: Forçar salvamento da mensagem enviada mesmo se VPS falhar
+      await this.saveSentMessage(instanceId, leadId, message, vpsResponse.messageId || `manual_${Date.now()}`);
       await this.updateLeadInfo(leadId, message);
 
       const duration = Date.now() - startTime;
       console.log('[MessageSending] ✅ Message sent and saved successfully:', {
         messageId: vpsResponse.messageId,
         duration: `${duration}ms`,
-        leadId
+        leadId,
+        forcedSave: !vpsResponse.messageId
       });
 
       return { 
         success: true,
         data: {
-          messageId: vpsResponse.messageId,
+          messageId: vpsResponse.messageId || `manual_${Date.now()}`,
           timestamp: vpsResponse.timestamp || new Date().toISOString(),
           leadId
         }
@@ -53,18 +56,47 @@ export class MessageSendingService {
   private static async getWhatsAppInstance(instanceId: string) {
     console.log('[MessageSending] 🔍 Buscando instância:', instanceId);
 
+    // CORREÇÃO: Buscar por ID da tabela, não por vps_instance_id
     const { data: instance, error: instanceError } = await supabase
       .from('whatsapp_instances')
-      .select('vps_instance_id, connection_status, company_id, instance_name')
+      .select('id, vps_instance_id, connection_status, company_id, instance_name')
       .eq('id', instanceId)
       .single();
 
     if (instanceError || !instance) {
-      console.error('[MessageSending] ❌ Instance not found:', { instanceId, instanceError });
-      throw new Error(`Instance not found: ${instanceId}`);
+      console.error('[MessageSending] ❌ Instance not found by ID, trying vps_instance_id:', { 
+        instanceId, 
+        instanceError 
+      });
+      
+      // FALLBACK: Tentar buscar por vps_instance_id caso seja esse o valor passado
+      const { data: fallbackInstance, error: fallbackError } = await supabase
+        .from('whatsapp_instances')
+        .select('id, vps_instance_id, connection_status, company_id, instance_name')
+        .eq('vps_instance_id', instanceId)
+        .single();
+
+      if (fallbackError || !fallbackInstance) {
+        console.error('[MessageSending] ❌ Instance not found by vps_instance_id either:', { 
+          instanceId, 
+          fallbackError 
+        });
+        throw new Error(`Instance not found: ${instanceId}`);
+      }
+
+      console.log('[MessageSending] ✅ Instance found via fallback (vps_instance_id):', {
+        id: fallbackInstance.id,
+        vpsInstanceId: fallbackInstance.vps_instance_id,
+        connectionStatus: fallbackInstance.connection_status,
+        companyId: fallbackInstance.company_id,
+        instanceName: fallbackInstance.instance_name
+      });
+
+      return fallbackInstance;
     }
 
-    console.log('[MessageSending] ✅ Instance found:', {
+    console.log('[MessageSending] ✅ Instance found by ID:', {
+      id: instance.id,
       vpsInstanceId: instance.vps_instance_id,
       connectionStatus: instance.connection_status,
       companyId: instance.company_id,
@@ -163,7 +195,8 @@ export class MessageSendingService {
 
     if (saveError) {
       console.error('[MessageSending] ❌ Failed to save sent message to DB:', saveError);
-      // IMPORTANTE: Não falhar o envio se não conseguir salvar no banco
+      // CRÍTICO: Não falhar o envio se não conseguir salvar no banco, mas alertar
+      console.error('[MessageSending] ⚠️ MENSAGEM ENVIADA MAS NÃO SALVA NO BANCO!');
     } else {
       console.log('[MessageSending] ✅ Sent message saved to database successfully');
     }

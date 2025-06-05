@@ -84,6 +84,23 @@ export async function processIncomingMessage(supabase: any, instance: WhatsAppIn
       console.log('[Message Processor] ✅ Lead updated:', lead.id);
     }
 
+    // CORREÇÃO CRÍTICA: Verificar se mensagem já existe antes de salvar
+    const { data: existingMessage } = await supabase
+      .from('messages')
+      .select('id')
+      .eq('external_id', message.key?.id)
+      .eq('whatsapp_number_id', instance.id)
+      .maybeSingle();
+
+    if (existingMessage) {
+      console.log('[Message Processor] ⏭️ Message already exists, skipping:', message.key?.id);
+      return {
+        success: true,
+        processed: false,
+        reason: 'message_already_exists'
+      };
+    }
+
     // CORRIGIDO: Salvar TODAS as mensagens (enviadas e recebidas) do app nativo
     const { error: messageError } = await supabase
       .from('messages')
@@ -103,14 +120,16 @@ export async function processIncomingMessage(supabase: any, instance: WhatsAppIn
         lead_id: lead.id,
         whatsapp_number_id: instance.id,
         from_me: isFromMe,
-        text: messageText.substring(0, 50)
+        text: messageText.substring(0, 50),
+        external_id: message.key?.id
       });
       throw messageError;
     }
 
     console.log('[Message Processor] ✅ Message saved:', { 
       fromMe: isFromMe, 
-      text: messageText.substring(0, 50) + '...'
+      text: messageText.substring(0, 50) + '...',
+      external_id: message.key?.id
     });
     
     return {
