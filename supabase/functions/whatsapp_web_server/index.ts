@@ -437,14 +437,28 @@ serve(async (req) => {
         return await massReconnectInstances(supabase);
 
       case 'bind_instance_to_user':
-        console.log('[WhatsApp Server] 🔗 BIND INSTANCE TO USER');
+        console.log('[WhatsApp Server] 🔗 BIND INSTANCE TO USER - CORREÇÃO CRÍTICA');
+        console.log('[WhatsApp Server] Request body details:', {
+          hasInstanceData: !!body.instanceData,
+          instanceData: body.instanceData,
+          phoneFilter: body.phoneFilter,
+          userEmail: body.userEmail
+        });
         
         // CORREÇÃO CRÍTICA: Verificar corretamente os parâmetros enviados
         if (body.instanceData && body.instanceData.instanceId && body.instanceData.userEmail) {
           console.log('[WhatsApp Server] 🔗 BIND ORPHAN BY VPS INSTANCE ID');
+          console.log('[WhatsApp Server] Parameters:', {
+            instanceId: body.instanceData.instanceId,
+            userEmail: body.instanceData.userEmail
+          });
           return await bindOrphanInstanceById(supabase, body.instanceData.instanceId, body.instanceData.userEmail);
         } else if (body.phoneFilter && body.userEmail) {
           console.log('[WhatsApp Server] 🔗 BIND BY PHONE FILTER');
+          console.log('[WhatsApp Server] Parameters:', {
+            phoneFilter: body.phoneFilter,
+            userEmail: body.userEmail
+          });
           return await bindByPhone(supabase, body.phoneFilter, body.userEmail);
         } else {
           console.error('[WhatsApp Server] ❌ Invalid parameters received:', {
