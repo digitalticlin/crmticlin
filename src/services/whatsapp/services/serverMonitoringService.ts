@@ -10,7 +10,7 @@ export class ServerMonitoringService {
       const response = await fetch(getEndpointUrl('/health'), {
         method: 'GET',
         headers: getRequestHeaders(),
-        signal: AbortSignal.timeout(VPS_CONFIG.timeout)
+        signal: AbortSignal.timeout(VPS_CONFIG.timeouts.connection)
       });
 
       if (!response.ok) {
@@ -43,7 +43,7 @@ export class ServerMonitoringService {
       const response = await fetch(getEndpointUrl('/status'), {
         method: 'GET',
         headers: getRequestHeaders(),
-        signal: AbortSignal.timeout(VPS_CONFIG.timeout)
+        signal: AbortSignal.timeout(VPS_CONFIG.timeouts.connection)
       });
 
       if (!response.ok) {
@@ -67,7 +67,7 @@ export class ServerMonitoringService {
       const response = await fetch(getEndpointUrl('/instances'), {
         method: 'GET',
         headers: getRequestHeaders(),
-        signal: AbortSignal.timeout(VPS_CONFIG.timeout)
+        signal: AbortSignal.timeout(VPS_CONFIG.timeouts.connection)
       });
 
       if (!response.ok) {

@@ -21,7 +21,24 @@ export const VPS_CONFIG = {
     connection: 10000,
     qrCode: 30000,
     message: 15000
+  },
+  sync: {
+    interval: 180000, // 3 minutos
+    debounceDelay: 1000, // 1 segundo
+    healthCheckInterval: 30000 // 30 segundos
   }
 } as const;
 
 export type VPSConfig = typeof VPS_CONFIG;
+
+// Funções utilitárias para construir URLs e headers
+export const getEndpointUrl = (endpoint: string): string => {
+  return `${VPS_CONFIG.baseUrl}${endpoint}`;
+};
+
+export const getRequestHeaders = (): Record<string, string> => {
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${VPS_CONFIG.authToken}`
+  };
+};
