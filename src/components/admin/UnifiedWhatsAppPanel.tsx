@@ -85,7 +85,7 @@ export const UnifiedWhatsAppPanel = () => {
           <WhatsAppSystemTab 
             isHealthy={isHealthy}
             syncCount={syncCount}
-            lastSync={lastSync}
+            lastSync={lastSync?.toISOString()}
             connectedInstances={connectedInstances}
             disconnectedInstances={disconnectedInstances}
           />
