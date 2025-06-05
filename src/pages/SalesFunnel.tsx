@@ -1,7 +1,9 @@
+
 import { useState } from "react";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { useRealSalesFunnel } from "@/hooks/salesFunnel/useRealSalesFunnel";
 import { useNewLeadIntegration } from "@/hooks/salesFunnel/useNewLeadIntegration";
+import { useWonLostFilters } from "@/hooks/salesFunnel/useWonLostFilters";
 import { KanbanBoard } from "@/components/sales/KanbanBoard";
 import { LeadDetailSidebar } from "@/components/sales/LeadDetailSidebar";
 import { toast } from "sonner";
@@ -48,9 +50,22 @@ export default function SalesFunnel() {
 
   useNewLeadIntegration(selectedFunnel?.id);
 
+  // Obter leads das colunas Ganho e Perdido para os filtros
+  const wonLostLeads = columns
+    .filter(col => col.title === "GANHO" || col.title === "PERDIDO")
+    .flatMap(col => col.leads);
+
+  // Hook para filtros na página Ganhos e Perdidos
+  const wonLostFilters = useWonLostFilters(wonLostLeads, availableTags);
+
   // Filtrar colunas para mostrar apenas Ganhos e Perdidos na aba won-lost
   const displayColumns = activeTab === "won-lost" 
-    ? columns.filter(col => col.title === "GANHO" || col.title === "PERDIDO")
+    ? columns
+        .filter(col => col.title === "GANHO" || col.title === "PERDIDO")
+        .map(col => ({
+          ...col,
+          leads: wonLostFilters.filteredLeads.filter(lead => lead.columnId === col.id)
+        }))
     : columns;
 
   const handleOpenChat = (lead: KanbanLead) => {
@@ -154,6 +169,18 @@ export default function SalesFunnel() {
           onSelectFunnel={setSelectedFunnel}
           onCreateFunnel={handleCreateFunnel}
           isAdmin={isAdmin}
+          wonLostFilters={activeTab === "won-lost" ? {
+            searchTerm: wonLostFilters.searchTerm,
+            setSearchTerm: wonLostFilters.setSearchTerm,
+            selectedTags: wonLostFilters.selectedTags,
+            setSelectedTags: wonLostFilters.setSelectedTags,
+            selectedUser: wonLostFilters.selectedUser,
+            setSelectedUser: wonLostFilters.setSelectedUser,
+            availableTags,
+            availableUsers: wonLostFilters.availableUsers,
+            onClearFilters: wonLostFilters.clearAllFilters,
+            resultsCount: wonLostFilters.resultsCount
+          } : undefined}
         />
         
         {/* Board do Kanban */}
