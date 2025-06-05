@@ -1,15 +1,11 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { 
   Settings, 
   Tag, 
-  UserPlus, 
-  Search, 
-  X, 
-  Filter,
-  ChevronDown
+  UserPlus
 } from "lucide-react";
 import { FunnelSelector } from "./FunnelSelector";
 import { WonLostFilters } from "./WonLostFilters";
@@ -46,9 +42,6 @@ interface ModernFunnelControlBarProps {
 export const ModernFunnelControlBar = ({
   activeTab,
   setActiveTab,
-  onAddColumn,
-  onManageTags,
-  onAddLead,
   funnels,
   selectedFunnel,
   onSelectFunnel,
@@ -153,7 +146,7 @@ export const ModernFunnelControlBar = ({
       <CreateLeadModal
         isOpen={isLeadModalOpen}
         onClose={() => setIsLeadModalOpen(false)}
-        stages={selectedFunnel ? [] : []} // Passar as stages do contexto
+        stages={[]} // Será preenchido pelo contexto
       />
 
       <FunnelConfigModal

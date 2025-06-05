@@ -43,7 +43,7 @@ export const useLeadCreation = () => {
         .select("id")
         .eq("phone", formattedPhone)
         .eq("company_id", companyId)
-        .single();
+        .maybeSingle();
 
       if (existingLead) {
         throw new Error("Já existe um lead com este telefone");
@@ -56,7 +56,7 @@ export const useLeadCreation = () => {
         .eq("company_id", companyId)
         .eq("connection_status", "connected")
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (!whatsappInstance) {
         throw new Error("Nenhuma instância do WhatsApp conectada encontrada");

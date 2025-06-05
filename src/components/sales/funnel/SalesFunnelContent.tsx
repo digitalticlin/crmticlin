@@ -35,24 +35,32 @@ export const SalesFunnelContent = () => {
     updateLeadAssignedUser,
     updateLeadName,
     moveLeadToStage,
-    isAdmin
+    isAdmin,
+    stages
   } = useSalesFunnelContext();
 
-  // Obter leads das colunas Ganho e Perdido para os filtros
-  const wonLostLeads = columns
-    .filter(col => col.title === "GANHO" || col.title === "PERDIDO")
-    .flatMap(col => col.leads);
+  // Obter leads das colunas Ganho e Perdido para os filtros (buscar das stages completas)
+  const wonLostLeads = stages
+    .filter(stage => stage.title === "GANHO" || stage.title === "PERDIDO")
+    .flatMap(stage => {
+      // Buscar leads dessa stage no contexto completo
+      return []; // TODO: implementar busca dos leads de ganho/perdido
+    });
 
   // Hook para filtros na página Ganhos e Perdidos
   const wonLostFilters = useWonLostFilters(wonLostLeads, availableTags);
 
   // Filtrar colunas para mostrar apenas Ganhos e Perdidos na aba won-lost
   const displayColumns = activeTab === "won-lost" 
-    ? columns
-        .filter(col => col.title === "GANHO" || col.title === "PERDIDO")
-        .map(col => ({
-          ...col,
-          leads: wonLostFilters.filteredLeads.filter(lead => lead.columnId === col.id)
+    ? stages
+        .filter(stage => stage.title === "GANHO" || stage.title === "PERDIDO")
+        .map(stage => ({
+          id: stage.id,
+          title: stage.title,
+          leads: [], // TODO: buscar leads dessas stages
+          color: stage.color || "#e0e0e0",
+          isFixed: stage.is_fixed || false,
+          isHidden: false
         }))
     : columns;
 
@@ -61,21 +69,21 @@ export const SalesFunnelContent = () => {
   };
 
   const handleMoveToWonLost = async (lead: KanbanLead, status: "won" | "lost") => {
-    const targetColumn = columns.find(col => 
-      status === "won" ? col.title === "GANHO" : col.title === "PERDIDO"
+    const targetStage = stages.find(stage => 
+      status === "won" ? stage.title === "GANHO" : stage.title === "PERDIDO"
     );
     
-    if (targetColumn) {
-      await moveLeadToStage(lead, targetColumn.id);
+    if (targetStage) {
+      await moveLeadToStage(lead, targetStage.id);
       toast.success(`Lead movido para ${status === "won" ? "Ganhos" : "Perdidos"}`);
     }
   };
 
   const returnLeadToFunnel = async (lead: KanbanLead) => {
-    const targetColumn = columns.find(col => col.title === "ENTRADA DE LEAD");
+    const targetStage = stages.find(stage => stage.title === "ENTRADA DE LEAD");
     
-    if (targetColumn) {
-      await moveLeadToStage(lead, targetColumn.id);
+    if (targetStage) {
+      await moveLeadToStage(lead, targetStage.id);
       toast.success("Lead retornado para o funil");
     }
   };
@@ -90,8 +98,8 @@ export const SalesFunnelContent = () => {
       <ModernFunnelHeader 
         selectedFunnel={selectedFunnel!}
         totalLeads={columns.reduce((acc, col) => acc + col.leads.length, 0)}
-        wonLeads={columns.find(col => col.title === "GANHO")?.leads.length || 0}
-        lostLeads={columns.find(col => col.title === "PERDIDO")?.leads.length || 0}
+        wonLeads={stages.find(stage => stage.title === "GANHO")?.leads?.length || 0}
+        lostLeads={stages.find(stage => stage.title === "PERDIDO")?.leads?.length || 0}
         activeTab={activeTab}
       />
 
@@ -100,8 +108,8 @@ export const SalesFunnelContent = () => {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onAddColumn={() => addColumn("Nova etapa")}
-        onManageTags={() => toast.info("Gerenciar etiquetas (em breve!)")}
-        onAddLead={() => toast.info("Adicionar lead (em breve!)")}
+        onManageTags={() => {}}
+        onAddLead={() => {}}
         funnels={funnels}
         selectedFunnel={selectedFunnel}
         onSelectFunnel={setSelectedFunnel}

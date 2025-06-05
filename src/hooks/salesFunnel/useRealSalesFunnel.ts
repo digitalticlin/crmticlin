@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useCompanyData } from "../useCompanyData";
 import { useStageDatabase } from "./useStageDatabase";
@@ -19,24 +18,27 @@ export const useRealSalesFunnel = (funnelId?: string) => {
   const { tags, createTag } = useTagDatabase(companyId);
 
   // Converter stages e leads do banco para formato de colunas do Kanban
+  // FILTRAR GANHO E PERDIDO do funil principal
   useEffect(() => {
     if (!stages.length || !funnelId) {
       setColumns([]);
       return;
     }
 
-    const newColumns: KanbanColumn[] = stages.map(stage => {
-      const stageLeads = leads.filter(lead => lead.columnId === stage.id);
-      
-      return {
-        id: stage.id,
-        title: stage.title,
-        leads: stageLeads,
-        color: stage.color || "#e0e0e0",
-        isFixed: stage.is_fixed || false,
-        isHidden: false
-      };
-    });
+    const newColumns: KanbanColumn[] = stages
+      .filter(stage => stage.title !== "GANHO" && stage.title !== "PERDIDO") // Filtrar as etapas
+      .map(stage => {
+        const stageLeads = leads.filter(lead => lead.columnId === stage.id);
+        
+        return {
+          id: stage.id,
+          title: stage.title,
+          leads: stageLeads,
+          color: stage.color || "#e0e0e0",
+          isFixed: stage.is_fixed || false,
+          isHidden: false
+        };
+      });
 
     setColumns(newColumns);
   }, [stages, leads, funnelId]);
