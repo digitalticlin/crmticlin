@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Settings, Database, Globe, TestTube, Wrench, Link, Activity } from "lucide-react";
+import { Shield, Settings, Database, Globe, TestTube, Wrench, Link, Activity, BarChart3, Cog } from "lucide-react";
 import { OrphanInstanceManager } from "@/components/admin/OrphanInstanceManager";
 import { VPSInstanceCorrection } from "@/components/admin/VPSInstanceCorrection";
 import { WhatsAppDiagnostic } from "@/components/settings/whatsapp/WhatsAppDiagnostic";
@@ -11,6 +11,8 @@ import { TestSyncButton } from "@/components/admin/TestSyncButton";
 import { WhatsAppAdminPanel } from "@/components/admin/WhatsAppAdminPanel";
 import { OrphanInstanceLinker } from "@/components/admin/OrphanInstanceLinker";
 import { AutoSyncMonitor } from "@/components/admin/AutoSyncMonitor";
+import { AutoSyncConfigManager } from "@/components/admin/AutoSyncConfigManager";
+import { SystemHealthDashboard } from "@/components/admin/SystemHealthDashboard";
 
 export const UnifiedWhatsAppPanel = () => {
   return (
@@ -31,8 +33,16 @@ export const UnifiedWhatsAppPanel = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="monitor" className="w-full">
-            <TabsList className="grid w-full grid-cols-7">
+          <Tabs defaultValue="dashboard" className="w-full">
+            <TabsList className="grid w-full grid-cols-9">
+              <TabsTrigger value="dashboard" className="gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Dashboard
+              </TabsTrigger>
+              <TabsTrigger value="config" className="gap-2">
+                <Cog className="h-4 w-4" />
+                Config
+              </TabsTrigger>
               <TabsTrigger value="monitor" className="gap-2">
                 <Activity className="h-4 w-4" />
                 Monitor
@@ -62,6 +72,14 @@ export const UnifiedWhatsAppPanel = () => {
                 Diagnóstico
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="dashboard" className="mt-6">
+              <SystemHealthDashboard />
+            </TabsContent>
+
+            <TabsContent value="config" className="mt-6">
+              <AutoSyncConfigManager />
+            </TabsContent>
 
             <TabsContent value="monitor" className="mt-6">
               <AutoSyncMonitor />

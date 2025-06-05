@@ -38,6 +38,9 @@ verify_jwt = false
 [functions.auto_whatsapp_sync]
 verify_jwt = false
 
+[functions.setup_auto_sync]
+verify_jwt = false
+
 [db]
 port = 54322
 shadow_port = 54320
