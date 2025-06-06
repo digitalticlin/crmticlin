@@ -12,9 +12,6 @@ interface LeadCardContentProps {
 }
 
 export const LeadCardContent = ({ lead, isWonLostView = false }: LeadCardContentProps) => {
-  const isWon = isWonLostView && lead.columnId === FIXED_COLUMN_IDS.WON;
-  const isLost = isWonLostView && lead.columnId === FIXED_COLUMN_IDS.LOST;
-
   return (
     <>
       {/* Header with Avatar, Name, Unread Count, and Time */}
@@ -33,7 +30,7 @@ export const LeadCardContent = ({ lead, isWonLostView = false }: LeadCardContent
         )}
       </div>
 
-      {/* Assigned User and Win/Lost Status Row */}
+      {/* Assigned User Row */}
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-1 min-w-0 flex-1">
           {lead.assignedUser && (
@@ -43,17 +40,6 @@ export const LeadCardContent = ({ lead, isWonLostView = false }: LeadCardContent
             </div>
           )}
         </div>
-        
-        {isWonLostView && (
-          <Badge
-            className={cn(
-              "text-xs flex-shrink-0",
-              isWon ? "bg-green-500 text-white" : "bg-red-500 text-white"
-            )}
-          >
-            {isWon ? "Ganho" : "Perdido"}
-          </Badge>
-        )}
       </div>
     </>
   );
