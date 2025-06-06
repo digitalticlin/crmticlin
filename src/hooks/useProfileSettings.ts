@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { generateUsername } from "@/utils/userUtils";
 import { useAuthActions } from "./useAuthActions";
+import { useCompanyManagement } from "./useCompanyManagement";
 
 export const useProfileSettings = () => {
   const [loading, setLoading] = useState(true);
@@ -20,11 +21,12 @@ export const useProfileSettings = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   
-  // Simplified company data (no longer linked to database)
+  // Company data state (agora integrado com useCompanyManagement)
   const [companyName, setCompanyName] = useState("");
   const [companyDocument, setCompanyDocument] = useState("");
 
   const { handleChangePassword } = useAuthActions();
+  const { companyData, loadCompanyData, saveCompany } = useCompanyManagement();
 
   /**
    * Load user profile data from Supabase
@@ -80,6 +82,13 @@ export const useProfileSettings = () => {
         setWhatsapp(profile.whatsapp || "");
         setAvatarUrl(profile.avatar_url);
         setUserRole(profile.role);
+        
+        // Carregar dados da empresa
+        const companyInfo = await loadCompanyData();
+        if (companyInfo) {
+          setCompanyName(companyInfo.name || "");
+          setCompanyDocument(companyInfo.document_id || "");
+        }
         
         setSyncStatus('success');
         toast.success("Dados carregados com sucesso!");
@@ -149,6 +158,7 @@ export const useProfileSettings = () => {
       setSaving(true);
       console.log('[Profile Settings] 💾 Salvando perfil...');
       
+      // Atualizar dados do perfil
       const updateData = {
         full_name: fullName,
         document_id: documentId,
@@ -163,6 +173,14 @@ export const useProfileSettings = () => {
         
       if (profileError) {
         throw new Error(`Erro ao atualizar perfil: ${profileError.message}`);
+      }
+      
+      // Salvar dados da empresa se preenchidos
+      if (companyName.trim()) {
+        const companySuccess = await saveCompany(companyName, companyDocument);
+        if (!companySuccess) {
+          throw new Error('Erro ao salvar dados da empresa');
+        }
       }
       
       toast.success("Perfil atualizado com sucesso!");
@@ -192,6 +210,7 @@ export const useProfileSettings = () => {
     user,
     companyDocument,
     syncStatus,
+    companyData, // Expor dados da empresa para uso nos componentes
     setFullName,
     setCompanyName,
     setDocumentId,

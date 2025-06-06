@@ -1,4 +1,3 @@
-
 import { Loader2, User, Shield, Camera, Save, X, RefreshCw } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -6,6 +5,7 @@ import { useProfileSettings } from "@/hooks/useProfileSettings";
 import ProfileAvatar from "./ProfileAvatar";
 import ProfileForm from "./ProfileForm";
 import SecuritySection from "./SecuritySection";
+import CompanyInfoSection from "./CompanyInfoSection";
 
 const ProfileSettings = () => {
   const isMobile = useIsMobile();
@@ -22,6 +22,7 @@ const ProfileSettings = () => {
     userRole,
     companyDocument,
     syncStatus,
+    companyData,
     setFullName,
     setCompanyName,
     setDocumentId,
@@ -192,42 +193,14 @@ const ProfileSettings = () => {
         />
       </div>
 
-      {/* Company Information */}
-      <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "300ms" }}>
-        <div className="flex items-center space-x-4 mb-6">
-          <div className="p-3 bg-gradient-to-r from-purple-500/20 to-purple-400/10 rounded-2xl">
-            <User className="h-6 w-6 text-purple-400" />
-          </div>
-          <div>
-            <h3 className="text-xl font-semibold text-gray-800">Informações Básicas</h3>
-            <p className="text-gray-700">Dados básicos para identificação</p>
-          </div>
-        </div>
-        
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-800">
-              Nome da Empresa (opcional)
-            </label>
-            <input 
-              className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-xl text-gray-800 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-[#D3D800]/50 focus:border-[#D3D800]/50 transition-all duration-200"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="Nome da empresa"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-800">CPF/CNPJ (opcional)</label>
-            <input 
-              className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-xl text-gray-800 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-[#D3D800]/50 focus:border-[#D3D800]/50 transition-all duration-200"
-              value={companyDocument}
-              onChange={(e) => setCompanyDocument(e.target.value)}
-              placeholder="000.000.000-00"
-            />
-          </div>
-        </div>
-      </div>
+      {/* Company Information - Nova seção integrada */}
+      <CompanyInfoSection
+        companyName={companyName}
+        companyDocument={companyDocument}
+        companyData={companyData}
+        setCompanyName={setCompanyName}
+        setCompanyDocument={setCompanyDocument}
+      />
 
       {/* Security Section */}
       <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "400ms" }}>

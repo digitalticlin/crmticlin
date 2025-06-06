@@ -1355,6 +1355,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_user_company: {
+        Args: { company_name: string; company_document_id?: string }
+        Returns: string
+      }
       get_current_user_company_id: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -1390,6 +1394,10 @@ export type Database = {
       mark_messages_as_read: {
         Args: { lead_uuid: string }
         Returns: undefined
+      }
+      update_user_company: {
+        Args: { company_name: string; company_document_id?: string }
+        Returns: boolean
       }
       user_can_access_lead: {
         Args: { lead_id: string }
