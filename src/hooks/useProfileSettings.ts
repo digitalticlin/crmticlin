@@ -1,18 +1,13 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { generateUsername } from "@/utils/userUtils";
 import { useAuthActions } from "./useAuthActions";
 import { useCompanyManagement } from "./useCompanyManagement";
+import { useAuthSession } from "./useAuthSession";
+import { useProfileSettingsOperations } from "./useProfileSettingsOperations";
 
 export const useProfileSettings = () => {
-  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
-  const [user, setUser] = useState<any>(null);
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   
   // Profile data state
   const [fullName, setFullName] = useState("");
@@ -21,69 +16,40 @@ export const useProfileSettings = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   
-  // Company data state (agora integrado com useCompanyManagement)
+  // Company data state
   const [companyName, setCompanyName] = useState("");
   const [companyDocument, setCompanyDocument] = useState("");
 
+  // Use the smaller hooks
   const { handleChangePassword } = useAuthActions();
   const { companyData, loadCompanyData, saveCompany } = useCompanyManagement();
+  const { loading, email, username, user, handleEmailChange, loadSession } = useAuthSession();
+  const { syncStatus, setSyncStatus, loadUserProfile, updateUserProfile } = useProfileSettingsOperations();
 
   /**
-   * Load user profile data from Supabase
+   * Load all user data (profile + company)
    */
   const loadUserData = async () => {
     try {
       setSyncStatus('syncing');
-      console.log('[Profile Settings] 🚀 Carregando dados do perfil...');
       
-      // Get current session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error('[Profile Settings] ❌ Erro ao obter sessão:', sessionError);
-        setSyncStatus('error');
-        toast.error("Erro de autenticação");
-        setLoading(false);
-        return;
-      }
-      
-      if (!session?.user) {
-        console.log('[Profile Settings] ❌ Usuário não autenticado');
-        setLoading(false);
+      // First load session
+      const sessionUser = await loadSession();
+      if (!sessionUser) {
         setSyncStatus('error');
         return;
       }
 
-      console.log('[Profile Settings] 👤 Usuário autenticado:', session.user.email);
-      
-      setUser(session.user);
-      setEmail(session.user.email || "");
-      setUsername(generateUsername(session.user.email || ""));
-      
-      // Load profile data using the new RLS policies
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .maybeSingle();
-      
-      if (profileError) {
-        console.error("❌ Erro ao carregar perfil:", profileError);
-        setSyncStatus('error');
-        toast.error("Erro ao carregar dados do perfil: " + profileError.message);
-        return;
-      }
-      
+      // Load profile data
+      const profile = await loadUserProfile(sessionUser.id);
       if (profile) {
-        console.log('[Profile Settings] ✅ Perfil carregado:', profile.full_name);
-        
         setFullName(profile.full_name || "");
         setDocumentId(profile.document_id || "");
         setWhatsapp(profile.whatsapp || "");
         setAvatarUrl(profile.avatar_url);
         setUserRole(profile.role);
         
-        // Carregar dados da empresa
+        // Load company data
         const companyInfo = await loadCompanyData();
         if (companyInfo) {
           setCompanyName(companyInfo.name || "");
@@ -92,54 +58,21 @@ export const useProfileSettings = () => {
         
         setSyncStatus('success');
         toast.success("Dados carregados com sucesso!");
-      } else {
-        console.log('[Profile Settings] ⚠️ Perfil não encontrado, criando...');
-        
-        // Try to create a basic profile if it doesn't exist
-        const { error: createError } = await supabase
-          .from('profiles')
-          .insert({
-            id: session.user.id,
-            full_name: session.user.user_metadata?.full_name || '',
-            document_id: '',
-            whatsapp: ''
-          });
-          
-        if (createError) {
-          console.error("❌ Erro ao criar perfil:", createError);
-          setSyncStatus('error');
-          toast.error("Erro ao criar perfil: " + createError.message);
-        } else {
-          console.log('[Profile Settings] ✅ Perfil criado com sucesso');
-          setSyncStatus('success');
-          toast.success("Perfil criado com sucesso!");
-        }
       }
       
     } catch (error: any) {
       console.error("❌ Erro ao carregar dados:", error);
       setSyncStatus('error');
       toast.error("Erro ao carregar dados: " + error.message);
-    } finally {
-      setLoading(false);
     }
   };
 
-  // Load profile data on mount
+  // Load profile data on mount (only if not already loaded by useAuthSession)
   useEffect(() => {
-    loadUserData();
-  }, []);
-
-  // Update username when email changes
-  useEffect(() => {
-    const newUsername = generateUsername(email);
-    setUsername(newUsername);
-  }, [email]);
-
-  // Handle email change
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
-  };
+    if (user && !loading) {
+      loadUserData();
+    }
+  }, [user, loading]);
 
   // Manual re-sync
   const handleResync = async () => {
@@ -158,24 +91,14 @@ export const useProfileSettings = () => {
       setSaving(true);
       console.log('[Profile Settings] 💾 Salvando perfil...');
       
-      // Atualizar dados do perfil
-      const updateData = {
+      // Update profile data
+      await updateUserProfile(user.id, {
         full_name: fullName,
         document_id: documentId,
-        whatsapp: whatsapp,
-        updated_at: new Date().toISOString()
-      };
+        whatsapp: whatsapp
+      });
       
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update(updateData)
-        .eq('id', user.id);
-        
-      if (profileError) {
-        throw new Error(`Erro ao atualizar perfil: ${profileError.message}`);
-      }
-      
-      // Salvar dados da empresa se preenchidos
+      // Save company data if provided
       if (companyName.trim()) {
         const companySuccess = await saveCompany(companyName, companyDocument);
         if (!companySuccess) {
@@ -210,7 +133,7 @@ export const useProfileSettings = () => {
     user,
     companyDocument,
     syncStatus,
-    companyData, // Expor dados da empresa para uso nos componentes
+    companyData,
     setFullName,
     setCompanyName,
     setDocumentId,
