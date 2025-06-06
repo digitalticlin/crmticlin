@@ -48,7 +48,7 @@ export const PurchaseValueField = ({
             variant="ghost" 
             size="sm"
             onClick={() => setIsEditing(true)}
-            className="bg-green-500/30 hover:bg-green-500/40 text-green-700 border border-green-300/50 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105 shadow-sm"
+            className="bg-green-500/20 hover:bg-green-500/30 text-green-700 border border-green-300/30 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105"
           >
             <Edit className="h-3 w-3" />
           </Button>
@@ -62,13 +62,13 @@ export const PurchaseValueField = ({
             placeholder="0.00"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            className="bg-white/60 border-white/50 focus:border-green-400 focus:ring-green-400/20 backdrop-blur-sm shadow-sm"
+            className="bg-white/50 border-white/30 focus:border-green-400 focus:ring-green-400/20 backdrop-blur-sm"
           />
           <div className="flex gap-2">
             <Button 
               size="sm" 
               onClick={handleSave}
-              className="bg-green-500/30 hover:bg-green-500/40 text-green-700 border border-green-300/50 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105 shadow-sm"
+              className="bg-green-500/80 hover:bg-green-600/80 text-white border border-green-400/30 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105"
             >
               <Save className="h-3 w-3 mr-1" />
               Salvar
@@ -77,7 +77,7 @@ export const PurchaseValueField = ({
               size="sm" 
               variant="outline" 
               onClick={handleCancel}
-              className="bg-red-500/30 hover:bg-red-500/40 text-red-700 border border-red-300/50 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105 shadow-sm"
+              className="bg-red-500/20 hover:bg-red-500/30 text-red-700 border border-red-300/30 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105"
             >
               <X className="h-3 w-3 mr-1" />
               Cancelar
@@ -85,7 +85,7 @@ export const PurchaseValueField = ({
           </div>
         </div>
       ) : (
-        <div className="bg-white/40 backdrop-blur-sm rounded-lg p-4 border border-white/30 shadow-sm">
+        <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4 border border-white/20">
           <div className="text-lg font-bold text-green-700">
             {formatCurrency(purchaseValue)}
           </div>
