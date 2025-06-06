@@ -1,70 +1,80 @@
 
-import { corsHeaders } from './config.ts';
-import { getVPSInstanceStatus } from './vpsRequestService.ts';
+import { corsHeaders, VPS_CONFIG, getVPSHeaders } from './config.ts';
+import { makeVPSRequest } from './vpsRequestService.ts';
 
 export async function syncAllInstances(supabase: any, syncData: any, userId: string) {
   const syncId = `sync_${Date.now()}`;
-  console.log(`[Instance Sync] 🔄 CORREÇÃO ROBUSTA - Sincronizando instâncias [${syncId}]`);
+  console.log(`[Instance Sync] 🔄 CORREÇÃO CRÍTICA - Iniciando sincronização [${syncId}]`);
 
   try {
-    // Buscar todas as instâncias do usuário
-    const { data: instances, error: fetchError } = await supabase
+    // Buscar todas as instâncias do usuário/empresa
+    const { data: instances, error: instancesError } = await supabase
       .from('whatsapp_instances')
       .select('*')
       .eq('created_by_user_id', userId)
       .eq('connection_type', 'web');
 
-    if (fetchError) {
-      throw new Error(`Erro ao buscar instâncias: ${fetchError.message}`);
+    if (instancesError) {
+      throw new Error(`Erro ao buscar instâncias: ${instancesError.message}`);
     }
 
-    console.log(`[Instance Sync] 📊 CORREÇÃO - ${instances?.length || 0} instâncias encontradas`);
+    console.log(`[Instance Sync] 📊 CORREÇÃO CRÍTICA - ${instances.length} instâncias encontradas`);
 
-    let updated = 0;
-    const errors: string[] = [];
+    // Buscar status de todas as instâncias na VPS
+    let syncedCount = 0;
+    let errorCount = 0;
 
-    for (const instance of instances || []) {
-      if (instance.vps_instance_id) {
-        try {
-          console.log(`[Instance Sync] 🔍 CORREÇÃO - Verificando status VPS: ${instance.vps_instance_id}`);
+    for (const instance of instances) {
+      if (!instance.vps_instance_id) {
+        console.log(`[Instance Sync] ⚠️ CORREÇÃO CRÍTICA - Instância ${instance.id} sem vps_instance_id`);
+        continue;
+      }
+
+      try {
+        const vpsResponse = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/${instance.vps_instance_id}/status`, {
+          method: 'GET',
+          headers: getVPSHeaders()
+        });
+
+        if (vpsResponse.ok) {
+          const vpsData = await vpsResponse.json();
           
-          const vpsStatus = await getVPSInstanceStatus(instance.vps_instance_id);
-          
-          if (vpsStatus.success) {
-            // Atualizar status no banco se necessário
-            const { error: updateError } = await supabase
-              .from('whatsapp_instances')
-              .update({
-                connection_status: vpsStatus.status || instance.connection_status,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', instance.id);
+          // Atualizar status no banco
+          const { error: updateError } = await supabase
+            .from('whatsapp_instances')
+            .update({
+              connection_status: vpsData.status || 'unknown',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', instance.id);
 
-            if (!updateError) {
-              updated++;
-            }
+          if (!updateError) {
+            syncedCount++;
+            console.log(`[Instance Sync] ✅ CORREÇÃO CRÍTICA - Instância ${instance.instance_name} sincronizada`);
           }
-        } catch (error: any) {
-          errors.push(`${instance.instance_name}: ${error.message}`);
         }
+      } catch (error) {
+        errorCount++;
+        console.error(`[Instance Sync] ❌ CORREÇÃO CRÍTICA - Erro na instância ${instance.instance_name}:`, error);
       }
     }
 
-    console.log(`[Instance Sync] ✅ CORREÇÃO - Sincronização concluída [${syncId}]: ${updated} atualizadas`);
+    console.log(`[Instance Sync] 📈 CORREÇÃO CRÍTICA - Sincronização completa [${syncId}]: ${syncedCount} ok, ${errorCount} erros`);
 
     return new Response(
       JSON.stringify({
         success: true,
         syncId,
-        instancesFound: instances?.length || 0,
-        instancesUpdated: updated,
-        errors: errors.length > 0 ? errors : undefined
+        totalInstances: instances.length,
+        syncedCount,
+        errorCount,
+        timestamp: new Date().toISOString()
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: any) {
-    console.error(`[Instance Sync] ❌ CORREÇÃO - Erro geral [${syncId}]:`, error);
+    console.error(`[Instance Sync] ❌ CORREÇÃO CRÍTICA - Erro crítico [${syncId}]:`, error);
     
     return new Response(
       JSON.stringify({

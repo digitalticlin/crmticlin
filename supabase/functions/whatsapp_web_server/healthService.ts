@@ -1,58 +1,53 @@
 
-import { corsHeaders } from './config.ts';
-import { testVPSConnectivity } from './vpsRequestService.ts';
+import { corsHeaders, VPS_CONFIG, testVPSConnectivity } from './config.ts';
 
 export async function getHealthStatus() {
   const healthId = `health_${Date.now()}`;
-  console.log(`[Health Service] 🏥 CORREÇÃO ROBUSTA - Verificando saúde do sistema [${healthId}]`);
+  console.log(`[Health Check] 🏥 CORREÇÃO CRÍTICA - Verificando saúde do sistema [${healthId}]`);
 
   try {
-    const startTime = Date.now();
-    
     // Testar conectividade VPS
-    console.log('[Health Service] 🔍 CORREÇÃO - Testando VPS...');
     const vpsConnected = await testVPSConnectivity();
     
-    const endTime = Date.now();
-    const responseTime = endTime - startTime;
-    
     const healthData = {
-      status: vpsConnected ? 'healthy' : 'unhealthy',
+      success: true,
+      healthId,
       timestamp: new Date().toISOString(),
-      responseTime: `${responseTime}ms`,
-      vps: {
-        connected: vpsConnected,
-        url: 'http://31.97.24.222:3001',
-        token: 'default-token'
+      services: {
+        edgeFunction: {
+          status: 'online',
+          version: '1.0.0'
+        },
+        vps: {
+          status: vpsConnected ? 'online' : 'offline',
+          baseUrl: VPS_CONFIG.baseUrl,
+          connectivity: vpsConnected
+        },
+        database: {
+          status: 'online', // Se chegou até aqui, o Supabase está ok
+          connection: 'active'
+        }
       },
-      edgeFunction: {
-        status: 'running',
-        version: '2.0.0-robusta'
-      }
+      overallHealth: vpsConnected ? 'healthy' : 'degraded'
     };
 
-    console.log(`[Health Service] ✅ CORREÇÃO - Health check concluído [${healthId}]:`, healthData);
+    console.log(`[Health Check] ✅ CORREÇÃO CRÍTICA - Health check completo [${healthId}]:`, healthData.overallHealth);
 
     return new Response(
       JSON.stringify(healthData),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
-        } 
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: any) {
-    console.error(`[Health Service] ❌ CORREÇÃO - Erro no health check [${healthId}]:`, error);
+    console.error(`[Health Check] ❌ CORREÇÃO CRÍTICA - Erro no health check [${healthId}]:`, error);
     
     return new Response(
       JSON.stringify({
-        status: 'error',
+        success: false,
+        healthId,
         error: error.message,
         timestamp: new Date().toISOString(),
-        healthId
+        overallHealth: 'critical'
       }),
       { 
         status: 500,
