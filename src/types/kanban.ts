@@ -11,6 +11,10 @@ export interface KanbanLead {
   id: string;
   name: string;
   phone: string;
+  email?: string; // Adicionado
+  company?: string; // Adicionado
+  documentId?: string; // Adicionado
+  address?: string; // Adicionado
   lastMessage: string;
   lastMessageTime: string;
   tags: KanbanTag[];
