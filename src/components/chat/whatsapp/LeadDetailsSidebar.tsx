@@ -183,9 +183,9 @@ export const LeadDetailsSidebar = ({
       
       <div className="h-full flex flex-col relative z-10">
         {/* Header */}
-        <div className="p-6 border-b border-lime-400/20">
+        <div className="p-4 border-b border-lime-400/20">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-white">Detalhes do Lead</h2>
+            <h2 className="text-lg font-bold text-white">Detalhes do Lead</h2>
             <Button 
               variant="ghost" 
               size="sm" 
@@ -197,49 +197,130 @@ export const LeadDetailsSidebar = ({
           </div>
         </div>
 
-        <ScrollArea className="flex-1 p-6">
-          <div className="space-y-6">
-            {/* Lead Header with Avatar */}
-            <GlassmorphismLeadHeader 
-              selectedLead={kanbanLead}
-              onUpdateName={handleNameUpdate}
-              onClose={onClose}
-            />
-
-            {/* Basic Info Section */}
-            <GlassmorphismBasicInfo 
-              selectedLead={kanbanLead}
-              onUpdateLead={handleUpdateLead}
-            />
-            
-            {/* Purchase Value Field */}
-            <GlassmorphismPurchaseValue 
-              purchaseValue={selectedContact.purchaseValue}
-              onUpdatePurchaseValue={handleUpdatePurchaseValue}
-            />
-            
-            {/* Assigned User Field */}
-            <GlassmorphismAssignedUser 
-              assignedUser={selectedContact.assignedUser}
-              onUpdateAssignedUser={handleUpdateAssignedUser}
-            />
-            
-            {/* Notes Field */}
-            <GlassmorphismNotes 
-              notes={selectedContact.notes}
-              onUpdateNotes={handleUpdateNotes}
-            />
-
-            {/* Deal History */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-lime-400/30 shadow-xl shadow-lime-400/10">
-              <h3 className="text-white/90 font-medium flex items-center gap-3 mb-4">
-                <div className="p-2 bg-gradient-to-br from-lime-400/80 to-yellow-300/80 rounded-xl shadow-lg shadow-lime-400/30">
-                  <div className="h-5 w-5 bg-black rounded-sm" />
+        <ScrollArea className="flex-1 p-4">
+          <div className="space-y-4">
+            {/* Lead Header with Avatar - Compact */}
+            <div className="relative bg-gradient-to-br from-lime-400/30 via-yellow-300/20 to-lime-500/30 backdrop-blur-xl rounded-xl p-4 border-2 border-lime-400/40 shadow-xl shadow-lime-400/20">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-lime-400/20 rounded-full blur-2xl"></div>
+              <div className="absolute bottom-0 left-0 w-16 h-16 bg-yellow-300/20 rounded-full blur-xl"></div>
+              
+              <div className="relative flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-lime-400/80 to-yellow-300/80 flex items-center justify-center text-black font-bold text-lg ring-2 ring-lime-400/60">
+                    {selectedContact.name.charAt(0).toUpperCase()}
+                  </div>
+                  
+                  <div>
+                    <h2 className="text-lg font-bold text-white drop-shadow-lg">
+                      {selectedContact.name}
+                    </h2>
+                    <div className="flex items-center gap-2 text-lime-200/90 text-sm">
+                      <span>{selectedContact.phone}</span>
+                    </div>
+                  </div>
                 </div>
-                Histórico de Negociações
-              </h3>
-              <GlassmorphismDealHistory deals={deals} />
+                
+                <div className="bg-white/15 backdrop-blur-sm rounded-full px-2 py-1 border border-lime-400/30">
+                  <span className="text-xs text-lime-300 font-medium flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 bg-lime-400 rounded-full animate-pulse"></div>
+                    Online
+                  </span>
+                </div>
+              </div>
             </div>
+
+            {/* Basic Info Section - Compact */}
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-lime-400/30 shadow-lg shadow-lime-400/10">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
+                <div className="p-1.5 bg-gradient-to-br from-lime-400/80 to-yellow-300/80 rounded-lg shadow-lg shadow-lime-400/30">
+                  <div className="h-3 w-3 bg-black rounded-sm" />
+                </div>
+                Informações Básicas
+              </h3>
+              
+              <div className="space-y-2 text-sm">
+                <div className="bg-white/5 backdrop-blur-sm rounded-lg p-2 border border-white/20">
+                  <p className="text-white/70 text-xs">Email</p>
+                  <p className="text-white">{selectedContact.email || 'Não informado'}</p>
+                </div>
+                
+                {selectedContact.company && (
+                  <div className="bg-white/5 backdrop-blur-sm rounded-lg p-2 border border-white/20">
+                    <p className="text-white/70 text-xs">Empresa</p>
+                    <p className="text-white">{selectedContact.company}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Purchase Value Field - Compact */}
+            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-lime-400/30 shadow-lg shadow-lime-400/10">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
+                <div className="p-1.5 bg-gradient-to-br from-lime-400/80 to-yellow-300/80 rounded-lg shadow-lg shadow-lime-400/30">
+                  <div className="h-3 w-3 bg-black rounded-sm" />
+                </div>
+                Valor da Negociação
+              </h3>
+              
+              <div className="bg-gradient-to-br from-lime-500/20 to-green-500/20 backdrop-blur-sm rounded-lg p-3 border border-lime-400/40">
+                <div className="text-xl font-bold text-lime-300 drop-shadow-lg">
+                  {selectedContact.purchaseValue ? 
+                    new Intl.NumberFormat('pt-BR', {
+                      style: 'currency',
+                      currency: 'BRL'
+                    }).format(selectedContact.purchaseValue) : 
+                    'R$ 0,00'
+                  }
+                </div>
+              </div>
+            </div>
+            
+            {/* Assigned User Field - Compact */}
+            {selectedContact.assignedUser && (
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-lime-400/30 shadow-lg shadow-lime-400/10">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
+                  <div className="p-1.5 bg-gradient-to-br from-lime-400/80 to-yellow-300/80 rounded-lg shadow-lg shadow-lime-400/30">
+                    <div className="h-3 w-3 bg-black rounded-sm" />
+                  </div>
+                  Responsável
+                </h3>
+                
+                <div className="bg-white/5 backdrop-blur-sm rounded-lg p-2 border border-white/20">
+                  <p className="text-white text-sm">{selectedContact.assignedUser}</p>
+                </div>
+              </div>
+            )}
+            
+            {/* Notes Field - Compact */}
+            {selectedContact.notes && (
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-lime-400/30 shadow-lg shadow-lime-400/10">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
+                  <div className="p-1.5 bg-gradient-to-br from-lime-400/80 to-yellow-300/80 rounded-lg shadow-lg shadow-lime-400/30">
+                    <div className="h-3 w-3 bg-black rounded-sm" />
+                  </div>
+                  Observações
+                </h3>
+                
+                <div className="bg-white/5 backdrop-blur-sm rounded-lg p-2 border border-white/20">
+                  <p className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap">
+                    {selectedContact.notes}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Deal History - Compact */}
+            {deals.length > 0 && (
+              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-lime-400/30 shadow-lg shadow-lime-400/10">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
+                  <div className="p-1.5 bg-gradient-to-br from-lime-400/80 to-yellow-300/80 rounded-lg shadow-lg shadow-lime-400/30">
+                    <div className="h-3 w-3 bg-black rounded-sm" />
+                  </div>
+                  Histórico de Negociações
+                </h3>
+                <GlassmorphismDealHistory deals={deals} />
+              </div>
+            )}
           </div>
         </ScrollArea>
       </div>
