@@ -62,6 +62,9 @@ export const useDragAndDrop = ({
     const lead = sourceColumn.leads.find(lead => lead.id === draggableId);
     if (!lead) return;
 
+    // *** SALVAR ESTADO ANTERIOR PARA POSSÍVEL ROLLBACK ***
+    const previousColumns = columns;
+
     // *** ATUALIZAÇÃO OTIMISTA - MOVER IMEDIATAMENTE NA UI ***
     const updatedLead = { ...lead, columnId: destination.droppableId };
     
@@ -83,7 +86,7 @@ export const useDragAndDrop = ({
       return col;
     });
 
-    // Aplicar mudança visual imediatamente
+    // *** APLICAR MUDANÇA VISUAL IMEDIATAMENTE ***
     onColumnsChange(newColumns);
 
     // Verificar se é movimento para Won/Lost
@@ -97,7 +100,7 @@ export const useDragAndDrop = ({
           return;
         } catch (error) {
           // Rollback em caso de erro
-          onColumnsChange(columns);
+          onColumnsChange(previousColumns);
           toast.error("Erro ao marcar lead como ganho");
           return;
         }
@@ -109,21 +112,23 @@ export const useDragAndDrop = ({
           return;
         } catch (error) {
           // Rollback em caso de erro
-          onColumnsChange(columns);
+          onColumnsChange(previousColumns);
           toast.error("Erro ao marcar lead como perdido");
           return;
         }
       }
     }
 
-    // *** SALVAR NO BANCO EM BACKGROUND ***
+    // *** SALVAR NO BANCO EM BACKGROUND (SEM AGUARDAR) ***
     try {
       await moveLeadToDatabase(lead.id, destination.droppableId);
       toast.success("Etapa alterada com sucesso!");
+      // NÃO fazer refresh dos dados aqui - manter a atualização otimista
     } catch (error) {
       // *** ROLLBACK EM CASO DE ERRO ***
-      onColumnsChange(columns); // Reverter para o estado anterior
+      onColumnsChange(previousColumns); // Reverter para o estado anterior
       toast.error("Erro ao salvar mudança de etapa");
+      console.error("Erro ao salvar no banco:", error);
     }
   };
 
