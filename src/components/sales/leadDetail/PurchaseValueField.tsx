@@ -37,7 +37,7 @@ export const PurchaseValueField = ({
   };
 
   return (
-    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/30">
+    <div className="bg-white/20 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/40">
       <div className="flex items-center justify-between mb-4">
         <Label className="text-gray-800 font-semibold flex items-center gap-2">
           <DollarSign className="h-5 w-5 text-lime-400" />
@@ -62,7 +62,7 @@ export const PurchaseValueField = ({
             placeholder="0.00"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            className="bg-white/70 border-white/30 focus:border-lime-400 focus:ring-lime-400/20"
+            className="bg-white/80 border-white/40 focus:border-lime-400 focus:ring-lime-400/20"
           />
           <div className="flex gap-2">
             <Button 
@@ -77,7 +77,7 @@ export const PurchaseValueField = ({
               size="sm" 
               variant="outline" 
               onClick={handleCancel}
-              className="bg-white/70 border-white/30 text-gray-700 hover:bg-white/80 shadow-lg"
+              className="bg-white/80 border-white/40 text-gray-700 hover:bg-white/90 shadow-lg"
             >
               <X className="h-3 w-3 mr-1" />
               Cancelar

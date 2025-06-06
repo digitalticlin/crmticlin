@@ -28,7 +28,7 @@ export const BasicInfoSection = ({
   const currentContact = { ...selectedContact, ...editedContact };
 
   return (
-    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/30">
+    <div className="bg-white/20 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/40">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
           <User className="h-5 w-5 text-lime-400" />
@@ -55,7 +55,7 @@ export const BasicInfoSection = ({
             <Input
               value={editedContact.name || currentContact.name}
               onChange={(e) => setEditedContact({...editedContact, name: e.target.value})}
-              className="bg-white/70 border-white/30 focus:border-lime-400 focus:ring-lime-400/20"
+              className="bg-white/80 border-white/40 focus:border-lime-400 focus:ring-lime-400/20"
             />
           ) : (
             <p className="text-gray-800 font-medium">{currentContact.name}</p>
@@ -68,7 +68,7 @@ export const BasicInfoSection = ({
             <Phone className="h-4 w-4 text-lime-400" />
             Telefone
           </Label>
-          <p className="text-gray-700 bg-gray-50/50 p-2 rounded-lg">{currentContact.phone}</p>
+          <p className="text-gray-700 bg-gray-50/60 p-2 rounded-lg">{currentContact.phone}</p>
         </div>
 
         {/* Email */}
@@ -82,7 +82,7 @@ export const BasicInfoSection = ({
               type="email"
               value={editedContact.email || currentContact.email || ''}
               onChange={(e) => setEditedContact({...editedContact, email: e.target.value})}
-              className="bg-white/70 border-white/30 focus:border-lime-400 focus:ring-lime-400/20"
+              className="bg-white/80 border-white/40 focus:border-lime-400 focus:ring-lime-400/20"
               placeholder="email@exemplo.com"
             />
           ) : (
@@ -100,7 +100,7 @@ export const BasicInfoSection = ({
             <Input
               value={editedContact.company || currentContact.company || ''}
               onChange={(e) => setEditedContact({...editedContact, company: e.target.value})}
-              className="bg-white/70 border-white/30 focus:border-lime-400 focus:ring-lime-400/20"
+              className="bg-white/80 border-white/40 focus:border-lime-400 focus:ring-lime-400/20"
               placeholder="Nome da empresa"
             />
           ) : (
@@ -118,7 +118,7 @@ export const BasicInfoSection = ({
             <Input
               value={editedContact.documentId || currentContact.documentId || ''}
               onChange={(e) => setEditedContact({...editedContact, documentId: e.target.value})}
-              className="bg-white/70 border-white/30 focus:border-lime-400 focus:ring-lime-400/20"
+              className="bg-white/80 border-white/40 focus:border-lime-400 focus:ring-lime-400/20"
               placeholder="000.000.000-00 ou 00.000.000/0000-00"
             />
           ) : (
@@ -136,7 +136,7 @@ export const BasicInfoSection = ({
             <Input
               value={editedContact.address || currentContact.address || ''}
               onChange={(e) => setEditedContact({...editedContact, address: e.target.value})}
-              className="bg-white/70 border-white/30 focus:border-lime-400 focus:ring-lime-400/20"
+              className="bg-white/80 border-white/40 focus:border-lime-400 focus:ring-lime-400/20"
               placeholder="Endereço completo"
             />
           ) : (
