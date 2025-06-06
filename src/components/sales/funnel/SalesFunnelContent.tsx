@@ -73,7 +73,7 @@ export const SalesFunnelContent = () => {
     if (pendingDealMove) {
       // Atualizar o valor de compra do lead antes de criar o deal
       if (pendingDealMove.lead.id && value !== pendingDealMove.lead.purchaseValue) {
-        await updateLeadPurchaseValue(pendingDealMove.lead.id, value);
+        await updateLeadPurchaseValue(value);
       }
       await actions.handleDealNoteConfirm(note, { ...pendingDealMove, lead: { ...pendingDealMove.lead, purchaseValue: value } });
     }
@@ -88,7 +88,7 @@ export const SalesFunnelContent = () => {
   // Wrapper function to handle the notes update with leadId
   const handleUpdateLeadNotes = async (notes: string) => {
     if (selectedLead?.id) {
-      await updateLeadNotes(selectedLead.id, notes);
+      await updateLeadNotes(notes);
     }
   };
 

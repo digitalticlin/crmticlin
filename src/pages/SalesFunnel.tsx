@@ -71,6 +71,27 @@ export default function SalesFunnel() {
     }
   };
 
+  // Wrapper function to handle purchase value update without leadId parameter (using selectedLead)
+  const handleUpdateLeadPurchaseValue = (value: number | undefined) => {
+    if (selectedLead?.id) {
+      updateLeadPurchaseValue(selectedLead.id, value);
+    }
+  };
+
+  // Wrapper function to handle assigned user update without leadId parameter (using selectedLead)
+  const handleUpdateLeadAssignedUser = (user: string) => {
+    if (selectedLead?.id) {
+      updateLeadAssignedUser(selectedLead.id, user);
+    }
+  };
+
+  // Wrapper function to handle name update without leadId parameter (using selectedLead)
+  const handleUpdateLeadName = (name: string) => {
+    if (selectedLead?.id) {
+      updateLeadName(selectedLead.id, name);
+    }
+  };
+
   if (funnelLoading) {
     return <FunnelLoadingState />;
   }
@@ -105,9 +126,9 @@ export default function SalesFunnel() {
     toggleTagOnLead,
     createTag,
     updateLeadNotes: handleUpdateLeadNotes, // Use wrapper function to match interface
-    updateLeadPurchaseValue,
-    updateLeadAssignedUser,
-    updateLeadName,
+    updateLeadPurchaseValue: handleUpdateLeadPurchaseValue, // Use wrapper function to match interface
+    updateLeadAssignedUser: handleUpdateLeadAssignedUser, // Use wrapper function to match interface
+    updateLeadName: handleUpdateLeadName, // Use wrapper function to match interface
     moveLeadToStage,
     isAdmin,
     wonStageId,
