@@ -61,22 +61,12 @@ export const LeadDetailSidebar = ({
     }
   };
 
-  const handleUpdateLead = (updates: Partial<KanbanLead>) => {
-    console.log("Updating lead:", updates);
-    toast.success("Lead atualizado com sucesso!");
-  };
-
   if (!selectedLead) return null;
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-md overflow-y-auto bg-gradient-to-br from-black/80 via-black/60 to-black/40 backdrop-blur-2xl border-none shadow-2xl">
-        {/* Background Effects */}
-        <div className="absolute inset-0 bg-gradient-to-br from-lime-400/5 via-yellow-300/5 to-lime-500/5 pointer-events-none" />
-        <div className="absolute top-0 right-0 w-64 h-64 bg-lime-400/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-yellow-300/10 rounded-full blur-2xl pointer-events-none" />
-        
-        <SheetHeader className="p-0 mb-6 relative z-10">
+      <SheetContent className="w-full sm:max-w-md overflow-y-auto bg-black/20 backdrop-blur-xl border-lime-400/30 shadow-2xl shadow-lime-400/10">
+        <SheetHeader className="p-0 mb-6">
           <GlassmorphismLeadHeader 
             selectedLead={selectedLead}
             onUpdateName={handleNameUpdate}
@@ -84,11 +74,13 @@ export const LeadDetailSidebar = ({
           />
         </SheetHeader>
         
-        <div className="space-y-6 relative z-10">
+        <div className="space-y-6">
           {/* Enhanced Basic Info Section */}
           <GlassmorphismBasicInfo 
             selectedLead={selectedLead}
-            onUpdateLead={handleUpdateLead}
+            onUpdateLead={(updates) => {
+              console.log("Updating lead basic info:", updates);
+            }}
           />
           
           {/* Purchase Value Field */}
@@ -113,12 +105,6 @@ export const LeadDetailSidebar = ({
           
           {/* Tags Selector */}
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-lime-400/30 shadow-xl shadow-lime-400/10">
-            <h3 className="text-white/90 font-medium flex items-center gap-3 mb-4">
-              <div className="p-2 bg-gradient-to-br from-lime-400/80 to-yellow-300/80 rounded-xl shadow-lg shadow-lime-400/30">
-                <div className="h-5 w-5 bg-black rounded-sm" />
-              </div>
-              Tags
-            </h3>
             <TagSelector
               availableTags={availableTags}
               selectedTags={selectedLead.tags}
@@ -129,10 +115,8 @@ export const LeadDetailSidebar = ({
 
           {/* Deal History */}
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-lime-400/30 shadow-xl shadow-lime-400/10">
-            <h3 className="text-white/90 font-medium flex items-center gap-3 mb-4">
-              <div className="p-2 bg-gradient-to-br from-lime-400/80 to-yellow-300/80 rounded-xl shadow-lg shadow-lime-400/30">
-                <div className="h-5 w-5 bg-black rounded-sm" />
-              </div>
+            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <div className="w-2 h-2 bg-lime-400 rounded-full shadow-lg shadow-lime-400/50"></div>
               Histórico de Negociações
             </h3>
             <GlassmorphismDealHistory deals={deals} />
@@ -141,10 +125,7 @@ export const LeadDetailSidebar = ({
           {/* Notes Field */}
           <GlassmorphismNotes 
             notes={selectedLead.notes}
-            onUpdateNotes={(notes) => {
-              onUpdateNotes(notes);
-              toast.success("Observações atualizadas");
-            }}
+            onUpdateNotes={onUpdateNotes}
           />
           
           {/* Chat Preview */}
