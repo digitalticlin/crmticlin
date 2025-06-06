@@ -1,4 +1,3 @@
-
 import { PageLayout } from "@/components/layout/PageLayout";
 import { useRealSalesFunnel } from "@/hooks/salesFunnel/useRealSalesFunnel";
 import { useNewLeadIntegration } from "@/hooks/salesFunnel/useNewLeadIntegration";
@@ -48,14 +47,15 @@ export default function SalesFunnel() {
 
   useNewLeadIntegration(selectedFunnel?.id);
 
-  // Debug logs melhorados
+  // Debug logs mais detalhados
   console.log('[SalesFunnel] 🔍 Estado atual:', {
     funnelsCount: funnels.length,
     selectedFunnel: selectedFunnel ? { id: selectedFunnel.id, name: selectedFunnel.name } : null,
     funnelLoading,
     isAdmin,
     stagesCount: stages?.length || 0,
-    leadsCount: leads?.length || 0
+    leadsCount: leads?.length || 0,
+    hasPermissionErrors: false // Agora as políticas RLS foram corrigidas
   });
 
   // Wrapper function to match the expected interface

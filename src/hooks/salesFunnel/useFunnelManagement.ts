@@ -48,7 +48,7 @@ export function useFunnelManagement() {
         throw error;
       }
 
-      console.log('[Funnel Management] 📊 Resultado da busca (pós-RLS):', { 
+      console.log('[Funnel Management] 📊 Funis encontrados:', { 
         foundFunnels: data?.length || 0, 
         funnels: data 
       });
@@ -60,14 +60,14 @@ export function useFunnelManagement() {
         console.log('[Funnel Management] ✅ Selecionando primeiro funil:', data[0]);
         setSelectedFunnel(data[0]);
       } else if (!data || data.length === 0) {
-        console.log('[Funnel Management] ⚠️ Nenhum funil encontrado após aplicar RLS');
-        console.log('[Funnel Management] 💡 Tentando criar funil padrão...');
+        console.log('[Funnel Management] ⚠️ Nenhum funil encontrado, tentando criar funil padrão...');
         
         // Tentar criar um funil padrão se não existir nenhum
         try {
           await createFunnel("Funil Principal", "Funil padrão criado automaticamente");
         } catch (createError) {
           console.error('[Funnel Management] ❌ Erro ao criar funil padrão:', createError);
+          toast.error("Erro ao criar funil padrão. Verifique suas permissões.");
         }
       }
     } catch (error: any) {
@@ -76,7 +76,7 @@ export function useFunnelManagement() {
       // Tratamento específico para erros de RLS
       if (error.message?.includes('row-level security') || error.message?.includes('infinite recursion')) {
         console.error("[Funnel Management] 🔒 Erro de RLS detectado:", error.message);
-        toast.error("Erro de permissão ao carregar funis. Verifique as configurações de segurança.");
+        toast.error("Erro de permissão ao carregar funis. As políticas RLS foram atualizadas, tente recarregar a página.");
       } else {
         toast.error(`Erro ao carregar funis: ${error.message}`);
       }
@@ -125,7 +125,7 @@ export function useFunnelManagement() {
       console.error("[Funnel Management] ❌ Erro ao criar funil:", error);
       
       if (error.message?.includes('row-level security')) {
-        toast.error("Erro de permissão ao criar funil");
+        toast.error("Erro de permissão ao criar funil. Verifique se você tem permissões de admin.");
       } else {
         toast.error(`Erro ao criar funil: ${error.message}`);
       }
