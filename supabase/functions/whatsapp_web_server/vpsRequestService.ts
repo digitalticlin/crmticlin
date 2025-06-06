@@ -86,6 +86,49 @@ export async function createVPSInstance(payload: any) {
   }
 }
 
+// CORREÇÃO CRÍTICA: Implementar a função deleteVPSInstance que estava faltando
+export async function deleteVPSInstance(vpsInstanceId: string, instanceName?: string) {
+  console.log('[VPS Request Service] 🗑️ CORREÇÃO - Deletando instância da VPS:', vpsInstanceId);
+  console.log('[VPS Request Service] 🔑 Token usado:', VPS_CONFIG.authToken.substring(0, 10) + '...');
+  
+  try {
+    const payload = {
+      instanceId: vpsInstanceId,
+      sessionName: instanceName || vpsInstanceId
+    };
+
+    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}${VPS_CONFIG.endpoints.deleteInstance}`, {
+      method: 'DELETE',
+      headers: getVPSHeaders(),
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[VPS Request Service] ❌ CORREÇÃO - Erro ao deletar instância:', response.status, errorText);
+      return {
+        success: false,
+        error: `VPS error ${response.status}: ${errorText}`
+      };
+    }
+
+    const data = await response.json();
+    console.log('[VPS Request Service] ✅ CORREÇÃO - Instância deletada da VPS:', data);
+    
+    return {
+      success: true,
+      data: data
+    };
+    
+  } catch (error: any) {
+    console.error('[VPS Request Service] ❌ CORREÇÃO - Erro na requisição de deleção:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
 export async function getVPSInstanceQR(instanceId: string) {
   console.log('[VPS Request Service] 📱 CORREÇÃO - Buscando QR Code (porta 3001):', instanceId);
   console.log('[VPS Request Service] 🔑 Token usado:', VPS_CONFIG.authToken.substring(0, 10) + '...');

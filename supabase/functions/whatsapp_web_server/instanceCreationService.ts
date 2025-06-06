@@ -4,8 +4,10 @@ import { createVPSInstance } from './vpsRequestService.ts';
 
 export async function createWhatsAppInstance(supabase: any, instanceData: any, userId: string) {
   const creationId = `create_${Date.now()}`;
-  console.log(`[Instance Creation] 🚀 TESTE COM TOKEN FIXO - CRIANDO INSTÂNCIA [${creationId}]:`, instanceData);
+  console.log(`[Instance Creation] 🚀 CORREÇÃO CRÍTICA - CRIANDO INSTÂNCIA [${creationId}]:`, instanceData);
   console.log(`[Instance Creation] 🔑 Token VPS usado: ${VPS_CONFIG.authToken}`);
+  console.log(`[Instance Creation] 🌐 URL VPS: ${VPS_CONFIG.baseUrl}`);
+  console.log(`[Instance Creation] 👤 User ID: ${userId}`);
 
   try {
     const { instanceName } = instanceData;
@@ -13,6 +15,8 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
     if (!instanceName) {
       throw new Error('Nome da instância é obrigatório');
     }
+
+    console.log(`[Instance Creation] 📝 CORREÇÃO CRÍTICA - Instance name: ${instanceName}`);
 
     // Verificar se já existe instância com esse nome para este usuário
     const { data: existingInstance } = await supabase
@@ -28,7 +32,7 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
 
     // Gerar ID único para VPS
     const vpsInstanceId = `whatsapp_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-    console.log(`[Instance Creation] 📱 VPS Instance ID gerado: ${vpsInstanceId}`);
+    console.log(`[Instance Creation] 📱 CORREÇÃO CRÍTICA - VPS Instance ID gerado: ${vpsInstanceId}`);
 
     // Buscar company_id se existe
     let companyId = null;
@@ -40,12 +44,12 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
 
     if (userProfile?.company_id) {
       companyId = userProfile.company_id;
-      console.log(`[Instance Creation] 🏢 Company ID encontrado:`, companyId);
+      console.log(`[Instance Creation] 🏢 CORREÇÃO CRÍTICA - Company ID encontrado:`, companyId);
     } else {
-      console.log(`[Instance Creation] ⚠️ Usuário sem empresa - seguindo sem company_id`);
+      console.log(`[Instance Creation] ⚠️ CORREÇÃO CRÍTICA - Usuário sem empresa - seguindo sem company_id`);
     }
 
-    // TESTE: Criar instância na VPS com token fixo
+    // CORREÇÃO CRÍTICA: Criar instância na VPS com logs detalhados
     const webhookUrl = 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web';
     const vpsPayload = {
       instanceId: vpsInstanceId,
@@ -57,16 +61,23 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
       webhookEvents: ['messages.upsert', 'qr.update', 'connection.update']
     };
 
-    console.log('[Instance Creation] 🌐 TESTE - Enviando para VPS com token fixo:', vpsPayload);
+    console.log('[Instance Creation] 🌐 CORREÇÃO CRÍTICA - Enviando para VPS:', {
+      url: `${VPS_CONFIG.baseUrl}${VPS_CONFIG.endpoints.createInstance}`,
+      token: VPS_CONFIG.authToken,
+      payload: vpsPayload
+    });
+
     const vpsResult = await createVPSInstance(vpsPayload);
+    
+    console.log('[Instance Creation] 📥 CORREÇÃO CRÍTICA - Resposta da VPS:', vpsResult);
     
     if (!vpsResult.success) {
       throw new Error(`Falha ao criar instância na VPS: ${vpsResult.error || 'Erro desconhecido'}`);
     }
 
-    console.log('[Instance Creation] ✅ TESTE - Instância criada na VPS com sucesso');
+    console.log('[Instance Creation] ✅ CORREÇÃO CRÍTICA - Instância criada na VPS com sucesso');
 
-    // TESTE: Salvar no Supabase com QR Code se disponível
+    // CORREÇÃO CRÍTICA: Salvar no Supabase com logs detalhados
     const instanceRecord = {
       instance_name: instanceName,
       vps_instance_id: vpsInstanceId,
@@ -80,11 +91,12 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
       created_at: new Date().toISOString()
     };
 
-    console.log('[Instance Creation] 💾 TESTE - Salvando no Supabase:', {
+    console.log('[Instance Creation] 💾 CORREÇÃO CRÍTICA - Salvando no Supabase:', {
       instanceName,
       vpsInstanceId,
       hasQRCode: !!vpsResult.qrCode,
-      companyId
+      companyId,
+      record: instanceRecord
     });
 
     const { data: savedInstance, error: saveError } = await supabase
@@ -94,11 +106,11 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
       .single();
 
     if (saveError) {
-      console.error('[Instance Creation] ❌ Erro ao salvar no Supabase:', saveError);
+      console.error('[Instance Creation] ❌ CORREÇÃO CRÍTICA - Erro ao salvar no Supabase:', saveError);
       throw new Error(`Erro ao salvar instância: ${saveError.message}`);
     }
 
-    console.log(`[Instance Creation] ✅ TESTE - Instância salva no Supabase [${creationId}]:`, savedInstance.id);
+    console.log(`[Instance Creation] ✅ CORREÇÃO CRÍTICA - Instância salva no Supabase [${creationId}]:`, savedInstance);
 
     return new Response(
       JSON.stringify({
@@ -107,20 +119,31 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
         vpsInstanceId: vpsInstanceId,
         qrCode: vpsResult.qrCode,
         creationId,
-        message: 'Instância criada com sucesso - TESTE COM TOKEN FIXO'
+        message: 'Instância criada com sucesso - CORREÇÃO CRÍTICA APLICADA'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: any) {
-    console.error(`[Instance Creation] ❌ ERRO GERAL TESTE [${creationId}]:`, error);
+    console.error(`[Instance Creation] ❌ CORREÇÃO CRÍTICA - ERRO GERAL [${creationId}]:`, {
+      error: error.message,
+      stack: error.stack,
+      instanceData,
+      userId
+    });
     
     return new Response(
       JSON.stringify({
         success: false,
         error: error.message,
         creationId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        debug: {
+          vpsUrl: VPS_CONFIG.baseUrl,
+          token: VPS_CONFIG.authToken,
+          userId,
+          instanceData
+        }
       }),
       { 
         status: 500,
