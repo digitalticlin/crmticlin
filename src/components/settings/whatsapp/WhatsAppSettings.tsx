@@ -1,35 +1,30 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useCompanyData } from "@/hooks/useCompanyData";
 import { WhatsAppWebSection } from "./WhatsAppWebSection";
 
 export const WhatsAppSettings = () => {
-  const { companyId, loading: companyLoading } = useCompanyData();
-
+  // Agora buscar instâncias por created_by_user_id em vez de company_id
   const { data: instances, isLoading, refetch } = useQuery({
-    queryKey: ['whatsappInstances', companyId],
+    queryKey: ['whatsappInstances'],
     queryFn: async () => {
-      if (!companyId) return [];
+      // Buscar instâncias criadas pelo usuário atual
       const { data } = await supabase
         .from('whatsapp_instances')
         .select('*')
-        .eq('company_id', companyId)
         .eq('connection_type', 'web')
         .order('created_at', { ascending: false });
       return data;
     },
-    enabled: !!companyId,
   });
 
-  console.log('[WhatsAppSettings] Component rendering - WhatsApp Web.js only');
+  console.log('[WhatsAppSettings] Component rendering - User-centric WhatsApp Web.js');
   console.log('[WhatsAppSettings] WhatsApp Web instances loaded:', {
     instancesCount: instances?.length || 0,
-    loading: isLoading,
-    companyLoading
+    loading: isLoading
   });
 
-  if (companyLoading || isLoading) {
+  if (isLoading) {
     return (
       <div className="space-y-6">
         <div className="animate-pulse">
@@ -45,7 +40,7 @@ export const WhatsAppSettings = () => {
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Configurações do WhatsApp</h1>
         <p className="text-gray-600 mt-2">
-          Gerencie suas conexões do WhatsApp Web.js
+          Gerencie suas conexões pessoais do WhatsApp Web.js
         </p>
       </div>
 

@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { KanbanLead, KanbanTag } from "@/types/kanban";
 
-/** Busca os leads do funil, já filtrados conforme RLS */
+/** Busca os leads do funil do usuário atual */
 export function useLeadsDatabase(funnelId?: string) {
   const queryClient = useQueryClient();
 
@@ -11,6 +11,8 @@ export function useLeadsDatabase(funnelId?: string) {
     queryKey: ["leads", funnelId],
     queryFn: async () => {
       if (!funnelId) return [];
+      
+      // Buscar apenas leads criados pelo usuário atual
       const { data, error } = await supabase
         .from("leads")
         .select(`
@@ -51,8 +53,7 @@ export function useLeadsDatabase(funnelId?: string) {
         })) ?? []
       );
     },
-    // Adicionar configurações para melhor reatividade
-    staleTime: 0, // Dados sempre considerados stale para revalidação
+    staleTime: 0,
     refetchOnWindowFocus: true,
   });
 
@@ -66,16 +67,22 @@ export function useLeadsDatabase(funnelId?: string) {
       fields: Partial<KanbanLead>;
     }) => {
       const { name, notes, purchaseValue, assignedUser } = fields;
+      
+      // Obter o usuário atual
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+      
       const { error } = await supabase.from("leads").update({
         name,
         notes,
         purchase_value: purchaseValue,
         owner_id: assignedUser,
+        created_by_user_id: user.id, // Garantir que seja do usuário atual
       }).eq("id", leadId);
+      
       if (error) throw error;
     },
     onSuccess: () => {
-      // Invalidar e refetch imediato
       queryClient.invalidateQueries({ queryKey: ["leads", funnelId] });
     },
   });

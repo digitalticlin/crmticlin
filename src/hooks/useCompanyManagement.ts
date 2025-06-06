@@ -16,14 +16,14 @@ export const useCompanyManagement = () => {
   const [isLoadingCompany, setIsLoadingCompany] = useState(false);
 
   /**
-   * Carregar dados da empresa do usuário atual
+   * Carregar dados da empresa do usuário atual (opcional no novo sistema)
    */
   const loadCompanyData = async (): Promise<CompanyData | null> => {
     try {
       setIsLoadingCompany(true);
       console.log('[Company Management] 📦 Carregando dados da empresa...');
 
-      // Obter company_id do perfil do usuário
+      // Obter company_id do perfil do usuário (agora opcional)
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('company_id')
@@ -35,7 +35,7 @@ export const useCompanyManagement = () => {
       }
 
       if (!profile?.company_id) {
-        console.log('[Company Management] ⚠️ Usuário ainda não possui empresa vinculada');
+        console.log('[Company Management] ⚠️ Usuário ainda não possui empresa vinculada (opcional no novo sistema)');
         setCompanyData(null);
         return null;
       }
@@ -68,7 +68,7 @@ export const useCompanyManagement = () => {
   };
 
   /**
-   * Criar nova empresa para o usuário
+   * Criar nova empresa para o usuário (opcional)
    */
   const createCompany = async (companyName: string, companyDocument?: string): Promise<boolean> => {
     try {
@@ -98,7 +98,7 @@ export const useCompanyManagement = () => {
   };
 
   /**
-   * Atualizar dados da empresa existente
+   * Atualizar dados da empresa existente (opcional)
    */
   const updateCompany = async (companyName: string, companyDocument?: string): Promise<boolean> => {
     try {
@@ -128,12 +128,12 @@ export const useCompanyManagement = () => {
   };
 
   /**
-   * Salvar empresa (criar se não existir, atualizar se existir)
+   * Salvar empresa (criar se não existir, atualizar se existir) - opcional
    */
   const saveCompany = async (companyName: string, companyDocument?: string): Promise<boolean> => {
     if (!companyName.trim()) {
-      toast.error('Nome da empresa é obrigatório');
-      return false;
+      toast.success('Empresa não é mais obrigatória no novo sistema');
+      return true;
     }
 
     if (companyData) {

@@ -5,7 +5,7 @@ import { WhatsAppConnectionStatus } from "@/hooks/whatsapp/database";
 export interface InstanceDatabaseData {
   instance_name: string;
   phone: string;
-  company_id: string;
+  created_by_user_id: string;
   connection_status: WhatsAppConnectionStatus;
   connection_type: 'web';
   server_url: string;
@@ -32,21 +32,15 @@ export const saveInstanceToDatabase = async (instanceData: InstanceDatabaseData)
 };
 
 /**
- * Gets the user's company ID
+ * Gets the current user ID
  */
-export const getUserCompanyId = async (): Promise<string> => {
+export const getCurrentUserId = async (): Promise<string> => {
   const userResult = await supabase.auth.getUser();
   const userId = userResult.data.user?.id;
 
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("company_id")
-    .eq("id", userId)
-    .single();
-
-  if (!profileData?.company_id) {
-    throw new Error("Erro ao obter a empresa do usuário");
+  if (!userId) {
+    throw new Error("Usuário não autenticado");
   }
 
-  return profileData.company_id;
+  return userId;
 };

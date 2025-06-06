@@ -16,7 +16,7 @@ export const useCompanyData = () => {
       }
 
       try {
-        // Buscar company_id do perfil do usuário
+        // Buscar company_id do perfil do usuário (agora opcional)
         const { data: profile, error } = await supabase
           .from('profiles')
           .select('company_id')
@@ -29,7 +29,7 @@ export const useCompanyData = () => {
           console.log('[useCompanyData] Company ID carregado:', profile.company_id);
           setCompanyId(profile.company_id);
         } else {
-          console.log('[useCompanyData] Usuário ainda não possui empresa vinculada');
+          console.log('[useCompanyData] Usuário não possui empresa vinculada (opcional no novo sistema)');
           setCompanyId(null);
         }
       } catch (error) {

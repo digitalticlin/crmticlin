@@ -36,9 +36,9 @@ const CompanyInfoSection = ({
               </>
             ) : (
               <>
-                <AlertCircle className="h-4 w-4 text-orange-500" />
-                <p className="text-sm text-orange-600 font-medium">
-                  Preencha os dados para criar sua empresa
+                <AlertCircle className="h-4 w-4 text-blue-500" />
+                <p className="text-sm text-blue-600 font-medium">
+                  Empresa opcional - seus dados são pessoais agora
                 </p>
               </>
             )}
@@ -46,40 +46,36 @@ const CompanyInfoSection = ({
         </div>
       </div>
 
-      {!hasCompany && (
-        <div className="bg-blue-50/50 border border-blue-200 rounded-2xl p-4 mb-6">
-          <div className="flex items-start space-x-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Building2 className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold text-blue-800">Como funciona?</h4>
-              <p className="text-sm text-blue-700 mt-1">
-                Ao preencher o <strong>Nome da Empresa</strong> e salvar, uma empresa será automaticamente criada 
-                e vinculada ao seu perfil. Todos os dados do sistema (WhatsApp, funis, leads) estarão ligados à sua empresa.
-              </p>
-            </div>
+      <div className="bg-blue-50/50 border border-blue-200 rounded-2xl p-4 mb-6">
+        <div className="flex items-start space-x-3">
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <Building2 className="h-5 w-5 text-blue-600" />
+          </div>
+          <div>
+            <h4 className="text-sm font-semibold text-blue-800">Sistema Pessoal</h4>
+            <p className="text-sm text-blue-700 mt-1">
+              <strong>Novidade!</strong> Agora seus dados (WhatsApp, funis, leads) são pessoais e vinculados 
+              diretamente à sua conta. A empresa é opcional e serve apenas para organização.
+            </p>
           </div>
         </div>
-      )}
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <label className="text-sm font-medium text-gray-800 flex items-center">
             <span className="mr-2">🏢</span>
-            Nome da Empresa {!hasCompany && <span className="text-red-500 ml-1">*</span>}
+            Nome da Empresa (opcional)
           </label>
           <input 
             className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-xl text-gray-800 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-[#D3D800]/50 focus:border-[#D3D800]/50 transition-all duration-200"
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
-            placeholder={hasCompany ? "Nome da empresa" : "Digite o nome da sua empresa"}
+            placeholder={hasCompany ? "Nome da empresa" : "Digite o nome da sua empresa (opcional)"}
           />
-          {!hasCompany && (
-            <p className="text-xs text-gray-600">
-              ⚠️ Será criada automaticamente ao salvar
-            </p>
-          )}
+          <p className="text-xs text-gray-600">
+            💡 Opcional - seus dados são pessoais independentemente da empresa
+          </p>
         </div>
         
         <div className="space-y-2">
@@ -102,7 +98,7 @@ const CompanyInfoSection = ({
             <CheckCircle className="h-5 w-5 text-green-600" />
             <div>
               <p className="text-sm font-medium text-green-800">
-                Empresa ativa no sistema
+                Empresa registrada (opcional)
               </p>
               <p className="text-xs text-green-700 mt-1">
                 ID da empresa: {companyData.id}

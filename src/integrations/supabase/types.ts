@@ -488,6 +488,7 @@ export type Database = {
         Row: {
           company_id: string
           created_at: string | null
+          created_by_user_id: string | null
           description: string | null
           id: string
           name: string
@@ -495,6 +496,7 @@ export type Database = {
         Insert: {
           company_id: string
           created_at?: string | null
+          created_by_user_id?: string | null
           description?: string | null
           id?: string
           name: string
@@ -502,6 +504,7 @@ export type Database = {
         Update: {
           company_id?: string
           created_at?: string | null
+          created_by_user_id?: string | null
           description?: string | null
           id?: string
           name?: string
@@ -521,6 +524,7 @@ export type Database = {
           color: string | null
           company_id: string
           created_at: string | null
+          created_by_user_id: string | null
           funnel_id: string | null
           id: string
           is_fixed: boolean | null
@@ -535,6 +539,7 @@ export type Database = {
           color?: string | null
           company_id: string
           created_at?: string | null
+          created_by_user_id?: string | null
           funnel_id?: string | null
           id?: string
           is_fixed?: boolean | null
@@ -549,6 +554,7 @@ export type Database = {
           color?: string | null
           company_id?: string
           created_at?: string | null
+          created_by_user_id?: string | null
           funnel_id?: string | null
           id?: string
           is_fixed?: boolean | null
@@ -658,6 +664,7 @@ export type Database = {
           company_id: string | null
           country: string | null
           created_at: string | null
+          created_by_user_id: string | null
           document_id: string | null
           document_type: string | null
           email: string | null
@@ -685,6 +692,7 @@ export type Database = {
           company_id?: string | null
           country?: string | null
           created_at?: string | null
+          created_by_user_id?: string | null
           document_id?: string | null
           document_type?: string | null
           email?: string | null
@@ -712,6 +720,7 @@ export type Database = {
           company_id?: string | null
           country?: string | null
           created_at?: string | null
+          created_by_user_id?: string | null
           document_id?: string | null
           document_type?: string | null
           email?: string | null
@@ -772,6 +781,7 @@ export type Database = {
       }
       messages: {
         Row: {
+          created_by_user_id: string | null
           external_id: string | null
           from_me: boolean
           id: string
@@ -784,6 +794,7 @@ export type Database = {
           whatsapp_number_id: string
         }
         Insert: {
+          created_by_user_id?: string | null
           external_id?: string | null
           from_me: boolean
           id?: string
@@ -796,6 +807,7 @@ export type Database = {
           whatsapp_number_id: string
         }
         Update: {
+          created_by_user_id?: string | null
           external_id?: string | null
           from_me?: boolean
           id?: string
@@ -1068,6 +1080,7 @@ export type Database = {
           color: string
           company_id: string
           created_at: string | null
+          created_by_user_id: string | null
           id: string
           name: string
           updated_at: string | null
@@ -1076,6 +1089,7 @@ export type Database = {
           color: string
           company_id: string
           created_at?: string | null
+          created_by_user_id?: string | null
           id?: string
           name: string
           updated_at?: string | null
@@ -1084,6 +1098,7 @@ export type Database = {
           color?: string
           company_id?: string
           created_at?: string | null
+          created_by_user_id?: string | null
           id?: string
           name?: string
           updated_at?: string | null
@@ -1277,6 +1292,7 @@ export type Database = {
           connection_status: string | null
           connection_type: string | null
           created_at: string | null
+          created_by_user_id: string | null
           date_connected: string | null
           date_disconnected: string | null
           id: string
@@ -1300,6 +1316,7 @@ export type Database = {
           connection_status?: string | null
           connection_type?: string | null
           created_at?: string | null
+          created_by_user_id?: string | null
           date_connected?: string | null
           date_disconnected?: string | null
           id?: string
@@ -1323,6 +1340,7 @@ export type Database = {
           connection_status?: string | null
           connection_type?: string | null
           created_at?: string | null
+          created_by_user_id?: string | null
           date_connected?: string | null
           date_disconnected?: string | null
           id?: string
@@ -1371,10 +1389,6 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
-      get_user_company_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
       increment_unread_count: {
         Args: { lead_uuid: string }
         Returns: undefined
@@ -1399,20 +1413,8 @@ export type Database = {
         Args: { company_name: string; company_document_id?: string }
         Returns: boolean
       }
-      user_can_access_lead: {
-        Args: { lead_id: string }
-        Returns: boolean
-      }
-      user_has_funnel_access: {
-        Args: { funnel_id: string }
-        Returns: boolean
-      }
-      user_has_operational_whatsapp_access: {
-        Args: { whatsapp_id: string }
-        Returns: boolean
-      }
-      user_has_whatsapp_number: {
-        Args: { whatsapp_id: string }
+      user_owns_resource: {
+        Args: { resource_user_id: string }
         Returns: boolean
       }
     }
