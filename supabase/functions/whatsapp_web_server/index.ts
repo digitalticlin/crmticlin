@@ -8,18 +8,26 @@ import { getQRCodeAsync } from './qrCodeAsyncService.ts';
 import { sendMessage } from './messageSendingService.ts';
 import { getChatHistory } from './chatHistoryService.ts';
 import { syncAllInstances } from './instanceSyncService.ts';
+import { getHealthStatus } from './healthService.ts';
 
-console.log('[WhatsApp Server] 🚀 CORREÇÃO CRÍTICA - Edge Function inicializada');
+console.log('[WhatsApp Server] 🚀 CORREÇÃO ROBUSTA - Edge Function inicializada com todas as funções');
 
 Deno.serve(async (req) => {
-  console.log('[WhatsApp Server] 📨 CORREÇÃO CRÍTICA - Nova requisição recebida');
+  console.log('[WhatsApp Server] 📨 CORREÇÃO ROBUSTA - Nova requisição recebida');
   console.log('[WhatsApp Server] Method:', req.method);
   console.log('[WhatsApp Server] URL:', req.url);
 
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('[WhatsApp Server] ✅ CORREÇÃO CRÍTICA - OPTIONS request handled');
+    console.log('[WhatsApp Server] ✅ CORREÇÃO ROBUSTA - OPTIONS request handled');
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // CORREÇÃO ROBUSTA: Adicionar endpoint /health para validação
+  const url = new URL(req.url);
+  if (url.pathname.endsWith('/health')) {
+    console.log('[WhatsApp Server] 🏥 CORREÇÃO ROBUSTA - Health check endpoint');
+    return await getHealthStatus();
   }
 
   try {
@@ -27,23 +35,23 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
-    console.log('[WhatsApp Server] 📊 CORREÇÃO CRÍTICA - Supabase client created');
+    console.log('[WhatsApp Server] 📊 CORREÇÃO ROBUSTA - Supabase client created');
 
     // Parse request body
     const requestText = await req.text();
-    console.log('[WhatsApp Server] 📥 CORREÇÃO CRÍTICA - Raw request body:', requestText);
+    console.log('[WhatsApp Server] 📥 CORREÇÃO ROBUSTA - Raw request body:', requestText);
     
     const body = requestText ? JSON.parse(requestText) : {};
-    console.log('[WhatsApp Server] 📋 CORREÇÃO CRÍTICA - Parsed request body:', JSON.stringify(body, null, 2));
+    console.log('[WhatsApp Server] 📋 CORREÇÃO ROBUSTA - Parsed request body:', JSON.stringify(body, null, 2));
 
     // Extract action from body
     const action = body.action;
-    console.log('[WhatsApp Server] 🎯 CORREÇÃO CRÍTICA - Action extracted:', action);
+    console.log('[WhatsApp Server] 🎯 CORREÇÃO ROBUSTA - Action extracted:', action);
 
     // Authenticate user
     const authResult = await authenticateUser(req, supabase);
     if (!authResult.success) {
-      console.error('[WhatsApp Server] ❌ CORREÇÃO CRÍTICA - Falha na autenticação:', authResult.error);
+      console.error('[WhatsApp Server] ❌ CORREÇÃO ROBUSTA - Falha na autenticação:', authResult.error);
       return new Response(
         JSON.stringify({ success: false, error: authResult.error }),
         { 
@@ -54,38 +62,38 @@ Deno.serve(async (req) => {
     }
 
     const { user } = authResult;
-    console.log('[WhatsApp Server] 🔐 CORREÇÃO CRÍTICA - Usuário autenticado:', user.id, user.email);
+    console.log('[WhatsApp Server] 🔐 CORREÇÃO ROBUSTA - Usuário autenticado:', user.id, user.email);
 
     // Process different actions
-    console.log('[WhatsApp Server] 🎯 CORREÇÃO CRÍTICA - Processing action:', action);
+    console.log('[WhatsApp Server] 🎯 CORREÇÃO ROBUSTA - Processing action:', action);
 
     switch (action) {
       case 'create_instance':
-        console.log('[WhatsApp Server] 🆕 CORREÇÃO CRÍTICA - CREATE INSTANCE');
+        console.log('[WhatsApp Server] 🆕 CORREÇÃO ROBUSTA - CREATE INSTANCE');
         return await createWhatsAppInstance(supabase, body.instanceData, user.id);
 
       case 'delete_instance':
-        console.log('[WhatsApp Server] 🗑️ CORREÇÃO CRÍTICA - DELETE INSTANCE');
+        console.log('[WhatsApp Server] 🗑️ CORREÇÃO ROBUSTA - DELETE INSTANCE');
         return await deleteWhatsAppInstance(supabase, body.instanceData, user.id);
 
       case 'get_qr_code_async':
-        console.log('[WhatsApp Server] 🔳 CORREÇÃO CRÍTICA - GET QR CODE ASYNC');
+        console.log('[WhatsApp Server] 🔳 CORREÇÃO ROBUSTA - GET QR CODE ASYNC');
         return await getQRCodeAsync(supabase, body.instanceData, user.id);
 
       case 'send_message':
-        console.log('[WhatsApp Server] 📤 CORREÇÃO CRÍTICA - SEND MESSAGE');
+        console.log('[WhatsApp Server] 📤 CORREÇÃO ROBUSTA - SEND MESSAGE');
         return await sendMessage(supabase, body.messageData, user.id);
 
       case 'get_chat_history':
-        console.log('[WhatsApp Server] 📚 CORREÇÃO CRÍTICA - GET CHAT HISTORY');
+        console.log('[WhatsApp Server] 📚 CORREÇÃO ROBUSTA - GET CHAT HISTORY');
         return await getChatHistory(supabase, body.chatData, user.id);
 
       case 'sync_all_instances':
-        console.log('[WhatsApp Server] 🔄 CORREÇÃO CRÍTICA - SYNC ALL INSTANCES');
+        console.log('[WhatsApp Server] 🔄 CORREÇÃO ROBUSTA - SYNC ALL INSTANCES');
         return await syncAllInstances(supabase, body.syncData, user.id);
 
       default:
-        console.error('[WhatsApp Server] ❌ CORREÇÃO CRÍTICA - Ação não reconhecida:', action);
+        console.error('[WhatsApp Server] ❌ CORREÇÃO ROBUSTA - Ação não reconhecida:', action);
         return new Response(
           JSON.stringify({ 
             success: false, 
@@ -107,7 +115,7 @@ Deno.serve(async (req) => {
     }
 
   } catch (error: any) {
-    console.error('[WhatsApp Server] ❌ CORREÇÃO CRÍTICA - ERRO GERAL:', {
+    console.error('[WhatsApp Server] ❌ CORREÇÃO ROBUSTA - ERRO GERAL:', {
       message: error.message,
       stack: error.stack,
       url: req.url,
