@@ -1,7 +1,6 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import { corsHeaders } from './config.ts';
-import { authenticateUser } from './authService.ts';
+import { authenticateUser } from './authentication.ts';
 import { createWhatsAppInstance } from './instanceCreationService.ts';
 import { deleteWhatsAppInstance } from './instanceDeletionService.ts';
 import { getQRCodeAsync } from './qrCodeAsyncService.ts';
