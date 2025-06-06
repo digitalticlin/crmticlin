@@ -1395,6 +1395,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      get_user_company_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       increment_unread_count: {
         Args: { lead_uuid: string }
         Returns: undefined
@@ -1417,6 +1421,14 @@ export type Database = {
       }
       update_user_company: {
         Args: { company_name: string; company_document_id?: string }
+        Returns: boolean
+      }
+      user_can_access_lead: {
+        Args: { lead_uuid: string }
+        Returns: boolean
+      }
+      user_has_whatsapp_number: {
+        Args: { whatsapp_number_uuid: string }
         Returns: boolean
       }
       user_owns_resource: {

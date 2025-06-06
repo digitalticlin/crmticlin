@@ -48,59 +48,82 @@ export default function SalesFunnel() {
 
   useNewLeadIntegration(selectedFunnel?.id);
 
-  // Debug logs
+  // Debug logs melhorados
   console.log('[SalesFunnel] 🔍 Estado atual:', {
     funnelsCount: funnels.length,
-    selectedFunnel: selectedFunnel?.name,
+    selectedFunnel: selectedFunnel ? { id: selectedFunnel.id, name: selectedFunnel.name } : null,
     funnelLoading,
-    isAdmin
+    isAdmin,
+    stagesCount: stages?.length || 0,
+    leadsCount: leads?.length || 0
   });
 
   // Wrapper function to match the expected interface
   const createFunnel = async (name: string, description?: string): Promise<void> => {
-    await originalCreateFunnel(name, description);
+    try {
+      console.log('[SalesFunnel] 📝 Criando funil:', { name, description });
+      await originalCreateFunnel(name, description);
+    } catch (error) {
+      console.error('[SalesFunnel] ❌ Erro ao criar funil:', error);
+      throw error;
+    }
   };
 
   // Wrapper functions to convert QueryObserverResult to void
   const refetchLeads = async (): Promise<void> => {
-    await originalRefetchLeads();
+    try {
+      console.log('[SalesFunnel] 🔄 Recarregando leads...');
+      await originalRefetchLeads();
+    } catch (error) {
+      console.error('[SalesFunnel] ❌ Erro ao recarregar leads:', error);
+    }
   };
 
   const refetchStages = async (): Promise<void> => {
-    await originalRefetchStages();
+    try {
+      console.log('[SalesFunnel] 🔄 Recarregando estágios...');
+      await originalRefetchStages();
+    } catch (error) {
+      console.error('[SalesFunnel] ❌ Erro ao recarregar estágios:', error);
+    }
   };
 
   // Wrapper functions para usar selectedLead.id quando necessário
   const handleUpdateLeadNotes = (notes: string) => {
     if (selectedLead?.id) {
+      console.log('[SalesFunnel] 📝 Atualizando notas do lead:', selectedLead.id);
       updateLeadNotes(selectedLead.id, notes);
     }
   };
 
   const handleUpdateLeadPurchaseValue = (value: number | undefined) => {
     if (selectedLead?.id) {
+      console.log('[SalesFunnel] 💰 Atualizando valor do lead:', selectedLead.id, value);
       updateLeadPurchaseValue(selectedLead.id, value);
     }
   };
 
   const handleUpdateLeadAssignedUser = (user: string) => {
     if (selectedLead?.id) {
+      console.log('[SalesFunnel] 👤 Atualizando usuário responsável:', selectedLead.id, user);
       updateLeadAssignedUser(selectedLead.id, user);
     }
   };
 
   const handleUpdateLeadName = (name: string) => {
     if (selectedLead?.id) {
+      console.log('[SalesFunnel] 📛 Atualizando nome do lead:', selectedLead.id, name);
       updateLeadName(selectedLead.id, name);
     }
   };
 
+  // Estado de carregamento
   if (funnelLoading) {
     console.log('[SalesFunnel] ⏳ Carregando funis...');
     return <FunnelLoadingState />;
   }
 
-  // Apenas mostrar empty state se realmente não houver funis depois do carregamento
+  // Empty state - mostrar apenas se realmente não houver funis após o carregamento
   if (!selectedFunnel && funnels.length === 0 && !funnelLoading) {
     console.log('[SalesFunnel] ❌ Nenhum funil encontrado, mostrando empty state');
     return (
@@ -113,12 +136,21 @@ export default function SalesFunnel() {
 
   // Se tem funis mas nenhum selecionado, selecionar o primeiro
   if (funnels.length > 0 && !selectedFunnel) {
-    console.log('[SalesFunnel] 🔄 Selecionando primeiro funil disponível...');
+    console.log('[SalesFunnel] 🔄 Selecionando primeiro funil disponível:', funnels[0]);
     setSelectedFunnel(funnels[0]);
     return <FunnelLoadingState />;
   }
 
-  console.log('[SalesFunnel] ✅ Renderizando conteúdo do funil');
+  // Verificar se o funil selecionado tem estágios
+  if (selectedFunnel && (!stages || stages.length === 0)) {
+    console.log('[SalesFunnel] ⚠️ Funil selecionado sem estágios:', selectedFunnel.name);
+  }
+
+  console.log('[SalesFunnel] ✅ Renderizando conteúdo do funil:', {
+    funnelName: selectedFunnel?.name,
+    stagesCount: stages?.length || 0,
+    columnsCount: columns?.length || 0
+  });
 
   const contextValue = {
     funnels,
