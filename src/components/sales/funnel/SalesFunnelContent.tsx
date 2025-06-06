@@ -42,12 +42,13 @@ export const SalesFunnelContent = () => {
     lostStageId
   } = useSalesFunnelContext();
 
-  // Obter leads das colunas Ganho e Perdido para os filtros
+  // Buscar leads das etapas GANHO e PERDIDO usando os dados do contexto
   const wonLostLeads = stages
     ?.filter(stage => stage.title === "GANHO" || stage.title === "PERDIDO")
     .flatMap(stage => {
-      // Buscar leads dessa stage no contexto completo
-      return []; // TODO: implementar busca dos leads de ganho/perdido
+      // Buscar leads dessa stage nas colunas do contexto
+      const stageColumn = columns.find(col => col.id === stage.id);
+      return stageColumn ? stageColumn.leads : [];
     }) || [];
 
   // Hook para filtros na página Ganhos e Perdidos
@@ -57,14 +58,20 @@ export const SalesFunnelContent = () => {
   const displayColumns = activeTab === "won-lost" 
     ? stages
         ?.filter(stage => stage.title === "GANHO" || stage.title === "PERDIDO")
-        .map(stage => ({
-          id: stage.id,
-          title: stage.title,
-          leads: [], // TODO: buscar leads dessas stages
-          color: stage.color || "#e0e0e0",
-          isFixed: stage.is_fixed || false,
-          isHidden: false
-        })) || []
+        .map(stage => {
+          // Buscar leads reais dessa stage
+          const stageColumn = columns.find(col => col.id === stage.id);
+          const stageLeads = stageColumn ? stageColumn.leads : [];
+          
+          return {
+            id: stage.id,
+            title: stage.title,
+            leads: stageLeads,
+            color: stage.color || "#e0e0e0",
+            isFixed: stage.is_fixed || false,
+            isHidden: false
+          };
+        }) || []
     : columns;
 
   const handleOpenChat = (lead: KanbanLead) => {
@@ -108,8 +115,14 @@ export const SalesFunnelContent = () => {
       <ModernFunnelHeader 
         selectedFunnel={selectedFunnel!}
         totalLeads={columns.reduce((acc, col) => acc + col.leads.length, 0)}
-        wonLeads={0}
-        lostLeads={0}
+        wonLeads={wonLostLeads.filter(lead => {
+          const leadStage = stages?.find(stage => stage.id === lead.columnId);
+          return leadStage?.title === "GANHO";
+        }).length}
+        lostLeads={wonLostLeads.filter(lead => {
+          const leadStage = stages?.find(stage => stage.id === lead.columnId);
+          return leadStage?.title === "PERDIDO";
+        }).length}
         activeTab={activeTab}
       />
 
