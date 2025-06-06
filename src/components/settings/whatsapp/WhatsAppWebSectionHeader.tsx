@@ -22,9 +22,8 @@ export const WhatsAppWebSectionHeader = ({
       <div>
         <h2 className="text-2xl font-semibold tracking-tight">WhatsApp Web</h2>
         <p className="text-muted-foreground">
-          Gerencie suas conexões e instâncias do WhatsApp Web.js
+          Gerencie suas conexões e instâncias do WhatsApp Web
         </p>
-        {/* CORREÇÃO CRÍTICA: Mostrar estágio da criação */}
         {creationStage && (
           <p className="text-sm text-blue-600 mt-1 font-medium">
             {creationStage}

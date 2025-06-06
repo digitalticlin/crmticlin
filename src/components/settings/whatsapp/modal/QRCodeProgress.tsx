@@ -10,7 +10,7 @@ export const QRCodeProgress = ({ currentAttempt, maxAttempts }: QRCodeProgressPr
   return (
     <div className="text-center">
       <p className="text-sm text-blue-700 mb-3">
-        Tentativa {currentAttempt} de {maxAttempts}
+        Preparando conexão...
       </p>
       
       {/* Progress bar */}
@@ -22,7 +22,7 @@ export const QRCodeProgress = ({ currentAttempt, maxAttempts }: QRCodeProgressPr
       </div>
       
       <p className="text-xs text-blue-600">
-        Estimativa: {Math.max(0, (maxAttempts - currentAttempt) * 2)}s restantes
+        Isso pode levar alguns instantes
       </p>
     </div>
   );

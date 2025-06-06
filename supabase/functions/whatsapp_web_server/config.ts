@@ -1,3 +1,4 @@
+
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -5,7 +6,7 @@ export const corsHeaders = {
 };
 
 export const VPS_CONFIG = {
-  baseUrl: 'http://31.97.24.222:3001',
+  baseUrl: 'http://31.97.24.222:3002',
   authToken: 'default-token', // FASE 2.0: Token que funciona com sua VPS
   timeout: 20000, // FASE 2.0: 20 segundos
   endpoints: {

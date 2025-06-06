@@ -50,12 +50,6 @@ export const QRCodeDisplay = ({
         
         <QRCodeTimer isOpen={isOpen} onExpired={onExpired} />
         
-        {currentAttempt > 0 && (
-          <p className="text-xs text-green-600 mb-1 text-center">
-            ✅ Obtido na tentativa {currentAttempt} (otimizado!)
-          </p>
-        )}
-        
         <QRCodeInstructions />
       </>
     );

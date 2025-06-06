@@ -1,6 +1,6 @@
 
 export const VPS_CONFIG = {
-  baseUrl: 'http://31.97.24.222:3001',
+  baseUrl: 'http://31.97.24.222:3002',
   authToken: 'default-token',
   endpoints: {
     health: '/health',

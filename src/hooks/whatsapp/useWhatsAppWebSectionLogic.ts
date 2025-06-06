@@ -28,11 +28,10 @@ export const useWhatsAppWebSectionLogic = () => {
 
   const { isPolling, currentAttempt, maxAttempts, startPolling, stopPolling } = useAutomaticQRPolling();
 
-  // CORREÇÃO CRÍTICA: Usar dados do usuário autenticado
+  // Usar dados do usuário autenticado
   useEffect(() => {
     if (user) {
       setUserEmail(user.email || "");
-      console.log('[WhatsAppWebSection] 👤 CORREÇÃO CRÍTICA - Usuário carregado:', user.email);
     }
   }, [user]);
 
@@ -43,39 +42,28 @@ export const useWhatsAppWebSectionLogic = () => {
     };
   }, [stopPolling]);
 
-  // CORREÇÃO CRÍTICA: Fluxo SINCRONIZADO - VPS-Frontend
+  // Fluxo SINCRONIZADO - VPS-Frontend
   const handleConnect = async () => {
-    console.log('[WhatsAppWebSection] 🚀 CORREÇÃO CRÍTICA - Connect requested - Sequência Sincronizada');
-    
     try {
-      // ETAPA 1: Preparar criação (sem mostrar nada ainda)
+      // ETAPA 1: Preparar criação
       setIsCreatingInstance(true);
-      setCreationStage('Preparando nova instância...');
+      setCreationStage('Iniciando conexão...');
       
       // ETAPA 2: Gerar nome da instância
       const instanceName = await generateIntelligentInstanceName(userEmail);
-      console.log('[WhatsAppWebSection] 🎯 CORREÇÃO CRÍTICA - Nome gerado:', instanceName);
       
-      setCreationStage('Criando instância na VPS...');
+      setCreationStage('Preparando WhatsApp...');
       toast.loading(`Criando instância "${instanceName}"...`, { id: 'creating-instance' });
       
       // ETAPA 3: AGUARDAR confirmação COMPLETA da VPS
-      console.log('[WhatsAppWebSection] 📱 CORREÇÃO CRÍTICA - Criando e AGUARDANDO confirmação VPS...');
       const createdInstance = await createInstance(instanceName);
       
       if (!createdInstance) {
-        throw new Error('Falha ao criar instância na VPS');
+        throw new Error('Falha ao criar instância');
       }
       
-      console.log('[WhatsAppWebSection] ✅ CORREÇÃO CRÍTICA - VPS confirmou criação:', {
-        id: createdInstance.id,
-        name: createdInstance.instance_name,
-        hasQrCode: !!createdInstance.qr_code,
-        vpsInstanceId: createdInstance.vps_instance_id
-      });
-      
-      // ETAPA 4: Aguardar 2 segundos para garantir sincronização VPS-DB
-      setCreationStage('Sincronizando com banco de dados...');
+      // ETAPA 4: Aguardar para garantir sincronização VPS-DB
+      setCreationStage('Quase pronto...');
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // ETAPA 5: Configurar modal APENAS após confirmação completa
@@ -83,14 +71,12 @@ export const useWhatsAppWebSectionLogic = () => {
       
       if (createdInstance.qr_code) {
         // QR Code disponível - VPS processou completamente
-        console.log('[WhatsAppWebSection] ✅ CORREÇÃO CRÍTICA - QR Code confirmado pela VPS!');
         setLocalSelectedQRCode(createdInstance.qr_code);
         setIsWaitingForQR(false);
-        setCreationStage('QR Code pronto!');
+        setCreationStage('Pronto para escanear!');
         toast.success(`QR Code pronto! Escaneie para conectar.`, { id: 'creating-instance' });
       } else {
-        // QR Code não disponível - iniciar polling INTELIGENTE
-        console.log('[WhatsAppWebSection] ⏳ CORREÇÃO CRÍTICA - QR não disponível, iniciando polling sincronizado...');
+        // QR Code não disponível - iniciar polling
         setIsWaitingForQR(true);
         setCreationStage('Preparando QR Code...');
         toast.info(`Preparando QR Code para "${instanceName}"...`, { id: 'creating-instance' });
@@ -100,10 +86,9 @@ export const useWhatsAppWebSectionLogic = () => {
           createdInstance.id,
           createdInstance.instance_name,
           (qrCode: string) => {
-            console.log('[WhatsAppWebSection] 🎉 CORREÇÃO CRÍTICA - QR Code obtido via polling sincronizado!');
             setLocalSelectedQRCode(qrCode);
             setIsWaitingForQR(false);
-            setCreationStage('QR Code pronto!');
+            setCreationStage('Pronto para escanear!');
             toast.success('QR Code pronto! Escaneie para conectar.', { id: 'creating-instance' });
           }
         );
@@ -113,7 +98,6 @@ export const useWhatsAppWebSectionLogic = () => {
       setLocalShowQRModal(true);
       
     } catch (error: any) {
-      console.error('[WhatsAppWebSection] ❌ CORREÇÃO CRÍTICA - Erro na sequência sincronizada:', error);
       setIsWaitingForQR(false);
       setLocalShowQRModal(false);
       setCreationStage('');
@@ -126,13 +110,10 @@ export const useWhatsAppWebSectionLogic = () => {
   };
 
   const handleDeleteInstance = async (instanceId: string) => {
-    console.log('[WhatsAppWebSection] 🗑️ CORREÇÃO CRÍTICA - Deleting instance:', instanceId);
     await deleteInstance(instanceId);
   };
 
   const handleRefreshQR = async (instanceId: string) => {
-    console.log('[WhatsAppWebSection] 🔄 CORREÇÃO CRÍTICA - Refreshing QR code for instance:', instanceId);
-    
     try {
       setIsWaitingForQR(true);
       const result = await refreshQRCode(instanceId);
@@ -165,7 +146,6 @@ export const useWhatsAppWebSectionLogic = () => {
   };
 
   const closeQRModal = () => {
-    console.log('[WhatsAppWebSection] 🔐 CORREÇÃO CRÍTICA - Fechando modal');
     setLocalShowQRModal(false);
     setLocalSelectedQRCode(null);
     setLocalSelectedInstanceName('');
