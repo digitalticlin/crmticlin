@@ -35,7 +35,7 @@ export function DealsHistorySection({ clientId }: DealsHistorySectionProps) {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl">
       <DealsHistoryHeader 
         dealsCount={deals.length}
         onAddDealClick={() => setIsAddDealOpen(true)}
