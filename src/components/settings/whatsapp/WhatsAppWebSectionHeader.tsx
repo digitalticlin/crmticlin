@@ -7,13 +7,15 @@ interface WhatsAppWebSectionHeaderProps {
   isConnecting: boolean;
   isLoading: boolean;
   companyLoading: boolean;
+  creationStage?: string;
 }
 
 export const WhatsAppWebSectionHeader = ({
   onConnect,
   isConnecting,
   isLoading,
-  companyLoading
+  companyLoading,
+  creationStage
 }: WhatsAppWebSectionHeaderProps) => {
   return (
     <div className="flex flex-wrap justify-between gap-4 items-center">
@@ -22,6 +24,12 @@ export const WhatsAppWebSectionHeader = ({
         <p className="text-muted-foreground">
           Gerencie suas conexões e instâncias do WhatsApp Web.js
         </p>
+        {/* CORREÇÃO CRÍTICA: Mostrar estágio da criação */}
+        {creationStage && (
+          <p className="text-sm text-blue-600 mt-1 font-medium">
+            {creationStage}
+          </p>
+        )}
       </div>
       <div className="flex gap-2">
         <Button
@@ -29,6 +37,7 @@ export const WhatsAppWebSectionHeader = ({
           size="sm"
           className="h-8 gap-1"
           onClick={() => window.location.reload()}
+          disabled={isConnecting}
         >
           <RefreshCcw className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Atualizar</span>
@@ -42,7 +51,7 @@ export const WhatsAppWebSectionHeader = ({
           {isConnecting ? (
             <>
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              <span>Criando...</span>
+              <span>{creationStage || 'Criando...'}</span>
             </>
           ) : (
             <>

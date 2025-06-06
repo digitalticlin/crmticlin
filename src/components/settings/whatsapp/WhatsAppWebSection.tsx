@@ -11,6 +11,7 @@ export const WhatsAppWebSection = () => {
     instances,
     isLoading,
     isConnectingOrPolling,
+    creationStage,
     localShowQRModal,
     localSelectedQRCode,
     localSelectedInstanceName,
@@ -24,12 +25,13 @@ export const WhatsAppWebSection = () => {
     closeQRModal
   } = useWhatsAppWebSectionLogic();
 
-  console.log('[WhatsApp Web Section] 🎯 FASE 1 - Renderizando:', {
+  console.log('[WhatsApp Web Section] 🎯 CORREÇÃO CRÍTICA - Renderizando:', {
     instancesCount: instances.length,
     isLoading,
     modalOpen: localShowQRModal,
     hasQRCode: !!localSelectedQRCode,
-    isWaiting: isWaitingForQR
+    isWaiting: isWaitingForQR,
+    creationStage
   });
 
   if (isLoading) {
@@ -43,6 +45,7 @@ export const WhatsAppWebSection = () => {
         isConnecting={isConnectingOrPolling}
         isLoading={isLoading}
         companyLoading={false}
+        creationStage={creationStage}
       />
 
       {instances.length === 0 ? (
