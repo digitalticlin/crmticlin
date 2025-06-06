@@ -35,10 +35,24 @@ document.documentElement.style.setProperty(
  * Format a number as currency (BRL)
  */
 export function formatCurrency(value: number): string {
+  if (value === undefined || value === null || isNaN(value)) {
+    return 'R$ 0,00';
+  }
+  
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
   }).format(value);
+}
+
+/**
+ * Parse a currency string to number
+ */
+export function parseCurrency(formattedValue: string): number {
+  const numbers = formattedValue.replace(/[^\d,]/g, '').replace(',', '.');
+  return parseFloat(numbers) || 0;
 }
 
 // Generate a lead ID in the format "ID: XXXXXXXX"

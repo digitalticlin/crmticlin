@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatCurrency } from "@/lib/utils";
 
 interface DealNoteModalProps {
   isOpen: boolean;
@@ -24,19 +25,58 @@ export const DealNoteModal = ({
   currentValue
 }: DealNoteModalProps) => {
   const [note, setNote] = useState("");
-  const [value, setValue] = useState(currentValue || 0);
+  const [valueStr, setValueStr] = useState(
+    currentValue ? currentValue.toString() : ""
+  );
+
+  const formatCurrencyInput = (value: string) => {
+    // Remove tudo que não é dígito
+    const numbers = value.replace(/\D/g, '');
+    
+    // Converte para centavos
+    const amount = parseFloat(numbers) / 100;
+    
+    // Formata como moeda
+    if (numbers === '') return '';
+    
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2
+    }).format(amount);
+  };
+
+  const parseCurrencyToNumber = (formattedValue: string): number => {
+    // Remove símbolos de moeda e converte para número
+    const numbers = formattedValue.replace(/[^\d,]/g, '').replace(',', '.');
+    return parseFloat(numbers) || 0;
+  };
+
+  const handleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    const formatted = formatCurrencyInput(inputValue);
+    setValueStr(formatted);
+  };
 
   const handleConfirm = () => {
-    onConfirm(note, value);
+    const numericValue = valueStr ? parseCurrencyToNumber(valueStr) : (currentValue || 0);
+    onConfirm(note, numericValue);
     setNote("");
-    setValue(0);
+    setValueStr("");
   };
 
   const handleClose = () => {
     setNote("");
-    setValue(currentValue || 0);
+    setValueStr(currentValue ? formatCurrency(currentValue) : "");
     onClose();
   };
+
+  // Initialize value display when modal opens
+  useState(() => {
+    if (currentValue && !valueStr) {
+      setValueStr(formatCurrency(currentValue));
+    }
+  }, [currentValue, isOpen]);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -58,18 +98,21 @@ export const DealNoteModal = ({
           {dealType === "won" && (
             <div className="space-y-3">
               <Label htmlFor="value" className="text-gray-800 font-medium">
-                Valor da Negociação (R$)
+                Valor da Negociação
               </Label>
               <Input
                 id="value"
-                type="number"
-                value={value}
-                onChange={(e) => setValue(Number(e.target.value))}
-                placeholder="0,00"
-                min="0"
-                step="0.01"
+                type="text"
+                value={valueStr}
+                onChange={handleValueChange}
+                placeholder="R$ 0,00"
                 className="bg-white/70 border-white/40 focus:border-green-400 focus:ring-green-400/20 rounded-xl text-gray-800"
               />
+              {currentValue && (
+                <p className="text-xs text-gray-600">
+                  Valor atual: {formatCurrency(currentValue)}
+                </p>
+              )}
             </div>
           )}
           

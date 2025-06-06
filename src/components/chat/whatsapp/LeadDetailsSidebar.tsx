@@ -9,6 +9,7 @@ import { SidebarHeader } from "./sidebar/SidebarHeader";
 import { BasicInfoSection } from "./sidebar/BasicInfoSection";
 import { NotesSection } from "./sidebar/NotesSection";
 import { SalesHistorySection } from "./sidebar/SalesHistorySection";
+import { PurchaseValueField } from "@/components/sales/leadDetail/PurchaseValueField";
 
 interface LeadDetailsSidebarProps {
   selectedContact: Contact | null;
@@ -67,6 +68,30 @@ export const LeadDetailsSidebar = ({
     }
   };
 
+  const handleUpdatePurchaseValue = async (value: number | undefined) => {
+    if (!selectedContact.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({ purchase_value: value })
+        .eq('id', selectedContact.id);
+
+      if (error) throw error;
+
+      // Update local contact data
+      onUpdateContact({ 
+        ...selectedContact, 
+        purchaseValue: value 
+      });
+
+      toast.success('Valor de negociação atualizado!');
+    } catch (error) {
+      console.error('Error updating purchase value:', error);
+      toast.error('Erro ao atualizar valor de negociação');
+    }
+  };
+
   return (
     <div className="fixed right-0 top-0 bottom-0 w-80 bg-white/10 backdrop-blur-md border-l border-white/20 z-50 transform transition-transform duration-300 shadow-xl">
       <div className="h-full flex flex-col">
@@ -82,6 +107,11 @@ export const LeadDetailsSidebar = ({
               setEditedContact={setEditedContact}
               onSave={handleSave}
               isLoading={isLoading}
+            />
+
+            <PurchaseValueField
+              purchaseValue={selectedContact.purchaseValue}
+              onUpdatePurchaseValue={handleUpdatePurchaseValue}
             />
 
             <NotesSection
