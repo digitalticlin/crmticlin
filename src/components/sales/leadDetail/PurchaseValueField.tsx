@@ -1,121 +1,99 @@
 
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
-import { formatCurrency } from "@/lib/utils";
-import { useState, useEffect } from "react";
-import { DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { DollarSign, Edit, Save, X } from "lucide-react";
 
 interface PurchaseValueFieldProps {
-  purchaseValue: number | undefined;
+  purchaseValue?: number;
   onUpdatePurchaseValue?: (value: number | undefined) => void;
 }
 
-export const PurchaseValueField = ({ 
-  purchaseValue, 
-  onUpdatePurchaseValue 
+export const PurchaseValueField = ({
+  purchaseValue,
+  onUpdatePurchaseValue
 }: PurchaseValueFieldProps) => {
-  const [valueStr, setValueStr] = useState("");
   const [isEditing, setIsEditing] = useState(false);
-  
-  // Update local state when prop changes
-  useEffect(() => {
-    if (purchaseValue !== undefined) {
-      setValueStr(formatCurrency(purchaseValue));
-    } else {
-      setValueStr("");
-    }
-  }, [purchaseValue]);
+  const [value, setValue] = useState(purchaseValue?.toString() || "");
 
-  const formatCurrencyInput = (value: string) => {
-    // Remove tudo que não é dígito
-    const numbers = value.replace(/\D/g, '');
-    
-    // Converte para centavos
-    const amount = parseFloat(numbers) / 100;
-    
-    // Formata como moeda
-    if (numbers === '') return '';
-    
+  const formatCurrency = (value: number | undefined) => {
+    if (!value) return "R$ 0,00";
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: 2
-    }).format(amount);
+      currency: 'BRL'
+    }).format(value);
   };
 
-  const parseCurrencyToNumber = (formattedValue: string): number => {
-    // Remove símbolos de moeda e converte para número
-    const numbers = formattedValue.replace(/[^\d,]/g, '').replace(',', '.');
-    return parseFloat(numbers) || 0;
-  };
-
-  const handleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const inputValue = e.target.value;
-    const formatted = formatCurrencyInput(inputValue);
-    setValueStr(formatted);
-  };
-  
   const handleSave = () => {
-    if (!onUpdatePurchaseValue) return;
-    
-    const numberValue = valueStr ? parseCurrencyToNumber(valueStr) : undefined;
-    onUpdatePurchaseValue(numberValue);
+    const numericValue = value ? parseFloat(value.replace(',', '.')) : undefined;
+    onUpdatePurchaseValue?.(numericValue);
     setIsEditing(false);
   };
 
   const handleCancel = () => {
-    if (purchaseValue !== undefined) {
-      setValueStr(formatCurrency(purchaseValue));
-    } else {
-      setValueStr("");
-    }
+    setValue(purchaseValue?.toString() || "");
     setIsEditing(false);
   };
 
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
-  
-  if (!onUpdatePurchaseValue) return null;
-  
   return (
-    <div>
-      <h3 className="text-sm font-medium mb-2 flex items-center">
-        <DollarSign className="h-4 w-4 mr-1" /> Valor da Negociação
-      </h3>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <Label className="text-gray-700 font-medium flex items-center gap-2">
+          <DollarSign className="h-4 w-4 text-green-600" />
+          Valor da Negociação
+        </Label>
+        {onUpdatePurchaseValue && !isEditing && (
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={() => setIsEditing(true)}
+            className="bg-green-500/20 hover:bg-green-500/30 text-green-700 border border-green-300/30 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105"
+          >
+            <Edit className="h-3 w-3" />
+          </Button>
+        )}
+      </div>
       
       {isEditing ? (
-        <div className="space-y-2">
-          <Input 
-            type="text" 
-            placeholder="R$ 0,00"
-            value={valueStr}
-            onChange={handleValueChange}
-            className="w-full"
-            autoFocus
+        <div className="space-y-3">
+          <Input
+            type="number"
+            placeholder="0.00"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            className="bg-white/50 border-white/30 focus:border-green-400 focus:ring-green-400/20 backdrop-blur-sm"
           />
-          <div className="flex items-center gap-2">
-            <Button size="sm" onClick={handleSave}>
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              onClick={handleSave}
+              className="bg-green-500/80 hover:bg-green-600/80 text-white border border-green-400/30 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105"
+            >
+              <Save className="h-3 w-3 mr-1" />
               Salvar
             </Button>
-            <Button size="sm" variant="outline" onClick={handleCancel}>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={handleCancel}
+              className="bg-red-500/20 hover:bg-red-500/30 text-red-700 border border-red-300/30 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105"
+            >
+              <X className="h-3 w-3 mr-1" />
               Cancelar
             </Button>
           </div>
         </div>
       ) : (
-        <div className="space-y-2">
-          <div 
-            className="p-2 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
-            onClick={handleEdit}
-          >
-            <p className="text-sm">
-              {purchaseValue !== undefined ? formatCurrency(purchaseValue) : "Clique para definir valor"}
-            </p>
+        <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+          <div className="text-lg font-bold text-green-700">
+            {formatCurrency(purchaseValue)}
           </div>
-          <Button size="sm" variant="outline" onClick={handleEdit} className="w-full">
-            {purchaseValue !== undefined ? "Editar Valor" : "Definir Valor"}
-          </Button>
+          {purchaseValue === 0 && (
+            <div className="text-xs text-gray-500 mt-1">
+              Valor zerado - Nova negociação
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -13,9 +13,10 @@ import { AssignedUserField } from "./leadDetail/AssignedUserField";
 import { NotesField } from "./leadDetail/NotesField";
 import { ChatPreview } from "./leadDetail/ChatPreview";
 import { LeadDetailFooter } from "./leadDetail/LeadDetailFooter";
-import { DealHistory } from "@/components/chat/DealHistory";
+import { GlassmorphismDealHistory } from "./leadDetail/GlassmorphismDealHistory";
+import { EnhancedBasicInfoSection } from "./leadDetail/EnhancedBasicInfoSection";
 import { useLeadDeals } from "@/hooks/salesFunnel/useLeadDeals";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 interface LeadDetailSidebarProps {
   isOpen: boolean;
@@ -68,64 +69,85 @@ export const LeadDetailSidebar = ({
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-        <SheetHeader>
+      <SheetContent className="w-full sm:max-w-md overflow-y-auto bg-white/40 backdrop-blur-lg border-white/30 shadow-2xl">
+        <SheetHeader className="bg-white/30 backdrop-blur-sm rounded-xl p-4 mb-6 border border-white/20 shadow-lg">
           <LeadDetailHeader 
             selectedLead={selectedLead}
             onUpdateName={handleNameUpdate}
           />
         </SheetHeader>
         
-        <div className="mt-6 space-y-6">
-          {/* Purchase Value Field */}
-          <PurchaseValueField 
-            purchaseValue={selectedLead.purchaseValue}
-            onUpdatePurchaseValue={onUpdatePurchaseValue ? 
-              (value) => {
-                onUpdatePurchaseValue(value);
-                toast.success("Valor de compra atualizado");
-              } : undefined}
+        <div className="space-y-6">
+          {/* Enhanced Basic Info Section */}
+          <EnhancedBasicInfoSection 
+            selectedLead={selectedLead}
+            onUpdateLead={(updates) => {
+              // Handle all basic info updates here
+              console.log("Updating lead basic info:", updates);
+            }}
           />
+          
+          {/* Purchase Value Field */}
+          <div className="bg-white/30 backdrop-blur-md rounded-xl p-4 border border-white/20 shadow-lg">
+            <PurchaseValueField 
+              purchaseValue={selectedLead.purchaseValue}
+              onUpdatePurchaseValue={onUpdatePurchaseValue ? 
+                (value) => {
+                  onUpdatePurchaseValue(value);
+                  toast.success("Valor de compra atualizado");
+                } : undefined}
+            />
+          </div>
           
           {/* Assigned User Field */}
-          <AssignedUserField 
-            assignedUser={selectedLead.assignedUser}
-            onUpdateAssignedUser={onUpdateAssignedUser ? 
-              (user) => {
-                onUpdateAssignedUser(user);
-                toast.success("Responsável atualizado");
-              } : undefined}
-          />
+          <div className="bg-white/30 backdrop-blur-md rounded-xl p-4 border border-white/20 shadow-lg">
+            <AssignedUserField 
+              assignedUser={selectedLead.assignedUser}
+              onUpdateAssignedUser={onUpdateAssignedUser ? 
+                (user) => {
+                  onUpdateAssignedUser(user);
+                  toast.success("Responsável atualizado");
+                } : undefined}
+            />
+          </div>
           
           {/* Tags Selector */}
-          <TagSelector
-            availableTags={availableTags}
-            selectedTags={selectedLead.tags}
-            onToggleTag={onToggleTag}
-            onCreateTag={onCreateTag}
-          />
+          <div className="bg-white/30 backdrop-blur-md rounded-xl p-4 border border-white/20 shadow-lg">
+            <TagSelector
+              availableTags={availableTags}
+              selectedTags={selectedLead.tags}
+              onToggleTag={onToggleTag}
+              onCreateTag={onCreateTag}
+            />
+          </div>
 
           {/* Deal History */}
-          <div className="space-y-3">
-            <h3 className="text-lg font-medium">Histórico de Negociações</h3>
-            <DealHistory deals={deals} />
+          <div className="bg-white/30 backdrop-blur-md rounded-xl p-4 border border-white/20 shadow-lg">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Histórico de Negociações</h3>
+            <GlassmorphismDealHistory deals={deals} />
           </div>
           
           {/* Notes Field */}
-          <NotesField 
-            notes={selectedLead.notes}
-            onUpdateNotes={onUpdateNotes}
-          />
+          <div className="bg-white/30 backdrop-blur-md rounded-xl p-4 border border-white/20 shadow-lg">
+            <NotesField 
+              notes={selectedLead.notes}
+              onUpdateNotes={onUpdateNotes}
+            />
+          </div>
           
           {/* Chat Preview */}
-          <ChatPreview 
-            lastMessage={selectedLead.lastMessage}
-            lastMessageTime={selectedLead.lastMessageTime}
-            onOpenChat={handleOpenChat}
-          />
+          <div className="bg-white/30 backdrop-blur-md rounded-xl p-4 border border-white/20 shadow-lg">
+            <ChatPreview 
+              lastMessage={selectedLead.lastMessage}
+              lastMessageTime={selectedLead.lastMessageTime}
+              onOpenChat={handleOpenChat}
+            />
+          </div>
         </div>
         
-        <LeadDetailFooter onClose={() => onOpenChange(false)} />
+        <div className="mt-6 bg-white/30 backdrop-blur-md rounded-xl border border-white/20 shadow-lg">
+          <LeadDetailFooter onClose={() => onOpenChange(false)} />
+        </div>
       </SheetContent>
     </Sheet>
   );
