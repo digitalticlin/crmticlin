@@ -1,6 +1,7 @@
+
 import { serve } from 'https://deno.land/std@0.177.1/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
-import { corsHeaders } from './utils/helpers.ts';
+import { corsHeaders } from './config.ts';
 
 import { createInstance } from './instanceCreationService.ts';
 import { getQRCodeAsync } from './qrCodeAsyncService.ts';
@@ -9,7 +10,7 @@ import { checkServerHealth, getServerInfo } from './serverHealthService.ts';
 import { syncInstances } from './instanceSyncService.ts';
 import { sendMessage } from './messagingService.ts';
 import { getChatHistory } from './chatHistoryService.ts';
-import { importChatHistory } from './chatHistoryService.ts'; // 🆕 Adicionar import
+import { importChatHistory } from './chatHistoryService.ts';
 
 Deno.serve(async (req) => {
   console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED - FASE 2.0 BACKEND COMPLETO');
@@ -129,12 +130,12 @@ Deno.serve(async (req) => {
           status: historyResult.success ? 200 : 500
         });
       
-      case 'import_chat_history': // 🆕 Nova ação
+      case 'import_chat_history':
         console.log('[WhatsApp Server] 📚 IMPORT CHAT HISTORY');
-        const historyResult = await importChatHistory(supabase, body.instanceData);
-        return new Response(JSON.stringify(historyResult), {
+        const importResult = await importChatHistory(supabase, body.instanceData);
+        return new Response(JSON.stringify(importResult), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: historyResult.success ? 200 : 500
+          status: importResult.success ? 200 : 500
         });
 
       default:
