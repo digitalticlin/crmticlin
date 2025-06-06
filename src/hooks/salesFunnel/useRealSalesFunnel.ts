@@ -75,7 +75,7 @@ export const useRealSalesFunnel = (funnelId?: string) => {
     
     // Dados do funil
     stages,
-    leads,
+    leads, // Retornando leads totais
     availableTags: tags,
     wonStageId,
     lostStageId,

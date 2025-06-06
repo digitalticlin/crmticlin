@@ -30,6 +30,7 @@ export default function SalesFunnel() {
     setIsLeadDetailOpen,
     availableTags,
     stages,
+    leads, // Adicionando leads totais do hook
     addColumn,
     updateColumn,
     deleteColumn,
@@ -89,6 +90,7 @@ export default function SalesFunnel() {
     setIsLeadDetailOpen,
     availableTags,
     stages,
+    leads, // Adicionando leads totais ao contexto
     addColumn,
     updateColumn,
     deleteColumn,

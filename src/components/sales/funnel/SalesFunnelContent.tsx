@@ -39,17 +39,15 @@ export const SalesFunnelContent = () => {
     moveLeadToStage,
     isAdmin,
     wonStageId,
-    lostStageId
+    lostStageId,
+    leads
   } = useSalesFunnelContext();
 
-  // Buscar leads das etapas GANHO e PERDIDO usando os dados do contexto
-  const wonLostLeads = stages
-    ?.filter(stage => stage.title === "GANHO" || stage.title === "PERDIDO")
-    .flatMap(stage => {
-      // Buscar leads dessa stage nas colunas do contexto
-      const stageColumn = columns.find(col => col.id === stage.id);
-      return stageColumn ? stageColumn.leads : [];
-    }) || [];
+  // Buscar leads das etapas GANHO e PERDIDO diretamente dos leads totais
+  const wonLostLeads = leads?.filter(lead => {
+    const leadStage = stages?.find(stage => stage.id === lead.columnId);
+    return leadStage && (leadStage.title === "GANHO" || leadStage.title === "PERDIDO");
+  }) || [];
 
   // Hook para filtros na página Ganhos e Perdidos
   const wonLostFilters = useWonLostFilters(wonLostLeads, availableTags);
@@ -59,9 +57,8 @@ export const SalesFunnelContent = () => {
     ? stages
         ?.filter(stage => stage.title === "GANHO" || stage.title === "PERDIDO")
         .map(stage => {
-          // Buscar leads reais dessa stage
-          const stageColumn = columns.find(col => col.id === stage.id);
-          const stageLeads = stageColumn ? stageColumn.leads : [];
+          // Buscar leads reais dessa stage diretamente dos leads totais
+          const stageLeads = leads?.filter(lead => lead.columnId === stage.id) || [];
           
           return {
             id: stage.id,

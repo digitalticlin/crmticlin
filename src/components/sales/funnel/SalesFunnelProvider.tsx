@@ -20,6 +20,7 @@ interface SalesFunnelContextValue {
   setIsLeadDetailOpen: (open: boolean) => void;
   availableTags: KanbanTag[];
   stages: KanbanStage[];
+  leads: KanbanLead[]; // Adicionando leads totais
   wonStageId?: string;
   lostStageId?: string;
 
