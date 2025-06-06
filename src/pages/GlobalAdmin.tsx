@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import GlobalAdminSidebar from "@/components/admin/GlobalAdminSidebar";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
@@ -7,6 +8,7 @@ import PlansPanel from "@/components/admin/PlansPanel";
 import { SystemManagementPanel } from "@/components/admin/SystemManagementPanel";
 import { AnalyticsPanel } from "@/components/admin/AnalyticsPanel";
 import { WhatsAppTestPanel } from "@/components/admin/WhatsAppTestPanel";
+import { VPSTestPanel } from "@/components/admin/VPSTestPanel";
 
 export default function GlobalAdmin() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -45,6 +47,18 @@ export default function GlobalAdmin() {
               </p>
             </div>
             <WhatsAppTestPanel />
+          </div>
+        );
+      case "vps-test":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Diagnóstico VPS</h1>
+              <p className="text-gray-600 mt-1">
+                Análise completa da infraestrutura VPS e servidores
+              </p>
+            </div>
+            <VPSTestPanel />
           </div>
         );
       default:

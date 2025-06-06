@@ -7,7 +7,8 @@ import {
   CreditCard, 
   Settings, 
   BarChart3,
-  Zap
+  Zap,
+  Server
 } from "lucide-react";
 
 interface GlobalAdminSidebarProps {
@@ -34,6 +35,12 @@ export default function GlobalAdminSidebar({ activeTab, setActiveTab }: GlobalAd
       label: "Teste WhatsApp",
       icon: Zap,
       description: "Diagnóstico e testes"
+    },
+    {
+      id: "vps-test",
+      label: "Diagnóstico VPS",
+      icon: Server,
+      description: "Análise de infraestrutura"
     },
     {
       id: "business",
