@@ -187,7 +187,7 @@ export const ManualWhatsAppInstanceCreator = () => {
           Conectar WhatsApp (Sistema Manual - CORREÇÃO IMPLEMENTADA)
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          ✅ Edge Function corrigida - GET /instance/{id}/qr
+          ✅ Edge Function corrigida - GET /instance/{instanceId}/qr
         </p>
       </CardHeader>
 
