@@ -93,7 +93,7 @@ export function useRealClientManagement() {
     }
   };
 
-  const handleUpdateDocument = async (data: { document_type: string; document_id: string }) => {
+  const handleUpdateDocument = async (data: { document_type: 'cpf' | 'cnpj'; document_id: string }) => {
     if (!selectedClient) return;
     
     try {

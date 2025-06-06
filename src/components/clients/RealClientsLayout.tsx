@@ -13,7 +13,7 @@ interface RealClientsLayoutProps {
   onUpdateNotes: (notes: string) => void;
   onUpdatePurchaseValue: (value: number | undefined) => void;
   onUpdateBasicInfo: (data: { name: string; email: string; company: string }) => void;
-  onUpdateDocument: (data: { document_type: string; document_id: string }) => void;
+  onUpdateDocument: (data: { document_type: 'cpf' | 'cnpj'; document_id: string }) => void;
   onUpdateAddress: (data: { 
     address: string; 
     city: string; 

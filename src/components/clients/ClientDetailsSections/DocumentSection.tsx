@@ -9,13 +9,16 @@ import { ClientData } from "@/hooks/clients/types";
 
 interface DocumentSectionProps {
   client: ClientData;
-  onUpdateDocument: (data: { document_type: string; document_id: string }) => void;
+  onUpdateDocument: (data: { document_type: 'cpf' | 'cnpj'; document_id: string }) => void;
 }
 
 export function DocumentSection({ client, onUpdateDocument }: DocumentSectionProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editedData, setEditedData] = useState({
-    document_type: client.document_type || "",
+  const [editedData, setEditedData] = useState<{
+    document_type: 'cpf' | 'cnpj';
+    document_id: string;
+  }>({
+    document_type: (client.document_type || 'cpf') as 'cpf' | 'cnpj',
     document_id: client.document_id || ""
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -57,7 +60,7 @@ export function DocumentSection({ client, onUpdateDocument }: DocumentSectionPro
           {isEditing ? (
             <Select 
               value={editedData.document_type} 
-              onValueChange={(value) => setEditedData({...editedData, document_type: value})}
+              onValueChange={(value: 'cpf' | 'cnpj') => setEditedData({...editedData, document_type: value})}
             >
               <SelectTrigger className="mt-1 bg-white/10 backdrop-blur-sm border-white/30 text-white">
                 <SelectValue placeholder="Selecione o tipo" />
@@ -103,7 +106,7 @@ export function DocumentSection({ client, onUpdateDocument }: DocumentSectionPro
               onClick={() => {
                 setIsEditing(false);
                 setEditedData({
-                  document_type: client.document_type || "",
+                  document_type: (client.document_type || 'cpf') as 'cpf' | 'cnpj',
                   document_id: client.document_id || ""
                 });
               }}
