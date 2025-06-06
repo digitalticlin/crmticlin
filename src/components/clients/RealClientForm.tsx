@@ -60,10 +60,10 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
   };
 
   return (
-    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-[#d3d800]/30 shadow-xl shadow-[#d3d800]/10">
+    <div className="bg-white rounded-lg p-6">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="name" className="text-white font-medium">Nome*</Label>
+          <Label htmlFor="name" className="text-gray-700 font-medium">Nome*</Label>
           <Input
             id="name"
             name="name"
@@ -72,12 +72,12 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
             placeholder="Nome do cliente"
             required
             disabled={isLoading}
-            className="bg-white/20 backdrop-blur-sm border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800]/20 text-white placeholder:text-white/60"
+            className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
           />
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="company" className="text-white font-medium">Empresa</Label>
+          <Label htmlFor="company" className="text-gray-700 font-medium">Empresa</Label>
           <div className="relative">
             <Input
               id="company"
@@ -85,15 +85,15 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
               value={formData.company}
               onChange={handleChange}
               placeholder="Nome da empresa"
-              className="pl-8 bg-white/20 backdrop-blur-sm border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800]/20 text-white placeholder:text-white/60"
+              className="pl-8 border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
               disabled={isLoading}
             />
-            <Building className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#d3d800]" />
+            <Building className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           </div>
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="phone" className="text-white font-medium">Telefone*</Label>
+          <Label htmlFor="phone" className="text-gray-700 font-medium">Telefone*</Label>
           <Input
             id="phone"
             name="phone"
@@ -102,12 +102,12 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
             placeholder="(00) 00000-0000"
             required
             disabled={isLoading}
-            className="bg-white/20 backdrop-blur-sm border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800]/20 text-white placeholder:text-white/60"
+            className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
           />
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="email" className="text-white font-medium">Email</Label>
+          <Label htmlFor="email" className="text-gray-700 font-medium">Email</Label>
           <Input
             id="email"
             name="email"
@@ -116,12 +116,12 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
             type="email"
             placeholder="email@exemplo.com"
             disabled={isLoading}
-            className="bg-white/20 backdrop-blur-sm border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800]/20 text-white placeholder:text-white/60"
+            className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
           />
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="address" className="text-white font-medium">Endereço</Label>
+          <Label htmlFor="address" className="text-gray-700 font-medium">Endereço</Label>
           <Input
             id="address"
             name="address"
@@ -129,12 +129,12 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
             onChange={handleChange}
             placeholder="Endereço do cliente"
             disabled={isLoading}
-            className="bg-white/20 backdrop-blur-sm border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800]/20 text-white placeholder:text-white/60"
+            className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="purchase_value" className="text-white font-medium">Valor de Compra</Label>
+          <Label htmlFor="purchase_value" className="text-gray-700 font-medium">Valor de Compra</Label>
           <Input
             id="purchase_value"
             name="purchase_value"
@@ -144,19 +144,19 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
             onChange={handleChange}
             placeholder="0.00"
             disabled={isLoading}
-            className="bg-white/20 backdrop-blur-sm border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800]/20 text-white placeholder:text-white/60"
+            className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
           />
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="notes" className="text-white font-medium">Observações</Label>
+          <Label htmlFor="notes" className="text-gray-700 font-medium">Observações</Label>
           <Textarea
             id="notes"
             name="notes"
             value={formData.notes}
             onChange={handleChange}
             placeholder="Observações sobre o cliente"
-            className="min-h-[100px] bg-white/20 backdrop-blur-sm border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800]/20 text-white placeholder:text-white/60"
+            className="min-h-[100px] border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
             disabled={isLoading}
           />
         </div>
@@ -167,7 +167,7 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
             variant="outline" 
             onClick={onCancel} 
             disabled={isLoading}
-            className="bg-white/20 backdrop-blur-sm border-white/40 text-white hover:bg-white/30"
+            className="border-gray-300 text-gray-700 hover:bg-gray-50"
           >
             <X className="h-4 w-4 mr-2" />
             Cancelar
@@ -175,7 +175,7 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
           <Button 
             type="submit" 
             disabled={isLoading}
-            className="bg-[#d3d800]/80 hover:bg-[#d3d800] text-black border-2 border-[#d3d800] shadow-lg font-semibold"
+            className="bg-[#d3d800] hover:bg-[#b8c200] text-black font-semibold"
           >
             <Save className="h-4 w-4 mr-2" />
             {isLoading ? "Salvando..." : (client ? "Atualizar" : "Adicionar")}
