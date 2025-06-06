@@ -9,202 +9,190 @@ const corsHeaders = {
 
 const VPS_CONFIG = {
   hostname: '31.97.24.222',
-  username: 'root',
+  port: '3001',
+  get baseUrl() {
+    return `http://${this.hostname}:${this.port}`;
+  },
+  authToken: 'default-token',
   timeout: 30000
 };
 
 interface AnalysisStep {
   id: string;
   name: string;
-  command: string;
+  endpoint: string;
   description: string;
 }
 
 const ANALYSIS_STEPS: AnalysisStep[] = [
-  // Sistema Básico
+  // Testes HTTP para VPS
   {
-    id: 'system_info',
-    name: 'Informações do Sistema',
-    command: 'uname -a && cat /etc/os-release && uptime && free -h && df -h',
-    description: 'Informações básicas do sistema operacional e recursos'
+    id: 'vps_health',
+    name: 'Status da VPS',
+    endpoint: '/health',
+    description: 'Verificar se a VPS está respondendo'
   },
   
-  // Node.js e NPM
+  {
+    id: 'vps_instances',
+    name: 'Instâncias WhatsApp',
+    endpoint: '/instances',
+    description: 'Listar instâncias WhatsApp ativas'
+  },
+  
+  {
+    id: 'server_info',
+    name: 'Informações do Servidor',
+    endpoint: '/server/info',
+    description: 'Informações detalhadas do servidor'
+  },
+  
+  {
+    id: 'system_status',
+    name: 'Status do Sistema',
+    endpoint: '/system/status',
+    description: 'Status dos serviços do sistema'
+  },
+  
   {
     id: 'node_version',
     name: 'Versão Node.js',
-    command: 'node --version && npm --version',
-    description: 'Versões do Node.js e NPM instaladas'
+    endpoint: '/system/node-version',
+    description: 'Verificar versão do Node.js'
   },
   
-  // PM2
   {
     id: 'pm2_status',
     name: 'Status PM2',
-    command: 'pm2 --version && pm2 list && pm2 status',
-    description: 'Status e processos gerenciados pelo PM2'
+    endpoint: '/system/pm2-status',
+    description: 'Status dos processos PM2'
   },
   
-  // Processos Ativos
   {
-    id: 'active_processes',
-    name: 'Processos Ativos',
-    command: 'ps aux | grep -E "(node|pm2|whatsapp)" | grep -v grep',
-    description: 'Processos Node.js e WhatsApp em execução'
+    id: 'ports_check',
+    name: 'Verificação de Portas',
+    endpoint: '/system/ports',
+    description: 'Verificar portas em uso'
   },
   
-  // Portas em Uso
   {
-    id: 'ports_in_use',
-    name: 'Portas em Uso',
-    command: 'netstat -tulpn | grep -E ":(80|3001|3002|3003|8080)" && ss -tulpn | grep -E ":(80|3001|3002|3003|8080)"',
-    description: 'Portas relevantes em uso no sistema'
-  },
-  
-  // Estrutura de Diretórios
-  {
-    id: 'directory_structure',
-    name: 'Estrutura de Diretórios',
-    command: 'ls -la /root/ && find /root -maxdepth 2 -type d -name "*whatsapp*" -o -name "*api*" -o -name "*server*" 2>/dev/null',
-    description: 'Estrutura de diretórios do projeto'
-  },
-  
-  // Arquivos JavaScript
-  {
-    id: 'javascript_files',
-    name: 'Arquivos JavaScript',
-    command: 'find /root -name "*.js" -type f 2>/dev/null | head -20',
-    description: 'Arquivos JavaScript encontrados'
-  },
-  
-  // Arquivos de Configuração
-  {
-    id: 'config_files',
-    name: 'Arquivos de Configuração',
-    command: 'find /root -name "package.json" -o -name ".env*" -o -name "config.*" 2>/dev/null',
-    description: 'Arquivos de configuração encontrados'
-  },
-  
-  // Variáveis de Ambiente
-  {
-    id: 'environment_vars',
-    name: 'Variáveis de Ambiente',
-    command: 'env | grep -i -E "(token|api|key|port|whatsapp)" || echo "Nenhuma variável relevante encontrada"',
-    description: 'Variáveis de ambiente relevantes'
-  },
-  
-  // Conteúdo de Arquivos .env
-  {
-    id: 'env_files_content',
-    name: 'Conteúdo Arquivos .env',
-    command: 'find /root -name ".env*" -exec echo "=== {} ===" \\; -exec cat {} \\; 2>/dev/null || echo "Nenhum arquivo .env encontrado"',
-    description: 'Conteúdo dos arquivos .env'
-  },
-  
-  // Package.json
-  {
-    id: 'package_json_content',
-    name: 'Conteúdo package.json',
-    command: 'find /root -name "package.json" -exec echo "=== {} ===" \\; -exec cat {} \\; 2>/dev/null | head -100',
-    description: 'Conteúdo dos arquivos package.json'
-  },
-  
-  // Logs PM2
-  {
-    id: 'pm2_logs',
-    name: 'Logs PM2 Recentes',
-    command: 'pm2 logs --lines 20 --nostream 2>/dev/null || echo "Nenhum log PM2 disponível"',
-    description: 'Logs recentes dos processos PM2'
-  },
-  
-  // Teste de Conectividade HTTP Local
-  {
-    id: 'local_http_test',
-    name: 'Teste HTTP Local',
-    command: 'curl -s -m 5 http://localhost:80/health || echo "PORTA 80 INACESSÍVEL"; curl -s -m 5 http://localhost:3001/health || echo "PORTA 3001 INACESSÍVEL"; curl -s -m 5 http://localhost:3002/health || echo "PORTA 3002 INACESSÍVEL"',
-    description: 'Teste de conectividade HTTP nas portas principais'
-  },
-  
-  // WhatsApp Web.js Dependencies
-  {
-    id: 'whatsapp_dependencies',
-    name: 'Dependências WhatsApp',
-    command: 'find /root -name "node_modules" -exec find {} -name "*whatsapp*" -type d \\; 2>/dev/null | head -10',
-    description: 'Módulos WhatsApp instalados'
-  },
-  
-  // Sessões WhatsApp
-  {
-    id: 'whatsapp_sessions',
-    name: 'Sessões WhatsApp',
-    command: 'find /root -name "*session*" -o -name "*auth*" -o -name "*.json" | grep -i whatsapp 2>/dev/null || echo "Nenhuma sessão encontrada"',
-    description: 'Arquivos de sessão do WhatsApp'
-  },
-  
-  // Análise de Código dos Servidores
-  {
-    id: 'server_code_analysis',
-    name: 'Análise Código dos Servidores',
-    command: 'find /root -name "server.js" -o -name "index.js" -o -name "app.js" | head -5 | while read file; do echo "=== $file ==="; head -30 "$file" 2>/dev/null; done',
-    description: 'Primeiras linhas dos arquivos principais dos servidores'
+    id: 'whatsapp_config',
+    name: 'Configuração WhatsApp',
+    endpoint: '/config/whatsapp',
+    description: 'Verificar configuração do WhatsApp Web.js'
   }
 ];
 
-async function executeSSHCommand(command: string, description: string): Promise<{success: boolean, output: string, duration: number}> {
-  console.log(`[SSH Analysis] Executando: ${description}`);
-  
-  const sshKey = Deno.env.get('VPS_SSH_PRIVATE_KEY');
-  if (!sshKey) {
-    throw new Error('Chave SSH privada não configurada nos secrets');
-  }
+async function executeHTTPTest(endpoint: string, description: string): Promise<{success: boolean, output: any, duration: number}> {
+  console.log(`[VPS Analysis] 🌐 Testando: ${description}`);
   
   const startTime = Date.now();
   
   try {
-    const formattedKey = sshKey.includes('-----BEGIN') ? sshKey : 
-      `-----BEGIN OPENSSH PRIVATE KEY-----\n${sshKey}\n-----END OPENSSH PRIVATE KEY-----`;
+    const url = `${VPS_CONFIG.baseUrl}${endpoint}`;
+    console.log(`[VPS Analysis] 📡 Fazendo requisição para: ${url}`);
     
-    const sshArgs = [
-      '-o', 'StrictHostKeyChecking=no',
-      '-o', 'UserKnownHostsFile=/dev/null',
-      '-o', 'ConnectTimeout=30',
-      '-o', 'BatchMode=yes',
-      `${VPS_CONFIG.username}@${VPS_CONFIG.hostname}`,
-      command
-    ];
-    
-    const process = new Deno.Command('ssh', {
-      args: sshArgs,
-      stdin: 'piped',
-      stdout: 'piped',
-      stderr: 'piped'
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+        'User-Agent': 'Supabase-VPS-Analysis/1.0'
+      },
+      signal: AbortSignal.timeout(VPS_CONFIG.timeout)
     });
     
-    const child = process.spawn();
-    
-    const writer = child.stdin.getWriter();
-    await writer.write(new TextEncoder().encode(formattedKey));
-    await writer.close();
-    
-    const { code, stdout, stderr } = await child.output();
     const duration = Date.now() - startTime;
     
-    const outputText = new TextDecoder().decode(stdout);
-    const errorText = new TextDecoder().decode(stderr);
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`[VPS Analysis] ✅ ${description}: ${response.status}`);
+      
+      return {
+        success: true,
+        output: data,
+        duration
+      };
+    } else {
+      const errorText = await response.text();
+      console.log(`[VPS Analysis] ⚠️ ${description}: ${response.status} - ${errorText}`);
+      
+      return {
+        success: false,
+        output: {
+          error: `HTTP ${response.status}`,
+          message: errorText,
+          url: url
+        },
+        duration
+      };
+    }
     
-    return {
-      success: code === 0,
-      output: outputText || errorText || 'Comando executado sem saída',
-      duration
-    };
-    
-  } catch (error) {
+  } catch (error: any) {
     const duration = Date.now() - startTime;
-    console.error(`[SSH Analysis] Erro:`, error);
+    console.error(`[VPS Analysis] ❌ Erro em ${description}:`, error);
     
     return {
       success: false,
-      output: `Erro na execução: ${error.message}`,
+      output: {
+        error: 'Connection Error',
+        message: error.message,
+        type: error.name
+      },
+      duration
+    };
+  }
+}
+
+// Função para testes básicos quando endpoints específicos não existem
+async function executeBasicConnectivityTest(): Promise<{success: boolean, output: any, duration: number}> {
+  const startTime = Date.now();
+  
+  try {
+    // Testar conectividade básica
+    const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${VPS_CONFIG.authToken}`
+      },
+      signal: AbortSignal.timeout(10000)
+    });
+    
+    const duration = Date.now() - startTime;
+    
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        success: true,
+        output: {
+          status: 'VPS Online',
+          version: data.version || 'unknown',
+          timestamp: data.timestamp || new Date().toISOString(),
+          connectivity: 'OK'
+        },
+        duration
+      };
+    } else {
+      return {
+        success: false,
+        output: {
+          error: `HTTP ${response.status}`,
+          message: 'VPS não está respondendo adequadamente'
+        },
+        duration
+      };
+    }
+    
+  } catch (error: any) {
+    const duration = Date.now() - startTime;
+    return {
+      success: false,
+      output: {
+        error: 'Connection Failed',
+        message: `Não foi possível conectar à VPS: ${error.message}`,
+        vps_host: VPS_CONFIG.hostname,
+        vps_port: VPS_CONFIG.port
+      },
       duration
     };
   }
@@ -216,23 +204,45 @@ serve(async (req) => {
   }
 
   try {
-    console.log('[VPS Infrastructure Analysis] 🔍 Iniciando análise completa da infraestrutura');
+    console.log('[VPS Infrastructure Analysis] 🔍 Iniciando análise HTTP da infraestrutura');
     
     const results: any[] = [];
     let totalDuration = 0;
     
-    // Executar cada etapa da análise
+    // Primeiro, testar conectividade básica
+    console.log('[VPS Analysis] 🔌 Testando conectividade básica...');
+    const basicTest = await executeBasicConnectivityTest();
+    totalDuration += basicTest.duration;
+    
+    results.push({
+      id: 'basic_connectivity',
+      name: 'Conectividade Básica',
+      description: 'Teste de conectividade HTTP com a VPS',
+      success: basicTest.success,
+      output: basicTest.output,
+      duration: basicTest.duration,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Se a conectividade básica falhou, ainda assim continuar com outros testes
+    if (basicTest.success) {
+      console.log('[VPS Analysis] ✅ Conectividade básica OK, continuando com testes específicos...');
+    } else {
+      console.log('[VPS Analysis] ⚠️ Conectividade básica falhou, mas continuando com outros testes...');
+    }
+    
+    // Executar testes específicos
     for (const step of ANALYSIS_STEPS) {
       console.log(`[VPS Analysis] 📋 Executando: ${step.name}`);
       
-      const result = await executeSSHCommand(step.command, step.description);
+      const result = await executeHTTPTest(step.endpoint, step.description);
       totalDuration += result.duration;
       
       results.push({
         id: step.id,
         name: step.name,
         description: step.description,
-        command: step.command,
+        endpoint: step.endpoint,
         success: result.success,
         output: result.output,
         duration: result.duration,
@@ -241,28 +251,31 @@ serve(async (req) => {
       
       console.log(`[VPS Analysis] ${result.success ? '✅' : '❌'} ${step.name}: ${result.duration}ms`);
       
-      // Pequeno delay entre comandos para não sobrecarregar
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Pequeno delay entre requisições
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
     
     // Análise resumida
     const summary = {
-      total_steps: ANALYSIS_STEPS.length,
+      total_steps: results.length,
       successful_steps: results.filter(r => r.success).length,
       failed_steps: results.filter(r => !r.success).length,
       total_duration: totalDuration,
       analysis_timestamp: new Date().toISOString(),
-      vps_hostname: VPS_CONFIG.hostname
+      vps_hostname: VPS_CONFIG.hostname,
+      analysis_method: 'HTTP_REQUESTS',
+      connectivity_status: basicTest.success ? 'ONLINE' : 'OFFLINE'
     };
     
-    console.log('[VPS Analysis] 📊 Análise completa finalizada:', summary);
+    console.log('[VPS Analysis] 📊 Análise HTTP completa finalizada:', summary);
     
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Análise completa da infraestrutura VPS executada',
+        message: 'Análise HTTP da infraestrutura VPS executada',
         summary,
-        detailed_results: results
+        detailed_results: results,
+        method: 'HTTP Analysis (Supabase Edge Compatible)'
       }),
       { 
         headers: { 
@@ -272,14 +285,15 @@ serve(async (req) => {
       }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('[VPS Infrastructure Analysis] ❌ Erro geral:', error);
     
     return new Response(
       JSON.stringify({
         success: false,
         error: error.message,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        note: 'Análise HTTP - compatível com Supabase Edge Runtime'
       }),
       { 
         status: 500,
