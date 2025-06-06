@@ -12,6 +12,7 @@ import {
   Trash2
 } from "lucide-react";
 import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
+import { ConfigureWebhookButton } from "./ConfigureWebhookButton";
 
 interface SimpleInstanceCardProps {
   instance: WhatsAppWebInstance;
@@ -171,12 +172,28 @@ export const SimpleInstanceCard = ({
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
+
+        {/* 🆕 WEBHOOK CONFIGURATION - Para instâncias que precisam de configuração */}
+        {!isConnected && instance.connection_status === 'connecting' && (
+          <div className="pt-2 border-t border-white/20">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-gray-600">Configuração avançada:</span>
+            </div>
+            <ConfigureWebhookButton 
+              instanceId={instance.vps_instance_id || instance.id}
+              instanceName={instance.instance_name}
+            />
+          </div>
+        )}
         
         {/* Help Text */}
         {!isConnected && (
           <div className="text-center pt-2">
             <p className="text-xs text-gray-500 bg-white/10 backdrop-blur-sm rounded-full py-1 px-3 inline-block">
-              Clique em "Gerar QR Code" e escaneie com seu WhatsApp
+              {instance.connection_status === 'connecting' 
+                ? 'Se o QR Code não funcionar, configure o webhook acima'
+                : 'Clique em "Gerar QR Code" e escaneie com seu WhatsApp'
+              }
             </p>
           </div>
         )}

@@ -1,3 +1,4 @@
+
 import { VPS_CONFIG } from './config.ts';
 
 export async function importChatHistory(supabase: any, instanceData: any) {
@@ -31,37 +32,59 @@ export async function importChatHistory(supabase: any, instanceData: any) {
       messages: historyData.totalMessages || 0
     });
 
-    // Processar cada chat do histórico
+    // 🆕 IMPORTAÇÃO GRADUAL - Processar em batches para evitar sobrecarga
     let processedChats = 0;
     let processedMessages = 0;
+    const BATCH_SIZE = 10; // Processar 10 chats por vez
+    const THROTTLE_DELAY = 500; // 500ms entre batches
 
     if (historyData.chats && historyData.chats.length > 0) {
-      for (const chat of historyData.chats) {
-        try {
-          // Processar lead (contato)
-          const leadResult = await processHistoryLead(supabase, chat, instanceId, companyId);
-          
-          if (leadResult.success && chat.messages && chat.messages.length > 0) {
-            // Processar mensagens do chat
-            const messagesResult = await processHistoryMessages(
-              supabase, 
-              chat.messages, 
-              leadResult.leadId, 
-              instanceId
-            );
-            processedMessages += messagesResult.processed;
+      console.log('[Chat History Import] 🚀 Iniciando importação gradual:', {
+        totalChats: historyData.chats.length,
+        batchSize: BATCH_SIZE,
+        estimatedTime: `${Math.ceil(historyData.chats.length / BATCH_SIZE) * (THROTTLE_DELAY / 1000)}s`
+      });
+
+      // Processar chats em batches
+      for (let i = 0; i < historyData.chats.length; i += BATCH_SIZE) {
+        const batch = historyData.chats.slice(i, i + BATCH_SIZE);
+        console.log(`[Chat History Import] 📦 Processando batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(historyData.chats.length / BATCH_SIZE)} (${batch.length} chats)`);
+        
+        for (const chat of batch) {
+          try {
+            // Processar lead (contato)
+            const leadResult = await processHistoryLead(supabase, chat, instanceId, companyId);
+            
+            if (leadResult.success && chat.messages && chat.messages.length > 0) {
+              // Processar mensagens do chat
+              const messagesResult = await processHistoryMessages(
+                supabase, 
+                chat.messages, 
+                leadResult.leadId, 
+                instanceId
+              );
+              processedMessages += messagesResult.processed;
+            }
+            
+            processedChats++;
+          } catch (chatError) {
+            console.error('[Chat History Import] ⚠️ Erro ao processar chat:', chatError);
           }
-          
-          processedChats++;
-        } catch (chatError) {
-          console.error('[Chat History Import] ⚠️ Erro ao processar chat:', chatError);
+        }
+
+        // 🆕 THROTTLING - Aguardar entre batches para não sobrecarregar
+        if (i + BATCH_SIZE < historyData.chats.length) {
+          console.log(`[Chat History Import] ⏱️ Aguardando ${THROTTLE_DELAY}ms antes do próximo batch...`);
+          await new Promise(resolve => setTimeout(resolve, THROTTLE_DELAY));
         }
       }
     }
 
     console.log('[Chat History Import] ✅ Importação concluída:', {
       processedChats,
-      processedMessages
+      processedMessages,
+      totalChats: historyData.chats?.length || 0,
+      totalMessages: historyData.totalMessages || 0
     });
 
     return {
@@ -83,14 +106,25 @@ export async function importChatHistory(supabase: any, instanceData: any) {
   }
 }
 
-// Processar lead do histórico
+// 🆕 MELHORADA: Processar lead do histórico com limpeza de telefone
 async function processHistoryLead(supabase: any, chat: any, instanceId: string, companyId: string) {
   try {
-    const phone = chat.id.replace(/\D/g, ''); // Limpar telefone
+    // 🆕 LIMPEZA DE TELEFONE - Remover @c.us, @s.whatsapp.net e outros sufixos
+    const rawPhone = chat.id || '';
+    const phone = cleanPhoneNumber(rawPhone);
     
     if (!phone) {
       throw new Error('Telefone inválido no chat');
     }
+
+    // 🆕 NOME AUTOMÁTICO - Usar telefone como nome se não houver nome
+    const displayName = chat.name || chat.pushname || `Contato +${phone}`;
+
+    console.log('[History Lead] 📱 Processando contato:', { 
+      rawPhone, 
+      cleanPhone: phone, 
+      displayName 
+    });
 
     // Verificar se lead já existe
     const { data: existingLead, error: searchError } = await supabase
@@ -114,7 +148,7 @@ async function processHistoryLead(supabase: any, chat: any, instanceId: string, 
       .from('leads')
       .insert({
         phone,
-        name: chat.name || `Contato ${phone}`,
+        name: displayName,
         whatsapp_number_id: instanceId,
         company_id: companyId,
         created_by_user_id: null // Importação automática
@@ -126,7 +160,7 @@ async function processHistoryLead(supabase: any, chat: any, instanceId: string, 
       throw new Error(`Erro ao criar lead: ${createError.message}`);
     }
 
-    console.log('[History Lead] ✅ Lead criado:', phone);
+    console.log('[History Lead] ✅ Lead criado:', { phone, name: displayName });
     return { success: true, leadId: newLead.id };
 
   } catch (error) {
@@ -135,7 +169,29 @@ async function processHistoryLead(supabase: any, chat: any, instanceId: string, 
   }
 }
 
-// Processar mensagens do histórico
+// 🆕 FUNÇÃO DE LIMPEZA DE TELEFONE
+function cleanPhoneNumber(rawPhone: string): string {
+  if (!rawPhone) return '';
+  
+  // Remover sufixos comuns do WhatsApp
+  let cleaned = rawPhone
+    .replace('@c.us', '')
+    .replace('@s.whatsapp.net', '')
+    .replace('@g.us', '') // Grupos
+    .replace('@broadcast', ''); // Listas de transmissão
+  
+  // Manter apenas números
+  cleaned = cleaned.replace(/\D/g, '');
+  
+  // Remover código de país brasileiro se presente (opcional)
+  if (cleaned.startsWith('55') && cleaned.length > 10) {
+    // Manter como está, pois pode ser necessário para WhatsApp
+  }
+  
+  return cleaned;
+}
+
+// Processar mensagens do histórico (sem mudanças significativas)
 async function processHistoryMessages(supabase: any, messages: any[], leadId: string, instanceId: string) {
   let processed = 0;
   

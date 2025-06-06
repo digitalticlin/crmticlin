@@ -56,11 +56,15 @@ export async function processConnectionUpdate(supabase: any, instance: any, conn
       web_status: newWebStatus
     });
 
-    // 🆕 TRIGGER: Iniciar importação do histórico quando conectar
+    // 🆕 TRIGGER MELHORADO: Iniciar importação do histórico quando conectar
     if (connection === 'open') {
       console.log('[Connection Processor] 🚀 Instância conectada! Iniciando importação do histórico...');
       
       try {
+        // 🆕 DELAY ANTES DA IMPORTAÇÃO - Dar tempo para a instância se estabilizar
+        console.log('[Connection Processor] ⏱️ Aguardando 3 segundos para estabilizar conexão...');
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
         // Chamar função para importar histórico de chats
         await triggerChatHistoryImport(supabase, instance);
       } catch (historyError) {
@@ -84,7 +88,7 @@ export async function processConnectionUpdate(supabase: any, instance: any, conn
   }
 }
 
-// 🆕 Função para disparar importação do histórico
+// 🆝 MELHORADA: Função para disparar importação do histórico
 async function triggerChatHistoryImport(supabase: any, instance: any) {
   console.log('[History Import] 📚 Iniciando importação do histórico para instância:', instance.vps_instance_id);
   
@@ -98,6 +102,27 @@ async function triggerChatHistoryImport(supabase: any, instance: any) {
 
     if (instanceError || !instanceData) {
       throw new Error(`Instância não encontrada: ${instanceError?.message}`);
+    }
+
+    console.log('[History Import] 📋 Dados da instância encontrados:', {
+      id: instanceData.id,
+      name: instanceData.instance_name,
+      company_id: instanceData.company_id
+    });
+
+    // 🆕 VALIDAÇÃO MELHORADA - Verificar se importação já foi feita recentemente
+    const { data: recentImport } = await supabase
+      .from('sync_logs')
+      .select('created_at')
+      .eq('function_name', 'auto_history_import_trigger')
+      .eq('status', 'success')
+      .contains('result', { vps_instance_id: instance.vps_instance_id })
+      .gte('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString()) // Última hora
+      .single();
+
+    if (recentImport) {
+      console.log('[History Import] ⏭️ Importação já realizada recentemente, pulando...');
+      return;
     }
 
     // Chamar edge function para importar histórico via VPS
@@ -127,6 +152,8 @@ async function triggerChatHistoryImport(supabase: any, instance: any) {
         result: {
           instance_id: instanceData.id,
           vps_instance_id: instance.vps_instance_id,
+          instance_name: instanceData.instance_name,
+          company_id: instanceData.company_id,
           triggered_at: new Date().toISOString(),
           import_response: importResponse
         }

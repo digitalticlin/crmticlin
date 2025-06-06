@@ -11,6 +11,7 @@ import { syncInstances } from './instanceSyncService.ts';
 import { sendMessage } from './messageSendingService.ts';
 import { getChatHistory } from './chatHistoryService.ts';
 import { importChatHistory } from './chatHistoryService.ts';
+import { configureWebhookForInstance, removeWebhookForInstance } from './webhookConfigurationService.ts';
 
 Deno.serve(async (req) => {
   console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED - FASE 2.0 BACKEND COMPLETO');
@@ -137,6 +138,16 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: importResult.success ? 200 : 500
         });
+
+      case 'configure_webhook':
+        console.log('[WhatsApp Server] 🔧 CONFIGURE WEBHOOK');
+        const configResult = await configureWebhookForInstance(body.instanceData.instanceId);
+        return configResult;
+
+      case 'remove_webhook':
+        console.log('[WhatsApp Server] 🗑️ REMOVE WEBHOOK');
+        const removeResult = await removeWebhookForInstance(body.instanceData.instanceId);
+        return removeResult;
 
       default:
         console.warn('[WhatsApp Server] ⚠️ UNKNOWN ACTION');
