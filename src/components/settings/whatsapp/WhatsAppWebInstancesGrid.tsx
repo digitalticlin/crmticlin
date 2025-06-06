@@ -5,14 +5,14 @@ import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 
 interface WhatsAppWebInstancesGridProps {
   instances: WhatsAppWebInstance[];
-  onRefreshQR: (instanceId: string) => void;
+  onGenerateQR: (instanceId: string) => void;
   onDelete: (instanceId: string) => void;
   onShowQR: (instance: WhatsAppWebInstance) => void;
 }
 
 export const WhatsAppWebInstancesGrid = ({
   instances,
-  onRefreshQR,
+  onGenerateQR,
   onDelete,
   onShowQR
 }: WhatsAppWebInstancesGridProps) => {
@@ -33,7 +33,7 @@ export const WhatsAppWebInstancesGrid = ({
               key={instance.id}
               instance={instance}
               onDelete={onDelete}
-              onRefreshQR={onRefreshQR}
+              onGenerateQR={onGenerateQR}
               onShowQR={() => onShowQR(instance)}
             />
           ))}

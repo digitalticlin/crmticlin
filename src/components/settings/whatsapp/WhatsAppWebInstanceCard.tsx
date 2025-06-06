@@ -1,16 +1,15 @@
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2, QrCode, Eye } from "lucide-react";
 import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { InstanceProfileSection } from "./InstanceProfileSection";
-import { InstanceActionButton } from "./InstanceActionButton";
 import { InstanceStatusMessages } from "./InstanceStatusMessages";
 
 interface WhatsAppWebInstanceCardProps {
   instance: WhatsAppWebInstance;
   onDelete: (instanceId: string) => void;
-  onRefreshQR: (instanceId: string) => void;
+  onGenerateQR: (instanceId: string) => void;
   onShowQR: () => void;
   isNewInstance?: boolean;
 }
@@ -18,13 +17,15 @@ interface WhatsAppWebInstanceCardProps {
 export function WhatsAppWebInstanceCard({
   instance,
   onDelete,
-  onRefreshQR,
+  onGenerateQR,
   onShowQR,
   isNewInstance = false
 }: WhatsAppWebInstanceCardProps) {
   const isConnected = instance.connection_status === 'connected' || 
                      instance.connection_status === 'ready' || 
                      instance.connection_status === 'open';
+
+  const hasQRCode = instance.qr_code && instance.qr_code.trim() !== '';
 
   return (
     <Card className={`transition-all duration-200 hover:shadow-lg bg-white/30 backdrop-blur-xl border border-white/30 rounded-3xl ${
@@ -43,14 +44,36 @@ export function WhatsAppWebInstanceCard({
 
         {/* Action Buttons */}
         <div className="flex gap-2">
-          <InstanceActionButton
-            connectionStatus={instance.connection_status}
-            webStatus={instance.web_status}
-            qrCode={instance.qr_code}
-            instanceId={instance.id}
-            onRefreshQR={onRefreshQR}
-            onShowQR={onShowQR}
-          />
+          {isConnected ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+              disabled
+            >
+              ✅ Conectado
+            </Button>
+          ) : hasQRCode ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onShowQR}
+              className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+            >
+              <Eye className="h-4 w-4 mr-1" />
+              Ver QR Code
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onGenerateQR(instance.id)}
+              className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+            >
+              <QrCode className="h-4 w-4 mr-1" />
+              Gerar QR Code
+            </Button>
+          )}
           
           <Button
             variant="destructive"
