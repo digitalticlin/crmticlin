@@ -81,17 +81,6 @@ export const SimpleWhatsAppConnection = () => {
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {connectedInstances.length > 0 ? (
-                <Badge variant="default" className="bg-green-600">
-                  {connectedInstances.length} Conectada(s)
-                </Badge>
-              ) : (
-                <Badge variant="secondary">
-                  Nenhuma conexão
-                </Badge>
-              )}
-            </div>
           </CardTitle>
         </CardHeader>
       </Card>
