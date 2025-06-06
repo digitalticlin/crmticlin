@@ -3,7 +3,7 @@ import { serve } from 'https://deno.land/std@0.177.1/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { corsHeaders } from './config.ts';
 
-import { createInstance } from './instanceCreationService.ts';
+import { createWhatsAppInstance } from './instanceCreationService.ts';
 import { getQRCodeAsync } from './qrCodeAsyncService.ts';
 import { deleteInstance } from './instanceDeletionService.ts';
 import { checkServerHealth, getServerInfo } from './serverHealthService.ts';
@@ -71,19 +71,11 @@ Deno.serve(async (req) => {
     switch (action) {
       case 'create_instance':
         console.log('[WhatsApp Server] ✨ CREATE INSTANCE');
-        const createResult = await createInstance(supabase, body.instanceData);
-        return new Response(JSON.stringify(createResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: createResult.success ? 200 : 500
-        });
+        return await createWhatsAppInstance(supabase, body.instanceData, user.id);
 
       case 'get_qr_code_async':
         console.log('[WhatsApp Server] 📱 GET QR CODE ASYNC');
-        const qrCodeResult = await getQRCodeAsync(supabase, body.instanceData);
-        return new Response(JSON.stringify(qrCodeResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: qrCodeResult.success ? 200 : (qrCodeResult.waiting ? 202 : 500)
-        });
+        return await getQRCodeAsync(supabase, body.instanceData, user.id);
 
       case 'delete_instance':
         console.log('[WhatsApp Server] 🗑️ DELETE INSTANCE');
@@ -159,13 +151,11 @@ Deno.serve(async (req) => {
 
       case 'configure_webhook':
         console.log('[WhatsApp Server] 🔧 CONFIGURE WEBHOOK');
-        const configResult = await configureWebhookForInstance(body.instanceData.instanceId);
-        return configResult;
+        return await configureWebhookForInstance(body.instanceData.instanceId);
 
       case 'remove_webhook':
         console.log('[WhatsApp Server] 🗑️ REMOVE WEBHOOK');
-        const removeResult = await removeWebhookForInstance(body.instanceData.instanceId);
-        return removeResult;
+        return await removeWebhookForInstance(body.instanceData.instanceId);
 
       default:
         console.warn('[WhatsApp Server] ⚠️ UNKNOWN ACTION');
