@@ -7,7 +7,10 @@
  * Extracts username from email (part before @)
  */
 export const extractUsernameFromEmail = (email: string): string => {
-  return email.split('@')[0];
+  if (!email || !email.includes('@')) {
+    return 'whatsapp';
+  }
+  return email.split('@')[0].toLowerCase();
 };
 
 /**
@@ -15,14 +18,32 @@ export const extractUsernameFromEmail = (email: string): string => {
  */
 export const generateSequentialInstanceName = (username: string, existingNames: string[]): string => {
   const baseUsername = username.toLowerCase();
+  
+  // Check if base name is available
+  if (!existingNames.includes(baseUsername)) {
+    return baseUsername;
+  }
+  
+  // Find existing numbered instances
   const existingNumbers = existingNames
     .filter(name => name.startsWith(baseUsername))
     .map(name => {
+      // Extract number from names like "digitalticlin1", "digitalticlin2"
       const match = name.match(new RegExp(`^${baseUsername}(\\d+)$`));
       return match ? parseInt(match[1], 10) : 0;
     })
-    .filter(num => num > 0);
+    .filter(num => num > 0)
+    .sort((a, b) => a - b);
   
-  const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+  // Find next available number
+  let nextNumber = 1;
+  for (const num of existingNumbers) {
+    if (num === nextNumber) {
+      nextNumber++;
+    } else {
+      break;
+    }
+  }
+  
   return `${baseUsername}${nextNumber}`;
 };

@@ -1,12 +1,11 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Loader2, QrCode, CheckCircle, AlertCircle } from "lucide-react";
+import { MessageSquare, Loader2, Plus } from "lucide-react";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { SimpleInstanceCard } from "./SimpleInstanceCard";
 import { QRCodeModal } from "./QRCodeModal";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const SimpleWhatsAppConnection = () => {
   const [isConnecting, setIsConnecting] = useState(false);
@@ -14,19 +13,29 @@ export const SimpleWhatsAppConnection = () => {
   const [selectedQRCode, setSelectedQRCode] = useState<string | null>(null);
   const [selectedInstanceName, setSelectedInstanceName] = useState<string>('');
 
+  const { user } = useAuth();
+  
   const {
     instances,
     isLoading,
     createInstance,
-    refreshQRCode
+    refreshQRCode,
+    generateIntelligentInstanceName
   } = useWhatsAppWebInstances();
 
   const handleConnect = async () => {
+    if (!user?.email) {
+      console.error('User email not available');
+      return;
+    }
+
     setIsConnecting(true);
     try {
-      const timestamp = Date.now();
-      const instanceName = `WhatsApp_${timestamp}`;
-      await createInstance(instanceName);
+      // Generate intelligent instance name based on user email
+      const intelligentName = await generateIntelligentInstanceName(user.email);
+      console.log('[Simple Connection] 🎯 Creating instance with intelligent name:', intelligentName);
+      
+      await createInstance(intelligentName);
     } finally {
       setIsConnecting(false);
     }
@@ -58,16 +67,10 @@ export const SimpleWhatsAppConnection = () => {
     );
   }
 
-  const connectedInstances = instances.filter(i => 
-    i.connection_status === 'connected' || 
-    i.connection_status === 'ready' || 
-    i.connection_status === 'open'
-  );
-
-  return (
-    <div className="space-y-6">
-      {/* Connect Button or Instance List */}
-      {instances.length === 0 ? (
+  // Show simple connect card when no instances
+  if (instances.length === 0) {
+    return (
+      <div className="space-y-6">
         <Card className="border-2 border-dashed border-green-300 bg-green-50/30">
           <CardContent className="p-8 text-center">
             <div className="p-4 bg-green-100 rounded-full inline-block mb-4">
@@ -97,15 +100,44 @@ export const SimpleWhatsAppConnection = () => {
             </Button>
           </CardContent>
         </Card>
-      ) : (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Suas Conexões WhatsApp</h3>
+
+        <QRCodeModal
+          isOpen={showQRModal}
+          onClose={closeQRModal}
+          qrCode={selectedQRCode}
+          instanceName={selectedInstanceName}
+        />
+      </div>
+    );
+  }
+
+  // Show grid layout when instances exist
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {/* Existing instances */}
+        {instances.map((instance) => (
+          <SimpleInstanceCard
+            key={instance.id}
+            instance={instance}
+            onGenerateQR={() => handleGenerateQR(instance.id, instance.instance_name)}
+          />
+        ))}
+        
+        {/* Add new connection card */}
+        <Card className="border-2 border-dashed border-green-300 bg-green-50/30 hover:bg-green-50/50 transition-colors">
+          <CardContent className="p-6 text-center flex flex-col justify-center min-h-[200px]">
+            <div className="p-3 bg-green-100 rounded-full inline-block mb-3">
+              <Plus className="h-8 w-8 text-green-600" />
+            </div>
+            <h3 className="font-medium mb-2">Nova Conexão</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Conecte mais uma conta WhatsApp
+            </p>
             <Button
               onClick={handleConnect}
               disabled={isConnecting}
-              variant="outline"
-              size="sm"
+              className="bg-green-600 hover:bg-green-700 text-white"
             >
               {isConnecting ? (
                 <>
@@ -114,26 +146,15 @@ export const SimpleWhatsAppConnection = () => {
                 </>
               ) : (
                 <>
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Nova Conexão
+                  <Plus className="h-4 w-4 mr-2" />
+                  Conectar
                 </>
               )}
             </Button>
-          </div>
+          </CardContent>
+        </Card>
+      </div>
 
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {instances.map((instance) => (
-              <SimpleInstanceCard
-                key={instance.id}
-                instance={instance}
-                onGenerateQR={() => handleGenerateQR(instance.id, instance.instance_name)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* QR Code Modal */}
       <QRCodeModal
         isOpen={showQRModal}
         onClose={closeQRModal}

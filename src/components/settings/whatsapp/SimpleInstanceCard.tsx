@@ -8,16 +8,18 @@ import {
   CheckCircle, 
   Clock, 
   AlertCircle,
-  Smartphone
+  Smartphone,
+  Trash2
 } from "lucide-react";
 import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 
 interface SimpleInstanceCardProps {
   instance: WhatsAppWebInstance;
   onGenerateQR: () => void;
+  onDelete?: () => void;
 }
 
-export const SimpleInstanceCard = ({ instance, onGenerateQR }: SimpleInstanceCardProps) => {
+export const SimpleInstanceCard = ({ instance, onGenerateQR, onDelete }: SimpleInstanceCardProps) => {
   const getSimpleStatus = () => {
     switch (instance.connection_status) {
       case 'connected':
@@ -25,31 +27,39 @@ export const SimpleInstanceCard = ({ instance, onGenerateQR }: SimpleInstanceCar
       case 'open':
         return {
           label: 'Conectado',
+          friendlyMessage: 'WhatsApp conectado e funcionando!',
           color: 'bg-green-500',
           icon: CheckCircle,
-          variant: 'default' as const
+          variant: 'default' as const,
+          textColor: 'text-green-600'
         };
       case 'waiting_scan':
       case 'connecting':
         return {
           label: 'Aguardando',
+          friendlyMessage: 'Aguardando leitura do QR Code',
           color: 'bg-yellow-500',
           icon: Clock,
-          variant: 'secondary' as const
+          variant: 'secondary' as const,
+          textColor: 'text-yellow-600'
         };
       case 'created':
         return {
-          label: 'Pronto para conectar',
+          label: 'Está quase pronto',
+          friendlyMessage: 'Pronto para gerar QR Code e conectar',
           color: 'bg-blue-500',
           icon: QrCode,
-          variant: 'outline' as const
+          variant: 'outline' as const,
+          textColor: 'text-blue-600'
         };
       default:
         return {
           label: 'Desconectado',
+          friendlyMessage: 'Conexão perdida, reconecte seu WhatsApp',
           color: 'bg-red-500',
           icon: AlertCircle,
-          variant: 'destructive' as const
+          variant: 'destructive' as const,
+          textColor: 'text-red-600'
         };
     }
   };
@@ -72,7 +82,7 @@ export const SimpleInstanceCard = ({ instance, onGenerateQR }: SimpleInstanceCar
         <CardTitle className="flex items-center justify-between text-base">
           <div className="flex items-center gap-2">
             <Smartphone className="h-5 w-5 text-gray-600" />
-            <span className="truncate">WhatsApp</span>
+            <span className="truncate">{instance.instance_name}</span>
           </div>
           <Badge variant={status.variant} className="text-xs">
             <StatusIcon className="h-3 w-3 mr-1" />
@@ -82,7 +92,7 @@ export const SimpleInstanceCard = ({ instance, onGenerateQR }: SimpleInstanceCar
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Connection Info */}
+        {/* Connection Info for connected instances */}
         {isConnected && instance.phone && (
           <div className="text-sm text-gray-600">
             <p><strong>Telefone:</strong> +{instance.phone}</p>
@@ -92,28 +102,12 @@ export const SimpleInstanceCard = ({ instance, onGenerateQR }: SimpleInstanceCar
           </div>
         )}
 
-        {/* Status Messages */}
-        <div className="text-sm text-gray-500">
-          {isConnected && (
-            <div className="flex items-center gap-2 text-green-600">
-              <CheckCircle className="h-4 w-4" />
-              <span>WhatsApp conectado e funcionando</span>
-            </div>
-          )}
-          
-          {instance.connection_status === 'waiting_scan' && (
-            <div className="flex items-center gap-2 text-yellow-600">
-              <Clock className="h-4 w-4" />
-              <span>Aguardando leitura do QR Code</span>
-            </div>
-          )}
-          
-          {instance.connection_status === 'created' && (
-            <div className="flex items-center gap-2 text-blue-600">
-              <QrCode className="h-4 w-4" />
-              <span>Pronto para gerar QR Code</span>
-            </div>
-          )}
+        {/* Friendly Status Message */}
+        <div className="text-sm">
+          <div className={`flex items-center gap-2 ${status.textColor}`}>
+            <StatusIcon className="h-4 w-4" />
+            <span>{status.friendlyMessage}</span>
+          </div>
         </div>
 
         {/* Action Buttons */}
@@ -138,6 +132,17 @@ export const SimpleInstanceCard = ({ instance, onGenerateQR }: SimpleInstanceCar
             >
               <CheckCircle className="h-4 w-4 mr-2" />
               Conectado
+            </Button>
+          )}
+
+          {!isConnected && onDelete && (
+            <Button
+              onClick={onDelete}
+              variant="outline"
+              size="sm"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Trash2 className="h-4 w-4" />
             </Button>
           )}
         </div>
