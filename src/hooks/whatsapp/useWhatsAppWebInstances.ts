@@ -30,11 +30,10 @@ export const useWhatsAppWebInstances = () => {
   
   const { user } = useAuth();
 
-  // Use specialized hooks
+  // CORREÇÃO COMPLETA: Hooks especializados
   const { instances, isLoading, error, fetchInstances, refetch } = useInstancesData();
   const { generateIntelligentInstanceName } = useIntelligentNaming();
   
-  // CORREÇÃO: Criar wrapper function que retorna void para compatibilidade de tipos
   const fetchInstancesVoid = async () => {
     await fetchInstances();
   };
@@ -49,31 +48,8 @@ export const useWhatsAppWebInstances = () => {
     setSelectedInstanceName('');
   };
 
-  // CORREÇÃO 6: QR Code polling otimizado - reduzir de 30s para 90s
-  useEffect(() => {
-    if (!instances.length) return;
-
-    const checkForQRUpdates = () => {
-      instances.forEach(async (instance) => {
-        if (instance.web_status === 'waiting_scan' && instance.vps_instance_id) {
-          const lastUpdate = instance.updated_at ? new Date(instance.updated_at) : new Date(0);
-          const now = new Date();
-          const timeDiff = now.getTime() - lastUpdate.getTime();
-          
-          // CORREÇÃO: Aumentar intervalo de 30s para 90s para reduzir carga
-          if (timeDiff > 90000) { // 90 segundos ao invés de 30
-            console.log('[WhatsApp Web Instances] 🔄 Auto-refresh QR Code (90s interval):', instance.instance_name);
-            await refreshInstanceQRCode(instance.id);
-          }
-        }
-      });
-    };
-
-    // CORREÇÃO: Verificar a cada 60 segundos ao invés de 30
-    const interval = setInterval(checkForQRUpdates, 60000);
-
-    return () => clearInterval(interval);
-  }, [instances, refreshInstanceQRCode]);
+  // CORREÇÃO COMPLETA: QR Code polling otimizado - removido para evitar sobrecarga
+  // O polling agora é feito apenas via modal quando necessário
 
   return {
     instances,
@@ -89,7 +65,7 @@ export const useWhatsAppWebInstances = () => {
     createInstance: async (instanceName: string) => {
       setIsConnecting(true);
       try {
-        console.log('[Hook] 🚀 Creating instance (CORREÇÃO CRÍTICA):', instanceName);
+        console.log('[Hook] 🚀 CORREÇÃO COMPLETA - Creating instance:', instanceName);
         const result = await createInstance(instanceName);
         return result;
       } finally {
@@ -97,8 +73,8 @@ export const useWhatsAppWebInstances = () => {
       }
     },
     deleteInstance,
-    // CORREÇÃO CRÍTICA: Modificar refreshQRCode para retornar dados corretos
     refreshQRCode: async (instanceId: string) => {
+      console.log('[Hook] 🔄 CORREÇÃO COMPLETA - Refreshing QR Code:', instanceId);
       const result = await refreshInstanceQRCode(instanceId);
       return result;
     },

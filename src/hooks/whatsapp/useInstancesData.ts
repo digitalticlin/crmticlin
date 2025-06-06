@@ -11,7 +11,6 @@ export const useInstancesData = () => {
   
   const { user } = useAuth();
   
-  // FASE 1: Refs simples para controle
   const isMountedRef = useRef(true);
   const lastFetchRef = useRef<number>(0);
 
@@ -22,19 +21,19 @@ export const useInstancesData = () => {
     };
   }, []);
 
-  // FASE 1: Fetch baseado no user_id (created_by_user_id)
+  // CORREÇÃO COMPLETA: Fetch otimizado baseado no user_id
   const fetchInstances = useCallback(async (): Promise<WhatsAppWebInstance[]> => {
     if (!user?.id || !isMountedRef.current) {
-      console.log('[Instances Data] ⏭️ FASE 1 - Fetch ignorado - sem usuário ou desmontado');
+      console.log('[Instances Data] ⏭️ CORREÇÃO COMPLETA - Fetch ignorado - sem usuário ou desmontado');
       return [];
     }
 
     const now = Date.now();
     const timeSinceLast = now - lastFetchRef.current;
     
-    // Debounce reduzido
-    if (timeSinceLast < 200) {
-      console.log('[Instances Data] ⏸️ Fetch debounced');
+    // Debounce reduzido para 100ms
+    if (timeSinceLast < 100) {
+      console.log('[Instances Data] ⏸️ CORREÇÃO COMPLETA - Fetch debounced');
       return instances;
     }
 
@@ -43,9 +42,8 @@ export const useInstancesData = () => {
       setError(null);
       lastFetchRef.current = now;
 
-      console.log('[Instances Data] 📊 FASE 1 - Buscando instâncias do usuário:', user.id);
+      console.log('[Instances Data] 📊 CORREÇÃO COMPLETA - Buscando instâncias do usuário:', user.id);
 
-      // FASE 1: Buscar por created_by_user_id ao invés de company_id
       const { data, error: fetchError } = await supabase
         .from('whatsapp_instances')
         .select('*')
@@ -77,7 +75,7 @@ export const useInstancesData = () => {
         updated_at: instance.updated_at
       }));
 
-      console.log(`[Instances Data] ✅ FASE 1 - ${mappedInstances.length} instâncias carregadas`);
+      console.log(`[Instances Data] ✅ CORREÇÃO COMPLETA - ${mappedInstances.length} instâncias carregadas`);
       
       if (isMountedRef.current) {
         setInstances(mappedInstances);
@@ -87,7 +85,7 @@ export const useInstancesData = () => {
       
     } catch (error: any) {
       if (isMountedRef.current) {
-        console.error('[Instances Data] ❌ FASE 1 - Erro no fetch:', error);
+        console.error('[Instances Data] ❌ CORREÇÃO COMPLETA - Erro no fetch:', error);
         setError(error.message);
       }
       return [];
@@ -98,11 +96,11 @@ export const useInstancesData = () => {
     }
   }, [user?.id, instances]);
 
-  // FASE 1: Real-time baseado no user_id
+  // CORREÇÃO COMPLETA: Real-time otimizado
   useEffect(() => {
     if (!user?.id || !isMountedRef.current) return;
 
-    console.log('[Instances Data] 🔄 FASE 1 - Configurando real-time para usuário:', user.id);
+    console.log('[Instances Data] 🔄 CORREÇÃO COMPLETA - Configurando real-time para usuário:', user.id);
 
     const channel = supabase
       .channel(`whatsapp-instances-data-${user.id}`)
@@ -117,10 +115,14 @@ export const useInstancesData = () => {
         (payload) => {
           if (!isMountedRef.current) return;
           
-          console.log('[Instances Data] 📡 FASE 1 - Real-time update:', payload);
+          console.log('[Instances Data] 📡 CORREÇÃO COMPLETA - Real-time update:', payload.eventType);
           
-          // Update imediato
-          fetchInstances();
+          // Update imediato após pequeno delay para sincronização
+          setTimeout(() => {
+            if (isMountedRef.current) {
+              fetchInstances();
+            }
+          }, 300);
         }
       )
       .subscribe();
@@ -130,7 +132,7 @@ export const useInstancesData = () => {
     };
   }, [user?.id, fetchInstances]);
 
-  // FASE 1: Initial fetch
+  // Initial fetch
   useEffect(() => {
     if (user?.id && isMountedRef.current) {
       fetchInstances();
