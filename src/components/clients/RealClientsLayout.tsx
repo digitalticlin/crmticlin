@@ -62,18 +62,20 @@ export function RealClientsLayout({
       
       {/* Add/Edit Client Dialog */}
       <Dialog open={isFormOpen} onOpenChange={onFormOpenChange}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white border border-gray-200 shadow-xl">
-          <DialogHeader>
-            <DialogTitle className="text-gray-900">
+        <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden bg-white border border-gray-200 shadow-xl">
+          <DialogHeader className="pb-4">
+            <DialogTitle className="text-xl font-semibold text-gray-900">
               {isEditing ? "Editar Cliente" : "Adicionar Novo Cliente"}
             </DialogTitle>
           </DialogHeader>
-          <RealClientForm
-            client={isEditing ? selectedClient || undefined : undefined}
-            onSubmit={onFormSubmit}
-            onCancel={() => onFormOpenChange(false)}
-            isLoading={isLoading}
-          />
+          <div className="overflow-y-auto max-h-[calc(95vh-120px)]">
+            <RealClientForm
+              client={isEditing ? selectedClient || undefined : undefined}
+              onSubmit={onFormSubmit}
+              onCancel={() => onFormOpenChange(false)}
+              isLoading={isLoading}
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -1,11 +1,14 @@
 
 import { useState, useEffect } from "react";
-import { ClientData, ClientFormData } from "@/hooks/clients/types";
+import { ClientData, ClientFormData, LeadContact } from "@/hooks/clients/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Building, Save, X } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { User, Building, Save, X, MapPin, FileText, Users } from "lucide-react";
+import { DocumentSelector } from "./DocumentSelector";
+import { MultipleContactsManager } from "./MultipleContactsManager";
 
 interface RealClientFormProps {
   client?: ClientData;
@@ -17,25 +20,66 @@ interface RealClientFormProps {
 export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealClientFormProps) => {
   const [formData, setFormData] = useState<ClientFormData>({
     name: "",
+    document_type: undefined,
+    document_id: "",
     phone: "",
     email: "",
     address: "",
+    city: "",
+    state: "",
+    country: "Brasil",
+    zip_code: "",
     company: "",
     notes: "",
     purchase_value: undefined,
+    contacts: [],
   });
 
   useEffect(() => {
     if (client) {
+      const contacts = client.contacts || [];
+      // Se não há contatos, criar um contato principal baseado no telefone/email do cliente
+      if (contacts.length === 0 && client.phone) {
+        contacts.push({
+          contact_type: 'phone',
+          contact_value: client.phone,
+          is_primary: true,
+        });
+        if (client.email) {
+          contacts.push({
+            contact_type: 'email',
+            contact_value: client.email,
+            is_primary: false,
+          });
+        }
+      }
+
       setFormData({
         name: client.name || "",
+        document_type: client.document_type,
+        document_id: client.document_id || "",
         phone: client.phone || "",
         email: client.email || "",
         address: client.address || "",
+        city: client.city || "",
+        state: client.state || "",
+        country: client.country || "Brasil",
+        zip_code: client.zip_code || "",
         company: client.company || "",
         notes: client.notes || "",
         purchase_value: client.purchase_value || undefined,
+        contacts: contacts,
       });
+    } else {
+      // Para novo cliente, iniciar com um contato principal
+      setFormData(prev => ({
+        ...prev,
+        contacts: [{
+          contact_type: 'phone',
+          contact_value: '',
+          is_primary: true,
+        }]
+      }));
     }
   }, [client]);
 
@@ -47,12 +91,41 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
     }));
   };
 
+  const handleDocumentTypeChange = (type: 'cpf' | 'cnpj') => {
+    setFormData(prev => ({ ...prev, document_type: type, document_id: '' }));
+  };
+
+  const handleDocumentIdChange = (id: string) => {
+    setFormData(prev => ({ ...prev, document_id: id }));
+  };
+
+  const handleContactsChange = (contacts: LeadContact[]) => {
+    setFormData(prev => ({ ...prev, contacts }));
+    
+    // Atualizar telefone e email principais baseado nos contatos
+    const primaryPhone = contacts.find(c => c.contact_type === 'phone' && c.is_primary);
+    const primaryEmail = contacts.find(c => c.contact_type === 'email' && c.is_primary);
+    
+    if (primaryPhone) {
+      setFormData(prev => ({ ...prev, phone: primaryPhone.contact_value }));
+    }
+    if (primaryEmail) {
+      setFormData(prev => ({ ...prev, email: primaryEmail.contact_value }));
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Basic validation
-    if (!formData.name.trim() || !formData.phone.trim()) {
-      alert("Nome e telefone são campos obrigatórios");
+    // Validação básica
+    if (!formData.name.trim()) {
+      alert("Nome é campo obrigatório");
+      return;
+    }
+
+    const primaryPhone = formData.contacts.find(c => c.contact_type === 'phone' && c.is_primary);
+    if (!primaryPhone?.contact_value?.trim()) {
+      alert("É necessário um telefone principal");
       return;
     }
     
@@ -60,81 +133,154 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
   };
 
   return (
-    <div className="bg-white rounded-lg p-6">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Grid Layout - 2 colunas em telas médias e grandes, 1 coluna em mobile */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Coluna 1 */}
-          <div className="space-y-4">
+    <div className="bg-white rounded-lg p-6 max-h-[80vh] overflow-y-auto">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        
+        {/* Seção: Dados Pessoais */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 mb-4">
+            <User className="h-5 w-5 text-[#d3d800]" />
+            <h3 className="text-lg font-semibold text-gray-900">Dados Pessoais</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-gray-700 font-medium">Nome*</Label>
+              <Label htmlFor="name" className="text-gray-700 font-medium">Nome Completo*</Label>
               <Input
                 id="name"
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
-                placeholder="Nome do cliente"
+                placeholder="Nome completo do cliente"
                 required
                 disabled={isLoading}
                 className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
               />
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="company" className="text-gray-700 font-medium">Empresa</Label>
-              <div className="relative">
-                <Input
-                  id="company"
-                  name="company"
-                  value={formData.company}
-                  onChange={handleChange}
-                  placeholder="Nome da empresa"
-                  className="pl-8 border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
-                  disabled={isLoading}
-                />
-                <Building className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="text-gray-700 font-medium">Telefone*</Label>
-              <Input
-                id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                placeholder="(00) 00000-0000"
-                required
+
+            <div>
+              <DocumentSelector
+                documentType={formData.document_type}
+                documentId={formData.document_id}
+                onDocumentTypeChange={handleDocumentTypeChange}
+                onDocumentIdChange={handleDocumentIdChange}
                 disabled={isLoading}
-                className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-gray-700 font-medium">Email</Label>
-              <Input
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                type="email"
-                placeholder="email@exemplo.com"
-                disabled={isLoading}
-                className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
               />
             </div>
           </div>
+        </div>
 
-          {/* Coluna 2 */}
-          <div className="space-y-4">
+        <Separator />
+
+        {/* Seção: Contatos */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Users className="h-5 w-5 text-[#d3d800]" />
+            <h3 className="text-lg font-semibold text-gray-900">Contatos</h3>
+          </div>
+          
+          <MultipleContactsManager
+            contacts={formData.contacts}
+            onChange={handleContactsChange}
+            disabled={isLoading}
+          />
+        </div>
+
+        <Separator />
+
+        {/* Seção: Endereço */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 mb-4">
+            <MapPin className="h-5 w-5 text-[#d3d800]" />
+            <h3 className="text-lg font-semibold text-gray-900">Endereço</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="space-y-2">
+              <Label htmlFor="zip_code" className="text-gray-700 font-medium">CEP</Label>
+              <Input
+                id="zip_code"
+                name="zip_code"
+                value={formData.zip_code}
+                onChange={handleChange}
+                placeholder="00000-000"
+                disabled={isLoading}
+                className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
               <Label htmlFor="address" className="text-gray-700 font-medium">Endereço</Label>
               <Input
                 id="address"
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
-                placeholder="Endereço do cliente"
+                placeholder="Rua, número, complemento"
+                disabled={isLoading}
+                className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="city" className="text-gray-700 font-medium">Cidade</Label>
+              <Input
+                id="city"
+                name="city"
+                value={formData.city}
+                onChange={handleChange}
+                placeholder="Nome da cidade"
+                disabled={isLoading}
+                className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="state" className="text-gray-700 font-medium">Estado</Label>
+              <Input
+                id="state"
+                name="state"
+                value={formData.state}
+                onChange={handleChange}
+                placeholder="Estado/UF"
+                disabled={isLoading}
+                className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="country" className="text-gray-700 font-medium">País</Label>
+              <Input
+                id="country"
+                name="country"
+                value={formData.country}
+                onChange={handleChange}
+                placeholder="País"
+                disabled={isLoading}
+                className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
+              />
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Seção: Dados da Empresa */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Building className="h-5 w-5 text-[#d3d800]" />
+            <h3 className="text-lg font-semibold text-gray-900">Dados da Empresa</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="company" className="text-gray-700 font-medium">Nome da Empresa</Label>
+              <Input
+                id="company"
+                name="company"
+                value={formData.company}
+                onChange={handleChange}
+                placeholder="Nome da empresa"
                 disabled={isLoading}
                 className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
               />
@@ -157,22 +303,31 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
           </div>
         </div>
 
-        {/* Observações - Largura completa */}
-        <div className="space-y-2">
-          <Label htmlFor="notes" className="text-gray-700 font-medium">Observações</Label>
-          <Textarea
-            id="notes"
-            name="notes"
-            value={formData.notes}
-            onChange={handleChange}
-            placeholder="Observações sobre o cliente"
-            className="min-h-[80px] border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white resize-none"
-            disabled={isLoading}
-          />
+        <Separator />
+
+        {/* Seção: Observações */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 mb-4">
+            <FileText className="h-5 w-5 text-[#d3d800]" />
+            <h3 className="text-lg font-semibold text-gray-900">Observações</h3>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="notes" className="text-gray-700 font-medium">Observações</Label>
+            <Textarea
+              id="notes"
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              placeholder="Observações sobre o cliente"
+              className="min-h-[100px] border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white resize-none"
+              disabled={isLoading}
+            />
+          </div>
         </div>
         
         {/* Botões de ação */}
-        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-gray-100">
+        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-gray-100">
           <Button 
             type="button" 
             variant="outline" 

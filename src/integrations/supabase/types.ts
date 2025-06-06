@@ -576,6 +576,44 @@ export type Database = {
           },
         ]
       }
+      lead_contacts: {
+        Row: {
+          contact_type: string
+          contact_value: string
+          created_at: string | null
+          id: string
+          is_primary: boolean | null
+          lead_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          contact_type: string
+          contact_value: string
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          lead_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          contact_type?: string
+          contact_value?: string
+          created_at?: string | null
+          id?: string
+          is_primary?: boolean | null
+          lead_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_contacts_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_tags: {
         Row: {
           created_at: string | null
@@ -615,10 +653,13 @@ export type Database = {
       leads: {
         Row: {
           address: string | null
+          city: string | null
           company: string | null
           company_id: string
+          country: string | null
           created_at: string | null
           document_id: string | null
+          document_type: string | null
           email: string | null
           funnel_id: string | null
           id: string
@@ -630,16 +671,21 @@ export type Database = {
           owner_id: string | null
           phone: string
           purchase_value: number | null
+          state: string | null
           unread_count: number | null
           updated_at: string | null
           whatsapp_number_id: string
+          zip_code: string | null
         }
         Insert: {
           address?: string | null
+          city?: string | null
           company?: string | null
           company_id: string
+          country?: string | null
           created_at?: string | null
           document_id?: string | null
+          document_type?: string | null
           email?: string | null
           funnel_id?: string | null
           id?: string
@@ -651,16 +697,21 @@ export type Database = {
           owner_id?: string | null
           phone: string
           purchase_value?: number | null
+          state?: string | null
           unread_count?: number | null
           updated_at?: string | null
           whatsapp_number_id: string
+          zip_code?: string | null
         }
         Update: {
           address?: string | null
+          city?: string | null
           company?: string | null
           company_id?: string
+          country?: string | null
           created_at?: string | null
           document_id?: string | null
+          document_type?: string | null
           email?: string | null
           funnel_id?: string | null
           id?: string
@@ -672,9 +723,11 @@ export type Database = {
           owner_id?: string | null
           phone?: string
           purchase_value?: number | null
+          state?: string | null
           unread_count?: number | null
           updated_at?: string | null
           whatsapp_number_id?: string
+          zip_code?: string | null
         }
         Relationships: [
           {
