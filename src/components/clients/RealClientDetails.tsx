@@ -18,6 +18,15 @@ interface RealClientDetailsProps {
   onOpenChange: (open: boolean) => void;
   onUpdateNotes: (notes: string) => void;
   onUpdatePurchaseValue: (value: number | undefined) => void;
+  onUpdateBasicInfo: (data: { name: string; email: string; company: string }) => void;
+  onUpdateDocument: (data: { document_type: string; document_id: string }) => void;
+  onUpdateAddress: (data: { 
+    address: string; 
+    city: string; 
+    state: string; 
+    country: string; 
+    zip_code: string 
+  }) => void;
 }
 
 export function RealClientDetails({
@@ -25,7 +34,10 @@ export function RealClientDetails({
   isOpen,
   onOpenChange,
   onUpdateNotes,
-  onUpdatePurchaseValue
+  onUpdatePurchaseValue,
+  onUpdateBasicInfo,
+  onUpdateDocument,
+  onUpdateAddress
 }: RealClientDetailsProps) {
   const getStatusBadge = () => {
     if (client.purchase_value && client.purchase_value > 0) {
@@ -68,9 +80,18 @@ export function RealClientDetails({
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Coluna Esquerda */}
                 <div className="space-y-6">
-                  <BasicInfoSection client={client} />
-                  <DocumentSection client={client} />
-                  <AddressSection client={client} />
+                  <BasicInfoSection 
+                    client={client} 
+                    onUpdateBasicInfo={onUpdateBasicInfo}
+                  />
+                  <DocumentSection 
+                    client={client} 
+                    onUpdateDocument={onUpdateDocument}
+                  />
+                  <AddressSection 
+                    client={client} 
+                    onUpdateAddress={onUpdateAddress}
+                  />
                   <ContactsSection client={client} />
                 </div>
                 

@@ -12,6 +12,15 @@ interface RealClientsLayoutProps {
   onDeleteClient: (clientId: string) => void;
   onUpdateNotes: (notes: string) => void;
   onUpdatePurchaseValue: (value: number | undefined) => void;
+  onUpdateBasicInfo: (data: { name: string; email: string; company: string }) => void;
+  onUpdateDocument: (data: { document_type: string; document_id: string }) => void;
+  onUpdateAddress: (data: { 
+    address: string; 
+    city: string; 
+    state: string; 
+    country: string; 
+    zip_code: string 
+  }) => void;
   onDetailsOpenChange: (open: boolean) => void;
 }
 
@@ -24,6 +33,9 @@ export function RealClientsLayout({
   onDeleteClient,
   onUpdateNotes,
   onUpdatePurchaseValue,
+  onUpdateBasicInfo,
+  onUpdateDocument,
+  onUpdateAddress,
   onDetailsOpenChange
 }: RealClientsLayoutProps) {
   return (
@@ -44,6 +56,9 @@ export function RealClientsLayout({
           onOpenChange={onDetailsOpenChange}
           onUpdateNotes={onUpdateNotes}
           onUpdatePurchaseValue={onUpdatePurchaseValue}
+          onUpdateBasicInfo={onUpdateBasicInfo}
+          onUpdateDocument={onUpdateDocument}
+          onUpdateAddress={onUpdateAddress}
         />
       )}
     </div>

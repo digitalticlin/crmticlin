@@ -4,6 +4,7 @@ import { useCompanyData } from "./useCompanyData";
 import { ClientData, ClientFormData } from "./clients/types";
 import { useDefaultWhatsAppInstance, useClientsQuery } from "./clients/queries";
 import { useCreateClientMutation, useUpdateClientMutation, useDeleteClientMutation } from "./clients/mutations";
+import { toast } from "sonner";
 
 export function useRealClientManagement() {
   const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
@@ -29,22 +30,119 @@ export function useRealClientManagement() {
     setSelectedClient(null);
   };
 
-  const handleUpdateNotes = (notes: string) => {
+  const handleUpdateNotes = async (notes: string) => {
     if (!selectedClient) return;
-    updateClientMutation.mutate({ 
-      id: selectedClient.id, 
-      data: { notes } 
-    });
-    setSelectedClient({ ...selectedClient, notes });
+    
+    try {
+      await updateClientMutation.mutateAsync({ 
+        id: selectedClient.id, 
+        data: { notes } 
+      });
+      
+      // Atualizar estado local imediatamente
+      const updatedClient = { ...selectedClient, notes };
+      setSelectedClient(updatedClient);
+      
+      // Invalidar queries para atualizar a lista
+      clientsQuery.refetch();
+    } catch (error) {
+      console.error("Erro ao atualizar notes:", error);
+    }
   };
 
-  const handleUpdatePurchaseValue = (purchase_value: number | undefined) => {
+  const handleUpdatePurchaseValue = async (purchase_value: number | undefined) => {
     if (!selectedClient) return;
-    updateClientMutation.mutate({ 
-      id: selectedClient.id, 
-      data: { purchase_value } 
-    });
-    setSelectedClient({ ...selectedClient, purchase_value });
+    
+    try {
+      await updateClientMutation.mutateAsync({ 
+        id: selectedClient.id, 
+        data: { purchase_value } 
+      });
+      
+      // Atualizar estado local imediatamente
+      const updatedClient = { ...selectedClient, purchase_value };
+      setSelectedClient(updatedClient);
+      
+      // Invalidar queries para atualizar a lista
+      clientsQuery.refetch();
+    } catch (error) {
+      console.error("Erro ao atualizar purchase_value:", error);
+    }
+  };
+
+  const handleUpdateBasicInfo = async (data: { name: string; email: string; company: string }) => {
+    if (!selectedClient) return;
+    
+    try {
+      await updateClientMutation.mutateAsync({
+        id: selectedClient.id,
+        data
+      });
+      
+      // Atualizar estado local imediatamente
+      const updatedClient = { ...selectedClient, ...data };
+      setSelectedClient(updatedClient);
+      
+      // Invalidar queries para atualizar a lista
+      clientsQuery.refetch();
+      
+      toast.success("Informações básicas atualizadas com sucesso!");
+    } catch (error) {
+      console.error("Erro ao atualizar informações básicas:", error);
+      toast.error("Erro ao atualizar informações básicas");
+    }
+  };
+
+  const handleUpdateDocument = async (data: { document_type: string; document_id: string }) => {
+    if (!selectedClient) return;
+    
+    try {
+      await updateClientMutation.mutateAsync({
+        id: selectedClient.id,
+        data
+      });
+      
+      // Atualizar estado local imediatamente
+      const updatedClient = { ...selectedClient, ...data };
+      setSelectedClient(updatedClient);
+      
+      // Invalidar queries para atualizar a lista
+      clientsQuery.refetch();
+      
+      toast.success("Informações do documento atualizadas com sucesso!");
+    } catch (error) {
+      console.error("Erro ao atualizar documento:", error);
+      toast.error("Erro ao atualizar informações do documento");
+    }
+  };
+
+  const handleUpdateAddress = async (data: { 
+    address: string; 
+    city: string; 
+    state: string; 
+    country: string; 
+    zip_code: string 
+  }) => {
+    if (!selectedClient) return;
+    
+    try {
+      await updateClientMutation.mutateAsync({
+        id: selectedClient.id,
+        data
+      });
+      
+      // Atualizar estado local imediatamente
+      const updatedClient = { ...selectedClient, ...data };
+      setSelectedClient(updatedClient);
+      
+      // Invalidar queries para atualizar a lista
+      clientsQuery.refetch();
+      
+      toast.success("Endereço atualizado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao atualizar endereço:", error);
+      toast.error("Erro ao atualizar endereço");
+    }
   };
 
   return {
@@ -60,6 +158,9 @@ export function useRealClientManagement() {
     handleDeleteClient,
     handleUpdateNotes,
     handleUpdatePurchaseValue,
+    handleUpdateBasicInfo,
+    handleUpdateDocument,
+    handleUpdateAddress,
     refetch: clientsQuery.refetch,
   };
 }

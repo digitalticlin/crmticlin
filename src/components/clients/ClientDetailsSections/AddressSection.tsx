@@ -8,9 +8,16 @@ import { ClientData } from "@/hooks/clients/types";
 
 interface AddressSectionProps {
   client: ClientData;
+  onUpdateAddress: (data: { 
+    address: string; 
+    city: string; 
+    state: string; 
+    country: string; 
+    zip_code: string 
+  }) => void;
 }
 
-export function AddressSection({ client }: AddressSectionProps) {
+export function AddressSection({ client, onUpdateAddress }: AddressSectionProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState({
     address: client.address || "",
@@ -19,10 +26,18 @@ export function AddressSection({ client }: AddressSectionProps) {
     country: client.country || "Brasil",
     zip_code: client.zip_code || ""
   });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSave = () => {
-    // Here you can implement the update logic for address info
-    setIsEditing(false);
+  const handleSave = async () => {
+    setIsLoading(true);
+    try {
+      await onUpdateAddress(editedData);
+      setIsEditing(false);
+    } catch (error) {
+      // Error is handled in the parent hook
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -124,10 +139,11 @@ export function AddressSection({ client }: AddressSectionProps) {
             <Button 
               size="sm" 
               onClick={handleSave}
+              disabled={isLoading}
               className="bg-[#d3d800] hover:bg-[#b8c200] text-black"
             >
               <Save className="h-3 w-3 mr-1" />
-              Salvar
+              {isLoading ? 'Salvando...' : 'Salvar'}
             </Button>
             <Button 
               size="sm" 

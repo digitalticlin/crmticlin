@@ -17,6 +17,9 @@ export default function Clients() {
     handleDeleteClient,
     handleUpdateNotes,
     handleUpdatePurchaseValue,
+    handleUpdateBasicInfo,
+    handleUpdateDocument,
+    handleUpdateAddress,
     refetch,
   } = useRealClientManagement();
 
@@ -59,6 +62,9 @@ export default function Clients() {
         onDeleteClient={handleDeleteClient}
         onUpdateNotes={handleUpdateNotes}
         onUpdatePurchaseValue={handleUpdatePurchaseValue}
+        onUpdateBasicInfo={handleUpdateBasicInfo}
+        onUpdateDocument={handleUpdateDocument}
+        onUpdateAddress={handleUpdateAddress}
         onDetailsOpenChange={setIsDetailsOpen}
       />
     </PageLayout>

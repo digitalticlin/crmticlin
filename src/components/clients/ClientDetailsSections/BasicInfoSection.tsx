@@ -3,38 +3,33 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Edit, Phone, Mail, Building, MapPin, Save, X } from "lucide-react";
+import { Edit, Phone, Mail, Building, Save, X } from "lucide-react";
 import { ClientData } from "@/hooks/clients/types";
 import { formatPhoneDisplay } from "@/utils/phoneFormatter";
-import { useUpdateClientMutation } from "@/hooks/clients/mutations";
-import { useCompanyData } from "@/hooks/useCompanyData";
-import { toast } from "sonner";
 
 interface BasicInfoSectionProps {
   client: ClientData;
+  onUpdateBasicInfo: (data: { name: string; email: string; company: string }) => void;
 }
 
-export function BasicInfoSection({ client }: BasicInfoSectionProps) {
+export function BasicInfoSection({ client, onUpdateBasicInfo }: BasicInfoSectionProps) {
   const [isEditingBasicInfo, setIsEditingBasicInfo] = useState(false);
   const [editedClient, setEditedClient] = useState({
     name: client.name,
     email: client.email || "",
     company: client.company || ""
   });
-  
-  const { companyId } = useCompanyData();
-  const updateClientMutation = useUpdateClientMutation(companyId);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSaveBasicInfo = async () => {
+    setIsLoading(true);
     try {
-      await updateClientMutation.mutateAsync({
-        id: client.id,
-        data: editedClient
-      });
+      await onUpdateBasicInfo(editedClient);
       setIsEditingBasicInfo(false);
-      toast.success("Informações básicas atualizadas com sucesso!");
     } catch (error) {
-      toast.error("Erro ao atualizar informações básicas");
+      // Error is handled in the parent hook
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -120,11 +115,11 @@ export function BasicInfoSection({ client }: BasicInfoSectionProps) {
             <Button 
               size="sm" 
               onClick={handleSaveBasicInfo}
-              disabled={updateClientMutation.isPending}
+              disabled={isLoading}
               className="bg-[#d3d800] hover:bg-[#b8c200] text-black"
             >
               <Save className="h-3 w-3 mr-1" />
-              {updateClientMutation.isPending ? 'Salvando...' : 'Salvar'}
+              {isLoading ? 'Salvando...' : 'Salvar'}
             </Button>
             <Button 
               size="sm" 

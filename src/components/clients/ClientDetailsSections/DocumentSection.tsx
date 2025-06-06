@@ -9,18 +9,27 @@ import { ClientData } from "@/hooks/clients/types";
 
 interface DocumentSectionProps {
   client: ClientData;
+  onUpdateDocument: (data: { document_type: string; document_id: string }) => void;
 }
 
-export function DocumentSection({ client }: DocumentSectionProps) {
+export function DocumentSection({ client, onUpdateDocument }: DocumentSectionProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState({
     document_type: client.document_type || "",
     document_id: client.document_id || ""
   });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSave = () => {
-    // Here you can implement the update logic for document info
-    setIsEditing(false);
+  const handleSave = async () => {
+    setIsLoading(true);
+    try {
+      await onUpdateDocument(editedData);
+      setIsEditing(false);
+    } catch (error) {
+      // Error is handled in the parent hook
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -82,10 +91,11 @@ export function DocumentSection({ client }: DocumentSectionProps) {
             <Button 
               size="sm" 
               onClick={handleSave}
+              disabled={isLoading}
               className="bg-[#d3d800] hover:bg-[#b8c200] text-black"
             >
               <Save className="h-3 w-3 mr-1" />
-              Salvar
+              {isLoading ? 'Salvando...' : 'Salvar'}
             </Button>
             <Button 
               size="sm" 
