@@ -1,23 +1,17 @@
+
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import { KanbanLead } from "@/types/kanban";
 import { useWonLostFilters } from "@/hooks/salesFunnel/useWonLostFilters";
-import { KanbanBoard } from "@/components/sales/KanbanBoard";
-import { LeadDetailSidebar } from "@/components/sales/LeadDetailSidebar";
-import { ModernFunnelHeader } from "@/components/sales/funnel/ModernFunnelHeader";
-import { ModernFunnelControlBar } from "@/components/sales/funnel/ModernFunnelControlBar";
-import { SelectStageModal } from "@/components/sales/funnel/modals/SelectStageModal";
-import { DealNoteModal } from "@/components/sales/funnel/modals/DealNoteModal";
+import { SalesFunnelTabs } from "./SalesFunnelTabs";
+import { SalesFunnelModals } from "./SalesFunnelModals";
+import { SalesFunnelActions } from "./SalesFunnelActions";
 import { useSalesFunnelContext } from "./SalesFunnelProvider";
 
 export const SalesFunnelContent = () => {
-  const [activeTab, setActiveTab] = useState("funnel");
   const [isStageModalOpen, setIsStageModalOpen] = useState(false);
   const [isDealNoteModalOpen, setIsDealNoteModalOpen] = useState(false);
   const [leadToMove, setLeadToMove] = useState<KanbanLead | null>(null);
   const [pendingDealMove, setPendingDealMove] = useState<{lead: KanbanLead, status: "won" | "lost"} | null>(null);
-  const navigate = useNavigate();
   
   const {
     funnels,
@@ -59,104 +53,57 @@ export const SalesFunnelContent = () => {
   // Hook para filtros na página Ganhos e Perdidos
   const wonLostFilters = useWonLostFilters(wonLostLeads, availableTags);
 
-  // Filtrar colunas para mostrar apenas Ganhos e Perdidos na aba won-lost
-  const displayColumns = activeTab === "won-lost" 
-    ? stages
-        ?.filter(stage => stage.title === "GANHO" || stage.title === "PERDIDO")
-        .map(stage => {
-          // Buscar leads reais dessa stage diretamente dos leads totais
-          const stageLeads = leads?.filter(lead => lead.columnId === stage.id) || [];
-          
-          return {
-            id: stage.id,
-            title: stage.title,
-            leads: stageLeads,
-            color: stage.color || "#e0e0e0",
-            isFixed: stage.is_fixed || false,
-            isHidden: false
-          };
-        }) || []
-    : columns;
-
-  const handleOpenChat = (lead: KanbanLead) => {
-    navigate(`/whatsapp-chat?leadId=${lead.id}`);
-  };
-
-  const handleMoveToWonLost = async (lead: KanbanLead, status: "won" | "lost") => {
-    setPendingDealMove({ lead, status });
-    setIsDealNoteModalOpen(true);
-  };
+  // Usar o hook de ações
+  const actions = SalesFunnelActions({
+    stages: stages || [],
+    moveLeadToStage,
+    refetchLeads,
+    refetchStages,
+    onStageModalOpen: (lead: KanbanLead) => {
+      setLeadToMove(lead);
+      setIsStageModalOpen(true);
+    },
+    onDealNoteModalOpen: (move: {lead: KanbanLead, status: "won" | "lost"}) => {
+      setPendingDealMove(move);
+      setIsDealNoteModalOpen(true);
+    }
+  });
 
   const handleDealNoteConfirm = async (note: string) => {
-    if (!pendingDealMove) return;
-
-    const { lead, status } = pendingDealMove;
-    const targetStage = stages?.find(stage => 
-      status === "won" ? stage.is_won : stage.is_lost
-    );
-    
-    if (targetStage) {
-      // Call moveLeadToStage with only 2 arguments as expected by the interface
-      await moveLeadToStage(lead, targetStage.id);
-      await refetchLeads();
-      toast.success(`Lead movido para ${status === "won" ? "Ganhos" : "Perdidos"}`);
+    if (pendingDealMove) {
+      await actions.handleDealNoteConfirm(note, pendingDealMove);
     }
-
     setIsDealNoteModalOpen(false);
     setPendingDealMove(null);
-  };
-
-  const handleReturnToFunnel = (lead: KanbanLead) => {
-    setLeadToMove(lead);
-    setIsStageModalOpen(true);
-  };
-
-  const handleStageSelection = async (lead: KanbanLead, stageId: string) => {
-    await moveLeadToStage(lead, stageId);
-    await refetchLeads();
-    await refetchStages();
-    toast.success("Lead retornado para o funil");
   };
 
   const handleCreateFunnel = async (name: string, description?: string): Promise<void> => {
     await createFunnel(name, description);
   };
 
-  const handleColumnsChange = (newColumns: any[]) => {
-    console.log("Aplicando atualização otimista das colunas:", newColumns);
-    setColumns(newColumns);
-  };
-
   return (
-    <div className="space-y-6">
-      {/* Header Moderno */}
-      <ModernFunnelHeader 
-        selectedFunnel={selectedFunnel!}
-        totalLeads={columns.reduce((acc, col) => acc + col.leads.length, 0)}
-        wonLeads={wonLostLeads.filter(lead => {
-          const leadStage = stages?.find(stage => stage.id === lead.columnId);
-          return leadStage?.title === "GANHO";
-        }).length}
-        lostLeads={wonLostLeads.filter(lead => {
-          const leadStage = stages?.find(stage => stage.id === lead.columnId);
-          return leadStage?.title === "PERDIDO";
-        }).length}
-        activeTab={activeTab}
-      />
-
-      {/* Barra de Controles Moderna */}
-      <ModernFunnelControlBar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        onAddColumn={() => addColumn("Nova etapa")}
-        onManageTags={() => {}}
-        onAddLead={() => {}}
+    <>
+      <SalesFunnelTabs
         funnels={funnels}
-        selectedFunnel={selectedFunnel}
-        onSelectFunnel={setSelectedFunnel}
-        onCreateFunnel={handleCreateFunnel}
+        selectedFunnel={selectedFunnel!}
+        setSelectedFunnel={setSelectedFunnel}
+        createFunnel={handleCreateFunnel}
+        columns={columns}
+        setColumns={setColumns}
+        stages={stages || []}
+        leads={leads || []}
+        availableTags={availableTags}
+        wonStageId={wonStageId}
+        lostStageId={lostStageId}
         isAdmin={isAdmin}
-        wonLostFilters={activeTab === "won-lost" ? {
+        addColumn={addColumn}
+        updateColumn={updateColumn}
+        deleteColumn={deleteColumn}
+        openLeadDetail={openLeadDetail}
+        onOpenChat={actions.handleOpenChat}
+        onMoveToWonLost={actions.handleMoveToWonLost}
+        onReturnToFunnel={actions.handleReturnToFunnel}
+        wonLostFilters={{
           searchTerm: wonLostFilters.searchTerm,
           setSearchTerm: wonLostFilters.setSearchTerm,
           selectedTags: wonLostFilters.selectedTags,
@@ -167,53 +114,24 @@ export const SalesFunnelContent = () => {
           availableUsers: wonLostFilters.availableUsers,
           onClearFilters: wonLostFilters.clearAllFilters,
           resultsCount: wonLostFilters.resultsCount
-        } : undefined}
-      />
-      
-      {/* Board do Kanban - com atualização otimista */}
-      <KanbanBoard
-        columns={displayColumns}
-        onColumnsChange={handleColumnsChange}
-        onOpenLeadDetail={openLeadDetail}
-        onColumnUpdate={activeTab === "funnel" ? updateColumn : undefined}
-        onColumnDelete={activeTab === "funnel" ? deleteColumn : undefined}
-        onOpenChat={handleOpenChat}
-        onMoveToWonLost={handleMoveToWonLost}
-        onReturnToFunnel={handleReturnToFunnel}
-        isWonLostView={activeTab === "won-lost"}
-        wonStageId={wonStageId}
-        lostStageId={lostStageId}
+        }}
       />
 
-      {/* Modal de Seleção de Etapa */}
-      <SelectStageModal
-        isOpen={isStageModalOpen}
-        onClose={() => {
-          setIsStageModalOpen(false);
-          setLeadToMove(null);
-        }}
-        lead={leadToMove}
+      <SalesFunnelModals
+        isStageModalOpen={isStageModalOpen}
+        setIsStageModalOpen={setIsStageModalOpen}
+        leadToMove={leadToMove}
+        setLeadToMove={setLeadToMove}
         stages={stages || []}
-        onSelectStage={handleStageSelection}
-      />
-
-      {/* Modal de Observação do Deal */}
-      <DealNoteModal
-        isOpen={isDealNoteModalOpen}
-        onClose={() => {
-          setIsDealNoteModalOpen(false);
-          setPendingDealMove(null);
-        }}
-        onConfirm={handleDealNoteConfirm}
-        dealType={pendingDealMove?.status || "won"}
-        leadName={pendingDealMove?.lead.name || ""}
-      />
-
-      {/* Sidebar de Detalhes */}
-      <LeadDetailSidebar
-        isOpen={isLeadDetailOpen}
-        onOpenChange={setIsLeadDetailOpen}
+        onStageSelection={actions.handleStageSelection}
+        isDealNoteModalOpen={isDealNoteModalOpen}
+        setIsDealNoteModalOpen={setIsDealNoteModalOpen}
+        pendingDealMove={pendingDealMove}
+        setPendingDealMove={setPendingDealMove}
+        onDealNoteConfirm={handleDealNoteConfirm}
         selectedLead={selectedLead}
+        isLeadDetailOpen={isLeadDetailOpen}
+        setIsLeadDetailOpen={setIsLeadDetailOpen}
         availableTags={availableTags}
         onToggleTag={(tagId) => selectedLead && toggleTagOnLead(selectedLead.id, tagId)}
         onUpdateNotes={updateLeadNotes}
@@ -222,6 +140,6 @@ export const SalesFunnelContent = () => {
         onUpdateAssignedUser={updateLeadAssignedUser}
         onUpdateName={updateLeadName}
       />
-    </div>
+    </>
   );
 };
