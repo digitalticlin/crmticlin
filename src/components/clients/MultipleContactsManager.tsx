@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,7 +67,7 @@ export const MultipleContactsManager = ({ contacts, onChange, disabled }: Multip
           size="sm"
           onClick={addContact}
           disabled={disabled}
-          className="h-8 text-xs"
+          className="h-8 text-xs bg-white/20 border-white/40 hover:bg-white/30 backdrop-blur-sm"
         >
           <Plus className="h-3 w-3 mr-1" />
           Adicionar
@@ -76,7 +75,7 @@ export const MultipleContactsManager = ({ contacts, onChange, disabled }: Multip
       </div>
 
       {contacts.map((contact, index) => (
-        <div key={index} className="border border-gray-200 rounded-lg p-3 space-y-3">
+        <div key={index} className="border border-white/30 rounded-lg p-3 space-y-3 bg-white/20 backdrop-blur-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               {getContactIcon(contact.contact_type)}
@@ -106,7 +105,7 @@ export const MultipleContactsManager = ({ contacts, onChange, disabled }: Multip
                 onValueChange={(value) => updateContact(index, 'contact_type', value)}
                 disabled={disabled}
               >
-                <SelectTrigger className="h-8">
+                <SelectTrigger className="h-8 bg-white/50 border-white/40">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -128,7 +127,7 @@ export const MultipleContactsManager = ({ contacts, onChange, disabled }: Multip
                     : '(00) 00000-0000'
                 }
                 disabled={disabled}
-                className="h-8"
+                className="h-8 bg-white/50 border-white/40"
               />
             </div>
 
@@ -139,7 +138,7 @@ export const MultipleContactsManager = ({ contacts, onChange, disabled }: Multip
                   checked={contact.is_primary}
                   onChange={(e) => updateContact(index, 'is_primary', e.target.checked)}
                   disabled={disabled}
-                  className="rounded border-gray-300"
+                  className="rounded border-white/40"
                 />
                 <span className="text-xs text-gray-600">Principal</span>
               </label>

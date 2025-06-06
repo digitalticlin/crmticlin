@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { ClientData, ClientFormData, LeadContact } from "@/hooks/clients/types";
 import { Button } from "@/components/ui/button";
@@ -133,7 +132,7 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
   };
 
   return (
-    <div className="bg-white rounded-lg p-6 max-h-[80vh] overflow-y-auto">
+    <div className="rounded-3xl bg-white/35 backdrop-blur-lg border border-white/30 shadow-2xl p-6 max-h-[80vh] overflow-y-auto transition-all duration-500 hover:shadow-3xl hover:bg-white/40">
       <form onSubmit={handleSubmit} className="space-y-8">
         
         {/* Seção: Dados Pessoais */}
@@ -154,7 +153,7 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
                 placeholder="Nome completo do cliente"
                 required
                 disabled={isLoading}
-                className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
+                className="border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white/50 backdrop-blur-sm"
               />
             </div>
 
@@ -170,7 +169,7 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
           </div>
         </div>
 
-        <Separator />
+        <Separator className="bg-white/30" />
 
         {/* Seção: Contatos */}
         <div className="space-y-4">
@@ -186,7 +185,7 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
           />
         </div>
 
-        <Separator />
+        <Separator className="bg-white/30" />
 
         {/* Seção: Endereço */}
         <div className="space-y-4">
@@ -205,7 +204,7 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
                 onChange={handleChange}
                 placeholder="00000-000"
                 disabled={isLoading}
-                className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
+                className="border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white/50 backdrop-blur-sm"
               />
             </div>
 
@@ -218,7 +217,7 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
                 onChange={handleChange}
                 placeholder="Rua, número, complemento"
                 disabled={isLoading}
-                className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
+                className="border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white/50 backdrop-blur-sm"
               />
             </div>
 
@@ -231,7 +230,7 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
                 onChange={handleChange}
                 placeholder="Nome da cidade"
                 disabled={isLoading}
-                className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
+                className="border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white/50 backdrop-blur-sm"
               />
             </div>
 
@@ -244,7 +243,7 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
                 onChange={handleChange}
                 placeholder="Estado/UF"
                 disabled={isLoading}
-                className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
+                className="border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white/50 backdrop-blur-sm"
               />
             </div>
 
@@ -257,13 +256,13 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
                 onChange={handleChange}
                 placeholder="País"
                 disabled={isLoading}
-                className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
+                className="border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white/50 backdrop-blur-sm"
               />
             </div>
           </div>
         </div>
 
-        <Separator />
+        <Separator className="bg-white/30" />
 
         {/* Seção: Dados da Empresa */}
         <div className="space-y-4">
@@ -282,7 +281,7 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
                 onChange={handleChange}
                 placeholder="Nome da empresa"
                 disabled={isLoading}
-                className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
+                className="border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white/50 backdrop-blur-sm"
               />
             </div>
 
@@ -297,13 +296,13 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
                 onChange={handleChange}
                 placeholder="0.00"
                 disabled={isLoading}
-                className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
+                className="border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white/50 backdrop-blur-sm"
               />
             </div>
           </div>
         </div>
 
-        <Separator />
+        <Separator className="bg-white/30" />
 
         {/* Seção: Observações */}
         <div className="space-y-4">
@@ -320,20 +319,20 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
               value={formData.notes}
               onChange={handleChange}
               placeholder="Observações sobre o cliente"
-              className="min-h-[100px] border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white resize-none"
+              className="min-h-[100px] border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white/50 backdrop-blur-sm resize-none"
               disabled={isLoading}
             />
           </div>
         </div>
         
         {/* Botões de ação */}
-        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-gray-100">
+        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-white/30">
           <Button 
             type="button" 
             variant="outline" 
             onClick={onCancel} 
             disabled={isLoading}
-            className="order-2 sm:order-1 border-gray-300 text-gray-700 hover:bg-gray-50"
+            className="order-2 sm:order-1 border-white/40 text-gray-700 hover:bg-white/30 bg-white/20 backdrop-blur-sm"
           >
             <X className="h-4 w-4 mr-2" />
             Cancelar
@@ -341,7 +340,7 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
           <Button 
             type="submit" 
             disabled={isLoading}
-            className="order-1 sm:order-2 bg-[#d3d800] hover:bg-[#b8c200] text-black font-semibold"
+            className="order-1 sm:order-2 bg-[#d3d800] hover:bg-[#b8c200] text-black font-semibold shadow-lg"
           >
             <Save className="h-4 w-4 mr-2" />
             {isLoading ? "Salvando..." : (client ? "Atualizar" : "Adicionar")}

@@ -1,4 +1,3 @@
-
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -63,7 +62,7 @@ export const DocumentSelector = ({
         <Label htmlFor="document_type" className="text-gray-700 font-medium">Tipo de Documento</Label>
         <div className="relative">
           <Select value={documentType} onValueChange={onDocumentTypeChange} disabled={disabled}>
-            <SelectTrigger className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white">
+            <SelectTrigger className="border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white/50 backdrop-blur-sm">
               <SelectValue placeholder="Selecione o tipo" />
             </SelectTrigger>
             <SelectContent>
@@ -87,7 +86,7 @@ export const DocumentSelector = ({
           placeholder={getPlaceholder()}
           maxLength={getMaxLength()}
           disabled={disabled || !documentType}
-          className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
+          className="border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white/50 backdrop-blur-sm"
         />
       </div>
     </div>

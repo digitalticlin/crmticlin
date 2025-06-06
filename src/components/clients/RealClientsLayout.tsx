@@ -60,15 +60,15 @@ export function RealClientsLayout({
         />
       )}
       
-      {/* Add/Edit Client Dialog */}
+      {/* Add/Edit Client Dialog with Glassmorphism */}
       <Dialog open={isFormOpen} onOpenChange={onFormOpenChange}>
-        <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden bg-white border border-gray-200 shadow-xl">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden rounded-3xl bg-white/35 backdrop-blur-lg border border-white/30 shadow-2xl transition-all duration-500 hover:shadow-3xl hover:scale-[1.01] hover:bg-white/40 animate-fade-in">
           <DialogHeader className="pb-4">
             <DialogTitle className="text-xl font-semibold text-gray-900">
               {isEditing ? "Editar Cliente" : "Adicionar Novo Cliente"}
             </DialogTitle>
           </DialogHeader>
-          <div className="overflow-y-auto max-h-[calc(95vh-120px)]">
+          <div className="overflow-y-auto max-h-[calc(90vh-120px)]">
             <RealClientForm
               client={isEditing ? selectedClient || undefined : undefined}
               onSubmit={onFormSubmit}
