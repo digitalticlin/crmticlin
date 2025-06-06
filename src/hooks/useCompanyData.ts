@@ -1,10 +1,10 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
- * Hook for managing company data
+ * Hook for managing company data operations (simplified - no auto-loading)
  */
 export const useCompanyData = () => {
   const [companyName, setCompanyName] = useState("");
@@ -12,89 +12,39 @@ export const useCompanyData = () => {
   const [companyDocument, setCompanyDocument] = useState("");
   const [companyPhone, setCompanyPhone] = useState("");
   const [companyEmail, setCompanyEmail] = useState("");
-  const [loading, setLoading] = useState(true);
-  
-  // Carregar company_id e dados da empresa do usuário logado
-  useEffect(() => {
-    let isMounted = true;
-    
-    const loadUserCompany = async () => {
-      try {
-        console.log('[Company Data] Iniciando carregamento dos dados da empresa...');
-        
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          console.log('[Company Data] Usuário não autenticado');
-          if (isMounted) setLoading(false);
-          return;
-        }
-
-        console.log('[Company Data] Carregando dados para usuário:', user.email);
-
-        // Buscar perfil do usuário para obter company_id
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select(`
-            company_id, 
-            role,
-            companies (
-              id,
-              name,
-              document_id,
-              phone,
-              email
-            )
-          `)
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (profileError) {
-          console.error("[Company Data] Erro ao carregar perfil:", profileError);
-          if (isMounted) setLoading(false);
-          return;
-        }
-
-        if (profile && profile.company_id && profile.companies) {
-          console.log('[Company Data] Empresa encontrada:', {
-            companyId: profile.companies.id,
-            companyName: profile.companies.name,
-            companyDocument: profile.companies.document_id,
-            userRole: profile.role
-          });
-          
-          if (isMounted) {
-            setCompanyId(profile.companies.id);
-            setCompanyName(profile.companies.name || "");
-            setCompanyDocument(profile.companies.document_id || "");
-            setCompanyPhone(profile.companies.phone || "");
-            setCompanyEmail(profile.companies.email || "");
-          }
-        } else {
-          console.log('[Company Data] Profile sem company_id vinculado ou empresa não encontrada');
-        }
-        
-        if (isMounted) setLoading(false);
-      } catch (error) {
-        console.error("[Company Data] Erro ao carregar dados da empresa:", error);
-        if (isMounted) setLoading(false);
-      }
-    };
-
-    loadUserCompany();
-    
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  const [loading, setLoading] = useState(false);
   
   /**
-   * Fetches company data based on company ID
+   * Sets company data from external source
+   * @param companyData Company data object
+   */
+  const setCompanyData = (companyData: any) => {
+    console.log('[Company Data] 📝 Definindo dados da empresa:', companyData);
+    
+    if (companyData) {
+      setCompanyId(companyData.id);
+      setCompanyName(companyData.name || "");
+      setCompanyDocument(companyData.document_id || "");
+      setCompanyPhone(companyData.phone || "");
+      setCompanyEmail(companyData.email || "");
+    } else {
+      // Reset data if no company
+      setCompanyId(null);
+      setCompanyName("");
+      setCompanyDocument("");
+      setCompanyPhone("");
+      setCompanyEmail("");
+    }
+  };
+  
+  /**
+   * Fetches company data based on company ID (manual operation)
    * @param id The company ID to fetch
    */
   const fetchCompanyData = async (id: string) => {
     try {
-      console.log('[Company Data] Buscando dados da empresa:', id);
+      setLoading(true);
+      console.log('[Company Data] 🔍 Buscando dados da empresa:', id);
       
       const { data: company, error } = await supabase
         .from('companies')
@@ -103,21 +53,19 @@ export const useCompanyData = () => {
         .maybeSingle();
         
       if (error) {
-        console.error('[Company Data] Erro ao buscar empresa:', error);
+        console.error('[Company Data] ❌ Erro ao buscar empresa:', error);
         throw error;
       }
         
       if (company) {
-        console.log('[Company Data] Empresa encontrada:', company.name);
-        setCompanyName(company.name || "");
-        setCompanyDocument(company.document_id || "");
-        setCompanyPhone(company.phone || "");
-        setCompanyEmail(company.email || "");
+        console.log('[Company Data] ✅ Empresa encontrada:', company.name);
+        setCompanyData(company);
       }
       
-      setLoading(false);
     } catch (error) {
-      console.error("[Company Data] Erro ao buscar dados da empresa:", error);
+      console.error("[Company Data] ❌ Erro ao buscar dados da empresa:", error);
+      toast.error("Erro ao carregar dados da empresa");
+    } finally {
       setLoading(false);
     }
   };
@@ -134,9 +82,11 @@ export const useCompanyData = () => {
         return null;
       }
       
+      setLoading(true);
+      
       // If no companyId, create a new company
       if (!companyId && name.trim()) {
-        console.log('[Company Data] Criando nova empresa:', name);
+        console.log('[Company Data] ➕ Criando nova empresa:', name);
         
         const { data: newCompany, error: newCompanyError } = await supabase
           .from('companies')
@@ -156,13 +106,13 @@ export const useCompanyData = () => {
         }
         
         if (newCompany) {
-          console.log('[Company Data] Nova empresa criada:', newCompany.id);
+          console.log('[Company Data] ✅ Nova empresa criada:', newCompany.id);
           setCompanyId(newCompany.id);
           return newCompany.id;
         }
       } else if (companyId) {
         // Update existing company
-        console.log('[Company Data] Atualizando empresa existente:', companyId);
+        console.log('[Company Data] 🔄 Atualizando empresa existente:', companyId);
         
         const { error: companyError } = await supabase
           .from('companies')
@@ -179,14 +129,17 @@ export const useCompanyData = () => {
           throw companyError;
         }
         
+        console.log('[Company Data] ✅ Empresa atualizada');
         return companyId;
       }
       
       return null;
     } catch (error: any) {
-      console.error("[Company Data] Erro ao salvar empresa:", error);
+      console.error("[Company Data] ❌ Erro ao salvar empresa:", error);
       toast.error(error.message || "Não foi possível salvar os dados da empresa");
       return null;
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -202,6 +155,7 @@ export const useCompanyData = () => {
     companyEmail,
     setCompanyEmail,
     loading,
+    setCompanyData,
     fetchCompanyData,
     saveCompany
   };

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 /**
- * Hook for managing user profile data
+ * Hook for managing user profile data with enhanced company integration
  */
 export const useProfileData = () => {
   const [fullName, setFullName] = useState("");
@@ -14,15 +14,15 @@ export const useProfileData = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   
   /**
-   * Loads profile data for a user
+   * Loads complete profile data including company information
    * @param userId The ID of the user to load data for
-   * @returns The company ID if found
+   * @returns Object with profile data and company information
    */
-  const loadProfileData = async (userId: string): Promise<string | null> => {
+  const loadCompleteProfileData = async (userId: string) => {
     try {
-      console.log('[Profile Data] Carregando dados do perfil para:', userId);
+      console.log('[Profile Data] 🔄 Carregando dados completos do perfil para:', userId);
       
-      // Buscar os dados do perfil do usuário com informações da empresa
+      // Buscar os dados do perfil do usuário com informações completas da empresa
       const { data: profile, error } = await supabase
         .from('profiles')
         .select(`
@@ -32,26 +32,27 @@ export const useProfileData = () => {
             name,
             document_id,
             phone,
-            email
+            email,
+            active
           )
         `)
         .eq('id', userId)
         .maybeSingle();
       
       if (error && error.code !== 'PGRST116') {
-        console.error("Erro ao carregar perfil:", error);
+        console.error("❌ Erro ao carregar perfil:", error);
         toast.error("Não foi possível carregar os dados do perfil");
-        return null;
+        return { profile: null, company: null };
       } 
       
       if (profile) {
-        console.log('[Profile Data] Perfil carregado:', {
+        console.log('[Profile Data] ✅ Dados completos carregados:', {
+          userId: profile.id,
           name: profile.full_name,
           role: profile.role,
           companyId: profile.company_id,
           companyName: profile.companies?.name,
-          document: profile.document_id,
-          whatsapp: profile.whatsapp
+          hasCompany: !!profile.companies
         });
         
         // Definir dados do perfil
@@ -61,15 +62,42 @@ export const useProfileData = () => {
         setAvatarUrl(profile.avatar_url);
         setUserRole(profile.role);
         
-        return profile.company_id || null;
+        // Retornar dados estruturados
+        return {
+          profile: {
+            id: profile.id,
+            full_name: profile.full_name,
+            document_id: profile.document_id,
+            whatsapp: profile.whatsapp,
+            avatar_url: profile.avatar_url,
+            role: profile.role,
+            company_id: profile.company_id
+          },
+          company: profile.companies ? {
+            id: profile.companies.id,
+            name: profile.companies.name,
+            document_id: profile.companies.document_id,
+            phone: profile.companies.phone,
+            email: profile.companies.email,
+            active: profile.companies.active
+          } : null
+        };
       } else {
-        console.log('[Profile Data] Perfil não encontrado para usuário:', userId);
-        return null;
+        console.log('[Profile Data] ⚠️ Perfil não encontrado para usuário:', userId);
+        return { profile: null, company: null };
       }
     } catch (error) {
-      console.error("Erro ao carregar perfil:", error);
-      return null;
+      console.error("❌ Erro crítico ao carregar perfil:", error);
+      return { profile: null, company: null };
     }
+  };
+  
+  /**
+   * Legacy method - maintains compatibility but now uses complete loader
+   */
+  const loadProfileData = async (userId: string): Promise<string | null> => {
+    const { profile, company } = await loadCompleteProfileData(userId);
+    return profile?.company_id || null;
   };
   
   /**
@@ -90,7 +118,7 @@ export const useProfileData = () => {
         updateData.company_id = companyId;
       }
       
-      console.log('[Profile Data] Salvando dados do perfil:', updateData);
+      console.log('[Profile Data] 💾 Salvando dados do perfil:', updateData);
       
       // Atualizar o perfil do usuário
       const { error: profileError } = await supabase
@@ -102,10 +130,10 @@ export const useProfileData = () => {
         throw profileError;
       }
       
-      console.log('[Profile Data] Perfil salvo com sucesso');
+      console.log('[Profile Data] ✅ Perfil salvo com sucesso');
       return true;
     } catch (error: any) {
-      console.error("Erro ao atualizar perfil:", error);
+      console.error("❌ Erro ao atualizar perfil:", error);
       toast.error(error.message || "Não foi possível atualizar o perfil");
       return false;
     }
@@ -123,6 +151,7 @@ export const useProfileData = () => {
     userRole,
     setUserRole,
     loadProfileData,
+    loadCompleteProfileData,
     saveProfileData
   };
 };

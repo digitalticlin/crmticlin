@@ -1,5 +1,4 @@
-
-import { Loader2, User, Building2, Shield, Camera, Save, X } from "lucide-react";
+import { Loader2, User, Building2, Shield, Camera, Save, X, RefreshCw } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useProfileSettings } from "@/hooks/useProfileSettings";
@@ -21,6 +20,7 @@ const ProfileSettings = () => {
     avatarUrl,
     userRole,
     companyDocument,
+    syncStatus,
     setFullName,
     setCompanyName,
     setDocumentId,
@@ -28,6 +28,7 @@ const ProfileSettings = () => {
     setCompanyDocument,
     handleEmailChange,
     handleSaveChanges,
+    handleResync,
     handleChangePassword
   } = useProfileSettings();
 
@@ -40,6 +41,9 @@ const ProfileSettings = () => {
             <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#D3D800] animate-spin"></div>
           </div>
           <p className="text-sm text-gray-700">Carregando perfil...</p>
+          {syncStatus === 'syncing' && (
+            <p className="text-xs text-gray-600">Sincronizando dados...</p>
+          )}
         </div>
       </div>
     );
@@ -62,8 +66,59 @@ const ProfileSettings = () => {
     }
   };
 
+  const getSyncStatusColor = () => {
+    switch (syncStatus) {
+      case 'success':
+        return 'text-green-600';
+      case 'error':
+        return 'text-red-600';
+      case 'syncing':
+        return 'text-yellow-600';
+      default:
+        return 'text-gray-600';
+    }
+  };
+
+  const getSyncStatusText = () => {
+    switch (syncStatus) {
+      case 'success':
+        return 'Dados sincronizados';
+      case 'error':
+        return 'Erro na sincronização';
+      case 'syncing':
+        return 'Sincronizando...';
+      default:
+        return 'Aguardando';
+    }
+  };
+
   return (
     <div className="space-y-8">
+      {/* Status de Sincronização */}
+      <div className="bg-white/20 backdrop-blur-xl rounded-2xl border border-white/20 p-4 flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className={cn("w-3 h-3 rounded-full", {
+            "bg-green-500": syncStatus === 'success',
+            "bg-red-500": syncStatus === 'error',
+            "bg-yellow-500": syncStatus === 'syncing',
+            "bg-gray-400": syncStatus === 'idle'
+          })} />
+          <span className={cn("text-sm font-medium", getSyncStatusColor())}>
+            {getSyncStatusText()}
+          </span>
+        </div>
+        <button
+          onClick={handleResync}
+          disabled={syncStatus === 'syncing'}
+          className="flex items-center space-x-2 px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg transition-colors disabled:opacity-50"
+        >
+          <RefreshCw className={cn("h-4 w-4", {
+            "animate-spin": syncStatus === 'syncing'
+          })} />
+          <span className="text-sm">Re-sincronizar</span>
+        </button>
+      </div>
+
       {/* Informações da Conta */}
       {(companyName || userRole) && (
         <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "50ms" }}>

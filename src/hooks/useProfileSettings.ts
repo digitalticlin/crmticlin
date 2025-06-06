@@ -13,6 +13,7 @@ export const useProfileSettings = () => {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [user, setUser] = useState<any>(null);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
   
   // Import functionality from modular hooks
   const { 
@@ -21,7 +22,7 @@ export const useProfileSettings = () => {
     whatsapp, setWhatsapp, 
     avatarUrl,
     userRole,
-    loadProfileData, 
+    loadCompleteProfileData, 
     saveProfileData 
   } = useProfileData();
   
@@ -31,55 +32,90 @@ export const useProfileSettings = () => {
     companyDocument, setCompanyDocument,
     companyPhone, setCompanyPhone,
     companyEmail, setCompanyEmail,
-    fetchCompanyData, 
+    setCompanyData,
     saveCompany 
   } = useCompanyData();
   
   const { handleChangePassword } = useAuthActions();
 
+  /**
+   * Centralized function to load all user data
+   */
+  const loadUserData = async (forceReload = false) => {
+    try {
+      setSyncStatus('syncing');
+      console.log('[Profile Settings] 🚀 Iniciando carregamento centralizado...');
+      
+      // Obter a sessão atual
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        console.log('[Profile Settings] ❌ Usuário não autenticado');
+        setLoading(false);
+        setSyncStatus('error');
+        return;
+      }
+
+      console.log('[Profile Settings] 👤 Usuário autenticado:', session.user.email);
+      
+      setUser(session.user);
+      setEmail(session.user.email || "");
+      setUsername(generateUsername(session.user.email || ""));
+      
+      // Carregar dados completos do perfil E empresa numa única operação
+      const { profile, company } = await loadCompleteProfileData(session.user.id);
+      
+      if (profile) {
+        console.log('[Profile Settings] ✅ Dados do perfil carregados:', {
+          name: profile.full_name,
+          role: profile.role,
+          companyId: profile.company_id,
+          hasCompany: !!company
+        });
+        
+        // Atualizar dados da empresa se existir
+        if (company) {
+          console.log('[Profile Settings] 🏢 Empresa vinculada encontrada:', company.name);
+          setCompanyData(company);
+        } else if (profile.company_id) {
+          console.log('[Profile Settings] ⚠️ Perfil tem company_id mas empresa não foi carregada');
+          // Tentar carregar empresa separadamente como fallback
+          try {
+            const { data: fallbackCompany, error } = await supabase
+              .from('companies')
+              .select('*')
+              .eq('id', profile.company_id)
+              .maybeSingle();
+            
+            if (fallbackCompany && !error) {
+              console.log('[Profile Settings] 🔄 Empresa carregada via fallback:', fallbackCompany.name);
+              setCompanyData(fallbackCompany);
+            }
+          } catch (fallbackError) {
+            console.error('[Profile Settings] ❌ Erro no fallback da empresa:', fallbackError);
+          }
+        }
+        
+        setSyncStatus('success');
+        toast.success("Dados carregados com sucesso!");
+      } else {
+        console.log('[Profile Settings] ⚠️ Perfil não encontrado');
+        setSyncStatus('error');
+        toast.warning("Perfil não encontrado no sistema");
+      }
+      
+    } catch (error) {
+      console.error("❌ Erro ao carregar dados do usuário:", error);
+      setSyncStatus('error');
+      toast.error("Ocorreu um erro ao carregar seus dados");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Carregar os dados do perfil quando o componente é montado
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        console.log('[Profile Settings] Iniciando carregamento do perfil...');
-        
-        // Obter a sessão atual
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-          console.log('[Profile Settings] Usuário não autenticado');
-          setLoading(false);
-          return;
-        }
-
-        console.log('[Profile Settings] Usuário autenticado:', session.user.email);
-        
-        setUser(session.user);
-        setEmail(session.user.email || "");
-        setUsername(generateUsername(session.user.email || ""));
-        
-        // Carregar dados do perfil primeiro
-        const foundCompanyId = await loadProfileData(session.user.id);
-        
-        // Se encontrou company_id no perfil, usar esse valor
-        if (foundCompanyId && foundCompanyId !== companyId) {
-          console.log('[Profile Settings] Company ID encontrado no perfil:', foundCompanyId);
-          setCompanyId(foundCompanyId);
-          
-          // Buscar dados específicos da empresa se necessário
-          await fetchCompanyData(foundCompanyId);
-        }
-        
-        console.log('[Profile Settings] Perfil carregado com sucesso');
-      } catch (error) {
-        console.error("Erro ao carregar perfil:", error);
-        toast.error("Ocorreu um erro ao carregar seus dados");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserProfile();
+    loadUserData();
   }, []);
 
   // Atualizar o nome de usuário quando o email mudar
@@ -91,6 +127,12 @@ export const useProfileSettings = () => {
   // Função para lidar com a mudança de email
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEmail(e.target.value);
+  };
+
+  // Função para re-sincronizar dados manualmente
+  const handleResync = async () => {
+    console.log('[Profile Settings] 🔄 Re-sincronização manual solicitada');
+    await loadUserData(true);
   };
 
   // Função para salvar as alterações do perfil
@@ -107,7 +149,7 @@ export const useProfileSettings = () => {
     
     try {
       setSaving(true);
-      console.log('[Profile Settings] Iniciando salvamento...');
+      console.log('[Profile Settings] 💾 Iniciando salvamento...');
       
       // Save company data first
       const newCompanyId = await saveCompany(companyName);
@@ -122,15 +164,18 @@ export const useProfileSettings = () => {
       
       if (profileSaved) {
         toast.success("Perfil atualizado com sucesso!");
-        console.log('[Profile Settings] Perfil salvo com sucesso');
+        console.log('[Profile Settings] ✅ Perfil salvo com sucesso');
         
         // Atualizar company_id local se mudou
         if (newCompanyId !== companyId) {
           setCompanyId(newCompanyId);
         }
+        
+        // Re-carregar dados para garantir consistência
+        await loadUserData(true);
       }
     } catch (error: any) {
-      console.error("Erro ao atualizar perfil:", error);
+      console.error("❌ Erro ao atualizar perfil:", error);
       toast.error(error.message || "Não foi possível atualizar o perfil");
     } finally {
       setSaving(false);
@@ -150,6 +195,7 @@ export const useProfileSettings = () => {
     userRole,
     user,
     companyDocument,
+    syncStatus,
     setFullName,
     setCompanyName,
     setDocumentId,
@@ -157,6 +203,7 @@ export const useProfileSettings = () => {
     setCompanyDocument,
     handleEmailChange,
     handleSaveChanges,
+    handleResync,
     handleChangePassword: () => handleChangePassword(email)
   };
 };
