@@ -22,6 +22,8 @@ export function useLeadsDatabase(funnelId?: string) {
         `)
         .eq("funnel_id", funnelId);
 
+      if (error) throw error;
+
       // Mapeia para estructura esperada
       return (
         data?.map((lead) => ({
@@ -47,6 +49,9 @@ export function useLeadsDatabase(funnelId?: string) {
         })) ?? []
       );
     },
+    // Adicionar configurações para melhor reatividade
+    staleTime: 0, // Dados sempre considerados stale para revalidação
+    refetchOnWindowFocus: true,
   });
 
   // Atualização dos dados do lead
@@ -68,6 +73,7 @@ export function useLeadsDatabase(funnelId?: string) {
       if (error) throw error;
     },
     onSuccess: () => {
+      // Invalidar e refetch imediato
       queryClient.invalidateQueries({ queryKey: ["leads", funnelId] });
     },
   });
@@ -91,6 +97,7 @@ export function useLeadsDatabase(funnelId?: string) {
       queryClient.invalidateQueries({ queryKey: ["leads", funnelId] });
     },
   });
+
   const removeTagMutation = useMutation({
     mutationFn: async ({
       leadId,

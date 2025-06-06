@@ -30,7 +30,7 @@ export default function SalesFunnel() {
     setIsLeadDetailOpen,
     availableTags,
     stages,
-    leads, // Adicionando leads totais do hook
+    leads,
     addColumn,
     updateColumn,
     deleteColumn,
@@ -64,28 +64,25 @@ export default function SalesFunnel() {
     await originalRefetchStages();
   };
 
-  // Wrapper function to handle notes update without leadId parameter (using selectedLead)
+  // Wrapper functions para usar selectedLead.id quando necessário
   const handleUpdateLeadNotes = (notes: string) => {
     if (selectedLead?.id) {
       updateLeadNotes(selectedLead.id, notes);
     }
   };
 
-  // Wrapper function to handle purchase value update without leadId parameter (using selectedLead)
   const handleUpdateLeadPurchaseValue = (value: number | undefined) => {
     if (selectedLead?.id) {
       updateLeadPurchaseValue(selectedLead.id, value);
     }
   };
 
-  // Wrapper function to handle assigned user update without leadId parameter (using selectedLead)
   const handleUpdateLeadAssignedUser = (user: string) => {
     if (selectedLead?.id) {
       updateLeadAssignedUser(selectedLead.id, user);
     }
   };
 
-  // Wrapper function to handle name update without leadId parameter (using selectedLead)
   const handleUpdateLeadName = (name: string) => {
     if (selectedLead?.id) {
       updateLeadName(selectedLead.id, name);
@@ -118,17 +115,17 @@ export default function SalesFunnel() {
     setIsLeadDetailOpen,
     availableTags,
     stages,
-    leads, // Adicionando leads totais ao contexto
+    leads,
     addColumn,
     updateColumn,
     deleteColumn,
     openLeadDetail,
     toggleTagOnLead,
     createTag,
-    updateLeadNotes: handleUpdateLeadNotes, // Use wrapper function to match interface
-    updateLeadPurchaseValue: handleUpdateLeadPurchaseValue, // Use wrapper function to match interface
-    updateLeadAssignedUser: handleUpdateLeadAssignedUser, // Use wrapper function to match interface
-    updateLeadName: handleUpdateLeadName, // Use wrapper function to match interface
+    updateLeadNotes: handleUpdateLeadNotes,
+    updateLeadPurchaseValue: handleUpdateLeadPurchaseValue,
+    updateLeadAssignedUser: handleUpdateLeadAssignedUser,
+    updateLeadName: handleUpdateLeadName,
     moveLeadToStage,
     isAdmin,
     wonStageId,

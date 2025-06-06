@@ -31,7 +31,9 @@ export const useLeadActions = (funnelId?: string) => {
     
     try {
       await updateLead({ leadId, fields: { purchaseValue } });
+      // Atualizar estado local imediatamente para feedback visual
       setSelectedLead({ ...selectedLead, purchaseValue });
+      // Refetch para sincronizar com o servidor
       await refetchLeads();
     } catch (error) {
       console.error("Erro ao atualizar valor de compra:", error);

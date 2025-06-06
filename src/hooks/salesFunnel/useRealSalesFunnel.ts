@@ -86,13 +86,13 @@ export const useRealSalesFunnel = (funnelId?: string) => {
     deleteColumn,
     moveLeadToStage,
     
-    // Ações do lead
+    // Ações do lead - ajustadas para usar IDs
     openLeadDetail,
     toggleTagOnLead: (leadId: string, tagId: string) => toggleTagOnLead(leadId, tagId, tags),
-    updateLeadNotes,
-    updateLeadPurchaseValue,
-    updateLeadAssignedUser,
-    updateLeadName,
+    updateLeadNotes: (leadId: string, notes: string) => updateLeadNotes(leadId, notes),
+    updateLeadPurchaseValue: (leadId: string, value: number | undefined) => updateLeadPurchaseValue(leadId, value),
+    updateLeadAssignedUser: (leadId: string, user: string) => updateLeadAssignedUser(leadId, user),
+    updateLeadName: (leadId: string, name: string) => updateLeadName(leadId, name),
     receiveNewLead,
     
     // Ações de tag
