@@ -20,6 +20,24 @@ export function ModernFunnelHeader({
   const activeLeads = totalLeads - wonLeads - lostLeads;
   const conversionRate = totalLeads > 0 ? Math.round((wonLeads / totalLeads) * 100) : 0;
 
+  // Add null check for selectedFunnel
+  if (!selectedFunnel) {
+    return (
+      <div className="bg-white/15 backdrop-blur-xl border border-white/25 rounded-3xl p-4 shadow-2xl">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+              Carregando...
+            </h1>
+            <p className="text-base text-gray-600 max-w-2xl">
+              Aguarde enquanto carregamos seus dados
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Título e descrição baseados na aba ativa
   const headerContent = activeTab === "won-lost" 
     ? {
