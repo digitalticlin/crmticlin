@@ -7,15 +7,15 @@ import { toast } from "sonner";
 // Troca o company_id do perfil do usuário e recarrega dados do contexto
 export function useSwitchCompany(userId?: string | null) {
   const { loadProfileData } = useProfileData();
-  const { fetchCompanyData, setCompanyId } = useCompanyData();
+  const { companyId } = useCompanyData();
 
-  const switchCompany = async (companyId: string) => {
+  const switchCompany = async (newCompanyId: string) => {
     if (!userId) return;
 
     // Atualiza o perfil
     const { error } = await supabase
       .from("profiles")
-      .update({ company_id: companyId, updated_at: new Date().toISOString() })
+      .update({ company_id: newCompanyId, updated_at: new Date().toISOString() })
       .eq("id", userId);
 
     if (error) {
@@ -23,10 +23,11 @@ export function useSwitchCompany(userId?: string | null) {
       return;
     }
 
-    setCompanyId(companyId); // Atualiza companyId no contexto
+    // Recarregar dados do perfil
     await loadProfileData(userId);
-    await fetchCompanyData(companyId);
+    
+    toast.success("Empresa alterada com sucesso");
   };
 
-  return { switchCompany };
+  return { switchCompany, currentCompanyId: companyId };
 }
