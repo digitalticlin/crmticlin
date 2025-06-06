@@ -1,3 +1,4 @@
+
 import { PageLayout } from "@/components/layout/PageLayout";
 import { useRealSalesFunnel } from "@/hooks/salesFunnel/useRealSalesFunnel";
 import { useNewLeadIntegration } from "@/hooks/salesFunnel/useNewLeadIntegration";
@@ -9,7 +10,7 @@ import { FunnelEmptyState } from "@/components/sales/funnel/FunnelEmptyState";
 import { SalesFunnelContent } from "@/components/sales/funnel/SalesFunnelContent";
 
 export default function SalesFunnel() {
-  const { isAdmin } = useUserRole();
+  const { isAdmin, role } = useUserRole();
   
   const {
     funnels,
@@ -53,6 +54,7 @@ export default function SalesFunnel() {
     selectedFunnel: selectedFunnel ? { id: selectedFunnel.id, name: selectedFunnel.name } : null,
     funnelLoading,
     isAdmin,
+    role,
     stagesCount: stages?.length || 0,
     leadsCount: leads?.length || 0,
     hasPermissionErrors: false // Agora as políticas RLS foram corrigidas
@@ -61,7 +63,7 @@ export default function SalesFunnel() {
   // Wrapper function to match the expected interface
   const createFunnel = async (name: string, description?: string): Promise<void> => {
     try {
-      console.log('[SalesFunnel] 📝 Criando funil:', { name, description });
+      console.log('[SalesFunnel] 📝 Criando funil:', { name, description, isAdmin, role });
       await originalCreateFunnel(name, description);
     } catch (error) {
       console.error('[SalesFunnel] ❌ Erro ao criar funil:', error);

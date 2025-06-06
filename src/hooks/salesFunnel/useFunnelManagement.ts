@@ -38,10 +38,33 @@ export function useFunnelManagement() {
     try {
       console.log('[Funnel Management] 🔍 Buscando funis para usuário:', { userId: user.id, email: user.email });
       
-      const { data, error } = await supabase
-        .from("funnels")
-        .select("*")
-        .order("created_at", { ascending: true });
+      // Primeiro, verificar se o usuário é admin
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError) {
+        console.error('[Funnel Management] ❌ Erro ao verificar perfil:', profileError);
+      }
+
+      console.log('[Funnel Management] 👤 Perfil do usuário:', profile);
+
+      // Se for admin, buscar todos os funis, senão apenas os criados pelo usuário
+      let query = supabase.from("funnels").select("*");
+      
+      if (profile?.role === 'admin') {
+        console.log('[Funnel Management] 👑 Usuário é admin, buscando todos os funis');
+        // Admin pode ver todos os funis
+        query = query.order("created_at", { ascending: true });
+      } else {
+        console.log('[Funnel Management] 👤 Usuário comum, buscando apenas funis próprios');
+        // Usuário comum só vê seus próprios funis
+        query = query.eq("created_by_user_id", user.id).order("created_at", { ascending: true });
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('[Funnel Management] ❌ Erro na query:', error);
@@ -50,7 +73,8 @@ export function useFunnelManagement() {
 
       console.log('[Funnel Management] 📊 Funis encontrados:', { 
         foundFunnels: data?.length || 0, 
-        funnels: data 
+        funnels: data,
+        userRole: profile?.role 
       });
 
       setFunnels(data || []);
@@ -94,13 +118,14 @@ export function useFunnelManagement() {
     try {
       console.log('[Funnel Management] 📝 Criando novo funil:', { name, description, userId: user.id });
       
+      // Criar funil vinculado ao usuário, não à empresa
       const { data, error } = await supabase
         .from("funnels")
         .insert({ 
           name, 
           description,
           created_by_user_id: user.id,
-          company_id: null
+          company_id: null // Garantir que não seja vinculado a empresa
         })
         .select()
         .single();
@@ -150,7 +175,7 @@ export function useFunnelManagement() {
         ...stage,
         funnel_id: funnelId,
         created_by_user_id: user.id,
-        company_id: null,
+        company_id: null, // Garantir que não seja vinculado a empresa
         is_won: stage.is_won || false,
         is_lost: stage.is_lost || false,
         is_fixed: stage.is_fixed || false
