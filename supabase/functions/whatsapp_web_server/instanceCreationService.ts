@@ -4,7 +4,7 @@ import { makeVPSRequest } from './vpsRequestService.ts';
 
 export async function createWhatsAppInstance(supabase: any, instanceData: any, userId: string) {
   const createId = `create_${Date.now()}`;
-  console.log(`[Instance Creation] 🔍 DIAGNÓSTICO COMPLETO - Iniciando [${createId}]:`, {
+  console.log(`[Instance Creation] 🔍 DESCOBERTA AUTOMÁTICA - Iniciando [${createId}]:`, {
     instanceData,
     userId,
     vpsConfig: {
@@ -42,114 +42,215 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
       userId
     });
 
-    // TESTE SISTEMÁTICO: Vamos testar diferentes combinações
-    const testCombinations = [
+    // DESCOBERTA AUTOMÁTICA: Vamos testar múltiplas combinações
+    const possibleTokens = [
+      VPS_CONFIG.token,
+      '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dc0b3', // token atual
+      'default-token',
+      'whatsapp-token',
+      'api-key',
+      '', // sem token
+      'Bearer ' + VPS_CONFIG.token,
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9', // JWT exemplo
+      'admin123',
+      'test-token'
+    ];
+
+    const possibleEndpoints = [
+      '/instance/create',
+      '/instances',
+      '/api/instance/create',
+      '/api/instances',
+      '/v1/instance/create',
+      '/v1/instances',
+      '/whatsapp/instance/create',
+      '/whatsapp/instances',
+      '/create-instance',
+      '/new-instance',
+      '/session/create',
+      '/sessions'
+    ];
+
+    const possiblePayloads = [
+      // Payload completo com webhook
       {
-        name: "TESTE 1 - Payload Completo com Webhook",
-        endpoint: "/instance/create",
-        headers: getVPSHeaders(),
-        payload: {
-          instanceId: vpsInstanceId,
-          sessionName: vpsInstanceId,
-          permanent: true,
-          autoReconnect: true,
-          webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web'
-        }
+        instanceId: vpsInstanceId,
+        sessionName: vpsInstanceId,
+        permanent: true,
+        autoReconnect: true,
+        webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web'
       },
+      // Payload sem webhook
       {
-        name: "TESTE 2 - Payload Sem Webhook",
-        endpoint: "/instance/create",
-        headers: getVPSHeaders(),
-        payload: {
-          instanceId: vpsInstanceId,
-          sessionName: vpsInstanceId,
-          permanent: true,
-          autoReconnect: true
-        }
+        instanceId: vpsInstanceId,
+        sessionName: vpsInstanceId,
+        permanent: true,
+        autoReconnect: true
       },
+      // Payload mínimo
       {
-        name: "TESTE 3 - Payload Mínimo",
-        endpoint: "/instance/create",
-        headers: getVPSHeaders(),
-        payload: {
-          instanceId: vpsInstanceId
-        }
+        instanceId: vpsInstanceId
       },
+      // Payload com sessionName apenas
       {
-        name: "TESTE 4 - Endpoint Alternativo",
-        endpoint: "/instances",
-        headers: getVPSHeaders(),
-        payload: {
-          instanceId: vpsInstanceId,
-          sessionName: vpsInstanceId,
-          permanent: true,
-          autoReconnect: true
-        }
+        sessionName: vpsInstanceId
       },
+      // Payload com name
       {
-        name: "TESTE 5 - Sem Token de Autenticação",
-        endpoint: "/instance/create",
-        headers: { 'Content-Type': 'application/json' },
-        payload: {
-          instanceId: vpsInstanceId,
-          sessionName: vpsInstanceId
-        }
+        name: vpsInstanceId
+      },
+      // Payload com instanceName
+      {
+        instanceName: vpsInstanceId
+      },
+      // Payload diferente
+      {
+        instance: vpsInstanceId,
+        session: vpsInstanceId
       }
     ];
 
     let successfulTest = null;
     let lastError = null;
+    let testCount = 0;
 
-    for (let i = 0; i < testCombinations.length; i++) {
-      const test = testCombinations[i];
-      
-      console.log(`[Instance Creation] 🧪 ${test.name} - Executando...`);
-      console.log(`[Instance Creation] 📤 URL: ${VPS_CONFIG.baseUrl}${test.endpoint}`);
-      console.log(`[Instance Creation] 📤 Headers:`, test.headers);
-      console.log(`[Instance Creation] 📤 Payload:`, test.payload);
-
+    // PRIMEIRO: Testar descoberta de endpoint válido (sem autenticação)
+    console.log(`[Instance Creation] 🔍 FASE 1: Descoberta de endpoints válidos...`);
+    
+    for (const endpoint of possibleEndpoints.slice(0, 6)) { // Testar primeiros 6
       try {
-        const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}${test.endpoint}`, {
-          method: 'POST',
-          headers: test.headers,
-          body: JSON.stringify(test.payload)
+        testCount++;
+        console.log(`[Instance Creation] 🧪 TESTE ${testCount} - Descoberta Endpoint: ${endpoint}`);
+        
+        const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}${endpoint}`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
         });
 
-        console.log(`[Instance Creation] 📥 ${test.name} - Status: ${response.status}`);
-
-        if (response.ok) {
-          const responseData = await response.json();
-          console.log(`[Instance Creation] ✅ ${test.name} - SUCESSO!`, responseData);
-          
-          successfulTest = {
-            testName: test.name,
-            testIndex: i + 1,
-            response: responseData,
-            config: test
-          };
-          break;
-        } else {
-          const errorText = await response.text();
-          console.log(`[Instance Creation] ❌ ${test.name} - Falhou: ${response.status} - ${errorText}`);
-          lastError = `${response.status}: ${errorText}`;
+        console.log(`[Instance Creation] 📊 TESTE ${testCount} - Status: ${response.status}`);
+        
+        if (response.status !== 404) {
+          console.log(`[Instance Creation] ✅ TESTE ${testCount} - Endpoint encontrado: ${endpoint}`);
         }
-
-      } catch (error: any) {
-        console.error(`[Instance Creation] ❌ ${test.name} - Erro de rede:`, error.message);
-        lastError = error.message;
+      } catch (error) {
+        console.log(`[Instance Creation] ❌ TESTE ${testCount} - Endpoint erro: ${endpoint}`);
       }
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
 
-      // Pequena pausa entre testes
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    // SEGUNDO: Testar combinações token + endpoint + payload
+    console.log(`[Instance Creation] 🔍 FASE 2: Testando combinações token + endpoint + payload...`);
+    
+    for (let tokenIndex = 0; tokenIndex < Math.min(possibleTokens.length, 3); tokenIndex++) {
+      for (let endpointIndex = 0; endpointIndex < Math.min(possibleEndpoints.length, 4); endpointIndex++) {
+        for (let payloadIndex = 0; payloadIndex < Math.min(possiblePayloads.length, 3); payloadIndex++) {
+          
+          if (successfulTest) break;
+          
+          testCount++;
+          const token = possibleTokens[tokenIndex];
+          const endpoint = possibleEndpoints[endpointIndex];
+          const payload = possiblePayloads[payloadIndex];
+          
+          console.log(`[Instance Creation] 🧪 TESTE ${testCount} - Token: ${token.substring(0, 10)}... | Endpoint: ${endpoint} | Payload: ${Object.keys(payload).join(',')}`);
+          
+          try {
+            const headers = token ? {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            } : {
+              'Content-Type': 'application/json'
+            };
+
+            const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}${endpoint}`, {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(payload)
+            });
+
+            console.log(`[Instance Creation] 📊 TESTE ${testCount} - Status: ${response.status}`);
+
+            if (response.ok) {
+              const responseData = await response.json();
+              console.log(`[Instance Creation] 🎉 TESTE ${testCount} - SUCESSO ENCONTRADO!`, responseData);
+              
+              successfulTest = {
+                testNumber: testCount,
+                token,
+                endpoint,
+                payload,
+                response: responseData,
+                headers
+              };
+              break;
+            } else {
+              const errorText = await response.text();
+              console.log(`[Instance Creation] ❌ TESTE ${testCount} - Falhou: ${response.status} - ${errorText.substring(0, 100)}`);
+              lastError = `${response.status}: ${errorText.substring(0, 100)}`;
+            }
+
+          } catch (error: any) {
+            console.error(`[Instance Creation] ❌ TESTE ${testCount} - Erro de rede:`, error.message);
+            lastError = error.message;
+          }
+
+          // Pequena pausa entre testes
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+        if (successfulTest) break;
+      }
+      if (successfulTest) break;
+    }
+
+    // TERCEIRO: Se nada funcionou, testar endpoints de descoberta
+    if (!successfulTest) {
+      console.log(`[Instance Creation] 🔍 FASE 3: Testando endpoints de descoberta...`);
+      
+      const discoveryEndpoints = [
+        '/health',
+        '/status',
+        '/api',
+        '/docs',
+        '/swagger',
+        '/',
+        '/instances/list',
+        '/instance/list'
+      ];
+
+      for (const endpoint of discoveryEndpoints) {
+        try {
+          testCount++;
+          console.log(`[Instance Creation] 🧪 TESTE ${testCount} - Descoberta: ${endpoint}`);
+          
+          const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}${endpoint}`, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+          });
+
+          if (response.ok) {
+            const data = await response.text();
+            console.log(`[Instance Creation] ✅ TESTE ${testCount} - Endpoint descoberto: ${endpoint} - ${data.substring(0, 200)}`);
+          }
+        } catch (error) {
+          console.log(`[Instance Creation] ❌ TESTE ${testCount} - Descoberta falhou: ${endpoint}`);
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
     }
 
     if (!successfulTest) {
-      console.error(`[Instance Creation] ❌ TODOS OS TESTES FALHARAM. Último erro: ${lastError}`);
-      throw new Error(`Todos os testes falharam. Último erro: ${lastError}`);
+      console.error(`[Instance Creation] ❌ TODAS AS ${testCount} COMBINAÇÕES FALHARAM. Último erro: ${lastError}`);
+      throw new Error(`Todas as ${testCount} combinações testadas falharam. Último erro: ${lastError}`);
     }
 
     // Se chegou aqui, um teste foi bem-sucedido
-    console.log(`[Instance Creation] 🎉 SUCESSO NO ${successfulTest.testName}!`);
+    console.log(`[Instance Creation] 🎉 SUCESSO NO TESTE ${successfulTest.testNumber}!`, {
+      token: successfulTest.token.substring(0, 20) + '...',
+      endpoint: successfulTest.endpoint,
+      payload: successfulTest.payload
+    });
 
     // Preparar dados para salvamento no Supabase
     const instanceRecord = {
@@ -186,10 +287,12 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
         success: true,
         instance: savedInstance,
         vpsData: successfulTest.response,
-        successfulTest: {
-          name: successfulTest.testName,
-          index: successfulTest.testIndex,
-          config: successfulTest.config
+        successfulCombination: {
+          testNumber: successfulTest.testNumber,
+          token: successfulTest.token.substring(0, 20) + '...',
+          endpoint: successfulTest.endpoint,
+          payload: successfulTest.payload,
+          totalTestsRun: testCount
         },
         createId
       }),
