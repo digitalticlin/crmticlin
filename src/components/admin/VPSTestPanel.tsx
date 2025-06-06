@@ -21,10 +21,14 @@ import { VPSSupabaseSyncTest } from "./VPSSupabaseSyncTest";
 import { VPSTokenSynchronizer } from "./vps/VPSTokenSynchronizer";
 import { VPSInstanceCreationTester } from "./vps/VPSInstanceCreationTester";
 import { VPSEndpointDiscovery as VPSEndpointDiscoveryNew } from "./vps/VPSEndpointDiscovery";
+import { VPSInfrastructureAnalyzer } from "./vps/VPSInfrastructureAnalyzer";
 
 export const VPSTestPanel = () => {
   return (
     <div className="space-y-6">
+      {/* NOVO: Análise Completa da Infraestrutura VPS - FERRAMENTA PRINCIPAL */}
+      <VPSInfrastructureAnalyzer />
+
       {/* NOVO: Descoberta Automática de Endpoints VPS - FERRAMENTA PRINCIPAL */}
       <VPSEndpointDiscoveryNew />
 
