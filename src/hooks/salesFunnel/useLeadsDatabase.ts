@@ -20,7 +20,9 @@ export function useLeadsDatabase(funnelId?: string) {
             tags: tag_id (id, name, color)
           )
         `)
-        .eq("funnel_id", funnelId);
+        .eq("funnel_id", funnelId)
+        .order("kanban_stage_id")
+        .order("order_position");
 
       if (error) throw error;
 

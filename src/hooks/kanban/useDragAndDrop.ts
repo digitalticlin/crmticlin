@@ -37,6 +37,32 @@ export const useDragAndDrop = ({
     }
   };
 
+  const updateLeadPositionsInDatabase = async (stageId: string, leadIds: string[]) => {
+    try {
+      console.log(`Atualizando posições dos leads no estágio ${stageId}`);
+      
+      // Atualizar posições em lote
+      const updates = leadIds.map((leadId, index) => ({
+        id: leadId,
+        order_position: index
+      }));
+
+      for (const update of updates) {
+        const { error } = await supabase
+          .from("leads")
+          .update({ order_position: update.order_position })
+          .eq("id", update.id);
+
+        if (error) throw error;
+      }
+
+      console.log(`Posições atualizadas com sucesso no estágio ${stageId}`);
+    } catch (error) {
+      console.error("Erro ao atualizar posições:", error);
+      throw error;
+    }
+  };
+
   const onDragStart = () => {
     setShowDropZones(true);
   };
@@ -67,7 +93,36 @@ export const useDragAndDrop = ({
     // *** SALVAR ESTADO ANTERIOR PARA POSSÍVEL ROLLBACK ***
     const previousColumns = columns;
 
-    // *** ATUALIZAÇÃO OTIMISTA - MOVER IMEDIATAMENTE NA UI ***
+    // *** MOVIMENTO DENTRO DA MESMA COLUNA (REORDENAÇÃO) ***
+    if (source.droppableId === destination.droppableId) {
+      const newLeads = Array.from(sourceColumn.leads);
+      const [reorderedLead] = newLeads.splice(source.index, 1);
+      newLeads.splice(destination.index, 0, reorderedLead);
+
+      const newColumns = columns.map(col => 
+        col.id === source.droppableId 
+          ? { ...col, leads: newLeads }
+          : col
+      );
+
+      // *** APLICAR MUDANÇA VISUAL IMEDIATAMENTE ***
+      onColumnsChange(newColumns);
+
+      // *** SALVAR POSIÇÕES NO BANCO EM BACKGROUND ***
+      try {
+        const leadIds = newLeads.map(l => l.id);
+        await updateLeadPositionsInDatabase(source.droppableId, leadIds);
+        toast.success("Posição alterada com sucesso!");
+      } catch (error) {
+        // *** ROLLBACK EM CASO DE ERRO ***
+        onColumnsChange(previousColumns);
+        toast.error("Erro ao salvar nova posição");
+        console.error("Erro ao salvar posições:", error);
+      }
+      return;
+    }
+
+    // *** MOVIMENTO ENTRE COLUNAS DIFERENTES ***
     const updatedLead = { ...lead, columnId: destination.droppableId };
     
     // Remover da coluna origem
@@ -97,6 +152,9 @@ export const useDragAndDrop = ({
       if (destStage === "GANHO") {
         try {
           await moveLeadToDatabase(lead.id, destination.droppableId);
+          // Atualizar posições na coluna de destino
+          const destLeadIds = newDestLeads.map(l => l.id);
+          await updateLeadPositionsInDatabase(destination.droppableId, destLeadIds);
           onMoveToWonLost(lead, "won");
           toast.success("Lead marcado como ganho!");
           return;
@@ -109,6 +167,9 @@ export const useDragAndDrop = ({
       } else if (destStage === "PERDIDO") {
         try {
           await moveLeadToDatabase(lead.id, destination.droppableId);
+          // Atualizar posições na coluna de destino
+          const destLeadIds = newDestLeads.map(l => l.id);
+          await updateLeadPositionsInDatabase(destination.droppableId, destLeadIds);
           onMoveToWonLost(lead, "lost");
           toast.success("Lead marcado como perdido!");
           return;
@@ -121,9 +182,18 @@ export const useDragAndDrop = ({
       }
     }
 
-    // *** SALVAR NO BANCO EM BACKGROUND ***
+    // *** SALVAR MUDANÇA DE ESTÁGIO NO BANCO EM BACKGROUND ***
     try {
       await moveLeadToDatabase(lead.id, destination.droppableId);
+      
+      // Atualizar posições em ambas as colunas
+      const sourceLeadIds = newSourceLeads.map(l => l.id);
+      const destLeadIds = newDestLeads.map(l => l.id);
+      
+      await Promise.all([
+        sourceLeadIds.length > 0 ? updateLeadPositionsInDatabase(source.droppableId, sourceLeadIds) : Promise.resolve(),
+        updateLeadPositionsInDatabase(destination.droppableId, destLeadIds)
+      ]);
       
       // Toast específico para retorno ao funil
       if (isWonLostView || sourceColumn.title === "GANHO" || sourceColumn.title === "PERDIDO") {

@@ -668,6 +668,7 @@ export type Database = {
           last_message_time: string | null
           name: string | null
           notes: string | null
+          order_position: number | null
           owner_id: string | null
           phone: string
           purchase_value: number | null
@@ -694,6 +695,7 @@ export type Database = {
           last_message_time?: string | null
           name?: string | null
           notes?: string | null
+          order_position?: number | null
           owner_id?: string | null
           phone: string
           purchase_value?: number | null
@@ -720,6 +722,7 @@ export type Database = {
           last_message_time?: string | null
           name?: string | null
           notes?: string | null
+          order_position?: number | null
           owner_id?: string | null
           phone?: string
           purchase_value?: number | null

@@ -42,12 +42,27 @@ export function useCreateClientMutation(companyId: string) {
       // Prepare lead data without contacts
       const { contacts, ...leadData } = data;
       
+      // Get the next order_position for the stage
+      let nextOrderPosition = 0;
+      if (leadData.kanban_stage_id) {
+        const { data: maxPositionData } = await supabase
+          .from("leads")
+          .select("order_position")
+          .eq("kanban_stage_id", leadData.kanban_stage_id)
+          .order("order_position", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        nextOrderPosition = (maxPositionData?.order_position || 0) + 1;
+      }
+      
       const { data: insertData, error } = await supabase
         .from("leads")
         .insert({
           ...leadData,
           company_id: companyId,
           whatsapp_number_id: whatsappNumberId,
+          order_position: nextOrderPosition,
         })
         .select()
         .single();
