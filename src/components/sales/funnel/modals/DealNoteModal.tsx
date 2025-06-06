@@ -40,7 +40,7 @@ export const DealNoteModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md bg-white/35 backdrop-blur-lg border border-white/30">
+      <DialogContent className="max-w-md bg-white/60 backdrop-blur-lg border border-white/30">
         <DialogHeader className="pb-6">
           <DialogTitle className="text-xl font-bold text-gray-800 text-center">
             {dealType === "won" ? "Negociação Ganha" : "Negociação Perdida"}
