@@ -1,76 +1,49 @@
 
-import { WhatsAppWebSectionHeader } from "./WhatsAppWebSectionHeader";
+import { ManualWhatsAppInstanceCreator } from "./ManualWhatsAppInstanceCreator";
 import { WhatsAppWebInstancesGrid } from "./WhatsAppWebInstancesGrid";
 import { WhatsAppWebLoadingState } from "./WhatsAppWebLoadingState";
-import { WhatsAppWebEmptyState } from "./WhatsAppWebEmptyState";
-import { ImprovedQRCodeModal } from "./ImprovedQRCodeModal";
-import { useWhatsAppWebSectionLogic } from "@/hooks/whatsapp/useWhatsAppWebSectionLogic";
+import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 
 export const WhatsAppWebSection = () => {
   const {
     instances,
     isLoading,
-    isConnectingOrPolling,
-    creationStage,
-    localShowQRModal,
-    localSelectedQRCode,
-    localSelectedInstanceName,
-    isWaitingForQR,
-    currentAttempt,
-    maxAttempts,
-    handleConnect,
-    handleDeleteInstance,
-    handleRefreshQR,
-    handleShowQR,
-    closeQRModal
-  } = useWhatsAppWebSectionLogic();
+    deleteInstance,
+    refreshQRCode,
+    refetch
+  } = useWhatsAppWebInstances();
 
-  console.log('[WhatsApp Web Section] 🎯 CORREÇÃO CRÍTICA - Renderizando:', {
+  console.log('[WhatsApp Web Section] 🎯 PRODUÇÃO - Fluxo Manual:', {
     instancesCount: instances.length,
-    isLoading,
-    modalOpen: localShowQRModal,
-    hasQRCode: !!localSelectedQRCode,
-    isWaiting: isWaitingForQR,
-    creationStage
+    isLoading
   });
 
   if (isLoading) {
     return <WhatsAppWebLoadingState />;
   }
 
+  const handleShowQR = (instance: any) => {
+    // Para agora, só fazer refresh do QR code
+    refreshQRCode(instance.id);
+  };
+
   return (
     <div className="space-y-6">
-      <WhatsAppWebSectionHeader 
-        onConnect={handleConnect}
-        isConnecting={isConnectingOrPolling}
-        isLoading={isLoading}
-        companyLoading={false}
-        creationStage={creationStage}
-      />
+      {/* Sistema Manual de Criação */}
+      <ManualWhatsAppInstanceCreator />
 
-      {instances.length === 0 ? (
-        <WhatsAppWebEmptyState 
-          onConnect={handleConnect}
-          isConnecting={isConnectingOrPolling}
-        />
-      ) : (
-        <WhatsAppWebInstancesGrid 
-          instances={instances}
-          onRefreshQR={handleRefreshQR}
-          onDelete={handleDeleteInstance}
-          onShowQR={handleShowQR}
-        />
+      {/* Lista de Instâncias Existentes */}
+      {instances.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Instâncias Existentes</h3>
+          <WhatsAppWebInstancesGrid 
+            instances={instances}
+            onRefreshQR={refreshQRCode}
+            onDelete={deleteInstance}
+            onShowQR={handleShowQR}
+          />
+        </div>
       )}
-
-      <ImprovedQRCodeModal 
-        isOpen={localShowQRModal}
-        onOpenChange={closeQRModal}
-        qrCodeUrl={localSelectedQRCode}
-        instanceName={localSelectedInstanceName}
-        isWaitingForQR={isWaitingForQR}
-        currentAttempt={currentAttempt}
-        maxAttempts={maxAttempts}
-      />
     </div>
   );
 };

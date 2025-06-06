@@ -1,29 +1,18 @@
 
 import { WhatsAppWebSection } from "./whatsapp/WhatsAppWebSection";
-import { useCompanyData } from "@/hooks/useCompanyData";
-import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 
 const WhatsAppSettings = () => {
-  console.log('[WhatsAppSettings] Component rendering - WhatsApp Web.js only');
-  
-  const { companyId, loading: companyLoading } = useCompanyData();
-  
-  const {
-    instances,
-    isLoading,
-    error,
-    refetch
-  } = useWhatsAppWebInstances();
-
-  console.log('[WhatsAppSettings] WhatsApp Web instances loaded:', {
-    instancesCount: instances.length,
-    loading: isLoading,
-    companyLoading
-  });
+  console.log('[WhatsApp Settings] 🎯 PRODUÇÃO - Sistema Manual Ativo');
 
   return (
     <div className="space-y-8">
-      {/* WhatsApp Section - Interface limpa sem cards de VPS */}
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">Configurações do WhatsApp</h1>
+        <p className="text-gray-600 mt-2">
+          Sistema manual de criação de instâncias (Produção)
+        </p>
+      </div>
+
       <WhatsAppWebSection />
     </div>
   );
