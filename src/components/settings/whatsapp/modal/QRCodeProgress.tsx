@@ -10,7 +10,7 @@ export const QRCodeProgress = ({ currentAttempt, maxAttempts }: QRCodeProgressPr
   return (
     <div className="text-center">
       <p className="text-sm text-blue-700 mb-3">
-        Preparando conexão...
+        Conectando ao servidor WhatsApp...
       </p>
       
       {/* Progress bar */}
@@ -22,7 +22,11 @@ export const QRCodeProgress = ({ currentAttempt, maxAttempts }: QRCodeProgressPr
       </div>
       
       <p className="text-xs text-blue-600">
-        Isso pode levar alguns instantes
+        Tentativa {currentAttempt} de {maxAttempts}
+      </p>
+      
+      <p className="text-xs text-gray-500 mt-1">
+        Isso pode levar alguns instantes para sincronizar
       </p>
     </div>
   );

@@ -1,6 +1,6 @@
 
 export const VPS_CONFIG = {
-  baseUrl: 'http://31.97.24.222:3002',
+  baseUrl: 'http://31.97.24.222:3001', // CORREÇÃO: Alterado de 3002 para 3001
   authToken: 'default-token',
   endpoints: {
     health: '/health',
@@ -18,14 +18,14 @@ export const VPS_CONFIG = {
     events: ['messages.upsert', 'qr.update', 'connection.update']
   },
   timeouts: {
-    connection: 10000,
-    qrCode: 30000,
-    message: 15000
+    connection: 15000, // Aumentado de 10s para 15s
+    qrCode: 45000, // Aumentado de 30s para 45s
+    message: 20000 // Aumentado de 15s para 20s
   },
   sync: {
-    interval: 180000, // 3 minutos
-    debounceDelay: 1000, // 1 segundo
-    healthCheckInterval: 30000 // 30 segundos
+    interval: 120000, // Reduzido de 180s para 120s (2 minutos)
+    debounceDelay: 800, // Reduzido de 1000ms para 800ms
+    healthCheckInterval: 20000 // Reduzido de 30s para 20s
   }
 } as const;
 

@@ -6,18 +6,17 @@ export const corsHeaders = {
 };
 
 export const VPS_CONFIG = {
-  baseUrl: 'http://31.97.24.222:3002',
-  authToken: 'default-token', // FASE 2.0: Token que funciona com sua VPS
-  timeout: 20000, // FASE 2.0: 20 segundos
+  baseUrl: 'http://31.97.24.222:3001', // CORREÇÃO CRÍTICA: Alterado de 3002 para 3001
+  authToken: 'default-token',
+  timeout: 25000, // Aumentado de 20s para 25s
   endpoints: {
-    // FASE 2.0: Endpoints corretos para sua VPS
     createInstance: '/instance/create',
     deleteInstance: '/instance/delete', 
-    getQR: '/instance/qr', // POST com instanceId no body
-    getQRAlternative: '/instance/{instanceId}/qr', // GET alternativo
-    getStatus: '/instance/status',
+    getQR: '/instance/qr',
+    getQRDirect: '/instance/{instanceId}/qr', // Endpoint que funciona
+    getStatus: '/instance/{instanceId}/status',
     instances: '/instances',
-    sendMessage: '/send' // FASE 2.0: Endpoint para envio de mensagens
+    sendMessage: '/send'
   }
 };
 
@@ -28,10 +27,10 @@ export const getVPSHeaders = () => ({
   'User-Agent': 'Supabase-Edge-Function/1.0'
 });
 
-// FASE 1.3: Função melhorada para validar QR Code real
+// CORREÇÃO: Função melhorada para validar QR Code real
 export const isRealQRCode = (qrCode: string): boolean => {
   if (!qrCode || typeof qrCode !== 'string') {
-    console.log('[QR Validation] ❌ FASE 1.3 - QR Code inválido: não é string');
+    console.log('[QR Validation] ❌ QR Code inválido: não é string');
     return false;
   }
   
@@ -39,7 +38,7 @@ export const isRealQRCode = (qrCode: string): boolean => {
   if (qrCode.startsWith('data:image/')) {
     const base64Part = qrCode.split(',')[1];
     const isValid = base64Part && base64Part.length > 500;
-    console.log('[QR Validation] 🔍 FASE 1.3 - Data URL:', {
+    console.log('[QR Validation] 🔍 Data URL:', {
       hasBase64Part: !!base64Part,
       base64Length: base64Part ? base64Part.length : 0,
       isValid
@@ -47,53 +46,48 @@ export const isRealQRCode = (qrCode: string): boolean => {
     return isValid;
   }
   
-  // Verificar se é Base64 puro (sem data URL prefix)
-  if (qrCode.length > 500) {
-    try {
-      atob(qrCode); // Tentar decodificar Base64
-      console.log('[QR Validation] ✅ FASE 1.3 - Base64 puro válido:', qrCode.length);
-      return true;
-    } catch {
-      console.log('[QR Validation] ❌ FASE 1.3 - Base64 inválido');
-      return false;
-    }
+  // Verificar se é Base64 puro ou string de QR válida
+  if (qrCode.length > 100) { // QR Code válido tem pelo menos 100 caracteres
+    console.log('[QR Validation] ✅ QR Code válido:', qrCode.length);
+    return true;
   }
   
-  console.log('[QR Validation] ❌ FASE 1.3 - QR Code muito pequeno:', qrCode.length);
+  console.log('[QR Validation] ❌ QR Code muito pequeno:', qrCode.length);
   return false;
 };
 
-// FASE 1.3: Normalizar formato do QR Code com logs
+// CORREÇÃO: Normalizar formato do QR Code
 export const normalizeQRCode = (qrCode: string): string => {
   if (!qrCode) {
-    console.log('[QR Normalize] ❌ FASE 1.3 - QR Code vazio');
+    console.log('[QR Normalize] ❌ QR Code vazio');
     return '';
   }
   
   // Se já é data URL, retornar como está
   if (qrCode.startsWith('data:image/')) {
-    console.log('[QR Normalize] ✅ FASE 1.3 - Já é data URL');
+    console.log('[QR Normalize] ✅ Já é data URL');
     return qrCode;
   }
   
-  // Se é Base64 puro, adicionar prefixo data URL
+  // Se é Base64 longo, adicionar prefixo data URL
   if (qrCode.length > 500) {
     const normalized = `data:image/png;base64,${qrCode}`;
-    console.log('[QR Normalize] ✅ FASE 1.3 - Convertido para data URL:', {
+    console.log('[QR Normalize] ✅ Convertido para data URL:', {
       originalLength: qrCode.length,
       normalizedLength: normalized.length
     });
     return normalized;
   }
   
-  console.log('[QR Normalize] ⚠️ FASE 1.3 - QR Code muito pequeno, retornando original');
+  // QR Code em formato texto (retornar como está)
+  console.log('[QR Normalize] ✅ QR Code em formato texto');
   return qrCode;
 };
 
-// FASE 1.3: Função para testar conectividade da VPS
+// CORREÇÃO: Função para testar conectividade da VPS com porta correta
 export const testVPSConnectivity = async (): Promise<boolean> => {
   try {
-    console.log('[VPS Test] 🔗 FASE 1.3 - Testando conectividade da VPS...');
+    console.log('[VPS Test] 🔗 Testando conectividade da VPS na porta 3001...');
     
     const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
       method: 'GET',
@@ -102,7 +96,7 @@ export const testVPSConnectivity = async (): Promise<boolean> => {
     });
     
     const isConnected = response.ok;
-    console.log('[VPS Test] 📊 FASE 1.3 - Resultado do teste:', {
+    console.log('[VPS Test] 📊 Resultado do teste:', {
       url: `${VPS_CONFIG.baseUrl}/health`,
       status: response.status,
       isConnected
@@ -110,7 +104,7 @@ export const testVPSConnectivity = async (): Promise<boolean> => {
     
     return isConnected;
   } catch (error: any) {
-    console.error('[VPS Test] ❌ FASE 1.3 - Falha na conectividade:', error.message);
+    console.error('[VPS Test] ❌ Falha na conectividade:', error.message);
     return false;
   }
 };

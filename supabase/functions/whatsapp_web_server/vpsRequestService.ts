@@ -1,22 +1,22 @@
 
 import { VPS_CONFIG, getVPSHeaders, isRealQRCode, normalizeQRCode } from './config.ts';
 
-// FASE 1.3: Função auxiliar para fazer requisições com retry melhorado
-async function makeVPSRequest(url: string, options: RequestInit, retries = 3): Promise<Response> {
+// CORREÇÃO: Função auxiliar para fazer requisições com retry melhorado
+export async function makeVPSRequest(url: string, options: RequestInit, retries = 2): Promise<Response> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      console.log(`[VPS Request] 🌐 FASE 1.3 - Tentativa ${attempt}/${retries} - ${options.method} ${url}`);
+      console.log(`[VPS Request] 🌐 CORREÇÃO - Tentativa ${attempt}/${retries} - ${options.method} ${url}`);
       
       const response = await fetch(url, {
         ...options,
         signal: AbortSignal.timeout(VPS_CONFIG.timeout)
       });
       
-      console.log(`[VPS Request] 📊 FASE 1.3 - Status: ${response.status} (tentativa ${attempt})`);
+      console.log(`[VPS Request] 📊 CORREÇÃO - Status: ${response.status} (tentativa ${attempt})`);
       return response;
       
     } catch (error: any) {
-      console.error(`[VPS Request] ❌ FASE 1.3 - Tentativa ${attempt} falhou:`, {
+      console.error(`[VPS Request] ❌ CORREÇÃO - Tentativa ${attempt} falhou:`, {
         error: error.message,
         url,
         method: options.method
@@ -26,9 +26,9 @@ async function makeVPSRequest(url: string, options: RequestInit, retries = 3): P
         throw error;
       }
       
-      // Aguardar antes de retry com backoff exponencial
-      const delay = 1000 * Math.pow(2, attempt - 1); // 1s, 2s, 4s
-      console.log(`[VPS Request] ⏳ FASE 1.3 - Aguardando ${delay}ms antes do retry...`);
+      // Aguardar antes de retry com backoff
+      const delay = 1000 * attempt; // 1s, 2s
+      console.log(`[VPS Request] ⏳ CORREÇÃO - Aguardando ${delay}ms antes do retry...`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -37,7 +37,7 @@ async function makeVPSRequest(url: string, options: RequestInit, retries = 3): P
 }
 
 export async function createVPSInstance(payload: any) {
-  console.log('[VPS Request Service] 🚀 FASE 1.3 - Criando instância na VPS:', payload);
+  console.log('[VPS Request Service] 🚀 CORREÇÃO - Criando instância na VPS (porta 3001):', payload);
   
   try {
     const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}${VPS_CONFIG.endpoints.createInstance}`, {
@@ -48,7 +48,7 @@ export async function createVPSInstance(payload: any) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[VPS Request Service] ❌ FASE 1.3 - Erro ao criar instância:', response.status, errorText);
+      console.error('[VPS Request Service] ❌ CORREÇÃO - Erro ao criar instância:', response.status, errorText);
       return {
         success: false,
         error: `VPS error ${response.status}: ${errorText}`
@@ -56,17 +56,17 @@ export async function createVPSInstance(payload: any) {
     }
 
     const data = await response.json();
-    console.log('[VPS Request Service] ✅ FASE 1.3 - Resposta da criação:', data);
+    console.log('[VPS Request Service] ✅ CORREÇÃO - Resposta da criação:', data);
     
-    // FASE 1.3: Padronizar resposta - VPS pode retornar 'qrcode' ou 'qrCode'
+    // CORREÇÃO: Verificar se QR Code foi retornado na criação
     const qrCodeField = data.qrcode || data.qrCode || data.qr_code || null;
     let processedQRCode = null;
     
     if (qrCodeField && isRealQRCode(qrCodeField)) {
       processedQRCode = normalizeQRCode(qrCodeField);
-      console.log('[VPS Request Service] ✅ FASE 1.3 - QR Code válido encontrado na criação');
+      console.log('[VPS Request Service] ✅ CORREÇÃO - QR Code válido encontrado na criação');
     } else {
-      console.log('[VPS Request Service] ⏳ FASE 1.3 - QR Code não disponível na criação - será obtido via polling');
+      console.log('[VPS Request Service] ⏳ CORREÇÃO - QR Code não disponível na criação - usar polling');
     }
     
     return {
@@ -76,7 +76,7 @@ export async function createVPSInstance(payload: any) {
     };
     
   } catch (error: any) {
-    console.error('[VPS Request Service] ❌ FASE 1.3 - Erro na requisição:', error);
+    console.error('[VPS Request Service] ❌ CORREÇÃO - Erro na requisição:', error);
     return {
       success: false,
       error: error.message
@@ -85,99 +85,58 @@ export async function createVPSInstance(payload: any) {
 }
 
 export async function getVPSInstanceQR(instanceId: string) {
-  console.log('[VPS Request Service] 📱 FASE 1.3 - Buscando QR Code:', instanceId);
+  console.log('[VPS Request Service] 📱 CORREÇÃO - Buscando QR Code (porta 3001):', instanceId);
   
-  // FASE 1.3: Endpoints múltiplos para máxima compatibilidade
-  const endpoints = [
-    // Endpoint primário: GET /instance/{id}/qr  
-    {
-      url: `${VPS_CONFIG.baseUrl}${VPS_CONFIG.endpoints.getQRAlternative.replace('{instanceId}', instanceId)}`,
+  try {
+    // CORREÇÃO: Usar o endpoint GET direto que funciona
+    const url = `${VPS_CONFIG.baseUrl}${VPS_CONFIG.endpoints.getQRDirect.replace('{instanceId}', instanceId)}`;
+    console.log(`[VPS Request Service] 🔄 CORREÇÃO - Usando endpoint GET: ${url}`);
+    
+    const response = await makeVPSRequest(url, {
       method: 'GET',
-      body: null,
-      name: 'GET_QR_DIRECT'
-    },
-    // Endpoint secundário: POST /instance/qr
-    {
-      url: `${VPS_CONFIG.baseUrl}${VPS_CONFIG.endpoints.getQR}`,
-      method: 'POST',
-      body: JSON.stringify({ instanceId }),
-      name: 'POST_QR_BODY'
-    },
-    // Endpoint terciário: GET /instance/status (pode conter QR)
-    {
-      url: `${VPS_CONFIG.baseUrl}${VPS_CONFIG.endpoints.getStatus}`,
-      method: 'POST',
-      body: JSON.stringify({ instanceId }),
-      name: 'STATUS_WITH_QR'
-    }
-  ];
-  
-  for (const endpoint of endpoints) {
-    try {
-      console.log(`[VPS Request Service] 🔄 FASE 1.3 - Testando endpoint ${endpoint.name}: ${endpoint.method} ${endpoint.url}`);
-      
-      const requestOptions: RequestInit = {
-        method: endpoint.method,
-        headers: getVPSHeaders()
-      };
-      
-      if (endpoint.body) {
-        requestOptions.body = endpoint.body;
-      }
-      
-      const response = await makeVPSRequest(endpoint.url, requestOptions, 2);
+      headers: getVPSHeaders()
+    });
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`[VPS Request Service] 📥 FASE 1.3 - Resposta do endpoint ${endpoint.name}:`, {
-          hasQrCode: !!(data.qrcode || data.qrCode || data.qr_code),
-          status: data.status,
-          responseKeys: Object.keys(data)
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`[VPS Request Service] 📥 CORREÇÃO - Resposta do GET QR:`, {
+        hasQrCode: !!(data.qrCode || data.qrcode),
+        hasSuccess: !!data.success,
+        status: data.status
+      });
+      
+      // CORREÇÃO: Buscar QR Code nos campos possíveis
+      const qrCodeField = data.qrCode || data.qrcode || data.qr_code || null;
+      
+      if (data.success && qrCodeField && isRealQRCode(qrCodeField)) {
+        const processedQRCode = normalizeQRCode(qrCodeField);
+        console.log('[VPS Request Service] ✅ CORREÇÃO - QR Code válido obtido!', {
+          qrCodeLength: processedQRCode.length,
+          hasDataUrl: processedQRCode.startsWith('data:image/')
         });
         
-        // FASE 1.3: Buscar QR Code em diferentes campos possíveis
-        const qrCodeField = data.qrcode || data.qrCode || data.qr_code || data.qr || null;
-        
-        if (qrCodeField && isRealQRCode(qrCodeField)) {
-          const processedQRCode = normalizeQRCode(qrCodeField);
-          console.log('[VPS Request Service] ✅ FASE 1.3 - QR Code válido obtido!', {
-            endpoint: endpoint.name,
-            qrCodeLength: processedQRCode.length,
-            hasDataUrl: processedQRCode.startsWith('data:image/')
-          });
-          
-          return {
-            success: true,
-            qrCode: processedQRCode,
-            source: endpoint.name
-          };
-        } else {
-          console.log(`[VPS Request Service] ⏳ FASE 1.3 - QR Code ainda não disponível no endpoint ${endpoint.name}:`, {
-            hasQrField: !!qrCodeField,
-            qrCodeLength: qrCodeField ? qrCodeField.length : 0,
-            isValidQR: qrCodeField ? isRealQRCode(qrCodeField) : false
-          });
-        }
+        return {
+          success: true,
+          qrCode: processedQRCode
+        };
       } else {
-        const errorText = await response.text();
-        console.log(`[VPS Request Service] ⚠️ FASE 1.3 - Endpoint ${endpoint.name} falhou: ${response.status} - ${errorText.substring(0, 200)}`);
-        
-        // Se 404 e contém "ainda não foi gerado", é normal - continuar
-        if (response.status === 404 && (errorText.includes('ainda não foi gerado') || errorText.includes('inicializando'))) {
-          console.log(`[VPS Request Service] 🔄 FASE 1.3 - VPS ainda inicializando no endpoint ${endpoint.name}...`);
-        }
+        console.log(`[VPS Request Service] ⏳ CORREÇÃO - QR Code ainda não disponível:`, {
+          hasQrField: !!qrCodeField,
+          qrCodeLength: qrCodeField ? qrCodeField.length : 0,
+          isValidQR: qrCodeField ? isRealQRCode(qrCodeField) : false
+        });
       }
-      
-    } catch (error: any) {
-      console.log(`[VPS Request Service] ❌ FASE 1.3 - Erro no endpoint ${endpoint.name}:`, {
-        error: error.message,
-        url: endpoint.url
-      });
+    } else {
+      const errorText = await response.text();
+      console.log(`[VPS Request Service] ⚠️ CORREÇÃO - Endpoint GET QR falhou: ${response.status} - ${errorText.substring(0, 200)}`);
     }
+    
+  } catch (error: any) {
+    console.log(`[VPS Request Service] ❌ CORREÇÃO - Erro no GET QR:`, error.message);
   }
   
-  // Nenhum endpoint retornou QR Code
-  console.log('[VPS Request Service] ❌ FASE 1.3 - Nenhum endpoint retornou QR Code válido');
+  // QR Code não disponível
+  console.log('[VPS Request Service] ❌ CORREÇÃO - QR Code não obtido');
   return {
     success: false,
     error: 'QR Code ainda não foi gerado ou instância ainda inicializando'
@@ -185,7 +144,7 @@ export async function getVPSInstanceQR(instanceId: string) {
 }
 
 export async function deleteVPSInstance(instanceId: string) {
-  console.log('[VPS Request Service] 🗑️ FASE 1.3 - Deletando instância:', instanceId);
+  console.log('[VPS Request Service] 🗑️ CORREÇÃO - Deletando instância (porta 3001):', instanceId);
   
   try {
     const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}${VPS_CONFIG.endpoints.deleteInstance}`, {
@@ -196,19 +155,19 @@ export async function deleteVPSInstance(instanceId: string) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[VPS Request Service] ❌ FASE 1.3 - Erro ao deletar:', response.status, errorText);
+      console.error('[VPS Request Service] ❌ CORREÇÃO - Erro ao deletar:', response.status, errorText);
       return {
         success: false,
         error: `VPS error ${response.status}: ${errorText}`
       };
     }
 
-    console.log('[VPS Request Service] ✅ FASE 1.3 - Instância deletada com sucesso');
+    console.log('[VPS Request Service] ✅ CORREÇÃO - Instância deletada com sucesso');
     return {
       success: true
     };
   } catch (error: any) {
-    console.error('[VPS Request Service] ❌ FASE 1.3 - Erro na requisição delete:', error);
+    console.error('[VPS Request Service] ❌ CORREÇÃO - Erro na requisição delete:', error);
     return {
       success: false,
       error: error.message
@@ -217,7 +176,7 @@ export async function deleteVPSInstance(instanceId: string) {
 }
 
 export async function getVPSInstances() {
-  console.log('[VPS Request Service] 📊 FASE 1.3 - Buscando todas as instâncias da VPS');
+  console.log('[VPS Request Service] 📊 CORREÇÃO - Buscando todas as instâncias da VPS (porta 3001)');
   
   try {
     const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}${VPS_CONFIG.endpoints.instances}`, {
@@ -227,7 +186,7 @@ export async function getVPSInstances() {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[VPS Request Service] ❌ FASE 1.3 - Erro ao buscar instâncias:', response.status, errorText);
+      console.error('[VPS Request Service] ❌ CORREÇÃO - Erro ao buscar instâncias:', response.status, errorText);
       return {
         success: false,
         error: `VPS error ${response.status}: ${errorText}`,
@@ -236,13 +195,13 @@ export async function getVPSInstances() {
     }
 
     const data = await response.json();
-    console.log('[VPS Request Service] ✅ FASE 1.3 - Instâncias obtidas:', data?.instances?.length || 0);
+    console.log('[VPS Request Service] ✅ CORREÇÃO - Instâncias obtidas:', data?.instances?.length || 0);
     return {
       success: true,
       instances: data.instances || data || []
     };
   } catch (error: any) {
-    console.error('[VPS Request Service] ❌ FASE 1.3 - Erro na requisição de instâncias:', error);
+    console.error('[VPS Request Service] ❌ CORREÇÃO - Erro na requisição de instâncias:', error);
     return {
       success: false,
       error: error.message,
