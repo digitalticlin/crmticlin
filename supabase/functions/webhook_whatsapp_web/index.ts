@@ -13,7 +13,7 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  console.log('[Webhook WhatsApp Web] 📨 WEBHOOK RECEIVED');
+  console.log('[Webhook WhatsApp Web] 📨 WEBHOOK RECEIVED - CORREÇÃO QR AUTO-SAVE');
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -52,6 +52,16 @@ Deno.serve(async (req) => {
       );
     }
 
+    // CORREÇÃO: Processar QR.UPDATE com auto-save no banco
+    if (event === 'qr.update') {
+      console.log('[Webhook WhatsApp Web] 📱 Processando QR.UPDATE com auto-save');
+      const result = await processQRUpdate(supabase, instance, messageData);
+      return new Response(
+        JSON.stringify(result),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Process different event types
     if (event === 'messages.upsert' && messageData.messages) {
       const result = await processIncomingMessage(supabase, instance, messageData);
@@ -63,14 +73,6 @@ Deno.serve(async (req) => {
 
     if (event === 'connection.update') {
       const result = await processConnectionUpdate(supabase, instance, messageData);
-      return new Response(
-        JSON.stringify(result),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (event === 'qr.update') {
-      const result = await processQRUpdate(supabase, instance, messageData);
       return new Response(
         JSON.stringify(result),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

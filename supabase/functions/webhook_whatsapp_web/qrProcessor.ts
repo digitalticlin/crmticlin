@@ -13,7 +13,7 @@ export async function processQRUpdate(supabase: any, instance: any, qrData: any)
       };
     }
 
-    // Atualizar QR code no banco
+    // CORREÇÃO: Atualizar QR code no banco usando vps_instance_id
     const { error: updateError } = await supabase
       .from('whatsapp_instances')
       .update({
@@ -32,7 +32,30 @@ export async function processQRUpdate(supabase: any, instance: any, qrData: any)
       };
     }
 
-    console.log('[QR Processor] ✅ QR Code atualizado no banco');
+    console.log('[QR Processor] ✅ QR Code salvo automaticamente no banco via webhook');
+
+    // NOVO: Também salvar na VPS localmente para sincronização
+    try {
+      const vpsResponse = await fetch(`http://31.97.24.222:3001/instance/${instance.vps_instance_id}/save-qr`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer default-token`
+        },
+        body: JSON.stringify({
+          qrCode: qrCode
+        })
+      });
+
+      if (vpsResponse.ok) {
+        console.log('[QR Processor] ✅ QR Code também salvo na VPS');
+      } else {
+        console.warn('[QR Processor] ⚠️ Falha ao salvar QR na VPS, mas banco foi atualizado');
+      }
+    } catch (vpsError) {
+      console.warn('[QR Processor] ⚠️ Erro ao comunicar com VPS:', vpsError);
+      // Não falhamos aqui pois o importante é ter salvo no banco
+    }
 
     return {
       success: true,

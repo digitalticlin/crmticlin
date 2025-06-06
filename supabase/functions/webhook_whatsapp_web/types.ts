@@ -1,46 +1,27 @@
 
-// Types for the webhook WhatsApp Web function
 export interface WebhookData {
-  instanceName: string;
-  data: any;
   event: string;
-}
-
-export interface WhatsAppInstance {
-  id: string;
-  company_id: string;
-  companies?: {
-    id: string;
-    name: string;
-  };
-  instance_name: string;
-  vps_instance_id: string;
-  connection_type: string;
-}
-
-export interface MessageData {
-  messages?: Array<{
-    key?: {
-      remoteJid?: string;
-      fromMe?: boolean;
-      id?: string;
-    };
-    message?: {
-      conversation?: string;
-      extendedTextMessage?: {
-        text?: string;
+  instanceName: string;
+  data: {
+    qrCode?: string;
+    messages?: Array<{
+      key: {
+        id: string;
+        remoteJid: string;
+        fromMe: boolean;
       };
+      message: {
+        conversation?: string;
+        extendedTextMessage?: {
+          text: string;
+        };
+      };
+    }>;
+    connection?: {
+      state: string;
+      isNewLogin?: boolean;
     };
-  }>;
-}
-
-export interface ConnectionData {
-  connection?: {
-    state?: string;
   };
-  lastDisconnect?: any;
-}
-
-export interface QRData {
-  qr?: string;
+  timestamp: string;
+  server_url?: string;
 }
