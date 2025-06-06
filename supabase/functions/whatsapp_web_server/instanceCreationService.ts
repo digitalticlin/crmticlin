@@ -29,7 +29,7 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
     const companyId = profile?.company_id || null;
     console.log(`[Instance Creation] 🏢 CORREÇÃO ROBUSTA - Company ID: ${companyId}`);
 
-    // CORREÇÃO CRÍTICA: Enviar parâmetros corretos para VPS
+    // CORREÇÃO: Usar instanceName como veio do frontend
     const vpsInstanceId = `${instanceName}_${Date.now()}`;
     console.log(`[Instance Creation] 🌐 CORREÇÃO ROBUSTA - Criando na VPS com instanceId: ${vpsInstanceId}`);
     

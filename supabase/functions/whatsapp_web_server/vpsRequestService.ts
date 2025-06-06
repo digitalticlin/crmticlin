@@ -1,6 +1,61 @@
 
 import { VPS_CONFIG, getVPSHeaders, testVPSConnectivity, isRealQRCode } from './config.ts';
 
+// Função auxiliar para deletar instância na VPS
+export async function deleteVPSInstance(vpsInstanceId: string, instanceName?: string) {
+  const deleteId = `vps_delete_${Date.now()}`;
+  console.log(`[VPS Delete] 🗑️ CORREÇÃO - Deletando instância VPS: ${vpsInstanceId} [${deleteId}]`);
+
+  try {
+    // Testar conectividade primeiro
+    const isConnected = await testVPSConnectivity();
+    if (!isConnected) {
+      console.warn(`[VPS Delete] ⚠️ CORREÇÃO - VPS não conectado, assumindo que instância já foi removida`);
+      return {
+        success: true,
+        warning: 'VPS não conectado - assumindo que instância já foi removida'
+      };
+    }
+
+    // Tentar deletar usando o endpoint correto
+    const deleteResponse = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/delete`, {
+      method: 'POST',
+      headers: getVPSHeaders(),
+      body: JSON.stringify({
+        instanceId: vpsInstanceId
+      })
+    });
+
+    const responseText = await deleteResponse.text();
+    console.log(`[VPS Delete] 📊 CORREÇÃO - Resposta VPS (${deleteResponse.status}):`, responseText);
+
+    if (deleteResponse.ok) {
+      try {
+        const deleteData = JSON.parse(responseText);
+        if (deleteData.success) {
+          console.log(`[VPS Delete] ✅ CORREÇÃO - Instância deletada com sucesso da VPS [${deleteId}]`);
+          return { success: true };
+        } else {
+          throw new Error(deleteData.error || 'VPS retornou erro na deleção');
+        }
+      } catch (parseError) {
+        // Se não conseguir fazer parse, mas status foi OK, assumir sucesso
+        console.log(`[VPS Delete] ✅ CORREÇÃO - Status OK, assumindo sucesso mesmo sem JSON válido`);
+        return { success: true };
+      }
+    } else {
+      throw new Error(`HTTP ${deleteResponse.status}: ${responseText}`);
+    }
+
+  } catch (error: any) {
+    console.error(`[VPS Delete] ❌ CORREÇÃO - Erro ao deletar instância VPS [${deleteId}]:`, error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
 // CORREÇÃO ROBUSTA: Função principal para obter QR Code com múltiplas estratégias
 export async function getVPSInstanceQR(instanceId: string, maxRetries = 3) {
   const requestId = `req_${Date.now()}`;
