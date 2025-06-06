@@ -33,7 +33,7 @@ export const SelectStageModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md bg-white/60 backdrop-blur-lg border border-white/30">
         <DialogHeader className="pb-6">
           <DialogTitle className="text-xl font-bold text-gray-800 text-center">
             Selecionar Etapa do Funil
