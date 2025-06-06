@@ -405,6 +405,51 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
   }
 });
 
+// NOVO ENDPOINT: Salvar QR Code via webhook/edge function
+app.post('/instance/:instanceId/save-qr', authenticateToken, async (req, res) => {
+  try {
+    const { instanceId } = req.params;
+    const { qrCode } = req.body;
+    
+    if (!instanceId || !qrCode) {
+      return res.status(400).json({
+        success: false,
+        error: 'instanceId e qrCode são obrigatórios'
+      });
+    }
+    
+    const instance = activeInstances.get(instanceId);
+    if (!instance) {
+      return res.status(404).json({
+        success: false,
+        error: 'Instância não encontrada'
+      });
+    }
+    
+    // Atualizar QR Code na instância local
+    instance.qrCode = qrCode;
+    instance.status = 'qr_saved';
+    
+    console.log(`💾 QR Code salvo localmente para instância: ${instanceId}`);
+    
+    await saveInstancesState();
+    
+    res.json({
+      success: true,
+      message: 'QR Code salvo na VPS com sucesso',
+      instanceId: instanceId,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro ao salvar QR Code na VPS:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // CORREÇÃO: Adicionar endpoint para configurar webhook
 app.post('/instance/:instanceId/webhook', authenticateToken, async (req, res) => {
   try {
