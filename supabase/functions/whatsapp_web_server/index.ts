@@ -8,7 +8,7 @@ import { getQRCodeAsync } from './qrCodeAsyncService.ts';
 import { deleteInstance } from './instanceDeletionService.ts';
 import { checkServerHealth, getServerInfo } from './serverHealthService.ts';
 import { syncInstances } from './instanceSyncService.ts';
-import { sendMessage } from './messagingService.ts';
+import { sendMessage } from './messageSendingService.ts';
 import { getChatHistory } from './chatHistoryService.ts';
 import { importChatHistory } from './chatHistoryService.ts';
 
