@@ -38,7 +38,9 @@ export const SalesFunnelContent = () => {
     moveLeadToStage,
     isAdmin,
     wonStageId,
-    lostStageId
+    lostStageId,
+    refetchLeads,
+    refetchStages
   } = useSalesFunnelContext();
 
   // Obter leads das colunas Ganho e Perdido para os filtros
@@ -94,6 +96,16 @@ export const SalesFunnelContent = () => {
     await createFunnel(name, description);
   };
 
+  // Função para refresh dos dados após mudança de etapa
+  const handleRefreshData = async () => {
+    try {
+      await refetchLeads();
+      await refetchStages();
+    } catch (error) {
+      console.error("Erro ao recarregar dados:", error);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Moderno */}
@@ -144,6 +156,7 @@ export const SalesFunnelContent = () => {
         isWonLostView={activeTab === "won-lost"}
         wonStageId={wonStageId}
         lostStageId={lostStageId}
+        onRefreshData={handleRefreshData}
       />
 
       {/* Sidebar de Detalhes */}

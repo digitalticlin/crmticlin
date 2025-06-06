@@ -10,13 +10,15 @@ interface UseDragAndDropProps {
   onColumnsChange: (newColumns: KanbanColumn[]) => void;
   onMoveToWonLost?: (lead: KanbanLead, status: "won" | "lost") => void;
   isWonLostView?: boolean;
+  onRefreshData?: () => void; // Adicionar callback para refresh
 }
 
 export const useDragAndDrop = ({ 
   columns, 
   onColumnsChange, 
   onMoveToWonLost,
-  isWonLostView = false
+  isWonLostView = false,
+  onRefreshData
 }: UseDragAndDropProps) => {
   const [showDropZones, setShowDropZones] = useState(false);
 
@@ -29,6 +31,11 @@ export const useDragAndDrop = ({
 
       if (error) throw error;
       console.log(`Lead ${leadId} movido para estágio ${newStageId}`);
+      
+      // Recarregar dados após sucesso
+      if (onRefreshData) {
+        onRefreshData();
+      }
     } catch (error) {
       console.error("Erro ao mover lead no banco:", error);
       toast.error("Erro ao salvar mudança de etapa");
@@ -87,35 +94,13 @@ export const useDragAndDrop = ({
       }
     }
 
-    // Atualizar estado local primeiro (otimistic update)
-    const newColumns = columns.map(column => {
-      if (column.id === source.droppableId) {
-        return {
-          ...column,
-          leads: column.leads.filter(lead => lead.id !== draggableId)
-        };
-      }
-      if (column.id === destination.droppableId) {
-        const newLeads = [...column.leads];
-        const updatedLead = { ...lead, columnId: destination.droppableId };
-        newLeads.splice(destination.index, 0, updatedLead);
-        return {
-          ...column,
-          leads: newLeads
-        };
-      }
-      return column;
-    });
-
-    onColumnsChange(newColumns);
-
-    // Salvar no banco de dados
     try {
+      // Salvar no banco de dados primeiro
       await moveLeadToDatabase(lead.id, destination.droppableId);
       toast.success("Etapa alterada com sucesso!");
     } catch (error) {
-      // Reverter mudança local se falhou no banco
-      onColumnsChange(columns);
+      // Se falhou no banco, não fazer mudança local
+      return;
     }
   };
 
