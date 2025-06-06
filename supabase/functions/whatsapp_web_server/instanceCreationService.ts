@@ -4,7 +4,7 @@ import { makeVPSRequest } from './vpsRequestService.ts';
 
 export async function createWhatsAppInstance(supabase: any, instanceData: any, userId: string) {
   const createId = `create_${Date.now()}`;
-  console.log(`[Instance Creation] 🚀 CORREÇÃO ROBUSTA - Criando instância [${createId}]:`, instanceData.instanceName);
+  console.log(`[Instance Creation] 🚀 CORREÇÃO PORTA 3001 - Criando instância [${createId}]:`, instanceData.instanceName);
 
   try {
     const { instanceName } = instanceData;
@@ -13,7 +13,7 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
       throw new Error('Nome da instância é obrigatório');
     }
 
-    console.log(`[Instance Creation] 📋 CORREÇÃO ROBUSTA - Validações passaram para: ${instanceName}`);
+    console.log(`[Instance Creation] 📋 CORREÇÃO PORTA 3001 - Validações passaram para: ${instanceName}`);
 
     // Buscar company_id do usuário
     const { data: profile, error: profileError } = await supabase
@@ -23,15 +23,15 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
       .single();
 
     if (profileError) {
-      console.error(`[Instance Creation] ❌ CORREÇÃO ROBUSTA - Erro ao buscar perfil:`, profileError);
+      console.error(`[Instance Creation] ❌ CORREÇÃO PORTA 3001 - Erro ao buscar perfil:`, profileError);
     }
 
     const companyId = profile?.company_id || null;
-    console.log(`[Instance Creation] 🏢 CORREÇÃO ROBUSTA - Company ID: ${companyId}`);
+    console.log(`[Instance Creation] 🏢 CORREÇÃO PORTA 3001 - Company ID: ${companyId}`);
 
     // CORREÇÃO: Usar instanceName como veio do frontend
     const vpsInstanceId = `${instanceName}_${Date.now()}`;
-    console.log(`[Instance Creation] 🌐 CORREÇÃO ROBUSTA - Criando na VPS com instanceId: ${vpsInstanceId}`);
+    console.log(`[Instance Creation] 🌐 CORREÇÃO PORTA 3001 - Criando na VPS com instanceId: ${vpsInstanceId}`);
     
     const vpsResponse = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/create`, {
       method: 'POST',
@@ -47,18 +47,18 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
 
     if (!vpsResponse.ok) {
       const errorText = await vpsResponse.text();
-      console.error(`[Instance Creation] ❌ CORREÇÃO ROBUSTA - Erro VPS:`, errorText);
-      throw new Error(`Falha na VPS: ${vpsResponse.status} - ${errorText}`);
+      console.error(`[Instance Creation] ❌ CORREÇÃO PORTA 3001 - Erro VPS:`, errorText);
+      throw new Error(`Falha na VPS (porta 3001): ${vpsResponse.status} - ${errorText}`);
     }
 
     const vpsData = await vpsResponse.json();
-    console.log(`[Instance Creation] ✅ CORREÇÃO ROBUSTA - VPS Response:`, vpsData);
+    console.log(`[Instance Creation] ✅ CORREÇÃO PORTA 3001 - VPS Response:`, vpsData);
 
     if (!vpsData.success) {
       throw new Error(vpsData.error || 'VPS não confirmou criação da instância');
     }
 
-    console.log(`[Instance Creation] 🆔 CORREÇÃO ROBUSTA - VPS Instance ID: ${vpsInstanceId}`);
+    console.log(`[Instance Creation] 🆔 CORREÇÃO PORTA 3001 - VPS Instance ID: ${vpsInstanceId}`);
 
     // Preparar dados para salvamento no Supabase
     const instanceRecord = {
@@ -74,7 +74,7 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
       created_at: new Date().toISOString()
     };
 
-    console.log(`[Instance Creation] 💾 CORREÇÃO ROBUSTA - Salvando no Supabase:`, {
+    console.log(`[Instance Creation] 💾 CORREÇÃO PORTA 3001 - Salvando no Supabase:`, {
       instanceName,
       vpsInstanceId,
       hasQRCode: !!vpsData.qrCode,
@@ -90,11 +90,11 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
       .single();
 
     if (saveError) {
-      console.error(`[Instance Creation] ❌ CORREÇÃO ROBUSTA - Erro salvamento:`, saveError);
+      console.error(`[Instance Creation] ❌ CORREÇÃO PORTA 3001 - Erro salvamento:`, saveError);
       throw new Error(`Falha ao salvar no banco: ${saveError.message}`);
     }
 
-    console.log(`[Instance Creation] ✅ CORREÇÃO ROBUSTA - Instância salva no Supabase [${createId}]:`, savedInstance);
+    console.log(`[Instance Creation] ✅ CORREÇÃO PORTA 3001 - Instância salva no Supabase [${createId}]:`, savedInstance);
 
     return new Response(
       JSON.stringify({
@@ -107,7 +107,7 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
     );
 
   } catch (error: any) {
-    console.error(`[Instance Creation] ❌ CORREÇÃO ROBUSTA - Erro crítico [${createId}]:`, error);
+    console.error(`[Instance Creation] ❌ CORREÇÃO PORTA 3001 - Erro crítico [${createId}]:`, error);
     
     return new Response(
       JSON.stringify({

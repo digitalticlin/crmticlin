@@ -30,8 +30,8 @@ interface SalesFunnelContextType {
   wonStageId?: string;
   lostStageId?: string;
   isAdmin: boolean;
-  refetchLeads: () => void;
-  refetchStages: () => void;
+  refetchLeads: () => Promise<void>;
+  refetchStages: () => Promise<void>;
   
   // Ações
   openLeadDetail: (lead: any) => void;
@@ -88,7 +88,7 @@ export const SalesFunnelProvider = ({ children }: { children: React.ReactNode })
   } = useRealSalesFunnel(selectedFunnel?.id);
 
   // Verificar permissões do usuário
-  const { isAdmin } = useUserPermissions();
+  const { permissions } = useUserPermissions();
 
   const value: SalesFunnelContextType = {
     // Funis
@@ -102,7 +102,9 @@ export const SalesFunnelProvider = ({ children }: { children: React.ReactNode })
     addColumn: async (title: string, color: string = '#3b82f6') => {
       await addColumn(title, color);
     },
-    updateColumn,
+    updateColumn: async (id: string, updates: any) => {
+      await updateColumn(updates);
+    },
     deleteColumn,
     
     // Kanban
@@ -117,9 +119,13 @@ export const SalesFunnelProvider = ({ children }: { children: React.ReactNode })
     leads,
     wonStageId,
     lostStageId,
-    isAdmin,
-    refetchLeads,
-    refetchStages,
+    isAdmin: permissions?.isAdmin || false,
+    refetchLeads: async () => {
+      await refetchLeads();
+    },
+    refetchStages: async () => {
+      await refetchStages();
+    },
     
     // Ações
     openLeadDetail,

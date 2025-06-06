@@ -57,8 +57,8 @@ export const SalesFunnelContent = () => {
   const actions = SalesFunnelActions({
     stages: stages || [],
     moveLeadToStage,
-    refetchLeads,
-    refetchStages,
+    refetchLeads: () => refetchLeads(),
+    refetchStages: () => refetchStages(),
     onStageModalOpen: (lead: KanbanLead) => {
       setLeadToMove(lead);
       setIsStageModalOpen(true);
@@ -131,6 +131,11 @@ export const SalesFunnelContent = () => {
     }
   };
 
+  // Wrapper function for updateColumn to match expected signature
+  const handleUpdateColumn = async (column: any) => {
+    await updateColumn(column.id, column);
+  };
+
   return (
     <>
       <SalesFunnelTabs
@@ -147,7 +152,7 @@ export const SalesFunnelContent = () => {
         lostStageId={lostStageId}
         isAdmin={isAdmin}
         addColumn={addColumn}
-        updateColumn={updateColumn}
+        updateColumn={handleUpdateColumn}
         deleteColumn={deleteColumn}
         openLeadDetail={openLeadDetail}
         onOpenChat={actions.handleOpenChat}
