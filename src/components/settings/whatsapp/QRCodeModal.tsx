@@ -22,11 +22,12 @@ export const QRCodeModal = ({ isOpen, onClose, qrCode, instanceName }: QRCodeMod
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-white/95 backdrop-blur-xl border border-white/30 rounded-2xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-between">
+          <DialogTitle className="flex items-center justify-between text-lg font-semibold text-gray-800">
             <span>Conectar {instanceName}</span>
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button variant="ghost" size="icon" onClick={onClose} 
+              className="hover:bg-white/20 rounded-full">
               <X className="h-4 w-4" />
             </Button>
           </DialogTitle>
@@ -36,29 +37,31 @@ export const QRCodeModal = ({ isOpen, onClose, qrCode, instanceName }: QRCodeMod
           {/* QR Code Display */}
           {qrCode ? (
             <div className="text-center space-y-4">
-              <div className="bg-white p-4 rounded-lg border-2 border-green-200 inline-block">
+              <div className="bg-white p-6 rounded-2xl border-2 border-green-200/70 inline-block
+                shadow-lg backdrop-blur-sm">
                 <img 
                   src={qrCode} 
                   alt="QR Code para conexão do WhatsApp" 
-                  className="w-64 h-64 object-contain"
+                  className="w-64 h-64 object-contain rounded-lg"
                 />
               </div>
               
-              <div className="space-y-2">
-                <h3 className="font-medium text-gray-900">
+              <div className="space-y-3">
+                <h3 className="font-semibold text-gray-900 text-lg">
                   Escaneie com seu WhatsApp
                 </h3>
-                <div className="text-sm text-gray-600 space-y-1">
-                  <p>1. Abra o WhatsApp no seu celular</p>
-                  <p>2. Vá em <strong>Menu</strong> → <strong>WhatsApp Web</strong></p>
-                  <p>3. Aponte a câmera para este QR Code</p>
+                <div className="text-sm text-gray-600 space-y-2 bg-white/20 backdrop-blur-sm 
+                  rounded-xl p-4 border border-white/30">
+                  <p><span className="font-medium">1.</span> Abra o WhatsApp no seu celular</p>
+                  <p><span className="font-medium">2.</span> Vá em <strong>Menu</strong> → <strong>WhatsApp Web</strong></p>
+                  <p><span className="font-medium">3.</span> Aponte a câmera para este QR Code</p>
                 </div>
               </div>
             </div>
           ) : (
             <div className="text-center py-8">
               <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin text-green-600" />
-              <h3 className="font-medium mb-2">Preparando QR Code...</h3>
+              <h3 className="font-semibold mb-2 text-gray-800">Preparando QR Code...</h3>
               <p className="text-sm text-gray-600">
                 Aguarde enquanto geramos seu código de conexão
               </p>
@@ -67,10 +70,10 @@ export const QRCodeModal = ({ isOpen, onClose, qrCode, instanceName }: QRCodeMod
 
           {/* Success State */}
           {isScanned && (
-            <div className="text-center py-4">
+            <div className="text-center py-4 bg-green-50/80 backdrop-blur-sm rounded-xl border border-green-200/50">
               <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-500" />
-              <h3 className="font-medium text-green-700 mb-2">Conectado com sucesso!</h3>
-              <p className="text-sm text-gray-600">
+              <h3 className="font-semibold text-green-700 mb-2">Conectado com sucesso!</h3>
+              <p className="text-sm text-green-600">
                 Seu WhatsApp está sendo sincronizado. Isso pode levar alguns minutos.
               </p>
             </div>
@@ -81,14 +84,15 @@ export const QRCodeModal = ({ isOpen, onClose, qrCode, instanceName }: QRCodeMod
             <Button 
               variant="outline" 
               onClick={onClose}
-              className="flex-1"
+              className="flex-1 bg-white/20 backdrop-blur-sm border-white/30 hover:bg-white/30"
             >
               Fechar
             </Button>
             {qrCode && !isScanned && (
               <Button 
                 onClick={() => setIsScanned(true)}
-                className="flex-1 bg-green-600 hover:bg-green-700"
+                className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
+                  text-white shadow-lg hover:shadow-xl transition-all duration-200"
               >
                 Já escaneei
               </Button>
@@ -97,7 +101,7 @@ export const QRCodeModal = ({ isOpen, onClose, qrCode, instanceName }: QRCodeMod
 
           {/* Tips */}
           {qrCode && !isScanned && (
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <div className="bg-blue-50/80 backdrop-blur-sm p-4 rounded-xl border border-blue-200/50">
               <h4 className="font-medium text-blue-900 mb-2">💡 Dicas:</h4>
               <ul className="text-sm text-blue-700 space-y-1">
                 <li>• Mantenha a câmera estável ao escanear</li>
