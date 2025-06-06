@@ -62,7 +62,7 @@ export function RealClientsLayout({
       
       {/* Add/Edit Client Dialog */}
       <Dialog open={isFormOpen} onOpenChange={onFormOpenChange}>
-        <DialogContent className="sm:max-w-md bg-white border border-gray-200 shadow-xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white border border-gray-200 shadow-xl">
           <DialogHeader>
             <DialogTitle className="text-gray-900">
               {isEditing ? "Editar Cliente" : "Adicionar Novo Cliente"}
