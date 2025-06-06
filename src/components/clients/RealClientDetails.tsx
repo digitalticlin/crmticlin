@@ -5,9 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Edit, User, X } from "lucide-react";
 import { BasicInfoSection } from "./ClientDetailsSections/BasicInfoSection";
+import { DocumentSection } from "./ClientDetailsSections/DocumentSection";
+import { AddressSection } from "./ClientDetailsSections/AddressSection";
+import { ContactsSection } from "./ClientDetailsSections/ContactsSection";
 import { PurchaseValueSection } from "./ClientDetailsSections/PurchaseValueSection";
 import { NotesSection } from "./ClientDetailsSections/NotesSection";
-import { SystemInfoSection } from "./ClientDetailsSections/SystemInfoSection";
+import { LeadSystemInfoSection } from "./ClientDetailsSections/LeadSystemInfoSection";
 import { DealsHistorySection } from "./ClientDetailsSections/DealsHistorySection";
 
 interface RealClientDetailsProps {
@@ -36,7 +39,7 @@ export function RealClientDetails({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden bg-white border border-gray-200 shadow-xl">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden bg-white border border-gray-200 shadow-xl">
         <DialogHeader className="border-b border-gray-100 pb-4 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -78,15 +81,18 @@ export function RealClientDetails({
             {/* Coluna Esquerda */}
             <div className="space-y-6">
               <BasicInfoSection client={client} />
+              <DocumentSection client={client} />
+              <AddressSection client={client} />
+              <ContactsSection client={client} />
               <PurchaseValueSection 
                 client={client} 
                 onUpdatePurchaseValue={onUpdatePurchaseValue} 
               />
-              <SystemInfoSection client={client} />
             </div>
             
             {/* Coluna Direita */}
             <div className="space-y-6">
+              <LeadSystemInfoSection client={client} />
               <NotesSection 
                 client={client} 
                 onUpdateNotes={onUpdateNotes} 
