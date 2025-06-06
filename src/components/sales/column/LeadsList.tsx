@@ -44,17 +44,18 @@ export const LeadsList = ({
           ref={provided.innerRef}
           {...provided.droppableProps}
           className={cn(
-            "min-h-full transition-all duration-200 rounded-3xl",
+            "flex-1 h-full overflow-y-auto kanban-column-scrollbar transition-all duration-200 rounded-3xl p-2",
             (typeof hoveredIndex === "number" || snapshot.isDraggingOver) && "overflow-visible",
             snapshot.isDraggingOver &&
-              "ring-2 ring-ticlin/80 bg-[#fffde8] dark:bg-neutral-900/80 shadow-lg scale-[1.02]"
+              "ring-2 ring-ticlin/80 bg-white/10 shadow-lg scale-[1.02]"
           )}
           style={{
             transition: "background-color 0.3s, transform 0.25s, border 0.2s",
-            minHeight: "120px",
+            minHeight: "200px",
+            maxHeight: "calc(100vh - 280px)",
             position: "relative",
             zIndex: 2,
-            overflow: (typeof hoveredIndex === "number" || snapshot.isDraggingOver) ? "visible" : "unset",
+            overflow: (typeof hoveredIndex === "number" || snapshot.isDraggingOver) ? "visible" : "auto",
           }}
         >
           {leads.map((lead, index) => (

@@ -56,7 +56,13 @@ export const KanbanColumn = ({
 
   return (
     <div
-      className="flex flex-col min-h-full w-80 bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-lg border border-white/30 rounded-2xl shadow-lg"
+      className="flex flex-col h-full w-80 bg-white/20 backdrop-blur-xl border border-white/40 rounded-3xl shadow-2xl hover:shadow-3xl transition-all duration-500 hover:bg-white/25"
+      style={{
+        background: 'linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.15) 100%)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderImage: 'linear-gradient(135deg, rgba(255,255,255,0.6), rgba(255,255,255,0.2)) 1',
+      }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >

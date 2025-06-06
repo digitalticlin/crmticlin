@@ -1,6 +1,6 @@
 
-import { LeadsList } from "./LeadsList";
 import { KanbanLead } from "@/types/kanban";
+import { LeadsList } from "./LeadsList";
 
 interface ColumnContentProps {
   columnId: string;
@@ -32,19 +32,21 @@ export const ColumnContent = ({
   lostStageId
 }: ColumnContentProps) => {
   return (
-    <LeadsList
-      columnId={columnId}
-      leads={leads}
-      onOpenLeadDetail={onOpenLeadDetail}
-      onOpenChat={onOpenChat}
-      onMoveToWonLost={onMoveToWonLost}
-      onReturnToFunnel={onReturnToFunnel}
-      isWonLostView={isWonLostView}
-      renderClone={renderClone}
-      onAnyCardMouseEnter={onAnyCardMouseEnter}
-      onAnyCardMouseLeave={onAnyCardMouseLeave}
-      wonStageId={wonStageId}
-      lostStageId={lostStageId}
-    />
+    <div className="flex-1 flex flex-col h-full min-h-0">
+      <LeadsList
+        columnId={columnId}
+        leads={leads}
+        onOpenLeadDetail={onOpenLeadDetail}
+        onOpenChat={onOpenChat}
+        onMoveToWonLost={onMoveToWonLost}
+        onReturnToFunnel={onReturnToFunnel}
+        isWonLostView={isWonLostView}
+        renderClone={renderClone}
+        onAnyCardMouseEnter={onAnyCardMouseEnter}
+        onAnyCardMouseLeave={onAnyCardMouseLeave}
+        wonStageId={wonStageId}
+        lostStageId={lostStageId}
+      />
+    </div>
   );
 };
