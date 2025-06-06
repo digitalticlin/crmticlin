@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { RefreshCcw, Database, AlertTriangle, CheckCircle, XCircle, Loader2, Globe } from "lucide-react";
+import { RefreshCcw, Database, AlertTriangle, CheckCircle, XCircle, Loader2, Globe, Settings, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -27,6 +27,8 @@ interface SyncResult {
 
 export const GlobalInstanceSync = () => {
   const [isRunning, setIsRunning] = useState(false);
+  const [isStatusSync, setIsStatusSync] = useState(false);
+  const [isOrphanSync, setIsOrphanSync] = useState(false);
   const [result, setResult] = useState<SyncResult | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
 
@@ -49,7 +51,7 @@ export const GlobalInstanceSync = () => {
       
       const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
         body: {
-          action: 'sync_instances'
+          action: 'sync_all_instances'
         }
       });
 
@@ -140,9 +142,151 @@ export const GlobalInstanceSync = () => {
     }
   };
 
+  const executeStatusSync = async () => {
+    setIsStatusSync(true);
+    setLogs([]);
+    setResult(null);
+    
+    addLog("🔧 Iniciando sincronização de status e configuração de webhooks...");
+    addLog("⚙️ Configurando webhooks na VPS e atualizando status...");
+
+    try {
+      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+        body: {
+          action: 'sync_status_webhooks'
+        }
+      });
+
+      if (error) {
+        addLog(`❌ Erro na requisição: ${error.message}`);
+        throw error;
+      }
+
+      if (data && data.success) {
+        const summary = data.data || {};
+        
+        addLog(`✅ Sincronização de status concluída!`);
+        addLog(`🔗 Webhooks configurados: ${summary.webhooksConfigured || 0}`);
+        addLog(`🔄 Status atualizados: ${summary.statusUpdated || 0}`);
+        addLog(`📊 Instâncias processadas: ${summary.processedCount || 0}`);
+        
+        setResult({
+          success: true,
+          data: {
+            syncId: summary.syncId || 'status-sync',
+            syncedCount: summary.statusUpdated || 0,
+            createdCount: 0,
+            updatedCount: summary.statusUpdated || 0,
+            errorCount: summary.errorCount || 0,
+            vpsInstancesCount: summary.processedCount || 0,
+            supabaseInstancesCount: summary.statusUpdated || 0,
+            syncLog: summary.syncLog || [],
+            message: 'Webhooks configurados e status sincronizados com sucesso'
+          }
+        });
+
+        toast.success(`Status sincronizado! ${summary.statusUpdated || 0} instâncias atualizadas`);
+      } else {
+        const errorMessage = data?.error || 'Erro desconhecido na sincronização de status';
+        addLog(`❌ Falha na sincronização: ${errorMessage}`);
+        
+        setResult({
+          success: false,
+          error: errorMessage
+        });
+        
+        toast.error(`Falha na sincronização: ${errorMessage}`);
+      }
+    } catch (error: any) {
+      const errorMessage = error.message || 'Erro inesperado';
+      addLog(`💥 Erro inesperado: ${errorMessage}`);
+      
+      setResult({
+        success: false,
+        error: errorMessage
+      });
+      
+      toast.error(`Erro na sincronização: ${errorMessage}`);
+    } finally {
+      setIsStatusSync(false);
+      addLog("🏁 Sincronização de status finalizada");
+    }
+  };
+
+  const executeOrphanSync = async () => {
+    setIsOrphanSync(true);
+    setLogs([]);
+    setResult(null);
+    
+    addLog("👥 Iniciando sincronização de instâncias órfãs...");
+    addLog("🔍 Buscando instâncias não vinculadas na VPS...");
+
+    try {
+      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+        body: {
+          action: 'sync_orphan_instances'
+        }
+      });
+
+      if (error) {
+        addLog(`❌ Erro na requisição: ${error.message}`);
+        throw error;
+      }
+
+      if (data && data.success) {
+        const summary = data.data || {};
+        
+        addLog(`✅ Sincronização de órfãs concluída!`);
+        addLog(`🆕 Órfãs importadas: ${summary.orphansImported || 0}`);
+        addLog(`🔄 Órfãs atualizadas: ${summary.orphansUpdated || 0}`);
+        addLog(`📊 Total processadas: ${summary.totalProcessed || 0}`);
+        
+        setResult({
+          success: true,
+          data: {
+            syncId: summary.syncId || 'orphan-sync',
+            syncedCount: summary.orphansImported || 0,
+            createdCount: summary.orphansImported || 0,
+            updatedCount: summary.orphansUpdated || 0,
+            errorCount: summary.errorCount || 0,
+            vpsInstancesCount: summary.totalProcessed || 0,
+            supabaseInstancesCount: summary.orphansImported || 0,
+            syncLog: summary.syncLog || [],
+            message: 'Instâncias órfãs importadas com sucesso'
+          }
+        });
+
+        toast.success(`Órfãs sincronizadas! ${summary.orphansImported || 0} instâncias importadas`);
+      } else {
+        const errorMessage = data?.error || 'Erro desconhecido na sincronização de órfãs';
+        addLog(`❌ Falha na sincronização: ${errorMessage}`);
+        
+        setResult({
+          success: false,
+          error: errorMessage
+        });
+        
+        toast.error(`Falha na sincronização: ${errorMessage}`);
+      }
+    } catch (error: any) {
+      const errorMessage = error.message || 'Erro inesperado';
+      addLog(`💥 Erro inesperado: ${errorMessage}`);
+      
+      setResult({
+        success: false,
+        error: errorMessage
+      });
+      
+      toast.error(`Erro na sincronização: ${errorMessage}`);
+    } finally {
+      setIsOrphanSync(false);
+      addLog("🏁 Sincronização de órfãs finalizada");
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Controles */}
+      {/* Controles Principais */}
       <Card className="bg-white/30 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -150,13 +294,14 @@ export const GlobalInstanceSync = () => {
             Sincronização Global de Instâncias
           </CardTitle>
           <p className="text-sm text-gray-600">
-            Sincroniza todas as instâncias da VPS para o Supabase, incluindo órfãs
+            Gerencie e sincronize todas as instâncias da VPS com o Supabase
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Sincronização Completa */}
           <Button
             onClick={executeGlobalSync}
-            disabled={isRunning}
+            disabled={isRunning || isStatusSync || isOrphanSync}
             className="gap-2 w-full"
             size="lg"
           >
@@ -168,10 +313,65 @@ export const GlobalInstanceSync = () => {
             ) : (
               <>
                 <RefreshCcw className="h-4 w-4" />
-                Executar Sincronização Global
+                Sincronização Completa
               </>
             )}
           </Button>
+
+          <Separator />
+
+          {/* Sincronizações Específicas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Sincronizar Status */}
+            <Button
+              onClick={executeStatusSync}
+              disabled={isRunning || isStatusSync || isOrphanSync}
+              variant="outline"
+              className="gap-2 h-auto p-4 flex-col items-start"
+            >
+              {isStatusSync ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Configurando...
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 w-full">
+                    <Settings className="h-4 w-4" />
+                    <span className="font-medium">Sincronizar Status</span>
+                  </div>
+                  <span className="text-xs text-gray-500 text-left">
+                    Configura webhooks e atualiza status de instâncias conectadas
+                  </span>
+                </>
+              )}
+            </Button>
+
+            {/* Sincronizar Órfãs */}
+            <Button
+              onClick={executeOrphanSync}
+              disabled={isRunning || isStatusSync || isOrphanSync}
+              variant="outline"
+              className="gap-2 h-auto p-4 flex-col items-start"
+            >
+              {isOrphanSync ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Importando...
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 w-full">
+                    <Users className="h-4 w-4" />
+                    <span className="font-medium">Sincronizar Órfãs</span>
+                  </div>
+                  <span className="text-xs text-gray-500 text-left">
+                    Importa instâncias não vinculadas da VPS
+                  </span>
+                </>
+              )}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -301,15 +501,29 @@ export const GlobalInstanceSync = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-sm">
             <AlertTriangle className="h-4 w-4 text-blue-500" />
-            Como funciona a sincronização
+            Como funcionam as sincronizações
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-sm text-gray-600 space-y-2">
-          <p>• <strong>Busca todas as instâncias</strong> - Consulta a VPS para obter todas as instâncias ativas</p>
-          <p>• <strong>Compara com o Supabase</strong> - Verifica quais instâncias já existem no banco</p>
-          <p>• <strong>Cria instâncias órfãs</strong> - Adiciona instâncias que existem na VPS mas não no Supabase</p>
-          <p>• <strong>Atualiza dados existentes</strong> - Sincroniza informações das instâncias já cadastradas</p>
-          <p>• <strong>Resultado</strong> - Após a sincronização, todas as instâncias órfãs ficarão visíveis no painel de gerenciamento</p>
+        <CardContent className="text-sm text-gray-600 space-y-3">
+          <div>
+            <p className="font-medium text-gray-800 mb-1">🔄 Sincronização Completa:</p>
+            <p>• Busca todas as instâncias da VPS e compara com o Supabase</p>
+            <p>• Cria instâncias órfãs e atualiza dados existentes</p>
+          </div>
+          
+          <div>
+            <p className="font-medium text-gray-800 mb-1">⚙️ Sincronizar Status:</p>
+            <p>• Configura webhooks globais na VPS</p>
+            <p>• Atualiza status de instâncias conectadas que não atualizaram automaticamente</p>
+            <p>• Ideal para instâncias criadas antes da configuração de webhooks</p>
+          </div>
+          
+          <div>
+            <p className="font-medium text-gray-800 mb-1">👥 Sincronizar Órfãs:</p>
+            <p>• Importa instâncias da VPS que não estão no Supabase</p>
+            <p>• Cria registros com `created_by_user_id = NULL`</p>
+            <p>• Permite gerenciamento manual posterior (excluir ou vincular usuários)</p>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -12,6 +12,8 @@ import { sendMessage } from './messageSendingService.ts';
 import { getChatHistory } from './chatHistoryService.ts';
 import { importChatHistory } from './chatHistoryService.ts';
 import { configureWebhookForInstance, removeWebhookForInstance } from './webhookConfigurationService.ts';
+import { syncStatusAndWebhooks } from './statusSyncService.ts';
+import { syncOrphanInstances } from './orphanSyncService.ts';
 
 Deno.serve(async (req) => {
   console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED - FASE 2.0 BACKEND COMPLETO');
@@ -113,6 +115,22 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify(syncResult), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: syncResult.success ? 200 : 500
+        });
+
+      case 'sync_status_webhooks':
+        console.log('[WhatsApp Server] ⚙️ SYNC STATUS WEBHOOKS');
+        const statusSyncResult = await syncStatusAndWebhooks(supabase);
+        return new Response(JSON.stringify(statusSyncResult), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: statusSyncResult.success ? 200 : 500
+        });
+
+      case 'sync_orphan_instances':
+        console.log('[WhatsApp Server] 👥 SYNC ORPHAN INSTANCES');
+        const orphanSyncResult = await syncOrphanInstances(supabase);
+        return new Response(JSON.stringify(orphanSyncResult), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: orphanSyncResult.success ? 200 : 500
         });
 
       case 'send_message':
