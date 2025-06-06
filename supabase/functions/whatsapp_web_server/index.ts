@@ -9,7 +9,7 @@ import { deleteWhatsAppInstance } from './instanceDeletionService.ts';
 import { checkServerHealth, getServerInfo } from './serverHealthService.ts';
 import { syncInstances } from './instanceSyncService.ts';
 import { sendMessage } from './messageSendingService.ts';
-import { getChatHistory } from './chatHistoryService.ts';
+import { getChatHistory } from './chatHistoryGetService.ts';
 import { importChatHistory } from './chatHistoryService.ts';
 import { configureWebhookForInstance, removeWebhookForInstance } from './webhookConfigurationService.ts';
 import { syncStatusAndWebhooks } from './statusSyncService.ts';
