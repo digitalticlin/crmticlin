@@ -11,7 +11,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 const ProfileSettings = () => {
   const { profileData, loading } = useProfileSettings();
   const { email } = useAuthSession();
-  const { userRole } = useUserRole();
+  const { role } = useUserRole(); // Use 'role' instead of 'userRole'
 
   if (loading) {
     return (
@@ -27,14 +27,14 @@ const ProfileSettings = () => {
     );
   }
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     // Implementar mudança de senha se necessário
     console.log("Mudança de senha não implementada");
   };
 
   return (
     <div className="space-y-8">
-      <AccountInfoSection userRole={userRole} />
+      <AccountInfoSection userRole={role} />
       
       <ProfileAvatarSection 
         avatarUrl={profileData.avatar_url} 
