@@ -22,37 +22,25 @@ export const useProfileData = () => {
     try {
       console.log('[Profile Data] 🔄 Carregando dados completos do perfil para:', userId);
       
-      // Buscar os dados do perfil do usuário com informações completas da empresa
-      const { data: profile, error } = await supabase
+      // Buscar os dados do perfil do usuário
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          companies (
-            id,
-            name,
-            document_id,
-            phone,
-            email,
-            active
-          )
-        `)
+        .select('*')
         .eq('id', userId)
         .maybeSingle();
       
-      if (error && error.code !== 'PGRST116') {
-        console.error("❌ Erro ao carregar perfil:", error);
+      if (profileError) {
+        console.error("❌ Erro ao carregar perfil:", profileError);
         toast.error("Não foi possível carregar os dados do perfil");
         return { profile: null, company: null };
       } 
       
       if (profile) {
-        console.log('[Profile Data] ✅ Dados completos carregados:', {
+        console.log('[Profile Data] ✅ Perfil encontrado:', {
           userId: profile.id,
           name: profile.full_name,
           role: profile.role,
-          companyId: profile.company_id,
-          companyName: profile.companies?.name,
-          hasCompany: !!profile.companies
+          companyId: profile.company_id
         });
         
         // Definir dados do perfil
@@ -61,6 +49,33 @@ export const useProfileData = () => {
         setWhatsapp(profile.whatsapp || "");
         setAvatarUrl(profile.avatar_url);
         setUserRole(profile.role);
+        
+        let company = null;
+        
+        // Se o perfil tem company_id, buscar os dados da empresa
+        if (profile.company_id) {
+          console.log('[Profile Data] 🏢 Buscando dados da empresa:', profile.company_id);
+          
+          const { data: companyData, error: companyError } = await supabase
+            .from('companies')
+            .select('*')
+            .eq('id', profile.company_id)
+            .maybeSingle();
+            
+          if (companyError) {
+            console.error("❌ Erro ao carregar empresa:", companyError);
+          } else if (companyData) {
+            console.log('[Profile Data] ✅ Empresa encontrada:', companyData.name);
+            company = {
+              id: companyData.id,
+              name: companyData.name,
+              document_id: companyData.document_id,
+              phone: companyData.phone,
+              email: companyData.email,
+              active: companyData.active
+            };
+          }
+        }
         
         // Retornar dados estruturados
         return {
@@ -73,14 +88,7 @@ export const useProfileData = () => {
             role: profile.role,
             company_id: profile.company_id
           },
-          company: profile.companies ? {
-            id: profile.companies.id,
-            name: profile.companies.name,
-            document_id: profile.companies.document_id,
-            phone: profile.companies.phone,
-            email: profile.companies.email,
-            active: profile.companies.active
-          } : null
+          company
         };
       } else {
         console.log('[Profile Data] ⚠️ Perfil não encontrado para usuário:', userId);

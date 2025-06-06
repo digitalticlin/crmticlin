@@ -39,12 +39,12 @@ export const useProfileSettings = () => {
   const { handleChangePassword } = useAuthActions();
 
   /**
-   * Centralized function to load all user data
+   * Centralized function to load all user data from Supabase
    */
   const loadUserData = async (forceReload = false) => {
     try {
       setSyncStatus('syncing');
-      console.log('[Profile Settings] 🚀 Iniciando carregamento centralizado...');
+      console.log('[Profile Settings] 🚀 Iniciando carregamento dos dados do Supabase...');
       
       // Obter a sessão atual
       const { data: { session } } = await supabase.auth.getSession();
@@ -66,7 +66,7 @@ export const useProfileSettings = () => {
       const { profile, company } = await loadCompleteProfileData(session.user.id);
       
       if (profile) {
-        console.log('[Profile Settings] ✅ Dados do perfil carregados:', {
+        console.log('[Profile Settings] ✅ Dados do perfil carregados do Supabase:', {
           name: profile.full_name,
           role: profile.role,
           companyId: profile.company_id,
@@ -75,39 +75,26 @@ export const useProfileSettings = () => {
         
         // Atualizar dados da empresa se existir
         if (company) {
-          console.log('[Profile Settings] 🏢 Empresa vinculada encontrada:', company.name);
+          console.log('[Profile Settings] 🏢 Empresa vinculada encontrada no Supabase:', company.name);
           setCompanyData(company);
-        } else if (profile.company_id) {
-          console.log('[Profile Settings] ⚠️ Perfil tem company_id mas empresa não foi carregada');
-          // Tentar carregar empresa separadamente como fallback
-          try {
-            const { data: fallbackCompany, error } = await supabase
-              .from('companies')
-              .select('*')
-              .eq('id', profile.company_id)
-              .maybeSingle();
-            
-            if (fallbackCompany && !error) {
-              console.log('[Profile Settings] 🔄 Empresa carregada via fallback:', fallbackCompany.name);
-              setCompanyData(fallbackCompany);
-            }
-          } catch (fallbackError) {
-            console.error('[Profile Settings] ❌ Erro no fallback da empresa:', fallbackError);
-          }
+        } else {
+          console.log('[Profile Settings] ⚠️ Nenhuma empresa vinculada encontrada');
+          // Limpar dados da empresa se não existir
+          setCompanyData(null);
         }
         
         setSyncStatus('success');
-        toast.success("Dados carregados com sucesso!");
+        toast.success("Dados carregados do Supabase com sucesso!");
       } else {
-        console.log('[Profile Settings] ⚠️ Perfil não encontrado');
+        console.log('[Profile Settings] ⚠️ Perfil não encontrado no Supabase');
         setSyncStatus('error');
-        toast.warning("Perfil não encontrado no sistema");
+        toast.warning("Perfil não encontrado no Supabase");
       }
       
     } catch (error) {
-      console.error("❌ Erro ao carregar dados do usuário:", error);
+      console.error("❌ Erro ao carregar dados do Supabase:", error);
       setSyncStatus('error');
-      toast.error("Ocorreu um erro ao carregar seus dados");
+      toast.error("Ocorreu um erro ao carregar dados do Supabase");
     } finally {
       setLoading(false);
     }
@@ -131,7 +118,7 @@ export const useProfileSettings = () => {
 
   // Função para re-sincronizar dados manualmente
   const handleResync = async () => {
-    console.log('[Profile Settings] 🔄 Re-sincronização manual solicitada');
+    console.log('[Profile Settings] 🔄 Re-sincronização manual com Supabase solicitada');
     await loadUserData(true);
   };
 
@@ -149,13 +136,13 @@ export const useProfileSettings = () => {
     
     try {
       setSaving(true);
-      console.log('[Profile Settings] 💾 Iniciando salvamento...');
+      console.log('[Profile Settings] 💾 Salvando no Supabase...');
       
       // Save company data first
       const newCompanyId = await saveCompany(companyName);
       
       if (!newCompanyId) {
-        toast.error("Erro ao salvar dados da empresa");
+        toast.error("Erro ao salvar dados da empresa no Supabase");
         return;
       }
       
@@ -163,8 +150,8 @@ export const useProfileSettings = () => {
       const profileSaved = await saveProfileData(user.id, newCompanyId);
       
       if (profileSaved) {
-        toast.success("Perfil atualizado com sucesso!");
-        console.log('[Profile Settings] ✅ Perfil salvo com sucesso');
+        toast.success("Perfil atualizado no Supabase com sucesso!");
+        console.log('[Profile Settings] ✅ Perfil salvo no Supabase com sucesso');
         
         // Atualizar company_id local se mudou
         if (newCompanyId !== companyId) {
@@ -175,8 +162,8 @@ export const useProfileSettings = () => {
         await loadUserData(true);
       }
     } catch (error: any) {
-      console.error("❌ Erro ao atualizar perfil:", error);
-      toast.error(error.message || "Não foi possível atualizar o perfil");
+      console.error("❌ Erro ao atualizar perfil no Supabase:", error);
+      toast.error(error.message || "Não foi possível atualizar o perfil no Supabase");
     } finally {
       setSaving(false);
     }
