@@ -33,35 +33,41 @@ export const SelectStageModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Selecionar Etapa do Funil</DialogTitle>
+      <DialogContent className="max-w-md bg-white/90 backdrop-blur-xl border border-white/30 rounded-3xl shadow-glass">
+        <DialogHeader className="pb-6">
+          <DialogTitle className="text-xl font-bold text-gray-800 text-center">
+            Selecionar Etapa do Funil
+          </DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
+        <div className="space-y-6">
+          <p className="text-sm text-gray-600 text-center">
             Para qual etapa deseja mover o lead "{lead?.name}"?
           </p>
           
-          <div className="space-y-2">
+          <div className="space-y-3">
             {funnelStages.map((stage) => (
               <Button
                 key={stage.id}
                 variant="outline"
-                className="w-full justify-start"
+                className="w-full justify-start bg-white/50 hover:bg-white/70 border-white/40 rounded-xl transition-all duration-200 p-4"
                 onClick={() => handleStageSelect(stage.id)}
               >
                 <div
-                  className="w-3 h-3 rounded-full mr-3"
+                  className="w-4 h-4 rounded-full mr-3 shadow-sm"
                   style={{ backgroundColor: stage.color || "#e0e0e0" }}
                 />
-                {stage.title}
+                <span className="font-medium text-gray-700">{stage.title}</span>
               </Button>
             ))}
           </div>
           
-          <div className="flex justify-end pt-4">
-            <Button variant="ghost" onClick={onClose}>
+          <div className="flex justify-center pt-4">
+            <Button 
+              variant="ghost" 
+              onClick={onClose}
+              className="px-6 py-2 hover:bg-white/30 rounded-xl transition-all duration-200"
+            >
               Cancelar
             </Button>
           </div>
