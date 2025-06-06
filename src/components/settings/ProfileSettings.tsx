@@ -6,7 +6,7 @@ import { useProfileSettings } from "@/hooks/useProfileSettings";
 import ProfileAvatar from "./ProfileAvatar";
 import ProfileForm from "./ProfileForm";
 import SecuritySection from "./SecuritySection";
-import ProfileActions from "./ProfileActions";
+import AccountStatusCards from "./AccountStatusCards";
 
 const ProfileSettings = () => {
   const isMobile = useIsMobile();
@@ -49,8 +49,14 @@ const ProfileSettings = () => {
 
   return (
     <div className="space-y-8">
+      {/* Cards de Status da Conta */}
+      <AccountStatusCards 
+        userEmail={email}
+        userName={fullName}
+      />
+
       {/* Avatar Section */}
-      <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in">
+      <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "100ms" }}>
         <div className="flex items-center space-x-4 mb-6">
           <div className="p-3 bg-gradient-to-r from-[#D3D800]/20 to-[#D3D800]/10 rounded-2xl">
             <Camera className="h-6 w-6 text-[#D3D800]" />
@@ -68,7 +74,7 @@ const ProfileSettings = () => {
       </div>
 
       {/* Personal Information */}
-      <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "100ms" }}>
+      <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "200ms" }}>
         <div className="flex items-center space-x-4 mb-6">
           <div className="p-3 bg-gradient-to-r from-blue-500/20 to-blue-400/10 rounded-2xl">
             <User className="h-6 w-6 text-blue-400" />
@@ -95,7 +101,7 @@ const ProfileSettings = () => {
       </div>
 
       {/* Company Information */}
-      <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "200ms" }}>
+      <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "300ms" }}>
         <div className="flex items-center space-x-4 mb-6">
           <div className="p-3 bg-gradient-to-r from-purple-500/20 to-purple-400/10 rounded-2xl">
             <Building2 className="h-6 w-6 text-purple-400" />
@@ -137,7 +143,7 @@ const ProfileSettings = () => {
       </div>
 
       {/* Security Section */}
-      <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "300ms" }}>
+      <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "400ms" }}>
         <div className="flex items-center space-x-4 mb-6">
           <div className="p-3 bg-gradient-to-r from-red-500/20 to-red-400/10 rounded-2xl">
             <Shield className="h-6 w-6 text-red-400" />
@@ -155,7 +161,7 @@ const ProfileSettings = () => {
       </div>
 
       {/* Actions */}
-      <div className="flex justify-end animate-fade-in" style={{ animationDelay: "400ms" }}>
+      <div className="flex justify-end animate-fade-in" style={{ animationDelay: "500ms" }}>
         <div className={cn(
           "flex gap-4",
           isMobile ? "flex-col w-full" : "flex-row"

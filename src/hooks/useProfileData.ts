@@ -11,6 +11,7 @@ export const useProfileData = () => {
   const [documentId, setDocumentId] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   
   /**
    * Loads profile data for a user
@@ -19,29 +20,46 @@ export const useProfileData = () => {
    */
   const loadProfileData = async (userId: string): Promise<string | null> => {
     try {
-      // Buscar os dados do perfil do usuário
+      console.log('[Profile Data] Carregando dados do perfil para:', userId);
+      
+      // Buscar os dados do perfil do usuário com informações da empresa
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          *,
+          companies (
+            id,
+            name
+          )
+        `)
         .eq('id', userId)
-        .single();
+        .maybeSingle();
       
-      if (error) {
+      if (error && error.code !== 'PGRST116') {
         console.error("Erro ao carregar perfil:", error);
         toast.error("Não foi possível carregar os dados do perfil");
         return null;
       } 
       
       if (profile) {
+        console.log('[Profile Data] Perfil carregado:', {
+          name: profile.full_name,
+          role: profile.role,
+          companyId: profile.company_id,
+          companyName: profile.companies?.name
+        });
+        
         setFullName(profile.full_name || "");
         setDocumentId(profile.document_id || "");
         setWhatsapp(profile.whatsapp || "");
         setAvatarUrl(profile.avatar_url);
+        setUserRole(profile.role);
         
         return profile.company_id || null;
+      } else {
+        console.log('[Profile Data] Perfil não encontrado');
+        return null;
       }
-      
-      return null;
     } catch (error) {
       console.error("Erro ao carregar perfil:", error);
       return null;
@@ -66,6 +84,8 @@ export const useProfileData = () => {
         updateData.company_id = companyId;
       }
       
+      console.log('[Profile Data] Salvando dados do perfil:', updateData);
+      
       // Atualizar o perfil do usuário
       const { error: profileError } = await supabase
         .from('profiles')
@@ -76,6 +96,7 @@ export const useProfileData = () => {
         throw profileError;
       }
       
+      console.log('[Profile Data] Perfil salvo com sucesso');
       return true;
     } catch (error: any) {
       console.error("Erro ao atualizar perfil:", error);
@@ -93,6 +114,8 @@ export const useProfileData = () => {
     setWhatsapp,
     avatarUrl,
     setAvatarUrl,
+    userRole,
+    setUserRole,
     loadProfileData,
     saveProfileData
   };

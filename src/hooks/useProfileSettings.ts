@@ -20,6 +20,7 @@ export const useProfileSettings = () => {
     documentId, setDocumentId, 
     whatsapp, setWhatsapp, 
     avatarUrl,
+    userRole,
     loadProfileData, 
     saveProfileData 
   } = useProfileData();
@@ -37,27 +38,35 @@ export const useProfileSettings = () => {
   useEffect(() => {
     const fetchUserProfile = async () => {
       try {
+        console.log('[Profile Settings] Iniciando carregamento do perfil...');
+        
         // Obter a sessão atual
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session) {
+          console.log('[Profile Settings] Usuário não autenticado');
           setLoading(false);
           return;
         }
 
+        console.log('[Profile Settings] Usuário autenticado:', session.user.email);
+        
         setUser(session.user);
         setEmail(session.user.email || "");
         setUsername(generateUsername(session.user.email || ""));
         
+        // Carregar dados do perfil (que já inclui dados da empresa)
         const foundCompanyId = await loadProfileData(session.user.id);
         
-        // Buscar dados da empresa do usuário
-        if (foundCompanyId) {
+        if (foundCompanyId && foundCompanyId !== companyId) {
+          console.log('[Profile Settings] Company ID encontrado no perfil:', foundCompanyId);
           setCompanyId(foundCompanyId);
-          await fetchCompanyData(foundCompanyId);
+          // A empresa já foi carregada no useCompanyData
         }
+        
+        console.log('[Profile Settings] Perfil carregado com sucesso');
       } catch (error) {
-        console.error("Erro:", error);
+        console.error("Erro ao carregar perfil:", error);
         toast.error("Ocorreu um erro ao carregar seus dados");
       } finally {
         setLoading(false);
@@ -80,7 +89,10 @@ export const useProfileSettings = () => {
 
   // Função para salvar as alterações do perfil
   const handleSaveChanges = async () => {
-    if (!user) return;
+    if (!user) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
     
     if (!companyName.trim()) {
       toast.error("O campo RAZAO SOCIAL ou NOME é obrigatório");
@@ -89,14 +101,27 @@ export const useProfileSettings = () => {
     
     try {
       setSaving(true);
+      console.log('[Profile Settings] Iniciando salvamento...');
       
       // Save company data first
       const newCompanyId = await saveCompany(companyName);
       
+      if (!newCompanyId) {
+        toast.error("Erro ao salvar dados da empresa");
+        return;
+      }
+      
       // Then save profile data
-      if (newCompanyId) {
-        await saveProfileData(user.id, newCompanyId);
+      const profileSaved = await saveProfileData(user.id, newCompanyId);
+      
+      if (profileSaved) {
         toast.success("Perfil atualizado com sucesso!");
+        console.log('[Profile Settings] Perfil salvo com sucesso');
+        
+        // Atualizar company_id local se mudou
+        if (newCompanyId !== companyId) {
+          setCompanyId(newCompanyId);
+        }
       }
     } catch (error: any) {
       console.error("Erro ao atualizar perfil:", error);
@@ -116,6 +141,7 @@ export const useProfileSettings = () => {
     documentId,
     whatsapp,
     avatarUrl,
+    userRole,
     user,
     setFullName,
     setCompanyName,
