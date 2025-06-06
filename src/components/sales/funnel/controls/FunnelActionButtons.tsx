@@ -1,84 +1,104 @@
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Settings, RefreshCw } from "lucide-react";
+import { Settings, Tag, UserPlus } from "lucide-react";
+import { TagManagementModal } from "../modals/TagManagementModal";
+import { FunnelConfigModal } from "../modals/FunnelConfigModal";
+import { RealClientDetails } from "@/components/clients/RealClientDetails";
+import { useCompanyData } from "@/hooks/useCompanyData";
+import { useCreateClientMutation } from "@/hooks/clients/mutations";
+import { ClientData } from "@/hooks/clients/types";
 import { useSalesFunnelContext } from "../SalesFunnelProvider";
 
 interface FunnelActionButtonsProps {
-  onOpenConfig?: () => void;
-  onRefresh?: () => void;
-  isRefreshing?: boolean;
-  isAdmin?: boolean;
+  isAdmin: boolean;
 }
 
-export const FunnelActionButtons = ({ 
-  onOpenConfig, 
-  onRefresh, 
-  isRefreshing = false,
-  isAdmin: propIsAdmin
-}: FunnelActionButtonsProps) => {
-  const { 
-    addColumn,
-    isAdmin: contextIsAdmin,
-    refetchLeads,
-    refetchStages 
-  } = useSalesFunnelContext();
+export const FunnelActionButtons = ({ isAdmin }: FunnelActionButtonsProps) => {
+  const [isTagModalOpen, setIsTagModalOpen] = useState(false);
+  const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
+  const [isFunnelConfigOpen, setIsFunnelConfigOpen] = useState(false);
+  
+  const { companyId } = useCompanyData();
+  const { selectedFunnel, stages, refetchLeads } = useSalesFunnelContext();
+  const createClientMutation = useCreateClientMutation(companyId);
 
-  // Use prop isAdmin if provided, otherwise use context isAdmin
-  const isAdmin = propIsAdmin !== undefined ? propIsAdmin : contextIsAdmin;
+  const handleCreateLead = async (data: Partial<ClientData>) => {
+    if (!selectedFunnel) return;
 
-  const handleAddColumn = async () => {
-    const title = prompt("Nome da nova etapa:");
-    if (title) {
-      await addColumn(title);
-      await refetchStages();
+    // Encontrar a primeira etapa do funil (entrada)
+    const entryStage = stages.find(s => s.order_position === 0) || stages[0];
+    
+    try {
+      await createClientMutation.mutateAsync({
+        ...data,
+        funnel_id: selectedFunnel.id,
+        kanban_stage_id: entryStage?.id,
+      } as any);
+      
+      setIsLeadModalOpen(false);
+      refetchLeads();
+    } catch (error) {
+      console.error("Erro ao criar lead:", error);
     }
   };
 
-  const handleRefreshData = async () => {
-    await Promise.all([refetchLeads(), refetchStages()]);
-    onRefresh?.();
-  };
-
-  const handleOpenConfig = () => {
-    onOpenConfig?.();
-  };
-
   return (
-    <div className="flex items-center gap-2">
-      {isAdmin && (
-        <>
+    <>
+      <div className="flex items-center gap-3">
+        {/* Botão de Etiquetas */}
+        <Button
+          onClick={() => setIsTagModalOpen(true)}
+          variant="outline"
+          size="sm"
+          className="bg-white/30 backdrop-blur-sm border-white/40 hover:bg-white/50 text-gray-800 hover:text-gray-900 font-medium shadow-sm"
+        >
+          <Tag className="w-4 h-4 mr-2" />
+          Etiquetas
+        </Button>
+
+        {/* Botão de Adicionar Lead */}
+        <Button
+          onClick={() => setIsLeadModalOpen(true)}
+          variant="outline"
+          size="sm"
+          className="bg-white/30 backdrop-blur-sm border-white/40 hover:bg-white/50 text-gray-800 hover:text-gray-900 font-medium shadow-sm"
+        >
+          <UserPlus className="w-4 h-4 mr-2" />
+          Lead
+        </Button>
+
+        {/* Botão de Configurações do Funil */}
+        {isAdmin && (
           <Button
+            onClick={() => setIsFunnelConfigOpen(true)}
             variant="outline"
             size="sm"
-            onClick={handleAddColumn}
-            className="flex items-center gap-2"
+            className="bg-white/30 backdrop-blur-sm border-white/40 hover:bg-white/50 text-gray-800 hover:text-gray-900 shadow-sm"
           >
-            <Plus className="h-4 w-4" />
-            Nova Etapa
+            <Settings className="w-4 h-4" />
           </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleOpenConfig}
-            className="flex items-center gap-2"
-          >
-            <Settings className="h-4 w-4" />
-            Configurar
-          </Button>
-        </>
-      )}
-      
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleRefreshData}
-        disabled={isRefreshing}
-        className="flex items-center gap-2"
-      >
-        <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-        Atualizar
-      </Button>
-    </div>
+        )}
+      </div>
+
+      {/* Modais */}
+      <TagManagementModal
+        isOpen={isTagModalOpen}
+        onClose={() => setIsTagModalOpen(false)}
+      />
+
+      <RealClientDetails
+        client={null}
+        isOpen={isLeadModalOpen}
+        isCreateMode={true}
+        onOpenChange={setIsLeadModalOpen}
+        onCreateClient={handleCreateLead}
+      />
+
+      <FunnelConfigModal
+        isOpen={isFunnelConfigOpen}
+        onClose={() => setIsFunnelConfigOpen(false)}
+      />
+    </>
   );
 };

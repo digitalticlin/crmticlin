@@ -1,395 +1,126 @@
 
-import { corsHeaders, VPS_CONFIG, getVPSHeaders, normalizeQRCode } from './config.ts';
-import { makeVPSRequest } from './vpsRequestService.ts';
+import { corsHeaders, VPS_CONFIG, isRealQRCode, normalizeQRCode } from './config.ts';
+import { getVPSInstanceQR } from './vpsRequestService.ts';
 
 export async function getQRCodeAsync(supabase: any, instanceData: any, userId: string) {
-  const getQRId = `qr_${Date.now()}`;
-  console.log(`[QR Code Async] 🔍 NOVA DESCOBERTA MASSIVA - Iniciando [${getQRId}]:`, instanceData.instanceId);
+  const qrId = `qr_${Date.now()}`;
+  console.log(`[QR Code Async] 📱 CORREÇÃO - Buscando QR Code para: ${instanceData.instanceId} [${qrId}]`);
 
   try {
+    // 1. Validar dados da requisição
     const { instanceId } = instanceData;
     
     if (!instanceId) {
-      throw new Error('ID da instância é obrigatório para obter QR Code');
+      throw new Error('Instance ID é obrigatório');
     }
 
-    // Buscar instância no banco para obter vps_instance_id
+    console.log(`[QR Code Async] 🔍 CORREÇÃO - Validando instance ID: ${instanceId}`);
+
+    // 2. Buscar instância no banco
     const { data: instance, error: instanceError } = await supabase
       .from('whatsapp_instances')
-      .select('vps_instance_id, connection_status, qr_code')
+      .select('*')
       .eq('id', instanceId)
+      .eq('created_by_user_id', userId)
       .single();
 
     if (instanceError || !instance) {
-      console.error(`[QR Code Async] ❌ Instância não encontrada:`, instanceError);
-      throw new Error('Instância não encontrada no banco de dados');
+      console.error(`[QR Code Async] ❌ CORREÇÃO - Instância não encontrada [${qrId}]:`, instanceError);
+      throw new Error('Instância não encontrada ou não pertence ao usuário');
     }
 
-    const vpsInstanceId = instance.vps_instance_id;
-    if (!vpsInstanceId) {
-      throw new Error('VPS Instance ID não encontrado para esta instância');
-    }
+    console.log(`[QR Code Async] 📋 CORREÇÃO - Instância encontrada [${qrId}]:`, {
+      id: instance.id,
+      vpsInstanceId: instance.vps_instance_id,
+      instanceName: instance.instance_name,
+      hasExistingQR: !!instance.qr_code,
+      webStatus: instance.web_status,
+      connectionStatus: instance.connection_status,
+      lastUpdate: instance.updated_at
+    });
 
-    console.log(`[QR Code Async] 🎯 NOVA DESCOBERTA MASSIVA - Testando centenas de combinações para: ${vpsInstanceId}`);
-
-    // NOVA DESCOBERTA MASSIVA: Muito mais opções
-    const qrMassiveTestConfigurations = [
-      // ====== GRUPO 1: APIs REST Clássicas ======
-      {
-        method: 'GET',
-        endpoint: `/api/qr/${vpsInstanceId}`,
-        headers: { 'Content-Type': 'application/json' },
-        body: null
-      },
-      {
-        method: 'GET',
-        endpoint: `/api/qrcode/${vpsInstanceId}`,
-        headers: { 'Content-Type': 'application/json' },
-        body: null
-      },
-      {
-        method: 'GET',
-        endpoint: `/api/instances/${vpsInstanceId}/qr`,
-        headers: { 'Content-Type': 'application/json' },
-        body: null
-      },
-      {
-        method: 'GET',
-        endpoint: `/api/whatsapp/${vpsInstanceId}/qr`,
-        headers: { 'Content-Type': 'application/json' },
-        body: null
-      },
-      {
-        method: 'GET',
-        endpoint: `/api/session/${vpsInstanceId}/qr`,
-        headers: { 'Content-Type': 'application/json' },
-        body: null
-      },
-
-      // ====== GRUPO 2: WhatsApp Web.js Específico ======
-      {
-        method: 'GET',
-        endpoint: `/whatsapp-web/${vpsInstanceId}/qr`,
-        headers: { 'Content-Type': 'application/json' },
-        body: null
-      },
-      {
-        method: 'GET',
-        endpoint: `/webjs/${vpsInstanceId}/qr`,
-        headers: { 'Content-Type': 'application/json' },
-        body: null
-      },
-      {
-        method: 'GET',
-        endpoint: `/web/${vpsInstanceId}/qrcode`,
-        headers: { 'Content-Type': 'application/json' },
-        body: null
-      },
-      {
-        method: 'GET',
-        endpoint: `/client/${vpsInstanceId}/qr`,
-        headers: { 'Content-Type': 'application/json' },
-        body: null
-      },
-
-      // ====== GRUPO 3: Evolution API Style ======
-      {
-        method: 'GET',
-        endpoint: `/instance/connect/${vpsInstanceId}`,
-        headers: { 'Content-Type': 'application/json' },
-        body: null
-      },
-      {
-        method: 'GET',
-        endpoint: `/instance/qrCode/${vpsInstanceId}`,
-        headers: { 'Content-Type': 'application/json' },
-        body: null
-      },
-      {
-        method: 'GET',
-        endpoint: `/instance/qr_code/${vpsInstanceId}`,
-        headers: { 'Content-Type': 'application/json' },
-        body: null
-      },
-
-      // ====== GRUPO 4: Venom Bot Style ======
-      {
-        method: 'POST',
-        endpoint: '/generate-qr',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session: vpsInstanceId })
-      },
-      {
-        method: 'POST',
-        endpoint: '/qr/generate',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionName: vpsInstanceId })
-      },
-      {
-        method: 'POST',
-        endpoint: '/session/qr',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ instance: vpsInstanceId })
-      },
-
-      // ====== GRUPO 5: Baileys Style ======
-      {
-        method: 'GET',
-        endpoint: `/baileys/${vpsInstanceId}/qr`,
-        headers: { 'Content-Type': 'application/json' },
-        body: null
-      },
-      {
-        method: 'POST',
-        endpoint: '/baileys/qr',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ instanceKey: vpsInstanceId })
-      },
-
-      // ====== GRUPO 6: URLs sem versioning ======
-      {
-        method: 'GET',
-        endpoint: `/qr`,
-        headers: { 'Content-Type': 'application/json' },
-        body: null
-      },
-      {
-        method: 'POST',
-        endpoint: '/qr',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ instanceId: vpsInstanceId })
-      },
-      {
-        method: 'POST',
-        endpoint: '/qr',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ instance: vpsInstanceId })
-      },
-
-      // ====== GRUPO 7: Com diferentes tokens ======
-      {
-        method: 'GET',
-        endpoint: `/instance/${vpsInstanceId}/qr`,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer default-token'
-        },
-        body: null
-      },
-      {
-        method: 'GET',
-        endpoint: `/instance/${vpsInstanceId}/qr`,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dc0b3'
-        },
-        body: null
-      },
-      {
-        method: 'GET',
-        endpoint: `/instance/${vpsInstanceId}/qr`,
-        headers: { 
-          'Content-Type': 'application/json',
-          'X-API-KEY': '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dc0b3'
-        },
-        body: null
-      },
-
-      // ====== GRUPO 8: Status endpoints que retornam QR ======
-      {
-        method: 'GET',
-        endpoint: `/instance/${vpsInstanceId}/connectionState`,
-        headers: { 'Content-Type': 'application/json' },
-        body: null
-      },
-      {
-        method: 'GET',
-        endpoint: `/instance/${vpsInstanceId}/state`,
-        headers: { 'Content-Type': 'application/json' },
-        body: null
-      },
-      {
-        method: 'GET',
-        endpoint: `/instance/${vpsInstanceId}/info`,
-        headers: { 'Content-Type': 'application/json' },
-        body: null
-      },
-
-      // ====== GRUPO 9: Endpoints com diferentes formatos ======
-      {
-        method: 'POST',
-        endpoint: '/instance/status',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          instanceName: vpsInstanceId,
-          getQrCode: true 
-        })
-      },
-      {
-        method: 'POST',
-        endpoint: '/status',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          instance: vpsInstanceId,
-          includeQR: true 
-        })
-      },
-
-      // ====== GRUPO 10: Connect endpoints ======
-      {
-        method: 'POST',
-        endpoint: '/connect',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ instanceId: vpsInstanceId })
-      },
-      {
-        method: 'POST',
-        endpoint: '/instance/connect',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ instanceName: vpsInstanceId })
-      },
-
-      // ====== GRUPO 11: Base64 específicos ======
-      {
-        method: 'GET',
-        endpoint: `/instance/${vpsInstanceId}/qr/base64`,
-        headers: { 'Content-Type': 'application/json' },
-        body: null
-      },
-      {
-        method: 'GET',
-        endpoint: `/qr/${vpsInstanceId}/base64`,
-        headers: { 'Content-Type': 'application/json' },
-        body: null
-      },
-
-      // ====== GRUPO 12: Restart e generate ======
-      {
-        method: 'POST',
-        endpoint: `/instance/${vpsInstanceId}/restart`,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ generateQR: true })
-      },
-      {
-        method: 'POST',
-        endpoint: '/instance/restart',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          instanceId: vpsInstanceId,
-          generateQR: true 
-        })
-      }
-    ];
-
-    let successfulQR = null;
-    let testCount = 0;
-
-    for (const config of qrMassiveTestConfigurations) {
-      testCount++;
-      
-      try {
-        console.log(`[QR Code Async] 🧪 TESTE MASSIVO ${testCount}/${qrMassiveTestConfigurations.length} - ${config.method} ${config.endpoint}`);
-        
-        const requestOptions: any = {
-          method: config.method,
-          headers: config.headers
-        };
-
-        if (config.body) {
-          requestOptions.body = config.body;
-        }
-
-        const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}${config.endpoint}`, requestOptions);
-
-        console.log(`[QR Code Async] 📊 TESTE MASSIVO ${testCount} - Status: ${response.status}`);
-
-        if (response.ok) {
-          const responseData = await response.json();
-          console.log(`[QR Code Async] 📋 TESTE MASSIVO ${testCount} - Response:`, responseData);
-
-          // Tentar extrair QR Code da resposta
-          const extractedQR = normalizeQRCode(responseData);
-          
-          if (extractedQR) {
-            console.log(`[QR Code Async] 🎉 TESTE MASSIVO ${testCount} - QR CODE BASE64 ENCONTRADO! 🎉`);
-            successfulQR = {
-              testNumber: testCount,
-              qrCode: extractedQR,
-              source: 'vps_api_massive_discovery',
-              method: config.method,
-              endpoint: config.endpoint,
-              response: responseData
-            };
-            break;
-          } else {
-            console.log(`[QR Code Async] ⚠️ TESTE MASSIVO ${testCount} - Resposta OK mas sem QR Code válido`);
-          }
-        } else {
-          const errorText = await response.text();
-          console.log(`[QR Code Async] ❌ TESTE MASSIVO ${testCount} - Falhou: ${response.status} - ${errorText.substring(0, 100)}`);
-        }
-
-      } catch (error: any) {
-        console.error(`[QR Code Async] ❌ TESTE MASSIVO ${testCount} - Erro:`, error.message);
-      }
-
-      // Pausa menor entre testes para acelerar descoberta
-      await new Promise(resolve => setTimeout(resolve, 200));
-    }
-
-    if (!successfulQR) {
-      console.log(`[QR Code Async] ⏳ Nenhum QR Code encontrado nos ${testCount} testes massivos - pode ainda estar sendo gerado`);
+    // 3. Verificar se já possui QR Code válido no banco
+    if (instance.qr_code && isRealQRCode(instance.qr_code)) {
+      console.log(`[QR Code Async] ✅ CORREÇÃO - QR Code já existe no banco [${qrId}]`);
       return new Response(
         JSON.stringify({
-          success: false,
-          waiting: true,
-          message: `QR Code ainda não disponível (${testCount} testes massivos realizados)`,
-          getQRId
+          success: true,
+          qrCode: instance.qr_code,
+          source: 'database',
+          qrId
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // QR Code encontrado! Salvar no banco como Base64 URL
-    const { error: updateError } = await supabase
-      .from('whatsapp_instances')
-      .update({ 
-        qr_code: successfulQR.qrCode,
-        connection_status: 'waiting_qr',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', instanceId);
-
-    if (updateError) {
-      console.error(`[QR Code Async] ❌ Erro ao salvar QR Base64 no banco:`, updateError);
-    } else {
-      console.log(`[QR Code Async] ✅ QR Code Base64 salvo no Supabase com sucesso`);
+    // 4. Buscar QR Code da VPS (porta 3001)
+    if (!instance.vps_instance_id) {
+      throw new Error('Instância não possui VPS Instance ID');
     }
 
-    console.log(`[QR Code Async] 🎉 QR Code Base64 obtido com TESTE MASSIVO ${successfulQR.testNumber} [${getQRId}]`);
+    console.log(`[QR Code Async] 🌐 CORREÇÃO - Comunicando com VPS [${qrId}]:`, {
+      vpsInstanceId: instance.vps_instance_id,
+      serverUrl: VPS_CONFIG.baseUrl
+    });
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        qrCode: successfulQR.qrCode,
-        source: successfulQR.source,
-        savedToDatabase: !updateError,
-        testUsed: successfulQR.testNumber,
-        method: successfulQR.method,
-        endpoint: successfulQR.endpoint,
-        getQRId
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    const vpsResult = await getVPSInstanceQR(instance.vps_instance_id);
+
+    console.log(`[QR Code Async] 📡 CORREÇÃO - Resposta da VPS [${qrId}]:`, {
+      success: vpsResult.success,
+      hasQrCode: !!vpsResult.qrCode,
+      qrCodeLength: vpsResult.qrCode ? vpsResult.qrCode.length : 0,
+      error: vpsResult.error
+    });
+
+    if (vpsResult.success && vpsResult.qrCode) {
+      // 5. Salvar QR Code no banco e atualizar status
+      const { error: updateError } = await supabase
+        .from('whatsapp_instances')
+        .update({ 
+          qr_code: vpsResult.qrCode,
+          web_status: 'waiting_scan',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', instanceId);
+
+      if (updateError) {
+        console.error(`[QR Code Async] ⚠️ CORREÇÃO - Erro ao salvar QR Code [${qrId}]:`, updateError);
+      } else {
+        console.log(`[QR Code Async] ✅ CORREÇÃO - QR Code salvo no banco [${qrId}]`);
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          qrCode: vpsResult.qrCode,
+          source: 'vps',
+          qrId
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    } else {
+      // QR Code ainda sendo gerado
+      console.log(`[QR Code Async] ⏳ CORREÇÃO - QR Code ainda sendo gerado [${qrId}]`);
+      
+      return new Response(
+        JSON.stringify({
+          success: false,
+          waiting: true,
+          error: vpsResult.error || 'QR Code ainda não foi gerado ou instância ainda inicializando',
+          qrId
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
   } catch (error: any) {
-    console.error(`[QR Code Async] ❌ Erro crítico [${getQRId}]:`, error);
+    console.error(`[QR Code Async] ❌ CORREÇÃO - Erro geral [${qrId}]:`, error);
     
     return new Response(
       JSON.stringify({
         success: false,
         error: error.message,
-        getQRId,
+        qrId,
         timestamp: new Date().toISOString()
       }),
       { 

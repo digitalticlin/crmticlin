@@ -8,27 +8,17 @@ import { getQRCodeAsync } from './qrCodeAsyncService.ts';
 import { sendMessage } from './messageSendingService.ts';
 import { getChatHistory } from './chatHistoryService.ts';
 import { syncAllInstances } from './instanceSyncService.ts';
-import { getHealthStatus } from './healthService.ts';
 
-console.log('[WhatsApp Server] 🚀 DIAGNÓSTICO COMPLETO - Edge Function inicializada');
+console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED - FASE 2.0 BACKEND COMPLETO');
 
 Deno.serve(async (req) => {
-  const requestId = `req_${Date.now()}`;
-  console.log(`[WhatsApp Server] 📨 DIAGNÓSTICO COMPLETO - Nova requisição [${requestId}]`);
-  console.log(`[WhatsApp Server] Method: ${req.method}`);
-  console.log(`[WhatsApp Server] URL: ${req.url}`);
+  console.log('[WhatsApp Server] Method:', req.method);
+  console.log('[WhatsApp Server] URL:', req.url);
 
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log(`[WhatsApp Server] ✅ OPTIONS request handled [${requestId}]`);
+    console.log('[WhatsApp Server] ✅ OPTIONS request handled');
     return new Response(null, { headers: corsHeaders });
-  }
-
-  // Health check endpoint
-  const url = new URL(req.url);
-  if (url.pathname.endsWith('/health')) {
-    console.log(`[WhatsApp Server] 🏥 Health check endpoint [${requestId}]`);
-    return await getHealthStatus();
   }
 
   try {
@@ -36,29 +26,24 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
-    console.log(`[WhatsApp Server] 📊 Supabase client created [${requestId}]`);
+    console.log('[WhatsApp Server] 📊 Supabase client created');
 
     // Parse request body
     const requestText = await req.text();
-    console.log(`[WhatsApp Server] 📥 Raw request body [${requestId}]:`, requestText);
+    console.log('[WhatsApp Server] 📥 Raw request body:', requestText);
     
     const body = requestText ? JSON.parse(requestText) : {};
-    console.log(`[WhatsApp Server] 📋 Parsed request body [${requestId}]:`, JSON.stringify(body, null, 2));
+    console.log('[WhatsApp Server] 📋 Parsed request body:', JSON.stringify(body, null, 2));
 
     // Extract action from body
     const action = body.action;
-    console.log(`[WhatsApp Server] 🎯 Action extracted [${requestId}]: ${action}`);
+    console.log('[WhatsApp Server] 🎯 Action extracted:', action);
 
     // Authenticate user
     const authResult = await authenticateUser(req, supabase);
     if (!authResult.success) {
-      console.error(`[WhatsApp Server] ❌ Falha na autenticação [${requestId}]:`, authResult.error);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: authResult.error,
-          requestId 
-        }),
+        JSON.stringify({ success: false, error: authResult.error }),
         { 
           status: 401, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -67,51 +52,42 @@ Deno.serve(async (req) => {
     }
 
     const { user } = authResult;
-    console.log(`[WhatsApp Server] 🔐 Usuário autenticado [${requestId}]:`, user.id, user.email);
+    console.log('[WhatsApp Server] 🔐 Usuário autenticado:', user.id, user.email);
 
     // Process different actions
-    console.log(`[WhatsApp Server] 🎯 Processing action [${requestId}]: ${action}`);
+    console.log('[WhatsApp Server] 🎯 Processing action:', action);
 
     switch (action) {
       case 'create_instance':
-        console.log(`[WhatsApp Server] 🆕 CREATE INSTANCE [${requestId}]`);
+        console.log('[WhatsApp Server] 🆕 CREATE INSTANCE');
         return await createWhatsAppInstance(supabase, body.instanceData, user.id);
 
       case 'delete_instance':
-        console.log(`[WhatsApp Server] 🗑️ DELETE INSTANCE [${requestId}]`);
+        console.log('[WhatsApp Server] 🗑️ DELETE INSTANCE');
         return await deleteWhatsAppInstance(supabase, body.instanceData, user.id);
 
       case 'get_qr_code_async':
-        console.log(`[WhatsApp Server] 🔳 GET QR CODE ASYNC [${requestId}]`);
+        console.log('[WhatsApp Server] 🔳 GET QR CODE ASYNC');
         return await getQRCodeAsync(supabase, body.instanceData, user.id);
 
       case 'send_message':
-        console.log(`[WhatsApp Server] 📤 SEND MESSAGE [${requestId}]`);
+        console.log('[WhatsApp Server] 📤 SEND MESSAGE');
         return await sendMessage(supabase, body.messageData, user.id);
 
       case 'get_chat_history':
-        console.log(`[WhatsApp Server] 📚 GET CHAT HISTORY [${requestId}]`);
+        console.log('[WhatsApp Server] 📚 GET CHAT HISTORY');
         return await getChatHistory(supabase, body.chatData, user.id);
 
       case 'sync_all_instances':
-        console.log(`[WhatsApp Server] 🔄 SYNC ALL INSTANCES [${requestId}]`);
+        console.log('[WhatsApp Server] 🔄 SYNC ALL INSTANCES');
         return await syncAllInstances(supabase, body.syncData, user.id);
 
       default:
-        console.error(`[WhatsApp Server] ❌ Ação não reconhecida [${requestId}]: ${action}`);
+        console.error('[WhatsApp Server] ❌ Ação não reconhecida:', action);
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: `Ação não reconhecida: ${action}`,
-            requestId,
-            availableActions: [
-              'create_instance',
-              'delete_instance', 
-              'get_qr_code_async',
-              'send_message',
-              'get_chat_history',
-              'sync_all_instances'
-            ]
+            error: `Ação não reconhecida: ${action}` 
           }),
           { 
             status: 400,
@@ -121,24 +97,12 @@ Deno.serve(async (req) => {
     }
 
   } catch (error: any) {
-    console.error(`[WhatsApp Server] ❌ ERRO GERAL [${requestId}]:`, {
-      message: error.message,
-      stack: error.stack,
-      url: req.url,
-      method: req.method
-    });
-    
+    console.error('[WhatsApp Server] ❌ ERRO GERAL:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 
         error: error.message,
-        requestId,
-        timestamp: new Date().toISOString(),
-        debug: {
-          url: req.url,
-          method: req.method,
-          errorType: error.constructor.name
-        }
+        timestamp: new Date().toISOString()
       }),
       { 
         status: 500,

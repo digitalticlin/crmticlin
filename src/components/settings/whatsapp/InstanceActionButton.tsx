@@ -1,13 +1,14 @@
 
 import { Button } from "@/components/ui/button";
-import { CheckCircle, QrCode, Eye } from "lucide-react";
+import { CheckCircle, RefreshCw, Eye, QrCode } from "lucide-react";
+import { useQRCodeValidation } from "@/hooks/whatsapp/useQRCodeValidation";
 
 interface InstanceActionButtonProps {
   connectionStatus: string;
   webStatus?: string;
   qrCode?: string | null;
   instanceId: string;
-  onGenerateQR: (instanceId: string) => void;
+  onRefreshQR: (instanceId: string) => void;
   onShowQR: () => void;
 }
 
@@ -16,16 +17,34 @@ export function InstanceActionButton({
   webStatus,
   qrCode,
   instanceId,
-  onGenerateQR,
+  onRefreshQR,
   onShowQR
 }: InstanceActionButtonProps) {
+  const { validateQRCode } = useQRCodeValidation();
+  const qrValidation = validateQRCode(qrCode);
   
   const isConnected = connectionStatus === 'connected' || 
                      connectionStatus === 'ready' || 
                      connectionStatus === 'open';
-  
   const isCreating = webStatus === 'creating';
-  const hasQRCode = qrCode && qrCode.trim() !== '';
+
+  const getQRStatus = () => {
+    if (!qrCode) {
+      return { status: 'none' };
+    }
+
+    if (qrValidation.isPlaceholder) {
+      return { status: 'placeholder' };
+    }
+
+    if (!qrValidation.isValid) {
+      return { status: 'invalid' };
+    }
+
+    return { status: 'valid' };
+  };
+
+  const qrStatus = getQRStatus();
 
   if (isConnected) {
     return (
@@ -55,7 +74,7 @@ export function InstanceActionButton({
     );
   }
 
-  if (hasQRCode) {
+  if (qrStatus.status === 'valid') {
     return (
       <Button
         variant="outline"
@@ -69,11 +88,25 @@ export function InstanceActionButton({
     );
   }
 
+  if (qrStatus.status === 'placeholder') {
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onRefreshQR(instanceId)}
+        className="bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100"
+      >
+        <RefreshCw className="h-4 w-4 mr-1" />
+        Aguardar QR
+      </Button>
+    );
+  }
+
   return (
     <Button
       variant="outline"
       size="sm"
-      onClick={() => onGenerateQR(instanceId)}
+      onClick={() => onRefreshQR(instanceId)}
       className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
     >
       <QrCode className="h-4 w-4 mr-1" />

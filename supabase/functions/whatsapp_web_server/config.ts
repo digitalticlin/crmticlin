@@ -2,129 +2,109 @@
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 };
 
 export const VPS_CONFIG = {
-  baseUrl: 'http://31.97.24.222:3001',
-  token: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dc0b3'
+  baseUrl: 'http://31.97.24.222:3001', // CORREÇÃO CRÍTICA: Alterado de 3002 para 3001
+  authToken: 'default-token',
+  timeout: 25000, // Aumentado de 20s para 25s
+  endpoints: {
+    createInstance: '/instance/create',
+    deleteInstance: '/instance/delete', 
+    getQR: '/instance/qr',
+    getQRDirect: '/instance/{instanceId}/qr', // Endpoint que funciona
+    getStatus: '/instance/{instanceId}/status',
+    instances: '/instances',
+    sendMessage: '/send'
+  }
 };
 
 export const getVPSHeaders = () => ({
   'Content-Type': 'application/json',
-  'Authorization': `Bearer ${VPS_CONFIG.token}`
+  'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+  'Accept': 'application/json',
+  'User-Agent': 'Supabase-Edge-Function/1.0'
 });
 
-// ANÁLISE PROFUNDA: Função para testar conectividade
-export const testVPSConnectivity = async (): Promise<boolean> => {
-  console.log('[Config] 🔍 ANÁLISE PROFUNDA - Testando conectividade VPS:', VPS_CONFIG.baseUrl);
+// CORREÇÃO: Função melhorada para validar QR Code real
+export const isRealQRCode = (qrCode: string): boolean => {
+  if (!qrCode || typeof qrCode !== 'string') {
+    console.log('[QR Validation] ❌ QR Code inválido: não é string');
+    return false;
+  }
   
+  // Verificar se é data URL válido
+  if (qrCode.startsWith('data:image/')) {
+    const base64Part = qrCode.split(',')[1];
+    const isValid = base64Part && base64Part.length > 500;
+    console.log('[QR Validation] 🔍 Data URL:', {
+      hasBase64Part: !!base64Part,
+      base64Length: base64Part ? base64Part.length : 0,
+      isValid
+    });
+    return isValid;
+  }
+  
+  // Verificar se é Base64 puro ou string de QR válida
+  if (qrCode.length > 100) { // QR Code válido tem pelo menos 100 caracteres
+    console.log('[QR Validation] ✅ QR Code válido:', qrCode.length);
+    return true;
+  }
+  
+  console.log('[QR Validation] ❌ QR Code muito pequeno:', qrCode.length);
+  return false;
+};
+
+// CORREÇÃO: Normalizar formato do QR Code
+export const normalizeQRCode = (qrCode: string): string => {
+  if (!qrCode) {
+    console.log('[QR Normalize] ❌ QR Code vazio');
+    return '';
+  }
+  
+  // Se já é data URL, retornar como está
+  if (qrCode.startsWith('data:image/')) {
+    console.log('[QR Normalize] ✅ Já é data URL');
+    return qrCode;
+  }
+  
+  // Se é Base64 longo, adicionar prefixo data URL
+  if (qrCode.length > 500) {
+    const normalized = `data:image/png;base64,${qrCode}`;
+    console.log('[QR Normalize] ✅ Convertido para data URL:', {
+      originalLength: qrCode.length,
+      normalizedLength: normalized.length
+    });
+    return normalized;
+  }
+  
+  // QR Code em formato texto (retornar como está)
+  console.log('[QR Normalize] ✅ QR Code em formato texto');
+  return qrCode;
+};
+
+// CORREÇÃO: Função para testar conectividade da VPS com porta correta
+export const testVPSConnectivity = async (): Promise<boolean> => {
   try {
-    // Teste 1: Health check
-    const healthResponse = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(5000)
-    });
+    console.log('[VPS Test] 🔗 Testando conectividade da VPS na porta 3001...');
     
-    if (healthResponse.ok) {
-      console.log('[Config] ✅ ANÁLISE PROFUNDA - Health check OK');
-      return true;
-    }
-    
-    // Teste 2: Root endpoint
-    const rootResponse = await fetch(`${VPS_CONFIG.baseUrl}/`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(5000)
-    });
-    
-    if (rootResponse.ok) {
-      console.log('[Config] ✅ ANÁLISE PROFUNDA - Root endpoint OK');
-      return true;
-    }
-    
-    // Teste 3: Instâncias endpoint
-    const instancesResponse = await fetch(`${VPS_CONFIG.baseUrl}/instances`, {
+    const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
       method: 'GET',
       headers: getVPSHeaders(),
       signal: AbortSignal.timeout(5000)
     });
     
-    if (instancesResponse.ok) {
-      console.log('[Config] ✅ ANÁLISE PROFUNDA - Instances endpoint OK');
-      return true;
-    }
+    const isConnected = response.ok;
+    console.log('[VPS Test] 📊 Resultado do teste:', {
+      url: `${VPS_CONFIG.baseUrl}/health`,
+      status: response.status,
+      isConnected
+    });
     
-    console.warn('[Config] ⚠️ ANÁLISE PROFUNDA - Nenhum endpoint respondeu');
-    return false;
-    
+    return isConnected;
   } catch (error: any) {
-    console.error('[Config] ❌ ANÁLISE PROFUNDA - Erro de conectividade:', error.message);
+    console.error('[VPS Test] ❌ Falha na conectividade:', error.message);
     return false;
   }
-};
-
-// ANÁLISE PROFUNDA: Função para validar se é QR Code real
-export const isRealQRCode = (qrData: string): boolean => {
-  if (!qrData || typeof qrData !== 'string') {
-    console.log('[Config] ❌ ANÁLISE PROFUNDA - QR inválido: não é string');
-    return false;
-  }
-  
-  // QR Code real deve ter pelo menos 100 caracteres e começar com padrão específico
-  if (qrData.length < 100) {
-    console.log('[Config] ❌ ANÁLISE PROFUNDA - QR muito curto:', qrData.length);
-    return false;
-  }
-  
-  // QR Code do WhatsApp geralmente contém esses padrões
-  const whatsappPatterns = ['whatsapp', '@c.us', '@g.us', '1@'];
-  const hasWhatsAppPattern = whatsappPatterns.some(pattern => 
-    qrData.toLowerCase().includes(pattern)
-  );
-  
-  console.log('[Config] 🔍 ANÁLISE PROFUNDA - QR Code válido:', {
-    length: qrData.length,
-    hasWhatsAppPattern,
-    preview: qrData.substring(0, 50)
-  });
-  
-  return hasWhatsAppPattern || qrData.length > 200; // QR Code costuma ser longo
-};
-
-// CORREÇÃO CRÍTICA: Adicionar função normalizeQRCode que estava faltando
-export const normalizeQRCode = (qrData: any): string | null => {
-  console.log('[Config] 🔧 ANÁLISE PROFUNDA - Normalizando QR Code:', typeof qrData);
-  
-  if (!qrData) {
-    console.log('[Config] ❌ ANÁLISE PROFUNDA - QR Data é null/undefined');
-    return null;
-  }
-  
-  // Se já é uma string, retorna diretamente
-  if (typeof qrData === 'string') {
-    console.log('[Config] ✅ ANÁLISE PROFUNDA - QR Code já é string, tamanho:', qrData.length);
-    return isRealQRCode(qrData) ? qrData : null;
-  }
-  
-  // Se é um objeto com propriedade qrCode
-  if (qrData.qrCode && typeof qrData.qrCode === 'string') {
-    console.log('[Config] ✅ ANÁLISE PROFUNDA - QR Code extraído do objeto, tamanho:', qrData.qrCode.length);
-    return isRealQRCode(qrData.qrCode) ? qrData.qrCode : null;
-  }
-  
-  // Se é um objeto com propriedade qr
-  if (qrData.qr && typeof qrData.qr === 'string') {
-    console.log('[Config] ✅ ANÁLISE PROFUNDA - QR Code extraído como "qr", tamanho:', qrData.qr.length);
-    return isRealQRCode(qrData.qr) ? qrData.qr : null;
-  }
-  
-  // Se é um objeto com propriedade code
-  if (qrData.code && typeof qrData.code === 'string') {
-    console.log('[Config] ✅ ANÁLISE PROFUNDA - QR Code extraído como "code", tamanho:', qrData.code.length);
-    return isRealQRCode(qrData.code) ? qrData.code : null;
-  }
-  
-  console.log('[Config] ❌ ANÁLISE PROFUNDA - Formato de QR Code não reconhecido:', Object.keys(qrData || {}));
-  return null;
 };

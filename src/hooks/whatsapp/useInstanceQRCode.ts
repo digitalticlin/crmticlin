@@ -1,28 +1,26 @@
 
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import type { WhatsAppWebInstance } from './useWhatsAppWebInstances';
 
 export const useInstanceQRCode = (instances: WhatsAppWebInstance[], fetchInstances: () => Promise<void>) => {
-  // CORREÇÃO CRÍTICA: Função melhorada para refresh de QR Code com validação completa
+  // CORREÇÃO FINAL: Usar get_qr_code_async em vez de get_qr_code_async (estava duplicado)
   const refreshInstanceQRCode = useCallback(async (instanceId: string) => {
     try {
-      console.log('[Instance QR Code] 🔄 CORREÇÃO CRÍTICA - Atualizando QR Code via backend:', instanceId);
+      console.log('[Instance QR Code] 🔄 Atualizando QR Code (CORREÇÃO FINAL):', instanceId);
 
       const instance = instances.find(i => i.id === instanceId);
       if (!instance) {
         throw new Error('Instância não encontrada');
       }
 
-      console.log('[Instance QR Code] 📋 CORREÇÃO CRÍTICA - Instância encontrada:', {
+      console.log('[Instance QR Code] 📋 Instância encontrada:', {
         instanceId: instance.id,
         vpsInstanceId: instance.vps_instance_id,
-        instanceName: instance.instance_name,
-        currentQRCode: !!instance.qr_code
+        instanceName: instance.instance_name
       });
 
-      // CORREÇÃO CRÍTICA: Usar get_qr_code_async com logs detalhados
+      // CORREÇÃO FINAL: Usar get_qr_code_async (ação correta)
       const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
         body: {
           action: 'get_qr_code_async',
@@ -33,22 +31,13 @@ export const useInstanceQRCode = (instances: WhatsAppWebInstance[], fetchInstanc
       });
 
       if (error) {
-        console.error('[Instance QR Code] ❌ CORREÇÃO CRÍTICA - Erro do Supabase:', error);
+        console.error('[Instance QR Code] ❌ Erro do Supabase:', error);
         throw error;
       }
 
-      console.log('[Instance QR Code] 📊 CORREÇÃO CRÍTICA - Resposta do backend:', {
-        success: data.success,
-        hasQRCode: !!data.qrCode,
-        waiting: data.waiting,
-        source: data.source,
-        savedToDatabase: data.savedToDatabase
-      });
-
       if (!data.success) {
         if (data.waiting) {
-          console.log('[Instance QR Code] ⏳ CORREÇÃO CRÍTICA - QR Code ainda sendo gerado');
-          toast.info('QR Code ainda está sendo gerado, aguarde...');
+          console.log('[Instance QR Code] ⏳ QR Code ainda sendo gerado');
           return {
             success: false,
             waiting: true,
@@ -58,28 +47,18 @@ export const useInstanceQRCode = (instances: WhatsAppWebInstance[], fetchInstanc
         throw new Error(data.error || 'Falha ao atualizar QR Code');
       }
 
-      // CORREÇÃO CRÍTICA: Verificar se foi salvo no banco
-      if (data.savedToDatabase === false) {
-        console.warn('[Instance QR Code] ⚠️ CORREÇÃO CRÍTICA - QR Code não foi salvo no banco');
-        toast.warning('QR Code obtido mas não foi salvo automaticamente');
-      } else {
-        console.log('[Instance QR Code] ✅ CORREÇÃO CRÍTICA - QR Code salvo no banco com sucesso');
-        toast.success('QR Code atualizado e salvo no banco!');
-      }
+      console.log('[Instance QR Code] ✅ QR Code atualizado com sucesso');
 
-      // CORREÇÃO CRÍTICA: Sempre recarregar instâncias após obter QR Code
-      console.log('[Instance QR Code] 🔄 CORREÇÃO CRÍTICA - Recarregando lista de instâncias...');
+      // Recarregar instâncias para obter dados atualizados
       await fetchInstances();
 
       return {
         success: true,
-        qrCode: data.qrCode,
-        savedToDatabase: data.savedToDatabase
+        qrCode: data.qrCode
       };
 
     } catch (error: any) {
-      console.error('[Instance QR Code] ❌ CORREÇÃO CRÍTICA - Erro ao atualizar QR Code:', error);
-      toast.error(`Erro ao atualizar QR Code: ${error.message}`);
+      console.error('[Instance QR Code] ❌ Erro ao atualizar QR Code:', error);
       return {
         success: false,
         error: error.message

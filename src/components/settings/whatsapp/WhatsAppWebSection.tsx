@@ -15,18 +15,22 @@ export const WhatsAppWebSection = () => {
     localShowQRModal,
     localSelectedQRCode,
     localSelectedInstanceName,
+    isWaitingForQR,
+    currentAttempt,
+    maxAttempts,
     handleConnect,
     handleDeleteInstance,
-    handleGenerateQR,
+    handleRefreshQR,
     handleShowQR,
     closeQRModal
   } = useWhatsAppWebSectionLogic();
 
-  console.log('[WhatsApp Web Section] 🎯 FLUXO ISOLADO - Renderizando:', {
+  console.log('[WhatsApp Web Section] 🎯 CORREÇÃO CRÍTICA - Renderizando:', {
     instancesCount: instances.length,
     isLoading,
     modalOpen: localShowQRModal,
     hasQRCode: !!localSelectedQRCode,
+    isWaiting: isWaitingForQR,
     creationStage
   });
 
@@ -52,7 +56,7 @@ export const WhatsAppWebSection = () => {
       ) : (
         <WhatsAppWebInstancesGrid 
           instances={instances}
-          onGenerateQR={handleGenerateQR}
+          onRefreshQR={handleRefreshQR}
           onDelete={handleDeleteInstance}
           onShowQR={handleShowQR}
         />
@@ -63,9 +67,9 @@ export const WhatsAppWebSection = () => {
         onOpenChange={closeQRModal}
         qrCodeUrl={localSelectedQRCode}
         instanceName={localSelectedInstanceName}
-        isWaitingForQR={false}
-        currentAttempt={0}
-        maxAttempts={0}
+        isWaitingForQR={isWaitingForQR}
+        currentAttempt={currentAttempt}
+        maxAttempts={maxAttempts}
       />
     </div>
   );

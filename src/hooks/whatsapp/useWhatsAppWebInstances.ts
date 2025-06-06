@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useInstanceActions } from './services/instanceActionsService';
 import { useIntelligentNaming } from './useIntelligentNaming';
@@ -24,6 +24,9 @@ export interface WhatsAppWebInstance {
 
 export const useWhatsAppWebInstances = () => {
   const [isConnecting, setIsConnecting] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [selectedQRCode, setSelectedQRCode] = useState<string | null>(null);
+  const [selectedInstanceName, setSelectedInstanceName] = useState<string>('');
   
   const { user } = useAuth();
 
@@ -31,40 +34,74 @@ export const useWhatsAppWebInstances = () => {
   const { instances, isLoading, error, fetchInstances, refetch } = useInstancesData();
   const { generateIntelligentInstanceName } = useIntelligentNaming();
   
+  // CORREÇÃO: Criar wrapper function que retorna void para compatibilidade de tipos
   const fetchInstancesVoid = async () => {
     await fetchInstances();
   };
   
   const { refreshInstanceQRCode } = useInstanceQRCode(instances, fetchInstancesVoid);
-  const { createInstance, deleteInstance } = useInstanceActions(fetchInstancesVoid);
+  const { createInstance, deleteInstance, refreshQRCode } = useInstanceActions(fetchInstancesVoid);
+
+  // Close QR Modal
+  const closeQRModal = () => {
+    setShowQRModal(false);
+    setSelectedQRCode(null);
+    setSelectedInstanceName('');
+  };
+
+  // CORREÇÃO 6: QR Code polling otimizado - reduzir de 30s para 90s
+  useEffect(() => {
+    if (!instances.length) return;
+
+    const checkForQRUpdates = () => {
+      instances.forEach(async (instance) => {
+        if (instance.web_status === 'waiting_scan' && instance.vps_instance_id) {
+          const lastUpdate = instance.updated_at ? new Date(instance.updated_at) : new Date(0);
+          const now = new Date();
+          const timeDiff = now.getTime() - lastUpdate.getTime();
+          
+          // CORREÇÃO: Aumentar intervalo de 30s para 90s para reduzir carga
+          if (timeDiff > 90000) { // 90 segundos ao invés de 30
+            console.log('[WhatsApp Web Instances] 🔄 Auto-refresh QR Code (90s interval):', instance.instance_name);
+            await refreshInstanceQRCode(instance.id);
+          }
+        }
+      });
+    };
+
+    // CORREÇÃO: Verificar a cada 60 segundos ao invés de 30
+    const interval = setInterval(checkForQRUpdates, 60000);
+
+    return () => clearInterval(interval);
+  }, [instances, refreshInstanceQRCode]);
 
   return {
     instances,
     isLoading,
     isConnecting,
     error,
+    showQRModal,
+    selectedQRCode,
+    selectedInstanceName,
     refetch,
     fetchInstances,
     generateIntelligentInstanceName,
-    
-    // FUNÇÃO SIMPLIFICADA: Apenas criar instância
     createInstance: async (instanceName: string) => {
       setIsConnecting(true);
       try {
-        console.log('[Hook] 🆕 Criando instância (FLUXO ISOLADO):', instanceName);
+        console.log('[Hook] 🚀 Creating instance (CORREÇÃO CRÍTICA):', instanceName);
         const result = await createInstance(instanceName);
         return result;
       } finally {
         setIsConnecting(false);
       }
     },
-    
     deleteInstance,
-    
-    // NOVA FUNÇÃO: Gerar QR Code sob demanda
-    generateQRCode: async (instanceId: string) => {
+    // CORREÇÃO CRÍTICA: Modificar refreshQRCode para retornar dados corretos
+    refreshQRCode: async (instanceId: string) => {
       const result = await refreshInstanceQRCode(instanceId);
       return result;
-    }
+    },
+    closeQRModal
   };
 };

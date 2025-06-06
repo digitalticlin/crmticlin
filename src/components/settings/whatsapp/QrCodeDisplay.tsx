@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,40 +14,24 @@ interface QrCodeDisplayProps {
   isRefreshing?: boolean;
 }
 
-// CORREÇÃO FINAL: Validação robusta para QR Code
-const isValidQRCodeDataURL = (qrCode: string | null): boolean => {
-  if (!qrCode || typeof qrCode !== 'string') {
-    console.log('[QR Display] ❌ QR Code inválido ou nulo');
+// CORREÇÃO FASE 3.1: Função para validar se QR Code é real
+const isRealQRCode = (qrCode: string | null): boolean => {
+  if (!qrCode || !qrCode.startsWith('data:image/')) {
     return false;
   }
   
-  // Deve ser data URL
-  if (!qrCode.startsWith('data:image/')) {
-    console.log('[QR Display] ❌ QR Code não é data URL:', qrCode.substring(0, 50));
-    return false;
-  }
-  
-  // Deve ter conteúdo Base64 suficiente
   const base64Part = qrCode.split(',')[1];
   if (!base64Part || base64Part.length < 500) {
-    console.log('[QR Display] ❌ QR Code Base64 insuficiente');
     return false;
   }
   
-  // Verificar se não é placeholder
+  // Check for known fake/placeholder patterns
   const knownFakePatterns = [
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
     'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
   ];
   
-  const isPlaceholder = knownFakePatterns.some(pattern => base64Part.includes(pattern));
-  if (isPlaceholder) {
-    console.log('[QR Display] ❌ QR Code é placeholder fake');
-    return false;
-  }
-  
-  console.log('[QR Display] ✅ QR Code válido - tamanho:', base64Part.length);
-  return true;
+  return !knownFakePatterns.some(pattern => base64Part.includes(pattern));
 };
 
 export function QrCodeDisplay({ 
@@ -60,11 +45,11 @@ export function QrCodeDisplay({
   const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
   const [autoRefreshCount, setAutoRefreshCount] = useState(0);
 
-  const isQRValid = isValidQRCodeDataURL(qrCode);
+  const isQRReal = isRealQRCode(qrCode);
 
   // CORREÇÃO FASE 3.1: Countdown timer para QR Code
   useEffect(() => {
-    if (!isQRValid || webStatus !== 'waiting_scan') return;
+    if (!isQRReal || webStatus !== 'waiting_scan') return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -83,7 +68,7 @@ export function QrCodeDisplay({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isQRValid, webStatus, onRefresh, autoRefreshCount]);
+  }, [isQRReal, webStatus, onRefresh, autoRefreshCount]);
 
   // Reset auto refresh count when QR changes
   useEffect(() => {
@@ -117,8 +102,8 @@ export function QrCodeDisplay({
     }
   };
 
-  // CORREÇÃO FINAL: Exibir QR Code apenas se for válido
-  if (!isQRValid) {
+  // CORREÇÃO FASE 3.1: Exibir QR Code apenas se for real
+  if (!isQRReal) {
     return (
       <Card>
         <CardHeader>
@@ -142,7 +127,7 @@ export function QrCodeDisplay({
                 <div>
                   <QrCode className="h-12 w-12 mx-auto mb-2 text-gray-400" />
                   <p>QR Code não disponível</p>
-                  <p className="text-sm">Clique em gerar para obter o código</p>
+                  <p className="text-sm">Clique em atualizar para gerar</p>
                 </div>
               )}
             </div>
@@ -156,7 +141,7 @@ export function QrCodeDisplay({
                 {isRefreshing ? (
                   <>
                     <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                    Gerando QR Code...
+                    Gerando...
                   </>
                 ) : (
                   <>
@@ -195,13 +180,6 @@ export function QrCodeDisplay({
                 src={qrCode} 
                 alt="QR Code para conexão do WhatsApp" 
                 className="w-48 h-48 object-contain"
-                onError={(e) => {
-                  console.error('[QR Display] ❌ Erro ao carregar imagem QR Code');
-                  e.currentTarget.style.display = 'none';
-                }}
-                onLoad={() => {
-                  console.log('[QR Display] ✅ QR Code carregado com sucesso');
-                }}
               />
             </div>
           </div>

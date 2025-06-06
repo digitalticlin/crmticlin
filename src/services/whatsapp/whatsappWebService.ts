@@ -77,18 +77,15 @@ export class WhatsAppWebService {
     }
   }
 
-  // CORREÇÃO CRÍTICA: Método getQRCode melhorado com logs detalhados
   static async getQRCode(instanceId: string) {
     try {
-      console.log('[WhatsApp Web Service] 📱 CORREÇÃO CRÍTICA - Obtendo QR code via backend:', instanceId);
+      console.log('[WhatsApp Web Service] 📱 Getting QR code via backend for:', instanceId);
 
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
       if (sessionError || !session) {
         throw new Error('User not authenticated');
       }
-
-      console.log('[WhatsApp Web Service] 🔐 CORREÇÃO CRÍTICA - Usuário autenticado, fazendo requisição...');
 
       const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
         body: {
@@ -100,18 +97,8 @@ export class WhatsAppWebService {
       });
 
       if (error) {
-        console.error('[WhatsApp Web Service] ❌ CORREÇÃO CRÍTICA - Erro na função Supabase:', error);
         throw new Error(error.message);
       }
-
-      console.log('[WhatsApp Web Service] 📊 CORREÇÃO CRÍTICA - Resposta recebida:', {
-        success: data.success,
-        waiting: data.waiting,
-        hasQRCode: !!data.qrCode,
-        source: data.source,
-        savedToDatabase: data.savedToDatabase,
-        errorPresent: !!data.error
-      });
 
       if (!data.success && !data.waiting) {
         throw new Error(data.error || 'Failed to get QR code');
@@ -121,13 +108,11 @@ export class WhatsAppWebService {
         success: data.success,
         qrCode: data.qrCode,
         waiting: data.waiting,
-        error: data.error,
-        source: data.source,
-        savedToDatabase: data.savedToDatabase
+        error: data.error
       };
 
     } catch (error) {
-      console.error('[WhatsApp Web Service] ❌ CORREÇÃO CRÍTICA - Erro geral ao obter QR code:', error);
+      console.error('[WhatsApp Web Service] ❌ Error getting QR code:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'

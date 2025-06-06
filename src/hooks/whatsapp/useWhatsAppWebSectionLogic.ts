@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useWhatsAppWebInstances } from "./useWhatsAppWebInstances";
+import { useAutomaticQRPolling } from "./useAutomaticQRPolling";
 import { useAuth } from "@/contexts/AuthContext";
 
 export const useWhatsAppWebSectionLogic = () => {
@@ -9,8 +10,8 @@ export const useWhatsAppWebSectionLogic = () => {
   const [localShowQRModal, setLocalShowQRModal] = useState(false);
   const [localSelectedQRCode, setLocalSelectedQRCode] = useState<string | null>(null);
   const [localSelectedInstanceName, setLocalSelectedInstanceName] = useState<string>('');
+  const [isWaitingForQR, setIsWaitingForQR] = useState(false);
   const [isCreatingInstance, setIsCreatingInstance] = useState(false);
-  const [isGeneratingQR, setIsGeneratingQR] = useState(false);
   const [creationStage, setCreationStage] = useState<string>('');
 
   const { user } = useAuth();
@@ -18,11 +19,14 @@ export const useWhatsAppWebSectionLogic = () => {
   const {
     instances,
     isLoading,
+    isConnecting,
     createInstance,
     deleteInstance,
-    generateQRCode,
+    refreshQRCode,
     generateIntelligentInstanceName
   } = useWhatsAppWebInstances();
+
+  const { isPolling, currentAttempt, maxAttempts, startPolling, stopPolling } = useAutomaticQRPolling();
 
   // Usar dados do usuário autenticado
   useEffect(() => {
@@ -31,25 +35,73 @@ export const useWhatsAppWebSectionLogic = () => {
     }
   }, [user]);
 
-  // NOVO FLUXO: Apenas criar instância sem abrir modal
+  // Cleanup polling ao desmontar
+  useEffect(() => {
+    return () => {
+      stopPolling();
+    };
+  }, [stopPolling]);
+
+  // Fluxo SINCRONIZADO - VPS-Frontend
   const handleConnect = async () => {
     try {
+      // ETAPA 1: Preparar criação
       setIsCreatingInstance(true);
-      setCreationStage('Criando instância...');
+      setCreationStage('Iniciando conexão...');
       
+      // ETAPA 2: Gerar nome da instância
       const instanceName = await generateIntelligentInstanceName(userEmail);
       
+      setCreationStage('Preparando WhatsApp...');
       toast.loading(`Criando instância "${instanceName}"...`, { id: 'creating-instance' });
       
+      // ETAPA 3: AGUARDAR confirmação COMPLETA da VPS
       const createdInstance = await createInstance(instanceName);
       
       if (!createdInstance) {
         throw new Error('Falha ao criar instância');
       }
       
-      toast.success(`Instância "${instanceName}" criada com sucesso!`, { id: 'creating-instance' });
+      // ETAPA 4: Aguardar para garantir sincronização VPS-DB
+      setCreationStage('Quase pronto...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // ETAPA 5: Configurar modal APENAS após confirmação completa
+      setLocalSelectedInstanceName(createdInstance.instance_name);
+      
+      if (createdInstance.qr_code) {
+        // QR Code disponível - VPS processou completamente
+        setLocalSelectedQRCode(createdInstance.qr_code);
+        setIsWaitingForQR(false);
+        setCreationStage('Pronto para escanear!');
+        toast.success(`QR Code pronto! Escaneie para conectar.`, { id: 'creating-instance' });
+      } else {
+        // QR Code não disponível - iniciar polling
+        setIsWaitingForQR(true);
+        setCreationStage('Preparando QR Code...');
+        toast.info(`Preparando QR Code para "${instanceName}"...`, { id: 'creating-instance' });
+        
+        // Polling com confirmação de instância existente
+        await startPolling(
+          createdInstance.id,
+          createdInstance.instance_name,
+          (qrCode: string) => {
+            setLocalSelectedQRCode(qrCode);
+            setIsWaitingForQR(false);
+            setCreationStage('Pronto para escanear!');
+            toast.success('QR Code pronto! Escaneie para conectar.', { id: 'creating-instance' });
+          }
+        );
+      }
+      
+      // ETAPA 6: AGORA SIM abrir modal após tudo estar pronto
+      setLocalShowQRModal(true);
       
     } catch (error: any) {
+      setIsWaitingForQR(false);
+      setLocalShowQRModal(false);
+      setCreationStage('');
+      stopPolling();
       toast.error(`Erro ao criar instância: ${error.message}`, { id: 'creating-instance' });
     } finally {
       setIsCreatingInstance(false);
@@ -57,37 +109,29 @@ export const useWhatsAppWebSectionLogic = () => {
     }
   };
 
-  // NOVA FUNÇÃO: Gerar QR Code sob demanda
-  const handleGenerateQR = async (instanceId: string) => {
-    try {
-      setIsGeneratingQR(true);
-      
-      const instance = instances.find(i => i.id === instanceId);
-      if (!instance) {
-        throw new Error('Instância não encontrada');
-      }
-
-      toast.loading('Gerando QR Code...', { id: 'generating-qr' });
-      
-      const result = await generateQRCode(instanceId);
-      
-      if (result && result.success && result.qrCode) {
-        setLocalSelectedQRCode(result.qrCode);
-        setLocalSelectedInstanceName(instance.instance_name);
-        setLocalShowQRModal(true);
-        toast.success('QR Code gerado com sucesso!', { id: 'generating-qr' });
-      } else {
-        throw new Error(result?.error || 'Falha ao gerar QR Code');
-      }
-    } catch (error: any) {
-      toast.error(`Erro ao gerar QR Code: ${error.message}`, { id: 'generating-qr' });
-    } finally {
-      setIsGeneratingQR(false);
-    }
-  };
-
   const handleDeleteInstance = async (instanceId: string) => {
     await deleteInstance(instanceId);
+  };
+
+  const handleRefreshQR = async (instanceId: string) => {
+    try {
+      setIsWaitingForQR(true);
+      const result = await refreshQRCode(instanceId);
+      
+      if (result && result.success && result.qrCode) {
+        const instance = instances.find(i => i.id === instanceId);
+        setLocalSelectedQRCode(result.qrCode);
+        setLocalSelectedInstanceName(instance?.instance_name || '');
+        setLocalShowQRModal(true);
+        setIsWaitingForQR(false);
+      } else {
+        setIsWaitingForQR(false);
+        throw new Error('QR Code não disponível');
+      }
+    } catch (error: any) {
+      setIsWaitingForQR(false);
+      toast.error(`Erro ao atualizar QR Code: ${error.message}`);
+    }
   };
 
   const handleShowQR = (instance: any) => {
@@ -95,6 +139,7 @@ export const useWhatsAppWebSectionLogic = () => {
       setLocalSelectedQRCode(instance.qr_code);
       setLocalSelectedInstanceName(instance.instance_name);
       setLocalShowQRModal(true);
+      setIsWaitingForQR(false);
     } else {
       toast.error('QR Code não disponível para esta instância');
     }
@@ -104,9 +149,11 @@ export const useWhatsAppWebSectionLogic = () => {
     setLocalShowQRModal(false);
     setLocalSelectedQRCode(null);
     setLocalSelectedInstanceName('');
+    setIsWaitingForQR(false);
+    stopPolling();
   };
 
-  const isConnectingOrPolling = isCreatingInstance || isGeneratingQR;
+  const isConnectingOrPolling = isConnecting || isPolling || isCreatingInstance;
 
   return {
     instances,
@@ -117,13 +164,12 @@ export const useWhatsAppWebSectionLogic = () => {
     localShowQRModal,
     localSelectedQRCode,
     localSelectedInstanceName,
-    isWaitingForQR: false, // Removido polling
-    currentAttempt: 0,
-    maxAttempts: 0,
+    isWaitingForQR,
+    currentAttempt,
+    maxAttempts,
     handleConnect,
     handleDeleteInstance,
-    handleGenerateQR, // Nova função
-    handleRefreshQR: handleGenerateQR, // Alias para compatibilidade
+    handleRefreshQR,
     handleShowQR,
     closeQRModal
   };

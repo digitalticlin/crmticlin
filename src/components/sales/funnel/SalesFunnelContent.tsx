@@ -25,12 +25,6 @@ export const SalesFunnelContent = () => {
     setIsLeadDetailOpen,
     availableTags,
     stages,
-    leads,
-    wonStageId,
-    lostStageId,
-    isAdmin,
-    refetchLeads,
-    refetchStages,
     addColumn,
     updateColumn,
     deleteColumn,
@@ -41,7 +35,13 @@ export const SalesFunnelContent = () => {
     updateLeadPurchaseValue,
     updateLeadAssignedUser,
     updateLeadName,
-    moveLeadToStage
+    moveLeadToStage,
+    isAdmin,
+    wonStageId,
+    lostStageId,
+    leads,
+    refetchLeads,
+    refetchStages
   } = useSalesFunnelContext();
 
   // Buscar leads das etapas GANHO e PERDIDO diretamente dos leads totais
@@ -57,8 +57,8 @@ export const SalesFunnelContent = () => {
   const actions = SalesFunnelActions({
     stages: stages || [],
     moveLeadToStage,
-    refetchLeads: refetchLeads,
-    refetchStages: refetchStages,
+    refetchLeads,
+    refetchStages,
     onStageModalOpen: (lead: KanbanLead) => {
       setLeadToMove(lead);
       setIsStageModalOpen(true);
@@ -76,7 +76,7 @@ export const SalesFunnelContent = () => {
       if (pendingDealMove.status === "won") {
         // Atualizar o valor de compra do lead apenas para ganhos
         if (pendingDealMove.lead.id && value !== pendingDealMove.lead.purchaseValue) {
-          await updateLeadPurchaseValue(pendingDealMove.lead.id, value);
+          await updateLeadPurchaseValue(value);
         }
         // Criar deal e mover para ganho com o valor atualizado
         await actions.handleDealNoteConfirm(note, { 
@@ -99,41 +99,8 @@ export const SalesFunnelContent = () => {
   // Wrapper function to handle the notes update with leadId
   const handleUpdateLeadNotes = async (notes: string) => {
     if (selectedLead?.id) {
-      await updateLeadNotes(selectedLead.id, notes);
+      await updateLeadNotes(notes);
     }
-  };
-
-  // Wrapper function to handle the purchase value update with leadId
-  const handleUpdateLeadPurchaseValue = async (value: number) => {
-    if (selectedLead?.id) {
-      await updateLeadPurchaseValue(selectedLead.id, value);
-    }
-  };
-
-  // Wrapper function to handle the assigned user update with leadId
-  const handleUpdateLeadAssignedUser = async (user: string) => {
-    if (selectedLead?.id) {
-      await updateLeadAssignedUser(selectedLead.id, user);
-    }
-  };
-
-  // Wrapper function to handle the name update with leadId
-  const handleUpdateLeadName = async (name: string) => {
-    if (selectedLead?.id) {
-      await updateLeadName(selectedLead.id, name);
-    }
-  };
-
-  // Wrapper function to handle tag toggle with leadId
-  const handleToggleTag = (tagId: string) => {
-    if (selectedLead?.id) {
-      toggleTagOnLead(selectedLead.id, tagId);
-    }
-  };
-
-  // Wrapper function for updateColumn to match expected signature
-  const handleUpdateColumn = async (column: any) => {
-    await updateColumn(column.id, column);
   };
 
   return (
@@ -152,7 +119,7 @@ export const SalesFunnelContent = () => {
         lostStageId={lostStageId}
         isAdmin={isAdmin}
         addColumn={addColumn}
-        updateColumn={handleUpdateColumn}
+        updateColumn={updateColumn}
         deleteColumn={deleteColumn}
         openLeadDetail={openLeadDetail}
         onOpenChat={actions.handleOpenChat}
@@ -188,12 +155,12 @@ export const SalesFunnelContent = () => {
         isLeadDetailOpen={isLeadDetailOpen}
         setIsLeadDetailOpen={setIsLeadDetailOpen}
         availableTags={availableTags}
-        onToggleTag={handleToggleTag}
+        onToggleTag={(tagId) => selectedLead && toggleTagOnLead(selectedLead.id, tagId)}
         onUpdateNotes={handleUpdateLeadNotes}
         onCreateTag={createTag}
-        onUpdatePurchaseValue={handleUpdateLeadPurchaseValue}
-        onUpdateAssignedUser={handleUpdateLeadAssignedUser}
-        onUpdateName={handleUpdateLeadName}
+        onUpdatePurchaseValue={updateLeadPurchaseValue}
+        onUpdateAssignedUser={updateLeadAssignedUser}
+        onUpdateName={updateLeadName}
       />
     </>
   );

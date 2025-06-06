@@ -10,19 +10,19 @@ interface FunnelConfigModalProps {
 }
 
 export const FunnelConfigModal = ({ isOpen, onClose }: FunnelConfigModalProps) => {
-  const { stages, updateColumn, deleteColumn, addColumn } = useSalesFunnelContext();
+  const { columns, updateColumn, deleteColumn, addColumn } = useSalesFunnelContext();
 
   // Wrapper functions to ensure proper async handling
   const handleUpdateStage = async (stage: any) => {
-    await updateColumn(stage.id, stage);
+    await updateColumn(stage);
   };
 
   const handleDeleteStage = async (stageId: string) => {
     await deleteColumn(stageId);
   };
 
-  const handleCreateStage = async (title: string, color: string = '#3b82f6') => {
-    await addColumn(title, color);
+  const handleCreateStage = async (title: string) => {
+    await addColumn(title);
   };
 
   return (
@@ -36,7 +36,7 @@ export const FunnelConfigModal = ({ isOpen, onClose }: FunnelConfigModalProps) =
 
         <div className="space-y-6">
           <StagesList
-            stages={stages}
+            stages={columns}
             onUpdateStage={handleUpdateStage}
             onDeleteStage={handleDeleteStage}
           />
