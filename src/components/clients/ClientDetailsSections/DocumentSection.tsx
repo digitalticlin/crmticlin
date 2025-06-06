@@ -24,18 +24,18 @@ export function DocumentSection({ client }: DocumentSectionProps) {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <FileText className="h-5 w-5 text-[#d3d800]" />
-          <h3 className="text-lg font-semibold text-gray-900">Documento</h3>
+          <h3 className="text-lg font-semibold text-white">Documento</h3>
         </div>
         {!isEditing && (
           <Button 
             variant="ghost" 
             size="sm"
             onClick={() => setIsEditing(true)}
-            className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+            className="text-white/70 hover:text-white hover:bg-white/10"
           >
             <Edit className="h-4 w-4" />
           </Button>
@@ -44,13 +44,13 @@ export function DocumentSection({ client }: DocumentSectionProps) {
       
       <div className="grid gap-4">
         <div>
-          <Label className="text-sm font-medium text-gray-700">Tipo de Documento</Label>
+          <Label className="text-sm font-medium text-white/90">Tipo de Documento</Label>
           {isEditing ? (
             <Select 
               value={editedData.document_type} 
               onValueChange={(value) => setEditedData({...editedData, document_type: value})}
             >
-              <SelectTrigger className="mt-1 border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800]">
+              <SelectTrigger className="mt-1 bg-white/10 backdrop-blur-sm border-white/30 text-white">
                 <SelectValue placeholder="Selecione o tipo" />
               </SelectTrigger>
               <SelectContent>
@@ -59,26 +59,26 @@ export function DocumentSection({ client }: DocumentSectionProps) {
               </SelectContent>
             </Select>
           ) : (
-            <p className="text-gray-900">{client.document_type?.toUpperCase() || 'Não informado'}</p>
+            <p className="text-white/80">{client.document_type?.toUpperCase() || 'Não informado'}</p>
           )}
         </div>
 
         <div>
-          <Label className="text-sm font-medium text-gray-700">Número do Documento</Label>
+          <Label className="text-sm font-medium text-white/90">Número do Documento</Label>
           {isEditing ? (
             <Input
               value={editedData.document_id}
               onChange={(e) => setEditedData({...editedData, document_id: e.target.value})}
-              className="mt-1 border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800]"
+              className="mt-1 bg-white/10 backdrop-blur-sm border-white/30 text-white placeholder:text-white/60"
               placeholder="000.000.000-00"
             />
           ) : (
-            <p className="text-gray-900">{client.document_id || 'Não informado'}</p>
+            <p className="text-white/80">{client.document_id || 'Não informado'}</p>
           )}
         </div>
 
         {isEditing && (
-          <div className="flex gap-2 pt-4 border-t border-gray-200">
+          <div className="flex gap-2 pt-4 border-t border-white/20">
             <Button 
               size="sm" 
               onClick={handleSave}
@@ -97,7 +97,7 @@ export function DocumentSection({ client }: DocumentSectionProps) {
                   document_id: client.document_id || ""
                 });
               }}
-              className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20"
             >
               <X className="h-3 w-3 mr-1" />
               Cancelar

@@ -50,18 +50,18 @@ export function ContactsSection({ client }: ContactsSectionProps) {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <MessageSquare className="h-5 w-5 text-[#d3d800]" />
-          <h3 className="text-lg font-semibold text-gray-900">Contatos</h3>
+          <h3 className="text-lg font-semibold text-white">Contatos</h3>
         </div>
         {!isEditing && (
           <Button 
             variant="ghost" 
             size="sm"
             onClick={() => setIsEditing(true)}
-            className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+            className="text-white/70 hover:text-white hover:bg-white/10"
           >
             <Edit className="h-4 w-4" />
           </Button>
@@ -73,16 +73,16 @@ export function ContactsSection({ client }: ContactsSectionProps) {
         <div className="flex items-start gap-3">
           <Phone className="h-5 w-5 text-[#d3d800] mt-0.5" />
           <div className="flex-1">
-            <Label className="text-sm font-medium text-gray-700">Telefone Principal</Label>
-            <p className="text-gray-900 font-medium">{client.phone}</p>
+            <Label className="text-sm font-medium text-white/90">Telefone Principal</Label>
+            <p className="text-white font-medium">{client.phone}</p>
           </div>
-          <Badge className="bg-green-100 text-green-800 border-green-200">Principal</Badge>
+          <Badge className="bg-green-500/20 text-green-300 border-green-400/30">Principal</Badge>
         </div>
 
         {/* Contatos Adicionais */}
         {isEditing ? (
           <div className="space-y-3">
-            <Label className="text-sm font-medium text-gray-700">Contatos Adicionais</Label>
+            <Label className="text-sm font-medium text-white/90">Contatos Adicionais</Label>
             {editedContacts.map((contact, index) => (
               <div key={index} className="flex gap-2 items-end">
                 <div className="flex-1">
@@ -90,7 +90,7 @@ export function ContactsSection({ client }: ContactsSectionProps) {
                     value={contact.contact_type} 
                     onValueChange={(value) => updateContact(index, { contact_type: value as 'phone' | 'email' | 'whatsapp' })}
                   >
-                    <SelectTrigger className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800]">
+                    <SelectTrigger className="bg-white/10 backdrop-blur-sm border-white/30 text-white">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -104,7 +104,7 @@ export function ContactsSection({ client }: ContactsSectionProps) {
                   <Input
                     value={contact.contact_value}
                     onChange={(e) => updateContact(index, { contact_value: e.target.value })}
-                    className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800]"
+                    className="bg-white/10 backdrop-blur-sm border-white/30 text-white placeholder:text-white/60"
                     placeholder="Valor do contato"
                   />
                 </div>
@@ -112,7 +112,7 @@ export function ContactsSection({ client }: ContactsSectionProps) {
                   variant="ghost"
                   size="sm"
                   onClick={() => removeContact(index)}
-                  className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                  className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -122,7 +122,7 @@ export function ContactsSection({ client }: ContactsSectionProps) {
               variant="outline"
               size="sm"
               onClick={addContact}
-              className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20"
             >
               <Plus className="h-4 w-4 mr-1" />
               Adicionar Contato
@@ -134,22 +134,22 @@ export function ContactsSection({ client }: ContactsSectionProps) {
               <div key={index} className="flex items-center gap-3">
                 {getContactIcon(contact.contact_type)}
                 <div>
-                  <span className="text-sm text-gray-600 capitalize">{contact.contact_type}:</span>
-                  <span className="text-gray-900 ml-2">{contact.contact_value}</span>
+                  <span className="text-sm text-white/70 capitalize">{contact.contact_type}:</span>
+                  <span className="text-white/80 ml-2">{contact.contact_value}</span>
                   {contact.is_primary && (
-                    <Badge className="ml-2 bg-blue-100 text-blue-800 border-blue-200 text-xs">Principal</Badge>
+                    <Badge className="ml-2 bg-blue-500/20 text-blue-300 border-blue-400/30 text-xs">Principal</Badge>
                   )}
                 </div>
               </div>
             ))}
             {(!client.contacts || client.contacts.length === 0) && (
-              <p className="text-gray-500 text-sm">Nenhum contato adicional cadastrado</p>
+              <p className="text-white/60 text-sm">Nenhum contato adicional cadastrado</p>
             )}
           </div>
         )}
 
         {isEditing && (
-          <div className="flex gap-2 pt-4 border-t border-gray-200">
+          <div className="flex gap-2 pt-4 border-t border-white/20">
             <Button 
               size="sm" 
               onClick={handleSave}
@@ -165,7 +165,7 @@ export function ContactsSection({ client }: ContactsSectionProps) {
                 setIsEditing(false);
                 setEditedContacts(client.contacts || []);
               }}
-              className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20"
             >
               <X className="h-3 w-3 mr-1" />
               Cancelar
