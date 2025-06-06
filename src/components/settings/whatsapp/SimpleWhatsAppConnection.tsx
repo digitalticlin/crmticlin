@@ -66,25 +66,6 @@ export const SimpleWhatsAppConnection = () => {
 
   return (
     <div className="space-y-6">
-      {/* Status Header */}
-      <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-xl">
-                <MessageSquare className="h-6 w-6 text-green-600" />
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold text-green-800">WhatsApp</h2>
-                <p className="text-sm text-green-600">
-                  Conecte e gerencie suas contas WhatsApp
-                </p>
-              </div>
-            </div>
-          </CardTitle>
-        </CardHeader>
-      </Card>
-
       {/* Connect Button or Instance List */}
       {instances.length === 0 ? (
         <Card className="border-2 border-dashed border-green-300 bg-green-50/30">
