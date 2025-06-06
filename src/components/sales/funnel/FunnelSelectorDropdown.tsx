@@ -40,7 +40,7 @@ export const FunnelSelectorDropdown = ({
           <ChevronDown className="h-4 w-4 opacity-70" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-[250px] bg-white/90 backdrop-blur-xl border border-white/30 rounded-2xl shadow-2xl p-2">
+      <DropdownMenuContent className="w-[250px] bg-white/90 backdrop-blur-xl border border-white/30 rounded-2xl shadow-glass p-2">
         {funnels.length > 0 ? (
           <>
             {funnels.map((funnel) => (
