@@ -72,7 +72,7 @@ export const SalesFunnelProvider = ({ children }: { children: React.ReactNode })
     wonStageId,
     lostStageId,
     addColumn,
-    updateColumn,
+    updateColumn: updateColumnBase,
     deleteColumn,
     moveLeadToStage,
     openLeadDetail,
@@ -103,7 +103,7 @@ export const SalesFunnelProvider = ({ children }: { children: React.ReactNode })
       await addColumn(title, color);
     },
     updateColumn: async (id: string, updates: any) => {
-      await updateColumn(id, updates);
+      await updateColumnBase(id, updates);
     },
     deleteColumn,
     
