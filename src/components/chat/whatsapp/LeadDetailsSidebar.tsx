@@ -7,11 +7,6 @@ import { toast } from "sonner";
 import { useLeadDeals } from "@/hooks/salesFunnel/useLeadDeals";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GlassmorphismLeadHeader } from "@/components/sales/leadDetail/GlassmorphismLeadHeader";
-import { GlassmorphismBasicInfo } from "@/components/sales/leadDetail/GlassmorphismBasicInfo";
-import { GlassmorphismPurchaseValue } from "@/components/sales/leadDetail/GlassmorphismPurchaseValue";
-import { GlassmorphismAssignedUser } from "@/components/sales/leadDetail/GlassmorphismAssignedUser";
-import { GlassmorphismNotes } from "@/components/sales/leadDetail/GlassmorphismNotes";
 import { GlassmorphismDealHistory } from "@/components/sales/leadDetail/GlassmorphismDealHistory";
 import { KanbanLead } from "@/types/kanban";
 
@@ -175,95 +170,99 @@ export const LeadDetailsSidebar = ({
   };
 
   return (
-    <div className="fixed right-0 top-0 bottom-0 w-80 bg-gradient-to-br from-black/80 via-black/60 to-black/40 backdrop-blur-2xl border-l border-lime-400/30 shadow-2xl z-50 transform transition-transform duration-300">
+    <div className="fixed right-0 top-0 bottom-0 w-72 bg-gradient-to-br from-black/80 via-black/60 to-black/40 backdrop-blur-2xl border-l border-lime-400/30 shadow-2xl z-50 transform transition-transform duration-300">
       {/* Background Effects */}
       <div className="absolute inset-0 bg-gradient-to-br from-lime-400/5 via-yellow-300/5 to-lime-500/5 pointer-events-none" />
-      <div className="absolute top-0 right-0 w-64 h-64 bg-lime-400/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-48 h-48 bg-yellow-300/10 rounded-full blur-2xl pointer-events-none" />
+      <div className="absolute top-0 right-0 w-48 h-48 bg-lime-400/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-32 h-32 bg-yellow-300/10 rounded-full blur-2xl pointer-events-none" />
       
       <div className="h-full flex flex-col relative z-10">
         {/* Header */}
-        <div className="p-4 border-b border-lime-400/20">
+        <div className="p-3 border-b border-lime-400/20">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-white">Detalhes do Lead</h2>
+            <h2 className="text-base font-bold text-white">Detalhes do Lead</h2>
             <Button 
               variant="ghost" 
               size="sm" 
               onClick={onClose}
-              className="bg-white/10 hover:bg-white/20 text-white border border-white/30 backdrop-blur-sm rounded-xl transition-all duration-200 hover:scale-105 shadow-lg"
+              className="bg-white/10 hover:bg-white/20 text-white border border-white/30 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105 shadow-lg h-7 w-7 p-0"
             >
-              <X className="h-4 w-4" />
+              <X className="h-3 w-3" />
             </Button>
           </div>
         </div>
 
-        <ScrollArea className="flex-1 p-4">
-          <div className="space-y-4">
-            {/* Lead Header with Avatar - Compact */}
-            <div className="relative bg-gradient-to-br from-lime-400/30 via-yellow-300/20 to-lime-500/30 backdrop-blur-xl rounded-xl p-4 border-2 border-lime-400/40 shadow-xl shadow-lime-400/20">
-              <div className="absolute top-0 right-0 w-20 h-20 bg-lime-400/20 rounded-full blur-2xl"></div>
-              <div className="absolute bottom-0 left-0 w-16 h-16 bg-yellow-300/20 rounded-full blur-xl"></div>
+        <ScrollArea className="flex-1 p-3">
+          <div className="space-y-3">
+            {/* Lead Header with Avatar - More Compact */}
+            <div className="relative bg-gradient-to-br from-lime-400/30 via-yellow-300/20 to-lime-500/30 backdrop-blur-xl rounded-lg p-3 border-2 border-lime-400/40 shadow-xl shadow-lime-400/20">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-lime-400/20 rounded-full blur-2xl"></div>
+              <div className="absolute bottom-0 left-0 w-12 h-12 bg-yellow-300/20 rounded-full blur-xl"></div>
               
               <div className="relative flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-lime-400/80 to-yellow-300/80 flex items-center justify-center text-black font-bold text-lg ring-2 ring-lime-400/60">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-lime-400/80 to-yellow-300/80 flex items-center justify-center text-black font-bold text-sm ring-2 ring-lime-400/60">
                     {selectedContact.name.charAt(0).toUpperCase()}
                   </div>
                   
                   <div>
-                    <h2 className="text-lg font-bold text-white drop-shadow-lg">
+                    <h2 className="text-sm font-bold text-white drop-shadow-lg">
                       {selectedContact.name}
                     </h2>
-                    <div className="flex items-center gap-2 text-lime-200/90 text-sm">
+                    <div className="flex items-center gap-1 text-lime-200/90 text-xs">
                       <span>{selectedContact.phone}</span>
                     </div>
                   </div>
                 </div>
                 
-                <div className="bg-white/15 backdrop-blur-sm rounded-full px-2 py-1 border border-lime-400/30">
+                <div className="bg-white/15 backdrop-blur-sm rounded-full px-2 py-0.5 border border-lime-400/30">
                   <span className="text-xs text-lime-300 font-medium flex items-center gap-1">
-                    <div className="w-1.5 h-1.5 bg-lime-400 rounded-full animate-pulse"></div>
+                    <div className="w-1 h-1 bg-lime-400 rounded-full animate-pulse"></div>
                     Online
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Basic Info Section - Compact */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-lime-400/30 shadow-lg shadow-lime-400/10">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
-                <div className="p-1.5 bg-gradient-to-br from-lime-400/80 to-yellow-300/80 rounded-lg shadow-lg shadow-lime-400/30">
-                  <div className="h-3 w-3 bg-black rounded-sm" />
-                </div>
-                Informações Básicas
-              </h3>
-              
-              <div className="space-y-2 text-sm">
-                <div className="bg-white/5 backdrop-blur-sm rounded-lg p-2 border border-white/20">
-                  <p className="text-white/70 text-xs">Email</p>
-                  <p className="text-white">{selectedContact.email || 'Não informado'}</p>
-                </div>
-                
-                {selectedContact.company && (
-                  <div className="bg-white/5 backdrop-blur-sm rounded-lg p-2 border border-white/20">
-                    <p className="text-white/70 text-xs">Empresa</p>
-                    <p className="text-white">{selectedContact.company}</p>
+            {/* Basic Info Section - Very Compact */}
+            {(selectedContact.email || selectedContact.company) && (
+              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-2 border border-lime-400/30 shadow-lg shadow-lime-400/10">
+                <h3 className="text-xs font-bold text-white flex items-center gap-1 mb-2">
+                  <div className="p-1 bg-gradient-to-br from-lime-400/80 to-yellow-300/80 rounded-md shadow-lg shadow-lime-400/30">
+                    <div className="h-2 w-2 bg-black rounded-sm" />
                   </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Purchase Value Field - Compact */}
-            <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-lime-400/30 shadow-lg shadow-lime-400/10">
-              <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
-                <div className="p-1.5 bg-gradient-to-br from-lime-400/80 to-yellow-300/80 rounded-lg shadow-lg shadow-lime-400/30">
-                  <div className="h-3 w-3 bg-black rounded-sm" />
+                  Informações
+                </h3>
+                
+                <div className="space-y-1 text-xs">
+                  {selectedContact.email && (
+                    <div className="bg-white/5 backdrop-blur-sm rounded-md p-1.5 border border-white/20">
+                      <p className="text-white/70 text-xs">Email</p>
+                      <p className="text-white text-xs truncate">{selectedContact.email}</p>
+                    </div>
+                  )}
+                  
+                  {selectedContact.company && (
+                    <div className="bg-white/5 backdrop-blur-sm rounded-md p-1.5 border border-white/20">
+                      <p className="text-white/70 text-xs">Empresa</p>
+                      <p className="text-white text-xs truncate">{selectedContact.company}</p>
+                    </div>
+                  )}
                 </div>
-                Valor da Negociação
+              </div>
+            )}
+            
+            {/* Purchase Value Field - Very Compact */}
+            <div className="bg-white/10 backdrop-blur-lg rounded-lg p-2 border border-lime-400/30 shadow-lg shadow-lime-400/10">
+              <h3 className="text-xs font-bold text-white flex items-center gap-1 mb-2">
+                <div className="p-1 bg-gradient-to-br from-lime-400/80 to-yellow-300/80 rounded-md shadow-lg shadow-lime-400/30">
+                  <div className="h-2 w-2 bg-black rounded-sm" />
+                </div>
+                Valor
               </h3>
               
-              <div className="bg-gradient-to-br from-lime-500/20 to-green-500/20 backdrop-blur-sm rounded-lg p-3 border border-lime-400/40">
-                <div className="text-xl font-bold text-lime-300 drop-shadow-lg">
+              <div className="bg-gradient-to-br from-lime-500/20 to-green-500/20 backdrop-blur-sm rounded-md p-2 border border-lime-400/40">
+                <div className="text-sm font-bold text-lime-300 drop-shadow-lg">
                   {selectedContact.purchaseValue ? 
                     new Intl.NumberFormat('pt-BR', {
                       style: 'currency',
@@ -275,50 +274,52 @@ export const LeadDetailsSidebar = ({
               </div>
             </div>
             
-            {/* Assigned User Field - Compact */}
+            {/* Assigned User Field - Very Compact */}
             {selectedContact.assignedUser && (
-              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-lime-400/30 shadow-lg shadow-lime-400/10">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
-                  <div className="p-1.5 bg-gradient-to-br from-lime-400/80 to-yellow-300/80 rounded-lg shadow-lg shadow-lime-400/30">
-                    <div className="h-3 w-3 bg-black rounded-sm" />
+              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-2 border border-lime-400/30 shadow-lg shadow-lime-400/10">
+                <h3 className="text-xs font-bold text-white flex items-center gap-1 mb-2">
+                  <div className="p-1 bg-gradient-to-br from-lime-400/80 to-yellow-300/80 rounded-md shadow-lg shadow-lime-400/30">
+                    <div className="h-2 w-2 bg-black rounded-sm" />
                   </div>
                   Responsável
                 </h3>
                 
-                <div className="bg-white/5 backdrop-blur-sm rounded-lg p-2 border border-white/20">
-                  <p className="text-white text-sm">{selectedContact.assignedUser}</p>
+                <div className="bg-white/5 backdrop-blur-sm rounded-md p-1.5 border border-white/20">
+                  <p className="text-white text-xs truncate">{selectedContact.assignedUser}</p>
                 </div>
               </div>
             )}
             
-            {/* Notes Field - Compact */}
+            {/* Notes Field - Very Compact */}
             {selectedContact.notes && (
-              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-lime-400/30 shadow-lg shadow-lime-400/10">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
-                  <div className="p-1.5 bg-gradient-to-br from-lime-400/80 to-yellow-300/80 rounded-lg shadow-lg shadow-lime-400/30">
-                    <div className="h-3 w-3 bg-black rounded-sm" />
+              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-2 border border-lime-400/30 shadow-lg shadow-lime-400/10">
+                <h3 className="text-xs font-bold text-white flex items-center gap-1 mb-2">
+                  <div className="p-1 bg-gradient-to-br from-lime-400/80 to-yellow-300/80 rounded-md shadow-lg shadow-lime-400/30">
+                    <div className="h-2 w-2 bg-black rounded-sm" />
                   </div>
                   Observações
                 </h3>
                 
-                <div className="bg-white/5 backdrop-blur-sm rounded-lg p-2 border border-white/20">
-                  <p className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap">
+                <div className="bg-white/5 backdrop-blur-sm rounded-md p-1.5 border border-white/20">
+                  <p className="text-white/90 text-xs leading-relaxed line-clamp-3">
                     {selectedContact.notes}
                   </p>
                 </div>
               </div>
             )}
 
-            {/* Deal History - Compact */}
+            {/* Deal History - Very Compact */}
             {deals.length > 0 && (
-              <div className="bg-white/10 backdrop-blur-lg rounded-xl p-4 border border-lime-400/30 shadow-lg shadow-lime-400/10">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2 mb-3">
-                  <div className="p-1.5 bg-gradient-to-br from-lime-400/80 to-yellow-300/80 rounded-lg shadow-lg shadow-lime-400/30">
-                    <div className="h-3 w-3 bg-black rounded-sm" />
+              <div className="bg-white/10 backdrop-blur-lg rounded-lg p-2 border border-lime-400/30 shadow-lg shadow-lime-400/10">
+                <h3 className="text-xs font-bold text-white flex items-center gap-1 mb-2">
+                  <div className="p-1 bg-gradient-to-br from-lime-400/80 to-yellow-300/80 rounded-md shadow-lg shadow-lime-400/30">
+                    <div className="h-2 w-2 bg-black rounded-sm" />
                   </div>
-                  Histórico de Negociações
+                  Histórico
                 </h3>
-                <GlassmorphismDealHistory deals={deals} />
+                <div className="scale-90 origin-top-left">
+                  <GlassmorphismDealHistory deals={deals} />
+                </div>
               </div>
             )}
           </div>
