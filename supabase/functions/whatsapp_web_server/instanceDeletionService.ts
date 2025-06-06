@@ -2,77 +2,84 @@
 import { corsHeaders } from './config.ts';
 import { deleteVPSInstance } from './vpsRequestService.ts';
 
-export async function deleteWhatsAppInstance(supabase: any, instanceId: string) {
-  console.log('[Instance Deletion] 🗑️ Deleting WhatsApp Web.js instance:', instanceId);
+export async function deleteWhatsAppInstance(supabase: any, instanceData: any, userId: string) {
+  const deleteId = `delete_${Date.now()}`;
+  console.log(`[Instance Deletion] 🗑️ FASE 1.3 - Deleting WhatsApp Web.js instance [${deleteId}]:`, { instanceId: instanceData.instanceId });
 
   try {
-    // Buscar dados da instância antes de deletar
-    const { data: instance, error: fetchError } = await supabase
+    const { instanceId } = instanceData;
+    
+    if (!instanceId || typeof instanceId !== 'string') {
+      throw new Error(`Instance ID inválido: ${instanceId}`);
+    }
+
+    console.log(`[Instance Deletion] 📋 FASE 1.3 - Validating instance ID: ${instanceId}`);
+
+    // 1. Buscar instância no Supabase
+    const { data: instance, error: instanceError } = await supabase
       .from('whatsapp_instances')
-      .select('vps_instance_id, instance_name, phone')
+      .select('*')
       .eq('id', instanceId)
+      .eq('created_by_user_id', userId)
       .single();
 
-    if (fetchError) {
-      console.error('[Instance Deletion] ❌ Error fetching instance:', fetchError);
-      throw new Error(`Erro ao buscar instância: ${fetchError.message}`);
+    if (instanceError) {
+      console.error(`[Instance Deletion] ❌ FASE 1.3 - Error fetching instance:`, instanceError);
+      throw new Error(`Erro ao buscar instância: ${instanceError.message}`);
     }
 
     if (!instance) {
-      console.error('[Instance Deletion] ❌ Instance not found:', instanceId);
-      throw new Error('Instância não encontrada');
+      console.error(`[Instance Deletion] ❌ FASE 1.3 - Instance not found for user: ${userId}`);
+      throw new Error('Instância não encontrada ou sem permissão');
     }
 
-    console.log('[Instance Deletion] 📱 Instance found:', {
-      id: instanceId,
-      vps_instance_id: instance.vps_instance_id,
-      instance_name: instance.instance_name,
-      phone: instance.phone
+    console.log(`[Instance Deletion] ✅ FASE 1.3 - Instance found:`, {
+      id: instance.id,
+      vpsInstanceId: instance.vps_instance_id,
+      instanceName: instance.instance_name
     });
 
-    // Tentar deletar da VPS se houver vps_instance_id
+    // 2. Deletar da VPS se tiver vps_instance_id
     if (instance.vps_instance_id) {
-      try {
-        console.log('[Instance Deletion] 🌐 Deleting from VPS:', instance.vps_instance_id);
-        await deleteVPSInstance(instance.vps_instance_id, instance.instance_name);
-        console.log('[Instance Deletion] ✅ Successfully deleted from VPS');
-      } catch (deleteError) {
-        console.error('[Instance Deletion] ⚠️ VPS delete error (continuing):', deleteError);
-        // Continue com a deleção do banco mesmo se a VPS falhar
+      console.log(`[Instance Deletion] 🌐 FASE 1.3 - Deleting from VPS: ${instance.vps_instance_id}`);
+      const vpsResult = await deleteVPSInstance(instance.vps_instance_id);
+      
+      if (!vpsResult.success) {
+        console.warn(`[Instance Deletion] ⚠️ FASE 1.3 - VPS deletion failed: ${vpsResult.error}`);
+        // Continuar com a deleção no Supabase mesmo se a VPS falhar
+      } else {
+        console.log(`[Instance Deletion] ✅ FASE 1.3 - Successfully deleted from VPS`);
       }
     } else {
-      console.log('[Instance Deletion] ℹ️ No VPS instance ID, skipping VPS deletion');
+      console.log(`[Instance Deletion] ⏭️ FASE 1.3 - No VPS instance ID, skipping VPS deletion`);
     }
 
-    // Deletar do banco de dados
-    console.log('[Instance Deletion] 🗄️ Deleting from database:', instanceId);
+    // 3. Deletar do Supabase
+    console.log(`[Instance Deletion] 🗄️ FASE 1.3 - Deleting from Supabase: ${instanceId}`);
     const { error: deleteError } = await supabase
       .from('whatsapp_instances')
       .delete()
-      .eq('id', instanceId);
+      .eq('id', instanceId)
+      .eq('created_by_user_id', userId);
 
     if (deleteError) {
-      console.error('[Instance Deletion] ❌ Database delete error:', deleteError);
-      throw new Error(`Erro ao deletar do banco: ${deleteError.message}`);
+      console.error(`[Instance Deletion] ❌ FASE 1.3 - Error deleting from Supabase:`, deleteError);
+      throw deleteError;
     }
 
-    console.log('[Instance Deletion] ✅ Instance successfully deleted from database');
+    console.log(`[Instance Deletion] ✅ FASE 1.3 - Instance deleted successfully [${deleteId}]`);
 
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Instância deletada com sucesso',
-        deletedInstance: {
-          id: instanceId,
-          instance_name: instance.instance_name,
-          phone: instance.phone
-        }
+        deletionId: deleteId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: any) {
-    console.error('[Instance Deletion] 💥 ERRO GERAL:', error);
+    console.error(`[Instance Deletion] 💥 FASE 1.3 - ERRO GERAL [${deleteId}]:`, error);
     
     return new Response(
       JSON.stringify({
