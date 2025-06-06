@@ -19,7 +19,7 @@ export const clientToLeadAdapter = (client: ClientData): KanbanLead => {
     assignedUser: undefined, // Pode ser expandido no futuro
     avatar: undefined,
     unreadCount: 0,
-    columnId: undefined, // Clientes não têm estágio kanban
+    columnId: client.kanban_stage_id || undefined,
   };
 };
 
@@ -34,6 +34,6 @@ export const leadToClientAdapter = (lead: KanbanLead): Partial<ClientData> => {
     address: lead.address,
     notes: lead.notes,
     purchase_value: lead.purchaseValue,
-    // Não incluir kanban_stage_id pois clientes não têm essa propriedade
+    kanban_stage_id: lead.columnId,
   };
 };
