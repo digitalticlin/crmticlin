@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -187,7 +186,7 @@ export const ManualWhatsAppInstanceCreator = () => {
           Conectar WhatsApp (Sistema Manual - CORREÇÃO IMPLEMENTADA)
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          ✅ Edge Function corrigida - GET /instance/{instanceId}/qr
+          ✅ Edge Function corrigida - GET /instance/instanceId/qr
         </p>
       </CardHeader>
 
