@@ -8,7 +8,7 @@ interface SidebarHeaderProps {
 
 export const SidebarHeader = ({ onClose }: SidebarHeaderProps) => {
   return (
-    <div className="flex items-center justify-between p-6 border-b border-white/20 bg-white/20 backdrop-blur-sm">
+    <div className="flex items-center justify-between p-6 border-b border-white/20 bg-white/10 backdrop-blur-sm">
       <h2 className="text-xl font-semibold text-gray-800">Detalhes do Lead</h2>
       <Button 
         variant="ghost" 

@@ -28,17 +28,17 @@ export const BasicInfoSection = ({
   const currentContact = { ...selectedContact, ...editedContact };
 
   return (
-    <div className="bg-white/20 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/30">
+    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/30">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-          <User className="h-5 w-5 text-blue-600" />
+          <User className="h-5 w-5 text-lime-400" />
           Informações Básicas
         </h3>
         <Button 
           variant="ghost" 
           size="sm" 
           onClick={() => setIsEditing(!isEditing)}
-          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg"
+          className="text-lime-400 hover:text-lime-500 hover:bg-lime-50 rounded-lg"
         >
           {isEditing ? 'Cancelar' : 'Editar'}
         </Button>
@@ -48,14 +48,14 @@ export const BasicInfoSection = ({
         {/* Nome */}
         <div className="space-y-2">
           <Label className="text-gray-700 font-medium flex items-center gap-2">
-            <User className="h-4 w-4" />
+            <User className="h-4 w-4 text-lime-400" />
             Nome
           </Label>
           {isEditing ? (
             <Input
               value={editedContact.name || currentContact.name}
               onChange={(e) => setEditedContact({...editedContact, name: e.target.value})}
-              className="bg-white/70 border-white/30 focus:border-blue-400 focus:ring-blue-400/20"
+              className="bg-white/70 border-white/30 focus:border-lime-400 focus:ring-lime-400/20"
             />
           ) : (
             <p className="text-gray-800 font-medium">{currentContact.name}</p>
@@ -65,7 +65,7 @@ export const BasicInfoSection = ({
         {/* Telefone */}
         <div className="space-y-2">
           <Label className="text-gray-700 font-medium flex items-center gap-2">
-            <Phone className="h-4 w-4" />
+            <Phone className="h-4 w-4 text-lime-400" />
             Telefone
           </Label>
           <p className="text-gray-700 bg-gray-50/50 p-2 rounded-lg">{currentContact.phone}</p>
@@ -74,7 +74,7 @@ export const BasicInfoSection = ({
         {/* Email */}
         <div className="space-y-2">
           <Label className="text-gray-700 font-medium flex items-center gap-2">
-            <Mail className="h-4 w-4" />
+            <Mail className="h-4 w-4 text-lime-400" />
             Email
           </Label>
           {isEditing ? (
@@ -82,7 +82,7 @@ export const BasicInfoSection = ({
               type="email"
               value={editedContact.email || currentContact.email || ''}
               onChange={(e) => setEditedContact({...editedContact, email: e.target.value})}
-              className="bg-white/70 border-white/30 focus:border-blue-400 focus:ring-blue-400/20"
+              className="bg-white/70 border-white/30 focus:border-lime-400 focus:ring-lime-400/20"
               placeholder="email@exemplo.com"
             />
           ) : (
@@ -93,14 +93,14 @@ export const BasicInfoSection = ({
         {/* Empresa */}
         <div className="space-y-2">
           <Label className="text-gray-700 font-medium flex items-center gap-2">
-            <Building className="h-4 w-4" />
+            <Building className="h-4 w-4 text-lime-400" />
             Empresa
           </Label>
           {isEditing ? (
             <Input
               value={editedContact.company || currentContact.company || ''}
               onChange={(e) => setEditedContact({...editedContact, company: e.target.value})}
-              className="bg-white/70 border-white/30 focus:border-blue-400 focus:ring-blue-400/20"
+              className="bg-white/70 border-white/30 focus:border-lime-400 focus:ring-lime-400/20"
               placeholder="Nome da empresa"
             />
           ) : (
@@ -111,14 +111,14 @@ export const BasicInfoSection = ({
         {/* CPF/CNPJ */}
         <div className="space-y-2">
           <Label className="text-gray-700 font-medium flex items-center gap-2">
-            <FileText className="h-4 w-4" />
+            <FileText className="h-4 w-4 text-lime-400" />
             CPF/CNPJ
           </Label>
           {isEditing ? (
             <Input
               value={editedContact.documentId || currentContact.documentId || ''}
               onChange={(e) => setEditedContact({...editedContact, documentId: e.target.value})}
-              className="bg-white/70 border-white/30 focus:border-blue-400 focus:ring-blue-400/20"
+              className="bg-white/70 border-white/30 focus:border-lime-400 focus:ring-lime-400/20"
               placeholder="000.000.000-00 ou 00.000.000/0000-00"
             />
           ) : (
@@ -129,14 +129,14 @@ export const BasicInfoSection = ({
         {/* Endereço */}
         <div className="space-y-2">
           <Label className="text-gray-700 font-medium flex items-center gap-2">
-            <MapPin className="h-4 w-4" />
+            <MapPin className="h-4 w-4 text-lime-400" />
             Endereço
           </Label>
           {isEditing ? (
             <Input
               value={editedContact.address || currentContact.address || ''}
               onChange={(e) => setEditedContact({...editedContact, address: e.target.value})}
-              className="bg-white/70 border-white/30 focus:border-blue-400 focus:ring-blue-400/20"
+              className="bg-white/70 border-white/30 focus:border-lime-400 focus:ring-lime-400/20"
               placeholder="Endereço completo"
             />
           ) : (
@@ -148,7 +148,7 @@ export const BasicInfoSection = ({
           <Button 
             onClick={onSave} 
             disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg rounded-lg"
+            className="w-full bg-lime-400/80 hover:bg-lime-500/80 text-black border border-lime-400 shadow-lg rounded-lg font-semibold"
           >
             {isLoading ? 'Salvando...' : 'Salvar Alterações'}
           </Button>

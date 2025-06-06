@@ -19,7 +19,7 @@ interface DealHistoryProps {
 export const DealHistory = ({ deals }: DealHistoryProps) => {
   if (deals.length === 0) {
     return (
-      <div className="text-center py-4 text-sm text-muted-foreground">
+      <div className="text-center py-4 text-sm text-gray-600">
         Nenhum histórico de negociação registrado.
       </div>
     );
@@ -31,12 +31,20 @@ export const DealHistory = ({ deals }: DealHistoryProps) => {
         {deals.map((deal) => (
           <div 
             key={deal.id} 
-            className="p-3 border rounded-md bg-background"
+            className={`p-3 border rounded-md transition-all ${
+              deal.status === "won" 
+                ? "bg-green-50 border-green-200" 
+                : "bg-red-50 border-red-200"
+            }`}
           >
             <div className="flex justify-between items-center mb-2">
               <Badge 
                 variant={deal.status === "won" ? "default" : "destructive"}
-                className="flex items-center gap-1"
+                className={`flex items-center gap-1 ${
+                  deal.status === "won"
+                    ? "bg-green-500 hover:bg-green-600 text-white"
+                    : "bg-red-500 hover:bg-red-600 text-white"
+                }`}
               >
                 {deal.status === "won" ? (
                   <><Check className="h-3 w-3" /> Ganho</>
@@ -44,15 +52,17 @@ export const DealHistory = ({ deals }: DealHistoryProps) => {
                   <><X className="h-3 w-3" /> Perdido</>
                 )}
               </Badge>
-              <span className="text-xs text-muted-foreground">{deal.date}</span>
+              <span className="text-xs text-gray-600">{deal.date}</span>
             </div>
             
-            <div className="font-semibold">
+            <div className={`font-semibold ${
+              deal.status === "won" ? "text-green-700" : "text-red-700"
+            }`}>
               {formatCurrency(deal.value)}
             </div>
             
             {deal.note && (
-              <p className="text-sm text-muted-foreground mt-1">{deal.note}</p>
+              <p className="text-sm text-gray-600 mt-1">{deal.note}</p>
             )}
           </div>
         ))}

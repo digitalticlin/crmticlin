@@ -7,7 +7,7 @@ import { DollarSign, Edit, Save, X } from "lucide-react";
 
 interface PurchaseValueFieldProps {
   purchaseValue?: number;
-  onUpdatePurchaseValue?: (value: number | undefined) => void;
+  onUpdatePurchaseValue: (value: number | undefined) => void;
 }
 
 export const PurchaseValueField = ({
@@ -27,7 +27,7 @@ export const PurchaseValueField = ({
 
   const handleSave = () => {
     const numericValue = value ? parseFloat(value.replace(',', '.')) : undefined;
-    onUpdatePurchaseValue?.(numericValue);
+    onUpdatePurchaseValue(numericValue);
     setIsEditing(false);
   };
 
@@ -37,38 +37,38 @@ export const PurchaseValueField = ({
   };
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <Label className="text-gray-700 font-medium flex items-center gap-2">
-          <DollarSign className="h-4 w-4 text-green-600" />
+    <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/30">
+      <div className="flex items-center justify-between mb-4">
+        <Label className="text-gray-800 font-semibold flex items-center gap-2">
+          <DollarSign className="h-5 w-5 text-lime-400" />
           Valor da Negociação
         </Label>
-        {onUpdatePurchaseValue && !isEditing && (
+        {!isEditing && (
           <Button 
             variant="ghost" 
             size="sm"
             onClick={() => setIsEditing(true)}
-            className="bg-green-500/20 hover:bg-green-500/30 text-green-700 border border-green-300/30 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105"
+            className="text-lime-400 hover:text-lime-500 hover:bg-lime-50 rounded-lg"
           >
-            <Edit className="h-3 w-3" />
+            <Edit className="h-4 w-4" />
           </Button>
         )}
       </div>
       
       {isEditing ? (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <Input
             type="number"
             placeholder="0.00"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            className="bg-white/50 border-white/30 focus:border-green-400 focus:ring-green-400/20 backdrop-blur-sm"
+            className="bg-white/70 border-white/30 focus:border-lime-400 focus:ring-lime-400/20"
           />
           <div className="flex gap-2">
             <Button 
               size="sm" 
               onClick={handleSave}
-              className="bg-green-500/80 hover:bg-green-600/80 text-white border border-green-400/30 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105"
+              className="bg-lime-400/80 hover:bg-lime-500/80 text-black border border-lime-400 shadow-lg font-semibold"
             >
               <Save className="h-3 w-3 mr-1" />
               Salvar
@@ -77,7 +77,7 @@ export const PurchaseValueField = ({
               size="sm" 
               variant="outline" 
               onClick={handleCancel}
-              className="bg-red-500/20 hover:bg-red-500/30 text-red-700 border border-red-300/30 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105"
+              className="bg-white/70 border-white/30 text-gray-700 hover:bg-white/80 shadow-lg"
             >
               <X className="h-3 w-3 mr-1" />
               Cancelar
@@ -85,15 +85,8 @@ export const PurchaseValueField = ({
           </div>
         </div>
       ) : (
-        <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4 border border-white/20">
-          <div className="text-lg font-bold text-green-700">
-            {formatCurrency(purchaseValue)}
-          </div>
-          {purchaseValue === 0 && (
-            <div className="text-xs text-gray-500 mt-1">
-              Valor zerado - Nova negociação
-            </div>
-          )}
+        <div className="text-2xl font-bold text-gray-800">
+          {formatCurrency(purchaseValue)}
         </div>
       )}
     </div>
