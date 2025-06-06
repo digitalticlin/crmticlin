@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useWhatsAppWebInstances } from "./useWhatsAppWebInstances";
 import { useAutomaticQRPolling } from "./useAutomaticQRPolling";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const useWhatsAppWebSectionLogic = () => {
   const [userEmail, setUserEmail] = useState<string>("");
@@ -11,6 +11,8 @@ export const useWhatsAppWebSectionLogic = () => {
   const [localSelectedQRCode, setLocalSelectedQRCode] = useState<string | null>(null);
   const [localSelectedInstanceName, setLocalSelectedInstanceName] = useState<string>('');
   const [isWaitingForQR, setIsWaitingForQR] = useState(false);
+
+  const { user } = useAuth();
 
   const {
     instances,
@@ -24,26 +26,13 @@ export const useWhatsAppWebSectionLogic = () => {
 
   const { isPolling, currentAttempt, maxAttempts, startPolling, stopPolling } = useAutomaticQRPolling();
 
-  // Load current user data
+  // FASE 1: Usar dados do usuário autenticado
   useEffect(() => {
-    const getUser = async () => {
-      try {
-        const { data: { user }, error } = await supabase.auth.getUser();
-        if (error) {
-          console.error("Error getting user:", error);
-          toast.error("Could not load user data");
-          return;
-        }
-        if (user) {
-          setUserEmail(user.email || "");
-        }
-      } catch (error) {
-        console.error("Error fetching user:", error);
-        toast.error("An error occurred while loading user data");
-      }
-    };
-    getUser();
-  }, []);
+    if (user) {
+      setUserEmail(user.email || "");
+      console.log('[WhatsAppWebSection] 👤 FASE 1 - Usuário carregado:', user.email);
+    }
+  }, [user]);
 
   // Cleanup polling ao desmontar
   useEffect(() => {
@@ -52,40 +41,42 @@ export const useWhatsAppWebSectionLogic = () => {
     };
   }, [stopPolling]);
 
+  // FASE 1: Fluxo corrigido de criação com modal automático
   const handleConnect = async () => {
-    console.log('[WhatsAppWebSection] 🚀 Connect requested - OTIMIZADO');
+    console.log('[WhatsAppWebSection] 🚀 FASE 1 - Connect requested');
     
     const instanceName = await generateIntelligentInstanceName(userEmail);
-    console.log('[WhatsAppWebSection] 🎯 Nome gerado:', instanceName);
+    console.log('[WhatsAppWebSection] 🎯 FASE 1 - Nome gerado:', instanceName);
     
     try {
-      console.log('[WhatsAppWebSection] 📱 Criando instância RÁPIDA...');
+      console.log('[WhatsAppWebSection] 📱 FASE 1 - Criando instância...');
+      
+      // FASE 1: ABRIR MODAL IMEDIATAMENTE para melhor UX
+      setLocalSelectedInstanceName(instanceName);
+      setLocalShowQRModal(true);
+      setIsWaitingForQR(true);
+      
       const createdInstance = await createInstance(instanceName);
       
       if (createdInstance) {
-        setLocalSelectedInstanceName(createdInstance.instance_name);
-        
-        // OTIMIZAÇÃO CRÍTICA: Abrir modal IMEDIATAMENTE (mesmo sem QR Code)
-        console.log('[WhatsAppWebSection] 🎯 ABRINDO MODAL IMEDIATAMENTE para melhor UX');
-        setLocalShowQRModal(true);
-        setIsWaitingForQR(true);
+        console.log('[WhatsAppWebSection] ✅ FASE 1 - Instância criada:', createdInstance);
         
         if (createdInstance.qr_code) {
-          // QR Code disponível imediatamente - preencher modal já aberto
-          console.log('[WhatsAppWebSection] ✅ QR Code imediato disponível - preenchendo modal!');
+          // QR Code disponível imediatamente
+          console.log('[WhatsAppWebSection] ✅ FASE 1 - QR Code imediato disponível!');
           setLocalSelectedQRCode(createdInstance.qr_code);
           setIsWaitingForQR(false);
           toast.success(`QR Code pronto! Escaneie para conectar.`);
         } else {
-          // QR Code não disponível - modal já está aberto, iniciar polling
-          console.log('[WhatsAppWebSection] ⏳ Modal aberto - iniciando polling OTIMIZADO...');
+          // QR Code não disponível - iniciar polling
+          console.log('[WhatsAppWebSection] ⏳ FASE 1 - Iniciando polling para QR Code...');
           toast.info(`Instância "${instanceName}" criada! Preparando QR Code...`);
           
           await startPolling(
             createdInstance.id,
             createdInstance.instance_name,
             (qrCode: string) => {
-              console.log('[WhatsAppWebSection] 🎉 QR Code recebido - preenchendo modal já aberto!');
+              console.log('[WhatsAppWebSection] 🎉 FASE 1 - QR Code recebido via polling!');
               setLocalSelectedQRCode(qrCode);
               setIsWaitingForQR(false);
               toast.success('QR Code pronto! Escaneie para conectar.');
@@ -94,27 +85,28 @@ export const useWhatsAppWebSectionLogic = () => {
         }
       }
     } catch (error) {
-      console.error('[WhatsAppWebSection] ❌ Erro na criação:', error);
+      console.error('[WhatsAppWebSection] ❌ FASE 1 - Erro na criação:', error);
       setIsWaitingForQR(false);
-      setLocalShowQRModal(false); // Fechar modal se deu erro
+      setLocalShowQRModal(false);
       stopPolling();
     }
   };
 
   const handleDeleteInstance = async (instanceId: string) => {
-    console.log('[WhatsAppWebSection] Deleting instance:', instanceId);
+    console.log('[WhatsAppWebSection] 🗑️ FASE 1 - Deleting instance:', instanceId);
     await deleteInstance(instanceId);
   };
 
   const handleRefreshQR = async (instanceId: string) => {
-    console.log('[WhatsAppWebSection] Refreshing QR code for instance:', instanceId);
+    console.log('[WhatsAppWebSection] 🔄 FASE 1 - Refreshing QR code for instance:', instanceId);
     const result = await refreshQRCode(instanceId);
     
-    if (result.success && result.qrCode) {
+    if (result && result.success && result.qrCode) {
       const instance = instances.find(i => i.id === instanceId);
       setLocalSelectedQRCode(result.qrCode);
       setLocalSelectedInstanceName(instance?.instance_name || '');
       setLocalShowQRModal(true);
+      setIsWaitingForQR(false);
     }
   };
 
@@ -123,11 +115,12 @@ export const useWhatsAppWebSectionLogic = () => {
       setLocalSelectedQRCode(instance.qr_code);
       setLocalSelectedInstanceName(instance.instance_name);
       setLocalShowQRModal(true);
+      setIsWaitingForQR(false);
     }
   };
 
   const closeQRModal = () => {
-    console.log('[WhatsAppWebSection] 🔐 Fechando modal otimizado');
+    console.log('[WhatsAppWebSection] 🔐 FASE 1 - Fechando modal');
     setLocalShowQRModal(false);
     setLocalSelectedQRCode(null);
     setLocalSelectedInstanceName('');
