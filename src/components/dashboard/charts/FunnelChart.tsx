@@ -8,7 +8,7 @@ import { useStageDatabase } from "@/hooks/salesFunnel/useStageDatabase";
 
 export default function FunnelChart() {
   const { companyId } = useCompanyData();
-  const { selectedFunnel } = useFunnelManagement(companyId);
+  const { selectedFunnel } = useFunnelManagement(); // Remove o argumento companyId
   const { report, loading } = useFunnelDashboard(selectedFunnel?.id || "");
   const { stages } = useStageDatabase(selectedFunnel?.id);
   const [funnelData, setFunnelData] = useState<any[]>([]);

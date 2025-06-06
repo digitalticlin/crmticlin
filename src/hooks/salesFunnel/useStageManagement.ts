@@ -1,9 +1,9 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { KanbanColumn, KanbanLead } from "@/types/kanban";
 import { KanbanStage } from "@/types/funnel";
 import { useCompanyData } from "../useCompanyData";
+import { useAuthSession } from "../useAuthSession";
 
 export const useStageManagement = (
   funnelId?: string, 
@@ -13,6 +13,7 @@ export const useStageManagement = (
   refetchLeads?: () => void
 ) => {
   const { companyId } = useCompanyData();
+  const { user } = useAuthSession();
 
   // Função para criar deal no histórico
   const createDeal = async (lead: KanbanLead, status: "won" | "lost", note?: string, value?: number) => {
@@ -133,6 +134,11 @@ export const useStageManagement = (
       return;
     }
 
+    if (!user) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
+
     try {
       const maxOrder = Math.max(...stages.map(s => s.order_position), 0);
       
@@ -143,6 +149,7 @@ export const useStageManagement = (
           color,
           company_id: companyId,
           funnel_id: funnelId,
+          created_by_user_id: user.id, // Adicionar o created_by_user_id obrigatório
           order_position: maxOrder + 1,
           is_fixed: false,
           is_won: false,
