@@ -57,7 +57,7 @@ export const useProfileData = () => {
         
         return profile.company_id || null;
       } else {
-        console.log('[Profile Data] Perfil não encontrado');
+        console.log('[Profile Data] Perfil não encontrado para usuário:', userId);
         return null;
       }
     } catch (error) {

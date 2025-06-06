@@ -29,70 +29,50 @@ export const useCompanyData = () => {
 
         console.log('[Company Data] Carregando dados para usuário:', user.email);
 
-        // Buscar perfil do usuário com dados da empresa
-        const { data: profile, error } = await supabase
+        // Buscar perfil do usuário para obter company_id
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select(`
-            *,
-            companies!inner (
-              id,
-              name
-            )
-          `)
+          .select('company_id, role')
           .eq('id', user.id)
           .maybeSingle();
 
-        if (error && error.code !== 'PGRST116') {
-          console.error("[Company Data] Erro ao carregar perfil com empresa:", error);
+        if (profileError) {
+          console.error("[Company Data] Erro ao carregar perfil:", profileError);
           if (isMounted) setLoading(false);
           return;
         }
 
-        if (profile && profile.companies) {
-          console.log('[Company Data] Dados encontrados:', {
-            companyId: profile.company_id,
-            companyName: profile.companies.name,
-            userRole: profile.role
-          });
+        if (profile && profile.company_id) {
+          console.log('[Company Data] Profile encontrado com company_id:', profile.company_id);
           
-          if (isMounted) {
-            setCompanyId(profile.company_id);
-            setCompanyName(profile.companies.name);
-            setLoading(false);
-          }
-        } else {
-          // Se não há empresa vinculada, buscar apenas o perfil
-          const { data: profileOnly, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
+          // Buscar dados da empresa
+          const { data: company, error: companyError } = await supabase
+            .from('companies')
+            .select('id, name')
+            .eq('id', profile.company_id)
             .maybeSingle();
 
-          if (profileError) {
-            console.error('[Company Data] Erro ao buscar perfil:', profileError);
-          } else if (!profileOnly) {
-            console.log('[Company Data] Profile não existe, criando...');
+          if (companyError) {
+            console.error('[Company Data] Erro ao buscar empresa:', companyError);
+          } else if (company) {
+            console.log('[Company Data] Empresa encontrada:', {
+              companyId: company.id,
+              companyName: company.name,
+              userRole: profile.role
+            });
             
-            const { error: insertError } = await supabase
-              .from('profiles')
-              .insert({
-                id: user.id,
-                full_name: user.email?.split('@')[0] || 'Usuário',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              });
-
-            if (insertError) {
-              console.error('[Company Data] Erro ao criar profile:', insertError);
-            } else {
-              console.log('[Company Data] Profile criado com sucesso');
+            if (isMounted) {
+              setCompanyId(company.id);
+              setCompanyName(company.name);
             }
           } else {
-            console.log('[Company Data] Profile existe mas sem empresa vinculada');
+            console.log('[Company Data] Empresa não encontrada para ID:', profile.company_id);
           }
-          
-          if (isMounted) setLoading(false);
+        } else {
+          console.log('[Company Data] Profile sem company_id vinculado');
         }
+        
+        if (isMounted) setLoading(false);
       } catch (error) {
         console.error("[Company Data] Erro ao carregar dados da empresa:", error);
         if (isMounted) setLoading(false);

@@ -55,13 +55,16 @@ export const useProfileSettings = () => {
         setEmail(session.user.email || "");
         setUsername(generateUsername(session.user.email || ""));
         
-        // Carregar dados do perfil (que já inclui dados da empresa)
+        // Carregar dados do perfil primeiro
         const foundCompanyId = await loadProfileData(session.user.id);
         
+        // Se encontrou company_id no perfil, usar esse valor
         if (foundCompanyId && foundCompanyId !== companyId) {
           console.log('[Profile Settings] Company ID encontrado no perfil:', foundCompanyId);
           setCompanyId(foundCompanyId);
-          // A empresa já foi carregada no useCompanyData
+          
+          // Buscar dados específicos da empresa se necessário
+          await fetchCompanyData(foundCompanyId);
         }
         
         console.log('[Profile Settings] Perfil carregado com sucesso');
