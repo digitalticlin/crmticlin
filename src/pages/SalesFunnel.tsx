@@ -1,3 +1,4 @@
+
 import { PageLayout } from "@/components/layout/PageLayout";
 import { useRealSalesFunnel } from "@/hooks/salesFunnel/useRealSalesFunnel";
 import { useNewLeadIntegration } from "@/hooks/salesFunnel/useNewLeadIntegration";
@@ -47,6 +48,14 @@ export default function SalesFunnel() {
 
   useNewLeadIntegration(selectedFunnel?.id);
 
+  // Debug logs
+  console.log('[SalesFunnel] 🔍 Estado atual:', {
+    funnelsCount: funnels.length,
+    selectedFunnel: selectedFunnel?.name,
+    funnelLoading,
+    isAdmin
+  });
+
   // Wrapper function to match the expected interface
   const createFunnel = async (name: string, description?: string): Promise<void> => {
     await originalCreateFunnel(name, description);
@@ -87,11 +96,13 @@ export default function SalesFunnel() {
   };
 
   if (funnelLoading) {
+    console.log('[SalesFunnel] ⏳ Carregando funis...');
     return <FunnelLoadingState />;
   }
 
   // Apenas mostrar empty state se realmente não houver funis depois do carregamento
   if (!selectedFunnel && funnels.length === 0 && !funnelLoading) {
+    console.log('[SalesFunnel] ❌ Nenhum funil encontrado, mostrando empty state');
     return (
       <FunnelEmptyState 
         isAdmin={isAdmin}
@@ -99,6 +110,15 @@ export default function SalesFunnel() {
       />
     );
   }
+
+  // Se tem funis mas nenhum selecionado, selecionar o primeiro
+  if (funnels.length > 0 && !selectedFunnel) {
+    console.log('[SalesFunnel] 🔄 Selecionando primeiro funil disponível...');
+    setSelectedFunnel(funnels[0]);
+    return <FunnelLoadingState />;
+  }
+
+  console.log('[SalesFunnel] ✅ Renderizando conteúdo do funil');
 
   const contextValue = {
     funnels,

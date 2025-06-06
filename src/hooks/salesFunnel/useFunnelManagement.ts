@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -19,31 +18,62 @@ export function useFunnelManagement() {
   const { user } = useAuthSession();
 
   useEffect(() => {
-    if (user) loadFunnels();
+    if (user) {
+      console.log('[Funnel Management] 🚀 Usuário logado, carregando funis...', { userId: user.id, email: user.email });
+      loadFunnels();
+    } else {
+      console.log('[Funnel Management] ❌ Usuário não autenticado');
+    }
     // eslint-disable-next-line
   }, [user]);
 
   const loadFunnels = async () => {
-    if (!user) return;
+    if (!user) {
+      console.log('[Funnel Management] ❌ Não há usuário para carregar funis');
+      return;
+    }
     
     setLoading(true);
     try {
+      console.log('[Funnel Management] 🔍 Buscando funis para usuário:', { userId: user.id, email: user.email });
+      
       const { data, error } = await supabase
         .from("funnels")
         .select("*")
         .eq("created_by_user_id", user.id)
         .order("created_at", { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[Funnel Management] ❌ Erro na query:', error);
+        throw error;
+      }
+
+      console.log('[Funnel Management] 📊 Resultado da busca:', { 
+        foundFunnels: data?.length || 0, 
+        funnels: data 
+      });
 
       setFunnels(data || []);
       
       // Se não há funil selecionado e existem funis, selecionar o primeiro
       if (data && data.length > 0 && !selectedFunnel) {
+        console.log('[Funnel Management] ✅ Selecionando primeiro funil:', data[0]);
         setSelectedFunnel(data[0]);
+      } else if (!data || data.length === 0) {
+        console.log('[Funnel Management] ⚠️ Nenhum funil encontrado, verificando se deveria existir...');
+        
+        // Verificar se há funis no banco para debug
+        const { data: allFunnels, error: allError } = await supabase
+          .from("funnels")
+          .select("*")
+          .limit(10);
+          
+        if (!allError) {
+          console.log('[Funnel Management] 🔍 Todos os funis no banco:', allFunnels);
+        }
       }
     } catch (error) {
-      console.error("Erro ao carregar funis:", error);
+      console.error("[Funnel Management] ❌ Erro ao carregar funis:", error);
       toast.error("Erro ao carregar funis");
     } finally {
       setLoading(false);
@@ -57,6 +87,8 @@ export function useFunnelManagement() {
     }
 
     try {
+      console.log('[Funnel Management] 📝 Criando novo funil:', { name, description, userId: user.id });
+      
       const { data, error } = await supabase
         .from("funnels")
         .insert({ 
@@ -71,6 +103,7 @@ export function useFunnelManagement() {
       if (error) throw error;
 
       if (data) {
+        console.log('[Funnel Management] ✅ Funil criado:', data);
         setFunnels((prev) => [...prev, data]);
         setSelectedFunnel(data);
         
@@ -80,7 +113,7 @@ export function useFunnelManagement() {
 
       return data;
     } catch (error) {
-      console.error("Erro ao criar funil:", error);
+      console.error("[Funnel Management] ❌ Erro ao criar funil:", error);
       throw error;
     }
   };
@@ -113,8 +146,10 @@ export function useFunnelManagement() {
         .insert(stages);
 
       if (error) throw error;
+      
+      console.log('[Funnel Management] ✅ Estágios padrão criados para funil:', funnelId);
     } catch (error) {
-      console.error("Erro ao criar estágios padrão:", error);
+      console.error("[Funnel Management] ❌ Erro ao criar estágios padrão:", error);
       throw error;
     }
   };
