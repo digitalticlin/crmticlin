@@ -39,7 +39,7 @@ export const AssignedUserField = ({
             variant="ghost" 
             size="sm"
             onClick={() => setIsEditing(true)}
-            className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-700 border border-blue-300/30 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105"
+            className="bg-blue-500/30 hover:bg-blue-500/40 text-blue-700 border border-blue-300/50 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105 shadow-sm"
           >
             <Edit className="h-3 w-3" />
           </Button>
@@ -52,13 +52,13 @@ export const AssignedUserField = ({
             placeholder="Nome do responsável"
             value={user}
             onChange={(e) => setUser(e.target.value)}
-            className="bg-white/50 border-white/30 focus:border-blue-400 focus:ring-blue-400/20 backdrop-blur-sm"
+            className="bg-white/60 border-white/50 focus:border-blue-400 focus:ring-blue-400/20 backdrop-blur-sm shadow-sm"
           />
           <div className="flex gap-2">
             <Button 
               size="sm" 
               onClick={handleSave}
-              className="bg-blue-500/80 hover:bg-blue-600/80 text-white border border-blue-400/30 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105"
+              className="bg-blue-500/30 hover:bg-blue-500/40 text-blue-700 border border-blue-300/50 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105 shadow-sm"
             >
               <Save className="h-3 w-3 mr-1" />
               Salvar
@@ -67,7 +67,7 @@ export const AssignedUserField = ({
               size="sm" 
               variant="outline" 
               onClick={handleCancel}
-              className="bg-red-500/20 hover:bg-red-500/30 text-red-700 border border-red-300/30 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105"
+              className="bg-red-500/30 hover:bg-red-500/40 text-red-700 border border-red-300/50 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105 shadow-sm"
             >
               <X className="h-3 w-3 mr-1" />
               Cancelar
@@ -75,7 +75,7 @@ export const AssignedUserField = ({
           </div>
         </div>
       ) : (
-        <div className="bg-white/20 backdrop-blur-sm rounded-lg p-4 border border-white/20">
+        <div className="bg-white/40 backdrop-blur-sm rounded-lg p-4 border border-white/30 shadow-sm">
           <div className="text-gray-800 font-medium">
             {assignedUser || "Não atribuído"}
           </div>

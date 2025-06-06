@@ -70,7 +70,7 @@ export const LeadDetailSidebar = ({
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-md overflow-y-auto bg-white/40 backdrop-blur-lg border-white/30 shadow-2xl">
-        <SheetHeader className="bg-white/30 backdrop-blur-sm rounded-xl p-4 mb-6 border border-white/20 shadow-lg">
+        <SheetHeader className="bg-white/60 backdrop-blur-md rounded-xl p-4 mb-6 border border-white/40 shadow-lg">
           <LeadDetailHeader 
             selectedLead={selectedLead}
             onUpdateName={handleNameUpdate}
@@ -88,7 +88,7 @@ export const LeadDetailSidebar = ({
           />
           
           {/* Purchase Value Field */}
-          <div className="bg-white/30 backdrop-blur-md rounded-xl p-4 border border-white/20 shadow-lg">
+          <div className="bg-white/60 backdrop-blur-md rounded-xl p-4 border border-white/40 shadow-lg">
             <PurchaseValueField 
               purchaseValue={selectedLead.purchaseValue}
               onUpdatePurchaseValue={onUpdatePurchaseValue ? 
@@ -100,7 +100,7 @@ export const LeadDetailSidebar = ({
           </div>
           
           {/* Assigned User Field */}
-          <div className="bg-white/30 backdrop-blur-md rounded-xl p-4 border border-white/20 shadow-lg">
+          <div className="bg-white/60 backdrop-blur-md rounded-xl p-4 border border-white/40 shadow-lg">
             <AssignedUserField 
               assignedUser={selectedLead.assignedUser}
               onUpdateAssignedUser={onUpdateAssignedUser ? 
@@ -112,7 +112,7 @@ export const LeadDetailSidebar = ({
           </div>
           
           {/* Tags Selector */}
-          <div className="bg-white/30 backdrop-blur-md rounded-xl p-4 border border-white/20 shadow-lg">
+          <div className="bg-white/60 backdrop-blur-md rounded-xl p-4 border border-white/40 shadow-lg">
             <TagSelector
               availableTags={availableTags}
               selectedTags={selectedLead.tags}
@@ -122,13 +122,13 @@ export const LeadDetailSidebar = ({
           </div>
 
           {/* Deal History */}
-          <div className="bg-white/30 backdrop-blur-md rounded-xl p-4 border border-white/20 shadow-lg">
+          <div className="bg-white/60 backdrop-blur-md rounded-xl p-4 border border-white/40 shadow-lg">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Histórico de Negociações</h3>
             <GlassmorphismDealHistory deals={deals} />
           </div>
           
           {/* Notes Field */}
-          <div className="bg-white/30 backdrop-blur-md rounded-xl p-4 border border-white/20 shadow-lg">
+          <div className="bg-white/60 backdrop-blur-md rounded-xl p-4 border border-white/40 shadow-lg">
             <NotesField 
               notes={selectedLead.notes}
               onUpdateNotes={onUpdateNotes}
@@ -136,7 +136,7 @@ export const LeadDetailSidebar = ({
           </div>
           
           {/* Chat Preview */}
-          <div className="bg-white/30 backdrop-blur-md rounded-xl p-4 border border-white/20 shadow-lg">
+          <div className="bg-white/60 backdrop-blur-md rounded-xl p-4 border border-white/40 shadow-lg">
             <ChatPreview 
               lastMessage={selectedLead.lastMessage}
               lastMessageTime={selectedLead.lastMessageTime}
@@ -145,7 +145,7 @@ export const LeadDetailSidebar = ({
           </div>
         </div>
         
-        <div className="mt-6 bg-white/30 backdrop-blur-md rounded-xl border border-white/20 shadow-lg">
+        <div className="mt-6 bg-white/60 backdrop-blur-md rounded-xl border border-white/40 shadow-lg">
           <LeadDetailFooter onClose={() => onOpenChange(false)} />
         </div>
       </SheetContent>

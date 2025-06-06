@@ -68,7 +68,7 @@ export const EnhancedBasicInfoSection = ({
   };
 
   return (
-    <div className="bg-white/30 backdrop-blur-md rounded-xl p-6 border border-white/20 shadow-lg">
+    <div className="bg-white/60 backdrop-blur-md rounded-xl p-6 border border-white/40 shadow-lg">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
           <User className="h-5 w-5 text-blue-600" />
@@ -79,7 +79,7 @@ export const EnhancedBasicInfoSection = ({
             variant="ghost" 
             size="sm" 
             onClick={() => setIsEditing(true)}
-            className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-700 border border-blue-300/30 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105"
+            className="bg-blue-500/30 hover:bg-blue-500/40 text-blue-700 border border-blue-300/50 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105 shadow-sm"
           >
             <Edit className="h-4 w-4 mr-1" />
             Editar
@@ -91,7 +91,7 @@ export const EnhancedBasicInfoSection = ({
               size="sm" 
               onClick={handleSave}
               disabled={isLoading}
-              className="bg-green-500/20 hover:bg-green-500/30 text-green-700 border border-green-300/30 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105"
+              className="bg-green-500/30 hover:bg-green-500/40 text-green-700 border border-green-300/50 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105 shadow-sm"
             >
               <Save className="h-4 w-4 mr-1" />
               {isLoading ? 'Salvando...' : 'Salvar'}
@@ -100,7 +100,7 @@ export const EnhancedBasicInfoSection = ({
               variant="ghost" 
               size="sm" 
               onClick={handleCancel}
-              className="bg-red-500/20 hover:bg-red-500/30 text-red-700 border border-red-300/30 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105"
+              className="bg-red-500/30 hover:bg-red-500/40 text-red-700 border border-red-300/50 backdrop-blur-sm rounded-lg transition-all duration-200 hover:scale-105 shadow-sm"
             >
               <X className="h-4 w-4 mr-1" />
               Cancelar
@@ -120,10 +120,10 @@ export const EnhancedBasicInfoSection = ({
             <Input
               value={editedData.name}
               onChange={(e) => setEditedData({...editedData, name: e.target.value})}
-              className="bg-white/50 border-white/30 focus:border-blue-400 focus:ring-blue-400/20 backdrop-blur-sm"
+              className="bg-white/60 border-white/50 focus:border-blue-400 focus:ring-blue-400/20 backdrop-blur-sm shadow-sm"
             />
           ) : (
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+            <div className="bg-white/40 backdrop-blur-sm rounded-lg p-3 border border-white/30 shadow-sm">
               <p className="text-gray-800 font-medium">{selectedLead.name}</p>
             </div>
           )}
@@ -135,7 +135,7 @@ export const EnhancedBasicInfoSection = ({
             <Phone className="h-4 w-4" />
             Telefone
           </Label>
-          <div className="bg-gray-100/50 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+          <div className="bg-gray-100/60 backdrop-blur-sm rounded-lg p-3 border border-white/30 shadow-sm">
             <p className="text-gray-700">{selectedLead.phone}</p>
           </div>
         </div>
@@ -151,11 +151,11 @@ export const EnhancedBasicInfoSection = ({
               type="email"
               value={editedData.email}
               onChange={(e) => setEditedData({...editedData, email: e.target.value})}
-              className="bg-white/50 border-white/30 focus:border-blue-400 focus:ring-blue-400/20 backdrop-blur-sm"
+              className="bg-white/60 border-white/50 focus:border-blue-400 focus:ring-blue-400/20 backdrop-blur-sm shadow-sm"
               placeholder="email@exemplo.com"
             />
           ) : (
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+            <div className="bg-white/40 backdrop-blur-sm rounded-lg p-3 border border-white/30 shadow-sm">
               <p className="text-gray-700">{selectedLead.email || 'Não informado'}</p>
             </div>
           )}
@@ -171,11 +171,11 @@ export const EnhancedBasicInfoSection = ({
             <Input
               value={editedData.company}
               onChange={(e) => setEditedData({...editedData, company: e.target.value})}
-              className="bg-white/50 border-white/30 focus:border-blue-400 focus:ring-blue-400/20 backdrop-blur-sm"
+              className="bg-white/60 border-white/50 focus:border-blue-400 focus:ring-blue-400/20 backdrop-blur-sm shadow-sm"
               placeholder="Nome da empresa"
             />
           ) : (
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+            <div className="bg-white/40 backdrop-blur-sm rounded-lg p-3 border border-white/30 shadow-sm">
               <p className="text-gray-700">{selectedLead.company || 'Não informado'}</p>
             </div>
           )}
@@ -191,11 +191,11 @@ export const EnhancedBasicInfoSection = ({
             <Input
               value={editedData.documentId}
               onChange={(e) => setEditedData({...editedData, documentId: e.target.value})}
-              className="bg-white/50 border-white/30 focus:border-blue-400 focus:ring-blue-400/20 backdrop-blur-sm"
+              className="bg-white/60 border-white/50 focus:border-blue-400 focus:ring-blue-400/20 backdrop-blur-sm shadow-sm"
               placeholder="000.000.000-00 ou 00.000.000/0000-00"
             />
           ) : (
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+            <div className="bg-white/40 backdrop-blur-sm rounded-lg p-3 border border-white/30 shadow-sm">
               <p className="text-gray-700">{selectedLead.documentId || 'Não informado'}</p>
             </div>
           )}
@@ -211,11 +211,11 @@ export const EnhancedBasicInfoSection = ({
             <Input
               value={editedData.address}
               onChange={(e) => setEditedData({...editedData, address: e.target.value})}
-              className="bg-white/50 border-white/30 focus:border-blue-400 focus:ring-blue-400/20 backdrop-blur-sm"
+              className="bg-white/60 border-white/50 focus:border-blue-400 focus:ring-blue-400/20 backdrop-blur-sm shadow-sm"
               placeholder="Endereço completo"
             />
           ) : (
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 border border-white/20">
+            <div className="bg-white/40 backdrop-blur-sm rounded-lg p-3 border border-white/30 shadow-sm">
               <p className="text-gray-700">{selectedLead.address || 'Não informado'}</p>
             </div>
           )}
