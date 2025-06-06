@@ -53,11 +53,11 @@ export const useDefaultFunnelSetup = () => {
           return;
         }
 
-        // Criar etapas padrão do funil com as cores especificadas
+        // Criar etapas padrão do funil
         const defaultStages = [
-          { title: "Entrada de Leads", color: "#3b82f6", order_position: 1, is_won: false, is_lost: false, is_fixed: true },
+          { title: "Entrada de Leads", color: "#3b82f6", order_position: 1, is_won: false, is_lost: false, is_fixed: false },
           { title: "Em atendimento", color: "#8b5cf6", order_position: 2, is_won: false, is_lost: false, is_fixed: false },
-          { title: "Em negociação", color: "#f97316", order_position: 3, is_won: false, is_lost: false, is_fixed: false },
+          { title: "Em negociação", color: "#f59e0b", order_position: 3, is_won: false, is_lost: false, is_fixed: false },
           { title: "Ganho", color: "#10b981", order_position: 4, is_won: true, is_lost: false, is_fixed: true },
           { title: "Perdido", color: "#6b7280", order_position: 5, is_won: false, is_lost: true, is_fixed: true }
         ];

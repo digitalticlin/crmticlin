@@ -3,15 +3,32 @@ import { Loader2 } from "lucide-react";
 import { useProfileSettings } from "@/hooks/useProfileSettings";
 import AccountInfoSection from "./profile/AccountInfoSection";
 import ProfileAvatarSection from "./profile/ProfileAvatarSection";
-import { PersonalInfoSection } from "./profile/PersonalInfoSection";
+import PersonalInfoSection from "./profile/PersonalInfoSection";
 import SecurityActionsSection from "./profile/SecurityActionsSection";
-import { useAuthSession } from "@/hooks/useAuthSession";
-import { useUserRole } from "@/hooks/useUserRole";
+import ProfileActionsSection from "./profile/ProfileActionsSection";
 
 const ProfileSettings = () => {
-  const { profileData, loading } = useProfileSettings();
-  const { email } = useAuthSession();
-  const { role } = useUserRole(); // Use 'role' instead of 'userRole'
+  const {
+    loading,
+    saving,
+    email,
+    username,
+    fullName,
+    companyName,
+    companyDocument,
+    documentId,
+    whatsapp,
+    avatarUrl,
+    userRole,
+    setFullName,
+    setCompanyName,
+    setCompanyDocument,
+    setDocumentId,
+    setWhatsapp,
+    handleEmailChange,
+    handleSaveChanges,
+    handleChangePassword
+  } = useProfileSettings();
 
   if (loading) {
     return (
@@ -27,25 +44,44 @@ const ProfileSettings = () => {
     );
   }
 
-  const handleChangePassword = async () => {
-    // Implementar mudança de senha se necessário
-    console.log("Mudança de senha não implementada");
+  const handleCancel = () => {
+    window.location.reload();
   };
 
   return (
     <div className="space-y-8">
-      <AccountInfoSection userRole={role} />
+      <AccountInfoSection userRole={userRole} />
       
       <ProfileAvatarSection 
-        avatarUrl={profileData.avatar_url} 
-        fullName={profileData.full_name} 
+        avatarUrl={avatarUrl} 
+        fullName={fullName} 
       />
 
-      <PersonalInfoSection />
+      <PersonalInfoSection
+        email={email}
+        username={username}
+        fullName={fullName}
+        companyName={companyName}
+        companyDocument={companyDocument}
+        documentId={documentId}
+        whatsapp={whatsapp}
+        handleEmailChange={handleEmailChange}
+        setFullName={setFullName}
+        setDocumentId={setDocumentId}
+        setWhatsapp={setWhatsapp}
+        setCompanyName={setCompanyName}
+        setCompanyDocument={setCompanyDocument}
+      />
 
       <SecurityActionsSection 
         email={email}
         onChangePassword={handleChangePassword}
+      />
+
+      <ProfileActionsSection
+        saving={saving}
+        onSave={handleSaveChanges}
+        onCancel={handleCancel}
       />
     </div>
   );

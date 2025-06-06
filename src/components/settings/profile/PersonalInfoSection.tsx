@@ -1,112 +1,67 @@
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { useProfileSettings } from "@/hooks/useProfileSettings";
-import { Loader2 } from "lucide-react";
+import { User } from "lucide-react";
+import ProfileForm from "../ProfileForm";
 
-export const PersonalInfoSection = () => {
-  const { profileData, loading, updateProfileData, saveProfile } = useProfileSettings();
+interface PersonalInfoSectionProps {
+  email: string;
+  username: string;
+  fullName: string;
+  companyName: string;
+  documentId: string;
+  whatsapp: string;
+  companyDocument: string;
+  handleEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  setFullName: (value: string) => void;
+  setDocumentId: (value: string) => void;
+  setWhatsapp: (value: string) => void;
+  setCompanyName: (value: string) => void;
+  setCompanyDocument: (value: string) => void;
+}
 
-  const handleSave = async () => {
-    await saveProfile();
-  };
-
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Informações Pessoais</CardTitle>
-          <CardDescription>Gerencie suas informações pessoais</CardDescription>
-        </CardHeader>
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin" />
-        </CardContent>
-      </Card>
-    );
-  }
-
+const PersonalInfoSection = ({
+  email,
+  username,
+  fullName,
+  companyName,
+  documentId,
+  whatsapp,
+  companyDocument,
+  handleEmailChange,
+  setFullName,
+  setDocumentId,
+  setWhatsapp,
+  setCompanyName,
+  setCompanyDocument
+}: PersonalInfoSectionProps) => {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Informações Pessoais</CardTitle>
-        <CardDescription>Gerencie suas informações pessoais</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="fullName">Nome Completo</Label>
-            <Input
-              id="fullName"
-              value={profileData.full_name}
-              onChange={(e) => updateProfileData("full_name", e.target.value)}
-              placeholder="Seu nome completo"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="document">CPF/CNPJ</Label>
-            <Input
-              id="document"
-              value={profileData.document_id}
-              onChange={(e) => updateProfileData("document_id", e.target.value)}
-              placeholder="000.000.000-00"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="whatsapp">WhatsApp</Label>
-            <Input
-              id="whatsapp"
-              value={profileData.whatsapp}
-              onChange={(e) => updateProfileData("whatsapp", e.target.value)}
-              placeholder="(11) 99999-9999"
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="position">Cargo</Label>
-            <Input
-              id="position"
-              value={profileData.position}
-              onChange={(e) => updateProfileData("position", e.target.value)}
-              placeholder="Seu cargo na empresa"
-            />
-          </div>
+    <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "200ms" }}>
+      <div className="flex items-center space-x-4 mb-6">
+        <div className="p-3 bg-gradient-to-r from-blue-500/20 to-blue-400/10 rounded-2xl">
+          <User className="h-6 w-6 text-blue-400" />
         </div>
-
-        <div className="space-y-4 border-t pt-4">
-          <h4 className="font-medium">Informações da Empresa</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="companyName">Nome da Empresa</Label>
-              <Input
-                id="companyName"
-                value={profileData.company_name}
-                onChange={(e) => updateProfileData("company_name", e.target.value)}
-                placeholder="Nome da sua empresa"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="companyDocument">CNPJ da Empresa</Label>
-              <Input
-                id="companyDocument"
-                value={profileData.company_document}
-                onChange={(e) => updateProfileData("company_document", e.target.value)}
-                placeholder="00.000.000/0000-00"
-              />
-            </div>
-          </div>
+        <div>
+          <h3 className="text-xl font-semibold text-gray-800">Informações Pessoais</h3>
+          <p className="text-gray-700">Gerencie seus dados pessoais e de contato</p>
         </div>
-
-        <div className="flex justify-end pt-4">
-          <Button onClick={handleSave}>
-            Salvar Alterações
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+      
+      <ProfileForm
+        email={email}
+        username={username}
+        fullName={fullName}
+        companyName={companyName}
+        documentId={documentId}
+        whatsapp={whatsapp}
+        companyDocument={companyDocument}
+        handleEmailChange={handleEmailChange}
+        setFullName={setFullName}
+        setDocumentId={setDocumentId}
+        setWhatsapp={setWhatsapp}
+        setCompanyName={setCompanyName}
+        setCompanyDocument={setCompanyDocument}
+      />
+    </div>
   );
 };
+
+export default PersonalInfoSection;
