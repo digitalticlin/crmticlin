@@ -29,8 +29,8 @@ import { Loader2, Plus, Shield, Trash2, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-// Define a type for user roles to ensure type safety
-type UserRole = "admin" | "seller" | "custom";
+// Updated type to match new enum
+type UserRole = "admin" | "operational" | "manager";
 
 interface SecuritySettingsTabProps {
   config?: any;
@@ -41,7 +41,7 @@ export function SecuritySettingsTab({ config, onConfigChange }: SecuritySettings
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<any[]>([]);
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<UserRole>("seller");
+  const [role, setRole] = useState<UserRole>("operational");
   const [inviting, setInviting] = useState(false);
 
   useEffect(() => {
@@ -175,8 +175,8 @@ export function SecuritySettingsTab({ config, onConfigChange }: SecuritySettings
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="admin">Administrador</SelectItem>
-                  <SelectItem value="seller">Vendedor</SelectItem>
-                  <SelectItem value="custom">Personalizado</SelectItem>
+                  <SelectItem value="manager">Gestor</SelectItem>
+                  <SelectItem value="operational">Operacional</SelectItem>
                 </SelectContent>
               </Select>
               <Button 
@@ -234,8 +234,8 @@ export function SecuritySettingsTab({ config, onConfigChange }: SecuritySettings
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="admin">Administrador</SelectItem>
-                                <SelectItem value="seller">Vendedor</SelectItem>
-                                <SelectItem value="custom">Personalizado</SelectItem>
+                                <SelectItem value="manager">Gestor</SelectItem>
+                                <SelectItem value="operational">Operacional</SelectItem>
                               </SelectContent>
                             </Select>
                           </TableCell>

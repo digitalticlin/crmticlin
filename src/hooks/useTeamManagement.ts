@@ -58,12 +58,14 @@ export const useTeamManagement = (companyId?: string | null) => {
         return;
       }
 
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
       if (authError) throw authError;
 
-      const authUserMap = new Map();
-      authUsers.users.forEach(user => {
-        authUserMap.set(user.id, user.email);
+      const authUserMap = new Map<string, string>();
+      authData.users.forEach(user => {
+        if (user.email) {
+          authUserMap.set(user.id, user.email);
+        }
       });
 
       setMembers(

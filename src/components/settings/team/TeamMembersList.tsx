@@ -19,6 +19,19 @@ export const TeamMembersList = ({ members, onRemoveMember }: TeamMembersListProp
       .substring(0, 2);
   };
 
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case "admin":
+        return "Administrador";
+      case "manager":
+        return "Gestor";
+      case "operational":
+        return "Operacional";
+      default:
+        return "Personalizado";
+    }
+  };
+
   return (
     <ChartCard
       title="Membros da Equipe"
@@ -49,13 +62,10 @@ export const TeamMembersList = ({ members, onRemoveMember }: TeamMembersListProp
                       <div>
                         <div className="font-medium">{member.full_name}</div>
                         <div className="text-sm text-muted-foreground">{member.email}</div>
-                        {member.must_change_password && (
-                          <span className="text-xs text-red-500">Precisa trocar senha</span>
-                        )}
                       </div>
                     </div>
                   </td>
-                  <td className="py-4">{member.role === "seller" ? "Vendedor(a)" : "Personalizado"}</td>
+                  <td className="py-4">{getRoleLabel(member.role)}</td>
                   <td className="py-4">
                     <div className="flex flex-wrap gap-1">
                       {member.whatsapp_numbers.map((w) => (
@@ -71,13 +81,15 @@ export const TeamMembersList = ({ members, onRemoveMember }: TeamMembersListProp
                     </div>
                   </td>
                   <td className="py-4 text-right">
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => onRemoveMember(member.id)}
-                    >
-                      Remover
-                    </Button>
+                    {member.role !== "admin" && (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => onRemoveMember(member.id)}
+                      >
+                        Remover
+                      </Button>
+                    )}
                   </td>
                 </tr>
               ))}
