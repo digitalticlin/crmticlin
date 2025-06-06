@@ -240,11 +240,11 @@ export async function deleteVPSInstance(vpsInstanceId: string, instanceName?: st
 }
 
 export async function getVPSInstanceQR(instanceId: string) {
-  console.log('[VPS Request Service] 📱 CORREÇÃO ROBUSTA - Buscando QR Code (porta 3001):', instanceId);
+  console.log('[VPS Request Service] 📱 CORREÇÃO FINAL - Buscando QR Code:', instanceId);
   console.log('[VPS Request Service] 🔑 Token usado:', VPS_CONFIG.authToken.substring(0, 10) + '...');
   
   try {
-    // CORREÇÃO ROBUSTA: Testar conectividade antes do QR Code
+    // Testar conectividade antes do QR Code
     const isConnected = await testVPSConnectivity();
     if (!isConnected) {
       return {
@@ -254,9 +254,9 @@ export async function getVPSInstanceQR(instanceId: string) {
       };
     }
     
-    // Usar endpoint GET direto que funciona
+    // Usar endpoint GET direto
     const url = `${VPS_CONFIG.baseUrl}${VPS_CONFIG.endpoints.getQRDirect.replace('{instanceId}', instanceId)}`;
-    console.log(`[VPS Request Service] 🔄 CORREÇÃO - Usando endpoint GET: ${url}`);
+    console.log(`[VPS Request Service] 🔄 CORREÇÃO FINAL - Usando endpoint: ${url}`);
     
     const response = await makeVPSRequest(url, {
       method: 'GET',
@@ -265,33 +265,46 @@ export async function getVPSInstanceQR(instanceId: string) {
 
     if (response.ok) {
       const data = await response.json();
-      console.log(`[VPS Request Service] 📥 CORREÇÃO - Resposta do GET QR:`, {
+      console.log(`[VPS Request Service] 📥 CORREÇÃO FINAL - Resposta VPS:`, {
         hasQrCode: !!(data.qrCode || data.qrcode || data.qr_code || data.qr),
         hasSuccess: !!data.success,
         status: data.status
       });
       
-      // CORREÇÃO: Buscar QR Code nos campos possíveis
+      // Buscar QR Code nos campos possíveis
       const qrCodeField = data.qrCode || data.qrcode || data.qr_code || data.qr || null;
       
       if (data.success && qrCodeField && isRealQRCode(qrCodeField)) {
-        const processedQRCode = normalizeQRCode(qrCodeField);
-        console.log('[VPS Request Service] ✅ CORREÇÃO - QR Code válido obtido via GET');
+        console.log('[VPS Request Service] 🔄 CORREÇÃO FINAL - Processando QR Code...');
         
-        return {
-          success: true,
-          qrCode: processedQRCode,
-          waiting: false
-        };
+        // CORREÇÃO CRÍTICA: Usar a nova função de normalização que converte texto
+        const processedQRCode = await normalizeQRCode(qrCodeField);
+        
+        if (processedQRCode && processedQRCode.startsWith('data:image/')) {
+          console.log('[VPS Request Service] ✅ CORREÇÃO FINAL - QR Code convertido e validado');
+          
+          return {
+            success: true,
+            qrCode: processedQRCode,
+            waiting: false
+          };
+        } else {
+          console.log('[VPS Request Service] ❌ CORREÇÃO FINAL - Falha na conversão do QR Code');
+          return {
+            success: false,
+            waiting: true,
+            error: 'Falha na conversão do QR Code'
+          };
+        }
       } else if (data.success === false && data.error) {
-        console.log('[VPS Request Service] ⏳ CORREÇÃO - QR Code ainda não disponível:', data.error);
+        console.log('[VPS Request Service] ⏳ CORREÇÃO FINAL - QR Code ainda não disponível:', data.error);
         return {
           success: false,
           waiting: true,
           error: data.error
         };
       } else {
-        console.log('[VPS Request Service] ⏳ CORREÇÃO - QR Code ainda sendo gerado');
+        console.log('[VPS Request Service] ⏳ CORREÇÃO FINAL - QR Code ainda sendo gerado');
         return {
           success: false,
           waiting: true,
@@ -300,7 +313,7 @@ export async function getVPSInstanceQR(instanceId: string) {
       }
     } else {
       const errorText = await response.text();
-      console.error('[VPS Request Service] ❌ CORREÇÃO - Erro no GET QR:', response.status, errorText);
+      console.error('[VPS Request Service] ❌ CORREÇÃO FINAL - Erro VPS:', response.status, errorText);
       return {
         success: false,
         waiting: true,
@@ -309,7 +322,7 @@ export async function getVPSInstanceQR(instanceId: string) {
     }
     
   } catch (error: any) {
-    console.error('[VPS Request Service] ❌ CORREÇÃO - Erro na requisição QR:', error);
+    console.error('[VPS Request Service] ❌ CORREÇÃO FINAL - Erro na requisição:', error);
     return {
       success: false,
       waiting: true,

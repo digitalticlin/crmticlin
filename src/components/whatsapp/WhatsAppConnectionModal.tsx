@@ -151,11 +151,19 @@ export const WhatsAppConnectionModal = ({ isOpen, onClose, onSuccess }: WhatsApp
             
             {qrCode ? (
               <div className="bg-white p-4 rounded-lg border">
+                {/* CORREÇÃO FINAL: Usar QR Code diretamente se já for data URL */}
                 <img 
-                  src={`data:image/png;base64,${qrCode}`} 
+                  src={qrCode.startsWith('data:image/') ? qrCode : `data:image/png;base64,${qrCode}`}
                   alt="QR Code WhatsApp" 
                   className="mx-auto max-w-full h-auto"
                   style={{ maxWidth: '300px' }}
+                  onError={(e) => {
+                    console.error('[Modal] ❌ Erro ao carregar QR Code');
+                    e.currentTarget.style.display = 'none';
+                  }}
+                  onLoad={() => {
+                    console.log('[Modal] ✅ QR Code carregado no modal');
+                  }}
                 />
               </div>
             ) : (

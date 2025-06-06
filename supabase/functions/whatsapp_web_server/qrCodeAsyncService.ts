@@ -1,5 +1,5 @@
 
-import { corsHeaders } from './config.ts';
+import { corsHeaders, normalizeQRCode } from './config.ts';
 import { getVPSInstanceQR } from './vpsRequestService.ts';
 
 export async function getQRCodeAsync(supabase: any, instanceData: any, userId: string) {
@@ -13,31 +13,31 @@ export async function getQRCodeAsync(supabase: any, instanceData: any, userId: s
       throw new Error('Instance ID é obrigatório');
     }
 
-    console.log(`[QR Code Async] 🔍 CORREÇÃO - Validando instance ID: ${instanceId}`);
+    console.log(`[QR Code Async] 🔍 CORREÇÃO FINAL - Validando instance ID: ${instanceId}`);
 
-    // CORREÇÃO: Buscar instância baseada no created_by_user_id (FASE 1)
+    // Buscar instância baseada no created_by_user_id
     const { data: instance, error: instanceError } = await supabase
       .from('whatsapp_instances')
       .select('*')
       .eq('id', instanceId)
-      .eq('created_by_user_id', userId) // CORREÇÃO: Usar created_by_user_id
+      .eq('created_by_user_id', userId)
       .single();
 
     if (instanceError || !instance) {
-      console.error(`[QR Code Async] ❌ CORREÇÃO - Instância não encontrada [${qrId}]:`, instanceError);
+      console.error(`[QR Code Async] ❌ CORREÇÃO FINAL - Instância não encontrada [${qrId}]:`, instanceError);
       throw new Error('Instância não encontrada ou não pertence ao usuário');
     }
 
-    console.log(`[QR Code Async] ✅ CORREÇÃO - Instância encontrada: ${instance.instance_name} (VPS ID: ${instance.vps_instance_id})`);
+    console.log(`[QR Code Async] ✅ CORREÇÃO FINAL - Instância encontrada: ${instance.instance_name} (VPS ID: ${instance.vps_instance_id})`);
 
-    // Se já tem QR Code válido no banco, retornar
-    if (instance.qr_code && instance.qr_code.length > 50) {
-      console.log(`[QR Code Async] ✅ CORREÇÃO - QR Code já disponível no banco`);
+    // Verificar se já tem QR Code válido no banco (data URL)
+    if (instance.qr_code && instance.qr_code.startsWith('data:image/')) {
+      console.log(`[QR Code Async] ✅ CORREÇÃO FINAL - QR Code data URL já disponível no banco`);
       return new Response(
         JSON.stringify({
           success: true,
           qrCode: instance.qr_code,
-          source: 'database'
+          source: 'database_converted'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -48,13 +48,13 @@ export async function getQRCodeAsync(supabase: any, instanceData: any, userId: s
       throw new Error('VPS Instance ID não encontrado');
     }
 
-    console.log(`[QR Code Async] 🌐 CORREÇÃO - Buscando QR Code na VPS: ${instance.vps_instance_id}`);
+    console.log(`[QR Code Async] 🌐 CORREÇÃO FINAL - Buscando QR Code na VPS: ${instance.vps_instance_id}`);
     const vpsResult = await getVPSInstanceQR(instance.vps_instance_id);
 
     if (vpsResult.success && vpsResult.qrCode) {
-      console.log(`[QR Code Async] ✅ CORREÇÃO - QR Code obtido da VPS, atualizando banco...`);
+      console.log(`[QR Code Async] ✅ CORREÇÃO FINAL - QR Code obtido e convertido, atualizando banco...`);
       
-      // CORREÇÃO: Atualizar QR Code no banco
+      // Atualizar QR Code no banco com a versão convertida
       const { error: updateError } = await supabase
         .from('whatsapp_instances')
         .update({ 
@@ -65,21 +65,21 @@ export async function getQRCodeAsync(supabase: any, instanceData: any, userId: s
         .eq('id', instanceId);
 
       if (updateError) {
-        console.error(`[QR Code Async] ❌ CORREÇÃO - Erro ao atualizar QR no banco:`, updateError);
+        console.error(`[QR Code Async] ❌ CORREÇÃO FINAL - Erro ao atualizar QR no banco:`, updateError);
       } else {
-        console.log(`[QR Code Async] ✅ CORREÇÃO - QR Code salvo no banco com sucesso`);
+        console.log(`[QR Code Async] ✅ CORREÇÃO FINAL - QR Code convertido salvo no banco`);
       }
 
       return new Response(
         JSON.stringify({
           success: true,
           qrCode: vpsResult.qrCode,
-          source: 'vps'
+          source: 'vps_converted'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } else if (vpsResult.waiting) {
-      console.log(`[QR Code Async] ⏳ CORREÇÃO - QR Code ainda sendo gerado na VPS`);
+      console.log(`[QR Code Async] ⏳ CORREÇÃO FINAL - QR Code ainda sendo gerado na VPS`);
       
       return new Response(
         JSON.stringify({
@@ -94,7 +94,7 @@ export async function getQRCodeAsync(supabase: any, instanceData: any, userId: s
     }
 
   } catch (error: any) {
-    console.error(`[QR Code Async] ❌ CORREÇÃO - Erro geral [${qrId}]:`, error);
+    console.error(`[QR Code Async] ❌ CORREÇÃO FINAL - Erro geral [${qrId}]:`, error);
     
     return new Response(
       JSON.stringify({
