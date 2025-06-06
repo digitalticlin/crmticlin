@@ -54,13 +54,25 @@ export const useStageManagement = (
       const isMovingToWonLost = targetStage && (targetStage.is_won || targetStage.is_lost);
       const isMovingFromWonLost = sourceStage && (sourceStage.is_won || sourceStage.is_lost);
 
-      // Atualizar no banco - SEMPRE atualizar o kanban_stage_id
+      // Nova condição: zerar valor quando voltar de GANHO/PERDIDO para etapa normal
+      const isReturningToFunnel = isMovingFromWonLost && !isMovingToWonLost;
+
+      // Preparar dados para atualização
+      const updateData: any = { 
+        kanban_stage_id: newColumnId,
+        funnel_id: funnelId 
+      };
+
+      // Se está voltando para o funil, zerar o valor de compra
+      if (isReturningToFunnel) {
+        updateData.purchase_value = 0;
+        console.log(`Lead ${lead.id} retornando ao funil - zerando valor de compra`);
+      }
+
+      // Atualizar no banco
       const { error } = await supabase
         .from("leads")
-        .update({ 
-          kanban_stage_id: newColumnId,
-          funnel_id: funnelId 
-        })
+        .update(updateData)
         .eq("id", lead.id);
 
       if (error) throw error;
@@ -82,7 +94,12 @@ export const useStageManagement = (
             leads: col.id === lead.columnId
               ? col.leads.filter(l => l.id !== lead.id)
               : col.id === newColumnId
-              ? [{ ...lead, columnId: newColumnId }, ...col.leads]
+              ? [{
+                  ...lead, 
+                  columnId: newColumnId,
+                  // Zerar valor localmente se está retornando ao funil
+                  purchaseValue: isReturningToFunnel ? 0 : lead.purchaseValue
+                }, ...col.leads]
               : col.leads
           }))
         );
@@ -93,7 +110,9 @@ export const useStageManagement = (
       if (refetchStages) await refetchStages();
 
       // Toast de sucesso baseado no tipo de movimento
-      if (isMovingFromWonLost && !isMovingToWonLost) {
+      if (isReturningToFunnel) {
+        toast.success("Lead retornado ao funil - valor de negociação zerado");
+      } else if (isMovingFromWonLost && !isMovingToWonLost) {
         toast.success("Lead retornado ao funil com sucesso");
       } else if (isMovingToWonLost) {
         toast.success(`Lead movido para ${targetStage.is_won ? "Ganhos" : "Perdidos"}`);
