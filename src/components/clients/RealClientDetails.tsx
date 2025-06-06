@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit, User, X } from "lucide-react";
+import { User, X } from "lucide-react";
 import { BasicInfoSection } from "./ClientDetailsSections/BasicInfoSection";
 import { DocumentSection } from "./ClientDetailsSections/DocumentSection";
 import { AddressSection } from "./ClientDetailsSections/AddressSection";
@@ -18,7 +18,6 @@ interface RealClientDetailsProps {
   client: ClientData;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onEdit: (client: ClientData) => void;
   onUpdateNotes: (notes: string) => void;
   onUpdatePurchaseValue: (value: number | undefined) => void;
 }
@@ -27,7 +26,6 @@ export function RealClientDetails({
   client,
   isOpen,
   onOpenChange,
-  onEdit,
   onUpdateNotes,
   onUpdatePurchaseValue
 }: RealClientDetailsProps) {
@@ -40,8 +38,8 @@ export function RealClientDetails({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl rounded-3xl">
-        <DialogHeader className="border-b border-white/20 pb-4 mb-6">
+      <DialogContent className="max-w-6xl h-[90vh] flex flex-col bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl rounded-3xl">
+        <DialogHeader className="border-b border-white/20 pb-4 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-[#d3d800] rounded-full flex items-center justify-center">
@@ -55,53 +53,44 @@ export function RealClientDetails({
               </div>
             </div>
             
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => onEdit(client)}
-                className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20 hover:text-white"
-              >
-                <Edit className="h-4 w-4" />
-                Editar Completo
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => onOpenChange(false)}
-                className="text-white/70 hover:text-white hover:bg-white/10"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => onOpenChange(false)}
+              className="text-white/70 hover:text-white hover:bg-white/10"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 pr-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6">
-            {/* Coluna Esquerda */}
-            <div className="space-y-6">
-              <BasicInfoSection client={client} />
-              <DocumentSection client={client} />
-              <AddressSection client={client} />
-              <ContactsSection client={client} />
-              <PurchaseValueSection 
-                client={client} 
-                onUpdatePurchaseValue={onUpdatePurchaseValue} 
-              />
+        <div className="flex-1 min-h-0">
+          <ScrollArea className="h-full px-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-6">
+              {/* Coluna Esquerda */}
+              <div className="space-y-6">
+                <BasicInfoSection client={client} />
+                <DocumentSection client={client} />
+                <AddressSection client={client} />
+                <ContactsSection client={client} />
+                <PurchaseValueSection 
+                  client={client} 
+                  onUpdatePurchaseValue={onUpdatePurchaseValue} 
+                />
+              </div>
+              
+              {/* Coluna Direita */}
+              <div className="space-y-6">
+                <LeadSystemInfoSection client={client} />
+                <NotesSection 
+                  client={client} 
+                  onUpdateNotes={onUpdateNotes} 
+                />
+                <DealsHistorySection clientId={client.id} />
+              </div>
             </div>
-            
-            {/* Coluna Direita */}
-            <div className="space-y-6">
-              <LeadSystemInfoSection client={client} />
-              <NotesSection 
-                client={client} 
-                onUpdateNotes={onUpdateNotes} 
-              />
-              <DealsHistorySection clientId={client.id} />
-            </div>
-          </div>
-        </ScrollArea>
+          </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -20,10 +20,10 @@ export function NotesSection({ client, onUpdateNotes }: NotesSectionProps) {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl">
       <div className="flex items-center gap-3 mb-4">
         <FileText className="h-5 w-5 text-[#d3d800]" />
-        <h3 className="text-lg font-semibold text-gray-900">Observações</h3>
+        <h3 className="text-lg font-semibold text-white">Observações</h3>
       </div>
       
       {isEditingNotes ? (
@@ -32,7 +32,7 @@ export function NotesSection({ client, onUpdateNotes }: NotesSectionProps) {
             placeholder="Adicione observações sobre o cliente..."
             value={notesValue}
             onChange={(e) => setNotesValue(e.target.value)}
-            className="min-h-[100px] border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
+            className="min-h-[100px] bg-white/10 backdrop-blur-sm border-white/30 text-white placeholder:text-white/60"
           />
           <div className="flex gap-2">
             <Button 
@@ -50,7 +50,7 @@ export function NotesSection({ client, onUpdateNotes }: NotesSectionProps) {
                 setIsEditingNotes(false);
                 setNotesValue(client.notes || "");
               }}
-              className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20"
             >
               <X className="h-3 w-3 mr-1" />
               Cancelar
@@ -61,16 +61,16 @@ export function NotesSection({ client, onUpdateNotes }: NotesSectionProps) {
         <div className="flex items-start justify-between">
           <div className="flex-1">
             {client.notes ? (
-              <p className="text-gray-900 whitespace-pre-wrap leading-relaxed">{client.notes}</p>
+              <p className="text-white/80 whitespace-pre-wrap leading-relaxed">{client.notes}</p>
             ) : (
-              <p className="text-gray-500 italic">Nenhuma observação adicionada</p>
+              <p className="text-white/60 italic">Nenhuma observação adicionada</p>
             )}
           </div>
           <Button 
             size="sm" 
             variant="ghost"
             onClick={() => setIsEditingNotes(true)}
-            className="text-gray-600 hover:text-gray-900 hover:bg-gray-100 ml-2"
+            className="text-white/70 hover:text-white hover:bg-white/10 ml-2"
           >
             <Edit className="h-4 w-4" />
           </Button>

@@ -30,23 +30,23 @@ export function PurchaseValueSection({ client, onUpdatePurchaseValue }: Purchase
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl">
       <div className="flex items-center gap-3 mb-4">
         <DollarSign className="h-5 w-5 text-[#d3d800]" />
-        <h3 className="text-lg font-semibold text-gray-900">Valor de Compra</h3>
+        <h3 className="text-lg font-semibold text-white">Valor de Compra</h3>
       </div>
       
       <div className="space-y-4">
         {isEditingValue ? (
           <div className="space-y-3">
             <div>
-              <Label className="text-sm font-medium text-gray-700">Valor</Label>
+              <Label className="text-sm font-medium text-white/90">Valor</Label>
               <Input
                 type="number"
                 placeholder="0.00"
                 value={purchaseValue}
                 onChange={(e) => setPurchaseValue(e.target.value)}
-                className="mt-1 border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800]"
+                className="mt-1 bg-white/10 backdrop-blur-sm border-white/30 text-white placeholder:text-white/60"
               />
             </div>
             <div className="flex gap-2">
@@ -65,7 +65,7 @@ export function PurchaseValueSection({ client, onUpdatePurchaseValue }: Purchase
                   setIsEditingValue(false);
                   setPurchaseValue(client.purchase_value?.toString() || "");
                 }}
-                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                className="bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20"
               >
                 <X className="h-3 w-3 mr-1" />
                 Cancelar
@@ -75,14 +75,14 @@ export function PurchaseValueSection({ client, onUpdatePurchaseValue }: Purchase
         ) : (
           <div className="flex items-center justify-between">
             <div>
-              <Label className="text-sm font-medium text-gray-700">Valor</Label>
-              <p className="text-xl font-semibold text-gray-900">{formatCurrency(client.purchase_value)}</p>
+              <Label className="text-sm font-medium text-white/90">Valor</Label>
+              <p className="text-xl font-semibold text-white">{formatCurrency(client.purchase_value)}</p>
             </div>
             <Button 
               size="sm" 
               variant="ghost"
               onClick={() => setIsEditingValue(true)}
-              className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+              className="text-white/70 hover:text-white hover:bg-white/10"
             >
               <Edit className="h-4 w-4" />
             </Button>

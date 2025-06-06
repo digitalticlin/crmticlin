@@ -8,8 +8,6 @@ import { useCreateClientMutation, useUpdateClientMutation, useDeleteClientMutati
 export function useRealClientManagement() {
   const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
   const { companyId } = useCompanyData();
 
   // Queries
@@ -17,34 +15,12 @@ export function useRealClientManagement() {
   const clientsQuery = useClientsQuery(companyId);
 
   // Mutations
-  const createClientMutation = useCreateClientMutation(companyId, defaultWhatsAppQuery.data?.id || null);
   const updateClientMutation = useUpdateClientMutation(companyId);
   const deleteClientMutation = useDeleteClientMutation(companyId);
 
   const handleSelectClient = (client: ClientData) => {
     setSelectedClient(client);
     setIsDetailsOpen(true);
-  };
-
-  const handleAddClient = () => {
-    setSelectedClient(null);
-    setIsEditing(false);
-    setIsFormOpen(true);
-  };
-
-  const handleEditClient = (client: ClientData) => {
-    setSelectedClient(client);
-    setIsEditing(true);
-    setIsDetailsOpen(false);
-    setIsFormOpen(true);
-  };
-
-  const handleFormSubmit = (data: ClientFormData) => {
-    if (isEditing && selectedClient) {
-      updateClientMutation.mutate({ id: selectedClient.id, data });
-    } else {
-      createClientMutation.mutate(data);
-    }
   };
 
   const handleDeleteClient = (clientId: string) => {
@@ -59,6 +35,7 @@ export function useRealClientManagement() {
       id: selectedClient.id, 
       data: { notes } 
     });
+    setSelectedClient({ ...selectedClient, notes });
   };
 
   const handleUpdatePurchaseValue = (purchase_value: number | undefined) => {
@@ -67,30 +44,19 @@ export function useRealClientManagement() {
       id: selectedClient.id, 
       data: { purchase_value } 
     });
+    setSelectedClient({ ...selectedClient, purchase_value });
   };
 
   return {
     clients: clientsQuery.data || [],
     selectedClient,
     isDetailsOpen,
-    isFormOpen,
-    isEditing,
-    isLoading: clientsQuery.isLoading || createClientMutation.isPending || updateClientMutation.isPending,
+    isLoading: clientsQuery.isLoading || updateClientMutation.isPending,
     setIsDetailsOpen: (open: boolean) => {
       setIsDetailsOpen(open);
       if (!open) setSelectedClient(null);
     },
-    setIsFormOpen: (open: boolean) => {
-      setIsFormOpen(open);
-      if (!open) {
-        setSelectedClient(null);
-        setIsEditing(false);
-      }
-    },
     handleSelectClient,
-    handleAddClient,
-    handleEditClient,
-    handleFormSubmit,
     handleDeleteClient,
     handleUpdateNotes,
     handleUpdatePurchaseValue,
