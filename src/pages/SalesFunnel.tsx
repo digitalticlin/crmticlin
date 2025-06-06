@@ -42,8 +42,8 @@ export default function SalesFunnel() {
     moveLeadToStage,
     wonStageId,
     lostStageId,
-    refetchLeads,
-    refetchStages
+    refetchLeads: originalRefetchLeads,
+    refetchStages: originalRefetchStages
   } = useRealSalesFunnel(selectedFunnel?.id);
 
   useNewLeadIntegration(selectedFunnel?.id);
@@ -51,6 +51,15 @@ export default function SalesFunnel() {
   // Wrapper function to match the expected interface
   const createFunnel = async (name: string, description?: string): Promise<void> => {
     await originalCreateFunnel(name, description);
+  };
+
+  // Wrapper functions to convert QueryObserverResult to void
+  const refetchLeads = async (): Promise<void> => {
+    await originalRefetchLeads();
+  };
+
+  const refetchStages = async (): Promise<void> => {
+    await originalRefetchStages();
   };
 
   if (funnelLoading) {

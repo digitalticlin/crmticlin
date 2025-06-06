@@ -35,7 +35,7 @@ interface SalesFunnelContextValue {
   updateLeadName: (name: string) => void;
   moveLeadToStage: (lead: KanbanLead, columnId: string) => void;
 
-  // Refresh functions
+  // Refresh functions - changed to Promise<void> to match interface
   refetchLeads: () => Promise<void>;
   refetchStages: () => Promise<void>;
 
