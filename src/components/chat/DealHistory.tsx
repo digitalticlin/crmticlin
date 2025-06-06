@@ -31,10 +31,10 @@ export const DealHistory = ({ deals }: DealHistoryProps) => {
         {deals.map((deal) => (
           <div 
             key={deal.id} 
-            className={`p-3 border rounded-md transition-all ${
+            className={`p-3 border rounded-md transition-all backdrop-blur-sm ${
               deal.status === "won" 
-                ? "bg-green-50 border-green-200" 
-                : "bg-red-50 border-red-200"
+                ? "bg-green-500/20 border-green-400/40" 
+                : "bg-red-500/20 border-red-400/40"
             }`}
           >
             <div className="flex justify-between items-center mb-2">
@@ -52,17 +52,17 @@ export const DealHistory = ({ deals }: DealHistoryProps) => {
                   <><X className="h-3 w-3" /> Perdido</>
                 )}
               </Badge>
-              <span className="text-xs text-gray-600">{deal.date}</span>
+              <span className="text-xs text-gray-700">{deal.date}</span>
             </div>
             
             <div className={`font-semibold ${
-              deal.status === "won" ? "text-green-700" : "text-red-700"
+              deal.status === "won" ? "text-green-800" : "text-red-800"
             }`}>
               {formatCurrency(deal.value)}
             </div>
             
             {deal.note && (
-              <p className="text-sm text-gray-600 mt-1">{deal.note}</p>
+              <p className="text-sm text-gray-700 mt-1">{deal.note}</p>
             )}
           </div>
         ))}
