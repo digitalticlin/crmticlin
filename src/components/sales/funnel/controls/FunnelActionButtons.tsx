@@ -3,8 +3,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Settings, Tag, UserPlus } from "lucide-react";
 import { TagManagementModal } from "../modals/TagManagementModal";
-import { CreateLeadModal } from "../modals/CreateLeadModal";
 import { FunnelConfigModal } from "../modals/FunnelConfigModal";
+import { RealClientDetails } from "@/components/clients/RealClientDetails";
+import { useCompanyData } from "@/hooks/useCompanyData";
+import { useCreateClientMutation } from "@/hooks/clients/mutations";
+import { ClientData } from "@/hooks/clients/types";
+import { useSalesFunnelContext } from "../SalesFunnelProvider";
 
 interface FunnelActionButtonsProps {
   isAdmin: boolean;
@@ -14,6 +18,30 @@ export const FunnelActionButtons = ({ isAdmin }: FunnelActionButtonsProps) => {
   const [isTagModalOpen, setIsTagModalOpen] = useState(false);
   const [isLeadModalOpen, setIsLeadModalOpen] = useState(false);
   const [isFunnelConfigOpen, setIsFunnelConfigOpen] = useState(false);
+  
+  const { companyId } = useCompanyData();
+  const { selectedFunnel, stages, refetchLeads } = useSalesFunnelContext();
+  const createClientMutation = useCreateClientMutation(companyId);
+
+  const handleCreateLead = async (data: Partial<ClientData>) => {
+    if (!selectedFunnel) return;
+
+    // Encontrar a primeira etapa do funil (entrada)
+    const entryStage = stages.find(s => s.order_position === 0) || stages[0];
+    
+    try {
+      await createClientMutation.mutateAsync({
+        ...data,
+        funnel_id: selectedFunnel.id,
+        kanban_stage_id: entryStage?.id,
+      } as any);
+      
+      setIsLeadModalOpen(false);
+      refetchLeads();
+    } catch (error) {
+      console.error("Erro ao criar lead:", error);
+    }
+  };
 
   return (
     <>
@@ -59,9 +87,12 @@ export const FunnelActionButtons = ({ isAdmin }: FunnelActionButtonsProps) => {
         onClose={() => setIsTagModalOpen(false)}
       />
 
-      <CreateLeadModal
+      <RealClientDetails
+        client={null}
         isOpen={isLeadModalOpen}
-        onClose={() => setIsLeadModalOpen(false)}
+        isCreateMode={true}
+        onOpenChange={setIsLeadModalOpen}
+        onCreateClient={handleCreateLead}
       />
 
       <FunnelConfigModal

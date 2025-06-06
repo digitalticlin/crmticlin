@@ -9,19 +9,27 @@ import { formatPhoneDisplay } from "@/utils/phoneFormatter";
 
 interface BasicInfoSectionProps {
   client: ClientData;
-  onUpdateBasicInfo: (data: { name: string; email: string; company: string }) => void;
+  onUpdateBasicInfo?: (data: { name: string; email: string; company: string }) => void;
+  isCreateMode?: boolean;
 }
 
-export function BasicInfoSection({ client, onUpdateBasicInfo }: BasicInfoSectionProps) {
-  const [isEditingBasicInfo, setIsEditingBasicInfo] = useState(false);
+export function BasicInfoSection({ client, onUpdateBasicInfo, isCreateMode = false }: BasicInfoSectionProps) {
+  const [isEditingBasicInfo, setIsEditingBasicInfo] = useState(isCreateMode);
   const [editedClient, setEditedClient] = useState({
-    name: client.name,
+    name: client.name || "",
     email: client.email || "",
     company: client.company || ""
   });
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSaveBasicInfo = async () => {
+    if (!onUpdateBasicInfo) return;
+    
+    if (isCreateMode) {
+      onUpdateBasicInfo(editedClient);
+      return;
+    }
+
     setIsLoading(true);
     try {
       await onUpdateBasicInfo(editedClient);
@@ -37,7 +45,7 @@ export function BasicInfoSection({ client, onUpdateBasicInfo }: BasicInfoSection
     <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-white">Informações Básicas</h3>
-        {!isEditingBasicInfo && (
+        {!isEditingBasicInfo && !isCreateMode && (
           <Button 
             variant="ghost" 
             size="sm"
@@ -53,8 +61,8 @@ export function BasicInfoSection({ client, onUpdateBasicInfo }: BasicInfoSection
         <div className="flex items-start gap-3">
           <Building className="h-5 w-5 text-[#d3d800] mt-0.5" />
           <div className="flex-1">
-            <Label className="text-sm font-medium text-white/90">Nome</Label>
-            {isEditingBasicInfo ? (
+            <Label className="text-sm font-medium text-white/90">Nome *</Label>
+            {isEditingBasicInfo || isCreateMode ? (
               <Input
                 value={editedClient.name}
                 onChange={(e) => setEditedClient({...editedClient, name: e.target.value})}
@@ -67,19 +75,21 @@ export function BasicInfoSection({ client, onUpdateBasicInfo }: BasicInfoSection
           </div>
         </div>
 
-        <div className="flex items-start gap-3">
-          <Phone className="h-5 w-5 text-[#d3d800] mt-0.5" />
-          <div className="flex-1">
-            <Label className="text-sm font-medium text-white/90">Telefone</Label>
-            <p className="text-white/80 font-medium">{formatPhoneDisplay(client.phone)}</p>
+        {!isCreateMode && (
+          <div className="flex items-start gap-3">
+            <Phone className="h-5 w-5 text-[#d3d800] mt-0.5" />
+            <div className="flex-1">
+              <Label className="text-sm font-medium text-white/90">Telefone</Label>
+              <p className="text-white/80 font-medium">{formatPhoneDisplay(client.phone)}</p>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="flex items-start gap-3">
           <Mail className="h-5 w-5 text-[#d3d800] mt-0.5" />
           <div className="flex-1">
             <Label className="text-sm font-medium text-white/90">Email</Label>
-            {isEditingBasicInfo ? (
+            {isEditingBasicInfo || isCreateMode ? (
               <Input
                 type="email"
                 value={editedClient.email}
@@ -97,7 +107,7 @@ export function BasicInfoSection({ client, onUpdateBasicInfo }: BasicInfoSection
           <Building className="h-5 w-5 text-[#d3d800] mt-0.5" />
           <div className="flex-1">
             <Label className="text-sm font-medium text-white/90">Empresa</Label>
-            {isEditingBasicInfo ? (
+            {isEditingBasicInfo || isCreateMode ? (
               <Input
                 value={editedClient.company}
                 onChange={(e) => setEditedClient({...editedClient, company: e.target.value})}
@@ -110,7 +120,22 @@ export function BasicInfoSection({ client, onUpdateBasicInfo }: BasicInfoSection
           </div>
         </div>
 
-        {isEditingBasicInfo && (
+        {isCreateMode && (
+          <div className="flex items-start gap-3">
+            <Phone className="h-5 w-5 text-[#d3d800] mt-0.5" />
+            <div className="flex-1">
+              <Label className="text-sm font-medium text-white/90">Telefone *</Label>
+              <Input
+                value={client.phone || ""}
+                onChange={(e) => onUpdateBasicInfo && onUpdateBasicInfo({...editedClient, phone: e.target.value} as any)}
+                className="mt-1 bg-white/10 backdrop-blur-sm border-white/30 text-white placeholder:text-white/60"
+                placeholder="(00) 00000-0000"
+              />
+            </div>
+          </div>
+        )}
+
+        {(isEditingBasicInfo || isCreateMode) && !isCreateMode && (
           <div className="flex gap-2 pt-4 border-t border-white/20">
             <Button 
               size="sm" 
@@ -127,7 +152,7 @@ export function BasicInfoSection({ client, onUpdateBasicInfo }: BasicInfoSection
               onClick={() => {
                 setIsEditingBasicInfo(false);
                 setEditedClient({
-                  name: client.name,
+                  name: client.name || "",
                   email: client.email || "",
                   company: client.company || ""
                 });

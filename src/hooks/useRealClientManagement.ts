@@ -9,6 +9,7 @@ import { toast } from "sonner";
 export function useRealClientManagement() {
   const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isCreateMode, setIsCreateMode] = useState(false);
   const { companyId } = useCompanyData();
 
   // Queries
@@ -16,12 +17,31 @@ export function useRealClientManagement() {
   const clientsQuery = useClientsQuery(companyId);
 
   // Mutations
+  const createClientMutation = useCreateClientMutation(companyId);
   const updateClientMutation = useUpdateClientMutation(companyId);
   const deleteClientMutation = useDeleteClientMutation(companyId);
 
   const handleSelectClient = (client: ClientData) => {
     setSelectedClient(client);
+    setIsCreateMode(false);
     setIsDetailsOpen(true);
+  };
+
+  const handleCreateClient = () => {
+    setSelectedClient(null);
+    setIsCreateMode(true);
+    setIsDetailsOpen(true);
+  };
+
+  const handleSaveNewClient = async (data: Partial<ClientData>) => {
+    try {
+      await createClientMutation.mutateAsync(data as ClientFormData);
+      setIsDetailsOpen(false);
+      setIsCreateMode(false);
+      clientsQuery.refetch();
+    } catch (error) {
+      console.error("Erro ao criar cliente:", error);
+    }
   };
 
   const handleDeleteClient = (clientId: string) => {
@@ -39,11 +59,8 @@ export function useRealClientManagement() {
         data: { notes } 
       });
       
-      // Atualizar estado local imediatamente
       const updatedClient = { ...selectedClient, notes };
       setSelectedClient(updatedClient);
-      
-      // Invalidar queries para atualizar a lista
       clientsQuery.refetch();
     } catch (error) {
       console.error("Erro ao atualizar notes:", error);
@@ -59,11 +76,8 @@ export function useRealClientManagement() {
         data: { purchase_value } 
       });
       
-      // Atualizar estado local imediatamente
       const updatedClient = { ...selectedClient, purchase_value };
       setSelectedClient(updatedClient);
-      
-      // Invalidar queries para atualizar a lista
       clientsQuery.refetch();
     } catch (error) {
       console.error("Erro ao atualizar purchase_value:", error);
@@ -79,13 +93,9 @@ export function useRealClientManagement() {
         data
       });
       
-      // Atualizar estado local imediatamente
       const updatedClient = { ...selectedClient, ...data };
       setSelectedClient(updatedClient);
-      
-      // Invalidar queries para atualizar a lista
       clientsQuery.refetch();
-      
       toast.success("Informações básicas atualizadas com sucesso!");
     } catch (error) {
       console.error("Erro ao atualizar informações básicas:", error);
@@ -102,13 +112,9 @@ export function useRealClientManagement() {
         data
       });
       
-      // Atualizar estado local imediatamente
       const updatedClient = { ...selectedClient, ...data };
       setSelectedClient(updatedClient);
-      
-      // Invalidar queries para atualizar a lista
       clientsQuery.refetch();
-      
       toast.success("Informações do documento atualizadas com sucesso!");
     } catch (error) {
       console.error("Erro ao atualizar documento:", error);
@@ -131,13 +137,9 @@ export function useRealClientManagement() {
         data
       });
       
-      // Atualizar estado local imediatamente
       const updatedClient = { ...selectedClient, ...data };
       setSelectedClient(updatedClient);
-      
-      // Invalidar queries para atualizar a lista
       clientsQuery.refetch();
-      
       toast.success("Endereço atualizado com sucesso!");
     } catch (error) {
       console.error("Erro ao atualizar endereço:", error);
@@ -149,12 +151,18 @@ export function useRealClientManagement() {
     clients: clientsQuery.data || [],
     selectedClient,
     isDetailsOpen,
-    isLoading: clientsQuery.isLoading || updateClientMutation.isPending,
+    isCreateMode,
+    isLoading: clientsQuery.isLoading || updateClientMutation.isPending || createClientMutation.isPending,
     setIsDetailsOpen: (open: boolean) => {
       setIsDetailsOpen(open);
-      if (!open) setSelectedClient(null);
+      if (!open) {
+        setSelectedClient(null);
+        setIsCreateMode(false);
+      }
     },
     handleSelectClient,
+    handleCreateClient,
+    handleSaveNewClient,
     handleDeleteClient,
     handleUpdateNotes,
     handleUpdatePurchaseValue,

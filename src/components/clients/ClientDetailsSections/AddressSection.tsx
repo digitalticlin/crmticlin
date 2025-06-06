@@ -8,17 +8,18 @@ import { ClientData } from "@/hooks/clients/types";
 
 interface AddressSectionProps {
   client: ClientData;
-  onUpdateAddress: (data: { 
+  onUpdateAddress?: (data: { 
     address: string; 
     city: string; 
     state: string; 
     country: string; 
     zip_code: string 
   }) => void;
+  isCreateMode?: boolean;
 }
 
-export function AddressSection({ client, onUpdateAddress }: AddressSectionProps) {
-  const [isEditing, setIsEditing] = useState(false);
+export function AddressSection({ client, onUpdateAddress, isCreateMode = false }: AddressSectionProps) {
+  const [isEditing, setIsEditing] = useState(isCreateMode);
   const [editedData, setEditedData] = useState({
     address: client.address || "",
     city: client.city || "",
@@ -29,6 +30,13 @@ export function AddressSection({ client, onUpdateAddress }: AddressSectionProps)
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSave = async () => {
+    if (!onUpdateAddress) return;
+
+    if (isCreateMode) {
+      onUpdateAddress(editedData);
+      return;
+    }
+
     setIsLoading(true);
     try {
       await onUpdateAddress(editedData);
@@ -47,7 +55,7 @@ export function AddressSection({ client, onUpdateAddress }: AddressSectionProps)
           <MapPin className="h-5 w-5 text-[#d3d800]" />
           <h3 className="text-lg font-semibold text-white">Endereço Completo</h3>
         </div>
-        {!isEditing && (
+        {!isEditing && !isCreateMode && (
           <Button 
             variant="ghost" 
             size="sm"
@@ -62,7 +70,7 @@ export function AddressSection({ client, onUpdateAddress }: AddressSectionProps)
       <div className="grid gap-4">
         <div>
           <Label className="text-sm font-medium text-white/90">Endereço</Label>
-          {isEditing ? (
+          {isEditing || isCreateMode ? (
             <Input
               value={editedData.address}
               onChange={(e) => setEditedData({...editedData, address: e.target.value})}
@@ -77,7 +85,7 @@ export function AddressSection({ client, onUpdateAddress }: AddressSectionProps)
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label className="text-sm font-medium text-white/90">Cidade</Label>
-            {isEditing ? (
+            {isEditing || isCreateMode ? (
               <Input
                 value={editedData.city}
                 onChange={(e) => setEditedData({...editedData, city: e.target.value})}
@@ -91,7 +99,7 @@ export function AddressSection({ client, onUpdateAddress }: AddressSectionProps)
 
           <div>
             <Label className="text-sm font-medium text-white/90">Estado</Label>
-            {isEditing ? (
+            {isEditing || isCreateMode ? (
               <Input
                 value={editedData.state}
                 onChange={(e) => setEditedData({...editedData, state: e.target.value})}
@@ -107,7 +115,7 @@ export function AddressSection({ client, onUpdateAddress }: AddressSectionProps)
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label className="text-sm font-medium text-white/90">País</Label>
-            {isEditing ? (
+            {isEditing || isCreateMode ? (
               <Input
                 value={editedData.country}
                 onChange={(e) => setEditedData({...editedData, country: e.target.value})}
@@ -121,7 +129,7 @@ export function AddressSection({ client, onUpdateAddress }: AddressSectionProps)
 
           <div>
             <Label className="text-sm font-medium text-white/90">CEP</Label>
-            {isEditing ? (
+            {isEditing || isCreateMode ? (
               <Input
                 value={editedData.zip_code}
                 onChange={(e) => setEditedData({...editedData, zip_code: e.target.value})}
@@ -134,7 +142,7 @@ export function AddressSection({ client, onUpdateAddress }: AddressSectionProps)
           </div>
         </div>
 
-        {isEditing && (
+        {(isEditing || isCreateMode) && !isCreateMode && (
           <div className="flex gap-2 pt-4 border-t border-white/20">
             <Button 
               size="sm" 

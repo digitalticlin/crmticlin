@@ -11,9 +11,12 @@ export default function Clients() {
     clients,
     selectedClient,
     isDetailsOpen,
+    isCreateMode,
     isLoading,
     setIsDetailsOpen,
     handleSelectClient,
+    handleCreateClient,
+    handleSaveNewClient,
     handleDeleteClient,
     handleUpdateNotes,
     handleUpdatePurchaseValue,
@@ -36,7 +39,7 @@ export default function Clients() {
       </Button>
       <Button 
         className="bg-[#d3d800]/80 hover:bg-[#d3d800] text-black border-2 border-[#d3d800] rounded-xl px-6 py-2.5 font-semibold shadow-lg transition-all duration-200 hover:shadow-xl backdrop-blur-sm"
-        onClick={() => {/* TODO: Add client creation modal */}}
+        onClick={handleCreateClient}
         disabled={isLoading}
       >
         <Plus className="h-4 w-4 mr-2" />
@@ -57,6 +60,7 @@ export default function Clients() {
         clients={clients}
         selectedClient={selectedClient}
         isDetailsOpen={isDetailsOpen}
+        isCreateMode={isCreateMode}
         isLoading={isLoading}
         onSelectClient={handleSelectClient}
         onDeleteClient={handleDeleteClient}
@@ -66,6 +70,7 @@ export default function Clients() {
         onUpdateDocument={handleUpdateDocument}
         onUpdateAddress={handleUpdateAddress}
         onDetailsOpenChange={setIsDetailsOpen}
+        onCreateClient={handleSaveNewClient}
       />
     </PageLayout>
   );

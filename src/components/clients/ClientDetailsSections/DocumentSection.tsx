@@ -9,11 +9,12 @@ import { ClientData } from "@/hooks/clients/types";
 
 interface DocumentSectionProps {
   client: ClientData;
-  onUpdateDocument: (data: { document_type: 'cpf' | 'cnpj'; document_id: string }) => void;
+  onUpdateDocument?: (data: { document_type: 'cpf' | 'cnpj'; document_id: string }) => void;
+  isCreateMode?: boolean;
 }
 
-export function DocumentSection({ client, onUpdateDocument }: DocumentSectionProps) {
-  const [isEditing, setIsEditing] = useState(false);
+export function DocumentSection({ client, onUpdateDocument, isCreateMode = false }: DocumentSectionProps) {
+  const [isEditing, setIsEditing] = useState(isCreateMode);
   const [editedData, setEditedData] = useState<{
     document_type: 'cpf' | 'cnpj';
     document_id: string;
@@ -24,6 +25,13 @@ export function DocumentSection({ client, onUpdateDocument }: DocumentSectionPro
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSave = async () => {
+    if (!onUpdateDocument) return;
+
+    if (isCreateMode) {
+      onUpdateDocument(editedData);
+      return;
+    }
+
     setIsLoading(true);
     try {
       await onUpdateDocument(editedData);
@@ -42,7 +50,7 @@ export function DocumentSection({ client, onUpdateDocument }: DocumentSectionPro
           <FileText className="h-5 w-5 text-[#d3d800]" />
           <h3 className="text-lg font-semibold text-white">Documento</h3>
         </div>
-        {!isEditing && (
+        {!isEditing && !isCreateMode && (
           <Button 
             variant="ghost" 
             size="sm"
@@ -57,7 +65,7 @@ export function DocumentSection({ client, onUpdateDocument }: DocumentSectionPro
       <div className="grid gap-4">
         <div>
           <Label className="text-sm font-medium text-white/90">Tipo de Documento</Label>
-          {isEditing ? (
+          {isEditing || isCreateMode ? (
             <Select 
               value={editedData.document_type} 
               onValueChange={(value: 'cpf' | 'cnpj') => setEditedData({...editedData, document_type: value})}
@@ -77,7 +85,7 @@ export function DocumentSection({ client, onUpdateDocument }: DocumentSectionPro
 
         <div>
           <Label className="text-sm font-medium text-white/90">Número do Documento</Label>
-          {isEditing ? (
+          {isEditing || isCreateMode ? (
             <Input
               value={editedData.document_id}
               onChange={(e) => setEditedData({...editedData, document_id: e.target.value})}
@@ -89,7 +97,7 @@ export function DocumentSection({ client, onUpdateDocument }: DocumentSectionPro
           )}
         </div>
 
-        {isEditing && (
+        {(isEditing || isCreateMode) && !isCreateMode && (
           <div className="flex gap-2 pt-4 border-t border-white/20">
             <Button 
               size="sm" 

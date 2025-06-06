@@ -2,80 +2,100 @@
 import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Edit, Save, X, FileText } from "lucide-react";
+import { StickyNote, Edit, Save, X } from "lucide-react";
 import { ClientData } from "@/hooks/clients/types";
 
 interface NotesSectionProps {
   client: ClientData;
-  onUpdateNotes: (notes: string) => void;
+  onUpdateNotes?: (notes: string) => void;
+  isCreateMode?: boolean;
 }
 
-export function NotesSection({ client, onUpdateNotes }: NotesSectionProps) {
-  const [isEditingNotes, setIsEditingNotes] = useState(false);
-  const [notesValue, setNotesValue] = useState(client.notes || "");
+export function NotesSection({ client, onUpdateNotes, isCreateMode = false }: NotesSectionProps) {
+  const [isEditing, setIsEditing] = useState(isCreateMode);
+  const [editedNotes, setEditedNotes] = useState(client.notes || "");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSaveNotes = () => {
-    onUpdateNotes(notesValue);
-    setIsEditingNotes(false);
+  const handleSave = async () => {
+    if (!onUpdateNotes) return;
+
+    if (isCreateMode) {
+      onUpdateNotes(editedNotes);
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await onUpdateNotes(editedNotes);
+      setIsEditing(false);
+    } catch (error) {
+      // Error is handled in the parent hook
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 shadow-xl">
-      <div className="flex items-center gap-3 mb-4">
-        <FileText className="h-5 w-5 text-[#d3d800]" />
-        <h3 className="text-lg font-semibold text-white">Observações</h3>
-      </div>
-      
-      {isEditingNotes ? (
-        <div className="space-y-3">
-          <Textarea
-            placeholder="Adicione observações sobre o cliente..."
-            value={notesValue}
-            onChange={(e) => setNotesValue(e.target.value)}
-            className="min-h-[100px] bg-white/10 backdrop-blur-sm border-white/30 text-white placeholder:text-white/60"
-          />
-          <div className="flex gap-2">
-            <Button 
-              size="sm" 
-              onClick={handleSaveNotes}
-              className="bg-[#d3d800] hover:bg-[#b8c200] text-black"
-            >
-              <Save className="h-3 w-3 mr-1" />
-              Salvar
-            </Button>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={() => {
-                setIsEditingNotes(false);
-                setNotesValue(client.notes || "");
-              }}
-              className="bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20"
-            >
-              <X className="h-3 w-3 mr-1" />
-              Cancelar
-            </Button>
-          </div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <StickyNote className="h-5 w-5 text-[#d3d800]" />
+          <h3 className="text-lg font-semibold text-white">Observações</h3>
         </div>
-      ) : (
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            {client.notes ? (
-              <p className="text-white/80 whitespace-pre-wrap leading-relaxed">{client.notes}</p>
-            ) : (
-              <p className="text-white/60 italic">Nenhuma observação adicionada</p>
-            )}
-          </div>
+        {!isEditing && !isCreateMode && (
           <Button 
-            size="sm" 
-            variant="ghost"
-            onClick={() => setIsEditingNotes(true)}
-            className="text-white/70 hover:text-white hover:bg-white/10 ml-2"
+            variant="ghost" 
+            size="sm"
+            onClick={() => setIsEditing(true)}
+            className="text-white/70 hover:text-white hover:bg-white/10"
           >
             <Edit className="h-4 w-4" />
           </Button>
-        </div>
-      )}
+        )}
+      </div>
+      
+      <div>
+        {isEditing || isCreateMode ? (
+          <div className="space-y-4">
+            <Textarea
+              value={editedNotes}
+              onChange={(e) => setEditedNotes(e.target.value)}
+              placeholder="Adicione observações sobre este cliente..."
+              className="min-h-[120px] bg-white/10 backdrop-blur-sm border-white/30 text-white placeholder:text-white/60 resize-none"
+            />
+            
+            {!isCreateMode && (
+              <div className="flex gap-2">
+                <Button 
+                  size="sm" 
+                  onClick={handleSave}
+                  disabled={isLoading}
+                  className="bg-[#d3d800] hover:bg-[#b8c200] text-black"
+                >
+                  <Save className="h-3 w-3 mr-1" />
+                  {isLoading ? 'Salvando...' : 'Salvar'}
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditedNotes(client.notes || "");
+                  }}
+                  className="bg-white/10 backdrop-blur-sm border-white/30 text-white hover:bg-white/20"
+                >
+                  <X className="h-3 w-3 mr-1" />
+                  Cancelar
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="text-white/80 min-h-[60px] whitespace-pre-wrap">
+            {client.notes || 'Nenhuma observação adicionada.'}
+          </p>
+        )}
+      </div>
     </div>
   );
 }
