@@ -40,8 +40,8 @@ export const LeadCard = ({
   wonStageId,
   lostStageId
 }: LeadCardProps) => {
-  const isWon = isWonLostView && lead.columnId === FIXED_COLUMN_IDS.WON;
-  const isLost = isWonLostView && lead.columnId === FIXED_COLUMN_IDS.LOST;
+  const isWon = isWonLostView && lead.columnId === wonStageId;
+  const isLost = isWonLostView && lead.columnId === lostStageId;
   
   const handleCardClick = () => {
     if (onOpenChat) onOpenChat();
@@ -87,11 +87,13 @@ export const LeadCard = ({
         </div>
         <LeadCardActions
           leadId={lead.id}
+          leadColumnId={lead.columnId}
           onMoveToWon={onMoveToWon}
           onMoveToLost={onMoveToLost}
           onReturnToFunnel={onReturnToFunnel}
           wonStageId={wonStageId}
           lostStageId={lostStageId}
+          isWonLostView={isWonLostView}
         />
       </div>
     </div>

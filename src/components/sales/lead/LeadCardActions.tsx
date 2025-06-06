@@ -5,20 +5,24 @@ import { toast } from "sonner";
 
 interface LeadCardActionsProps {
   leadId?: string;
+  leadColumnId?: string;
   onMoveToWon?: () => void;
   onMoveToLost?: () => void;
   onReturnToFunnel?: () => void;
   wonStageId?: string;
   lostStageId?: string;
+  isWonLostView?: boolean;
 }
 
 export const LeadCardActions = ({ 
   leadId,
+  leadColumnId,
   onMoveToWon, 
   onMoveToLost, 
   onReturnToFunnel,
   wonStageId,
-  lostStageId
+  lostStageId,
+  isWonLostView = false
 }: LeadCardActionsProps) => {
   const moveLeadToStage = async (stageId: string, statusText: string) => {
     if (!leadId || !stageId) return;
@@ -53,25 +57,34 @@ export const LeadCardActions = ({
     onMoveToLost?.();
   };
 
-  if (!onMoveToWon && !onMoveToLost && !onReturnToFunnel) {
-    return null;
+  // Check if lead is already in won or lost stage
+  const isInWonStage = leadColumnId === wonStageId;
+  const isInLostStage = leadColumnId === lostStageId;
+
+  // In won/lost view, only show return to funnel button
+  if (isWonLostView) {
+    return (
+      <div className="flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
+        {onReturnToFunnel && (
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              onReturnToFunnel();
+            }}
+            title="Retornar ao funil"
+            className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+          >
+            <ArrowLeft className="h-4 w-4 text-blue-500" />
+          </button>
+        )}
+      </div>
+    );
   }
-  
+
+  // In funnel view, show won/lost buttons only if not already in those stages
   return (
     <div className="flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
-      {onReturnToFunnel && (
-        <button 
-          onClick={(e) => {
-            e.stopPropagation();
-            onReturnToFunnel();
-          }}
-          title="Retornar ao funil"
-          className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-        >
-          <ArrowLeft className="h-4 w-4 text-blue-500" />
-        </button>
-      )}
-      {onMoveToWon && (
+      {onMoveToWon && !isInWonStage && !isInLostStage && (
         <button 
           onClick={(e) => {
             e.stopPropagation();
@@ -83,7 +96,7 @@ export const LeadCardActions = ({
           <CheckCircle className="h-4 w-4 text-green-500" />
         </button>
       )}
-      {onMoveToLost && (
+      {onMoveToLost && !isInWonStage && !isInLostStage && (
         <button 
           onClick={(e) => {
             e.stopPropagation();

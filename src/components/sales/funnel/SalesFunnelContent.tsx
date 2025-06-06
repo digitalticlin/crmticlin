@@ -8,10 +8,13 @@ import { KanbanBoard } from "@/components/sales/KanbanBoard";
 import { LeadDetailSidebar } from "@/components/sales/LeadDetailSidebar";
 import { ModernFunnelHeader } from "@/components/sales/funnel/ModernFunnelHeader";
 import { ModernFunnelControlBar } from "@/components/sales/funnel/ModernFunnelControlBar";
+import { SelectStageModal } from "@/components/sales/funnel/modals/SelectStageModal";
 import { useSalesFunnelContext } from "./SalesFunnelProvider";
 
 export const SalesFunnelContent = () => {
   const [activeTab, setActiveTab] = useState("funnel");
+  const [isStageModalOpen, setIsStageModalOpen] = useState(false);
+  const [leadToMove, setLeadToMove] = useState<KanbanLead | null>(null);
   const navigate = useNavigate();
   
   const {
@@ -40,7 +43,9 @@ export const SalesFunnelContent = () => {
     isAdmin,
     wonStageId,
     lostStageId,
-    leads
+    leads,
+    refetchLeads,
+    refetchStages
   } = useSalesFunnelContext();
 
   // Buscar leads das etapas GANHO e PERDIDO diretamente dos leads totais
@@ -82,17 +87,21 @@ export const SalesFunnelContent = () => {
     
     if (targetStage) {
       await moveLeadToStage(lead, targetStage.id);
+      await refetchLeads(); // Refresh data after move
       toast.success(`Lead movido para ${status === "won" ? "Ganhos" : "Perdidos"}`);
     }
   };
 
-  const returnLeadToFunnel = async (lead: KanbanLead) => {
-    const targetStage = stages?.find(stage => stage.title === "ENTRADA DE LEAD");
-    
-    if (targetStage) {
-      await moveLeadToStage(lead, targetStage.id);
-      toast.success("Lead retornado para o funil");
-    }
+  const handleReturnToFunnel = (lead: KanbanLead) => {
+    setLeadToMove(lead);
+    setIsStageModalOpen(true);
+  };
+
+  const handleStageSelection = async (lead: KanbanLead, stageId: string) => {
+    await moveLeadToStage(lead, stageId);
+    await refetchLeads(); // Refresh data after move
+    await refetchStages(); // Refresh stages data
+    toast.success("Lead retornado para o funil");
   };
 
   const handleCreateFunnel = async (name: string, description?: string): Promise<void> => {
@@ -158,10 +167,22 @@ export const SalesFunnelContent = () => {
         onColumnDelete={activeTab === "funnel" ? deleteColumn : undefined}
         onOpenChat={handleOpenChat}
         onMoveToWonLost={handleMoveToWonLost}
-        onReturnToFunnel={returnLeadToFunnel}
+        onReturnToFunnel={handleReturnToFunnel}
         isWonLostView={activeTab === "won-lost"}
         wonStageId={wonStageId}
         lostStageId={lostStageId}
+      />
+
+      {/* Modal de Seleção de Etapa */}
+      <SelectStageModal
+        isOpen={isStageModalOpen}
+        onClose={() => {
+          setIsStageModalOpen(false);
+          setLeadToMove(null);
+        }}
+        lead={leadToMove}
+        stages={stages || []}
+        onSelectStage={handleStageSelection}
       />
 
       {/* Sidebar de Detalhes */}
