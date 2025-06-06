@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -36,10 +35,12 @@ export function useFunnelManagement() {
 
       if (error) throw error;
 
+      console.log("Funis carregados:", data);
       setFunnels(data || []);
       
       // Se não há funil selecionado e existem funis, selecionar o primeiro
       if (data && data.length > 0 && !selectedFunnel) {
+        console.log("Selecionando primeiro funil:", data[0]);
         setSelectedFunnel(data[0]);
       }
     } catch (error) {
@@ -89,12 +90,11 @@ export function useFunnelManagement() {
     if (!user) return;
 
     const defaultStages = [
-      { title: "ENTRADA DE LEAD", color: "#3b82f6", order_position: 1 },
-      { title: "QUALIFICAÇÃO", color: "#8b5cf6", order_position: 2 },
-      { title: "PROPOSTA", color: "#f59e0b", order_position: 3 },
-      { title: "NEGOCIAÇÃO", color: "#ef4444", order_position: 4 },
-      { title: "GANHO", color: "#10b981", order_position: 5, is_won: true, is_fixed: true },
-      { title: "PERDIDO", color: "#6b7280", order_position: 6, is_lost: true, is_fixed: true }
+      { title: "Entrada de Leads", color: "#3b82f6", order_position: 1, is_fixed: true },
+      { title: "Em atendimento", color: "#8b5cf6", order_position: 2, is_fixed: false },
+      { title: "Em negociação", color: "#f97316", order_position: 3, is_fixed: false },
+      { title: "Ganho", color: "#10b981", order_position: 4, is_won: true, is_fixed: true },
+      { title: "Perdido", color: "#6b7280", order_position: 5, is_lost: true, is_fixed: true }
     ];
 
     try {

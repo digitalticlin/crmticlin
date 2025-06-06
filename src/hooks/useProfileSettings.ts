@@ -1,174 +1,123 @@
 
-import { useState, useEffect, useRef } from "react";
-import { toast } from "sonner";
-import { useAuthActions } from "./useAuthActions";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuthSession } from "./useAuthSession";
-import { useProfileSettingsOperations } from "./useProfileSettingsOperations";
+import { toast } from "sonner";
+
+export interface ProfileData {
+  full_name: string;
+  document_id: string;
+  whatsapp: string;
+  company_name: string;
+  company_document: string;
+  position: string;
+  avatar_url?: string;
+}
 
 export const useProfileSettings = () => {
-  const [saving, setSaving] = useState(false);
+  const { user } = useAuthSession();
+  const [profileData, setProfileData] = useState<ProfileData>({
+    full_name: "",
+    document_id: "",
+    whatsapp: "",
+    company_name: "",
+    company_document: "",
+    position: "",
+    avatar_url: ""
+  });
   const [loading, setLoading] = useState(true);
-  const loadingRef = useRef(false);
-  
-  // Profile data state
-  const [fullName, setFullName] = useState("");
-  const [documentId, setDocumentId] = useState("");
-  const [whatsapp, setWhatsapp] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [companyDocument, setCompanyDocument] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
 
-  // Use the smaller hooks
-  const { handleChangePassword } = useAuthActions();
-  const { loading: sessionLoading, email, username, user, handleEmailChange, loadSession } = useAuthSession();
-  const { syncStatus, setSyncStatus, loadUserProfile, updateUserProfile } = useProfileSettingsOperations();
-
-  /**
-   * Load all user data with anti-loop protection
-   */
-  const loadUserData = async () => {
-    // Prevent multiple simultaneous calls
-    if (loadingRef.current) {
-      console.log('[Profile Settings] ⚠️ Load já em progresso, ignorando chamada duplicada');
-      return;
+  // Carregar dados do perfil ao montar o componente
+  useEffect(() => {
+    if (user) {
+      loadProfileData();
     }
+  }, [user]);
+
+  const loadProfileData = async () => {
+    if (!user) return;
 
     try {
-      loadingRef.current = true;
-      setSyncStatus('syncing');
-      
-      // First load session
-      const sessionUser = await loadSession();
-      if (!sessionUser) {
-        setSyncStatus('error');
-        setLoading(false);
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (error) {
+        console.error("Erro ao carregar perfil:", error);
+        toast.error("Erro ao carregar dados do perfil");
         return;
       }
 
-      // Try to load profile data with error handling
-      try {
-        const profile = await loadUserProfile(sessionUser.id);
-        if (profile) {
-          setFullName(profile.full_name || "");
-          setDocumentId(profile.document_id || "");
-          setWhatsapp(profile.whatsapp || "");
-          setCompanyName(profile.company_name || "");
-          setCompanyDocument(profile.company_document || "");
-          setAvatarUrl(profile.avatar_url);
-          setUserRole(profile.role);
-          
-          setSyncStatus('success');
-          toast.success("Dados carregados com sucesso!");
-        } else {
-          setSyncStatus('error');
-          toast.error("Não foi possível carregar os dados do perfil");
-        }
-      } catch (profileError: any) {
-        console.error("❌ Erro específico ao carregar perfil:", profileError);
-        setSyncStatus('error');
-        
-        // Se for erro de recursão infinita, pausar completamente
-        if (profileError.code === '42P17' || profileError.message?.includes('infinite recursion')) {
-          toast.error("Sistema pausado devido a erro de configuração no banco. Contacte o suporte.");
-          return;
-        }
-        
-        toast.error("Erro ao carregar dados: " + profileError.message);
+      if (data) {
+        setProfileData({
+          full_name: data.full_name || "",
+          document_id: data.document_id || "",
+          whatsapp: data.whatsapp || "",
+          company_name: data.company_name || "",
+          company_document: data.company_document || "",
+          position: data.position || "",
+          avatar_url: data.avatar_url || ""
+        });
       }
-      
-    } catch (error: any) {
-      console.error("❌ Erro geral ao carregar dados:", error);
-      setSyncStatus('error');
-      toast.error("Erro ao carregar dados: " + error.message);
+    } catch (error) {
+      console.error("Erro ao carregar perfil:", error);
+      toast.error("Erro ao carregar dados do perfil");
     } finally {
-      loadingRef.current = false;
       setLoading(false);
     }
   };
 
-  // Load profile data on mount with debounce protection
-  useEffect(() => {
-    if (user && !sessionLoading && !loadingRef.current) {
-      // Debounce the load call
-      const timeoutId = setTimeout(() => {
-        loadUserData();
-      }, 100);
-      
-      return () => clearTimeout(timeoutId);
-    } else if (!sessionLoading) {
-      setLoading(false);
-    }
-  }, [user, sessionLoading]);
-
-  // Manual re-sync with protection
-  const handleResync = async () => {
-    if (loadingRef.current) {
-      toast.warning("Sincronização já em progresso");
-      return;
-    }
-    
-    console.log('[Profile Settings] 🔄 Re-sincronização manual solicitada');
-    await loadUserData();
+  const updateProfileData = (field: keyof ProfileData, value: string) => {
+    setProfileData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
-  // Save profile changes
-  const handleSaveChanges = async () => {
+  const saveProfile = async () => {
     if (!user) {
       toast.error("Usuário não autenticado");
-      return;
+      return false;
     }
-    
+
     try {
-      setSaving(true);
-      console.log('[Profile Settings] 💾 Salvando perfil...');
-      
-      // Update profile data including company fields
-      await updateUserProfile(user.id, {
-        full_name: fullName,
-        document_id: documentId,
-        whatsapp: whatsapp,
-        company_name: companyName,
-        company_document: companyDocument
-      });
-      
-      toast.success("Perfil atualizado com sucesso!");
-      console.log('[Profile Settings] ✅ Perfil salvo com sucesso');
-      
-      // Reload data to ensure consistency (with protection)
-      if (!loadingRef.current) {
-        await loadUserData();
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: profileData.full_name,
+          document_id: profileData.document_id,
+          whatsapp: profileData.whatsapp,
+          company_name: profileData.company_name,
+          company_document: profileData.company_document,
+          position: profileData.position,
+          avatar_url: profileData.avatar_url,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", user.id);
+
+      if (error) {
+        console.error("Erro ao salvar perfil:", error);
+        toast.error("Erro ao salvar perfil");
+        return false;
       }
-    } catch (error: any) {
-      console.error("❌ Erro ao atualizar perfil:", error);
-      toast.error(error.message || "Erro ao atualizar perfil");
-    } finally {
-      setSaving(false);
+
+      toast.success("Perfil atualizado com sucesso!");
+      return true;
+    } catch (error) {
+      console.error("Erro ao salvar perfil:", error);
+      toast.error("Erro ao salvar perfil");
+      return false;
     }
   };
 
   return {
-    loading: loading || sessionLoading,
-    saving,
-    email,
-    username,
-    fullName,
-    companyName,
-    companyDocument,
-    documentId,
-    whatsapp,
-    avatarUrl,
-    userRole,
-    user,
-    syncStatus,
-    setFullName,
-    setCompanyName,
-    setCompanyDocument,
-    setDocumentId,
-    setWhatsapp,
-    handleEmailChange,
-    handleSaveChanges,
-    handleResync,
-    handleChangePassword: () => handleChangePassword(email)
+    profileData,
+    loading,
+    updateProfileData,
+    saveProfile,
+    loadProfileData
   };
 };
