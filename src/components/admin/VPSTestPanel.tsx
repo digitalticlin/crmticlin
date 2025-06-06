@@ -24,10 +24,22 @@ import { VPSEndpointDiscovery as VPSEndpointDiscoveryNew } from "./vps/VPSEndpoi
 import { VPSInfrastructureAnalyzer } from "./vps/VPSInfrastructureAnalyzer";
 import { VPSInstanceManager } from "./vps/VPSInstanceManager";
 import { VPSDiscoveryPanel } from "./vps/VPSDiscoveryPanel";
+import { ManualWhatsAppInstanceCreator } from "../settings/whatsapp/ManualWhatsAppInstanceCreator";
 
 export const VPSTestPanel = () => {
   return (
     <div className="space-y-6">
+      {/* FERRAMENTA TÉCNICA: Sistema Manual de Criação de Instâncias WhatsApp */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-blue-800 mb-2">
+          🔧 Sistema Técnico - Criação Manual de Instâncias
+        </h3>
+        <p className="text-sm text-blue-600 mb-4">
+          Ferramenta avançada para administradores criarem e testarem instâncias WhatsApp manualmente
+        </p>
+        <ManualWhatsAppInstanceCreator />
+      </div>
+
       {/* NOVO: Gerenciador de Instâncias Manual - FERRAMENTA PRINCIPAL */}
       <VPSInstanceManager />
 

@@ -2,14 +2,14 @@
 import { WhatsAppWebSection } from "./whatsapp/WhatsAppWebSection";
 
 const WhatsAppSettings = () => {
-  console.log('[WhatsApp Settings] 🎯 PRODUÇÃO - Sistema Manual Ativo');
+  console.log('[WhatsApp Settings] 🎯 Interface Simplificada para Usuário Final');
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Configurações do WhatsApp</h1>
+        <h1 className="text-3xl font-bold text-gray-900">WhatsApp</h1>
         <p className="text-gray-600 mt-2">
-          Sistema manual de criação de instâncias (Produção)
+          Conecte e gerencie suas contas WhatsApp de forma simples
         </p>
       </div>
 
