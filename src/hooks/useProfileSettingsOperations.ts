@@ -71,7 +71,9 @@ export const useProfileSettingsOperations = () => {
           id: userId,
           full_name: user?.user_metadata?.full_name || '',
           document_id: '',
-          whatsapp: ''
+          whatsapp: '',
+          company_name: '',
+          company_document: ''
         });
         
       if (createError) {
@@ -110,6 +112,8 @@ export const useProfileSettingsOperations = () => {
     full_name: string;
     document_id: string;
     whatsapp: string;
+    company_name: string;
+    company_document: string;
   }) => {
     try {
       const updateData = {

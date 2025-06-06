@@ -15,12 +15,14 @@ const ProfileSettings = () => {
     username,
     fullName,
     companyName,
+    companyDocument,
     documentId,
     whatsapp,
     avatarUrl,
     userRole,
     setFullName,
     setCompanyName,
+    setCompanyDocument,
     setDocumentId,
     setWhatsapp,
     handleEmailChange,
@@ -60,6 +62,7 @@ const ProfileSettings = () => {
         username={username}
         fullName={fullName}
         companyName={companyName}
+        companyDocument={companyDocument}
         documentId={documentId}
         whatsapp={whatsapp}
         handleEmailChange={handleEmailChange}
@@ -67,6 +70,7 @@ const ProfileSettings = () => {
         setDocumentId={setDocumentId}
         setWhatsapp={setWhatsapp}
         setCompanyName={setCompanyName}
+        setCompanyDocument={setCompanyDocument}
       />
 
       <SecurityActionsSection 

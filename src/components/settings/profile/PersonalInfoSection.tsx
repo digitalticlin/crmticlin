@@ -9,11 +9,13 @@ interface PersonalInfoSectionProps {
   companyName: string;
   documentId: string;
   whatsapp: string;
+  companyDocument: string;
   handleEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setFullName: (value: string) => void;
   setDocumentId: (value: string) => void;
   setWhatsapp: (value: string) => void;
   setCompanyName: (value: string) => void;
+  setCompanyDocument: (value: string) => void;
 }
 
 const PersonalInfoSection = ({
@@ -23,11 +25,13 @@ const PersonalInfoSection = ({
   companyName,
   documentId,
   whatsapp,
+  companyDocument,
   handleEmailChange,
   setFullName,
   setDocumentId,
   setWhatsapp,
-  setCompanyName
+  setCompanyName,
+  setCompanyDocument
 }: PersonalInfoSectionProps) => {
   return (
     <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "200ms" }}>
@@ -48,11 +52,13 @@ const PersonalInfoSection = ({
         companyName={companyName}
         documentId={documentId}
         whatsapp={whatsapp}
+        companyDocument={companyDocument}
         handleEmailChange={handleEmailChange}
         setFullName={setFullName}
         setDocumentId={setDocumentId}
         setWhatsapp={setWhatsapp}
         setCompanyName={setCompanyName}
+        setCompanyDocument={setCompanyDocument}
       />
     </div>
   );

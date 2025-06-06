@@ -8,11 +8,13 @@ interface ProfileFormProps {
   companyName: string;
   documentId: string;
   whatsapp: string;
+  companyDocument: string;
   handleEmailChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setFullName: (value: string) => void;
   setDocumentId: (value: string) => void;
   setWhatsapp: (value: string) => void;
   setCompanyName: (value: string) => void;
+  setCompanyDocument: (value: string) => void;
 }
 
 const ProfileForm = ({
@@ -22,11 +24,13 @@ const ProfileForm = ({
   companyName,
   documentId,
   whatsapp,
+  companyDocument,
   handleEmailChange,
   setFullName,
   setDocumentId,
   setWhatsapp,
-  setCompanyName
+  setCompanyName,
+  setCompanyDocument
 }: ProfileFormProps) => {
   return (
     <div className="space-y-6">
@@ -111,6 +115,21 @@ const ProfileForm = ({
             value={companyName}
             onChange={(e) => setCompanyName(e.target.value)}
             placeholder="Digite o nome da empresa"
+          />
+        </div>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-1">
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-gray-800 flex items-center">
+            <FileText className="h-4 w-4 mr-2 text-blue-600" />
+            CNPJ da Empresa (opcional)
+          </label>
+          <input 
+            className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-xl text-gray-800 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-[#D3D800]/50 focus:border-[#D3D800]/50 transition-all duration-200"
+            value={companyDocument}
+            onChange={(e) => setCompanyDocument(e.target.value)}
+            placeholder="00.000.000/0000-00"
           />
         </div>
       </div>

@@ -2,7 +2,6 @@
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useAuthActions } from "./useAuthActions";
-import { useCompanyManagement } from "./useCompanyManagement";
 import { useAuthSession } from "./useAuthSession";
 import { useProfileSettingsOperations } from "./useProfileSettingsOperations";
 
@@ -15,21 +14,18 @@ export const useProfileSettings = () => {
   const [fullName, setFullName] = useState("");
   const [documentId, setDocumentId] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
-  
-  // Company data state
   const [companyName, setCompanyName] = useState("");
   const [companyDocument, setCompanyDocument] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   // Use the smaller hooks
   const { handleChangePassword } = useAuthActions();
-  const { companyData, loadCompanyData, saveCompany } = useCompanyManagement();
   const { loading: sessionLoading, email, username, user, handleEmailChange, loadSession } = useAuthSession();
   const { syncStatus, setSyncStatus, loadUserProfile, updateUserProfile } = useProfileSettingsOperations();
 
   /**
-   * Load all user data (profile + company) with anti-loop protection
+   * Load all user data with anti-loop protection
    */
   const loadUserData = async () => {
     // Prevent multiple simultaneous calls
@@ -57,15 +53,10 @@ export const useProfileSettings = () => {
           setFullName(profile.full_name || "");
           setDocumentId(profile.document_id || "");
           setWhatsapp(profile.whatsapp || "");
+          setCompanyName(profile.company_name || "");
+          setCompanyDocument(profile.company_document || "");
           setAvatarUrl(profile.avatar_url);
           setUserRole(profile.role);
-          
-          // Load company data
-          const companyInfo = await loadCompanyData();
-          if (companyInfo) {
-            setCompanyName(companyInfo.name || "");
-            setCompanyDocument(companyInfo.document_id || "");
-          }
           
           setSyncStatus('success');
           toast.success("Dados carregados com sucesso!");
@@ -132,20 +123,14 @@ export const useProfileSettings = () => {
       setSaving(true);
       console.log('[Profile Settings] 💾 Salvando perfil...');
       
-      // Update profile data
+      // Update profile data including company fields
       await updateUserProfile(user.id, {
         full_name: fullName,
         document_id: documentId,
-        whatsapp: whatsapp
+        whatsapp: whatsapp,
+        company_name: companyName,
+        company_document: companyDocument
       });
-      
-      // Save company data if provided
-      if (companyName.trim()) {
-        const companySuccess = await saveCompany(companyName, companyDocument);
-        if (!companySuccess) {
-          throw new Error('Erro ao salvar dados da empresa');
-        }
-      }
       
       toast.success("Perfil atualizado com sucesso!");
       console.log('[Profile Settings] ✅ Perfil salvo com sucesso');
@@ -169,19 +154,18 @@ export const useProfileSettings = () => {
     username,
     fullName,
     companyName,
+    companyDocument,
     documentId,
     whatsapp,
     avatarUrl,
     userRole,
     user,
-    companyDocument,
     syncStatus,
-    companyData,
     setFullName,
     setCompanyName,
+    setCompanyDocument,
     setDocumentId,
     setWhatsapp,
-    setCompanyDocument,
     handleEmailChange,
     handleSaveChanges,
     handleResync,
