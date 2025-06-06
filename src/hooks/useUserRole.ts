@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const useUserRole = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [role, setRole] = useState<"admin" | "operational" | "manager" | null>(null);
 
   useEffect(() => {
     const checkUserRole = async () => {
@@ -13,6 +14,7 @@ export const useUserRole = () => {
         
         if (!user) {
           setIsAdmin(false);
+          setRole(null);
           setLoading(false);
           return;
         }
@@ -25,10 +27,13 @@ export const useUserRole = () => {
 
         if (error) throw error;
 
-        setIsAdmin(profile?.role === "admin");
+        const userRole = profile?.role as "admin" | "operational" | "manager" | null;
+        setRole(userRole);
+        setIsAdmin(userRole === "admin");
       } catch (error) {
         console.error("Erro ao verificar role do usuário:", error);
         setIsAdmin(false);
+        setRole(null);
       } finally {
         setLoading(false);
       }
@@ -37,5 +42,5 @@ export const useUserRole = () => {
     checkUserRole();
   }, []);
 
-  return { isAdmin, loading };
+  return { isAdmin, role, loading };
 };

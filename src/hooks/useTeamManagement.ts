@@ -2,23 +2,24 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { v4 as uuidv4 } from "uuid";
 
 export interface TeamMember {
   id: string;
   full_name: string;
   email: string;
-  role: string;
-  must_change_password: boolean;
+  role: "admin" | "operational" | "manager";
   whatsapp_numbers: { id: string, instance_name: string }[];
   funnels: { id: string, name: string }[];
+  created_at?: string;
 }
 
-const allowedRoles = ["admin", "seller", "custom"] as const;
-type Role = typeof allowedRoles[number];
-
-function getValidRole(role: any): Role {
-  return allowedRoles.includes(role) ? role : "seller";
+interface CreateMemberData {
+  full_name: string;
+  email: string;
+  password: string;
+  role: "operational" | "manager";
+  assignedWhatsAppIds: string[];
+  assignedFunnelIds: string[];
 }
 
 export const useTeamManagement = (companyId?: string | null) => {
@@ -29,141 +30,160 @@ export const useTeamManagement = (companyId?: string | null) => {
   const fetchTeamMembers = async () => {
     if (!companyId) return;
     setLoading(true);
-    // Buscar membros da empresa, role != 'admin' inclusive
-    const { data: profiles, error } = await supabase
-      .from("profiles")
-      .select(`
-        id, full_name, email, role, must_change_password, 
-        user_whatsapp_numbers (
-          id,
-          whatsapp_number_id,
-          whatsapp_numbers (instance_name)
-        ),
-        user_funnels (
-          id,
-          funnel_id,
-          funnels (name)
-        )
-      `)
-      .eq("company_id", companyId);
+    
+    try {
+      const { data: profiles, error } = await supabase
+        .from("profiles")
+        .select(`
+          id, full_name, role, created_at,
+          user_whatsapp_numbers (
+            whatsapp_number_id,
+            whatsapp_instances!inner (id, instance_name)
+          ),
+          user_funnels (
+            funnel_id,
+            funnels!inner (id, name)
+          )
+        `)
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false });
 
-    if (error) {
-      toast.error("Erro ao buscar equipe");
+      if (error) throw error;
+
+      // Buscar emails dos usuários do auth
+      const userIds = profiles?.map(p => p.id) || [];
+      if (userIds.length === 0) {
+        setMembers([]);
+        setLoading(false);
+        return;
+      }
+
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      if (authError) throw authError;
+
+      const authUserMap = new Map();
+      authUsers.users.forEach(user => {
+        authUserMap.set(user.id, user.email);
+      });
+
+      setMembers(
+        (profiles || []).map((p: any) => ({
+          id: p.id,
+          full_name: p.full_name || "Sem nome",
+          email: authUserMap.get(p.id) || "Email não encontrado",
+          role: p.role || "operational",
+          created_at: p.created_at,
+          whatsapp_numbers: (p.user_whatsapp_numbers || []).map((wn: any) => ({
+            id: wn.whatsapp_number_id,
+            instance_name: wn.whatsapp_instances?.instance_name || "",
+          })),
+          funnels: (p.user_funnels || []).map((f: any) => ({
+            id: f.funnel_id,
+            name: f.funnels?.name || "",
+          })),
+        }))
+      );
+    } catch (error: any) {
+      console.error("Erro ao buscar membros:", error);
+      toast.error("Erro ao carregar membros da equipe");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setMembers(
-      (profiles || []).map((p: any) => ({
-        id: p.id,
-        full_name: p.full_name,
-        email: p.email,
-        role: getValidRole(p.role),
-        must_change_password: !!p.must_change_password,
-        whatsapp_numbers: (p.user_whatsapp_numbers || []).map((wn: any) => ({
-          id: wn.whatsapp_number_id,
-          instance_name: wn.whatsapp_numbers?.instance_name || "",
-        })),
-        funnels: (p.user_funnels || []).map((f: any) => ({
-          id: f.funnel_id,
-          name: f.funnels?.name || "",
-        })),
-      })),
-    );
-    setLoading(false);
   };
 
-  // Convidar novo membro (cria no banco e aciona edge function para email)
-  const inviteTeamMember = async ({
-    full_name,
-    email,
-    role,
-    assignedWhatsAppIds,
-    assignedFunnelIds,
-  }: {
-    full_name: string;
-    email: string;
-    role: Role; // Use the Role union type here
-    assignedWhatsAppIds: string[];
-    assignedFunnelIds: string[];
-  }) => {
+  // Criar novo membro manualmente
+  const createTeamMember = async (data: CreateMemberData) => {
+    if (!companyId) {
+      toast.error("ID da empresa não encontrado");
+      return false;
+    }
+
     setLoading(true);
-    // 1. Gerar senha temporária
-    const tempPassword = uuidv4().slice(0, 8) + "A!";
-    // 2. Criar usuário no auth
-    const safeRole = getValidRole(role);
-
-    const { data: signUp, error: signUpError } = await supabase.auth.admin.createUser({
-      email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: { full_name, company_id: companyId, role: safeRole },
-    });
-
-    if (signUpError || !signUp?.user) {
-      toast.error("Erro ao criar usuário");
-      setLoading(false);
-      return false;
-    }
-
-    // 3. Atualizar profile: garantir campos/flags e role
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .update({
-        full_name,
-        company_id: companyId,
-        role: safeRole,
-        must_change_password: true,
-      })
-      .eq("id", signUp.user.id);
-
-    if (profileError) {
-      toast.error("Não foi possível completar cadastro do colaborador");
-      setLoading(false);
-      return false;
-    }
-
-    // 4. Atribuir instâncias WhatsApp
-    for (const wid of assignedWhatsAppIds) {
-      await supabase.from("user_whatsapp_numbers").insert({
-        profile_id: signUp.user.id,
-        whatsapp_number_id: wid,
+    try {
+      // 1. Criar usuário no auth
+      const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+        email: data.email,
+        password: data.password,
+        email_confirm: true,
+        user_metadata: { 
+          full_name: data.full_name,
+          company_id: companyId,
+          role: data.role
+        },
       });
-    }
-    // 5. Atribuir funis
-    for (const fid of assignedFunnelIds) {
-      await supabase.from("user_funnels").insert({
-        profile_id: signUp.user.id,
-        funnel_id: fid,
-      });
-    }
 
-    // 6. Acionar edge function para enviar email convite
-    await fetch("/functions/v1/send_team_invite", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email,
-        full_name,
-        tempPassword,
-        companyId,
-      }),
-    });
+      if (authError || !authUser?.user) {
+        throw new Error(authError?.message || "Erro ao criar usuário");
+      }
 
-    toast.success("Convite enviado por email!");
-    setLoading(false);
-    fetchTeamMembers();
-    return true;
+      // 2. Criar/atualizar profile
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .upsert({
+          id: authUser.user.id,
+          full_name: data.full_name,
+          company_id: companyId,
+          role: data.role,
+        });
+
+      if (profileError) throw profileError;
+
+      // 3. Atribuir WhatsApp numbers
+      if (data.assignedWhatsAppIds.length > 0) {
+        const whatsappAssignments = data.assignedWhatsAppIds.map(whatsappId => ({
+          profile_id: authUser.user.id,
+          whatsapp_number_id: whatsappId,
+        }));
+
+        const { error: whatsappError } = await supabase
+          .from("user_whatsapp_numbers")
+          .insert(whatsappAssignments);
+
+        if (whatsappError) throw whatsappError;
+      }
+
+      // 4. Atribuir funis
+      if (data.assignedFunnelIds.length > 0) {
+        const funnelAssignments = data.assignedFunnelIds.map(funnelId => ({
+          profile_id: authUser.user.id,
+          funnel_id: funnelId,
+        }));
+
+        const { error: funnelError } = await supabase
+          .from("user_funnels")
+          .insert(funnelAssignments);
+
+        if (funnelError) throw funnelError;
+      }
+
+      toast.success("Membro criado com sucesso!");
+      await fetchTeamMembers();
+      return true;
+    } catch (error: any) {
+      console.error("Erro ao criar membro:", error);
+      toast.error(error.message || "Erro ao criar membro da equipe");
+      return false;
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Remover membro da equipe
   const removeTeamMember = async (profileId: string) => {
     setLoading(true);
-    const { error } = await supabase.from("profiles").delete().eq("id", profileId);
-    if (error) toast.error("Erro ao remover membro!");
-    else toast.success("Membro removido.");
-    fetchTeamMembers();
-    setLoading(false);
+    try {
+      // Deletar usuário do auth (isso vai cascatear para o profile)
+      const { error } = await supabase.auth.admin.deleteUser(profileId);
+      if (error) throw error;
+
+      toast.success("Membro removido com sucesso!");
+      await fetchTeamMembers();
+    } catch (error: any) {
+      console.error("Erro ao remover membro:", error);
+      toast.error("Erro ao remover membro da equipe");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -174,7 +194,7 @@ export const useTeamManagement = (companyId?: string | null) => {
     members,
     loading,
     fetchTeamMembers,
-    inviteTeamMember,
+    createTeamMember,
     removeTeamMember,
   };
 };

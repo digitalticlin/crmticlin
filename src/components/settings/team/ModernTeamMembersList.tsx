@@ -1,152 +1,200 @@
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ModernCard, ModernCardContent } from "@/components/ui/modern-card";
-import { Users, Trash2 } from "lucide-react";
-
-interface TeamMember {
-  id: string;
-  full_name: string;
-  email: string;
-  role: string;
-  must_change_password: boolean;
-  whatsapp_numbers: { id: string; instance_name: string }[];
-  funnels: { id: string; name: string }[];
-}
+import { Trash2, Shield, User, Crown, Users, Phone, TrendingUp } from "lucide-react";
+import { TeamMember } from "@/hooks/useTeamManagement";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface ModernTeamMembersListProps {
   members: TeamMember[];
   onRemoveMember: (memberId: string) => void;
+  loading?: boolean;
 }
 
-export function ModernTeamMembersList({ members, onRemoveMember }: ModernTeamMembersListProps) {
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
-  };
+export const ModernTeamMembersList = ({
+  members,
+  onRemoveMember,
+  loading = false
+}: ModernTeamMembersListProps) => {
+  const [memberToDelete, setMemberToDelete] = useState<TeamMember | null>(null);
 
-  const getRoleLabel = (role: string) => {
+  const getRoleInfo = (role: string) => {
     switch (role) {
-      case "seller":
-        return "Vendedor(a)";
       case "admin":
-        return "Administrador";
+        return {
+          label: "ADMINISTRADOR",
+          icon: Crown,
+          color: "bg-purple-100 text-purple-800 border-purple-200",
+          description: "Acesso total ao sistema"
+        };
+      case "manager":
+        return {
+          label: "GESTOR",
+          icon: TrendingUp,
+          color: "bg-blue-100 text-blue-800 border-blue-200",
+          description: "Acesso completo exceto gestão de equipe"
+        };
+      case "operational":
+        return {
+          label: "OPERACIONAL",
+          icon: User,
+          color: "bg-green-100 text-green-800 border-green-200",
+          description: "Acesso limitado aos recursos vinculados"
+        };
       default:
-        return "Personalizado";
+        return {
+          label: "DESCONHECIDO",
+          icon: Shield,
+          color: "bg-gray-100 text-gray-800 border-gray-200",
+          description: "Função não definida"
+        };
     }
   };
 
-  const getRoleBadge = (role: string) => {
-    switch (role) {
-      case "admin":
-        return <Badge className="bg-purple-100 text-purple-800 border-purple-200">Administrador</Badge>;
-      case "seller":
-        return <Badge className="bg-green-100 text-green-800 border-green-200">Vendedor(a)</Badge>;
-      default:
-        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Personalizado</Badge>;
-    }
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#D3D800]"></div>
+      </div>
+    );
+  }
 
   if (members.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="flex flex-col items-center gap-4">
-          <div className="p-4 rounded-full bg-gray-100 dark:bg-gray-800">
-            <Users className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Nenhum membro na equipe</h3>
-            <p className="text-muted-foreground">
-              Adicione membros para começar a colaborar
-            </p>
-          </div>
-        </div>
+      <div className="text-center py-8">
+        <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+        <p className="text-gray-600 text-lg">Nenhum membro da equipe encontrado</p>
+        <p className="text-gray-500 text-sm">Adicione o primeiro membro usando o formulário acima</p>
       </div>
     );
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {members.map((member) => (
-        <ModernCard key={member.id} className="transition-all duration-200 hover:scale-[1.02]">
-          <ModernCardContent className="p-4">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
+    <div className="space-y-4">
+      {members.map((member) => {
+        const roleInfo = getRoleInfo(member.role);
+        const RoleIcon = roleInfo.icon;
+        
+        return (
+          <div
+            key={member.id}
+            className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 border border-white/30 hover:border-white/50 transition-all duration-200"
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex items-start space-x-4 flex-1">
                 <Avatar className="h-12 w-12">
-                  <AvatarFallback className="bg-blue-100 text-blue-600 font-medium">
-                    {getInitials(member.full_name)}
+                  <AvatarFallback className="bg-gradient-to-br from-[#D3D800]/20 to-[#D3D800]/10 text-[#D3D800] font-semibold">
+                    {member.full_name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                <div>
-                  <h3 className="font-semibold text-foreground">{member.full_name}</h3>
-                  <p className="text-sm text-muted-foreground">{member.email}</p>
-                  {member.must_change_password && (
-                    <Badge className="bg-red-100 text-red-800 border-red-200 text-xs mt-1">
-                      Precisa trocar senha
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="text-lg font-semibold text-gray-800 truncate">
+                      {member.full_name}
+                    </h3>
+                    <Badge className={`${roleInfo.color} flex items-center gap-1 px-3 py-1`}>
+                      <RoleIcon className="h-3 w-3" />
+                      {roleInfo.label}
                     </Badge>
+                  </div>
+
+                  <p className="text-gray-600 text-sm mb-3">{member.email}</p>
+                  <p className="text-gray-500 text-xs mb-4">{roleInfo.description}</p>
+
+                  {/* Permissões específicas para operacional */}
+                  {member.role === "operational" && (
+                    <div className="space-y-3">
+                      {member.whatsapp_numbers.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <Phone className="h-4 w-4 text-green-600" />
+                            <span className="text-sm font-medium text-gray-700">WhatsApp Permitidos:</span>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {member.whatsapp_numbers.map((whatsapp) => (
+                              <Badge key={whatsapp.id} variant="outline" className="text-xs">
+                                {whatsapp.instance_name}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {member.funnels.length > 0 && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <TrendingUp className="h-4 w-4 text-blue-600" />
+                            <span className="text-sm font-medium text-gray-700">Funis Permitidos:</span>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {member.funnels.map((funnel) => (
+                              <Badge key={funnel.id} variant="outline" className="text-xs">
+                                {funnel.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {member.whatsapp_numbers.length === 0 && member.funnels.length === 0 && (
+                        <p className="text-amber-600 text-sm bg-amber-50 p-2 rounded-lg">
+                          ⚠️ Usuário sem permissões específicas definidas
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => onRemoveMember(member.id)}
-                className="rounded-lg"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+
+              {/* Só mostrar botão de deletar se não for admin */}
+              {member.role !== "admin" && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Remover Membro</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Tem certeza que deseja remover <strong>{member.full_name}</strong> da equipe?
+                        Esta ação não pode ser desfeita e o usuário perderá acesso ao sistema.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => onRemoveMember(member.id)}
+                        className="bg-red-600 hover:bg-red-700"
+                      >
+                        Remover
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Função
-                </label>
-                <div className="mt-1">
-                  {getRoleBadge(member.role)}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  WhatsApp
-                </label>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {member.whatsapp_numbers.map((w) => (
-                    <Badge key={w.id} variant="outline" className="text-xs">
-                      {w.instance_name}
-                    </Badge>
-                  ))}
-                  {member.whatsapp_numbers.length === 0 && (
-                    <span className="text-xs text-muted-foreground">Nenhum</span>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Funis
-                </label>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {member.funnels.map((f) => (
-                    <Badge key={f.id} variant="outline" className="text-xs">
-                      {f.name}
-                    </Badge>
-                  ))}
-                  {member.funnels.length === 0 && (
-                    <span className="text-xs text-muted-foreground">Nenhum</span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </ModernCardContent>
-        </ModernCard>
-      ))}
+          </div>
+        );
+      })}
     </div>
   );
-}
+};

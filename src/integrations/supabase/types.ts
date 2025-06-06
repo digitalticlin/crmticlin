@@ -1383,6 +1383,14 @@ export type Database = {
         Args: { lead_id: string }
         Returns: boolean
       }
+      user_has_funnel_access: {
+        Args: { funnel_id: string }
+        Returns: boolean
+      }
+      user_has_operational_whatsapp_access: {
+        Args: { whatsapp_id: string }
+        Returns: boolean
+      }
       user_has_whatsapp_number: {
         Args: { whatsapp_id: string }
         Returns: boolean
@@ -1395,7 +1403,7 @@ export type Database = {
         | "completed"
         | "error"
         | "paused"
-      user_role: "admin" | "seller" | "custom"
+      user_role: "admin" | "operational" | "manager"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1518,7 +1526,7 @@ export const Constants = {
         "error",
         "paused",
       ],
-      user_role: ["admin", "seller", "custom"],
+      user_role: ["admin", "operational", "manager"],
     },
   },
 } as const

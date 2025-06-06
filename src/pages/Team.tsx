@@ -4,26 +4,54 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { ModernPageHeader } from "@/components/layout/ModernPageHeader";
 import { ModernCard, ModernCardContent, ModernCardHeader, ModernCardTitle, ModernCardDescription } from "@/components/ui/modern-card";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { InviteMemberForm } from "@/components/settings/team/InviteMemberForm";
+import { RefreshCw } from "lucide-react";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useTeamManagement } from "@/hooks/useTeamManagement";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { ModernTeamMembersList } from "@/components/settings/team/ModernTeamMembersList";
+import { ManualMemberForm } from "@/components/settings/team/ManualMemberForm";
 
 export default function Team() {
   const { companyId } = useCompanyData();
+  const { permissions, loading: permissionsLoading } = useUserPermissions();
   const {
     members,
     loading,
     fetchTeamMembers,
-    inviteTeamMember,
+    createTeamMember,
     removeTeamMember,
   } = useTeamManagement(companyId);
 
   const [allWhatsApps, setAllWhatsApps] = useState<{ id: string; instance_name: string }[]>([]);
   const [allFunnels, setAllFunnels] = useState<{ id: string; name: string }[]>([]);
+
+  // Verificar se o usuário tem permissão para gerenciar equipe
+  if (permissionsLoading) {
+    return (
+      <PageLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#D3D800]"></div>
+        </div>
+      </PageLayout>
+    );
+  }
+
+  if (!permissions.canManageTeam) {
+    return (
+      <PageLayout>
+        <ModernPageHeader 
+          title="Acesso Negado" 
+          description="Você não tem permissão para acessar esta página"
+        />
+        <ModernCard>
+          <ModernCardContent className="text-center py-8">
+            <p className="text-gray-600">Apenas administradores podem gerenciar a equipe.</p>
+          </ModernCardContent>
+        </ModernCard>
+      </PageLayout>
+    );
+  }
 
   useMemo(() => {
     async function fetchAux() {
@@ -33,6 +61,7 @@ export default function Team() {
         .select("id, instance_name")
         .eq("company_id", companyId);
       setAllWhatsApps(whatsapps || []);
+      
       const { data: funnels } = await supabase
         .from("funnels")
         .select("id, name")
@@ -42,27 +71,14 @@ export default function Team() {
     fetchAux();
   }, [companyId]);
 
-  const handleInvite = async (data: {
-    full_name: string;
-    email: string;
-    role: string;
-    assignedWhatsAppIds: string[];
-    assignedFunnelIds: string[];
-  }) => {
-    const roleTyped = data.role as "admin" | "seller" | "custom";
-    const success = await inviteTeamMember({
-      ...data,
-      role: roleTyped,
-    });
-  };
-
-  const addMemberAction = (
+  const refreshAction = (
     <Button 
       className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 py-2.5 font-medium shadow-lg transition-all duration-200 hover:shadow-xl"
       onClick={fetchTeamMembers}
+      disabled={loading}
     >
-      <Plus className="h-4 w-4 mr-2" />
-      Atualizar Lista
+      <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+      Atualizar
     </Button>
   );
 
@@ -71,29 +87,19 @@ export default function Team() {
       <ModernPageHeader 
         title="Gestão de Equipe" 
         description="Gerencie os membros da sua equipe e suas permissões"
-        action={addMemberAction}
+        action={refreshAction}
       />
 
       <div className="space-y-8">
-        {/* Invite Member Form */}
-        <ModernCard>
-          <ModernCardHeader>
-            <ModernCardTitle>Novo Membro</ModernCardTitle>
-            <ModernCardDescription>
-              Convide um colaborador para sua equipe e já defina funis/instâncias permitidos
-            </ModernCardDescription>
-          </ModernCardHeader>
-          <ModernCardContent>
-            <InviteMemberForm
-              onSubmit={handleInvite}
-              loading={loading}
-              allWhatsApps={allWhatsApps}
-              allFunnels={allFunnels}
-            />
-          </ModernCardContent>
-        </ModernCard>
+        {/* Formulário para adicionar membro */}
+        <ManualMemberForm
+          onSubmit={createTeamMember}
+          loading={loading}
+          allWhatsApps={allWhatsApps}
+          allFunnels={allFunnels}
+        />
 
-        {/* Team Members List */}
+        {/* Lista de membros da equipe */}
         <ModernCard>
           <ModernCardHeader>
             <ModernCardTitle>Membros da Equipe</ModernCardTitle>
@@ -105,6 +111,7 @@ export default function Team() {
             <ModernTeamMembersList 
               members={members}
               onRemoveMember={removeTeamMember}
+              loading={loading}
             />
           </ModernCardContent>
         </ModernCard>

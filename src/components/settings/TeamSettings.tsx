@@ -4,23 +4,24 @@ import { Loader2, Users, UserPlus, Crown, Settings } from "lucide-react";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useTeamManagement } from "@/hooks/useTeamManagement";
 import { useTeamAuxiliaryData } from "@/hooks/settings/useTeamAuxiliaryData";
-import { InviteMemberModal } from "./InviteMemberModal";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { TeamHeader } from "./team/TeamHeader";
 import { TeamMembersList } from "./team/TeamMembersList";
+import { ManualMemberForm } from "./team/ManualMemberForm";
 
 export default function TeamSettings() {
   console.log('[TeamSettings] Component rendering');
   
   const { companyId } = useCompanyData();
+  const { permissions, loading: permissionsLoading } = useUserPermissions();
   const {
     members,
     loading,
-    inviteTeamMember,
+    createTeamMember,
     removeTeamMember,
   } = useTeamManagement(companyId);
 
   const { allWhatsApps, allFunnels, auxDataLoading } = useTeamAuxiliaryData(companyId);
-  const [inviteModalOpen, setInviteModalOpen] = useState(false);
   
   // Refs para controlar execuções
   const isUnmountedRef = useRef(false);
@@ -33,6 +34,33 @@ export default function TeamSettings() {
       console.log('[TeamSettings] Component unmounting');
     };
   }, []);
+
+  // Verificar permissões
+  if (permissionsLoading) {
+    return (
+      <div className="min-h-[500px] flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="relative mx-auto w-12 h-12">
+            <div className="absolute inset-0 rounded-full border-2 border-[#D3D800]/30"></div>
+            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#D3D800] animate-spin"></div>
+          </div>
+          <p className="text-sm text-gray-700">Verificando permissões...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!permissions.canManageTeam) {
+    return (
+      <div className="min-h-[500px] flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Settings className="h-16 w-16 text-gray-400 mx-auto" />
+          <h3 className="text-lg font-semibold text-gray-800">Acesso Restrito</h3>
+          <p className="text-gray-600">Apenas administradores podem gerenciar a equipe.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading || auxDataLoading) {
     return (
@@ -50,7 +78,7 @@ export default function TeamSettings() {
 
   return (
     <div className="space-y-8">
-      {/* Add New Member Section */}
+      {/* Formulário de adição manual */}
       <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
@@ -59,18 +87,17 @@ export default function TeamSettings() {
             </div>
             <div>
               <h3 className="text-xl font-semibold text-gray-800">Adicionar Membro</h3>
-              <p className="text-gray-700">Convide novos colaboradores para sua equipe</p>
+              <p className="text-gray-700">Crie novos membros da equipe com permissões específicas</p>
             </div>
           </div>
-          
-          <button
-            onClick={() => setInviteModalOpen(true)}
-            className="px-6 py-3 bg-gradient-to-r from-[#D3D800] to-[#D3D800]/80 hover:from-[#D3D800]/90 hover:to-[#D3D800]/70 text-black font-semibold rounded-xl transition-all duration-200 hover:scale-105 flex items-center space-x-2"
-          >
-            <UserPlus className="h-4 w-4" />
-            <span>Convidar Membro</span>
-          </button>
         </div>
+        
+        <ManualMemberForm
+          onSubmit={createTeamMember}
+          loading={loading}
+          allWhatsApps={allWhatsApps}
+          allFunnels={allFunnels}
+        />
       </div>
 
       {/* Team Overview */}
@@ -118,9 +145,9 @@ export default function TeamSettings() {
                 <Settings className="h-5 w-5 text-blue-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-700">Funções Ativas</p>
+                <p className="text-sm text-gray-700">Operacionais</p>
                 <p className="text-2xl font-bold text-gray-800">
-                  {new Set(members.map(m => m.role)).size}
+                  {members.filter(m => m.role === 'operational').length}
                 </p>
               </div>
             </div>
@@ -145,15 +172,6 @@ export default function TeamSettings() {
           onRemoveMember={removeTeamMember}
         />
       </div>
-
-      <InviteMemberModal
-        open={inviteModalOpen}
-        onOpenChange={setInviteModalOpen}
-        onInvite={inviteTeamMember}
-        loading={loading}
-        allWhatsApps={allWhatsApps}
-        allFunnels={allFunnels}
-      />
     </div>
   );
 }
