@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +7,7 @@ import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstance
 import { SimpleInstanceCard } from "./SimpleInstanceCard";
 import { QRCodeModal } from "./QRCodeModal";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 export const SimpleWhatsAppConnection = () => {
   const [isConnecting, setIsConnecting] = useState(false);
@@ -27,29 +29,45 @@ export const SimpleWhatsAppConnection = () => {
 
   const handleConnect = async () => {
     if (!user?.email) {
-      console.error('User email not available');
+      toast.error('Email do usuário não disponível');
       return;
     }
 
     setIsConnecting(true);
     try {
-      // Generate intelligent instance name based on user email
       const intelligentName = await generateIntelligentInstanceName(user.email);
       console.log('[Simple Connection] 🎯 Creating instance with intelligent name:', intelligentName);
       
-      await createInstance(intelligentName);
+      const createdInstance = await createInstance(intelligentName);
+      
+      if (createdInstance) {
+        toast.success(`Instância "${intelligentName}" criada com sucesso!`);
+      }
+    } catch (error: any) {
+      toast.error(`Erro ao criar instância: ${error.message}`);
     } finally {
       setIsConnecting(false);
     }
   };
 
   const handleGenerateQR = async (instanceId: string, instanceName: string) => {
-    const result = await refreshQRCode(instanceId);
-    if (result?.qrCode) {
-      setSelectedQRCode(result.qrCode);
-      setSelectedInstanceName(instanceName);
-      setSelectedInstanceId(instanceId);
-      setShowQRModal(true);
+    console.log('[Simple Connection] 🔄 Gerando QR Code para:', { instanceId, instanceName });
+    
+    // SEMPRE abrir o modal (mesmo sem QR Code)
+    setSelectedInstanceId(instanceId);
+    setSelectedInstanceName(instanceName);
+    setSelectedQRCode(null); // Modal vai fazer polling
+    setShowQRModal(true);
+    
+    // Tentar obter QR Code imediatamente
+    try {
+      const result = await refreshQRCode(instanceId);
+      if (result?.qrCode) {
+        setSelectedQRCode(result.qrCode);
+      }
+    } catch (error: any) {
+      // Não mostrar erro aqui - o modal vai fazer polling
+      console.log('[Simple Connection] QR Code não disponível imediatamente, modal fará polling');
     }
   };
 
@@ -59,9 +77,7 @@ export const SimpleWhatsAppConnection = () => {
 
   const handleRefreshQRCode = async (instanceId: string) => {
     const result = await refreshQRCode(instanceId);
-    if (result?.qrCode) {
-      setSelectedQRCode(result.qrCode);
-    }
+    return result;
   };
 
   const closeQRModal = () => {
@@ -90,7 +106,6 @@ export const SimpleWhatsAppConnection = () => {
           backdrop-blur-xl border-2 border-dashed border-green-300/70 rounded-3xl 
           hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
           
-          {/* Glassmorphism overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none" />
           
           <CardContent className="p-10 text-center relative z-10">
@@ -150,7 +165,7 @@ export const SimpleWhatsAppConnection = () => {
           <SimpleInstanceCard
             key={instance.id}
             instance={instance}
-            onGenerateQR={() => handleGenerateQR(instance.id, instance.instance_name)}
+            onGenerateQR={handleGenerateQR}
             onDelete={handleDeleteInstance}
             onRefreshQRCode={handleRefreshQRCode}
           />
@@ -163,7 +178,6 @@ export const SimpleWhatsAppConnection = () => {
           cursor-pointer min-h-[280px] flex items-center justify-center" 
           onClick={!isConnecting ? handleConnect : undefined}>
           
-          {/* Glassmorphism overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
           
           <CardContent className="p-6 text-center relative z-10">

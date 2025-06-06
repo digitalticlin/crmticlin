@@ -1,162 +1,204 @@
 
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Loader2, X, RefreshCw } from "lucide-react";
-import { useEffect, useState } from "react";
+import { RefreshCw, Loader2, QrCode, Smartphone, CheckCircle } from "lucide-react";
+import { toast } from "sonner";
 
 interface QRCodeModalProps {
   isOpen: boolean;
   onClose: () => void;
   qrCode: string | null;
   instanceName: string;
-  instanceId?: string;
-  onRefreshQRCode?: (instanceId: string) => Promise<void>;
+  instanceId: string;
+  onRefreshQRCode: (instanceId: string) => Promise<{ qrCode?: string } | null>;
 }
 
-export const QRCodeModal = ({ 
-  isOpen, 
-  onClose, 
-  qrCode, 
-  instanceName, 
+export const QRCodeModal = ({
+  isOpen,
+  onClose,
+  qrCode: initialQrCode,
+  instanceName,
   instanceId,
-  onRefreshQRCode 
+  onRefreshQRCode
 }: QRCodeModalProps) => {
-  const [isScanned, setIsScanned] = useState(false);
+  const [qrCode, setQrCode] = useState<string | null>(initialQrCode);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isPolling, setIsPolling] = useState(false);
 
+  // Auto-polling para QR Code quando modal abre sem QR Code
+  useEffect(() => {
+    if (isOpen && !qrCode && !isPolling) {
+      startPolling();
+    }
+  }, [isOpen, qrCode]);
+
+  // Limpar polling quando modal fecha
   useEffect(() => {
     if (!isOpen) {
-      setIsScanned(false);
-      setIsRefreshing(false);
+      setIsPolling(false);
+      setQrCode(initialQrCode);
     }
-  }, [isOpen]);
+  }, [isOpen, initialQrCode]);
 
-  const handleRefreshQRCode = async () => {
-    if (!instanceId || !onRefreshQRCode) return;
+  const startPolling = async () => {
+    setIsPolling(true);
+    toast.info(`Gerando QR Code para "${instanceName}"...`);
     
+    const maxAttempts = 10;
+    const delayMs = 3000;
+    
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        console.log(`[QR Modal] Tentativa ${attempt}/${maxAttempts} para obter QR Code`);
+        
+        const result = await onRefreshQRCode(instanceId);
+        
+        if (result?.qrCode) {
+          setQrCode(result.qrCode);
+          setIsPolling(false);
+          toast.success(`QR Code gerado! Escaneie para conectar "${instanceName}"`);
+          return;
+        }
+        
+        if (attempt < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+        
+      } catch (error: any) {
+        console.error(`[QR Modal] Erro na tentativa ${attempt}:`, error);
+        if (attempt === maxAttempts) {
+          setIsPolling(false);
+          toast.error(`Erro ao gerar QR Code: ${error.message}`);
+          return;
+        }
+      }
+    }
+    
+    setIsPolling(false);
+    toast.warning(`QR Code não disponível após ${maxAttempts} tentativas. Tente novamente.`);
+  };
+
+  const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await onRefreshQRCode(instanceId);
+      const result = await onRefreshQRCode(instanceId);
+      if (result?.qrCode) {
+        setQrCode(result.qrCode);
+        toast.success('QR Code atualizado!');
+      } else {
+        toast.info('QR Code ainda não disponível, tentando novamente...');
+        await startPolling();
+      }
+    } catch (error: any) {
+      toast.error(`Erro ao atualizar QR Code: ${error.message}`);
     } finally {
       setIsRefreshing(false);
     }
   };
 
+  const renderContent = () => {
+    // Estado: QR Code disponível
+    if (qrCode && !isPolling) {
+      return (
+        <>
+          <div className="bg-white p-4 rounded-lg border-2 border-green-200 mb-4">
+            <img 
+              src={qrCode} 
+              alt="QR Code para conexão do WhatsApp" 
+              className="w-64 h-64 object-contain mx-auto"
+            />
+          </div>
+          
+          <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
+            <div className="flex items-start gap-3">
+              <Smartphone className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-medium text-blue-900 mb-2">Como conectar:</p>
+                <ol className="text-blue-700 space-y-1">
+                  <li>1. Abra o WhatsApp no seu celular</li>
+                  <li>2. Vá em Menu → Aparelhos conectados</li>
+                  <li>3. Toque em "Conectar um aparelho"</li>
+                  <li>4. Escaneie este QR code</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+          
+          <Button 
+            variant="outline" 
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="w-full"
+          >
+            {isRefreshing ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Atualizando...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Atualizar QR Code
+              </>
+            )}
+          </Button>
+        </>
+      );
+    }
+
+    // Estado: Gerando QR Code
+    return (
+      <div className="text-center py-8">
+        <div className="bg-blue-50 p-6 rounded-lg border border-blue-200 mb-4">
+          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-blue-600" />
+          <p className="text-sm font-medium text-blue-900 mb-2">Gerando QR Code...</p>
+          <p className="text-xs text-blue-700">
+            Aguarde enquanto o WhatsApp Web.js é inicializado
+          </p>
+        </div>
+        
+        <Button 
+          variant="outline" 
+          onClick={handleRefresh}
+          disabled={isRefreshing || isPolling}
+          className="w-full"
+        >
+          {isRefreshing ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Tentando novamente...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Tentar novamente
+            </>
+          )}
+        </Button>
+      </div>
+    );
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md bg-white/95 backdrop-blur-xl border border-white/30 rounded-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center justify-between text-lg font-semibold text-gray-800">
-            <span>Conectar {instanceName}</span>
-            <Button variant="ghost" size="icon" onClick={onClose} 
-              className="hover:bg-white/20 rounded-full">
-              <X className="h-4 w-4" />
-            </Button>
+      <DialogContent className="max-w-md bg-white/90 backdrop-blur-xl border border-white/30 rounded-3xl shadow-lg">
+        <DialogHeader className="pb-6">
+          <DialogTitle className="flex items-center justify-center gap-2 text-xl font-bold text-gray-800">
+            <QrCode className="h-6 w-6 text-green-600" />
+            Conectar {instanceName}
           </DialogTitle>
         </DialogHeader>
+        
+        {renderContent()}
 
-        <div className="space-y-6">
-          {/* QR Code Display */}
-          {qrCode ? (
-            <div className="text-center space-y-4">
-              <div className="bg-white p-6 rounded-2xl border-2 border-green-200/70 inline-block
-                shadow-lg backdrop-blur-sm">
-                <img 
-                  src={qrCode} 
-                  alt="QR Code para conexão do WhatsApp" 
-                  className="w-64 h-64 object-contain rounded-lg"
-                />
-              </div>
-              
-              <div className="space-y-3">
-                <h3 className="font-semibold text-gray-900 text-lg">
-                  Escaneie com seu WhatsApp
-                </h3>
-                <div className="text-sm text-gray-600 space-y-2 bg-white/20 backdrop-blur-sm 
-                  rounded-xl p-4 border border-white/30">
-                  <p><span className="font-medium">1.</span> Abra o WhatsApp no seu celular</p>
-                  <p><span className="font-medium">2.</span> Vá em <strong>Menu</strong> → <strong>WhatsApp Web</strong></p>
-                  <p><span className="font-medium">3.</span> Aponte a câmera para este QR Code</p>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin text-green-600" />
-              <h3 className="font-semibold mb-2 text-gray-800">Preparando QR Code...</h3>
-              <p className="text-sm text-gray-600">
-                Aguarde enquanto geramos seu código de conexão
-              </p>
-            </div>
-          )}
-
-          {/* Success State */}
-          {isScanned && (
-            <div className="text-center py-4 bg-green-50/80 backdrop-blur-sm rounded-xl border border-green-200/50">
-              <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-500" />
-              <h3 className="font-semibold text-green-700 mb-2">Conectado com sucesso!</h3>
-              <p className="text-sm text-green-600">
-                Seu WhatsApp está sendo sincronizado. Isso pode levar alguns minutos.
-              </p>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex gap-3">
-            <Button 
-              variant="outline" 
-              onClick={onClose}
-              className="flex-1 bg-white/20 backdrop-blur-sm border-white/30 hover:bg-white/30"
-            >
-              Fechar
-            </Button>
-            
-            {qrCode && !isScanned && onRefreshQRCode && instanceId && (
-              <Button 
-                onClick={handleRefreshQRCode}
-                disabled={isRefreshing}
-                variant="outline"
-                className="flex-1 bg-blue-50/20 backdrop-blur-sm border-blue-300/30 hover:bg-blue-50/30 
-                  text-blue-700 hover:text-blue-800"
-              >
-                {isRefreshing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Gerando...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Gerar Novo QR Code
-                  </>
-                )}
-              </Button>
-            )}
-            
-            {qrCode && !isScanned && (
-              <Button 
-                onClick={() => setIsScanned(true)}
-                className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
-                  text-white shadow-lg hover:shadow-xl transition-all duration-200"
-              >
-                Já escaneei
-              </Button>
-            )}
-          </div>
-
-          {/* Tips */}
-          {qrCode && !isScanned && (
-            <div className="bg-blue-50/80 backdrop-blur-sm p-4 rounded-xl border border-blue-200/50">
-              <h4 className="font-medium text-blue-900 mb-2">💡 Dicas:</h4>
-              <ul className="text-sm text-blue-700 space-y-1">
-                <li>• Mantenha a câmera estável ao escanear</li>
-                <li>• Certifique-se de ter boa iluminação</li>
-                <li>• O QR Code expira em alguns minutos</li>
-                <li>• Use "Gerar Novo QR Code" se este expirar</li>
-              </ul>
-            </div>
-          )}
-        </div>
+        <Button 
+          variant="outline" 
+          onClick={onClose}
+          className="w-full mt-4"
+        >
+          Fechar
+        </Button>
       </DialogContent>
     </Dialog>
   );

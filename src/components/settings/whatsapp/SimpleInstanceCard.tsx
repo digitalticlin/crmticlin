@@ -1,188 +1,147 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  MessageSquare, 
-  QrCode, 
-  CheckCircle, 
-  Clock, 
-  AlertCircle,
-  Smartphone,
-  Trash2
-} from "lucide-react";
+import { QrCode, Trash2, Phone, CheckCircle, Clock, AlertCircle, Loader2 } from "lucide-react";
 import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
+import { toast } from "sonner";
 
 interface SimpleInstanceCardProps {
   instance: WhatsAppWebInstance;
-  onGenerateQR: () => void;
-  onDelete?: (instanceId: string) => void;
-  onRefreshQRCode?: (instanceId: string) => Promise<void>;
+  onGenerateQR: (instanceId: string, instanceName: string) => Promise<void>;
+  onDelete: (instanceId: string) => Promise<void>;
+  onRefreshQRCode: (instanceId: string) => Promise<void>;
 }
 
-export const SimpleInstanceCard = ({ 
-  instance, 
-  onGenerateQR, 
+export const SimpleInstanceCard = ({
+  instance,
+  onGenerateQR,
   onDelete,
-  onRefreshQRCode 
+  onRefreshQRCode
 }: SimpleInstanceCardProps) => {
-  const getSimpleStatus = () => {
-    switch (instance.connection_status) {
-      case 'connected':
-      case 'ready':
-      case 'open':
-        return {
-          label: 'Conectado',
-          friendlyMessage: 'WhatsApp conectado e funcionando!',
-          color: 'bg-green-500',
-          icon: CheckCircle,
-          variant: 'default' as const,
-          textColor: 'text-green-600',
-          badgeClass: 'bg-green-100/80 text-green-700 border-green-300/50'
-        };
-      case 'waiting_scan':
-      case 'connecting':
-        return {
-          label: 'Aguardando',
-          friendlyMessage: 'Aguardando leitura do QR Code',
-          color: 'bg-yellow-500',
-          icon: Clock,
-          variant: 'secondary' as const,
-          textColor: 'text-yellow-600',
-          badgeClass: 'bg-yellow-100/80 text-yellow-700 border-yellow-300/50'
-        };
-      case 'created':
-        return {
-          label: 'Está quase pronto',
-          friendlyMessage: 'Pronto para gerar QR Code e conectar',
-          color: 'bg-blue-500',
-          icon: QrCode,
-          variant: 'outline' as const,
-          textColor: 'text-blue-600',
-          badgeClass: 'bg-blue-100/80 text-blue-700 border-blue-300/50'
-        };
-      default:
-        return {
-          label: 'Desconectado',
-          friendlyMessage: 'Conexão perdida, reconecte seu WhatsApp',
-          color: 'bg-red-500',
-          icon: AlertCircle,
-          variant: 'destructive' as const,
-          textColor: 'text-red-600',
-          badgeClass: 'bg-red-100/80 text-red-700 border-red-300/50'
-        };
+  const [isGeneratingQR, setIsGeneratingQR] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const getStatusInfo = () => {
+    if (instance.connection_status === 'connected') {
+      return {
+        label: 'Conectado',
+        icon: CheckCircle,
+        color: 'bg-green-100 text-green-800 border-green-200'
+      };
+    }
+    
+    if (instance.web_status === 'waiting_scan' && instance.qr_code) {
+      return {
+        label: 'Aguardando Scan',
+        icon: QrCode,
+        color: 'bg-blue-100 text-blue-800 border-blue-200'
+      };
+    }
+    
+    if (instance.web_status === 'connecting' || instance.connection_status === 'connecting') {
+      return {
+        label: 'Conectando',
+        icon: Clock,
+        color: 'bg-orange-100 text-orange-800 border-orange-200'
+      };
+    }
+    
+    return {
+      label: 'Desconectado',
+      icon: AlertCircle,
+      color: 'bg-red-100 text-red-800 border-red-200'
+    };
+  };
+
+  const statusInfo = getStatusInfo();
+  const StatusIcon = statusInfo.icon;
+
+  const handleGenerateQR = async () => {
+    setIsGeneratingQR(true);
+    try {
+      await onGenerateQR(instance.id, instance.instance_name);
+    } catch (error: any) {
+      toast.error(`Erro ao gerar QR Code: ${error.message}`);
+    } finally {
+      setIsGeneratingQR(false);
     }
   };
 
-  const status = getSimpleStatus();
-  const StatusIcon = status.icon;
-  const isConnected = instance.connection_status === 'connected' || 
-                     instance.connection_status === 'ready' || 
-                     instance.connection_status === 'open';
-
-  const handleDelete = () => {
-    if (onDelete) {
-      onDelete(instance.id);
+  const handleDelete = async () => {
+    if (window.confirm(`Tem certeza que deseja deletar a instância "${instance.instance_name}"?`)) {
+      setIsDeleting(true);
+      try {
+        await onDelete(instance.id);
+      } catch (error: any) {
+        toast.error(`Erro ao deletar instância: ${error.message}`);
+      } finally {
+        setIsDeleting(false);
+      }
     }
   };
 
   return (
-    <Card className={`group relative transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 
-      bg-white/20 backdrop-blur-xl border border-white/30 rounded-2xl overflow-hidden
-      ${isConnected ? 'ring-2 ring-green-300/50 shadow-green-100/50' : 'shadow-lg'}`}>
+    <Card className="group transition-all duration-300 hover:shadow-lg hover:-translate-y-1
+      bg-gradient-to-br from-white/80 to-white/60 backdrop-blur-xl 
+      border border-white/30 rounded-2xl overflow-hidden">
       
-      {/* Glassmorphism overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
-      
-      <CardHeader className="pb-4 relative z-10">
-        <CardTitle className="flex items-center justify-between text-lg font-semibold">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-green-400/20 to-green-600/20 backdrop-blur-sm">
-              <Smartphone className="h-5 w-5 text-green-700" />
-            </div>
-            <div className="flex flex-col">
-              <span className="truncate text-gray-800 font-medium">{instance.instance_name}</span>
-              {instance.phone && (
-                <span className="text-sm text-gray-600 font-normal">+{instance.phone}</span>
-              )}
-            </div>
+      <CardContent className="p-6 space-y-4">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h3 className="font-semibold text-gray-800 mb-2">{instance.instance_name}</h3>
+            
+            <Badge className={`${statusInfo.color} border`}>
+              <StatusIcon className="h-3 w-3 mr-1" />
+              {statusInfo.label}
+            </Badge>
           </div>
-          <Badge className={`text-xs font-medium ${status.badgeClass} backdrop-blur-sm`}>
-            <StatusIcon className="h-3 w-3 mr-1" />
-            {status.label}
-          </Badge>
-        </CardTitle>
-      </CardHeader>
+        </div>
 
-      <CardContent className="space-y-4 relative z-10">
-        {/* Profile Info for connected instances */}
-        {isConnected && instance.profile_name && (
-          <div className="p-3 rounded-lg bg-white/20 backdrop-blur-sm border border-white/20">
-            <p className="text-sm font-medium text-gray-700">
-              <span className="text-gray-500">Perfil:</span> {instance.profile_name}
-            </p>
+        {instance.phone && (
+          <div className="flex items-center gap-2 text-sm text-gray-600">
+            <Phone className="h-4 w-4" />
+            <span>{instance.phone}</span>
           </div>
         )}
 
-        {/* Friendly Status Message */}
-        <div className="flex items-center gap-3 p-3 rounded-lg bg-white/10 backdrop-blur-sm">
-          <StatusIcon className={`h-5 w-5 ${status.textColor}`} />
-          <span className="text-sm font-medium text-gray-700">{status.friendlyMessage}</span>
-        </div>
-
-        {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
-          {/* QR Code button for non-connected instances */}
-          {!isConnected && (
+          {instance.connection_status !== 'connected' && (
             <Button
-              onClick={onGenerateQR}
+              onClick={handleGenerateQR}
+              disabled={isGeneratingQR}
               size="sm"
-              className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 
-                text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
             >
-              <QrCode className="h-4 w-4 mr-2" />
-              Gerar QR Code
+              {isGeneratingQR ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Gerando...
+                </>
+              ) : (
+                <>
+                  <QrCode className="h-4 w-4 mr-2" />
+                  Gerar QR Code
+                </>
+              )}
             </Button>
           )}
           
-          {/* Connected state button */}
-          {isConnected && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 bg-white/20 backdrop-blur-sm border-white/30 text-green-700 
-                hover:bg-white/30 font-medium"
-              disabled
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Conectado
-            </Button>
-          )}
-
-          {/* Delete button - Always available */}
           <Button
             onClick={handleDelete}
+            disabled={isDeleting}
             variant="outline"
             size="sm"
-            className="bg-white/20 backdrop-blur-sm border-white/30 text-red-600 
-              hover:bg-red-50/50 hover:border-red-300/50 hover:text-red-700 
-              transition-all duration-200"
+            className="border-red-200 text-red-600 hover:bg-red-50"
           >
-            <Trash2 className="h-4 w-4" />
+            {isDeleting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
           </Button>
         </div>
-        
-        {/* Help Text */}
-        {!isConnected && (
-          <div className="text-center pt-2">
-            <p className="text-xs text-gray-500 bg-white/10 backdrop-blur-sm rounded-full py-1 px-3 inline-block">
-              {instance.connection_status === 'connecting' 
-                ? 'Use os botões de sincronização global se o QR Code não funcionar'
-                : 'Clique em "Gerar QR Code" e escaneie com seu WhatsApp'
-              }
-            </p>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
