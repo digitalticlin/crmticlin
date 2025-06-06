@@ -64,6 +64,13 @@ export default function SalesFunnel() {
     await originalRefetchStages();
   };
 
+  // Wrapper function to handle notes update without leadId parameter (using selectedLead)
+  const handleUpdateLeadNotes = (notes: string) => {
+    if (selectedLead?.id) {
+      updateLeadNotes(selectedLead.id, notes);
+    }
+  };
+
   if (funnelLoading) {
     return <FunnelLoadingState />;
   }
@@ -97,7 +104,7 @@ export default function SalesFunnel() {
     openLeadDetail,
     toggleTagOnLead,
     createTag,
-    updateLeadNotes,
+    updateLeadNotes: handleUpdateLeadNotes, // Use wrapper function to match interface
     updateLeadPurchaseValue,
     updateLeadAssignedUser,
     updateLeadName,

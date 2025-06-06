@@ -85,6 +85,13 @@ export const SalesFunnelContent = () => {
     await createFunnel(name, description);
   };
 
+  // Wrapper function to handle the notes update with leadId
+  const handleUpdateLeadNotes = async (notes: string) => {
+    if (selectedLead?.id) {
+      await updateLeadNotes(selectedLead.id, notes);
+    }
+  };
+
   return (
     <>
       <SalesFunnelTabs
@@ -138,7 +145,7 @@ export const SalesFunnelContent = () => {
         setIsLeadDetailOpen={setIsLeadDetailOpen}
         availableTags={availableTags}
         onToggleTag={(tagId) => selectedLead && toggleTagOnLead(selectedLead.id, tagId)}
-        onUpdateNotes={updateLeadNotes}
+        onUpdateNotes={handleUpdateLeadNotes}
         onCreateTag={createTag}
         onUpdatePurchaseValue={updateLeadPurchaseValue}
         onUpdateAssignedUser={updateLeadAssignedUser}
