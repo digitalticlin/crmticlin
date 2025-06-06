@@ -7,7 +7,7 @@ import { KanbanStage } from "@/types/funnel";
 
 interface SalesFunnelActionsProps {
   stages: KanbanStage[];
-  moveLeadToStage: (lead: KanbanLead, columnId: string) => void;
+  moveLeadToStage: (lead: KanbanLead, columnId: string, dealNote?: string, dealValue?: number) => void;
   refetchLeads: () => Promise<void>;
   refetchStages: () => Promise<void>;
   onStageModalOpen: (lead: KanbanLead) => void;
@@ -52,7 +52,11 @@ export const SalesFunnelActions = ({
     );
     
     if (targetStage) {
-      await moveLeadToStage(lead, targetStage.id);
+      // Para ganhos, o valor já foi atualizado no lead pelo SalesFunnelContent
+      // Para perdas, usar o valor original do lead
+      const dealValue = status === "won" ? lead.purchaseValue : lead.purchaseValue;
+      
+      await moveLeadToStage(lead, targetStage.id, note, dealValue);
       await refetchLeads();
       toast.success(`Lead movido para ${status === "won" ? "Ganhos" : "Perdidos"}`);
     }

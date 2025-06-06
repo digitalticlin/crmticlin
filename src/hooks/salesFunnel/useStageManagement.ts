@@ -17,18 +17,22 @@ export const useStageManagement = (
   // Função para criar deal no histórico
   const createDeal = async (lead: KanbanLead, status: "won" | "lost", note?: string, value?: number) => {
     try {
+      // Para ganhos, usar o valor passado ou o valor do lead
+      // Para perdas, usar sempre o valor do lead (não atualizado)
+      const dealValue = status === "won" ? (value || lead.purchaseValue || 0) : (lead.purchaseValue || 0);
+      
       const { error } = await supabase
         .from("deals")
         .insert({
           lead_id: lead.id,
           status,
-          value: value || lead.purchaseValue || 0,
+          value: dealValue,
           date: new Date().toISOString(),
           note: note || null
         });
 
       if (error) throw error;
-      console.log(`Deal ${status} criado para lead ${lead.id} com valor ${value || lead.purchaseValue || 0}`);
+      console.log(`Deal ${status} criado para lead ${lead.id} com valor ${dealValue}`);
     } catch (error) {
       console.error("Erro ao criar deal:", error);
     }

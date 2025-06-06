@@ -71,11 +71,22 @@ export const SalesFunnelContent = () => {
 
   const handleDealNoteConfirm = async (note: string, value: number) => {
     if (pendingDealMove) {
-      // Atualizar o valor de compra do lead antes de criar o deal
-      if (pendingDealMove.lead.id && value !== pendingDealMove.lead.purchaseValue) {
-        await updateLeadPurchaseValue(value);
+      // Para ganhos: atualizar o valor do lead e criar deal
+      // Para perdas: apenas criar deal, manter valor original do lead
+      if (pendingDealMove.status === "won") {
+        // Atualizar o valor de compra do lead apenas para ganhos
+        if (pendingDealMove.lead.id && value !== pendingDealMove.lead.purchaseValue) {
+          await updateLeadPurchaseValue(value);
+        }
+        // Criar deal e mover para ganho com o valor atualizado
+        await actions.handleDealNoteConfirm(note, { 
+          ...pendingDealMove, 
+          lead: { ...pendingDealMove.lead, purchaseValue: value } 
+        });
+      } else {
+        // Para perdas, usar o valor do modal mas não atualizar o lead
+        await actions.handleDealNoteConfirm(note, pendingDealMove);
       }
-      await actions.handleDealNoteConfirm(note, { ...pendingDealMove, lead: { ...pendingDealMove.lead, purchaseValue: value } });
     }
     setIsDealNoteModalOpen(false);
     setPendingDealMove(null);
