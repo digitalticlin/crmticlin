@@ -39,19 +39,30 @@ export const useProfileSettings = () => {
 
     try {
       setLoading(true);
+      console.log('[Profile Settings] 🚀 Carregando dados do perfil para:', user.email);
+      
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        console.error("Erro ao carregar perfil:", error);
+        console.error("❌ Erro ao carregar perfil:", error);
+        
+        // Se o erro for de recursão infinita, criar perfil básico
+        if (error.code === '42P17') {
+          console.log('[Profile Settings] ⚠️ Erro de RLS detectado, criando perfil básico...');
+          await createBasicProfile();
+          return;
+        }
+        
         toast.error("Erro ao carregar dados do perfil");
         return;
       }
 
       if (data) {
+        console.log('[Profile Settings] ✅ Dados carregados:', data);
         setProfileData({
           full_name: data.full_name || "",
           document_id: data.document_id || "",
@@ -61,12 +72,40 @@ export const useProfileSettings = () => {
           position: data.position || "",
           avatar_url: data.avatar_url || ""
         });
+      } else {
+        console.log('[Profile Settings] ⚠️ Perfil não encontrado, criando...');
+        await createBasicProfile();
       }
     } catch (error) {
-      console.error("Erro ao carregar perfil:", error);
+      console.error("❌ Erro ao carregar perfil:", error);
       toast.error("Erro ao carregar dados do perfil");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const createBasicProfile = async () => {
+    if (!user) return;
+
+    try {
+      console.log('[Profile Settings] 🔧 Criando perfil básico...');
+      
+      // Criar perfil básico com dados do usuário
+      const basicProfile = {
+        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || "",
+        document_id: "",
+        whatsapp: "",
+        company_name: "",
+        company_document: "",
+        position: "",
+        avatar_url: ""
+      };
+
+      setProfileData(basicProfile);
+      toast.info("Perfil criado. Você pode editar suas informações agora.");
+      
+    } catch (error) {
+      console.error("❌ Erro ao criar perfil básico:", error);
     }
   };
 
@@ -84,9 +123,12 @@ export const useProfileSettings = () => {
     }
 
     try {
+      console.log('[Profile Settings] 💾 Salvando perfil...');
+      
       const { error } = await supabase
         .from("profiles")
-        .update({
+        .upsert({
+          id: user.id,
           full_name: profileData.full_name,
           document_id: profileData.document_id,
           whatsapp: profileData.whatsapp,
@@ -95,19 +137,26 @@ export const useProfileSettings = () => {
           position: profileData.position,
           avatar_url: profileData.avatar_url,
           updated_at: new Date().toISOString()
-        })
-        .eq("id", user.id);
+        }, {
+          onConflict: 'id'
+        });
 
       if (error) {
-        console.error("Erro ao salvar perfil:", error);
-        toast.error("Erro ao salvar perfil");
+        console.error("❌ Erro ao salvar perfil:", error);
+        
+        if (error.code === '42P17') {
+          toast.error("Sistema temporariamente indisponível. Tente novamente em alguns instantes.");
+        } else {
+          toast.error("Erro ao salvar perfil");
+        }
         return false;
       }
 
+      console.log('[Profile Settings] ✅ Perfil salvo com sucesso');
       toast.success("Perfil atualizado com sucesso!");
       return true;
     } catch (error) {
-      console.error("Erro ao salvar perfil:", error);
+      console.error("❌ Erro ao salvar perfil:", error);
       toast.error("Erro ao salvar perfil");
       return false;
     }
