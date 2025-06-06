@@ -51,7 +51,7 @@ export function useCreateClientMutation(companyId: string) {
         const { data: maxPositionData } = await supabase
           .from("leads")
           .select("order_position")
-          .eq("kanban_stage_id", leadData.kanban_stage_id)
+          .eq("kanban_stage_id", leadData.kanban_stage_id as string)
           .order("order_position", { ascending: false })
           .limit(1)
           .maybeSingle();
