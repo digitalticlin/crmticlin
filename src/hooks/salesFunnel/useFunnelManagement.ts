@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -38,33 +37,12 @@ export function useFunnelManagement() {
     try {
       console.log('[Funnel Management] 🔍 Buscando funis para usuário:', { userId: user.id, email: user.email });
       
-      // Primeiro, verificar se o usuário é admin
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-
-      if (profileError) {
-        console.error('[Funnel Management] ❌ Erro ao verificar perfil:', profileError);
-      }
-
-      console.log('[Funnel Management] 👤 Perfil do usuário:', profile);
-
-      // Se for admin, buscar todos os funis, senão apenas os criados pelo usuário
-      let query = supabase.from("funnels").select("*");
-      
-      if (profile?.role === 'admin') {
-        console.log('[Funnel Management] 👑 Usuário é admin, buscando todos os funis');
-        // Admin pode ver todos os funis
-        query = query.order("created_at", { ascending: true });
-      } else {
-        console.log('[Funnel Management] 👤 Usuário comum, buscando apenas funis próprios');
-        // Usuário comum só vê seus próprios funis
-        query = query.eq("created_by_user_id", user.id).order("created_at", { ascending: true });
-      }
-
-      const { data, error } = await query;
+      // Com as novas políticas RLS, podemos simplesmente buscar todos os funis
+      // As políticas já cuidam de mostrar apenas os funis que o usuário pode ver
+      const { data, error } = await supabase
+        .from("funnels")
+        .select("*")
+        .order("created_at", { ascending: true });
 
       if (error) {
         console.error('[Funnel Management] ❌ Erro na query:', error);
@@ -73,8 +51,7 @@ export function useFunnelManagement() {
 
       console.log('[Funnel Management] 📊 Funis encontrados:', { 
         foundFunnels: data?.length || 0, 
-        funnels: data,
-        userRole: profile?.role 
+        funnels: data
       });
 
       setFunnels(data || []);
@@ -100,7 +77,7 @@ export function useFunnelManagement() {
       // Tratamento específico para erros de RLS
       if (error.message?.includes('row-level security') || error.message?.includes('infinite recursion')) {
         console.error("[Funnel Management] 🔒 Erro de RLS detectado:", error.message);
-        toast.error("Erro de permissão ao carregar funis. As políticas RLS foram atualizadas, tente recarregar a página.");
+        toast.error("Erro de permissão ao carregar funis. Tente recarregar a página.");
       } else {
         toast.error(`Erro ao carregar funis: ${error.message}`);
       }
@@ -118,14 +95,14 @@ export function useFunnelManagement() {
     try {
       console.log('[Funnel Management] 📝 Criando novo funil:', { name, description, userId: user.id });
       
-      // Criar funil vinculado ao usuário, não à empresa
+      // Criar funil vinculado ao usuário
       const { data, error } = await supabase
         .from("funnels")
         .insert({ 
           name, 
           description,
           created_by_user_id: user.id,
-          company_id: null // Garantir que não seja vinculado a empresa
+          company_id: null
         })
         .select()
         .single();
@@ -150,7 +127,7 @@ export function useFunnelManagement() {
       console.error("[Funnel Management] ❌ Erro ao criar funil:", error);
       
       if (error.message?.includes('row-level security')) {
-        toast.error("Erro de permissão ao criar funil. Verifique se você tem permissões de admin.");
+        toast.error("Erro de permissão ao criar funil. Verifique se você tem permissões adequadas.");
       } else {
         toast.error(`Erro ao criar funil: ${error.message}`);
       }
@@ -175,7 +152,7 @@ export function useFunnelManagement() {
         ...stage,
         funnel_id: funnelId,
         created_by_user_id: user.id,
-        company_id: null, // Garantir que não seja vinculado a empresa
+        company_id: null,
         is_won: stage.is_won || false,
         is_lost: stage.is_lost || false,
         is_fixed: stage.is_fixed || false
