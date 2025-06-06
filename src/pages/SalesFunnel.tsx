@@ -1,10 +1,8 @@
-
 import { PageLayout } from "@/components/layout/PageLayout";
 import { useRealSalesFunnel } from "@/hooks/salesFunnel/useRealSalesFunnel";
 import { useNewLeadIntegration } from "@/hooks/salesFunnel/useNewLeadIntegration";
 import { useFunnelManagement } from "@/hooks/salesFunnel/useFunnelManagement";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useDefaultFunnelSetup } from "@/hooks/salesFunnel/useDefaultFunnelSetup";
 import { SalesFunnelProvider } from "@/components/sales/funnel/SalesFunnelProvider";
 import { FunnelLoadingState } from "@/components/sales/funnel/FunnelLoadingState";
 import { FunnelEmptyState } from "@/components/sales/funnel/FunnelEmptyState";
@@ -12,9 +10,6 @@ import { SalesFunnelContent } from "@/components/sales/funnel/SalesFunnelContent
 
 export default function SalesFunnel() {
   const { isAdmin } = useUserRole();
-  
-  // Configurar funil padrão se necessário
-  useDefaultFunnelSetup();
   
   const {
     funnels,
@@ -95,7 +90,8 @@ export default function SalesFunnel() {
     return <FunnelLoadingState />;
   }
 
-  if (!selectedFunnel) {
+  // Apenas mostrar empty state se realmente não houver funis depois do carregamento
+  if (!selectedFunnel && funnels.length === 0 && !funnelLoading) {
     return (
       <FunnelEmptyState 
         isAdmin={isAdmin}
