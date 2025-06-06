@@ -655,7 +655,7 @@ export type Database = {
           address: string | null
           city: string | null
           company: string | null
-          company_id: string
+          company_id: string | null
           country: string | null
           created_at: string | null
           document_id: string | null
@@ -682,7 +682,7 @@ export type Database = {
           address?: string | null
           city?: string | null
           company?: string | null
-          company_id: string
+          company_id?: string | null
           country?: string | null
           created_at?: string | null
           document_id?: string | null
@@ -709,7 +709,7 @@ export type Database = {
           address?: string | null
           city?: string | null
           company?: string | null
-          company_id?: string
+          company_id?: string | null
           country?: string | null
           created_at?: string | null
           document_id?: string | null
