@@ -15,27 +15,27 @@ export const useStageManagement = (
   const { companyId } = useCompanyData();
 
   // Função para criar deal no histórico
-  const createDeal = async (lead: KanbanLead, status: "won" | "lost", note?: string) => {
+  const createDeal = async (lead: KanbanLead, status: "won" | "lost", note?: string, value?: number) => {
     try {
       const { error } = await supabase
         .from("deals")
         .insert({
           lead_id: lead.id,
           status,
-          value: lead.purchaseValue || 0,
+          value: value || lead.purchaseValue || 0,
           date: new Date().toISOString(),
           note: note || null
         });
 
       if (error) throw error;
-      console.log(`Deal ${status} criado para lead ${lead.id}`);
+      console.log(`Deal ${status} criado para lead ${lead.id} com valor ${value || lead.purchaseValue || 0}`);
     } catch (error) {
       console.error("Erro ao criar deal:", error);
     }
   };
 
   // Função para mover lead entre estágios
-  const moveLeadToStage = async (lead: KanbanLead, newColumnId: string, dealNote?: string) => {
+  const moveLeadToStage = async (lead: KanbanLead, newColumnId: string, dealNote?: string, dealValue?: number) => {
     if (!funnelId) {
       toast.error("Funil não selecionado");
       return;
@@ -66,7 +66,7 @@ export const useStageManagement = (
       // Criar deal se movendo para GANHO ou PERDIDO
       if (isMovingToWonLost && targetStage && !isMovingFromWonLost) {
         const dealStatus = targetStage.is_won ? "won" : "lost";
-        await createDeal(lead, dealStatus, dealNote);
+        await createDeal(lead, dealStatus, dealNote, dealValue);
         console.log(`Deal ${dealStatus} criado para lead ${lead.id}`);
       }
 

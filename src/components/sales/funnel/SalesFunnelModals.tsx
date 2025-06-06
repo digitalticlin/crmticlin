@@ -20,7 +20,7 @@ interface SalesFunnelModalsProps {
   setIsDealNoteModalOpen: (open: boolean) => void;
   pendingDealMove: {lead: KanbanLead, status: "won" | "lost"} | null;
   setPendingDealMove: (move: {lead: KanbanLead, status: "won" | "lost"} | null) => void;
-  onDealNoteConfirm: (note: string) => void;
+  onDealNoteConfirm: (note: string, value: number) => void;
 
   // Lead Detail Sidebar
   selectedLead: KanbanLead | null;
@@ -82,6 +82,7 @@ export const SalesFunnelModals = ({
         onConfirm={onDealNoteConfirm}
         dealType={pendingDealMove?.status || "won"}
         leadName={pendingDealMove?.lead.name || ""}
+        currentValue={pendingDealMove?.lead.purchaseValue}
       />
 
       {/* Sidebar de Detalhes */}
