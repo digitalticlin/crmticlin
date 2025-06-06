@@ -1,11 +1,10 @@
-
 import { VPS_CONFIG, getVPSHeaders, isRealQRCode, normalizeQRCode } from './config.ts';
 
 // Função auxiliar para fazer requisições com retry
 export async function makeVPSRequest(url: string, options: RequestInit, retries = 2): Promise<Response> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      console.log(`[VPS Request] 🌐 CORREÇÃO ROBUSTA - Tentativa ${attempt}/${retries} - ${options.method} ${url}`);
+      console.log(`[VPS Request] 🌐 CORREÇÃO ESTRATÉGICA - Tentativa ${attempt}/${retries} - ${options.method} ${url}`);
       console.log(`[VPS Request] 🔑 Token usado: ${VPS_CONFIG.authToken.substring(0, 10)}...`);
       
       const response = await fetch(url, {
@@ -13,11 +12,11 @@ export async function makeVPSRequest(url: string, options: RequestInit, retries 
         signal: AbortSignal.timeout(VPS_CONFIG.timeout)
       });
       
-      console.log(`[VPS Request] 📊 CORREÇÃO - Status: ${response.status} (tentativa ${attempt})`);
+      console.log(`[VPS Request] 📊 CORREÇÃO ESTRATÉGICA - Status: ${response.status} (tentativa ${attempt})`);
       return response;
       
     } catch (error: any) {
-      console.error(`[VPS Request] ❌ CORREÇÃO - Tentativa ${attempt} falhou:`, {
+      console.error(`[VPS Request] ❌ CORREÇÃO ESTRATÉGICA - Tentativa ${attempt} falhou:`, {
         error: error.message,
         url,
         method: options.method,
@@ -29,7 +28,7 @@ export async function makeVPSRequest(url: string, options: RequestInit, retries 
       }
       
       const delay = 1000 * attempt;
-      console.log(`[VPS Request] ⏳ CORREÇÃO - Aguardando ${delay}ms antes do retry...`);
+      console.log(`[VPS Request] ⏳ CORREÇÃO ESTRATÉGICA - Aguardando ${delay}ms antes do retry...`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -138,19 +137,19 @@ export async function getVPSInstanceStatus(instanceId: string): Promise<{ succes
 }
 
 export async function createVPSInstance(payload: any) {
-  console.log('[VPS Request Service] 🚀 CORREÇÃO ROBUSTA - Criando instância na VPS (porta 3001):', payload);
+  console.log('[VPS Request Service] 🚀 CORREÇÃO ESTRATÉGICA - Criando instância na VPS (porta 3001):', payload);
   console.log('[VPS Request Service] 🔑 Token usado:', VPS_CONFIG.authToken.substring(0, 10) + '...');
   
   try {
     // CORREÇÃO ROBUSTA: Testar conectividade antes de tentar criar
-    console.log('[VPS Request Service] 🔍 CORREÇÃO - Testando conectividade VPS antes da criação...');
+    console.log('[VPS Request Service] 🔍 CORREÇÃO ESTRATÉGICA - Testando conectividade VPS antes da criação...');
     const isConnected = await testVPSConnectivity();
     
     if (!isConnected) {
       throw new Error('VPS não está acessível - falha no teste de conectividade');
     }
     
-    console.log('[VPS Request Service] ✅ CORREÇÃO - VPS conectado, prosseguindo com criação...');
+    console.log('[VPS Request Service] ✅ CORREÇÃO ESTRATÉGICA - VPS conectado, prosseguindo com criação...');
     
     const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}${VPS_CONFIG.endpoints.createInstance}`, {
       method: 'POST',
@@ -160,7 +159,7 @@ export async function createVPSInstance(payload: any) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[VPS Request Service] ❌ CORREÇÃO - Erro ao criar instância:', response.status, errorText);
+      console.error('[VPS Request Service] ❌ CORREÇÃO ESTRATÉGICA - Erro ao criar instância:', response.status, errorText);
       return {
         success: false,
         error: `VPS error ${response.status}: ${errorText}`
@@ -168,17 +167,17 @@ export async function createVPSInstance(payload: any) {
     }
 
     const data = await response.json();
-    console.log('[VPS Request Service] ✅ CORREÇÃO - Resposta da criação:', data);
+    console.log('[VPS Request Service] ✅ CORREÇÃO ESTRATÉGICA - Resposta da criação:', data);
     
     // CORREÇÃO CRÍTICA: Buscar QR Code em múltiplos campos possíveis
     const qrCodeField = data.qrcode || data.qrCode || data.qr_code || data.qr || null;
     let processedQRCode = null;
     
     if (qrCodeField && isRealQRCode(qrCodeField)) {
-      processedQRCode = normalizeQRCode(qrCodeField);
-      console.log('[VPS Request Service] ✅ CORREÇÃO - QR Code válido encontrado na criação');
+      processedQRCode = await normalizeQRCode(qrCodeField);
+      console.log('[VPS Request Service] ✅ CORREÇÃO ESTRATÉGICA - QR Code válido encontrado na criação');
     } else {
-      console.log('[VPS Request Service] ⏳ CORREÇÃO - QR Code não disponível na criação - usar polling');
+      console.log('[VPS Request Service] ⏳ CORREÇÃO ESTRATÉGICA - QR Code não disponível na criação - usar polling');
     }
     
     return {
@@ -188,7 +187,7 @@ export async function createVPSInstance(payload: any) {
     };
     
   } catch (error: any) {
-    console.error('[VPS Request Service] ❌ CORREÇÃO - Erro na requisição:', error);
+    console.error('[VPS Request Service] ❌ CORREÇÃO ESTRATÉGICA - Erro na requisição:', error);
     return {
       success: false,
       error: error.message
@@ -240,7 +239,7 @@ export async function deleteVPSInstance(vpsInstanceId: string, instanceName?: st
 }
 
 export async function getVPSInstanceQR(instanceId: string) {
-  console.log('[VPS Request Service] 📱 CORREÇÃO FINAL - Buscando QR Code:', instanceId);
+  console.log('[VPS Request Service] 📱 CORREÇÃO ESTRATÉGICA - Buscando QR Code:', instanceId);
   console.log('[VPS Request Service] 🔑 Token usado:', VPS_CONFIG.authToken.substring(0, 10) + '...');
   
   try {
@@ -256,7 +255,7 @@ export async function getVPSInstanceQR(instanceId: string) {
     
     // Usar endpoint GET direto
     const url = `${VPS_CONFIG.baseUrl}${VPS_CONFIG.endpoints.getQRDirect.replace('{instanceId}', instanceId)}`;
-    console.log(`[VPS Request Service] 🔄 CORREÇÃO FINAL - Usando endpoint: ${url}`);
+    console.log(`[VPS Request Service] 🔄 CORREÇÃO ESTRATÉGICA - Usando endpoint: ${url}`);
     
     const response = await makeVPSRequest(url, {
       method: 'GET',
@@ -265,7 +264,7 @@ export async function getVPSInstanceQR(instanceId: string) {
 
     if (response.ok) {
       const data = await response.json();
-      console.log(`[VPS Request Service] 📥 CORREÇÃO FINAL - Resposta VPS:`, {
+      console.log(`[VPS Request Service] 📥 CORREÇÃO ESTRATÉGICA - Resposta VPS:`, {
         hasQrCode: !!(data.qrCode || data.qrcode || data.qr_code || data.qr),
         hasSuccess: !!data.success,
         status: data.status
@@ -275,13 +274,13 @@ export async function getVPSInstanceQR(instanceId: string) {
       const qrCodeField = data.qrCode || data.qrcode || data.qr_code || data.qr || null;
       
       if (data.success && qrCodeField && isRealQRCode(qrCodeField)) {
-        console.log('[VPS Request Service] 🔄 CORREÇÃO FINAL - Processando QR Code...');
+        console.log('[VPS Request Service] 🔄 CORREÇÃO ESTRATÉGICA - Processando QR Code...');
         
-        // CORREÇÃO CRÍTICA: Usar a nova função de normalização que converte texto
+        // CORREÇÃO CRÍTICA: Usar a função de normalização que converte texto para data URL
         const processedQRCode = await normalizeQRCode(qrCodeField);
         
         if (processedQRCode && processedQRCode.startsWith('data:image/')) {
-          console.log('[VPS Request Service] ✅ CORREÇÃO FINAL - QR Code convertido e validado');
+          console.log('[VPS Request Service] ✅ CORREÇÃO ESTRATÉGICA - QR Code convertido e validado');
           
           return {
             success: true,
@@ -289,7 +288,7 @@ export async function getVPSInstanceQR(instanceId: string) {
             waiting: false
           };
         } else {
-          console.log('[VPS Request Service] ❌ CORREÇÃO FINAL - Falha na conversão do QR Code');
+          console.log('[VPS Request Service] ❌ CORREÇÃO ESTRATÉGICA - Falha na conversão do QR Code');
           return {
             success: false,
             waiting: true,
@@ -297,14 +296,14 @@ export async function getVPSInstanceQR(instanceId: string) {
           };
         }
       } else if (data.success === false && data.error) {
-        console.log('[VPS Request Service] ⏳ CORREÇÃO FINAL - QR Code ainda não disponível:', data.error);
+        console.log('[VPS Request Service] ⏳ CORREÇÃO ESTRATÉGICA - QR Code ainda não disponível:', data.error);
         return {
           success: false,
           waiting: true,
           error: data.error
         };
       } else {
-        console.log('[VPS Request Service] ⏳ CORREÇÃO FINAL - QR Code ainda sendo gerado');
+        console.log('[VPS Request Service] ⏳ CORREÇÃO ESTRATÉGICA - QR Code ainda sendo gerado');
         return {
           success: false,
           waiting: true,
@@ -313,7 +312,7 @@ export async function getVPSInstanceQR(instanceId: string) {
       }
     } else {
       const errorText = await response.text();
-      console.error('[VPS Request Service] ❌ CORREÇÃO FINAL - Erro VPS:', response.status, errorText);
+      console.error('[VPS Request Service] ❌ CORREÇÃO ESTRATÉGICA - Erro VPS:', response.status, errorText);
       return {
         success: false,
         waiting: true,
@@ -322,7 +321,7 @@ export async function getVPSInstanceQR(instanceId: string) {
     }
     
   } catch (error: any) {
-    console.error('[VPS Request Service] ❌ CORREÇÃO FINAL - Erro na requisição:', error);
+    console.error('[VPS Request Service] ❌ CORREÇÃO ESTRATÉGICA - Erro na requisição:', error);
     return {
       success: false,
       waiting: true,
