@@ -1,17 +1,18 @@
+import { serve } from 'https://deno.land/std@0.177.1/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { corsHeaders } from './utils/helpers.ts';
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
-import { corsHeaders } from './config.ts';
-import { authenticateUser } from './authentication.ts';
-import { createWhatsAppInstance } from './instanceCreationService.ts';
-import { deleteWhatsAppInstance } from './instanceDeletionService.ts';
+import { createInstance } from './instanceCreationService.ts';
 import { getQRCodeAsync } from './qrCodeAsyncService.ts';
-import { sendMessage } from './messageSendingService.ts';
+import { deleteInstance } from './instanceDeletionService.ts';
+import { checkServerHealth, getServerInfo } from './serverHealthService.ts';
+import { syncInstances } from './instanceSyncService.ts';
+import { sendMessage } from './messagingService.ts';
 import { getChatHistory } from './chatHistoryService.ts';
-import { syncAllInstances } from './instanceSyncService.ts';
-
-console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED - FASE 2.0 BACKEND COMPLETO');
+import { importChatHistory } from './chatHistoryService.ts'; // 🆕 Adicionar import
 
 Deno.serve(async (req) => {
+  console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED - FASE 2.0 BACKEND COMPLETO');
   console.log('[WhatsApp Server] Method:', req.method);
   console.log('[WhatsApp Server] URL:', req.url);
 
@@ -22,92 +23,133 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    console.log('[WhatsApp Server] 📊 Supabase client created');
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
-    // Parse request body
-    const requestText = await req.text();
-    console.log('[WhatsApp Server] 📥 Raw request body:', requestText);
-    
-    const body = requestText ? JSON.parse(requestText) : {};
+    const requestBody = await req.text();
+    console.log('[WhatsApp Server] 📥 Raw request body:', requestBody);
+
+    const body = JSON.parse(requestBody);
     console.log('[WhatsApp Server] 📋 Parsed request body:', JSON.stringify(body, null, 2));
 
-    // Extract action from body
     const action = body.action;
     console.log('[WhatsApp Server] 🎯 Action extracted:', action);
 
-    // Authenticate user
-    const authResult = await authenticateUser(req, supabase);
-    if (!authResult.success) {
-      return new Response(
-        JSON.stringify({ success: false, error: authResult.error }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
+    // Authenticate the user
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      console.error('[WhatsApp Server] ❌ No Authorization header provided');
+      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    const { user } = authResult;
-    console.log('[WhatsApp Server] 🔐 Usuário autenticado:', user.id, user.email);
+    const token = authHeader.split(' ')[1];
+    console.log('[WhatsApp Server] 🔑 Token extracted:', token.substring(0, 10) + '...');
+
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    if (userError) {
+      console.error('[WhatsApp Server] ❌ Invalid token:', userError);
+      return new Response(JSON.stringify({ error: 'Invalid token' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log('[WhatsApp Server] 👤 User authenticated:', user.email);
 
     // Process different actions
     console.log('[WhatsApp Server] 🎯 Processing action:', action);
 
     switch (action) {
       case 'create_instance':
-        console.log('[WhatsApp Server] 🆕 CREATE INSTANCE');
-        return await createWhatsAppInstance(supabase, body.instanceData, user.id);
+        console.log('[WhatsApp Server] ✨ CREATE INSTANCE');
+        const createResult = await createInstance(supabase, body.instanceData);
+        return new Response(JSON.stringify(createResult), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: createResult.success ? 200 : 500
+        });
+
+      case 'get_qr_code_async':
+        console.log('[WhatsApp Server] 📱 GET QR CODE ASYNC');
+        const qrCodeResult = await getQRCodeAsync(supabase, body.instanceData);
+        return new Response(JSON.stringify(qrCodeResult), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: qrCodeResult.success ? 200 : (qrCodeResult.waiting ? 202 : 500)
+        });
 
       case 'delete_instance':
         console.log('[WhatsApp Server] 🗑️ DELETE INSTANCE');
-        return await deleteWhatsAppInstance(supabase, body.instanceData, user.id);
+        const deleteResult = await deleteInstance(supabase, body.instanceData);
+        return new Response(JSON.stringify(deleteResult), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: deleteResult.success ? 200 : 500
+        });
 
-      case 'get_qr_code_async':
-        console.log('[WhatsApp Server] 🔳 GET QR CODE ASYNC');
-        return await getQRCodeAsync(supabase, body.instanceData, user.id);
+      case 'check_server_health':
+        console.log('[WhatsApp Server] 🩺 CHECK SERVER HEALTH');
+        const healthResult = await checkServerHealth(supabase);
+        return new Response(JSON.stringify(healthResult), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: healthResult.success ? 200 : 500
+        });
 
-      case 'send_message':
-        console.log('[WhatsApp Server] 📤 SEND MESSAGE');
-        return await sendMessage(supabase, body.messageData, user.id);
-
-      case 'get_chat_history':
-        console.log('[WhatsApp Server] 📚 GET CHAT HISTORY');
-        return await getChatHistory(supabase, body.chatData, user.id);
+      case 'get_server_info':
+        console.log('[WhatsApp Server] ℹ️ GET SERVER INFO');
+        const infoResult = await getServerInfo(supabase);
+        return new Response(JSON.stringify(infoResult), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: infoResult.success ? 200 : 500
+        });
 
       case 'sync_all_instances':
         console.log('[WhatsApp Server] 🔄 SYNC ALL INSTANCES');
-        return await syncAllInstances(supabase, body.syncData, user.id);
+        const syncResult = await syncInstances(supabase);
+        return new Response(JSON.stringify(syncResult), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: syncResult.success ? 200 : 500
+        });
+
+      case 'send_message':
+        console.log('[WhatsApp Server] 📤 SEND MESSAGE');
+        const sendResult = await sendMessage(supabase, body.messageData);
+        return new Response(JSON.stringify(sendResult), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: sendResult.success ? 200 : 500
+        });
+
+      case 'get_chat_history':
+        console.log('[WhatsApp Server] 📚 GET CHAT HISTORY');
+        const historyResult = await getChatHistory(supabase, body.chatData);
+        return new Response(JSON.stringify(historyResult), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: historyResult.success ? 200 : 500
+        });
+      
+      case 'import_chat_history': // 🆕 Nova ação
+        console.log('[WhatsApp Server] 📚 IMPORT CHAT HISTORY');
+        const historyResult = await importChatHistory(supabase, body.instanceData);
+        return new Response(JSON.stringify(historyResult), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: historyResult.success ? 200 : 500
+        });
 
       default:
-        console.error('[WhatsApp Server] ❌ Ação não reconhecida:', action);
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: `Ação não reconhecida: ${action}` 
-          }),
-          { 
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
+        console.warn('[WhatsApp Server] ⚠️ UNKNOWN ACTION');
+        return new Response(JSON.stringify({ error: 'Unknown action' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
     }
 
-  } catch (error: any) {
-    console.error('[WhatsApp Server] ❌ ERRO GERAL:', error);
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message,
-        timestamp: new Date().toISOString()
-      }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
+  } catch (error) {
+    console.error('[WhatsApp Server] 🔥 ERROR:', error);
+    return new Response(JSON.stringify({ error: error.message, details: error }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });

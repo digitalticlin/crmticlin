@@ -56,6 +56,19 @@ export async function processConnectionUpdate(supabase: any, instance: any, conn
       web_status: newWebStatus
     });
 
+    // 🆕 TRIGGER: Iniciar importação do histórico quando conectar
+    if (connection === 'open') {
+      console.log('[Connection Processor] 🚀 Instância conectada! Iniciando importação do histórico...');
+      
+      try {
+        // Chamar função para importar histórico de chats
+        await triggerChatHistoryImport(supabase, instance);
+      } catch (historyError) {
+        console.error('[Connection Processor] ⚠️ Erro ao iniciar importação do histórico:', historyError);
+        // Não falhar a atualização do status por conta do histórico
+      }
+    }
+
     return {
       success: true,
       status: newStatus,
@@ -68,5 +81,73 @@ export async function processConnectionUpdate(supabase: any, instance: any, conn
       success: false,
       error: error.message
     };
+  }
+}
+
+// 🆕 Função para disparar importação do histórico
+async function triggerChatHistoryImport(supabase: any, instance: any) {
+  console.log('[History Import] 📚 Iniciando importação do histórico para instância:', instance.vps_instance_id);
+  
+  try {
+    // Buscar dados completos da instância
+    const { data: instanceData, error: instanceError } = await supabase
+      .from('whatsapp_instances')
+      .select('*')
+      .eq('vps_instance_id', instance.vps_instance_id)
+      .single();
+
+    if (instanceError || !instanceData) {
+      throw new Error(`Instância não encontrada: ${instanceError?.message}`);
+    }
+
+    // Chamar edge function para importar histórico via VPS
+    const { data: importResponse, error: importError } = await supabase.functions.invoke('whatsapp_web_server', {
+      body: {
+        action: 'import_chat_history',
+        instanceData: {
+          instanceId: instanceData.id,
+          vpsInstanceId: instance.vps_instance_id,
+          companyId: instanceData.company_id
+        }
+      }
+    });
+
+    if (importError) {
+      throw new Error(`Erro ao chamar importação: ${importError.message}`);
+    }
+
+    console.log('[History Import] ✅ Importação iniciada com sucesso:', importResponse);
+
+    // Log da operação para auditoria
+    await supabase
+      .from('sync_logs')
+      .insert({
+        function_name: 'auto_history_import_trigger',
+        status: 'success',
+        result: {
+          instance_id: instanceData.id,
+          vps_instance_id: instance.vps_instance_id,
+          triggered_at: new Date().toISOString(),
+          import_response: importResponse
+        }
+      });
+
+  } catch (error) {
+    console.error('[History Import] ❌ Erro na importação do histórico:', error);
+    
+    // Log do erro para auditoria
+    await supabase
+      .from('sync_logs')
+      .insert({
+        function_name: 'auto_history_import_trigger',
+        status: 'error',
+        error_message: error.message,
+        result: {
+          instance_vps_id: instance.vps_instance_id,
+          error_at: new Date().toISOString()
+        }
+      });
+    
+    throw error;
   }
 }
