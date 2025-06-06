@@ -28,6 +28,9 @@ export const useProfileSettings = () => {
   const { 
     companyName, setCompanyName, 
     companyId, setCompanyId, 
+    companyDocument, setCompanyDocument,
+    companyPhone, setCompanyPhone,
+    companyEmail, setCompanyEmail,
     fetchCompanyData, 
     saveCompany 
   } = useCompanyData();
@@ -146,10 +149,12 @@ export const useProfileSettings = () => {
     avatarUrl,
     userRole,
     user,
+    companyDocument,
     setFullName,
     setCompanyName,
     setDocumentId,
     setWhatsapp,
+    setCompanyDocument,
     handleEmailChange,
     handleSaveChanges,
     handleChangePassword: () => handleChangePassword(email)

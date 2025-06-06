@@ -9,6 +9,9 @@ import { toast } from "sonner";
 export const useCompanyData = () => {
   const [companyName, setCompanyName] = useState("");
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [companyDocument, setCompanyDocument] = useState("");
+  const [companyPhone, setCompanyPhone] = useState("");
+  const [companyEmail, setCompanyEmail] = useState("");
   const [loading, setLoading] = useState(true);
   
   // Carregar company_id e dados da empresa do usuário logado
@@ -32,7 +35,17 @@ export const useCompanyData = () => {
         // Buscar perfil do usuário para obter company_id
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('company_id, role')
+          .select(`
+            company_id, 
+            role,
+            companies (
+              id,
+              name,
+              document_id,
+              phone,
+              email
+            )
+          `)
           .eq('id', user.id)
           .maybeSingle();
 
@@ -42,34 +55,23 @@ export const useCompanyData = () => {
           return;
         }
 
-        if (profile && profile.company_id) {
-          console.log('[Company Data] Profile encontrado com company_id:', profile.company_id);
+        if (profile && profile.company_id && profile.companies) {
+          console.log('[Company Data] Empresa encontrada:', {
+            companyId: profile.companies.id,
+            companyName: profile.companies.name,
+            companyDocument: profile.companies.document_id,
+            userRole: profile.role
+          });
           
-          // Buscar dados da empresa
-          const { data: company, error: companyError } = await supabase
-            .from('companies')
-            .select('id, name')
-            .eq('id', profile.company_id)
-            .maybeSingle();
-
-          if (companyError) {
-            console.error('[Company Data] Erro ao buscar empresa:', companyError);
-          } else if (company) {
-            console.log('[Company Data] Empresa encontrada:', {
-              companyId: company.id,
-              companyName: company.name,
-              userRole: profile.role
-            });
-            
-            if (isMounted) {
-              setCompanyId(company.id);
-              setCompanyName(company.name);
-            }
-          } else {
-            console.log('[Company Data] Empresa não encontrada para ID:', profile.company_id);
+          if (isMounted) {
+            setCompanyId(profile.companies.id);
+            setCompanyName(profile.companies.name || "");
+            setCompanyDocument(profile.companies.document_id || "");
+            setCompanyPhone(profile.companies.phone || "");
+            setCompanyEmail(profile.companies.email || "");
           }
         } else {
-          console.log('[Company Data] Profile sem company_id vinculado');
+          console.log('[Company Data] Profile sem company_id vinculado ou empresa não encontrada');
         }
         
         if (isMounted) setLoading(false);
@@ -96,7 +98,7 @@ export const useCompanyData = () => {
       
       const { data: company, error } = await supabase
         .from('companies')
-        .select('name')
+        .select('*')
         .eq('id', id)
         .maybeSingle();
         
@@ -107,7 +109,10 @@ export const useCompanyData = () => {
         
       if (company) {
         console.log('[Company Data] Empresa encontrada:', company.name);
-        setCompanyName(company.name);
+        setCompanyName(company.name || "");
+        setCompanyDocument(company.document_id || "");
+        setCompanyPhone(company.phone || "");
+        setCompanyEmail(company.email || "");
       }
       
       setLoading(false);
@@ -137,6 +142,9 @@ export const useCompanyData = () => {
           .from('companies')
           .insert({
             name: name.trim(),
+            document_id: companyDocument,
+            phone: companyPhone,
+            email: companyEmail,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           })
@@ -160,6 +168,9 @@ export const useCompanyData = () => {
           .from('companies')
           .update({
             name: name,
+            document_id: companyDocument,
+            phone: companyPhone,
+            email: companyEmail,
             updated_at: new Date().toISOString()
           })
           .eq('id', companyId);
@@ -184,6 +195,12 @@ export const useCompanyData = () => {
     setCompanyName,
     companyId,
     setCompanyId,
+    companyDocument,
+    setCompanyDocument,
+    companyPhone,
+    setCompanyPhone,
+    companyEmail,
+    setCompanyEmail,
     loading,
     fetchCompanyData,
     saveCompany

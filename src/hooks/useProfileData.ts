@@ -29,7 +29,10 @@ export const useProfileData = () => {
           *,
           companies (
             id,
-            name
+            name,
+            document_id,
+            phone,
+            email
           )
         `)
         .eq('id', userId)
@@ -46,9 +49,12 @@ export const useProfileData = () => {
           name: profile.full_name,
           role: profile.role,
           companyId: profile.company_id,
-          companyName: profile.companies?.name
+          companyName: profile.companies?.name,
+          document: profile.document_id,
+          whatsapp: profile.whatsapp
         });
         
+        // Definir dados do perfil
         setFullName(profile.full_name || "");
         setDocumentId(profile.document_id || "");
         setWhatsapp(profile.whatsapp || "");

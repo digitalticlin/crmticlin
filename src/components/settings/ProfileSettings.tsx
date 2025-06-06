@@ -20,10 +20,12 @@ const ProfileSettings = () => {
     whatsapp,
     avatarUrl,
     userRole,
+    companyDocument,
     setFullName,
     setCompanyName,
     setDocumentId,
     setWhatsapp,
+    setCompanyDocument,
     handleEmailChange,
     handleSaveChanges,
     handleChangePassword
@@ -186,8 +188,8 @@ const ProfileSettings = () => {
             <label className="text-sm font-medium text-gray-800">CPF/CNPJ</label>
             <input 
               className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-xl text-gray-800 placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-[#D3D800]/50 focus:border-[#D3D800]/50 transition-all duration-200"
-              value={documentId}
-              onChange={(e) => setDocumentId(e.target.value)}
+              value={companyDocument}
+              onChange={(e) => setCompanyDocument(e.target.value)}
               placeholder="000.000.000-00"
             />
           </div>
