@@ -1,66 +1,112 @@
 
-import { createContext, useContext, ReactNode } from "react";
-import { KanbanColumn, KanbanLead } from "@/types/kanban";
-import { Funnel, KanbanStage } from "@/types/funnel";
-import { KanbanTag } from "@/types/kanban";
+import React, { createContext, useContext } from "react";
+import { useFunnelManagement } from "@/hooks/salesFunnel/useFunnelManagement";
+import { useStageDatabase } from "@/hooks/salesFunnel/useStageDatabase";
+import { useFunnelDatabase } from "@/hooks/salesFunnel/useFunnelDatabase";
+import { useSalesFunnel } from "@/hooks/useSalesFunnel";
 
-interface SalesFunnelContextValue {
-  // Funnel data
-  funnels: Funnel[];
-  selectedFunnel: Funnel | null;
-  setSelectedFunnel: (funnel: Funnel) => void;
-  createFunnel: (name: string, description?: string) => Promise<void>;
-  funnelLoading: boolean;
-
-  // Columns and leads
-  columns: KanbanColumn[];
-  setColumns: (columns: KanbanColumn[]) => void;
-  selectedLead: KanbanLead | null;
+interface SalesFunnelContextType {
+  // Gerenciamento de funis
+  funnels: any[];
+  selectedFunnel: any;
+  setSelectedFunnel: (funnel: any) => void;
+  createFunnel: (name: string, description?: string) => Promise<any>;
+  
+  // Gerenciamento de estágios
+  stages: any[];
+  addColumn: (title: string, color: string) => Promise<void>;
+  updateColumn: (id: string, updates: any) => Promise<void>;
+  deleteColumn: (id: string) => Promise<void>;
+  
+  // Dados do kanban
+  columns: any[];
+  setColumns: (columns: any[]) => void;
+  selectedLead: any;
   isLeadDetailOpen: boolean;
   setIsLeadDetailOpen: (open: boolean) => void;
-  availableTags: KanbanTag[];
-  stages: KanbanStage[];
-  leads: KanbanLead[]; // Adicionando leads totais
-  wonStageId?: string;
-  lostStageId?: string;
-
-  // Actions
-  addColumn: (title: string) => void;
-  updateColumn: (column: KanbanColumn) => void;
-  deleteColumn: (columnId: string) => void;
-  openLeadDetail: (lead: KanbanLead) => void;
-  toggleTagOnLead: (leadId: string, tagId: string) => void;
+  availableTags: any[];
+  
+  // Ações
+  openLeadDetail: (lead: any) => void;
+  toggleTagOnLead: (leadId: string, tag: any) => void;
   createTag: (name: string, color: string) => void;
-  updateLeadNotes: (notes: string) => void;
-  updateLeadPurchaseValue: (value: number | undefined) => void;
-  updateLeadAssignedUser: (user: string) => void;
-  updateLeadName: (name: string) => void;
-  moveLeadToStage: (lead: KanbanLead, columnId: string) => void;
-
-  // Refresh functions - changed to Promise<void> to match interface
-  refetchLeads: () => Promise<void>;
-  refetchStages: () => Promise<void>;
-
-  // UI state
-  isAdmin: boolean;
+  updateLeadNotes: (leadId: string, notes: string) => void;
+  updateLeadPurchaseValue: (leadId: string, value: number) => void;
+  updateLeadAssignedUser: (leadId: string, userId: string) => void;
+  updateLeadName: (leadId: string, name: string) => void;
+  moveLeadToStage: (lead: any, newColumnId: string, funnelId: string) => Promise<void>;
+  receiveNewLead: (lead: any) => void;
 }
 
-const SalesFunnelContext = createContext<SalesFunnelContextValue | null>(null);
+const SalesFunnelContext = createContext<SalesFunnelContextType | null>(null);
 
 export const useSalesFunnelContext = () => {
   const context = useContext(SalesFunnelContext);
   if (!context) {
-    throw new Error("useSalesFunnelContext must be used within SalesFunnelProvider");
+    throw new Error("useSalesFunnelContext deve ser usado dentro de SalesFunnelProvider");
   }
   return context;
 };
 
-interface SalesFunnelProviderProps {
-  children: ReactNode;
-  value: SalesFunnelContextValue;
-}
+export const SalesFunnelProvider = ({ children }: { children: React.ReactNode }) => {
+  // Gerenciamento de funis
+  const { funnels, selectedFunnel, setSelectedFunnel, createFunnel } = useFunnelManagement();
+  
+  // Estágios do funil selecionado
+  const { stages, addColumn, updateColumn, deleteColumn } = useStageDatabase(selectedFunnel?.id);
+  
+  // Dados e ações do kanban
+  const {
+    columns,
+    setColumns,
+    selectedLead,
+    isLeadDetailOpen,
+    setIsLeadDetailOpen,
+    availableTags,
+    openLeadDetail,
+    toggleTagOnLead,
+    createTag,
+    updateLeadNotes,
+    updateLeadPurchaseValue,
+    updateLeadAssignedUser,
+    updateLeadName,
+    receiveNewLead,
+    moveLeadToStage
+  } = useSalesFunnel();
 
-export const SalesFunnelProvider = ({ children, value }: SalesFunnelProviderProps) => {
+  const value: SalesFunnelContextType = {
+    // Funis
+    funnels,
+    selectedFunnel,
+    setSelectedFunnel,
+    createFunnel,
+    
+    // Estágios
+    stages,
+    addColumn,
+    updateColumn,
+    deleteColumn,
+    
+    // Kanban
+    columns,
+    setColumns,
+    selectedLead,
+    isLeadDetailOpen,
+    setIsLeadDetailOpen,
+    availableTags,
+    
+    // Ações
+    openLeadDetail,
+    toggleTagOnLead,
+    createTag,
+    updateLeadNotes,
+    updateLeadPurchaseValue,
+    updateLeadAssignedUser,
+    updateLeadName,
+    moveLeadToStage,
+    receiveNewLead
+  };
+
   return (
     <SalesFunnelContext.Provider value={value}>
       {children}
