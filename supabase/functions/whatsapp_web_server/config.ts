@@ -27,7 +27,7 @@ export const getVPSHeaders = () => ({
   'User-Agent': 'Supabase-Edge-Function/1.0'
 });
 
-// CORREÇÃO CRÍTICA: Validação melhorada para QR Code
+// CORREÇÃO SUPER SIMPLES: Validação para QR Code já em data URL
 export const isRealQRCode = (qrCode: string): boolean => {
   if (!qrCode || typeof qrCode !== 'string') {
     console.log('[QR Validation] ❌ QR Code inválido: não é string ou está vazio');
@@ -37,98 +37,80 @@ export const isRealQRCode = (qrCode: string): boolean => {
   // Remover espaços em branco
   const trimmedQR = qrCode.trim();
   
-  // Aceitar data URLs (imagens)
+  // CORREÇÃO SUPER SIMPLES: Se já é data URL, é válido
   if (trimmedQR.startsWith('data:image/')) {
     const isValid = trimmedQR.length > 100; // Data URL deve ter tamanho mínimo
-    console.log('[QR Validation] 📊 Data URL validation:', { length: trimmedQR.length, isValid });
+    console.log('[QR Validation] ✅ Data URL QR Code válido:', { length: trimmedQR.length, isValid });
     return isValid;
   }
   
-  // CORREÇÃO: Aceitar QR Code em formato texto válido (como o da VPS)
+  // FALLBACK: Se não é data URL, pode ser texto que precisará ser convertido depois
   const hasValidContent = trimmedQR.length > 20 && 
                          !trimmedQR.toLowerCase().includes('error') && 
                          !trimmedQR.toLowerCase().includes('null') &&
-                         !trimmedQR.toLowerCase().includes('undefined') &&
-                         // QR Code válido da VPS tem este padrão específico
-                         (trimmedQR.includes('@') || trimmedQR.includes(',') || trimmedQR.includes('='));
+                         !trimmedQR.toLowerCase().includes('undefined');
   
   if (hasValidContent) {
-    console.log('[QR Validation] ✅ QR Code texto válido:', trimmedQR.substring(0, 50));
+    console.log('[QR Validation] ⚠️ QR Code texto (será convertido):', trimmedQR.substring(0, 50));
     return true;
   }
   
   console.log('[QR Validation] ❌ QR Code inválido:', {
     length: trimmedQR.length,
-    preview: trimmedQR.substring(0, 50),
-    hasAt: trimmedQR.includes('@'),
-    hasComma: trimmedQR.includes(','),
-    hasEquals: trimmedQR.includes('=')
+    preview: trimmedQR.substring(0, 50)
   });
   return false;
 };
 
-// CORREÇÃO CRÍTICA: Função simplificada que funciona no Edge Runtime
+// CORREÇÃO SUPER SIMPLES: Função simplificada - não precisa mais converter
 export const convertTextQRToDataURL = async (qrText: string): Promise<string> => {
+  console.log('[QR Convert] ⚠️ CORREÇÃO SUPER SIMPLES - VPS já envia data URL, não deveria chegar aqui');
+  
+  // Se chegou aqui, é porque a VPS enviou texto em vez de data URL
+  // Usar API externa como fallback
   try {
-    console.log('[QR Convert] 🔄 CORREÇÃO CRÍTICA - Convertendo QR Text para Data URL');
-    console.log('[QR Convert] 📊 Input QR:', { length: qrText.length, preview: qrText.substring(0, 100) });
+    console.log('[QR Convert] 🌐 Usando API externa como fallback para texto da VPS');
     
-    // ESTRATÉGIA SIMPLIFICADA: Usar API externa para gerar QR Code
-    try {
-      console.log('[QR Convert] 🌐 Usando API externa para gerar QR Code');
-      
-      // Usar um serviço público de QR Code
-      const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qrText)}`;
-      
-      // Fazer requisição para obter a imagem
-      const response = await fetch(qrApiUrl);
-      
-      if (!response.ok) {
-        throw new Error(`API QR Code falhou: ${response.status}`);
-      }
-      
-      // Converter para base64
-      const arrayBuffer = await response.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-      
-      // Converter para base64
-      let binary = '';
-      const len = uint8Array.byteLength;
-      for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(uint8Array[i]);
-      }
-      const base64 = btoa(binary);
-      
-      const dataUrl = `data:image/png;base64,${base64}`;
-      
-      console.log('[QR Convert] ✅ Conversão bem-sucedida via API externa');
-      return dataUrl;
-      
-    } catch (apiError) {
-      console.error('[QR Convert] ❌ API externa falhou:', apiError);
-      
-      // FALLBACK: Retornar uma imagem placeholder válida
-      console.log('[QR Convert] 🔄 Usando placeholder como fallback');
-      
-      // PNG de 1x1 pixel transparente válido
-      const placeholderBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
-      return `data:image/png;base64,${placeholderBase64}`;
+    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(qrText)}`;
+    
+    const response = await fetch(qrApiUrl);
+    
+    if (!response.ok) {
+      throw new Error(`API QR Code falhou: ${response.status}`);
     }
     
+    const arrayBuffer = await response.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    
+    let binary = '';
+    const len = uint8Array.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(uint8Array[i]);
+    }
+    const base64 = btoa(binary);
+    
+    const dataUrl = `data:image/png;base64,${base64}`;
+    
+    console.log('[QR Convert] ✅ Conversão bem-sucedida via API externa');
+    return dataUrl;
+    
   } catch (error) {
-    console.error('[QR Convert] ❌ CORREÇÃO CRÍTICA - Falha total na conversão:', error);
-    throw new Error(`Falha crítica na conversão do QR Code: ${error.message}`);
+    console.error('[QR Convert] ❌ API externa falhou:', error);
+    
+    // PNG de 1x1 pixel transparente válido como último recurso
+    const placeholderBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+    return `data:image/png;base64,${placeholderBase64}`;
   }
 };
 
-// CORREÇÃO CRÍTICA: Normalização robusta com múltiplas verificações
+// CORREÇÃO SUPER SIMPLES: Normalização agora é direta
 export const normalizeQRCode = async (qrCode: string): Promise<string> => {
   if (!qrCode) {
-    console.log('[QR Normalize] ❌ CORREÇÃO CRÍTICA - QR Code vazio ou nulo');
+    console.log('[QR Normalize] ❌ CORREÇÃO SUPER SIMPLES - QR Code vazio ou nulo');
     throw new Error('QR Code está vazio');
   }
   
-  console.log('[QR Normalize] 🔄 CORREÇÃO CRÍTICA - Iniciando normalização robusta:', {
+  console.log('[QR Normalize] 🔄 CORREÇÃO SUPER SIMPLES - Iniciando normalização simples:', {
     type: typeof qrCode,
     length: qrCode.length,
     preview: qrCode.substring(0, 50)
@@ -136,42 +118,33 @@ export const normalizeQRCode = async (qrCode: string): Promise<string> => {
   
   const trimmedQR = qrCode.trim();
   
-  // Se já é data URL válido, retornar
+  // CORREÇÃO SUPER SIMPLES: Se já é data URL válido (VPS já enviou correto), retornar direto
   if (trimmedQR.startsWith('data:image/')) {
-    console.log('[QR Normalize] ✅ CORREÇÃO CRÍTICA - Já é data URL válido');
+    console.log('[QR Normalize] ✅ CORREÇÃO SUPER SIMPLES - Já é data URL válido da VPS!');
     return trimmedQR;
   }
   
-  // Se é Base64 sem prefixo, adicionar
-  if (trimmedQR.length > 500 && !trimmedQR.includes(' ') && !trimmedQR.includes('@') && !trimmedQR.includes('.')) {
-    const normalized = `data:image/png;base64,${trimmedQR}`;
-    console.log('[QR Normalize] ✅ CORREÇÃO CRÍTICA - Base64 convertido para data URL');
-    return normalized;
-  }
-  
-  // CORREÇÃO: Se é conteúdo texto do QR Code da VPS, converter para imagem
+  // Se não é data URL, converter (fallback para casos antigos)
   if (isRealQRCode(trimmedQR)) {
-    console.log('[QR Normalize] 🔄 CORREÇÃO CRÍTICA - Convertendo texto QR da VPS para imagem...');
+    console.log('[QR Normalize] 🔄 CORREÇÃO SUPER SIMPLES - Convertendo texto para data URL...');
     try {
       const dataUrl = await convertTextQRToDataURL(trimmedQR);
-      console.log('[QR Normalize] ✅ CORREÇÃO CRÍTICA - Conversão bem-sucedida');
+      console.log('[QR Normalize] ✅ CORREÇÃO SUPER SIMPLES - Conversão bem-sucedida');
       return dataUrl;
     } catch (error) {
-      console.error('[QR Normalize] ❌ CORREÇÃO CRÍTICA - Falha na conversão:', error);
-      // FALLBACK: Retornar o texto original e deixar o frontend lidar
-      console.log('[QR Normalize] 🔄 Usando texto original como fallback');
-      return trimmedQR;
+      console.error('[QR Normalize] ❌ CORREÇÃO SUPER SIMPLES - Falha na conversão:', error);
+      return trimmedQR; // Retornar original como fallback
     }
   }
   
-  console.log('[QR Normalize] ❌ CORREÇÃO CRÍTICA - QR Code não reconhecido como válido');
+  console.log('[QR Normalize] ❌ CORREÇÃO SUPER SIMPLES - QR Code não reconhecido como válido');
   throw new Error('QR Code não possui formato válido para conversão');
 };
 
 // Teste de conectividade com logs melhorados
 export const testVPSConnectivity = async (): Promise<boolean> => {
   try {
-    console.log('[VPS Test] 🔗 CORREÇÃO CRÍTICA - Testando conectividade...');
+    console.log('[VPS Test] 🔗 CORREÇÃO SUPER SIMPLES - Testando conectividade...');
     
     const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
       method: 'GET',
@@ -180,7 +153,7 @@ export const testVPSConnectivity = async (): Promise<boolean> => {
     });
     
     const isConnected = response.ok;
-    console.log('[VPS Test] 📊 CORREÇÃO CRÍTICA - Resultado:', { 
+    console.log('[VPS Test] 📊 CORREÇÃO SUPER SIMPLES - Resultado:', { 
       status: response.status, 
       isConnected,
       url: `${VPS_CONFIG.baseUrl}/health`
@@ -188,7 +161,7 @@ export const testVPSConnectivity = async (): Promise<boolean> => {
     
     return isConnected;
   } catch (error: any) {
-    console.error('[VPS Test] ❌ CORREÇÃO CRÍTICA - Falha:', error.message);
+    console.error('[VPS Test] ❌ CORREÇÃO SUPER SIMPLES - Falha:', error.message);
     return false;
   }
 };

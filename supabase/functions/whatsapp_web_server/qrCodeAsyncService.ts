@@ -4,7 +4,7 @@ import { getVPSInstanceQR } from './vpsRequestService.ts';
 
 export async function getQRCodeAsync(supabase: any, instanceData: any, userId: string) {
   const qrId = `qr_${Date.now()}`;
-  console.log(`[QR Code Async] 🚀 CORREÇÃO ULTRA-ROBUSTA - Iniciando processo: ${instanceData.instanceId} [${qrId}]`);
+  console.log(`[QR Code Async] 🚀 CORREÇÃO SUPER SIMPLES - Iniciando processo: ${instanceData.instanceId} [${qrId}]`);
 
   try {
     const { instanceId } = instanceData;
@@ -13,7 +13,7 @@ export async function getQRCodeAsync(supabase: any, instanceData: any, userId: s
       throw new Error('Instance ID é obrigatório');
     }
 
-    console.log(`[QR Code Async] 🔍 CORREÇÃO ULTRA-ROBUSTA - Buscando instância: ${instanceId}`);
+    console.log(`[QR Code Async] 🔍 CORREÇÃO SUPER SIMPLES - Buscando instância: ${instanceId}`);
 
     // Buscar instância no banco
     const { data: instance, error: instanceError } = await supabase
@@ -24,11 +24,11 @@ export async function getQRCodeAsync(supabase: any, instanceData: any, userId: s
       .single();
 
     if (instanceError || !instance) {
-      console.error(`[QR Code Async] ❌ CORREÇÃO ULTRA-ROBUSTA - Instância não encontrada [${qrId}]:`, instanceError);
+      console.error(`[QR Code Async] ❌ CORREÇÃO SUPER SIMPLES - Instância não encontrada [${qrId}]:`, instanceError);
       throw new Error('Instância não encontrada ou não pertence ao usuário');
     }
 
-    console.log(`[QR Code Async] ✅ CORREÇÃO ULTRA-ROBUSTA - Instância encontrada:`, {
+    console.log(`[QR Code Async] ✅ CORREÇÃO SUPER SIMPLES - Instância encontrada:`, {
       name: instance.instance_name,
       vpsId: instance.vps_instance_id,
       hasQR: !!instance.qr_code,
@@ -37,7 +37,7 @@ export async function getQRCodeAsync(supabase: any, instanceData: any, userId: s
 
     // Verificar se já tem QR Code válido no banco
     if (instance.qr_code && instance.qr_code.startsWith('data:image/')) {
-      console.log(`[QR Code Async] ✅ CORREÇÃO ULTRA-ROBUSTA - QR Code já disponível no banco`);
+      console.log(`[QR Code Async] ✅ CORREÇÃO SUPER SIMPLES - QR Code já disponível no banco`);
       return new Response(
         JSON.stringify({
           success: true,
@@ -53,116 +53,73 @@ export async function getQRCodeAsync(supabase: any, instanceData: any, userId: s
       throw new Error('VPS Instance ID não encontrado na instância');
     }
 
-    console.log(`[QR Code Async] 🌐 CORREÇÃO ULTRA-ROBUSTA - Buscando QR Code na VPS: ${instance.vps_instance_id}`);
+    console.log(`[QR Code Async] 🌐 CORREÇÃO SUPER SIMPLES - Buscando QR Code na VPS: ${instance.vps_instance_id}`);
     
-    // Buscar QR Code na VPS
+    // Buscar QR Code na VPS (agora deve vir como data URL)
     const vpsResult = await getVPSInstanceQR(instance.vps_instance_id);
 
     if (vpsResult.success && vpsResult.qrCode) {
-      console.log(`[QR Code Async] 📥 CORREÇÃO ULTRA-ROBUSTA - QR Code obtido da VPS: ${vpsResult.qrCode.substring(0, 100)}`);
+      console.log(`[QR Code Async] 📥 CORREÇÃO SUPER SIMPLES - QR Code obtido da VPS: ${vpsResult.qrCode.substring(0, 100)}`);
       
       let finalQRCode: string;
       
-      try {
-        console.log(`[QR Code Async] 🔄 CORREÇÃO ULTRA-ROBUSTA - Tentando normalizar QR Code...`);
-        finalQRCode = await normalizeQRCode(vpsResult.qrCode);
-        console.log(`[QR Code Async] ✅ CORREÇÃO ULTRA-ROBUSTA - Normalização concluída com sucesso`);
-      } catch (normalizeError) {
-        console.error(`[QR Code Async] ❌ CORREÇÃO ULTRA-ROBUSTA - Falha na normalização:`, normalizeError);
-        
-        // FALLBACK CRÍTICO: Se normalização falhar, usar QR Code original
-        console.log(`[QR Code Async] 🔄 CORREÇÃO ULTRA-ROBUSTA - Usando QR Code original da VPS como fallback`);
+      // CORREÇÃO SUPER SIMPLES: Se já é data URL, usar direto. Se não, normalizar.
+      if (vpsResult.qrCode.startsWith('data:image/')) {
+        console.log(`[QR Code Async] ✅ CORREÇÃO SUPER SIMPLES - QR Code já é data URL, usando direto!`);
         finalQRCode = vpsResult.qrCode;
-      }
-
-      // SALVAMENTO MEGA ULTRA-ROBUSTO NO BANCO
-      console.log(`[QR Code Async] 💾 CORREÇÃO ULTRA-ROBUSTA - Iniciando salvamento MEGA ROBUSTO...`);
-      
-      const maxRetries = 5; // Aumentado para 5 tentativas
-      let saveSuccess = false;
-      let saveError = null;
-      
-      for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-          console.log(`[QR Code Async] 🔄 CORREÇÃO ULTRA-ROBUSTA - MEGA TENTATIVA ${attempt}/${maxRetries}`);
-          
-          // ESTRATÉGIA 1: UPDATE direto
-          const { data: updateData, error: updateError } = await supabase
-            .from('whatsapp_instances')
-            .update({ 
-              qr_code: finalQRCode,
-              web_status: 'waiting_scan',
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', instanceId)
-            .select('qr_code, updated_at');
-
-          if (updateError) {
-            console.error(`[QR Code Async] ❌ CORREÇÃO ULTRA-ROBUSTA - UPDATE falhou (tentativa ${attempt}):`, updateError);
-            saveError = updateError;
-          } else if (updateData && updateData.length > 0) {
-            console.log(`[QR Code Async] ✅ CORREÇÃO ULTRA-ROBUSTA - UPDATE retornou dados (tentativa ${attempt}):`, {
-              hasQRCode: !!updateData[0]?.qr_code,
-              qrLength: updateData[0]?.qr_code?.length || 0,
-              updatedAt: updateData[0]?.updated_at
-            });
-            
-            // VERIFICAÇÃO MEGA ROBUSTA
-            await new Promise(resolve => setTimeout(resolve, 1000)); // Aguardar 1 segundo
-            
-            const { data: verifyData, error: verifyError } = await supabase
-              .from('whatsapp_instances')
-              .select('qr_code, updated_at')
-              .eq('id', instanceId)
-              .single();
-
-            if (!verifyError && verifyData?.qr_code) {
-              console.log(`[QR Code Async] ✅ CORREÇÃO ULTRA-ROBUSTA - VERIFICAÇÃO CONFIRMADA (tentativa ${attempt})!`, {
-                qrLength: verifyData.qr_code.length,
-                updatedAt: verifyData.updated_at,
-                qrPreview: verifyData.qr_code.substring(0, 50)
-              });
-              saveSuccess = true;
-              break;
-            } else {
-              console.error(`[QR Code Async] ❌ CORREÇÃO ULTRA-ROBUSTA - VERIFICAÇÃO FALHOU (tentativa ${attempt}):`, {
-                verifyError,
-                hasQRInVerify: !!verifyData?.qr_code
-              });
-              saveError = verifyError || new Error('QR Code não persistiu na verificação');
-            }
-          } else {
-            console.error(`[QR Code Async] ❌ CORREÇÃO ULTRA-ROBUSTA - UPDATE não retornou dados (tentativa ${attempt})`);
-            saveError = new Error('UPDATE não retornou dados');
-          }
-          
-        } catch (error) {
-          console.error(`[QR Code Async] ❌ CORREÇÃO ULTRA-ROBUSTA - Erro inesperado (tentativa ${attempt}):`, error);
-          saveError = error;
-        }
-        
-        if (attempt < maxRetries) {
-          const delay = 2000 * attempt; // Delay progressivo: 2s, 4s, 6s, 8s, 10s
-          console.log(`[QR Code Async] ⏳ CORREÇÃO ULTRA-ROBUSTA - Aguardando ${delay}ms antes da próxima tentativa...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-      }
-      
-      if (saveSuccess) {
-        console.log(`[QR Code Async] ✅ CORREÇÃO ULTRA-ROBUSTA - QR Code DEFINITIVAMENTE SALVO após ${maxRetries} tentativas!`);
-        
-        return new Response(
-          JSON.stringify({
-            success: true,
-            qrCode: finalQRCode,
-            source: 'vps_converted_and_saved',
-            savedToDatabase: true,
-            qrId
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
       } else {
-        console.error(`[QR Code Async] ❌ CORREÇÃO ULTRA-ROBUSTA - FALHA CRÍTICA após ${maxRetries} tentativas:`, saveError);
+        console.log(`[QR Code Async] 🔄 CORREÇÃO SUPER SIMPLES - QR Code é texto, normalizando...`);
+        try {
+          finalQRCode = await normalizeQRCode(vpsResult.qrCode);
+          console.log(`[QR Code Async] ✅ CORREÇÃO SUPER SIMPLES - Normalização concluída`);
+        } catch (normalizeError) {
+          console.error(`[QR Code Async] ❌ CORREÇÃO SUPER SIMPLES - Falha na normalização:`, normalizeError);
+          finalQRCode = vpsResult.qrCode; // Usar original como fallback
+        }
+      }
+
+      // SALVAMENTO SIMPLES E DIRETO NO BANCO
+      console.log(`[QR Code Async] 💾 CORREÇÃO SUPER SIMPLES - Salvando direto no banco...`);
+      
+      try {
+        const { data: updateData, error: updateError } = await supabase
+          .from('whatsapp_instances')
+          .update({ 
+            qr_code: finalQRCode,
+            web_status: 'waiting_scan',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', instanceId)
+          .select('qr_code, updated_at')
+          .single();
+
+        if (updateError) {
+          console.error(`[QR Code Async] ❌ CORREÇÃO SUPER SIMPLES - Erro no salvamento:`, updateError);
+          throw updateError;
+        }
+
+        if (updateData?.qr_code) {
+          console.log(`[QR Code Async] ✅ CORREÇÃO SUPER SIMPLES - QR Code salvo com sucesso!`, {
+            qrLength: updateData.qr_code.length,
+            updatedAt: updateData.updated_at
+          });
+
+          return new Response(
+            JSON.stringify({
+              success: true,
+              qrCode: finalQRCode,
+              source: 'vps_direct_dataurl',
+              savedToDatabase: true,
+              qrId
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        } else {
+          throw new Error('QR Code não foi salvo corretamente');
+        }
+
+      } catch (saveError: any) {
+        console.error(`[QR Code Async] ❌ CORREÇÃO SUPER SIMPLES - Erro crítico no salvamento:`, saveError);
         
         // Ainda retornar QR Code para exibir, mesmo sem salvar
         return new Response(
@@ -179,7 +136,7 @@ export async function getQRCodeAsync(supabase: any, instanceData: any, userId: s
       }
       
     } else if (vpsResult.waiting) {
-      console.log(`[QR Code Async] ⏳ CORREÇÃO ULTRA-ROBUSTA - QR Code ainda sendo gerado`);
+      console.log(`[QR Code Async] ⏳ CORREÇÃO SUPER SIMPLES - QR Code ainda sendo gerado`);
       
       return new Response(
         JSON.stringify({
@@ -195,7 +152,7 @@ export async function getQRCodeAsync(supabase: any, instanceData: any, userId: s
     }
 
   } catch (error: any) {
-    console.error(`[QR Code Async] ❌ CORREÇÃO ULTRA-ROBUSTA - Erro crítico [${qrId}]:`, error);
+    console.error(`[QR Code Async] ❌ CORREÇÃO SUPER SIMPLES - Erro crítico [${qrId}]:`, error);
     
     return new Response(
       JSON.stringify({

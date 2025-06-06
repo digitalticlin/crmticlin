@@ -13,7 +13,7 @@ const app = express();
 const PORT = process.env.WHATSAPP_PORT || 3001;
 
 // VERSION CONTROL
-const SERVER_VERSION = '4.0.1-QR-FIX';
+const SERVER_VERSION = '4.0.2-DIRECT-BASE64';
 const SERVER_HASH = 'sha256-' + Date.now();
 
 // Configurar CORS e parsing
@@ -45,48 +45,30 @@ const RECONNECT_CONFIG = {
   sessionBackupInterval: 60000
 };
 
-// CORREÇÃO: Função para validar QR Code real - MAIS TOLERANTE
-function isValidQRCode(qrCode) {
-  if (!qrCode) {
-    console.log(`[QR Validation] ❌ QR Code é null ou undefined`);
-    return false;
+// CORREÇÃO CRÍTICA: Função para gerar QR Code diretamente como data URL
+async function generateQRCodeDataURL(qrText) {
+  try {
+    console.log(`[QR Generation] 🔄 CORREÇÃO CRÍTICA - Gerando QR Code como data URL diretamente`);
+    
+    const qrCodeDataUrl = await qrcode.toDataURL(qrText, {
+      width: 512,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      },
+      errorCorrectionLevel: 'M'
+    });
+    
+    console.log(`[QR Generation] ✅ CORREÇÃO CRÍTICA - QR Code data URL gerado com sucesso`);
+    console.log(`[QR Generation] 📊 Data URL length: ${qrCodeDataUrl.length} characters`);
+    console.log(`[QR Generation] 📊 Data URL preview: ${qrCodeDataUrl.substring(0, 100)}...`);
+    
+    return qrCodeDataUrl;
+  } catch (error) {
+    console.error(`[QR Generation] ❌ CORREÇÃO CRÍTICA - Erro ao gerar QR Code:`, error);
+    throw error;
   }
-  
-  // Verificar se é data URL válida
-  if (!qrCode.startsWith('data:image/')) {
-    console.log(`[QR Validation] ❌ QR Code não é data URL de imagem`);
-    return false;
-  }
-  
-  // Extrair parte base64
-  const parts = qrCode.split(',');
-  if (parts.length !== 2) {
-    console.log(`[QR Validation] ❌ QR Code mal formatado (split falhou)`);
-    return false;
-  }
-  
-  const base64Part = parts[1];
-  
-  // CORREÇÃO: Reduzir tamanho mínimo de 500 para 50 caracteres - mais tolerante
-  if (base64Part.length < 50) {
-    console.log(`[QR Validation] ❌ QR Code muito pequeno: ${base64Part.length} caracteres`);
-    return false;
-  }
-  
-  // Verificar padrões conhecidos de QR falsos
-  const knownFakePatterns = [
-    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-    'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
-  ];
-  
-  const isFake = knownFakePatterns.some(pattern => base64Part.includes(pattern));
-  if (isFake) {
-    console.log(`[QR Validation] ❌ QR Code corresponde a padrão conhecido falso`);
-    return false;
-  }
-  
-  console.log(`[QR Validation] ✅ QR Code válido: ${base64Part.length} caracteres`);
-  return true;
 }
 
 // Função para enviar webhook ao Supabase - ATUALIZADA PARA USAR CONFIG GLOBAL
@@ -259,27 +241,20 @@ async function attemptReconnection(instanceId, instance) {
 
 // Configurar eventos do cliente com reconexão automática E WEBHOOK AUTOMÁTICO
 function setupClientEvents(instanceId, client, instance) {
-  // QR Code - CORREÇÃO: Marcar QR como validado quando gerado
+  // QR Code - CORREÇÃO CRÍTICA: Gerar data URL diretamente
   client.on('qr', async (qr) => {
     try {
       console.log(`📱 [v${SERVER_VERSION}] QR Code gerado para ${instanceId}`);
       
-      const qrCodeDataUrl = await qrcode.toDataURL(qr, {
-        width: 512,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        },
-        errorCorrectionLevel: 'M'
-      });
+      // CORREÇÃO CRÍTICA: Gerar data URL diretamente
+      const qrCodeDataUrl = await generateQRCodeDataURL(qr);
       
       instance.qrCode = qrCodeDataUrl;
-      instance.qrCodeValidated = true; // CORREÇÃO: Marcar como validado
+      instance.qrCodeValidated = true;
       instance.status = 'waiting_scan';
       instance.lastActivity = new Date().toISOString();
       
-      console.log(`✅ [v${SERVER_VERSION}] QR Code REAL gerado e validado para ${instanceId}`);
+      console.log(`✅ [v${SERVER_VERSION}] QR Code data URL gerado e validado para ${instanceId}`);
       
       await sendWebhookToSupabase('qr', instanceId, {
         qr: qrCodeDataUrl
@@ -642,7 +617,7 @@ app.get('/health', (req, res) => {
     health_check_enabled: true,
     auto_reconnect_enabled: true,
     global_webhook: GLOBAL_WEBHOOK_CONFIG,
-    qr_validation_fix: true,
+    direct_base64_qr: true,
     endpoints_available: [
       '/health',
       '/status',
@@ -676,10 +651,10 @@ app.get('/status', (req, res) => {
 app.get('/', (req, res) => {
   res.json({
     success: true,
-    message: 'WhatsApp Web.js Server v4.0.1 - QR Code Validation Fix',
+    message: 'WhatsApp Web.js Server v4.0.2 - Direct Base64 QR Code',
     version: SERVER_VERSION,
     hash: SERVER_HASH,
-    qrValidationFix: true,
+    directBase64QR: true,
     globalWebhook: {
       active: GLOBAL_WEBHOOK_CONFIG.active,
       url: GLOBAL_WEBHOOK_CONFIG.url,
@@ -692,7 +667,7 @@ app.get('/', (req, res) => {
       'POST /instance/create',
       'POST /instance/delete',
       'POST /instance/status',
-      'POST /instance/qr - CORRIGIDO!',
+      'POST /instance/qr - AGORA COM DATA URL DIRETO!',
       'POST /send',
       'POST /webhook/global',
       'GET /webhook/status',
@@ -724,7 +699,7 @@ app.get('/instances', (req, res) => {
   });
 });
 
-// ===== ENDPOINT PARA CRIAR INSTÂNCIA WHATSAPP COM QR CODE REAL OBRIGATÓRIO =====
+// ===== ENDPOINT PARA CRIAR INSTÂNCIA WHATSAPP COM QR CODE DIRETO EM DATA URL =====
 app.post('/instance/create', authenticateToken, async (req, res) => {
   const { instanceId, sessionName, webhookUrl, companyId } = req.body;
 
@@ -736,7 +711,7 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
     });
   }
 
-  console.log(`🔧 [v${SERVER_VERSION}] Criando instância PERMANENTE: ${instanceId}`);
+  console.log(`🔧 [v${SERVER_VERSION}] Criando instância PERMANENTE com QR direto: ${instanceId}`);
 
   try {
     if (activeInstances.has(instanceId)) {
@@ -752,6 +727,7 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
         status: 'exists',
         qrCode: existingInstance.qrCode,
         permanent_mode: true,
+        direct_base64: true,
         version: SERVER_VERSION
       });
     }
@@ -804,12 +780,13 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
       companyId,
       status: 'initializing',
       qrCode: null,
-      qrCodeValidated: false, // CORREÇÃO: Adicionar flag de validação
+      qrCodeValidated: false,
       lastActivity: new Date().toISOString(),
       reconnectAttempts: 0,
       reconnecting: false,
       manualDisconnect: false,
       permanentMode: true,
+      directBase64QR: true,
       startTime: Date.now()
     };
 
@@ -818,56 +795,25 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
     // Configurar eventos
     setupClientEvents(instanceId, client, instanceData);
 
-    // Aguardar QR code real
-    const waitForRealQR = new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Timeout aguardando QR code real'));
-      }, 30000);
-
-      instanceData.qrResolve = (qrCode) => {
-        clearTimeout(timeout);
-        resolve(qrCode);
-      };
-      instanceData.qrReject = (error) => {
-        clearTimeout(timeout);
-        reject(error);
-      };
-    });
-
-    // Resolver QR code quando gerado
-    client.on('qr', (qr) => {
-      if (instanceData.qrResolve && instanceData.qrCodeValidated) {
-        instanceData.qrResolve(instanceData.qrCode);
-      }
-    });
-
     console.log(`🚀 [v${SERVER_VERSION}] Inicializando cliente PERMANENTE para ${instanceId}...`);
     await client.initialize();
 
-    try {
-      const realQRCode = await waitForRealQR;
-      
-      res.json({
-        success: true,
-        instanceId,
-        sessionName,
-        webhookUrl,
-        companyId,
-        status: 'waiting_scan',
-        qrCode: realQRCode,
-        permanent_mode: true,
-        auto_reconnect: true,
-        webhook_enabled: true,
-        qr_validation_fix: true,
-        message: 'Instância criada em MODO PERMANENTE com validação QR corrigida',
-        version: SERVER_VERSION,
-        timestamp: new Date().toISOString()
-      });
-
-    } catch (qrError) {
-      console.error(`❌ [v${SERVER_VERSION}] Erro ao aguardar QR real para ${instanceId}:`, qrError);
-      throw qrError;
-    }
+    // Responder imediatamente - QR será enviado via webhook
+    res.json({
+      success: true,
+      instanceId,
+      sessionName,
+      webhookUrl,
+      companyId,
+      status: 'initializing',
+      message: 'Instância criada em MODO PERMANENTE - QR Code será enviado via webhook como data URL',
+      permanent_mode: true,
+      auto_reconnect: true,
+      webhook_enabled: true,
+      direct_base64_qr: true,
+      version: SERVER_VERSION,
+      timestamp: new Date().toISOString()
+    });
 
   } catch (error) {
     console.error(`❌ [v${SERVER_VERSION}] Erro ao criar instância: ${error.message}`);
@@ -1005,7 +951,7 @@ app.post('/instance/status', authenticateToken, async (req, res) => {
   }
 });
 
-// CORREÇÃO: Endpoint QR Code corrigido - usar validação própria e fallback para status
+// CORREÇÃO CRÍTICA: Endpoint QR Code agora retorna data URL direto
 app.post('/instance/qr', authenticateToken, async (req, res) => {
   const { instanceId } = req.body;
 
@@ -1017,7 +963,7 @@ app.post('/instance/qr', authenticateToken, async (req, res) => {
     });
   }
 
-  console.log(`📱 [v${SERVER_VERSION}] Solicitando QR Code CORRIGIDO para instância: ${instanceId}`);
+  console.log(`📱 [v${SERVER_VERSION}] Solicitando QR Code DATA URL para instância: ${instanceId}`);
 
   try {
     if (!activeInstances.has(instanceId)) {
@@ -1030,36 +976,21 @@ app.post('/instance/qr', authenticateToken, async (req, res) => {
 
     const instance = activeInstances.get(instanceId);
     
-    // CORREÇÃO: Usar validação própria mais tolerante
-    if (instance.qrCode && isValidQRCode(instance.qrCode)) {
-      console.log(`✅ [v${SERVER_VERSION}] QR Code REAL disponível para ${instanceId}`);
+    // CORREÇÃO CRÍTICA: Retornar data URL diretamente da VPS
+    if (instance.qrCode && instance.qrCode.startsWith('data:image/')) {
+      console.log(`✅ [v${SERVER_VERSION}] QR Code data URL disponível para ${instanceId}`);
       return res.json({
         success: true,
         qrCode: instance.qrCode,
         status: instance.status,
         qrCodeValidated: instance.qrCodeValidated,
-        validation: 'passed_internal_check',
+        direct_base64: true,
         version: SERVER_VERSION,
         timestamp: new Date().toISOString()
       });
     }
 
-    // FALLBACK: Se validação falhou mas QR existe, ainda retornar (pode ser erro de validação)
-    if (instance.qrCode && instance.qrCode.startsWith('data:image/')) {
-      console.log(`⚠️ [v${SERVER_VERSION}] QR Code disponível mas validação falhou - retornando mesmo assim`);
-      return res.json({
-        success: true,
-        qrCode: instance.qrCode,
-        status: instance.status,
-        qrCodeValidated: false,
-        validation: 'bypassed_for_compatibility',
-        warning: 'QR Code pode não estar totalmente válido',
-        version: SERVER_VERSION,
-        timestamp: new Date().toISOString()
-      });
-    }
-
-    console.log(`❌ [v${SERVER_VERSION}] QR Code não disponível para ${instanceId}`);
+    console.log(`❌ [v${SERVER_VERSION}] QR Code data URL não disponível para ${instanceId}`);
     res.status(404).json({
       success: false,
       error: 'QR Code ainda não foi gerado. WhatsApp Web.js ainda está inicializando. Tente novamente em alguns segundos.',
@@ -1092,8 +1023,8 @@ app.use((error, req, res, next) => {
 
 // Iniciar servidor
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 WhatsApp Web.js Server v${SERVER_VERSION} - QR CODE VALIDATION FIX rodando na porta ${PORT}`);
-  console.log(`🔧 QR Code validation corrigida - mais tolerante`);
+  console.log(`🚀 WhatsApp Web.js Server v${SERVER_VERSION} - DIRECT BASE64 QR CODE rodando na porta ${PORT}`);
+  console.log(`🔧 QR Code agora é gerado diretamente como data URL na VPS`);
   console.log(`🔄 Auto-reconexão habilitada`);
   console.log(`💾 Backup automático de sessões habilitado`);
   console.log(`🔍 Health check habilitado (intervalo: ${RECONNECT_CONFIG.healthCheckInterval}ms)`);
@@ -1122,7 +1053,7 @@ app.listen(PORT, '0.0.0.0', () => {
   startHealthCheck();
   startSessionBackup();
   
-  console.log(`✅ [v${SERVER_VERSION}] Modo permanente ativado com QR validation fix!`);
+  console.log(`✅ [v${SERVER_VERSION}] Modo permanente ativado com QR Code data URL direto!`);
 });
 
 // Graceful shutdown
