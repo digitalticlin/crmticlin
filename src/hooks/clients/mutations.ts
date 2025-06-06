@@ -42,9 +42,12 @@ export function useCreateClientMutation(companyId: string) {
       // Prepare lead data without contacts
       const { contacts, ...leadData } = data;
       
-      // Get the next order_position for the stage
+      // Get the next order_position - only if we have a kanban_stage_id
       let nextOrderPosition = 0;
-      if (leadData.kanban_stage_id) {
+      
+      // Since clients don't necessarily have a kanban stage, we'll set a default position
+      // If the client data includes a kanban_stage_id, we can calculate the position
+      if ('kanban_stage_id' in leadData && leadData.kanban_stage_id) {
         const { data: maxPositionData } = await supabase
           .from("leads")
           .select("order_position")
