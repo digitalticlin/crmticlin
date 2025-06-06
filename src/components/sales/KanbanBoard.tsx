@@ -4,7 +4,6 @@ import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
 import { useDragAndDrop } from "@/hooks/kanban/useDragAndDrop";
 import { BoardContent } from "./kanban/BoardContent";
 import { LeadCard } from "./LeadCard";
-import { useSalesFunnelContext } from "./funnel/SalesFunnelProvider";
 
 interface KanbanBoardProps {
   columns: IKanbanColumn[];
@@ -33,21 +32,13 @@ export const KanbanBoard = ({
   wonStageId,
   lostStageId
 }: KanbanBoardProps) => {
-  const { setColumns } = useSalesFunnelContext();
-
-  // *** FUNÇÃO DE MUDANÇA DE COLUNAS COM ATUALIZAÇÃO OTIMISTA ***
-  const handleColumnsChange = (newColumns: IKanbanColumn[]) => {
-    // Atualizar o estado do contexto diretamente para atualização otimista
-    setColumns(newColumns);
-  };
-
   const { 
     showDropZones, 
     onDragStart, 
     onDragEnd 
   } = useDragAndDrop({ 
     columns, 
-    onColumnsChange: handleColumnsChange, 
+    onColumnsChange, 
     onMoveToWonLost, 
     isWonLostView
   });
