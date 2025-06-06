@@ -7,19 +7,24 @@ interface FunnelActionButtonsProps {
   onOpenConfig?: () => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  isAdmin?: boolean;
 }
 
 export const FunnelActionButtons = ({ 
   onOpenConfig, 
   onRefresh, 
-  isRefreshing = false 
+  isRefreshing = false,
+  isAdmin: propIsAdmin
 }: FunnelActionButtonsProps) => {
   const { 
     addColumn,
-    isAdmin,
+    isAdmin: contextIsAdmin,
     refetchLeads,
     refetchStages 
   } = useSalesFunnelContext();
+
+  // Use prop isAdmin if provided, otherwise use context isAdmin
+  const isAdmin = propIsAdmin !== undefined ? propIsAdmin : contextIsAdmin;
 
   const handleAddColumn = async () => {
     const title = prompt("Nome da nova etapa:");
