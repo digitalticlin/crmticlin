@@ -30,7 +30,7 @@ export function PurchaseValueSection({ client, onUpdatePurchaseValue }: Purchase
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
       <div className="flex items-center gap-3 mb-4">
         <DollarSign className="h-5 w-5 text-[#d3d800]" />
         <h3 className="text-lg font-semibold text-gray-900">Valor de Compra</h3>
@@ -46,7 +46,7 @@ export function PurchaseValueSection({ client, onUpdatePurchaseValue }: Purchase
                 placeholder="0.00"
                 value={purchaseValue}
                 onChange={(e) => setPurchaseValue(e.target.value)}
-                className="mt-1"
+                className="mt-1 border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800]"
               />
             </div>
             <div className="flex gap-2">
@@ -65,6 +65,7 @@ export function PurchaseValueSection({ client, onUpdatePurchaseValue }: Purchase
                   setIsEditingValue(false);
                   setPurchaseValue(client.purchase_value?.toString() || "");
                 }}
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
               >
                 <X className="h-3 w-3 mr-1" />
                 Cancelar

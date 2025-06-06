@@ -27,7 +27,7 @@ export function BasicInfoSection({ client }: BasicInfoSectionProps) {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-gray-900">Informações Básicas</h3>
         {!isEditingBasicInfo && (
@@ -60,7 +60,7 @@ export function BasicInfoSection({ client }: BasicInfoSectionProps) {
                 type="email"
                 value={editedClient.email}
                 onChange={(e) => setEditedClient({...editedClient, email: e.target.value})}
-                className="mt-1"
+                className="mt-1 border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800]"
                 placeholder="email@exemplo.com"
               />
             ) : (
@@ -77,7 +77,7 @@ export function BasicInfoSection({ client }: BasicInfoSectionProps) {
               <Input
                 value={editedClient.company}
                 onChange={(e) => setEditedClient({...editedClient, company: e.target.value})}
-                className="mt-1"
+                className="mt-1 border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800]"
                 placeholder="Nome da empresa"
               />
             ) : (
@@ -94,7 +94,7 @@ export function BasicInfoSection({ client }: BasicInfoSectionProps) {
               <Input
                 value={editedClient.address}
                 onChange={(e) => setEditedClient({...editedClient, address: e.target.value})}
-                className="mt-1"
+                className="mt-1 border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800]"
                 placeholder="Endereço completo"
               />
             ) : (
@@ -104,7 +104,7 @@ export function BasicInfoSection({ client }: BasicInfoSectionProps) {
         </div>
 
         {isEditingBasicInfo && (
-          <div className="flex gap-2 pt-4 border-t">
+          <div className="flex gap-2 pt-4 border-t border-gray-200">
             <Button 
               size="sm" 
               onClick={handleSaveBasicInfo}
@@ -125,6 +125,7 @@ export function BasicInfoSection({ client }: BasicInfoSectionProps) {
                   company: client.company || ""
                 });
               }}
+              className="border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               <X className="h-3 w-3 mr-1" />
               Cancelar

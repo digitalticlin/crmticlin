@@ -20,7 +20,7 @@ export function NotesSection({ client, onUpdateNotes }: NotesSectionProps) {
   };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
       <div className="flex items-center gap-3 mb-4">
         <FileText className="h-5 w-5 text-[#d3d800]" />
         <h3 className="text-lg font-semibold text-gray-900">Observações</h3>
@@ -32,7 +32,7 @@ export function NotesSection({ client, onUpdateNotes }: NotesSectionProps) {
             placeholder="Adicione observações sobre o cliente..."
             value={notesValue}
             onChange={(e) => setNotesValue(e.target.value)}
-            className="min-h-[100px]"
+            className="min-h-[100px] border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
           />
           <div className="flex gap-2">
             <Button 
@@ -50,6 +50,7 @@ export function NotesSection({ client, onUpdateNotes }: NotesSectionProps) {
                 setIsEditingNotes(false);
                 setNotesValue(client.notes || "");
               }}
+              className="border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               <X className="h-3 w-3 mr-1" />
               Cancelar

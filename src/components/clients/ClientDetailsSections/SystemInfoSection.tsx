@@ -9,7 +9,7 @@ interface SystemInfoSectionProps {
 
 export function SystemInfoSection({ client }: SystemInfoSectionProps) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
       <div className="flex items-center gap-3 mb-4">
         <Calendar className="h-5 w-5 text-[#d3d800]" />
         <h3 className="text-lg font-semibold text-gray-900">Informações do Sistema</h3>

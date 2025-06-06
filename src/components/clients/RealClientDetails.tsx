@@ -36,8 +36,8 @@ export function RealClientDetails({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden bg-gray-50 border-gray-200">
-        <DialogHeader className="border-b border-gray-200 pb-4 bg-white px-6 py-4 rounded-t-lg">
+      <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden bg-white border border-gray-200 shadow-xl">
+        <DialogHeader className="border-b border-gray-100 pb-4 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-[#d3d800] rounded-full flex items-center justify-center">
@@ -56,7 +56,7 @@ export function RealClientDetails({
                 variant="outline" 
                 size="sm"
                 onClick={() => onEdit(client)}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 border-gray-200 text-gray-700 hover:bg-gray-50"
               >
                 <Edit className="h-4 w-4" />
                 Editar Completo
@@ -65,7 +65,7 @@ export function RealClientDetails({
                 variant="ghost" 
                 size="sm"
                 onClick={() => onOpenChange(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 hover:bg-gray-100"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -73,7 +73,7 @@ export function RealClientDetails({
           </div>
         </DialogHeader>
 
-        <div className="overflow-y-auto flex-1 p-6">
+        <div className="overflow-y-auto flex-1 px-2">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Coluna Esquerda */}
             <div className="space-y-6">

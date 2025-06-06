@@ -57,7 +57,7 @@ export function DealsHistorySection({ clientId }: DealsHistorySectionProps) {
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
         <div className="animate-pulse">
           <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
           <div className="space-y-3">
@@ -70,7 +70,7 @@ export function DealsHistorySection({ clientId }: DealsHistorySectionProps) {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-6">
+    <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Histórico de Negociações</h3>
@@ -84,18 +84,18 @@ export function DealsHistorySection({ clientId }: DealsHistorySectionProps) {
               Adicionar
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className="sm:max-w-md bg-white">
             <DialogHeader>
-              <DialogTitle>Nova Negociação</DialogTitle>
+              <DialogTitle className="text-gray-900">Nova Negociação</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label htmlFor="status">Status</Label>
+                <Label htmlFor="status" className="text-gray-700">Status</Label>
                 <Select 
                   value={newDeal.status} 
                   onValueChange={(value: "won" | "lost") => setNewDeal({...newDeal, status: value})}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="border-gray-300">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -106,23 +106,25 @@ export function DealsHistorySection({ clientId }: DealsHistorySectionProps) {
               </div>
               
               <div>
-                <Label htmlFor="value">Valor</Label>
+                <Label htmlFor="value" className="text-gray-700">Valor</Label>
                 <Input
                   id="value"
                   type="number"
                   placeholder="0.00"
                   value={newDeal.value}
                   onChange={(e) => setNewDeal({...newDeal, value: e.target.value})}
+                  className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800]"
                 />
               </div>
               
               <div>
-                <Label htmlFor="note">Observações</Label>
+                <Label htmlFor="note" className="text-gray-700">Observações</Label>
                 <Textarea
                   id="note"
                   placeholder="Detalhes da negociação..."
                   value={newDeal.note}
                   onChange={(e) => setNewDeal({...newDeal, note: e.target.value})}
+                  className="border-gray-300 focus:border-[#d3d800] focus:ring-[#d3d800] bg-white"
                 />
               </div>
               
@@ -137,7 +139,7 @@ export function DealsHistorySection({ clientId }: DealsHistorySectionProps) {
                 <Button 
                   variant="outline" 
                   onClick={() => setIsAddDealOpen(false)}
-                  className="flex-1"
+                  className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50"
                 >
                   Cancelar
                 </Button>
@@ -176,7 +178,7 @@ export function DealsHistorySection({ clientId }: DealsHistorySectionProps) {
           {deals.map((deal) => (
             <div 
               key={deal.id}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
             >
               <div className="flex items-center gap-3">
                 <Badge 
