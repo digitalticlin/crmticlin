@@ -30,63 +30,63 @@ export function PurchaseValueSection({ client, onUpdatePurchaseValue }: Purchase
   };
 
   return (
-    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-[#d3d800]/30 shadow-xl shadow-[#d3d800]/10">
-      <h3 className="font-semibold text-white border-b border-[#d3d800]/30 pb-2 mb-4 flex items-center gap-2">
-        <div className="w-2 h-2 bg-[#d3d800] rounded-full shadow-lg shadow-[#d3d800]/50"></div>
-        Valor de Compra
-      </h3>
-      <div className="flex items-center gap-3">
-        <DollarSign className="h-4 w-4 text-[#d3d800]" />
-        <div className="flex-1">
-          {isEditingValue ? (
-            <div className="space-y-2">
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <div className="flex items-center gap-3 mb-4">
+        <DollarSign className="h-5 w-5 text-[#d3d800]" />
+        <h3 className="text-lg font-semibold text-gray-900">Valor de Compra</h3>
+      </div>
+      
+      <div className="space-y-4">
+        {isEditingValue ? (
+          <div className="space-y-3">
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Valor</Label>
               <Input
                 type="number"
                 placeholder="0.00"
                 value={purchaseValue}
                 onChange={(e) => setPurchaseValue(e.target.value)}
-                className="bg-white/20 backdrop-blur-sm border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800]/20 text-white placeholder:text-white/60"
+                className="mt-1"
               />
-              <div className="flex gap-2">
-                <Button 
-                  size="sm" 
-                  onClick={handleSaveValue}
-                  className="bg-[#d3d800]/80 hover:bg-[#d3d800] text-black border-2 border-[#d3d800] shadow-lg font-semibold"
-                >
-                  <Save className="h-3 w-3 mr-1" />
-                  Salvar
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => {
-                    setIsEditingValue(false);
-                    setPurchaseValue(client.purchase_value?.toString() || "");
-                  }}
-                  className="bg-white/20 backdrop-blur-sm border-white/40 text-white hover:bg-white/30"
-                >
-                  <X className="h-3 w-3 mr-1" />
-                  Cancelar
-                </Button>
-              </div>
             </div>
-          ) : (
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="text-sm font-medium text-white/80">Valor</Label>
-                <p className="text-sm font-medium text-white">{formatCurrency(client.purchase_value)}</p>
-              </div>
+            <div className="flex gap-2">
               <Button 
                 size="sm" 
-                variant="ghost"
-                onClick={() => setIsEditingValue(true)}
-                className="text-[#d3d800] hover:text-black hover:bg-[#d3d800]/20"
+                onClick={handleSaveValue}
+                className="bg-[#d3d800] hover:bg-[#b8c200] text-black"
               >
-                <Edit className="h-3 w-3" />
+                <Save className="h-3 w-3 mr-1" />
+                Salvar
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => {
+                  setIsEditingValue(false);
+                  setPurchaseValue(client.purchase_value?.toString() || "");
+                }}
+              >
+                <X className="h-3 w-3 mr-1" />
+                Cancelar
               </Button>
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-sm font-medium text-gray-700">Valor</Label>
+              <p className="text-xl font-semibold text-gray-900">{formatCurrency(client.purchase_value)}</p>
+            </div>
+            <Button 
+              size="sm" 
+              variant="ghost"
+              onClick={() => setIsEditingValue(true)}
+              className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

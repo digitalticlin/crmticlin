@@ -1,13 +1,14 @@
 
 import { ClientData } from "@/hooks/clients/types";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit } from "lucide-react";
+import { Edit, User, X } from "lucide-react";
 import { BasicInfoSection } from "./ClientDetailsSections/BasicInfoSection";
 import { PurchaseValueSection } from "./ClientDetailsSections/PurchaseValueSection";
 import { NotesSection } from "./ClientDetailsSections/NotesSection";
 import { SystemInfoSection } from "./ClientDetailsSections/SystemInfoSection";
+import { DealsHistorySection } from "./ClientDetailsSections/DealsHistorySection";
 
 interface RealClientDetailsProps {
   client: ClientData;
@@ -34,42 +35,67 @@ export function RealClientDetails({
   };
 
   return (
-    <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-[500px] overflow-y-auto bg-black/20 backdrop-blur-xl border-[#d3d800]/30 shadow-2xl shadow-[#d3d800]/10">
-        <SheetHeader className="space-y-4 pb-6 border-b border-white/30">
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden bg-gray-50 border-gray-200">
+        <DialogHeader className="border-b border-gray-200 pb-4 bg-white px-6 py-4 rounded-t-lg">
           <div className="flex items-center justify-between">
-            <SheetTitle className="text-xl font-semibold text-white">{client.name}</SheetTitle>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => onEdit(client)}
-              className="flex items-center gap-2 bg-[#d3d800]/20 border-[#d3d800]/40 text-[#d3d800] hover:bg-[#d3d800]/30 hover:text-black"
-            >
-              <Edit className="h-4 w-4" />
-              Editar Completo
-            </Button>
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-[#d3d800] rounded-full flex items-center justify-center">
+                <User className="h-6 w-6 text-black" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-semibold text-gray-900">{client.name}</DialogTitle>
+                <div className="flex items-center gap-2 mt-1">
+                  {getStatusBadge()}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => onEdit(client)}
+                className="flex items-center gap-2"
+              >
+                <Edit className="h-4 w-4" />
+                Editar Completo
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => onOpenChange(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            {getStatusBadge()}
-          </div>
-        </SheetHeader>
+        </DialogHeader>
 
-        <div className="mt-6 space-y-6">
-          <BasicInfoSection client={client} />
-          
-          <PurchaseValueSection 
-            client={client} 
-            onUpdatePurchaseValue={onUpdatePurchaseValue} 
-          />
-          
-          <NotesSection 
-            client={client} 
-            onUpdateNotes={onUpdateNotes} 
-          />
-          
-          <SystemInfoSection client={client} />
+        <div className="overflow-y-auto flex-1 p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Coluna Esquerda */}
+            <div className="space-y-6">
+              <BasicInfoSection client={client} />
+              <PurchaseValueSection 
+                client={client} 
+                onUpdatePurchaseValue={onUpdatePurchaseValue} 
+              />
+              <SystemInfoSection client={client} />
+            </div>
+            
+            {/* Coluna Direita */}
+            <div className="space-y-6">
+              <NotesSection 
+                client={client} 
+                onUpdateNotes={onUpdateNotes} 
+              />
+              <DealsHistorySection clientId={client.id} />
+            </div>
+          </div>
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
