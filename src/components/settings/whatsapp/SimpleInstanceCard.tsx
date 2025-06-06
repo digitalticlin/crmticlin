@@ -16,10 +16,16 @@ import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 interface SimpleInstanceCardProps {
   instance: WhatsAppWebInstance;
   onGenerateQR: () => void;
-  onDelete?: () => void;
+  onDelete?: (instanceId: string) => void;
+  onRefreshQRCode?: (instanceId: string) => Promise<void>;
 }
 
-export const SimpleInstanceCard = ({ instance, onGenerateQR, onDelete }: SimpleInstanceCardProps) => {
+export const SimpleInstanceCard = ({ 
+  instance, 
+  onGenerateQR, 
+  onDelete,
+  onRefreshQRCode 
+}: SimpleInstanceCardProps) => {
   const getSimpleStatus = () => {
     switch (instance.connection_status) {
       case 'connected':
@@ -74,6 +80,12 @@ export const SimpleInstanceCard = ({ instance, onGenerateQR, onDelete }: SimpleI
                      instance.connection_status === 'ready' || 
                      instance.connection_status === 'open';
 
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(instance.id);
+    }
+  };
+
   return (
     <Card className={`group relative transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 
       bg-white/20 backdrop-blur-xl border border-white/30 rounded-2xl overflow-hidden
@@ -118,9 +130,9 @@ export const SimpleInstanceCard = ({ instance, onGenerateQR, onDelete }: SimpleI
           <span className="text-sm font-medium text-gray-700">{status.friendlyMessage}</span>
         </div>
 
-        {/* Action Buttons - Always visible for created instances */}
+        {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
-          {/* Always show QR Code button for non-connected instances */}
+          {/* QR Code button for non-connected instances */}
           {!isConnected && (
             <Button
               onClick={onGenerateQR}
@@ -148,18 +160,16 @@ export const SimpleInstanceCard = ({ instance, onGenerateQR, onDelete }: SimpleI
           )}
 
           {/* Delete button - Always available */}
-          {onDelete && (
-            <Button
-              onClick={onDelete}
-              variant="outline"
-              size="sm"
-              className="bg-white/20 backdrop-blur-sm border-white/30 text-red-600 
-                hover:bg-red-50/50 hover:border-red-300/50 hover:text-red-700 
-                transition-all duration-200"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          )}
+          <Button
+            onClick={handleDelete}
+            variant="outline"
+            size="sm"
+            className="bg-white/20 backdrop-blur-sm border-white/30 text-red-600 
+              hover:bg-red-50/50 hover:border-red-300/50 hover:text-red-700 
+              transition-all duration-200"
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         </div>
         
         {/* Help Text */}

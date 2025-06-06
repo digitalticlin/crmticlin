@@ -12,6 +12,7 @@ export const SimpleWhatsAppConnection = () => {
   const [showQRModal, setShowQRModal] = useState(false);
   const [selectedQRCode, setSelectedQRCode] = useState<string | null>(null);
   const [selectedInstanceName, setSelectedInstanceName] = useState<string>('');
+  const [selectedInstanceId, setSelectedInstanceId] = useState<string>('');
 
   const { user } = useAuth();
   
@@ -19,6 +20,7 @@ export const SimpleWhatsAppConnection = () => {
     instances,
     isLoading,
     createInstance,
+    deleteInstance,
     refreshQRCode,
     generateIntelligentInstanceName
   } = useWhatsAppWebInstances();
@@ -46,7 +48,19 @@ export const SimpleWhatsAppConnection = () => {
     if (result?.qrCode) {
       setSelectedQRCode(result.qrCode);
       setSelectedInstanceName(instanceName);
+      setSelectedInstanceId(instanceId);
       setShowQRModal(true);
+    }
+  };
+
+  const handleDeleteInstance = async (instanceId: string) => {
+    await deleteInstance(instanceId);
+  };
+
+  const handleRefreshQRCode = async (instanceId: string) => {
+    const result = await refreshQRCode(instanceId);
+    if (result?.qrCode) {
+      setSelectedQRCode(result.qrCode);
     }
   };
 
@@ -54,6 +68,7 @@ export const SimpleWhatsAppConnection = () => {
     setShowQRModal(false);
     setSelectedQRCode(null);
     setSelectedInstanceName('');
+    setSelectedInstanceId('');
   };
 
   if (isLoading) {
@@ -119,6 +134,8 @@ export const SimpleWhatsAppConnection = () => {
           onClose={closeQRModal}
           qrCode={selectedQRCode}
           instanceName={selectedInstanceName}
+          instanceId={selectedInstanceId}
+          onRefreshQRCode={handleRefreshQRCode}
         />
       </div>
     );
@@ -134,6 +151,8 @@ export const SimpleWhatsAppConnection = () => {
             key={instance.id}
             instance={instance}
             onGenerateQR={() => handleGenerateQR(instance.id, instance.instance_name)}
+            onDelete={handleDeleteInstance}
+            onRefreshQRCode={handleRefreshQRCode}
           />
         ))}
         
@@ -141,13 +160,13 @@ export const SimpleWhatsAppConnection = () => {
         <Card className="group relative transition-all duration-300 hover:shadow-2xl hover:-translate-y-1
           bg-gradient-to-br from-green-50/60 to-green-100/40 backdrop-blur-xl 
           border-2 border-dashed border-green-300/70 rounded-2xl overflow-hidden
-          cursor-pointer" 
+          cursor-pointer min-h-[280px] flex items-center justify-center" 
           onClick={!isConnecting ? handleConnect : undefined}>
           
           {/* Glassmorphism overlay */}
           <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
           
-          <CardContent className="p-6 text-center flex flex-col justify-center h-full min-h-[240px] relative z-10">
+          <CardContent className="p-6 text-center relative z-10">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full 
               bg-gradient-to-br from-green-400/30 to-green-600/30 backdrop-blur-sm mb-4
               group-hover:scale-110 transition-transform duration-200">
@@ -190,6 +209,8 @@ export const SimpleWhatsAppConnection = () => {
         onClose={closeQRModal}
         qrCode={selectedQRCode}
         instanceName={selectedInstanceName}
+        instanceId={selectedInstanceId}
+        onRefreshQRCode={handleRefreshQRCode}
       />
     </div>
   );

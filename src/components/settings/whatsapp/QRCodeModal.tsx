@@ -1,7 +1,7 @@
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Loader2, X } from "lucide-react";
+import { CheckCircle, Loader2, X, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface QRCodeModalProps {
@@ -9,16 +9,38 @@ interface QRCodeModalProps {
   onClose: () => void;
   qrCode: string | null;
   instanceName: string;
+  instanceId?: string;
+  onRefreshQRCode?: (instanceId: string) => Promise<void>;
 }
 
-export const QRCodeModal = ({ isOpen, onClose, qrCode, instanceName }: QRCodeModalProps) => {
+export const QRCodeModal = ({ 
+  isOpen, 
+  onClose, 
+  qrCode, 
+  instanceName, 
+  instanceId,
+  onRefreshQRCode 
+}: QRCodeModalProps) => {
   const [isScanned, setIsScanned] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
       setIsScanned(false);
+      setIsRefreshing(false);
     }
   }, [isOpen]);
+
+  const handleRefreshQRCode = async () => {
+    if (!instanceId || !onRefreshQRCode) return;
+    
+    setIsRefreshing(true);
+    try {
+      await onRefreshQRCode(instanceId);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -88,6 +110,29 @@ export const QRCodeModal = ({ isOpen, onClose, qrCode, instanceName }: QRCodeMod
             >
               Fechar
             </Button>
+            
+            {qrCode && !isScanned && onRefreshQRCode && instanceId && (
+              <Button 
+                onClick={handleRefreshQRCode}
+                disabled={isRefreshing}
+                variant="outline"
+                className="flex-1 bg-blue-50/20 backdrop-blur-sm border-blue-300/30 hover:bg-blue-50/30 
+                  text-blue-700 hover:text-blue-800"
+              >
+                {isRefreshing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Gerando...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Gerar Novo QR Code
+                  </>
+                )}
+              </Button>
+            )}
+            
             {qrCode && !isScanned && (
               <Button 
                 onClick={() => setIsScanned(true)}
@@ -107,6 +152,7 @@ export const QRCodeModal = ({ isOpen, onClose, qrCode, instanceName }: QRCodeMod
                 <li>• Mantenha a câmera estável ao escanear</li>
                 <li>• Certifique-se de ter boa iluminação</li>
                 <li>• O QR Code expira em alguns minutos</li>
+                <li>• Use "Gerar Novo QR Code" se este expirar</li>
               </ul>
             </div>
           )}
