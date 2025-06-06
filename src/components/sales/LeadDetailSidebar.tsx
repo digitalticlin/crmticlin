@@ -14,6 +14,9 @@ import { GlassmorphismNotes } from "./leadDetail/GlassmorphismNotes";
 import { GlassmorphismChatPreview } from "./leadDetail/GlassmorphismChatPreview";
 import { GlassmorphismDealHistory } from "./leadDetail/GlassmorphismDealHistory";
 import { GlassmorphismBasicInfo } from "./leadDetail/GlassmorphismBasicInfo";
+import { GlassmorphismSystemInfo } from "./leadDetail/GlassmorphismSystemInfo";
+import { GlassmorphismAddressSection } from "./leadDetail/GlassmorphismAddressSection";
+import { GlassmorphismOwnerSection } from "./leadDetail/GlassmorphismOwnerSection";
 import { useLeadDeals } from "@/hooks/salesFunnel/useLeadDeals";
 import { useEffect } from "react";
 
@@ -61,6 +64,11 @@ export const LeadDetailSidebar = ({
     }
   };
 
+  const handleLeadUpdate = (updates: Partial<KanbanLead>) => {
+    console.log("Lead updates:", updates);
+    // Aqui você pode implementar a lógica para atualizar o lead globalmente
+  };
+
   if (!selectedLead) return null;
 
   return (
@@ -78,9 +86,13 @@ export const LeadDetailSidebar = ({
           {/* Enhanced Basic Info Section */}
           <GlassmorphismBasicInfo 
             selectedLead={selectedLead}
-            onUpdateLead={(updates) => {
-              console.log("Updating lead basic info:", updates);
-            }}
+            onUpdateLead={handleLeadUpdate}
+          />
+
+          {/* Address Section */}
+          <GlassmorphismAddressSection 
+            selectedLead={selectedLead}
+            onUpdateLead={handleLeadUpdate}
           />
           
           {/* Purchase Value Field */}
@@ -102,6 +114,12 @@ export const LeadDetailSidebar = ({
                 toast.success("Responsável atualizado");
               } : undefined}
           />
+
+          {/* Owner Section */}
+          <GlassmorphismOwnerSection 
+            selectedLead={selectedLead}
+            onUpdateLead={handleLeadUpdate}
+          />
           
           {/* Tags Selector */}
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-lime-400/30 shadow-xl shadow-lime-400/10">
@@ -121,6 +139,9 @@ export const LeadDetailSidebar = ({
             </h3>
             <GlassmorphismDealHistory deals={deals} />
           </div>
+
+          {/* System Info Section */}
+          <GlassmorphismSystemInfo selectedLead={selectedLead} />
           
           {/* Notes Field */}
           <GlassmorphismNotes 

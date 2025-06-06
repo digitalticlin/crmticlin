@@ -11,19 +11,37 @@ export interface KanbanLead {
   id: string;
   name: string;
   phone: string;
-  email?: string; // Adicionado
-  company?: string; // Adicionado
-  documentId?: string; // Adicionado
-  address?: string; // Adicionado
+  email?: string;
+  company?: string;
+  documentId?: string;
+  document_type?: 'cpf' | 'cnpj';
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  zip_code?: string;
   lastMessage: string;
+  last_message?: string;
   lastMessageTime: string;
+  last_message_time?: string;
   tags: KanbanTag[];
   notes?: string;
-  columnId?: string; // Add columnId to track which column a lead belongs to
-  purchaseValue?: number; // Add purchaseValue to track the lead's purchase amount
-  assignedUser?: string; // Add assignedUser to track who is responsible for the lead
-  avatar?: string; // Add avatar for WhatsApp profile picture
-  unreadCount?: number; // Add unreadCount for unread messages indicator
+  columnId?: string;
+  purchaseValue?: number;
+  purchase_value?: number;
+  assignedUser?: string;
+  avatar?: string;
+  unreadCount?: number;
+  unread_count?: number;
+  
+  // Sistema e relacionamentos
+  created_at?: string;
+  updated_at?: string;
+  company_id?: string;
+  whatsapp_number_id?: string;
+  funnel_id?: string;
+  kanban_stage_id?: string;
+  owner_id?: string;
 }
 
 export interface KanbanColumn {
@@ -32,7 +50,7 @@ export interface KanbanColumn {
   leads: KanbanLead[];
   isFixed?: boolean;
   isHidden?: boolean;
-  color?: string; // Added color property for column customization
+  color?: string;
 }
 
 export type ColumnType = "new_lead" | "won" | "lost" | "custom";
