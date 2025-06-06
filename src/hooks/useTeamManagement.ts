@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -62,7 +61,7 @@ export const useTeamManagement = (companyId?: string | null) => {
       if (authError) throw authError;
 
       const authUserMap = new Map<string, string>();
-      authData.users.forEach(user => {
+      authData.users.forEach((user: any) => {
         if (user.email) {
           authUserMap.set(user.id, user.email);
         }
