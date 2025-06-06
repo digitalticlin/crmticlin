@@ -1,5 +1,4 @@
-
-import { VPS_CONFIG } from './config/vpsConfig.ts';
+import { VPS_CONFIG } from './config.ts';
 
 export async function importChatHistory(supabase: any, instanceData: any) {
   console.log('[Chat History Import] 📚 Iniciando importação do histórico:', instanceData);
