@@ -81,7 +81,7 @@ const ANALYSIS_STEPS: AnalysisStep[] = [
   {
     id: 'env_files_content',
     name: 'Conteúdo Arquivos .env',
-    command: 'find /root -name "*.env" -exec echo "=== {} ===" \\; -exec head -10 {} \\; 2>/dev/null',
+    command: 'find /root -name "*.env" -exec echo "=== {} ==="  \\; -exec head -10 {} \\; 2>/dev/null',
     description: 'Conteúdo dos arquivos .env'
   },
   
