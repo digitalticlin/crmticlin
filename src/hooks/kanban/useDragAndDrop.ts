@@ -10,15 +10,13 @@ interface UseDragAndDropProps {
   onColumnsChange: (newColumns: KanbanColumn[]) => void;
   onMoveToWonLost?: (lead: KanbanLead, status: "won" | "lost") => void;
   isWonLostView?: boolean;
-  onRefreshData?: () => void; // Adicionar callback para refresh
 }
 
 export const useDragAndDrop = ({ 
   columns, 
   onColumnsChange, 
   onMoveToWonLost,
-  isWonLostView = false,
-  onRefreshData
+  isWonLostView = false
 }: UseDragAndDropProps) => {
   const [showDropZones, setShowDropZones] = useState(false);
 
@@ -30,15 +28,9 @@ export const useDragAndDrop = ({
         .eq("id", leadId);
 
       if (error) throw error;
-      console.log(`Lead ${leadId} movido para estágio ${newStageId}`);
-      
-      // Recarregar dados após sucesso
-      if (onRefreshData) {
-        onRefreshData();
-      }
+      console.log(`Lead ${leadId} movido para estágio ${newStageId} no banco`);
     } catch (error) {
       console.error("Erro ao mover lead no banco:", error);
-      toast.error("Erro ao salvar mudança de etapa");
       throw error;
     }
   };
@@ -70,6 +62,30 @@ export const useDragAndDrop = ({
     const lead = sourceColumn.leads.find(lead => lead.id === draggableId);
     if (!lead) return;
 
+    // *** ATUALIZAÇÃO OTIMISTA - MOVER IMEDIATAMENTE NA UI ***
+    const updatedLead = { ...lead, columnId: destination.droppableId };
+    
+    // Remover da coluna origem
+    const newSourceLeads = sourceColumn.leads.filter(l => l.id !== draggableId);
+    
+    // Adicionar na coluna destino na posição correta
+    const newDestLeads = [...destColumn.leads];
+    newDestLeads.splice(destination.index, 0, updatedLead);
+
+    // Atualizar as colunas imediatamente
+    const newColumns = columns.map(col => {
+      if (col.id === source.droppableId) {
+        return { ...col, leads: newSourceLeads };
+      }
+      if (col.id === destination.droppableId) {
+        return { ...col, leads: newDestLeads };
+      }
+      return col;
+    });
+
+    // Aplicar mudança visual imediatamente
+    onColumnsChange(newColumns);
+
     // Verificar se é movimento para Won/Lost
     if (onMoveToWonLost && !isWonLostView) {
       const destStage = destColumn.title.toUpperCase();
@@ -80,7 +96,10 @@ export const useDragAndDrop = ({
           toast.success("Lead marcado como ganho!");
           return;
         } catch (error) {
-          return; // Erro já tratado na função moveLeadToDatabase
+          // Rollback em caso de erro
+          onColumnsChange(columns);
+          toast.error("Erro ao marcar lead como ganho");
+          return;
         }
       } else if (destStage === "PERDIDO") {
         try {
@@ -89,18 +108,22 @@ export const useDragAndDrop = ({
           toast.success("Lead marcado como perdido!");
           return;
         } catch (error) {
-          return; // Erro já tratado na função moveLeadToDatabase
+          // Rollback em caso de erro
+          onColumnsChange(columns);
+          toast.error("Erro ao marcar lead como perdido");
+          return;
         }
       }
     }
 
+    // *** SALVAR NO BANCO EM BACKGROUND ***
     try {
-      // Salvar no banco de dados primeiro
       await moveLeadToDatabase(lead.id, destination.droppableId);
       toast.success("Etapa alterada com sucesso!");
     } catch (error) {
-      // Se falhou no banco, não fazer mudança local
-      return;
+      // *** ROLLBACK EM CASO DE ERRO ***
+      onColumnsChange(columns); // Reverter para o estado anterior
+      toast.error("Erro ao salvar mudança de etapa");
     }
   };
 

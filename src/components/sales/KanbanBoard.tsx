@@ -17,7 +17,6 @@ interface KanbanBoardProps {
   isWonLostView?: boolean;
   wonStageId?: string;
   lostStageId?: string;
-  onRefreshData?: () => void; // Adicionar prop para refresh
 }
 
 export const KanbanBoard = ({
@@ -31,8 +30,7 @@ export const KanbanBoard = ({
   onReturnToFunnel,
   isWonLostView = false,
   wonStageId,
-  lostStageId,
-  onRefreshData
+  lostStageId
 }: KanbanBoardProps) => {
   const { 
     showDropZones, 
@@ -42,8 +40,7 @@ export const KanbanBoard = ({
     columns, 
     onColumnsChange, 
     onMoveToWonLost, 
-    isWonLostView,
-    onRefreshData // Passar o callback de refresh
+    isWonLostView
   });
 
   // Cria um mapping para lookup por id mais fácil para renderClone
@@ -74,7 +71,7 @@ export const KanbanBoard = ({
   };
 
   // Cria uma key baseada nas colunas que irá forçar o remount quando as colunas mudarem
-  const boardKey = columns.map(col => col.id).join('-');
+  const boardKey = columns.map(col => `${col.id}-${col.leads.length}`).join('-');
 
   return (
     <DragDropContext 
