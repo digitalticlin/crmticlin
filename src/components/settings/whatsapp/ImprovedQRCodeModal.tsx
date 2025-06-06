@@ -1,14 +1,13 @@
 
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { QrCode } from "lucide-react";
-import { useState } from "react";
+import { Loader2, QrCode, CheckCircle, RefreshCw } from "lucide-react";
 import { QRCodeDisplay } from "./modal/QRCodeDisplay";
 
 interface ImprovedQRCodeModalProps {
@@ -21,54 +20,70 @@ interface ImprovedQRCodeModalProps {
   maxAttempts?: number;
 }
 
-export function ImprovedQRCodeModal({ 
-  isOpen, 
-  onOpenChange, 
-  qrCodeUrl, 
+export const ImprovedQRCodeModal = ({
+  isOpen,
+  onOpenChange,
+  qrCodeUrl,
   instanceName,
   isWaitingForQR = false,
   currentAttempt = 0,
   maxAttempts = 20
-}: ImprovedQRCodeModalProps) {
+}: ImprovedQRCodeModalProps) => {
   const [isExpired, setIsExpired] = useState(false);
+  const [timeoutId, setTimeoutId] = useState<number | null>(null);
 
+  // FASE 3.0: Reset estado ao abrir/fechar
+  useEffect(() => {
+    setIsExpired(false);
+    
+    // Limpar timeout anterior se existir
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    
+    // Configurar novo timeout apenas se o modal estiver aberto e tiver QR
+    if (isOpen && qrCodeUrl && !isWaitingForQR) {
+      const id = window.setTimeout(() => {
+        setIsExpired(true);
+      }, 5 * 60 * 1000); // 5 minutos
+      
+      setTimeoutId(Number(id));
+    }
+    
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isOpen, qrCodeUrl, isWaitingForQR]);
+
+  // Função para lidar com QR expirado
   const handleExpired = () => {
     setIsExpired(true);
   };
 
-  const handleClose = () => {
-    console.log('[QR Modal] 🔐 Fechando modal otimizado');
-    setIsExpired(false);
-    onOpenChange(false);
+  const formatInstanceName = (name: string) => {
+    return name.length > 30 ? name.substring(0, 27) + "..." : name;
   };
-
-  console.log('[QR Modal] 📱 Renderizando modal OTIMIZADO:', { 
-    isOpen, 
-    hasQR: !!qrCodeUrl, 
-    instanceName,
-    isExpired,
-    isWaitingForQR,
-    currentAttempt,
-    maxAttempts
-  });
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-gray-800">
+          <DialogTitle className="flex items-center gap-2 text-lg">
             <QrCode className="h-5 w-5 text-green-600" />
-            Conectar WhatsApp
+            <div className="flex flex-col">
+              <span>Conectar WhatsApp</span>
+              {instanceName && (
+                <span className="text-sm font-normal text-muted-foreground">
+                  {formatInstanceName(instanceName)}
+                </span>
+              )}
+            </div>
           </DialogTitle>
-          <DialogDescription className="text-gray-700">
-            {isWaitingForQR 
-              ? `Preparando QR Code para a instância "${instanceName}"...`
-              : `Escaneie o QR Code para conectar sua conta WhatsApp à instância "${instanceName}"`
-            }
-          </DialogDescription>
         </DialogHeader>
-        
-        <div className="flex flex-col items-center justify-center py-6">
+
+        <div className="flex flex-col items-center py-2">
           <QRCodeDisplay
             qrCodeUrl={qrCodeUrl}
             isWaitingForQR={isWaitingForQR}
@@ -78,18 +93,23 @@ export function ImprovedQRCodeModal({
             onExpired={handleExpired}
             isOpen={isOpen}
           />
-        </div>
-        
-        <div className="flex justify-center">
-          <Button 
-            variant="outline" 
-            onClick={handleClose}
-            className="w-full bg-white/50 hover:bg-white/70 border-white/40 rounded-xl transition-all duration-200 text-gray-800"
-          >
-            {isExpired ? 'Fechar e Tentar Novamente' : 'Fechar'}
-          </Button>
+
+          {/* FASE 3.0: Melhor feedback visual e ajuda */}
+          <div className="mt-4 w-full">
+            <Button 
+              variant="outline" 
+              className="w-full" 
+              onClick={() => onOpenChange(false)}
+            >
+              Fechar
+            </Button>
+          </div>
+          
+          <p className="text-xs text-center text-muted-foreground mt-4">
+            Problemas? Entre em contato com o suporte ou tente criar uma nova instância.
+          </p>
         </div>
       </DialogContent>
     </Dialog>
   );
-}
+};

@@ -1,179 +1,115 @@
 
 import { useState, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
 
 export const useAutomaticQRPolling = () => {
   const [isPolling, setIsPolling] = useState(false);
   const [currentAttempt, setCurrentAttempt] = useState(0);
-  const [maxAttempts] = useState(20); // FASE 1.3: Aumentado para 20 tentativas
-  
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
-  const isPollingRef = useRef(false);
+  const maxAttempts = 20;
+  const pollingTimeoutRef = useRef<number | null>(null);
+  const isMountedRef = useRef(true);
 
-  const stopPolling = useCallback(() => {
-    console.log('[Auto QR Polling] 🛑 FASE 1.3 - Parando polling');
-    if (pollingRef.current) {
-      clearTimeout(pollingRef.current);
-      pollingRef.current = null;
+  // FASE 3.0: Cleanup melhorado
+  const cleanup = useCallback(() => {
+    if (pollingTimeoutRef.current) {
+      clearTimeout(pollingTimeoutRef.current);
+      pollingTimeoutRef.current = null;
     }
     setIsPolling(false);
     setCurrentAttempt(0);
-    isPollingRef.current = false;
   }, []);
 
+  // FASE 3.0: SEQUÊNCIA CORRIGIDA - Polling melhorado com delay progressivo
   const startPolling = useCallback(async (
     instanceId: string,
     instanceName: string,
-    onQRReceived: (qrCode: string) => void
+    onQrCodeReceived: (qrCode: string) => void
   ) => {
-    console.log('[Auto QR Polling] 🚀 FASE 1.3 - Iniciando polling intensivo para:', instanceName);
-    console.log('[Auto QR Polling] 📋 FASE 1.3 - Configuração:', {
-      instanceId,
-      instanceName,
-      maxAttempts,
-      pollingActive: isPollingRef.current
-    });
-    
-    // Parar qualquer polling anterior
-    stopPolling();
+    console.log('[QR Polling] 🔄 FASE 3.0 - Iniciando polling otimizado para:', instanceId);
     
     setIsPolling(true);
     setCurrentAttempt(0);
-    isPollingRef.current = true;
-
-    const poll = async (attempt: number) => {
-      if (!isPollingRef.current || attempt > maxAttempts) {
-        console.log('[Auto QR Polling] ⏰ FASE 1.3 - Polling finalizado - máximo de tentativas atingido:', {
-          isPollingActive: isPollingRef.current,
-          currentAttempt: attempt,
-          maxAttempts
-        });
-        stopPolling();
-        toast.error(`Timeout: QR Code não foi gerado após ${maxAttempts} tentativas. Verifique a conectividade da VPS.`);
+    
+    // FASE 3.0: Primeiro delay para dar tempo do backend processar
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Função recursiva de polling
+    const pollForQrCode = async (attemptNumber: number) => {
+      if (!isMountedRef.current || attemptNumber > maxAttempts) {
+        cleanup();
         return;
       }
-
+      
       try {
-        console.log(`[Auto QR Polling] ⚡ FASE 1.3 - Tentativa ${attempt}/${maxAttempts} para ${instanceName}`);
-        console.log(`[Auto QR Polling] 📊 FASE 1.3 - Estado atual:`, {
-          instanceId,
-          instanceName,
-          attempt,
-          maxAttempts,
-          timestamp: new Date().toISOString()
+        console.log(`[QR Polling] 📱 FASE 3.0 - Tentativa ${attemptNumber}/${maxAttempts}`);
+        setCurrentAttempt(attemptNumber);
+        
+        const result = await WhatsAppWebService.getQRCode(instanceId);
+        
+        console.log('[QR Polling] 📊 FASE 3.0 - Resposta:', {
+          success: result.success,
+          waiting: result.waiting,
+          hasQrCode: !!result.qrCode,
+          error: result.error
         });
         
-        setCurrentAttempt(attempt);
-
-        const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
-          body: {
-            action: 'get_qr_code_async',
-            instanceData: { instanceId }
-          }
-        });
-
-        if (error) {
-          console.error(`[Auto QR Polling] ❌ FASE 1.3 - Erro Supabase (tentativa ${attempt}):`, error);
-          throw error;
+        if (result.success && result.qrCode) {
+          console.log('[QR Polling] ✅ FASE 3.0 - QR Code recebido com sucesso!');
+          onQrCodeReceived(result.qrCode);
+          setIsPolling(false);
+          return;
         }
-
-        console.log(`[Auto QR Polling] 📥 FASE 1.3 - Resposta completa (tentativa ${attempt}):`, {
-          success: data.success,
-          hasQrCode: !!data.qrCode,
-          qrCodeLength: data.qrCode ? data.qrCode.length : 0,
-          qrCodePreview: data.qrCode ? data.qrCode.substring(0, 50) + '...' : null,
-          waiting: data.waiting,
-          source: data.source,
-          error: data.error,
-          retryAfter: data.retryAfter
-        });
-
-        if (data.success && data.qrCode) {
-          // FASE 1.3: Validação intensiva do QR Code
-          const isValidBase64 = data.qrCode.length > 500;
-          const hasDataUrl = data.qrCode.startsWith('data:image/') || data.qrCode.startsWith('data:image');
-          
-          console.log(`[Auto QR Polling] 🔍 FASE 1.3 - Validação do QR Code:`, {
-            qrCodeLength: data.qrCode.length,
-            isValidBase64,
-            hasDataUrl,
-            startsWithData: data.qrCode.substring(0, 20),
-            source: data.source
-          });
-
-          if (isValidBase64) {
-            console.log(`[Auto QR Polling] 🎉 FASE 1.3 - QR Code VÁLIDO recebido na tentativa ${attempt}!`, {
-              fonte: data.source,
-              tamanho: data.qrCode.length,
-              formato: hasDataUrl ? 'data URL' : 'base64 puro'
-            });
-            
-            onQRReceived(data.qrCode);
-            stopPolling();
-            return;
-          } else {
-            console.warn(`[Auto QR Polling] ⚠️ FASE 1.3 - QR Code recebido mas inválido (muito pequeno):`, {
-              tamanho: data.qrCode.length,
-              conteudo: data.qrCode.substring(0, 100)
-            });
-          }
-        }
-
-        if (data.waiting) {
-          // FASE 1.3: Intervalos otimizados baseados no retryAfter da resposta
-          let delay = data.retryAfter || 2000; // Usar sugestão da API ou 2s padrão
-          
-          // Intervalos progressivos para casos sem sugestão
-          if (!data.retryAfter) {
-            if (attempt <= 5) delay = 1500;      // 1.5s primeiras 5 tentativas
-            else if (attempt <= 12) delay = 2500; // 2.5s tentativas 6-12
-            else delay = 3500;                    // 3.5s tentativas finais
-          }
-
-          console.log(`[Auto QR Polling] ⏳ FASE 1.3 - Aguardando ${delay/1000}s para próxima tentativa...`, {
-            retryAfterSuggestion: data.retryAfter,
-            delayUsed: delay,
-            nextAttempt: attempt + 1
-          });
-          
-          pollingRef.current = setTimeout(() => {
-            if (isPollingRef.current) {
-              poll(attempt + 1);
-            }
-          }, delay);
-        } else {
-          throw new Error(data.error || 'Falha desconhecida ao obter QR Code');
-        }
-
-      } catch (error: any) {
-        console.error(`[Auto QR Polling] ❌ FASE 1.3 - Erro crítico na tentativa ${attempt}:`, {
-          error: error.message,
-          stack: error.stack,
-          instanceId,
-          instanceName
-        });
         
-        if (attempt >= maxAttempts) {
-          stopPolling();
-          toast.error(`Erro persistente após ${maxAttempts} tentativas: ${error.message}. Verifique a VPS.`);
+        // Se ainda está aguardando, continuar polling
+        if (result.waiting || attemptNumber < maxAttempts) {
+          // Calcular delay progressivo: começa com 2s e aumenta com mais tentativas
+          const delayMs = Math.min(2000 + (attemptNumber * 500), 6000);
+          
+          console.log(`[QR Polling] ⏳ FASE 3.0 - Próxima tentativa em ${delayMs}ms`);
+          
+          pollingTimeoutRef.current = window.setTimeout(() => {
+            pollForQrCode(attemptNumber + 1);
+          }, delayMs);
         } else {
-          // FASE 1.3: Retry mais rápido em caso de erro crítico
-          console.log(`[Auto QR Polling] 🔄 FASE 1.3 - Retry em 2s devido a erro crítico...`);
-          pollingRef.current = setTimeout(() => {
-            if (isPollingRef.current) {
-              poll(attempt + 1);
-            }
-          }, 2000);
+          console.log('[QR Polling] ❌ FASE 3.0 - Número máximo de tentativas atingido');
+          cleanup();
+        }
+      } catch (error) {
+        console.error('[QR Polling] ❌ FASE 3.0 - Erro ao obter QR code:', error);
+        
+        // Retry com backoff em caso de erro
+        if (attemptNumber < maxAttempts) {
+          const errorDelayMs = Math.min(3000 + (attemptNumber * 1000), 8000);
+          
+          pollingTimeoutRef.current = window.setTimeout(() => {
+            pollForQrCode(attemptNumber + 1);
+          }, errorDelayMs);
+        } else {
+          cleanup();
         }
       }
     };
+    
+    // Iniciar polling
+    pollForQrCode(1);
+    
+    return () => cleanup();
+  }, [cleanup]);
 
-    // Iniciar primeira tentativa imediatamente
-    console.log('[Auto QR Polling] 🎬 FASE 1.3 - Iniciando primeira tentativa imediatamente');
-    await poll(1);
+  // FASE 3.0: Melhor controle para parar o polling
+  const stopPolling = useCallback(() => {
+    console.log('[QR Polling] 🛑 FASE 3.0 - Parando polling');
+    cleanup();
+  }, [cleanup]);
 
-  }, [maxAttempts, stopPolling]);
+  // Garantir cleanup ao desmontar
+  useState(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      cleanup();
+    };
+  });
 
   return {
     isPolling,

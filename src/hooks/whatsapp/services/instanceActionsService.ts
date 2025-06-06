@@ -4,73 +4,84 @@ import { toast } from 'sonner';
 import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
 
 export const useInstanceActions = (fetchInstances: () => Promise<void>) => {
-  // CORREÇÃO FASE 3.1.2: Create instance modificado para retornar instância com QR Code
+  // FASE 3.0: Create instance modificado para garantir retorno da instância completa
   const createInstance = useCallback(async (instanceName: string) => {
     try {
-      console.log('[Hook] 🆕 Creating instance - CORREÇÃO FINAL:', instanceName);
+      console.log('[Hook] 🆕 FASE 3.0 - Criando instância:', instanceName);
       
       const result = await WhatsAppWebService.createInstance(instanceName);
       
       if (result.success && result.instance) {
-        console.log('[Hook] ✅ Instance created successfully - CORREÇÃO FINAL');
-        console.log('[Hook] 🎯 QR Code presente na resposta:', !!result.instance.qr_code);
+        console.log('[Hook] ✅ FASE 3.0 - Instância criada com sucesso:', {
+          id: result.instance.id,
+          name: result.instance.instance_name,
+          hasQR: !!result.instance.qr_code
+        });
         
         toast.success(`Instância "${instanceName}" criada com sucesso!`);
+        
+        // Atualizar lista de instâncias após criação bem-sucedida
         await fetchInstances();
         
-        // FASE 3.1.2: Retornar instância completa com QR Code para o componente
+        // FASE 3.0: Retornar instância completa com QR Code para o componente
         return result.instance;
       } else {
-        throw new Error(result.error || 'Failed to create instance');
+        throw new Error(result.error || 'Falha ao criar instância');
       }
     } catch (error: any) {
-      console.error('[Hook] ❌ Create instance error:', error);
+      console.error('[Hook] ❌ FASE 3.0 - Erro ao criar instância:', error);
       toast.error(`Erro ao criar instância: ${error.message}`);
-      throw error;
+      throw error; // Re-throw para tratamento no componente
     }
   }, [fetchInstances]);
 
-  // Delete instance with confirmation
+  // Delete instance com confirmação
   const deleteInstance = useCallback(async (instanceId: string) => {
     try {
-      console.log('[Hook] 🗑️ Deleting instance:', instanceId);
+      console.log('[Hook] 🗑️ FASE 3.0 - Removendo instância:', instanceId);
       
       const result = await WhatsAppWebService.deleteInstance(instanceId);
       
       if (result.success) {
-        console.log('[Hook] ✅ Instance deleted successfully');
+        console.log('[Hook] ✅ FASE 3.0 - Instância removida com sucesso');
         toast.success('Instância removida com sucesso!');
         await fetchInstances();
       } else {
-        throw new Error(result.error || 'Failed to delete instance');
+        throw new Error(result.error || 'Falha ao remover instância');
       }
     } catch (error: any) {
-      console.error('[Hook] ❌ Delete instance error:', error);
+      console.error('[Hook] ❌ FASE 3.0 - Erro ao remover instância:', error);
       toast.error(`Erro ao remover instância: ${error.message}`);
     }
   }, [fetchInstances]);
 
-  // CORREÇÃO: Refresh QR code usando get_qr_code_async
+  // FASE 3.0: Refresh QR code melhorado
   const refreshQRCode = useCallback(async (instanceId: string) => {
     try {
-      console.log('[Hook] 🔄 Refreshing QR code for (CORREÇÃO FINAL):', instanceId);
+      console.log('[Hook] 🔄 FASE 3.0 - Atualizando QR Code para instância:', instanceId);
       
       const result = await WhatsAppWebService.getQRCode(instanceId);
       
       if (result.success && result.qrCode) {
-        console.log('[Hook] ✅ QR code refreshed successfully');
-        toast.success('QR Code atualizado!');
+        console.log('[Hook] ✅ FASE 3.0 - QR Code atualizado com sucesso');
+        toast.success('QR Code atualizado com sucesso!');
+        
+        // Atualizar lista após obter QR Code
         await fetchInstances();
-        return result.qrCode;
+        
+        return {
+          success: true,
+          qrCode: result.qrCode
+        };
       } else if (result.waiting) {
-        console.log('[Hook] ⏳ QR code still being generated');
-        toast.info('QR Code ainda sendo gerado...');
+        console.log('[Hook] ⏳ FASE 3.0 - QR Code ainda sendo gerado');
+        toast.info('QR Code ainda está sendo gerado, aguarde...');
         return null;
       } else {
-        throw new Error(result.error || 'Failed to get QR code');
+        throw new Error(result.error || 'Falha ao obter QR Code');
       }
     } catch (error: any) {
-      console.error('[Hook] ❌ Refresh QR error:', error);
+      console.error('[Hook] ❌ FASE 3.0 - Erro ao atualizar QR Code:', error);
       toast.error(`Erro ao atualizar QR Code: ${error.message}`);
       return null;
     }
