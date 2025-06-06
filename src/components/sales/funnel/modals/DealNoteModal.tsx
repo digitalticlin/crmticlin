@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, parseCurrency } from "@/lib/utils";
 
 interface DealNoteModalProps {
   isOpen: boolean;
@@ -25,9 +25,15 @@ export const DealNoteModal = ({
   currentValue
 }: DealNoteModalProps) => {
   const [note, setNote] = useState("");
-  const [valueStr, setValueStr] = useState(
-    currentValue ? formatCurrency(currentValue) : ""
-  );
+  const [valueStr, setValueStr] = useState("");
+
+  // Initialize value when modal opens or currentValue changes
+  useEffect(() => {
+    if (isOpen) {
+      setValueStr(currentValue ? formatCurrency(currentValue) : "");
+      setNote("");
+    }
+  }, [isOpen, currentValue]);
 
   const formatCurrencyInput = (value: string) => {
     // Remove tudo que não é dígito
@@ -46,12 +52,6 @@ export const DealNoteModal = ({
     }).format(amount);
   };
 
-  const parseCurrencyToNumber = (formattedValue: string): number => {
-    // Remove símbolos de moeda e converte para número
-    const numbers = formattedValue.replace(/[^\d,]/g, '').replace(',', '.');
-    return parseFloat(numbers) || 0;
-  };
-
   const handleValueChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value;
     const formatted = formatCurrencyInput(inputValue);
@@ -59,7 +59,7 @@ export const DealNoteModal = ({
   };
 
   const handleConfirm = () => {
-    const numericValue = valueStr ? parseCurrencyToNumber(valueStr) : (currentValue || 0);
+    const numericValue = valueStr ? parseCurrency(valueStr) : (currentValue || 0);
     onConfirm(note, numericValue);
     setNote("");
     setValueStr("");
@@ -70,13 +70,6 @@ export const DealNoteModal = ({
     setValueStr(currentValue ? formatCurrency(currentValue) : "");
     onClose();
   };
-
-  // Initialize value display when modal opens
-  useEffect(() => {
-    if (currentValue && !valueStr) {
-      setValueStr(formatCurrency(currentValue));
-    }
-  }, [currentValue, isOpen]);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>

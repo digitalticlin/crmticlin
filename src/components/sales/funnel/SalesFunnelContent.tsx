@@ -69,9 +69,13 @@ export const SalesFunnelContent = () => {
     }
   });
 
-  const handleDealNoteConfirm = async (note: string) => {
+  const handleDealNoteConfirm = async (note: string, value: number) => {
     if (pendingDealMove) {
-      await actions.handleDealNoteConfirm(note, pendingDealMove);
+      // Atualizar o valor de compra do lead antes de criar o deal
+      if (pendingDealMove.lead.id && value !== pendingDealMove.lead.purchaseValue) {
+        await updateLeadPurchaseValue(pendingDealMove.lead.id, value);
+      }
+      await actions.handleDealNoteConfirm(note, { ...pendingDealMove, lead: { ...pendingDealMove.lead, purchaseValue: value } });
     }
     setIsDealNoteModalOpen(false);
     setPendingDealMove(null);

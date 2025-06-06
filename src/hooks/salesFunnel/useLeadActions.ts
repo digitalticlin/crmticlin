@@ -14,52 +14,56 @@ export const useLeadActions = (funnelId?: string) => {
     setIsLeadDetailOpen(true);
   };
 
-  const updateLeadNotes = async (notes: string) => {
-    if (!selectedLead) return;
+  const updateLeadNotes = async (leadId: string, notes: string) => {
+    if (!selectedLead || selectedLead.id !== leadId) return;
     
     try {
-      await updateLead({ leadId: selectedLead.id, fields: { notes } });
+      await updateLead({ leadId, fields: { notes } });
       setSelectedLead({ ...selectedLead, notes });
+      await refetchLeads();
     } catch (error) {
       console.error("Erro ao atualizar observações:", error);
     }
   };
 
-  const updateLeadPurchaseValue = async (purchaseValue: number | undefined) => {
-    if (!selectedLead) return;
+  const updateLeadPurchaseValue = async (leadId: string, purchaseValue: number | undefined) => {
+    if (!selectedLead || selectedLead.id !== leadId) return;
     
     try {
-      await updateLead({ leadId: selectedLead.id, fields: { purchaseValue } });
+      await updateLead({ leadId, fields: { purchaseValue } });
       setSelectedLead({ ...selectedLead, purchaseValue });
+      await refetchLeads();
     } catch (error) {
       console.error("Erro ao atualizar valor de compra:", error);
     }
   };
 
-  const updateLeadAssignedUser = async (assignedUser: string) => {
-    if (!selectedLead) return;
+  const updateLeadAssignedUser = async (leadId: string, assignedUser: string) => {
+    if (!selectedLead || selectedLead.id !== leadId) return;
     
     try {
-      await updateLead({ leadId: selectedLead.id, fields: { assignedUser } });
+      await updateLead({ leadId, fields: { assignedUser } });
       setSelectedLead({ ...selectedLead, assignedUser });
+      await refetchLeads();
     } catch (error) {
       console.error("Erro ao atualizar usuário responsável:", error);
     }
   };
 
-  const updateLeadName = async (name: string) => {
-    if (!selectedLead) return;
+  const updateLeadName = async (leadId: string, name: string) => {
+    if (!selectedLead || selectedLead.id !== leadId) return;
     
     try {
-      await updateLead({ leadId: selectedLead.id, fields: { name } });
+      await updateLead({ leadId, fields: { name } });
       setSelectedLead({ ...selectedLead, name });
+      await refetchLeads();
     } catch (error) {
       console.error("Erro ao atualizar nome:", error);
     }
   };
 
   const toggleTagOnLead = async (leadId: string, tagId: string, tags: any[]) => {
-    if (!selectedLead) return;
+    if (!selectedLead || selectedLead.id !== leadId) return;
 
     const hasTag = selectedLead.tags.some(tag => tag.id === tagId);
 
