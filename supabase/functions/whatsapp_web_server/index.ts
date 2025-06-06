@@ -10,6 +10,7 @@ import { checkServerHealth, getServerInfo } from './serverHealthService.ts';
 import { sendMessage } from './messageSendingService.ts';
 import { getChatHistory } from './chatHistoryGetService.ts';
 import { configureWebhookForInstance, removeWebhookForInstance } from './webhookConfigurationService.ts';
+import { saveQRCodeToDatabase } from './saveQRCodeService.ts';
 
 Deno.serve(async (req) => {
   console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED - CORREÇÃO DEFINITIVA EDGE FUNCTION');
@@ -72,6 +73,10 @@ Deno.serve(async (req) => {
       case 'get_qr_code_async':
         console.log('[WhatsApp Server] 📱 GET QR CODE ASYNC');
         return await getQRCodeAsync(supabase, body.instanceData, user.id);
+
+      case 'save_qr_code':
+        console.log('[WhatsApp Server] 💾 SAVE QR CODE');
+        return await saveQRCodeToDatabase(supabase, body.qrData, user.id);
 
       case 'delete_instance':
         console.log('[WhatsApp Server] 🗑️ DELETE INSTANCE');
