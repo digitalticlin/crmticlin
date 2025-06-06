@@ -36,6 +36,51 @@ export async function makeVPSRequest(url: string, options: RequestInit, retries 
   throw new Error('Max retries exceeded');
 }
 
+// CORREÇÃO: Função genérica para requisições VPS (usada pelos novos serviços)
+export async function createVPSRequest(endpoint: string, method: string = 'GET', body?: any) {
+  console.log(`[VPS Request] 🚀 CORREÇÃO - Fazendo requisição: ${method} ${endpoint}`);
+  
+  try {
+    const url = `${VPS_CONFIG.baseUrl}${endpoint}`;
+    const options: RequestInit = {
+      method,
+      headers: getVPSHeaders()
+    };
+
+    if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+      options.body = JSON.stringify(body);
+    }
+
+    const response = await makeVPSRequest(url, options);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`[VPS Request] ❌ CORREÇÃO - Erro ${response.status}:`, errorText);
+      return {
+        success: false,
+        error: `VPS error ${response.status}: ${errorText}`,
+        data: null
+      };
+    }
+
+    const data = await response.json();
+    console.log(`[VPS Request] ✅ CORREÇÃO - Sucesso:`, data);
+    
+    return {
+      success: true,
+      data,
+      error: null
+    };
+  } catch (error: any) {
+    console.error(`[VPS Request] ❌ CORREÇÃO - Erro na requisição:`, error);
+    return {
+      success: false,
+      error: error.message,
+      data: null
+    };
+  }
+}
+
 export async function createVPSInstance(payload: any) {
   console.log('[VPS Request Service] 🚀 CORREÇÃO - Criando instância na VPS (porta 3001):', payload);
   
