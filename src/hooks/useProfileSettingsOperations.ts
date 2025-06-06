@@ -7,13 +7,14 @@ export const useProfileSettingsOperations = () => {
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
 
   /**
-   * Load user profile data from Supabase
+   * Load user profile data from Supabase with error handling
    */
   const loadUserProfile = async (userId: string) => {
     try {
       setSyncStatus('syncing');
       console.log('[Profile Operations] 🚀 Carregando dados do perfil...');
       
+      // Check for infinite recursion error first
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -22,9 +23,17 @@ export const useProfileSettingsOperations = () => {
       
       if (profileError) {
         console.error("❌ Erro ao carregar perfil:", profileError);
+        
+        // Special handling for infinite recursion
+        if (profileError.code === '42P17') {
+          setSyncStatus('error');
+          toast.error("Sistema pausado: erro de configuração RLS detectado");
+          throw new Error("Infinite recursion detected in database policy");
+        }
+        
         setSyncStatus('error');
         toast.error("Erro ao carregar dados do perfil: " + profileError.message);
-        return null;
+        throw profileError;
       }
       
       if (profile) {
@@ -32,15 +41,20 @@ export const useProfileSettingsOperations = () => {
         setSyncStatus('success');
         return profile;
       } else {
-        console.log('[Profile Operations] ⚠️ Perfil não encontrado, criando...');
+        console.log('[Profile Operations] ⚠️ Perfil não encontrado, tentando criar...');
         return await createUserProfile(userId);
       }
       
     } catch (error: any) {
       console.error("❌ Erro ao carregar dados:", error);
       setSyncStatus('error');
-      toast.error("Erro ao carregar dados: " + error.message);
-      return null;
+      
+      // Don't show toast for infinite recursion as it's already handled above
+      if (error.code !== '42P17') {
+        toast.error("Erro ao carregar dados: " + error.message);
+      }
+      
+      throw error;
     }
   };
 
@@ -63,8 +77,14 @@ export const useProfileSettingsOperations = () => {
       if (createError) {
         console.error("❌ Erro ao criar perfil:", createError);
         setSyncStatus('error');
+        
+        if (createError.code === '42P17') {
+          toast.error("Sistema pausado: erro de configuração RLS detectado");
+          throw new Error("Infinite recursion detected in database policy");
+        }
+        
         toast.error("Erro ao criar perfil: " + createError.message);
-        return null;
+        throw createError;
       } else {
         console.log('[Profile Operations] ✅ Perfil criado com sucesso');
         setSyncStatus('success');
@@ -74,8 +94,12 @@ export const useProfileSettingsOperations = () => {
     } catch (error: any) {
       console.error("❌ Erro ao criar perfil:", error);
       setSyncStatus('error');
-      toast.error("Erro ao criar perfil: " + error.message);
-      return null;
+      
+      if (error.code !== '42P17') {
+        toast.error("Erro ao criar perfil: " + error.message);
+      }
+      
+      throw error;
     }
   };
 
@@ -99,6 +123,11 @@ export const useProfileSettingsOperations = () => {
         .eq('id', userId);
         
       if (profileError) {
+        if (profileError.code === '42P17') {
+          toast.error("Sistema pausado: erro de configuração RLS detectado");
+          throw new Error("Infinite recursion detected in database policy");
+        }
+        
         throw new Error(`Erro ao atualizar perfil: ${profileError.message}`);
       }
       

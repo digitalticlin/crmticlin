@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { generateUsername } from "@/utils/userUtils";
@@ -9,12 +9,19 @@ export const useAuthSession = () => {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
   const [user, setUser] = useState<any>(null);
+  const loadingRef = useRef(false);
 
   /**
-   * Load current session and user data
+   * Load current session and user data with anti-loop protection
    */
   const loadSession = async () => {
+    if (loadingRef.current) {
+      console.log('[Auth Session] ⚠️ Load session já em progresso');
+      return user;
+    }
+
     try {
+      loadingRef.current = true;
       console.log('[Auth Session] 🚀 Carregando sessão...');
       
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -46,12 +53,20 @@ export const useAuthSession = () => {
       toast.error("Erro ao carregar sessão: " + error.message);
       setLoading(false);
       return null;
+    } finally {
+      loadingRef.current = false;
     }
   };
 
-  // Load session on mount
+  // Load session on mount with debounce
   useEffect(() => {
-    loadSession();
+    if (!loadingRef.current) {
+      const timeoutId = setTimeout(() => {
+        loadSession();
+      }, 50);
+      
+      return () => clearTimeout(timeoutId);
+    }
   }, []);
 
   // Update username when email changes

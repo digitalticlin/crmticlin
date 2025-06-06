@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useAuthActions } from "./useAuthActions";
 import { useCompanyManagement } from "./useCompanyManagement";
@@ -8,6 +8,8 @@ import { useProfileSettingsOperations } from "./useProfileSettingsOperations";
 
 export const useProfileSettings = () => {
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const loadingRef = useRef(false);
   
   // Profile data state
   const [fullName, setFullName] = useState("");
@@ -23,59 +25,98 @@ export const useProfileSettings = () => {
   // Use the smaller hooks
   const { handleChangePassword } = useAuthActions();
   const { companyData, loadCompanyData, saveCompany } = useCompanyManagement();
-  const { loading, email, username, user, handleEmailChange, loadSession } = useAuthSession();
+  const { loading: sessionLoading, email, username, user, handleEmailChange, loadSession } = useAuthSession();
   const { syncStatus, setSyncStatus, loadUserProfile, updateUserProfile } = useProfileSettingsOperations();
 
   /**
-   * Load all user data (profile + company)
+   * Load all user data (profile + company) with anti-loop protection
    */
   const loadUserData = async () => {
+    // Prevent multiple simultaneous calls
+    if (loadingRef.current) {
+      console.log('[Profile Settings] ⚠️ Load já em progresso, ignorando chamada duplicada');
+      return;
+    }
+
     try {
+      loadingRef.current = true;
       setSyncStatus('syncing');
       
       // First load session
       const sessionUser = await loadSession();
       if (!sessionUser) {
         setSyncStatus('error');
+        setLoading(false);
         return;
       }
 
-      // Load profile data
-      const profile = await loadUserProfile(sessionUser.id);
-      if (profile) {
-        setFullName(profile.full_name || "");
-        setDocumentId(profile.document_id || "");
-        setWhatsapp(profile.whatsapp || "");
-        setAvatarUrl(profile.avatar_url);
-        setUserRole(profile.role);
+      // Try to load profile data with error handling
+      try {
+        const profile = await loadUserProfile(sessionUser.id);
+        if (profile) {
+          setFullName(profile.full_name || "");
+          setDocumentId(profile.document_id || "");
+          setWhatsapp(profile.whatsapp || "");
+          setAvatarUrl(profile.avatar_url);
+          setUserRole(profile.role);
+          
+          // Load company data
+          const companyInfo = await loadCompanyData();
+          if (companyInfo) {
+            setCompanyName(companyInfo.name || "");
+            setCompanyDocument(companyInfo.document_id || "");
+          }
+          
+          setSyncStatus('success');
+          toast.success("Dados carregados com sucesso!");
+        } else {
+          setSyncStatus('error');
+          toast.error("Não foi possível carregar os dados do perfil");
+        }
+      } catch (profileError: any) {
+        console.error("❌ Erro específico ao carregar perfil:", profileError);
+        setSyncStatus('error');
         
-        // Load company data
-        const companyInfo = await loadCompanyData();
-        if (companyInfo) {
-          setCompanyName(companyInfo.name || "");
-          setCompanyDocument(companyInfo.document_id || "");
+        // Se for erro de recursão infinita, pausar completamente
+        if (profileError.code === '42P17' || profileError.message?.includes('infinite recursion')) {
+          toast.error("Sistema pausado devido a erro de configuração no banco. Contacte o suporte.");
+          return;
         }
         
-        setSyncStatus('success');
-        toast.success("Dados carregados com sucesso!");
+        toast.error("Erro ao carregar dados: " + profileError.message);
       }
       
     } catch (error: any) {
-      console.error("❌ Erro ao carregar dados:", error);
+      console.error("❌ Erro geral ao carregar dados:", error);
       setSyncStatus('error');
       toast.error("Erro ao carregar dados: " + error.message);
+    } finally {
+      loadingRef.current = false;
+      setLoading(false);
     }
   };
 
-  // Load profile data on mount (only if not already loaded by useAuthSession)
+  // Load profile data on mount with debounce protection
   useEffect(() => {
-    if (user && !loading) {
-      loadUserData();
+    if (user && !sessionLoading && !loadingRef.current) {
+      // Debounce the load call
+      const timeoutId = setTimeout(() => {
+        loadUserData();
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
+    } else if (!sessionLoading) {
+      setLoading(false);
     }
-  }, [user, loading]);
+  }, [user, sessionLoading]);
 
-  // Manual re-sync
+  // Manual re-sync with protection
   const handleResync = async () => {
+    if (loadingRef.current) {
+      toast.warning("Sincronização já em progresso");
+      return;
+    }
+    
     console.log('[Profile Settings] 🔄 Re-sincronização manual solicitada');
     await loadUserData();
   };
@@ -109,8 +150,10 @@ export const useProfileSettings = () => {
       toast.success("Perfil atualizado com sucesso!");
       console.log('[Profile Settings] ✅ Perfil salvo com sucesso');
       
-      // Reload data to ensure consistency
-      await loadUserData();
+      // Reload data to ensure consistency (with protection)
+      if (!loadingRef.current) {
+        await loadUserData();
+      }
     } catch (error: any) {
       console.error("❌ Erro ao atualizar perfil:", error);
       toast.error(error.message || "Erro ao atualizar perfil");
@@ -120,7 +163,7 @@ export const useProfileSettings = () => {
   };
 
   return {
-    loading,
+    loading: loading || sessionLoading,
     saving,
     email,
     username,
