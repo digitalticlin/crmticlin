@@ -84,7 +84,7 @@ export const CreateLeadModal = ({ isOpen, onClose }: CreateLeadModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] bg-white/90 backdrop-blur-xl border border-white/30 rounded-3xl shadow-glass max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
         <DialogHeader className="pb-4">
           <DialogTitle className="text-2xl font-bold text-gray-800 text-center">
             Criar Novo Lead
@@ -94,54 +94,54 @@ export const CreateLeadModal = ({ isOpen, onClose }: CreateLeadModalProps) => {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="name" className="text-gray-700 font-medium">Nome *</Label>
+              <Label htmlFor="name" className="text-gray-800 font-medium">Nome *</Label>
               <Input
                 id="name"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                 placeholder="Nome completo"
                 required
-                className="mt-1 bg-white/60 backdrop-blur-sm border-white/40 rounded-xl"
+                className="mt-1 bg-white/60 backdrop-blur-sm border-white/40 rounded-xl text-gray-800"
               />
             </div>
             <div>
-              <Label htmlFor="phone" className="text-gray-700 font-medium">Telefone *</Label>
+              <Label htmlFor="phone" className="text-gray-800 font-medium">Telefone *</Label>
               <Input
                 id="phone"
                 value={formData.phone}
                 onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                 placeholder="(11) 99999-9999"
                 required
-                className="mt-1 bg-white/60 backdrop-blur-sm border-white/40 rounded-xl"
+                className="mt-1 bg-white/60 backdrop-blur-sm border-white/40 rounded-xl text-gray-800"
               />
             </div>
           </div>
 
           <div>
-            <Label htmlFor="email" className="text-gray-700 font-medium">Email</Label>
+            <Label htmlFor="email" className="text-gray-800 font-medium">Email</Label>
             <Input
               id="email"
               type="email"
               value={formData.email}
               onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
               placeholder="email@exemplo.com"
-              className="mt-1 bg-white/60 backdrop-blur-sm border-white/40 rounded-xl"
+              className="mt-1 bg-white/60 backdrop-blur-sm border-white/40 rounded-xl text-gray-800"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="company" className="text-gray-700 font-medium">Empresa</Label>
+              <Label htmlFor="company" className="text-gray-800 font-medium">Empresa</Label>
               <Input
                 id="company"
                 value={formData.company}
                 onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
                 placeholder="Nome da empresa"
-                className="mt-1 bg-white/60 backdrop-blur-sm border-white/40 rounded-xl"
+                className="mt-1 bg-white/60 backdrop-blur-sm border-white/40 rounded-xl text-gray-800"
               />
             </div>
             <div>
-              <Label htmlFor="purchaseValue" className="text-gray-700 font-medium">Valor Estimado</Label>
+              <Label htmlFor="purchaseValue" className="text-gray-800 font-medium">Valor Estimado</Label>
               <Input
                 id="purchaseValue"
                 type="number"
@@ -151,33 +151,33 @@ export const CreateLeadModal = ({ isOpen, onClose }: CreateLeadModalProps) => {
                   purchaseValue: e.target.value ? Number(e.target.value) : undefined 
                 }))}
                 placeholder="0,00"
-                className="mt-1 bg-white/60 backdrop-blur-sm border-white/40 rounded-xl"
+                className="mt-1 bg-white/60 backdrop-blur-sm border-white/40 rounded-xl text-gray-800"
               />
             </div>
           </div>
 
           <div>
-            <Label htmlFor="address" className="text-gray-700 font-medium">Endereço</Label>
+            <Label htmlFor="address" className="text-gray-800 font-medium">Endereço</Label>
             <Input
               id="address"
               value={formData.address}
               onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
               placeholder="Endereço completo"
-              className="mt-1 bg-white/60 backdrop-blur-sm border-white/40 rounded-xl"
+              className="mt-1 bg-white/60 backdrop-blur-sm border-white/40 rounded-xl text-gray-800"
             />
           </div>
 
           <div>
-            <Label htmlFor="stage" className="text-gray-700 font-medium">Etapa do Funil *</Label>
+            <Label htmlFor="stage" className="text-gray-800 font-medium">Etapa do Funil *</Label>
             <Select
               value={formData.kanbanStageId}
               onValueChange={(value) => setFormData(prev => ({ ...prev, kanbanStageId: value }))}
               required
             >
-              <SelectTrigger className="mt-1 bg-white/60 backdrop-blur-sm border-white/40 rounded-xl">
+              <SelectTrigger className="mt-1 bg-white/60 backdrop-blur-sm border-white/40 rounded-xl text-gray-800">
                 <SelectValue placeholder="Selecionar etapa" />
               </SelectTrigger>
-              <SelectContent className="bg-white/95 backdrop-blur-md border-white/50 rounded-xl">
+              <SelectContent>
                 {availableStages.map((stage) => (
                   <SelectItem key={stage.id} value={stage.id}>
                     {stage.title}
@@ -190,7 +190,7 @@ export const CreateLeadModal = ({ isOpen, onClose }: CreateLeadModalProps) => {
           {/* Tags */}
           {availableTags.length > 0 && (
             <div>
-              <Label className="text-gray-700 font-medium">Etiquetas</Label>
+              <Label className="text-gray-800 font-medium">Etiquetas</Label>
               <div className="flex flex-wrap gap-2 mt-2">
                 {availableTags.map((tag) => (
                   <button
@@ -200,7 +200,7 @@ export const CreateLeadModal = ({ isOpen, onClose }: CreateLeadModalProps) => {
                     className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all backdrop-blur-sm ${
                       formData.tags.includes(tag.id)
                         ? "border-ticlin bg-ticlin/20 text-ticlin-dark"
-                        : "border-white/40 bg-white/30 hover:bg-white/40 text-gray-700"
+                        : "border-white/40 bg-white/30 hover:bg-white/40 text-gray-800"
                     }`}
                   >
                     {tag.name}
@@ -211,14 +211,14 @@ export const CreateLeadModal = ({ isOpen, onClose }: CreateLeadModalProps) => {
           )}
 
           <div>
-            <Label htmlFor="notes" className="text-gray-700 font-medium">Observações</Label>
+            <Label htmlFor="notes" className="text-gray-800 font-medium">Observações</Label>
             <Textarea
               id="notes"
               value={formData.notes}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
               placeholder="Observações sobre o lead..."
               rows={3}
-              className="mt-1 bg-white/60 backdrop-blur-sm border-white/40 rounded-xl resize-none"
+              className="mt-1 bg-white/60 backdrop-blur-sm border-white/40 rounded-xl resize-none text-gray-800"
             />
           </div>
 

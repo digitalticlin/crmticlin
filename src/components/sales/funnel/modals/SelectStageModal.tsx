@@ -33,7 +33,7 @@ export const SelectStageModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-white/90 backdrop-blur-xl border border-white/30 rounded-3xl shadow-glass">
+      <DialogContent className="max-w-md">
         <DialogHeader className="pb-6">
           <DialogTitle className="text-xl font-bold text-gray-800 text-center">
             Selecionar Etapa do Funil
@@ -41,7 +41,7 @@ export const SelectStageModal = ({
         </DialogHeader>
         
         <div className="space-y-6">
-          <p className="text-sm text-gray-600 text-center">
+          <p className="text-sm text-gray-700 text-center font-medium">
             Para qual etapa deseja mover o lead "{lead?.name}"?
           </p>
           
@@ -57,7 +57,7 @@ export const SelectStageModal = ({
                   className="w-4 h-4 rounded-full mr-3 shadow-sm"
                   style={{ backgroundColor: stage.color || "#e0e0e0" }}
                 />
-                <span className="font-medium text-gray-700">{stage.title}</span>
+                <span className="font-medium text-gray-800">{stage.title}</span>
               </Button>
             ))}
           </div>
@@ -66,7 +66,7 @@ export const SelectStageModal = ({
             <Button 
               variant="ghost" 
               onClick={onClose}
-              className="px-6 py-2 hover:bg-white/30 rounded-xl transition-all duration-200"
+              className="px-6 py-2 hover:bg-white/30 rounded-xl transition-all duration-200 text-gray-700 font-medium"
             >
               Cancelar
             </Button>

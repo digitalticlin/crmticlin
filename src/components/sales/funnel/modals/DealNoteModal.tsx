@@ -34,7 +34,7 @@ export const DealNoteModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md bg-white/90 backdrop-blur-xl border border-white/30 rounded-3xl shadow-glass">
+      <DialogContent className="max-w-md">
         <DialogHeader className="pb-6">
           <DialogTitle className="text-xl font-bold text-gray-800 text-center">
             {dealType === "won" ? "Negociação Ganha" : "Negociação Perdida"}
@@ -42,12 +42,12 @@ export const DealNoteModal = ({
         </DialogHeader>
         
         <div className="space-y-6">
-          <p className="text-sm text-gray-600 text-center">
+          <p className="text-sm text-gray-700 text-center font-medium">
             Adicione uma observação sobre esta negociação com "{leadName}":
           </p>
           
           <div className="space-y-3">
-            <Label htmlFor="note" className="text-gray-700 font-medium">
+            <Label htmlFor="note" className="text-gray-800 font-medium">
               Observação (opcional)
             </Label>
             <Textarea
@@ -55,7 +55,7 @@ export const DealNoteModal = ({
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder="Motivo da vitória/perda, detalhes da negociação..."
-              className="min-h-[100px] bg-white/70 border-white/40 focus:border-blue-400 focus:ring-blue-400/20 rounded-xl resize-none"
+              className="min-h-[100px] bg-white/70 border-white/40 focus:border-blue-400 focus:ring-blue-400/20 rounded-xl resize-none text-gray-800"
             />
           </div>
           
@@ -63,7 +63,7 @@ export const DealNoteModal = ({
             <Button 
               variant="outline" 
               onClick={handleClose}
-              className="px-6 py-2 bg-white/50 hover:bg-white/70 border-white/40 rounded-xl transition-all duration-200"
+              className="px-6 py-2 bg-white/50 hover:bg-white/70 border-white/40 rounded-xl transition-all duration-200 text-gray-800"
             >
               Cancelar
             </Button>

@@ -54,13 +54,13 @@ export function ImprovedQRCodeModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md bg-white/90 backdrop-blur-xl border border-white/30 rounded-3xl shadow-glass">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-gray-800">
             <QrCode className="h-5 w-5 text-green-600" />
             Conectar WhatsApp
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-gray-700">
             {isWaitingForQR 
               ? `Preparando QR Code para a instância "${instanceName}"...`
               : `Escaneie o QR Code para conectar sua conta WhatsApp à instância "${instanceName}"`
@@ -84,7 +84,7 @@ export function ImprovedQRCodeModal({
           <Button 
             variant="outline" 
             onClick={handleClose}
-            className="w-full bg-white/50 hover:bg-white/70 border-white/40 rounded-xl transition-all duration-200"
+            className="w-full bg-white/50 hover:bg-white/70 border-white/40 rounded-xl transition-all duration-200 text-gray-800"
           >
             {isExpired ? 'Fechar e Tentar Novamente' : 'Fechar'}
           </Button>

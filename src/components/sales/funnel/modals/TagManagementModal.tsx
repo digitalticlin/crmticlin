@@ -82,7 +82,7 @@ export const TagManagementModal = ({ isOpen, onClose }: TagManagementModalProps)
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] bg-white/90 backdrop-blur-xl border border-white/30 rounded-3xl shadow-glass">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader className="pb-6">
           <DialogTitle className="text-2xl font-bold text-gray-800 text-center">
             Gerenciar Etiquetas
@@ -99,7 +99,7 @@ export const TagManagementModal = ({ isOpen, onClose }: TagManagementModalProps)
                     <Input
                       value={editName}
                       onChange={(e) => setEditName(e.target.value)}
-                      className="flex-1 bg-white/60 backdrop-blur-sm border-white/40 rounded-xl"
+                      className="flex-1 bg-white/60 backdrop-blur-sm border-white/40 rounded-xl text-gray-800"
                     />
                     <input
                       type="color"
@@ -164,7 +164,7 @@ export const TagManagementModal = ({ isOpen, onClose }: TagManagementModalProps)
                   value={newTagName}
                   onChange={(e) => setNewTagName(e.target.value)}
                   placeholder="Nome da etiqueta"
-                  className="flex-1 bg-white/60 backdrop-blur-sm border-white/40 rounded-xl"
+                  className="flex-1 bg-white/60 backdrop-blur-sm border-white/40 rounded-xl text-gray-800"
                 />
                 <input
                   type="color"
