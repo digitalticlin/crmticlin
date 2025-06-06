@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { CORS_HEADERS } from './config.ts';
 import { CommandRequest } from './types.ts';
@@ -34,6 +33,9 @@ serve(async (req) => {
     switch (action) {
       case 'test_connection':
         return await handleTestConnection();
+      
+      case 'execute_command':
+        return await handleExecuteCommand(bodyData.command, bodyData.description);
       
       case 'check_whatsapp_server':
         return await handleCheckWhatsAppServer();
@@ -73,6 +75,50 @@ async function handleTestConnection() {
     });
   } else {
     return createErrorResponse('VPS não acessível via SSH', 'SSH_CONNECTION_FAILED', 503);
+  }
+}
+
+async function handleExecuteCommand(command: string, description?: string) {
+  console.log(`[Hostinger Proxy] 🔧 Executando comando: ${description || command.substring(0, 50)}...`);
+  
+  if (!command) {
+    return createErrorResponse('Comando não fornecido', 'MISSING_COMMAND', 400);
+  }
+
+  if (!(await checkSSHKeyExists())) {
+    return createErrorResponse(
+      'Chave SSH privada não configurada. Configure VPS_SSH_PRIVATE_KEY nos secrets do Supabase.',
+      'SSH_KEY_NOT_CONFIGURED',
+      500
+    );
+  }
+
+  try {
+    const result = await executeSSHCommand(command, description);
+    
+    if (result.success) {
+      return createSuccessResponse({
+        success: true,
+        output: result.output,
+        exit_code: result.exit_code,
+        duration: result.duration,
+        connection_method: 'SSH',
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      return createErrorResponse(
+        `Comando falhou com exit code ${result.exit_code}: ${result.output}`,
+        'COMMAND_FAILED',
+        400
+      );
+    }
+  } catch (sshError) {
+    console.error('[Hostinger Proxy] Erro SSH específico:', sshError);
+    return createErrorResponse(
+      `Erro SSH: ${sshError.message}`,
+      'SSH_EXECUTION_ERROR',
+      500
+    );
   }
 }
 

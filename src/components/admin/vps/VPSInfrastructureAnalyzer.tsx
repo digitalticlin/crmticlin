@@ -13,7 +13,7 @@ import {
   XCircle, 
   ChevronDown,
   Clock,
-  Globe,
+  Terminal,
   Database,
   Network,
   Settings,
@@ -26,7 +26,7 @@ interface AnalysisResult {
   id: string;
   name: string;
   description: string;
-  endpoint?: string;
+  command?: string;
   success: boolean;
   output: any;
   duration: number;
@@ -39,7 +39,6 @@ interface AnalysisSummary {
   failed_steps: number;
   total_duration: number;
   analysis_timestamp: string;
-  vps_hostname: string;
   analysis_method: string;
   connectivity_status: string;
 }
@@ -56,7 +55,7 @@ export const VPSInfrastructureAnalyzer = () => {
     setSummary(null);
     
     try {
-      console.log('[VPS Infrastructure] 🔍 Iniciando análise HTTP...');
+      console.log('[VPS Infrastructure] 🔍 Iniciando análise SSH...');
       
       const { data, error } = await supabase.functions.invoke('vps_infrastructure_analysis', {
         body: { action: 'analyze_infrastructure' }
@@ -70,10 +69,11 @@ export const VPSInfrastructureAnalyzer = () => {
         setResults(data.detailed_results);
         setSummary(data.summary);
         
-        const status = data.summary.connectivity_status === 'ONLINE' ? '🟢 ONLINE' : '🔴 OFFLINE';
+        const status = data.summary.connectivity_status === 'PARTIAL' ? '🟡 PARCIAL' : 
+                      data.summary.successful_steps > 0 ? '🟢 CONECTADO' : '🔴 FALHOU';
         
-        toast.success(`Análise HTTP completa! VPS: ${status}`, {
-          description: `${data.summary.successful_steps}/${data.summary.total_steps} testes bem-sucedidos (${Math.round(data.summary.total_duration / 1000)}s)`
+        toast.success(`Análise SSH completa! Status: ${status}`, {
+          description: `${data.summary.successful_steps}/${data.summary.total_steps} comandos executados (${Math.round(data.summary.total_duration / 1000)}s)`
         });
       } else {
         throw new Error(data.error || 'Falha na análise');
@@ -100,12 +100,12 @@ export const VPSInfrastructureAnalyzer = () => {
   };
 
   const getStepIcon = (id: string) => {
-    if (id.includes('connectivity') || id.includes('health')) return <Globe className="h-4 w-4" />;
-    if (id.includes('instances') || id.includes('whatsapp')) return <Zap className="h-4 w-4" />;
-    if (id.includes('system') || id.includes('server')) return <Server className="h-4 w-4" />;
-    if (id.includes('port') || id.includes('network')) return <Network className="h-4 w-4" />;
-    if (id.includes('config') || id.includes('pm2')) return <Settings className="h-4 w-4" />;
+    if (id.includes('system') || id.includes('info')) return <Server className="h-4 w-4" />;
     if (id.includes('node') || id.includes('version')) return <Database className="h-4 w-4" />;
+    if (id.includes('pm2') || id.includes('process')) return <Settings className="h-4 w-4" />;
+    if (id.includes('port') || id.includes('network')) return <Network className="h-4 w-4" />;
+    if (id.includes('whatsapp') || id.includes('session')) return <Zap className="h-4 w-4" />;
+    if (id.includes('files') || id.includes('directory')) return <Terminal className="h-4 w-4" />;
     return <Search className="h-4 w-4" />;
   };
 
@@ -114,13 +114,20 @@ export const VPSInfrastructureAnalyzer = () => {
   };
 
   const getConnectivityBadge = (status: string) => {
-    return status === 'ONLINE' ? (
+    if (status === 'PARTIAL') {
+      return (
+        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
+          🟡 CONECTIVIDADE PARCIAL
+        </Badge>
+      );
+    }
+    return status === 'CONNECTED' ? (
       <Badge variant="default" className="bg-green-500 hover:bg-green-600">
-        🟢 VPS ONLINE
+        🟢 VPS CONECTADA
       </Badge>
     ) : (
       <Badge variant="destructive">
-        🔴 VPS OFFLINE
+        🔴 VPS DESCONECTADA
       </Badge>
     );
   };
@@ -129,11 +136,11 @@ export const VPSInfrastructureAnalyzer = () => {
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Search className="h-5 w-5 text-blue-500" />
-          Análise HTTP da Infraestrutura VPS
+          <Terminal className="h-5 w-5 text-blue-500" />
+          Análise SSH da Infraestrutura VPS
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Diagnóstico via requisições HTTP - Compatível com Supabase Edge Runtime
+          Diagnóstico via comandos SSH - Execução direta na VPS
         </p>
       </CardHeader>
 
@@ -149,12 +156,12 @@ export const VPSInfrastructureAnalyzer = () => {
             {isAnalyzing ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Analisando via HTTP...
+                Executando comandos SSH...
               </>
             ) : (
               <>
-                <Search className="h-4 w-4 mr-2" />
-                Iniciar Análise HTTP
+                <Terminal className="h-4 w-4 mr-2" />
+                Iniciar Análise SSH
               </>
             )}
           </Button>
@@ -166,7 +173,7 @@ export const VPSInfrastructureAnalyzer = () => {
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Server className="h-5 w-5 text-blue-500" />
-                Resultado da Análise - {summary.vps_hostname}
+                Resultado da Análise SSH
                 {getConnectivityBadge(summary.connectivity_status)}
               </CardTitle>
             </CardHeader>
@@ -174,7 +181,7 @@ export const VPSInfrastructureAnalyzer = () => {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                 <div>
                   <div className="text-2xl font-bold text-blue-600">{summary.total_steps}</div>
-                  <div className="text-xs text-muted-foreground">Total de Testes</div>
+                  <div className="text-xs text-muted-foreground">Total de Comandos</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-green-600">{summary.successful_steps}</div>
@@ -204,7 +211,7 @@ export const VPSInfrastructureAnalyzer = () => {
         {/* Resultados Detalhados */}
         {results.length > 0 && (
           <div className="space-y-2">
-            <h3 className="font-semibold text-lg mb-3">Resultados dos Testes HTTP</h3>
+            <h3 className="font-semibold text-lg mb-3">Resultados dos Comandos SSH</h3>
             
             {results.map((result) => (
               <Collapsible
@@ -231,11 +238,6 @@ export const VPSInfrastructureAnalyzer = () => {
                             </div>
                             <div className="text-sm text-muted-foreground">
                               {result.description}
-                              {result.endpoint && (
-                                <span className="ml-2 font-mono text-xs bg-gray-100 px-1 rounded">
-                                  {result.endpoint}
-                                </span>
-                              )}
                             </div>
                           </div>
                         </div>
@@ -255,11 +257,11 @@ export const VPSInfrastructureAnalyzer = () => {
                   <Card className="mt-2 ml-4">
                     <CardContent className="p-4">
                       <div className="space-y-3">
-                        {result.endpoint && (
+                        {result.command && (
                           <div>
-                            <label className="text-sm font-medium text-muted-foreground">Endpoint:</label>
-                            <div className="bg-gray-100 p-2 rounded text-sm font-mono mt-1">
-                              GET {result.endpoint}
+                            <label className="text-sm font-medium text-muted-foreground">Comando SSH:</label>
+                            <div className="bg-gray-900 text-green-400 p-2 rounded text-sm font-mono mt-1">
+                              $ {result.command}
                             </div>
                           </div>
                         )}
@@ -267,11 +269,11 @@ export const VPSInfrastructureAnalyzer = () => {
                         <Separator />
                         
                         <div>
-                          <label className="text-sm font-medium text-muted-foreground">Resposta:</label>
+                          <label className="text-sm font-medium text-muted-foreground">Resultado:</label>
                           <div className={`p-3 rounded mt-1 text-sm font-mono whitespace-pre-wrap max-h-60 overflow-auto ${
                             result.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'
                           }`}>
-                            {JSON.stringify(result.output, null, 2)}
+                            {typeof result.output === 'string' ? result.output : JSON.stringify(result.output, null, 2)}
                           </div>
                         </div>
                         
