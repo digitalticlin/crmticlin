@@ -1355,6 +1355,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_current_user_company_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
       get_orphan_instances_count: {
         Args: Record<PropertyKey, never>
         Returns: number
@@ -1368,6 +1376,10 @@ export type Database = {
         Returns: undefined
       }
       is_company_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_current_user_super_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }

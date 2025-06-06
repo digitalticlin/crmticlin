@@ -35,9 +35,17 @@ export const useProfileSettings = () => {
       console.log('[Profile Settings] 🚀 Carregando dados do perfil...');
       
       // Get current session
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      if (!session) {
+      if (sessionError) {
+        console.error('[Profile Settings] ❌ Erro ao obter sessão:', sessionError);
+        setSyncStatus('error');
+        toast.error("Erro de autenticação");
+        setLoading(false);
+        return;
+      }
+      
+      if (!session?.user) {
         console.log('[Profile Settings] ❌ Usuário não autenticado');
         setLoading(false);
         setSyncStatus('error');
@@ -50,7 +58,7 @@ export const useProfileSettings = () => {
       setEmail(session.user.email || "");
       setUsername(generateUsername(session.user.email || ""));
       
-      // Load profile data
+      // Load profile data using the new RLS policies
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -60,7 +68,7 @@ export const useProfileSettings = () => {
       if (profileError) {
         console.error("❌ Erro ao carregar perfil:", profileError);
         setSyncStatus('error');
-        toast.error("Erro ao carregar dados do perfil");
+        toast.error("Erro ao carregar dados do perfil: " + profileError.message);
         return;
       }
       
@@ -76,15 +84,33 @@ export const useProfileSettings = () => {
         setSyncStatus('success');
         toast.success("Dados carregados com sucesso!");
       } else {
-        console.log('[Profile Settings] ⚠️ Perfil não encontrado');
-        setSyncStatus('error');
-        toast.warning("Perfil não encontrado");
+        console.log('[Profile Settings] ⚠️ Perfil não encontrado, criando...');
+        
+        // Try to create a basic profile if it doesn't exist
+        const { error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            id: session.user.id,
+            full_name: session.user.user_metadata?.full_name || '',
+            document_id: '',
+            whatsapp: ''
+          });
+          
+        if (createError) {
+          console.error("❌ Erro ao criar perfil:", createError);
+          setSyncStatus('error');
+          toast.error("Erro ao criar perfil: " + createError.message);
+        } else {
+          console.log('[Profile Settings] ✅ Perfil criado com sucesso');
+          setSyncStatus('success');
+          toast.success("Perfil criado com sucesso!");
+        }
       }
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("❌ Erro ao carregar dados:", error);
       setSyncStatus('error');
-      toast.error("Erro ao carregar dados");
+      toast.error("Erro ao carregar dados: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -136,7 +162,7 @@ export const useProfileSettings = () => {
         .eq('id', user.id);
         
       if (profileError) {
-        throw profileError;
+        throw new Error(`Erro ao atualizar perfil: ${profileError.message}`);
       }
       
       toast.success("Perfil atualizado com sucesso!");
