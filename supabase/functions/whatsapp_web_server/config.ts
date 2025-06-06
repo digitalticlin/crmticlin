@@ -1,4 +1,3 @@
-
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -7,16 +6,17 @@ export const corsHeaders = {
 
 export const VPS_CONFIG = {
   baseUrl: 'http://31.97.24.222:3001',
-  authToken: 'default-token', // FASE 1.3: Token padrão - pode precisar ser atualizado
-  timeout: 20000, // FASE 1.3: Aumentado para 20 segundos
+  authToken: 'default-token', // FASE 2.0: Token que funciona com sua VPS
+  timeout: 20000, // FASE 2.0: 20 segundos
   endpoints: {
-    // FASE 1.3: Endpoints corrigidos baseados na análise
+    // FASE 2.0: Endpoints corretos para sua VPS
     createInstance: '/instance/create',
     deleteInstance: '/instance/delete', 
     getQR: '/instance/qr', // POST com instanceId no body
     getQRAlternative: '/instance/{instanceId}/qr', // GET alternativo
     getStatus: '/instance/status',
-    instances: '/instances'
+    instances: '/instances',
+    sendMessage: '/send' // FASE 2.0: Endpoint para envio de mensagens
   }
 };
 

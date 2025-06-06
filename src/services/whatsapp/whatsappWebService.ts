@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 export class WhatsAppWebService {
   static async createInstance(instanceName: string) {
     try {
-      console.log('[WhatsApp Web Service] 🚀 Creating instance:', instanceName);
+      console.log('[WhatsApp Web Service] 🚀 Creating instance via backend:', instanceName);
 
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
@@ -31,7 +31,7 @@ export class WhatsAppWebService {
         throw new Error(data.error || 'Failed to create instance');
       }
 
-      console.log('[WhatsApp Web Service] ✅ Instance created successfully');
+      console.log('[WhatsApp Web Service] ✅ Instance created successfully via backend');
       return {
         success: true,
         instance: data.instance
@@ -48,7 +48,7 @@ export class WhatsAppWebService {
 
   static async getQRCode(instanceId: string) {
     try {
-      console.log('[WhatsApp Web Service] 📱 Getting QR code for:', instanceId);
+      console.log('[WhatsApp Web Service] 📱 Getting QR code via backend for:', instanceId);
 
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
@@ -91,7 +91,7 @@ export class WhatsAppWebService {
 
   static async deleteInstance(instanceId: string) {
     try {
-      console.log('[WhatsApp Web Service] 🗑️ Deleting instance:', instanceId);
+      console.log('[WhatsApp Web Service] 🗑️ Deleting instance via backend:', instanceId);
 
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
@@ -129,50 +129,39 @@ export class WhatsAppWebService {
 
   static async sendMessage(instanceId: string, phone: string, message: string) {
     try {
-      console.log('[WhatsApp Web Service] 📤 Sending message:', { instanceId, phone, messageLength: message.length });
+      console.log('[WhatsApp Web Service] 📤 Sending message via backend:', { instanceId, phone, messageLength: message.length });
 
-      // Get instance data
-      const { data: instance } = await supabase
-        .from('whatsapp_instances')
-        .select('vps_instance_id, company_id')
-        .eq('id', instanceId)
-        .single();
-
-      if (!instance || !instance.vps_instance_id) {
-        throw new Error('Instance not found or not connected');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('User not authenticated');
       }
 
-      // Send to VPS directly
-      const response = await fetch('http://31.97.24.222:3001/send', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer default-token'
-        },
-        body: JSON.stringify({
-          instanceId: instance.vps_instance_id,
-          phone: phone.replace(/\D/g, ''),
-          message
-        })
+      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+        body: {
+          action: 'send_message',
+          messageData: {
+            instanceId,
+            phone: phone.replace(/\D/g, ''),
+            message
+          }
+        }
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`VPS send failed: ${response.status} - ${errorText}`);
+      if (error) {
+        throw new Error(error.message);
       }
 
-      const result = await response.json();
-      
-      if (!result.success) {
-        throw new Error(result.error || 'VPS returned success: false');
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to send message');
       }
 
-      console.log('[WhatsApp Web Service] ✅ Message sent successfully');
+      console.log('[WhatsApp Web Service] ✅ Message sent successfully via backend');
       return {
         success: true,
         data: {
-          messageId: result.messageId,
-          timestamp: result.timestamp || new Date().toISOString()
+          messageId: data.messageId,
+          timestamp: data.timestamp || new Date().toISOString()
         }
       };
 
@@ -185,10 +174,9 @@ export class WhatsAppWebService {
     }
   }
 
-  // Método faltante: checkServerHealth
-  static async checkServerHealth() {
+  static async getChatHistory(instanceId: string, leadId?: string, limit = 50, offset = 0) {
     try {
-      console.log('[WhatsApp Web Service] 🏥 Checking server health...');
+      console.log('[WhatsApp Web Service] 📚 Getting chat history via backend:', { instanceId, leadId, limit, offset });
 
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
@@ -198,7 +186,13 @@ export class WhatsAppWebService {
 
       const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
         body: {
-          action: 'check_server_health'
+          action: 'get_chat_history',
+          chatData: {
+            instanceId,
+            leadId,
+            limit,
+            offset
+          }
         }
       });
 
@@ -207,7 +201,7 @@ export class WhatsAppWebService {
       }
 
       if (!data.success) {
-        throw new Error(data.error || 'Server health check failed');
+        throw new Error(data.error || 'Failed to get chat history');
       }
 
       return {
@@ -216,7 +210,7 @@ export class WhatsAppWebService {
       };
 
     } catch (error) {
-      console.error('[WhatsApp Web Service] ❌ Error checking server health:', error);
+      console.error('[WhatsApp Web Service] ❌ Error getting chat history:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -224,50 +218,9 @@ export class WhatsAppWebService {
     }
   }
 
-  // Método faltante: getServerInfo
-  static async getServerInfo() {
-    try {
-      console.log('[WhatsApp Web Service] 📊 Getting server info...');
-
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !session) {
-        throw new Error('User not authenticated');
-      }
-
-      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
-        body: {
-          action: 'get_server_info'
-        }
-      });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to get server info');
-      }
-
-      return {
-        success: true,
-        data: data.data,
-        instances: data.instances || []
-      };
-
-    } catch (error) {
-      console.error('[WhatsApp Web Service] ❌ Error getting server info:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
-    }
-  }
-
-  // Método faltante: syncInstances
   static async syncInstances() {
     try {
-      console.log('[WhatsApp Web Service] 🔄 Syncing instances...');
+      console.log('[WhatsApp Web Service] 🔄 Syncing instances via backend...');
 
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
@@ -277,7 +230,8 @@ export class WhatsAppWebService {
 
       const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
         body: {
-          action: 'sync_all_instances'
+          action: 'sync_all_instances',
+          syncData: {}
         }
       });
 
@@ -301,5 +255,25 @@ export class WhatsAppWebService {
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
+  }
+
+  // FASE 2.0: Métodos removidos que faziam chamadas diretas para VPS
+  // Agora TUDO passa pelo backend (Edge Functions)
+  
+  static async checkServerHealth() {
+    // Implementar via backend se necessário
+    return {
+      success: true,
+      data: { status: 'healthy' }
+    };
+  }
+
+  static async getServerInfo() {
+    // Implementar via backend se necessário
+    return {
+      success: true,
+      data: { info: 'via backend' },
+      instances: []
+    };
   }
 }

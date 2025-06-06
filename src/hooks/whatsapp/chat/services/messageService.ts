@@ -14,30 +14,35 @@ export class MessageService {
       return [];
     }
 
-    console.log('[WhatsApp Chat Messages FASE 3] 📥 Fetching messages:', {
+    console.log('[Message Service FASE 2.0] 📥 Fetching messages via backend:', {
       leadId: selectedContact.id,
       instanceId: activeInstance.id
     });
 
-    const { data, error } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('lead_id', selectedContact.id)
-      .eq('whatsapp_number_id', activeInstance.id)
-      .order('timestamp', { ascending: true });
+    try {
+      // FASE 2.0: Usar backend para buscar histórico se necessário, ou continuar com banco direto
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('lead_id', selectedContact.id)
+        .eq('whatsapp_number_id', activeInstance.id)
+        .order('timestamp', { ascending: true });
 
-    if (error) throw error;
+      if (error) throw error;
 
-    const chatMessages: Message[] = (data || []).map(mapDbMessageToMessage);
+      const chatMessages: Message[] = (data || []).map(mapDbMessageToMessage);
 
-    console.log('[WhatsApp Chat Messages FASE 3] ✅ Messages loaded:', {
-      total: chatMessages.length,
-      sent: chatMessages.filter(m => m.fromMe).length,
-      received: chatMessages.filter(m => !m.fromMe).length,
-      lastMessage: chatMessages[chatMessages.length - 1]?.text?.substring(0, 30)
-    });
-    
-    return chatMessages;
+      console.log('[Message Service FASE 2.0] ✅ Messages loaded via database:', {
+        total: chatMessages.length,
+        sent: chatMessages.filter(m => m.fromMe).length,
+        received: chatMessages.filter(m => !m.fromMe).length
+      });
+      
+      return chatMessages;
+    } catch (error) {
+      console.error('[Message Service FASE 2.0] ❌ Error fetching messages:', error);
+      throw error;
+    }
   }
 
   static async sendMessage(
@@ -46,38 +51,44 @@ export class MessageService {
     text: string
   ): Promise<boolean> {
     if (!selectedContact || !activeInstance || !text.trim()) {
-      console.warn('[WhatsApp Chat Messages FASE 3] ⚠️ Cannot send message: missing data');
+      console.warn('[Message Service FASE 2.0] ⚠️ Cannot send message: missing data');
       return false;
     }
 
-    console.log('[WhatsApp Chat Messages FASE 3] 📤 Sending message:', {
+    console.log('[Message Service FASE 2.0] 📤 Sending message via backend:', {
       instanceId: activeInstance.id,
       phone: selectedContact.phone,
       textLength: text.length
     });
 
-    const result = await WhatsAppWebService.sendMessage(
-      activeInstance.id,
-      selectedContact.phone,
-      text
-    );
+    try {
+      // FASE 2.0: USAR APENAS BACKEND - sem chamadas diretas à VPS
+      const result = await WhatsAppWebService.sendMessage(
+        activeInstance.id,
+        selectedContact.phone,
+        text
+      );
 
-    if (result.success) {
-      console.log('[MessageSending FASE 3] ✅ Message sent successfully, refreshing messages...');
-      
-      // Update contact last message info
-      await supabase
-        .from('leads')
-        .update({
-          last_message: text,
-          last_message_time: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', selectedContact.id);
+      if (result.success) {
+        console.log('[Message Service FASE 2.0] ✅ Message sent successfully via backend');
+        
+        // Atualizar informações do contato
+        await supabase
+          .from('leads')
+          .update({
+            last_message: text,
+            last_message_time: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', selectedContact.id);
 
-      return true;
-    } else {
-      console.error('[WhatsApp Chat Messages FASE 3] ❌ Failed to send message:', result.error);
+        return true;
+      } else {
+        console.error('[Message Service FASE 2.0] ❌ Failed to send message via backend:', result.error);
+        return false;
+      }
+    } catch (error) {
+      console.error('[Message Service FASE 2.0] ❌ Error sending message via backend:', error);
       return false;
     }
   }

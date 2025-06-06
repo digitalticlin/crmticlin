@@ -1,11 +1,15 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import { corsHeaders } from './config.ts';
 import { authenticateUser } from './authentication.ts';
 import { createWhatsAppInstance } from './instanceCreationService.ts';
 import { deleteWhatsAppInstance } from './instanceDeletionService.ts';
 import { getQRCodeAsync } from './qrCodeAsyncService.ts';
+import { sendMessage } from './messageSendingService.ts';
+import { getChatHistory } from './chatHistoryService.ts';
+import { syncAllInstances } from './instanceSyncService.ts';
 
-console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED - VERSÃO CORRIGIDA ATIVA');
+console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED - FASE 2.0 BACKEND COMPLETO');
 
 Deno.serve(async (req) => {
   console.log('[WhatsApp Server] Method:', req.method);
@@ -65,6 +69,18 @@ Deno.serve(async (req) => {
       case 'get_qr_code_async':
         console.log('[WhatsApp Server] 🔳 GET QR CODE ASYNC');
         return await getQRCodeAsync(supabase, body.instanceData, user.id);
+
+      case 'send_message':
+        console.log('[WhatsApp Server] 📤 SEND MESSAGE');
+        return await sendMessage(supabase, body.messageData, user.id);
+
+      case 'get_chat_history':
+        console.log('[WhatsApp Server] 📚 GET CHAT HISTORY');
+        return await getChatHistory(supabase, body.chatData, user.id);
+
+      case 'sync_all_instances':
+        console.log('[WhatsApp Server] 🔄 SYNC ALL INSTANCES');
+        return await syncAllInstances(supabase, body.syncData, user.id);
 
       default:
         console.error('[WhatsApp Server] ❌ Ação não reconhecida:', action);
