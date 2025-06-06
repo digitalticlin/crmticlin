@@ -22,13 +22,15 @@ export const useDragAndDrop = ({
 
   const moveLeadToDatabase = async (leadId: string, newStageId: string) => {
     try {
+      console.log(`Atualizando lead ${leadId} para estágio ${newStageId} no banco`);
+      
       const { error } = await supabase
         .from("leads")
         .update({ kanban_stage_id: newStageId })
         .eq("id", leadId);
 
       if (error) throw error;
-      console.log(`Lead ${leadId} movido para estágio ${newStageId} no banco`);
+      console.log(`Lead ${leadId} movido para estágio ${newStageId} no banco com sucesso`);
     } catch (error) {
       console.error("Erro ao mover lead no banco:", error);
       throw error;
@@ -119,14 +121,19 @@ export const useDragAndDrop = ({
       }
     }
 
-    // *** SALVAR NO BANCO EM BACKGROUND (SEM AGUARDAR) ***
+    // *** SALVAR NO BANCO EM BACKGROUND ***
     try {
       await moveLeadToDatabase(lead.id, destination.droppableId);
-      toast.success("Etapa alterada com sucesso!");
-      // NÃO fazer refresh dos dados aqui - manter a atualização otimista
+      
+      // Toast específico para retorno ao funil
+      if (isWonLostView || sourceColumn.title === "GANHO" || sourceColumn.title === "PERDIDO") {
+        toast.success("Lead retornado ao funil com sucesso!");
+      } else {
+        toast.success("Etapa alterada com sucesso!");
+      }
     } catch (error) {
       // *** ROLLBACK EM CASO DE ERRO ***
-      onColumnsChange(previousColumns); // Reverter para o estado anterior
+      onColumnsChange(previousColumns);
       toast.error("Erro ao salvar mudança de etapa");
       console.error("Erro ao salvar no banco:", error);
     }

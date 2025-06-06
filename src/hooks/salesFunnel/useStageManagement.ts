@@ -42,11 +42,15 @@ export const useStageManagement = (
     }
 
     try {
+      console.log(`Movendo lead ${lead.id} de ${lead.columnId} para ${newColumnId}`);
+      
       // Verificar se está movendo para GANHO ou PERDIDO
       const targetStage = stages.find(s => s.id === newColumnId);
+      const sourceStage = stages.find(s => s.id === lead.columnId);
       const isMovingToWonLost = targetStage && (targetStage.is_won || targetStage.is_lost);
+      const isMovingFromWonLost = sourceStage && (sourceStage.is_won || sourceStage.is_lost);
 
-      // Atualizar no banco
+      // Atualizar no banco - SEMPRE atualizar o kanban_stage_id
       const { error } = await supabase
         .from("leads")
         .update({ 
@@ -57,10 +61,13 @@ export const useStageManagement = (
 
       if (error) throw error;
 
+      console.log(`Lead ${lead.id} atualizado no banco para estágio ${newColumnId}`);
+
       // Criar deal se movendo para GANHO ou PERDIDO
-      if (isMovingToWonLost && targetStage) {
+      if (isMovingToWonLost && targetStage && !isMovingFromWonLost) {
         const dealStatus = targetStage.is_won ? "won" : "lost";
         await createDeal(lead, dealStatus, dealNote);
+        console.log(`Deal ${dealStatus} criado para lead ${lead.id}`);
       }
 
       // Atualizar estado local se setColumns estiver disponível
@@ -77,7 +84,19 @@ export const useStageManagement = (
         );
       }
 
-      toast.success("Lead movido com sucesso");
+      // Refetch dos dados para garantir sincronização
+      if (refetchLeads) await refetchLeads();
+      if (refetchStages) await refetchStages();
+
+      // Toast de sucesso baseado no tipo de movimento
+      if (isMovingFromWonLost && !isMovingToWonLost) {
+        toast.success("Lead retornado ao funil com sucesso");
+      } else if (isMovingToWonLost) {
+        toast.success(`Lead movido para ${targetStage.is_won ? "Ganhos" : "Perdidos"}`);
+      } else {
+        toast.success("Lead movido com sucesso");
+      }
+
     } catch (error) {
       console.error("Erro ao mover lead:", error);
       toast.error("Erro ao mover lead");
