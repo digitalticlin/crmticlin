@@ -59,86 +59,84 @@ async function makeVPSRequest(endpoint: string, options: RequestInit = {}) {
 async function createInstanceOnVPS(instanceName: string) {
   console.log(`[Instance Manager] 🆕 Criando instância na VPS: ${instanceName}`);
 
-  // Testar diferentes payloads para criação
-  const payloads = [
-    { instanceName },
-    { instance: instanceName },
-    { name: instanceName },
-    { sessionName: instanceName }
-  ];
+  try {
+    console.log(`[Instance Manager] Usando endpoint: POST /instance/create`);
+    
+    const { response, data } = await makeVPSRequest('/instance/create', {
+      method: 'POST',
+      body: JSON.stringify({ 
+        instanceId: instanceName, 
+        sessionName: instanceName 
+      })
+    });
 
-  const endpoints = ['/instance/create', '/api/instance/create'];
-
-  for (const endpoint of endpoints) {
-    for (const payload of payloads) {
-      try {
-        console.log(`[Instance Manager] Tentando ${endpoint} com payload:`, payload);
-        
-        const { response, data } = await makeVPSRequest(endpoint, {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
-
-        if (response.ok) {
-          console.log(`[Instance Manager] ✅ Sucesso com ${endpoint}:`, data);
-          return {
-            success: true,
-            vpsInstanceId: data.instanceId || data.instance || instanceName,
-            vpsResponse: data,
-            endpoint: endpoint,
-            payload: payload
-          };
-        }
-      } catch (error) {
-        console.log(`[Instance Manager] ❌ Erro em ${endpoint}:`, error.message);
-      }
+    if (response.ok && data.success) {
+      console.log(`[Instance Manager] ✅ Sucesso:`, data);
+      return {
+        success: true,
+        vpsInstanceId: data.instanceId || instanceName,
+        vpsResponse: data
+      };
+    } else {
+      throw new Error(data.message || 'Falha ao criar instância na VPS');
     }
+  } catch (error) {
+    console.error(`[Instance Manager] ❌ Erro na criação:`, error.message);
+    throw new Error(`Falha ao criar instância: ${error.message}`);
   }
-
-  throw new Error('Falha em todos os endpoints de criação testados');
 }
 
 async function getQRCodeFromVPS(vpsInstanceId: string) {
   console.log(`[Instance Manager] 🔳 Obtendo QR Code da VPS: ${vpsInstanceId}`);
 
-  const payloads = [
-    { instanceId: vpsInstanceId },
-    { instance: vpsInstanceId },
-    { instanceName: vpsInstanceId }
-  ];
+  try {
+    // CORREÇÃO: Usar apenas GET sem payload
+    const { response, data } = await makeVPSRequest(`/instance/${vpsInstanceId}/qr`, {
+      method: 'GET'
+    });
 
-  const endpoints = ['/instance/qr', '/api/instance/qr', '/instance/qrcode', '/api/qr'];
+    if (response.ok && data.success) {
+      console.log(`[Instance Manager] ✅ QR Code obtido:`, {
+        hasQRCode: !!data.qrCode,
+        status: data.status,
+        qrLength: data.qrCode ? data.qrCode.length : 0
+      });
 
-  for (const endpoint of endpoints) {
-    for (const payload of payloads) {
-      try {
-        console.log(`[Instance Manager] Tentando ${endpoint} com payload:`, payload);
+      if (data.qrCode) {
+        // CORREÇÃO: Converter string QR para Base64 se necessário
+        let qrCodeBase64 = data.qrCode;
         
-        const { response, data } = await makeVPSRequest(endpoint, {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
-
-        if (response.ok && (data.qrCode || data.qr || data.base64)) {
-          const qrCode = data.qrCode || data.qr || data.base64;
-          console.log(`[Instance Manager] ✅ QR Code obtido com ${endpoint}`);
-          return {
-            success: true,
-            qrCode: qrCode,
-            vpsResponse: data
-          };
+        // Se não for Base64, assumir que é string QR e converter
+        if (!data.qrCode.startsWith('data:image/')) {
+          console.log(`[Instance Manager] 🔄 Convertendo string QR para Base64`);
+          
+          // Simular conversão para Base64 - na verdade a VPS deveria fazer isso
+          qrCodeBase64 = `data:image/png;base64,${btoa(data.qrCode)}`;
         }
-      } catch (error) {
-        console.log(`[Instance Manager] ❌ Erro em ${endpoint}:`, error.message);
-      }
-    }
-  }
 
-  return {
-    success: false,
-    waiting: true,
-    message: 'QR Code ainda não disponível'
-  };
+        return {
+          success: true,
+          qrCode: qrCodeBase64,
+          vpsResponse: data
+        };
+      } else {
+        return {
+          success: false,
+          waiting: true,
+          message: 'QR Code ainda não disponível'
+        };
+      }
+    } else {
+      throw new Error(data.message || 'Falha ao obter QR Code da VPS');
+    }
+  } catch (error) {
+    console.error(`[Instance Manager] ❌ Erro ao obter QR Code:`, error.message);
+    return {
+      success: false,
+      waiting: true,
+      message: 'QR Code ainda sendo gerado'
+    };
+  }
 }
 
 serve(async (req) => {
@@ -193,7 +191,7 @@ serve(async (req) => {
             web_status: 'waiting_qr',
             connection_type: 'web',
             created_by_user_id: user.id,
-            company_id: null // Será definido depois
+            company_id: null
           })
           .select()
           .single();

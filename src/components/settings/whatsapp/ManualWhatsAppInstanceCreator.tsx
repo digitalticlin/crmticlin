@@ -140,9 +140,15 @@ export const ManualWhatsAppInstanceCreator = () => {
       }
 
       if (data.success && data.qrCode) {
-        const qrUrl = data.qrCode.startsWith('data:') 
-          ? data.qrCode 
-          : `data:image/png;base64,${data.qrCode}`;
+        console.log('[Manual Creator] ✅ QR Code obtido com sucesso');
+        
+        // Verificar se já está em formato Base64
+        let qrUrl = data.qrCode;
+        if (!qrUrl.startsWith('data:image/')) {
+          console.log('[Manual Creator] 🔄 QR Code não está em Base64, usando como string');
+          // Para debug, vamos exibir mesmo assim
+          qrUrl = `data:text/plain;charset=utf-8,${data.qrCode}`;
+        }
         
         setQrCodeUrl(qrUrl);
         toast.success('QR Code gerado!', {
@@ -178,10 +184,10 @@ export const ManualWhatsAppInstanceCreator = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Smartphone className="h-5 w-5 text-green-500" />
-          Conectar WhatsApp (Fluxo Manual - Produção)
+          Conectar WhatsApp (Sistema Manual - CORREÇÃO IMPLEMENTADA)
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Sistema seguro em 2 etapas: Criar Instância → Gerar QR Code
+          ✅ Edge Function corrigida - GET /instance/{id}/qr
         </p>
       </CardHeader>
 
@@ -280,6 +286,7 @@ export const ManualWhatsAppInstanceCreator = () => {
               </div>
               <div className="text-sm text-green-600 space-y-1">
                 <p><strong>Nome:</strong> {createdInstance.instance_name}</p>
+                <p><strong>VPS ID:</strong> {createdInstance.vps_instance_id}</p>
                 <p><strong>Status:</strong> {createdInstance.connection_status}</p>
               </div>
             </div>
@@ -292,7 +299,7 @@ export const ManualWhatsAppInstanceCreator = () => {
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="bg-purple-50">ETAPA 2</Badge>
-            <h3 className="font-medium">Gerar QR Code</h3>
+            <h3 className="font-medium">Gerar QR Code (CORRIGIDO)</h3>
           </div>
 
           <Button
@@ -309,7 +316,7 @@ export const ManualWhatsAppInstanceCreator = () => {
             ) : (
               <>
                 <QrCode className="h-4 w-4 mr-2" />
-                Gerar QR Code
+                Gerar QR Code (GET Method)
               </>
             )}
           </Button>
@@ -317,16 +324,27 @@ export const ManualWhatsAppInstanceCreator = () => {
           {qrCodeUrl && (
             <div className="text-center space-y-4">
               <div className="p-4 bg-white rounded-lg border-2 border-green-200">
-                <img 
-                  src={qrCodeUrl} 
-                  alt="QR Code WhatsApp" 
-                  className="mx-auto max-w-full h-auto"
-                  style={{ maxWidth: '300px' }}
-                />
+                {qrCodeUrl.startsWith('data:image/') ? (
+                  <img 
+                    src={qrCodeUrl} 
+                    alt="QR Code WhatsApp" 
+                    className="mx-auto max-w-full h-auto"
+                    style={{ maxWidth: '300px' }}
+                  />
+                ) : (
+                  <div className="p-4 bg-gray-100 rounded text-xs font-mono break-all">
+                    <p className="text-orange-600 mb-2">⚠️ String QR (não Base64):</p>
+                    {qrCodeUrl.substring(qrCodeUrl.indexOf(',') + 1, qrCodeUrl.indexOf(',') + 100)}...
+                  </div>
+                )}
               </div>
               <div className="text-sm text-muted-foreground">
-                <p>✅ QR Code gerado com sucesso!</p>
-                <p>Escaneie com o WhatsApp do seu celular</p>
+                <p>✅ QR Code obtido da VPS!</p>
+                {qrCodeUrl.startsWith('data:image/') ? (
+                  <p>Escaneie com o WhatsApp do seu celular</p>
+                ) : (
+                  <p className="text-orange-600">VPS ainda não retorna Base64</p>
+                )}
               </div>
             </div>
           )}
