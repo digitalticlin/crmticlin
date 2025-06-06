@@ -44,7 +44,11 @@ export const LeadDetailsSidebar = ({
     documentId: selectedContact.documentId,
     address: selectedContact.address,
     notes: selectedContact.notes,
-    tags: selectedContact.tags || [],
+    tags: (selectedContact.tags || []).map(tag => ({
+      id: tag,
+      name: tag,
+      color: '#10B981' // Default green color for tags
+    })),
     lastMessage: selectedContact.lastMessage,
     lastMessageTime: selectedContact.lastMessageTime,
     purchaseValue: selectedContact.purchaseValue,
