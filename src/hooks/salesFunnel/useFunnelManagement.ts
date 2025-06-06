@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -19,7 +20,7 @@ export function useFunnelManagement() {
 
   useEffect(() => {
     if (user) {
-      console.log('[Funnel Management] 🚀 Usuário logado, carregando funis...', { userId: user.id, email: user.email });
+      console.log('[Funnel Management] 🔓 ACESSO TOTAL - carregando todos os funis...', { userId: user.id, email: user.email });
       loadFunnels();
     } else {
       console.log('[Funnel Management] ❌ Usuário não autenticado');
@@ -35,13 +36,12 @@ export function useFunnelManagement() {
     
     setLoading(true);
     try {
-      console.log('[Funnel Management] 🔍 Buscando funis do usuário:', { userId: user.id, email: user.email });
+      console.log('[Funnel Management] 🔓 ACESSO TOTAL - buscando TODOS os funis');
       
-      // Simplificado: buscar apenas funis criados pelo usuário atual
+      // Buscar TODOS os funis sem filtros
       const { data, error } = await supabase
         .from("funnels")
         .select("*")
-        .eq("created_by_user_id", user.id)
         .order("created_at", { ascending: true });
 
       if (error) {
@@ -49,7 +49,7 @@ export function useFunnelManagement() {
         throw error;
       }
 
-      console.log('[Funnel Management] 📊 Funis encontrados:', { 
+      console.log('[Funnel Management] 📊 Funis encontrados (ACESSO TOTAL):', { 
         foundFunnels: data?.length || 0, 
         funnels: data
       });
@@ -84,7 +84,7 @@ export function useFunnelManagement() {
     }
 
     try {
-      console.log('[Funnel Management] 📝 Criando novo funil:', { name, description, userId: user.id });
+      console.log('[Funnel Management] 📝 Criando novo funil (ACESSO TOTAL):', { name, description, userId: user.id });
       
       const { data, error } = await supabase
         .from("funnels")
@@ -161,13 +161,13 @@ export function useFunnelManagement() {
 
   const updateFunnel = async (funnelId: string, updates: Partial<Funnel>) => {
     try {
-      console.log('[Funnel Management] 📝 Atualizando funil:', { funnelId, updates });
+      console.log('[Funnel Management] 📝 Atualizando funil (ACESSO TOTAL):', { funnelId, updates });
       
+      // Atualizar SEM verificações de permissão
       const { data, error } = await supabase
         .from("funnels")
         .update(updates)
         .eq("id", funnelId)
-        .eq("created_by_user_id", user?.id) // Garantir que só atualiza próprios funis
         .select()
         .single();
 
@@ -201,13 +201,13 @@ export function useFunnelManagement() {
 
   const deleteFunnel = async (funnelId: string) => {
     try {
-      console.log('[Funnel Management] 🗑️ Deletando funil:', funnelId);
+      console.log('[Funnel Management] 🗑️ Deletando funil (ACESSO TOTAL):', funnelId);
       
+      // Deletar SEM verificações de permissão
       const { error } = await supabase
         .from("funnels")
         .delete()
-        .eq("id", funnelId)
-        .eq("created_by_user_id", user?.id); // Garantir que só deleta próprios funis
+        .eq("id", funnelId);
 
       if (error) {
         console.error('[Funnel Management] ❌ Erro ao deletar funil:', error);

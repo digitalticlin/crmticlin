@@ -3,14 +3,14 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const useUserRole = () => {
-  const [isAdmin, setIsAdmin] = useState(true); // Simplificado: todos são admin agora
-  const [loading, setLoading] = useState(false); // Sem loading necessário
+  const [isAdmin, setIsAdmin] = useState(true); // Acesso total
+  const [loading, setLoading] = useState(false); // Sem loading
   const [role, setRole] = useState<"admin" | "operational" | "manager">("admin"); // Todos são admin
 
   useEffect(() => {
     const checkUserRole = async () => {
       try {
-        console.log('[useUserRole] 🔍 Verificação simplificada - todos os usuários têm acesso total');
+        console.log('[useUserRole] 🔓 ACESSO TOTAL LIBERADO - sem restrições');
         
         const { data: { user } } = await supabase.auth.getUser();
         
@@ -21,15 +21,16 @@ export const useUserRole = () => {
           return;
         }
 
-        console.log('[useUserRole] ✅ Usuário autenticado com acesso total:', { userId: user.id, email: user.email });
+        console.log('[useUserRole] ✅ Usuário autenticado com ACESSO TOTAL:', { userId: user.id, email: user.email });
         
-        // Simplificado: todos os usuários autenticados têm acesso de admin
+        // ACESSO TOTAL - todos os usuários autenticados têm acesso completo
         setRole('admin');
         setIsAdmin(true);
         
       } catch (error) {
         console.error('[useUserRole] ❌ Erro ao verificar usuário:', error);
-        setRole('admin'); // Fallback para admin
+        // Mesmo com erro, dar acesso total
+        setRole('admin');
         setIsAdmin(true);
       } finally {
         setLoading(false);
@@ -39,7 +40,8 @@ export const useUserRole = () => {
     checkUserRole();
   }, []);
 
-  console.log('[useUserRole] 📊 Estado atual (simplificado):', { isAdmin: true, role: 'admin', loading: false });
+  console.log('[useUserRole] 📊 Estado atual (ACESSO TOTAL):', { isAdmin: true, role: 'admin', loading: false });
 
+  // SEMPRE retornar acesso total
   return { isAdmin: true, role: 'admin' as const, loading: false };
 };

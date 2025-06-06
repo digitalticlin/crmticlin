@@ -1,8 +1,9 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { KanbanLead, KanbanTag } from "@/types/kanban";
 
-/** Busca os leads do funil do usuário atual */
+/** Busca TODOS os leads do funil (ACESSO TOTAL) */
 export function useLeadsDatabase(funnelId?: string) {
   const queryClient = useQueryClient();
 
@@ -11,10 +12,9 @@ export function useLeadsDatabase(funnelId?: string) {
     queryFn: async () => {
       if (!funnelId) return [];
       
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      console.log('[useLeadsDatabase] 🔓 ACESSO TOTAL - buscando todos os leads');
       
-      // Buscar leads criados pelo usuário atual ou onde ele é o responsável
+      // Buscar TODOS os leads sem filtros de usuário
       const { data, error } = await supabase
         .from("leads")
         .select(`
@@ -25,11 +25,12 @@ export function useLeadsDatabase(funnelId?: string) {
           )
         `)
         .eq("funnel_id", funnelId)
-        .or(`created_by_user_id.eq.${user.id},owner_id.eq.${user.id}`)
         .order("kanban_stage_id")
         .order("order_position");
 
       if (error) throw error;
+
+      console.log('[useLeadsDatabase] ✅ Leads encontrados (ACESSO TOTAL):', data?.length || 0);
 
       return (
         data?.map((lead) => ({
@@ -59,7 +60,7 @@ export function useLeadsDatabase(funnelId?: string) {
     refetchOnWindowFocus: true,
   });
 
-  // Atualização dos dados do lead
+  // Atualização dos dados do lead (sem verificações de permissão)
   const updateLeadMutation = useMutation({
     mutationFn: async ({
       leadId,
@@ -70,16 +71,15 @@ export function useLeadsDatabase(funnelId?: string) {
     }) => {
       const { name, notes, purchaseValue, assignedUser } = fields;
       
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Usuário não autenticado");
+      console.log('[useLeadsDatabase] 🔓 ACESSO TOTAL - atualizando lead:', leadId);
       
+      // Atualizar SEM verificações de permissão
       const { error } = await supabase.from("leads").update({
         name,
         notes,
         purchase_value: purchaseValue,
         owner_id: assignedUser,
-      }).eq("id", leadId)
-       .or(`created_by_user_id.eq.${user.id},owner_id.eq.${user.id}`); // Só atualizar próprios leads
+      }).eq("id", leadId);
       
       if (error) throw error;
     },
@@ -88,7 +88,7 @@ export function useLeadsDatabase(funnelId?: string) {
     },
   });
 
-  // Gerenciar tags do lead (associação via lead_tags)
+  // Gerenciar tags do lead (sem verificações de permissão)
   const addTagMutation = useMutation({
     mutationFn: async ({
       leadId,
@@ -97,7 +97,7 @@ export function useLeadsDatabase(funnelId?: string) {
       leadId: string;
       tagId: string;
     }) => {
-      // Adiciona em lead_tags
+      // Adiciona em lead_tags sem verificações
       const { error } = await supabase
         .from("lead_tags")
         .insert({ lead_id: leadId, tag_id: tagId });
@@ -116,7 +116,7 @@ export function useLeadsDatabase(funnelId?: string) {
       leadId: string;
       tagId: string;
     }) => {
-      // Remove de lead_tags
+      // Remove de lead_tags sem verificações
       const { error } = await supabase
         .from("lead_tags")
         .delete()

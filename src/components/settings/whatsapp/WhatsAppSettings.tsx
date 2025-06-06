@@ -4,24 +4,25 @@ import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppWebSection } from "./WhatsAppWebSection";
 
 export const WhatsAppSettings = () => {
-  // Buscar instâncias criadas pelo usuário atual
+  // Buscar TODAS as instâncias (sem filtros de usuário)
   const { data: instances, isLoading, refetch } = useQuery({
     queryKey: ['whatsappInstances'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
+      console.log('[WhatsAppSettings] 🔓 ACESSO TOTAL - buscando todas as instâncias');
       
+      // Buscar TODAS as instâncias sem filtros
       const { data } = await supabase
         .from('whatsapp_instances')
         .select('*')
         .eq('connection_type', 'web')
-        .eq('created_by_user_id', user.id) // Só instâncias do usuário atual
         .order('created_at', { ascending: false });
-      return data;
+      
+      console.log('[WhatsAppSettings] ✅ Instâncias encontradas (ACESSO TOTAL):', data?.length || 0);
+      return data || [];
     },
   });
 
-  console.log('[WhatsAppSettings] Component rendering - Simplificado por usuário');
+  console.log('[WhatsAppSettings] 🔓 Component rendering - ACESSO TOTAL LIBERADO');
   console.log('[WhatsAppSettings] WhatsApp Web instances loaded:', {
     instancesCount: instances?.length || 0,
     loading: isLoading
@@ -43,7 +44,7 @@ export const WhatsAppSettings = () => {
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Configurações do WhatsApp</h1>
         <p className="text-gray-600 mt-2">
-          Gerencie suas conexões do WhatsApp Web.js
+          Gerencie suas conexões do WhatsApp Web.js (ACESSO TOTAL LIBERADO)
         </p>
       </div>
 
