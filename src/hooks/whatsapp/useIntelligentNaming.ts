@@ -12,8 +12,8 @@ export const useIntelligentNaming = () => {
     try {
       console.log('[Intelligent Naming] 🎯 FASE 3.1.3: Gerando nome inteligente para:', userEmail);
       
-      if (!userEmail || !companyId) {
-        console.log('[Intelligent Naming] ⚠️ Email ou company_id não disponível, usando fallback');
+      if (!userEmail) {
+        console.log('[Intelligent Naming] ⚠️ Email não disponível, usando fallback');
         return `whatsapp_${Date.now()}`;
       }
 
@@ -21,11 +21,10 @@ export const useIntelligentNaming = () => {
       const username = extractUsernameFromEmail(userEmail);
       console.log('[Intelligent Naming] 📧 Username extraído:', username);
 
-      // Buscar nomes de instâncias existentes da empresa
+      // Buscar nomes de instâncias existentes (sem filtro por company_id por enquanto)
       const { data: existingInstances, error } = await supabase
         .from('whatsapp_instances')
-        .select('instance_name')
-        .eq('company_id', companyId);
+        .select('instance_name');
 
       if (error) {
         console.error('[Intelligent Naming] ❌ Erro ao buscar instâncias existentes:', error);

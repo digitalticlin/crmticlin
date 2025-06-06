@@ -5,8 +5,6 @@ import TopbarUserMenu from "@/components/layout/TopbarUserMenu";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfileData } from "@/hooks/useProfileData";
 import { useCompanyData } from "@/hooks/useCompanyData";
-import { useUserCompanies } from "@/hooks/useUserCompanies";
-import { useSwitchCompany } from "@/hooks/useSwitchCompany";
 import { useState } from "react";
 
 interface DashboardHeaderProps {}
@@ -23,9 +21,12 @@ export default function DashboardHeader({}: DashboardHeaderProps) {
   const { user } = useAuth();
   const { fullName, avatarUrl } = useProfileData();
   const { companyId } = useCompanyData();
-  const { companies } = useUserCompanies(user?.id);
-  const { switchCompany } = useSwitchCompany(user?.id);
   const email = user?.email || "";
+
+  // Função vazia para compatibilidade
+  const switchCompany = () => {
+    console.log('switchCompany called');
+  };
 
   return (
     <div className="flex justify-between items-center mb-8 rounded-2xl bg-white/30 backdrop-blur-lg border border-white/30 p-6 shadow-lg">
@@ -50,7 +51,7 @@ export default function DashboardHeader({}: DashboardHeaderProps) {
           email={email}
           avatarUrl={avatarUrl}
           companyId={companyId}
-          companies={companies}
+          companies={[]} // Lista vazia para compatibilidade
           onSwitchCompany={switchCompany}
         />
       </div>

@@ -15,11 +15,6 @@ export function CleanupOrphanedInstancesButton({ onCleanupComplete }: CleanupOrp
   const { companyId } = useCompanyData();
 
   const handleCleanup = async () => {
-    if (!companyId) {
-      toast.error('ID da empresa não encontrado');
-      return;
-    }
-
     setIsCleaningUp(true);
     
     try {
@@ -27,7 +22,6 @@ export function CleanupOrphanedInstancesButton({ onCleanupComplete }: CleanupOrp
       const { data: orphanedInstances, error: fetchError } = await supabase
         .from('whatsapp_instances')
         .select('id, instance_name, vps_instance_id')
-        .eq('company_id', companyId)
         .or('vps_instance_id.is.null,vps_instance_id.eq.');
 
       if (fetchError) {
@@ -45,7 +39,6 @@ export function CleanupOrphanedInstancesButton({ onCleanupComplete }: CleanupOrp
       const { error: deleteError } = await supabase
         .from('whatsapp_instances')
         .delete()
-        .eq('company_id', companyId)
         .or('vps_instance_id.is.null,vps_instance_id.eq.');
 
       if (deleteError) {
