@@ -9,9 +9,7 @@ import { BasicInfoSection } from "./ClientDetailsSections/BasicInfoSection";
 import { DocumentSection } from "./ClientDetailsSections/DocumentSection";
 import { AddressSection } from "./ClientDetailsSections/AddressSection";
 import { ContactsSection } from "./ClientDetailsSections/ContactsSection";
-import { PurchaseValueSection } from "./ClientDetailsSections/PurchaseValueSection";
 import { NotesSection } from "./ClientDetailsSections/NotesSection";
-import { LeadSystemInfoSection } from "./ClientDetailsSections/LeadSystemInfoSection";
 import { DealsHistorySection } from "./ClientDetailsSections/DealsHistorySection";
 
 interface RealClientDetailsProps {
@@ -38,8 +36,8 @@ export function RealClientDetails({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl h-[90vh] flex flex-col bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl rounded-3xl">
-        <DialogHeader className="border-b border-white/20 pb-4 flex-shrink-0">
+      <DialogContent className="max-w-5xl h-[85vh] flex flex-col bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl rounded-3xl overflow-hidden">
+        <DialogHeader className="border-b border-white/20 pb-4 flex-shrink-0 px-6 pt-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-[#d3d800] rounded-full flex items-center justify-center">
@@ -65,28 +63,25 @@ export function RealClientDetails({
         </DialogHeader>
 
         <div className="flex-1 min-h-0">
-          <ScrollArea className="h-full px-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 py-6">
-              {/* Coluna Esquerda */}
-              <div className="space-y-6">
-                <BasicInfoSection client={client} />
-                <DocumentSection client={client} />
-                <AddressSection client={client} />
-                <ContactsSection client={client} />
-                <PurchaseValueSection 
-                  client={client} 
-                  onUpdatePurchaseValue={onUpdatePurchaseValue} 
-                />
-              </div>
-              
-              {/* Coluna Direita */}
-              <div className="space-y-6">
-                <LeadSystemInfoSection client={client} />
-                <NotesSection 
-                  client={client} 
-                  onUpdateNotes={onUpdateNotes} 
-                />
-                <DealsHistorySection clientId={client.id} />
+          <ScrollArea className="h-full">
+            <div className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Coluna Esquerda */}
+                <div className="space-y-6">
+                  <BasicInfoSection client={client} />
+                  <DocumentSection client={client} />
+                  <AddressSection client={client} />
+                  <ContactsSection client={client} />
+                </div>
+                
+                {/* Coluna Direita */}
+                <div className="space-y-6">
+                  <NotesSection 
+                    client={client} 
+                    onUpdateNotes={onUpdateNotes} 
+                  />
+                  <DealsHistorySection clientId={client.id} />
+                </div>
               </div>
             </div>
           </ScrollArea>
