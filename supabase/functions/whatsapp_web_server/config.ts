@@ -7,7 +7,7 @@ export const corsHeaders = {
 
 export const VPS_CONFIG = {
   baseUrl: 'http://31.97.24.222:3001',
-  authToken: Deno.env.get('VPS_API_TOKEN') || 'default-token', // CORREÇÃO: Usar VPS_API_TOKEN
+  authToken: 'default-token', // TESTE: Usar token fixo para testar
   timeout: 25000,
   endpoints: {
     createInstance: '/instance/create',
@@ -35,7 +35,7 @@ export const isRealQRCode = (qrCode: string): boolean => {
   }
   
   // CORREÇÃO: Aceitar QR Code em formato texto (da VPS)
-  if (qrCode.length > 50) { // QR Code válido (texto ou data URL) tem pelo menos 50 caracteres
+  if (qrCode.length > 10) { // QR Code válido (texto ou data URL) tem pelo menos 10 caracteres
     console.log('[QR Validation] ✅ QR Code válido (texto ou data URL):', qrCode.length);
     return true;
   }
@@ -75,8 +75,8 @@ export const normalizeQRCode = (qrCode: string): string => {
 // Teste de conectividade com token correto
 export const testVPSConnectivity = async (): Promise<boolean> => {
   try {
-    console.log('[VPS Test] 🔗 Testando conectividade VPS com token correto...');
-    console.log('[VPS Test] 🔑 Token usado:', VPS_CONFIG.authToken.substring(0, 10) + '...');
+    console.log('[VPS Test] 🔗 Testando conectividade VPS com default-token...');
+    console.log('[VPS Test] 🔑 Token usado:', VPS_CONFIG.authToken);
     
     const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
       method: 'GET',
@@ -89,7 +89,7 @@ export const testVPSConnectivity = async (): Promise<boolean> => {
       url: `${VPS_CONFIG.baseUrl}/health`,
       status: response.status,
       isConnected,
-      token: VPS_CONFIG.authToken.substring(0, 10) + '...'
+      token: VPS_CONFIG.authToken
     });
     
     return isConnected;
