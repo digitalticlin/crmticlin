@@ -6,23 +6,26 @@ import { KanbanStage } from "@/types/funnel";
 export function useStageDatabase(funnelId?: string) {
   const queryClient = useQueryClient();
 
-  // Buscar todos os estágios do funil e empresa
+  // Buscar estágios criados pelo usuário atual
   const stagesQuery = useQuery({
     queryKey: ["kanban_stages", funnelId],
     queryFn: async () => {
       if (!funnelId) return [];
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      
       const { data, error } = await supabase
         .from("kanban_stages")
         .select("*")
         .eq("funnel_id", funnelId)
+        .eq("created_by_user_id", user.id) // Só estágios do usuário atual
         .order("order_position", { ascending: true });
+        
       if (error) throw error;
       return data ?? [];
     },
   });
-
-  // Mutations: adicionar, editar, remover estão disponíveis mas mantidas
-  // para uso futuro/expansão se necessário (seguindo sua diretriz de não alterar logic/layout)
 
   return {
     stages: stagesQuery.data ?? [],

@@ -4,21 +4,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppWebSection } from "./WhatsAppWebSection";
 
 export const WhatsAppSettings = () => {
-  // Agora buscar instâncias por created_by_user_id em vez de company_id
+  // Buscar instâncias criadas pelo usuário atual
   const { data: instances, isLoading, refetch } = useQuery({
     queryKey: ['whatsappInstances'],
     queryFn: async () => {
-      // Buscar instâncias criadas pelo usuário atual
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      
       const { data } = await supabase
         .from('whatsapp_instances')
         .select('*')
         .eq('connection_type', 'web')
+        .eq('created_by_user_id', user.id) // Só instâncias do usuário atual
         .order('created_at', { ascending: false });
       return data;
     },
   });
 
-  console.log('[WhatsAppSettings] Component rendering - User-centric WhatsApp Web.js');
+  console.log('[WhatsAppSettings] Component rendering - Simplificado por usuário');
   console.log('[WhatsAppSettings] WhatsApp Web instances loaded:', {
     instancesCount: instances?.length || 0,
     loading: isLoading
@@ -40,11 +43,10 @@ export const WhatsAppSettings = () => {
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Configurações do WhatsApp</h1>
         <p className="text-gray-600 mt-2">
-          Gerencie suas conexões pessoais do WhatsApp Web.js
+          Gerencie suas conexões do WhatsApp Web.js
         </p>
       </div>
 
-      {/* Seção Principal do WhatsApp Web.js */}
       <WhatsAppWebSection />
     </div>
   );

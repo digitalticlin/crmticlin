@@ -35,13 +35,13 @@ export function useFunnelManagement() {
     
     setLoading(true);
     try {
-      console.log('[Funnel Management] 🔍 Buscando funis para usuário:', { userId: user.id, email: user.email });
+      console.log('[Funnel Management] 🔍 Buscando funis do usuário:', { userId: user.id, email: user.email });
       
-      // Com as novas políticas RLS, podemos simplesmente buscar todos os funis
-      // As políticas já cuidam de mostrar apenas os funis que o usuário pode ver
+      // Simplificado: buscar apenas funis criados pelo usuário atual
       const { data, error } = await supabase
         .from("funnels")
         .select("*")
+        .eq("created_by_user_id", user.id)
         .order("created_at", { ascending: true });
 
       if (error) {
@@ -56,31 +56,22 @@ export function useFunnelManagement() {
 
       setFunnels(data || []);
       
-      // Se não há funil selecionado e existem funis, selecionar o primeiro
       if (data && data.length > 0 && !selectedFunnel) {
         console.log('[Funnel Management] ✅ Selecionando primeiro funil:', data[0]);
         setSelectedFunnel(data[0]);
       } else if (!data || data.length === 0) {
-        console.log('[Funnel Management] ⚠️ Nenhum funil encontrado, tentando criar funil padrão...');
+        console.log('[Funnel Management] ⚠️ Nenhum funil encontrado, criando funil padrão...');
         
-        // Tentar criar um funil padrão se não existir nenhum
         try {
           await createFunnel("Funil Principal", "Funil padrão criado automaticamente");
         } catch (createError) {
           console.error('[Funnel Management] ❌ Erro ao criar funil padrão:', createError);
-          toast.error("Erro ao criar funil padrão. Verifique suas permissões.");
+          toast.error("Erro ao criar funil padrão.");
         }
       }
     } catch (error: any) {
       console.error("[Funnel Management] ❌ Erro ao carregar funis:", error);
-      
-      // Tratamento específico para erros de RLS
-      if (error.message?.includes('row-level security') || error.message?.includes('infinite recursion')) {
-        console.error("[Funnel Management] 🔒 Erro de RLS detectado:", error.message);
-        toast.error("Erro de permissão ao carregar funis. Tente recarregar a página.");
-      } else {
-        toast.error(`Erro ao carregar funis: ${error.message}`);
-      }
+      toast.error(`Erro ao carregar funis: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -95,7 +86,6 @@ export function useFunnelManagement() {
     try {
       console.log('[Funnel Management] 📝 Criando novo funil:', { name, description, userId: user.id });
       
-      // Criar funil vinculado ao usuário
       const { data, error } = await supabase
         .from("funnels")
         .insert({ 
@@ -117,7 +107,6 @@ export function useFunnelManagement() {
         setFunnels((prev) => [...prev, data]);
         setSelectedFunnel(data);
         
-        // Criar estágios padrão para o novo funil
         await createDefaultStages(data.id);
         toast.success(`Funil "${name}" criado com sucesso!`);
       }
@@ -125,12 +114,7 @@ export function useFunnelManagement() {
       return data;
     } catch (error: any) {
       console.error("[Funnel Management] ❌ Erro ao criar funil:", error);
-      
-      if (error.message?.includes('row-level security')) {
-        toast.error("Erro de permissão ao criar funil. Verifique se você tem permissões adequadas.");
-      } else {
-        toast.error(`Erro ao criar funil: ${error.message}`);
-      }
+      toast.error(`Erro ao criar funil: ${error.message}`);
       throw error;
     }
   };
@@ -170,12 +154,7 @@ export function useFunnelManagement() {
       console.log('[Funnel Management] ✅ Estágios padrão criados para funil:', funnelId);
     } catch (error: any) {
       console.error("[Funnel Management] ❌ Erro ao criar estágios padrão:", error);
-      
-      if (error.message?.includes('row-level security')) {
-        toast.error("Erro de permissão ao criar estágios");
-      } else {
-        toast.error(`Erro ao criar estágios: ${error.message}`);
-      }
+      toast.error(`Erro ao criar estágios: ${error.message}`);
       throw error;
     }
   };
@@ -188,6 +167,7 @@ export function useFunnelManagement() {
         .from("funnels")
         .update(updates)
         .eq("id", funnelId)
+        .eq("created_by_user_id", user?.id) // Garantir que só atualiza próprios funis
         .select()
         .single();
 
@@ -214,12 +194,7 @@ export function useFunnelManagement() {
       return data;
     } catch (error: any) {
       console.error("Erro ao atualizar funil:", error);
-      
-      if (error.message?.includes('row-level security')) {
-        toast.error("Erro de permissão ao atualizar funil");
-      } else {
-        toast.error(`Erro ao atualizar funil: ${error.message}`);
-      }
+      toast.error(`Erro ao atualizar funil: ${error.message}`);
       throw error;
     }
   };
@@ -231,7 +206,8 @@ export function useFunnelManagement() {
       const { error } = await supabase
         .from("funnels")
         .delete()
-        .eq("id", funnelId);
+        .eq("id", funnelId)
+        .eq("created_by_user_id", user?.id); // Garantir que só deleta próprios funis
 
       if (error) {
         console.error('[Funnel Management] ❌ Erro ao deletar funil:', error);
@@ -249,12 +225,7 @@ export function useFunnelManagement() {
       toast.success("Funil deletado com sucesso!");
     } catch (error: any) {
       console.error("Erro ao deletar funil:", error);
-      
-      if (error.message?.includes('row-level security')) {
-        toast.error("Erro de permissão ao deletar funil");
-      } else {
-        toast.error(`Erro ao deletar funil: ${error.message}`);
-      }
+      toast.error(`Erro ao deletar funil: ${error.message}`);
       throw error;
     }
   };

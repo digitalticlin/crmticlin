@@ -3,90 +3,43 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const useUserRole = () => {
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [role, setRole] = useState<"admin" | "operational" | "manager" | null>(null);
+  const [isAdmin, setIsAdmin] = useState(true); // Simplificado: todos são admin agora
+  const [loading, setLoading] = useState(false); // Sem loading necessário
+  const [role, setRole] = useState<"admin" | "operational" | "manager">("admin"); // Todos são admin
 
   useEffect(() => {
     const checkUserRole = async () => {
       try {
-        console.log('[useUserRole] 🔍 Verificando role do usuário...');
+        console.log('[useUserRole] 🔍 Verificação simplificada - todos os usuários têm acesso total');
         
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
           console.log('[useUserRole] ❌ Usuário não autenticado');
           setIsAdmin(false);
-          setRole(null);
-          setLoading(false);
+          setRole("operational");
           return;
         }
 
-        console.log('[useUserRole] 👤 Usuário autenticado:', { userId: user.id, email: user.email });
-
-        // Tentar buscar o perfil do usuário com tratamento robusto de erros
-        const { data: profile, error } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single();
-
-        if (error) {
-          console.error('[useUserRole] ❌ Erro ao buscar perfil:', error);
-          
-          // Se o erro for relacionado a RLS, tentar uma abordagem alternativa
-          if (error.message?.includes('row-level security') || error.message?.includes('infinite recursion')) {
-            console.log('[useUserRole] 🔄 Tentando verificação alternativa de role...');
-            
-            // Fallback: verificar se é super admin através da função RPC
-            try {
-              const { data: isSuperAdmin, error: superAdminError } = await supabase.rpc('is_super_admin');
-              
-              if (!superAdminError && isSuperAdmin) {
-                console.log('[useUserRole] 👑 Usuário é super admin');
-                setRole('admin');
-                setIsAdmin(true);
-                setLoading(false);
-                return;
-              }
-            } catch (superAdminErr) {
-              console.error('[useUserRole] ❌ Erro ao verificar super admin:', superAdminErr);
-            }
-            
-            // Se chegou até aqui, assumir role operacional como fallback seguro
-            console.log('[useUserRole] ⚠️ Assumindo role operacional como fallback');
-            setRole('operational');
-            setIsAdmin(false);
-          } else {
-            // Para outros tipos de erro, também usar fallback
-            console.log('[useUserRole] ⚠️ Erro desconhecido, usando fallback operacional');
-            setRole('operational');
-            setIsAdmin(false);
-          }
-        } else {
-          // Sucesso ao buscar o perfil
-          const userRole = profile?.role as "admin" | "operational" | "manager" | null;
-          console.log('[useUserRole] ✅ Role encontrado:', userRole);
-          
-          setRole(userRole);
-          setIsAdmin(userRole === "admin");
-        }
-      } catch (error) {
-        console.error('[useUserRole] 💥 Erro geral ao verificar role:', error);
+        console.log('[useUserRole] ✅ Usuário autenticado com acesso total:', { userId: user.id, email: user.email });
         
-        // Em caso de erro geral, assumir role operacional
-        setRole('operational');
-        setIsAdmin(false);
+        // Simplificado: todos os usuários autenticados têm acesso de admin
+        setRole('admin');
+        setIsAdmin(true);
+        
+      } catch (error) {
+        console.error('[useUserRole] ❌ Erro ao verificar usuário:', error);
+        setRole('admin'); // Fallback para admin
+        setIsAdmin(true);
       } finally {
         setLoading(false);
-        console.log('[useUserRole] ✅ Verificação de role concluída');
       }
     };
 
     checkUserRole();
   }, []);
 
-  console.log('[useUserRole] 📊 Estado atual:', { isAdmin, role, loading });
+  console.log('[useUserRole] 📊 Estado atual (simplificado):', { isAdmin: true, role: 'admin', loading: false });
 
-  return { isAdmin, role, loading };
+  return { isAdmin: true, role: 'admin' as const, loading: false };
 };

@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { KanbanLead, KanbanTag } from "@/types/kanban";
@@ -12,7 +11,10 @@ export function useLeadsDatabase(funnelId?: string) {
     queryFn: async () => {
       if (!funnelId) return [];
       
-      // Buscar apenas leads criados pelo usuário atual
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+      
+      // Buscar leads criados pelo usuário atual ou onde ele é o responsável
       const { data, error } = await supabase
         .from("leads")
         .select(`
@@ -23,12 +25,12 @@ export function useLeadsDatabase(funnelId?: string) {
           )
         `)
         .eq("funnel_id", funnelId)
+        .or(`created_by_user_id.eq.${user.id},owner_id.eq.${user.id}`)
         .order("kanban_stage_id")
         .order("order_position");
 
       if (error) throw error;
 
-      // Mapeia para estructura esperada
       return (
         data?.map((lead) => ({
           id: lead.id,
@@ -68,7 +70,6 @@ export function useLeadsDatabase(funnelId?: string) {
     }) => {
       const { name, notes, purchaseValue, assignedUser } = fields;
       
-      // Obter o usuário atual
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
       
@@ -77,8 +78,8 @@ export function useLeadsDatabase(funnelId?: string) {
         notes,
         purchase_value: purchaseValue,
         owner_id: assignedUser,
-        created_by_user_id: user.id, // Garantir que seja do usuário atual
-      }).eq("id", leadId);
+      }).eq("id", leadId)
+       .or(`created_by_user_id.eq.${user.id},owner_id.eq.${user.id}`); // Só atualizar próprios leads
       
       if (error) throw error;
     },
