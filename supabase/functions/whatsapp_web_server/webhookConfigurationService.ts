@@ -1,49 +1,52 @@
 
-import { corsHeaders, VPS_CONFIG, getVPSHeaders } from './config.ts';
-import { makeVPSRequest } from './vpsRequestService.ts';
+import { corsHeaders, VPS_CONFIG } from './config.ts';
+import { createVPSRequest } from './vpsRequestService.ts';
 
 export async function configureWebhookForInstance(instanceId: string) {
-  console.log('[Webhook Configuration] 🔧 Configurando webhook para instância:', instanceId);
+  console.log('[Webhook Config] 🔧 Configurando webhook para instância:', instanceId);
   
   try {
-    const webhookUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/whatsapp_web_server`;
-    
-    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/webhook`, {
-      method: 'POST',
-      headers: getVPSHeaders(),
-      body: JSON.stringify({
-        instanceId,
-        webhookUrl,
-        enabled: true
-      })
-    });
+    if (!instanceId) {
+      throw new Error('Instance ID é obrigatório');
+    }
 
-    if (response.ok) {
-      const data = await response.json();
-      console.log('[Webhook Configuration] ✅ Webhook configurado com sucesso:', data);
+    const webhookPayload = {
+      webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
+      events: ['messages.upsert', 'qr.update', 'connection.update']
+    };
+
+    console.log('[Webhook Config] 📡 Configurando webhook:', webhookPayload);
+
+    // Configurar webhook na VPS
+    const result = await createVPSRequest(`/instance/${instanceId}/webhook`, 'POST', webhookPayload);
+
+    if (result.success) {
+      console.log('[Webhook Config] ✅ Webhook configurado com sucesso');
+      
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          data: data,
-          message: 'Webhook configurado com sucesso'
+        JSON.stringify({
+          success: true,
+          message: 'Webhook configurado com sucesso',
+          instanceId: instanceId,
+          webhookUrl: webhookPayload.webhookUrl,
+          events: webhookPayload.events
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } else {
-      const errorText = await response.text();
-      console.error('[Webhook Configuration] ❌ VPS webhook config failed:', errorText);
-      throw new Error(`VPS webhook config failed: ${response.status} - ${errorText}`);
+      throw new Error(`Falha ao configurar webhook: ${result.error}`);
     }
-  } catch (error) {
-    console.error('[Webhook Configuration] 💥 Error configuring webhook:', error);
+
+  } catch (error: any) {
+    console.error('[Webhook Config] ❌ Erro ao configurar webhook:', error);
+    
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message,
-        timestamp: new Date().toISOString()
+      JSON.stringify({
+        success: false,
+        error: error.message
       }),
       { 
-        status: 500, 
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
@@ -51,43 +54,46 @@ export async function configureWebhookForInstance(instanceId: string) {
 }
 
 export async function removeWebhookForInstance(instanceId: string) {
-  console.log('[Webhook Configuration] 🗑️ Removendo webhook para instância:', instanceId);
+  console.log('[Webhook Remove] 🗑️ Removendo webhook para instância:', instanceId);
   
   try {
-    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/webhook`, {
-      method: 'DELETE',
-      headers: getVPSHeaders(),
-      body: JSON.stringify({
-        instanceId
-      })
-    });
+    if (!instanceId) {
+      throw new Error('Instance ID é obrigatório');
+    }
 
-    if (response.ok) {
-      const data = await response.json();
-      console.log('[Webhook Configuration] ✅ Webhook removido com sucesso:', data);
+    // Remover webhook da VPS (configurar com URL vazia)
+    const webhookPayload = {
+      webhookUrl: '',
+      events: []
+    };
+
+    const result = await createVPSRequest(`/instance/${instanceId}/webhook`, 'POST', webhookPayload);
+
+    if (result.success) {
+      console.log('[Webhook Remove] ✅ Webhook removido com sucesso');
+      
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          data: data,
-          message: 'Webhook removido com sucesso'
+        JSON.stringify({
+          success: true,
+          message: 'Webhook removido com sucesso',
+          instanceId: instanceId
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     } else {
-      const errorText = await response.text();
-      console.error('[Webhook Configuration] ❌ VPS webhook removal failed:', errorText);
-      throw new Error(`VPS webhook removal failed: ${response.status} - ${errorText}`);
+      throw new Error(`Falha ao remover webhook: ${result.error}`);
     }
-  } catch (error) {
-    console.error('[Webhook Configuration] 💥 Error removing webhook:', error);
+
+  } catch (error: any) {
+    console.error('[Webhook Remove] ❌ Erro ao remover webhook:', error);
+    
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message,
-        timestamp: new Date().toISOString()
+      JSON.stringify({
+        success: false,
+        error: error.message
       }),
       { 
-        status: 500, 
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );

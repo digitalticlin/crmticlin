@@ -7,16 +7,12 @@ import { createWhatsAppInstance } from './instanceCreationService.ts';
 import { getQRCodeAsync } from './qrCodeAsyncService.ts';
 import { deleteWhatsAppInstance } from './instanceDeletionService.ts';
 import { checkServerHealth, getServerInfo } from './serverHealthService.ts';
-import { syncInstances } from './instanceSyncService.ts';
 import { sendMessage } from './messageSendingService.ts';
 import { getChatHistory } from './chatHistoryGetService.ts';
-import { importChatHistory } from './chatHistoryService.ts';
 import { configureWebhookForInstance, removeWebhookForInstance } from './webhookConfigurationService.ts';
-import { syncStatusAndWebhooks } from './statusSyncService.ts';
-import { syncOrphanInstances } from './orphanSyncService.ts';
 
 Deno.serve(async (req) => {
-  console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED - FASE 2.0 BACKEND COMPLETO');
+  console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED - CORREÇÃO DEFINITIVA EDGE FUNCTION');
   console.log('[WhatsApp Server] Method:', req.method);
   console.log('[WhatsApp Server] URL:', req.url);
 
@@ -97,30 +93,6 @@ Deno.serve(async (req) => {
           status: infoResult.success ? 200 : 500
         });
 
-      case 'sync_all_instances':
-        console.log('[WhatsApp Server] 🔄 SYNC ALL INSTANCES');
-        const syncResult = await syncInstances(supabase);
-        return new Response(JSON.stringify(syncResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: syncResult.success ? 200 : 500
-        });
-
-      case 'sync_status_webhooks':
-        console.log('[WhatsApp Server] ⚙️ SYNC STATUS WEBHOOKS');
-        const statusSyncResult = await syncStatusAndWebhooks(supabase);
-        return new Response(JSON.stringify(statusSyncResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: statusSyncResult.success ? 200 : 500
-        });
-
-      case 'sync_orphan_instances':
-        console.log('[WhatsApp Server] 👥 SYNC ORPHAN INSTANCES');
-        const orphanSyncResult = await syncOrphanInstances(supabase);
-        return new Response(JSON.stringify(orphanSyncResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: orphanSyncResult.success ? 200 : 500
-        });
-
       case 'send_message':
         console.log('[WhatsApp Server] 📤 SEND MESSAGE');
         const sendResult = await sendMessage(supabase, body.messageData);
@@ -135,14 +107,6 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify(historyResult), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: historyResult.success ? 200 : 500
-        });
-      
-      case 'import_chat_history':
-        console.log('[WhatsApp Server] 📚 IMPORT CHAT HISTORY');
-        const importResult = await importChatHistory(supabase, body.instanceData);
-        return new Response(JSON.stringify(importResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: importResult.success ? 200 : 500
         });
 
       case 'configure_webhook':

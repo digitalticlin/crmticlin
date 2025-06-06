@@ -1,93 +1,73 @@
 
-import { corsHeaders } from './config.ts';
-import { makeVPSRequest } from './vpsRequestService.ts';
-import { VPS_CONFIG, getVPSHeaders } from './config.ts';
+import { VPS_CONFIG } from './config.ts';
+import { createVPSRequest } from './vpsRequestService.ts';
 
-export async function checkServerHealth() {
+export async function checkServerHealth(supabase: any) {
+  console.log('[Server Health] 🩺 Verificando saúde do servidor VPS');
+  
   try {
-    console.log('[Health] Checking WhatsApp Web.js server health...');
+    const result = await createVPSRequest('/health', 'GET');
     
-    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/health`, {
-      method: 'GET',
-      headers: getVPSHeaders()
-    }, 2);
-
-    if (response.ok) {
-      const data = await response.json();
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          data: {
-            status: data.status || 'online',
-            server: data.server,
-            version: data.version,
-            permanent_mode: data.permanent_mode || false,
-            health_check_enabled: data.health_check_enabled || false,
-            auto_reconnect_enabled: data.auto_reconnect_enabled || false,
-            active_instances: data.active_instances || 0,
-            timestamp: data.timestamp || new Date().toISOString()
-          }
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    } else {
-      throw new Error(`Server health check failed: ${response.status}`);
-    }
-
-  } catch (error) {
-    console.error('[Health] Error:', error);
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message,
+    if (result.success && result.data) {
+      console.log('[Server Health] ✅ Servidor VPS saudável:', result.data);
+      
+      return {
+        success: true,
+        status: 'healthy',
+        vps_info: result.data,
+        server_url: VPS_CONFIG.baseUrl,
         timestamp: new Date().toISOString()
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
+      };
+    } else {
+      console.error('[Server Health] ❌ Servidor VPS com problemas:', result.error);
+      
+      return {
+        success: false,
+        status: 'unhealthy',
+        error: result.error,
+        server_url: VPS_CONFIG.baseUrl,
+        timestamp: new Date().toISOString()
+      };
+    }
+  } catch (error: any) {
+    console.error('[Server Health] ❌ Erro ao verificar saúde:', error);
+    
+    return {
+      success: false,
+      status: 'error',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    };
   }
 }
 
-export async function getServerInfo() {
+export async function getServerInfo(supabase: any) {
+  console.log('[Server Info] ℹ️ Obtendo informações do servidor');
+  
   try {
-    console.log('[Server Info] Getting server information...');
+    const healthResult = await checkServerHealth(supabase);
     
-    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/status`, {
-      method: 'GET',
-      headers: getVPSHeaders()
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          data: {
-            ...data,
-            permanent_mode: data.permanent_mode || false,
-            auto_reconnect: data.auto_reconnect || false
-          }
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    } else {
-      throw new Error(`Server info request failed: ${response.status}`);
-    }
-
-  } catch (error) {
-    console.error('[Server Info] Error:', error);
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message,
+    if (healthResult.success) {
+      // Obter instâncias do VPS
+      const instancesResult = await createVPSRequest('/instances', 'GET');
+      
+      return {
+        success: true,
+        server_info: healthResult.vps_info,
+        instances: instancesResult.success ? instancesResult.data : null,
+        server_url: VPS_CONFIG.baseUrl,
         timestamp: new Date().toISOString()
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
+      };
+    } else {
+      return healthResult;
+    }
+  } catch (error: any) {
+    console.error('[Server Info] ❌ Erro ao obter informações:', error);
+    
+    return {
+      success: false,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    };
   }
 }
