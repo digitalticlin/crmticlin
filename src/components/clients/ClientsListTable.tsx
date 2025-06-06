@@ -95,7 +95,7 @@ export const ClientsListTable = ({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-lime-400"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#d3d800]"></div>
       </div>
     );
   }
@@ -106,17 +106,17 @@ export const ClientsListTable = ({
       <div className="bg-white/30 backdrop-blur-md rounded-2xl p-6 border border-white/40 shadow-xl">
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
           <div className="flex gap-2 items-center flex-1 max-w-md">
-            <Search className="w-4 h-4 text-lime-400" />
+            <Search className="w-4 h-4 text-black" />
             <Input
               placeholder="Buscar por nome, telefone, email ou empresa..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="flex-1 bg-white/20 backdrop-blur-sm border-white/40 focus:border-lime-400 focus:ring-lime-400/20 text-gray-800 placeholder:text-gray-600"
+              className="flex-1 bg-white/20 backdrop-blur-sm border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800]/20 text-gray-800 placeholder:text-gray-600"
             />
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-gray-700 font-medium">
-              Total: <strong className="text-lime-400">{clients.length}</strong> clientes
+              Total: <strong className="text-black">{clients.length}</strong> clientes
             </span>
             <Button 
               variant="outline" 
@@ -163,12 +163,12 @@ export const ClientsListTable = ({
                 <TableCell>
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 text-sm">
-                      <Phone className="h-3 w-3 text-lime-400" />
+                      <Phone className="h-3 w-3 text-black" />
                       <span className="text-gray-800">{formatPhoneDisplay(client.phone)}</span>
                     </div>
                     {client.email && (
                       <div className="flex items-center gap-2 text-sm text-gray-700">
-                        <Mail className="h-3 w-3 text-lime-400" />
+                        <Mail className="h-3 w-3 text-black" />
                         <span>{client.email}</span>
                       </div>
                     )}
@@ -177,7 +177,7 @@ export const ClientsListTable = ({
                 <TableCell>
                   {client.company ? (
                     <div className="flex items-center gap-2">
-                      <Building className="h-3 w-3 text-lime-400" />
+                      <Building className="h-3 w-3 text-black" />
                       <span className="text-sm text-gray-800">{client.company}</span>
                     </div>
                   ) : (
@@ -202,7 +202,7 @@ export const ClientsListTable = ({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-lime-400 hover:text-lime-500 hover:bg-lime-50/50"
+                      className="h-8 w-8 text-black hover:text-gray-700 hover:bg-gray-100/50"
                       onClick={(e) => {
                         e.stopPropagation();
                         onEditClient(client);

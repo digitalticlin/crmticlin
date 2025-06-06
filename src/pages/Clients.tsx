@@ -38,7 +38,7 @@ export default function Clients() {
         Atualizar
       </Button>
       <Button 
-        className="bg-lime-400/80 hover:bg-lime-500/80 text-black border border-lime-400 rounded-xl px-6 py-2.5 font-semibold shadow-lg transition-all duration-200 hover:shadow-xl backdrop-blur-sm"
+        className="bg-[#d3d800]/80 hover:bg-[#d3d800] text-black border-2 border-[#d3d800] rounded-xl px-6 py-2.5 font-semibold shadow-lg transition-all duration-200 hover:shadow-xl backdrop-blur-sm"
         onClick={handleAddClient}
         disabled={isLoading}
       >

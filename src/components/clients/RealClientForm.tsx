@@ -60,7 +60,7 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
   };
 
   return (
-    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-lime-400/30 shadow-xl shadow-lime-400/10">
+    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-[#d3d800]/30 shadow-xl shadow-[#d3d800]/10">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="name" className="text-white font-medium">Nome*</Label>
@@ -72,7 +72,7 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
             placeholder="Nome do cliente"
             required
             disabled={isLoading}
-            className="bg-white/20 backdrop-blur-sm border-white/40 focus:border-lime-400 focus:ring-lime-400/20 text-white placeholder:text-white/60"
+            className="bg-white/20 backdrop-blur-sm border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800]/20 text-white placeholder:text-white/60"
           />
         </div>
         
@@ -85,10 +85,10 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
               value={formData.company}
               onChange={handleChange}
               placeholder="Nome da empresa"
-              className="pl-8 bg-white/20 backdrop-blur-sm border-white/40 focus:border-lime-400 focus:ring-lime-400/20 text-white placeholder:text-white/60"
+              className="pl-8 bg-white/20 backdrop-blur-sm border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800]/20 text-white placeholder:text-white/60"
               disabled={isLoading}
             />
-            <Building className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-lime-400" />
+            <Building className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#d3d800]" />
           </div>
         </div>
         
@@ -102,7 +102,7 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
             placeholder="(00) 00000-0000"
             required
             disabled={isLoading}
-            className="bg-white/20 backdrop-blur-sm border-white/40 focus:border-lime-400 focus:ring-lime-400/20 text-white placeholder:text-white/60"
+            className="bg-white/20 backdrop-blur-sm border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800]/20 text-white placeholder:text-white/60"
           />
         </div>
         
@@ -116,7 +116,7 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
             type="email"
             placeholder="email@exemplo.com"
             disabled={isLoading}
-            className="bg-white/20 backdrop-blur-sm border-white/40 focus:border-lime-400 focus:ring-lime-400/20 text-white placeholder:text-white/60"
+            className="bg-white/20 backdrop-blur-sm border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800]/20 text-white placeholder:text-white/60"
           />
         </div>
         
@@ -129,7 +129,7 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
             onChange={handleChange}
             placeholder="Endereço do cliente"
             disabled={isLoading}
-            className="bg-white/20 backdrop-blur-sm border-white/40 focus:border-lime-400 focus:ring-lime-400/20 text-white placeholder:text-white/60"
+            className="bg-white/20 backdrop-blur-sm border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800]/20 text-white placeholder:text-white/60"
           />
         </div>
 
@@ -144,7 +144,7 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
             onChange={handleChange}
             placeholder="0.00"
             disabled={isLoading}
-            className="bg-white/20 backdrop-blur-sm border-white/40 focus:border-lime-400 focus:ring-lime-400/20 text-white placeholder:text-white/60"
+            className="bg-white/20 backdrop-blur-sm border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800]/20 text-white placeholder:text-white/60"
           />
         </div>
         
@@ -156,7 +156,7 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
             value={formData.notes}
             onChange={handleChange}
             placeholder="Observações sobre o cliente"
-            className="min-h-[100px] bg-white/20 backdrop-blur-sm border-white/40 focus:border-lime-400 focus:ring-lime-400/20 text-white placeholder:text-white/60"
+            className="min-h-[100px] bg-white/20 backdrop-blur-sm border-white/40 focus:border-[#d3d800] focus:ring-[#d3d800]/20 text-white placeholder:text-white/60"
             disabled={isLoading}
           />
         </div>
@@ -175,7 +175,7 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
           <Button 
             type="submit" 
             disabled={isLoading}
-            className="bg-lime-400/80 hover:bg-lime-500/80 text-black border border-lime-400 shadow-lg font-semibold"
+            className="bg-[#d3d800]/80 hover:bg-[#d3d800] text-black border-2 border-[#d3d800] shadow-lg font-semibold"
           >
             <Save className="h-4 w-4 mr-2" />
             {isLoading ? "Salvando..." : (client ? "Atualizar" : "Adicionar")}
