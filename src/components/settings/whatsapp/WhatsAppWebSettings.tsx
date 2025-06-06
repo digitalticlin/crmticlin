@@ -37,6 +37,15 @@ export const WhatsAppWebSettings = () => {
     // Implementação para mostrar QR code modal
   };
 
+  // CORREÇÃO: Função wrapper que retorna void
+  const handleRefreshQRCodeWrapper = async (instanceId: string): Promise<void> => {
+    try {
+      await refreshQRCode(instanceId);
+    } catch (error) {
+      console.error('Erro ao atualizar QR Code:', error);
+    }
+  };
+
   if (isLoading) {
     return <WhatsAppWebLoadingState />;
   }
@@ -111,12 +120,14 @@ export const WhatsAppWebSettings = () => {
         />
       )}
 
-      {/* Modal do QR Code */}
+      {/* Modal do QR Code - CORREÇÃO: Adicionando props faltantes */}
       <QRCodeModal
         isOpen={showQRModal}
         onClose={closeQRModal}
         qrCode={selectedQRCode}
         instanceName={selectedInstanceName}
+        instanceId="" // Adicionando prop faltante
+        onRefreshQRCode={handleRefreshQRCodeWrapper} // Adicionando prop faltante
       />
     </div>
   );
