@@ -3,7 +3,6 @@ import { PageLayout } from "@/components/layout/PageLayout";
 import { useRealSalesFunnel } from "@/hooks/salesFunnel/useRealSalesFunnel";
 import { useNewLeadIntegration } from "@/hooks/salesFunnel/useNewLeadIntegration";
 import { useFunnelManagement } from "@/hooks/salesFunnel/useFunnelManagement";
-import { useCompanyData } from "@/hooks/useCompanyData";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useDefaultFunnelSetup } from "@/hooks/salesFunnel/useDefaultFunnelSetup";
 import { SalesFunnelProvider } from "@/components/sales/funnel/SalesFunnelProvider";
@@ -12,7 +11,6 @@ import { FunnelEmptyState } from "@/components/sales/funnel/FunnelEmptyState";
 import { SalesFunnelContent } from "@/components/sales/funnel/SalesFunnelContent";
 
 export default function SalesFunnel() {
-  const { companyId } = useCompanyData();
   const { isAdmin } = useUserRole();
   
   // Configurar funil padrão se necessário
@@ -24,7 +22,7 @@ export default function SalesFunnel() {
     setSelectedFunnel,
     createFunnel: originalCreateFunnel,
     loading: funnelLoading
-  } = useFunnelManagement(companyId);
+  } = useFunnelManagement();
 
   const {
     columns,

@@ -2,32 +2,36 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuthSession } from "../useAuthSession";
 
 export interface Funnel {
   id: string;
   name: string;
   description?: string;
-  company_id: string;
+  created_by_user_id: string;
   created_at?: string;
 }
 
-export function useFunnelManagement(companyId: string) {
+export function useFunnelManagement() {
   const [funnels, setFunnels] = useState<Funnel[]>([]);
   const [selectedFunnel, setSelectedFunnel] = useState<Funnel | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const { user } = useAuthSession();
 
   useEffect(() => {
-    if (companyId) loadFunnels();
+    if (user) loadFunnels();
     // eslint-disable-next-line
-  }, [companyId]);
+  }, [user]);
 
   const loadFunnels = async () => {
+    if (!user) return;
+    
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from("funnels")
         .select("*")
-        .eq("company_id", companyId)
+        .eq("created_by_user_id", user.id)
         .order("created_at", { ascending: true });
 
       if (error) throw error;
@@ -47,13 +51,19 @@ export function useFunnelManagement(companyId: string) {
   };
 
   const createFunnel = async (name: string, description?: string) => {
+    if (!user) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from("funnels")
         .insert({ 
-          company_id: companyId, 
           name, 
-          description 
+          description,
+          created_by_user_id: user.id,
+          company_id: null
         })
         .select()
         .single();
@@ -76,6 +86,8 @@ export function useFunnelManagement(companyId: string) {
   };
 
   const createDefaultStages = async (funnelId: string) => {
+    if (!user) return;
+
     const defaultStages = [
       { title: "ENTRADA DE LEAD", color: "#3b82f6", order_position: 1 },
       { title: "QUALIFICAÇÃO", color: "#8b5cf6", order_position: 2 },
@@ -88,8 +100,9 @@ export function useFunnelManagement(companyId: string) {
     try {
       const stages = defaultStages.map(stage => ({
         ...stage,
-        company_id: companyId,
         funnel_id: funnelId,
+        created_by_user_id: user.id,
+        company_id: null,
         is_won: stage.is_won || false,
         is_lost: stage.is_lost || false,
         is_fixed: stage.is_fixed || false

@@ -1,7 +1,7 @@
 
 export interface Funnel {
   id: string;
-  company_id: string;
+  created_by_user_id: string;
   name: string;
   description?: string;
   created_at?: string;
@@ -16,4 +16,5 @@ export interface KanbanStage {
   is_lost?: boolean;
   order_position: number;
   funnel_id: string;
+  created_by_user_id: string;
 }

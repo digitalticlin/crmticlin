@@ -486,25 +486,25 @@ export type Database = {
       }
       funnels: {
         Row: {
-          company_id: string
+          company_id: string | null
           created_at: string | null
-          created_by_user_id: string | null
+          created_by_user_id: string
           description: string | null
           id: string
           name: string
         }
         Insert: {
-          company_id: string
+          company_id?: string | null
           created_at?: string | null
-          created_by_user_id?: string | null
+          created_by_user_id: string
           description?: string | null
           id?: string
           name: string
         }
         Update: {
-          company_id?: string
+          company_id?: string | null
           created_at?: string | null
-          created_by_user_id?: string | null
+          created_by_user_id?: string
           description?: string | null
           id?: string
           name?: string
@@ -522,9 +522,9 @@ export type Database = {
       kanban_stages: {
         Row: {
           color: string | null
-          company_id: string
+          company_id: string | null
           created_at: string | null
-          created_by_user_id: string | null
+          created_by_user_id: string
           funnel_id: string | null
           id: string
           is_fixed: boolean | null
@@ -537,9 +537,9 @@ export type Database = {
         }
         Insert: {
           color?: string | null
-          company_id: string
+          company_id?: string | null
           created_at?: string | null
-          created_by_user_id?: string | null
+          created_by_user_id: string
           funnel_id?: string | null
           id?: string
           is_fixed?: boolean | null
@@ -552,9 +552,9 @@ export type Database = {
         }
         Update: {
           color?: string | null
-          company_id?: string
+          company_id?: string | null
           created_at?: string | null
-          created_by_user_id?: string | null
+          created_by_user_id?: string
           funnel_id?: string | null
           id?: string
           is_fixed?: boolean | null
