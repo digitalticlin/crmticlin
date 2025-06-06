@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Contact, Deal } from "@/types/chat";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { X, User, Phone, Mail, MapPin, Building, FileText, TrendingUp, TrendingDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { DealHistory } from "@/components/chat/DealHistory";
+import { useLeadDeals } from "@/hooks/salesFunnel/useLeadDeals";
 
 interface LeadDetailsSidebarProps {
   selectedContact: Contact | null;
@@ -27,6 +28,8 @@ export const LeadDetailsSidebar = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editedContact, setEditedContact] = useState<Partial<Contact>>({});
   const [isLoading, setIsLoading] = useState(false);
+
+  const { data: deals = [] } = useLeadDeals(selectedContact?.id);
 
   if (!selectedContact || !isOpen) return null;
 
@@ -230,55 +233,7 @@ export const LeadDetailsSidebar = ({
             {/* Histórico de Vendas */}
             <div className="bg-white/20 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/30">
               <h3 className="text-lg font-semibold text-gray-800 mb-4">Histórico de Vendas</h3>
-              
-              <div className="space-y-3">
-                {currentContact.deals && currentContact.deals.length > 0 ? (
-                  currentContact.deals.map((deal) => (
-                    <div 
-                      key={deal.id} 
-                      className="p-4 rounded-lg border border-white/30 bg-white/40 backdrop-blur-sm"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          {deal.status === 'won' ? (
-                            <div className="p-2 rounded-full bg-green-100">
-                              <TrendingUp className="h-5 w-5 text-green-600" />
-                            </div>
-                          ) : (
-                            <div className="p-2 rounded-full bg-red-100">
-                              <TrendingDown className="h-5 w-5 text-red-600" />
-                            </div>
-                          )}
-                          <div>
-                            <p className="text-gray-800 font-semibold text-lg">
-                              R$ {deal.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                            </p>
-                            <p className="text-gray-600 text-sm">
-                              {new Date(deal.date).toLocaleDateString('pt-BR')}
-                            </p>
-                            {deal.note && (
-                              <p className="text-gray-600 text-sm mt-1">{deal.note}</p>
-                            )}
-                          </div>
-                        </div>
-                        <Badge 
-                          variant={deal.status === 'won' ? 'default' : 'destructive'}
-                          className="rounded-full shadow-sm"
-                        >
-                          {deal.status === 'won' ? 'Ganho' : 'Perdido'}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-                      <TrendingUp className="h-8 w-8 text-gray-400" />
-                    </div>
-                    <p className="text-gray-500 text-sm">Nenhum histórico de vendas encontrado</p>
-                  </div>
-                )}
-              </div>
+              <DealHistory deals={deals} />
             </div>
           </div>
         </ScrollArea>

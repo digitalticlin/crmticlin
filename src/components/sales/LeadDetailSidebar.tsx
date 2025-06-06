@@ -13,6 +13,8 @@ import { AssignedUserField } from "./leadDetail/AssignedUserField";
 import { NotesField } from "./leadDetail/NotesField";
 import { ChatPreview } from "./leadDetail/ChatPreview";
 import { LeadDetailFooter } from "./leadDetail/LeadDetailFooter";
+import { DealHistory } from "@/components/chat/DealHistory";
+import { useLeadDeals } from "@/hooks/salesFunnel/useLeadDeals";
 import { useEffect, useState } from "react";
 
 interface LeadDetailSidebarProps {
@@ -40,6 +42,15 @@ export const LeadDetailSidebar = ({
   onUpdateName,
   onCreateTag,
 }: LeadDetailSidebarProps) => {
+  const { data: deals = [], refetch: refetchDeals } = useLeadDeals(selectedLead?.id);
+
+  // Refetch deals when lead changes
+  useEffect(() => {
+    if (selectedLead?.id) {
+      refetchDeals();
+    }
+  }, [selectedLead?.id, refetchDeals]);
+
   const handleOpenChat = () => {
     onOpenChange(false);
     // In a real app, this would navigate to the chat page with this contact
@@ -93,6 +104,12 @@ export const LeadDetailSidebar = ({
             onToggleTag={onToggleTag}
             onCreateTag={onCreateTag}
           />
+
+          {/* Deal History */}
+          <div className="space-y-3">
+            <h3 className="text-lg font-medium">Histórico de Negociações</h3>
+            <DealHistory deals={deals} />
+          </div>
           
           {/* Notes Field */}
           <NotesField 

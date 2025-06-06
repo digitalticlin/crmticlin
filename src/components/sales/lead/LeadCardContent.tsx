@@ -9,9 +9,12 @@ import { LeadCardHeader } from "./LeadCardHeader";
 interface LeadCardContentProps {
   lead: KanbanLead;
   isWonLostView?: boolean;
+  lostStageId?: string;
 }
 
-export const LeadCardContent = ({ lead, isWonLostView = false }: LeadCardContentProps) => {
+export const LeadCardContent = ({ lead, isWonLostView = false, lostStageId }: LeadCardContentProps) => {
+  const isLost = lead.columnId === lostStageId;
+
   return (
     <>
       {/* Header with Avatar, Name, Unread Count, and Time */}
@@ -24,7 +27,10 @@ export const LeadCardContent = ({ lead, isWonLostView = false }: LeadCardContent
         </p>
         
         {lead.purchaseValue !== undefined && (
-          <span className="text-xs font-semibold text-green-600 dark:text-green-400 flex-shrink-0 ml-2">
+          <span className={cn(
+            "text-xs font-semibold flex-shrink-0 ml-2",
+            isLost ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"
+          )}>
             {formatCurrency(lead.purchaseValue)}
           </span>
         )}

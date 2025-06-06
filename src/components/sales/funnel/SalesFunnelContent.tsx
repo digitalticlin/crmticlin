@@ -9,12 +9,15 @@ import { LeadDetailSidebar } from "@/components/sales/LeadDetailSidebar";
 import { ModernFunnelHeader } from "@/components/sales/funnel/ModernFunnelHeader";
 import { ModernFunnelControlBar } from "@/components/sales/funnel/ModernFunnelControlBar";
 import { SelectStageModal } from "@/components/sales/funnel/modals/SelectStageModal";
+import { DealNoteModal } from "@/components/sales/funnel/modals/DealNoteModal";
 import { useSalesFunnelContext } from "./SalesFunnelProvider";
 
 export const SalesFunnelContent = () => {
   const [activeTab, setActiveTab] = useState("funnel");
   const [isStageModalOpen, setIsStageModalOpen] = useState(false);
+  const [isDealNoteModalOpen, setIsDealNoteModalOpen] = useState(false);
   const [leadToMove, setLeadToMove] = useState<KanbanLead | null>(null);
+  const [pendingDealMove, setPendingDealMove] = useState<{lead: KanbanLead, status: "won" | "lost"} | null>(null);
   const navigate = useNavigate();
   
   const {
@@ -81,15 +84,26 @@ export const SalesFunnelContent = () => {
   };
 
   const handleMoveToWonLost = async (lead: KanbanLead, status: "won" | "lost") => {
+    setPendingDealMove({ lead, status });
+    setIsDealNoteModalOpen(true);
+  };
+
+  const handleDealNoteConfirm = async (note: string) => {
+    if (!pendingDealMove) return;
+
+    const { lead, status } = pendingDealMove;
     const targetStage = stages?.find(stage => 
       status === "won" ? stage.is_won : stage.is_lost
     );
     
     if (targetStage) {
-      await moveLeadToStage(lead, targetStage.id);
-      await refetchLeads(); // Refresh data after move
+      await moveLeadToStage(lead, targetStage.id, note);
+      await refetchLeads();
       toast.success(`Lead movido para ${status === "won" ? "Ganhos" : "Perdidos"}`);
     }
+
+    setIsDealNoteModalOpen(false);
+    setPendingDealMove(null);
   };
 
   const handleReturnToFunnel = (lead: KanbanLead) => {
@@ -99,8 +113,8 @@ export const SalesFunnelContent = () => {
 
   const handleStageSelection = async (lead: KanbanLead, stageId: string) => {
     await moveLeadToStage(lead, stageId);
-    await refetchLeads(); // Refresh data after move
-    await refetchStages(); // Refresh stages data
+    await refetchLeads();
+    await refetchStages();
     toast.success("Lead retornado para o funil");
   };
 
@@ -108,10 +122,8 @@ export const SalesFunnelContent = () => {
     await createFunnel(name, description);
   };
 
-  // *** FUNÇÃO CORRIGIDA PARA ATUALIZAÇÃO OTIMISTA ***
   const handleColumnsChange = (newColumns: any[]) => {
     console.log("Aplicando atualização otimista das colunas:", newColumns);
-    // Atualizar o estado das colunas no contexto para refletir imediatamente na UI
     setColumns(newColumns);
   };
 
@@ -183,6 +195,18 @@ export const SalesFunnelContent = () => {
         lead={leadToMove}
         stages={stages || []}
         onSelectStage={handleStageSelection}
+      />
+
+      {/* Modal de Observação do Deal */}
+      <DealNoteModal
+        isOpen={isDealNoteModalOpen}
+        onClose={() => {
+          setIsDealNoteModalOpen(false);
+          setPendingDealMove(null);
+        }}
+        onConfirm={handleDealNoteConfirm}
+        dealType={pendingDealMove?.status || "won"}
+        leadName={pendingDealMove?.lead.name || ""}
       />
 
       {/* Sidebar de Detalhes */}

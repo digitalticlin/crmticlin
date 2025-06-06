@@ -78,7 +78,7 @@ export const LeadCard = ({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      <LeadCardContent lead={lead} isWonLostView={isWonLostView} />
+      <LeadCardContent lead={lead} isWonLostView={isWonLostView} lostStageId={lostStageId} />
       
       {/* Tags and Actions Footer */}
       <div className="flex justify-between items-center mt-3 pt-2 border-t border-white/20">
