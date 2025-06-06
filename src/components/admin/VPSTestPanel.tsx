@@ -22,38 +22,46 @@ import { VPSTokenSynchronizer } from "./vps/VPSTokenSynchronizer";
 import { VPSInstanceCreationTester } from "./vps/VPSInstanceCreationTester";
 import { VPSEndpointDiscovery as VPSEndpointDiscoveryNew } from "./vps/VPSEndpointDiscovery";
 import { VPSInfrastructureAnalyzer } from "./vps/VPSInfrastructureAnalyzer";
+import { VPSInstanceManager } from "./vps/VPSInstanceManager";
+import { VPSDiscoveryPanel } from "./vps/VPSDiscoveryPanel";
 
 export const VPSTestPanel = () => {
   return (
     <div className="space-y-6">
-      {/* NOVO: Análise Completa da Infraestrutura VPS - FERRAMENTA PRINCIPAL */}
+      {/* NOVO: Gerenciador de Instâncias Manual - FERRAMENTA PRINCIPAL */}
+      <VPSInstanceManager />
+
+      {/* NOVO: Painel de Descoberta VPS - FERRAMENTA PRINCIPAL */}
+      <VPSDiscoveryPanel />
+
+      {/* Análise Completa da Infraestrutura VPS - FERRAMENTA PRINCIPAL */}
       <VPSInfrastructureAnalyzer />
 
-      {/* NOVO: Descoberta Automática de Endpoints VPS - FERRAMENTA PRINCIPAL */}
+      {/* Descoberta Automática de Endpoints VPS - FERRAMENTA PRINCIPAL */}
       <VPSEndpointDiscoveryNew />
 
-      {/* NOVO: Sincronização e Correção de Token VPS - FERRAMENTA PRINCIPAL */}
+      {/* Sincronização e Correção de Token VPS - FERRAMENTA PRINCIPAL */}
       <VPSTokenSynchronizer />
 
-      {/* NOVO: Teste de Criação de Instância - FERRAMENTA PRINCIPAL */}
+      {/* Teste de Criação de Instância - FERRAMENTA PRINCIPAL */}
       <VPSInstanceCreationTester />
 
-      {/* NOVO: Teste Completo de Sincronização VPS-Supabase - FERRAMENTA PRINCIPAL */}
+      {/* Teste Completo de Sincronização VPS-Supabase - FERRAMENTA PRINCIPAL */}
       <VPSSupabaseSyncTest />
 
-      {/* NOVO: Gerenciador de Secrets e Diagnósticos Automatizados - FERRAMENTA PRINCIPAL */}
+      {/* Gerenciador de Secrets e Diagnósticos Automatizados - FERRAMENTA PRINCIPAL */}
       <VPSSecretManager />
 
-      {/* Deploy Inteligente - Primeira seção */}
+      {/* Deploy Inteligente */}
       <AutoDeployButton />
 
-      {/* NOVO: Configuração de Tokens - SEÇÃO PRINCIPAL */}
+      {/* Configuração de Tokens - SEÇÃO PRINCIPAL */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <HostingerTokenForm />
         <WhatsAppTokenGenerator />
       </div>
 
-      {/* NOVO: Descoberta de Token WhatsApp - FERRAMENTA PRINCIPAL */}
+      {/* Descoberta de Token WhatsApp - FERRAMENTA PRINCIPAL */}
       <VPSTokenDiscovery />
 
       {/* Diagnóstico Abrangente */}
