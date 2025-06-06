@@ -37,12 +37,17 @@ export const WhatsAppWebSettings = () => {
     // Implementação para mostrar QR code modal
   };
 
-  // CORREÇÃO: Função wrapper que retorna void
-  const handleRefreshQRCodeWrapper = async (instanceId: string): Promise<void> => {
+  // CORREÇÃO: Função que retorna o resultado correto
+  const handleRefreshQRCodeWrapper = async (instanceId: string): Promise<{ qrCode?: string } | null> => {
     try {
-      await refreshQRCode(instanceId);
+      const result = await refreshQRCode(instanceId);
+      if (result?.qrCode) {
+        return { qrCode: result.qrCode };
+      }
+      return null;
     } catch (error) {
       console.error('Erro ao atualizar QR Code:', error);
+      return null;
     }
   };
 

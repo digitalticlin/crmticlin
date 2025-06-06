@@ -11,7 +11,7 @@ interface SimpleInstanceCardProps {
   instance: WhatsAppWebInstance;
   onGenerateQR: (instanceId: string, instanceName: string) => Promise<void>;
   onDelete: (instanceId: string) => Promise<void>;
-  onRefreshQRCode: (instanceId: string) => Promise<void>;
+  onRefreshQRCode: (instanceId: string) => Promise<{ qrCode?: string } | null>;
 }
 
 export const SimpleInstanceCard = ({

@@ -75,15 +75,18 @@ export const SimpleWhatsAppConnection = () => {
     await deleteInstance(instanceId);
   };
 
-  // CORREÇÃO: Função wrapper que retorna void
-  const handleRefreshQRCodeWrapper = async (instanceId: string): Promise<void> => {
+  // CORREÇÃO: Função que retorna o resultado correto
+  const handleRefreshQRCode = async (instanceId: string): Promise<{ qrCode?: string } | null> => {
     try {
       const result = await refreshQRCode(instanceId);
       if (result?.qrCode) {
         setSelectedQRCode(result.qrCode);
+        return { qrCode: result.qrCode };
       }
+      return null;
     } catch (error) {
       console.error('Erro ao atualizar QR Code:', error);
+      return null;
     }
   };
 
@@ -157,7 +160,7 @@ export const SimpleWhatsAppConnection = () => {
           qrCode={selectedQRCode}
           instanceName={selectedInstanceName}
           instanceId={selectedInstanceId}
-          onRefreshQRCode={handleRefreshQRCodeWrapper}
+          onRefreshQRCode={handleRefreshQRCode}
         />
       </div>
     );
@@ -174,7 +177,7 @@ export const SimpleWhatsAppConnection = () => {
             instance={instance}
             onGenerateQR={handleGenerateQR}
             onDelete={handleDeleteInstance}
-            onRefreshQRCode={handleRefreshQRCodeWrapper}
+            onRefreshQRCode={handleRefreshQRCode}
           />
         ))}
         
@@ -231,7 +234,7 @@ export const SimpleWhatsAppConnection = () => {
         qrCode={selectedQRCode}
         instanceName={selectedInstanceName}
         instanceId={selectedInstanceId}
-        onRefreshQRCode={handleRefreshQRCodeWrapper}
+        onRefreshQRCode={handleRefreshQRCode}
       />
     </div>
   );
