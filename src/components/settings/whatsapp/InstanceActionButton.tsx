@@ -2,6 +2,9 @@
 import { Button } from "@/components/ui/button";
 import { CheckCircle, RefreshCw, Eye, QrCode } from "lucide-react";
 import { useQRCodeValidation } from "@/hooks/whatsapp/useQRCodeValidation";
+import { useState } from "react";
+import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
+import { toast } from "sonner";
 
 interface InstanceActionButtonProps {
   connectionStatus: string;
@@ -22,6 +25,7 @@ export function InstanceActionButton({
 }: InstanceActionButtonProps) {
   const { validateQRCode } = useQRCodeValidation();
   const qrValidation = validateQRCode(qrCode);
+  const [isGeneratingQR, setIsGeneratingQR] = useState(false);
   
   const isConnected = connectionStatus === 'connected' || 
                      connectionStatus === 'ready' || 
@@ -45,6 +49,39 @@ export function InstanceActionButton({
   };
 
   const qrStatus = getQRStatus();
+
+  // CORREÇÃO CRÍTICA: Função para gerar QR Code manualmente via backend
+  const handleGenerateQRCode = async () => {
+    setIsGeneratingQR(true);
+    console.log('[Instance Action] 🔄 CORREÇÃO CRÍTICA - Gerando QR Code via backend para:', instanceId);
+    
+    try {
+      const result = await WhatsAppWebService.getQRCode(instanceId);
+      
+      if (result.success && result.qrCode) {
+        console.log('[Instance Action] ✅ CORREÇÃO CRÍTICA - QR Code obtido com sucesso do backend');
+        toast.success('QR Code gerado com sucesso!');
+        
+        // Chamar a função de refresh para atualizar a lista
+        onRefreshQR(instanceId);
+      } else if (result.waiting) {
+        console.log('[Instance Action] ⏳ CORREÇÃO CRÍTICA - QR Code ainda sendo processado');
+        toast.info('QR Code ainda está sendo gerado, aguarde...');
+        
+        // Tentar novamente em 3 segundos
+        setTimeout(() => {
+          onRefreshQR(instanceId);
+        }, 3000);
+      } else {
+        throw new Error(result.error || 'Falha ao obter QR Code do backend');
+      }
+    } catch (error: any) {
+      console.error('[Instance Action] ❌ CORREÇÃO CRÍTICA - Erro ao gerar QR Code:', error);
+      toast.error(`Erro ao gerar QR Code: ${error.message}`);
+    } finally {
+      setIsGeneratingQR(false);
+    }
+  };
 
   if (isConnected) {
     return (
@@ -88,29 +125,26 @@ export function InstanceActionButton({
     );
   }
 
-  if (qrStatus.status === 'placeholder') {
-    return (
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => onRefreshQR(instanceId)}
-        className="bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100"
-      >
-        <RefreshCw className="h-4 w-4 mr-1" />
-        Aguardar QR
-      </Button>
-    );
-  }
-
+  // CORREÇÃO CRÍTICA: Botão "Gerar QR Code" que faz requisição manual ao backend
   return (
     <Button
       variant="outline"
       size="sm"
-      onClick={() => onRefreshQR(instanceId)}
+      onClick={handleGenerateQRCode}
+      disabled={isGeneratingQR}
       className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
     >
-      <QrCode className="h-4 w-4 mr-1" />
-      Gerar QR Code
+      {isGeneratingQR ? (
+        <>
+          <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+          Gerando...
+        </>
+      ) : (
+        <>
+          <QrCode className="h-4 w-4 mr-1" />
+          Gerar QR Code
+        </>
+      )}
     </Button>
   );
 }
