@@ -6,13 +6,13 @@ import { toast } from 'sonner';
 export const useAutomaticQRPolling = () => {
   const [isPolling, setIsPolling] = useState(false);
   const [currentAttempt, setCurrentAttempt] = useState(0);
-  const [maxAttempts] = useState(12); // Reduzido para ser mais rápido
+  const [maxAttempts] = useState(15); // FASE 1.2: Aumentado para 15 tentativas
   
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const isPollingRef = useRef(false);
 
   const stopPolling = useCallback(() => {
-    console.log('[Auto QR Polling] 🛑 Parando polling');
+    console.log('[Auto QR Polling] 🛑 FASE 1.2 - Parando polling');
     if (pollingRef.current) {
       clearTimeout(pollingRef.current);
       pollingRef.current = null;
@@ -27,7 +27,7 @@ export const useAutomaticQRPolling = () => {
     instanceName: string,
     onQRReceived: (qrCode: string) => void
   ) => {
-    console.log('[Auto QR Polling] 🚀 Iniciando polling ULTRA-RÁPIDO para:', instanceName);
+    console.log('[Auto QR Polling] 🚀 FASE 1.2 - Iniciando polling otimizado para:', instanceName);
     
     // Parar qualquer polling anterior
     stopPolling();
@@ -38,14 +38,14 @@ export const useAutomaticQRPolling = () => {
 
     const poll = async (attempt: number) => {
       if (!isPollingRef.current || attempt > maxAttempts) {
-        console.log('[Auto QR Polling] ⏰ Polling finalizado - máximo de tentativas atingido');
+        console.log('[Auto QR Polling] ⏰ FASE 1.2 - Polling finalizado - máximo de tentativas atingido');
         stopPolling();
         toast.error(`Timeout: QR Code não foi gerado após ${maxAttempts} tentativas`);
         return;
       }
 
       try {
-        console.log(`[Auto QR Polling] ⚡ Tentativa ULTRA-RÁPIDA ${attempt}/${maxAttempts} para ${instanceName}`);
+        console.log(`[Auto QR Polling] ⚡ FASE 1.2 - Tentativa ${attempt}/${maxAttempts} para ${instanceName}`);
         setCurrentAttempt(attempt);
 
         const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
@@ -56,31 +56,37 @@ export const useAutomaticQRPolling = () => {
         });
 
         if (error) {
-          console.error(`[Auto QR Polling] ❌ Erro Supabase:`, error);
+          console.error(`[Auto QR Polling] ❌ FASE 1.2 - Erro Supabase:`, error);
           throw error;
         }
 
-        console.log(`[Auto QR Polling] 📥 Resposta ULTRA-RÁPIDA (tentativa ${attempt}):`, {
+        console.log(`[Auto QR Polling] 📥 FASE 1.2 - Resposta (tentativa ${attempt}):`, {
           success: data.success,
           hasQrCode: !!data.qrCode,
           waiting: data.waiting,
+          source: data.source,
           error: data.error
         });
 
         if (data.success && data.qrCode) {
-          console.log(`[Auto QR Polling] 🎉 QR Code recebido na tentativa ${attempt}!`);
+          console.log(`[Auto QR Polling] 🎉 FASE 1.2 - QR Code recebido na tentativa ${attempt}! Fonte: ${data.source}`);
           onQRReceived(data.qrCode);
           stopPolling();
           return;
         }
 
         if (data.waiting) {
-          // Intervalos progressivos mais rápidos: 1.5s -> 2s -> 2.5s
-          let delay = 1500; // 1.5 segundos iniciais
-          if (attempt > 3) delay = 2000; // 2 segundos após 3 tentativas
-          if (attempt > 6) delay = 2500; // 2.5 segundos após 6 tentativas
+          // FASE 1.2: Intervalos otimizados baseados no retryAfter da resposta
+          let delay = data.retryAfter || 2000; // Usar sugestão da API ou 2s padrão
+          
+          // Intervalos progressivos para casos sem sugestão
+          if (!data.retryAfter) {
+            if (attempt <= 3) delay = 1500;      // 1.5s primeiras 3 tentativas
+            else if (attempt <= 8) delay = 2500; // 2.5s tentativas 4-8
+            else delay = 3000;                   // 3s tentativas finais
+          }
 
-          console.log(`[Auto QR Polling] ⏳ POLLING ULTRA-RÁPIDO - Aguardando ${delay/1000}s para próxima tentativa...`);
+          console.log(`[Auto QR Polling] ⏳ FASE 1.2 - Aguardando ${delay/1000}s para próxima tentativa...`);
           
           pollingRef.current = setTimeout(() => {
             if (isPollingRef.current) {
@@ -92,14 +98,14 @@ export const useAutomaticQRPolling = () => {
         }
 
       } catch (error: any) {
-        console.error(`[Auto QR Polling] ❌ Erro na tentativa ${attempt}:`, error);
+        console.error(`[Auto QR Polling] ❌ FASE 1.2 - Erro na tentativa ${attempt}:`, error);
         
         if (attempt >= maxAttempts) {
           stopPolling();
           toast.error(`Erro persistente após ${maxAttempts} tentativas: ${error.message}`);
         } else {
-          // Retry mais rápido em caso de erro
-          console.log(`[Auto QR Polling] 🔄 Retry em 2s devido a erro...`);
+          // FASE 1.2: Retry mais rápido em caso de erro
+          console.log(`[Auto QR Polling] 🔄 FASE 1.2 - Retry em 2s devido a erro...`);
           pollingRef.current = setTimeout(() => {
             if (isPollingRef.current) {
               poll(attempt + 1);
