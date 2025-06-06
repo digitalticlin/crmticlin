@@ -5,7 +5,7 @@ import { corsHeaders } from './config.ts';
 
 import { createWhatsAppInstance } from './instanceCreationService.ts';
 import { getQRCodeAsync } from './qrCodeAsyncService.ts';
-import { deleteInstance } from './instanceDeletionService.ts';
+import { deleteWhatsAppInstance } from './instanceDeletionService.ts';
 import { checkServerHealth, getServerInfo } from './serverHealthService.ts';
 import { syncInstances } from './instanceSyncService.ts';
 import { sendMessage } from './messageSendingService.ts';
@@ -79,11 +79,7 @@ Deno.serve(async (req) => {
 
       case 'delete_instance':
         console.log('[WhatsApp Server] 🗑️ DELETE INSTANCE');
-        const deleteResult = await deleteInstance(supabase, body.instanceData);
-        return new Response(JSON.stringify(deleteResult), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: deleteResult.success ? 200 : 500
-        });
+        return await deleteWhatsAppInstance(supabase, body.instanceData, user.id);
 
       case 'check_server_health':
         console.log('[WhatsApp Server] 🩺 CHECK SERVER HEALTH');
