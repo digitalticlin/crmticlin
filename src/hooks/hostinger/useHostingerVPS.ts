@@ -10,6 +10,7 @@ interface VPSOperationState {
   isBackingUp: boolean;
   isApplyingFixes: boolean;
   isDeployingWhatsApp: boolean;
+  isCheckingHealth: boolean;
 }
 
 export const useHostingerVPS = () => {
@@ -22,7 +23,8 @@ export const useHostingerVPS = () => {
     isRestarting: false,
     isBackingUp: false,
     isApplyingFixes: false,
-    isDeployingWhatsApp: false
+    isDeployingWhatsApp: false,
+    isCheckingHealth: false
   });
   const [logs, setLogs] = useState<string>('');
   const [whatsappStatus, setWhatsappStatus] = useState<any>(null);
@@ -239,18 +241,49 @@ export const useHostingerVPS = () => {
   // Check WhatsApp server health
   const checkServerHealth = async () => {
     try {
-      console.log('[useHostingerVPS] Verificando saúde do servidor WhatsApp...');
-      const result = await WhatsAppWebService.checkServerHealth();
+      setOperationState(prev => ({ ...prev, isCheckingHealth: true }));
       
-      if (result.success) {
-        console.log('[useHostingerVPS] Servidor health:', result.data);
-        setServerHealth(result.data);
-      } else {
-        setServerHealth({ isOnline: false, error: result.error });
+      // Primeiro passo: verificar conexão básica
+      const healthResult = await WhatsAppWebService.checkServerHealth();
+      
+      if (!healthResult.success) {
+        setServerHealth({
+          status: 'offline',
+          message: healthResult.error || 'Erro ao conectar ao servidor',
+          lastCheck: new Date()
+        });
+        setWhatsappStatus({
+          isOnline: false,
+          status: 'offline',
+          instances: []
+        });
+        return;
       }
+      
+      setServerHealth({
+        status: 'online',
+        message: 'Servidor respondendo corretamente',
+        lastCheck: new Date()
+      });
+      
+      // Segundo passo: buscar informações do servidor
+      const infoResult = await WhatsAppWebService.getServerInfo();
+      
+      setWhatsappStatus({
+        isOnline: true,
+        status: infoResult.data?.info || 'online',
+        instances: infoResult.instances || []
+      });
+      
     } catch (error: any) {
-      console.error('Erro ao verificar saúde do servidor:', error);
-      setServerHealth({ isOnline: false, error: error.message });
+      console.error('[useHostingerVPS] Erro ao verificar saúde:', error);
+      setServerHealth({
+        status: 'error',
+        message: error.message,
+        lastCheck: new Date()
+      });
+    } finally {
+      setOperationState(prev => ({ ...prev, isCheckingHealth: false }));
     }
   };
 

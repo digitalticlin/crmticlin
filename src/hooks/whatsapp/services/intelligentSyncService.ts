@@ -1,142 +1,108 @@
-
-import { useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
-import { VPS_CONFIG } from '@/services/whatsapp/config/vpsConfig';
-import { loopDetection } from './loopDetectionService';
 
-// FASE 3: Sync Inteligente com detecção de loops
-export const useIntelligentSync = (companyId: string | null, companyLoading: boolean) => {
-  const lastSyncDataRef = useRef<{
-    instancesHash: string;
-    timestamp: number;
-  }>({ instancesHash: '', timestamp: 0 });
-  
-  const isMountedRef = useRef(true);
-  const syncInProgressRef = useRef(false);
+interface SyncState {
+  isSyncing: boolean;
+  lastSuccess: Date | null;
+  lastError: string | null;
+  instancesCounted: number;
+  instancesSynced: number;
+}
 
-  // Gerar hash dos dados para detectar mudanças reais
-  const generateInstancesHash = (instances: any[]) => {
-    const relevantData = instances.map(i => ({
-      id: i.instanceId,
-      status: i.status,
-      phone: i.phone,
-      profileName: i.profileName
-    }));
-    return btoa(JSON.stringify(relevantData));
-  };
+export const useIntelligentSync = (refreshInstances: () => void) => {
+  const [syncState, setSyncState] = useState<SyncState>({
+    isSyncing: false,
+    lastSuccess: null,
+    lastError: null,
+    instancesCounted: 0,
+    instancesSynced: 0
+  });
 
-  // Sync inteligente com proteção contra loops
-  const performIntelligentSync = useCallback(async (force = false) => {
-    // FASE 3: Verificar proteção contra loops
-    const syncEndpoint = 'intelligent-sync';
+  // Find and update the syncInstances function to correctly handle the response structure:
+
+const syncInstances = async () => {
+  try {
+    setSyncState({ ...syncState, isSyncing: true, lastError: null });
     
-    if (!loopDetection.recordRequest(syncEndpoint)) {
-      console.warn('[Intelligent Sync] 🔄 Sync bloqueado por detecção de loop');
-      return { success: false, reason: 'loop_detected', blocked: true };
+    // Log de início
+    console.log('[Intelligent Sync] 🔄 Iniciando sincronização inteligente');
+    
+    // Passo 1: Verificar se servidor está online
+    const serverHealth = await WhatsAppWebService.checkServerHealth();
+    if (!serverHealth.success) {
+      throw new Error('Servidor não está respondendo: ' + (serverHealth.error || 'Erro desconhecido'));
     }
-
-    if (!companyId || companyLoading || !isMountedRef.current) {
-      console.log('[Intelligent Sync] ⏭️ Condições não atendidas para sync');
-      return { success: false, reason: 'conditions_not_met' };
+    
+    // Passo 2: Buscar instâncias do servidor
+    const serverInfo = await WhatsAppWebService.getServerInfo();
+    if (!serverInfo.success) {
+      throw new Error('Falha ao buscar instâncias: ' + (serverInfo.error || 'Erro desconhecido'));
     }
+    
+    const remoteInstances = serverInfo.instances || [];
+    
+    // Converter para o formato padronizado
+    const mappedRemoteInstances = remoteInstances.map(instance => ({
+      vps_instance_id: instance.instanceId,
+      phone: instance.phone || '',
+      status: instance.status || 'unknown',
+      name: instance.instance_name || instance.instanceName || ''
+    }));
+    
+    console.log(`[Intelligent Sync] 📊 ${mappedRemoteInstances.length} instâncias encontradas no servidor`);
 
-    if (syncInProgressRef.current && !force) {
-      console.log('[Intelligent Sync] ⏸️ Sync já em progresso');
-      return { success: false, reason: 'sync_in_progress' };
-    }
-
-    const now = Date.now();
-    const timeSinceLastSync = now - lastSyncDataRef.current.timestamp;
-    const MIN_INTELLIGENT_INTERVAL = VPS_CONFIG.sync.interval * 0.5; // 90 segundos mínimo
-
-    if (!force && timeSinceLastSync < MIN_INTELLIGENT_INTERVAL) {
-      console.log(`[Intelligent Sync] ⏰ Throttled - ${Math.round((MIN_INTELLIGENT_INTERVAL - timeSinceLastSync) / 1000)}s restantes`);
-      return { success: false, reason: 'throttled' };
-    }
-
-    syncInProgressRef.current = true;
-
-    try {
-      console.log('[Intelligent Sync] 🧠 Iniciando sync inteligente FASE 3 (com proteção anti-loop)');
+    // Passo 3: Sincronizar com backend via Edge Function
+    const syncResult = await WhatsAppWebService.syncInstances();
+    
+    if (syncResult.success) {
+      console.log(`[Intelligent Sync] ✅ Sincronização concluída: ${
+        syncResult.data?.updated || 0} instâncias atualizadas`);
       
-      // Primeiro, buscar estado atual da VPS
-      const vpsResult = await WhatsAppWebService.getServerInfo();
+      setSyncState({
+        isSyncing: false,
+        lastSuccess: new Date(),
+        lastError: null,
+        instancesCounted: mappedRemoteInstances.length,
+        instancesSynced: syncResult.data?.updated || 0
+      });
       
-      if (!vpsResult.success) {
-        console.log('[Intelligent Sync] ❌ VPS inacessível, mantendo estado atual');
-        return { success: false, reason: 'vps_unreachable', error: vpsResult.error };
+      // Recarregar instâncias após sincronização
+      if (refreshInstances) {
+        refreshInstances();
       }
-
-      // Verificar se houve mudanças comparando hash
-      const currentHash = generateInstancesHash(vpsResult.instances || []);
-      const hasChanges = currentHash !== lastSyncDataRef.current.instancesHash;
-
-      if (!force && !hasChanges) {
-        console.log('[Intelligent Sync] ➡️ Nenhuma mudança detectada, sync desnecessário');
-        lastSyncDataRef.current.timestamp = now;
-        return { success: true, reason: 'no_changes_detected', skipped: true };
-      }
-
-      console.log('[Intelligent Sync] 🔄 Mudanças detectadas, executando sync completo');
       
-      // Executar sync completo
-      const syncResult = await WhatsAppWebService.syncInstances();
-      
-      if (syncResult.success) {
-        // Atualizar hash e timestamp apenas em caso de sucesso
-        lastSyncDataRef.current = {
-          instancesHash: currentHash,
-          timestamp: now
-        };
-        
-        console.log('[Intelligent Sync] ✅ Sync inteligente concluído com sucesso');
-        console.log('[Intelligent Sync] 📊 Resumo:', syncResult.data?.summary);
-        
-        return { 
-          success: true, 
-          reason: 'changes_synced',
-          summary: syncResult.data?.summary,
-          changesDetected: hasChanges,
-          loopStats: loopDetection.getEndpointStats(syncEndpoint)
-        };
-      } else {
-        console.error('[Intelligent Sync] ❌ Falha no sync:', syncResult.error);
-        return { success: false, reason: 'sync_failed', error: syncResult.error };
-      }
-
-    } catch (error) {
-      console.error('[Intelligent Sync] 💥 Erro inesperado:', error);
-      return { success: false, reason: 'unexpected_error', error: error.message };
-    } finally {
-      syncInProgressRef.current = false;
+    } else {
+      throw new Error('Falha na sincronização: ' + (syncResult.error || 'Erro desconhecido'));
     }
-  }, [companyId, companyLoading]);
+    
+  } catch (error: any) {
+    console.error('[Intelligent Sync] ❌ Erro:', error);
+    setSyncState({
+      ...syncState,
+      isSyncing: false,
+      lastError: error.message
+    });
+  }
+};
 
-  // Reset do estado quando componente desmonta
-  const cleanup = useCallback(() => {
-    isMountedRef.current = false;
-    syncInProgressRef.current = false;
-    console.log('[Intelligent Sync] 🧹 Cleanup executado');
-  }, []);
+  const debouncedSync = useCallback(() => {
+    syncInstances();
+  }, [syncInstances]);
 
-  // Força um novo sync resetando o hash
-  const forceFullSync = useCallback(async () => {
-    console.log('[Intelligent Sync] 🔄 Forçando sync completo');
-    lastSyncDataRef.current.instancesHash = ''; // Reset hash para forçar sync
-    return await performIntelligentSync(true);
-  }, [performIntelligentSync]);
+  useEffect(() => {
+    // Iniciar sincronização a cada 60 segundos
+    const intervalId = setInterval(() => {
+      if (!syncState.isSyncing) {
+        debouncedSync();
+      }
+    }, 60000);
 
-  // Obter estatísticas de loops
-  const getLoopStats = useCallback(() => {
-    return loopDetection.getAllStats();
-  }, []);
+    // Limpar intervalo ao desmontar
+    return () => clearInterval(intervalId);
+  }, [debouncedSync, syncState.isSyncing]);
 
   return {
-    performIntelligentSync,
-    forceFullSync,
-    cleanup,
-    isInProgress: () => syncInProgressRef.current,
-    getLastSyncInfo: () => lastSyncDataRef.current,
-    getLoopStats // NOVO: estatísticas de detecção de loops
+    ...syncState,
+    syncInstances: debouncedSync
   };
 };

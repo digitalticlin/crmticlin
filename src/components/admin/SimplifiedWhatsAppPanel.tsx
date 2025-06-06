@@ -28,7 +28,7 @@ export default function SimplifiedWhatsAppPanel() {
         setServerStatus(result.data);
         toast.success("Servidor funcionando perfeitamente!");
       } else {
-        toast.error(`Problema no servidor: ${result.error}`);
+        toast.error(`Problema no servidor: ${result.error || "Erro desconhecido"}`);
       }
     } catch (error: any) {
       toast.error(error?.message || "Erro ao verificar servidor");

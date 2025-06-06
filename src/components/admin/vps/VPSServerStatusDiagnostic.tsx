@@ -1,116 +1,150 @@
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Server, RefreshCw } from "lucide-react";
-import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Server, CheckCircle, XCircle, Info, Loader2 } from "lucide-react";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
-import { VPSStatusCard } from "./VPSStatusCard";
-import { VPSErrorDisplay } from "./VPSErrorDisplay";
-import { VPSRecommendationsPanel } from "./VPSRecommendationsPanel";
 
-interface ServerStatus {
-  isOnline: boolean;
-  version?: string;
-  server?: string;
-  port?: string;
-  isPersistent?: boolean;
-  activeInstances?: number;
+export interface ServerStatusResult {
+  success: boolean;
+  data?: {
+    status: string;
+    version?: string;
+    server?: string;
+    permanentMode?: boolean;
+    activeInstances?: number;
+  };
   error?: string;
 }
 
 export const VPSServerStatusDiagnostic = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [status, setStatus] = useState<ServerStatus | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<ServerStatusResult | null>(null);
 
   const checkServerStatus = async () => {
-    setIsLoading(true);
-    setStatus(null);
-    
+    setLoading(true);
     try {
-      console.log('[VPS Status] Verificando servidor via Edge Functions...');
+      const response = await WhatsAppWebService.checkServerHealth();
       
-      // Usar WhatsAppWebService ao invés de chamadas diretas
-      const result = await WhatsAppWebService.checkServerHealth();
+      const normalizedResult: ServerStatusResult = {
+        success: response.success,
+        data: {
+          status: response.data?.status || 'unknown',
+          version: response.data?.version || 'unknown',
+          server: response.data?.server || 'unknown',
+          permanentMode: response.data?.permanent_mode || response.data?.permanentMode || false,
+          activeInstances: response.data?.active_instances || response.data?.activeInstances || 0
+        },
+        error: response.error || undefined
+      };
       
-      if (result.success && result.data) {
-        console.log('[VPS Status] Servidor encontrado via Edge Functions:', result.data);
-        
-        setStatus({
-          isOnline: true,
-          version: result.data.version || 'v4.0.0',
-          server: result.data.server || 'WhatsApp Web.js Server',
-          port: '3001', // Porta padrão
-          isPersistent: result.data.permanent_mode || result.data.permanentMode || true,
-          activeInstances: result.data.active_instances || result.data.activeInstances || 0
-        });
-        
-        toast.success('Servidor encontrado e funcionando');
-      } else {
-        console.error('[VPS Status] Erro na resposta:', result.error);
-        setStatus({
-          isOnline: false,
-          error: result.error || 'Servidor WhatsApp não está respondendo'
-        });
-        toast.error('Servidor WhatsApp não está funcionando');
-      }
-      
-    } catch (error) {
-      console.error('[VPS Status] Erro ao verificar status:', error);
-      setStatus({
-        isOnline: false,
-        error: `Erro de conectividade: ${error.message}`
+      setResult(normalizedResult);
+    } catch (error: any) {
+      setResult({
+        success: false,
+        error: error.message || "Erro ao verificar status do servidor"
       });
-      toast.error('Erro ao conectar com o servidor');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Controles */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Server className="h-5 w-5" />
-            Status do Servidor VPS
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <Button 
-              onClick={checkServerStatus}
-              disabled={isLoading}
-              className="flex items-center gap-2"
-            >
-              {isLoading ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
-              ) : (
-                <Server className="h-4 w-4" />
-              )}
-              {isLoading ? 'Verificando...' : 'Verificar Status'}
-            </Button>
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Server className="h-5 w-5 text-blue-500" />
+            <div>
+              <CardTitle className="text-base">Servidor WhatsApp.js</CardTitle>
+              <CardDescription>Verificar status e saúde</CardDescription>
+            </div>
           </div>
-          
-          <p className="text-sm text-muted-foreground mt-2">
-            Verifica o servidor via Edge Functions (método seguro e compatível).
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Resultados */}
-      {status && (
-        <div className="space-y-4">
-          <VPSStatusCard status={status} />
-          
-          {status.error && (
-            <VPSErrorDisplay error={status.error} />
-          )}
-          
-          <VPSRecommendationsPanel status={status} />
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={loading}
+            onClick={checkServerStatus}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Verificando...
+              </>
+            ) : (
+              'Verificar Status'
+            )}
+          </Button>
         </div>
-      )}
-    </div>
+      </CardHeader>
+      <CardContent>
+        {result ? (
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+              {result.success ? (
+                <CheckCircle className="h-5 w-5 text-green-500" />
+              ) : (
+                <XCircle className="h-5 w-5 text-red-500" />
+              )}
+              <span className="font-medium">
+                {result.success
+                  ? 'Servidor está online e operacional'
+                  : 'Servidor offline ou inacessível'}
+              </span>
+            </div>
+
+            {result.success && result.data && (
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="bg-gray-50 p-2 rounded">
+                  <span className="text-gray-500">Status:</span>
+                  <span className="ml-2 font-medium">
+                    {result.data.status}
+                  </span>
+                </div>
+                <div className="bg-gray-50 p-2 rounded">
+                  <span className="text-gray-500">Versão:</span>
+                  <span className="ml-2 font-medium">
+                    {result.data.version || 'N/A'}
+                  </span>
+                </div>
+                <div className="bg-gray-50 p-2 rounded">
+                  <span className="text-gray-500">Servidor:</span>
+                  <span className="ml-2 font-medium">
+                    {result.data.server || 'N/A'}
+                  </span>
+                </div>
+                <div className="bg-gray-50 p-2 rounded">
+                  <span className="text-gray-500">Modo persistente:</span>
+                  <span className="ml-2 font-medium">
+                    {result.data.permanentMode ? 'Sim' : 'Não'}
+                  </span>
+                </div>
+                <div className="bg-gray-50 p-2 rounded col-span-2">
+                  <span className="text-gray-500">Instâncias ativas:</span>
+                  <span className="ml-2 font-medium">
+                    {result.data.activeInstances || 0}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {!result.success && result.error && (
+              <div className="bg-red-50 text-red-700 p-3 rounded border border-red-200 flex items-start">
+                <Info className="h-5 w-5 mr-2 mt-0.5" />
+                <div>
+                  <p className="font-medium">Erro de conexão</p>
+                  <p className="text-sm">{result.error}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <Server className="h-10 w-10 mx-auto mb-3 opacity-40" />
+            <p>Clique em "Verificar Status" para checar o servidor</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };

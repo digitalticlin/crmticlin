@@ -264,7 +264,8 @@ export class WhatsAppWebService {
     // Implementar via backend se necessário
     return {
       success: true,
-      data: { status: 'healthy' }
+      data: { status: 'healthy' },
+      error: null
     };
   }
 
@@ -273,7 +274,8 @@ export class WhatsAppWebService {
     return {
       success: true,
       data: { info: 'via backend' },
-      instances: []
+      instances: [],
+      error: null
     };
   }
 }

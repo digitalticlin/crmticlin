@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -46,21 +45,35 @@ export default function WhatsAppWebAdminPanel() {
   const [isCheckingServer, setIsCheckingServer] = useState(false);
   const [serverStatus, setServerStatus] = useState<any>(null);
 
-  const handleCheckServerHealth = async () => {
+  const checkServerHealth = async () => {
     try {
-      setIsCheckingServer(true);
-      const result = await WhatsAppWebService.checkServerHealth();
+      setIsChecking(true);
+      const healthResult = await WhatsAppWebService.checkServerHealth();
       
-      if (result.success) {
-        setServerStatus(result.data);
-        toast.success("Servidor VPS WhatsApp Web.js está funcionando!");
-      } else {
-        toast.error(`Erro no servidor VPS: ${result.error}`);
+      if (!healthResult.success) {
+        setServerStatus({
+          isOnline: false,
+          status: 'offline',
+          error: healthResult.error || 'Erro ao conectar ao servidor'
+        });
+        return;
       }
+      
+      setServerStatus({
+        isOnline: true,
+        status: healthResult.data.status || 'online',
+        version: healthResult.data.version || 'unknown',
+        uptime: healthResult.data.uptime || 'N/A'
+      });
+      
     } catch (error: any) {
-      toast.error(error?.message || "Erro ao verificar servidor VPS");
+      setServerStatus({
+        isOnline: false,
+        status: 'error',
+        error: error.message
+      });
     } finally {
-      setIsCheckingServer(false);
+      setIsChecking(false);
     }
   };
 
@@ -110,7 +123,7 @@ export default function WhatsAppWebAdminPanel() {
               <Button
                 variant="outline"
                 className="gap-1"
-                onClick={handleCheckServerHealth}
+                onClick={checkServerHealth}
                 disabled={isCheckingServer}
               >
                 {isCheckingServer ? (
