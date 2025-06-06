@@ -1,5 +1,36 @@
-
 import { supabase } from "@/integrations/supabase/client";
+
+interface ServerHealthResponse {
+  success: boolean;
+  data?: {
+    status: string;
+    version?: string;
+    server?: string;
+    permanent_mode?: boolean;
+    permanentMode?: boolean;
+    active_instances?: number;
+    activeInstances?: number;
+    uptime?: string;
+    port?: number;
+    dockerRunning?: boolean;
+    pm2Running?: boolean;
+  };
+  error?: string | null;
+}
+
+interface ServerInfoResponse {
+  success: boolean;
+  data?: {
+    status?: string;
+    info?: string;
+    version?: string;
+    server?: string;
+    permanentMode?: boolean;
+    autoReconnect?: boolean;
+  };
+  instances?: any[];
+  error?: string | null;
+}
 
 export class WhatsAppWebService {
   static async createInstance(instanceName: string) {
@@ -260,22 +291,92 @@ export class WhatsAppWebService {
   // FASE 2.0: Métodos removidos que faziam chamadas diretas para VPS
   // Agora TUDO passa pelo backend (Edge Functions)
   
-  static async checkServerHealth() {
-    // Implementar via backend se necessário
-    return {
-      success: true,
-      data: { status: 'healthy' },
-      error: null
-    };
+  static async checkServerHealth(): Promise<ServerHealthResponse> {
+    try {
+      console.log('[WhatsApp Web Service] 🏥 Checking server health via backend');
+
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('User not authenticated');
+      }
+
+      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+        body: {
+          action: 'check_server_health',
+          healthData: {}
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to check server health');
+      }
+
+      return {
+        success: true,
+        data: {
+          status: data.data?.status || 'online',
+          version: data.data?.version,
+          server: data.data?.server,
+          permanent_mode: data.data?.permanent_mode,
+          permanentMode: data.data?.permanentMode,
+          active_instances: data.data?.active_instances,
+          activeInstances: data.data?.activeInstances,
+          uptime: data.data?.uptime,
+          port: data.data?.port,
+          dockerRunning: data.data?.dockerRunning,
+          pm2Running: data.data?.pm2Running
+        }
+      };
+
+    } catch (error) {
+      console.error('[WhatsApp Web Service] ❌ Error checking server health:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
   }
 
-  static async getServerInfo() {
-    // Implementar via backend se necessário
-    return {
-      success: true,
-      data: { info: 'via backend' },
-      instances: [],
-      error: null
-    };
+  static async getServerInfo(): Promise<ServerInfoResponse> {
+    try {
+      console.log('[WhatsApp Web Service] 📡 Getting server info via backend');
+
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('User not authenticated');
+      }
+
+      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+        body: {
+          action: 'get_server_info',
+          infoData: {}
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return {
+        success: data.success,
+        data: data.data || { status: 'unknown', info: 'unknown' },
+        instances: data.instances || [],
+        error: data.error
+      };
+
+    } catch (error) {
+      console.error('[WhatsApp Web Service] ❌ Error getting server info:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        data: { status: 'error', info: 'error' }
+      };
+    }
   }
 }

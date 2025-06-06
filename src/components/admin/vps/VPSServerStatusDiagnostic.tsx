@@ -28,21 +28,22 @@ export const VPSServerStatusDiagnostic = () => {
       
       const normalizedResult: ServerStatusResult = {
         success: response.success,
-        data: {
+        data: response.success ? {
           status: response.data?.status || 'unknown',
-          version: response.data?.version || 'unknown',
-          server: response.data?.server || 'unknown',
-          permanentMode: response.data?.permanent_mode || response.data?.permanentMode || false,
-          activeInstances: response.data?.active_instances || response.data?.activeInstances || 0
-        },
-        error: response.error || undefined
+          version: response.data?.version,
+          server: response.data?.server,
+          permanentMode: response.data?.permanent_mode || response.data?.permanentMode,
+          activeInstances: response.data?.active_instances || response.data?.activeInstances
+        } : { status: 'offline' },
+        error: response.error
       };
       
       setResult(normalizedResult);
     } catch (error: any) {
       setResult({
         success: false,
-        error: error.message || "Erro ao verificar status do servidor"
+        error: error.message || "Erro ao verificar status do servidor",
+        data: { status: 'error' }
       });
     } finally {
       setLoading(false);

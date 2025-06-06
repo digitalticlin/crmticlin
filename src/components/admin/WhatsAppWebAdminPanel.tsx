@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -47,7 +48,7 @@ export default function WhatsAppWebAdminPanel() {
 
   const checkServerHealth = async () => {
     try {
-      setIsChecking(true);
+      setIsCheckingServer(true);
       const healthResult = await WhatsAppWebService.checkServerHealth();
       
       if (!healthResult.success) {
@@ -73,7 +74,7 @@ export default function WhatsAppWebAdminPanel() {
         error: error.message
       });
     } finally {
-      setIsChecking(false);
+      setIsCheckingServer(false);
     }
   };
 

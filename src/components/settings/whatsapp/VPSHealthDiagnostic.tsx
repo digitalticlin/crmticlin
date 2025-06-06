@@ -24,7 +24,7 @@ export const VPSHealthDiagnostic = () => {
     try {
       const response = await WhatsAppWebService.checkServerHealth();
       
-      if (response.success) {
+      if (response.success && response.data) {
         setHealthData({
           success: true,
           status: response.data.status,

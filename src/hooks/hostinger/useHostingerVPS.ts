@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { hostingerApi, HostingerVPS, HostingerApiResponse } from '@/services/hostinger/hostingerApiService';
 import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
@@ -209,7 +210,9 @@ export const useHostingerVPS = () => {
       
       const result = await WhatsAppWebService.getServerInfo();
       
-      if (result.success && result.data?.isOnline) {
+      // Fix the type error here by checking data and info property separately
+      if (result.success && result.data && 
+          (result.data.status === 'online' || result.data.status === 'healthy')) {
         toast.success('✅ Servidor WhatsApp já está rodando!');
         await checkServerHealth();
         return;
