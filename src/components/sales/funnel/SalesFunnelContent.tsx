@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -97,7 +96,8 @@ export const SalesFunnelContent = () => {
     );
     
     if (targetStage) {
-      await moveLeadToStage(lead, targetStage.id, note);
+      // Call moveLeadToStage with only 2 arguments as expected by the interface
+      await moveLeadToStage(lead, targetStage.id);
       await refetchLeads();
       toast.success(`Lead movido para ${status === "won" ? "Ganhos" : "Perdidos"}`);
     }
