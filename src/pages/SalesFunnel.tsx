@@ -24,6 +24,7 @@ export default function SalesFunnel() {
 
   const {
     columns,
+    setColumns,
     selectedLead,
     isLeadDetailOpen,
     setIsLeadDetailOpen,
@@ -82,6 +83,7 @@ export default function SalesFunnel() {
     createFunnel,
     funnelLoading,
     columns,
+    setColumns,
     selectedLead,
     isLeadDetailOpen,
     setIsLeadDetailOpen,

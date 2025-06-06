@@ -14,6 +14,7 @@ interface SalesFunnelContextValue {
 
   // Columns and leads
   columns: KanbanColumn[];
+  setColumns: (columns: KanbanColumn[]) => void;
   selectedLead: KanbanLead | null;
   isLeadDetailOpen: boolean;
   setIsLeadDetailOpen: (open: boolean) => void;

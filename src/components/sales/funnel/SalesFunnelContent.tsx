@@ -20,6 +20,7 @@ export const SalesFunnelContent = () => {
     setSelectedFunnel,
     createFunnel,
     columns,
+    setColumns,
     selectedLead,
     isLeadDetailOpen,
     setIsLeadDetailOpen,
@@ -94,12 +95,11 @@ export const SalesFunnelContent = () => {
     await createFunnel(name, description);
   };
 
-  // *** FUNÇÃO PARA LIDAR COM MUDANÇAS DE COLUNA (ATUALIZAÇÃO OTIMISTA) ***
+  // *** FUNÇÃO CORRIGIDA PARA ATUALIZAÇÃO OTIMISTA ***
   const handleColumnsChange = (newColumns: any[]) => {
-    // Esta função será chamada pelo useDragAndDrop para atualização otimista
-    // Não fazemos nada aqui pois o estado já é gerenciado pelo contexto
-    // A atualização otimista deve ser aplicada diretamente no estado do contexto
-    console.log("Colunas atualizadas otimisticamente:", newColumns);
+    console.log("Aplicando atualização otimista das colunas:", newColumns);
+    // Atualizar o estado das colunas no contexto para refletir imediatamente na UI
+    setColumns(newColumns);
   };
 
   return (
