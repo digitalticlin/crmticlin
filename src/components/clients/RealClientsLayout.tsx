@@ -1,7 +1,7 @@
 
 import { ClientData } from "@/hooks/clients/types";
 import { ClientsListTable } from "@/components/clients/ClientsListTable";
-import { UniversalLeadDetailSidebar } from "@/components/universal/UniversalLeadDetailSidebar";
+import { RealClientDetails } from "@/components/clients/RealClientDetails";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RealClientForm } from "@/components/clients/RealClientForm";
 
@@ -38,17 +38,6 @@ export function RealClientsLayout({
   onDetailsOpenChange,
   onFormOpenChange
 }: RealClientsLayoutProps) {
-  
-  const handleUpdateClient = (updates: Partial<ClientData>) => {
-    if (updates.notes !== undefined) {
-      onUpdateNotes(updates.notes);
-    }
-    if (updates.purchase_value !== undefined) {
-      onUpdatePurchaseValue(updates.purchase_value);
-    }
-    // Adicionar outros updates conforme necessário
-  };
-
   return (
     <div className="space-y-6">
       <ClientsListTable 
@@ -59,14 +48,13 @@ export function RealClientsLayout({
         isLoading={isLoading}
       />
       
-      {/* Universal Client Details Sidebar */}
+      {/* Client Details Sheet */}
       {selectedClient && (
-        <UniversalLeadDetailSidebar
-          data={selectedClient}
-          dataType="client"
+        <RealClientDetails
+          client={selectedClient}
           isOpen={isDetailsOpen}
           onOpenChange={onDetailsOpenChange}
-          onUpdateClient={handleUpdateClient}
+          onEdit={onEditClient}
           onUpdateNotes={onUpdateNotes}
           onUpdatePurchaseValue={onUpdatePurchaseValue}
         />

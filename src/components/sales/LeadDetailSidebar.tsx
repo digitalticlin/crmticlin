@@ -113,7 +113,7 @@ export const LeadDetailSidebar = ({
             />
           </div>
 
-          {/* Deal History - Removido botão adicionar, mantidos totais */}
+          {/* Deal History */}
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-lime-400/30 shadow-xl shadow-lime-400/10">
             <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
               <div className="w-2 h-2 bg-lime-400 rounded-full shadow-lg shadow-lime-400/50"></div>
