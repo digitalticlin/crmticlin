@@ -4,7 +4,7 @@ import { getVPSInstanceQR } from './vpsRequestService.ts';
 
 export async function getQRCodeAsync(supabase: any, instanceData: any, userId: string) {
   const qrId = `qr_${Date.now()}`;
-  console.log(`[QR Code Async] 🚀 CORREÇÃO ROBUSTA - Iniciando processo completo para: ${instanceData.instanceId} [${qrId}]`);
+  console.log(`[QR Code Async] 🚀 CORREÇÃO ULTRA-ROBUSTA - Iniciando processo: ${instanceData.instanceId} [${qrId}]`);
 
   try {
     const { instanceId } = instanceData;
@@ -13,7 +13,7 @@ export async function getQRCodeAsync(supabase: any, instanceData: any, userId: s
       throw new Error('Instance ID é obrigatório');
     }
 
-    console.log(`[QR Code Async] 🔍 CORREÇÃO ROBUSTA - Validando instance: ${instanceId}`);
+    console.log(`[QR Code Async] 🔍 CORREÇÃO ULTRA-ROBUSTA - Buscando instância: ${instanceId}`);
 
     // Buscar instância no banco
     const { data: instance, error: instanceError } = await supabase
@@ -24,20 +24,20 @@ export async function getQRCodeAsync(supabase: any, instanceData: any, userId: s
       .single();
 
     if (instanceError || !instance) {
-      console.error(`[QR Code Async] ❌ CORREÇÃO ROBUSTA - Instância não encontrada [${qrId}]:`, instanceError);
+      console.error(`[QR Code Async] ❌ CORREÇÃO ULTRA-ROBUSTA - Instância não encontrada [${qrId}]:`, instanceError);
       throw new Error('Instância não encontrada ou não pertence ao usuário');
     }
 
-    console.log(`[QR Code Async] ✅ CORREÇÃO ROBUSTA - Instância encontrada:`, {
+    console.log(`[QR Code Async] ✅ CORREÇÃO ULTRA-ROBUSTA - Instância encontrada:`, {
       name: instance.instance_name,
       vpsId: instance.vps_instance_id,
       hasQR: !!instance.qr_code,
-      qrType: instance.qr_code?.startsWith('data:') ? 'data-url' : 'text'
+      status: instance.web_status
     });
 
-    // CORREÇÃO CRÍTICA: Verificar se já tem QR Code válido no banco
+    // Verificar se já tem QR Code válido no banco
     if (instance.qr_code && instance.qr_code.startsWith('data:image/')) {
-      console.log(`[QR Code Async] ✅ CORREÇÃO ROBUSTA - QR Code data URL já disponível`);
+      console.log(`[QR Code Async] ✅ CORREÇÃO ULTRA-ROBUSTA - QR Code já disponível no banco`);
       return new Response(
         JSON.stringify({
           success: true,
@@ -49,45 +49,100 @@ export async function getQRCodeAsync(supabase: any, instanceData: any, userId: s
       );
     }
 
-    // Validar VPS Instance ID
     if (!instance.vps_instance_id) {
-      throw new Error('VPS Instance ID não encontrado');
+      throw new Error('VPS Instance ID não encontrado na instância');
     }
 
-    console.log(`[QR Code Async] 🌐 CORREÇÃO ROBUSTA - Buscando QR Code na VPS: ${instance.vps_instance_id}`);
+    console.log(`[QR Code Async] 🌐 CORREÇÃO ULTRA-ROBUSTA - Buscando QR Code na VPS: ${instance.vps_instance_id}`);
     
-    // Buscar QR Code na VPS com timeout
+    // Buscar QR Code na VPS
     const vpsResult = await getVPSInstanceQR(instance.vps_instance_id);
 
     if (vpsResult.success && vpsResult.qrCode) {
-      console.log(`[QR Code Async] 📥 CORREÇÃO ROBUSTA - QR Code obtido da VPS:`, {
-        hasQrCode: !!vpsResult.qrCode,
-        qrLength: vpsResult.qrCode?.length,
-        qrPreview: vpsResult.qrCode?.substring(0, 50)
-      });
+      console.log(`[QR Code Async] 📥 CORREÇÃO ULTRA-ROBUSTA - QR Code obtido da VPS`);
       
-      // PROCESSO DE NORMALIZAÇÃO E SALVAMENTO ROBUSTO
       let finalQRCode: string;
       
       try {
-        console.log(`[QR Code Async] 🔄 CORREÇÃO ROBUSTA - Iniciando normalização...`);
+        console.log(`[QR Code Async] 🔄 CORREÇÃO ULTRA-ROBUSTA - Normalizando QR Code...`);
         finalQRCode = await normalizeQRCode(vpsResult.qrCode);
-        console.log(`[QR Code Async] ✅ CORREÇÃO ROBUSTA - Normalização concluída:`, {
-          originalLength: vpsResult.qrCode.length,
-          finalLength: finalQRCode.length,
-          isDataUrl: finalQRCode.startsWith('data:')
-        });
+        console.log(`[QR Code Async] ✅ CORREÇÃO ULTRA-ROBUSTA - Normalização concluída`);
       } catch (normalizeError) {
-        console.error(`[QR Code Async] ❌ CORREÇÃO ROBUSTA - Falha na normalização:`, normalizeError);
-        throw new Error(`Falha na normalização do QR Code: ${normalizeError.message}`);
+        console.error(`[QR Code Async] ❌ CORREÇÃO ULTRA-ROBUSTA - Falha na normalização:`, normalizeError);
+        
+        // Se a normalização falhar, tentar usar o QR Code original se for válido
+        if (vpsResult.qrCode.startsWith('data:image/')) {
+          finalQRCode = vpsResult.qrCode;
+          console.log(`[QR Code Async] 🔄 CORREÇÃO ULTRA-ROBUSTA - Usando QR Code original da VPS`);
+        } else {
+          throw new Error(`Falha na normalização do QR Code: ${normalizeError.message}`);
+        }
       }
 
       // SALVAMENTO ULTRA-ROBUSTO NO BANCO
-      console.log(`[QR Code Async] 💾 CORREÇÃO ROBUSTA - Iniciando salvamento ultra-robusto...`);
-      const saveResult = await saveQRCodeUltraRobust(supabase, instanceId, finalQRCode, qrId);
+      console.log(`[QR Code Async] 💾 CORREÇÃO ULTRA-ROBUSTA - Iniciando salvamento...`);
       
-      if (saveResult.success) {
-        console.log(`[QR Code Async] ✅ CORREÇÃO ROBUSTA - QR Code salvo com sucesso!`);
+      const maxRetries = 3;
+      let saveSuccess = false;
+      let saveError = null;
+      
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          console.log(`[QR Code Async] 🔄 CORREÇÃO ULTRA-ROBUSTA - Tentativa de salvamento ${attempt}/${maxRetries}`);
+          
+          const { data: updateData, error: updateError } = await supabase
+            .from('whatsapp_instances')
+            .update({ 
+              qr_code: finalQRCode,
+              web_status: 'waiting_scan',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', instanceId)
+            .select();
+
+          if (updateError) {
+            console.error(`[QR Code Async] ❌ CORREÇÃO ULTRA-ROBUSTA - Erro UPDATE (tentativa ${attempt}):`, updateError);
+            saveError = updateError;
+            
+            if (attempt < maxRetries) {
+              await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+              continue;
+            }
+          } else if (updateData && updateData.length > 0) {
+            console.log(`[QR Code Async] ✅ CORREÇÃO ULTRA-ROBUSTA - UPDATE bem-sucedido (tentativa ${attempt})`);
+            
+            // Verificação final
+            const { data: verifyData, error: verifyError } = await supabase
+              .from('whatsapp_instances')
+              .select('qr_code')
+              .eq('id', instanceId)
+              .single();
+
+            if (!verifyError && verifyData?.qr_code === finalQRCode) {
+              console.log(`[QR Code Async] ✅ CORREÇÃO ULTRA-ROBUSTA - QR Code confirmado no banco!`);
+              saveSuccess = true;
+              break;
+            } else {
+              console.error(`[QR Code Async] ❌ CORREÇÃO ULTRA-ROBUSTA - Verificação falhou (tentativa ${attempt})`);
+              saveError = verifyError || new Error('QR Code não foi salvo corretamente');
+            }
+          } else {
+            console.error(`[QR Code Async] ❌ CORREÇÃO ULTRA-ROBUSTA - UPDATE não afetou nenhuma linha (tentativa ${attempt})`);
+            saveError = new Error('UPDATE não afetou nenhuma linha');
+          }
+          
+        } catch (error) {
+          console.error(`[QR Code Async] ❌ CORREÇÃO ULTRA-ROBUSTA - Erro inesperado (tentativa ${attempt}):`, error);
+          saveError = error;
+        }
+        
+        if (attempt < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1500 * attempt));
+        }
+      }
+      
+      if (saveSuccess) {
+        console.log(`[QR Code Async] ✅ CORREÇÃO ULTRA-ROBUSTA - QR Code salvo com sucesso após verificação!`);
         
         return new Response(
           JSON.stringify({
@@ -95,13 +150,12 @@ export async function getQRCodeAsync(supabase: any, instanceData: any, userId: s
             qrCode: finalQRCode,
             source: 'vps_converted_and_saved',
             savedToDatabase: true,
-            saveAttempts: saveResult.attempts,
             qrId
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       } else {
-        console.error(`[QR Code Async] ❌ CORREÇÃO ROBUSTA - Falha crítica no salvamento:`, saveResult.error);
+        console.error(`[QR Code Async] ❌ CORREÇÃO ULTRA-ROBUSTA - Falha crítica no salvamento após ${maxRetries} tentativas:`, saveError);
         
         // Retornar QR Code mesmo se não conseguir salvar
         return new Response(
@@ -110,7 +164,7 @@ export async function getQRCodeAsync(supabase: any, instanceData: any, userId: s
             qrCode: finalQRCode,
             source: 'vps_converted_save_failed',
             savedToDatabase: false,
-            saveError: saveResult.error,
+            saveError: saveError?.message || 'Erro desconhecido no salvamento',
             qrId
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -118,7 +172,7 @@ export async function getQRCodeAsync(supabase: any, instanceData: any, userId: s
       }
       
     } else if (vpsResult.waiting) {
-      console.log(`[QR Code Async] ⏳ CORREÇÃO ROBUSTA - QR Code ainda sendo gerado`);
+      console.log(`[QR Code Async] ⏳ CORREÇÃO ULTRA-ROBUSTA - QR Code ainda sendo gerado`);
       
       return new Response(
         JSON.stringify({
@@ -134,7 +188,7 @@ export async function getQRCodeAsync(supabase: any, instanceData: any, userId: s
     }
 
   } catch (error: any) {
-    console.error(`[QR Code Async] ❌ CORREÇÃO ROBUSTA - Erro crítico [${qrId}]:`, error);
+    console.error(`[QR Code Async] ❌ CORREÇÃO ULTRA-ROBUSTA - Erro crítico [${qrId}]:`, error);
     
     return new Response(
       JSON.stringify({
@@ -150,136 +204,4 @@ export async function getQRCodeAsync(supabase: any, instanceData: any, userId: s
       }
     );
   }
-}
-
-// CORREÇÃO ULTRA-ROBUSTA: Função de salvamento com múltiplas estratégias
-async function saveQRCodeUltraRobust(supabase: any, instanceId: string, qrCode: string, qrId: string, maxAttempts = 5) {
-  console.log(`[Save Ultra-Robust] 🚀 CORREÇÃO ULTRA - Iniciando salvamento para ${instanceId} [${qrId}]`);
-  
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      console.log(`[Save Ultra-Robust] 🔄 CORREÇÃO ULTRA - Tentativa ${attempt}/${maxAttempts}`);
-      
-      // ESTRATÉGIA 1: UPDATE direto
-      const { data: updateData, error: updateError } = await supabase
-        .from('whatsapp_instances')
-        .update({ 
-          qr_code: qrCode,
-          web_status: 'waiting_scan',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', instanceId)
-        .select();
-
-      if (updateError) {
-        console.error(`[Save Ultra-Robust] ❌ CORREÇÃO ULTRA - Erro UPDATE (tentativa ${attempt}):`, updateError);
-        
-        if (attempt === maxAttempts) {
-          return {
-            success: false,
-            error: `UPDATE falhou após ${maxAttempts} tentativas: ${updateError.message}`,
-            attempts: attempt
-          };
-        }
-        
-        // Aguardar antes do retry
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-        continue;
-      }
-
-      console.log(`[Save Ultra-Robust] 📊 CORREÇÃO ULTRA - UPDATE executado:`, {
-        affectedRows: updateData?.length || 0,
-        attempt
-      });
-
-      // VALIDAÇÃO CRÍTICA: Confirmar que o UPDATE funcionou
-      if (!updateData || updateData.length === 0) {
-        console.error(`[Save Ultra-Robust] ❌ CORREÇÃO ULTRA - UPDATE não afetou nenhuma linha (tentativa ${attempt})`);
-        
-        if (attempt === maxAttempts) {
-          return {
-            success: false,
-            error: 'UPDATE não afetou nenhuma linha após todas as tentativas',
-            attempts: attempt
-          };
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, 1500 * attempt));
-        continue;
-      }
-
-      // VERIFICAÇÃO FINAL: Confirmar dados no banco
-      console.log(`[Save Ultra-Robust] 🔍 CORREÇÃO ULTRA - Verificando dados salvos...`);
-      const { data: verifyData, error: verifyError } = await supabase
-        .from('whatsapp_instances')
-        .select('qr_code, updated_at, web_status')
-        .eq('id', instanceId)
-        .single();
-
-      if (verifyError) {
-        console.error(`[Save Ultra-Robust] ❌ CORREÇÃO ULTRA - Erro verificação (tentativa ${attempt}):`, verifyError);
-        
-        if (attempt === maxAttempts) {
-          return {
-            success: false,
-            error: `Verificação falhou após ${maxAttempts} tentativas: ${verifyError.message}`,
-            attempts: attempt
-          };
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
-        continue;
-      }
-
-      // Validar se os dados foram salvos corretamente
-      const qrMatches = verifyData?.qr_code === qrCode;
-      const statusCorrect = verifyData?.web_status === 'waiting_scan';
-      
-      if (qrMatches && statusCorrect) {
-        console.log(`[Save Ultra-Robust] ✅ CORREÇÃO ULTRA - Dados confirmados no banco (tentativa ${attempt})`);
-        return {
-          success: true,
-          data: verifyData,
-          attempts: attempt
-        };
-      } else {
-        console.error(`[Save Ultra-Robust] ❌ CORREÇÃO ULTRA - Dados não conferem (tentativa ${attempt}):`, {
-          qrMatches,
-          statusCorrect,
-          expectedLength: qrCode.length,
-          actualLength: verifyData?.qr_code?.length || 0
-        });
-        
-        if (attempt === maxAttempts) {
-          return {
-            success: false,
-            error: 'Dados não foram salvos corretamente após todas as tentativas',
-            attempts: attempt
-          };
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, 2500 * attempt));
-        continue;
-      }
-
-    } catch (error: any) {
-      console.error(`[Save Ultra-Robust] ❌ CORREÇÃO ULTRA - Erro inesperado (tentativa ${attempt}):`, error);
-      
-      if (attempt === maxAttempts) {
-        return {
-          success: false,
-          error: `Erro inesperado após ${maxAttempts} tentativas: ${error.message}`,
-          attempts: attempt
-        };
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, 3000 * attempt));
-    }
-  }
-
-  return {
-    success: false,
-    error: 'Todas as tentativas de salvamento falharam',
-    attempts: maxAttempts
-  };
 }
