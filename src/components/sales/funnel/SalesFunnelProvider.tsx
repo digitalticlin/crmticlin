@@ -1,9 +1,8 @@
 
 import React, { createContext, useContext } from "react";
 import { useFunnelManagement } from "@/hooks/salesFunnel/useFunnelManagement";
-import { useStageDatabase } from "@/hooks/salesFunnel/useStageDatabase";
-import { useFunnelDatabase } from "@/hooks/salesFunnel/useFunnelDatabase";
-import { useSalesFunnel } from "@/hooks/useSalesFunnel";
+import { useRealSalesFunnel } from "@/hooks/salesFunnel/useRealSalesFunnel";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 
 interface SalesFunnelContextType {
   // Gerenciamento de funis
@@ -14,7 +13,7 @@ interface SalesFunnelContextType {
   
   // Gerenciamento de estágios
   stages: any[];
-  addColumn: (title: string, color: string) => Promise<void>;
+  addColumn: (title: string, color?: string) => Promise<void>;
   updateColumn: (id: string, updates: any) => Promise<void>;
   deleteColumn: (id: string) => Promise<void>;
   
@@ -26,9 +25,17 @@ interface SalesFunnelContextType {
   setIsLeadDetailOpen: (open: boolean) => void;
   availableTags: any[];
   
+  // Dados adicionais necessários
+  leads: any[];
+  wonStageId?: string;
+  lostStageId?: string;
+  isAdmin: boolean;
+  refetchLeads: () => void;
+  refetchStages: () => void;
+  
   // Ações
   openLeadDetail: (lead: any) => void;
-  toggleTagOnLead: (leadId: string, tag: any) => void;
+  toggleTagOnLead: (leadId: string, tagId: string) => void;
   createTag: (name: string, color: string) => void;
   updateLeadNotes: (leadId: string, notes: string) => void;
   updateLeadPurchaseValue: (leadId: string, value: number) => void;
@@ -52,27 +59,36 @@ export const SalesFunnelProvider = ({ children }: { children: React.ReactNode })
   // Gerenciamento de funis
   const { funnels, selectedFunnel, setSelectedFunnel, createFunnel } = useFunnelManagement();
   
-  // Estágios do funil selecionado
-  const { stages, addColumn, updateColumn, deleteColumn } = useStageDatabase(selectedFunnel?.id);
-  
-  // Dados e ações do kanban
+  // Hook principal do funil real
   const {
     columns,
     setColumns,
     selectedLead,
     isLeadDetailOpen,
     setIsLeadDetailOpen,
+    stages,
+    leads,
     availableTags,
+    wonStageId,
+    lostStageId,
+    addColumn,
+    updateColumn,
+    deleteColumn,
+    moveLeadToStage,
     openLeadDetail,
     toggleTagOnLead,
-    createTag,
     updateLeadNotes,
     updateLeadPurchaseValue,
     updateLeadAssignedUser,
     updateLeadName,
     receiveNewLead,
-    moveLeadToStage
-  } = useSalesFunnel();
+    createTag,
+    refetchStages,
+    refetchLeads
+  } = useRealSalesFunnel(selectedFunnel?.id);
+
+  // Verificar permissões do usuário
+  const { isAdmin } = useUserPermissions();
 
   const value: SalesFunnelContextType = {
     // Funis
@@ -83,7 +99,9 @@ export const SalesFunnelProvider = ({ children }: { children: React.ReactNode })
     
     // Estágios
     stages,
-    addColumn,
+    addColumn: async (title: string, color: string = '#3b82f6') => {
+      await addColumn(title, color);
+    },
     updateColumn,
     deleteColumn,
     
@@ -94,6 +112,14 @@ export const SalesFunnelProvider = ({ children }: { children: React.ReactNode })
     isLeadDetailOpen,
     setIsLeadDetailOpen,
     availableTags,
+    
+    // Dados adicionais
+    leads,
+    wonStageId,
+    lostStageId,
+    isAdmin,
+    refetchLeads,
+    refetchStages,
     
     // Ações
     openLeadDetail,
