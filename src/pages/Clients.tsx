@@ -30,7 +30,7 @@ export default function Clients() {
     <div className="flex items-center gap-2">
       <Button 
         variant="outline"
-        className="rounded-xl px-4 py-2.5 font-medium"
+        className="bg-white/20 backdrop-blur-md border-white/40 text-gray-800 hover:bg-white/30 hover:text-gray-900 rounded-xl px-4 py-2.5 font-medium shadow-lg"
         onClick={() => refetch()}
         disabled={isLoading}
       >
@@ -38,7 +38,7 @@ export default function Clients() {
         Atualizar
       </Button>
       <Button 
-        className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 py-2.5 font-medium shadow-lg transition-all duration-200 hover:shadow-xl"
+        className="bg-lime-400/80 hover:bg-lime-500/80 text-black border border-lime-400 rounded-xl px-6 py-2.5 font-semibold shadow-lg transition-all duration-200 hover:shadow-xl backdrop-blur-sm"
         onClick={handleAddClient}
         disabled={isLoading}
       >

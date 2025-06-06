@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Building } from "lucide-react";
+import { Building, Save, X } from "lucide-react";
 
 interface RealClientFormProps {
   client?: ClientData;
@@ -60,109 +60,128 @@ export const RealClientForm = ({ client, onSubmit, onCancel, isLoading }: RealCl
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-      <div className="space-y-2">
-        <Label htmlFor="name">Nome*</Label>
-        <Input
-          id="name"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
-          placeholder="Nome do cliente"
-          required
-          disabled={isLoading}
-        />
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="company">Empresa</Label>
-        <div className="relative">
+    <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-lime-400/30 shadow-xl shadow-lime-400/10">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="name" className="text-white font-medium">Nome*</Label>
           <Input
-            id="company"
-            name="company"
-            value={formData.company}
+            id="name"
+            name="name"
+            value={formData.name}
             onChange={handleChange}
-            placeholder="Nome da empresa"
-            className="pl-8"
+            placeholder="Nome do cliente"
+            required
+            disabled={isLoading}
+            className="bg-white/20 backdrop-blur-sm border-white/40 focus:border-lime-400 focus:ring-lime-400/20 text-white placeholder:text-white/60"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="company" className="text-white font-medium">Empresa</Label>
+          <div className="relative">
+            <Input
+              id="company"
+              name="company"
+              value={formData.company}
+              onChange={handleChange}
+              placeholder="Nome da empresa"
+              className="pl-8 bg-white/20 backdrop-blur-sm border-white/40 focus:border-lime-400 focus:ring-lime-400/20 text-white placeholder:text-white/60"
+              disabled={isLoading}
+            />
+            <Building className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-lime-400" />
+          </div>
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="phone" className="text-white font-medium">Telefone*</Label>
+          <Input
+            id="phone"
+            name="phone"
+            value={formData.phone}
+            onChange={handleChange}
+            placeholder="(00) 00000-0000"
+            required
+            disabled={isLoading}
+            className="bg-white/20 backdrop-blur-sm border-white/40 focus:border-lime-400 focus:ring-lime-400/20 text-white placeholder:text-white/60"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="email" className="text-white font-medium">Email</Label>
+          <Input
+            id="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            type="email"
+            placeholder="email@exemplo.com"
+            disabled={isLoading}
+            className="bg-white/20 backdrop-blur-sm border-white/40 focus:border-lime-400 focus:ring-lime-400/20 text-white placeholder:text-white/60"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="address" className="text-white font-medium">Endereço</Label>
+          <Input
+            id="address"
+            name="address"
+            value={formData.address}
+            onChange={handleChange}
+            placeholder="Endereço do cliente"
+            disabled={isLoading}
+            className="bg-white/20 backdrop-blur-sm border-white/40 focus:border-lime-400 focus:ring-lime-400/20 text-white placeholder:text-white/60"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="purchase_value" className="text-white font-medium">Valor de Compra</Label>
+          <Input
+            id="purchase_value"
+            name="purchase_value"
+            type="number"
+            step="0.01"
+            value={formData.purchase_value || ""}
+            onChange={handleChange}
+            placeholder="0.00"
+            disabled={isLoading}
+            className="bg-white/20 backdrop-blur-sm border-white/40 focus:border-lime-400 focus:ring-lime-400/20 text-white placeholder:text-white/60"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <Label htmlFor="notes" className="text-white font-medium">Observações</Label>
+          <Textarea
+            id="notes"
+            name="notes"
+            value={formData.notes}
+            onChange={handleChange}
+            placeholder="Observações sobre o cliente"
+            className="min-h-[100px] bg-white/20 backdrop-blur-sm border-white/40 focus:border-lime-400 focus:ring-lime-400/20 text-white placeholder:text-white/60"
             disabled={isLoading}
           />
-          <Building className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         </div>
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="phone">Telefone*</Label>
-        <Input
-          id="phone"
-          name="phone"
-          value={formData.phone}
-          onChange={handleChange}
-          placeholder="(00) 00000-0000"
-          required
-          disabled={isLoading}
-        />
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          name="email"
-          value={formData.email}
-          onChange={handleChange}
-          type="email"
-          placeholder="email@exemplo.com"
-          disabled={isLoading}
-        />
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="address">Endereço</Label>
-        <Input
-          id="address"
-          name="address"
-          value={formData.address}
-          onChange={handleChange}
-          placeholder="Endereço do cliente"
-          disabled={isLoading}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="purchase_value">Valor de Compra</Label>
-        <Input
-          id="purchase_value"
-          name="purchase_value"
-          type="number"
-          step="0.01"
-          value={formData.purchase_value || ""}
-          onChange={handleChange}
-          placeholder="0.00"
-          disabled={isLoading}
-        />
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="notes">Observações</Label>
-        <Textarea
-          id="notes"
-          name="notes"
-          value={formData.notes}
-          onChange={handleChange}
-          placeholder="Observações sobre o cliente"
-          className="min-h-[100px]"
-          disabled={isLoading}
-        />
-      </div>
-      
-      <div className="flex justify-end gap-2 pt-2">
-        <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
-          Cancelar
-        </Button>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Salvando..." : (client ? "Atualizar" : "Adicionar")}
-        </Button>
-      </div>
-    </form>
+        
+        <div className="flex justify-end gap-2 pt-4">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onCancel} 
+            disabled={isLoading}
+            className="bg-white/20 backdrop-blur-sm border-white/40 text-white hover:bg-white/30"
+          >
+            <X className="h-4 w-4 mr-2" />
+            Cancelar
+          </Button>
+          <Button 
+            type="submit" 
+            disabled={isLoading}
+            className="bg-lime-400/80 hover:bg-lime-500/80 text-black border border-lime-400 shadow-lg font-semibold"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            {isLoading ? "Salvando..." : (client ? "Atualizar" : "Adicionar")}
+          </Button>
+        </div>
+      </form>
+    </div>
   );
 };

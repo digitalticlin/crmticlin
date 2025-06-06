@@ -95,45 +95,47 @@ export const ClientsListTable = ({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-lime-400"></div>
       </div>
     );
   }
   
   return (
-    <div className="space-y-4">
-      {/* Search and Export Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div className="flex gap-2 items-center flex-1 max-w-md">
-          <Search className="w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome, telefone, email ou empresa..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1"
-          />
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">
-            Total: <strong>{clients.length}</strong> clientes
-          </span>
-          <Button 
-            variant="outline" 
-            size="sm"
-            className="flex items-center gap-2 rounded-xl"
-            onClick={exportToCSV}
-          >
-            <FileSpreadsheet className="h-4 w-4" />
-            Exportar
-          </Button>
+    <div className="space-y-6">
+      {/* Search and Export Bar with Glassmorphism */}
+      <div className="bg-white/30 backdrop-blur-md rounded-2xl p-6 border border-white/40 shadow-xl">
+        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+          <div className="flex gap-2 items-center flex-1 max-w-md">
+            <Search className="w-4 h-4 text-lime-400" />
+            <Input
+              placeholder="Buscar por nome, telefone, email ou empresa..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 bg-white/20 backdrop-blur-sm border-white/40 focus:border-lime-400 focus:ring-lime-400/20 text-gray-800 placeholder:text-gray-600"
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-700 font-medium">
+              Total: <strong className="text-lime-400">{clients.length}</strong> clientes
+            </span>
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="flex items-center gap-2 rounded-xl bg-white/20 backdrop-blur-sm border-white/40 text-gray-800 hover:bg-white/30 hover:text-gray-900"
+              onClick={exportToCSV}
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              Exportar
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Clients Table */}
-      <div className="rounded-xl border bg-white shadow-sm">
+      {/* Clients Table with Glassmorphism */}
+      <div className="bg-white/30 backdrop-blur-md rounded-2xl border border-white/40 shadow-xl overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow className="border-b border-gray-200">
+            <TableRow className="border-b border-white/30 bg-white/20">
               <TableHead className="font-semibold text-gray-900">Cliente</TableHead>
               <TableHead className="font-semibold text-gray-900">Contato</TableHead>
               <TableHead className="font-semibold text-gray-900">Empresa</TableHead>
@@ -147,13 +149,13 @@ export const ClientsListTable = ({
             {filteredClients.map(client => (
               <TableRow 
                 key={client.id} 
-                className="cursor-pointer hover:bg-gray-50 transition-colors"
+                className="cursor-pointer hover:bg-white/20 transition-all duration-200 border-b border-white/20"
                 onClick={() => onSelectClient(client)}
               >
                 <TableCell>
                   <div className="font-medium text-gray-900">{client.name}</div>
                   {client.notes && (
-                    <div className="text-sm text-gray-500 truncate max-w-[200px]">
+                    <div className="text-sm text-gray-600 truncate max-w-[200px]">
                       {client.notes}
                     </div>
                   )}
@@ -161,12 +163,12 @@ export const ClientsListTable = ({
                 <TableCell>
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 text-sm">
-                      <Phone className="h-3 w-3 text-gray-400" />
-                      <span>{formatPhoneDisplay(client.phone)}</span>
+                      <Phone className="h-3 w-3 text-lime-400" />
+                      <span className="text-gray-800">{formatPhoneDisplay(client.phone)}</span>
                     </div>
                     {client.email && (
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Mail className="h-3 w-3 text-gray-400" />
+                      <div className="flex items-center gap-2 text-sm text-gray-700">
+                        <Mail className="h-3 w-3 text-lime-400" />
                         <span>{client.email}</span>
                       </div>
                     )}
@@ -175,23 +177,23 @@ export const ClientsListTable = ({
                 <TableCell>
                   {client.company ? (
                     <div className="flex items-center gap-2">
-                      <Building className="h-3 w-3 text-gray-400" />
-                      <span className="text-sm">{client.company}</span>
+                      <Building className="h-3 w-3 text-lime-400" />
+                      <span className="text-sm text-gray-800">{client.company}</span>
                     </div>
                   ) : (
-                    <span className="text-gray-400">-</span>
+                    <span className="text-gray-500">-</span>
                   )}
                 </TableCell>
                 <TableCell>
                   {getStatusBadge(client)}
                 </TableCell>
                 <TableCell>
-                  <span className="font-medium">
+                  <span className="font-medium text-gray-800">
                     {formatCurrency(client.purchase_value)}
                   </span>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-700">
                     {new Date(client.created_at).toLocaleDateString('pt-BR')}
                   </span>
                 </TableCell>
@@ -200,7 +202,7 @@ export const ClientsListTable = ({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
+                      className="h-8 w-8 text-lime-400 hover:text-lime-500 hover:bg-lime-50/50"
                       onClick={(e) => {
                         e.stopPropagation();
                         onEditClient(client);
@@ -213,13 +215,13 @@ export const ClientsListTable = ({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                          className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50/50"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </AlertDialogTrigger>
-                      <AlertDialogContent>
+                      <AlertDialogContent className="bg-white/90 backdrop-blur-md border border-white/40">
                         <AlertDialogHeader>
                           <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
                           <AlertDialogDescription>
@@ -228,9 +230,11 @@ export const ClientsListTable = ({
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogCancel className="bg-white/80 border-white/40 text-gray-700 hover:bg-white/90">
+                            Cancelar
+                          </AlertDialogCancel>
                           <AlertDialogAction 
-                            className="bg-red-600 hover:bg-red-700"
+                            className="bg-red-600 hover:bg-red-700 text-white"
                             onClick={() => onDeleteClient(client.id)}
                           >
                             Excluir
@@ -249,7 +253,7 @@ export const ClientsListTable = ({
                     <Search className="h-8 w-8 text-gray-400" />
                     <div>
                       <p className="font-medium text-gray-900">Nenhum cliente encontrado</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-600">
                         {searchQuery 
                           ? "Tente ajustar sua pesquisa ou adicione um novo cliente" 
                           : "Adicione seu primeiro cliente para começar"}
