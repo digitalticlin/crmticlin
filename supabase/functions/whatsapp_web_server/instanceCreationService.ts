@@ -29,15 +29,19 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
     const companyId = profile?.company_id || null;
     console.log(`[Instance Creation] 🏢 CORREÇÃO ROBUSTA - Company ID: ${companyId}`);
 
-    // Criar instância na VPS primeiro
-    console.log(`[Instance Creation] 🌐 CORREÇÃO ROBUSTA - Criando na VPS...`);
+    // CORREÇÃO CRÍTICA: Enviar parâmetros corretos para VPS
+    const vpsInstanceId = `${instanceName}_${Date.now()}`;
+    console.log(`[Instance Creation] 🌐 CORREÇÃO ROBUSTA - Criando na VPS com instanceId: ${vpsInstanceId}`);
+    
     const vpsResponse = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/create`, {
       method: 'POST',
       headers: getVPSHeaders(),
       body: JSON.stringify({
-        instanceName,
+        instanceId: vpsInstanceId,
+        sessionName: vpsInstanceId,
         permanent: true,
-        autoReconnect: true
+        autoReconnect: true,
+        webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web'
       })
     });
 
@@ -50,11 +54,10 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
     const vpsData = await vpsResponse.json();
     console.log(`[Instance Creation] ✅ CORREÇÃO ROBUSTA - VPS Response:`, vpsData);
 
-    if (!vpsData.success || !vpsData.instanceId) {
-      throw new Error(vpsData.error || 'VPS não retornou ID da instância');
+    if (!vpsData.success) {
+      throw new Error(vpsData.error || 'VPS não confirmou criação da instância');
     }
 
-    const vpsInstanceId = vpsData.instanceId;
     console.log(`[Instance Creation] 🆔 CORREÇÃO ROBUSTA - VPS Instance ID: ${vpsInstanceId}`);
 
     // Preparar dados para salvamento no Supabase
