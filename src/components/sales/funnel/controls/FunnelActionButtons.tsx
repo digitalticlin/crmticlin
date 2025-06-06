@@ -4,8 +4,8 @@ import { Plus, Settings, RefreshCw } from "lucide-react";
 import { useSalesFunnelContext } from "../SalesFunnelProvider";
 
 interface FunnelActionButtonsProps {
-  onOpenConfig: () => void;
-  onRefresh: () => void;
+  onOpenConfig?: () => void;
+  onRefresh?: () => void;
   isRefreshing?: boolean;
 }
 
@@ -31,7 +31,11 @@ export const FunnelActionButtons = ({
 
   const handleRefreshData = async () => {
     await Promise.all([refetchLeads(), refetchStages()]);
-    onRefresh();
+    onRefresh?.();
+  };
+
+  const handleOpenConfig = () => {
+    onOpenConfig?.();
   };
 
   return (
@@ -51,7 +55,7 @@ export const FunnelActionButtons = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={onOpenConfig}
+            onClick={handleOpenConfig}
             className="flex items-center gap-2"
           >
             <Settings className="h-4 w-4" />

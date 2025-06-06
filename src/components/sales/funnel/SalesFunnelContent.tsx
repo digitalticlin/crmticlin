@@ -57,8 +57,8 @@ export const SalesFunnelContent = () => {
   const actions = SalesFunnelActions({
     stages: stages || [],
     moveLeadToStage,
-    refetchLeads: () => refetchLeads(),
-    refetchStages: () => refetchStages(),
+    refetchLeads: refetchLeads,
+    refetchStages: refetchStages,
     onStageModalOpen: (lead: KanbanLead) => {
       setLeadToMove(lead);
       setIsStageModalOpen(true);

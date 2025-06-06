@@ -103,7 +103,7 @@ export const SalesFunnelProvider = ({ children }: { children: React.ReactNode })
       await addColumn(title, color);
     },
     updateColumn: async (id: string, updates: any) => {
-      await updateColumn(updates);
+      await updateColumn(id, updates);
     },
     deleteColumn,
     
@@ -119,7 +119,7 @@ export const SalesFunnelProvider = ({ children }: { children: React.ReactNode })
     leads,
     wonStageId,
     lostStageId,
-    isAdmin: permissions?.isAdmin || false,
+    isAdmin: permissions?.canManageTeam || false,
     refetchLeads: async () => {
       await refetchLeads();
     },
