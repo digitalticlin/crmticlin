@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useWhatsAppWebInstances } from "./useWhatsAppWebInstances";
@@ -24,12 +23,17 @@ export const useWhatsAppWebV2Logic = () => {
     generateIntelligentInstanceName
   } = useWhatsAppWebInstances();
 
+  // CORREÇÃO: Criar wrapper que não retorna valor
+  const refreshInstances = async (): Promise<void> => {
+    await fetchInstances();
+  };
+
   const {
     createInstanceV2,
     getQRCodeV2,
     regenerateQRCodeV2,
     configureWebhookV2
-  } = useInstanceActionsV2(fetchInstances);
+  } = useInstanceActionsV2(refreshInstances);
 
   // Usar dados do usuário autenticado
   useEffect(() => {
@@ -47,8 +51,8 @@ export const useWhatsAppWebV2Logic = () => {
     };
   }, [qrPollingInterval]);
 
-  // Polling para QR Code com timeout
-  const startQRPolling = (instanceId: string, instanceName: string, maxAttempts = 10) => {
+  // Função para polling QR Code com timeout
+  function startQRPolling(instanceId: string, instanceName: string, maxAttempts = 10) {
     console.log('[WhatsApp V2] 🔄 Iniciando polling QR Code V2:', { instanceId, maxAttempts });
     
     let attempts = 0;
