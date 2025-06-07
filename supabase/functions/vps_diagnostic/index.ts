@@ -19,32 +19,34 @@ serve(async (req) => {
     );
 
     const { test, testToken, vpsAction } = await req.json();
-    console.log(`[VPS Diagnostic] Test: ${test} (FASE 3)`);
+    console.log(`[VPS Diagnostic] Test: ${test} (CORREÇÃO TOKEN)`);
 
-    // CORREÇÃO FASE 3: VPS Configuration usando token correto
+    // CORREÇÃO CRÍTICA: VPS Configuration usando token correto confirmado
     const VPS_CONFIG = {
       host: '31.97.24.222',
       port: '3001',
       get baseUrl() {
         return `http://${this.host}:${this.port}`;
       },
-      // CORREÇÃO FASE 3: Usar o token que a VPS realmente espera
-      authToken: 'default-token' // Confirmado via SSH que VPS espera este token
+      // CORREÇÃO: Usar o token correto confirmado pelo usuário
+      authToken: Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3'
     };
 
     const getVPSHeaders = () => ({
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
-      'User-Agent': 'Supabase-VPS-Diagnostic/3.0-FASE3',
+      'X-API-Token': VPS_CONFIG.authToken,
+      'apikey': VPS_CONFIG.authToken,
+      'User-Agent': 'Supabase-VPS-Diagnostic/4.0-TOKEN-CORRIGIDO',
       'Accept': 'application/json'
     });
 
-    // CORREÇÃO FASE 3: Função de validação de versão atualizada para aceitar 3.5.0
+    // CORREÇÃO: Função de validação de versão atualizada
     const isValidVersion = (versionString: string): boolean => {
       if (!versionString) return false;
       
       const validVersions = [
-        '3.5.0', // FASE 3: Versão confirmada via SSH - VÁLIDA
+        '3.5.0', // Versão confirmada via SSH - VÁLIDA
         '3.4.0',
         '3.3.0',
         '3.2.0',
@@ -72,7 +74,7 @@ serve(async (req) => {
 
     // Test: VPS Connectivity
     if (test === 'vps_connectivity') {
-      console.log('[VPS Diagnostic] 🔧 Testando conectividade VPS (FASE 3)...');
+      console.log('[VPS Diagnostic] 🔧 Testando conectividade VPS (TOKEN CORRIGIDO)...');
       
       try {
         const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
@@ -87,10 +89,10 @@ serve(async (req) => {
         if (response.ok) {
           const data = JSON.parse(responseText);
           
-          // CORREÇÃO FASE 3: Validar versão corretamente
+          // Validar versão corretamente
           const versionValid = data.version && isValidVersion(data.version);
           if (versionValid) {
-            console.log('[VPS Diagnostic] ✅ VPS conectado com versão válida (FASE 3):', data.version);
+            console.log('[VPS Diagnostic] ✅ VPS conectado com versão válida (TOKEN CORRIGIDO):', data.version);
           } else {
             console.log('[VPS Diagnostic] ⚠️ VPS conectado mas versão não validada:', data.version);
           }
@@ -102,7 +104,8 @@ serve(async (req) => {
               details: {
                 ...data,
                 version_validated: versionValid,
-                phase: 'FASE_3_IMPLEMENTED'
+                token_used: VPS_CONFIG.authToken.substring(0, 15) + '...',
+                phase: 'TOKEN_CORRIGIDO'
               },
               timestamp: new Date().toISOString()
             }),
@@ -120,6 +123,7 @@ serve(async (req) => {
             success: false,
             duration,
             error: `Connectivity Error: ${error.message}`,
+            token_used: VPS_CONFIG.authToken.substring(0, 15) + '...',
             timestamp: new Date().toISOString()
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -127,12 +131,12 @@ serve(async (req) => {
       }
     }
 
-    // Test: VPS Authentication (FASE 3)
+    // Test: VPS Authentication (TOKEN CORRIGIDO)
     if (test === 'vps_auth') {
-      console.log('[VPS Diagnostic] 🔐 Testando autenticação VPS (FASE 3)...');
+      console.log('[VPS Diagnostic] 🔐 Testando autenticação VPS (TOKEN CORRIGIDO)...');
       
       try {
-        const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
+        const response = await fetch(`${VPS_CONFIG.baseUrl}/instances`, {
           method: 'GET',
           headers: getVPSHeaders(),
           signal: AbortSignal.timeout(10000)
@@ -147,7 +151,7 @@ serve(async (req) => {
           // Verificar se o servidor aceita nosso token corrigido
           const authSuccess = response.status === 200;
           
-          console.log('[VPS Diagnostic] ✅ Autenticação testada (FASE 3):', { authSuccess, data });
+          console.log('[VPS Diagnostic] ✅ Autenticação testada (TOKEN CORRIGIDO):', { authSuccess, data });
           
           return new Response(
             JSON.stringify({
@@ -155,9 +159,9 @@ serve(async (req) => {
               duration,
               details: {
                 ...data,
-                token_tested: VPS_CONFIG.authToken,
+                token_tested: VPS_CONFIG.authToken.substring(0, 15) + '...',
                 auth_accepted: authSuccess,
-                phase: 'FASE_3_IMPLEMENTED'
+                phase: 'TOKEN_CORRIGIDO'
               },
               timestamp: new Date().toISOString()
             }),
@@ -175,6 +179,7 @@ serve(async (req) => {
             success: false,
             duration,
             error: `Authentication Error: ${error.message}`,
+            token_used: VPS_CONFIG.authToken.substring(0, 15) + '...',
             timestamp: new Date().toISOString()
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -184,7 +189,7 @@ serve(async (req) => {
 
     // Test: VPS Services
     if (test === 'vps_services') {
-      console.log('[VPS Diagnostic] ⚙️ Testando serviços VPS (FASE 3)...');
+      console.log('[VPS Diagnostic] ⚙️ Testando serviços VPS (TOKEN CORRIGIDO)...');
       
       try {
         const response = await fetch(`${VPS_CONFIG.baseUrl}/instances`, {
@@ -198,7 +203,7 @@ serve(async (req) => {
 
         if (response.ok) {
           const data = JSON.parse(responseText);
-          console.log('[VPS Diagnostic] ✅ Serviços VPS funcionando (FASE 3):', data);
+          console.log('[VPS Diagnostic] ✅ Serviços VPS funcionando (TOKEN CORRIGIDO):', data);
           
           return new Response(
             JSON.stringify({
@@ -206,7 +211,8 @@ serve(async (req) => {
               duration,
               details: {
                 ...data,
-                phase: 'FASE_3_IMPLEMENTED'
+                token_used: VPS_CONFIG.authToken.substring(0, 15) + '...',
+                phase: 'TOKEN_CORRIGIDO'
               },
               timestamp: new Date().toISOString()
             }),
@@ -224,6 +230,7 @@ serve(async (req) => {
             success: false,
             duration,
             error: `Services Error: ${error.message}`,
+            token_used: VPS_CONFIG.authToken.substring(0, 15) + '...',
             timestamp: new Date().toISOString()
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -231,9 +238,9 @@ serve(async (req) => {
       }
     }
 
-    // Test: Full Flow (check_server) (FASE 3)
+    // Test: Full Flow (check_server) (TOKEN CORRIGIDO)
     if (test === 'full_flow') {
-      console.log('[VPS Diagnostic] 🔄 Testando fluxo completo (FASE 3)...');
+      console.log('[VPS Diagnostic] 🔄 Testando fluxo completo (TOKEN CORRIGIDO)...');
       
       try {
         // Testar health
@@ -249,7 +256,7 @@ serve(async (req) => {
 
         const healthData = await healthResponse.json();
 
-        // CORREÇÃO FASE 3: Validar versão no fluxo completo
+        // Validar versão no fluxo completo
         const versionValid = healthData.version && isValidVersion(healthData.version);
 
         // Testar instances
@@ -266,7 +273,7 @@ serve(async (req) => {
 
         const duration = Date.now() - startTime;
         
-        console.log('[VPS Diagnostic] ✅ Fluxo completo funcionando (FASE 3)');
+        console.log('[VPS Diagnostic] ✅ Fluxo completo funcionando (TOKEN CORRIGIDO)');
         
         return new Response(
           JSON.stringify({
@@ -277,7 +284,8 @@ serve(async (req) => {
               instances: instancesData,
               flow_status: 'complete',
               version_validated: versionValid,
-              phase: 'FASE_3_IMPLEMENTED'
+              token_used: VPS_CONFIG.authToken.substring(0, 15) + '...',
+              phase: 'TOKEN_CORRIGIDO'
             },
             timestamp: new Date().toISOString()
           }),
@@ -293,6 +301,7 @@ serve(async (req) => {
             success: false,
             duration,
             error: `Full Flow Error: ${error.message}`,
+            token_used: VPS_CONFIG.authToken.substring(0, 15) + '...',
             timestamp: new Date().toISOString()
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -302,7 +311,7 @@ serve(async (req) => {
 
     // Test: Edge Function Health
     if (test === 'edge_function') {
-      console.log('[VPS Diagnostic] 🔍 Testando saúde da Edge Function (FASE 3)...');
+      console.log('[VPS Diagnostic] 🔍 Testando saúde da Edge Function (TOKEN CORRIGIDO)...');
       
       const duration = Date.now() - startTime;
       
@@ -317,9 +326,9 @@ serve(async (req) => {
             vps_config: {
               host: VPS_CONFIG.host,
               port: VPS_CONFIG.port,
-              token: VPS_CONFIG.authToken
+              token: VPS_CONFIG.authToken.substring(0, 15) + '...'
             },
-            phase: 'FASE_3_IMPLEMENTED'
+            phase: 'TOKEN_CORRIGIDO'
           },
           timestamp: new Date().toISOString()
         }),
@@ -332,6 +341,7 @@ serve(async (req) => {
       JSON.stringify({
         success: false,
         error: `Unknown test: ${test}`,
+        token_used: VPS_CONFIG.authToken.substring(0, 15) + '...',
         timestamp: new Date().toISOString()
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

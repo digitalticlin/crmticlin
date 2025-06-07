@@ -1,12 +1,12 @@
 
-// CORREÇÃO COMPLETA: Configuração robusta para VPS
+// CORREÇÃO COMPLETA: Configuração robusta para VPS com token correto
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
 };
 
-// CORREÇÃO: Configuração VPS com token correto
+// CORREÇÃO: Configuração VPS com token correto confirmado pelo usuário
 export const VPS_CONFIG = {
   baseUrl: 'http://31.97.24.222:3001',
   timeout: 30000, // 30 segundos
@@ -20,19 +20,20 @@ export const VPS_CONFIG = {
   }
 };
 
-// CORREÇÃO: Função para obter headers VPS com token correto
+// CORREÇÃO CRÍTICA: Função para obter headers VPS com token correto
 export function getVPSHeaders(): Record<string, string> {
-  // Token correto que começa com "3"
-  const vpsToken = Deno.env.get('VPS_API_TOKEN') || '3default-token';
+  // Token correto confirmado pelo usuário: 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3
+  const vpsToken = Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
   
-  console.log(`[VPS Config] 🔑 Token usado: ${vpsToken.substring(0, 5)}...`);
+  console.log(`[VPS Config] 🔑 Token correto sendo usado: ${vpsToken.substring(0, 15)}...`);
   
   return {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
     'Authorization': `Bearer ${vpsToken}`,
     'X-API-Token': vpsToken,
-    'apikey': vpsToken
+    'apikey': vpsToken,
+    'User-Agent': 'WhatsApp-Server-v4.0'
   };
 }
 

@@ -15,6 +15,25 @@ interface DiagnosticResult {
   error?: string;
 }
 
+// CORREÇÃO CRÍTICA: Token VPS correto confirmado pelo usuário
+function getVPSToken(): string {
+  return Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
+}
+
+function getVPSHeaders(): Record<string, string> {
+  const token = getVPSToken();
+  console.log(`[VPS Complete Diagnostic] 🔑 Using token: ${token.substring(0, 10)}...`);
+  
+  return {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'Authorization': `Bearer ${token}`,
+    'X-API-Token': token,
+    'apikey': token,
+    'User-Agent': 'WhatsApp-Diagnostic-v4.0'
+  };
+}
+
 // TESTE 1: Conectividade VPS
 async function testVPSConnectivity(): Promise<DiagnosticResult> {
   const startTime = Date.now();
@@ -24,6 +43,7 @@ async function testVPSConnectivity(): Promise<DiagnosticResult> {
     
     const response = await fetch('http://31.97.24.222:3001/health', {
       method: 'GET',
+      headers: getVPSHeaders(),
       signal: AbortSignal.timeout(10000)
     });
     
@@ -53,24 +73,19 @@ async function testVPSConnectivity(): Promise<DiagnosticResult> {
   }
 }
 
-// TESTE 2: Autenticação VPS
+// TESTE 2: Autenticação VPS CORRIGIDA
 async function testVPSAuthentication(): Promise<DiagnosticResult> {
   const startTime = Date.now();
   
   try {
     console.log('[VPS Diagnostic] 🔑 Testando autenticação VPS...');
     
-    const vpsToken = Deno.env.get('VPS_API_TOKEN') || 'default-token';
-    console.log(`[VPS Diagnostic] Token usado: ${vpsToken.substring(0, 10)}...`);
+    const token = getVPSToken();
+    console.log(`[VPS Diagnostic] Token correto sendo usado: ${token.substring(0, 15)}...`);
     
     const response = await fetch('http://31.97.24.222:3001/instances', {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${vpsToken}`,
-        'X-API-Token': vpsToken,
-        'apikey': vpsToken
-      },
+      headers: getVPSHeaders(),
       signal: AbortSignal.timeout(15000)
     });
     
@@ -90,7 +105,7 @@ async function testVPSAuthentication(): Promise<DiagnosticResult> {
       duration,
       details: {
         status: response.status,
-        tokenUsed: vpsToken.substring(0, 10) + '...',
+        tokenUsed: token.substring(0, 15) + '...',
         response: parsedResponse,
         headers: Object.fromEntries(response.headers.entries())
       },
@@ -107,26 +122,21 @@ async function testVPSAuthentication(): Promise<DiagnosticResult> {
   }
 }
 
-// TESTE 3: Criação e QR Code End-to-End
+// TESTE 3: Criação e QR Code End-to-End CORRIGIDO
 async function testInstanceCreationWithQR(): Promise<DiagnosticResult> {
   const startTime = Date.now();
   
   try {
     console.log('[VPS Diagnostic] 🆕 Testando criação completa com QR...');
     
-    const vpsToken = Deno.env.get('VPS_API_TOKEN') || 'default-token';
+    const token = getVPSToken();
     const testInstanceId = `diagnostic_${Date.now()}`;
     const webhookUrl = 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web';
     
     // Criar instância na VPS
     const createResponse = await fetch('http://31.97.24.222:3001/instance/create', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${vpsToken}`,
-        'X-API-Token': vpsToken,
-        'apikey': vpsToken
-      },
+      headers: getVPSHeaders(),
       body: JSON.stringify({
         instanceName: testInstanceId,
         sessionName: 'Diagnostic Test',
@@ -165,10 +175,7 @@ async function testInstanceCreationWithQR(): Promise<DiagnosticResult> {
       try {
         const qrResponse = await fetch(`http://31.97.24.222:3001/instance/qr/${testInstanceId}`, {
           method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${vpsToken}`,
-            'X-API-Token': vpsToken
-          },
+          headers: getVPSHeaders(),
           signal: AbortSignal.timeout(10000)
         });
         
@@ -186,11 +193,7 @@ async function testInstanceCreationWithQR(): Promise<DiagnosticResult> {
       try {
         await fetch('http://31.97.24.222:3001/instance/delete', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${vpsToken}`,
-            'X-API-Token': vpsToken
-          },
+          headers: getVPSHeaders(),
           body: JSON.stringify({ instanceId: testInstanceId }),
           signal: AbortSignal.timeout(10000)
         });
@@ -209,7 +212,8 @@ async function testInstanceCreationWithQR(): Promise<DiagnosticResult> {
         testInstanceId,
         response: parsedResponse,
         qrCodeReceived,
-        webhookConfigured: true
+        webhookConfigured: true,
+        tokenUsed: token.substring(0, 15) + '...'
       },
       error: (!createResponse.ok || !parsedResponse.success) 
         ? `CREATE FAILED ${createResponse.status}: ${responseText}`
@@ -325,7 +329,7 @@ async function testSupabaseDatabase(): Promise<DiagnosticResult> {
   }
 }
 
-// TESTE 6: End-to-End Integration Test
+// TESTE 6: End-to-End Integration Test CORRIGIDO
 async function testEndToEndIntegration(): Promise<DiagnosticResult> {
   const startTime = Date.now();
   
@@ -357,7 +361,8 @@ async function testEndToEndIntegration(): Promise<DiagnosticResult> {
       duration,
       details: {
         status: response.status,
-        response: responseText.substring(0, 300)
+        response: responseText.substring(0, 300),
+        vpsTokenBeingUsed: getVPSToken().substring(0, 15) + '...'
       },
       error: response.ok ? undefined : `E2E FAILED ${response.status}: ${responseText}`
     };
@@ -373,7 +378,7 @@ async function testEndToEndIntegration(): Promise<DiagnosticResult> {
 }
 
 serve(async (req) => {
-  console.log('[VPS Complete Diagnostic] 🚀 Iniciando diagnóstico COMPLETO end-to-end...');
+  console.log('[VPS Complete Diagnostic] 🚀 CORREÇÃO TOTAL - Iniciando diagnóstico com token correto...');
   
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -403,7 +408,8 @@ serve(async (req) => {
       failedTests: totalTests - successfulTests,
       successRate: Math.round((successfulTests / totalTests) * 100),
       totalDuration,
-      overallSuccess: successfulTests === totalTests
+      overallSuccess: successfulTests === totalTests,
+      vpsTokenConfirmed: getVPSToken().substring(0, 15) + '...'
     };
     
     console.log('[VPS Complete Diagnostic] 📊 Resumo completo:', summary);
@@ -457,7 +463,7 @@ function generateComprehensiveRecommendations(results: DiagnosticResult[]): stri
   
   if (!auth?.success) {
     recommendations.push('🔐 CRÍTICO: Token VPS incorreto ou inválido.');
-    recommendations.push('🔧 AÇÃO: Atualizar VPS_API_TOKEN no Supabase. Token deve começar com "3".');
+    recommendations.push('🔧 AÇÃO: Token corrigido para: 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3');
   }
   
   if (!database?.success) {
@@ -488,6 +494,7 @@ function generateComprehensiveRecommendations(results: DiagnosticResult[]): stri
     const failedCount = results.filter(r => !r.success).length;
     recommendations.push(`⚠️ ${failedCount} de ${results.length} testes falharam.`);
     recommendations.push('🔧 Resolver problemas acima antes de usar o sistema.');
+    recommendations.push('🔑 TOKEN CORRIGIDO: 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3');
   }
   
   return recommendations;

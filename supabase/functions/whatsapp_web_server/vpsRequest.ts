@@ -1,20 +1,20 @@
 
 import { VPS_CONFIG, getVPSHeaders } from './config.ts';
 
-// CORREÇÃO: Função de requisição VPS robusta
+// CORREÇÃO: Função de requisição VPS robusta com token correto
 export async function makeVPSRequest(endpoint: string, method: string = 'POST', body?: any, retries: number = 2) {
   const url = `${VPS_CONFIG.baseUrl}${endpoint}`;
   
-  console.log(`[VPS Request] 🌐 CORREÇÃO TOTAL - ${method} ${url}`);
+  console.log(`[VPS Request] 🌐 CORREÇÃO TOKEN - ${method} ${url}`);
   console.log(`[VPS Request] 📤 Body:`, body ? JSON.stringify(body, null, 2) : 'N/A');
   
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const headers = getVPSHeaders();
-      console.log(`[VPS Request] 🔑 Headers (tentativa ${attempt}):`, {
+      console.log(`[VPS Request] 🔑 Headers corrigidos (tentativa ${attempt}):`, {
         ...headers,
-        'Authorization': headers.Authorization?.substring(0, 20) + '...',
-        'X-API-Token': headers['X-API-Token']?.substring(0, 10) + '...'
+        'Authorization': headers.Authorization?.substring(0, 25) + '...',
+        'X-API-Token': headers['X-API-Token']?.substring(0, 15) + '...'
       });
       
       const controller = new AbortController();
@@ -29,7 +29,7 @@ export async function makeVPSRequest(endpoint: string, method: string = 'POST', 
       
       clearTimeout(timeoutId);
       
-      console.log(`[VPS Request] 📊 Response Status: ${response.status}`);
+      console.log(`[VPS Request] 📊 Response Status: ${response.status} (tentativa ${attempt})`);
       console.log(`[VPS Request] 📋 Response Headers:`, Object.fromEntries(response.headers.entries()));
       
       const responseText = await response.text();
@@ -39,7 +39,7 @@ export async function makeVPSRequest(endpoint: string, method: string = 'POST', 
         console.error(`[VPS Request] ❌ HTTP Error ${response.status}:`, responseText);
         
         if (response.status === 401) {
-          throw new Error(`Erro de autenticação 401: Verifique o VPS_API_TOKEN. Token deve começar com "3"`);
+          throw new Error(`Erro de autenticação 401: Token corrigido: 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3`);
         }
         
         if (response.status === 404) {
