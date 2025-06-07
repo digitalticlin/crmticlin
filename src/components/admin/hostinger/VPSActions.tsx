@@ -14,18 +14,20 @@ import {
 } from "lucide-react";
 import { HostingerVPS } from "@/services/hostinger/hostingerApiService";
 
-interface VPSOperationState {
+interface OperationState {
   isLoading: boolean;
   isInstalling: boolean;
   isRestarting: boolean;
-  isBackingUp: boolean;
+  isCreatingBackup: boolean;
   isApplyingFixes: boolean;
   isDeployingWhatsApp: boolean;
+  isExecutingCommand: boolean;
+  isBackingUp: boolean;
 }
 
 interface VPSActionsProps {
   selectedVPS: HostingerVPS;
-  operationState: VPSOperationState;
+  operationState: OperationState;
   executeCommand: (command: string, description?: string) => Promise<any>;
   installWhatsAppServer: () => Promise<void>;
   applyWhatsAppFixes: () => Promise<void>;

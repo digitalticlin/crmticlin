@@ -9,6 +9,8 @@ interface OperationState {
   isCreatingBackup: boolean;
   isInstalling: boolean;
   isApplyingFixes: boolean;
+  isLoading: boolean;
+  isBackingUp: boolean;
 }
 
 interface WhatsAppStatus {
@@ -34,7 +36,9 @@ export const useVPSManagement = () => {
     isRestarting: false,
     isCreatingBackup: false,
     isInstalling: false,
-    isApplyingFixes: false
+    isApplyingFixes: false,
+    isLoading: false,
+    isBackingUp: false
   });
   const [whatsappStatus, setWhatsappStatus] = useState<WhatsAppStatus>({
     isOnline: false,
@@ -128,7 +132,7 @@ export const useVPSManagement = () => {
   const executeCommand = useCallback(async (command: string, description?: string) => {
     if (!selectedVPS) return;
     
-    setOperationState(prev => ({ ...prev, isExecutingCommand: true }));
+    setOperationState(prev => ({ ...prev, isExecutingCommand: true, isLoading: true }));
     
     try {
       addLog(`⚡ Executando: ${description || command}`);
@@ -143,7 +147,7 @@ export const useVPSManagement = () => {
     } catch (error: any) {
       addLog(`💥 Erro na execução: ${error.message}`);
     } finally {
-      setOperationState(prev => ({ ...prev, isExecutingCommand: false }));
+      setOperationState(prev => ({ ...prev, isExecutingCommand: false, isLoading: false }));
     }
   }, [selectedVPS, addLog]);
 
@@ -213,7 +217,7 @@ export const useVPSManagement = () => {
   const createBackup = useCallback(async () => {
     if (!selectedVPS) return;
     
-    setOperationState(prev => ({ ...prev, isCreatingBackup: true }));
+    setOperationState(prev => ({ ...prev, isCreatingBackup: true, isBackingUp: true }));
     
     try {
       addLog('💾 Criando backup...');
@@ -227,7 +231,7 @@ export const useVPSManagement = () => {
     } catch (error: any) {
       addLog(`💥 Erro no backup: ${error.message}`);
     } finally {
-      setOperationState(prev => ({ ...prev, isCreatingBackup: false }));
+      setOperationState(prev => ({ ...prev, isCreatingBackup: false, isBackingUp: false }));
     }
   }, [selectedVPS, addLog]);
 

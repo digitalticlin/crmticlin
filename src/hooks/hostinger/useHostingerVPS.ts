@@ -1,6 +1,7 @@
+
 import { useState, useCallback } from 'react';
 import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
-import { HostingerApiService } from '@/services/hostinger/hostingerApiService';
+import { hostingerApi } from '@/services/hostinger/hostingerApiService';
 
 interface DiagnosticState {
   isRunning: boolean;
@@ -63,7 +64,7 @@ export const useHostingerVPS = () => {
 
       // Step 4: Check Hostinger API connection
       addLog('📡 Testando conexão com a API Hostinger...');
-      const apiStatus = await HostingerApiService.checkApiStatus();
+      const apiStatus = await hostingerApi.testConnection();
       
       if (apiStatus.success) {
         addLog('✅ Conexão com a API Hostinger estabelecida');
@@ -73,64 +74,24 @@ export const useHostingerVPS = () => {
 
       // Step 5: Check VPS Status
       addLog('🖥️ Verificando status do VPS...');
-      const vpsStatus = await HostingerApiService.getVpsStatus();
+      const vpsStatus = await hostingerApi.getStatus();
       
       if (vpsStatus.success) {
-        addLog(`✅ VPS está ${vpsStatus.status}`);
+        addLog(`✅ VPS está operacional`);
       } else {
         addLog(`❌ Falha ao obter status do VPS: ${vpsStatus.error}`);
       }
 
-      // Step 6: Check if domain is configured
-      addLog('🌐 Verificando se o domínio está configurado...');
-      const domainStatus = await HostingerApiService.getDomainStatus();
-      
-      if (domainStatus.success) {
-        addLog('✅ Domínio configurado corretamente');
-      } else {
-        addLog(`❌ Domínio não configurado: ${domainStatus.error}`);
-      }
-
-      // Step 7: Check if SSL is active
-      addLog('🔒 Verificando se o SSL está ativo...');
-      const sslStatus = await HostingerApiService.getSslStatus();
-      
-      if (sslStatus.success) {
-        addLog('✅ SSL está ativo');
-      } else {
-        addLog(`❌ SSL não está ativo: ${sslStatus.error}`);
-      }
-
-      // Step 8: Check Firewall Status
-      addLog('🛡️ Verificando status do Firewall...');
-      const firewallStatus = await HostingerApiService.getFirewallStatus();
-      
-      if (firewallStatus.success) {
-        addLog('✅ Firewall está ativo');
-      } else {
-        addLog(`❌ Firewall não está ativo: ${firewallStatus.error}`);
-      }
-
-      // Step 9: Check Backups Status
-      addLog('💾 Verificando status dos Backups...');
-      const backupsStatus = await HostingerApiService.getBackupsStatus();
-      
-      if (backupsStatus.success) {
-        addLog('✅ Backups estão ativos');
-      } else {
-        addLog(`❌ Backups não estão ativos: ${backupsStatus.error}`);
-      }
-
-      // Step 10: Check WhatsApp instances on VPS
+      // Step 6: Check if WhatsApp instances on VPS
       addLog('📱 Verificando instâncias WhatsApp no VPS...');
       const serverInfo = await WhatsAppWebService.getServerInfo();
       
       if (serverInfo.success) {
-        const instances = serverInfo.instances || [];
+        const instances = serverInfo.data?.instances || [];
         addLog(`✅ ${instances.length} instâncias encontradas no VPS`);
         
         if (instances.length > 0) {
-          instances.forEach((instance, index) => {
+          instances.forEach((instance: any, index: number) => {
             addLog(`   📱 ${index + 1}. ${instance.instanceName} - Status: ${instance.status}`);
           });
         }

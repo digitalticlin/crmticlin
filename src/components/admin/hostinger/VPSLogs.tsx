@@ -5,13 +5,14 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, RefreshCw, Download } from "lucide-react";
 
 interface VPSLogsProps {
-  logs: string;
+  logs: string[];
   loadLogs: (lines?: number) => Promise<void>;
 }
 
 export const VPSLogs = ({ logs, loadLogs }: VPSLogsProps) => {
   const handleDownloadLogs = () => {
-    const blob = new Blob([logs], { type: 'text/plain' });
+    const logsText = logs.join('\n');
+    const blob = new Blob([logsText], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -40,7 +41,7 @@ export const VPSLogs = ({ logs, loadLogs }: VPSLogsProps) => {
               <RefreshCw className="h-4 w-4" />
               Atualizar
             </Button>
-            {logs && (
+            {logs.length > 0 && (
               <Button
                 variant="outline"
                 size="sm"
@@ -55,7 +56,7 @@ export const VPSLogs = ({ logs, loadLogs }: VPSLogsProps) => {
         </div>
       </CardHeader>
       <CardContent>
-        {!logs ? (
+        {logs.length === 0 ? (
           <div className="text-center py-8">
             <FileText className="h-12 w-12 text-gray-400 mx-auto mb-3" />
             <p className="text-muted-foreground mb-4">
@@ -70,7 +71,7 @@ export const VPSLogs = ({ logs, loadLogs }: VPSLogsProps) => {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">
-                Últimas 100 linhas
+                {logs.length} linhas de log
               </span>
               <div className="flex gap-2">
                 <Button
@@ -99,7 +100,7 @@ export const VPSLogs = ({ logs, loadLogs }: VPSLogsProps) => {
             
             <ScrollArea className="h-96 w-full rounded border">
               <pre className="p-4 text-xs font-mono bg-gray-900 text-green-400 whitespace-pre-wrap">
-                {logs || 'Carregando logs...'}
+                {logs.join('\n') || 'Carregando logs...'}
               </pre>
             </ScrollArea>
           </div>
