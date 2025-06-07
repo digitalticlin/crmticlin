@@ -1,4 +1,3 @@
-
 interface HostingerVPS {
   id: string;
   name: string;
@@ -28,7 +27,7 @@ interface CommandResult {
   duration: number;
 }
 
-class HostingerApiService {
+export class HostingerApiService {
   private baseUrl: string;
 
   constructor() {

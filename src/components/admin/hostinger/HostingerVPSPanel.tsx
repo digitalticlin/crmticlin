@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useHostingerVPS } from "@/hooks/hostinger/useHostingerVPS";
+import { useVPSManagement } from "@/hooks/hostinger/useVPSManagement";
 import { WhatsAppStatusCard } from "./WhatsAppStatusCard";
 import { VPSSelector } from "./VPSSelector";
 import { VPSActions } from "./VPSActions";
@@ -29,7 +29,7 @@ export const HostingerVPSPanel = () => {
     restartVPS,
     createBackup,
     loadLogs
-  } = useHostingerVPS();
+  } = useVPSManagement();
 
   if (loading) {
     return (
