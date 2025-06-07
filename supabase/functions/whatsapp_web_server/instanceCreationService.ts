@@ -4,7 +4,7 @@ import { makeVPSRequest } from './vpsRequest.ts';
 
 export async function createWhatsAppInstance(supabase: any, instanceData: any, userId: string) {
   const creationId = `create_${Date.now()}`;
-  console.log(`[Instance Creation] 🚀 Criando instância [${creationId}]:`, instanceData);
+  console.log(`[Instance Creation] 🚀 CORREÇÃO TOTAL - Criando instância [${creationId}]:`, instanceData);
 
   try {
     const { instanceName } = instanceData;
@@ -41,7 +41,18 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
       companyId = userProfile.company_id;
     }
 
-    // 4. Salvar no banco PRIMEIRO
+    // 4. CORREÇÃO: Testar conectividade VPS ANTES de salvar no banco
+    console.log(`[Instance Creation] 🔍 Testando conectividade VPS...`);
+    const connectivityTest = await makeVPSRequest('/health', 'GET');
+    
+    if (!connectivityTest.success) {
+      console.error(`[Instance Creation] ❌ VPS não acessível:`, connectivityTest.error);
+      throw new Error(`VPS não acessível: ${connectivityTest.error}`);
+    }
+    
+    console.log(`[Instance Creation] ✅ VPS acessível`);
+
+    // 5. Salvar no banco
     const instanceRecord = {
       instance_name: instanceName,
       vps_instance_id: vpsInstanceId,
@@ -70,20 +81,22 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
 
     console.log(`[Instance Creation] ✅ Instância salva [${creationId}]:`, savedInstance.id);
 
-    // 5. Criar na VPS
+    // 6. CORREÇÃO: Criar na VPS com payload correto
     const webhookUrl = 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web';
     const vpsPayload = {
-      instanceId: vpsInstanceId,
-      sessionName: instanceName,
+      instanceName: vpsInstanceId, // Usar vpsInstanceId como instanceName
+      sessionName: instanceName,   // Nome amigável como sessionName
       webhookUrl: webhookUrl,
       companyId: companyId || userId,
       webhook: true,
       webhook_by_events: true,
-      webhookEvents: ['messages.upsert', 'qr.update', 'connection.update']
+      webhookEvents: ['messages.upsert', 'qr.update', 'connection.update'],
+      qrcode: true,
+      markOnlineOnConnect: true
     };
 
-    console.log(`[Instance Creation] 🌐 Criando na VPS [${creationId}]`);
-    const vpsResponse = await makeVPSRequest('/instance/create', 'POST', vpsPayload);
+    console.log(`[Instance Creation] 🌐 Criando na VPS [${creationId}] com payload:`, vpsPayload);
+    const vpsResponse = await makeVPSRequest(VPS_CONFIG.endpoints.createInstance, 'POST', vpsPayload);
     
     if (!vpsResponse.success) {
       console.error(`[Instance Creation] ❌ VPS falhou [${creationId}]:`, vpsResponse.error);
@@ -102,7 +115,7 @@ export async function createWhatsAppInstance(supabase: any, instanceData: any, u
 
     console.log(`[Instance Creation] ✅ VPS criou instância [${creationId}]`);
 
-    // 6. Atualizar status após sucesso na VPS
+    // 7. Atualizar status após sucesso na VPS
     const { data: updatedInstance } = await supabase
       .from('whatsapp_instances')
       .update({ 
