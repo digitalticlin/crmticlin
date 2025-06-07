@@ -16,7 +16,9 @@ import {
   Loader2,
   Search,
   Key,
-  Link
+  Link,
+  Plus,
+  Workflow
 } from "lucide-react";
 
 interface DiagnosticResult {
@@ -51,7 +53,7 @@ export const VPSSystemDiagnostic = () => {
   const runDiagnostic = async () => {
     try {
       setTesting(true);
-      toast.info("🔬 Executando análise profunda da VPS...");
+      toast.info("🔬 Executando análise profunda COMPLETA da VPS (6 testes)...");
 
       const { data, error } = await supabase.functions.invoke('vps_complete_diagnostic', {
         body: {}
@@ -64,9 +66,10 @@ export const VPSSystemDiagnostic = () => {
       setResult(data);
       
       if (data.diagnostic?.summary?.overallSuccess) {
-        toast.success("✅ VPS está funcionando perfeitamente!");
+        toast.success("✅ Todos os 6 testes passaram! VPS está 100% funcional!");
       } else {
-        toast.warning("🔬 Análise profunda concluída - verificar detalhes");
+        const { successfulTests, totalTests } = data.diagnostic.summary;
+        toast.warning(`🔬 Análise completa: ${successfulTests}/${totalTests} testes passaram`);
       }
 
     } catch (error: any) {
@@ -103,6 +106,8 @@ export const VPSSystemDiagnostic = () => {
     if (testName.includes('Authentication')) return <Key className="h-4 w-4" />;
     if (testName.includes('Endpoints')) return <Link className="h-4 w-4" />;
     if (testName.includes('Token')) return <Settings className="h-4 w-4" />;
+    if (testName.includes('Instance Creation')) return <Plus className="h-4 w-4" />;
+    if (testName.includes('End to End')) return <Workflow className="h-4 w-4" />;
     return <Search className="h-4 w-4" />;
   };
 
@@ -112,7 +117,7 @@ export const VPSSystemDiagnostic = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Activity className="h-5 w-5 text-blue-600" />
-            <CardTitle>Análise Profunda do Sistema VPS</CardTitle>
+            <CardTitle>Análise Profunda COMPLETA do Sistema VPS</CardTitle>
           </div>
           <Button 
             onClick={runDiagnostic} 
@@ -127,7 +132,7 @@ export const VPSSystemDiagnostic = () => {
             ) : (
               <>
                 <Search className="h-4 w-4" />
-                Análise Profunda
+                Análise Profunda (6 Testes)
               </>
             )}
           </Button>
@@ -138,8 +143,8 @@ export const VPSSystemDiagnostic = () => {
         {!result && (
           <div className="text-center py-8 text-muted-foreground">
             <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Clique em "Análise Profunda" para descobrir exatamente onde está o problema</p>
-            <p className="text-xs mt-2">Esta análise testa múltiplos formatos de autenticação e endpoints</p>
+            <p>Clique em "Análise Profunda (6 Testes)" para análise completa</p>
+            <p className="text-xs mt-2">Testes: Conectividade, Endpoints, Token, Autenticação, Instance Create, End-to-End</p>
           </div>
         )}
 
@@ -151,7 +156,7 @@ export const VPSSystemDiagnostic = () => {
                 <div className="text-2xl">🔬</div>
                 <div>
                   <h3 className="font-medium">
-                    {result.diagnostic.analysisType === 'DEEP_ANALYSIS' ? 'Análise Profunda' : 'Diagnóstico'} Completo
+                    {result.diagnostic.analysisType === 'DEEP_ANALYSIS_COMPLETE' ? 'Análise Profunda COMPLETA' : 'Diagnóstico'} ({result.diagnostic.summary.totalTests} Testes)
                   </h3>
                   <p className="text-sm text-muted-foreground">
                     {result.diagnostic.summary.successfulTests}/{result.diagnostic.summary.totalTests} testes passaram
@@ -164,7 +169,7 @@ export const VPSSystemDiagnostic = () => {
 
             {/* Resultados dos Testes */}
             <div className="space-y-3">
-              <h4 className="font-medium">Resultados Detalhados:</h4>
+              <h4 className="font-medium">Resultados Detalhados dos 6 Testes:</h4>
               {result.diagnostic.results.map((test, index) => (
                 <div key={index} className="border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
@@ -231,6 +236,37 @@ export const VPSSystemDiagnostic = () => {
                       </div>
                     </div>
                   )}
+                  
+                  {test.test.includes('Instance Creation') && test.details && (
+                    <div className="mt-3">
+                      <p className="text-sm font-medium">Criação de Instância:</p>
+                      <div className="text-xs bg-gray-50 p-2 rounded space-y-1">
+                        <div>ID de Teste: {test.details.testInstanceId}</div>
+                        {test.details.workingAuthForCreate && (
+                          <div className="text-green-600">Auth Funcionando: {test.details.workingAuthForCreate} ✅</div>
+                        )}
+                        {test.details.createResult && (
+                          <div>Status: {test.details.createResult.status}</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {test.test.includes('End to End') && test.details?.steps && (
+                    <div className="mt-3">
+                      <p className="text-sm font-medium">Passos do Fluxo End-to-End:</p>
+                      <div className="text-xs bg-gray-50 p-2 rounded space-y-1">
+                        {test.details.steps.map((step: string, i: number) => (
+                          <div key={i}>{step}</div>
+                        ))}
+                        {test.details.workingAuthType && (
+                          <div className="text-green-600 font-medium mt-2">
+                            Auth Type: {test.details.workingAuthType}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -240,7 +276,7 @@ export const VPSSystemDiagnostic = () => {
               <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
                 <div className="flex items-center gap-2 mb-3">
                   <AlertTriangle className="h-5 w-5 text-blue-600" />
-                  <h4 className="font-medium text-blue-800">Análise e Recomendações:</h4>
+                  <h4 className="font-medium text-blue-800">Análise e Recomendações Completas:</h4>
                 </div>
                 <div className="space-y-1">
                   {result.diagnostic.recommendations.map((rec, index) => (
@@ -254,7 +290,7 @@ export const VPSSystemDiagnostic = () => {
             )}
 
             <div className="text-xs text-muted-foreground text-center">
-              Análise executada em: {new Date(result.diagnostic.timestamp).toLocaleString('pt-BR')}
+              Análise COMPLETA executada em: {new Date(result.diagnostic.timestamp).toLocaleString('pt-BR')}
             </div>
           </div>
         )}
