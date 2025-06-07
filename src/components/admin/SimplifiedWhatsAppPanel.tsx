@@ -10,6 +10,7 @@ import { VPSTokenSynchronizer } from "./vps/VPSTokenSynchronizer";
 import { VPSInstanceCreationTester } from "./vps/VPSInstanceCreationTester";
 import { VPSComprehensiveDiagnostic } from "./vps/VPSComprehensiveDiagnostic";
 import { VPSDeepInvestigation } from "./vps/VPSDeepInvestigation";
+import { VPSSystemDiagnostic } from "./vps/VPSSystemDiagnostic";
 import { AutoDeployButton } from "./hostinger/AutoDeployButton";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
 import { toast } from "sonner";
@@ -54,16 +55,29 @@ export default function SimplifiedWhatsAppPanel() {
 
   return (
     <div className="space-y-8">
-      {/* SEÇÃO 1: CONTROLE PRINCIPAL */}
+      {/* SEÇÃO 1: DIAGNÓSTICO PRINCIPAL */}
       <div className="space-y-6">
         <div>
-          <h2 className="text-xl font-semibold mb-2">🎯 Controle Principal</h2>
+          <h2 className="text-xl font-semibold mb-2">🎯 Diagnóstico Principal</h2>
           <p className="text-muted-foreground">
-            Ferramentas essenciais para gerenciar o servidor WhatsApp
+            Execute um diagnóstico completo do sistema antes de qualquer configuração
           </p>
         </div>
 
-        {/* 1. Status do Servidor */}
+        {/* 1. Diagnóstico Completo do Sistema */}
+        <VPSSystemDiagnostic />
+      </div>
+
+      {/* SEÇÃO 2: CONTROLE OPERACIONAL */}
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-xl font-semibold mb-2">⚙️ Controle Operacional</h2>
+          <p className="text-muted-foreground">
+            Ferramentas para gerenciar o servidor WhatsApp após diagnóstico
+          </p>
+        </div>
+
+        {/* 2. Status do Servidor */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -120,26 +134,26 @@ export default function SimplifiedWhatsAppPanel() {
           )}
         </Card>
 
-        {/* 2. Gerenciador de Token */}
+        {/* 3. Gerenciador de Token */}
         <VPSTokenSynchronizer />
 
-        {/* 3. Teste de Criação de Instância */}
+        {/* 4. Teste de Criação de Instância */}
         <VPSInstanceCreationTester />
       </div>
 
-      {/* SEÇÃO 2: DIAGNÓSTICOS */}
+      {/* SEÇÃO 3: DIAGNÓSTICOS AVANÇADOS */}
       <div className="space-y-6">
         <div>
-          <h2 className="text-xl font-semibold mb-2">🔍 Ferramentas de Diagnóstico</h2>
+          <h2 className="text-xl font-semibold mb-2">🔍 Diagnósticos Avançados</h2>
           <p className="text-muted-foreground">
-            Para identificar e resolver problemas no servidor
+            Para problemas complexos que o diagnóstico principal não resolve
           </p>
         </div>
 
-        {/* 4. Diagnóstico Completo */}
+        {/* 5. Diagnóstico Completo Legacy */}
         <VPSComprehensiveDiagnostic />
 
-        {/* 5. Investigação Avançada */}
+        {/* 6. Investigação Avançada */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -147,7 +161,7 @@ export default function SimplifiedWhatsAppPanel() {
               Investigação Avançada
             </CardTitle>
             <CardDescription>
-              Para problemas complexos que o diagnóstico básico não consegue resolver
+              Para problemas que persistem após todos os diagnósticos
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -156,16 +170,16 @@ export default function SimplifiedWhatsAppPanel() {
         </Card>
       </div>
 
-      {/* SEÇÃO 3: DEPLOY E CONFIGURAÇÃO */}
+      {/* SEÇÃO 4: DEPLOY E REINSTALAÇÃO */}
       <div className="space-y-6">
         <div>
-          <h2 className="text-xl font-semibold mb-2">⚙️ Deploy e Configuração</h2>
+          <h2 className="text-xl font-semibold mb-2">🚀 Deploy e Reinstalação</h2>
           <p className="text-muted-foreground">
-            Reinstalar ou atualizar o servidor quando necessário
+            Use apenas quando todos os diagnósticos falharem
           </p>
         </div>
 
-        {/* 6. Deploy Automático */}
+        {/* 7. Deploy Automático */}
         <AutoDeployButton />
       </div>
     </div>

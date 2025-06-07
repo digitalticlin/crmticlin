@@ -1,98 +1,96 @@
 
-import { useCallback } from 'react';
-import { toast } from 'sonner';
+import { useState } from 'react';
 import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
+import { toast } from 'sonner';
 
-export const useInstanceActions = (fetchInstances: () => Promise<void>) => {
-  // CORREÇÃO CRÍTICA: Create instance com confirmação COMPLETA da VPS
-  const createInstance = useCallback(async (instanceName: string) => {
+export const useInstanceActions = (onInstanceChange?: () => void) => {
+  const [isCreating, setIsCreating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const createInstance = async (instanceName: string) => {
     try {
-      console.log('[Hook] 🆕 CORREÇÃO CRÍTICA - Criando instância com confirmação VPS:', instanceName);
-      
+      setIsCreating(true);
+      console.log('[Instance Actions] 🚀 Criando instância:', instanceName);
+
       const result = await WhatsAppWebService.createInstance(instanceName);
-      
-      if (result.success && result.instance) {
-        console.log('[Hook] ✅ CORREÇÃO CRÍTICA - Instância criada e confirmada pela VPS:', {
-          id: result.instance.id,
-          name: result.instance.instance_name,
-          hasQR: !!result.instance.qr_code,
-          vpsInstanceId: result.instance.vps_instance_id
-        });
-        
-        // CORREÇÃO CRÍTICA: Só mostrar sucesso após confirmação VPS
-        toast.success(`Instância "${instanceName}" criada na VPS!`);
-        
-        // CORREÇÃO CRÍTICA: Aguardar sincronização com banco antes de atualizar lista
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        await fetchInstances();
-        
-        // CORREÇÃO CRÍTICA: Retornar instância APENAS quando VPS confirmou
-        return result.instance;
-      } else {
-        throw new Error(result.error || 'VPS não confirmou criação da instância');
-      }
-    } catch (error: any) {
-      console.error('[Hook] ❌ CORREÇÃO CRÍTICA - Erro na criação/confirmação VPS:', error);
-      toast.error(`Erro ao criar instância na VPS: ${error.message}`);
-      throw error; // Re-throw para tratamento no componente
-    }
-  }, [fetchInstances]);
 
-  // Delete instance com confirmação
-  const deleteInstance = useCallback(async (instanceId: string) => {
-    try {
-      console.log('[Hook] 🗑️ CORREÇÃO CRÍTICA - Removendo instância:', instanceId);
-      
-      const result = await WhatsAppWebService.deleteInstance(instanceId);
-      
       if (result.success) {
-        console.log('[Hook] ✅ CORREÇÃO CRÍTICA - Instância removida com sucesso');
-        toast.success('Instância removida com sucesso!');
-        await fetchInstances();
+        toast.success('✅ Instância criada com sucesso!');
+        onInstanceChange?.();
+        return result;
       } else {
-        throw new Error(result.error || 'Falha ao remover instância');
+        toast.error(`❌ Erro ao criar instância: ${result.error}`);
+        return result;
       }
-    } catch (error: any) {
-      console.error('[Hook] ❌ CORREÇÃO CRÍTICA - Erro ao remover instância:', error);
-      toast.error(`Erro ao remover instância: ${error.message}`);
-    }
-  }, [fetchInstances]);
 
-  // CORREÇÃO CRÍTICA: Refresh QR code com validação sincronizada
-  const refreshQRCode = useCallback(async (instanceId: string) => {
-    try {
-      console.log('[Hook] 🔄 CORREÇÃO CRÍTICA - Atualizando QR Code sincronizado para instância:', instanceId);
-      
-      const result = await WhatsAppWebService.getQRCode(instanceId);
-      
-      if (result.success && result.qrCode) {
-        console.log('[Hook] ✅ CORREÇÃO CRÍTICA - QR Code sincronizado atualizado com sucesso');
-        toast.success('QR Code atualizado com sucesso!');
-        
-        // CORREÇÃO CRÍTICA: Atualizar lista após obter QR Code
-        await fetchInstances();
-        
-        return {
-          success: true,
-          qrCode: result.qrCode
-        };
-      } else if (result.waiting) {
-        console.log('[Hook] ⏳ CORREÇÃO CRÍTICA - QR Code ainda sendo gerado pela VPS');
-        toast.info('QR Code ainda está sendo gerado, aguarde...');
-        return null;
-      } else {
-        throw new Error(result.error || 'VPS não forneceu QR Code');
-      }
     } catch (error: any) {
-      console.error('[Hook] ❌ CORREÇÃO CRÍTICA - Erro ao atualizar QR Code:', error);
-      toast.error(`Erro ao atualizar QR Code: ${error.message}`);
-      return null;
+      console.error('[Instance Actions] ❌ Erro na criação:', error);
+      toast.error(`❌ Erro na criação: ${error.message}`);
+      return {
+        success: false,
+        error: error.message
+      };
+    } finally {
+      setIsCreating(false);
     }
-  }, [fetchInstances]);
+  };
+
+  const deleteInstance = async (instanceId: string) => {
+    try {
+      setIsDeleting(true);
+      console.log('[Instance Actions] 🗑️ Deletando instância:', instanceId);
+
+      const result = await WhatsAppWebService.deleteInstance(instanceId);
+
+      if (result.success) {
+        toast.success('✅ Instância deletada com sucesso!');
+        onInstanceChange?.();
+        return result;
+      } else {
+        toast.error(`❌ Erro ao deletar instância: ${result.error}`);
+        return result;
+      }
+
+    } catch (error: any) {
+      console.error('[Instance Actions] ❌ Erro na deleção:', error);
+      toast.error(`❌ Erro na deleção: ${error.message}`);
+      return {
+        success: false,
+        error: error.message
+      };
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const refreshQRCode = async (instanceId: string) => {
+    try {
+      console.log('[Instance Actions] 🔄 Atualizando QR Code:', instanceId);
+
+      const result = await WhatsAppWebService.getQRCode(instanceId);
+
+      if (result.success && result.qrCode) {
+        console.log('[Instance Actions] ✅ QR Code obtido');
+        return result;
+      } else {
+        console.log('[Instance Actions] ⚠️ QR Code não disponível:', result.error);
+        return result;
+      }
+
+    } catch (error: any) {
+      console.error('[Instance Actions] ❌ Erro no QR Code:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  };
 
   return {
     createInstance,
     deleteInstance,
-    refreshQRCode
+    refreshQRCode,
+    isCreating,
+    isDeleting
   };
 };

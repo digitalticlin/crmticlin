@@ -9,13 +9,7 @@ const corsHeaders = {
 
 const VPS_CONFIG = {
   baseUrl: 'http://31.97.24.222:3001',
-  timeout: 30000,
-  endpoints: {
-    createInstance: '/instance/create',
-    deleteInstance: '/instance/delete',
-    getQRDirect: '/instance/{instanceId}/qr',
-    instances: '/instances'
-  }
+  timeout: 30000
 };
 
 async function makeVPSRequest(endpoint: string, method: string = 'GET', body?: any) {
@@ -287,6 +281,97 @@ async function getQRCodeAsync(supabase: any, instanceData: any, userId: string) 
   }
 }
 
+async function deleteWhatsAppInstance(supabase: any, instanceData: any, userId: string) {
+  try {
+    const { instanceId } = instanceData;
+    
+    if (!instanceId) {
+      throw new Error('Instance ID é obrigatório');
+    }
+
+    // Buscar instância no banco
+    const { data: instance } = await supabase
+      .from('whatsapp_instances')
+      .select('*')
+      .eq('id', instanceId)
+      .eq('created_by_user_id', userId)
+      .single();
+
+    if (!instance) {
+      throw new Error('Instância não encontrada');
+    }
+
+    // Deletar da VPS se tiver vps_instance_id
+    if (instance.vps_instance_id) {
+      const vpsResponse = await makeVPSRequest('/instance/delete', 'POST', {
+        instanceId: instance.vps_instance_id
+      });
+      
+      if (!vpsResponse.success) {
+        console.warn('[Delete Instance] VPS delete failed:', vpsResponse.error);
+        // Continuar mesmo se a VPS falhar
+      }
+    }
+
+    // Deletar do banco
+    const { error: deleteError } = await supabase
+      .from('whatsapp_instances')
+      .delete()
+      .eq('id', instanceId);
+
+    if (deleteError) {
+      throw new Error(`Erro ao deletar instância: ${deleteError.message}`);
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: 'Instância deletada com sucesso'
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error: any) {
+    console.error('[Delete Instance] Erro:', error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+}
+
+async function checkServerHealth(supabase: any) {
+  try {
+    const vpsResponse = await makeVPSRequest('/health', 'GET');
+    
+    return new Response(
+      JSON.stringify({
+        success: vpsResponse.success,
+        data: vpsResponse.data,
+        error: vpsResponse.error
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error: any) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+}
+
 serve(async (req) => {
   console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED');
   console.log('[WhatsApp Server] Method:', req.method);
@@ -343,6 +428,14 @@ serve(async (req) => {
       case 'get_qr_code_async':
         console.log('[WhatsApp Server] 📱 GET QR CODE ASYNC');
         return await getQRCodeAsync(supabase, body.instanceData, user.id);
+
+      case 'delete_instance':
+        console.log('[WhatsApp Server] 🗑️ DELETE INSTANCE');
+        return await deleteWhatsAppInstance(supabase, body.instanceData, user.id);
+
+      case 'check_server':
+        console.log('[WhatsApp Server] 🔍 CHECK SERVER HEALTH');
+        return await checkServerHealth(supabase);
 
       default:
         console.warn('[WhatsApp Server] ⚠️ UNKNOWN ACTION');
