@@ -58,7 +58,7 @@ export const useWhatsAppWebSectionLogic = () => {
       // ETAPA 3: AGUARDAR confirmação COMPLETA da VPS
       const createdInstance = await createInstance(generatedInstanceName);
       
-      if (!createdInstance) {
+      if (!createdInstance || !createdInstance.success) {
         throw new Error('Falha ao criar instância');
       }
       
@@ -67,10 +67,11 @@ export const useWhatsAppWebSectionLogic = () => {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // ETAPA 5: Configurar modal APENAS após confirmação completa
-      const finalInstanceName = createdInstance.data?.instance_name || generatedInstanceName;
+      const instanceData = createdInstance.data || createdInstance.instance;
+      const finalInstanceName = instanceData?.instance_name || generatedInstanceName;
       setLocalSelectedInstanceName(finalInstanceName);
       
-      const qrCode = createdInstance.data?.qr_code;
+      const qrCode = instanceData?.qr_code;
       if (qrCode) {
         // QR Code disponível - VPS processou completamente
         setLocalSelectedQRCode(qrCode);
@@ -84,7 +85,7 @@ export const useWhatsAppWebSectionLogic = () => {
         toast.info(`Preparando QR Code para "${finalInstanceName}"...`, { id: 'creating-instance' });
         
         // Polling com confirmação de instância existente
-        const instanceId = createdInstance.data?.id;
+        const instanceId = instanceData?.id;
         if (instanceId) {
           await startPolling(
             instanceId,
