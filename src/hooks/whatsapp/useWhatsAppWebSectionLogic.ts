@@ -67,7 +67,9 @@ export const useWhatsAppWebSectionLogic = () => {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // ETAPA 5: Configurar modal APENAS após confirmação completa
-      const instanceData = createdInstance.data || createdInstance.instance;
+      // Type-safe access to instance data
+      const instanceData = ('data' in createdInstance ? createdInstance.data : null) || 
+                          ('instance' in createdInstance ? createdInstance.instance : null);
       const finalInstanceName = instanceData?.instance_name || generatedInstanceName;
       setLocalSelectedInstanceName(finalInstanceName);
       
