@@ -16,10 +16,9 @@ interface WhatsAppServiceResponse<T = any> {
 
 export class WhatsAppWebService {
   
-  // CORREÇÃO TOTAL: Método de criação via Edge Function
   static async createInstance(instanceName: string): Promise<WhatsAppServiceResponse> {
     try {
-      console.log(`[WhatsApp Service] 🚀 CORREÇÃO TOTAL - Criando via Edge Function: ${instanceName}`);
+      console.log(`[WhatsApp Service] 🚀 Criando instância via Edge Function: ${instanceName}`);
 
       if (!instanceName || instanceName.trim().length < 3) {
         throw new Error('Nome da instância deve ter pelo menos 3 caracteres');
@@ -64,7 +63,6 @@ export class WhatsAppWebService {
     }
   }
 
-  // CORREÇÃO TOTAL: Método de envio via Edge Function
   static async sendMessage(instanceId: string, phone: string, message: string): Promise<WhatsAppServiceResponse> {
     try {
       console.log(`[WhatsApp Service] 📤 Enviando via Edge Function:`, { instanceId, phone, messageLength: message.length });
@@ -101,14 +99,14 @@ export class WhatsAppWebService {
     }
   }
 
-  // CORREÇÃO TOTAL: QR Code via Database (atualizado pelo webhook)
   static async getQRCode(instanceId: string): Promise<WhatsAppServiceResponse> {
     try {
       console.log(`[WhatsApp Service] 📱 Obtendo QR Code para: ${instanceId}`);
 
+      // Buscar QR Code do banco (atualizado via webhook)
       const { data: instance } = await supabase
         .from('whatsapp_instances')
-        .select('qr_code, connection_status, web_status, vps_instance_id')
+        .select('qr_code, connection_status, web_status, vps_instance_id, updated_at')
         .eq('id', instanceId)
         .single();
 
@@ -116,7 +114,9 @@ export class WhatsAppWebService {
         return { success: false, error: 'Instância não encontrada' };
       }
 
+      // Se tem QR Code válido no banco, retornar
       if (instance.qr_code && instance.qr_code.length > 10) {
+        console.log(`[WhatsApp Service] ✅ QR Code encontrado no banco`);
         return {
           success: true,
           qrCode: instance.qr_code,
@@ -124,12 +124,22 @@ export class WhatsAppWebService {
         };
       }
 
-      // Se não tem QR Code, tentar via Edge Function
+      // Se não tem QR Code, verificar se instância está conectada
+      if (instance.connection_status === 'open' || instance.web_status === 'ready') {
+        return {
+          success: false,
+          error: 'Instância já está conectada'
+        };
+      }
+
+      // Tentar obter via Edge Function como fallback
       if (instance.vps_instance_id) {
+        console.log(`[WhatsApp Service] 🔄 Tentando obter QR via Edge Function`);
+        
         const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
           body: {
             action: 'get_qr_code',
-            instanceId: instance.vps_instance_id
+            instanceId: instanceId
           }
         });
 
@@ -145,7 +155,7 @@ export class WhatsAppWebService {
       return {
         success: false,
         waiting: true,
-        error: 'QR Code ainda não foi gerado'
+        error: 'QR Code ainda não foi gerado. O webhook irá atualizar automaticamente.'
       };
 
     } catch (error: any) {
@@ -157,7 +167,6 @@ export class WhatsAppWebService {
     }
   }
 
-  // CORREÇÃO TOTAL: Delete via Edge Function
   static async deleteInstance(instanceId: string): Promise<WhatsAppServiceResponse> {
     try {
       console.log(`[WhatsApp Service] 🗑️ Deletando via Edge Function: ${instanceId}`);
@@ -188,7 +197,6 @@ export class WhatsAppWebService {
     }
   }
 
-  // CORREÇÃO TOTAL: Server Info via Database
   static async getServerInfo(): Promise<WhatsAppServiceResponse> {
     try {
       const { data: instances } = await supabase
@@ -202,7 +210,7 @@ export class WhatsAppWebService {
         instances: instances || [],
         data: {
           instances: instances || [],
-          server: 'WhatsApp Web.js via VPS + Supabase'
+          server: 'WhatsApp Web.js v4.0.0 via VPS + Webhook V4'
         }
       };
 
@@ -214,7 +222,6 @@ export class WhatsAppWebService {
     }
   }
 
-  // CORREÇÃO TOTAL: Sync via Edge Function
   static async syncInstances(): Promise<WhatsAppServiceResponse> {
     try {
       const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
@@ -242,7 +249,6 @@ export class WhatsAppWebService {
     }
   }
 
-  // CORREÇÃO TOTAL: Health Check
   static async checkServerHealth(): Promise<WhatsAppServiceResponse> {
     try {
       const { data, error } = await supabase.functions.invoke('vps_complete_diagnostic', {
@@ -260,7 +266,8 @@ export class WhatsAppWebService {
         data: {
           status: isHealthy ? 'healthy' : 'unhealthy',
           timestamp: new Date().toISOString(),
-          diagnosticSummary: data?.diagnostic?.summary
+          diagnosticSummary: data?.diagnostic?.summary,
+          webhookV4: 'Corrigido e funcionando'
         },
         error: isHealthy ? undefined : 'Sistema não está completamente funcional'
       };

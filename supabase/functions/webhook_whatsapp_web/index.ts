@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.177.1/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -6,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface WebhookData {
+interface WhatsAppWebV4Data {
   instanceId?: string;
   instanceName?: string;
   event?: string;
@@ -15,10 +16,12 @@ interface WebhookData {
   qr?: string;
   status?: string;
   connectionUpdate?: any;
+  messages?: any[];
+  timestamp?: string;
 }
 
 async function findInstanceByVpsId(supabase: any, vpsInstanceId: string) {
-  console.log(`[Webhook] 🔍 Procurando instância com vps_instance_id: ${vpsInstanceId}`);
+  console.log(`[Webhook V4] 🔍 Buscando instância com vps_instance_id: ${vpsInstanceId}`);
   
   const { data: instance } = await supabase
     .from('whatsapp_instances')
@@ -27,45 +30,52 @@ async function findInstanceByVpsId(supabase: any, vpsInstanceId: string) {
     .maybeSingle();
   
   if (instance) {
-    console.log(`[Webhook] ✅ Instância encontrada: ${instance.instance_name} (ID: ${instance.id})`);
+    console.log(`[Webhook V4] ✅ Instância encontrada: ${instance.instance_name} (ID: ${instance.id})`);
   } else {
-    console.log(`[Webhook] ❌ Instância não encontrada para vps_instance_id: ${vpsInstanceId}`);
+    console.log(`[Webhook V4] ❌ Instância não encontrada para vps_instance_id: ${vpsInstanceId}`);
   }
   
   return instance;
 }
 
-async function processQRUpdate(supabase: any, webhookData: WebhookData) {
-  console.log('[Webhook] 📱 CORREÇÃO - Processando QR Update:', webhookData);
+async function processQRUpdate(supabase: any, webhookData: WhatsAppWebV4Data) {
+  console.log('[Webhook V4] 📱 Processando QR Update:', {
+    hasInstanceId: !!webhookData.instanceId,
+    hasInstanceName: !!webhookData.instanceName,
+    hasQrCode: !!(webhookData.qrCode || webhookData.qr || webhookData.data?.qrCode)
+  });
 
   const vpsInstanceId = webhookData.instanceId || webhookData.instanceName;
   if (!vpsInstanceId) {
-    console.error('[Webhook] ❌ instanceId/instanceName não fornecido');
+    console.error('[Webhook V4] ❌ instanceId/instanceName não fornecido');
     return { success: false, error: 'instanceId missing' };
   }
 
   const instance = await findInstanceByVpsId(supabase, vpsInstanceId);
   if (!instance) {
-    console.error('[Webhook] ❌ Instância não encontrada:', vpsInstanceId);
+    console.error('[Webhook V4] ❌ Instância não encontrada:', vpsInstanceId);
     return { success: false, error: 'Instance not found' };
   }
 
-  // Extrair QR code - múltiplas fontes possíveis
+  // Extrair QR code de múltiplas fontes possíveis
   let qrCode = webhookData.qrCode || 
                webhookData.qr || 
                webhookData.data?.qrCode || 
                webhookData.data?.qr ||
                webhookData.data?.base64;
   
-  console.log('[Webhook] 🔍 QR Code encontrado:', qrCode ? 'SIM' : 'NÃO');
+  console.log('[Webhook V4] 🔍 QR Code encontrado:', qrCode ? 'SIM' : 'NÃO');
   
   if (qrCode) {
-    // Normalizar QR code
+    // Normalizar QR code para data URL format
     if (!qrCode.startsWith('data:image/') && qrCode.length > 100) {
       qrCode = `data:image/png;base64,${qrCode}`;
     }
 
-    console.log('[Webhook] 💾 Salvando QR Code no banco...');
+    console.log('[Webhook V4] 💾 Salvando QR Code no banco...', {
+      instanceId: instance.id,
+      qrLength: qrCode.length
+    });
 
     // Salvar QR code no banco
     const { error: updateError } = await supabase
@@ -79,41 +89,45 @@ async function processQRUpdate(supabase: any, webhookData: WebhookData) {
       .eq('id', instance.id);
 
     if (updateError) {
-      console.error('[Webhook] ❌ Erro ao salvar QR code:', updateError);
+      console.error('[Webhook V4] ❌ Erro ao salvar QR code:', updateError);
       return { success: false, error: updateError.message };
     }
 
-    console.log('[Webhook] ✅ QR Code salvo para:', instance.instance_name);
+    console.log('[Webhook V4] ✅ QR Code salvo com sucesso');
     return { success: true, action: 'qr_saved', instanceName: instance.instance_name };
   }
 
-  console.log('[Webhook] ⚠️ QR code não encontrado no webhook data');
+  console.log('[Webhook V4] ⚠️ QR code não encontrado no webhook data');
   return { success: false, error: 'QR code not found in webhook' };
 }
 
-async function processConnectionUpdate(supabase: any, webhookData: WebhookData) {
-  console.log('[Webhook] 🔗 CORREÇÃO - Processando Connection Update:', webhookData);
+async function processConnectionUpdate(supabase: any, webhookData: WhatsAppWebV4Data) {
+  console.log('[Webhook V4] 🔗 Processando Connection Update:', {
+    hasInstanceId: !!webhookData.instanceId,
+    hasStatus: !!webhookData.status,
+    hasConnectionUpdate: !!webhookData.connectionUpdate
+  });
 
   const vpsInstanceId = webhookData.instanceId || webhookData.instanceName;
   if (!vpsInstanceId) {
-    console.error('[Webhook] ❌ instanceId não fornecido');
+    console.error('[Webhook V4] ❌ instanceId não fornecido');
     return { success: false, error: 'instanceId missing' };
   }
 
   const instance = await findInstanceByVpsId(supabase, vpsInstanceId);
   if (!instance) {
-    console.error('[Webhook] ❌ Instância não encontrada:', vpsInstanceId);
+    console.error('[Webhook V4] ❌ Instância não encontrada:', vpsInstanceId);
     return { success: false, error: 'Instance not found' };
   }
 
-  // Extrair status - múltiplas fontes possíveis
+  // Extrair status de múltiplas fontes
   const connectionData = webhookData.data || webhookData.connectionUpdate || {};
   const newStatus = connectionData.status || 
                    connectionData.state || 
                    connectionData.connection ||
                    webhookData.status;
 
-  console.log('[Webhook] 📊 Status detectado:', newStatus);
+  console.log('[Webhook V4] 📊 Status detectado:', newStatus);
 
   if (newStatus) {
     let webStatus = 'connecting';
@@ -149,7 +163,7 @@ async function processConnectionUpdate(supabase: any, webhookData: WebhookData) 
         break;
     }
 
-    console.log('[Webhook] 🔄 Atualizando status:', { webStatus, connectionStatus, phone });
+    console.log('[Webhook V4] 🔄 Atualizando status:', { webStatus, connectionStatus, phone });
 
     // Atualizar no banco
     const updateData: any = {
@@ -175,11 +189,11 @@ async function processConnectionUpdate(supabase: any, webhookData: WebhookData) 
       .eq('id', instance.id);
 
     if (updateError) {
-      console.error('[Webhook] ❌ Erro ao atualizar status:', updateError);
+      console.error('[Webhook V4] ❌ Erro ao atualizar status:', updateError);
       return { success: false, error: updateError.message };
     }
 
-    console.log('[Webhook] ✅ Status atualizado:', {
+    console.log('[Webhook V4] ✅ Status atualizado:', {
       instance: instance.instance_name,
       webStatus,
       connectionStatus,
@@ -189,12 +203,16 @@ async function processConnectionUpdate(supabase: any, webhookData: WebhookData) 
     return { success: true, action: 'status_updated', newStatus: webStatus };
   }
 
-  console.log('[Webhook] ⚠️ Status não encontrado no webhook');
+  console.log('[Webhook V4] ⚠️ Status não encontrado no webhook');
   return { success: false, error: 'Status not found in webhook' };
 }
 
-async function processMessageUpdate(supabase: any, webhookData: WebhookData) {
-  console.log('[Webhook] 💬 CORREÇÃO - Processando Message Update:', webhookData);
+async function processMessageUpdate(supabase: any, webhookData: WhatsAppWebV4Data) {
+  console.log('[Webhook V4] 💬 Processando Message Update:', {
+    hasInstanceId: !!webhookData.instanceId,
+    hasMessages: !!(webhookData.messages || webhookData.data?.messages),
+    messageCount: (webhookData.messages || webhookData.data?.messages || []).length
+  });
   
   const vpsInstanceId = webhookData.instanceId || webhookData.instanceName;
   if (!vpsInstanceId) {
@@ -206,15 +224,109 @@ async function processMessageUpdate(supabase: any, webhookData: WebhookData) {
     return { success: false, error: 'Instance not found' };
   }
 
-  // Aqui implementaria processamento completo de mensagens
-  // Por ora, apenas logar
-  console.log('[Webhook] 📝 Mensagem recebida para:', instance.instance_name);
+  // Processar mensagens
+  const messages = webhookData.messages || webhookData.data?.messages || [];
   
-  return { success: true, action: 'message_logged' };
+  if (messages.length > 0) {
+    console.log('[Webhook V4] 📝 Processando', messages.length, 'mensagem(s)');
+    
+    for (const message of messages) {
+      try {
+        const remoteJid = message.key?.remoteJid || message.from;
+        const fromMe = message.key?.fromMe || false;
+        const messageId = message.key?.id || message.id;
+        const text = message.message?.conversation || 
+                    message.message?.extendedTextMessage?.text || 
+                    message.body || 
+                    'Mensagem sem texto';
+
+        if (remoteJid) {
+          // Extrair número de telefone
+          const phone = remoteJid.replace('@c.us', '').replace('@s.whatsapp.net', '');
+          
+          console.log('[Webhook V4] 📱 Mensagem de:', phone, 'fromMe:', fromMe);
+          
+          // Criar/encontrar lead
+          let leadId = null;
+          const { data: existingLead } = await supabase
+            .from('leads')
+            .select('id')
+            .eq('phone', phone)
+            .eq('whatsapp_number_id', instance.id)
+            .maybeSingle();
+
+          if (existingLead) {
+            leadId = existingLead.id;
+          } else if (!fromMe) {
+            // Criar novo lead apenas para mensagens recebidas
+            const { data: newLead, error: leadError } = await supabase
+              .from('leads')
+              .insert({
+                phone: phone,
+                name: phone, // Nome temporário
+                whatsapp_number_id: instance.id,
+                company_id: instance.company_id,
+                created_by_user_id: instance.created_by_user_id,
+                last_message: text,
+                last_message_time: new Date().toISOString(),
+                unread_count: 1
+              })
+              .select('id')
+              .single();
+
+            if (leadError) {
+              console.error('[Webhook V4] ❌ Erro ao criar lead:', leadError);
+              continue;
+            }
+            
+            leadId = newLead.id;
+            console.log('[Webhook V4] ✅ Novo lead criado:', leadId);
+          }
+
+          if (leadId) {
+            // Salvar mensagem
+            const { error: messageError } = await supabase
+              .from('messages')
+              .insert({
+                lead_id: leadId,
+                whatsapp_number_id: instance.id,
+                text: text,
+                from_me: fromMe,
+                external_id: messageId,
+                timestamp: new Date().toISOString(),
+                status: 'received'
+              });
+
+            if (messageError) {
+              console.error('[Webhook V4] ❌ Erro ao salvar mensagem:', messageError);
+            } else {
+              console.log('[Webhook V4] ✅ Mensagem salva');
+              
+              // Atualizar lead com última mensagem
+              if (!fromMe) {
+                await supabase
+                  .from('leads')
+                  .update({
+                    last_message: text,
+                    last_message_time: new Date().toISOString(),
+                    unread_count: supabase.raw('unread_count + 1')
+                  })
+                  .eq('id', leadId);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[Webhook V4] ❌ Erro ao processar mensagem:', error);
+      }
+    }
+  }
+
+  return { success: true, action: 'messages_processed', count: messages.length };
 }
 
 serve(async (req) => {
-  console.log('[Webhook WhatsApp Web] 📨 CORREÇÃO TOTAL - WEBHOOK RECEIVED');
+  console.log('[Webhook V4] 📨 WEBHOOK RECEIVED - WhatsApp Web.js v4.0.0');
   
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -226,10 +338,10 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const webhookData: WebhookData = await req.json();
-    console.log('[Webhook] 📥 Data received:', JSON.stringify(webhookData, null, 2));
+    const webhookData: WhatsAppWebV4Data = await req.json();
+    console.log('[Webhook V4] 📥 Data received:', JSON.stringify(webhookData, null, 2));
 
-    // Detectar tipo de evento de forma mais robusta
+    // Detectar tipo de evento de forma robusta
     let event = webhookData.event;
     
     // Se não tem event explícito, inferir do conteúdo
@@ -238,14 +350,14 @@ serve(async (req) => {
         event = 'qr.update';
       } else if (webhookData.status || webhookData.data?.status || webhookData.connectionUpdate) {
         event = 'connection.update';
-      } else if (webhookData.data?.messages || webhookData.data?.message) {
+      } else if (webhookData.data?.messages || webhookData.messages) {
         event = 'messages.upsert';
       } else {
         event = 'unknown';
       }
     }
 
-    console.log('[Webhook] 🎯 Event type detected:', event);
+    console.log('[Webhook V4] 🎯 Event type detected:', event);
 
     let result;
 
@@ -269,11 +381,26 @@ serve(async (req) => {
         break;
         
       default:
-        console.log('[Webhook] ⚠️ Evento não reconhecido:', event);
+        console.log('[Webhook V4] ⚠️ Evento não reconhecido:', event);
         result = { success: true, action: 'ignored', event };
     }
 
-    console.log('[Webhook] 📤 Result:', result);
+    console.log('[Webhook V4] 📤 Result:', result);
+
+    // Log de sucesso
+    await supabase
+      .from('sync_logs')
+      .insert({
+        function_name: 'webhook_whatsapp_web_v4',
+        status: result.success ? 'success' : 'error',
+        result: {
+          event,
+          action: result.action,
+          instanceId: webhookData.instanceId || webhookData.instanceName,
+          timestamp: new Date().toISOString()
+        },
+        error_message: result.success ? null : result.error
+      });
 
     return new Response(
       JSON.stringify({
@@ -287,7 +414,29 @@ serve(async (req) => {
     );
 
   } catch (error: any) {
-    console.error('[Webhook] ❌ General error:', error);
+    console.error('[Webhook V4] ❌ General error:', error);
+    
+    // Log de erro
+    try {
+      const supabase = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      );
+      
+      await supabase
+        .from('sync_logs')
+        .insert({
+          function_name: 'webhook_whatsapp_web_v4',
+          status: 'error',
+          error_message: error.message,
+          result: {
+            timestamp: new Date().toISOString()
+          }
+        });
+    } catch (logError) {
+      console.error('[Webhook V4] ❌ Erro ao logar:', logError);
+    }
+    
     return new Response(
       JSON.stringify({
         success: false,
