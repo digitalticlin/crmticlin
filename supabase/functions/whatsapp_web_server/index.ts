@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.177.1/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.70.0';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from './config.ts';
 import { createWhatsAppInstance } from './instanceCreationService.ts';
 import { makeVPSRequest } from './vpsRequest.ts';
