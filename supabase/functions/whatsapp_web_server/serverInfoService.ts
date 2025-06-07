@@ -1,19 +1,18 @@
 
 import { makeVPSRequest } from './vpsRequest.ts';
 
-export async function checkServerHealth(supabase: any) {
+export async function getServerInfo(supabase: any) {
   try {
-    const vpsResponse = await makeVPSRequest('/health', 'GET');
+    const vpsResponse = await makeVPSRequest('/info', 'GET');
     
     return {
       success: vpsResponse.success,
-      vps_status: vpsResponse.success ? 'online' : 'offline',
+      server_info: vpsResponse.data,
       error: vpsResponse.error
     };
   } catch (error) {
     return {
       success: false,
-      vps_status: 'offline',
       error: error.message
     };
   }

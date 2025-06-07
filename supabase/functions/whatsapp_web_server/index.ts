@@ -1,9 +1,19 @@
+
 import { serve } from 'https://deno.land/std@0.177.1/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { corsHeaders } from './config.ts';
 
 import { createWhatsAppInstanceV3 } from './instanceCreationV3Service.ts';
 import { getQRCodeV3Async } from './qrCodeV3Service.ts';
+import { createWhatsAppInstance } from './instanceCreationService.ts';
+import { deleteWhatsAppInstance } from './instanceDeletionService.ts';
+import { saveQRCodeToDatabase } from './qrCodeService.ts';
+import { checkServerHealth } from './serverHealthService.ts';
+import { getServerInfo } from './serverInfoService.ts';
+import { sendMessage } from './messagingService.ts';
+import { getChatHistory } from './chatHistoryService.ts';
+import { configureWebhookForInstance } from './webhookConfigService.ts';
+import { removeWebhookForInstance } from './webhookRemovalService.ts';
 
 Deno.serve(async (req) => {
   console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED - V3 COM PROCESSO CORRETO');

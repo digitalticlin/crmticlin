@@ -1,83 +1,146 @@
 
-import { VPS_CONFIG, getVPSHeaders } from './config.ts';
-import { makeVPSRequest } from './vpsRequestService.ts';
 import { corsHeaders } from './config.ts';
+import { makeVPSRequest } from './vpsRequest.ts';
 
-export async function getQRCodeFromVPS(instanceId: string) {
+export async function getQRCodeAsync(supabase: any, instanceData: any, userId: string) {
+  const qrId = `qr_${Date.now()}`;
+  console.log(`[QR Code] 📱 Buscando QR Code [${qrId}]:`, instanceData);
+  
   try {
-    console.log(`[QR Service] 📱 Obtendo QR Code para instância: ${instanceId}`);
+    const { instanceId } = instanceData;
     
-    const response = await makeVPSRequest(`${VPS_CONFIG.baseUrl}/instance/qr`, {
-      method: 'POST',
-      headers: getVPSHeaders(),
-      body: JSON.stringify({ instanceId })
-    });
+    if (!instanceId) {
+      throw new Error('Instance ID é obrigatório');
+    }
 
-    if (response.ok) {
-      const data = await response.json();
-      console.log(`[QR Service] ✅ QR Code obtido com sucesso para ${instanceId}`);
+    // Buscar instância no banco
+    const { data: instance, error: instanceError } = await supabase
+      .from('whatsapp_instances')
+      .select('*')
+      .eq('id', instanceId)
+      .eq('created_by_user_id', userId)
+      .single();
+
+    if (instanceError || !instance) {
+      throw new Error('Instância não encontrada ou sem permissão');
+    }
+
+    // Verificar se já existe QR Code válido no banco
+    if (instance.qr_code && instance.updated_at) {
+      const qrAge = Date.now() - new Date(instance.updated_at).getTime();
+      const maxAge = 5 * 60 * 1000; // 5 minutos
       
-      // Validar se é QR Code real
-      if (data.qrCode && data.qrCode.startsWith('data:image/')) {
-        const base64Part = data.qrCode.split(',')[1];
-        if (base64Part && base64Part.length > 500) {
-          console.log(`[QR Service] 🔍 QR Code REAL validado - Tamanho: ${base64Part.length} chars`);
-          return {
+      if (qrAge < maxAge) {
+        return new Response(
+          JSON.stringify({
             success: true,
-            qrCode: data.qrCode,
-            status: data.status || 'waiting_scan',
-            timestamp: new Date().toISOString()
-          };
-        }
+            qrCode: instance.qr_code,
+            source: 'database',
+            instanceId
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
-      
-      console.log(`[QR Service] ⚠️ QR Code inválido ou falso recebido`);
-      return {
-        success: false,
-        error: 'QR Code inválido recebido da VPS'
-      };
+    }
+
+    // Buscar da VPS
+    const vpsResponse = await makeVPSRequest(`/instance/${instance.vps_instance_id}/qr`, 'GET');
+
+    if (vpsResponse.success && vpsResponse.data?.qrCode) {
+      // Normalizar QR Code
+      let normalizedQrCode = vpsResponse.data.qrCode;
+      if (!normalizedQrCode.startsWith('data:image/')) {
+        normalizedQrCode = `data:image/png;base64,${normalizedQrCode}`;
+      }
+
+      // Salvar no banco
+      await supabase
+        .from('whatsapp_instances')
+        .update({
+          qr_code: normalizedQrCode,
+          web_status: 'waiting_scan',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', instanceId);
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          qrCode: normalizedQrCode,
+          source: 'vps',
+          instanceId
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     } else {
-      const errorText = await response.text();
-      console.error(`[QR Service] ❌ Erro VPS: ${response.status} - ${errorText}`);
-      throw new Error(`VPS QR request failed: ${response.status} - ${errorText}`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          waiting: true,
+          error: 'QR Code ainda sendo gerado',
+          instanceId
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
   } catch (error) {
-    console.error('[QR Service] 💥 Erro ao obter QR Code:', error);
-    return {
-      success: false,
-      error: error.message
-    };
+    console.error(`[QR Code] ❌ Erro [${qrId}]:`, error);
+    
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message,
+        qrId
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
   }
 }
 
-export async function updateQRCodeInDatabase(supabase: any, instanceId: string, qrCodeData: any) {
+export async function saveQRCodeToDatabase(supabase: any, qrData: any, userId: string) {
   try {
-    console.log(`[QR Service] 💾 Atualizando QR Code no banco para: ${instanceId}`);
+    const { instanceId, qrCode } = qrData;
     
+    if (!instanceId || !qrCode) {
+      throw new Error('Instance ID e QR Code são obrigatórios');
+    }
+
     const { error } = await supabase
       .from('whatsapp_instances')
       .update({
-        qr_code: qrCodeData.qrCode,
-        web_status: qrCodeData.status,
-        connection_status: 'connecting',
+        qr_code: qrCode,
+        web_status: 'waiting_scan',
         updated_at: new Date().toISOString()
       })
-      .eq('vps_instance_id', instanceId);
+      .eq('id', instanceId)
+      .eq('created_by_user_id', userId);
 
     if (error) {
-      console.error('[QR Service] ❌ Erro ao atualizar banco:', error);
-      throw error;
+      throw new Error(`Erro ao salvar QR Code: ${error.message}`);
     }
 
-    console.log('[QR Service] ✅ QR Code atualizado no banco com sucesso');
-    return { success: true };
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: 'QR Code salvo com sucesso'
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
   } catch (error) {
-    console.error('[QR Service] 💥 Erro na atualização do banco:', error);
-    return {
-      success: false,
-      error: error.message
-    };
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message
+      }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
   }
 }
