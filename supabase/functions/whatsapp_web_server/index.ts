@@ -3,22 +3,22 @@ import { serve } from 'https://deno.land/std@0.177.1/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { corsHeaders } from './config.ts';
 
-import { createWhatsAppInstanceV3 } from './instanceCreationV3Service.ts';
-import { getQRCodeV3Async } from './qrCodeV3Service.ts';
 import { createWhatsAppInstance } from './instanceCreationService.ts';
 import { deleteWhatsAppInstance } from './instanceDeletionService.ts';
-import { saveQRCodeToDatabase } from './qrCodeService.ts';
+import { getQRCodeAsync, saveQRCodeToDatabase } from './qrCodeService.ts';
 import { checkServerHealth } from './serverHealthService.ts';
 import { getServerInfo } from './serverInfoService.ts';
-import { sendMessage } from './messagingService.ts';
-import { getChatHistory } from './chatHistoryService.ts';
+import { sendMessage, getChatHistory } from './messagingService.ts';
 import { configureWebhookForInstance } from './webhookConfigService.ts';
 import { removeWebhookForInstance } from './webhookRemovalService.ts';
 
+// Manter V3 para compatibilidade mas não usar por padrão
+import { createWhatsAppInstanceV3 } from './instanceCreationV3Service.ts';
+import { getQRCodeV3Async } from './qrCodeV3Service.ts';
+
 Deno.serve(async (req) => {
-  console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED - V3 COM PROCESSO CORRETO');
+  console.log('[WhatsApp Server] 🚀 REQUEST RECEIVED - RESTAURADO PARA VERSÃO FUNCIONANDO');
   console.log('[WhatsApp Server] Method:', req.method);
-  console.log('[WhatsApp Server] URL:', req.url);
 
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -39,12 +39,12 @@ Deno.serve(async (req) => {
     console.log('[WhatsApp Server] 📋 Parsed request body:', JSON.stringify(body, null, 2));
 
     const action = body.action;
-    console.log('[WhatsApp Server] 🎯 Action extracted:', action);
+    console.log('[WhatsApp Server] 🎯 Action:', action);
 
     // Authenticate the user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error('[WhatsApp Server] ❌ No Authorization header provided');
+      console.error('[WhatsApp Server] ❌ No Authorization header');
       return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -52,8 +52,6 @@ Deno.serve(async (req) => {
     }
 
     const token = authHeader.split(' ')[1];
-    console.log('[WhatsApp Server] 🔑 Token extracted:', token.substring(0, 10) + '...');
-
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError) {
       console.error('[WhatsApp Server] ❌ Invalid token:', userError);
@@ -65,26 +63,14 @@ Deno.serve(async (req) => {
 
     console.log('[WhatsApp Server] 👤 User authenticated:', user.email);
 
-    // Process different actions
-    console.log('[WhatsApp Server] 🎯 Processing action:', action);
-
+    // Process actions - VERSÕES ORIGINAIS FUNCIONANDO
     switch (action) {
-      // NOVO: Actions V3 com processo correto
-      case 'create_instance_v3':
-        console.log('[WhatsApp Server] ✨ CREATE INSTANCE V3 - PROCESSO CORRETO');
-        return await createWhatsAppInstanceV3(supabase, body.instanceData, user.id);
-
-      case 'get_qr_code_v3_async':
-        console.log('[WhatsApp Server] 📱 GET QR CODE V3 ASYNC - PROCESSO CORRETO');
-        return await getQRCodeV3Async(supabase, body.instanceData, user.id);
-
-      // Manter actions originais para compatibilidade
       case 'create_instance':
-        console.log('[WhatsApp Server] ✨ CREATE INSTANCE (LEGACY)');
+        console.log('[WhatsApp Server] ✨ CREATE INSTANCE (ORIGINAL FUNCIONANDO)');
         return await createWhatsAppInstance(supabase, body.instanceData, user.id);
 
       case 'get_qr_code_async':
-        console.log('[WhatsApp Server] 📱 GET QR CODE ASYNC (LEGACY)');
+        console.log('[WhatsApp Server] 📱 GET QR CODE ASYNC (ORIGINAL FUNCIONANDO)');
         return await getQRCodeAsync(supabase, body.instanceData, user.id);
 
       case 'save_qr_code':
@@ -128,12 +114,21 @@ Deno.serve(async (req) => {
         });
 
       case 'configure_webhook':
-        console.log('[WhatsApp Server] 🔧 CONFIGURE WEBHOOK (LEGACY)');
+        console.log('[WhatsApp Server] 🔧 CONFIGURE WEBHOOK');
         return await configureWebhookForInstance(body.instanceData.instanceId);
 
       case 'remove_webhook':
         console.log('[WhatsApp Server] 🗑️ REMOVE WEBHOOK');
         return await removeWebhookForInstance(body.instanceData.instanceId);
+
+      // V3 mantidas para compatibilidade mas não usadas por padrão
+      case 'create_instance_v3':
+        console.log('[WhatsApp Server] ✨ CREATE INSTANCE V3 (COMPATIBILIDADE)');
+        return await createWhatsAppInstanceV3(supabase, body.instanceData, user.id);
+
+      case 'get_qr_code_v3_async':
+        console.log('[WhatsApp Server] 📱 GET QR CODE V3 ASYNC (COMPATIBILIDADE)');
+        return await getQRCodeV3Async(supabase, body.instanceData, user.id);
 
       default:
         console.warn('[WhatsApp Server] ⚠️ UNKNOWN ACTION');
