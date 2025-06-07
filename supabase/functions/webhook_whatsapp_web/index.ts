@@ -6,6 +6,7 @@ import { findInstance } from './instanceService.ts';
 import { processIncomingMessage } from './messageProcessor.ts';
 import { processConnectionUpdate } from './connectionProcessor.ts';
 import { processQRUpdate } from './qrProcessor.ts';
+import { processQRUpdateV2 } from './qrProcessorV2.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,7 +14,7 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  console.log('[Webhook WhatsApp Web] 📨 WEBHOOK RECEIVED - CORREÇÃO QR AUTO-SAVE');
+  console.log('[Webhook WhatsApp Web] 📨 WEBHOOK RECEIVED - V2 COM QR PROCESSOR MELHORADO');
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -52,17 +53,17 @@ Deno.serve(async (req) => {
       );
     }
 
-    // CORREÇÃO: Processar QR.UPDATE com auto-save no banco
+    // NOVO: Processar QR.UPDATE com processador V2 melhorado
     if (event === 'qr.update') {
-      console.log('[Webhook WhatsApp Web] 📱 Processando QR.UPDATE com auto-save');
-      const result = await processQRUpdate(supabase, instance, messageData);
+      console.log('[Webhook WhatsApp Web] 📱 Processando QR.UPDATE com processador V2');
+      const result = await processQRUpdateV2(supabase, instance, messageData);
       return new Response(
         JSON.stringify(result),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Process different event types
+    // Process different event types (manter compatibilidade)
     if (event === 'messages.upsert' && messageData.messages) {
       const result = await processIncomingMessage(supabase, instance, messageData);
       return new Response(
