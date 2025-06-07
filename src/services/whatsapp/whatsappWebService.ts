@@ -57,6 +57,7 @@ export class WhatsAppWebService {
         success: data.success,
         qrCode: data.qrCode,
         source: data.source,
+        waiting: data.waiting || false,
         error: data.error
       };
 
@@ -64,7 +65,8 @@ export class WhatsAppWebService {
       console.error('[WhatsApp Service] ❌ Erro no QR Code:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
+        waiting: false
       };
     }
   }
@@ -123,6 +125,101 @@ export class WhatsAppWebService {
 
     } catch (error: any) {
       console.error('[WhatsApp Service] ❌ Erro na verificação:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  // Método ausente: getServerInfo
+  static async getServerInfo() {
+    console.log('[WhatsApp Service] 🔍 Buscando informações do servidor');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+        body: {
+          action: 'get_server_info'
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return {
+        success: data.success,
+        data: data.data,
+        error: data.error
+      };
+
+    } catch (error: any) {
+      console.error('[WhatsApp Service] ❌ Erro ao buscar info do servidor:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  // Método ausente: sendMessage
+  static async sendMessage(instanceId: string, phone: string, message: string) {
+    console.log('[WhatsApp Service] 💬 Enviando mensagem:', { instanceId, phone });
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+        body: {
+          action: 'send_message',
+          instanceData: {
+            instanceId,
+            phone,
+            message
+          }
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return {
+        success: data.success,
+        messageId: data.messageId,
+        error: data.error
+      };
+
+    } catch (error: any) {
+      console.error('[WhatsApp Service] ❌ Erro ao enviar mensagem:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  // Método ausente: syncInstances
+  static async syncInstances() {
+    console.log('[WhatsApp Service] 🔄 Sincronizando instâncias');
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+        body: {
+          action: 'sync_instances'
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return {
+        success: data.success,
+        syncedCount: data.syncedCount || 0,
+        error: data.error
+      };
+
+    } catch (error: any) {
+      console.error('[WhatsApp Service] ❌ Erro na sincronização:', error);
       return {
         success: false,
         error: error.message

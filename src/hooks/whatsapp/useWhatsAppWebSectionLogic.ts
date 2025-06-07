@@ -67,11 +67,13 @@ export const useWhatsAppWebSectionLogic = () => {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // ETAPA 5: Configurar modal APENAS após confirmação completa
-      setLocalSelectedInstanceName(createdInstance.instance_name);
+      const instanceName = createdInstance.instance?.instance_name || createdInstance.instance_name || instanceName;
+      setLocalSelectedInstanceName(instanceName);
       
-      if (createdInstance.qr_code) {
+      const qrCode = createdInstance.instance?.qr_code || createdInstance.qr_code;
+      if (qrCode) {
         // QR Code disponível - VPS processou completamente
-        setLocalSelectedQRCode(createdInstance.qr_code);
+        setLocalSelectedQRCode(qrCode);
         setIsWaitingForQR(false);
         setCreationStage('Pronto para escanear!');
         toast.success(`QR Code pronto! Escaneie para conectar.`, { id: 'creating-instance' });
@@ -82,16 +84,19 @@ export const useWhatsAppWebSectionLogic = () => {
         toast.info(`Preparando QR Code para "${instanceName}"...`, { id: 'creating-instance' });
         
         // Polling com confirmação de instância existente
-        await startPolling(
-          createdInstance.id,
-          createdInstance.instance_name,
-          (qrCode: string) => {
-            setLocalSelectedQRCode(qrCode);
-            setIsWaitingForQR(false);
-            setCreationStage('Pronto para escanear!');
-            toast.success('QR Code pronto! Escaneie para conectar.', { id: 'creating-instance' });
-          }
-        );
+        const instanceId = createdInstance.instance?.id || createdInstance.id;
+        if (instanceId) {
+          await startPolling(
+            instanceId,
+            instanceName,
+            (qrCode: string) => {
+              setLocalSelectedQRCode(qrCode);
+              setIsWaitingForQR(false);
+              setCreationStage('Pronto para escanear!');
+              toast.success('QR Code pronto! Escaneie para conectar.', { id: 'creating-instance' });
+            }
+          );
+        }
       }
       
       // ETAPA 6: AGORA SIM abrir modal após tudo estar pronto
