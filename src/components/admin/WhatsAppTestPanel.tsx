@@ -1,9 +1,10 @@
 
 import { VPSCompleteDiagnostic } from "./VPSCompleteDiagnostic";
 import { VPSConnectivityTest } from "../settings/whatsapp/VPSConnectivityTest";
+import { VPSTestTrigger } from "./VPSTestTrigger";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertTriangle, TestTube, Settings, Monitor } from "lucide-react";
+import { AlertTriangle, TestTube, Settings, Monitor, Activity } from "lucide-react";
 
 export const WhatsAppTestPanel = () => {
   return (
@@ -20,8 +21,12 @@ export const WhatsAppTestPanel = () => {
         </CardHeader>
       </Card>
 
-      <Tabs defaultValue="complete" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+      <Tabs defaultValue="post-correction" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="post-correction" className="flex items-center gap-2">
+            <Activity className="h-4 w-4" />
+            Pós-Correção
+          </TabsTrigger>
           <TabsTrigger value="complete" className="flex items-center gap-2">
             <TestTube className="h-4 w-4" />
             Diagnóstico Completo
@@ -35,6 +40,10 @@ export const WhatsAppTestPanel = () => {
             Configurações
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="post-correction" className="space-y-6">
+          <VPSTestTrigger />
+        </TabsContent>
 
         <TabsContent value="complete" className="space-y-6">
           <VPSCompleteDiagnostic />
@@ -65,6 +74,15 @@ export const WhatsAppTestPanel = () => {
                     • VPS_API_TOKEN<br/>
                     • SUPABASE_URL<br/>
                     • SUPABASE_SERVICE_ROLE_KEY
+                  </p>
+                </div>
+
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded">
+                  <h4 className="font-medium text-yellow-800 mb-2">Última Correção</h4>
+                  <p className="text-sm text-yellow-700">
+                    ✅ AUTH_TOKEN na VPS alinhado com VPS_API_TOKEN<br/>
+                    ✅ Servidor reiniciado via PM2<br/>
+                    ✅ Tokens confirmados: 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3
                   </p>
                 </div>
               </div>
