@@ -1,7 +1,7 @@
-
 import { serve } from 'https://deno.land/std@0.177.1/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 import { WebhookData } from './types.ts';
+import { handleWebhookV2 } from './webhookHandlerV2.ts';
 import { findInstance } from './instanceService.ts';
 import { processIncomingMessage } from './messageProcessor.ts';
 import { processConnectionUpdate } from './connectionProcessor.ts';
@@ -14,7 +14,7 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  console.log('[Webhook WhatsApp Web] 📨 WEBHOOK RECEIVED - V2 COM QR PROCESSOR MELHORADO');
+  console.log('[Webhook WhatsApp Web] 📨 WEBHOOK RECEIVED - V3 COM PROCESSO CORRETO');
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -30,59 +30,12 @@ Deno.serve(async (req) => {
     const webhookData: WebhookData = await req.json();
     console.log('[Webhook WhatsApp Web] Data received:', JSON.stringify(webhookData, null, 2));
 
-    const { instanceName, data: messageData, event } = webhookData;
+    // NOVO: Usar handler V2 que implementa processo correto
+    console.log('[Webhook WhatsApp Web] 🎯 Usando handler V2 com processo correto');
+    const result = await handleWebhookV2(supabase, webhookData);
     
-    if (!instanceName) {
-      console.error('[Webhook WhatsApp Web] ❌ instanceName not provided');
-      return new Response(
-        JSON.stringify({ success: false, error: 'instanceName not provided' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Find instance
-    const instance = await findInstance(supabase, instanceName);
-    if (!instance) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Instance not found', 
-          instanceName
-        }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // NOVO: Processar QR.UPDATE com processador V2 melhorado
-    if (event === 'qr.update') {
-      console.log('[Webhook WhatsApp Web] 📱 Processando QR.UPDATE com processador V2');
-      const result = await processQRUpdateV2(supabase, instance, messageData);
-      return new Response(
-        JSON.stringify(result),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Process different event types (manter compatibilidade)
-    if (event === 'messages.upsert' && messageData.messages) {
-      const result = await processIncomingMessage(supabase, instance, messageData);
-      return new Response(
-        JSON.stringify(result),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (event === 'connection.update') {
-      const result = await processConnectionUpdate(supabase, instance, messageData);
-      return new Response(
-        JSON.stringify(result),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('[Webhook WhatsApp Web] ℹ️ Event not processed:', event);
     return new Response(
-      JSON.stringify({ success: true, processed: false, event }),
+      JSON.stringify(result),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
