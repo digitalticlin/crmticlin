@@ -1,68 +1,37 @@
 
 import { useState } from "react";
 import GlobalAdminSidebar from "@/components/admin/GlobalAdminSidebar";
-import { AdminDashboard } from "@/components/admin/AdminDashboard";
-import { UnifiedWhatsAppPanel } from "@/components/admin/UnifiedWhatsAppPanel";
-import { BusinessManagementPanel } from "@/components/admin/BusinessManagementPanel";
-import PlansPanel from "@/components/admin/PlansPanel";
-import { SystemManagementPanel } from "@/components/admin/SystemManagementPanel";
-import { AnalyticsPanel } from "@/components/admin/AnalyticsPanel";
 import { WhatsAppTestPanel } from "@/components/admin/WhatsAppTestPanel";
-import { VPSTestPanel } from "@/components/admin/VPSTestPanel";
 
 export default function GlobalAdmin() {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState("whatsapp-test");
 
   const renderContent = () => {
     switch (activeTab) {
-      case "dashboard":
-        return <AdminDashboard />;
-      case "whatsapp":
-        return <UnifiedWhatsAppPanel />;
-      case "business":
-        return <BusinessManagementPanel />;
-      case "plans":
-        return (
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Gestão de Planos & Cobrança</h1>
-              <p className="text-gray-600 mt-1">
-                Administração de assinaturas, planos e faturamento
-              </p>
-            </div>
-            <PlansPanel />
-          </div>
-        );
-      case "system":
-        return <SystemManagementPanel />;
-      case "analytics":
-        return <AnalyticsPanel />;
       case "whatsapp-test":
         return (
           <div className="space-y-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Teste WhatsApp Web.js</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Centro de Testes WhatsApp Completo</h1>
               <p className="text-gray-600 mt-1">
-                Diagnóstico e teste completo do sistema WhatsApp
+                Painel completo para testar e validar todo o sistema WhatsApp antes de aplicar nas configurações
               </p>
             </div>
             <WhatsAppTestPanel />
           </div>
         );
-      case "vps-test":
+      default:
         return (
           <div className="space-y-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Diagnóstico VPS</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Centro de Testes WhatsApp Completo</h1>
               <p className="text-gray-600 mt-1">
-                Análise completa da infraestrutura VPS e servidores
+                Painel completo para testar e validar todo o sistema WhatsApp antes de aplicar nas configurações
               </p>
             </div>
-            <VPSTestPanel />
+            <WhatsAppTestPanel />
           </div>
         );
-      default:
-        return <AdminDashboard />;
     }
   };
 

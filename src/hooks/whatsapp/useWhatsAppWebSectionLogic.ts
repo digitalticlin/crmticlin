@@ -50,13 +50,13 @@ export const useWhatsAppWebSectionLogic = () => {
       setCreationStage('Iniciando conexão...');
       
       // ETAPA 2: Gerar nome da instância
-      const instanceName = await generateIntelligentInstanceName(userEmail);
+      const generatedInstanceName = await generateIntelligentInstanceName(userEmail);
       
       setCreationStage('Preparando WhatsApp...');
-      toast.loading(`Criando instância "${instanceName}"...`, { id: 'creating-instance' });
+      toast.loading(`Criando instância "${generatedInstanceName}"...`, { id: 'creating-instance' });
       
       // ETAPA 3: AGUARDAR confirmação COMPLETA da VPS
-      const createdInstance = await createInstance(instanceName);
+      const createdInstance = await createInstance(generatedInstanceName);
       
       if (!createdInstance) {
         throw new Error('Falha ao criar instância');
@@ -67,10 +67,10 @@ export const useWhatsAppWebSectionLogic = () => {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // ETAPA 5: Configurar modal APENAS após confirmação completa
-      const instanceName = createdInstance.instance?.instance_name || createdInstance.instance_name || instanceName;
-      setLocalSelectedInstanceName(instanceName);
+      const finalInstanceName = createdInstance.instance?.instance_name || generatedInstanceName;
+      setLocalSelectedInstanceName(finalInstanceName);
       
-      const qrCode = createdInstance.instance?.qr_code || createdInstance.qr_code;
+      const qrCode = createdInstance.instance?.qr_code;
       if (qrCode) {
         // QR Code disponível - VPS processou completamente
         setLocalSelectedQRCode(qrCode);
@@ -81,14 +81,14 @@ export const useWhatsAppWebSectionLogic = () => {
         // QR Code não disponível - iniciar polling
         setIsWaitingForQR(true);
         setCreationStage('Preparando QR Code...');
-        toast.info(`Preparando QR Code para "${instanceName}"...`, { id: 'creating-instance' });
+        toast.info(`Preparando QR Code para "${finalInstanceName}"...`, { id: 'creating-instance' });
         
         // Polling com confirmação de instância existente
-        const instanceId = createdInstance.instance?.id || createdInstance.id;
+        const instanceId = createdInstance.instance?.id;
         if (instanceId) {
           await startPolling(
             instanceId,
-            instanceName,
+            finalInstanceName,
             (qrCode: string) => {
               setLocalSelectedQRCode(qrCode);
               setIsWaitingForQR(false);

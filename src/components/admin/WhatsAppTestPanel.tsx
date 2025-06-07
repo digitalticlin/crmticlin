@@ -2,534 +2,299 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { 
-  MessageSquare, 
-  Phone, 
-  Send, 
-  QrCode, 
+  Play, 
   CheckCircle, 
   XCircle, 
   Clock, 
   AlertTriangle,
   Zap,
   Database,
-  Globe
+  Server,
+  QrCode,
+  RefreshCw,
+  MessageCircle,
+  Download
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { InstanceCreationTest } from "./tests/InstanceCreationTest";
+import { InstanceExistenceTest } from "./tests/InstanceExistenceTest";
+import { QRCodeGenerationTest } from "./tests/QRCodeGenerationTest";
+import { StatusUpdateTest } from "./tests/StatusUpdateTest";
+import { MessageTest } from "./tests/MessageTest";
+import { IntegratedFlowTest } from "./tests/IntegratedFlowTest";
+
+type TestStatus = 'idle' | 'running' | 'success' | 'error' | 'warning';
 
 interface TestResult {
-  status: 'success' | 'error' | 'warning' | 'pending';
+  status: TestStatus;
   message: string;
   details?: any;
-  timestamp: string;
+  timestamp?: string;
 }
 
 export const WhatsAppTestPanel = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [testResults, setTestResults] = useState<TestResult[]>([]);
-  const [instanceName, setInstanceName] = useState('test_instance');
-  const [testPhone, setTestPhone] = useState('5511999999999');
-  const [testMessage, setTestMessage] = useState('Mensagem de teste do sistema');
-  const [selectedInstanceId, setSelectedInstanceId] = useState('');
-  const [vpsStatus, setVpsStatus] = useState<any>(null);
+  const [testResults, setTestResults] = useState<Record<string, TestResult>>({});
+  const [isRunningAll, setIsRunningAll] = useState(false);
 
-  const addTestResult = (result: TestResult) => {
-    setTestResults(prev => [result, ...prev]);
-  };
-
-  // Teste 1: Verificar conectividade com VPS
-  const testVPSConnection = async () => {
-    setIsLoading(true);
-    const startTime = new Date().toISOString();
-    
-    try {
-      console.log('[WhatsApp Test] 🔍 Testando conectividade VPS...');
-      
-      const response = await fetch('http://31.97.24.222:3001/health', {
-        method: 'GET',
-        headers: {
-          'Authorization': 'Bearer default-token'
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setVpsStatus(data);
-        
-        addTestResult({
-          status: 'success',
-          message: 'VPS está online e respondendo',
-          details: data,
-          timestamp: startTime
-        });
-      } else {
-        throw new Error(`VPS retornou status ${response.status}`);
+  const updateTestResult = (testId: string, result: TestResult) => {
+    setTestResults(prev => ({
+      ...prev,
+      [testId]: {
+        ...result,
+        timestamp: new Date().toLocaleString('pt-BR')
       }
-    } catch (error: any) {
-      addTestResult({
-        status: 'error',
-        message: `Erro na conectividade VPS: ${error.message}`,
-        timestamp: startTime
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    }));
   };
 
-  // Teste 2: Criar instância de teste
-  const testCreateInstance = async () => {
-    setIsLoading(true);
-    const startTime = new Date().toISOString();
-    
-    try {
-      console.log('[WhatsApp Test] 🆕 Testando criação de instância...');
-      
-      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
-        body: {
-          action: 'create_instance',
-          instanceData: {
-            instanceName: instanceName
-          }
-        }
-      });
-
-      if (error) throw error;
-
-      if (data.success) {
-        setSelectedInstanceId(data.instance.id);
-        
-        addTestResult({
-          status: 'success',
-          message: `Instância "${instanceName}" criada com sucesso`,
-          details: {
-            instanceId: data.instance.id,
-            vpsInstanceId: data.vpsInstanceId,
-            qrCode: !!data.qrCode
-          },
-          timestamp: startTime
-        });
-      } else {
-        throw new Error(data.error || 'Falha na criação');
-      }
-    } catch (error: any) {
-      addTestResult({
-        status: 'error',
-        message: `Erro na criação de instância: ${error.message}`,
-        timestamp: startTime
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Teste 3: Verificar QR Code
-  const testQRCode = async () => {
-    if (!selectedInstanceId) {
-      toast.error('Selecione uma instância primeiro');
-      return;
-    }
-
-    setIsLoading(true);
-    const startTime = new Date().toISOString();
-    
-    try {
-      console.log('[WhatsApp Test] 📱 Testando QR Code...');
-      
-      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
-        body: {
-          action: 'get_qr_code_async',
-          instanceData: {
-            instanceId: selectedInstanceId
-          }
-        }
-      });
-
-      if (error) throw error;
-
-      if (data.success && data.qrCode) {
-        addTestResult({
-          status: 'success',
-          message: 'QR Code obtido com sucesso',
-          details: {
-            hasQRCode: true,
-            qrLength: data.qrCode.length
-          },
-          timestamp: startTime
-        });
-      } else if (data.waiting) {
-        addTestResult({
-          status: 'warning',
-          message: 'QR Code ainda sendo gerado',
-          timestamp: startTime
-        });
-      } else {
-        throw new Error(data.error || 'QR Code não disponível');
-      }
-    } catch (error: any) {
-      addTestResult({
-        status: 'error',
-        message: `Erro no QR Code: ${error.message}`,
-        timestamp: startTime
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Teste 4: Enviar mensagem de teste
-  const testSendMessage = async () => {
-    if (!selectedInstanceId) {
-      toast.error('Selecione uma instância primeiro');
-      return;
-    }
-
-    setIsLoading(true);
-    const startTime = new Date().toISOString();
-    
-    try {
-      console.log('[WhatsApp Test] 📤 Testando envio de mensagem...');
-      
-      // Importar dinamicamente o serviço
-      const { MessageSendingService } = await import('@/services/whatsapp/services/messageSendingService');
-      
-      const result = await MessageSendingService.sendMessage(
-        selectedInstanceId,
-        testPhone,
-        testMessage
-      );
-
-      if (result.success) {
-        addTestResult({
-          status: 'success',
-          message: `Mensagem enviada para ${testPhone}`,
-          details: result.data,
-          timestamp: startTime
-        });
-      } else {
-        throw new Error(result.error || 'Falha no envio');
-      }
-    } catch (error: any) {
-      addTestResult({
-        status: 'error',
-        message: `Erro no envio: ${error.message}`,
-        timestamp: startTime
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Teste 5: Verificar webhook
-  const testWebhook = async () => {
-    setIsLoading(true);
-    const startTime = new Date().toISOString();
-    
-    try {
-      console.log('[WhatsApp Test] 🔗 Testando webhook...');
-      
-      const webhookUrl = 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web';
-      
-      // Simular evento de webhook
-      const testPayload = {
-        event: 'messages.upsert',
-        instanceName: instanceName,
-        data: {
-          messages: [{
-            key: {
-              id: `test_${Date.now()}`,
-              remoteJid: '5511999999999@s.whatsapp.net',
-              fromMe: false
-            },
-            message: {
-              conversation: 'Teste de webhook'
-            }
-          }]
-        },
-        timestamp: new Date().toISOString()
-      };
-
-      const response = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer default-token'
-        },
-        body: JSON.stringify(testPayload)
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        addTestResult({
-          status: 'success',
-          message: 'Webhook respondeu corretamente',
-          details: data,
-          timestamp: startTime
-        });
-      } else {
-        throw new Error(`Webhook retornou ${response.status}`);
-      }
-    } catch (error: any) {
-      addTestResult({
-        status: 'error',
-        message: `Erro no webhook: ${error.message}`,
-        timestamp: startTime
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Teste 6: Verificar banco de dados
-  const testDatabase = async () => {
-    setIsLoading(true);
-    const startTime = new Date().toISOString();
-    
-    try {
-      console.log('[WhatsApp Test] 🗄️ Testando conexão banco...');
-      
-      const { data: instances, error } = await supabase
-        .from('whatsapp_instances')
-        .select('*')
-        .limit(5);
-
-      if (error) throw error;
-
-      addTestResult({
-        status: 'success',
-        message: `Banco conectado - ${instances?.length || 0} instâncias encontradas`,
-        details: { instanceCount: instances?.length },
-        timestamp: startTime
-      });
-    } catch (error: any) {
-      addTestResult({
-        status: 'error',
-        message: `Erro no banco: ${error.message}`,
-        timestamp: startTime
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Executar todos os testes
-  const runAllTests = async () => {
-    setTestResults([]);
-    await testDatabase();
-    await testVPSConnection();
-    await testCreateInstance();
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Aguardar criação
-    await testQRCode();
-    await testWebhook();
-  };
-
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: TestStatus) => {
     switch (status) {
-      case 'success': return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'error': return <XCircle className="h-4 w-4 text-red-500" />;
-      case 'warning': return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
-      case 'pending': return <Clock className="h-4 w-4 text-blue-500" />;
-      default: return <Clock className="h-4 w-4 text-gray-500" />;
+      case 'running':
+        return <Clock className="h-4 w-4 text-blue-600 animate-spin" />;
+      case 'success':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'error':
+        return <XCircle className="h-4 w-4 text-red-600" />;
+      case 'warning':
+        return <AlertTriangle className="h-4 w-4 text-yellow-600" />;
+      default:
+        return <Clock className="h-4 w-4 text-gray-400" />;
     }
   };
 
-  const clearResults = () => {
-    setTestResults([]);
+  const getStatusBadge = (status: TestStatus) => {
+    switch (status) {
+      case 'running':
+        return <Badge variant="secondary">Executando</Badge>;
+      case 'success':
+        return <Badge className="bg-green-600">Sucesso</Badge>;
+      case 'error':
+        return <Badge variant="destructive">Erro</Badge>;
+      case 'warning':
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Aviso</Badge>;
+      default:
+        return <Badge variant="outline">Aguardando</Badge>;
+    }
   };
+
+  const runAllTests = async () => {
+    setIsRunningAll(true);
+    
+    const tests = [
+      'instance-creation',
+      'instance-existence', 
+      'qr-generation',
+      'status-update',
+      'message-test',
+      'integrated-flow'
+    ];
+
+    for (const testId of tests) {
+      updateTestResult(testId, {
+        status: 'running',
+        message: 'Executando teste...'
+      });
+      
+      // Simular delay entre testes
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+    
+    setIsRunningAll(false);
+  };
+
+  const resetAllTests = () => {
+    setTestResults({});
+  };
+
+  const exportResults = () => {
+    const results = {
+      timestamp: new Date().toISOString(),
+      tests: testResults
+    };
+    
+    const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `whatsapp-test-results-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const tests = [
+    {
+      id: 'instance-creation',
+      title: 'Criação de Instância',
+      description: 'Testa criação de instância no Supabase e VPS',
+      icon: Database,
+      component: InstanceCreationTest
+    },
+    {
+      id: 'instance-existence',
+      title: 'Verificação de Existência',
+      description: 'Verifica sincronização entre Supabase e VPS',
+      icon: Server,
+      component: InstanceExistenceTest
+    },
+    {
+      id: 'qr-generation',
+      title: 'Geração de QR Code',
+      description: 'Testa geração e salvamento de QR Code',
+      icon: QrCode,
+      component: QRCodeGenerationTest
+    },
+    {
+      id: 'status-update',
+      title: 'Atualização de Status',
+      description: 'Testa webhook de atualização de status',
+      icon: RefreshCw,
+      component: StatusUpdateTest
+    },
+    {
+      id: 'message-test',
+      title: 'Envio/Recebimento',
+      description: 'Testa envio e recebimento de mensagens',
+      icon: MessageCircle,
+      component: MessageTest
+    }
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Teste WhatsApp Web.js</h2>
-          <p className="text-gray-600">Diagnóstico completo do sistema WhatsApp</p>
-        </div>
-        <Badge variant="outline" className="border-blue-300 text-blue-700">
-          <Zap className="h-3 w-3 mr-1" />
-          Sistema de Testes
-        </Badge>
-      </div>
-
-      {/* Status VPS */}
-      {vpsStatus && (
-        <Alert>
-          <Globe className="h-4 w-4" />
-          <AlertDescription>
-            VPS Status: <strong>{vpsStatus.status}</strong> | 
-            Instâncias Ativas: <strong>{vpsStatus.activeInstances}</strong> | 
-            Versão: <strong>{vpsStatus.version}</strong>
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Configurações de Teste */}
+      {/* Header Controls */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
-            Configurações de Teste
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Zap className="h-6 w-6 text-green-600" />
+              <div>
+                <CardTitle>Centro de Testes WhatsApp</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Validação completa do sistema antes da aplicação em produção
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={resetAllTests}>
+                Limpar Resultados
+              </Button>
+              <Button variant="outline" onClick={exportResults} className="gap-2">
+                <Download className="h-4 w-4" />
+                Exportar
+              </Button>
+              <Button 
+                onClick={runAllTests} 
+                disabled={isRunningAll}
+                className="gap-2"
+              >
+                <Play className="h-4 w-4" />
+                {isRunningAll ? 'Executando...' : 'Testar Tudo'}
+              </Button>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="text-sm font-medium">Nome da Instância</label>
-              <Input
-                value={instanceName}
-                onChange={(e) => setInstanceName(e.target.value)}
-                placeholder="test_instance"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Telefone de Teste</label>
-              <Input
-                value={testPhone}
-                onChange={(e) => setTestPhone(e.target.value)}
-                placeholder="5511999999999"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Instância Selecionada</label>
-              <Input
-                value={selectedInstanceId}
-                onChange={(e) => setSelectedInstanceId(e.target.value)}
-                placeholder="ID da instância"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="text-sm font-medium">Mensagem de Teste</label>
-            <Textarea
-              value={testMessage}
-              onChange={(e) => setTestMessage(e.target.value)}
-              placeholder="Mensagem de teste do sistema"
-              rows={2}
-            />
-          </div>
-        </CardContent>
       </Card>
 
-      {/* Botões de Teste */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Zap className="h-5 w-5" />
-            Testes Individuais
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            <Button 
-              onClick={testDatabase} 
-              disabled={isLoading}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Database className="h-4 w-4" />
-              Banco
-            </Button>
-            <Button 
-              onClick={testVPSConnection} 
-              disabled={isLoading}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Globe className="h-4 w-4" />
-              VPS
-            </Button>
-            <Button 
-              onClick={testCreateInstance} 
-              disabled={isLoading}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <MessageSquare className="h-4 w-4" />
-              Criar Instância
-            </Button>
-            <Button 
-              onClick={testQRCode} 
-              disabled={isLoading || !selectedInstanceId}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <QrCode className="h-4 w-4" />
-              QR Code
-            </Button>
-            <Button 
-              onClick={testSendMessage} 
-              disabled={isLoading || !selectedInstanceId}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Send className="h-4 w-4" />
-              Enviar
-            </Button>
-            <Button 
-              onClick={testWebhook} 
-              disabled={isLoading}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              <Phone className="h-4 w-4" />
-              Webhook
-            </Button>
-          </div>
-
-          <Separator className="my-4" />
+      {/* Individual Tests */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {tests.map((test) => {
+          const TestComponent = test.component;
+          const result = testResults[test.id];
+          const IconComponent = test.icon;
           
-          <div className="flex gap-3">
-            <Button 
-              onClick={runAllTests} 
-              disabled={isLoading}
-              className="flex-1"
-            >
-              {isLoading ? 'Executando...' : 'Executar Todos os Testes'}
-            </Button>
-            <Button 
-              onClick={clearResults} 
-              variant="outline"
-            >
-              Limpar Resultados
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Resultados */}
-      {testResults.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5" />
-              Resultados dos Testes ({testResults.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {testResults.map((result, index) => (
-                <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                  {getStatusIcon(result.status)}
-                  <div className="flex-1">
-                    <p className="font-medium text-sm">{result.message}</p>
-                    <p className="text-xs text-gray-500">{result.timestamp}</p>
-                    {result.details && (
-                      <pre className="text-xs bg-white p-2 rounded mt-2 overflow-auto">
-                        {JSON.stringify(result.details, null, 2)}
-                      </pre>
-                    )}
+          return (
+            <Card key={test.id} className="relative">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <IconComponent className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <CardTitle className="text-lg">{test.title}</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        {test.description}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {getStatusIcon(result?.status || 'idle')}
+                    {getStatusBadge(result?.status || 'idle')}
                   </div>
                 </div>
-              ))}
+              </CardHeader>
+              <CardContent>
+                <TestComponent 
+                  onResult={(result: TestResult) => updateTestResult(test.id, result)}
+                />
+                
+                {result && (
+                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Resultado:</span>
+                      <span className="text-xs text-muted-foreground">
+                        {result.timestamp}
+                      </span>
+                    </div>
+                    <p className="text-sm">{result.message}</p>
+                    {result.details && (
+                      <details className="mt-2">
+                        <summary className="text-xs cursor-pointer text-blue-600">
+                          Ver detalhes
+                        </summary>
+                        <pre className="text-xs mt-2 p-2 bg-white rounded border overflow-auto">
+                          {JSON.stringify(result.details, null, 2)}
+                        </pre>
+                      </details>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Integrated Flow Test */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <Zap className="h-6 w-6 text-purple-600" />
+            <div>
+              <CardTitle>Teste de Fluxo Integrado</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Executa todos os testes em sequência para validar o fluxo completo
+              </p>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          <IntegratedFlowTest 
+            onResult={(result: TestResult) => updateTestResult('integrated-flow', result)}
+          />
+          
+          {testResults['integrated-flow'] && (
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-medium">Resultado do Fluxo Completo:</span>
+                <span className="text-sm text-muted-foreground">
+                  {testResults['integrated-flow'].timestamp}
+                </span>
+              </div>
+              <p className="text-sm mb-2">{testResults['integrated-flow'].message}</p>
+              {testResults['integrated-flow'].details && (
+                <details>
+                  <summary className="text-sm cursor-pointer text-blue-600">
+                    Ver relatório completo
+                  </summary>
+                  <pre className="text-xs mt-2 p-3 bg-white rounded border overflow-auto max-h-96">
+                    {JSON.stringify(testResults['integrated-flow'].details, null, 2)}
+                  </pre>
+                </details>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
