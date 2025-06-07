@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
 
@@ -39,6 +40,7 @@ const syncInstances = async () => {
       throw new Error('Falha ao buscar instâncias: ' + (serverInfo.error || 'Erro desconhecido'));
     }
     
+    // Fixed: Use instances property directly from serverInfo
     const remoteInstances = serverInfo.instances || [];
     
     // Converter para o formato padronizado
@@ -56,14 +58,14 @@ const syncInstances = async () => {
     
     if (syncResult.success) {
       console.log(`[Intelligent Sync] ✅ Sincronização concluída: ${
-        syncResult.data?.updated || 0} instâncias atualizadas`);
+        syncResult.data?.summary?.updated || 0} instâncias atualizadas`);
       
       setSyncState({
         isSyncing: false,
         lastSuccess: new Date(),
         lastError: null,
         instancesCounted: mappedRemoteInstances.length,
-        instancesSynced: syncResult.data?.updated || 0
+        instancesSynced: syncResult.data?.summary?.updated || 0
       });
       
       // Recarregar instâncias após sincronização

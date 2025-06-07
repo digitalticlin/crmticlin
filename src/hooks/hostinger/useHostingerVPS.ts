@@ -1,374 +1,163 @@
-
-import { useState, useEffect } from 'react';
-import { hostingerApi, HostingerVPS, HostingerApiResponse } from '@/services/hostinger/hostingerApiService';
+import { useState, useCallback } from 'react';
 import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
-import { toast } from 'sonner';
+import { HostingerApiService } from '@/services/hostinger/hostingerApiService';
 
-interface VPSOperationState {
-  isLoading: boolean;
-  isInstalling: boolean;
-  isRestarting: boolean;
-  isBackingUp: boolean;
-  isApplyingFixes: boolean;
-  isDeployingWhatsApp: boolean;
-  isCheckingHealth: boolean;
+interface DiagnosticState {
+  isRunning: boolean;
+  logs: string[];
+  lastSuccess: Date | null;
+  lastError: string | null;
 }
 
 export const useHostingerVPS = () => {
-  const [vpsList, setVpsList] = useState<HostingerVPS[]>([]);
-  const [selectedVPS, setSelectedVPS] = useState<HostingerVPS | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [operationState, setOperationState] = useState<VPSOperationState>({
-    isLoading: false,
-    isInstalling: false,
-    isRestarting: false,
-    isBackingUp: false,
-    isApplyingFixes: false,
-    isDeployingWhatsApp: false,
-    isCheckingHealth: false
+  const [diagnostic, setDiagnostic] = useState<DiagnosticState>({
+    isRunning: false,
+    logs: [],
+    lastSuccess: null,
+    lastError: null,
   });
-  const [logs, setLogs] = useState<string>('');
-  const [whatsappStatus, setWhatsappStatus] = useState<any>(null);
-  const [serverHealth, setServerHealth] = useState<any>(null);
 
-  // Carregar lista de VPS
-  const loadVPSList = async () => {
-    try {
-      setLoading(true);
-      console.log('[useHostingerVPS] Carregando lista de VPS...');
-      
-      const result = await hostingerApi.listVPS();
-      
-      if (result.success && result.data) {
-        console.log('[useHostingerVPS] VPS encontradas:', result.data);
-        setVpsList(result.data);
-        
-        // Selecionar automaticamente a primeira VPS se não houver nenhuma selecionada
-        if (!selectedVPS && result.data.length > 0) {
-          setSelectedVPS(result.data[0]);
-          console.log('[useHostingerVPS] VPS selecionada automaticamente:', result.data[0]);
-        }
-        
-        toast.success(`🎉 ${result.data.length} VPS encontrada(s) na sua conta Hostinger!`);
-      } else {
-        console.error('[useHostingerVPS] Erro ao carregar VPS:', result.error);
-        toast.error(`❌ Erro ao carregar VPS: ${result.error}`);
-      }
-    } catch (error: any) {
-      console.error('[useHostingerVPS] Erro:', error);
-      toast.error(`❌ Erro: ${error.message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Executar comando genérico
-  const executeCommand = async (command: string, description?: string) => {
-    if (!selectedVPS) {
-      toast.error('❌ Nenhuma VPS selecionada');
-      return null;
-    }
-
-    try {
-      setOperationState(prev => ({ ...prev, isLoading: true }));
-      console.log(`[useHostingerVPS] Executando comando: ${description || command}`);
-      
-      const result = await hostingerApi.executeCommand(selectedVPS.id, command, description);
-      
-      if (result.success && result.data) {
-        console.log('[useHostingerVPS] Comando executado com sucesso:', result.data);
-        toast.success(`✅ ${description || 'Comando executado'} com sucesso!`);
-        return result.data;
-      } else {
-        console.error('[useHostingerVPS] Erro ao executar comando:', result.error);
-        toast.error(`❌ Erro: ${result.error}`);
-        return null;
-      }
-    } catch (error: any) {
-      console.error('[useHostingerVPS] Erro:', error);
-      toast.error(`❌ Erro: ${error.message}`);
-      return null;
-    } finally {
-      setOperationState(prev => ({ ...prev, isLoading: false }));
-    }
-  };
-
-  // Instalar WhatsApp Web.js automaticamente
-  const installWhatsAppServer = async () => {
-    if (!selectedVPS) {
-      toast.error('❌ Nenhuma VPS selecionada');
-      return;
-    }
-
-    try {
-      setOperationState(prev => ({ ...prev, isInstalling: true }));
-      toast.info('⏳ Iniciando instalação automática do WhatsApp Web.js...');
-      
-      const result = await hostingerApi.installWhatsAppServer(selectedVPS.id);
-      
-      if (result.success) {
-        toast.success('🎉 WhatsApp Web.js instalado com sucesso!');
-        await checkWhatsAppStatus(); // Verificar status após instalação
-      } else {
-        toast.error(`❌ Erro na instalação: ${result.error}`);
-      }
-    } catch (error: any) {
-      toast.error(`❌ Erro: ${error.message}`);
-    } finally {
-      setOperationState(prev => ({ ...prev, isInstalling: false }));
-    }
-  };
-
-  // Aplicar correções SSL e timeout
-  const applyWhatsAppFixes = async () => {
-    if (!selectedVPS) {
-      toast.error('❌ Nenhuma VPS selecionada');
-      return;
-    }
-
-    try {
-      setOperationState(prev => ({ ...prev, isApplyingFixes: true }));
-      toast.info('🔧 Aplicando correções SSL e timeout...');
-      
-      const result = await hostingerApi.applyWhatsAppFixes(selectedVPS.id);
-      
-      if (result.success) {
-        toast.success('✅ Correções aplicadas com sucesso!');
-        await checkWhatsAppStatus();
-      } else {
-        toast.error(`❌ Erro ao aplicar correções: ${result.error}`);
-      }
-    } catch (error: any) {
-      toast.error(`❌ Erro: ${error.message}`);
-    } finally {
-      setOperationState(prev => ({ ...prev, isApplyingFixes: false }));
-    }
-  };
-
-  // Reiniciar VPS
-  const restartVPS = async () => {
-    if (!selectedVPS) {
-      toast.error('❌ Nenhuma VPS selecionada');
-      return;
-    }
-
-    try {
-      setOperationState(prev => ({ ...prev, isRestarting: true }));
-      toast.info('🔄 Reiniciando VPS...');
-      
-      const result = await hostingerApi.restartVPS(selectedVPS.id);
-      
-      if (result.success) {
-        toast.success('✅ VPS reiniciada com sucesso!');
-        // Aguardar um pouco antes de verificar status
-        setTimeout(() => loadVPSList(), 10000);
-      } else {
-        toast.error(`❌ Erro ao reiniciar VPS: ${result.error}`);
-      }
-    } catch (error: any) {
-      toast.error(`❌ Erro: ${error.message}`);
-    } finally {
-      setOperationState(prev => ({ ...prev, isRestarting: false }));
-    }
-  };
-
-  // Criar backup
-  const createBackup = async () => {
-    if (!selectedVPS) {
-      toast.error('❌ Nenhuma VPS selecionada');
-      return;
-    }
-
-    try {
-      setOperationState(prev => ({ ...prev, isBackingUp: true }));
-      toast.info('💾 Criando backup...');
-      
-      const result = await hostingerApi.createBackup(selectedVPS.id);
-      
-      if (result.success) {
-        toast.success('✅ Backup criado com sucesso!');
-      } else {
-        toast.error(`❌ Erro ao criar backup: ${result.error}`);
-      }
-    } catch (error: any) {
-      toast.error(`❌ Erro: ${error.message}`);
-    } finally {
-      setOperationState(prev => ({ ...prev, isBackingUp: false }));
-    }
-  };
-
-  // Deploy WhatsApp Permanent Server
-  const deployWhatsAppServer = async () => {
-    if (!selectedVPS) {
-      toast.error('❌ Nenhuma VPS selecionada');
-      return;
-    }
-
-    try {
-      setOperationState(prev => ({ ...prev, isDeployingWhatsApp: true }));
-      toast.info('🚀 Implantando servidor WhatsApp permanente...');
-      
-      const result = await WhatsAppWebService.getServerInfo();
-      
-      // Fix the type error here by checking data and info property separately
-      if (result.success && result.data && 
-          (result.data.status === 'online' || result.data.status === 'healthy')) {
-        toast.success('✅ Servidor WhatsApp já está rodando!');
-        await checkServerHealth();
-        return;
-      }
-
-      // Deploy new server
-      const deployResult = await fetch('https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/deploy_whatsapp_server', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      const deployData = await deployResult.json();
-      
-      if (deployData.success) {
-        toast.success('🎉 Servidor WhatsApp implantado com sucesso!');
-        await checkServerHealth();
-      } else {
-        toast.error(`❌ Erro na implantação: ${deployData.error}`);
-      }
-    } catch (error: any) {
-      toast.error(`❌ Erro: ${error.message}`);
-    } finally {
-      setOperationState(prev => ({ ...prev, isDeployingWhatsApp: false }));
-    }
-  };
-
-  // Check WhatsApp server health
-  const checkServerHealth = async () => {
-    try {
-      setOperationState(prev => ({ ...prev, isCheckingHealth: true }));
-      
-      // Primeiro passo: verificar conexão básica
-      const healthResult = await WhatsAppWebService.checkServerHealth();
-      
-      if (!healthResult.success) {
-        setServerHealth({
-          status: 'offline',
-          message: healthResult.error || 'Erro ao conectar ao servidor',
-          lastCheck: new Date()
-        });
-        setWhatsappStatus({
-          isOnline: false,
-          status: 'offline',
-          instances: []
-        });
-        return;
-      }
-      
-      setServerHealth({
-        status: 'online',
-        message: 'Servidor respondendo corretamente',
-        lastCheck: new Date()
-      });
-      
-      // Segundo passo: buscar informações do servidor
-      const infoResult = await WhatsAppWebService.getServerInfo();
-      
-      setWhatsappStatus({
-        isOnline: true,
-        status: infoResult.data?.info || 'online',
-        instances: infoResult.instances || []
-      });
-      
-    } catch (error: any) {
-      console.error('[useHostingerVPS] Erro ao verificar saúde:', error);
-      setServerHealth({
-        status: 'error',
-        message: error.message,
-        lastCheck: new Date()
-      });
-    } finally {
-      setOperationState(prev => ({ ...prev, isCheckingHealth: false }));
-    }
-  };
-
-  // Verificar status do WhatsApp
-  const checkWhatsAppStatus = async () => {
-    if (!selectedVPS) return;
-
-    try {
-      console.log('[useHostingerVPS] Verificando status WhatsApp...');
-      
-      // Check server health first
-      await checkServerHealth();
-      
-      // Then check PM2 status via traditional method
-      const result = await hostingerApi.checkWhatsAppStatus(selectedVPS.id);
-      
-      if (result.success && result.data) {
-        console.log('[useHostingerVPS] Status WhatsApp:', result.data);
-        setWhatsappStatus(result.data);
-      }
-    } catch (error: any) {
-      console.error('Erro ao verificar status WhatsApp:', error);
-    }
-  };
-
-  // Carregar logs da VPS
-  const loadLogs = async (lines: number = 100) => {
-    if (!selectedVPS) return;
-
-    try {
-      console.log(`[useHostingerVPS] Carregando ${lines} linhas de logs...`);
-      const result = await hostingerApi.getVPSLogs(selectedVPS.id, lines);
-      
-      if (result.success && result.data) {
-        console.log('[useHostingerVPS] Logs carregados');
-        setLogs(result.data);
-        toast.success('📋 Logs atualizados!');
-      } else {
-        toast.error(`❌ Erro ao carregar logs: ${result.error}`);
-      }
-    } catch (error: any) {
-      console.error('Erro ao carregar logs:', error);
-      toast.error(`❌ Erro: ${error.message}`);
-    }
-  };
-
-  // Carregar dados iniciais
-  useEffect(() => {
-    console.log('[useHostingerVPS] Iniciando hook...');
-    loadVPSList();
+  const addLog = useCallback((log: string) => {
+    setDiagnostic(prev => ({ ...prev, logs: [...prev.logs, log] }));
   }, []);
 
-  // Verificar status do WhatsApp periodicamente
-  useEffect(() => {
-    if (selectedVPS) {
-      console.log('[useHostingerVPS] VPS selecionada, verificando status...');
-      checkWhatsAppStatus();
-      const interval = setInterval(checkWhatsAppStatus, 30000); // A cada 30 segundos
-      return () => clearInterval(interval);
+  const resetLogs = useCallback(() => {
+    setDiagnostic(prev => ({ ...prev, logs: [] }));
+  }, []);
+
+  const diagnoseWhatsAppIntegration = async () => {
+    setDiagnostic(prev => ({ ...prev, isRunning: true, logs: [] }));
+    
+    try {
+      addLog('🔍 Iniciando diagnóstico da integração WhatsApp...');
+      
+      // Step 1: Check server health
+      addLog('🩺 Verificando saúde do servidor...');
+      const serverHealth = await WhatsAppWebService.checkServerHealth();
+      
+      if (serverHealth.success) {
+        addLog('✅ Servidor está saudável');
+      } else {
+        addLog(`❌ Servidor está com problemas: ${serverHealth.error}`);
+      }
+
+      // Step 2: Check Hostinger API Key
+      addLog('🔑 Verificando chave da API Hostinger...');
+      const apiKey = process.env.NEXT_PUBLIC_HOSTINGER_API_KEY;
+      
+      if (apiKey) {
+        addLog('✅ Chave da API Hostinger encontrada');
+      } else {
+        addLog('❌ Chave da API Hostinger não configurada');
+      }
+
+      // Step 3: Check Hostinger Account ID
+      addLog('🆔 Verificando ID da conta Hostinger...');
+      const accountId = process.env.NEXT_PUBLIC_HOSTINGER_ACCOUNT_ID;
+      
+      if (accountId) {
+        addLog('✅ ID da conta Hostinger encontrado');
+      } else {
+        addLog('❌ ID da conta Hostinger não configurado');
+      }
+
+      // Step 4: Check Hostinger API connection
+      addLog('📡 Testando conexão com a API Hostinger...');
+      const apiStatus = await HostingerApiService.checkApiStatus();
+      
+      if (apiStatus.success) {
+        addLog('✅ Conexão com a API Hostinger estabelecida');
+      } else {
+        addLog(`❌ Falha na conexão com a API Hostinger: ${apiStatus.error}`);
+      }
+
+      // Step 5: Check VPS Status
+      addLog('🖥️ Verificando status do VPS...');
+      const vpsStatus = await HostingerApiService.getVpsStatus();
+      
+      if (vpsStatus.success) {
+        addLog(`✅ VPS está ${vpsStatus.status}`);
+      } else {
+        addLog(`❌ Falha ao obter status do VPS: ${vpsStatus.error}`);
+      }
+
+      // Step 6: Check if domain is configured
+      addLog('🌐 Verificando se o domínio está configurado...');
+      const domainStatus = await HostingerApiService.getDomainStatus();
+      
+      if (domainStatus.success) {
+        addLog('✅ Domínio configurado corretamente');
+      } else {
+        addLog(`❌ Domínio não configurado: ${domainStatus.error}`);
+      }
+
+      // Step 7: Check if SSL is active
+      addLog('🔒 Verificando se o SSL está ativo...');
+      const sslStatus = await HostingerApiService.getSslStatus();
+      
+      if (sslStatus.success) {
+        addLog('✅ SSL está ativo');
+      } else {
+        addLog(`❌ SSL não está ativo: ${sslStatus.error}`);
+      }
+
+      // Step 8: Check Firewall Status
+      addLog('🛡️ Verificando status do Firewall...');
+      const firewallStatus = await HostingerApiService.getFirewallStatus();
+      
+      if (firewallStatus.success) {
+        addLog('✅ Firewall está ativo');
+      } else {
+        addLog(`❌ Firewall não está ativo: ${firewallStatus.error}`);
+      }
+
+      // Step 9: Check Backups Status
+      addLog('💾 Verificando status dos Backups...');
+      const backupsStatus = await HostingerApiService.getBackupsStatus();
+      
+      if (backupsStatus.success) {
+        addLog('✅ Backups estão ativos');
+      } else {
+        addLog(`❌ Backups não estão ativos: ${backupsStatus.error}`);
+      }
+
+      // Step 10: Check WhatsApp instances on VPS
+      addLog('📱 Verificando instâncias WhatsApp no VPS...');
+      const serverInfo = await WhatsAppWebService.getServerInfo();
+      
+      if (serverInfo.success) {
+        const instances = serverInfo.instances || [];
+        addLog(`✅ ${instances.length} instâncias encontradas no VPS`);
+        
+        if (instances.length > 0) {
+          instances.forEach((instance, index) => {
+            addLog(`   📱 ${index + 1}. ${instance.instanceName} - Status: ${instance.status}`);
+          });
+        }
+      } else {
+        addLog(`❌ Erro ao buscar instâncias: ${serverInfo.error}`);
+      }
+
+      addLog('✅ Diagnóstico concluído com sucesso!');
+      setDiagnostic(prev => ({ 
+        ...prev, 
+        isRunning: false, 
+        lastSuccess: new Date() 
+      }));
+
+    } catch (error: any) {
+      addLog(`💥 Erro no diagnóstico: ${error.message}`);
+      setDiagnostic(prev => ({ 
+        ...prev, 
+        isRunning: false, 
+        lastError: error.message 
+      }));
     }
-  }, [selectedVPS]);
+  };
 
   return {
-    vpsList,
-    selectedVPS,
-    setSelectedVPS,
-    loading,
-    operationState,
-    logs,
-    whatsappStatus,
-    serverHealth,
-    
-    // Actions
-    loadVPSList,
-    executeCommand,
-    installWhatsAppServer,
-    deployWhatsAppServer,
-    applyWhatsAppFixes,
-    restartVPS,
-    createBackup,
-    checkWhatsAppStatus,
-    checkServerHealth,
-    loadLogs
+    diagnostic,
+    diagnoseWhatsAppIntegration,
+    resetLogs
   };
 };

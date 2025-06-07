@@ -132,7 +132,7 @@ export class WhatsAppWebService {
     }
   }
 
-  // Método ausente: getServerInfo
+  // Fixed getServerInfo to return consistent structure with instances property
   static async getServerInfo() {
     console.log('[WhatsApp Service] 🔍 Buscando informações do servidor');
     
@@ -150,6 +150,7 @@ export class WhatsAppWebService {
       return {
         success: data.success,
         data: data.data,
+        instances: data.instances || data.data?.instances || [],
         error: data.error
       };
 
@@ -157,12 +158,12 @@ export class WhatsAppWebService {
       console.error('[WhatsApp Service] ❌ Erro ao buscar info do servidor:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
+        instances: []
       };
     }
   }
 
-  // Método ausente: sendMessage
   static async sendMessage(instanceId: string, phone: string, message: string) {
     console.log('[WhatsApp Service] 💬 Enviando mensagem:', { instanceId, phone });
     
@@ -197,7 +198,7 @@ export class WhatsAppWebService {
     }
   }
 
-  // Método ausente: syncInstances
+  // Fixed syncInstances to return consistent structure with data property
   static async syncInstances() {
     console.log('[WhatsApp Service] 🔄 Sincronizando instâncias');
     
@@ -214,6 +215,14 @@ export class WhatsAppWebService {
 
       return {
         success: data.success,
+        data: {
+          summary: {
+            updated: data.syncedCount || 0,
+            preserved: 0,
+            adopted: 0,
+            errors: 0
+          }
+        },
         syncedCount: data.syncedCount || 0,
         error: data.error
       };
@@ -222,7 +231,8 @@ export class WhatsAppWebService {
       console.error('[WhatsApp Service] ❌ Erro na sincronização:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
+        syncedCount: 0
       };
     }
   }
