@@ -15,54 +15,38 @@ interface WhatsAppServiceResponse<T = any> {
 }
 
 export class WhatsAppWebService {
-  private static readonly baseUrl = 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/whatsapp_web_server';
-
-  // CORREÇÃO: Método de criação de instância robusto
+  
+  // CORREÇÃO TOTAL: Método de criação via Edge Function
   static async createInstance(instanceName: string): Promise<WhatsAppServiceResponse> {
     try {
-      console.log(`[WhatsApp Service] 🚀 CORREÇÃO TOTAL - Criando instância: ${instanceName}`);
+      console.log(`[WhatsApp Service] 🚀 CORREÇÃO TOTAL - Criando via Edge Function: ${instanceName}`);
 
-      // Validar nome da instância
       if (!instanceName || instanceName.trim().length < 3) {
         throw new Error('Nome da instância deve ter pelo menos 3 caracteres');
       }
 
-      // Normalizar nome (apenas letras, números, _ e -)
       const normalizedName = instanceName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
-      if (normalizedName !== instanceName.trim()) {
-        console.log(`[WhatsApp Service] ⚠️ Nome normalizado: ${instanceName} -> ${normalizedName}`);
-      }
-
-      const requestBody = {
-        action: 'create_instance',
-        instanceData: {
-          instanceName: normalizedName
-        }
-      };
-
-      console.log(`[WhatsApp Service] 📤 Request body:`, requestBody);
 
       const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
-        body: requestBody
+        body: {
+          action: 'create_instance',
+          instanceData: {
+            instanceName: normalizedName
+          }
+        }
       });
 
-      console.log(`[WhatsApp Service] 📥 Response data:`, data);
-      console.log(`[WhatsApp Service] ⚠️ Response error:`, error);
+      console.log(`[WhatsApp Service] 📥 Response:`, data);
+      console.log(`[WhatsApp Service] ⚠️ Error:`, error);
 
       if (error) {
         console.error(`[WhatsApp Service] ❌ Supabase function error:`, error);
         throw new Error(error.message || 'Erro na chamada da função');
       }
 
-      if (!data) {
-        throw new Error('Resposta vazia da função');
+      if (!data || !data.success) {
+        throw new Error(data?.error || 'Erro desconhecido na criação da instância');
       }
-
-      if (!data.success) {
-        throw new Error(data.error || 'Erro desconhecido na criação da instância');
-      }
-
-      console.log(`[WhatsApp Service] ✅ Instância criada com sucesso:`, data.instance?.id);
 
       return {
         success: true,
@@ -72,12 +56,7 @@ export class WhatsAppWebService {
       };
 
     } catch (error: any) {
-      console.error(`[WhatsApp Service] ❌ Erro na criação:`, {
-        message: error.message,
-        name: error.name,
-        stack: error.stack?.substring(0, 300)
-      });
-
+      console.error(`[WhatsApp Service] ❌ Erro na criação:`, error);
       return {
         success: false,
         error: error.message || 'Erro desconhecido na criação da instância'
@@ -85,20 +64,18 @@ export class WhatsAppWebService {
     }
   }
 
-  // CORREÇÃO: Método de envio de mensagem
+  // CORREÇÃO TOTAL: Método de envio via Edge Function
   static async sendMessage(instanceId: string, phone: string, message: string): Promise<WhatsAppServiceResponse> {
     try {
-      console.log(`[WhatsApp Service] 📤 Enviando mensagem:`, { instanceId, phone, messageLength: message.length });
-
-      const requestBody = {
-        action: 'send_message',
-        instanceId,
-        phone,
-        message
-      };
+      console.log(`[WhatsApp Service] 📤 Enviando via Edge Function:`, { instanceId, phone, messageLength: message.length });
 
       const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
-        body: requestBody
+        body: {
+          action: 'send_message',
+          instanceId,
+          phone: phone.replace(/\D/g, ''),
+          message
+        }
       });
 
       if (error) {
@@ -124,14 +101,14 @@ export class WhatsAppWebService {
     }
   }
 
-  // CORREÇÃO: Outros métodos essenciais
+  // CORREÇÃO TOTAL: QR Code via Database (atualizado pelo webhook)
   static async getQRCode(instanceId: string): Promise<WhatsAppServiceResponse> {
     try {
       console.log(`[WhatsApp Service] 📱 Obtendo QR Code para: ${instanceId}`);
 
       const { data: instance } = await supabase
         .from('whatsapp_instances')
-        .select('qr_code, connection_status, web_status')
+        .select('qr_code, connection_status, web_status, vps_instance_id')
         .eq('id', instanceId)
         .single();
 
@@ -147,7 +124,24 @@ export class WhatsAppWebService {
         };
       }
 
-      // Se não tem QR Code ainda, indicar que está aguardando
+      // Se não tem QR Code, tentar via Edge Function
+      if (instance.vps_instance_id) {
+        const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+          body: {
+            action: 'get_qr_code',
+            instanceId: instance.vps_instance_id
+          }
+        });
+
+        if (!error && data?.success && data.qrCode) {
+          return {
+            success: true,
+            qrCode: data.qrCode,
+            source: 'vps'
+          };
+        }
+      }
+
       return {
         success: false,
         waiting: true,
@@ -163,17 +157,24 @@ export class WhatsAppWebService {
     }
   }
 
+  // CORREÇÃO TOTAL: Delete via Edge Function
   static async deleteInstance(instanceId: string): Promise<WhatsAppServiceResponse> {
     try {
-      console.log(`[WhatsApp Service] 🗑️ Deletando instância: ${instanceId}`);
+      console.log(`[WhatsApp Service] 🗑️ Deletando via Edge Function: ${instanceId}`);
 
-      const { error } = await supabase
-        .from('whatsapp_instances')
-        .delete()
-        .eq('id', instanceId);
+      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+        body: {
+          action: 'delete_instance',
+          instanceId: instanceId
+        }
+      });
 
       if (error) {
-        throw new Error(error.message);
+        throw new Error(error.message || 'Erro na chamada da função');
+      }
+
+      if (!data || !data.success) {
+        throw new Error(data?.error || 'Erro desconhecido ao deletar');
       }
 
       return { success: true };
@@ -187,19 +188,21 @@ export class WhatsAppWebService {
     }
   }
 
+  // CORREÇÃO TOTAL: Server Info via Database
   static async getServerInfo(): Promise<WhatsAppServiceResponse> {
     try {
       const { data: instances } = await supabase
         .from('whatsapp_instances')
         .select('*')
-        .eq('connection_type', 'web');
+        .eq('connection_type', 'web')
+        .order('created_at', { ascending: false });
 
       return {
         success: true,
         instances: instances || [],
         data: {
           instances: instances || [],
-          server: 'WhatsApp Web.js via Supabase'
+          server: 'WhatsApp Web.js via VPS + Supabase'
         }
       };
 
@@ -211,25 +214,23 @@ export class WhatsAppWebService {
     }
   }
 
+  // CORREÇÃO TOTAL: Sync via Edge Function
   static async syncInstances(): Promise<WhatsAppServiceResponse> {
     try {
-      const { data: instances } = await supabase
-        .from('whatsapp_instances')
-        .select('*')
-        .eq('connection_type', 'web');
+      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+        body: {
+          action: 'sync_instances'
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Erro na sincronização');
+      }
 
       return {
         success: true,
-        syncedCount: instances?.length || 0,
-        data: {
-          summary: {
-            updated: instances?.length || 0,
-            preserved: 0,
-            adopted: 0,
-            errors: 0
-          },
-          instances: instances || []
-        }
+        syncedCount: data?.syncedCount || 0,
+        data: data
       };
 
     } catch (error: any) {
@@ -241,20 +242,27 @@ export class WhatsAppWebService {
     }
   }
 
+  // CORREÇÃO TOTAL: Health Check
   static async checkServerHealth(): Promise<WhatsAppServiceResponse> {
     try {
-      // Verificar conectividade básica com o Supabase
-      const { data } = await supabase
-        .from('whatsapp_instances')
-        .select('count')
-        .limit(1);
+      const { data, error } = await supabase.functions.invoke('vps_complete_diagnostic', {
+        body: {}
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Erro no diagnóstico');
+      }
+
+      const isHealthy = data?.diagnostic?.summary?.overallSuccess || false;
 
       return {
-        success: true,
+        success: isHealthy,
         data: {
-          status: 'healthy',
-          timestamp: new Date().toISOString()
-        }
+          status: isHealthy ? 'healthy' : 'unhealthy',
+          timestamp: new Date().toISOString(),
+          diagnosticSummary: data?.diagnostic?.summary
+        },
+        error: isHealthy ? undefined : 'Sistema não está completamente funcional'
       };
 
     } catch (error: any) {

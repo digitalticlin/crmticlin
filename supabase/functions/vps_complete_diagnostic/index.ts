@@ -15,11 +15,12 @@ interface DiagnosticResult {
   error?: string;
 }
 
+// TESTE 1: Conectividade VPS
 async function testVPSConnectivity(): Promise<DiagnosticResult> {
   const startTime = Date.now();
   
   try {
-    console.log('[VPS Diagnostic] 🔍 Testando conectividade básica...');
+    console.log('[VPS Diagnostic] 🔍 Testando conectividade VPS...');
     
     const response = await fetch('http://31.97.24.222:3001/health', {
       method: 'GET',
@@ -36,7 +37,8 @@ async function testVPSConnectivity(): Promise<DiagnosticResult> {
       details: {
         status: response.status,
         headers: Object.fromEntries(response.headers.entries()),
-        body: responseText.substring(0, 500)
+        body: responseText.substring(0, 500),
+        url: 'http://31.97.24.222:3001/health'
       },
       error: response.ok ? undefined : `HTTP ${response.status}: ${responseText}`
     };
@@ -51,11 +53,12 @@ async function testVPSConnectivity(): Promise<DiagnosticResult> {
   }
 }
 
+// TESTE 2: Autenticação VPS
 async function testVPSAuthentication(): Promise<DiagnosticResult> {
   const startTime = Date.now();
   
   try {
-    console.log('[VPS Diagnostic] 🔑 Testando autenticação...');
+    console.log('[VPS Diagnostic] 🔑 Testando autenticação VPS...');
     
     const vpsToken = Deno.env.get('VPS_API_TOKEN') || 'default-token';
     console.log(`[VPS Diagnostic] Token usado: ${vpsToken.substring(0, 10)}...`);
@@ -104,16 +107,19 @@ async function testVPSAuthentication(): Promise<DiagnosticResult> {
   }
 }
 
-async function testVPSInstanceCreation(): Promise<DiagnosticResult> {
+// TESTE 3: Criação e QR Code End-to-End
+async function testInstanceCreationWithQR(): Promise<DiagnosticResult> {
   const startTime = Date.now();
   
   try {
-    console.log('[VPS Diagnostic] 🆕 Testando criação de instância...');
+    console.log('[VPS Diagnostic] 🆕 Testando criação completa com QR...');
     
     const vpsToken = Deno.env.get('VPS_API_TOKEN') || 'default-token';
-    const testInstanceId = `test_diagnostic_${Date.now()}`;
+    const testInstanceId = `diagnostic_${Date.now()}`;
+    const webhookUrl = 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web';
     
-    const response = await fetch('http://31.97.24.222:3001/instance/create', {
+    // Criar instância na VPS
+    const createResponse = await fetch('http://31.97.24.222:3001/instance/create', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -124,14 +130,18 @@ async function testVPSInstanceCreation(): Promise<DiagnosticResult> {
       body: JSON.stringify({
         instanceName: testInstanceId,
         sessionName: 'Diagnostic Test',
-        webhook: false,
-        qrcode: true
+        webhookUrl: webhookUrl,
+        webhook: true,
+        webhook_by_events: true,
+        webhookEvents: ['messages.upsert', 'qr.update', 'connection.update'],
+        qrcode: true,
+        markOnlineOnConnect: true
       }),
-      signal: AbortSignal.timeout(20000)
+      signal: AbortSignal.timeout(30000)
     });
     
     const duration = Date.now() - startTime;
-    const responseText = await response.text();
+    const responseText = await createResponse.text();
     
     let parsedResponse;
     try {
@@ -140,41 +150,76 @@ async function testVPSInstanceCreation(): Promise<DiagnosticResult> {
       parsedResponse = { raw: responseText };
     }
     
-    // Se criou com sucesso, tentar deletar para limpeza
-    if (response.ok && parsedResponse.success) {
+    // Se criou, aguardar QR Code e depois deletar
+    let qrCodeReceived = false;
+    if (createResponse.ok && parsedResponse.success) {
+      // Aguardar um pouco para ver se QR Code vem via webhook ou resposta
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Verificar se QR Code veio na resposta
+      if (parsedResponse.qrCode || parsedResponse.qr) {
+        qrCodeReceived = true;
+      }
+      
+      // Tentar obter QR Code diretamente
+      try {
+        const qrResponse = await fetch(`http://31.97.24.222:3001/instance/qr/${testInstanceId}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${vpsToken}`,
+            'X-API-Token': vpsToken
+          },
+          signal: AbortSignal.timeout(10000)
+        });
+        
+        if (qrResponse.ok) {
+          const qrData = await qrResponse.text();
+          if (qrData && qrData.length > 100) {
+            qrCodeReceived = true;
+          }
+        }
+      } catch (qrError) {
+        console.log('[VPS Diagnostic] QR Code fetch error:', qrError);
+      }
+      
+      // Limpar instância de teste
       try {
         await fetch('http://31.97.24.222:3001/instance/delete', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${vpsToken}`,
-            'X-API-Token': vpsToken,
-            'apikey': vpsToken
+            'X-API-Token': vpsToken
           },
           body: JSON.stringify({ instanceId: testInstanceId }),
           signal: AbortSignal.timeout(10000)
         });
         console.log('[VPS Diagnostic] 🧹 Instância de teste removida');
       } catch (cleanupError) {
-        console.warn('[VPS Diagnostic] ⚠️ Erro ao limpar instância de teste:', cleanupError);
+        console.warn('[VPS Diagnostic] ⚠️ Erro ao limpar:', cleanupError);
       }
     }
     
     return {
-      test: 'VPS Instance Creation',
-      success: response.ok && parsedResponse.success,
+      test: 'Instance Creation + QR Code',
+      success: createResponse.ok && parsedResponse.success && qrCodeReceived,
       duration,
       details: {
-        status: response.status,
+        status: createResponse.status,
         testInstanceId,
         response: parsedResponse,
-        cleaned: response.ok
+        qrCodeReceived,
+        webhookConfigured: true
       },
-      error: response.ok && parsedResponse.success ? undefined : `CREATE FAILED ${response.status}: ${responseText}`
+      error: (!createResponse.ok || !parsedResponse.success) 
+        ? `CREATE FAILED ${createResponse.status}: ${responseText}`
+        : !qrCodeReceived 
+        ? 'QR Code não foi gerado/recebido'
+        : undefined
     };
   } catch (error: any) {
     return {
-      test: 'VPS Instance Creation',
+      test: 'Instance Creation + QR Code',
       success: false,
       duration: Date.now() - startTime,
       details: { error: error.message },
@@ -183,6 +228,7 @@ async function testVPSInstanceCreation(): Promise<DiagnosticResult> {
   }
 }
 
+// TESTE 4: Webhook Conectividade
 async function testWebhookConnectivity(): Promise<DiagnosticResult> {
   const startTime = Date.now();
   
@@ -191,7 +237,6 @@ async function testWebhookConnectivity(): Promise<DiagnosticResult> {
     
     const webhookUrl = 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web';
     
-    // Testar se nosso próprio webhook responde
     const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: {
@@ -230,8 +275,105 @@ async function testWebhookConnectivity(): Promise<DiagnosticResult> {
   }
 }
 
+// TESTE 5: Supabase Database Health
+async function testSupabaseDatabase(): Promise<DiagnosticResult> {
+  const startTime = Date.now();
+  
+  try {
+    console.log('[VPS Diagnostic] 💾 Testando Supabase Database...');
+    
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase credentials not configured');
+    }
+    
+    // Testar consulta simples
+    const response = await fetch(`${supabaseUrl}/rest/v1/whatsapp_instances?select=count`, {
+      method: 'GET',
+      headers: {
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Content-Type': 'application/json'
+      },
+      signal: AbortSignal.timeout(10000)
+    });
+    
+    const duration = Date.now() - startTime;
+    const responseText = await response.text();
+    
+    return {
+      test: 'Supabase Database',
+      success: response.ok,
+      duration,
+      details: {
+        status: response.status,
+        supabaseUrl: supabaseUrl.substring(0, 30) + '...',
+        response: responseText.substring(0, 200)
+      },
+      error: response.ok ? undefined : `DB FAILED ${response.status}: ${responseText}`
+    };
+  } catch (error: any) {
+    return {
+      test: 'Supabase Database',
+      success: false,
+      duration: Date.now() - startTime,
+      details: { error: error.message },
+      error: error.message
+    };
+  }
+}
+
+// TESTE 6: End-to-End Integration Test
+async function testEndToEndIntegration(): Promise<DiagnosticResult> {
+  const startTime = Date.now();
+  
+  try {
+    console.log('[VPS Diagnostic] 🔄 Testando integração end-to-end...');
+    
+    // Teste simples de chamada da edge function whatsapp_web_server
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    
+    const response = await fetch(`${supabaseUrl}/functions/v1/whatsapp_web_server`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseKey}`
+      },
+      body: JSON.stringify({
+        action: 'test_connection'
+      }),
+      signal: AbortSignal.timeout(15000)
+    });
+    
+    const duration = Date.now() - startTime;
+    const responseText = await response.text();
+    
+    return {
+      test: 'End-to-End Integration',
+      success: response.ok,
+      duration,
+      details: {
+        status: response.status,
+        response: responseText.substring(0, 300)
+      },
+      error: response.ok ? undefined : `E2E FAILED ${response.status}: ${responseText}`
+    };
+  } catch (error: any) {
+    return {
+      test: 'End-to-End Integration',
+      success: false,
+      duration: Date.now() - startTime,
+      details: { error: error.message },
+      error: error.message
+    };
+  }
+}
+
 serve(async (req) => {
-  console.log('[VPS Complete Diagnostic] 🚀 Iniciando diagnóstico completo...');
+  console.log('[VPS Complete Diagnostic] 🚀 Iniciando diagnóstico COMPLETO end-to-end...');
   
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -240,13 +382,15 @@ serve(async (req) => {
   try {
     const results: DiagnosticResult[] = [];
     
-    // Executar todos os testes em sequência
-    console.log('[VPS Complete Diagnostic] 🔄 Executando testes...');
+    console.log('[VPS Complete Diagnostic] 🔄 Executando todos os testes...');
     
+    // Executar todos os testes em sequência
     results.push(await testVPSConnectivity());
     results.push(await testVPSAuthentication());
-    results.push(await testVPSInstanceCreation());
+    results.push(await testSupabaseDatabase());
     results.push(await testWebhookConnectivity());
+    results.push(await testInstanceCreationWithQR());
+    results.push(await testEndToEndIntegration());
     
     // Calcular resumo
     const totalTests = results.length;
@@ -262,7 +406,7 @@ serve(async (req) => {
       overallSuccess: successfulTests === totalTests
     };
     
-    console.log('[VPS Complete Diagnostic] 📊 Resumo:', summary);
+    console.log('[VPS Complete Diagnostic] 📊 Resumo completo:', summary);
     
     return new Response(
       JSON.stringify({
@@ -270,7 +414,7 @@ serve(async (req) => {
         diagnostic: {
           summary,
           results,
-          recommendations: generateRecommendations(results),
+          recommendations: generateComprehensiveRecommendations(results),
           timestamp: new Date().toISOString()
         }
       }),
@@ -296,33 +440,54 @@ serve(async (req) => {
   }
 });
 
-function generateRecommendations(results: DiagnosticResult[]): string[] {
+function generateComprehensiveRecommendations(results: DiagnosticResult[]): string[] {
   const recommendations: string[] = [];
   
   const connectivity = results.find(r => r.test === 'VPS Connectivity');
   const auth = results.find(r => r.test === 'VPS Authentication');
-  const creation = results.find(r => r.test === 'VPS Instance Creation');
+  const creation = results.find(r => r.test === 'Instance Creation + QR Code');
   const webhook = results.find(r => r.test === 'Webhook Connectivity');
+  const database = results.find(r => r.test === 'Supabase Database');
+  const e2e = results.find(r => r.test === 'End-to-End Integration');
   
   if (!connectivity?.success) {
-    recommendations.push('❌ VPS não está acessível. Verifique se o servidor está online na porta 3001.');
+    recommendations.push('🚨 CRÍTICO: VPS não está acessível. Servidor pode estar offline ou firewall bloqueando porta 3001.');
+    recommendations.push('🔧 AÇÃO: Verificar status do servidor VPS e configuração de rede.');
   }
   
   if (!auth?.success) {
-    recommendations.push('❌ Token VPS incorreto. Atualize o secret VPS_API_TOKEN no Supabase.');
-    recommendations.push('💡 O token deve começar com "3" para este servidor específico.');
+    recommendations.push('🔐 CRÍTICO: Token VPS incorreto ou inválido.');
+    recommendations.push('🔧 AÇÃO: Atualizar VPS_API_TOKEN no Supabase. Token deve começar com "3".');
   }
   
-  if (!creation?.success) {
-    recommendations.push('❌ Criação de instâncias falhou. Verifique endpoints da API VPS.');
+  if (!database?.success) {
+    recommendations.push('💾 CRÍTICO: Supabase Database não está respondendo.');
+    recommendations.push('🔧 AÇÃO: Verificar configuração e credenciais do Supabase.');
   }
   
   if (!webhook?.success) {
-    recommendations.push('❌ Webhook não está respondendo. Verifique configuração do Supabase.');
+    recommendations.push('🔗 CRÍTICO: Webhook não está funcionando.');
+    recommendations.push('🔧 AÇÃO: QR Codes e mensagens não serão processados automaticamente.');
+  }
+  
+  if (!creation?.success) {
+    recommendations.push('🆕 CRÍTICO: Criação de instâncias e QR Code falhando.');
+    recommendations.push('🔧 AÇÃO: Fluxo principal de conexão WhatsApp não funciona.');
+  }
+  
+  if (!e2e?.success) {
+    recommendations.push('🔄 CRÍTICO: Integração end-to-end falhando.');
+    recommendations.push('🔧 AÇÃO: Edge functions não estão comunicando corretamente.');
   }
   
   if (results.every(r => r.success)) {
-    recommendations.push('✅ Todos os testes passaram! Sistema pronto para integração completa.');
+    recommendations.push('✅ PERFEITO: Todos os testes passaram!');
+    recommendations.push('🚀 Sistema pronto para operação completa.');
+    recommendations.push('💡 Pode começar a criar instâncias WhatsApp normalmente.');
+  } else {
+    const failedCount = results.filter(r => !r.success).length;
+    recommendations.push(`⚠️ ${failedCount} de ${results.length} testes falharam.`);
+    recommendations.push('🔧 Resolver problemas acima antes de usar o sistema.');
   }
   
   return recommendations;
