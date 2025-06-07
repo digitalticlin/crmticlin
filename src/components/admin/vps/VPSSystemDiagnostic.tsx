@@ -13,25 +13,32 @@ import {
   Server, 
   Wifi, 
   Settings,
-  Loader2
+  Loader2,
+  Search,
+  Key,
+  Link
 } from "lucide-react";
 
 interface DiagnosticResult {
   success: boolean;
   diagnostic?: {
     timestamp: string;
-    duration: string;
-    overallHealth: boolean;
+    analysisType?: string;
     summary: {
-      connectivity: boolean;
-      endpointsWorking: string;
-      canCreateInstances: boolean;
+      totalTests: number;
+      successfulTests: number;
+      failedTests: number;
+      successRate: number;
+      overallSuccess: boolean;
+      deepAnalysisComplete?: boolean;
     };
-    details: {
-      connectivity: any;
-      endpoints: any[];
-      instanceCreation: any;
-    };
+    results: Array<{
+      test: string;
+      success: boolean;
+      duration: number;
+      details: any;
+      error?: string;
+    }>;
     recommendations: string[];
   };
   error?: string;
@@ -44,9 +51,9 @@ export const VPSSystemDiagnostic = () => {
   const runDiagnostic = async () => {
     try {
       setTesting(true);
-      toast.info("🔍 Executando diagnóstico completo da VPS...");
+      toast.info("🔬 Executando análise profunda da VPS...");
 
-      const { data, error } = await supabase.functions.invoke('vps_comprehensive_diagnostic', {
+      const { data, error } = await supabase.functions.invoke('vps_complete_diagnostic', {
         body: {}
       });
 
@@ -56,10 +63,10 @@ export const VPSSystemDiagnostic = () => {
 
       setResult(data);
       
-      if (data.diagnostic?.overallHealth) {
+      if (data.diagnostic?.summary?.overallSuccess) {
         toast.success("✅ VPS está funcionando perfeitamente!");
       } else {
-        toast.warning("⚠️ Problemas detectados na VPS - verificar recomendações");
+        toast.warning("🔬 Análise profunda concluída - verificar detalhes");
       }
 
     } catch (error: any) {
@@ -91,13 +98,21 @@ export const VPSSystemDiagnostic = () => {
     );
   };
 
+  const getTestIcon = (testName: string) => {
+    if (testName.includes('Connectivity')) return <Wifi className="h-4 w-4" />;
+    if (testName.includes('Authentication')) return <Key className="h-4 w-4" />;
+    if (testName.includes('Endpoints')) return <Link className="h-4 w-4" />;
+    if (testName.includes('Token')) return <Settings className="h-4 w-4" />;
+    return <Search className="h-4 w-4" />;
+  };
+
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Activity className="h-5 w-5 text-blue-600" />
-            <CardTitle>Diagnóstico Completo do Sistema</CardTitle>
+            <CardTitle>Análise Profunda do Sistema VPS</CardTitle>
           </div>
           <Button 
             onClick={runDiagnostic} 
@@ -107,12 +122,12 @@ export const VPSSystemDiagnostic = () => {
             {testing ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Diagnosticando...
+                Analisando...
               </>
             ) : (
               <>
-                <Settings className="h-4 w-4" />
-                Executar Diagnóstico
+                <Search className="h-4 w-4" />
+                Análise Profunda
               </>
             )}
           </Button>
@@ -122,8 +137,9 @@ export const VPSSystemDiagnostic = () => {
       <CardContent>
         {!result && (
           <div className="text-center py-8 text-muted-foreground">
-            <Activity className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>Clique em "Executar Diagnóstico" para verificar o sistema completo</p>
+            <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>Clique em "Análise Profunda" para descobrir exatamente onde está o problema</p>
+            <p className="text-xs mt-2">Esta análise testa múltiplos formatos de autenticação e endpoints</p>
           </div>
         )}
 
@@ -132,93 +148,113 @@ export const VPSSystemDiagnostic = () => {
             {/* Status Geral */}
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-3">
-                <div className="text-2xl">🖥️</div>
+                <div className="text-2xl">🔬</div>
                 <div>
-                  <h3 className="font-medium">Sistema WhatsApp VPS</h3>
+                  <h3 className="font-medium">
+                    {result.diagnostic.analysisType === 'DEEP_ANALYSIS' ? 'Análise Profunda' : 'Diagnóstico'} Completo
+                  </h3>
                   <p className="text-sm text-muted-foreground">
-                    Diagnóstico executado em {result.diagnostic.duration}
+                    {result.diagnostic.summary.successfulTests}/{result.diagnostic.summary.totalTests} testes passaram
+                    ({result.diagnostic.summary.successRate}%)
                   </p>
                 </div>
               </div>
-              {getHealthBadge(result.diagnostic.overallHealth)}
+              {getHealthBadge(result.diagnostic.summary.overallSuccess)}
             </div>
 
-            {/* Resumo */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex items-center gap-3 p-3 border rounded">
-                <Wifi className="h-5 w-5 text-blue-500" />
-                <div>
-                  <div className="font-medium">Conectividade</div>
-                  <div className="text-sm text-muted-foreground flex items-center gap-1">
-                    {getStatusIcon(result.diagnostic.summary.connectivity)}
-                    {result.diagnostic.summary.connectivity ? 'Online' : 'Offline'}
+            {/* Resultados dos Testes */}
+            <div className="space-y-3">
+              <h4 className="font-medium">Resultados Detalhados:</h4>
+              {result.diagnostic.results.map((test, index) => (
+                <div key={index} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      {getTestIcon(test.test)}
+                      <span className="font-medium">{test.test}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(test.success)}
+                      <span className="text-sm text-muted-foreground">
+                        {test.duration}ms
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3 p-3 border rounded">
-                <Server className="h-5 w-5 text-green-500" />
-                <div>
-                  <div className="font-medium">Endpoints</div>
-                  <div className="text-sm text-muted-foreground">
-                    {result.diagnostic.summary.endpointsWorking} funcionando
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3 p-3 border rounded">
-                <Settings className="h-5 w-5 text-purple-500" />
-                <div>
-                  <div className="font-medium">Criação Instâncias</div>
-                  <div className="text-sm text-muted-foreground flex items-center gap-1">
-                    {getStatusIcon(result.diagnostic.summary.canCreateInstances)}
-                    {result.diagnostic.summary.canCreateInstances ? 'Funcionando' : 'Com problemas'}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Detalhes dos Endpoints */}
-            {result.diagnostic.details.endpoints && result.diagnostic.details.endpoints.length > 0 && (
-              <div className="space-y-3">
-                <h4 className="font-medium">Status dos Endpoints:</h4>
-                <div className="space-y-2">
-                  {result.diagnostic.details.endpoints.map((endpoint: any, index: number) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                      <div>
-                        <span className="font-medium">{endpoint.method} {endpoint.endpoint}</span>
-                        <p className="text-sm text-muted-foreground">{endpoint.description}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(endpoint.working)}
-                        <span className="text-sm">Status: {endpoint.status || 'N/A'}</span>
+                  
+                  {test.error && (
+                    <div className="text-sm text-red-600 bg-red-50 p-2 rounded mt-2">
+                      ❌ {test.error}
+                    </div>
+                  )}
+                  
+                  {/* Detalhes específicos por tipo de teste */}
+                  {test.test.includes('Authentication') && test.details?.allTests && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-sm font-medium">Testes de Autenticação:</p>
+                      {test.details.allTests.map((authTest: any, i: number) => (
+                        <div key={i} className="text-xs bg-gray-50 p-2 rounded flex justify-between">
+                          <span>{authTest.headerType} + {authTest.endpoint}</span>
+                          <span className={authTest.success ? 'text-green-600' : 'text-red-600'}>
+                            {authTest.status} {authTest.success ? '✅' : '❌'}
+                          </span>
+                        </div>
+                      ))}
+                      
+                      {test.details.workingAuth && (
+                        <div className="text-sm text-green-600 bg-green-50 p-2 rounded">
+                          ✅ Funcionando: {test.details.workingAuth} no endpoint {test.details.workingEndpoint}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {test.test.includes('Endpoints') && test.details?.endpointResults && (
+                    <div className="mt-3 space-y-1">
+                      <p className="text-sm font-medium">Endpoints Descobertos:</p>
+                      {test.details.endpointResults.map((ep: any, i: number) => (
+                        <div key={i} className="text-xs bg-gray-50 p-2 rounded flex justify-between">
+                          <span>{ep.endpoint}</span>
+                          <span className={ep.success ? 'text-green-600' : 'text-red-600'}>
+                            {ep.status} {ep.success ? '✅' : '❌'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {test.test.includes('Token') && test.details?.tokenAnalysis && (
+                    <div className="mt-3">
+                      <p className="text-sm font-medium">Análise do Token:</p>
+                      <div className="text-xs bg-gray-50 p-2 rounded space-y-1">
+                        <div>Comprimento: {test.details.tokenAnalysis.length} caracteres</div>
+                        <div>Formato válido: {test.details.tokenAnalysis.expectedLength ? '✅' : '❌'}</div>
+                        <div>Preview: {test.details.tokenAnalysis.preview}</div>
                       </div>
                     </div>
-                  ))}
+                  )}
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
 
             {/* Recomendações */}
             {result.diagnostic.recommendations.length > 0 && (
               <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
                 <div className="flex items-center gap-2 mb-3">
                   <AlertTriangle className="h-5 w-5 text-blue-600" />
-                  <h4 className="font-medium text-blue-800">Recomendações:</h4>
+                  <h4 className="font-medium text-blue-800">Análise e Recomendações:</h4>
                 </div>
-                <ul className="space-y-2">
+                <div className="space-y-1">
                   {result.diagnostic.recommendations.map((rec, index) => (
-                    <li key={index} className="text-sm text-blue-700 flex items-start gap-2">
-                      <span className="text-blue-500 mt-1">•</span>
-                      {rec}
-                    </li>
+                    <div key={index} className="text-sm text-blue-700 flex items-start gap-2">
+                      <span className="text-blue-500 mt-0.5 text-xs">•</span>
+                      <span className="flex-1">{rec}</span>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
             )}
 
             <div className="text-xs text-muted-foreground text-center">
-              Diagnóstico executado em: {new Date(result.diagnostic.timestamp).toLocaleString('pt-BR')}
+              Análise executada em: {new Date(result.diagnostic.timestamp).toLocaleString('pt-BR')}
             </div>
           </div>
         )}
@@ -227,7 +263,7 @@ export const VPSSystemDiagnostic = () => {
           <div className="border border-red-200 rounded-lg p-4 bg-red-50">
             <div className="flex items-center gap-2 mb-3">
               <XCircle className="h-5 w-5 text-red-600" />
-              <h4 className="font-medium text-red-800">Erro no Diagnóstico:</h4>
+              <h4 className="font-medium text-red-800">Erro na Análise:</h4>
             </div>
             <p className="text-sm text-red-700">{result.error}</p>
           </div>
