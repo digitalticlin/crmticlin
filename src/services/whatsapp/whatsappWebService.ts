@@ -6,8 +6,12 @@ interface WhatsAppServiceResponse<T = any> {
   data?: T;
   error?: string;
   instance?: any;
+  instances?: any[];
   qrCode?: string;
   waiting?: boolean;
+  source?: string;
+  syncedCount?: number;
+  messageId?: string;
 }
 
 export class WhatsAppWebService {
@@ -81,6 +85,45 @@ export class WhatsAppWebService {
     }
   }
 
+  // CORREÇÃO: Método de envio de mensagem
+  static async sendMessage(instanceId: string, phone: string, message: string): Promise<WhatsAppServiceResponse> {
+    try {
+      console.log(`[WhatsApp Service] 📤 Enviando mensagem:`, { instanceId, phone, messageLength: message.length });
+
+      const requestBody = {
+        action: 'send_message',
+        instanceId,
+        phone,
+        message
+      };
+
+      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+        body: requestBody
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Erro na chamada da função');
+      }
+
+      if (!data || !data.success) {
+        throw new Error(data?.error || 'Erro desconhecido no envio da mensagem');
+      }
+
+      return {
+        success: true,
+        messageId: data.messageId,
+        data: data
+      };
+
+    } catch (error: any) {
+      console.error(`[WhatsApp Service] ❌ Erro no envio:`, error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
   // CORREÇÃO: Outros métodos essenciais
   static async getQRCode(instanceId: string): Promise<WhatsAppServiceResponse> {
     try {
@@ -99,7 +142,8 @@ export class WhatsAppWebService {
       if (instance.qr_code && instance.qr_code.length > 10) {
         return {
           success: true,
-          qrCode: instance.qr_code
+          qrCode: instance.qr_code,
+          source: 'database'
         };
       }
 
@@ -152,6 +196,7 @@ export class WhatsAppWebService {
 
       return {
         success: true,
+        instances: instances || [],
         data: {
           instances: instances || [],
           server: 'WhatsApp Web.js via Supabase'
@@ -176,7 +221,15 @@ export class WhatsAppWebService {
       return {
         success: true,
         syncedCount: instances?.length || 0,
-        data: instances || []
+        data: {
+          summary: {
+            updated: instances?.length || 0,
+            preserved: 0,
+            adopted: 0,
+            errors: 0
+          },
+          instances: instances || []
+        }
       };
 
     } catch (error: any) {

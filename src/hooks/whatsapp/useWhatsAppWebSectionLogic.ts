@@ -67,10 +67,10 @@ export const useWhatsAppWebSectionLogic = () => {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // ETAPA 5: Configurar modal APENAS após confirmação completa
-      const finalInstanceName = createdInstance.instance?.instance_name || generatedInstanceName;
+      const finalInstanceName = createdInstance.data?.instance_name || generatedInstanceName;
       setLocalSelectedInstanceName(finalInstanceName);
       
-      const qrCode = createdInstance.instance?.qr_code;
+      const qrCode = createdInstance.data?.qr_code;
       if (qrCode) {
         // QR Code disponível - VPS processou completamente
         setLocalSelectedQRCode(qrCode);
@@ -84,7 +84,7 @@ export const useWhatsAppWebSectionLogic = () => {
         toast.info(`Preparando QR Code para "${finalInstanceName}"...`, { id: 'creating-instance' });
         
         // Polling com confirmação de instância existente
-        const instanceId = createdInstance.instance?.id;
+        const instanceId = createdInstance.data?.id;
         if (instanceId) {
           await startPolling(
             instanceId,
