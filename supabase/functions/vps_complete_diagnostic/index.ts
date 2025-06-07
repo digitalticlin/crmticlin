@@ -356,18 +356,21 @@ async function testVPSTokenValidation(): Promise<DiagnosticResult> {
   }
 }
 
-// TESTE 5: CRIAÇÃO DE INSTÂNCIA (CORRIGIDO COM ESTRUTURA REAL)
+// TESTE 5: CRIAÇÃO DE INSTÂNCIA (CORRIGIDO COM ENDPOINT E PAYLOADS CORRETOS)
 async function testInstanceCreationCorrected(): Promise<DiagnosticResult> {
   const startTime = Date.now();
   
   try {
-    console.log('[VPS Diagnostic] 🚀 TESTE CRIAÇÃO CORRIGIDO - Usando estrutura real que funciona...');
+    console.log('[VPS Diagnostic] 🚀 TESTE CRIAÇÃO CORRIGIDO - Usando endpoint correto /instance/create...');
     
     const timestamp = Date.now();
     const testInstanceName = `whatsapp_diagnostic_${timestamp}_test`;
     
-    // Payload IDÊNTICO ao código que funciona
-    const correctPayload = {
+    // Usar Bearer Authorization que já foi confirmado funcionando nos testes 1-4
+    const workingHeaders = getVPSHeadersVariant1(); // Bearer Authorization
+    
+    // PAYLOAD VARIAÇÃO 1: Estrutura EXATA que funciona
+    const payloadV1 = {
       instanceName: testInstanceName,
       sessionName: `diagnostic-test-${timestamp}`,
       webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
@@ -379,64 +382,128 @@ async function testInstanceCreationCorrected(): Promise<DiagnosticResult> {
       markOnlineOnConnect: true
     };
     
-    console.log(`[VPS Diagnostic] Testando criação da instância: ${testInstanceName}`);
-    console.log(`[VPS Diagnostic] Payload correto:`, correctPayload);
+    // PAYLOAD VARIAÇÃO 2: Com vpsInstanceId como instanceName
+    const vpsInstanceId = `whatsapp_${timestamp}_${Math.random().toString(36).substring(2, 10)}`;
+    const payloadV2 = {
+      instanceName: vpsInstanceId,
+      sessionName: testInstanceName,
+      webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
+      companyId: 'diagnostic-company-id',
+      webhook: true,
+      webhook_by_events: true,
+      webhookEvents: ['messages.upsert', 'qr.update', 'connection.update'],
+      qrcode: true,
+      markOnlineOnConnect: true
+    };
     
-    // Usar Bearer Authorization que confirmadamente funciona
-    const workingHeaders = getVPSHeadersVariant1(); // Bearer Authorization
+    // PAYLOAD VARIAÇÃO 3: Campos mínimos obrigatórios
+    const payloadV3 = {
+      instanceName: testInstanceName,
+      webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
+      webhook: true,
+      qrcode: true
+    };
     
-    const response = await fetch('http://31.97.24.222:3001/instance/create', {
-      method: 'POST',
-      headers: workingHeaders,
-      body: JSON.stringify(correctPayload),
-      signal: AbortSignal.timeout(15000)
-    });
+    // PAYLOAD VARIAÇÃO 4: Com campos adicionais do instanceCreationService
+    const payloadV4 = {
+      instanceName: testInstanceName,
+      sessionName: `diagnostic-test-${timestamp}`,
+      webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
+      companyId: 'diagnostic-company-id',
+      webhook: true,
+      webhook_by_events: true,
+      webhookEvents: ['messages.upsert', 'qr.update', 'connection.update'],
+      qrcode: true,
+      markOnlineOnConnect: true,
+      connection_type: 'web',
+      web_status: 'connecting'
+    };
     
-    const responseText = await response.text();
-    let parsedResponse;
-    try {
-      parsedResponse = JSON.parse(responseText);
-    } catch {
-      parsedResponse = { raw: responseText };
+    const payloads = [
+      { name: 'Estrutura Exata Original', payload: payloadV1 },
+      { name: 'Com VPS Instance ID', payload: payloadV2 },
+      { name: 'Campos Mínimos', payload: payloadV3 },
+      { name: 'Com Campos Extras', payload: payloadV4 }
+    ];
+    
+    const testResults = [];
+    let successfulPayload = null;
+    
+    for (const { name, payload } of payloads) {
+      try {
+        console.log(`[VPS Diagnostic] Testando payload: ${name}`);
+        console.log(`[VPS Diagnostic] Payload:`, payload);
+        
+        const response = await fetch('http://31.97.24.222:3001/instance/create', {
+          method: 'POST',
+          headers: workingHeaders,
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(15000)
+        });
+        
+        const responseText = await response.text();
+        let parsedResponse;
+        try {
+          parsedResponse = JSON.parse(responseText);
+        } catch {
+          parsedResponse = { raw: responseText };
+        }
+        
+        const testResult = {
+          payloadName: name,
+          status: response.status,
+          success: response.ok,
+          response: parsedResponse,
+          headers: Object.fromEntries(response.headers.entries())
+        };
+        
+        testResults.push(testResult);
+        
+        console.log(`[VPS Diagnostic] ${name} = ${response.status} (${response.ok ? 'SUCCESS' : 'FAIL'})`);
+        
+        if (response.ok && !successfulPayload) {
+          successfulPayload = name;
+          console.log(`[VPS Diagnostic] ✅ PAYLOAD FUNCIONANDO: ${name}`);
+          
+          // Tentar deletar a instância de teste
+          try {
+            await fetch('http://31.97.24.222:3001/instance/delete', {
+              method: 'POST',
+              headers: workingHeaders,
+              body: JSON.stringify({ instanceName: payload.instanceName }),
+              signal: AbortSignal.timeout(10000)
+            });
+            console.log(`[VPS Diagnostic] 🧹 Instância de teste removida`);
+          } catch (e) {
+            console.log(`[VPS Diagnostic] ⚠️ Não foi possível remover instância de teste: ${e.message}`);
+          }
+          
+          break; // Parar no primeiro payload que funcionar
+        }
+        
+      } catch (error: any) {
+        testResults.push({
+          payloadName: name,
+          error: error.message
+        });
+        console.log(`[VPS Diagnostic] ${name} = ERROR: ${error.message}`);
+      }
     }
     
     const duration = Date.now() - startTime;
     
-    console.log(`[VPS Diagnostic] Criação com estrutura correta = ${response.status} (${response.ok ? 'SUCCESS' : 'FAIL'})`);
-    console.log(`[VPS Diagnostic] Response:`, parsedResponse);
-    
-    // Se criado com sucesso, tentar deletar
-    if (response.ok) {
-      console.log(`[VPS Diagnostic] ✅ INSTÂNCIA CRIADA com sucesso usando estrutura correta`);
-      
-      // Tentar deletar a instância de teste
-      try {
-        await fetch('http://31.97.24.222:3001/instance/delete', {
-          method: 'POST',
-          headers: workingHeaders,
-          body: JSON.stringify({ instanceName: testInstanceName }),
-          signal: AbortSignal.timeout(10000)
-        });
-        console.log(`[VPS Diagnostic] 🧹 Instância de teste removida`);
-      } catch (e) {
-        console.log(`[VPS Diagnostic] ⚠️ Não foi possível remover instância de teste: ${e.message}`);
-      }
-    }
-    
     return {
       test: 'Instance Creation',
-      success: response.ok,
+      success: !!successfulPayload,
       duration,
       details: {
-        testInstanceName,
-        payload: correctPayload,
-        response: parsedResponse,
-        status: response.status,
-        headers: Object.fromEntries(response.headers.entries()),
-        authUsed: 'Bearer Authorization (confirmado funcionando)',
-        payloadStructure: 'Idêntica ao código que funciona'
+        endpoint: '/instance/create',
+        authUsed: 'Bearer Authorization (confirmado nos testes 1-4)',
+        successfulPayload,
+        allPayloadTests: testResults,
+        totalPayloadsTested: payloads.length
       },
-      error: response.ok ? undefined : `Falha na criação: ${response.status} - ${responseText}`
+      error: successfulPayload ? undefined : `Todos os ${payloads.length} payloads falharam no endpoint correto /instance/create`
     };
     
   } catch (error: any) {
@@ -595,7 +662,7 @@ serve(async (req) => {
     results.push(await testVPSEndpoints());
     results.push(await testVPSTokenValidation());
     results.push(await testVPSAuthentication());
-    results.push(await testInstanceCreationCorrected()); // Nova versão com estrutura correta
+    results.push(await testInstanceCreationCorrected()); // Nova versão com endpoint e payloads corretos
     results.push(await testEndToEndFlowCorrected()); // Nova versão usando auth confirmada
     
     // Calcular resumo
