@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useWhatsAppWebSectionLogic } from "@/hooks/whatsapp/useWhatsAppWebSectionLogic";
 import { WhatsAppWebSectionHeader } from "./WhatsAppWebSectionHeader";
@@ -9,6 +8,7 @@ import { WhatsAppWebQRModal } from "./WhatsAppWebQRModal";
 import { WhatsAppWebWaitingState } from "./WhatsAppWebWaitingState";
 import { AutoImportExecutor } from "./AutoImportExecutor";
 import { VPSWebhookInvestigator } from "./VPSWebhookInvestigator";
+import { VPSAutoCorrector } from "./VPSAutoCorrector";
 
 export const WhatsAppWebSection = () => {
   const {
@@ -46,17 +46,18 @@ export const WhatsAppWebSection = () => {
         creationStage={creationStage}
       />
 
-      {/* Ferramentas de Debug/Investigação */}
+      {/* CORREÇÃO: Ferramenta de Correção Automática VPS */}
       <div className="space-y-4">
         <button
           onClick={() => setShowDebugTools(!showDebugTools)}
           className="text-sm text-blue-600 hover:text-blue-800 underline"
         >
-          {showDebugTools ? 'Ocultar' : 'Mostrar'} ferramentas de diagnóstico
+          {showDebugTools ? 'Ocultar' : 'Mostrar'} ferramentas de diagnóstico e correção
         </button>
         
         {showDebugTools && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <VPSAutoCorrector />
             <AutoImportExecutor />
             <VPSWebhookInvestigator />
           </div>
