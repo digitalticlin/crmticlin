@@ -103,7 +103,12 @@ export const useInstancesData = () => {
           filter: `created_by_user_id=eq.${user.id}`
         },
         (payload) => {
-          console.log('[useInstancesData] 📡 Real-time update:', payload.eventType, payload.new?.instance_name);
+          console.log('[useInstancesData] 📡 Real-time update:', payload.eventType);
+          
+          // CORREÇÃO: Verificação mais robusta do payload
+          if (payload.new && typeof payload.new === 'object' && 'instance_name' in payload.new) {
+            console.log('[useInstancesData] 📡 Instância atualizada:', payload.new.instance_name);
+          }
           
           // Re-fetch dados quando houver mudanças
           fetchInstances();
