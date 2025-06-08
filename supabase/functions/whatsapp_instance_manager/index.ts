@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.1/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -10,21 +9,48 @@ const corsHeaders = {
 console.log("WhatsApp Instance Manager - Gerenciamento completo de instâncias");
 
 serve(async (req) => {
+  console.log(`[Instance Manager] 📡 REQUEST: ${req.method} ${req.url}`);
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { action, instanceName, instanceId, userEmail, instanceData } = await req.json();
+    const rawBody = await req.text();
+    console.log(`[Instance Manager] 📥 Raw body: ${rawBody}`);
+
+    let requestData: any = {};
+    if (rawBody) {
+      try {
+        requestData = JSON.parse(rawBody);
+        console.log(`[Instance Manager] 📦 Parsed body:`, requestData);
+      } catch (parseError) {
+        console.error(`[Instance Manager] ❌ JSON Parse Error:`, parseError);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Invalid JSON in request body' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    const { action, instanceName, instanceId, userEmail, instanceData } = requestData;
+    
+    console.log(`[Instance Manager] 🎯 Action: ${action}`);
+    console.log(`[Instance Manager] 📊 Parâmetros:`, {
+      action,
+      instanceName,
+      instanceId,
+      userEmail,
+      instanceData
+    });
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log(`[Instance Manager] Action: ${action}`);
-
     switch (action) {
       case 'create_instance':
+        console.log(`[Instance Manager] 🚀 EXECUTANDO CREATE_INSTANCE`);
         return await handleCreateInstance(supabase, instanceName);
         
       case 'delete_instance':
@@ -49,45 +75,76 @@ serve(async (req) => {
         return await handleBindInstanceToUser(supabase, instanceData);
 
       default:
+        console.error(`[Instance Manager] ❌ AÇÃO DESCONHECIDA: ${action}`);
         return new Response(
-          JSON.stringify({ success: false, error: `Unknown action: ${action}` }),
+          JSON.stringify({ 
+            success: false, 
+            error: `Unknown action: ${action}`,
+            available_actions: [
+              'create_instance', 'delete_instance', 'list_instances', 
+              'get_qr_code', 'send_message', 'test_connection', 
+              'delete_vps_instance_cleanup', 'bind_instance_to_user'
+            ]
+          }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
     }
 
   } catch (error: any) {
-    console.error('Instance Manager Error:', error);
+    console.error(`[Instance Manager] 💥 ERRO GERAL:`, error);
+    console.error(`[Instance Manager] 📋 Stack trace:`, error.stack);
+    
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ 
+        success: false, 
+        error: error.message,
+        details: error.stack 
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
 
-// Função para criar instância
+// Função para criar instância COM LOGS DETALHADOS
 async function handleCreateInstance(supabase: any, instanceName: string) {
   try {
-    console.log(`[Instance Manager] 🚀 Criando instância: ${instanceName}`);
+    console.log(`[Instance Manager] 🚀 handleCreateInstance INICIADO`);
+    console.log(`[Instance Manager] 📊 instanceName recebido:`, instanceName);
 
     // Validar nome da instância
-    if (!instanceName || instanceName.trim().length < 3) {
+    if (!instanceName || typeof instanceName !== 'string') {
+      console.error(`[Instance Manager] ❌ instanceName inválido:`, instanceName);
+      throw new Error('Nome da instância é obrigatório e deve ser uma string');
+    }
+
+    if (instanceName.trim().length < 3) {
+      console.error(`[Instance Manager] ❌ instanceName muito curto:`, instanceName.length);
       throw new Error('Nome da instância deve ter pelo menos 3 caracteres');
     }
 
     const normalizedName = instanceName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+    console.log(`[Instance Manager] ✅ Nome normalizado: ${normalizedName}`);
 
     // Verificar se já existe
-    const { data: existing } = await supabase
+    console.log(`[Instance Manager] 🔍 Verificando duplicatas...`);
+    const { data: existing, error: existingError } = await supabase
       .from('whatsapp_instances')
       .select('id, instance_name')
       .eq('instance_name', normalizedName)
-      .single();
+      .maybeSingle();
+
+    if (existingError) {
+      console.error(`[Instance Manager] ❌ Erro ao verificar duplicatas:`, existingError);
+      throw new Error(`Erro ao verificar instâncias existentes: ${existingError.message}`);
+    }
 
     if (existing) {
+      console.error(`[Instance Manager] ❌ Instância já existe:`, existing);
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Já existe uma instância com este nome'
+          error: 'Já existe uma instância com este nome',
+          existing_instance: existing
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -95,9 +152,11 @@ async function handleCreateInstance(supabase: any, instanceName: string) {
 
     // Simular criação na VPS (aqui você faria a chamada real para VPS)
     const vpsInstanceId = `vps_${normalizedName}_${Date.now()}`;
+    console.log(`[Instance Manager] 🏗️ VPS Instance ID gerado: ${vpsInstanceId}`);
 
     // Criar no banco
-    const { data: instance, error } = await supabase
+    console.log(`[Instance Manager] 💾 Inserindo no Supabase...`);
+    const { data: instance, error: insertError } = await supabase
       .from('whatsapp_instances')
       .insert({
         instance_name: normalizedName,
@@ -109,9 +168,12 @@ async function handleCreateInstance(supabase: any, instanceName: string) {
       .select()
       .single();
 
-    if (error) {
-      throw new Error(`Erro ao criar instância: ${error.message}`);
+    if (insertError) {
+      console.error(`[Instance Manager] ❌ Erro ao inserir no banco:`, insertError);
+      throw new Error(`Erro ao criar instância no banco: ${insertError.message}`);
     }
+
+    console.log(`[Instance Manager] ✅ Instância criada com sucesso:`, instance);
 
     return new Response(
       JSON.stringify({
@@ -121,14 +183,23 @@ async function handleCreateInstance(supabase: any, instanceName: string) {
           vps_instance_id: vpsInstanceId,
           instance_name: normalizedName,
           status: 'connecting'
-        }
+        },
+        message: 'Instância criada com sucesso'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: any) {
+    console.error(`[Instance Manager] 💥 ERRO em handleCreateInstance:`, error);
+    console.error(`[Instance Manager] 📋 Stack trace:`, error.stack);
+    
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ 
+        success: false, 
+        error: error.message,
+        details: error.stack,
+        function: 'handleCreateInstance'
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

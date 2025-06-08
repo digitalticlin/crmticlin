@@ -36,8 +36,8 @@ export const GlobalInstanceManagement = () => {
       console.log("🔄 Executando sincronização global manual...");
       toast.info("Iniciando sincronização global VPS ↔ Supabase...");
 
-      // CORREÇÃO: Usar whatsapp_web_server APENAS para sync global
-      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+      // CORREÇÃO: Usar auto_whatsapp_sync para sync global
+      const { data, error } = await supabase.functions.invoke('auto_whatsapp_sync', {
         body: {
           action: 'sync_all_instances'
         }
