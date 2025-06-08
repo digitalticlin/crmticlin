@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.177.1/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -172,7 +173,7 @@ serve(async (req) => {
   }
 });
 
-// ETAPA 1: Função corrigida para criar instância COM user_id
+// CORREÇÃO: Função corrigida para criar instância COM payload correto da VPS
 async function handleCreateInstance(supabase: any, instanceName: string, req: Request) {
   try {
     console.log(`[Instance Manager] 🚀 handleCreateInstance v2.0 INICIADO`);
@@ -231,12 +232,14 @@ async function handleCreateInstance(supabase: any, instanceName: string, req: Re
       );
     }
 
-    // ETAPA 2: Criar instância na VPS real
+    // CORREÇÃO: ID único da instância para a VPS
     const vpsInstanceId = `instance_${user.id}_${normalizedName}_${Date.now()}`;
     console.log(`[Instance Manager] 🏗️ Criando instância na VPS: ${vpsInstanceId}`);
 
+    // CORREÇÃO PRINCIPAL: Payload correto para a VPS com instanceId e sessionName
     const vpsResult = await makeVPSRequest('/instance/create', 'POST', {
-      instanceName: vpsInstanceId,
+      instanceId: vpsInstanceId,
+      sessionName: normalizedName,
       webhookUrl: `https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/whatsapp_qr_service`,
       settings: {
         autoReconnect: true,
