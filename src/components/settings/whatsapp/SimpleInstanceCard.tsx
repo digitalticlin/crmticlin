@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { QrCode, Trash2, Phone, CheckCircle, Clock, AlertCircle, Loader2 } from "lucide-react";
+import { QrCode, Trash2, Phone, CheckCircle, Clock, AlertCircle, Loader2, AlertTriangle } from "lucide-react";
 import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { toast } from "sonner";
 
@@ -24,11 +24,13 @@ export const SimpleInstanceCard = ({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const getStatusInfo = () => {
-    if (instance.connection_status === 'connected') {
+    // CORREÇÃO: Incluir instâncias com erro para permitir retry
+    if (instance.connection_status === 'connected' || instance.connection_status === 'open') {
       return {
         label: 'Conectado',
         icon: CheckCircle,
-        color: 'bg-green-100 text-green-800 border-green-200'
+        color: 'bg-green-100 text-green-800 border-green-200',
+        canRetry: false
       };
     }
     
@@ -36,7 +38,8 @@ export const SimpleInstanceCard = ({
       return {
         label: 'Aguardando Scan',
         icon: QrCode,
-        color: 'bg-blue-100 text-blue-800 border-blue-200'
+        color: 'bg-blue-100 text-blue-800 border-blue-200',
+        canRetry: false
       };
     }
     
@@ -44,14 +47,26 @@ export const SimpleInstanceCard = ({
       return {
         label: 'Conectando',
         icon: Clock,
-        color: 'bg-orange-100 text-orange-800 border-orange-200'
+        color: 'bg-orange-100 text-orange-800 border-orange-200',
+        canRetry: false
+      };
+    }
+
+    // CORREÇÃO: Exibir instâncias com erro e permitir retry
+    if (instance.web_status === 'error' || instance.connection_status === 'error') {
+      return {
+        label: 'Erro - Tentar Novamente',
+        icon: AlertTriangle,
+        color: 'bg-red-100 text-red-800 border-red-200',
+        canRetry: true
       };
     }
     
     return {
       label: 'Desconectado',
       icon: AlertCircle,
-      color: 'bg-red-100 text-red-800 border-red-200'
+      color: 'bg-gray-100 text-gray-800 border-gray-200',
+      canRetry: true
     };
   };
 
@@ -74,6 +89,7 @@ export const SimpleInstanceCard = ({
       setIsDeleting(true);
       try {
         await onDelete(instance.id);
+        toast.success('Instância deletada com sucesso');
       } catch (error: any) {
         toast.error(`Erro ao deletar instância: ${error.message}`);
       } finally {
@@ -96,6 +112,13 @@ export const SimpleInstanceCard = ({
               <StatusIcon className="h-3 w-3 mr-1" />
               {statusInfo.label}
             </Badge>
+
+            {/* CORREÇÃO: Mostrar informações da VPS se disponível */}
+            {instance.vps_instance_id && (
+              <p className="text-xs text-gray-500 mt-1">
+                VPS ID: {instance.vps_instance_id.substring(0, 8)}...
+              </p>
+            )}
           </div>
         </div>
 
@@ -106,13 +129,23 @@ export const SimpleInstanceCard = ({
           </div>
         )}
 
+        {/* CORREÇÃO: Mostrar detalhes do erro se houver */}
+        {statusInfo.canRetry && (
+          <div className="p-2 bg-yellow-50 rounded-lg border border-yellow-200">
+            <p className="text-xs text-yellow-700">
+              💡 Esta instância teve problemas na criação. Tente gerar o QR Code novamente.
+            </p>
+          </div>
+        )}
+
         <div className="flex gap-2 pt-2">
-          {instance.connection_status !== 'connected' && (
+          {/* CORREÇÃO: Permitir gerar QR Code mesmo para instâncias com erro */}
+          {(instance.connection_status !== 'connected' && instance.connection_status !== 'open') && (
             <Button
               onClick={handleGenerateQR}
               disabled={isGeneratingQR}
               size="sm"
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+              className={`flex-1 ${statusInfo.canRetry ? 'bg-orange-600 hover:bg-orange-700' : 'bg-blue-600 hover:bg-blue-700'} text-white`}
             >
               {isGeneratingQR ? (
                 <>
@@ -122,7 +155,7 @@ export const SimpleInstanceCard = ({
               ) : (
                 <>
                   <QrCode className="h-4 w-4 mr-2" />
-                  Gerar QR Code
+                  {statusInfo.canRetry ? 'Tentar Novamente' : 'Gerar QR Code'}
                 </>
               )}
             </Button>
