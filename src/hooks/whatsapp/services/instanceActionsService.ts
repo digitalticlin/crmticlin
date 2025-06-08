@@ -1,85 +1,112 @@
 
 import { useState } from 'react';
-import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { InstanceService } from '@/services/whatsapp/instanceService';
+import { QRCodeService } from '@/services/whatsapp/qrCodeService';
+import { StatusSyncService } from '@/services/whatsapp/statusSyncService';
 
-export const useInstanceActions = (fetchInstances: () => Promise<void>) => {
-  const [isLoading, setIsLoading] = useState(false);
+export const useInstanceActions = (refreshInstances: () => Promise<void>) => {
+  const [isCreating, setIsCreating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const createInstance = async (instanceName: string) => {
-    setIsLoading(true);
+    setIsCreating(true);
     try {
-      console.log('[Instance Actions] 🚀 Criando instância:', instanceName);
+      console.log(`[Instance Actions] 🚀 Criando instância: ${instanceName}`);
       
-      const result = await WhatsAppWebService.createInstance(instanceName);
+      const result = await InstanceService.createInstance(instanceName);
       
       if (result.success) {
         toast.success(`Instância "${instanceName}" criada com sucesso!`);
-        await fetchInstances(); // Recarregar lista
+        await refreshInstances();
         return result;
       } else {
-        throw new Error(result.error || 'Erro ao criar instância');
+        throw new Error(result.error || 'Erro desconhecido');
       }
     } catch (error: any) {
-      console.error('[Instance Actions] ❌ Erro ao criar instância:', error);
+      console.error(`[Instance Actions] ❌ Erro ao criar instância:`, error);
       toast.error(`Erro ao criar instância: ${error.message}`);
       throw error;
     } finally {
-      setIsLoading(false);
+      setIsCreating(false);
     }
   };
 
   const deleteInstance = async (instanceId: string) => {
-    setIsLoading(true);
+    setIsDeleting(true);
     try {
-      console.log('[Instance Actions] 🗑️ Deletando instância:', instanceId);
+      console.log(`[Instance Actions] 🗑️ Deletando instância: ${instanceId}`);
       
-      const result = await WhatsAppWebService.deleteInstance(instanceId);
+      const result = await InstanceService.deleteInstance(instanceId);
       
       if (result.success) {
-        toast.success('Instância deletada com sucesso!');
-        await fetchInstances(); // Recarregar lista
-        return result;
+        toast.success('Instância removida com sucesso!');
+        await refreshInstances();
       } else {
         throw new Error(result.error || 'Erro ao deletar instância');
       }
     } catch (error: any) {
-      console.error('[Instance Actions] ❌ Erro ao deletar instância:', error);
+      console.error(`[Instance Actions] ❌ Erro ao deletar instância:`, error);
       toast.error(`Erro ao deletar instância: ${error.message}`);
-      throw error;
     } finally {
-      setIsLoading(false);
+      setIsDeleting(false);
     }
   };
 
-  // CORREÇÃO: Usar método específico generateQRCode
   const refreshQRCode = async (instanceId: string) => {
     try {
-      console.log('[Instance Actions] 📱 Gerando QR Code:', instanceId);
+      console.log(`[Instance Actions] 🔄 Atualizando QR Code: ${instanceId}`);
       
-      const result = await WhatsAppWebService.generateQRCode(instanceId);
+      // CORREÇÃO: Primeiro sincronizar status com VPS
+      const syncSuccess = await StatusSyncService.syncInstanceStatus(instanceId);
+      
+      if (syncSuccess) {
+        // Recarregar dados atualizados
+        await refreshInstances();
+        
+        // Verificar status atual no banco após sincronização
+        const { data: instance } = await supabase
+          .from('whatsapp_instances')
+          .select('connection_status, web_status, vps_instance_id')
+          .eq('id', instanceId)
+          .single();
+
+        // Se já está conectado, não precisa de QR Code
+        if (instance?.connection_status === 'ready') {
+          console.log(`[Instance Actions] ℹ️ Instância já conectada, QR Code não necessário`);
+          return {
+            success: true,
+            qrCode: null,
+            message: 'Instância já está conectada'
+          };
+        }
+      }
+      
+      // Se não está conectado, tentar gerar QR Code
+      const result = await QRCodeService.generateQRCode(instanceId);
       
       if (result.success) {
-        console.log('[Instance Actions] ✅ QR Code gerado com sucesso');
-        await fetchInstances(); // Recarregar lista
-        return result;
-      } else if (result.waiting) {
-        console.log('[Instance Actions] ⏳ QR Code ainda sendo gerado');
+        await refreshInstances();
         return result;
       } else {
         throw new Error(result.error || 'Erro ao gerar QR Code');
       }
     } catch (error: any) {
-      console.error('[Instance Actions] ❌ Erro ao gerar QR Code:', error);
-      toast.error(`Erro ao gerar QR Code: ${error.message}`);
-      throw error;
+      console.error(`[Instance Actions] ❌ Erro ao atualizar QR Code:`, error);
+      toast.error(`Erro ao atualizar QR Code: ${error.message}`);
+      return {
+        success: false,
+        error: error.message
+      };
     }
   };
 
   return {
+    isCreating,
+    isDeleting,
     createInstance,
     deleteInstance,
-    refreshQRCode,
-    isLoading
+    refreshQRCode
   };
 };
