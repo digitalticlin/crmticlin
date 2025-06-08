@@ -12,8 +12,9 @@ interface QRCodeServiceResponse {
 export class QRCodeService {
   static async generateQRCode(instanceId: string): Promise<QRCodeServiceResponse> {
     try {
-      console.log(`[QR Code Service] 📱 Gerando QR Code: ${instanceId}`);
+      console.log(`[QR Code Service] 📱 CORREÇÃO: Usando whatsapp_qr_service para gerar QR: ${instanceId}`);
 
+      // CORREÇÃO: Usar whatsapp_qr_service diretamente
       const { data, error } = await supabase.functions.invoke('whatsapp_qr_service', {
         body: {
           action: 'generate_qr',
@@ -38,7 +39,8 @@ export class QRCodeService {
 
       return {
         success: true,
-        qrCode: data.qrCode
+        qrCode: data.qrCode,
+        source: 'whatsapp_qr_service'
       };
 
     } catch (error: any) {
@@ -52,61 +54,36 @@ export class QRCodeService {
 
   static async getQRCode(instanceId: string): Promise<QRCodeServiceResponse> {
     try {
-      console.log(`[QR Code Service] 📱 Obtendo QR Code: ${instanceId}`);
+      console.log(`[QR Code Service] 📱 CORREÇÃO: Usando whatsapp_qr_service para obter QR: ${instanceId}`);
 
-      // Buscar QR Code do banco primeiro
-      const { data: instance } = await supabase
-        .from('whatsapp_instances')
-        .select('qr_code, connection_status, web_status, vps_instance_id, updated_at')
-        .eq('id', instanceId)
-        .single();
+      // CORREÇÃO: Usar whatsapp_qr_service para buscar QR Code
+      const { data, error } = await supabase.functions.invoke('whatsapp_qr_service', {
+        body: {
+          action: 'get_qr',
+          instanceId: instanceId
+        }
+      });
 
-      if (!instance) {
-        return { success: false, error: 'Instância não encontrada' };
+      if (error) {
+        throw new Error(error.message || 'Erro na chamada da função');
       }
 
-      // Se tem QR Code válido no banco, retornar
-      if (instance.qr_code && instance.qr_code.length > 10) {
-        console.log(`[QR Code Service] ✅ QR Code encontrado no banco`);
+      if (!data) {
+        throw new Error('Resposta vazia da função');
+      }
+
+      if (data.success && data.qrCode) {
         return {
           success: true,
-          qrCode: instance.qr_code,
-          source: 'database'
+          qrCode: data.qrCode,
+          source: data.source || 'whatsapp_qr_service'
         };
-      }
-
-      // Se não tem QR Code, verificar se instância está conectada
-      if (instance.connection_status === 'open' || instance.web_status === 'ready') {
-        return {
-          success: false,
-          error: 'Instância já está conectada'
-        };
-      }
-
-      // Tentar obter QR Code da VPS
-      if (instance.vps_instance_id) {
-        console.log(`[QR Code Service] 🔄 Tentando obter QR da VPS`);
-        
-        const { data, error } = await supabase.functions.invoke('whatsapp_qr_service', {
-          body: {
-            action: 'get_qr',
-            instanceId: instanceId
-          }
-        });
-
-        if (!error && data?.success && data.qrCode) {
-          return {
-            success: true,
-            qrCode: data.qrCode,
-            source: 'vps'
-          };
-        }
       }
 
       return {
         success: false,
-        waiting: true,
-        error: 'QR Code ainda não foi gerado. O webhook irá atualizar automaticamente.'
+        waiting: data.waiting || false,
+        error: data.message || 'QR Code não disponível'
       };
 
     } catch (error: any) {

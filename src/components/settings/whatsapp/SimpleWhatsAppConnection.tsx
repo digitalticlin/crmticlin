@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
@@ -38,20 +37,23 @@ export const SimpleWhatsAppConnection = () => {
     setIsConnecting(true);
     try {
       const intelligentName = await generateIntelligentInstanceName(user.email);
-      console.log('[Simple Connection] 🎯 Creating instance with intelligent name:', intelligentName);
+      console.log('[Simple Connection] 🎯 CORREÇÃO: Fluxo automático iniciado:', intelligentName);
       
+      // PASSO 1: Criar instância via whatsapp_instance_manager
       const createdInstanceResponse = await createInstance(intelligentName);
       
       if (createdInstanceResponse && createdInstanceResponse.instance) {
         const instanceData = createdInstanceResponse.instance;
-        toast.success(`Instância "${intelligentName}" criada! Aguardando QR Code automático...`);
+        toast.success(`Instância "${intelligentName}" criada! Iniciando geração automática de QR Code...`);
         
-        // Iniciar polling automático para QR Code
+        // PASSO 2: Iniciar polling automático de QR Code via whatsapp_qr_service
+        console.log('[Simple Connection] 🔄 CORREÇÃO: Iniciando AutoQRPolling com whatsapp_qr_service');
         const polling = new AutoQRPolling(
           instanceData.id,
           instanceData.instance_name,
-          refreshQRCode,
+          refreshQRCode, // Agora usa whatsapp_qr_service
           (qrCode) => {
+            console.log('[Simple Connection] ✅ CORREÇÃO: QR Code recebido via polling automático');
             setSelectedInstanceId(instanceData.id);
             setSelectedInstanceName(instanceData.instance_name);
             setSelectedQRCode(qrCode);
@@ -62,6 +64,7 @@ export const SimpleWhatsAppConnection = () => {
         polling.start();
       }
     } catch (error: any) {
+      console.error('[Simple Connection] ❌ Erro no fluxo automático:', error);
       toast.error(`Erro ao criar instância: ${error.message}`);
     } finally {
       setIsConnecting(false);
@@ -69,7 +72,7 @@ export const SimpleWhatsAppConnection = () => {
   };
 
   const handleGenerateQR = async (instanceId: string, instanceName: string) => {
-    console.log('[Simple Connection] 🔄 Gerando QR Code manual para:', { instanceId, instanceName });
+    console.log('[Simple Connection] 🔄 CORREÇÃO: Geração manual de QR via whatsapp_qr_service:', { instanceId, instanceName });
     
     setSelectedInstanceId(instanceId);
     setSelectedInstanceName(instanceName);
@@ -80,7 +83,7 @@ export const SimpleWhatsAppConnection = () => {
       const result = await refreshQRCode(instanceId);
       if (result?.qrCode) {
         setSelectedQRCode(result.qrCode);
-        toast.success('QR Code carregado!');
+        toast.success('QR Code carregado via whatsapp_qr_service!');
       }
     } catch (error: any) {
       console.error('[Simple Connection] ❌ Erro ao buscar QR Code:', error);
@@ -94,11 +97,11 @@ export const SimpleWhatsAppConnection = () => {
 
   const handleRefreshQRCode = async (instanceId: string): Promise<{ qrCode?: string } | null> => {
     try {
-      console.log('[Simple Connection] 🔄 Refresh QR Code:', instanceId);
+      console.log('[Simple Connection] 🔄 CORREÇÃO: Refresh QR Code via whatsapp_qr_service:', instanceId);
       const result = await refreshQRCode(instanceId);
       
       if (result?.success && result.qrCode) {
-        console.log('[Simple Connection] ✅ QR Code obtido:', result.qrCode.substring(0, 50) + '...');
+        console.log('[Simple Connection] ✅ QR Code atualizado via whatsapp_qr_service');
         setSelectedQRCode(result.qrCode);
         return { qrCode: result.qrCode };
       }
