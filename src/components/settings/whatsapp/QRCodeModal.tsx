@@ -34,21 +34,19 @@ export const QRCodeModal = ({
     setCurrentQRCode(qrCode);
   }, [qrCode]);
 
-  // CORREÇÃO: Polling controlado APENAS quando modal abre SEM QR Code E usuário está aguardando
+  // CORREÇÃO CRÍTICA: NÃO iniciar polling automático - apenas quando usuário clicar
   useEffect(() => {
-    if (isOpen && isWaitingForQR && !currentQRCode && !isPolling) {
-      console.log(`[QR Modal] 🎯 Iniciando polling manual para: ${instanceName}`);
-      startControlledPolling();
-    }
+    // REMOVIDO: Polling automático baseado em isWaitingForQR
+    // Agora só inicia polling quando usuário clica em "Gerar QR Code"
     
     // IMPORTANTE: Limpar polling ao fechar modal
     if (!isOpen && pollingIntervalId) {
-      console.log(`[QR Modal] 🛑 Modal fechado - parando polling`);
+      console.log(`[QR Modal] 🛑 Modal fechado - parando polling automático`);
       clearInterval(pollingIntervalId);
       setPollingIntervalId(null);
       setIsPolling(false);
     }
-  }, [isOpen, isWaitingForQR, currentQRCode, isPolling]);
+  }, [isOpen]);
 
   useEffect(() => {
     return () => {
@@ -64,7 +62,7 @@ export const QRCodeModal = ({
       return;
     }
 
-    console.log(`[QR Modal] 🚀 Polling manual v4.0 para: ${instanceName}`);
+    console.log(`[QR Modal] 🚀 Polling manual APENAS quando usuário clica para: ${instanceName}`);
     setIsPolling(true);
     setPollingProgress({ current: 0, max: 8 });
 
@@ -138,25 +136,9 @@ export const QRCodeModal = ({
     stopPolling();
     
     setCurrentQRCode(null);
-    setIsPolling(true);
     
-    try {
-      const result = await onRefreshQRCode(instanceId);
-      
-      if (result?.success && result.qrCode) {
-        setCurrentQRCode(result.qrCode);
-        toast.success(`QR Code gerado manualmente!`);
-      } else {
-        toast.warning('QR Code não disponível. Aguarde alguns segundos.');
-        // Iniciar polling controlado após tentativa manual
-        setTimeout(() => startControlledPolling(), 2000);
-      }
-    } catch (error: any) {
-      console.error('[QR Modal] ❌ Erro na geração manual:', error);
-      toast.error(`Erro: ${error.message}`);
-    } finally {
-      setIsPolling(false);
-    }
+    // CORREÇÃO: Só iniciar polling quando usuário clicar
+    await startControlledPolling();
   };
 
   const handleClose = () => {
@@ -188,21 +170,31 @@ export const QRCodeModal = ({
             </div>
           ) : (
             <div className="w-64 h-64 bg-gray-100 rounded-lg flex flex-col items-center justify-center space-y-4">
-              <Loader2 className="h-8 w-8 animate-spin text-green-600" />
-              <p className="text-sm text-gray-600 text-center">
-                {isPolling ? 'Buscando QR Code...' : 'Aguardando QR Code...'}
-              </p>
-              
-              {isPolling && (
-                <div className="w-full space-y-2">
-                  <Progress value={progressPercentage} className="w-full" />
-                  <p className="text-xs text-center text-gray-500">
-                    Tentativa {pollingProgress.current} de {pollingProgress.max}
+              {isPolling ? (
+                <>
+                  <Loader2 className="h-8 w-8 animate-spin text-green-600" />
+                  <p className="text-sm text-gray-600 text-center">
+                    Buscando QR Code...
                   </p>
-                  <p className="text-xs text-center text-gray-400">
-                    Aguarde enquanto a VPS gera o QR Code
+                  <div className="w-full space-y-2">
+                    <Progress value={progressPercentage} className="w-full" />
+                    <p className="text-xs text-center text-gray-500">
+                      Tentativa {pollingProgress.current} de {pollingProgress.max}
+                    </p>
+                    <p className="text-xs text-center text-gray-400">
+                      Aguarde enquanto a VPS gera o QR Code
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm text-gray-600 text-center">
+                    QR Code não disponível
                   </p>
-                </div>
+                  <p className="text-xs text-gray-500 text-center">
+                    Clique em "Gerar QR Code" para iniciar
+                  </p>
+                </>
               )}
             </div>
           )}
@@ -210,7 +202,7 @@ export const QRCodeModal = ({
           {!currentQRCode && (
             <div className="text-center space-y-3">
               <p className="text-sm text-gray-600">
-                Escaneie o QR Code com seu WhatsApp para conectar
+                {currentQRCode ? 'Escaneie o QR Code com seu WhatsApp para conectar' : 'Clique para gerar o QR Code'}
               </p>
               
               <Button

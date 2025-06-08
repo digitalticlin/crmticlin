@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
@@ -18,7 +19,7 @@ export const SimpleWhatsAppConnection = () => {
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>('');
   const [isWaitingForQR, setIsWaitingForQR] = useState(false);
 
-  // CORREÇÃO: Controle único do AutoQRPolling - SEM INICIALIZAÇÃO AUTOMÁTICA
+  // CORREÇÃO CRÍTICA: Controle único do AutoQRPolling - SEM INICIALIZAÇÃO AUTOMÁTICA
   const [autoPolling, setAutoPolling] = useState<AutoQRPolling | null>(null);
 
   const { user } = useAuth();
@@ -57,12 +58,12 @@ export const SimpleWhatsAppConnection = () => {
         console.log('[Simple Connection] ✅ Instância criada - AGUARDANDO WEBHOOK DA VPS');
         toast.success(`Instância "${intelligentName}" criada! Aguardando webhook da VPS...`);
         
-        // CORREÇÃO: NÃO INICIAR POLLING AUTOMÁTICO
+        // CORREÇÃO CRÍTICA: NÃO INICIAR POLLING AUTOMÁTICO
         // O modal só deve abrir quando:
         // 1. Webhook da VPS enviar QR Code, ou
         // 2. Usuário clicar em "Gerar QR Code" manualmente
         
-        console.log('[Simple Connection] ⏳ Aguardando webhook ou ação manual do usuário');
+        console.log('[Simple Connection] ⏳ Aguardando webhook ou ação manual do usuário - SEM POLLING AUTOMÁTICO');
       }
     } catch (error: any) {
       console.error('[Simple Connection] ❌ Erro:', error);
@@ -84,29 +85,12 @@ export const SimpleWhatsAppConnection = () => {
     setSelectedInstanceId(instanceId);
     setSelectedInstanceName(instanceName);
     setSelectedQRCode(null);
-    setIsWaitingForQR(true);
+    setIsWaitingForQR(false); // CORREÇÃO: Não marcar como waiting para não iniciar polling automático
     setShowQRModal(true);
     
-    // NOVO: Criar AutoQRPolling apenas quando usuário solicita manualmente
-    const newAutoPolling = new AutoQRPolling(
-      instanceId,
-      instanceName,
-      handleRefreshQRCode,
-      (qrCode: string) => {
-        setSelectedQRCode(qrCode);
-        setIsWaitingForQR(false);
-      },
-      () => {
-        // Callback quando conectado
-        closeQRModal();
-        toast.success(`${instanceName} conectado com sucesso!`);
-      }
-    );
+    // CORREÇÃO: NÃO criar AutoQRPolling aqui - deixar apenas o modal controlar o polling manual
     
-    setAutoPolling(newAutoPolling);
-    newAutoPolling.start(1000); // 1 segundo de delay
-    
-    toast.info(`Gerando QR Code para ${instanceName}...`);
+    toast.info(`Modal aberto para ${instanceName}. Clique em "Gerar QR Code" para iniciar.`);
   };
 
   const handleDeleteInstance = async (instanceId: string) => {
