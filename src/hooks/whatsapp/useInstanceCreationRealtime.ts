@@ -13,7 +13,7 @@ interface InstanceCreationState {
 
 /**
  * Hook para criação de instância com feedback real-time
- * Separado do processo de sincronização de 10 minutos
+ * USA A EDGE FUNCTION CORRETA: whatsapp_instance_manager
  */
 export const useInstanceCreationRealtime = () => {
   const [state, setState] = useState<InstanceCreationState>({
@@ -27,7 +27,7 @@ export const useInstanceCreationRealtime = () => {
   const pollingRef = useRef<NodeJS.Timeout>();
   const isMountedRef = useRef(true);
 
-  // Criar instância e começar acompanhamento real-time
+  // Criar instância usando whatsapp_instance_manager
   const createInstance = useCallback(async (instanceName: string): Promise<boolean> => {
     setState({
       isCreating: true,
@@ -40,11 +40,11 @@ export const useInstanceCreationRealtime = () => {
     try {
       console.log('[Instance Creation] 🚀 Criando instância:', instanceName);
 
-      // 1. Criar instância na VPS
-      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+      // CORREÇÃO: Usar whatsapp_instance_manager em vez de whatsapp_web_server
+      const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
           action: 'create_instance',
-          instanceData: { instanceName }
+          instanceName: instanceName
         }
       });
 
@@ -52,8 +52,8 @@ export const useInstanceCreationRealtime = () => {
         throw new Error(data?.error || error?.message || 'Erro ao criar instância');
       }
 
-      const instanceId = data.instanceId || instanceName;
-      console.log('[Instance Creation] ✅ Instância criada na VPS:', instanceId);
+      const instanceId = data.instance?.id || data.instance?.vps_instance_id || instanceName;
+      console.log('[Instance Creation] ✅ Instância criada:', instanceId);
 
       setState(prev => ({
         ...prev,
@@ -61,30 +61,10 @@ export const useInstanceCreationRealtime = () => {
         status: 'created'
       }));
 
-      // 2. Adicionar registro no Supabase IMEDIATAMENTE
-      const { error: dbError } = await supabase
-        .from('whatsapp_instances')
-        .insert({
-          instance_name: instanceName,
-          vps_instance_id: instanceId,
-          connection_type: 'web',
-          connection_status: 'created',
-          web_status: 'created',
-          created_by_user_id: (await supabase.auth.getUser()).data.user?.id,
-          created_at: new Date().toISOString()
-        });
-
-      if (dbError) {
-        console.error('[Instance Creation] ⚠️ Erro ao salvar no Supabase:', dbError);
-        // Não bloquear, a sincronização vai corrigir depois
-      } else {
-        console.log('[Instance Creation] ✅ Instância salva no Supabase');
-      }
-
-      // 3. Iniciar polling para status e QR Code
+      // Iniciar polling para status
       startStatusPolling(instanceId);
 
-      toast.success('Instância criada! Aguardando QR Code...');
+      toast.success('Instância criada! Aguardando conexão...');
       return true;
 
     } catch (error: any) {
@@ -102,7 +82,7 @@ export const useInstanceCreationRealtime = () => {
     }
   }, []);
 
-  // Polling inteligente para status e QR Code
+  // Polling para status usando whatsapp_instance_manager
   const startStatusPolling = useCallback((instanceId: string) => {
     console.log('[Instance Creation] 📡 Iniciando polling para:', instanceId);
     
@@ -119,73 +99,57 @@ export const useInstanceCreationRealtime = () => {
       attempts++;
 
       try {
-        // Buscar status da VPS
-        const { data: statusData, error: statusError } = await supabase.functions.invoke('whatsapp_web_server', {
+        // Buscar instâncias usando whatsapp_instance_manager
+        const { data: listData, error: listError } = await supabase.functions.invoke('whatsapp_instance_manager', {
           body: {
-            action: 'get_instance_status',
-            instanceId
+            action: 'list_instances'
           }
         });
 
-        if (statusError || !statusData?.success) {
-          console.warn('[Instance Creation] ⚠️ Erro no polling (tentativa ' + attempts + '):', statusError?.message);
+        if (listError || !listData?.success) {
+          console.warn('[Instance Creation] ⚠️ Erro no polling (tentativa ' + attempts + '):', listError?.message);
           return;
         }
 
-        const { status, qrCode, phone, profileName } = statusData.data || {};
-        
-        console.log('[Instance Creation] 📊 Status polling:', { 
-          status, 
-          hasQR: !!qrCode, 
-          phone: phone?.slice(0, 8) + '...' 
-        });
+        const instances = listData.instances || [];
+        const instance = instances.find((inst: any) => 
+          inst.id === instanceId || 
+          inst.vps_instance_id === instanceId || 
+          inst.instance_name === instanceId
+        );
 
-        setState(prev => ({
-          ...prev,
-          status,
-          qrCode: qrCode || prev.qrCode,
-          isCreating: status !== 'open' && status !== 'ready'
-        }));
-
-        // Atualizar Supabase com novos dados
-        if (status || phone || profileName) {
-          const updateData: any = {
-            updated_at: new Date().toISOString()
-          };
-
-          if (status) {
-            updateData.connection_status = status === 'open' ? 'ready' : status;
-            updateData.web_status = status === 'open' ? 'ready' : status;
-          }
-
-          if (phone) updateData.phone = phone;
-          if (profileName) updateData.profile_name = profileName;
-
-          if (status === 'open' || status === 'ready') {
-            updateData.date_connected = new Date().toISOString();
-          }
-
-          await supabase
-            .from('whatsapp_instances')
-            .update(updateData)
-            .eq('vps_instance_id', instanceId);
-        }
-
-        // Parar polling se conectou
-        if (status === 'open' || status === 'ready') {
-          console.log('[Instance Creation] ✅ Instância conectada!');
-          toast.success('WhatsApp conectado com sucesso!');
+        if (instance) {
+          const status = instance.connection_status || instance.web_status || 'unknown';
           
-          if (pollingRef.current) {
-            clearInterval(pollingRef.current);
-            pollingRef.current = undefined;
-          }
-          
+          console.log('[Instance Creation] 📊 Status polling:', { 
+            status, 
+            instanceId,
+            connection_status: instance.connection_status,
+            web_status: instance.web_status
+          });
+
           setState(prev => ({
             ...prev,
-            isCreating: false,
-            status
+            status,
+            isCreating: !['open', 'ready', 'connected'].includes(status)
           }));
+
+          // Parar polling se conectou
+          if (['open', 'ready', 'connected'].includes(status)) {
+            console.log('[Instance Creation] ✅ Instância conectada!');
+            toast.success('WhatsApp conectado com sucesso!');
+            
+            if (pollingRef.current) {
+              clearInterval(pollingRef.current);
+              pollingRef.current = undefined;
+            }
+            
+            setState(prev => ({
+              ...prev,
+              isCreating: false,
+              status
+            }));
+          }
         }
 
       } catch (error) {
