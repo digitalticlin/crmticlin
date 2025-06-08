@@ -1,246 +1,146 @@
+
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Zap, Loader2, CheckCircle, AlertCircle, ExternalLink, Activity, Server, Shield, Terminal } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { Terminal, Loader2, CheckCircle2, AlertTriangle, Zap } from "lucide-react";
+import { AdvancedWebhookInstaller } from "./AdvancedWebhookInstaller";
 
 export const DirectDeployButton = () => {
   const [isDeploying, setIsDeploying] = useState(false);
-  const [deployStatus, setDeployStatus] = useState<'idle' | 'diagnosing' | 'deploying' | 'success' | 'error'>('idle');
-  const [deployResult, setDeployResult] = useState<any>(null);
-  const [diagnostics, setDiagnostics] = useState<any>(null);
+  const [deployStatus, setDeployStatus] = useState<'idle' | 'deploying' | 'success' | 'error'>('idle');
+  const [logs, setLogs] = useState<string[]>([]);
 
-  const handleDirectDeploy = async () => {
+  const addLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setLogs(prev => [...prev, `[${timestamp}] ${message}`]);
+  };
+
+  const deployViaSSH = async () => {
+    setIsDeploying(true);
+    setDeployStatus('deploying');
+    setLogs([]);
+    
     try {
-      setIsDeploying(true);
-      setDeployStatus('diagnosing');
-      setDiagnostics(null);
+      addLog('🚀 Iniciando deploy via SSH...');
       
-      console.log('🚀 Iniciando deploy WhatsApp Server...');
-      toast.info('🚀 Executando deploy via SSH...');
-
-      const response = await fetch('https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/deploy_whatsapp_server', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      const { data, error } = await supabase.functions.invoke('vps_auto_deploy', {
+        body: {
+          action: 'ssh_deploy',
+          deployType: 'whatsapp_server_complete',
+          version: '3.0'
         }
       });
 
-      if (!response.ok) {
-        throw new Error(`Deploy failed: HTTP ${response.status}`);
+      if (error) {
+        throw new Error(error.message);
       }
 
-      const result = await response.json();
-      setDeployResult(result);
-      
-      if (result.diagnostics) {
-        setDiagnostics(result.diagnostics);
-      }
-      
-      if (result.success) {
-        console.log('✅ Deploy realizado com sucesso:', result);
+      if (data?.success) {
+        addLog('✅ Deploy SSH concluído com sucesso!');
         setDeployStatus('success');
-        
-        if (result.status === 'already_running') {
-          toast.success('🎉 Servidor WhatsApp já estava online!');
-        } else {
-          toast.success('🎉 Deploy realizado com sucesso! Servidor WhatsApp online.');
-        }
-        
+        toast.success('Deploy via SSH realizado com sucesso!');
       } else {
-        // Se não foi sucesso, mas tem instruções SSH, mostrar como warning
-        if (result.ssh_instructions) {
-          setDeployStatus('error');
-          toast.warning('⚠️ Deploy manual necessário - Verifique as instruções SSH');
-        } else {
-          throw new Error(result.error || 'Deploy failed');
-        }
+        throw new Error(data?.error || 'Falha no deploy SSH');
       }
+      
     } catch (error: any) {
-      console.error('❌ Erro no deploy:', error);
+      console.error('Erro no deploy SSH:', error);
+      addLog(`❌ Erro: ${error.message}`);
       setDeployStatus('error');
-      toast.error(`❌ Erro no deploy: ${error.message}`);
+      toast.error(`Erro no deploy: ${error.message}`);
     } finally {
       setIsDeploying(false);
     }
   };
 
-  const getStatusIcon = () => {
+  const getStatusBadge = () => {
     switch (deployStatus) {
-      case 'diagnosing':
-        return <Activity className="h-5 w-5 animate-pulse text-blue-600" />;
       case 'deploying':
-        return <Loader2 className="h-5 w-5 animate-spin text-blue-600" />;
+        return (
+          <Badge className="bg-blue-100 text-blue-800">
+            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            Deployando
+          </Badge>
+        );
       case 'success':
-        return <CheckCircle className="h-5 w-5 text-green-600" />;
+        return (
+          <Badge className="bg-green-100 text-green-800">
+            <CheckCircle2 className="h-3 w-3 mr-1" />
+            Sucesso
+          </Badge>
+        );
       case 'error':
-        return <AlertCircle className="h-5 w-5 text-red-600" />;
+        return (
+          <Badge variant="destructive">
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            Erro
+          </Badge>
+        );
       default:
-        return <Zap className="h-5 w-5 text-green-600" />;
-    }
-  };
-
-  const getStatusText = () => {
-    switch (deployStatus) {
-      case 'diagnosing':
-        return 'Diagnosticando VPS...';
-      case 'deploying':
-        return 'Executando deploy...';
-      case 'success':
-        return 'Deploy concluído com sucesso!';
-      case 'error':
-        return 'Erro no deploy';
-      default:
-        return 'Pronto para deploy profissional';
+        return null;
     }
   };
 
   return (
-    <Card className="border-green-200 bg-green-50">
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          {getStatusIcon()}
-          <CardTitle className="text-green-800">Deploy Direto SSH</CardTitle>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div>
-            <h3 className="font-medium text-green-800 mb-2">
-              Deploy Automatizado via SSH
-            </h3>
-            <p className="text-sm text-green-700 mb-4">
-              Script otimizado que instala e configura o servidor automaticamente
-            </p>
-            <p className="text-xs text-green-600">
-              Status: {getStatusText()}
+    <div className="space-y-6">
+      {/* Instalador de Webhook Avançado - Componente Principal */}
+      <AdvancedWebhookInstaller />
+      
+      {/* Deploy SSH Básico - Alternativa */}
+      <Card className="border-green-200 bg-green-50">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Terminal className="h-5 w-5 text-green-600" />
+              <CardTitle className="text-green-800">Deploy SSH Básico</CardTitle>
+            </div>
+            {getStatusBadge()}
+          </div>
+        </CardHeader>
+        
+        <CardContent className="space-y-4">
+          <div className="bg-white/80 p-3 rounded-lg border border-green-200">
+            <p className="text-sm text-green-700">
+              <strong>Deploy básico via SSH</strong> - Instala servidor WhatsApp simples sem webhooks avançados.
+              <br />
+              <span className="text-green-600">
+                ⚠️ Recomendamos usar o "Instalador de Webhook Avançado" acima para recursos completos.
+              </span>
             </p>
           </div>
 
-          {/* Instruções SSH manuais */}
-          {deployResult && !deployResult.success && deployResult.ssh_instructions && (
-            <div className="p-3 bg-yellow-100 rounded-lg border border-yellow-300">
-              <h4 className="font-medium text-yellow-800 mb-2 flex items-center gap-2">
-                <Terminal className="h-4 w-4" />
-                Deploy Manual via SSH
-              </h4>
-              <div className="text-xs text-yellow-700 space-y-2">
-                <div><strong>1.</strong> {deployResult.ssh_instructions.step1}</div>
-                <div><strong>2.</strong> {deployResult.ssh_instructions.step2}</div>
-                <div><strong>3.</strong> {deployResult.ssh_instructions.step3}</div>
-                {deployResult.deploy_script && (
-                  <div className="mt-2">
-                    <div className="font-medium mb-1">Script de Deploy:</div>
-                    <div className="bg-gray-900 text-green-400 p-2 rounded text-xs font-mono max-h-32 overflow-y-auto">
-                      {deployResult.deploy_script}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Diagnósticos */}
-          {diagnostics && (
-            <div className="p-3 bg-white rounded-lg border">
-              <h4 className="font-medium text-gray-800 mb-2 flex items-center gap-2">
-                <Activity className="h-4 w-4" />
-                Diagnóstico VPS
-              </h4>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className={`flex items-center gap-1 ${diagnostics.vps_ping ? 'text-green-600' : 'text-red-600'}`}>
-                  <div className={`w-2 h-2 rounded-full ${diagnostics.vps_ping ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                  Conectividade VPS
-                </div>
-                <div className={`flex items-center gap-1 ${diagnostics.api_server_running ? 'text-green-600' : 'text-red-600'}`}>
-                  <div className={`w-2 h-2 rounded-full ${diagnostics.api_server_running ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                  API Server
-                </div>
-                <div className={`flex items-center gap-1 ${diagnostics.api_authentication ? 'text-green-600' : 'text-red-600'}`}>
-                  <div className={`w-2 h-2 rounded-full ${diagnostics.api_authentication ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                  Autenticação
-                </div>
-                <div className={`flex items-center gap-1 ${diagnostics.whatsapp_server_running ? 'text-green-600' : 'text-gray-600'}`}>
-                  <div className={`w-2 h-2 rounded-full ${diagnostics.whatsapp_server_running ? 'bg-green-500' : 'bg-gray-400'}`}></div>
-                  WhatsApp Server
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Resultado do Deploy */}
-          {deployResult && deployStatus === 'success' && (
-            <div className="p-3 bg-green-100 rounded-lg border border-green-300">
-              <h4 className="font-medium text-green-800 mb-2 flex items-center gap-2">
-                <Server className="h-4 w-4" />
-                Deploy Realizado
-              </h4>
-              <div className="text-xs text-green-700 space-y-1">
-                <div>• Servidor: {deployResult.server_url}</div>
-                <div>• Método: {deployResult.deploy_method || 'API VPS'}</div>
-                <div>• Status: {deployResult.health?.status || 'Online'}</div>
-                {deployResult.health?.active_instances !== undefined && (
-                  <div>• Instâncias: {deployResult.health.active_instances}</div>
-                )}
-                {deployResult.health?.uptime && (
-                  <div>• Uptime: {Math.floor(deployResult.health.uptime)}s</div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Erros detalhados */}
-          {deployResult && deployStatus === 'error' && (
-            <div className="p-3 bg-red-100 rounded-lg border border-red-300">
-              <h4 className="font-medium text-red-800 mb-2">Detalhes do Erro:</h4>
-              <div className="text-xs text-red-700">
-                <div className="mb-2">{deployResult.error}</div>
-                {deployResult.next_steps && (
-                  <div>
-                    <div className="font-medium mb-1">Próximos passos:</div>
-                    <ul className="list-disc list-inside space-y-1">
-                      {deployResult.next_steps.map((step: string, index: number) => (
-                        <li key={index}>{step}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="flex gap-2">
-            <Button
-              onClick={handleDirectDeploy}
-              disabled={isDeploying}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              {isDeploying ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  {deployStatus === 'diagnosing' ? 'Executando...' : 'Fazendo Deploy...'}
-                </>
-              ) : (
-                <>
-                  <Zap className="h-4 w-4 mr-2" />
-                  Deploy SSH Direto
-                </>
-              )}
-            </Button>
-            
-            {deployStatus === 'success' && deployResult?.server_url && (
-              <Button
-                variant="outline"
-                onClick={() => window.open(`${deployResult.server_url}/health`, '_blank')}
-                className="border-green-600 text-green-600"
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Verificar Status
-              </Button>
+          <Button
+            onClick={deployViaSSH}
+            disabled={isDeploying}
+            variant="outline"
+            className="w-full text-green-600 border-green-300 hover:bg-green-50"
+          >
+            {isDeploying ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Deployando via SSH...
+              </>
+            ) : (
+              <>
+                <Zap className="h-4 w-4 mr-2" />
+                Deploy SSH Básico
+              </>
             )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+          </Button>
+
+          {logs.length > 0 && (
+            <div className="bg-gray-900 text-green-400 p-3 rounded-lg font-mono text-xs max-h-32 overflow-y-auto">
+              {logs.map((log, index) => (
+                <div key={index} className="mb-1">{log}</div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
