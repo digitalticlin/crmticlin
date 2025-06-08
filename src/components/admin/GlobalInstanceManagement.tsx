@@ -3,10 +3,11 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCcw, Loader2, Database, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { RefreshCcw, Loader2, Database } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { GlobalInstanceActions } from "./GlobalInstanceActions";
 
 export const GlobalInstanceManagement = () => {
   const [isSyncing, setIsSyncing] = useState(false);
@@ -55,9 +56,9 @@ export const GlobalInstanceManagement = () => {
         setLastSync(new Date());
         refetch(); // Atualizar a lista de instâncias
         
-        toast.success(
-          `Sincronização concluída! ${results.added || 0} adicionadas, ${results.updated || 0} atualizadas`
-        );
+        const successMsg = `Sincronização concluída! ${results.added || 0} adicionadas, ${results.updated || 0} atualizadas, ${results.orphans_linked || 0} órfãs vinculadas, ${results.orphans_deleted || 0} órfãs excluídas`;
+        
+        toast.success(successMsg);
       } else {
         const errorMessage = data?.error || 'Erro desconhecido na sincronização';
         console.error("❌ Sincronização falhou:", errorMessage);
@@ -72,45 +73,8 @@ export const GlobalInstanceManagement = () => {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'ready':
-      case 'open':
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
-      case 'connecting':
-      case 'waiting_scan':
-        return <Clock className="h-4 w-4 text-yellow-500" />;
-      default:
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'ready':
-      case 'open':
-        return 'Conectado';
-      case 'connecting':
-        return 'Conectando';
-      case 'waiting_scan':
-        return 'Aguardando QR';
-      default:
-        return 'Desconectado';
-    }
-  };
-
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'ready':
-      case 'open':
-        return 'default';
-      case 'connecting':
-      case 'waiting_scan':
-        return 'secondary';
-      default:
-        return 'destructive';
-    }
-  };
+  const orphanCount = instances?.filter(i => !i.created_by_user_id).length || 0;
+  const connectedCount = instances?.filter(i => ['open', 'ready'].includes(i.connection_status)).length || 0;
 
   return (
     <div className="space-y-6">
@@ -157,10 +121,27 @@ export const GlobalInstanceManagement = () => {
             </Button>
           </div>
 
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <div className="text-2xl font-bold text-blue-600">{instances?.length || 0}</div>
+              <div className="text-xs text-gray-500">Total</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-green-600">{connectedCount}</div>
+              <div className="text-xs text-gray-500">Conectadas</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-orange-600">{orphanCount}</div>
+              <div className="text-xs text-gray-500">Órfãs</div>
+            </div>
+          </div>
+
           <div className="text-xs text-gray-500 space-y-1">
             <p>🔄 Sincronização automática: A cada 10 minutos</p>
             <p>📡 Real-time: Mudanças instantâneas</p>
-            <p>🔒 Seguro: Nunca deleta instâncias</p>
+            <p>🔗 Vincula órfãs automaticamente</p>
+            <p>🗑️ Exclui órfãs não vinculáveis</p>
+            <p>🔒 Exclusão bidirecional VPS ↔ Supabase</p>
           </div>
         </CardContent>
       </Card>
@@ -184,36 +165,11 @@ export const GlobalInstanceManagement = () => {
           ) : instances && instances.length > 0 ? (
             <div className="space-y-3">
               {instances.map((instance) => (
-                <div 
-                  key={instance.id} 
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
-                >
-                  <div className="flex items-center gap-3">
-                    {getStatusIcon(instance.connection_status)}
-                    
-                    <div>
-                      <p className="font-medium">{instance.instance_name}</p>
-                      <div className="text-sm text-gray-600 space-y-1">
-                        <p>VPS ID: {instance.vps_instance_id || 'N/A'}</p>
-                        <p>Telefone: {instance.phone || 'Não configurado'}</p>
-                        <p>Perfil: {instance.profile_name || 'Sem nome'}</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="text-right space-y-2">
-                    <Badge variant={getStatusVariant(instance.connection_status)}>
-                      {getStatusText(instance.connection_status)}
-                    </Badge>
-                    
-                    <p className="text-xs text-gray-500">
-                      {instance.date_connected 
-                        ? `Conectado: ${new Date(instance.date_connected).toLocaleDateString()}`
-                        : 'Nunca conectado'
-                      }
-                    </p>
-                  </div>
-                </div>
+                <GlobalInstanceActions
+                  key={instance.id}
+                  instance={instance}
+                  onRefresh={() => refetch()}
+                />
               ))}
             </div>
           ) : (

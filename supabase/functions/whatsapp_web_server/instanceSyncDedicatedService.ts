@@ -47,7 +47,7 @@ export async function syncAllInstances(supabase: any) {
 
     console.log(`[Dedicated Sync] 📊 Supabase tem ${supabaseInstances?.length || 0} instâncias`);
 
-    // **NOVA FUNÇÃO**: Limpeza e validação de telefone CORRIGIDA
+    // **FUNÇÃO CORRIGIDA**: Limpeza e validação de telefone
     const cleanAndValidatePhone = (phone: string): string | null => {
       if (!phone) return null;
       
@@ -82,14 +82,71 @@ export async function syncAllInstances(supabase: any) {
       return statusMapping[vpsStatus] || { connection: 'disconnected', web: 'disconnected' };
     };
 
+    // **NOVA FUNÇÃO**: Buscar created_by_user_id por vps_instance_id ou telefone
+    const findCreatorUserId = async (vpsInstanceId: string, phone: string): Promise<string | null> => {
+      try {
+        // 1. Primeiro, tentar encontrar por vps_instance_id em instâncias existentes
+        const { data: existingByVpsId } = await supabase
+          .from('whatsapp_instances')
+          .select('created_by_user_id')
+          .eq('vps_instance_id', vpsInstanceId)
+          .not('created_by_user_id', 'is', null)
+          .limit(1)
+          .single();
+
+        if (existingByVpsId?.created_by_user_id) {
+          console.log(`[Dedicated Sync] 🎯 Creator encontrado por VPS ID: ${existingByVpsId.created_by_user_id}`);
+          return existingByVpsId.created_by_user_id;
+        }
+
+        // 2. Se tem telefone, tentar encontrar por telefone em instâncias existentes
+        if (phone) {
+          const { data: existingByPhone } = await supabase
+            .from('whatsapp_instances')
+            .select('created_by_user_id')
+            .eq('phone', phone)
+            .not('created_by_user_id', 'is', null)
+            .limit(1)
+            .single();
+
+          if (existingByPhone?.created_by_user_id) {
+            console.log(`[Dedicated Sync] 📞 Creator encontrado por telefone: ${existingByPhone.created_by_user_id}`);
+            return existingByPhone.created_by_user_id;
+          }
+
+          // 3. Tentar encontrar via leads com esse telefone
+          const { data: leadByPhone } = await supabase
+            .from('leads')
+            .select('created_by_user_id')
+            .eq('phone', phone)
+            .not('created_by_user_id', 'is', null)
+            .limit(1)
+            .single();
+
+          if (leadByPhone?.created_by_user_id) {
+            console.log(`[Dedicated Sync] 👤 Creator encontrado via lead: ${leadByPhone.created_by_user_id}`);
+            return leadByPhone.created_by_user_id;
+          }
+        }
+
+        console.log(`[Dedicated Sync] ❓ Creator não encontrado para: ${vpsInstanceId} | ${phone}`);
+        return null;
+      } catch (error) {
+        console.error(`[Dedicated Sync] ❌ Erro ao buscar creator:`, error);
+        return null;
+      }
+    };
+
     let syncResults = {
       added: 0,
       updated: 0,
       preserved_links: 0,
+      orphans_linked: 0,
+      orphans_deleted: 0,
       errors: []
     };
 
-    // ETAPA 3: Processar TODAS as instâncias da VPS (APENAS ADICIONAR E ATUALIZAR)
+    // ETAPA 3: Processar TODAS as instâncias da VPS (ADICIONAR, ATUALIZAR E VINCULAR ÓRFÃS)
     console.log('[Dedicated Sync] 🔄 Processando instâncias da VPS...');
     
     for (const vpsInstance of vpsInstances) {
@@ -110,33 +167,41 @@ export async function syncAllInstances(supabase: any) {
         const existingInstance = supabaseInstances?.find(s => s.vps_instance_id === vpsId);
 
         if (!existingInstance) {
-          // ADICIONAR: Instância não existe no Supabase
-          console.log(`[Dedicated Sync] 🆕 Adicionando nova instância: ${vpsId}`);
+          // **NOVA LÓGICA**: Instância não existe no Supabase - buscar creator inteligentemente
+          console.log(`[Dedicated Sync] 🆕 Processando nova instância: ${vpsId}`);
 
+          const creatorUserId = await findCreatorUserId(vpsId, cleanPhone);
           const mappedStatus = mapVPSStatusToSupabase(vpsInstance.status);
+
+          const newInstanceData = {
+            instance_name: `sync_${vpsId.slice(-8)}_${Date.now()}`,
+            vps_instance_id: vpsId,
+            phone: cleanPhone,
+            profile_name: vpsInstance.profileName || null,
+            connection_type: 'web',
+            server_url: VPS_CONFIG.baseUrl,
+            web_status: mappedStatus.web,
+            connection_status: mappedStatus.connection,
+            company_id: null, // Será definido depois se necessário
+            created_by_user_id: creatorUserId, // **CORREÇÃO**: Vincular se encontrou creator
+            date_connected: ['ready', 'open'].includes(vpsInstance.status) ? new Date().toISOString() : null,
+            qr_code: vpsInstance.hasQR ? 'pending' : null
+          };
 
           const { error: insertError } = await supabase
             .from('whatsapp_instances')
-            .insert({
-              instance_name: `sync_${vpsId.slice(-8)}_${Date.now()}`,
-              vps_instance_id: vpsId,
-              phone: cleanPhone,
-              profile_name: vpsInstance.profileName || null,
-              connection_type: 'web',
-              server_url: VPS_CONFIG.baseUrl,
-              web_status: mappedStatus.web,
-              connection_status: mappedStatus.connection,
-              company_id: null,
-              created_by_user_id: null,
-              date_connected: ['ready', 'open'].includes(vpsInstance.status) ? new Date().toISOString() : null,
-              qr_code: vpsInstance.hasQR ? 'pending' : null
-            });
+            .insert(newInstanceData);
 
           if (insertError) {
             console.error(`[Dedicated Sync] ❌ Erro ao inserir ${vpsId}:`, insertError);
             syncResults.errors.push({ vpsId, error: insertError.message });
           } else {
-            console.log(`[Dedicated Sync] ✅ Nova instância ${vpsId} adicionada`);
+            if (creatorUserId) {
+              console.log(`[Dedicated Sync] ✅ Nova instância ${vpsId} adicionada e VINCULADA ao creator ${creatorUserId}`);
+              syncResults.orphans_linked++;
+            } else {
+              console.log(`[Dedicated Sync] ✅ Nova instância ${vpsId} adicionada (sem vínculo ainda)`);
+            }
             console.log(`[Dedicated Sync] - Status: ${vpsInstance.status} -> ${mappedStatus.connection}/${mappedStatus.web}`);
             console.log(`[Dedicated Sync] - Telefone: ${vpsInstance.phone} -> ${cleanPhone}`);
             syncResults.added++;
@@ -144,6 +209,17 @@ export async function syncAllInstances(supabase: any) {
         } else {
           // ATUALIZAR: Instância já existe, atualizar dados
           console.log(`[Dedicated Sync] 🔄 Atualizando instância existente: ${vpsId}`);
+
+          // **NOVA LÓGICA**: Se created_by_user_id é NULL, tentar vincular inteligentemente
+          if (!existingInstance.created_by_user_id) {
+            console.log(`[Dedicated Sync] 🔗 Tentando vincular instância órfã: ${vpsId}`);
+            const creatorUserId = await findCreatorUserId(vpsId, cleanPhone || existingInstance.phone);
+            
+            if (creatorUserId) {
+              console.log(`[Dedicated Sync] ✅ Órfã ${vpsId} vinculada ao creator: ${creatorUserId}`);
+              syncResults.orphans_linked++;
+            }
+          }
 
           // PRESERVAR vínculos existentes
           if (existingInstance.company_id || existingInstance.created_by_user_id) {
@@ -159,6 +235,15 @@ export async function syncAllInstances(supabase: any) {
             web_status: mappedStatus.web,
             updated_at: new Date().toISOString()
           };
+
+          // **NOVA LÓGICA**: Vincular creator se era órfã e encontramos um
+          if (!existingInstance.created_by_user_id) {
+            const creatorUserId = await findCreatorUserId(vpsId, cleanPhone || existingInstance.phone);
+            if (creatorUserId) {
+              updateData.created_by_user_id = creatorUserId;
+              console.log(`[Dedicated Sync] 🔗 Vinculando órfã ${vpsId} ao creator: ${creatorUserId}`);
+            }
+          }
 
           // Atualizar telefone limpo se disponível e diferente
           if (cleanPhone && cleanPhone !== existingInstance.phone) {
@@ -199,11 +284,46 @@ export async function syncAllInstances(supabase: any) {
       }
     }
 
+    // **NOVA ETAPA 4**: Excluir instâncias órfãs que não puderam ser vinculadas
+    console.log('[Dedicated Sync] 🧹 Verificando órfãs não vinculadas para exclusão...');
+    
+    const { data: remainingOrphans } = await supabase
+      .from('whatsapp_instances')
+      .select('id, instance_name, vps_instance_id')
+      .eq('connection_type', 'web')
+      .is('created_by_user_id', null);
+
+    if (remainingOrphans && remainingOrphans.length > 0) {
+      console.log(`[Dedicated Sync] 🗑️ Encontradas ${remainingOrphans.length} órfãs não vinculadas para exclusão`);
+      
+      for (const orphan of remainingOrphans) {
+        try {
+          const { error: deleteError } = await supabase
+            .from('whatsapp_instances')
+            .delete()
+            .eq('id', orphan.id);
+
+          if (deleteError) {
+            console.error(`[Dedicated Sync] ❌ Erro ao excluir órfã ${orphan.instance_name}:`, deleteError);
+            syncResults.errors.push({ vpsId: orphan.vps_instance_id, error: deleteError.message });
+          } else {
+            console.log(`[Dedicated Sync] ✅ Órfã ${orphan.instance_name} excluída do Supabase`);
+            syncResults.orphans_deleted++;
+          }
+        } catch (err) {
+          console.error(`[Dedicated Sync] ❌ Erro ao excluir órfã:`, err);
+          syncResults.errors.push({ vpsId: orphan.vps_instance_id, error: err.message });
+        }
+      }
+    }
+
     const executionTime = Date.now() - startTime;
     console.log(`[Dedicated Sync] ✅ Sincronização completa [${syncId}] em ${executionTime}ms:`);
     console.log(`[Dedicated Sync] - ${syncResults.added} adicionadas`);
     console.log(`[Dedicated Sync] - ${syncResults.updated} atualizadas`);
     console.log(`[Dedicated Sync] - ${syncResults.preserved_links} vínculos preservados`);
+    console.log(`[Dedicated Sync] - ${syncResults.orphans_linked} órfãs vinculadas`);
+    console.log(`[Dedicated Sync] - ${syncResults.orphans_deleted} órfãs excluídas`);
     console.log(`[Dedicated Sync] - ${syncResults.errors.length} erros`);
 
     // Log da execução
@@ -229,6 +349,8 @@ export async function syncAllInstances(supabase: any) {
           added: syncResults.added,
           updated: syncResults.updated,
           preserved_links: syncResults.preserved_links,
+          orphans_linked: syncResults.orphans_linked,
+          orphans_deleted: syncResults.orphans_deleted,
           errors_count: syncResults.errors.length
         },
         execution_time_ms: executionTime,
