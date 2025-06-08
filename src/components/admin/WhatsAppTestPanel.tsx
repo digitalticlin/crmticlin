@@ -21,25 +21,33 @@ export const WhatsAppTestPanel = () => {
         </CardHeader>
       </Card>
 
-      <Tabs defaultValue="post-correction" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+      <Tabs defaultValue="modular" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="modular" className="flex items-center gap-2">
+            <Activity className="h-4 w-4" />
+            Arquitetura V2.0
+          </TabsTrigger>
           <TabsTrigger value="post-correction" className="flex items-center gap-2">
             <Activity className="h-4 w-4" />
             Pós-Correção
           </TabsTrigger>
           <TabsTrigger value="complete" className="flex items-center gap-2">
             <TestTube className="h-4 w-4" />
-            Diagnóstico Completo
+            Diagnóstico V1.0
           </TabsTrigger>
           <TabsTrigger value="connectivity" className="flex items-center gap-2">
             <Monitor className="h-4 w-4" />
-            Teste de Conectividade
+            Conectividade
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
             Configurações
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="modular" className="space-y-6">
+          <ModularTestPanel />
+        </TabsContent>
 
         <TabsContent value="post-correction" className="space-y-6">
           <VPSTestTrigger />

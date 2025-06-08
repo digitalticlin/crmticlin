@@ -8,14 +8,21 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 };
 
-// Configuração VPS baseada na descoberta
 const VPS_CONFIG = {
   baseUrl: 'http://31.97.24.222:3001',
-  headers: { 
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${Deno.env.get('VPS_API_TOKEN') || 'default-token'}`
-  }
+  authToken: Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
+  timeout: 30000
 };
+
+interface InstanceCreateRequest {
+  instanceName: string;
+  companyId?: string;
+  webhookUrl?: string;
+}
+
+interface InstanceDeleteRequest {
+  instanceId: string;
+}
 
 async function authenticateUser(req: Request, supabase: any) {
   const authHeader = req.headers.get('Authorization');
@@ -33,108 +40,108 @@ async function authenticateUser(req: Request, supabase: any) {
   return { success: true, user };
 }
 
-async function makeVPSRequest(endpoint: string, options: RequestInit = {}) {
+async function makeVPSRequest(endpoint: string, method: string = 'GET', payload?: any) {
   const url = `${VPS_CONFIG.baseUrl}${endpoint}`;
-  console.log(`[VPS Request] ${options.method || 'GET'} ${url}`);
+  console.log(`[Instance Manager] ${method} ${url}`);
   
-  const response = await fetch(url, {
-    ...options,
-    headers: { ...VPS_CONFIG.headers, ...options.headers },
-    signal: AbortSignal.timeout(30000)
-  });
+  const options: RequestInit = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${VPS_CONFIG.authToken}`
+    },
+    signal: AbortSignal.timeout(VPS_CONFIG.timeout)
+  };
 
+  if (payload && method !== 'GET') {
+    options.body = JSON.stringify(payload);
+  }
+
+  const response = await fetch(url, options);
   const responseText = await response.text();
-  console.log(`[VPS Request] Response (${response.status}):`, responseText);
+  
+  console.log(`[Instance Manager] Response (${response.status}):`, responseText.substring(0, 200));
 
-  let responseData;
+  let data;
   try {
-    responseData = JSON.parse(responseText);
+    data = JSON.parse(responseText);
   } catch {
-    responseData = { raw: responseText };
+    data = { raw: responseText };
   }
 
-  return { response, data: responseData };
+  return { response, data };
 }
 
-async function createInstanceOnVPS(instanceName: string) {
-  console.log(`[Instance Manager] 🆕 Criando instância na VPS: ${instanceName}`);
+async function createVPSInstance(instanceName: string, webhookUrl?: string) {
+  console.log(`[Instance Manager] 🆕 Criando instância VPS: ${instanceName}`);
+  
+  const payload = {
+    instanceId: instanceName,
+    sessionName: instanceName,
+    webhookUrl: webhookUrl || 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/whatsapp_messaging_service',
+    companyId: 'crm-integration'
+  };
 
+  const { response, data } = await makeVPSRequest('/instance/create', 'POST', payload);
+
+  if (response.ok && data.success) {
+    console.log(`[Instance Manager] ✅ Instância VPS criada:`, data);
+    return {
+      success: true,
+      vpsInstanceId: data.instanceId || instanceName,
+      vpsResponse: data
+    };
+  } else {
+    throw new Error(data.message || data.error || 'Falha ao criar instância na VPS');
+  }
+}
+
+async function deleteVPSInstance(vpsInstanceId: string) {
+  console.log(`[Instance Manager] 🗑️ Deletando instância VPS: ${vpsInstanceId}`);
+  
+  const payload = { instanceId: vpsInstanceId };
+  const { response, data } = await makeVPSRequest('/instance/delete', 'POST', payload);
+
+  if (response.ok) {
+    console.log(`[Instance Manager] ✅ Instância VPS deletada`);
+    return { success: true };
+  } else {
+    console.warn(`[Instance Manager] ⚠️ Erro ao deletar VPS:`, data);
+    return { success: false, error: data.message || 'Falha ao deletar da VPS' };
+  }
+}
+
+async function syncVPSInstances(supabase: any, userId: string) {
+  console.log(`[Instance Manager] 🔄 Sincronizando instâncias`);
+  
   try {
-    console.log(`[Instance Manager] Usando endpoint: POST /instance/create`);
+    const { response, data } = await makeVPSRequest('/instances', 'GET');
     
-    const { response, data } = await makeVPSRequest('/instance/create', {
-      method: 'POST',
-      body: JSON.stringify({ 
-        instanceId: instanceName, 
-        sessionName: instanceName 
-      })
-    });
-
-    if (response.ok && data.success) {
-      console.log(`[Instance Manager] ✅ Sucesso:`, data);
-      return {
-        success: true,
-        vpsInstanceId: data.instanceId || instanceName,
-        vpsResponse: data
-      };
-    } else {
-      throw new Error(data.message || 'Falha ao criar instância na VPS');
+    if (!response.ok) {
+      throw new Error('Falha ao obter instâncias da VPS');
     }
-  } catch (error) {
-    console.error(`[Instance Manager] ❌ Erro na criação:`, error.message);
-    throw new Error(`Falha ao criar instância: ${error.message}`);
-  }
-}
 
-async function getQRCodeFromVPS(vpsInstanceId: string) {
-  console.log(`[Instance Manager] 🔳 Obtendo QR Code da VPS: ${vpsInstanceId}`);
+    const vpsInstances = data.instances || data || [];
+    console.log(`[Instance Manager] 📊 ${vpsInstances.length} instâncias encontradas na VPS`);
 
-  try {
-    // CORREÇÃO: Usar apenas GET sem payload
-    const { response, data } = await makeVPSRequest(`/instance/${vpsInstanceId}/qr`, {
-      method: 'GET'
-    });
+    const { count } = await supabase
+      .from('whatsapp_instances')
+      .select('*', { count: 'exact', head: true })
+      .eq('created_by_user_id', userId);
 
-    if (response.ok && data.success) {
-      console.log(`[Instance Manager] ✅ QR Code obtido:`, {
-        hasQRCode: !!data.qrCode,
-        status: data.status,
-        qrLength: data.qrCode ? data.qrCode.length : 0
-      });
-
-      if (data.qrCode) {
-        // CORREÇÃO: Converter string QR para Base64 se necessário
-        let qrCodeBase64 = data.qrCode;
-        
-        // Se não for Base64, assumir que é string QR e converter
-        if (!data.qrCode.startsWith('data:image/')) {
-          console.log(`[Instance Manager] 🔄 Convertendo string QR para Base64`);
-          
-          // Simular conversão para Base64 - na verdade a VPS deveria fazer isso
-          qrCodeBase64 = `data:image/png;base64,${btoa(data.qrCode)}`;
-        }
-
-        return {
-          success: true,
-          qrCode: qrCodeBase64,
-          vpsResponse: data
-        };
-      } else {
-        return {
-          success: false,
-          waiting: true,
-          message: 'QR Code ainda não disponível'
-        };
+    return {
+      success: true,
+      summary: {
+        vpsInstances: vpsInstances.length,
+        dbInstances: count || 0,
+        synced: true
       }
-    } else {
-      throw new Error(data.message || 'Falha ao obter QR Code da VPS');
-    }
-  } catch (error) {
-    console.error(`[Instance Manager] ❌ Erro ao obter QR Code:`, error.message);
+    };
+  } catch (error: any) {
+    console.error(`[Instance Manager] ❌ Erro na sincronização:`, error);
     return {
       success: false,
-      waiting: true,
-      message: 'QR Code ainda sendo gerado'
+      error: error.message
     };
   }
 }
@@ -152,7 +159,7 @@ serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
-    console.log(`[Instance Manager] 🎯 Processando ação: ${action}`);
+    console.log(`[Instance Manager] 🎯 Ação: ${action}`);
 
     // Autenticar usuário
     const authResult = await authenticateUser(req, supabase);
@@ -167,7 +174,7 @@ serve(async (req) => {
 
     switch (action) {
       case 'create_instance': {
-        const { instanceName } = body;
+        const { instanceName, companyId, webhookUrl }: InstanceCreateRequest = body;
         
         if (!instanceName) {
           return new Response(
@@ -176,12 +183,10 @@ serve(async (req) => {
           );
         }
 
-        console.log(`[Instance Manager] 📱 ETAPA 1: Criando instância ${instanceName}`);
-
-        // Criar na VPS primeiro
-        const vpsResult = await createInstanceOnVPS(instanceName);
+        // Criar na VPS
+        const vpsResult = await createVPSInstance(instanceName, webhookUrl);
         
-        // Salvar no banco de dados
+        // Salvar no banco
         const { data: dbInstance, error: dbError } = await supabase
           .from('whatsapp_instances')
           .insert({
@@ -191,14 +196,15 @@ serve(async (req) => {
             web_status: 'waiting_qr',
             connection_type: 'web',
             created_by_user_id: user.id,
-            company_id: null
+            company_id: companyId || null,
+            webhook_url: webhookUrl
           })
           .select()
           .single();
 
         if (dbError) {
           console.error('[Instance Manager] ❌ Erro no banco:', dbError);
-          throw new Error(`Erro no banco de dados: ${dbError.message}`);
+          throw new Error(`Erro no banco: ${dbError.message}`);
         }
 
         console.log(`[Instance Manager] ✅ Instância criada - DB ID: ${dbInstance.id}`);
@@ -212,17 +218,15 @@ serve(async (req) => {
               instance_name: instanceName,
               vps_instance_id: vpsResult.vpsInstanceId,
               connection_status: 'created',
-              web_status: 'waiting_qr',
-              created_at: dbInstance.created_at
-            },
-            vpsDetails: vpsResult
+              web_status: 'waiting_qr'
+            }
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      case 'generate_qr': {
-        const { instanceId } = body;
+      case 'delete_instance': {
+        const { instanceId }: InstanceDeleteRequest = body;
         
         if (!instanceId) {
           return new Response(
@@ -231,9 +235,7 @@ serve(async (req) => {
           );
         }
 
-        console.log(`[Instance Manager] 🔳 ETAPA 2: Gerando QR Code para ${instanceId}`);
-
-        // Buscar instância no banco
+        // Buscar instância
         const { data: instance, error: fetchError } = await supabase
           .from('whatsapp_instances')
           .select('*')
@@ -248,45 +250,52 @@ serve(async (req) => {
           );
         }
 
-        // Obter QR Code da VPS
-        const qrResult = await getQRCodeFromVPS(instance.vps_instance_id);
-        
-        if (qrResult.success) {
-          // Atualizar instância com QR Code
-          const { error: updateError } = await supabase
-            .from('whatsapp_instances')
-            .update({
-              qr_code: qrResult.qrCode,
-              web_status: 'waiting_scan',
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', instanceId);
-
-          if (updateError) {
-            console.error('[Instance Manager] ❌ Erro ao atualizar QR:', updateError);
-          }
-
-          console.log(`[Instance Manager] ✅ QR Code gerado e salvo`);
-
-          return new Response(
-            JSON.stringify({
-              success: true,
-              message: 'QR Code gerado com sucesso',
-              qrCode: qrResult.qrCode,
-              instanceId: instanceId
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        } else {
-          return new Response(
-            JSON.stringify({
-              success: false,
-              waiting: qrResult.waiting,
-              message: qrResult.message || 'QR Code não disponível ainda'
-            }),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+        // Deletar da VPS se existir
+        if (instance.vps_instance_id) {
+          await deleteVPSInstance(instance.vps_instance_id);
         }
+
+        // Deletar do banco
+        const { error: deleteError } = await supabase
+          .from('whatsapp_instances')
+          .delete()
+          .eq('id', instanceId)
+          .eq('created_by_user_id', user.id);
+
+        if (deleteError) {
+          throw new Error(deleteError.message);
+        }
+
+        return new Response(
+          JSON.stringify({ success: true, message: 'Instância deletada com sucesso' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'sync_instances': {
+        const syncResult = await syncVPSInstances(supabase, user.id);
+        
+        return new Response(
+          JSON.stringify(syncResult),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      case 'list_instances': {
+        const { data: instances, error } = await supabase
+          .from('whatsapp_instances')
+          .select('*')
+          .eq('created_by_user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        return new Response(
+          JSON.stringify({ success: true, instances }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
       }
 
       default:
@@ -297,7 +306,7 @@ serve(async (req) => {
     }
 
   } catch (error: any) {
-    console.error('[Instance Manager] ❌ Erro geral:', error);
+    console.error('[Instance Manager] ❌ Erro:', error);
     
     return new Response(
       JSON.stringify({
@@ -307,10 +316,7 @@ serve(async (req) => {
       }),
       { 
         status: 500,
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
   }
