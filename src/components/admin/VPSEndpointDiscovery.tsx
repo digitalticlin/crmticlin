@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -109,8 +110,8 @@ export const VPSEndpointDiscoveryPanel = () => {
               ✅ Endpoints Funcionais Confirmados
             </h4>
             <div className="space-y-2">
-              {Object.entries(correctEndpoints).map(([type, endpoint]) => (
-                <div key={type} className="flex items-center justify-between text-sm">
+              {Object.entries(correctEndpoints).map(([type, endpoint], index) => (
+                <div key={index} className="flex items-center justify-between text-sm">
                   <span className="font-medium text-green-700 capitalize">
                     {type.replace(/([A-Z])/g, ' $1').trim()}:
                   </span>
@@ -167,8 +168,8 @@ export const VPSEndpointDiscoveryPanel = () => {
                     ✅ Endpoints Funcionais Descobertos
                   </h4>
                   <div className="space-y-2">
-                    {Object.entries(discoveryResult.workingEndpoints).map(([type, endpoint]) => (
-                      <div key={type} className="flex items-center justify-between text-sm">
+                    {Object.entries(discoveryResult.workingEndpoints).map(([type, endpoint], index) => (
+                      <div key={index} className="flex items-center justify-between text-sm">
                         <span className="font-medium text-green-700 capitalize">
                           {type.replace(/([A-Z])/g, ' $1').trim()}:
                         </span>
@@ -241,7 +242,7 @@ export const VPSEndpointDiscoveryPanel = () => {
             <p><strong>ℹ️ Status da Correção:</strong></p>
             <p>✅ <strong>Endpoints Corrigidos:</strong> Todos os serviços foram atualizados para usar os endpoints corretos</p>
             <p>✅ <strong>Webhook Global:</strong> VPS já possui webhook configurado globalmente</p>
-            <p>✅ <strong>QR Code:</strong> Agora usa GET /instance/{{id}}/qr que realmente funciona</p>
+            <p>✅ <strong>QR Code:</strong> Agora usa GET /instance/{{instanceId}}/qr que realmente funciona</p>
             <p>🧹 <strong>Limpeza:</strong> 26 instâncias órfãs podem ser removidas com segurança</p>
           </div>
         </CardContent>
