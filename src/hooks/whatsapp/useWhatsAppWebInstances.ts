@@ -20,6 +20,7 @@ export interface WhatsAppWebInstance {
   updated_at?: string;
   profile_name?: string;
   profile_pic_url?: string;
+  history_imported?: boolean;
 }
 
 export const useWhatsAppWebInstances = () => {

@@ -1301,6 +1301,7 @@ export type Database = {
           created_by_user_id: string | null
           date_connected: string | null
           date_disconnected: string | null
+          history_imported: boolean | null
           id: string
           instance_id: string | null
           instance_name: string
@@ -1325,6 +1326,7 @@ export type Database = {
           created_by_user_id?: string | null
           date_connected?: string | null
           date_disconnected?: string | null
+          history_imported?: boolean | null
           id?: string
           instance_id?: string | null
           instance_name: string
@@ -1349,6 +1351,7 @@ export type Database = {
           created_by_user_id?: string | null
           date_connected?: string | null
           date_disconnected?: string | null
+          history_imported?: boolean | null
           id?: string
           instance_id?: string | null
           instance_name?: string

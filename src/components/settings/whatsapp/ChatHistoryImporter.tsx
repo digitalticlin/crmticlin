@@ -10,9 +10,17 @@ interface ChatHistoryImporterProps {
   instanceId: string;
   instanceName: string;
   isConnected: boolean;
+  historyImported: boolean;
+  onImportComplete: () => void;
 }
 
-export const ChatHistoryImporter = ({ instanceId, instanceName, isConnected }: ChatHistoryImporterProps) => {
+export const ChatHistoryImporter = ({ 
+  instanceId, 
+  instanceName, 
+  isConnected, 
+  historyImported,
+  onImportComplete 
+}: ChatHistoryImporterProps) => {
   const [isImporting, setIsImporting] = useState(false);
   const [importResult, setImportResult] = useState<any>(null);
 
@@ -47,8 +55,21 @@ export const ChatHistoryImporter = ({ instanceId, instanceName, isConnected }: C
       setImportResult(data);
 
       if (data.success) {
+        // Marcar como importado no banco
+        const { error: updateError } = await supabase
+          .from('whatsapp_instances')
+          .update({ history_imported: true })
+          .eq('id', instanceId);
+
+        if (updateError) {
+          console.error('Erro ao marcar instância como importada:', updateError);
+        }
+
         const { contactsImported, messagesImported } = data.summary || {};
         toast.success(`Histórico importado! ${contactsImported || 0} contatos e ${messagesImported || 0} mensagens.`);
+        
+        // Notificar componente pai para atualizar estado
+        onImportComplete();
       } else {
         toast.error(`Erro na importação: ${data.error || 'Erro desconhecido'}`);
       }
@@ -75,6 +96,23 @@ export const ChatHistoryImporter = ({ instanceId, instanceName, isConnected }: C
     );
   }
 
+  // Se já foi importado, mostrar apenas informação
+  if (historyImported) {
+    return (
+      <Card className="bg-green-50 border-green-200">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 text-green-700">
+            <CheckCircle className="h-4 w-4" />
+            <span className="text-sm font-medium">Histórico já importado</span>
+          </div>
+          <p className="text-xs text-green-600 mt-1">
+            As mensagens agora aparecem em tempo real no chat
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -87,6 +125,7 @@ export const ChatHistoryImporter = ({ instanceId, instanceName, isConnected }: C
         <div className="text-sm text-gray-600">
           <p>📋 Esta função irá importar todos os contatos e as últimas 50 mensagens de cada chat.</p>
           <p>🎯 Os leads serão criados automaticamente e aparecerão na página de chat.</p>
+          <p className="text-amber-600 font-medium">⚠️ Use apenas uma vez - após isso as mensagens aparecerão em tempo real.</p>
         </div>
 
         <Button

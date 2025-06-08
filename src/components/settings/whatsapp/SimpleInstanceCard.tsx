@@ -35,6 +35,7 @@ export const SimpleInstanceCard = ({
 }: SimpleInstanceCardProps) => {
   const [showImporter, setShowImporter] = useState(false);
   const [showHistoryImporter, setShowHistoryImporter] = useState(false);
+  const [localHistoryImported, setLocalHistoryImported] = useState(instance.history_imported || false);
 
   const getStatusInfo = () => {
     const status = instance.connection_status?.toLowerCase() || 'unknown';
@@ -77,6 +78,11 @@ export const SimpleInstanceCard = ({
   const statusInfo = getStatusInfo();
   const StatusIcon = statusInfo.icon;
   const isConnected = ['ready', 'connected'].includes(instance.connection_status?.toLowerCase() || '');
+
+  const handleImportComplete = () => {
+    setLocalHistoryImported(true);
+    setShowHistoryImporter(false);
+  };
 
   return (
     <Card className="bg-white border-l-4 border-l-green-500">
@@ -165,34 +171,51 @@ export const SimpleInstanceCard = ({
               </CollapsibleContent>
             </Collapsible>
 
-            {/* Importação de Histórico Completo */}
-            <Collapsible open={showHistoryImporter} onOpenChange={setShowHistoryImporter}>
-              <CollapsibleTrigger asChild>
-                <Button
-                  variant="outline" 
-                  className="w-full flex items-center justify-between bg-green-50 border-green-200 hover:bg-green-100"
-                  size="sm"
-                >
-                  <div className="flex items-center gap-2">
-                    <History className="h-4 w-4 text-green-600" />
-                    <span className="text-green-700">Importar Histórico Completo</span>
-                  </div>
-                  {showHistoryImporter ? (
-                    <ChevronUp className="h-4 w-4 text-green-600" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4 text-green-600" />
-                  )}
-                </Button>
-              </CollapsibleTrigger>
-              
-              <CollapsibleContent className="mt-3">
-                <ChatHistoryImporter
-                  instanceId={instance.id}
-                  instanceName={instance.instance_name}
-                  isConnected={isConnected}
-                />
-              </CollapsibleContent>
-            </Collapsible>
+            {/* Importação de Histórico Completo - só mostrar se não foi importado */}
+            {!localHistoryImported && (
+              <Collapsible open={showHistoryImporter} onOpenChange={setShowHistoryImporter}>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="outline" 
+                    className="w-full flex items-center justify-between bg-green-50 border-green-200 hover:bg-green-100"
+                    size="sm"
+                  >
+                    <div className="flex items-center gap-2">
+                      <History className="h-4 w-4 text-green-600" />
+                      <span className="text-green-700">Importar Histórico Completo</span>
+                    </div>
+                    {showHistoryImporter ? (
+                      <ChevronUp className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-green-600" />
+                    )}
+                  </Button>
+                </CollapsibleTrigger>
+                
+                <CollapsibleContent className="mt-3">
+                  <ChatHistoryImporter
+                    instanceId={instance.id}
+                    instanceName={instance.instance_name}
+                    isConnected={isConnected}
+                    historyImported={localHistoryImported}
+                    onImportComplete={handleImportComplete}
+                  />
+                </CollapsibleContent>
+              </Collapsible>
+            )}
+
+            {/* Mostrar mensagem quando histórico já foi importado */}
+            {localHistoryImported && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2 text-green-700">
+                  <CheckCircle className="h-4 w-4" />
+                  <span className="text-sm font-medium">Histórico importado</span>
+                </div>
+                <p className="text-xs text-green-600 mt-1">
+                  Mensagens agora aparecem em tempo real no chat
+                </p>
+              </div>
+            )}
           </div>
         )}
       </CardContent>
