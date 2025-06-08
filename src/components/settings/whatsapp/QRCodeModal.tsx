@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { QrCode } from "lucide-react";
+import { QrCode, Loader2 } from "lucide-react";
 import { QRCodeContent } from "./modal/QRCodeContent";
 import { QRCodeLoading } from "./modal/QRCodeLoading";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ interface QRCodeModalProps {
   instanceName: string;
   instanceId: string;
   onRefreshQRCode: (instanceId: string) => Promise<{ qrCode?: string } | null>;
+  isWaitingForQR?: boolean;
 }
 
 export const QRCodeModal = ({
@@ -22,7 +23,8 @@ export const QRCodeModal = ({
   qrCode: initialQrCode,
   instanceName,
   instanceId,
-  onRefreshQRCode
+  onRefreshQRCode,
+  isWaitingForQR = false
 }: QRCodeModalProps) => {
   const [qrCode, setQrCode] = useState<string | null>(initialQrCode);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -31,11 +33,11 @@ export const QRCodeModal = ({
   const [maxAttempts] = useState(15);
 
   useEffect(() => {
-    if (isOpen && !qrCode && !isPolling && instanceId) {
+    if (isOpen && !qrCode && !isPolling && instanceId && !isWaitingForQR) {
       console.log('[QR Modal] 🚀 Iniciando polling automático para:', instanceName);
       startPolling();
     }
-  }, [isOpen, instanceId]);
+  }, [isOpen, instanceId, isWaitingForQR]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -141,7 +143,20 @@ export const QRCodeModal = ({
           </DialogTitle>
         </DialogHeader>
         
-        {qrCode && !isPolling ? (
+        {/* ESTADO: Aguardando QR Code (fluxo automático) */}
+        {isWaitingForQR && !qrCode ? (
+          <div className="text-center py-8">
+            <div className="bg-blue-50 p-6 rounded-lg border border-blue-200 mb-4">
+              <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-blue-600" />
+              <p className="text-sm font-medium text-blue-900 mb-2">
+                Gerando QR Code...
+              </p>
+              <p className="text-xs text-blue-700">
+                Aguarde enquanto preparamos sua conexão WhatsApp
+              </p>
+            </div>
+          </div>
+        ) : qrCode && !isPolling ? (
           <QRCodeContent 
             qrCode={qrCode} 
             isRefreshing={isRefreshing} 

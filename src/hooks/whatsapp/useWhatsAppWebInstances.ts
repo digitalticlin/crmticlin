@@ -48,9 +48,6 @@ export const useWhatsAppWebInstances = () => {
     setSelectedInstanceName('');
   };
 
-  // CORREÇÃO COMPLETA: QR Code polling otimizado - removido para evitar sobrecarga
-  // O polling agora é feito apenas via modal quando necessário
-
   return {
     instances,
     isLoading,
@@ -74,8 +71,9 @@ export const useWhatsAppWebInstances = () => {
     },
     deleteInstance,
     refreshQRCode: async (instanceId: string) => {
-      console.log('[Hook] 🔄 CORREÇÃO COMPLETA - Refreshing QR Code:', instanceId);
-      const result = await refreshInstanceQRCode(instanceId);
+      console.log('[Hook] 🔄 CORREÇÃO COMPLETA - Refreshing QR Code via whatsapp_qr_service:', instanceId);
+      // CORREÇÃO: Usar whatsapp_qr_service para QR Code
+      const result = await refreshQRCode(instanceId);
       return result;
     },
     closeQRModal
