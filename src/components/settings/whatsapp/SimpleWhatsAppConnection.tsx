@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +14,6 @@ export const SimpleWhatsAppConnection = () => {
   const [selectedQRCode, setSelectedQRCode] = useState<string | null>(null);
   const [selectedInstanceName, setSelectedInstanceName] = useState<string>('');
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>('');
-  const [autoQRPollingId, setAutoQRPollingId] = useState<string | null>(null);
 
   const { user } = useAuth();
   
@@ -28,13 +26,12 @@ export const SimpleWhatsAppConnection = () => {
     generateIntelligentInstanceName
   } = useWhatsAppWebInstances();
 
-  // Polling automático para QR Code após criação da instância
+  // Polling automático para QR Code após criação da instância  
   const startAutoQRPolling = async (instanceId: string, instanceName: string) => {
     console.log('[Auto QR] 🚀 Iniciando polling automático para:', instanceName);
-    setAutoQRPollingId(instanceId);
     
     let attempts = 0;
-    const maxAttempts = 20; // 60 segundos (3s * 20)
+    const maxAttempts = 30; // 90 segundos (3s * 30)
     
     const pollInterval = setInterval(async () => {
       attempts++;
@@ -54,7 +51,6 @@ export const SimpleWhatsAppConnection = () => {
           
           // Parar polling
           clearInterval(pollInterval);
-          setAutoQRPollingId(null);
           
           toast.success(`QR Code pronto para "${instanceName}"! Escaneie para conectar.`);
           return;
@@ -63,7 +59,6 @@ export const SimpleWhatsAppConnection = () => {
         if (attempts >= maxAttempts) {
           console.log('[Auto QR] ⏰ Timeout do polling automático');
           clearInterval(pollInterval);
-          setAutoQRPollingId(null);
           toast.warning(`QR Code não gerado automaticamente para "${instanceName}". Tente gerar manualmente.`);
         }
         
@@ -71,7 +66,6 @@ export const SimpleWhatsAppConnection = () => {
         console.error('[Auto QR] ❌ Erro no polling:', error);
         if (attempts >= maxAttempts) {
           clearInterval(pollInterval);
-          setAutoQRPollingId(null);
           toast.error(`Erro no polling automático: ${error.message}`);
         }
       }
@@ -89,15 +83,17 @@ export const SimpleWhatsAppConnection = () => {
       const intelligentName = await generateIntelligentInstanceName(user.email);
       console.log('[Simple Connection] 🎯 Creating instance with intelligent name:', intelligentName);
       
-      const createdInstance = await createInstance(intelligentName);
+      const createdInstanceResponse = await createInstance(intelligentName);
       
-      if (createdInstance) {
+      // CORREÇÃO: Acessar as propriedades através do objeto instance
+      if (createdInstanceResponse && createdInstanceResponse.instance) {
+        const instanceData = createdInstanceResponse.instance;
         toast.success(`Instância "${intelligentName}" criada! Aguardando QR Code automático...`);
         
         // Iniciar polling automático para QR Code
         setTimeout(() => {
-          startAutoQRPolling(createdInstance.id, createdInstance.instance_name);
-        }, 5000); // Aguardar 5s para VPS estar pronta
+          startAutoQRPolling(instanceData.id, instanceData.instance_name);
+        }, 8000); // Aguardar 8s para VPS estar pronta
       }
     } catch (error: any) {
       toast.error(`Erro ao criar instância: ${error.message}`);
@@ -129,11 +125,6 @@ export const SimpleWhatsAppConnection = () => {
   };
 
   const handleDeleteInstance = async (instanceId: string) => {
-    // Parar polling se estiver ativo para esta instância
-    if (autoQRPollingId === instanceId) {
-      setAutoQRPollingId(null);
-    }
-    
     await deleteInstance(instanceId);
   };
 
@@ -163,6 +154,8 @@ export const SimpleWhatsAppConnection = () => {
     setSelectedInstanceName('');
     setSelectedInstanceId('');
   };
+
+  
 
   if (isLoading) {
     return (
