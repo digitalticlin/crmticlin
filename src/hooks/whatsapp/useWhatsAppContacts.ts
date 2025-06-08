@@ -5,7 +5,7 @@ import { Contact } from '@/types/chat';
 import { WhatsAppWebInstance } from './useWhatsAppWebInstances';
 import { supabase } from "@/integrations/supabase/client";
 import { useFakeContacts } from './chat/useFakeContacts';
-import { useContactSorting } from './chat/useContactSorting';
+import { useLeadSorting } from './chat/useLeadSorting';
 
 export const useWhatsAppContacts = (
   activeInstance: WhatsAppWebInstance | null,
@@ -15,13 +15,13 @@ export const useWhatsAppContacts = (
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   
   const { getFakeContacts } = useFakeContacts();
-  const { sortContacts } = useContactSorting();
+  const { sortLeadsByRecentMessage } = useLeadSorting();
 
   const fetchContacts = useCallback(async () => {
     if (!activeInstance || !companyId) {
       // Se não há instância ativa, mostrar contatos fake para demonstração
       const fakeContacts = getFakeContacts();
-      const sortedContacts = sortContacts(fakeContacts);
+      const sortedContacts = sortLeadsByRecentMessage(fakeContacts);
       setContacts(sortedContacts);
       return;
     }
@@ -40,7 +40,7 @@ export const useWhatsAppContacts = (
           )
         `)
         .eq('whatsapp_number_id', activeInstance.id)
-        .eq('company_id', companyId)
+        .eq('created_by_user_id', companyId) // CORREÇÃO: usar created_by_user_id
         .order('last_message_time', { ascending: false, nullsFirst: false });
 
       if (error) throw error;
@@ -60,12 +60,9 @@ export const useWhatsAppContacts = (
           tags: leadTags,
           lastMessage: lead.last_message || '',
           lastMessageTime: lead.last_message_time 
-            ? new Date(lead.last_message_time).toLocaleTimeString('pt-BR', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
-              })
+            ? new Date(lead.last_message_time).toISOString()
             : '',
-          unreadCount: lead.unread_count || 0,
+          unreadCount: lead.unread_count && lead.unread_count > 0 ? lead.unread_count : undefined,
           avatar: '',
           isOnline: Math.random() > 0.7 // Simulação básica de status online
         };
@@ -75,24 +72,25 @@ export const useWhatsAppContacts = (
       if (mappedContacts.length === 0) {
         const fakeContacts = getFakeContacts();
         const allContacts = [...mappedContacts, ...fakeContacts];
-        const sortedContacts = sortContacts(allContacts);
+        const sortedContacts = sortLeadsByRecentMessage(allContacts);
         setContacts(sortedContacts);
       } else {
-        const sortedContacts = sortContacts(mappedContacts);
+        // Aplicar ordenação por mensagem mais recente
+        const sortedContacts = sortLeadsByRecentMessage(mappedContacts);
         setContacts(sortedContacts);
       }
 
-      console.log('[WhatsApp Contacts FASE 3] ✅ Contacts fetched and sorted:', contacts.length);
+      console.log('[WhatsApp Contacts FASE 3] ✅ Contacts fetched and sorted by recent message:', contacts.length);
     } catch (error) {
       console.error('[WhatsApp Contacts FASE 3] ❌ Error fetching contacts:', error);
       // Em caso de erro, mostrar pelo menos os contatos fake
       const fakeContacts = getFakeContacts();
-      const sortedContacts = sortContacts(fakeContacts);
+      const sortedContacts = sortLeadsByRecentMessage(fakeContacts);
       setContacts(sortedContacts);
     } finally {
       setIsLoadingContacts(false);
     }
-  }, [activeInstance, companyId, sortContacts, getFakeContacts]);
+  }, [activeInstance, companyId, sortLeadsByRecentMessage, getFakeContacts]);
 
   return {
     contacts,

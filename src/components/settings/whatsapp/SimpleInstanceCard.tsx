@@ -12,11 +12,13 @@ import {
   AlertTriangle,
   Download,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  History
 } from "lucide-react";
 import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChatImporter } from "./ChatImporter";
+import { ChatHistoryImporter } from "./ChatHistoryImporter";
 
 interface SimpleInstanceCardProps {
   instance: WhatsAppWebInstance;
@@ -32,6 +34,7 @@ export const SimpleInstanceCard = ({
   onRefreshQRCode 
 }: SimpleInstanceCardProps) => {
   const [showImporter, setShowImporter] = useState(false);
+  const [showHistoryImporter, setShowHistoryImporter] = useState(false);
 
   const getStatusInfo = () => {
     const status = instance.connection_status?.toLowerCase() || 'unknown';
@@ -130,35 +133,67 @@ export const SimpleInstanceCard = ({
           </Button>
         </div>
 
-        {/* Seção de Importação de Chat para instâncias conectadas */}
+        {/* Seções de Importação para instâncias conectadas */}
         {isConnected && (
-          <Collapsible open={showImporter} onOpenChange={setShowImporter}>
-            <CollapsibleTrigger asChild>
-              <Button
-                variant="outline" 
-                className="w-full flex items-center justify-between"
-                size="sm"
-              >
-                <div className="flex items-center gap-2">
-                  <Download className="h-4 w-4" />
-                  Importar Chats
-                </div>
-                {showImporter ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </Button>
-            </CollapsibleTrigger>
-            
-            <CollapsibleContent className="mt-3">
-              <ChatImporter
-                instanceId={instance.id}
-                instanceName={instance.instance_name}
-                isConnected={isConnected}
-              />
-            </CollapsibleContent>
-          </Collapsible>
+          <div className="space-y-2">
+            {/* Importação de Chat Individual */}
+            <Collapsible open={showImporter} onOpenChange={setShowImporter}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="outline" 
+                  className="w-full flex items-center justify-between"
+                  size="sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <Download className="h-4 w-4" />
+                    Importar Chat Individual
+                  </div>
+                  {showImporter ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+              
+              <CollapsibleContent className="mt-3">
+                <ChatImporter
+                  instanceId={instance.id}
+                  instanceName={instance.instance_name}
+                  isConnected={isConnected}
+                />
+              </CollapsibleContent>
+            </Collapsible>
+
+            {/* Importação de Histórico Completo */}
+            <Collapsible open={showHistoryImporter} onOpenChange={setShowHistoryImporter}>
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="outline" 
+                  className="w-full flex items-center justify-between bg-green-50 border-green-200 hover:bg-green-100"
+                  size="sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <History className="h-4 w-4 text-green-600" />
+                    <span className="text-green-700">Importar Histórico Completo</span>
+                  </div>
+                  {showHistoryImporter ? (
+                    <ChevronUp className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-green-600" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+              
+              <CollapsibleContent className="mt-3">
+                <ChatHistoryImporter
+                  instanceId={instance.id}
+                  instanceName={instance.instance_name}
+                  isConnected={isConnected}
+                />
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
         )}
       </CardContent>
     </Card>
