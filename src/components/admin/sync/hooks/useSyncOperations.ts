@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,19 +13,20 @@ export const useSyncOperations = (addLog: (message: string) => void) => {
     setIsRunning(true);
     setResult(null);
     
-    addLog("🚀 Iniciando sincronização global de instâncias...");
-    addLog("📡 Esta operação pode levar alguns segundos...");
+    addLog("🚀 Iniciando sincronização GLOBAL COMPLETA VPS ↔ Supabase...");
+    addLog("📡 Esta operação sincroniza TODAS as instâncias (incluindo órfãs)...");
 
     try {
       addLog("🔐 Verificando autenticação...");
       
+      // **CORREÇÃO**: Chamar a nova ação sync_all_instances
       const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
         body: {
-          action: 'sync_all_instances'
+          action: 'sync_all_instances' // **NOVA AÇÃO**: Sincronização global completa
         }
       });
 
-      addLog("📥 Resposta recebida do servidor");
+      addLog("📥 Resposta recebida do servidor global");
 
       if (error) {
         addLog(`❌ Erro na requisição: ${error.message}`);
@@ -34,75 +34,70 @@ export const useSyncOperations = (addLog: (message: string) => void) => {
       }
 
       if (data && data.success) {
-        const summary = data.data || data.summary || {};
+        const summary = data.summary || {};
+        const results = data.results || {};
         
-        addLog(`✅ Sincronização concluída com sucesso!`);
-        addLog(`🆕 Instâncias criadas: ${summary.createdCount || summary.created || 0}`);
-        addLog(`🔄 Instâncias atualizadas: ${summary.updatedCount || summary.updated || 0}`);
-        addLog(`📊 Total VPS: ${summary.vpsInstancesCount || summary.total_vps_instances || 0}`);
-        addLog(`💾 Total Supabase: ${summary.supabaseInstancesCount || summary.total_db_instances || 0}`);
+        addLog(`✅ Sincronização GLOBAL concluída com sucesso!`);
+        addLog(`📊 VPS: ${summary.vps_instances || 0} instâncias encontradas`);
+        addLog(`📊 Supabase: ${summary.supabase_instances || 0} instâncias existentes`);
+        addLog(`🆕 Órfãs importadas: ${results.added || 0} (created_by_user_id: NULL)`);
+        addLog(`🔄 Status atualizados: ${results.updated || 0}`);
+        addLog(`🔗 Vínculos preservados: ${results.preserved_links || 0}`);
+        addLog(`⚰️ Instâncias mortas marcadas: ${results.marked_dead || 0}`);
         
-        if (summary.errorCount && summary.errorCount > 0) {
-          addLog(`⚠️ Erros encontrados: ${summary.errorCount}`);
-        }
-
-        if (summary.syncLog && Array.isArray(summary.syncLog)) {
-          addLog("📋 Detalhes da sincronização:");
-          summary.syncLog.forEach((logEntry: string) => {
-            addLog(`  ${logEntry}`);
+        if (results.errors && results.errors.length > 0) {
+          addLog(`⚠️ Erros encontrados: ${results.errors.length}`);
+          results.errors.forEach((error: any, index: number) => {
+            addLog(`  ${index + 1}. ${error.vpsId || 'unknown'}: ${error.error}`);
           });
         }
+
+        addLog(`⏱️ Tempo de execução: ${data.execution_time_ms || 0}ms`);
         
         setResult({
           success: true,
           data: {
-            syncId: summary.syncId || 'unknown',
-            syncedCount: summary.syncedCount || (summary.updatedCount + summary.createdCount) || 0,
-            createdCount: summary.createdCount || summary.created || 0,
-            updatedCount: summary.updatedCount || summary.updated || 0,
-            errorCount: summary.errorCount || 0,
-            vpsInstancesCount: summary.vpsInstancesCount || summary.total_vps_instances || 0,
-            supabaseInstancesCount: summary.supabaseInstancesCount || summary.total_db_instances || 0,
-            syncLog: summary.syncLog || [],
-            message: data.message || summary.message || 'Sincronização global executada com sucesso'
+            syncId: data.syncId || 'global-sync',
+            syncedCount: (results.added || 0) + (results.updated || 0),
+            createdCount: results.added || 0,
+            updatedCount: results.updated || 0,
+            errorCount: results.errors?.length || 0,
+            vpsInstancesCount: summary.vps_instances || 0,
+            supabaseInstancesCount: summary.supabase_instances || 0,
+            syncLog: [`Órfãs: ${results.added}`, `Atualizadas: ${results.updated}`, `Preservadas: ${results.preserved_links}`],
+            message: `Sincronização global completa! ${results.added || 0} órfãs importadas, ${results.updated || 0} atualizadas`
           }
         });
 
-        const successMessage = summary.createdCount > 0 
-          ? `Sincronização concluída! ${summary.createdCount} instâncias órfãs adicionadas ao Supabase`
-          : `Sincronização concluída! ${summary.updatedCount || 0} instâncias atualizadas`;
+        const successMessage = results.added > 0 
+          ? `Sincronização GLOBAL concluída! ${results.added} órfãs importadas, ${results.updated} atualizadas`
+          : `Sincronização GLOBAL concluída! ${results.updated || 0} instâncias atualizadas`;
         
         toast.success(successMessage);
       } else {
-        const errorMessage = data?.error || 'Erro desconhecido na sincronização';
-        addLog(`❌ Falha na sincronização: ${errorMessage}`);
-        
-        if (data?.details) {
-          addLog("🔍 Dados de debug do erro:");
-          addLog(`   VPS URL: ${data.details.vps_url || 'N/A'}`);
-          addLog(`   Headers: ${JSON.stringify(data.details.vps_headers || {})}`);
-        }
+        const errorMessage = data?.error || 'Erro desconhecido na sincronização global';
+        addLog(`❌ Falha na sincronização global: ${errorMessage}`);
         
         setResult({
           success: false,
           error: errorMessage
         });
         
-        toast.error(`Falha na sincronização: ${errorMessage}`);
+        toast.error(`Falha na sincronização global: ${errorMessage}`);
       }
     } catch (error: any) {
       const errorMessage = error.message || 'Erro inesperado';
-      addLog(`💥 Erro inesperado: ${errorMessage}`);
+      addLog(`💥 Erro inesperado na sincronização global: ${errorMessage}`);
       
       setResult({
         success: false,
         error: errorMessage
       });
       
-      toast.error(`Erro na sincronização: ${errorMessage}`);
+      toast.error(`Erro na sincronização global: ${errorMessage}`);
     } finally {
       setIsRunning(false);
-      addLog("🏁 Processo de sincronização finalizado");
+      addLog("🏁 Processo de sincronização GLOBAL finalizado");
     }
   };
 

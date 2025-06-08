@@ -83,6 +83,7 @@ export async function syncAllInstances(supabase: any) {
 
         console.log(`[Dedicated Sync] 🆕 Criando órfã real: ${vpsId}`);
 
+        // **CORREÇÃO CRÍTICA**: Usar created_by_user_id: NULL para órfãs
         const { error: insertError } = await supabase
           .from('whatsapp_instances')
           .insert({
@@ -94,7 +95,8 @@ export async function syncAllInstances(supabase: any) {
             server_url: VPS_CONFIG.baseUrl,
             web_status: vpsInstance.status === 'open' ? 'ready' : 'connecting',
             connection_status: vpsInstance.status === 'open' ? 'ready' : 'connecting',
-            company_id: null, // Órfã será vinculada manualmente depois
+            company_id: null, // Órfã sem empresa
+            created_by_user_id: null, // **CORREÇÃO**: NULL para órfãs não vinculadas
             date_connected: vpsInstance.status === 'open' ? new Date().toISOString() : null
           });
 
@@ -102,7 +104,7 @@ export async function syncAllInstances(supabase: any) {
           console.error(`[Dedicated Sync] ❌ Erro ao inserir ${vpsId}:`, insertError);
           syncResults.errors.push({ vpsId, error: insertError.message });
         } else {
-          console.log(`[Dedicated Sync] ✅ Órfã real ${vpsId} adicionada`);
+          console.log(`[Dedicated Sync] ✅ Órfã real ${vpsId} adicionada (created_by_user_id: NULL)`);
           syncResults.added++;
         }
       } catch (err) {
@@ -121,13 +123,13 @@ export async function syncAllInstances(supabase: any) {
         const supabaseInstance = supabaseInstances?.find(s => s.vps_instance_id === vpsId);
         if (!supabaseInstance) continue; // Já foi tratada como órfã
 
-        // CORREÇÃO: Verificar se já tem vínculo manual
-        if (supabaseInstance.company_id) {
-          console.log(`[Dedicated Sync] 🔗 Preservando vínculo existente: ${vpsId} -> empresa ${supabaseInstance.company_id}`);
+        // CORREÇÃO: Verificar se já tem vínculo manual (company_id OU created_by_user_id)
+        if (supabaseInstance.company_id || supabaseInstance.created_by_user_id) {
+          console.log(`[Dedicated Sync] 🔗 Preservando vínculo existente: ${vpsId} -> empresa ${supabaseInstance.company_id} | criador ${supabaseInstance.created_by_user_id}`);
           syncResults.preserved_links++;
         }
 
-        // Verificar se precisa atualizar STATUS (não o company_id)
+        // Verificar se precisa atualizar STATUS (não os vínculos)
         const statusMapping = {
           'open': { connection: 'ready', web: 'ready' },
           'ready': { connection: 'ready', web: 'ready' },
@@ -150,7 +152,7 @@ export async function syncAllInstances(supabase: any) {
             connection_status: mappedStatus.connection,
             web_status: mappedStatus.web,
             updated_at: new Date().toISOString()
-            // IMPORTANTE: NÃO atualizar company_id aqui - preservar vínculos manuais
+            // IMPORTANTE: NÃO atualizar company_id nem created_by_user_id - preservar vínculos
           };
 
           if (vpsInstance.phone && vpsInstance.phone !== supabaseInstance.phone) {
@@ -170,7 +172,7 @@ export async function syncAllInstances(supabase: any) {
             console.error(`[Dedicated Sync] ❌ Erro ao atualizar ${vpsId}:`, updateError);
             syncResults.errors.push({ vpsId, error: updateError.message });
           } else {
-            console.log(`[Dedicated Sync] ✅ Status atualizado para ${vpsId} (vínculo preservado)`);
+            console.log(`[Dedicated Sync] ✅ Status atualizado para ${vpsId} (vínculos preservados)`);
             syncResults.updated++;
           }
         }
@@ -191,7 +193,7 @@ export async function syncAllInstances(supabase: any) {
               connection_status: 'disconnected',
               web_status: 'disconnected',
               updated_at: new Date().toISOString()
-              // IMPORTANTE: NÃO remover company_id - preservar vínculo mesmo se desconectada
+              // IMPORTANTE: NÃO remover company_id nem created_by_user_id - preservar vínculos
             })
             .eq('id', deadInstance.id);
 
@@ -202,7 +204,7 @@ export async function syncAllInstances(supabase: any) {
               error: updateError.message 
             });
           } else {
-            console.log(`[Dedicated Sync] ✅ Marcada como morta (vínculo preservado): ${deadInstance.vps_instance_id}`);
+            console.log(`[Dedicated Sync] ✅ Marcada como morta (vínculos preservados): ${deadInstance.vps_instance_id}`);
             syncResults.marked_dead++;
           }
         }
@@ -217,7 +219,7 @@ export async function syncAllInstances(supabase: any) {
 
     const executionTime = Date.now() - startTime;
     console.log(`[Dedicated Sync] ✅ Sincronização completa [${syncId}] em ${executionTime}ms:`);
-    console.log(`[Dedicated Sync] - ${syncResults.added} adicionadas`);
+    console.log(`[Dedicated Sync] - ${syncResults.added} adicionadas (created_by_user_id: NULL)`);
     console.log(`[Dedicated Sync] - ${syncResults.updated} atualizadas`);
     console.log(`[Dedicated Sync] - ${syncResults.preserved_links} vínculos preservados`);
     console.log(`[Dedicated Sync] - ${syncResults.marked_dead} marcadas como mortas`);

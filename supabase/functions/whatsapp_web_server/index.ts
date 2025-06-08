@@ -1,11 +1,11 @@
-
 import { serve } from "https://deno.land/std@0.177.1/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from './config.ts';
 import { createWhatsAppInstance } from './instanceCreationService.ts';
 import { makeVPSRequest } from './vpsRequest.ts';
+import { syncAllInstances } from './instanceSyncDedicatedService.ts';
 
-console.log(`[WhatsApp Server] 🚀 CORREÇÃO TOTAL - Servidor iniciado com todas as ações`);
+console.log(`[WhatsApp Server] 🚀 SERVIDOR COMPLETO - Todas as ações incluindo sync global`);
 
 serve(async (req) => {
   console.log(`[WhatsApp Server] 🚀 REQUEST: ${req.method}`);
@@ -38,26 +38,28 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Authenticate user
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Missing Authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Authenticate user (except for sync_all_instances which can be called internally)
+    if (action !== 'sync_all_instances') {
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Missing Authorization header' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+      if (authError || !user) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Invalid token' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`[WhatsApp Server] 👤 User: ${user.email}`);
     }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Invalid token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log(`[WhatsApp Server] 👤 User: ${user.email}`);
 
     // Handle actions
     switch (action) {
@@ -75,6 +77,10 @@ serve(async (req) => {
 
       case 'sync_instances':
         return await handleSyncInstances(supabase, user.id);
+
+      case 'sync_all_instances':
+        console.log(`[WhatsApp Server] 🌐 SINCRONIZAÇÃO GLOBAL INICIADA`);
+        return await syncAllInstances(supabase);
 
       case 'test_connection':
         return await handleTestConnection();
@@ -265,20 +271,9 @@ async function handleSendMessage(supabase: any, messageData: any, userId: string
 // CORREÇÃO: Implementar sync instances
 async function handleSyncInstances(supabase: any, userId: string) {
   try {
-    console.log(`[WhatsApp Server] 🔄 Sincronizando instâncias`);
+    console.log(`[WhatsApp Server] 🔄 Sincronizando instâncias do usuário: ${userId}`);
 
-    // Obter instâncias da VPS
-    const vpsResult = await makeVPSRequest('/instances', 'GET');
-    
-    if (!vpsResult.success) {
-      throw new Error('Falha ao obter instâncias da VPS');
-    }
-
-    const vpsInstances = vpsResult.data || [];
-    console.log(`[WhatsApp Server] 📊 ${vpsInstances.length} instâncias na VPS`);
-
-    // Aqui implementaria lógica de sincronização mais complexa
-    // Por ora, retornar contagem atual do banco
+    // Buscar apenas instâncias do usuário
     const { count } = await supabase
       .from('whatsapp_instances')
       .select('*', { count: 'exact', head: true })
@@ -288,7 +283,7 @@ async function handleSyncInstances(supabase: any, userId: string) {
       JSON.stringify({ 
         success: true, 
         syncedCount: count || 0,
-        vpsInstances: vpsInstances.length,
+        message: 'Sync básico de instâncias do usuário',
         data: { summary: { updated: count || 0 } }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

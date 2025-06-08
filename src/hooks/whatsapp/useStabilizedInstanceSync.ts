@@ -15,7 +15,7 @@ interface StabilizedSyncState {
 }
 
 /**
- * Hook de Sync Estabilizado sem loops infinitos - MIGRADO PARA USER_ID
+ * Hook de Sync Estabilizado - CORRIGIDO para usar created_by_user_id
  */
 export const useStabilizedInstanceSync = () => {
   const [state, setState] = useState<StabilizedSyncState>({
@@ -28,7 +28,7 @@ export const useStabilizedInstanceSync = () => {
     healthScore: 100
   });
 
-  const { userId } = useCompanyData(); // CORREÇÃO: Usar userId ao invés de companyId
+  const { userId } = useCompanyData();
   const isMountedRef = useRef(true);
   const lastFetchRef = useRef<number>(0);
 
@@ -39,7 +39,7 @@ export const useStabilizedInstanceSync = () => {
     };
   }, []);
 
-  // CORREÇÃO: Sync simples baseado em created_by_user_id
+  // **CORREÇÃO**: Sync baseado em created_by_user_id (não company_id)
   const performOptimizedSync = useCallback(async (forceRefresh = false): Promise<any[]> => {
     if (!userId || !isMountedRef.current) {
       return [];
@@ -48,7 +48,7 @@ export const useStabilizedInstanceSync = () => {
     const now = Date.now();
     const timeSinceLast = now - lastFetchRef.current;
     
-    // CORREÇÃO: Debounce reduzido para 200ms
+    // Debounce reduzido para 200ms
     if (!forceRefresh && timeSinceLast < 200) {
       console.log('[Stabilized Sync] ⏸️ Debounce ativo');
       return state.instances;
@@ -60,10 +60,11 @@ export const useStabilizedInstanceSync = () => {
 
       console.log('[Stabilized Sync] 🔄 Executando sync para usuário:', userId);
 
+      // **CORREÇÃO**: Buscar por created_by_user_id
       const { data, error: fetchError } = await supabase
         .from('whatsapp_instances')
         .select('*')
-        .eq('created_by_user_id', userId) // CORREÇÃO: Usar created_by_user_id
+        .eq('created_by_user_id', userId)
         .eq('connection_type', 'web')
         .order('created_at', { ascending: false });
 
@@ -74,7 +75,7 @@ export const useStabilizedInstanceSync = () => {
       }
 
       const instances = data || [];
-      console.log(`[Stabilized Sync] ✅ ${instances.length} instâncias carregadas`);
+      console.log(`[Stabilized Sync] ✅ ${instances.length} instâncias do usuário carregadas`);
       
       // Calcular métricas de saúde
       const connectedInstances = instances.filter(i => ['open', 'ready'].includes(i.connection_status));
@@ -92,9 +93,13 @@ export const useStabilizedInstanceSync = () => {
           healthScore
         }));
 
-        // Sistema de healing para órfãs (opcional)
-        if (orphanInstances.length > 0) {
-          console.warn(`[Stabilized Sync] 🚨 ${orphanInstances.length} instâncias órfãs detectadas`);
+        // Log de instâncias prontas para mostrar
+        const readyInstances = instances.filter(i => ['open', 'ready'].includes(i.connection_status));
+        if (readyInstances.length > 0) {
+          console.log(`[Stabilized Sync] 🎯 ${readyInstances.length} instâncias PRONTAS para exibir`);
+          readyInstances.forEach(instance => {
+            console.log(`[Stabilized Sync] - ${instance.instance_name}: ${instance.connection_status} | Phone: ${instance.phone} | Profile: ${instance.profile_name}`);
+          });
         }
       }
       
@@ -114,11 +119,11 @@ export const useStabilizedInstanceSync = () => {
     }
   }, [userId, state.instances]);
 
-  // CORREÇÃO: Real-time simples baseado em created_by_user_id
+  // **CORREÇÃO**: Real-time baseado em created_by_user_id
   useEffect(() => {
     if (!userId) return;
 
-    console.log('[Stabilized Sync] 📡 Configurando real-time para usuário');
+    console.log('[Stabilized Sync] 📡 Configurando real-time para usuário:', userId);
 
     const channel = supabase
       .channel(`whatsapp-stabilized-${userId}`)
@@ -128,14 +133,14 @@ export const useStabilizedInstanceSync = () => {
           event: '*',
           schema: 'public',
           table: 'whatsapp_instances',
-          filter: `created_by_user_id=eq.${userId}` // CORREÇÃO: Filtrar por created_by_user_id
+          filter: `created_by_user_id=eq.${userId}`
         },
         (payload) => {
           if (!isMountedRef.current) return;
           
           console.log('[Stabilized Sync] 📡 Real-time update:', payload.eventType);
           
-          // CORREÇÃO: Update imediato
+          // Update imediato após mudança
           performOptimizedSync(true);
         }
       )
@@ -153,15 +158,32 @@ export const useStabilizedInstanceSync = () => {
     }
   }, [userId]);
 
-  // CORREÇÃO: Função para forçar healing manual simples
+  // **CORREÇÃO**: Healing global que verifica órfãs created_by_user_id: NULL
   const forceOrphanHealing = useCallback(async () => {
-    const orphans = state.instances.filter(i => !i.vps_instance_id);
-    if (orphans.length > 0) {
-      toast.info(`${orphans.length} instâncias órfãs detectadas`);
-    } else {
-      toast.success('Nenhuma instância órfã encontrada!');
+    try {
+      console.log('[Stabilized Sync] 🔍 Verificando órfãs globais (created_by_user_id: NULL)...');
+      
+      const { data: globalOrphans } = await supabase
+        .from('whatsapp_instances')
+        .select('*')
+        .is('created_by_user_id', null)
+        .eq('connection_type', 'web');
+
+      if (globalOrphans && globalOrphans.length > 0) {
+        toast.info(`${globalOrphans.length} instâncias órfãs globais detectadas (created_by_user_id: NULL)`);
+        console.log('[Stabilized Sync] 🏠 Órfãs globais encontradas:', globalOrphans.map(o => ({
+          name: o.instance_name,
+          phone: o.phone,
+          status: o.connection_status
+        })));
+      } else {
+        toast.success('Nenhuma instância órfã global encontrada!');
+      }
+    } catch (error) {
+      console.error('[Stabilized Sync] ❌ Erro ao verificar órfãs globais:', error);
+      toast.error('Erro ao verificar órfãs globais');
     }
-  }, [state.instances]);
+  }, []);
 
   return {
     ...state,
