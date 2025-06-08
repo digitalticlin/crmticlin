@@ -18,6 +18,9 @@ export const SimpleWhatsAppConnection = () => {
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>('');
   const [isWaitingForQR, setIsWaitingForQR] = useState(false);
 
+  // CORREÇÃO: Controle único do AutoQRPolling
+  const [autoPolling, setAutoPolling] = useState<AutoQRPolling | null>(null);
+
   const { user } = useAuth();
   
   const {
@@ -35,29 +38,48 @@ export const SimpleWhatsAppConnection = () => {
       return;
     }
 
+    // Parar polling anterior se existir
+    if (autoPolling) {
+      autoPolling.stop();
+      setAutoPolling(null);
+    }
+
     setIsConnecting(true);
     try {
       const intelligentName = await generateIntelligentInstanceName(user.email);
-      console.log('[Simple Connection] 🎯 FLUXO AUTOMÁTICO v3.0: Iniciando conexão:', intelligentName);
+      console.log('[Simple Connection] 🎯 Criando instância:', intelligentName);
       
-      // PASSO 1: Criar instância via whatsapp_instance_manager
       const createdInstanceResponse = await createInstance(intelligentName);
       
       if (createdInstanceResponse && createdInstanceResponse.instance) {
         const instanceData = createdInstanceResponse.instance;
         
-        // PASSO 2: ABRIR MODAL IMEDIATAMENTE em estado "Aguardando QR Code"
+        // Abrir modal primeiro
         setSelectedInstanceId(instanceData.id);
         setSelectedInstanceName(instanceData.instance_name);
         setSelectedQRCode(null);
         setIsWaitingForQR(true);
         setShowQRModal(true);
         
-        console.log('[Simple Connection] 🔄 FLUXO AUTOMÁTICO v3.0: Modal aberto, polling agressivo será iniciado automaticamente');
-        toast.success(`Instância "${intelligentName}" criada! Iniciando busca agressiva por QR Code...`);
+        // CORREÇÃO: Criar novo AutoQRPolling controlado
+        const newAutoPolling = new AutoQRPolling(
+          instanceData.id,
+          instanceData.instance_name,
+          handleRefreshQRCode,
+          (qrCode: string) => {
+            setSelectedQRCode(qrCode);
+            setIsWaitingForQR(false);
+          }
+        );
+        
+        setAutoPolling(newAutoPolling);
+        newAutoPolling.start(3000); // Delay de 3 segundos
+        
+        console.log('[Simple Connection] ✅ Instância criada, polling iniciado');
+        toast.success(`Instância "${intelligentName}" criada! Aguardando QR Code...`);
       }
     } catch (error: any) {
-      console.error('[Simple Connection] ❌ Erro no fluxo automático v3.0:', error);
+      console.error('[Simple Connection] ❌ Erro:', error);
       setShowQRModal(false);
       setIsWaitingForQR(false);
       toast.error(`Erro ao criar instância: ${error.message}`);
@@ -69,25 +91,35 @@ export const SimpleWhatsAppConnection = () => {
   const handleGenerateQR = async (instanceId: string, instanceName: string) => {
     console.log('[Simple Connection] 🔄 Geração manual de QR Code:', { instanceId, instanceName });
     
+    // Parar polling anterior
+    if (autoPolling) {
+      autoPolling.stop();
+      setAutoPolling(null);
+    }
+    
     setSelectedInstanceId(instanceId);
     setSelectedInstanceName(instanceName);
     setSelectedQRCode(null);
     setIsWaitingForQR(true);
     setShowQRModal(true);
     
-    console.log('[Simple Connection] 🚀 Modal aberto para polling automático');
-    toast.info(`Iniciando busca de QR Code para ${instanceName}...`);
+    toast.info(`Gerando QR Code para ${instanceName}...`);
   };
 
   const handleDeleteInstance = async (instanceId: string) => {
+    // Parar polling se deletando instância ativa
+    if (autoPolling && selectedInstanceId === instanceId) {
+      autoPolling.stop();
+      setAutoPolling(null);
+    }
+    
     await deleteInstance(instanceId);
   };
 
   const handleRefreshQRCode = async (instanceId: string) => {
     try {
-      console.log('[Simple Connection] 🔄 Refresh QR Code via ImprovedQRService:', instanceId);
+      console.log('[Simple Connection] 🔄 Refresh QR Code:', instanceId);
       
-      // Usar o novo serviço melhorado
       const { ImprovedQRService } = await import('@/services/whatsapp/improvedQRService');
       const result = await ImprovedQRService.getQRCodeWithDetails(instanceId);
       
@@ -115,7 +147,14 @@ export const SimpleWhatsAppConnection = () => {
   };
 
   const closeQRModal = () => {
-    console.log('[Simple Connection] 🧹 Fechando modal QR');
+    console.log('[Simple Connection] 🧹 Fechando modal e parando polling');
+    
+    // Parar polling ao fechar modal
+    if (autoPolling) {
+      autoPolling.stop();
+      setAutoPolling(null);
+    }
+    
     setShowQRModal(false);
     setSelectedQRCode(null);
     setSelectedInstanceName('');
