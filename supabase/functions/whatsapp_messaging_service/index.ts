@@ -113,13 +113,13 @@ async function findInstanceByVpsId(supabase: any, vpsInstanceId: string) {
   return instance;
 }
 
-async function getOrCreateLead(supabase: any, whatsappNumberId: string, phone: string, companyId?: string): Promise<string> {
+async function getOrCreateLead(supabase: any, whatsappNumberId: string, phone: string, ownerId?: string): Promise<string> {
   const cleanPhone = cleanPhoneNumber(phone);
   
   console.log(`[Messaging Service] 🔍 Buscando/criando lead:`, {
     whatsappNumberId,
     cleanPhone,
-    companyId
+    ownerId
   });
   
   // Buscar lead existente
@@ -143,7 +143,7 @@ async function getOrCreateLead(supabase: any, whatsappNumberId: string, phone: s
       phone: cleanPhone,
       name: `Lead-${cleanPhone.substring(cleanPhone.length - 4)}`,
       whatsapp_number_id: whatsappNumberId,
-      company_id: companyId,
+      created_by_user_id: ownerId,
       last_message: 'Conversa iniciada',
       last_message_time: new Date().toISOString()
     })
@@ -229,7 +229,7 @@ async function processWebhookMessage(supabase: any, webhookData: WebhookData) {
         }
 
         const cleanPhone = cleanPhoneNumber(phoneNumber.replace('@c.us', ''));
-        const leadId = await getOrCreateLead(supabase, instance.id, cleanPhone, instance.company_id);
+        const leadId = await getOrCreateLead(supabase, instance.id, cleanPhone, instance.created_by_user_id);
         
         await saveMessage(supabase, instance.id, leadId, {
           text: message.body || message.text || message.message,
@@ -361,7 +361,7 @@ serve(async (req) => {
           }
 
           // Salvar mensagem enviada
-          const leadId = await getOrCreateLead(supabase, instanceId, cleanPhone, instance.company_id);
+          const leadId = await getOrCreateLead(supabase, instanceId, cleanPhone, user.id);
           
           await saveMessage(supabase, instanceId, leadId, {
             text: message,

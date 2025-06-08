@@ -29,7 +29,7 @@ export const useWhatsAppChatContext = () => {
 
 export const WhatsAppChatProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
-  const { companyId, loading: companyLoading } = useCompanyData();
+  const { userId, loading: companyLoading } = useCompanyData();
   const [searchParams] = useSearchParams();
   const leadId = searchParams.get('leadId');
   

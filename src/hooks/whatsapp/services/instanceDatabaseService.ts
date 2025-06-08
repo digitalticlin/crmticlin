@@ -3,23 +3,23 @@ import { useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { WhatsAppWebInstance } from '../types/whatsappWebTypes';
 
-export const useInstanceDatabase = (companyId: string | null, companyLoading: boolean) => {
+export const useInstanceDatabase = (userId: string | null, userLoading: boolean) => {
   const isMountedRef = useRef(true);
 
   // Fetch instances from database
   const fetchInstances = useCallback(async (): Promise<WhatsAppWebInstance[]> => {
-    if (!companyId || companyLoading) {
-      console.log('[Hook] ⏭️ Fetch skipped - no company ID or loading');
+    if (!userId || userLoading) {
+      console.log('[Hook] ⏭️ Fetch skipped - no user ID or loading');
       return [];
     }
 
     try {
-      console.log('[Hook] 📊 Fetching instances from database for company:', companyId);
+      console.log('[Hook] 📊 Fetching instances from database for user:', userId);
       
       const { data, error: fetchError } = await supabase
         .from('whatsapp_instances')
         .select('*')
-        .eq('company_id', companyId)
+        .eq('created_by_user_id', userId)
         .eq('connection_type', 'web')
         .order('created_at', { ascending: false });
 
@@ -46,7 +46,7 @@ export const useInstanceDatabase = (companyId: string | null, companyLoading: bo
         company_id: instance.company_id
       }));
 
-      console.log(`✅ Instâncias carregadas: ${mappedInstances.length} (modo permanente)`);
+      console.log(`✅ Instâncias carregadas: ${mappedInstances.length} (modo usuário)`);
       return mappedInstances;
       
     } catch (error: any) {
@@ -56,7 +56,7 @@ export const useInstanceDatabase = (companyId: string | null, companyLoading: bo
       }
       return [];
     }
-  }, [companyId, companyLoading]);
+  }, [userId, userLoading]);
 
   return {
     fetchInstances,

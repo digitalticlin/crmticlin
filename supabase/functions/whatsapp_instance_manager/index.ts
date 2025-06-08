@@ -16,7 +16,6 @@ const VPS_CONFIG = {
 
 interface InstanceCreateRequest {
   instanceName: string;
-  companyId?: string;
   webhookUrl?: string;
 }
 
@@ -79,7 +78,7 @@ async function createVPSInstance(instanceName: string, webhookUrl?: string) {
     instanceId: instanceName,
     sessionName: instanceName,
     webhookUrl: webhookUrl || 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/whatsapp_messaging_service',
-    companyId: 'crm-integration'
+    userId: 'user-integration'
   };
 
   const { response, data } = await makeVPSRequest('/instance/create', 'POST', payload);
@@ -174,7 +173,7 @@ serve(async (req) => {
 
     switch (action) {
       case 'create_instance': {
-        const { instanceName, companyId, webhookUrl }: InstanceCreateRequest = body;
+        const { instanceName, webhookUrl }: InstanceCreateRequest = body;
         
         if (!instanceName) {
           return new Response(
@@ -186,7 +185,7 @@ serve(async (req) => {
         // Criar na VPS
         const vpsResult = await createVPSInstance(instanceName, webhookUrl);
         
-        // Salvar no banco
+        // Salvar no banco usando created_by_user_id
         const { data: dbInstance, error: dbError } = await supabase
           .from('whatsapp_instances')
           .insert({
@@ -196,7 +195,6 @@ serve(async (req) => {
             web_status: 'waiting_qr',
             connection_type: 'web',
             created_by_user_id: user.id,
-            company_id: companyId || null,
             webhook_url: webhookUrl
           })
           .select()

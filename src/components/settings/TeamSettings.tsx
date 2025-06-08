@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Loader2, Users, UserPlus, Crown, Settings } from "lucide-react";
-import { useCompanyData } from "@/hooks/useCompanyData";
+import { useAuth } from "@/contexts/AuthContext";
 import { useTeamManagement } from "@/hooks/useTeamManagement";
 import { useTeamAuxiliaryData } from "@/hooks/settings/useTeamAuxiliaryData";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -12,16 +12,16 @@ import { ManualMemberForm } from "./team/ManualMemberForm";
 export default function TeamSettings() {
   console.log('[TeamSettings] Component rendering');
   
-  const { companyId } = useCompanyData();
+  const { user } = useAuth();
   const { permissions, loading: permissionsLoading } = useUserPermissions();
   const {
     members,
     loading,
     createTeamMember,
     removeTeamMember,
-  } = useTeamManagement(companyId);
+  } = useTeamManagement(user?.id);
 
-  const { allWhatsApps, allFunnels, auxDataLoading } = useTeamAuxiliaryData(companyId);
+  const { allWhatsApps, allFunnels, auxDataLoading } = useTeamAuxiliaryData(user?.id);
   
   // Refs para controlar execuções
   const isUnmountedRef = useRef(false);

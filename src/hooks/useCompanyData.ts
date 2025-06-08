@@ -1,26 +1,38 @@
 
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
-// FASE 1: Hook simplificado - company_id não é mais obrigatório
 export const useCompanyData = () => {
-  const [companyId, setCompanyId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  
-  const { user } = useAuth();
+  const [userId, setUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user?.id) {
-      // FASE 1: Simular company_id como user_id para compatibilidade
-      // Na prática, as instâncias agora são associadas diretamente ao user_id
-      setCompanyId(user.id);
-      console.log('[Company Data] 🏢 FASE 1 - Usando user_id como company_id:', user.id);
-    }
-    setLoading(false);
-  }, [user]);
+    const getUserId = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (user) {
+          console.log('[useCompanyData] ✅ Usuário autenticado:', user.id);
+          setUserId(user.id);
+        } else {
+          console.log('[useCompanyData] ❌ Usuário não autenticado');
+          setUserId(null);
+        }
+      } catch (error) {
+        console.error('[useCompanyData] ❌ Erro ao obter usuário:', error);
+        setUserId(null);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  return {
-    companyId,
-    loading
+    getUserId();
+  }, []);
+
+  // Manter compatibilidade com código existente
+  return { 
+    companyId: userId,  // Alias para compatibilidade
+    userId: userId,     // Nome mais preciso
+    loading 
   };
 };

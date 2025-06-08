@@ -6,15 +6,15 @@ import { KanbanStage } from "@/types/funnel";
 export function useStageDatabase(funnelId?: string) {
   const queryClient = useQueryClient();
 
-  // Buscar TODOS os estágios (sem filtros de usuário)
+  // Buscar TODOS os estágios do usuário
   const stagesQuery = useQuery({
     queryKey: ["kanban_stages", funnelId],
     queryFn: async () => {
       if (!funnelId) return [];
       
-      console.log('[useStageDatabase] 🔓 ACESSO TOTAL - buscando todos os estágios');
+      console.log('[useStageDatabase] 🔓 ACESSO POR USUÁRIO - buscando estágios do funil');
       
-      // Buscar TODOS os estágios sem filtros de usuário
+      // Buscar estágios criados pelo usuário
       const { data, error } = await supabase
         .from("kanban_stages")
         .select("*")
@@ -23,7 +23,7 @@ export function useStageDatabase(funnelId?: string) {
         
       if (error) throw error;
       
-      console.log('[useStageDatabase] ✅ Estágios encontrados (ACESSO TOTAL):', data?.length || 0);
+      console.log('[useStageDatabase] ✅ Estágios encontrados (ACESSO POR USUÁRIO):', data?.length || 0);
       return data ?? [];
     },
   });

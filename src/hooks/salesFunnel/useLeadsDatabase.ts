@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { KanbanLead, KanbanTag } from "@/types/kanban";
 
-/** Busca TODOS os leads do funil (ACESSO TOTAL) */
+/** Busca TODOS os leads do funil do usuário */
 export function useLeadsDatabase(funnelId?: string) {
   const queryClient = useQueryClient();
 
@@ -12,9 +12,9 @@ export function useLeadsDatabase(funnelId?: string) {
     queryFn: async () => {
       if (!funnelId) return [];
       
-      console.log('[useLeadsDatabase] 🔓 ACESSO TOTAL - buscando todos os leads');
+      console.log('[useLeadsDatabase] 🔓 ACESSO POR USUÁRIO - buscando leads');
       
-      // Buscar TODOS os leads sem filtros de usuário
+      // Buscar leads do usuário
       const { data, error } = await supabase
         .from("leads")
         .select(`
@@ -30,7 +30,7 @@ export function useLeadsDatabase(funnelId?: string) {
 
       if (error) throw error;
 
-      console.log('[useLeadsDatabase] ✅ Leads encontrados (ACESSO TOTAL):', data?.length || 0);
+      console.log('[useLeadsDatabase] ✅ Leads encontrados (ACESSO POR USUÁRIO):', data?.length || 0);
 
       return (
         data?.map((lead) => ({
@@ -60,7 +60,7 @@ export function useLeadsDatabase(funnelId?: string) {
     refetchOnWindowFocus: true,
   });
 
-  // Atualização dos dados do lead (sem verificações de permissão)
+  // Atualização dos dados do lead
   const updateLeadMutation = useMutation({
     mutationFn: async ({
       leadId,
@@ -71,9 +71,9 @@ export function useLeadsDatabase(funnelId?: string) {
     }) => {
       const { name, notes, purchaseValue, assignedUser } = fields;
       
-      console.log('[useLeadsDatabase] 🔓 ACESSO TOTAL - atualizando lead:', leadId);
+      console.log('[useLeadsDatabase] 🔓 ACESSO POR USUÁRIO - atualizando lead:', leadId);
       
-      // Atualizar SEM verificações de permissão
+      // Atualizar com verificação de permissão via RLS
       const { error } = await supabase.from("leads").update({
         name,
         notes,
@@ -88,7 +88,7 @@ export function useLeadsDatabase(funnelId?: string) {
     },
   });
 
-  // Gerenciar tags do lead (sem verificações de permissão)
+  // Gerenciar tags do lead
   const addTagMutation = useMutation({
     mutationFn: async ({
       leadId,
@@ -97,7 +97,7 @@ export function useLeadsDatabase(funnelId?: string) {
       leadId: string;
       tagId: string;
     }) => {
-      // Adiciona em lead_tags sem verificações
+      // Adiciona em lead_tags
       const { error } = await supabase
         .from("lead_tags")
         .insert({ lead_id: leadId, tag_id: tagId });
@@ -116,7 +116,7 @@ export function useLeadsDatabase(funnelId?: string) {
       leadId: string;
       tagId: string;
     }) => {
-      // Remove de lead_tags sem verificações
+      // Remove de lead_tags
       const { error } = await supabase
         .from("lead_tags")
         .delete()
