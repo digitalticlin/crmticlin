@@ -5,10 +5,10 @@ import { WhatsAppTestPanel } from "@/components/admin/WhatsAppTestPanel";
 import { GlobalInstanceManagement } from "@/components/admin/GlobalInstanceManagement";
 
 export default function GlobalAdmin() {
-  const [activeTab, setActiveTab] = useState("whatsapp-test");
+  const [activeSection, setActiveSection] = useState("whatsapp-test");
 
   const renderContent = () => {
-    switch (activeTab) {
+    switch (activeSection) {
       case "whatsapp-test":
         return (
           <div className="space-y-6">
@@ -50,7 +50,7 @@ export default function GlobalAdmin() {
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <GlobalAdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <GlobalAdminSidebar activeSection={activeSection} onSectionChange={setActiveSection} />
       
       <main className="flex-1 overflow-auto">
         <div className="p-8">
