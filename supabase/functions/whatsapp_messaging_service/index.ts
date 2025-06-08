@@ -1,65 +1,14 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const VPS_CONFIG = {
-  baseUrl: 'http://31.97.24.222:3001',
-  authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
-  timeout: 25000
-};
-
-async function makeVPSRequest(endpoint: string, method: string = 'GET', body?: any) {
-  const url = `${VPS_CONFIG.baseUrl}${endpoint}`;
-  console.log(`[Messaging Service] 🔧 ${method} ${url}`);
-  
-  try {
-    const requestConfig: RequestInit = {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
-        'Accept': 'application/json'
-      },
-      signal: AbortSignal.timeout(VPS_CONFIG.timeout)
-    };
-
-    if (body && method === 'POST') {
-      requestConfig.body = JSON.stringify(body);
-      console.log(`[Messaging Service] 📋 Body:`, JSON.stringify(body, null, 2));
-    }
-
-    const response = await fetch(url, requestConfig);
-    const responseText = await response.text();
-    
-    console.log(`[Messaging Service] 📊 Status: ${response.status}`);
-    console.log(`[Messaging Service] 📥 Response:`, responseText.substring(0, 500));
-
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch {
-      data = { raw: responseText, success: response.ok };
-    }
-
-    return { 
-      success: response.ok, 
-      status: response.status, 
-      data 
-    };
-  } catch (error: any) {
-    console.error(`[Messaging Service] ❌ Erro:`, error.message);
-    return { 
-      success: false, 
-      status: 500,
-      error: error.message 
-    };
-  }
-}
+// CONFIGURAÇÃO: Servidor Webhook na porta 3002
+const WEBHOOK_SERVER_URL = 'http://31.97.24.222:3002';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -67,73 +16,95 @@ serve(async (req) => {
   }
 
   try {
-    console.log('[Messaging Service] 🚀 CORREÇÃO - Endpoint corrigido v2.0');
-    
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     const { action, instanceId, phone, message } = await req.json();
-    console.log(`[Messaging Service] 🎯 Action: ${action}`);
 
-    if (action === 'send_message_corrected' || action === 'send_message') {
-      console.log('[Messaging Service] 📤 CORREÇÃO: Usando POST /send');
-      
-      if (!instanceId || !phone || !message) {
-        throw new Error('instanceId, phone e message são obrigatórios');
-      }
-
-      // Limpar e formatar telefone
-      const cleanPhone = phone.replace(/\D/g, '');
-      const formattedPhone = cleanPhone.includes('@') ? cleanPhone : `${cleanPhone}@c.us`;
-
-      // CORREÇÃO: Usar endpoint correto POST /send
-      const result = await makeVPSRequest('/send', 'POST', {
-        instanceId: instanceId,
-        to: formattedPhone,
-        message: message
-      });
-
-      if (!result.success) {
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error: `VPS Error ${result.status}: ${result.error || 'Erro no envio'}`,
-            endpoint_used: 'POST /send'
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      return new Response(
-        JSON.stringify({
-          success: true,
-          messageId: result.data?.messageId || result.data?.id || 'message_sent',
-          vps_response: result.data,
-          endpoint_used: 'POST /send'
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (action === 'send_message_corrected') {
+      return await sendMessageCorrected(supabase, instanceId, phone, message);
     }
 
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: `Ação não reconhecida: ${action}`,
-        available_actions: ['send_message_corrected']
-      }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    throw new Error('Ação não reconhecida');
 
-  } catch (error: any) {
-    console.error('[Messaging Service] ❌ Erro geral:', error);
-    
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message,
-        service: 'whatsapp_messaging_service_v2_corrected'
-      }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
+  } catch (error) {
+    console.error('[Messaging Service] ❌ Erro:', error);
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 });
+
+async function sendMessageCorrected(supabase: any, instanceId: string, phone: string, message: string) {
+  console.log(`[Messaging Service] 📤 Enviando mensagem via webhook server:`, { instanceId, phone: phone.substring(0, 8) + '***' });
+
+  try {
+    // 1. Buscar instância no banco
+    const { data: instance, error: dbError } = await supabase
+      .from('whatsapp_instances')
+      .select('*')
+      .eq('id', instanceId)
+      .single();
+
+    if (dbError || !instance) {
+      throw new Error('Instância não encontrada');
+    }
+
+    if (!instance.vps_instance_id) {
+      throw new Error('Instância não tem VPS ID');
+    }
+
+    // 2. Limpar telefone
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (!cleanPhone || cleanPhone.length < 10) {
+      throw new Error('Número de telefone inválido');
+    }
+
+    // 3. Enviar via servidor webhook (porta 3002)
+    const sendResponse = await fetch(`${WEBHOOK_SERVER_URL}/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        instanceId: instance.vps_instance_id,
+        phone: cleanPhone,
+        message: message
+      }),
+      timeout: 30000
+    });
+
+    if (!sendResponse.ok) {
+      throw new Error(`Servidor webhook respondeu com status ${sendResponse.status}`);
+    }
+
+    const responseData = await sendResponse.json();
+    console.log(`[Messaging Service] 📡 Resposta do webhook server:`, responseData);
+
+    if (!responseData.success) {
+      throw new Error(responseData.error || 'Falha no envio da mensagem');
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      messageId: responseData.messageId || `msg_${Date.now()}`,
+      server_port: 3002,
+      via: 'webhook_server'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+
+  } catch (error) {
+    console.error(`[Messaging Service] ❌ Erro no envio:`, error);
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+}

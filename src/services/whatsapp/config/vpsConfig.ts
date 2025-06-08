@@ -1,7 +1,7 @@
 
-// VPS Configuration - Real data discovered from VPS
+// VPS Configuration - ATUALIZADA para Webhook Server na porta 3002
 export const VPS_CONFIG = {
-  baseUrl: 'http://31.97.24.222:3001',
+  baseUrl: 'http://31.97.24.222:3002', // MUDANÇA: Porta 3002 (Webhook Server)
   authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
   
   endpoints: {
@@ -11,8 +11,12 @@ export const VPS_CONFIG = {
     qrCode: '/instance/{instanceId}/qr',
     sendMessage: '/send',
     createInstance: '/instance/create',
-    deleteInstance: '/instance/delete',
-    instanceStatus: '/instance/{instanceId}/status'
+    deleteInstance: '/instance/{instanceId}',
+    instanceStatus: '/instance/{instanceId}/status',
+    // NOVOS: Endpoints de webhook
+    webhookGlobal: '/webhook/global',
+    webhookStatus: '/webhook/global/status',
+    webhookInstance: '/instance/{instanceId}/webhook'
   },
   
   timeouts: {
@@ -28,6 +32,14 @@ export const VPS_CONFIG = {
     debounceDelay: 1000,        // 1 second
     maxRetries: 3,
     backoffMultiplier: 2
+  },
+
+  // NOVA CONFIGURAÇÃO: Webhook automático
+  webhook: {
+    enabled: true,
+    url: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
+    events: ['qr.update', 'messages.upsert', 'connection.update'],
+    automatic: true
   }
 };
 
@@ -40,7 +52,7 @@ export const getRequestHeaders = (): Record<string, string> => {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
     'X-API-Token': VPS_CONFIG.authToken,
-    'User-Agent': 'Supabase-WhatsApp-Client/1.0',
+    'User-Agent': 'Supabase-WhatsApp-Client/2.0-Webhook',
     'Accept': 'application/json'
   };
 };
