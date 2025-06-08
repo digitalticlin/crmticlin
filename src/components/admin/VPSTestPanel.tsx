@@ -8,7 +8,7 @@ import { AdminActionsCard } from "./vps/AdminActionsCard";
 import { VPSAdvancedDiagnostic } from "./vps/VPSAdvancedDiagnostic";
 import { VPSConnectivityTest } from "./VPSConnectivityTest";
 import { VPSConnectionDiagnostic } from "./VPSConnectionDiagnostic";
-import { VPSEndpointDiscovery } from "./VPSEndpointDiscovery";
+import { VPSEndpointDiscoveryPanel } from "./VPSEndpointDiscovery";
 import { VPSDeepInvestigation } from "./vps/VPSDeepInvestigation";
 import { VPSVersionDiagnostic } from "./vps/VPSVersionDiagnostic";
 import { VPSComprehensiveDiagnostic } from "./vps/VPSComprehensiveDiagnostic";
@@ -89,7 +89,7 @@ export const VPSTestPanel = () => {
       <VPSDeepInvestigation />
 
       {/* Descoberta de Endpoints */}
-      <VPSEndpointDiscovery />
+      <VPSEndpointDiscoveryPanel />
 
       {/* Diagnóstico Completo VPS */}
       <VPSConnectionDiagnostic />
