@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +15,7 @@ export const SimpleWhatsAppConnection = () => {
   const [selectedQRCode, setSelectedQRCode] = useState<string | null>(null);
   const [selectedInstanceName, setSelectedInstanceName] = useState<string>('');
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>('');
+  const [autoQRPollingId, setAutoQRPollingId] = useState<string | null>(null);
 
   const { user } = useAuth();
   
@@ -25,6 +27,56 @@ export const SimpleWhatsAppConnection = () => {
     refreshQRCode,
     generateIntelligentInstanceName
   } = useWhatsAppWebInstances();
+
+  // Polling automático para QR Code após criação da instância
+  const startAutoQRPolling = async (instanceId: string, instanceName: string) => {
+    console.log('[Auto QR] 🚀 Iniciando polling automático para:', instanceName);
+    setAutoQRPollingId(instanceId);
+    
+    let attempts = 0;
+    const maxAttempts = 20; // 60 segundos (3s * 20)
+    
+    const pollInterval = setInterval(async () => {
+      attempts++;
+      console.log(`[Auto QR] 📡 Tentativa ${attempts}/${maxAttempts} para ${instanceName}`);
+      
+      try {
+        const result = await refreshQRCode(instanceId);
+        
+        if (result?.success && result.qrCode) {
+          console.log('[Auto QR] ✅ QR Code obtido automaticamente!');
+          
+          // Abrir modal automaticamente
+          setSelectedInstanceId(instanceId);
+          setSelectedInstanceName(instanceName);
+          setSelectedQRCode(result.qrCode);
+          setShowQRModal(true);
+          
+          // Parar polling
+          clearInterval(pollInterval);
+          setAutoQRPollingId(null);
+          
+          toast.success(`QR Code pronto para "${instanceName}"! Escaneie para conectar.`);
+          return;
+        }
+        
+        if (attempts >= maxAttempts) {
+          console.log('[Auto QR] ⏰ Timeout do polling automático');
+          clearInterval(pollInterval);
+          setAutoQRPollingId(null);
+          toast.warning(`QR Code não gerado automaticamente para "${instanceName}". Tente gerar manualmente.`);
+        }
+        
+      } catch (error: any) {
+        console.error('[Auto QR] ❌ Erro no polling:', error);
+        if (attempts >= maxAttempts) {
+          clearInterval(pollInterval);
+          setAutoQRPollingId(null);
+          toast.error(`Erro no polling automático: ${error.message}`);
+        }
+      }
+    }, 3000); // 3 segundos entre tentativas
+  };
 
   const handleConnect = async () => {
     if (!user?.email) {
@@ -40,7 +92,12 @@ export const SimpleWhatsAppConnection = () => {
       const createdInstance = await createInstance(intelligentName);
       
       if (createdInstance) {
-        toast.success(`Instância "${intelligentName}" criada com sucesso!`);
+        toast.success(`Instância "${intelligentName}" criada! Aguardando QR Code automático...`);
+        
+        // Iniciar polling automático para QR Code
+        setTimeout(() => {
+          startAutoQRPolling(createdInstance.id, createdInstance.instance_name);
+        }, 5000); // Aguardar 5s para VPS estar pronta
       }
     } catch (error: any) {
       toast.error(`Erro ao criar instância: ${error.message}`);
@@ -50,28 +107,42 @@ export const SimpleWhatsAppConnection = () => {
   };
 
   const handleGenerateQR = async (instanceId: string, instanceName: string) => {
-    console.log('[Simple Connection] 🔄 CORREÇÃO TOTAL - Gerando QR Code para:', { instanceId, instanceName });
+    console.log('[Simple Connection] 🔄 Gerando QR Code manual para:', { instanceId, instanceName });
     
-    // Sempre abrir o modal primeiro
+    // Abrir modal imediatamente
     setSelectedInstanceId(instanceId);
     setSelectedInstanceName(instanceName);
     setSelectedQRCode(null);
     setShowQRModal(true);
     
-    // O modal vai fazer polling automaticamente
-    console.log('[Simple Connection] ✅ Modal aberto, polling será iniciado automaticamente');
+    // Tentar buscar QR Code existente primeiro
+    try {
+      const result = await refreshQRCode(instanceId);
+      if (result?.success && result.qrCode) {
+        setSelectedQRCode(result.qrCode);
+        toast.success('QR Code carregado!');
+      }
+    } catch (error: any) {
+      console.error('[Simple Connection] ❌ Erro ao buscar QR Code:', error);
+      toast.error(`Erro ao carregar QR Code: ${error.message}`);
+    }
   };
 
   const handleDeleteInstance = async (instanceId: string) => {
+    // Parar polling se estiver ativo para esta instância
+    if (autoQRPollingId === instanceId) {
+      setAutoQRPollingId(null);
+    }
+    
     await deleteInstance(instanceId);
   };
 
   const handleRefreshQRCode = async (instanceId: string): Promise<{ qrCode?: string } | null> => {
     try {
-      console.log('[Simple Connection] 🔄 CORREÇÃO TOTAL - Refresh QR Code:', instanceId);
+      console.log('[Simple Connection] 🔄 Refresh QR Code:', instanceId);
       const result = await refreshQRCode(instanceId);
       
-      if (result?.qrCode) {
+      if (result?.success && result.qrCode) {
         console.log('[Simple Connection] ✅ QR Code obtido:', result.qrCode.substring(0, 50) + '...');
         setSelectedQRCode(result.qrCode);
         return { qrCode: result.qrCode };
@@ -123,7 +194,7 @@ export const SimpleWhatsAppConnection = () => {
             <h3 className="text-2xl font-bold mb-3 text-gray-800">Conectar WhatsApp</h3>
             <p className="text-gray-600 mb-8 max-w-md mx-auto leading-relaxed">
               Conecte sua conta WhatsApp para começar a enviar e receber mensagens 
-              de forma integrada com seu sistema
+              de forma integrada com seu sistema. O QR Code será gerado automaticamente!
             </p>
             
             <Button
@@ -137,15 +208,21 @@ export const SimpleWhatsAppConnection = () => {
               {isConnecting ? (
                 <>
                   <Loader2 className="h-5 w-5 mr-3 animate-spin" />
-                  Conectando...
+                  Conectando e preparando QR...
                 </>
               ) : (
                 <>
                   <MessageSquare className="h-5 w-5 mr-3" />
-                  Conectar WhatsApp
+                  Conectar WhatsApp (Automático)
                 </>
               )}
             </Button>
+            
+            {isConnecting && (
+              <p className="text-sm text-gray-500 mt-4">
+                O QR Code aparecerá automaticamente quando estiver pronto
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -195,7 +272,7 @@ export const SimpleWhatsAppConnection = () => {
             
             <h3 className="font-semibold text-gray-800 mb-2">Nova Conexão</h3>
             <p className="text-sm text-gray-600 mb-4 leading-relaxed">
-              Conecte mais uma conta WhatsApp
+              Conecte mais uma conta WhatsApp com QR automático
             </p>
             
             <Button
@@ -212,7 +289,7 @@ export const SimpleWhatsAppConnection = () => {
               ) : (
                 <>
                   <Plus className="h-4 w-4 mr-2" />
-                  Conectar
+                  Conectar (Auto QR)
                 </>
               )}
             </Button>
