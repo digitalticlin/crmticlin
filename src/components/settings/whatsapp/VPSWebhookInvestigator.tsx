@@ -46,7 +46,9 @@ export const VPSWebhookInvestigator = () => {
         recentInstancesWithoutQR: recentInstances || [],
         webhookTest: webhookTest || { error: webhookError?.message },
         issues: [],
-        recommendations: []
+        recommendations: [],
+        status: 'healthy', // Adicionando propriedade status
+        message: 'Sistema funcionando normalmente' // Adicionando propriedade message
       };
 
       // Analisar problemas

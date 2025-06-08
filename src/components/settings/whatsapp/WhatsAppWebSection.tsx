@@ -41,6 +41,8 @@ export const WhatsAppWebSection = () => {
       <WhatsAppWebSectionHeader 
         onConnect={handleConnect}
         isConnecting={isConnectingOrPolling}
+        isLoading={isLoading}
+        companyLoading={false}
         creationStage={creationStage}
       />
 
@@ -63,19 +65,22 @@ export const WhatsAppWebSection = () => {
 
       {isCreatingInstance && (
         <WhatsAppWebWaitingState 
-          stage={creationStage}
           isWaitingForQR={isWaitingForQR}
+          instanceName={localSelectedInstanceName}
           currentAttempt={currentAttempt}
           maxAttempts={maxAttempts}
         />
       )}
 
       {instances.length === 0 && !isCreatingInstance ? (
-        <WhatsAppWebEmptyState />
+        <WhatsAppWebEmptyState 
+          onConnect={handleConnect}
+          isConnecting={isConnectingOrPolling}
+        />
       ) : (
         <WhatsAppWebInstancesGrid
           instances={instances}
-          onDeleteInstance={handleDeleteInstance}
+          onDelete={handleDeleteInstance}
           onRefreshQR={handleRefreshQR}
           onShowQR={handleShowQR}
         />
@@ -83,8 +88,8 @@ export const WhatsAppWebSection = () => {
 
       <WhatsAppWebQRModal
         isOpen={localShowQRModal}
-        onClose={closeQRModal}
-        qrCode={localSelectedQRCode}
+        onOpenChange={closeQRModal}
+        qrCodeUrl={localSelectedQRCode}
         instanceName={localSelectedInstanceName}
         isWaitingForQR={isWaitingForQR}
         currentAttempt={currentAttempt}
