@@ -96,7 +96,6 @@ export class InstanceService {
 
       return {
         success: true,
-        instances: instances || [],
         data: {
           instances: instances || [],
           server: 'WhatsApp Modular Architecture v5.0.0 via VPS + Webhook'
