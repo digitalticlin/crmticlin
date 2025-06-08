@@ -12,12 +12,12 @@ interface QRCodeServiceResponse {
 export class QRCodeService {
   static async generateQRCode(instanceId: string): Promise<QRCodeServiceResponse> {
     try {
-      console.log(`[QR Code Service] 📱 CORREÇÃO: Usando whatsapp_qr_service para gerar QR: ${instanceId}`);
+      console.log(`[QR Code Service] 📱 CORREÇÃO: Usando whatsapp_qr_service v2 para gerar QR: ${instanceId}`);
 
-      // CORREÇÃO: Usar whatsapp_qr_service diretamente
+      // CORREÇÃO: Continuar usando whatsapp_qr_service que faz o POST /instance/qr correto
       const { data, error } = await supabase.functions.invoke('whatsapp_qr_service', {
         body: {
-          action: 'generate_qr',
+          action: 'generate_qr_corrected',
           instanceId: instanceId
         }
       });
@@ -40,7 +40,7 @@ export class QRCodeService {
       return {
         success: true,
         qrCode: data.qrCode,
-        source: 'whatsapp_qr_service'
+        source: 'whatsapp_qr_service_v2_corrected'
       };
 
     } catch (error: any) {
@@ -54,12 +54,12 @@ export class QRCodeService {
 
   static async getQRCode(instanceId: string): Promise<QRCodeServiceResponse> {
     try {
-      console.log(`[QR Code Service] 📱 CORREÇÃO: Usando whatsapp_qr_service para obter QR: ${instanceId}`);
+      console.log(`[QR Code Service] 📱 CORREÇÃO: Usando whatsapp_qr_service v2 para obter QR: ${instanceId}`);
 
-      // CORREÇÃO: Usar whatsapp_qr_service para buscar QR Code
+      // CORREÇÃO: Usar whatsapp_qr_service para buscar QR Code com endpoint correto
       const { data, error } = await supabase.functions.invoke('whatsapp_qr_service', {
         body: {
-          action: 'get_qr',
+          action: 'get_qr_corrected',
           instanceId: instanceId
         }
       });
@@ -76,7 +76,7 @@ export class QRCodeService {
         return {
           success: true,
           qrCode: data.qrCode,
-          source: data.source || 'whatsapp_qr_service'
+          source: data.source || 'whatsapp_qr_service_v2_corrected'
         };
       }
 

@@ -10,11 +10,12 @@ interface MessagingServiceResponse {
 export class MessagingService {
   static async sendMessage(instanceId: string, phone: string, message: string): Promise<MessagingServiceResponse> {
     try {
-      console.log(`[Messaging Service] 📤 Enviando mensagem:`, { instanceId, phone, messageLength: message.length });
+      console.log(`[Messaging Service] 📤 CORREÇÃO: Enviando mensagem com endpoint correto:`, { instanceId, phone, messageLength: message.length });
 
+      // CORREÇÃO: Usar whatsapp_messaging_service com endpoint correto POST /send
       const { data, error } = await supabase.functions.invoke('whatsapp_messaging_service', {
         body: {
-          action: 'send_message',
+          action: 'send_message_corrected',
           instanceId,
           phone: phone.replace(/\D/g, ''),
           message

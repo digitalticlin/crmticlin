@@ -22,6 +22,7 @@ export class InstanceService {
 
       const normalizedName = instanceName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
 
+      // CORREÇÃO: Continuar usando whatsapp_instance_manager que já funciona
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
           action: 'create_instance',
@@ -58,11 +59,12 @@ export class InstanceService {
 
   static async deleteInstance(instanceId: string): Promise<WhatsAppServiceResponse> {
     try {
-      console.log(`[Instance Service] 🗑️ Deletando instância: ${instanceId}`);
+      console.log(`[Instance Service] 🗑️ CORREÇÃO: Deletando instância com endpoint correto: ${instanceId}`);
 
+      // CORREÇÃO: Usar whatsapp_instance_manager com ação corrigida
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
-          action: 'delete_instance',
+          action: 'delete_instance_corrected',
           instanceId: instanceId
         }
       });
@@ -98,7 +100,7 @@ export class InstanceService {
         success: true,
         data: {
           instances: instances || [],
-          server: 'WhatsApp Modular Architecture v5.0.0 via VPS + Webhook'
+          server: 'WhatsApp Modular Architecture v5.0.0 via VPS + Webhook (Endpoints Corrigidos)'
         }
       };
 
