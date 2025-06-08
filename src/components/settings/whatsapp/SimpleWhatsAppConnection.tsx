@@ -18,7 +18,7 @@ export const SimpleWhatsAppConnection = () => {
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>('');
   const [isWaitingForQR, setIsWaitingForQR] = useState(false);
 
-  // CORREÇÃO: Controle único do AutoQRPolling
+  // CORREÇÃO: Controle único do AutoQRPolling - SEM INICIALIZAÇÃO AUTOMÁTICA
   const [autoPolling, setAutoPolling] = useState<AutoQRPolling | null>(null);
 
   const { user } = useAuth();
@@ -54,34 +54,18 @@ export const SimpleWhatsAppConnection = () => {
       if (createdInstanceResponse && createdInstanceResponse.instance) {
         const instanceData = createdInstanceResponse.instance;
         
-        // Abrir modal primeiro
-        setSelectedInstanceId(instanceData.id);
-        setSelectedInstanceName(instanceData.instance_name);
-        setSelectedQRCode(null);
-        setIsWaitingForQR(true);
-        setShowQRModal(true);
+        console.log('[Simple Connection] ✅ Instância criada - AGUARDANDO WEBHOOK DA VPS');
+        toast.success(`Instância "${intelligentName}" criada! Aguardando webhook da VPS...`);
         
-        // CORREÇÃO: Criar novo AutoQRPolling controlado
-        const newAutoPolling = new AutoQRPolling(
-          instanceData.id,
-          instanceData.instance_name,
-          handleRefreshQRCode,
-          (qrCode: string) => {
-            setSelectedQRCode(qrCode);
-            setIsWaitingForQR(false);
-          }
-        );
+        // CORREÇÃO: NÃO INICIAR POLLING AUTOMÁTICO
+        // O modal só deve abrir quando:
+        // 1. Webhook da VPS enviar QR Code, ou
+        // 2. Usuário clicar em "Gerar QR Code" manualmente
         
-        setAutoPolling(newAutoPolling);
-        newAutoPolling.start(3000); // Delay de 3 segundos
-        
-        console.log('[Simple Connection] ✅ Instância criada, polling iniciado');
-        toast.success(`Instância "${intelligentName}" criada! Aguardando QR Code...`);
+        console.log('[Simple Connection] ⏳ Aguardando webhook ou ação manual do usuário');
       }
     } catch (error: any) {
       console.error('[Simple Connection] ❌ Erro:', error);
-      setShowQRModal(false);
-      setIsWaitingForQR(false);
       toast.error(`Erro ao criar instância: ${error.message}`);
     } finally {
       setIsConnecting(false);
@@ -102,6 +86,25 @@ export const SimpleWhatsAppConnection = () => {
     setSelectedQRCode(null);
     setIsWaitingForQR(true);
     setShowQRModal(true);
+    
+    // NOVO: Criar AutoQRPolling apenas quando usuário solicita manualmente
+    const newAutoPolling = new AutoQRPolling(
+      instanceId,
+      instanceName,
+      handleRefreshQRCode,
+      (qrCode: string) => {
+        setSelectedQRCode(qrCode);
+        setIsWaitingForQR(false);
+      },
+      () => {
+        // Callback quando conectado
+        closeQRModal();
+        toast.success(`${instanceName} conectado com sucesso!`);
+      }
+    );
+    
+    setAutoPolling(newAutoPolling);
+    newAutoPolling.start(1000); // 1 segundo de delay
     
     toast.info(`Gerando QR Code para ${instanceName}...`);
   };
@@ -149,7 +152,7 @@ export const SimpleWhatsAppConnection = () => {
   const closeQRModal = () => {
     console.log('[Simple Connection] 🧹 Fechando modal e parando polling');
     
-    // Parar polling ao fechar modal
+    // CORREÇÃO: Parar polling ao fechar modal
     if (autoPolling) {
       autoPolling.stop();
       setAutoPolling(null);

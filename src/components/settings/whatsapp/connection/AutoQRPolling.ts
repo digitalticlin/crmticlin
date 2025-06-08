@@ -4,14 +4,16 @@ import { toast } from "sonner";
 export class AutoQRPolling {
   private intervalId: NodeJS.Timeout | null = null;
   private attempts = 0;
-  private readonly maxAttempts = 6; // Reduzido para 6 tentativas
+  private readonly maxAttempts = 6;
   private isActive = false;
+  private isConnected = false;
 
   constructor(
     private instanceId: string,
     private instanceName: string,
-    private refreshQRCode: (instanceId: string) => Promise<{ qrCode?: string; success?: boolean; waiting?: boolean } | null>,
-    private onSuccess: (qrCode: string) => void
+    private refreshQRCode: (instanceId: string) => Promise<{ qrCode?: string; success?: boolean; waiting?: boolean; connected?: boolean } | null>,
+    private onSuccess: (qrCode: string) => void,
+    private onConnected?: () => void
   ) {}
 
   async start(delay = 0) {
@@ -20,7 +22,12 @@ export class AutoQRPolling {
       return;
     }
 
-    console.log('[Auto QR] 🚀 Iniciando polling otimizado v3.0 para:', this.instanceName);
+    if (this.isConnected) {
+      console.log('[Auto QR] ⚠️ Instância já conectada - não iniciando polling');
+      return;
+    }
+
+    console.log('[Auto QR] 🚀 Iniciando polling controlado v4.0 para:', this.instanceName);
     
     setTimeout(() => {
       this.startPolling();
@@ -28,7 +35,7 @@ export class AutoQRPolling {
   }
 
   private startPolling() {
-    if (this.isActive) return;
+    if (this.isActive || this.isConnected) return;
     
     this.isActive = true;
     this.attempts = 0;
@@ -39,6 +46,18 @@ export class AutoQRPolling {
       
       try {
         const result = await this.refreshQRCode(this.instanceId);
+        
+        // NOVO: Verificar se conectou
+        if (result?.connected) {
+          console.log('[Auto QR] ✅ Instância conectada! Parando polling');
+          this.isConnected = true;
+          this.stop();
+          if (this.onConnected) {
+            this.onConnected();
+          }
+          toast.success(`"${this.instanceName}" conectado com sucesso!`);
+          return;
+        }
         
         if (result?.success && result.qrCode) {
           console.log('[Auto QR] ✅ QR Code obtido automaticamente!');
@@ -65,7 +84,7 @@ export class AutoQRPolling {
           toast.error(`Erro no polling: ${error.message}`);
         }
       }
-    }, 5000); // 5 segundos entre tentativas - menos agressivo
+    }, 5000);
   }
 
   stop() {
@@ -76,5 +95,16 @@ export class AutoQRPolling {
     this.isActive = false;
     this.attempts = 0;
     console.log('[Auto QR] 🛑 Polling parado');
+  }
+
+  // NOVO: Método para marcar como conectado externamente
+  markAsConnected() {
+    this.isConnected = true;
+    this.stop();
+  }
+
+  // NOVO: Método para verificar se está conectado
+  getConnectionStatus() {
+    return this.isConnected;
   }
 }
