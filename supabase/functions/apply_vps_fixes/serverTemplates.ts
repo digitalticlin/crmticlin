@@ -11,9 +11,40 @@ app.use(express.json());
 const instances = new Map();
 const sessionDir = './sessions';
 
+// CORREÇÃO CRÍTICA: URL correta do webhook para QR Code
+const GLOBAL_WEBHOOK_URL = 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/whatsapp_qr_service';
+
 // Criar diretório de sessões se não existir
 if (!fs.existsSync(sessionDir)) {
     fs.mkdirSync(sessionDir, { recursive: true });
+}
+
+// Função para enviar webhook
+async function sendWebhook(instanceId, event, data) {
+    try {
+        console.log(\`📡 Enviando webhook: \${event} para \${instanceId}\`);
+        
+        const response = await fetch(GLOBAL_WEBHOOK_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                instanceId: instanceId,
+                event: event,
+                data: data,
+                timestamp: new Date().toISOString()
+            })
+        });
+
+        if (response.ok) {
+            console.log(\`✅ Webhook enviado com sucesso: \${event}\`);
+        } else {
+            console.error(\`❌ Erro no webhook: \${response.status} - \${response.statusText}\`);
+        }
+    } catch (error) {
+        console.error(\`❌ Erro ao enviar webhook \${event}:\`, error.message);
+    }
 }
 
 // Health endpoint com informações das correções
@@ -23,10 +54,11 @@ app.get('/health', (req, res) => {
     
     res.json({
         status: 'online',
-        version: '2.0.0-ssl-fix',
+        version: '2.1.0-webhook-fix',
         instances: totalInstances,
         online_instances: onlineInstances,
         uptime: process.uptime(),
+        webhook_url: GLOBAL_WEBHOOK_URL,
         ssl_fix_enabled: true,
         timeout_fix_enabled: true,
         timestamp: new Date().toISOString()
@@ -37,10 +69,10 @@ app.get('/health', (req, res) => {
 app.get('/info', (req, res) => {
     res.json({
         server: 'WhatsApp Web.js Server',
-        version: '2.0.0-ssl-fix',
+        version: '2.1.0-webhook-fix',
         ssl_fix: 'enabled',
         timeout_fix: 'enabled',
-        webhook_url: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
+        webhook_url: GLOBAL_WEBHOOK_URL,
         total_instances: instances.size,
         active_instances: Array.from(instances.values()).filter(inst => inst.status === 'ready').length
     });
@@ -75,25 +107,25 @@ app.get('/instances', (req, res) => {
 });
 
 // Criar instância
-app.post('/create', async (req, res) => {
+app.post('/instance/create', async (req, res) => {
     try {
-        const { instanceName } = req.body;
+        const { instanceId, sessionName, webhookUrl } = req.body;
         
-        if (!instanceName) {
-            return res.status(400).json({ success: false, error: 'instanceName é obrigatório' });
+        if (!instanceId) {
+            return res.status(400).json({ success: false, error: 'instanceId é obrigatório' });
         }
         
-        if (instances.has(instanceName)) {
+        if (instances.has(instanceId)) {
             return res.status(400).json({ success: false, error: 'Instância já existe' });
         }
         
-        console.log(\`Criando instância: \${instanceName}\`);
+        console.log(\`Criando instância: \${instanceId}\`);
         
         // Configuração com correções SSL e timeout
         const client = new Client({
             authStrategy: new LocalAuth({
-                clientId: instanceName,
-                dataPath: path.join(sessionDir, instanceName)
+                clientId: instanceId,
+                dataPath: path.join(sessionDir, instanceId)
             }),
             puppeteer: {
                 headless: true,
@@ -111,18 +143,15 @@ app.post('/create', async (req, res) => {
                     '--disable-renderer-backgrounding',
                     '--disable-features=TranslateUI',
                     '--disable-ipc-flooding-protection',
-                    // CORREÇÕES SSL
                     '--ignore-certificate-errors',
                     '--ignore-ssl-errors',
                     '--ignore-certificate-errors-spki-list',
                     '--allow-running-insecure-content',
                     '--disable-web-security'
                 ],
-                // CORREÇÕES DE TIMEOUT
                 timeout: 120000,
                 protocolTimeout: 120000
             },
-            // Configurações adicionais de timeout
             qrMaxRetries: 5,
             restartOnAuthFail: true,
             takeoverOnConflict: true,
@@ -134,45 +163,72 @@ app.post('/create', async (req, res) => {
             status: 'initializing',
             qr: null,
             phone: null,
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            instanceId: instanceId
         };
         
-        instances.set(instanceName, instanceData);
+        instances.set(instanceId, instanceData);
         
-        // Event handlers com melhor tratamento de erros
-        client.on('qr', (qr) => {
-            console.log(\`QR Code gerado para \${instanceName}\`);
+        // Event handlers com webhook CORRIGIDO
+        client.on('qr', async (qr) => {
+            console.log(\`📱 QR Code gerado para \${instanceId}\`);
             instanceData.qr = qr;
             instanceData.status = 'qr_generated';
+            
+            // CORREÇÃO CRÍTICA: Enviar webhook com QR Code
+            await sendWebhook(instanceId, 'qr_code_generated', {
+                qrCode: qr,
+                status: 'qr_generated'
+            });
         });
         
-        client.on('ready', () => {
-            console.log(\`Cliente \${instanceName} está pronto!\`);
+        client.on('ready', async () => {
+            console.log(\`✅ Cliente \${instanceId} está pronto!\`);
             instanceData.status = 'ready';
             instanceData.phone = client.info?.wid?.user || null;
             instanceData.qr = null;
+            
+            // Enviar webhook de conexão
+            await sendWebhook(instanceId, 'connection_status_changed', {
+                status: 'ready',
+                phone: instanceData.phone
+            });
         });
         
-        client.on('authenticated', () => {
-            console.log(\`Cliente \${instanceName} autenticado\`);
+        client.on('authenticated', async () => {
+            console.log(\`🔐 Cliente \${instanceId} autenticado\`);
             instanceData.status = 'authenticated';
+            
+            await sendWebhook(instanceId, 'connection_status_changed', {
+                status: 'authenticated'
+            });
         });
         
-        client.on('auth_failure', (msg) => {
-            console.error(\`Falha na autenticação para \${instanceName}:\`, msg);
+        client.on('auth_failure', async (msg) => {
+            console.error(\`❌ Falha na autenticação para \${instanceId}:\`, msg);
             instanceData.status = 'auth_failure';
+            
+            await sendWebhook(instanceId, 'connection_status_changed', {
+                status: 'auth_failure',
+                error: msg
+            });
         });
         
-        client.on('disconnected', (reason) => {
-            console.log(\`Cliente \${instanceName} desconectado:\`, reason);
+        client.on('disconnected', async (reason) => {
+            console.log(\`📴 Cliente \${instanceId} desconectado:\`, reason);
             instanceData.status = 'disconnected';
+            
+            await sendWebhook(instanceId, 'connection_status_changed', {
+                status: 'disconnected',
+                reason: reason
+            });
             
             // Auto-reconectar após desconexão (com limite)
             if (!instanceData.reconnectAttempts) instanceData.reconnectAttempts = 0;
             if (instanceData.reconnectAttempts < 3) {
                 instanceData.reconnectAttempts++;
                 setTimeout(() => {
-                    console.log(\`Tentando reconectar \${instanceName} (tentativa \${instanceData.reconnectAttempts})\`);
+                    console.log(\`🔄 Tentando reconectar \${instanceId} (tentativa \${instanceData.reconnectAttempts})\`);
                     client.initialize();
                 }, 5000);
             }
@@ -187,19 +243,20 @@ app.post('/create', async (req, res) => {
         try {
             await Promise.race([initPromise, timeoutPromise]);
         } catch (error) {
-            console.error(\`Erro na inicialização de \${instanceName}:\`, error);
-            instances.delete(instanceName);
+            console.error(\`❌ Erro na inicialização de \${instanceId}:\`, error);
+            instances.delete(instanceId);
             throw error;
         }
         
         res.json({
             success: true,
-            instanceName,
-            message: 'Instância criada com sucesso'
+            instanceId: instanceId,
+            status: 'creating',
+            message: 'Instância criada e inicializando'
         });
         
     } catch (error) {
-        console.error('Erro ao criar instância:', error);
+        console.error('❌ Erro ao criar instância:', error);
         res.status(500).json({
             success: false,
             error: error.message
@@ -208,9 +265,9 @@ app.post('/create', async (req, res) => {
 });
 
 // Obter QR Code
-app.get('/qr/:instanceName', async (req, res) => {
-    const { instanceName } = req.params;
-    const instance = instances.get(instanceName);
+app.get('/instance/:instanceId/qr', async (req, res) => {
+    const { instanceId } = req.params;
+    const instance = instances.get(instanceId);
     
     if (!instance) {
         return res.status(404).json({ success: false, error: 'Instância não encontrada' });
@@ -220,8 +277,7 @@ app.get('/qr/:instanceName', async (req, res) => {
         const qrDataURL = await QRCode.toDataURL(instance.qr);
         res.json({
             success: true,
-            qr: instance.qr,
-            qrImage: qrDataURL,
+            qrCode: qrDataURL,
             status: instance.status
         });
     } else {
@@ -234,9 +290,9 @@ app.get('/qr/:instanceName', async (req, res) => {
 });
 
 // Status da instância
-app.get('/status/:instanceName', (req, res) => {
-    const { instanceName } = req.params;
-    const instance = instances.get(instanceName);
+app.get('/instance/:instanceId/status', (req, res) => {
+    const { instanceId } = req.params;
+    const instance = instances.get(instanceId);
     
     if (!instance) {
         return res.status(404).json({ success: false, error: 'Instância não encontrada' });
@@ -244,7 +300,7 @@ app.get('/status/:instanceName', (req, res) => {
     
     res.json({
         success: true,
-        instanceName,
+        instanceId,
         status: instance.status,
         phone: instance.phone,
         created_at: instance.created_at,
@@ -252,12 +308,43 @@ app.get('/status/:instanceName', (req, res) => {
     });
 });
 
+// Deletar instância
+app.delete('/instance/:instanceId', (req, res) => {
+    const { instanceId } = req.params;
+    const instance = instances.get(instanceId);
+    
+    if (!instance) {
+        return res.status(404).json({ success: false, error: 'Instância não encontrada' });
+    }
+    
+    try {
+        if (instance.client) {
+            instance.client.destroy();
+        }
+        instances.delete(instanceId);
+        
+        console.log(\`🗑️ Instância \${instanceId} deletada com sucesso\`);
+        
+        res.json({
+            success: true,
+            message: 'Instância deletada com sucesso'
+        });
+    } catch (error) {
+        console.error(\`❌ Erro ao deletar instância \${instanceId}:\`, error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 // Iniciar servidor
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, '0.0.0.0', () => {
     console.log(\`🚀 Servidor WhatsApp Web.js rodando na porta \${PORT}\`);
     console.log(\`📡 Health check: http://localhost:\${PORT}/health\`);
-    console.log(\`🔧 Versão: 2.0.0-ssl-fix (SSL + Timeout fixes enabled)\`);
+    console.log(\`🔧 Versão: 2.1.0-webhook-fix\`);
+    console.log(\`📡 Webhook URL: \${GLOBAL_WEBHOOK_URL}\`);
 });
 
 // Graceful shutdown

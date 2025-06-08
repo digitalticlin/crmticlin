@@ -1,133 +1,163 @@
 
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { QrCode, Trash2, Loader2, Smartphone, CheckCircle, Clock } from "lucide-react";
-import { InstanceStatusBadge } from "./InstanceStatusBadge";
-import { InstanceStatusMessages } from "./InstanceStatusMessages";
+import { Badge } from "@/components/ui/badge";
+import { 
+  QrCode, 
+  Trash2, 
+  Smartphone, 
+  Clock, 
+  CheckCircle,
+  AlertTriangle,
+  Download,
+  ChevronDown,
+  ChevronUp
+} from "lucide-react";
+import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChatImporter } from "./ChatImporter";
 
 interface SimpleInstanceCardProps {
-  instance: any;
+  instance: WhatsAppWebInstance;
   onGenerateQR: (instanceId: string, instanceName: string) => void;
   onDelete: (instanceId: string) => void;
-  onRefreshQRCode: (instanceId: string) => Promise<{ qrCode?: string } | null>;
+  onRefreshQRCode: (instanceId: string) => Promise<{ qrCode?: string; success?: boolean; waiting?: boolean; connected?: boolean } | null>;
 }
 
 export const SimpleInstanceCard = ({ 
   instance, 
   onGenerateQR, 
-  onDelete, 
+  onDelete,
   onRefreshQRCode 
 }: SimpleInstanceCardProps) => {
-  const [isGeneratingQR, setIsGeneratingQR] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [showImporter, setShowImporter] = useState(false);
 
-  const isConnected = instance.connection_status === 'connected' || 
-                     instance.connection_status === 'ready' || 
-                     instance.connection_status === 'open';
-
-  const handleGenerateQR = async () => {
-    setIsGeneratingQR(true);
-    try {
-      await onGenerateQR(instance.id, instance.instance_name);
-    } finally {
-      setIsGeneratingQR(false);
+  const getStatusInfo = () => {
+    const status = instance.connection_status?.toLowerCase() || 'unknown';
+    
+    switch (status) {
+      case 'ready':
+      case 'connected':
+        return {
+          color: 'bg-green-100 text-green-800',
+          icon: CheckCircle,
+          text: 'Conectado',
+          description: 'WhatsApp conectado e funcionando'
+        };
+      case 'connecting':
+      case 'initializing':
+        return {
+          color: 'bg-yellow-100 text-yellow-800',
+          icon: Clock,
+          text: 'Conectando',
+          description: 'Estabelecendo conexão...'
+        };
+      case 'qr_generated':
+      case 'waiting_scan':
+        return {
+          color: 'bg-blue-100 text-blue-800',
+          icon: QrCode,
+          text: 'Aguardando QR',
+          description: 'Escaneie o QR Code'
+        };
+      default:
+        return {
+          color: 'bg-gray-100 text-gray-800',
+          icon: AlertTriangle,
+          text: 'Desconhecido',
+          description: 'Status não identificado'
+        };
     }
   };
 
-  const handleDelete = async () => {
-    if (window.confirm(`Tem certeza que deseja deletar a instância "${instance.instance_name}"?`)) {
-      setIsDeleting(true);
-      try {
-        await onDelete(instance.id);
-      } finally {
-        setIsDeleting(false);
-      }
-    }
-  };
+  const statusInfo = getStatusInfo();
+  const StatusIcon = statusInfo.icon;
+  const isConnected = ['ready', 'connected'].includes(instance.connection_status?.toLowerCase() || '');
 
   return (
-    <Card className="bg-white/20 backdrop-blur-xl border border-white/30 rounded-2xl hover:bg-white/30 transition-all duration-300 shadow-lg">
-      <CardContent className="p-6">
-        {/* Header com nome e status */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <h3 className="font-semibold text-gray-800 mb-2 truncate">
+    <Card className="bg-white border-l-4 border-l-green-500">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="space-y-1">
+            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+              <Smartphone className="h-4 w-4" />
               {instance.instance_name}
             </h3>
-            <InstanceStatusBadge connectionStatus={instance.connection_status} />
+            {instance.phone && (
+              <p className="text-sm text-gray-600">
+                📱 {instance.phone}
+              </p>
+            )}
           </div>
           
-          {isConnected && (
-            <div className="ml-2">
-              <Smartphone className="h-5 w-5 text-green-600" />
-            </div>
-          )}
+          <Badge className={statusInfo.color}>
+            <StatusIcon className="h-3 w-3 mr-1" />
+            {statusInfo.text}
+          </Badge>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        <div className="text-sm text-gray-600">
+          <p>{statusInfo.description}</p>
+          <p className="text-xs mt-1">
+            Criado: {new Date(instance.created_at).toLocaleDateString('pt-BR')}
+          </p>
         </div>
 
-        {/* Informações da instância */}
-        <div className="space-y-3 mb-4">
-          {instance.phone && (
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <span className="font-medium">Telefone:</span>
-              <span>{instance.phone}</span>
-            </div>
-          )}
-          
-          {instance.profile_name && (
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <span className="font-medium">Perfil:</span>
-              <span className="truncate">{instance.profile_name}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Status messages */}
-        <div className="mb-4">
-          <InstanceStatusMessages 
-            connectionStatus={instance.connection_status}
-            qrCode={instance.qr_code}
-          />
-        </div>
-
-        {/* Ações */}
         <div className="flex gap-2">
           {!isConnected && (
             <Button
-              onClick={handleGenerateQR}
-              disabled={isGeneratingQR}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+              onClick={() => onGenerateQR(instance.id, instance.instance_name)}
+              className="flex-1 bg-blue-600 hover:bg-blue-700"
               size="sm"
             >
-              {isGeneratingQR ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Gerando...
-                </>
-              ) : (
-                <>
-                  <QrCode className="h-4 w-4 mr-2" />
-                  Gerar QR
-                </>
-              )}
+              <QrCode className="h-4 w-4 mr-2" />
+              Gerar QR Code
             </Button>
           )}
-
+          
           <Button
-            onClick={handleDelete}
-            disabled={isDeleting}
-            variant="destructive"
+            onClick={() => onDelete(instance.id)}
+            variant="outline"
             size="sm"
-            className={isConnected ? "flex-1" : ""}
+            className="text-red-600 hover:text-red-700 hover:bg-red-50"
           >
-            {isDeleting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Trash2 className="h-4 w-4" />
-            )}
-            {!isConnected && <span className="ml-2">Deletar</span>}
+            <Trash2 className="h-4 w-4" />
           </Button>
         </div>
+
+        {/* Seção de Importação de Chat para instâncias conectadas */}
+        {isConnected && (
+          <Collapsible open={showImporter} onOpenChange={setShowImporter}>
+            <CollapsibleTrigger asChild>
+              <Button
+                variant="outline" 
+                className="w-full flex items-center justify-between"
+                size="sm"
+              >
+                <div className="flex items-center gap-2">
+                  <Download className="h-4 w-4" />
+                  Importar Chats
+                </div>
+                {showImporter ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent className="mt-3">
+              <ChatImporter
+                instanceId={instance.id}
+                instanceName={instance.instance_name}
+                isConnected={isConnected}
+              />
+            </CollapsibleContent>
+          </Collapsible>
+        )}
       </CardContent>
     </Card>
   );

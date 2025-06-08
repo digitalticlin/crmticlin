@@ -153,9 +153,9 @@ async function checkConnectionStatus(vpsInstanceId: string) {
   }
 }
 
-// MELHORADO: Sistema de webhook para receber notificações da VPS
-async function handleWebhookNotification(supabase: any, webhookData: any) {
-  console.log(`[QR Service] 🔔 Webhook recebido da VPS:`, webhookData);
+// CORREÇÃO CRÍTICA: Melhorado processamento de webhook da VPS
+async function handleVPSWebhook(supabase: any, webhookData: any) {
+  console.log(`[QR Service] 🔔 WEBHOOK VPS RECEBIDO:`, webhookData);
   
   try {
     const { instanceId, event, data } = webhookData;
@@ -164,7 +164,9 @@ async function handleWebhookNotification(supabase: any, webhookData: any) {
       throw new Error('Instance ID não fornecido no webhook');
     }
 
-    // Buscar instância no banco
+    console.log(`[QR Service] 🔍 Buscando instância no banco: ${instanceId}`);
+
+    // Buscar instância no banco pelo vps_instance_id
     const { data: instance, error: fetchError } = await supabase
       .from('whatsapp_instances')
       .select('*')
@@ -172,18 +174,18 @@ async function handleWebhookNotification(supabase: any, webhookData: any) {
       .single();
 
     if (fetchError || !instance) {
-      console.error(`[QR Service] ❌ Instância não encontrada para webhook:`, instanceId);
+      console.error(`[QR Service] ❌ Instância não encontrada para webhook:`, instanceId, fetchError);
       return { success: false, error: 'Instância não encontrada' };
     }
 
     console.log(`[QR Service] ✅ Instância encontrada:`, instance.instance_name);
 
     switch (event) {
+      case 'qr_code_generated':
       case 'qr.update':
       case 'qr.ready':
-      case 'qr_code_generated': // Novo evento que a VPS deve enviar
         if (data?.qrCode) {
-          console.log(`[QR Service] 📱 QR Code recebido via webhook!`);
+          console.log(`[QR Service] 📱 QR CODE RECEBIDO VIA WEBHOOK!`);
           
           let normalizedQrCode = data.qrCode;
           if (!data.qrCode.startsWith('data:image/')) {
@@ -204,13 +206,13 @@ async function handleWebhookNotification(supabase: any, webhookData: any) {
             return { success: false, error: updateError.message };
           }
 
-          console.log(`[QR Service] ✅ QR Code salvo via webhook!`);
+          console.log(`[QR Service] ✅ QR CODE SALVO VIA WEBHOOK!`);
           return { success: true, message: 'QR Code salvo via webhook' };
         }
         break;
 
+      case 'connection_status_changed':
       case 'connection.update':
-      case 'connection_status_changed': // Novo evento da VPS
         if (data?.status) {
           const isConnected = ['open', 'ready', 'connected'].includes(data.status.toLowerCase());
           
@@ -223,6 +225,9 @@ async function handleWebhookNotification(supabase: any, webhookData: any) {
           // Limpar QR Code se conectado
           if (isConnected) {
             updateData.qr_code = null;
+            if (data.phone) {
+              updateData.phone = data.phone;
+            }
           }
 
           const { error: statusError } = await supabase
@@ -264,21 +269,22 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const body = await req.json();
-    const { action, instanceId } = body;
+    console.log(`[QR Service] 📥 Request recebido:`, body);
 
-    console.log(`[QR Service] 🎯 Ação: ${action}, Instância: ${instanceId}`);
-
-    // MELHORADO: Webhook notification handler
-    if (action === 'webhook_notification' || req.method === 'POST' && body.event) {
-      console.log(`[QR Service] 🔔 Processando webhook da VPS`);
-      const result = await handleWebhookNotification(supabase, body);
+    // CORREÇÃO CRÍTICA: Detectar webhook da VPS
+    if (body.instanceId && body.event && body.data) {
+      console.log(`[QR Service] 🔔 PROCESSANDO WEBHOOK DA VPS`);
+      const result = await handleVPSWebhook(supabase, body);
       return new Response(
         JSON.stringify(result),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Autenticar usuário para outras ações
+    const { action, instanceId } = body;
+    console.log(`[QR Service] 🎯 Ação manual: ${action}, Instância: ${instanceId}`);
+
+    // Autenticar usuário para ações manuais
     const authResult = await authenticateUser(req, supabase);
     if (!authResult.success) {
       return new Response(
@@ -313,7 +319,7 @@ serve(async (req) => {
 
     switch (action) {
       case 'generate_qr': {
-        console.log(`[QR Service] 📱 Gerando QR Code para: ${instance.instance_name}`);
+        console.log(`[QR Service] 📱 Gerando QR Code MANUAL para: ${instance.instance_name}`);
 
         let qrResult;
         let retryCount = 0;
@@ -350,7 +356,7 @@ serve(async (req) => {
             console.error('[QR Service] ❌ Erro ao salvar QR:', updateError);
           }
 
-          console.log(`[QR Service] ✅ QR Code gerado e salvo (tentativa ${retryCount + 1})`);
+          console.log(`[QR Service] ✅ QR Code gerado MANUAL e salvo (tentativa ${retryCount + 1})`);
 
           return new Response(
             JSON.stringify({
