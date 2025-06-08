@@ -6,9 +6,9 @@ export const useInstanceActions = (refreshInstances: () => Promise<void>) => {
   
   const createInstance = async (instanceName: string) => {
     try {
-      console.log('[Instance Actions] 🚀 Creating instance:', instanceName);
+      console.log('[Instance Actions] 🚀 Creating instance v2.0:', instanceName);
       
-      // CORREÇÃO: Usar whatsapp_instance_manager apenas para criar instância
+      // CORREÇÃO: Usar whatsapp_instance_manager com autenticação automática
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
           action: 'create_instance',
@@ -24,19 +24,21 @@ export const useInstanceActions = (refreshInstances: () => Promise<void>) => {
         throw new Error(data?.error || 'Erro desconhecido na criação da instância');
       }
 
-      console.log('[Instance Actions] ✅ Instância criada:', data.instance);
+      console.log('[Instance Actions] ✅ Instância criada v2.0:', data.instance);
       await refreshInstances();
       
       return data;
 
     } catch (error: any) {
-      console.error('[Instance Actions] ❌ Erro:', error);
+      console.error('[Instance Actions] ❌ Erro v2.0:', error);
       throw error;
     }
   };
 
   const deleteInstance = async (instanceId: string) => {
     try {
+      console.log('[Instance Actions] 🗑️ Deletando instância v2.0:', instanceId);
+      
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
           action: 'delete_instance',
@@ -53,10 +55,10 @@ export const useInstanceActions = (refreshInstances: () => Promise<void>) => {
       }
 
       await refreshInstances();
-      toast.success('Instância deletada com sucesso!');
+      toast.success('Instância deletada com sucesso da VPS e banco!');
 
     } catch (error: any) {
-      console.error('[Instance Actions] ❌ Erro ao deletar:', error);
+      console.error('[Instance Actions] ❌ Erro ao deletar v2.0:', error);
       toast.error(`Erro ao deletar: ${error.message}`);
       throw error;
     }
@@ -64,9 +66,9 @@ export const useInstanceActions = (refreshInstances: () => Promise<void>) => {
 
   const refreshQRCode = async (instanceId: string) => {
     try {
-      console.log('[Instance Actions] 🔄 CORREÇÃO: Usando whatsapp_qr_service para QR Code:', instanceId);
+      console.log('[Instance Actions] 🔄 CORREÇÃO v2.0: Usando whatsapp_qr_service para QR Code:', instanceId);
       
-      // CORREÇÃO: Usar whatsapp_qr_service para todo processo de QR Code
+      // CORREÇÃO: Usar whatsapp_qr_service com retry automático
       const { data, error } = await supabase.functions.invoke('whatsapp_qr_service', {
         body: {
           action: 'generate_qr',
@@ -84,7 +86,7 @@ export const useInstanceActions = (refreshInstances: () => Promise<void>) => {
 
       if (!data.success) {
         if (data.waiting) {
-          console.log('[Instance Actions] ⏳ QR Code ainda sendo gerado');
+          console.log('[Instance Actions] ⏳ QR Code ainda sendo gerado (v2.0)');
           return {
             success: false,
             waiting: true,
@@ -94,7 +96,7 @@ export const useInstanceActions = (refreshInstances: () => Promise<void>) => {
         throw new Error(data.error || 'Erro desconhecido ao gerar QR Code');
       }
 
-      console.log('[Instance Actions] ✅ QR Code obtido via whatsapp_qr_service');
+      console.log('[Instance Actions] ✅ QR Code obtido v2.0 via whatsapp_qr_service');
       await refreshInstances();
       
       return {
@@ -103,7 +105,7 @@ export const useInstanceActions = (refreshInstances: () => Promise<void>) => {
       };
 
     } catch (error: any) {
-      console.error('[Instance Actions] ❌ Erro ao gerar QR Code:', error);
+      console.error('[Instance Actions] ❌ Erro ao gerar QR Code v2.0:', error);
       return {
         success: false,
         error: error.message

@@ -6,7 +6,74 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-console.log("WhatsApp Instance Manager - Gerenciamento completo de instâncias");
+const VPS_CONFIG = {
+  baseUrl: 'http://31.97.24.222:3001',
+  authToken: Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
+  timeout: 15000
+};
+
+console.log("WhatsApp Instance Manager - Gerenciamento completo de instâncias v2.0");
+
+async function authenticateUser(req: Request, supabase: any) {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) {
+    return { success: false, error: 'No authorization header' };
+  }
+
+  const token = authHeader.replace('Bearer ', '');
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+
+  if (error || !user) {
+    return { success: false, error: 'Invalid token' };
+  }
+
+  return { success: true, user };
+}
+
+async function makeVPSRequest(endpoint: string, method: string = 'GET', body?: any) {
+  const url = `${VPS_CONFIG.baseUrl}${endpoint}`;
+  console.log(`[VPS Request] ${method} ${url}`);
+  
+  try {
+    const requestOptions: RequestInit = {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${VPS_CONFIG.authToken}`
+      },
+      signal: AbortSignal.timeout(VPS_CONFIG.timeout)
+    };
+
+    if (body && method !== 'GET') {
+      requestOptions.body = JSON.stringify(body);
+    }
+
+    const response = await fetch(url, requestOptions);
+    const responseText = await response.text();
+    
+    console.log(`[VPS Response] ${response.status}: ${responseText.substring(0, 200)}`);
+
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch {
+      data = { raw: responseText };
+    }
+
+    return { 
+      success: response.ok, 
+      status: response.status,
+      data 
+    };
+  } catch (error: any) {
+    console.error(`[VPS Request Error] ${error.message}`);
+    return { 
+      success: false, 
+      status: 500,
+      error: error.message 
+    };
+  }
+}
 
 serve(async (req) => {
   console.log(`[Instance Manager] 📡 REQUEST: ${req.method} ${req.url}`);
@@ -16,6 +83,10 @@ serve(async (req) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
     const rawBody = await req.text();
     console.log(`[Instance Manager] 📥 Raw body: ${rawBody}`);
 
@@ -43,18 +114,14 @@ serve(async (req) => {
       userEmail,
       instanceData
     });
-    
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     switch (action) {
       case 'create_instance':
-        console.log(`[Instance Manager] 🚀 EXECUTANDO CREATE_INSTANCE`);
-        return await handleCreateInstance(supabase, instanceName);
+        console.log(`[Instance Manager] 🚀 EXECUTANDO CREATE_INSTANCE v2.0`);
+        return await handleCreateInstance(supabase, instanceName, req);
         
       case 'delete_instance':
-        return await handleDeleteInstance(supabase, instanceId);
+        return await handleDeleteInstance(supabase, instanceId, req);
         
       case 'list_instances':
         return await handleListInstances(supabase);
@@ -105,11 +172,24 @@ serve(async (req) => {
   }
 });
 
-// Função para criar instância COM LOGS DETALHADOS
-async function handleCreateInstance(supabase: any, instanceName: string) {
+// ETAPA 1: Função corrigida para criar instância COM user_id
+async function handleCreateInstance(supabase: any, instanceName: string, req: Request) {
   try {
-    console.log(`[Instance Manager] 🚀 handleCreateInstance INICIADO`);
+    console.log(`[Instance Manager] 🚀 handleCreateInstance v2.0 INICIADO`);
     console.log(`[Instance Manager] 📊 instanceName recebido:`, instanceName);
+
+    // CORREÇÃO CRÍTICA: Autenticar usuário primeiro
+    const authResult = await authenticateUser(req, supabase);
+    if (!authResult.success) {
+      console.error(`[Instance Manager] ❌ Usuário não autenticado:`, authResult.error);
+      return new Response(
+        JSON.stringify({ success: false, error: authResult.error }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { user } = authResult;
+    console.log(`[Instance Manager] ✅ Usuário autenticado:`, user.id);
 
     // Validar nome da instância
     if (!instanceName || typeof instanceName !== 'string') {
@@ -125,12 +205,13 @@ async function handleCreateInstance(supabase: any, instanceName: string) {
     const normalizedName = instanceName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
     console.log(`[Instance Manager] ✅ Nome normalizado: ${normalizedName}`);
 
-    // Verificar se já existe
-    console.log(`[Instance Manager] 🔍 Verificando duplicatas...`);
+    // Verificar se já existe para este usuário
+    console.log(`[Instance Manager] 🔍 Verificando duplicatas para usuário ${user.id}...`);
     const { data: existing, error: existingError } = await supabase
       .from('whatsapp_instances')
       .select('id, instance_name')
       .eq('instance_name', normalizedName)
+      .eq('created_by_user_id', user.id)
       .maybeSingle();
 
     if (existingError) {
@@ -139,23 +220,40 @@ async function handleCreateInstance(supabase: any, instanceName: string) {
     }
 
     if (existing) {
-      console.error(`[Instance Manager] ❌ Instância já existe:`, existing);
+      console.error(`[Instance Manager] ❌ Instância já existe para este usuário:`, existing);
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Já existe uma instância com este nome',
+          error: 'Já existe uma instância com este nome para este usuário',
           existing_instance: existing
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Simular criação na VPS (aqui você faria a chamada real para VPS)
-    const vpsInstanceId = `vps_${normalizedName}_${Date.now()}`;
-    console.log(`[Instance Manager] 🏗️ VPS Instance ID gerado: ${vpsInstanceId}`);
+    // ETAPA 2: Criar instância na VPS real
+    const vpsInstanceId = `instance_${user.id}_${normalizedName}_${Date.now()}`;
+    console.log(`[Instance Manager] 🏗️ Criando instância na VPS: ${vpsInstanceId}`);
 
-    // Criar no banco
-    console.log(`[Instance Manager] 💾 Inserindo no Supabase...`);
+    const vpsResult = await makeVPSRequest('/instance/create', 'POST', {
+      instanceName: vpsInstanceId,
+      webhookUrl: `https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/whatsapp_qr_service`,
+      settings: {
+        autoReconnect: true,
+        markMessages: false,
+        syncFullHistory: false
+      }
+    });
+
+    if (!vpsResult.success) {
+      console.error(`[Instance Manager] ❌ Falha na criação VPS:`, vpsResult);
+      throw new Error(`Falha ao criar instância na VPS: ${vpsResult.error || 'Erro desconhecido'}`);
+    }
+
+    console.log(`[Instance Manager] ✅ Instância criada na VPS:`, vpsResult.data);
+
+    // ETAPA 1 CORRIGIDA: Criar no banco COM user_id
+    console.log(`[Instance Manager] 💾 Inserindo no Supabase COM user_id...`);
     const { data: instance, error: insertError } = await supabase
       .from('whatsapp_instances')
       .insert({
@@ -163,17 +261,71 @@ async function handleCreateInstance(supabase: any, instanceName: string) {
         vps_instance_id: vpsInstanceId,
         connection_type: 'web',
         connection_status: 'connecting',
-        web_status: 'connecting'
+        web_status: 'connecting',
+        created_by_user_id: user.id, // CORREÇÃO CRÍTICA
+        server_url: VPS_CONFIG.baseUrl
       })
       .select()
       .single();
 
     if (insertError) {
       console.error(`[Instance Manager] ❌ Erro ao inserir no banco:`, insertError);
+      
+      // Tentar deletar da VPS se banco falhou
+      try {
+        await makeVPSRequest(`/instance/${vpsInstanceId}/delete`, 'DELETE');
+        console.log(`[Instance Manager] 🧹 Instância deletada da VPS após falha no banco`);
+      } catch (cleanupError) {
+        console.error(`[Instance Manager] ⚠️ Falha no cleanup da VPS:`, cleanupError);
+      }
+      
       throw new Error(`Erro ao criar instância no banco: ${insertError.message}`);
     }
 
     console.log(`[Instance Manager] ✅ Instância criada com sucesso:`, instance);
+
+    // ETAPA 3: Iniciar processo de obtenção de QR Code (sem aguardar)
+    console.log(`[Instance Manager] 🔄 Iniciando processo de QR Code...`);
+    
+    // Background task para buscar QR Code após um pequeno delay
+    setTimeout(async () => {
+      try {
+        console.log(`[Instance Manager] 📱 Tentando obter QR Code para ${vpsInstanceId}...`);
+        
+        // Aguardar um pouco para VPS processar
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        const qrResult = await makeVPSRequest(`/instance/${vpsInstanceId}/qr`, 'GET');
+        
+        if (qrResult.success && qrResult.data?.qrCode) {
+          console.log(`[Instance Manager] ✅ QR Code obtido, salvando no banco...`);
+          
+          let normalizedQrCode = qrResult.data.qrCode;
+          if (!normalizedQrCode.startsWith('data:image/')) {
+            normalizedQrCode = `data:image/png;base64,${normalizedQrCode}`;
+          }
+          
+          const { error: updateError } = await supabase
+            .from('whatsapp_instances')
+            .update({
+              qr_code: normalizedQrCode,
+              web_status: 'waiting_scan',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', instance.id);
+
+          if (updateError) {
+            console.error(`[Instance Manager] ❌ Erro ao salvar QR Code:`, updateError);
+          } else {
+            console.log(`[Instance Manager] ✅ QR Code salvo com sucesso!`);
+          }
+        } else {
+          console.log(`[Instance Manager] ⏳ QR Code ainda não disponível:`, qrResult);
+        }
+      } catch (qrError) {
+        console.error(`[Instance Manager] ❌ Erro no processo de QR Code:`, qrError);
+      }
+    }, 100); // Iniciar quase imediatamente
 
     return new Response(
       JSON.stringify({
@@ -182,9 +334,10 @@ async function handleCreateInstance(supabase: any, instanceName: string) {
           id: instance.id,
           vps_instance_id: vpsInstanceId,
           instance_name: normalizedName,
-          status: 'connecting'
+          status: 'connecting',
+          created_by_user_id: user.id
         },
-        message: 'Instância criada com sucesso'
+        message: 'Instância criada com sucesso, QR Code sendo gerado...'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -205,41 +358,72 @@ async function handleCreateInstance(supabase: any, instanceName: string) {
   }
 }
 
-// Função para deletar instância
-async function handleDeleteInstance(supabase: any, instanceId: string) {
+// ETAPA 2: Função de deletar instância COM VPS
+async function handleDeleteInstance(supabase: any, instanceId: string, req: Request) {
   try {
     console.log(`[Instance Manager] 🗑️ Deletando instância: ${instanceId}`);
 
+    // Autenticar usuário
+    const authResult = await authenticateUser(req, supabase);
+    if (!authResult.success) {
+      return new Response(
+        JSON.stringify({ success: false, error: authResult.error }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { user } = authResult;
+
     // Buscar instância
-    const { data: instance } = await supabase
+    const { data: instance, error: fetchError } = await supabase
       .from('whatsapp_instances')
       .select('*')
       .eq('id', instanceId)
+      .eq('created_by_user_id', user.id)
       .single();
 
-    if (!instance) {
-      throw new Error('Instância não encontrada');
+    if (fetchError || !instance) {
+      throw new Error('Instância não encontrada ou sem permissão');
     }
 
-    // Deletar do banco (trigger já cuida da VPS)
+    console.log(`[Instance Manager] 📋 Instância encontrada:`, instance.instance_name);
+
+    // CORREÇÃO: Deletar da VPS PRIMEIRO
+    if (instance.vps_instance_id) {
+      console.log(`[Instance Manager] 🏗️ Deletando da VPS: ${instance.vps_instance_id}`);
+      
+      const vpsResult = await makeVPSRequest(`/instance/${instance.vps_instance_id}/delete`, 'DELETE');
+      
+      if (vpsResult.success) {
+        console.log(`[Instance Manager] ✅ Instância deletada da VPS com sucesso`);
+      } else {
+        console.error(`[Instance Manager] ⚠️ Falha ao deletar da VPS (continuando):`, vpsResult.error);
+      }
+    }
+
+    // Deletar do banco
     const { error: deleteError } = await supabase
       .from('whatsapp_instances')
       .delete()
-      .eq('id', instanceId);
+      .eq('id', instanceId)
+      .eq('created_by_user_id', user.id);
 
     if (deleteError) {
       throw new Error(deleteError.message);
     }
 
+    console.log(`[Instance Manager] ✅ Instância deletada do banco com sucesso`);
+
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Instância deletada com sucesso' 
+        message: 'Instância deletada com sucesso da VPS e banco de dados' 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: any) {
+    console.error(`[Instance Manager] ❌ Erro ao deletar instância:`, error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -340,8 +524,6 @@ async function handleSendMessage(supabase: any, messageData: any) {
       throw new Error('Instância não está conectada');
     }
 
-    // Aqui você faria a chamada real para VPS enviar mensagem
-    // Por enquanto, simular sucesso
     const messageId = `msg_${Date.now()}`;
 
     return new Response(
@@ -364,13 +546,15 @@ async function handleSendMessage(supabase: any, messageData: any) {
 // Função para testar conexão
 async function handleTestConnection() {
   try {
-    console.log(`[Instance Manager] 🧪 Testando conexão`);
+    console.log(`[Instance Manager] 🧪 Testando conexão VPS`);
 
-    // Aqui você faria teste real com VPS
+    const testResult = await makeVPSRequest('/health', 'GET');
+    
     return new Response(
       JSON.stringify({
-        success: true,
-        message: 'Conexão OK',
+        success: testResult.success,
+        message: testResult.success ? 'Conexão VPS OK' : 'Falha na conexão VPS',
+        details: testResult,
         timestamp: new Date().toISOString()
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -390,8 +574,10 @@ async function handleDeleteVPSInstance(supabase: any, instanceData: any) {
     const { vps_instance_id, instance_name } = instanceData;
     console.log(`[Instance Manager] 🗑️ Cleanup VPS para: ${vps_instance_id}`);
 
-    // Aqui você faria a chamada real para VPS deletar
-    console.log(`[Instance Manager] ✅ VPS cleanup realizado para ${instance_name}`);
+    if (vps_instance_id) {
+      const vpsResult = await makeVPSRequest(`/instance/${vps_instance_id}/delete`, 'DELETE');
+      console.log(`[Instance Manager] 📋 Resultado VPS cleanup:`, vpsResult);
+    }
 
     return new Response(
       JSON.stringify({
@@ -415,18 +601,16 @@ async function handleBindInstanceToUser(supabase: any, instanceData: any) {
     const { instanceId, userEmail, instanceName } = instanceData;
     console.log(`[Instance Manager] 🔗 Vinculando instância ${instanceId} ao usuário ${userEmail}`);
 
-    // Buscar usuário por email
     const { data: user } = await supabase
       .from('profiles')
       .select('id, full_name')
-      .eq('id', userEmail) // Assumindo que userEmail é na verdade user_id
+      .eq('id', userEmail)
       .single();
 
     if (!user) {
       throw new Error('Usuário não encontrado');
     }
 
-    // Atualizar instância com vinculação
     const { error: updateError } = await supabase
       .from('whatsapp_instances')
       .update({
