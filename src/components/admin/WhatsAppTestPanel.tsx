@@ -3,9 +3,10 @@ import { VPSCompleteDiagnostic } from "./VPSCompleteDiagnostic";
 import { VPSConnectivityTest } from "../settings/whatsapp/VPSConnectivityTest";
 import { VPSTestTrigger } from "./VPSTestTrigger";
 import { ModularTestPanel } from "./ModularTestPanel";
+import { VPSEndpointDiscoveryPanel } from "./VPSEndpointDiscovery";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertTriangle, TestTube, Settings, Monitor, Activity } from "lucide-react";
+import { AlertTriangle, TestTube, Settings, Monitor, Activity, Search } from "lucide-react";
 
 export const WhatsAppTestPanel = () => {
   return (
@@ -16,45 +17,41 @@ export const WhatsAppTestPanel = () => {
             <AlertTriangle className="h-5 w-5" />
             Centro de Diagnóstico WhatsApp Completo
           </CardTitle>
-          <p className="text-orange-700 text-sm">
-            Execute testes completos para garantir que toda a integração WhatsApp está funcionando perfeitamente
+          <p className="text-orange-700">
+            🎯 <strong>PRIORIDADE:</strong> Execute primeiro a "Descoberta de Endpoints" para identificar os endpoints corretos da VPS
           </p>
         </CardHeader>
       </Card>
 
-      <Tabs defaultValue="modular" className="w-full">
+      <Tabs defaultValue="discovery" className="w-full">
         <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="modular" className="flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            Arquitetura V2.0
+          <TabsTrigger value="discovery" className="gap-2">
+            <Search className="h-4 w-4" />
+            Descoberta
           </TabsTrigger>
-          <TabsTrigger value="post-correction" className="flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            Pós-Correção
-          </TabsTrigger>
-          <TabsTrigger value="complete" className="flex items-center gap-2">
+          <TabsTrigger value="diagnostic" className="gap-2">
             <TestTube className="h-4 w-4" />
-            Diagnóstico V1.0
+            Diagnóstico
           </TabsTrigger>
-          <TabsTrigger value="connectivity" className="flex items-center gap-2">
+          <TabsTrigger value="connectivity" className="gap-2">
             <Monitor className="h-4 w-4" />
             Conectividade
           </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center gap-2">
+          <TabsTrigger value="modular" className="gap-2">
             <Settings className="h-4 w-4" />
-            Configurações
+            Modular
+          </TabsTrigger>
+          <TabsTrigger value="triggers" className="gap-2">
+            <Activity className="h-4 w-4" />
+            Triggers
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="modular" className="space-y-6">
-          <ModularTestPanel />
+        <TabsContent value="discovery" className="space-y-6">
+          <VPSEndpointDiscoveryPanel />
         </TabsContent>
 
-        <TabsContent value="post-correction" className="space-y-6">
-          <VPSTestTrigger />
-        </TabsContent>
-
-        <TabsContent value="complete" className="space-y-6">
+        <TabsContent value="diagnostic" className="space-y-6">
           <VPSCompleteDiagnostic />
         </TabsContent>
 
@@ -62,43 +59,28 @@ export const WhatsAppTestPanel = () => {
           <VPSConnectivityTest />
         </TabsContent>
 
-        <TabsContent value="settings" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Configurações do Sistema</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded">
-                  <h4 className="font-medium text-blue-800 mb-2">VPS WhatsApp Server</h4>
-                  <p className="text-sm text-blue-700">
-                    <strong>URL:</strong> http://31.97.24.222:3001<br/>
-                    <strong>Webhook:</strong> https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web
-                  </p>
-                </div>
-                
-                <div className="p-4 bg-green-50 border border-green-200 rounded">
-                  <h4 className="font-medium text-green-800 mb-2">Secrets Configurados</h4>
-                  <p className="text-sm text-green-700">
-                    • VPS_API_TOKEN<br/>
-                    • SUPABASE_URL<br/>
-                    • SUPABASE_SERVICE_ROLE_KEY
-                  </p>
-                </div>
+        <TabsContent value="modular" className="space-y-6">
+          <ModularTestPanel />
+        </TabsContent>
 
-                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded">
-                  <h4 className="font-medium text-yellow-800 mb-2">Última Correção</h4>
-                  <p className="text-sm text-yellow-700">
-                    ✅ AUTH_TOKEN na VPS alinhado com VPS_API_TOKEN<br/>
-                    ✅ Servidor reiniciado via PM2<br/>
-                    ✅ Tokens confirmados: 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="triggers" className="space-y-6">
+          <VPSTestTrigger />
         </TabsContent>
       </Tabs>
+
+      <Card className="border-blue-200 bg-blue-50">
+        <CardContent className="p-4">
+          <div className="text-sm text-blue-800 space-y-2">
+            <p><strong>🔄 Fluxo Recomendado:</strong></p>
+            <ol className="list-decimal list-inside space-y-1 ml-4">
+              <li><strong>Descoberta:</strong> Execute primeiro para identificar endpoints funcionais</li>
+              <li><strong>Diagnóstico:</strong> Teste a situação atual do sistema</li>
+              <li><strong>Correção:</strong> Implemente as correções baseadas nos endpoints descobertos</li>
+              <li><strong>Validação:</strong> Use outros painéis para validar as correções</li>
+            </ol>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
