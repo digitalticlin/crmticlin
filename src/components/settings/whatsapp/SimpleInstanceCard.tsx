@@ -101,9 +101,11 @@ export const SimpleInstanceCard = ({
       <CardContent className="space-y-4">
         <div className="text-sm text-gray-600">
           <p>{statusInfo.description}</p>
-          <p className="text-xs mt-1">
-            Criado: {new Date(instance.created_at).toLocaleDateString('pt-BR')}
-          </p>
+          {instance.date_connected && (
+            <p className="text-xs mt-1">
+              Conectado: {new Date(instance.date_connected).toLocaleDateString('pt-BR')}
+            </p>
+          )}
         </div>
 
         <div className="flex gap-2">
