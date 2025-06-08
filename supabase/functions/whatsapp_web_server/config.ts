@@ -1,76 +1,52 @@
 
-// CORREÇÃO COMPLETA: Configuração VPS atualizada com descoberta automática de token
+// CORREÇÃO COMPLETA: Configuração VPS atualizada com endpoints corretos
 
 export const VPS_CONFIG = {
   baseUrl: 'http://31.97.24.222:3001',
-  timeout: 25000, // Aumentado devido à instabilidade
-  
-  // CORREÇÃO: Lista de tokens para teste automático
-  possibleTokens: [
-    '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3', // Token atual
-    'default-token', // Token padrão que aparece nos logs
-    'whatsapp-token',
-    'api-token',
-    'bearer-token'
-  ],
+  timeout: 25000,
+  authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
   
   endpoints: {
     health: '/health',
     instances: '/instances',
     createInstance: '/instance/create',
     deleteInstance: '/instance/delete',
-    // CORREÇÃO: Endpoints corretos baseados na análise da VPS
-    getQRDirect: '/qr/{instanceId}', // GET direto
-    getQRPost: '/instance/{instanceId}/qr', // POST alternativo
-    getStatus: '/instance/{instanceId}/status',
-    configureWebhook: '/instance/{instanceId}/webhook'
+    // CORREÇÃO: Endpoint QR correto baseado na análise
+    getQRDirect: '/instance/{instanceId}/qr', // GET - FUNCIONA
+    getStatus: '/instance/{instanceId}/status', // GET - FUNCIONA
+    sendMessage: '/send' // POST - FUNCIONA
+  },
+  
+  webhook: {
+    // CORREÇÃO: VPS usa webhook global já configurado
+    globalUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
+    isConfigured: true,
+    supportsIndividual: false // VPS não suporta webhook individual
   }
 };
 
-// CORREÇÃO: Função para descobrir o token correto automaticamente
-export async function discoverWorkingToken(): Promise<string | null> {
-  console.log('[VPS Config] 🔍 CORREÇÃO - Descobrindo token funcional...');
-  
-  for (const token of VPS_CONFIG.possibleTokens) {
-    try {
-      console.log(`[VPS Config] 🧪 CORREÇÃO - Testando token: ${token.substring(0, 15)}...`);
-      
-      const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'X-API-Token': token
-        },
-        signal: AbortSignal.timeout(10000)
-      });
-      
-      if (response.ok) {
-        console.log(`[VPS Config] ✅ CORREÇÃO - Token funcional encontrado: ${token.substring(0, 15)}...`);
-        return token;
-      } else {
-        console.log(`[VPS Config] ❌ CORREÇÃO - Token rejeitado: ${response.status}`);
-      }
-    } catch (error) {
-      console.log(`[VPS Config] ❌ CORREÇÃO - Erro no teste do token:`, error.message);
-    }
-  }
-  
-  console.log('[VPS Config] ❌ CORREÇÃO - Nenhum token funcional encontrado');
-  return null;
-}
-
-// CORREÇÃO: Headers dinâmicos com token descoberto
-export function getVPSHeaders(customToken?: string): Record<string, string> {
-  const token = customToken || VPS_CONFIG.possibleTokens[0]; // Usar primeiro token como fallback
-  
+// CORREÇÃO: Headers que funcionam na VPS
+export function getVPSHeaders(): Record<string, string> {
   return {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`,
-    'X-API-Token': token,
-    'User-Agent': 'Supabase-WhatsApp-VPS-Client/2.0-CORRIGIDO',
+    'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+    'X-API-Token': VPS_CONFIG.authToken,
+    'User-Agent': 'Supabase-WhatsApp-VPS-Client/3.0-CORRECTED',
     'Accept': 'application/json'
   };
+}
+
+// CORREÇÃO: Construir URLs com parâmetros
+export function buildVPSUrl(endpoint: string, params?: Record<string, string>): string {
+  let url = `${VPS_CONFIG.baseUrl}${endpoint}`;
+  
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      url = url.replace(`{${key}}`, value);
+    });
+  }
+  
+  return url;
 }
 
 // CORREÇÃO: Validação de QR Code melhorada
@@ -106,3 +82,8 @@ export function normalizeQRCode(qrCode: string): string {
   
   return qrCode;
 }
+
+export const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};

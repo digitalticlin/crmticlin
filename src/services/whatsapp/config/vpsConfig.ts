@@ -8,19 +8,18 @@ export const VPS_CONFIG = {
     createInstance: '/instance/create',
     // CORREÇÃO: Endpoints corretos baseados na análise da VPS
     deleteInstance: '/instance/delete', // POST com body {instanceId}
-    getQRCode: '/instance/qr', // POST com body {instanceId}
+    getQRCode: '/instance/{instanceId}/qr', // GET - ENDPOINT CORRETO
     sendMessage: '/send', // POST com body {instanceId, to, message}
-    getStatus: '/instance/status', // Mantido - já funciona
-    configureWebhook: '/instance/{instanceId}/webhook',
-    restart: '/instance/restart',
+    getStatus: '/instance/{instanceId}/status', // GET - já funciona
     // REMOVIDO: Endpoints que não existem na VPS
-    // getQR: '/instance/{instanceId}/qr',
-    // getQRDirect: '/qr/{instanceId}',
-    // instanceStatus: '/status/{instanceId}'
+    // configureWebhook: '/instance/{instanceId}/webhook', // Não existe
+    // getQRPost: '/instance/qr', // Não existe
   },
   webhook: {
-    url: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
-    events: ['messages.upsert', 'qr.update', 'connection.update']
+    // CORREÇÃO: Webhook global já configurado na VPS
+    globalUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
+    events: ['messages.upsert', 'qr.update', 'connection.update'],
+    isGlobal: true // VPS usa webhook global, não individual
   },
   timeouts: {
     connection: 20000,
@@ -31,24 +30,25 @@ export const VPS_CONFIG = {
     interval: 90000,
     debounceDelay: 1200,
     healthCheckInterval: 15000
-  },
-  // CORREÇÃO: Tokens alternativos para teste
-  fallbackTokens: [
-    'default-token',
-    'whatsapp-token',
-    'api-token',
-    'bearer-token'
-  ]
+  }
 } as const;
 
 export type VPSConfig = typeof VPS_CONFIG;
 
-// CORREÇÃO: Função para construir URLs (simplificada, sem {params})
-export const getEndpointUrl = (endpoint: string): string => {
-  return `${VPS_CONFIG.baseUrl}${endpoint}`;
+// CORREÇÃO: Função para construir URLs com parâmetros
+export const getEndpointUrl = (endpoint: string, params?: Record<string, string>): string => {
+  let url = `${VPS_CONFIG.baseUrl}${endpoint}`;
+  
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      url = url.replace(`{${key}}`, value);
+    });
+  }
+  
+  return url;
 };
 
-// CORREÇÃO: Headers mantidos iguais (já funcionam)
+// CORREÇÃO: Headers corretos que funcionam na VPS
 export const getRequestHeaders = (token?: string): Record<string, string> => {
   const authToken = token || VPS_CONFIG.authToken;
   
@@ -56,13 +56,12 @@ export const getRequestHeaders = (token?: string): Record<string, string> => {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${authToken}`,
     'X-API-Token': authToken,
-    'apikey': authToken,
-    'User-Agent': 'Supabase-WhatsApp-Client/2.0',
+    'User-Agent': 'Supabase-WhatsApp-Client/3.0-CORRECTED',
     'Accept': 'application/json'
   };
 };
 
-// CORREÇÃO: Função para validar se QR Code é real (mantida)
+// CORREÇÃO: Função para validar se QR Code é real
 export const isRealQRCode = (qrCode: string): boolean => {
   if (!qrCode || typeof qrCode !== 'string') return false;
   
@@ -78,7 +77,7 @@ export const isRealQRCode = (qrCode: string): boolean => {
   return validPatterns.some(pattern => pattern);
 };
 
-// CORREÇÃO: Normalizar QR Code (mantida)
+// CORREÇÃO: Normalizar QR Code
 export const normalizeQRCode = (qrCode: string): string => {
   if (!qrCode) return '';
   
