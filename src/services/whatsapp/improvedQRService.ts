@@ -40,7 +40,7 @@ export class ImprovedQRService {
         name: instance.instance_name,
         vpsInstanceId: vpsInstanceId,
         status: instance.connection_status,
-        hasQR: instance.has_qr_code
+        hasQR: !!instance.qr_code
       });
 
       if (!vpsInstanceId) {
