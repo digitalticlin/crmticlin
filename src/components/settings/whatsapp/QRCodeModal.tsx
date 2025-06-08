@@ -3,10 +3,8 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, RefreshCw, Settings } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { AggressiveQRPolling } from "@/services/whatsapp/aggressiveQRPolling";
-import { VPSWebhookService } from "@/services/whatsapp/vpsWebhookService";
 
 interface QRCodeModalProps {
   isOpen: boolean;
@@ -14,7 +12,7 @@ interface QRCodeModalProps {
   qrCode: string | null;
   instanceName: string;
   instanceId: string;
-  onRefreshQRCode: (instanceId: string) => Promise<{ qrCode?: string } | null>;
+  onRefreshQRCode: (instanceId: string) => Promise<{ qrCode?: string; success?: boolean } | null>;
   isWaitingForQR?: boolean;
 }
 
@@ -29,9 +27,8 @@ export const QRCodeModal = ({
 }: QRCodeModalProps) => {
   const [currentQRCode, setCurrentQRCode] = useState<string | null>(qrCode);
   const [isPolling, setIsPolling] = useState(false);
-  const [pollingProgress, setPollingProgress] = useState({ current: 0, max: 15, percentage: 0 });
-  const [aggressivePolling, setAggressivePolling] = useState<AggressiveQRPolling | null>(null);
-  const [isConfiguringWebhook, setIsConfiguringWebhook] = useState(false);
+  const [pollingProgress, setPollingProgress] = useState({ current: 0, max: 15 });
+  const [pollingIntervalId, setPollingIntervalId] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setCurrentQRCode(qrCode);
@@ -45,115 +42,94 @@ export const QRCodeModal = ({
 
   useEffect(() => {
     return () => {
-      if (aggressivePolling) {
-        aggressivePolling.stop();
+      if (pollingIntervalId) {
+        clearInterval(pollingIntervalId);
       }
     };
-  }, [aggressivePolling]);
+  }, [pollingIntervalId]);
 
-  const startAggressivePolling = () => {
-    if (aggressivePolling) {
-      aggressivePolling.stop();
+  const startAggressivePolling = async () => {
+    if (pollingIntervalId) {
+      clearInterval(pollingIntervalId);
     }
 
-    console.log('[QR Modal] 🚀 Iniciando polling agressivo...');
+    console.log(`[QR Polling] 🚀 Iniciando polling agressivo para: ${instanceName}`);
     setIsPolling(true);
+    setPollingProgress({ current: 0, max: 15 });
 
-    const polling = new AggressiveQRPolling(
-      instanceId,
-      instanceName,
-      onRefreshQRCode,
-      (qrCode) => {
-        console.log('[QR Modal] ✅ QR Code recebido via polling agressivo');
-        setCurrentQRCode(qrCode);
-        setIsPolling(false);
-      },
-      () => {
-        console.log('[QR Modal] ⏰ Timeout do polling agressivo');
-        setIsPolling(false);
-        toast.warning('QR Code não foi gerado no tempo esperado. Tente configurar o webhook.');
-      }
-    );
-
-    // Atualizar progresso a cada segundo
-    const progressInterval = setInterval(() => {
-      if (polling) {
-        const progress = polling.getProgress();
-        setPollingProgress(progress);
-      }
-    }, 500);
-
-    // Limpar intervalo quando parar
-    setTimeout(() => {
-      clearInterval(progressInterval);
-    }, 32000); // Um pouco mais que o tempo máximo
-
-    polling.start();
-    setAggressivePolling(polling);
-  };
-
-  const handleConfigureWebhook = async () => {
-    setIsConfiguringWebhook(true);
+    let attempt = 0;
     
-    try {
-      console.log('[QR Modal] 🔧 Configurando webhook...');
+    const poll = async () => {
+      attempt++;
+      setPollingProgress({ current: attempt, max: 15 });
       
-      // Primeiro verificar se a VPS suporta webhooks
-      const supportCheck = await VPSWebhookService.checkWebhookSupport();
-      console.log('[QR Modal] 📊 Suporte a webhooks:', supportCheck);
+      console.log(`[QR Polling] 📱 Tentativa ${attempt}/15 para ${instanceName}`);
       
-      if (!supportCheck.supported) {
-        toast.warning('VPS não suporta webhooks. Use o polling manual.');
-        return;
-      }
-
-      // Configurar webhook global
-      const globalResult = await VPSWebhookService.configureGlobalWebhook();
-      
-      if (globalResult.success) {
-        toast.success('Webhook configurado com sucesso! Tentando novamente...');
+      try {
+        const result = await onRefreshQRCode(instanceId);
         
-        // Aguardar um pouco e tentar buscar QR Code novamente
-        setTimeout(() => {
-          startAggressivePolling();
-        }, 2000);
-      } else {
-        toast.error(`Erro ao configurar webhook: ${globalResult.message}`);
-      }
+        if (result?.success && result.qrCode) {
+          console.log(`[QR Polling] ✅ QR Code obtido na tentativa ${attempt}`);
+          setCurrentQRCode(result.qrCode);
+          setIsPolling(false);
+          if (pollingIntervalId) {
+            clearInterval(pollingIntervalId);
+            setPollingIntervalId(null);
+          }
+          toast.success(`QR Code obtido após ${attempt} tentativas!`);
+          return;
+        }
 
-    } catch (error) {
-      console.error('[QR Modal] ❌ Erro ao configurar webhook:', error);
-      toast.error(`Erro ao configurar webhook: ${error.message}`);
-    } finally {
-      setIsConfiguringWebhook(false);
+        if (attempt >= 15) {
+          console.warn(`[QR Polling] ⏰ Timeout após 15 tentativas`);
+          setIsPolling(false);
+          if (pollingIntervalId) {
+            clearInterval(pollingIntervalId);
+            setPollingIntervalId(null);
+          }
+          toast.warning('QR Code não foi gerado no tempo esperado. Tente gerar um novo.');
+        }
+
+      } catch (error: any) {
+        console.error(`[QR Polling] ❌ Erro na tentativa ${attempt}:`, error);
+        
+        if (attempt >= 15) {
+          setIsPolling(false);
+          if (pollingIntervalId) {
+            clearInterval(pollingIntervalId);
+            setPollingIntervalId(null);
+          }
+          toast.error(`Erro após 15 tentativas: ${error.message}`);
+        }
+      }
+    };
+
+    // Primeira tentativa imediata
+    await poll();
+    
+    // Continuar polling a cada 2 segundos se não obteve sucesso
+    if (attempt < 15 && !currentQRCode) {
+      const intervalId = setInterval(poll, 2000);
+      setPollingIntervalId(intervalId);
     }
   };
 
-  const handleManualRefresh = async () => {
-    try {
-      console.log('[QR Modal] 🔄 Refresh manual do QR Code...');
-      const result = await onRefreshQRCode(instanceId);
-      
-      if (result?.qrCode) {
-        setCurrentQRCode(result.qrCode);
-        toast.success('QR Code atualizado manualmente!');
-      } else {
-        toast.warning('QR Code ainda não disponível');
-      }
-    } catch (error) {
-      console.error('[QR Modal] ❌ Erro no refresh manual:', error);
-      toast.error(`Erro ao atualizar QR Code: ${error.message}`);
-    }
+  const handleGenerateNewQR = async () => {
+    setCurrentQRCode(null);
+    await startAggressivePolling();
   };
 
   const handleClose = () => {
-    if (aggressivePolling) {
-      aggressivePolling.stop();
+    if (pollingIntervalId) {
+      clearInterval(pollingIntervalId);
+      setPollingIntervalId(null);
     }
     setIsPolling(false);
     setCurrentQRCode(null);
     onClose();
   };
+
+  const progressPercentage = (pollingProgress.current / pollingProgress.max) * 100;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -182,7 +158,7 @@ export const QRCodeModal = ({
               
               {isPolling && (
                 <div className="w-full space-y-2">
-                  <Progress value={pollingProgress.percentage} className="w-full" />
+                  <Progress value={progressPercentage} className="w-full" />
                   <p className="text-xs text-center text-gray-500">
                     Tentativa {pollingProgress.current} de {pollingProgress.max}
                   </p>
@@ -197,53 +173,23 @@ export const QRCodeModal = ({
                 Escaneie o QR Code com seu WhatsApp para conectar
               </p>
               
-              <div className="flex flex-col space-y-2">
-                <Button
-                  onClick={startAggressivePolling}
-                  disabled={isPolling}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {isPolling ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Buscando...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Buscar QR Code (Polling Agressivo)
-                    </>
-                  )}
-                </Button>
-
-                <Button
-                  onClick={handleConfigureWebhook}
-                  disabled={isConfiguringWebhook}
-                  variant="outline"
-                  size="sm"
-                >
-                  {isConfiguringWebhook ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Configurando...
-                    </>
-                  ) : (
-                    <>
-                      <Settings className="h-4 w-4 mr-2" />
-                      Configurar Webhook
-                    </>
-                  )}
-                </Button>
-
-                <Button
-                  onClick={handleManualRefresh}
-                  variant="ghost"
-                  size="sm"
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Tentar Novamente
-                </Button>
-              </div>
+              <Button
+                onClick={handleGenerateNewQR}
+                disabled={isPolling}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {isPolling ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Buscando...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Gerar novo QR Code
+                  </>
+                )}
+              </Button>
             </div>
           )}
 
@@ -257,6 +203,14 @@ export const QRCodeModal = ({
               </p>
             </div>
           )}
+
+          <Button 
+            variant="outline" 
+            className="w-full" 
+            onClick={handleClose}
+          >
+            Fechar
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

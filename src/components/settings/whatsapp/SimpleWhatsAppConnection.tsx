@@ -67,7 +67,7 @@ export const SimpleWhatsAppConnection = () => {
   };
 
   const handleGenerateQR = async (instanceId: string, instanceName: string) => {
-    console.log('[Simple Connection] 🔄 Geração manual de QR Code v3.0:', { instanceId, instanceName });
+    console.log('[Simple Connection] 🔄 Geração manual de QR Code:', { instanceId, instanceName });
     
     setSelectedInstanceId(instanceId);
     setSelectedInstanceName(instanceName);
@@ -75,31 +75,42 @@ export const SimpleWhatsAppConnection = () => {
     setIsWaitingForQR(true);
     setShowQRModal(true);
     
-    console.log('[Simple Connection] 🚀 Modal aberto, polling agressivo será iniciado automaticamente');
-    toast.info(`Iniciando busca agressiva por QR Code para ${instanceName}...`);
+    console.log('[Simple Connection] 🚀 Modal aberto para polling automático');
+    toast.info(`Iniciando busca de QR Code para ${instanceName}...`);
   };
 
   const handleDeleteInstance = async (instanceId: string) => {
     await deleteInstance(instanceId);
   };
 
-  const handleRefreshQRCode = async (instanceId: string): Promise<{ qrCode?: string } | null> => {
+  const handleRefreshQRCode = async (instanceId: string) => {
     try {
-      console.log('[Simple Connection] 🔄 Refresh QR Code via whatsapp_qr_service:', instanceId);
-      const result = await refreshQRCode(instanceId);
+      console.log('[Simple Connection] 🔄 Refresh QR Code via ImprovedQRService:', instanceId);
       
-      if (result?.success && result.qrCode) {
-        console.log('[Simple Connection] ✅ QR Code atualizado via whatsapp_qr_service');
+      // Usar o novo serviço melhorado
+      const { ImprovedQRService } = await import('@/services/whatsapp/improvedQRService');
+      const result = await ImprovedQRService.getQRCodeWithDetails(instanceId);
+      
+      console.log('[Simple Connection] 📥 Resultado:', result);
+      
+      if (result.success && result.qrCode) {
+        console.log('[Simple Connection] ✅ QR Code obtido!');
         setSelectedQRCode(result.qrCode);
         setIsWaitingForQR(false);
-        return { qrCode: result.qrCode };
+        return { success: true, qrCode: result.qrCode };
       }
       
-      console.log('[Simple Connection] ⏳ QR Code ainda não disponível');
-      return null;
+      if (result.waiting) {
+        console.log('[Simple Connection] ⏳ QR Code ainda não disponível');
+        return { success: false, waiting: true };
+      }
+      
+      console.log('[Simple Connection] ❌ Falha na busca:', result.error);
+      return { success: false, error: result.error };
+      
     } catch (error: any) {
-      console.error('[Simple Connection] ❌ Erro ao atualizar QR Code:', error);
-      return null;
+      console.error('[Simple Connection] ❌ Erro ao buscar QR Code:', error);
+      return { success: false, error: error.message };
     }
   };
 
