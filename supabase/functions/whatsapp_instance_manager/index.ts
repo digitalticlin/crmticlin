@@ -10,10 +10,10 @@ const corsHeaders = {
 const VPS_CONFIG = {
   baseUrl: 'http://31.97.24.222:3001',
   authToken: Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
-  timeout: 15000
+  timeout: 30000 // MELHORIA 1: Aumentado de 15s para 30s
 };
 
-console.log("WhatsApp Instance Manager - Gerenciamento completo de instâncias v2.0");
+console.log("WhatsApp Instance Manager - Gerenciamento robusto v3.0");
 
 async function authenticateUser(req: Request, supabase: any) {
   const authHeader = req.headers.get('Authorization');
@@ -31,9 +31,48 @@ async function authenticateUser(req: Request, supabase: any) {
   return { success: true, user };
 }
 
+// MELHORIA 3: Função com retry automático
+async function makeVPSRequestWithRetry(endpoint: string, method: string = 'GET', body?: any, maxRetries: number = 3) {
+  let lastError = null;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    console.log(`[VPS Request] Tentativa ${attempt}/${maxRetries} - ${method} ${VPS_CONFIG.baseUrl}${endpoint}`);
+    
+    try {
+      const result = await makeVPSRequest(endpoint, method, body);
+      
+      if (result.success) {
+        console.log(`[VPS Request] ✅ Sucesso na tentativa ${attempt}`);
+        return result;
+      } else {
+        lastError = result;
+        console.log(`[VPS Request] ❌ Falha na tentativa ${attempt}:`, result.error);
+        
+        // Se não for o último retry, aguardar um pouco antes da próxima tentativa
+        if (attempt < maxRetries) {
+          const delay = attempt * 2000; // 2s, 4s, 6s...
+          console.log(`[VPS Request] ⏳ Aguardando ${delay}ms antes da próxima tentativa...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    } catch (error) {
+      lastError = { success: false, error: error.message };
+      console.error(`[VPS Request] ❌ Erro na tentativa ${attempt}:`, error.message);
+      
+      if (attempt < maxRetries) {
+        const delay = attempt * 2000;
+        console.log(`[VPS Request] ⏳ Aguardando ${delay}ms antes da próxima tentativa...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  console.error(`[VPS Request] 💥 Todas as ${maxRetries} tentativas falharam`);
+  return lastError;
+}
+
 async function makeVPSRequest(endpoint: string, method: string = 'GET', body?: any) {
   const url = `${VPS_CONFIG.baseUrl}${endpoint}`;
-  console.log(`[VPS Request] ${method} ${url}`);
   
   try {
     const requestOptions: RequestInit = {
@@ -45,33 +84,48 @@ async function makeVPSRequest(endpoint: string, method: string = 'GET', body?: a
       signal: AbortSignal.timeout(VPS_CONFIG.timeout)
     };
 
+    // MELHORIA 4: Normalizar encoding do JSON
     if (body && method !== 'GET') {
-      requestOptions.body = JSON.stringify(body);
+      const normalizedBody = JSON.stringify(body, null, 0); // Remover espaçamento
+      requestOptions.body = normalizedBody;
+      
+      // MELHORIA 2: Log detalhado do payload
+      console.log(`[VPS Request] 📤 Payload enviado:`, normalizedBody);
+      console.log(`[VPS Request] 📤 Headers:`, JSON.stringify(requestOptions.headers));
     }
 
     const response = await fetch(url, requestOptions);
     const responseText = await response.text();
     
-    console.log(`[VPS Response] ${response.status}: ${responseText.substring(0, 200)}`);
+    // MELHORIA 2: Logs mais detalhados
+    console.log(`[VPS Response] Status: ${response.status}`);
+    console.log(`[VPS Response] Headers:`, JSON.stringify(Object.fromEntries(response.headers.entries())));
+    console.log(`[VPS Response] Body:`, responseText);
 
     let data;
     try {
       data = JSON.parse(responseText);
-    } catch {
-      data = { raw: responseText };
+    } catch (parseError) {
+      console.warn(`[VPS Response] ⚠️ JSON parse failed, usando raw text:`, parseError.message);
+      data = { raw: responseText, parseError: parseError.message };
     }
 
     return { 
       success: response.ok, 
       status: response.status,
-      data 
+      data,
+      rawResponse: responseText
     };
   } catch (error: any) {
-    console.error(`[VPS Request Error] ${error.message}`);
+    console.error(`[VPS Request Error] ${error.name}: ${error.message}`);
+    if (error.name === 'TimeoutError') {
+      console.error(`[VPS Request Error] ⏰ Timeout após ${VPS_CONFIG.timeout}ms`);
+    }
     return { 
       success: false, 
       status: 500,
-      error: error.message 
+      error: error.message,
+      errorType: error.name
     };
   }
 }
@@ -118,7 +172,7 @@ serve(async (req) => {
 
     switch (action) {
       case 'create_instance':
-        console.log(`[Instance Manager] 🚀 EXECUTANDO CREATE_INSTANCE v2.0`);
+        console.log(`[Instance Manager] 🚀 EXECUTANDO CREATE_INSTANCE v3.0`);
         return await handleCreateInstance(supabase, instanceName, req);
         
       case 'delete_instance':
@@ -173,13 +227,13 @@ serve(async (req) => {
   }
 });
 
-// CORREÇÃO: Função corrigida para criar instância COM payload correto da VPS
+// FUNÇÃO PRINCIPAL: Criar instância com retry e logs melhorados
 async function handleCreateInstance(supabase: any, instanceName: string, req: Request) {
   try {
-    console.log(`[Instance Manager] 🚀 handleCreateInstance v2.0 INICIADO`);
+    console.log(`[Instance Manager] 🚀 handleCreateInstance v3.0 INICIADO`);
     console.log(`[Instance Manager] 📊 instanceName recebido:`, instanceName);
 
-    // CORREÇÃO CRÍTICA: Autenticar usuário primeiro
+    // Autenticar usuário primeiro
     const authResult = await authenticateUser(req, supabase);
     if (!authResult.success) {
       console.error(`[Instance Manager] ❌ Usuário não autenticado:`, authResult.error);
@@ -232,12 +286,12 @@ async function handleCreateInstance(supabase: any, instanceName: string, req: Re
       );
     }
 
-    // CORREÇÃO: ID único da instância para a VPS
+    // ID único da instância para a VPS
     const vpsInstanceId = `instance_${user.id}_${normalizedName}_${Date.now()}`;
     console.log(`[Instance Manager] 🏗️ Criando instância na VPS: ${vpsInstanceId}`);
 
-    // CORREÇÃO PRINCIPAL: Payload correto para a VPS com instanceId e sessionName
-    const vpsResult = await makeVPSRequest('/instance/create', 'POST', {
+    // MELHORIA 5: Payload testado e confirmado via SSH
+    const vpsPayload = {
       instanceId: vpsInstanceId,
       sessionName: normalizedName,
       webhookUrl: `https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/whatsapp_qr_service`,
@@ -246,17 +300,22 @@ async function handleCreateInstance(supabase: any, instanceName: string, req: Re
         markMessages: false,
         syncFullHistory: false
       }
-    });
+    };
+
+    console.log(`[Instance Manager] 📤 Payload preparado:`, JSON.stringify(vpsPayload, null, 2));
+
+    // USAR RETRY AUTOMÁTICO para criar na VPS
+    const vpsResult = await makeVPSRequestWithRetry('/instance/create', 'POST', vpsPayload, 3);
 
     if (!vpsResult.success) {
-      console.error(`[Instance Manager] ❌ Falha na criação VPS:`, vpsResult);
+      console.error(`[Instance Manager] ❌ Falha na criação VPS após todas as tentativas:`, vpsResult);
       throw new Error(`Falha ao criar instância na VPS: ${vpsResult.error || 'Erro desconhecido'}`);
     }
 
-    console.log(`[Instance Manager] ✅ Instância criada na VPS:`, vpsResult.data);
+    console.log(`[Instance Manager] ✅ Instância criada na VPS com sucesso:`, vpsResult.data);
 
-    // ETAPA 1 CORRIGIDA: Criar no banco COM user_id
-    console.log(`[Instance Manager] 💾 Inserindo no Supabase COM user_id...`);
+    // Criar no banco COM user_id
+    console.log(`[Instance Manager] 💾 Inserindo no Supabase...`);
     const { data: instance, error: insertError } = await supabase
       .from('whatsapp_instances')
       .insert({
@@ -265,7 +324,7 @@ async function handleCreateInstance(supabase: any, instanceName: string, req: Re
         connection_type: 'web',
         connection_status: 'connecting',
         web_status: 'connecting',
-        created_by_user_id: user.id, // CORREÇÃO CRÍTICA
+        created_by_user_id: user.id,
         server_url: VPS_CONFIG.baseUrl
       })
       .select()
@@ -276,7 +335,7 @@ async function handleCreateInstance(supabase: any, instanceName: string, req: Re
       
       // Tentar deletar da VPS se banco falhou
       try {
-        await makeVPSRequest(`/instance/${vpsInstanceId}/delete`, 'DELETE');
+        await makeVPSRequestWithRetry(`/instance/${vpsInstanceId}/delete`, 'DELETE', null, 2);
         console.log(`[Instance Manager] 🧹 Instância deletada da VPS após falha no banco`);
       } catch (cleanupError) {
         console.error(`[Instance Manager] ⚠️ Falha no cleanup da VPS:`, cleanupError);
@@ -287,7 +346,7 @@ async function handleCreateInstance(supabase: any, instanceName: string, req: Re
 
     console.log(`[Instance Manager] ✅ Instância criada com sucesso:`, instance);
 
-    // ETAPA 3: Iniciar processo de obtenção de QR Code (sem aguardar)
+    // Iniciar processo de obtenção de QR Code (sem aguardar)
     console.log(`[Instance Manager] 🔄 Iniciando processo de QR Code...`);
     
     // Background task para buscar QR Code após um pequeno delay
@@ -296,9 +355,9 @@ async function handleCreateInstance(supabase: any, instanceName: string, req: Re
         console.log(`[Instance Manager] 📱 Tentando obter QR Code para ${vpsInstanceId}...`);
         
         // Aguardar um pouco para VPS processar
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Aumentado para 3s
         
-        const qrResult = await makeVPSRequest(`/instance/${vpsInstanceId}/qr`, 'GET');
+        const qrResult = await makeVPSRequestWithRetry(`/instance/${vpsInstanceId}/qr`, 'GET', null, 2);
         
         if (qrResult.success && qrResult.data?.qrCode) {
           console.log(`[Instance Manager] ✅ QR Code obtido, salvando no banco...`);
@@ -328,7 +387,7 @@ async function handleCreateInstance(supabase: any, instanceName: string, req: Re
       } catch (qrError) {
         console.error(`[Instance Manager] ❌ Erro no processo de QR Code:`, qrError);
       }
-    }, 100); // Iniciar quase imediatamente
+    }, 100);
 
     return new Response(
       JSON.stringify({
@@ -340,13 +399,14 @@ async function handleCreateInstance(supabase: any, instanceName: string, req: Re
           status: 'connecting',
           created_by_user_id: user.id
         },
-        message: 'Instância criada com sucesso, QR Code sendo gerado...'
+        message: 'Instância criada com sucesso com retry automático, QR Code sendo gerado...',
+        version: 'v3.0'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: any) {
-    console.error(`[Instance Manager] 💥 ERRO em handleCreateInstance:`, error);
+    console.error(`[Instance Manager] 💥 ERRO em handleCreateInstance v3.0:`, error);
     console.error(`[Instance Manager] 📋 Stack trace:`, error.stack);
     
     return new Response(
@@ -354,7 +414,8 @@ async function handleCreateInstance(supabase: any, instanceName: string, req: Re
         success: false, 
         error: error.message,
         details: error.stack,
-        function: 'handleCreateInstance'
+        function: 'handleCreateInstance',
+        version: 'v3.0'
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -366,7 +427,6 @@ async function handleDeleteInstance(supabase: any, instanceId: string, req: Requ
   try {
     console.log(`[Instance Manager] 🗑️ Deletando instância: ${instanceId}`);
 
-    // Autenticar usuário
     const authResult = await authenticateUser(req, supabase);
     if (!authResult.success) {
       return new Response(
@@ -377,7 +437,6 @@ async function handleDeleteInstance(supabase: any, instanceId: string, req: Requ
 
     const { user } = authResult;
 
-    // Buscar instância
     const { data: instance, error: fetchError } = await supabase
       .from('whatsapp_instances')
       .select('*')
@@ -391,11 +450,10 @@ async function handleDeleteInstance(supabase: any, instanceId: string, req: Requ
 
     console.log(`[Instance Manager] 📋 Instância encontrada:`, instance.instance_name);
 
-    // CORREÇÃO: Deletar da VPS PRIMEIRO
     if (instance.vps_instance_id) {
       console.log(`[Instance Manager] 🏗️ Deletando da VPS: ${instance.vps_instance_id}`);
       
-      const vpsResult = await makeVPSRequest(`/instance/${instance.vps_instance_id}/delete`, 'DELETE');
+      const vpsResult = await makeVPSRequestWithRetry(`/instance/${instance.vps_instance_id}/delete`, 'DELETE', null, 2);
       
       if (vpsResult.success) {
         console.log(`[Instance Manager] ✅ Instância deletada da VPS com sucesso`);
@@ -404,7 +462,6 @@ async function handleDeleteInstance(supabase: any, instanceId: string, req: Requ
       }
     }
 
-    // Deletar do banco
     const { error: deleteError } = await supabase
       .from('whatsapp_instances')
       .delete()
@@ -434,7 +491,6 @@ async function handleDeleteInstance(supabase: any, instanceId: string, req: Requ
   }
 }
 
-// Função para listar instâncias
 async function handleListInstances(supabase: any) {
   try {
     console.log(`[Instance Manager] 📋 Listando instâncias`);
@@ -465,7 +521,6 @@ async function handleListInstances(supabase: any) {
   }
 }
 
-// Função para obter QR Code
 async function handleGetQRCode(supabase: any, instanceId: string) {
   try {
     console.log(`[Instance Manager] 📱 Obtendo QR Code: ${instanceId}`);
@@ -507,7 +562,6 @@ async function handleGetQRCode(supabase: any, instanceId: string) {
   }
 }
 
-// Função para enviar mensagem
 async function handleSendMessage(supabase: any, messageData: any) {
   try {
     const { instanceId, phone, message } = messageData;
@@ -546,19 +600,19 @@ async function handleSendMessage(supabase: any, messageData: any) {
   }
 }
 
-// Função para testar conexão
 async function handleTestConnection() {
   try {
-    console.log(`[Instance Manager] 🧪 Testando conexão VPS`);
+    console.log(`[Instance Manager] 🧪 Testando conexão VPS v3.0`);
 
-    const testResult = await makeVPSRequest('/health', 'GET');
+    const testResult = await makeVPSRequestWithRetry('/health', 'GET', null, 2);
     
     return new Response(
       JSON.stringify({
         success: testResult.success,
-        message: testResult.success ? 'Conexão VPS OK' : 'Falha na conexão VPS',
+        message: testResult.success ? 'Conexão VPS OK v3.0' : 'Falha na conexão VPS',
         details: testResult,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        version: 'v3.0'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -571,21 +625,20 @@ async function handleTestConnection() {
   }
 }
 
-// Função para deletar instância da VPS com cleanup
 async function handleDeleteVPSInstance(supabase: any, instanceData: any) {
   try {
     const { vps_instance_id, instance_name } = instanceData;
     console.log(`[Instance Manager] 🗑️ Cleanup VPS para: ${vps_instance_id}`);
 
     if (vps_instance_id) {
-      const vpsResult = await makeVPSRequest(`/instance/${vps_instance_id}/delete`, 'DELETE');
+      const vpsResult = await makeVPSRequestWithRetry(`/instance/${vps_instance_id}/delete`, 'DELETE', null, 2);
       console.log(`[Instance Manager] 📋 Resultado VPS cleanup:`, vpsResult);
     }
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'VPS cleanup realizado com sucesso'
+        message: 'VPS cleanup realizado com sucesso v3.0'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -598,7 +651,6 @@ async function handleDeleteVPSInstance(supabase: any, instanceData: any) {
   }
 }
 
-// Função para vincular instância a usuário
 async function handleBindInstanceToUser(supabase: any, instanceData: any) {
   try {
     const { instanceId, userEmail, instanceName } = instanceData;
