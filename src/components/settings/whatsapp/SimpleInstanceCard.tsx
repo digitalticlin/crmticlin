@@ -55,7 +55,7 @@ export const SimpleInstanceCard = ({
             <h3 className="font-semibold text-gray-800 mb-2 truncate">
               {instance.instance_name}
             </h3>
-            <InstanceStatusBadge status={instance.connection_status} />
+            <InstanceStatusBadge connectionStatus={instance.connection_status} />
           </div>
           
           {isConnected && (
