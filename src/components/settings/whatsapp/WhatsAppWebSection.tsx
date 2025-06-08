@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useWhatsAppWebSectionLogic } from "@/hooks/whatsapp/useWhatsAppWebSectionLogic";
 import { WhatsAppWebSectionHeader } from "./WhatsAppWebSectionHeader";
@@ -9,6 +10,7 @@ import { WhatsAppWebWaitingState } from "./WhatsAppWebWaitingState";
 import { AutoImportExecutor } from "./AutoImportExecutor";
 import { VPSWebhookInvestigator } from "./VPSWebhookInvestigator";
 import { VPSAutoCorrector } from "./VPSAutoCorrector";
+import { VPSCleanupTool } from "./VPSCleanupTool";
 
 export const WhatsAppWebSection = () => {
   const {
@@ -46,7 +48,7 @@ export const WhatsAppWebSection = () => {
         creationStage={creationStage}
       />
 
-      {/* CORREÇÃO: Ferramenta de Correção Automática VPS */}
+      {/* CORREÇÃO: Ferramentas de Diagnóstico e Limpeza */}
       <div className="space-y-4">
         <button
           onClick={() => setShowDebugTools(!showDebugTools)}
@@ -56,10 +58,15 @@ export const WhatsAppWebSection = () => {
         </button>
         
         {showDebugTools && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <VPSAutoCorrector />
-            <AutoImportExecutor />
-            <VPSWebhookInvestigator />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="space-y-4">
+              <VPSAutoCorrector />
+              <VPSWebhookInvestigator />
+            </div>
+            <div className="space-y-4">
+              <VPSCleanupTool />
+              <AutoImportExecutor />
+            </div>
           </div>
         )}
       </div>
