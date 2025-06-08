@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useWhatsAppRealtime } from '@/hooks/whatsapp/useWhatsAppRealtime';
 import { useWhatsAppInstanceState } from '@/hooks/whatsapp/whatsappInstanceStore';
@@ -12,7 +11,7 @@ interface WhatsAppStatusMonitorProps {
 
 export const WhatsAppStatusMonitor = ({ userEmail }: WhatsAppStatusMonitorProps) => {
   const { instances } = useWhatsAppInstanceState();
-  const { isConnected } = useWhatsAppRealtime(userEmail);
+  const { isConnected } = useWhatsAppRealtime();
   const [stats, setStats] = useState({
     connected: 0,
     disconnected: 0,
