@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, RefreshCw, QrCode, Smartphone, CheckCircle, AlertTriangle } from "lucide-react";
+import { Loader2, RefreshCw, QrCode, Smartphone, CheckCircle, AlertTriangle, Clock } from "lucide-react";
 import { useIntelligentQRPolling } from "@/hooks/whatsapp/useIntelligentQRPolling";
 
 interface OptimizedQRModalProps {
@@ -29,6 +29,7 @@ export const OptimizedQRModal = ({
     qrCode,
     error,
     timedOut,
+    isWaiting,
     startPolling,
     stopPolling,
     reset
@@ -39,11 +40,11 @@ export const OptimizedQRModal = ({
 
   // Auto-start polling se solicitado (após criação de instância)
   useEffect(() => {
-    if (isOpen && autoStartPolling && instanceId && !isPolling && !qrCode) {
+    if (isOpen && autoStartPolling && instanceId && !isPolling && !qrCode && !isWaiting) {
       console.log('[Optimized QR Modal] 🚀 Auto-iniciando polling após criação');
       handleStartPolling();
     }
-  }, [isOpen, autoStartPolling, instanceId, isPolling, qrCode]);
+  }, [isOpen, autoStartPolling, instanceId, isPolling, qrCode, isWaiting]);
 
   // Cleanup ao fechar modal
   useEffect(() => {
@@ -63,6 +64,7 @@ export const OptimizedQRModal = ({
       maxAttempts: 8,
       timeoutMs: 120000, // 2 minutos máximo
       intervalMs: 4000,  // 4 segundos entre tentativas
+      initialDelayMs: 4000, // 4 segundos de delay inicial
       progressCallback: (current, max) => {
         console.log(`[Optimized QR Modal] 📊 Progresso: ${current}/${max}`);
       },
@@ -146,6 +148,41 @@ export const OptimizedQRModal = ({
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Tentar Novamente
+          </Button>
+        </div>
+      );
+    }
+
+    // Aguardando delay inicial (nova feature)
+    if (isWaiting) {
+      return (
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-64 h-64 bg-blue-50 rounded-lg flex flex-col items-center justify-center space-y-4">
+            <Clock className="h-12 w-12 animate-pulse text-blue-600" />
+            <div className="text-center space-y-3">
+              <p className="text-sm font-medium text-blue-900">
+                Aguardando VPS processar...
+              </p>
+              <div className="w-full space-y-2">
+                <div className="w-full bg-blue-200 rounded-full h-2">
+                  <div className="bg-blue-600 h-2 rounded-full animate-pulse w-3/4"></div>
+                </div>
+                <p className="text-xs text-blue-700">
+                  Instância criada, preparando QR Code
+                </p>
+                <p className="text-xs text-blue-600">
+                  Aguarde 4 segundos para a VPS processar
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <Button 
+            onClick={() => stopPolling('usuário cancelou')}
+            variant="outline"
+            className="text-red-600 border-red-300 hover:bg-red-50"
+          >
+            Cancelar
           </Button>
         </div>
       );
