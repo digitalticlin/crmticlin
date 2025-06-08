@@ -1,83 +1,132 @@
 
-import { cn } from "@/lib/utils";
+import React from "react";
 import { 
-  Zap,
-  Database
+  Users, 
+  Building2, 
+  Settings, 
+  BarChart3, 
+  MessageSquare, 
+  CreditCard, 
+  Bug,
+  Wrench,
+  Activity,
+  Shield,
+  FileText,
+  Zap
 } from "lucide-react";
 
+const sidebarItems = [
+  {
+    id: "analytics",
+    label: "Analytics",
+    icon: BarChart3,
+    description: "Métricas e análises do sistema"
+  },
+  {
+    id: "companies",
+    label: "Empresas",
+    icon: Building2,
+    description: "Gerenciar empresas cadastradas"
+  },
+  {
+    id: "users",
+    label: "Usuários",
+    icon: Users,
+    description: "Gerenciar usuários do sistema"
+  },
+  {
+    id: "whatsapp",
+    label: "WhatsApp",
+    icon: MessageSquare,
+    description: "Instâncias e configurações WhatsApp"
+  },
+  {
+    id: "vps-diagnostics",
+    label: "Diagnósticos VPS",
+    icon: Wrench,
+    description: "Ferramentas de diagnóstico e correção VPS"
+  },
+  {
+    id: "plans",
+    label: "Planos",
+    icon: CreditCard,
+    description: "Gerenciar planos e assinaturas"
+  },
+  {
+    id: "system",
+    label: "Sistema",
+    icon: Activity,
+    description: "Monitoramento e saúde do sistema"
+  },
+  {
+    id: "logs",
+    label: "Logs",
+    icon: FileText,
+    description: "Logs de sistema e sincronização"
+  },
+  {
+    id: "test",
+    label: "Testes",
+    icon: Bug,
+    description: "Ferramentas de teste e diagnóstico"
+  },
+  {
+    id: "config",
+    label: "Configurações",
+    icon: Settings,
+    description: "Configurações globais do sistema"
+  }
+];
+
 interface GlobalAdminSidebarProps {
-  activeTab: string;
-  setActiveTab: (tab: string) => void;
+  activeSection: string;
+  onSectionChange: (section: string) => void;
 }
 
-export default function GlobalAdminSidebar({ activeTab, setActiveTab }: GlobalAdminSidebarProps) {
-  const menuItems = [
-    {
-      id: "whatsapp-test",
-      label: "Teste WhatsApp",
-      icon: Zap,
-      description: "Centro de testes completo"
-    },
-    {
-      id: "instances",
-      label: "Instâncias",
-      icon: Database,
-      description: "Gerenciar sincronização"
-    }
-  ];
-
+export const GlobalAdminSidebar: React.FC<GlobalAdminSidebarProps> = ({
+  activeSection,
+  onSectionChange,
+}) => {
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 h-full">
-      <div className="p-6">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="p-2 bg-gradient-to-br from-green-600 to-blue-600 rounded-xl">
-            <Zap className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">Centro de Testes</h1>
-            <p className="text-sm text-gray-500">Validação WhatsApp</p>
-          </div>
+    <div className="w-64 bg-background border-r border-border h-full overflow-y-auto">
+      <div className="p-4 border-b border-border">
+        <div className="flex items-center gap-2">
+          <Shield className="h-6 w-6 text-primary" />
+          <h2 className="text-lg font-semibold">Admin Global</h2>
         </div>
-        
-        <nav className="space-y-2">
-          {menuItems.map((item) => {
-            const IconComponent = item.icon;
-            const isActive = activeTab === item.id;
+        <p className="text-xs text-muted-foreground mt-1">
+          Painel administrativo do sistema
+        </p>
+      </div>
+
+      <nav className="p-2">
+        <div className="space-y-1">
+          {sidebarItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeSection === item.id;
             
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all duration-200",
-                  isActive 
-                    ? "bg-green-50 border border-green-200 text-green-700" 
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                )}
+                onClick={() => onSectionChange(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-md transition-colors text-left group ${
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                }`}
               >
-                <IconComponent className={cn(
-                  "h-5 w-5 flex-shrink-0",
-                  isActive ? "text-green-600" : "text-gray-400"
-                )} />
+                <Icon className={`h-4 w-4 ${isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"}`} />
                 <div className="flex-1 min-w-0">
-                  <p className={cn(
-                    "font-medium truncate",
-                    isActive ? "text-green-700" : "text-gray-900"
-                  )}>
-                    {item.label}
-                  </p>
-                  <p className={cn(
-                    "text-xs truncate",
-                    isActive ? "text-green-500" : "text-gray-500"
-                  )}>
+                  <div className="font-medium">{item.label}</div>
+                  <div className={`text-xs truncate ${isActive ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
                     {item.description}
-                  </p>
+                  </div>
                 </div>
               </button>
             );
           })}
-        </nav>
-      </div>
-    </aside>
+        </div>
+      </nav>
+    </div>
   );
-}
+};

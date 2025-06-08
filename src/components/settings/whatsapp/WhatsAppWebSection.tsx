@@ -7,10 +7,6 @@ import { WhatsAppWebEmptyState } from "./WhatsAppWebEmptyState";
 import { WhatsAppWebInstancesGrid } from "./WhatsAppWebInstancesGrid";
 import { WhatsAppWebQRModal } from "./WhatsAppWebQRModal";
 import { WhatsAppWebWaitingState } from "./WhatsAppWebWaitingState";
-import { AutoImportExecutor } from "./AutoImportExecutor";
-import { VPSWebhookInvestigator } from "./VPSWebhookInvestigator";
-import { VPSAutoCorrector } from "./VPSAutoCorrector";
-import { VPSCleanupTool } from "./VPSCleanupTool";
 
 export const WhatsAppWebSection = () => {
   const {
@@ -32,8 +28,6 @@ export const WhatsAppWebSection = () => {
     closeQRModal
   } = useWhatsAppWebSectionLogic();
 
-  const [showDebugTools, setShowDebugTools] = useState(false);
-
   if (isLoading) {
     return <WhatsAppWebLoadingState />;
   }
@@ -47,29 +41,6 @@ export const WhatsAppWebSection = () => {
         companyLoading={false}
         creationStage={creationStage}
       />
-
-      {/* CORREÇÃO: Ferramentas de Diagnóstico e Limpeza */}
-      <div className="space-y-4">
-        <button
-          onClick={() => setShowDebugTools(!showDebugTools)}
-          className="text-sm text-blue-600 hover:text-blue-800 underline"
-        >
-          {showDebugTools ? 'Ocultar' : 'Mostrar'} ferramentas de diagnóstico e correção
-        </button>
-        
-        {showDebugTools && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="space-y-4">
-              <VPSAutoCorrector />
-              <VPSWebhookInvestigator />
-            </div>
-            <div className="space-y-4">
-              <VPSCleanupTool />
-              <AutoImportExecutor />
-            </div>
-          </div>
-        )}
-      </div>
 
       {isCreatingInstance && (
         <WhatsAppWebWaitingState 

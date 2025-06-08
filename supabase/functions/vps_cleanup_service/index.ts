@@ -10,182 +10,258 @@ const corsHeaders = {
 const VPS_CONFIG = {
   baseUrl: 'http://31.97.24.222:3001',
   authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
-  timeout: 15000
+  timeout: 20000 // Aumentado para 20 segundos
 };
 
-async function makeVPSRequest(endpoint: string, method: string = 'GET') {
+async function makeVPSRequest(endpoint: string, method: string = 'GET', body?: any, retries: number = 3) {
   const url = `${VPS_CONFIG.baseUrl}${endpoint}`;
-  console.log(`[VPS Cleanup] ${method} ${url}`);
+  console.log(`[VPS Cleanup] 🔧 ${method} ${url}`);
   
-  try {
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${VPS_CONFIG.authToken}`
-      },
-      signal: AbortSignal.timeout(VPS_CONFIG.timeout)
-    });
-
-    const responseText = await response.text();
-    console.log(`[VPS Cleanup] Response (${response.status}):`, responseText.substring(0, 200));
-
-    let data;
+  for (let attempt = 1; attempt <= retries; attempt++) {
     try {
-      data = JSON.parse(responseText);
-    } catch {
-      data = { raw: responseText };
-    }
+      const requestConfig: RequestInit = {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+          'Accept': 'application/json',
+          'User-Agent': 'Supabase-Cleanup-Service/1.0'
+        },
+        signal: AbortSignal.timeout(VPS_CONFIG.timeout)
+      };
 
-    return { 
-      success: response.ok,
-      status: response.status, 
-      data 
-    };
-  } catch (error: any) {
-    console.error(`[VPS Cleanup] ❌ Request error:`, error.message);
-    return { 
-      success: false, 
-      status: 500,
-      error: error.message 
-    };
+      if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+        requestConfig.body = JSON.stringify(body);
+      }
+
+      console.log(`[VPS Cleanup] 📤 Tentativa ${attempt}/${retries}`);
+      if (body) {
+        console.log(`[VPS Cleanup] 📋 Body:`, JSON.stringify(body, null, 2));
+      }
+
+      const response = await fetch(url, requestConfig);
+      const responseText = await response.text();
+      
+      console.log(`[VPS Cleanup] 📊 Status: ${response.status}`);
+      console.log(`[VPS Cleanup] 📥 Response:`, responseText.substring(0, 500));
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        data = { raw: responseText, success: response.ok };
+      }
+
+      if (response.ok) {
+        return { 
+          success: true, 
+          status: response.status, 
+          data,
+          attempt 
+        };
+      } else {
+        throw new Error(`HTTP ${response.status}: ${responseText}`);
+      }
+    } catch (error: any) {
+      console.error(`[VPS Cleanup] ❌ Tentativa ${attempt} falhou:`, error.message);
+      
+      if (attempt === retries) {
+        return { 
+          success: false, 
+          status: 500,
+          error: error.message,
+          attempts: retries 
+        };
+      }
+      
+      // Aguardar antes da próxima tentativa
+      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+    }
   }
+  
+  return { success: false, error: 'Máximo de tentativas excedido' };
 }
 
 async function deleteAllInstancesOneByOne() {
-  console.log(`[VPS Cleanup] 🔥 DELETANDO TODAS AS INSTÂNCIAS UMA POR UMA`);
+  console.log(`[VPS Cleanup] 🔥 INICIANDO DELEÇÃO MASSIVA v2.0`);
   
   try {
     // Buscar todas as instâncias
     const listResult = await makeVPSRequest('/instances', 'GET');
     
-    if (!listResult.success || !listResult.data?.instances) {
-      throw new Error('Não foi possível listar instâncias da VPS');
+    if (!listResult.success) {
+      throw new Error(`Falha ao listar instâncias: ${listResult.error}`);
     }
 
-    const instances = listResult.data.instances;
-    console.log(`[VPS Cleanup] 📊 ${instances.length} instâncias encontradas na VPS`);
+    const instances = listResult.data?.instances || [];
+    console.log(`[VPS Cleanup] 📊 ${instances.length} instâncias encontradas`);
+
+    if (instances.length === 0) {
+      return {
+        success: true,
+        message: 'Nenhuma instância encontrada para deletar',
+        total_instances: 0,
+        deleted_count: 0,
+        failed_count: 0
+      };
+    }
 
     const deleteResults = [];
     let successCount = 0;
     let errorCount = 0;
 
-    // Deletar cada instância
-    for (const instance of instances) {
-      const instanceId = instance.instanceId;
-      console.log(`[VPS Cleanup] 🗑️ Deletando instância: ${instanceId}`);
+    // Deletar cada instância com múltiplos métodos
+    for (let i = 0; i < instances.length; i++) {
+      const instance = instances[i];
+      const instanceId = instance.instanceId || instance.id || instance.name;
+      
+      console.log(`[VPS Cleanup] 🗑️ [${i+1}/${instances.length}] Deletando: ${instanceId}`);
 
+      let deleted = false;
+      let deleteError = '';
+
+      // Método 1: DELETE endpoint direto
       try {
-        // Tentar múltiplos endpoints de delete
-        const deleteEndpoints = [
-          { endpoint: '/instance/delete', body: { instanceId }, method: 'POST' },
-          { endpoint: `/instance/${instanceId}/delete`, body: null, method: 'DELETE' },
-          { endpoint: `/instance/${instanceId}`, body: null, method: 'DELETE' }
-        ];
+        const deleteResult = await makeVPSRequest(`/instance/${instanceId}`, 'DELETE', null, 2);
+        if (deleteResult.success) {
+          console.log(`[VPS Cleanup] ✅ Método 1 - DELETE direto funcionou`);
+          deleted = true;
+        } else {
+          console.log(`[VPS Cleanup] ⚠️ Método 1 falhou: ${deleteResult.error}`);
+          deleteError += `M1: ${deleteResult.error}; `;
+        }
+      } catch (error) {
+        console.log(`[VPS Cleanup] ⚠️ Método 1 erro: ${error.message}`);
+        deleteError += `M1: ${error.message}; `;
+      }
 
-        let deleted = false;
-        for (const { endpoint, body, method } of deleteEndpoints) {
-          try {
-            const deleteResult = await fetch(`${VPS_CONFIG.baseUrl}${endpoint}`, {
-              method,
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${VPS_CONFIG.authToken}`
-              },
-              body: body ? JSON.stringify(body) : undefined,
-              signal: AbortSignal.timeout(10000)
-            });
-
-            if (deleteResult.ok) {
-              console.log(`[VPS Cleanup] ✅ ${instanceId} deletado via ${endpoint}`);
-              deleted = true;
-              successCount++;
-              break;
-            }
-          } catch (error) {
-            console.log(`[VPS Cleanup] ⚠️ Endpoint ${endpoint} falhou para ${instanceId}`);
+      // Método 2: POST /instance/delete
+      if (!deleted) {
+        try {
+          const deleteResult = await makeVPSRequest('/instance/delete', 'POST', { instanceId }, 2);
+          if (deleteResult.success) {
+            console.log(`[VPS Cleanup] ✅ Método 2 - POST delete funcionou`);
+            deleted = true;
+          } else {
+            console.log(`[VPS Cleanup] ⚠️ Método 2 falhou: ${deleteResult.error}`);
+            deleteError += `M2: ${deleteResult.error}; `;
           }
+        } catch (error) {
+          console.log(`[VPS Cleanup] ⚠️ Método 2 erro: ${error.message}`);
+          deleteError += `M2: ${error.message}; `;
         }
+      }
 
-        if (!deleted) {
-          console.log(`[VPS Cleanup] ❌ Falha ao deletar ${instanceId}`);
-          errorCount++;
+      // Método 3: POST /instance/{id}/delete
+      if (!deleted) {
+        try {
+          const deleteResult = await makeVPSRequest(`/instance/${instanceId}/delete`, 'POST', {}, 2);
+          if (deleteResult.success) {
+            console.log(`[VPS Cleanup] ✅ Método 3 - POST específico funcionou`);
+            deleted = true;
+          } else {
+            console.log(`[VPS Cleanup] ⚠️ Método 3 falhou: ${deleteResult.error}`);
+            deleteError += `M3: ${deleteResult.error}; `;
+          }
+        } catch (error) {
+          console.log(`[VPS Cleanup] ⚠️ Método 3 erro: ${error.message}`);
+          deleteError += `M3: ${error.message}; `;
         }
+      }
 
+      // Método 4: POST /stop primeiro, depois DELETE
+      if (!deleted) {
+        try {
+          // Tentar parar primeiro
+          await makeVPSRequest(`/instance/${instanceId}/stop`, 'POST', {}, 1);
+          
+          // Depois deletar
+          const deleteResult = await makeVPSRequest(`/instance/${instanceId}`, 'DELETE', null, 2);
+          if (deleteResult.success) {
+            console.log(`[VPS Cleanup] ✅ Método 4 - Stop+Delete funcionou`);
+            deleted = true;
+          } else {
+            console.log(`[VPS Cleanup] ⚠️ Método 4 falhou: ${deleteResult.error}`);
+            deleteError += `M4: ${deleteResult.error}; `;
+          }
+        } catch (error) {
+          console.log(`[VPS Cleanup] ⚠️ Método 4 erro: ${error.message}`);
+          deleteError += `M4: ${error.message}; `;
+        }
+      }
+
+      if (deleted) {
+        successCount++;
         deleteResults.push({
           instanceId,
-          success: deleted,
-          status: deleted ? 'deleted' : 'failed'
+          success: true,
+          status: 'deleted'
         });
-
-      } catch (error: any) {
-        console.error(`[VPS Cleanup] ❌ Erro ao deletar ${instanceId}:`, error.message);
+      } else {
         errorCount++;
         deleteResults.push({
           instanceId,
           success: false,
-          error: error.message
+          error: deleteError.trim(),
+          status: 'failed'
         });
       }
 
-      // Delay entre deletes para não sobrecarregar
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Pausa entre deletes para não sobrecarregar
+      if (i < instances.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 800));
+      }
     }
 
-    console.log(`[VPS Cleanup] 📊 Resultado: ${successCount} sucessos, ${errorCount} falhas`);
+    console.log(`[VPS Cleanup] 📊 RESULTADO: ${successCount}/${instances.length} deletadas`);
 
     return {
       success: true,
       total_instances: instances.length,
       deleted_count: successCount,
       failed_count: errorCount,
-      delete_results: deleteResults
+      delete_results: deleteResults,
+      message: `Processo concluído: ${successCount} sucessos, ${errorCount} falhas de ${instances.length} instâncias`
     };
 
   } catch (error: any) {
     console.error(`[VPS Cleanup] ❌ Erro geral:`, error.message);
     return {
       success: false,
-      error: error.message
+      error: error.message,
+      message: 'Falha geral no processo de limpeza'
     };
   }
 }
 
 async function cleanupVPSSessions() {
-  console.log(`[VPS Cleanup] 🧹 LIMPANDO SESSÕES E CACHE DA VPS`);
+  console.log(`[VPS Cleanup] 🧹 LIMPEZA DE SESSÕES VPS`);
   
+  // Esta função simula comandos que deveriam ser executados via SSH
   const cleanupCommands = [
+    'pm2 stop whatsapp-server',
     'rm -rf /root/.wwebjs_auth/session-*',
     'rm -rf /root/.wwebjs_cache/*',
-    'pm2 restart whatsapp-server'
+    'pm2 start whatsapp-server'
   ];
 
   const results = [];
   
   for (const command of cleanupCommands) {
-    try {
-      console.log(`[VPS Cleanup] 🔧 Executando: ${command}`);
-      
-      // Simular execução - em produção seria necessário SSH
-      results.push({
-        command,
-        success: true,
-        note: 'Comando simulado - execute manualmente via SSH'
-      });
-      
-    } catch (error: any) {
-      results.push({
-        command,
-        success: false,
-        error: error.message
-      });
-    }
+    console.log(`[VPS Cleanup] 🔧 Simulando: ${command}`);
+    
+    results.push({
+      command,
+      success: true,
+      note: 'Comando simulado - execute via SSH para limpeza real'
+    });
   }
 
   return {
     success: true,
     cleanup_commands: results,
-    note: 'Execute os comandos SSH manualmente para limpeza completa'
+    message: 'Comandos de limpeza listados. Execute via SSH para aplicar.',
+    ssh_commands: cleanupCommands
   };
 }
 
@@ -195,13 +271,32 @@ serve(async (req) => {
   }
 
   try {
-    console.log(`[VPS Cleanup] 🚀 SERVIÇO DE LIMPEZA VPS INICIADO`);
+    console.log(`[VPS Cleanup] 🚀 SERVIÇO MELHORADO v2.0 INICIADO`);
     
     const { action } = await req.json();
-    console.log(`[VPS Cleanup] 🎯 Ação: ${action}`);
+    console.log(`[VPS Cleanup] 🎯 Ação solicitada: ${action}`);
 
     switch (action) {
+      case 'list_instances': {
+        console.log(`[VPS Cleanup] 📋 Listando instâncias...`);
+        
+        const listResult = await makeVPSRequest('/instances', 'GET');
+        
+        return new Response(
+          JSON.stringify({
+            success: listResult.success,
+            instances: listResult.data?.instances || [],
+            total: listResult.data?.instances?.length || 0,
+            server_info: listResult.data,
+            error: listResult.error
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       case 'delete_all_instances': {
+        console.log(`[VPS Cleanup] 🔥 Iniciando deleção massiva...`);
+        
         const result = await deleteAllInstancesOneByOne();
         
         return new Response(
@@ -211,6 +306,8 @@ serve(async (req) => {
       }
 
       case 'cleanup_sessions': {
+        console.log(`[VPS Cleanup] 🧹 Limpeza de sessões...`);
+        
         const result = await cleanupVPSSessions();
         
         return new Response(
@@ -230,20 +327,12 @@ serve(async (req) => {
             success: true,
             delete_result: deleteResult,
             cleanup_result: cleanupResult,
-            message: 'Limpeza completa executada'
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      case 'list_instances': {
-        const listResult = await makeVPSRequest('/instances', 'GET');
-        
-        return new Response(
-          JSON.stringify({
-            success: listResult.success,
-            instances: listResult.data?.instances || [],
-            total: listResult.data?.total || 0
+            message: 'Limpeza completa executada. Verifique os resultados detalhados.',
+            summary: {
+              instances_deleted: deleteResult.deleted_count || 0,
+              instances_failed: deleteResult.failed_count || 0,
+              total_instances: deleteResult.total_instances || 0
+            }
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
@@ -251,18 +340,24 @@ serve(async (req) => {
 
       default:
         return new Response(
-          JSON.stringify({ success: false, error: 'Ação não reconhecida' }),
+          JSON.stringify({ 
+            success: false, 
+            error: `Ação não reconhecida: ${action}`,
+            available_actions: ['list_instances', 'delete_all_instances', 'cleanup_sessions', 'full_cleanup']
+          }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
     }
 
   } catch (error: any) {
-    console.error(`[VPS Cleanup] ❌ Erro:`, error);
+    console.error(`[VPS Cleanup] ❌ Erro geral:`, error);
     
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message
+        error: error.message,
+        timestamp: new Date().toISOString(),
+        service: 'vps_cleanup_service_v2'
       }),
       { 
         status: 500,
