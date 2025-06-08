@@ -84,7 +84,6 @@ async function getQRCodeFromVPS(vpsInstanceId: string) {
 
       let qrCodeBase64 = result.data.qrCode;
       
-      // Normalizar para formato Base64 se necessário
       if (!result.data.qrCode.startsWith('data:image/')) {
         console.log(`[QR Service] 🔄 Normalizando QR Code para Base64`);
         qrCodeBase64 = `data:image/png;base64,${result.data.qrCode}`;
@@ -154,9 +153,9 @@ async function checkConnectionStatus(vpsInstanceId: string) {
   }
 }
 
-// ETAPA 3: Sistema de notificações automáticas via webhook
+// MELHORADO: Sistema de webhook para receber notificações da VPS
 async function handleWebhookNotification(supabase: any, webhookData: any) {
-  console.log(`[QR Service] 🔔 Webhook recebido:`, webhookData);
+  console.log(`[QR Service] 🔔 Webhook recebido da VPS:`, webhookData);
   
   try {
     const { instanceId, event, data } = webhookData;
@@ -182,6 +181,7 @@ async function handleWebhookNotification(supabase: any, webhookData: any) {
     switch (event) {
       case 'qr.update':
       case 'qr.ready':
+      case 'qr_code_generated': // Novo evento que a VPS deve enviar
         if (data?.qrCode) {
           console.log(`[QR Service] 📱 QR Code recebido via webhook!`);
           
@@ -210,6 +210,7 @@ async function handleWebhookNotification(supabase: any, webhookData: any) {
         break;
 
       case 'connection.update':
+      case 'connection_status_changed': // Novo evento da VPS
         if (data?.status) {
           const isConnected = ['open', 'ready', 'connected'].includes(data.status.toLowerCase());
           
@@ -267,8 +268,9 @@ serve(async (req) => {
 
     console.log(`[QR Service] 🎯 Ação: ${action}, Instância: ${instanceId}`);
 
-    // ETAPA 3: Verificar se é webhook notification
-    if (action === 'webhook_notification') {
+    // MELHORADO: Webhook notification handler
+    if (action === 'webhook_notification' || req.method === 'POST' && body.event) {
+      console.log(`[QR Service] 🔔 Processando webhook da VPS`);
       const result = await handleWebhookNotification(supabase, body);
       return new Response(
         JSON.stringify(result),
@@ -313,7 +315,6 @@ serve(async (req) => {
       case 'generate_qr': {
         console.log(`[QR Service] 📱 Gerando QR Code para: ${instance.instance_name}`);
 
-        // ETAPA 4: Melhor tratamento de erros com retry
         let qrResult;
         let retryCount = 0;
         const maxRetries = 3;
@@ -388,7 +389,7 @@ serve(async (req) => {
             .update({
               connection_status: 'ready',
               web_status: 'connected',
-              qr_code: null, // Limpar QR Code após conexão
+              qr_code: null,
               updated_at: new Date().toISOString()
             })
             .eq('id', instanceId);
