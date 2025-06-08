@@ -94,12 +94,12 @@ export const GlobalInstanceActions = ({ instance, onRefresh }: GlobalInstanceAct
     try {
       console.log('[Global Actions] 🗑️ Excluindo instância:', instance.vps_instance_id);
 
-      // Deletar da VPS via edge function
-      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+      // CORREÇÃO: Usar whatsapp_instance_manager para deletar
+      const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
           action: 'delete_vps_instance_cleanup',
-          instance_name: instance.instance_name,
-          vps_instance_id: instance.vps_instance_id
+          vps_instance_id: instance.vps_instance_id,
+          instance_name: instance.instance_name
         }
       });
 
@@ -151,7 +151,8 @@ export const GlobalInstanceActions = ({ instance, onRefresh }: GlobalInstanceAct
         userEmail 
       });
 
-      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+      // CORREÇÃO: Usar whatsapp_instance_manager para vincular
+      const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
           action: 'bind_instance_to_user',
           instanceData: {

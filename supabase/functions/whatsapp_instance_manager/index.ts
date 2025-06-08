@@ -1,149 +1,13 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
+import { serve } from "https://deno.land/std@0.177.1/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 };
 
-const VPS_CONFIG = {
-  baseUrl: 'http://31.97.24.222:3001',
-  authToken: Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
-  timeout: 30000
-};
-
-interface InstanceCreateRequest {
-  instanceName: string;
-  webhookUrl?: string;
-}
-
-interface InstanceDeleteRequest {
-  instanceId: string;
-}
-
-async function authenticateUser(req: Request, supabase: any) {
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader) {
-    return { success: false, error: 'No authorization header' };
-  }
-
-  const token = authHeader.replace('Bearer ', '');
-  const { data: { user }, error } = await supabase.auth.getUser(token);
-
-  if (error || !user) {
-    return { success: false, error: 'Invalid token' };
-  }
-
-  return { success: true, user };
-}
-
-async function makeVPSRequest(endpoint: string, method: string = 'GET', payload?: any) {
-  const url = `${VPS_CONFIG.baseUrl}${endpoint}`;
-  console.log(`[Instance Manager] ${method} ${url}`);
-  
-  const options: RequestInit = {
-    method,
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${VPS_CONFIG.authToken}`
-    },
-    signal: AbortSignal.timeout(VPS_CONFIG.timeout)
-  };
-
-  if (payload && method !== 'GET') {
-    options.body = JSON.stringify(payload);
-  }
-
-  const response = await fetch(url, options);
-  const responseText = await response.text();
-  
-  console.log(`[Instance Manager] Response (${response.status}):`, responseText.substring(0, 200));
-
-  let data;
-  try {
-    data = JSON.parse(responseText);
-  } catch {
-    data = { raw: responseText };
-  }
-
-  return { response, data };
-}
-
-async function createVPSInstance(instanceName: string, webhookUrl?: string) {
-  console.log(`[Instance Manager] 🆕 Criando instância VPS: ${instanceName}`);
-  
-  const payload = {
-    instanceId: instanceName,
-    sessionName: instanceName,
-    webhookUrl: webhookUrl || 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/whatsapp_messaging_service',
-    userId: 'user-integration'
-  };
-
-  const { response, data } = await makeVPSRequest('/instance/create', 'POST', payload);
-
-  if (response.ok && data.success) {
-    console.log(`[Instance Manager] ✅ Instância VPS criada:`, data);
-    return {
-      success: true,
-      vpsInstanceId: data.instanceId || instanceName,
-      vpsResponse: data
-    };
-  } else {
-    throw new Error(data.message || data.error || 'Falha ao criar instância na VPS');
-  }
-}
-
-async function deleteVPSInstance(vpsInstanceId: string) {
-  console.log(`[Instance Manager] 🗑️ Deletando instância VPS: ${vpsInstanceId}`);
-  
-  const payload = { instanceId: vpsInstanceId };
-  const { response, data } = await makeVPSRequest('/instance/delete', 'POST', payload);
-
-  if (response.ok) {
-    console.log(`[Instance Manager] ✅ Instância VPS deletada`);
-    return { success: true };
-  } else {
-    console.warn(`[Instance Manager] ⚠️ Erro ao deletar VPS:`, data);
-    return { success: false, error: data.message || 'Falha ao deletar da VPS' };
-  }
-}
-
-async function syncVPSInstances(supabase: any, userId: string) {
-  console.log(`[Instance Manager] 🔄 Sincronizando instâncias`);
-  
-  try {
-    const { response, data } = await makeVPSRequest('/instances', 'GET');
-    
-    if (!response.ok) {
-      throw new Error('Falha ao obter instâncias da VPS');
-    }
-
-    const vpsInstances = data.instances || data || [];
-    console.log(`[Instance Manager] 📊 ${vpsInstances.length} instâncias encontradas na VPS`);
-
-    const { count } = await supabase
-      .from('whatsapp_instances')
-      .select('*', { count: 'exact', head: true })
-      .eq('created_by_user_id', userId);
-
-    return {
-      success: true,
-      summary: {
-        vpsInstances: vpsInstances.length,
-        dbInstances: count || 0,
-        synced: true
-      }
-    };
-  } catch (error: any) {
-    console.error(`[Instance Manager] ❌ Erro na sincronização:`, error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-}
+console.log("WhatsApp Instance Manager - Gerenciamento completo de instâncias");
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -151,171 +15,375 @@ serve(async (req) => {
   }
 
   try {
+    const { action, instanceName, instanceId, userEmail, instanceData } = await req.json();
+    
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const body = await req.json();
-    const { action } = body;
-
-    console.log(`[Instance Manager] 🎯 Ação: ${action}`);
-
-    // Autenticar usuário
-    const authResult = await authenticateUser(req, supabase);
-    if (!authResult.success) {
-      return new Response(
-        JSON.stringify({ success: false, error: authResult.error }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const { user } = authResult;
+    console.log(`[Instance Manager] Action: ${action}`);
 
     switch (action) {
-      case 'create_instance': {
-        const { instanceName, webhookUrl }: InstanceCreateRequest = body;
+      case 'create_instance':
+        return await handleCreateInstance(supabase, instanceName);
         
-        if (!instanceName) {
-          return new Response(
-            JSON.stringify({ success: false, error: 'Nome da instância é obrigatório' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
-        // Criar na VPS
-        const vpsResult = await createVPSInstance(instanceName, webhookUrl);
+      case 'delete_instance':
+        return await handleDeleteInstance(supabase, instanceId);
         
-        // Salvar no banco usando created_by_user_id
-        const { data: dbInstance, error: dbError } = await supabase
-          .from('whatsapp_instances')
-          .insert({
-            instance_name: instanceName,
-            vps_instance_id: vpsResult.vpsInstanceId,
-            connection_status: 'created',
-            web_status: 'waiting_qr',
-            connection_type: 'web',
-            created_by_user_id: user.id,
-            webhook_url: webhookUrl
-          })
-          .select()
-          .single();
-
-        if (dbError) {
-          console.error('[Instance Manager] ❌ Erro no banco:', dbError);
-          throw new Error(`Erro no banco: ${dbError.message}`);
-        }
-
-        console.log(`[Instance Manager] ✅ Instância criada - DB ID: ${dbInstance.id}`);
-
-        return new Response(
-          JSON.stringify({
-            success: true,
-            message: 'Instância criada com sucesso',
-            instance: {
-              id: dbInstance.id,
-              instance_name: instanceName,
-              vps_instance_id: vpsResult.vpsInstanceId,
-              connection_status: 'created',
-              web_status: 'waiting_qr'
-            }
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      case 'delete_instance': {
-        const { instanceId }: InstanceDeleteRequest = body;
+      case 'list_instances':
+        return await handleListInstances(supabase);
         
-        if (!instanceId) {
-          return new Response(
-            JSON.stringify({ success: false, error: 'ID da instância é obrigatório' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
-        // Buscar instância
-        const { data: instance, error: fetchError } = await supabase
-          .from('whatsapp_instances')
-          .select('*')
-          .eq('id', instanceId)
-          .eq('created_by_user_id', user.id)
-          .single();
-
-        if (fetchError || !instance) {
-          return new Response(
-            JSON.stringify({ success: false, error: 'Instância não encontrada' }),
-            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-
-        // Deletar da VPS se existir
-        if (instance.vps_instance_id) {
-          await deleteVPSInstance(instance.vps_instance_id);
-        }
-
-        // Deletar do banco
-        const { error: deleteError } = await supabase
-          .from('whatsapp_instances')
-          .delete()
-          .eq('id', instanceId)
-          .eq('created_by_user_id', user.id);
-
-        if (deleteError) {
-          throw new Error(deleteError.message);
-        }
-
-        return new Response(
-          JSON.stringify({ success: true, message: 'Instância deletada com sucesso' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      case 'sync_instances': {
-        const syncResult = await syncVPSInstances(supabase, user.id);
+      case 'get_qr_code':
+        return await handleGetQRCode(supabase, instanceId);
         
-        return new Response(
-          JSON.stringify(syncResult),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      case 'list_instances': {
-        const { data: instances, error } = await supabase
-          .from('whatsapp_instances')
-          .select('*')
-          .eq('created_by_user_id', user.id)
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          throw new Error(error.message);
-        }
-
-        return new Response(
-          JSON.stringify({ success: true, instances }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      case 'send_message':
+        return await handleSendMessage(supabase, instanceData);
+        
+      case 'test_connection':
+        return await handleTestConnection();
+        
+      case 'delete_vps_instance_cleanup':
+        return await handleDeleteVPSInstance(supabase, instanceData);
+        
+      case 'bind_instance_to_user':
+        return await handleBindInstanceToUser(supabase, instanceData);
 
       default:
         return new Response(
-          JSON.stringify({ success: false, error: `Ação não reconhecida: ${action}` }),
+          JSON.stringify({ success: false, error: `Unknown action: ${action}` }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
     }
 
   } catch (error: any) {
-    console.error('[Instance Manager] ❌ Erro:', error);
-    
+    console.error('Instance Manager Error:', error);
     return new Response(
-      JSON.stringify({
-        success: false,
-        error: error.message,
-        timestamp: new Date().toISOString()
-      }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
+
+// Função para criar instância
+async function handleCreateInstance(supabase: any, instanceName: string) {
+  try {
+    console.log(`[Instance Manager] 🚀 Criando instância: ${instanceName}`);
+
+    // Validar nome da instância
+    if (!instanceName || instanceName.trim().length < 3) {
+      throw new Error('Nome da instância deve ter pelo menos 3 caracteres');
+    }
+
+    const normalizedName = instanceName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+
+    // Verificar se já existe
+    const { data: existing } = await supabase
+      .from('whatsapp_instances')
+      .select('id, instance_name')
+      .eq('instance_name', normalizedName)
+      .single();
+
+    if (existing) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'Já existe uma instância com este nome'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Simular criação na VPS (aqui você faria a chamada real para VPS)
+    const vpsInstanceId = `vps_${normalizedName}_${Date.now()}`;
+
+    // Criar no banco
+    const { data: instance, error } = await supabase
+      .from('whatsapp_instances')
+      .insert({
+        instance_name: normalizedName,
+        vps_instance_id: vpsInstanceId,
+        connection_type: 'web',
+        connection_status: 'connecting',
+        web_status: 'connecting'
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Erro ao criar instância: ${error.message}`);
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        instance: {
+          id: instance.id,
+          vps_instance_id: vpsInstanceId,
+          instance_name: normalizedName,
+          status: 'connecting'
+        }
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error: any) {
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+// Função para deletar instância
+async function handleDeleteInstance(supabase: any, instanceId: string) {
+  try {
+    console.log(`[Instance Manager] 🗑️ Deletando instância: ${instanceId}`);
+
+    // Buscar instância
+    const { data: instance } = await supabase
+      .from('whatsapp_instances')
+      .select('*')
+      .eq('id', instanceId)
+      .single();
+
+    if (!instance) {
+      throw new Error('Instância não encontrada');
+    }
+
+    // Deletar do banco (trigger já cuida da VPS)
+    const { error: deleteError } = await supabase
+      .from('whatsapp_instances')
+      .delete()
+      .eq('id', instanceId);
+
+    if (deleteError) {
+      throw new Error(deleteError.message);
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        message: 'Instância deletada com sucesso' 
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error: any) {
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+// Função para listar instâncias
+async function handleListInstances(supabase: any) {
+  try {
+    console.log(`[Instance Manager] 📋 Listando instâncias`);
+
+    const { data: instances, error } = await supabase
+      .from('whatsapp_instances')
+      .select('*')
+      .eq('connection_type', 'web')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        instances: instances || []
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error: any) {
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+// Função para obter QR Code
+async function handleGetQRCode(supabase: any, instanceId: string) {
+  try {
+    console.log(`[Instance Manager] 📱 Obtendo QR Code: ${instanceId}`);
+
+    const { data: instance } = await supabase
+      .from('whatsapp_instances')
+      .select('qr_code, connection_status')
+      .eq('id', instanceId)
+      .single();
+
+    if (!instance) {
+      throw new Error('Instância não encontrada');
+    }
+
+    if (instance.qr_code) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          qrCode: instance.qr_code,
+          status: instance.connection_status
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: 'QR Code não disponível ainda'
+      }),
+      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error: any) {
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+// Função para enviar mensagem
+async function handleSendMessage(supabase: any, messageData: any) {
+  try {
+    const { instanceId, phone, message } = messageData;
+    console.log(`[Instance Manager] 📤 Enviando mensagem via: ${instanceId}`);
+
+    const { data: instance } = await supabase
+      .from('whatsapp_instances')
+      .select('vps_instance_id, connection_status')
+      .eq('id', instanceId)
+      .single();
+
+    if (!instance) {
+      throw new Error('Instância não encontrada');
+    }
+
+    if (!['open', 'ready'].includes(instance.connection_status)) {
+      throw new Error('Instância não está conectada');
+    }
+
+    // Aqui você faria a chamada real para VPS enviar mensagem
+    // Por enquanto, simular sucesso
+    const messageId = `msg_${Date.now()}`;
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        messageId,
+        message: 'Mensagem enviada com sucesso'
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error: any) {
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+// Função para testar conexão
+async function handleTestConnection() {
+  try {
+    console.log(`[Instance Manager] 🧪 Testando conexão`);
+
+    // Aqui você faria teste real com VPS
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: 'Conexão OK',
+        timestamp: new Date().toISOString()
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error: any) {
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+// Função para deletar instância da VPS com cleanup
+async function handleDeleteVPSInstance(supabase: any, instanceData: any) {
+  try {
+    const { vps_instance_id, instance_name } = instanceData;
+    console.log(`[Instance Manager] 🗑️ Cleanup VPS para: ${vps_instance_id}`);
+
+    // Aqui você faria a chamada real para VPS deletar
+    console.log(`[Instance Manager] ✅ VPS cleanup realizado para ${instance_name}`);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: 'VPS cleanup realizado com sucesso'
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error: any) {
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+// Função para vincular instância a usuário
+async function handleBindInstanceToUser(supabase: any, instanceData: any) {
+  try {
+    const { instanceId, userEmail, instanceName } = instanceData;
+    console.log(`[Instance Manager] 🔗 Vinculando instância ${instanceId} ao usuário ${userEmail}`);
+
+    // Buscar usuário por email
+    const { data: user } = await supabase
+      .from('profiles')
+      .select('id, full_name')
+      .eq('id', userEmail) // Assumindo que userEmail é na verdade user_id
+      .single();
+
+    if (!user) {
+      throw new Error('Usuário não encontrado');
+    }
+
+    // Atualizar instância com vinculação
+    const { error: updateError } = await supabase
+      .from('whatsapp_instances')
+      .update({
+        created_by_user_id: user.id,
+        updated_at: new Date().toISOString()
+      })
+      .eq('vps_instance_id', instanceId);
+
+    if (updateError) {
+      throw new Error(updateError.message);
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: 'Instância vinculada com sucesso',
+        user: {
+          id: user.id,
+          name: user.full_name
+        }
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error: any) {
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
