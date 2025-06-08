@@ -72,11 +72,11 @@ serve(async (req: Request) => {
           { headers: corsHeaders, status: 400 });
       }
       
-      // CORRIGIDO: Buscar instância usando evolution_instance_name
+      // CORREÇÃO: Buscar instância usando instance_name e obter created_by_user_id
       const { data: whatsappInstance, error: instanceError } = await supabase
         .from('whatsapp_instances')
-        .select('id, company_id, n8n_webhook_url')
-        .eq('evolution_instance_name', instanceName)
+        .select('id, created_by_user_id, n8n_webhook_url') // CORREÇÃO: Selecionar created_by_user_id
+        .eq('instance_name', instanceName)
         .single();
         
       if (instanceError || !whatsappInstance) {
@@ -86,14 +86,14 @@ serve(async (req: Request) => {
       }
       
       const whatsappInstanceId = whatsappInstance.id;
-      const companyId = whatsappInstance.company_id;
+      const createdByUserId = whatsappInstance.created_by_user_id; // CORREÇÃO: Usar created_by_user_id
       const n8nWebhookUrl = whatsappInstance.n8n_webhook_url;
       
       const { leadId, leadCreated, error: leadProcessingError } = await processLead(
         supabase,
-        phone, // CORREÇÃO: Passar telefone limpo
-        companyId,
+        phone,
         whatsappInstanceId,
+        createdByUserId, // CORREÇÃO: Passar created_by_user_id em vez de companyId
         messageData
       );
 

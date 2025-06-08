@@ -2,9 +2,11 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useWhatsAppInstanceState, useWhatsAppInstanceActions } from './whatsappInstanceStore';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
-export const useWhatsAppRealtime = (userEmail: string) => {
+export const useWhatsAppRealtime = () => {
+  const { user } = useAuth();
   const { instances } = useWhatsAppInstanceState();
   const { updateInstance } = useWhatsAppInstanceActions();
   
@@ -20,9 +22,9 @@ export const useWhatsAppRealtime = (userEmail: string) => {
   }, []);
 
   useEffect(() => {
-    if (!userEmail || !isMountedRef.current) return;
+    if (!user?.id || !isMountedRef.current) return;
 
-    console.log('[WhatsApp Realtime] 🔄 Configurando real-time');
+    console.log('[WhatsApp Realtime] 🔄 Configurando real-time para usuário:', user.id);
     
     // CORREÇÃO: Remover canal anterior se existir
     if (channelRef.current) {
@@ -30,15 +32,16 @@ export const useWhatsAppRealtime = (userEmail: string) => {
       supabase.removeChannel(channelRef.current);
     }
 
-    // Canal consolidado para todas as mudanças relacionadas ao WhatsApp
+    // Canal consolidado filtrado por created_by_user_id
     channelRef.current = supabase
-      .channel(`whatsapp-realtime-${userEmail}`)
+      .channel(`whatsapp-realtime-${user.id}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'whatsapp_instances'
+          table: 'whatsapp_instances',
+          filter: `created_by_user_id=eq.${user.id}` // CORREÇÃO: Filtrar por created_by_user_id
         },
         (payload) => {
           if (!isMountedRef.current) return;
@@ -74,13 +77,11 @@ export const useWhatsAppRealtime = (userEmail: string) => {
     };
 
     const processInstanceUpdate = (payload: any) => {
-      const instancePrefix = userEmail.split('@')[0].replace(/[^a-z0-9]/gi, "").toLowerCase();
-      
       if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
         const newRecord = payload.new as any;
         
-        if (newRecord.instance_name?.toLowerCase().startsWith(instancePrefix)) {
-          // CORREÇÃO: Mapeamento simples de status
+        // CORREÇÃO: Verificar se a instância pertence ao usuário atual
+        if (newRecord.created_by_user_id === user.id) {
           const isConnected = ['open', 'ready', 'connected'].includes(newRecord.connection_status);
 
           // Log apenas mudanças significativas de status
@@ -149,7 +150,7 @@ export const useWhatsAppRealtime = (userEmail: string) => {
         channelRef.current = null;
       }
     };
-  }, [userEmail, updateInstance]);
+  }, [user?.id, updateInstance]);
 
   return {
     isConnected: instances.length > 0,

@@ -4,23 +4,23 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useWhatsAppWebInstances } from "./useWhatsAppWebInstances";
 import { useWhatsAppRealtime } from "@/hooks/whatsapp/useWhatsAppRealtime";
-import { useCompanyData } from "@/hooks/useCompanyData";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const useWhatsAppSettingsLogic = () => {
-  console.log('[useWhatsAppSettingsLogic] Hook inicializando (CORREÇÕES ANTI-LOOP)');
+  console.log('[useWhatsAppSettingsLogic] Hook inicializando (MIGRADO PARA USER_ID)');
   
   const [userEmail, setUserEmail] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isSyncingAll, setIsSyncingAll] = useState(false);
   
-  // CORREÇÃO 11: Controles rigorosos anti-loop
+  // CORREÇÃO: Controles rigorosos anti-loop
   const userDataLoadedRef = useRef(false);
   const isUnmountedRef = useRef(false);
   const lastSyncTimeRef = useRef(0);
   const syncInProgressRef = useRef(false);
 
-  const { companyId, loading: companyLoading } = useCompanyData();
+  const { user } = useAuth();
 
   // Cleanup melhorado
   useEffect(() => {
@@ -28,11 +28,11 @@ export const useWhatsAppSettingsLogic = () => {
     return () => {
       isUnmountedRef.current = true;
       syncInProgressRef.current = false;
-      console.log('[useWhatsAppSettingsLogic] Cleanup executado (anti-loop)');
+      console.log('[useWhatsAppSettingsLogic] Cleanup executado (migrado)');
     };
   }, []);
 
-  // CORREÇÃO 12: Load user data - APENAS UMA VEZ
+  // CORREÇÃO: Load user data - APENAS UMA VEZ
   useEffect(() => {
     if (userDataLoadedRef.current || isUnmountedRef.current) {
       console.log('[useWhatsAppSettingsLogic] User data já carregado ou desmontado');
@@ -43,16 +43,6 @@ export const useWhatsAppSettingsLogic = () => {
       try {
         console.log('[useWhatsAppSettingsLogic] Carregando dados do usuário...');
         setIsLoading(true);
-        
-        const { data: { user }, error } = await supabase.auth.getUser();
-        
-        if (isUnmountedRef.current) return;
-        
-        if (error) {
-          console.error("Erro ao obter usuário:", error);
-          toast.error("Não foi possível carregar dados do usuário");
-          return;
-        }
         
         if (user) {
           console.log('[useWhatsAppSettingsLogic] Usuário encontrado:', user.email);
@@ -80,18 +70,20 @@ export const useWhatsAppSettingsLogic = () => {
       }
     };
     
-    getUser();
-  }, []);
+    if (user) {
+      getUser();
+    }
+  }, [user]);
 
-  // Initialize realtime com proteções
-  console.log('[useWhatsAppSettingsLogic] Configurando realtime otimizado para:', userEmail);
-  const realtimeHook = useWhatsAppRealtime(userEmail);
+  // Initialize realtime com proteções - CORREÇÃO: Sem dependência de userEmail
+  console.log('[useWhatsAppSettingsLogic] Configurando realtime otimizado');
+  const realtimeHook = useWhatsAppRealtime();
 
   // WhatsApp instances hook otimizado
   const whatsAppHooks = useWhatsAppWebInstances();
 
-  // CORREÇÃO 13: Sync controlado com proteção anti-loop RIGOROSA
-  const handleSyncAllForCompany = useCallback(async () => {
+  // CORREÇÃO: Sync controlado com proteção anti-loop RIGOROSA
+  const handleSyncAllForUser = useCallback(async () => {
     console.log('[useWhatsAppSettingsLogic] Sync solicitado (verificando proteções)');
     
     if (!whatsAppHooks.instances.length) {
@@ -126,7 +118,7 @@ export const useWhatsAppSettingsLogic = () => {
       setIsSyncingAll(true);
       lastSyncTimeRef.current = now;
       
-      console.log('[useWhatsAppSettingsLogic] ✅ Executando sync controlado...');
+      console.log('[useWhatsAppSettingsLogic] ✅ Executando sync controlado para usuário...');
       
       await whatsAppHooks.refetch();
       
@@ -146,19 +138,19 @@ export const useWhatsAppSettingsLogic = () => {
     }
   }, [whatsAppHooks.instances.length, whatsAppHooks.refetch]);
 
-  // CORREÇÃO 14: Refresh throttled
+  // CORREÇÃO: Refresh throttled
   const refreshUserInstances = useCallback(() => {
     console.log('[useWhatsAppSettingsLogic] Refresh solicitado');
     
-    if (userEmail && !isUnmountedRef.current && !syncInProgressRef.current) {
+    if (user?.id && !isUnmountedRef.current && !syncInProgressRef.current) {
       console.log('[useWhatsAppSettingsLogic] ✅ Executando refresh controlado');
       whatsAppHooks.refetch();
     } else {
       console.log('[useWhatsAppSettingsLogic] ⏸️ Refresh ignorado - condições de proteção');
     }
-  }, [userEmail, whatsAppHooks.refetch]);
+  }, [user?.id, whatsAppHooks.refetch]);
 
-  console.log('[useWhatsAppSettingsLogic] Hook retornando dados otimizados');
+  console.log('[useWhatsAppSettingsLogic] Hook retornando dados otimizados (migrado)');
 
   return {
     userEmail,
@@ -166,7 +158,7 @@ export const useWhatsAppSettingsLogic = () => {
     isSuperAdmin,
     isSyncingAll,
     whatsAppHooks,
-    handleSyncAllForCompany,
+    handleSyncAllForUser, // CORREÇÃO: Renomeado de handleSyncAllForCompany
     refreshUserInstances,
     // NOVO: Estatísticas para debug
     debugInfo: {

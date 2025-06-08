@@ -15,7 +15,7 @@ interface StabilizedSyncState {
 }
 
 /**
- * Hook de Sync Estabilizado sem loops infinitos
+ * Hook de Sync Estabilizado sem loops infinitos - MIGRADO PARA USER_ID
  */
 export const useStabilizedInstanceSync = () => {
   const [state, setState] = useState<StabilizedSyncState>({
@@ -28,7 +28,7 @@ export const useStabilizedInstanceSync = () => {
     healthScore: 100
   });
 
-  const { companyId } = useCompanyData();
+  const { userId } = useCompanyData(); // CORREÇÃO: Usar userId ao invés de companyId
   const isMountedRef = useRef(true);
   const lastFetchRef = useRef<number>(0);
 
@@ -39,9 +39,9 @@ export const useStabilizedInstanceSync = () => {
     };
   }, []);
 
-  // CORREÇÃO: Sync simples sem debounce excessivo
+  // CORREÇÃO: Sync simples baseado em created_by_user_id
   const performOptimizedSync = useCallback(async (forceRefresh = false): Promise<any[]> => {
-    if (!companyId || !isMountedRef.current) {
+    if (!userId || !isMountedRef.current) {
       return [];
     }
 
@@ -58,12 +58,12 @@ export const useStabilizedInstanceSync = () => {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
       lastFetchRef.current = now;
 
-      console.log('[Stabilized Sync] 🔄 Executando sync para:', companyId);
+      console.log('[Stabilized Sync] 🔄 Executando sync para usuário:', userId);
 
       const { data, error: fetchError } = await supabase
         .from('whatsapp_instances')
         .select('*')
-        .eq('company_id', companyId)
+        .eq('created_by_user_id', userId) // CORREÇÃO: Usar created_by_user_id
         .eq('connection_type', 'web')
         .order('created_at', { ascending: false });
 
@@ -112,23 +112,23 @@ export const useStabilizedInstanceSync = () => {
       }
       return [];
     }
-  }, [companyId, state.instances]);
+  }, [userId, state.instances]);
 
-  // CORREÇÃO: Real-time simples sem delay
+  // CORREÇÃO: Real-time simples baseado em created_by_user_id
   useEffect(() => {
-    if (!companyId) return;
+    if (!userId) return;
 
-    console.log('[Stabilized Sync] 📡 Configurando real-time');
+    console.log('[Stabilized Sync] 📡 Configurando real-time para usuário');
 
     const channel = supabase
-      .channel(`whatsapp-stabilized-${companyId}`)
+      .channel(`whatsapp-stabilized-${userId}`)
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
           table: 'whatsapp_instances',
-          filter: `company_id=eq.${companyId}`
+          filter: `created_by_user_id=eq.${userId}` // CORREÇÃO: Filtrar por created_by_user_id
         },
         (payload) => {
           if (!isMountedRef.current) return;
@@ -144,14 +144,14 @@ export const useStabilizedInstanceSync = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [companyId, performOptimizedSync]);
+  }, [userId, performOptimizedSync]);
 
   // Initial fetch
   useEffect(() => {
-    if (companyId && isMountedRef.current) {
+    if (userId && isMountedRef.current) {
       performOptimizedSync(true);
     }
-  }, [companyId]);
+  }, [userId]);
 
   // CORREÇÃO: Função para forçar healing manual simples
   const forceOrphanHealing = useCallback(async () => {

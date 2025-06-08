@@ -19,8 +19,8 @@ function cleanPhoneNumber(phone: string): string {
 export async function processLead(
   supabase: SupabaseClient,
   phone: string,
-  companyId: string,
   whatsappInstanceId: string,
+  createdByUserId: string, // CORREÇÃO: Receber created_by_user_id em vez de companyId
   messageData: any
 ): Promise<{ leadId: string; leadCreated: boolean; error?: string }> {
   try {
@@ -31,11 +31,12 @@ export async function processLead(
       return { leadId: "", leadCreated: false, error: "Telefone inválido após limpeza" };
     }
 
+    // CORREÇÃO: Buscar lead baseado em created_by_user_id
     const { data: existingLead, error: leadError } = await supabase
       .from('leads')
       .select('id, unread_count')
-      .eq('phone', cleanPhone) // CORREÇÃO: Usar telefone limpo
-      .eq('company_id', companyId)
+      .eq('phone', cleanPhone)
+      .eq('created_by_user_id', createdByUserId) // CORREÇÃO: Usar created_by_user_id
       .maybeSingle() as { data: ExistingLead | null, error: any };
 
     if (leadError) {
@@ -51,13 +52,13 @@ export async function processLead(
       // CORREÇÃO: Nome do lead sem @c.us
       const leadName = pushName ? pushName : `Lead-${cleanPhone.substring(cleanPhone.length - 4)}`;
       
-      const kanbanStageId = await findOrCreateKanbanStageId(supabase, companyId);
+      const kanbanStageId = await findOrCreateKanbanStageId(supabase, createdByUserId); // CORREÇÃO: Passar userId
 
       const leadPayload: LeadData = {
-        company_id: companyId,
+        created_by_user_id: createdByUserId, // CORREÇÃO: Usar created_by_user_id
         whatsapp_number_id: whatsappInstanceId,
         name: leadName,
-        phone: cleanPhone, // CORREÇÃO: Salvar telefone limpo
+        phone: cleanPhone,
         kanban_stage_id: kanbanStageId,
         last_message: extractTextMessage(messageData),
         last_message_time: new Date().toISOString(),
