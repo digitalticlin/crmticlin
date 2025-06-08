@@ -2,6 +2,7 @@
 import { useState } from "react";
 import GlobalAdminSidebar from "@/components/admin/GlobalAdminSidebar";
 import { WhatsAppTestPanel } from "@/components/admin/WhatsAppTestPanel";
+import { GlobalInstanceManagement } from "@/components/admin/GlobalInstanceManagement";
 
 export default function GlobalAdmin() {
   const [activeTab, setActiveTab] = useState("whatsapp-test");
@@ -18,6 +19,18 @@ export default function GlobalAdmin() {
               </p>
             </div>
             <WhatsAppTestPanel />
+          </div>
+        );
+      case "instances":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Gerenciamento de Instâncias WhatsApp</h1>
+              <p className="text-gray-600 mt-1">
+                Sincronize e monitore todas as instâncias WhatsApp entre VPS e Supabase
+              </p>
+            </div>
+            <GlobalInstanceManagement />
           </div>
         );
       default:

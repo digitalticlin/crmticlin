@@ -1,7 +1,8 @@
 
 import { cn } from "@/lib/utils";
 import { 
-  Zap
+  Zap,
+  Database
 } from "lucide-react";
 
 interface GlobalAdminSidebarProps {
@@ -16,6 +17,12 @@ export default function GlobalAdminSidebar({ activeTab, setActiveTab }: GlobalAd
       label: "Teste WhatsApp",
       icon: Zap,
       description: "Centro de testes completo"
+    },
+    {
+      id: "instances",
+      label: "Instâncias",
+      icon: Database,
+      description: "Gerenciar sincronização"
     }
   ];
 
