@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,46 +50,43 @@ export const SimpleWhatsAppConnection = () => {
   };
 
   const handleGenerateQR = async (instanceId: string, instanceName: string) => {
-    console.log('[Simple Connection] 🔄 Gerando QR Code para:', { instanceId, instanceName });
+    console.log('[Simple Connection] 🔄 CORREÇÃO TOTAL - Gerando QR Code para:', { instanceId, instanceName });
     
-    // SEMPRE abrir o modal (mesmo sem QR Code)
+    // Sempre abrir o modal primeiro
     setSelectedInstanceId(instanceId);
     setSelectedInstanceName(instanceName);
-    setSelectedQRCode(null); // Modal vai fazer polling
+    setSelectedQRCode(null);
     setShowQRModal(true);
     
-    // Tentar obter QR Code imediatamente
-    try {
-      const result = await refreshQRCode(instanceId);
-      if (result?.qrCode) {
-        setSelectedQRCode(result.qrCode);
-      }
-    } catch (error: any) {
-      // Não mostrar erro aqui - o modal vai fazer polling
-      console.log('[Simple Connection] QR Code não disponível imediatamente, modal fará polling');
-    }
+    // O modal vai fazer polling automaticamente
+    console.log('[Simple Connection] ✅ Modal aberto, polling será iniciado automaticamente');
   };
 
   const handleDeleteInstance = async (instanceId: string) => {
     await deleteInstance(instanceId);
   };
 
-  // CORREÇÃO: Função que retorna o resultado correto
   const handleRefreshQRCode = async (instanceId: string): Promise<{ qrCode?: string } | null> => {
     try {
+      console.log('[Simple Connection] 🔄 CORREÇÃO TOTAL - Refresh QR Code:', instanceId);
       const result = await refreshQRCode(instanceId);
+      
       if (result?.qrCode) {
+        console.log('[Simple Connection] ✅ QR Code obtido:', result.qrCode.substring(0, 50) + '...');
         setSelectedQRCode(result.qrCode);
         return { qrCode: result.qrCode };
       }
+      
+      console.log('[Simple Connection] ⏳ QR Code ainda não disponível');
       return null;
-    } catch (error) {
-      console.error('Erro ao atualizar QR Code:', error);
+    } catch (error: any) {
+      console.error('[Simple Connection] ❌ Erro ao atualizar QR Code:', error);
       return null;
     }
   };
 
   const closeQRModal = () => {
+    console.log('[Simple Connection] 🧹 Fechando modal QR');
     setShowQRModal(false);
     setSelectedQRCode(null);
     setSelectedInstanceName('');
@@ -108,7 +104,6 @@ export const SimpleWhatsAppConnection = () => {
     );
   }
 
-  // Show simple connect card when no instances
   if (instances.length === 0) {
     return (
       <div className="space-y-6">
@@ -166,11 +161,9 @@ export const SimpleWhatsAppConnection = () => {
     );
   }
 
-  // Show grid layout when instances exist
   return (
     <div className="space-y-6">
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Existing instances */}
         {instances.map((instance) => (
           <SimpleInstanceCard
             key={instance.id}
@@ -181,7 +174,6 @@ export const SimpleWhatsAppConnection = () => {
           />
         ))}
         
-        {/* Add new connection card */}
         <Card className="group relative transition-all duration-300 hover:shadow-2xl hover:-translate-y-1
           bg-gradient-to-br from-green-50/60 to-green-100/40 backdrop-blur-xl 
           border-2 border-dashed border-green-300/70 rounded-2xl overflow-hidden

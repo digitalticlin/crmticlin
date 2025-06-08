@@ -26,26 +26,30 @@ export const QRCodeModal = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isPolling, setIsPolling] = useState(false);
   const [pollAttempt, setPollAttempt] = useState(0);
-  const [maxAttempts] = useState(15); // Aumentado para 15 tentativas
+  const [maxAttempts] = useState(15);
 
-  // CORREÇÃO COMPLETA: Auto-polling quando modal abre sem QR Code
+  // CORREÇÃO: Usar useEffect separados para evitar early returns
   useEffect(() => {
     if (isOpen && !qrCode && !isPolling && instanceId) {
-      console.log('[QR Modal] 🚀 CORREÇÃO COMPLETA - Iniciando polling automático');
+      console.log('[QR Modal] 🚀 Iniciando polling automático para:', instanceName);
       startPolling();
     }
-  }, [isOpen, qrCode, instanceId]);
+  }, [isOpen, instanceId]);
 
-  // Reset quando modal fecha
   useEffect(() => {
     if (!isOpen) {
+      console.log('[QR Modal] 🧹 Resetando estado do modal');
       setIsPolling(false);
       setQrCode(initialQrCode);
       setPollAttempt(0);
+      setIsRefreshing(false);
     }
   }, [isOpen, initialQrCode]);
 
-  // CORREÇÃO COMPLETA: Polling otimizado com delays progressivos
+  useEffect(() => {
+    setQrCode(initialQrCode);
+  }, [initialQrCode]);
+
   const startPolling = async () => {
     if (!instanceId) {
       toast.error('ID da instância não disponível');
@@ -54,38 +58,38 @@ export const QRCodeModal = ({
 
     setIsPolling(true);
     setPollAttempt(0);
-    console.log(`[QR Modal] 🔄 CORREÇÃO COMPLETA - Iniciando polling para "${instanceName}"`);
+    console.log(`[QR Modal] 🔄 Iniciando polling para "${instanceName}"`);
     
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       if (!isOpen) {
-        console.log('[QR Modal] ⏹️ CORREÇÃO COMPLETA - Modal fechado, parando polling');
+        console.log('[QR Modal] ⏹️ Modal fechado, parando polling');
         break;
       }
 
       try {
         setPollAttempt(attempt);
-        console.log(`[QR Modal] 📊 CORREÇÃO COMPLETA - Tentativa ${attempt}/${maxAttempts}`);
+        console.log(`[QR Modal] 📊 Tentativa ${attempt}/${maxAttempts} para ${instanceName}`);
         
         const result = await onRefreshQRCode(instanceId);
         
         if (result?.qrCode) {
-          console.log(`[QR Modal] ✅ CORREÇÃO COMPLETA - QR Code obtido na tentativa ${attempt}!`);
+          console.log(`[QR Modal] ✅ QR Code obtido na tentativa ${attempt}!`);
           setQrCode(result.qrCode);
           setIsPolling(false);
           toast.success(`QR Code gerado! Escaneie para conectar "${instanceName}"`);
           return;
         }
         
-        // Delay progressivo: 2s, 3s, 4s, depois 3s fixo
+        // Delay progressivo
         const delay = attempt <= 3 ? (1000 + attempt * 1000) : 3000;
         
         if (attempt < maxAttempts) {
-          console.log(`[QR Modal] ⏳ CORREÇÃO COMPLETA - Aguardando ${delay}ms antes da próxima tentativa`);
+          console.log(`[QR Modal] ⏳ Aguardando ${delay}ms antes da próxima tentativa`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
         
       } catch (error: any) {
-        console.error(`[QR Modal] ❌ CORREÇÃO COMPLETA - Erro na tentativa ${attempt}:`, error);
+        console.error(`[QR Modal] ❌ Erro na tentativa ${attempt}:`, error);
         
         if (attempt === maxAttempts) {
           setIsPolling(false);
@@ -93,7 +97,6 @@ export const QRCodeModal = ({
           return;
         }
         
-        // Retry delay para erros
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
@@ -102,7 +105,6 @@ export const QRCodeModal = ({
     toast.warning(`QR Code não disponível após ${maxAttempts} tentativas. Tente criar uma nova instância.`);
   };
 
-  // CORREÇÃO COMPLETA: Refresh manual
   const handleRefresh = async () => {
     if (!instanceId) {
       toast.error('ID da instância não disponível');
@@ -111,7 +113,7 @@ export const QRCodeModal = ({
 
     setIsRefreshing(true);
     try {
-      console.log('[QR Modal] 🔄 CORREÇÃO COMPLETA - Refresh manual');
+      console.log('[QR Modal] 🔄 Refresh manual para:', instanceName);
       const result = await onRefreshQRCode(instanceId);
       
       if (result?.qrCode) {
@@ -122,7 +124,7 @@ export const QRCodeModal = ({
         await startPolling();
       }
     } catch (error: any) {
-      console.error('[QR Modal] ❌ CORREÇÃO COMPLETA - Erro no refresh:', error);
+      console.error('[QR Modal] ❌ Erro no refresh:', error);
       toast.error(`Erro ao atualizar QR Code: ${error.message}`);
     } finally {
       setIsRefreshing(false);
@@ -130,7 +132,7 @@ export const QRCodeModal = ({
   };
 
   const renderContent = () => {
-    // ESTADO: QR Code disponível
+    // QR Code disponível
     if (qrCode && !isPolling) {
       return (
         <>
@@ -179,7 +181,7 @@ export const QRCodeModal = ({
       );
     }
 
-    // ESTADO: Gerando QR Code
+    // Gerando QR Code
     return (
       <div className="text-center py-8">
         <div className="bg-blue-50 p-6 rounded-lg border border-blue-200 mb-4">
@@ -191,7 +193,6 @@ export const QRCodeModal = ({
             Aguarde enquanto o WhatsApp Web.js é inicializado
           </p>
           
-          {/* Barra de progresso simples */}
           {pollAttempt > 0 && (
             <div className="w-full bg-blue-200 rounded-full h-2 mt-3">
               <div 

@@ -4,10 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import type { WhatsAppWebInstance } from './useWhatsAppWebInstances';
 
 export const useInstanceQRCode = (instances: WhatsAppWebInstance[], fetchInstances: () => Promise<void>) => {
-  // CORREÇÃO: Usar whatsapp_qr_service com ação generate_qr
   const refreshInstanceQRCode = useCallback(async (instanceId: string) => {
     try {
-      console.log('[Instance QR Code] 🔄 Gerando QR Code via nova arquitetura:', instanceId);
+      console.log('[Instance QR Code] 🔄 CORREÇÃO TOTAL - Gerando QR Code:', instanceId);
 
       const instance = instances.find(i => i.id === instanceId);
       if (!instance) {
@@ -20,7 +19,6 @@ export const useInstanceQRCode = (instances: WhatsAppWebInstance[], fetchInstanc
         instanceName: instance.instance_name
       });
 
-      // CORREÇÃO: Usar whatsapp_qr_service com ação generate_qr
       const { data, error } = await supabase.functions.invoke('whatsapp_qr_service', {
         body: {
           action: 'generate_qr',
@@ -28,9 +26,15 @@ export const useInstanceQRCode = (instances: WhatsAppWebInstance[], fetchInstanc
         }
       });
 
+      console.log('[Instance QR Code] 📡 Resposta da edge function:', { data, error });
+
       if (error) {
         console.error('[Instance QR Code] ❌ Erro do Supabase:', error);
         throw error;
+      }
+
+      if (!data) {
+        throw new Error('Resposta vazia da edge function');
       }
 
       if (!data.success) {
@@ -39,13 +43,13 @@ export const useInstanceQRCode = (instances: WhatsAppWebInstance[], fetchInstanc
           return {
             success: false,
             waiting: true,
-            error: 'QR Code ainda sendo gerado'
+            error: data.message || 'QR Code ainda sendo gerado'
           };
         }
         throw new Error(data.error || 'Falha ao gerar QR Code');
       }
 
-      console.log('[Instance QR Code] ✅ QR Code gerado com sucesso');
+      console.log('[Instance QR Code] ✅ QR Code gerado com sucesso!');
 
       // Recarregar instâncias para obter dados atualizados
       await fetchInstances();
