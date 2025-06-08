@@ -3,86 +3,76 @@ import { useState } from 'react';
 import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
 import { toast } from 'sonner';
 
-export const useInstanceActions = (onInstanceChange?: () => void) => {
-  const [isCreating, setIsCreating] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+export const useInstanceActions = (fetchInstances: () => Promise<void>) => {
+  const [isLoading, setIsLoading] = useState(false);
 
   const createInstance = async (instanceName: string) => {
+    setIsLoading(true);
     try {
-      setIsCreating(true);
       console.log('[Instance Actions] 🚀 Criando instância:', instanceName);
-
+      
       const result = await WhatsAppWebService.createInstance(instanceName);
-
+      
       if (result.success) {
-        toast.success('✅ Instância criada com sucesso!');
-        onInstanceChange?.();
+        toast.success(`Instância "${instanceName}" criada com sucesso!`);
+        await fetchInstances(); // Recarregar lista
         return result;
       } else {
-        toast.error(`❌ Erro ao criar instância: ${result.error}`);
-        return result;
+        throw new Error(result.error || 'Erro ao criar instância');
       }
-
     } catch (error: any) {
-      console.error('[Instance Actions] ❌ Erro na criação:', error);
-      toast.error(`❌ Erro na criação: ${error.message}`);
-      return {
-        success: false,
-        error: error.message
-      };
+      console.error('[Instance Actions] ❌ Erro ao criar instância:', error);
+      toast.error(`Erro ao criar instância: ${error.message}`);
+      throw error;
     } finally {
-      setIsCreating(false);
+      setIsLoading(false);
     }
   };
 
   const deleteInstance = async (instanceId: string) => {
+    setIsLoading(true);
     try {
-      setIsDeleting(true);
       console.log('[Instance Actions] 🗑️ Deletando instância:', instanceId);
-
+      
       const result = await WhatsAppWebService.deleteInstance(instanceId);
-
+      
       if (result.success) {
-        toast.success('✅ Instância deletada com sucesso!');
-        onInstanceChange?.();
+        toast.success('Instância deletada com sucesso!');
+        await fetchInstances(); // Recarregar lista
         return result;
       } else {
-        toast.error(`❌ Erro ao deletar instância: ${result.error}`);
-        return result;
+        throw new Error(result.error || 'Erro ao deletar instância');
       }
-
     } catch (error: any) {
-      console.error('[Instance Actions] ❌ Erro na deleção:', error);
-      toast.error(`❌ Erro na deleção: ${error.message}`);
-      return {
-        success: false,
-        error: error.message
-      };
+      console.error('[Instance Actions] ❌ Erro ao deletar instância:', error);
+      toast.error(`Erro ao deletar instância: ${error.message}`);
+      throw error;
     } finally {
-      setIsDeleting(false);
+      setIsLoading(false);
     }
   };
 
+  // CORREÇÃO: Usar método específico generateQRCode
   const refreshQRCode = async (instanceId: string) => {
     try {
-      console.log('[Instance Actions] 🔄 Atualizando QR Code:', instanceId);
-
-      const result = await WhatsAppWebService.getQRCode(instanceId);
-
-      if (result.success && result.qrCode) {
-        console.log('[Instance Actions] ✅ QR Code obtido');
+      console.log('[Instance Actions] 📱 Gerando QR Code:', instanceId);
+      
+      const result = await WhatsAppWebService.generateQRCode(instanceId);
+      
+      if (result.success) {
+        console.log('[Instance Actions] ✅ QR Code gerado com sucesso');
+        await fetchInstances(); // Recarregar lista
+        return result;
+      } else if (result.waiting) {
+        console.log('[Instance Actions] ⏳ QR Code ainda sendo gerado');
         return result;
       } else {
-        console.log('[Instance Actions] ⚠️ QR Code não disponível:', result.error);
-        return result;
+        throw new Error(result.error || 'Erro ao gerar QR Code');
       }
-
     } catch (error: any) {
-      console.error('[Instance Actions] ❌ Erro no QR Code:', error);
-      return {
-        success: false,
-        error: error.message
-      };
+      console.error('[Instance Actions] ❌ Erro ao gerar QR Code:', error);
+      toast.error(`Erro ao gerar QR Code: ${error.message}`);
+      throw error;
     }
   };
 
@@ -90,7 +80,6 @@ export const useInstanceActions = (onInstanceChange?: () => void) => {
     createInstance,
     deleteInstance,
     refreshQRCode,
-    isCreating,
-    isDeleting
+    isLoading
   };
 };

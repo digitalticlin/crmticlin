@@ -4,10 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import type { WhatsAppWebInstance } from './useWhatsAppWebInstances';
 
 export const useInstanceQRCode = (instances: WhatsAppWebInstance[], fetchInstances: () => Promise<void>) => {
-  // CORREÇÃO FINAL: Usar get_qr_code_async em vez de get_qr_code_async (estava duplicado)
+  // CORREÇÃO: Usar whatsapp_qr_service com ação generate_qr
   const refreshInstanceQRCode = useCallback(async (instanceId: string) => {
     try {
-      console.log('[Instance QR Code] 🔄 Atualizando QR Code (CORREÇÃO FINAL):', instanceId);
+      console.log('[Instance QR Code] 🔄 Gerando QR Code via nova arquitetura:', instanceId);
 
       const instance = instances.find(i => i.id === instanceId);
       if (!instance) {
@@ -20,13 +20,11 @@ export const useInstanceQRCode = (instances: WhatsAppWebInstance[], fetchInstanc
         instanceName: instance.instance_name
       });
 
-      // CORREÇÃO FINAL: Usar get_qr_code_async (ação correta)
-      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+      // CORREÇÃO: Usar whatsapp_qr_service com ação generate_qr
+      const { data, error } = await supabase.functions.invoke('whatsapp_qr_service', {
         body: {
-          action: 'get_qr_code_async',
-          instanceData: {
-            instanceId: instanceId
-          }
+          action: 'generate_qr',
+          instanceId: instanceId
         }
       });
 
@@ -44,10 +42,10 @@ export const useInstanceQRCode = (instances: WhatsAppWebInstance[], fetchInstanc
             error: 'QR Code ainda sendo gerado'
           };
         }
-        throw new Error(data.error || 'Falha ao atualizar QR Code');
+        throw new Error(data.error || 'Falha ao gerar QR Code');
       }
 
-      console.log('[Instance QR Code] ✅ QR Code atualizado com sucesso');
+      console.log('[Instance QR Code] ✅ QR Code gerado com sucesso');
 
       // Recarregar instâncias para obter dados atualizados
       await fetchInstances();
@@ -58,7 +56,7 @@ export const useInstanceQRCode = (instances: WhatsAppWebInstance[], fetchInstanc
       };
 
     } catch (error: any) {
-      console.error('[Instance QR Code] ❌ Erro ao atualizar QR Code:', error);
+      console.error('[Instance QR Code] ❌ Erro ao gerar QR Code:', error);
       return {
         success: false,
         error: error.message

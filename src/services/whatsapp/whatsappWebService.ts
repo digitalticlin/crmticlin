@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 interface WhatsAppServiceResponse<T = any> {
@@ -58,6 +57,48 @@ export class WhatsAppWebService {
       return {
         success: false,
         error: error.message || 'Erro desconhecido na criação da instância'
+      };
+    }
+  }
+
+  static async generateQRCode(instanceId: string): Promise<WhatsAppServiceResponse> {
+    try {
+      console.log(`[WhatsApp Service] 📱 Gerando QR Code via nova arquitetura: ${instanceId}`);
+
+      // CORREÇÃO: Usar whatsapp_qr_service para gerar QR Code
+      const { data, error } = await supabase.functions.invoke('whatsapp_qr_service', {
+        body: {
+          action: 'generate_qr',
+          instanceId: instanceId
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Erro na chamada da função');
+      }
+
+      if (!data || !data.success) {
+        if (data?.waiting) {
+          return {
+            success: false,
+            waiting: true,
+            error: data.message || 'QR Code ainda sendo gerado'
+          };
+        }
+        throw new Error(data?.error || 'Erro desconhecido na geração do QR Code');
+      }
+
+      return {
+        success: true,
+        qrCode: data.qrCode,
+        data: data
+      };
+
+    } catch (error: any) {
+      console.error(`[WhatsApp Service] ❌ Erro na geração do QR Code:`, error);
+      return {
+        success: false,
+        error: error.message
       };
     }
   }
@@ -138,7 +179,7 @@ export class WhatsAppWebService {
         
         const { data, error } = await supabase.functions.invoke('whatsapp_qr_service', {
           body: {
-            action: 'get_qr_code',
+            action: 'get_qr',
             instanceId: instanceId
           }
         });
