@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import GlobalAdminSidebar from "@/components/admin/GlobalAdminSidebar";
+import { GlobalAdminSidebar } from "@/components/admin/GlobalAdminSidebar";
 import { WhatsAppTestPanel } from "@/components/admin/WhatsAppTestPanel";
 import { GlobalInstanceManagement } from "@/components/admin/GlobalInstanceManagement";
 
