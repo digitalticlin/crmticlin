@@ -454,6 +454,71 @@ serve(async (req) => {
         );
       }
 
+      case 'import_chats_gradual': {
+        // Ação especial para ser chamada pelo webhook automaticamente
+        const { instanceId, vpsInstanceId } = body;
+        
+        if (!instanceId && !vpsInstanceId) {
+          return new Response(
+            JSON.stringify({ success: false, error: 'instanceId ou vpsInstanceId é obrigatório' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        // Buscar instância por ID do banco ou VPS
+        const query = supabase.from('whatsapp_instances').select('*');
+        if (instanceId) {
+          query.eq('id', instanceId);
+        } else {
+          query.eq('vps_instance_id', vpsInstanceId);
+        }
+        
+        const { data: instance, error: instanceError } = await query.single();
+
+        if (instanceError || !instance) {
+          console.error(`[Chat Import] ❌ Instância não encontrada:`, instanceError);
+          return new Response(
+            JSON.stringify({ success: false, error: 'Instância não encontrada' }),
+            { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        console.log(`[Chat Import] 🚀 Importação automática iniciada para: ${instance.instance_name}`);
+
+        // Importação gradual - apenas contatos primeiro
+        const contactResults = await importContacts(supabase, instance, 25);
+        
+        // Aguardar um pouco antes de importar mensagens
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Importar mensagens mais recentes (último mês)
+        const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const messageResults = await importMessages(supabase, instance, 20, oneMonthAgo);
+
+        // Atualizar timestamp
+        await supabase
+          .from('whatsapp_instances')
+          .update({
+            last_sync_at: new Date().toISOString(),
+            history_imported: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', instance.id);
+
+        console.log(`[Chat Import] ✅ Importação automática concluída: ${contactResults.imported + messageResults.imported} itens`);
+
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: 'Importação automática concluída',
+            contactsImported: contactResults.imported,
+            messagesImported: messageResults.imported,
+            totalImported: contactResults.imported + messageResults.imported
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       default:
         return new Response(
           JSON.stringify({ success: false, error: `Ação não reconhecida: ${action}` }),
