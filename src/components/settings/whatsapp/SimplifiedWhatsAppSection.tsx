@@ -8,6 +8,7 @@ import { SimplifiedConnectButton } from "./SimplifiedConnectButton";
 import { WhatsAppInstanceGrid } from "./WhatsAppInstanceGrid";
 import { AutoQRModal } from "./AutoQRModal";
 import { VPSDiagnosticButton } from "./VPSDiagnosticButton";
+import { VPSNetworkDiagnosticPanel } from "./VPSNetworkDiagnosticPanel";
 
 export const SimplifiedWhatsAppSection = () => {
   const { user } = useAuth();
@@ -71,6 +72,19 @@ export const SimplifiedWhatsAppSection = () => {
             Gerencie suas conexões WhatsApp para automação de mensagens
           </p>
         </CardHeader>
+      </Card>
+
+      {/* NOVO: Diagnóstico de Rede Profundo - FERRAMENTA PRINCIPAL */}
+      <Card className="border-orange-200 bg-orange-50/30 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-orange-800 text-sm">🔬 Diagnóstico Profundo de Rede</CardTitle>
+          <p className="text-xs text-orange-700">
+            Análise detalhada da conectividade Edge Function → VPS para identificar bloqueios
+          </p>
+        </CardHeader>
+        <CardContent>
+          <VPSNetworkDiagnosticPanel />
+        </CardContent>
       </Card>
 
       {/* Diagnóstico VPS - Ferramenta Técnica */}
