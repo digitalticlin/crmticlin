@@ -16,6 +16,12 @@ export interface WhatsAppWebInstance {
   created_at: string;
   date_connected?: string;
   profile_name?: string;
+  profile_pic_url?: string;
+  history_imported?: boolean;
+  server_url?: string;
+  connection_type?: string;
+  company_id?: string;
+  created_by_user_id?: string;
 }
 
 export const useWhatsAppWebInstances = () => {
@@ -28,7 +34,7 @@ export const useWhatsAppWebInstances = () => {
   const { modalState, openQRModal, closeModal, retryQRCode } = useAutoQRModal();
 
   // Buscar instâncias
-  const fetchInstances = async () => {
+  const fetchInstances = async (): Promise<WhatsAppWebInstance[]> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -41,18 +47,28 @@ export const useWhatsAppWebInstances = () => {
 
       if (error) throw error;
 
-      setInstances(data || []);
+      const instancesData = data || [];
+      setInstances(instancesData);
+      return instancesData;
     } catch (error: any) {
       console.error('[Instances Hook] ❌ Erro ao buscar instâncias:', error);
       setError(error.message);
       toast.error('Erro ao carregar instâncias');
+      return [];
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Gerar nome inteligente da instância
+  const generateIntelligentInstanceName = async (userEmail: string): Promise<string> => {
+    const timestamp = Date.now();
+    const baseName = userEmail.split('@')[0];
+    return `whatsapp_${baseName}_${timestamp}`;
+  };
+
   // Criar nova instância
-  const createInstance = async (instanceName: string) => {
+  const createInstance = async (instanceName: string): Promise<{ success: boolean; instance?: WhatsAppWebInstance; error?: string }> => {
     try {
       setIsConnecting(true);
       console.log('[Instances Hook] 🚀 Criando instância:', instanceName);
@@ -79,16 +95,19 @@ export const useWhatsAppWebInstances = () => {
         toast.warning('Instância criada, mas QR Code não disponível imediatamente');
       }
 
+      return { success: true, instance: newInstance };
+
     } catch (error: any) {
       console.error('[Instances Hook] ❌ Erro ao criar instância:', error);
       toast.error(`Erro ao criar instância: ${error.message}`);
+      return { success: false, error: error.message };
     } finally {
       setIsConnecting(false);
     }
   };
 
   // Deletar instância
-  const deleteInstance = async (instanceId: string) => {
+  const deleteInstance = async (instanceId: string): Promise<{ success: boolean; error?: string }> => {
     try {
       console.log('[Instances Hook] 🗑️ Deletando instância:', instanceId);
 
@@ -102,14 +121,17 @@ export const useWhatsAppWebInstances = () => {
       await fetchInstances();
       toast.success('Instância deletada com sucesso');
 
+      return { success: true };
+
     } catch (error: any) {
       console.error('[Instances Hook] ❌ Erro ao deletar:', error);
       toast.error(`Erro ao deletar instância: ${error.message}`);
+      return { success: false, error: error.message };
     }
   };
 
   // Gerar novo QR Code (fallback manual)
-  const refreshQRCode = async (instanceId: string) => {
+  const refreshQRCode = async (instanceId: string): Promise<{ success: boolean; qrCode?: string; error?: string }> => {
     try {
       console.log('[Instances Hook] 🔄 Gerando novo QR Code para:', instanceId);
 
@@ -128,9 +150,12 @@ export const useWhatsAppWebInstances = () => {
 
       toast.info('Gerando novo QR Code...');
 
+      return { success: true };
+
     } catch (error: any) {
       console.error('[Instances Hook] ❌ Erro ao gerar QR:', error);
       toast.error(`Erro ao gerar QR Code: ${error.message}`);
+      return { success: false, error: error.message };
     }
   };
 
@@ -195,6 +220,8 @@ export const useWhatsAppWebInstances = () => {
     deleteInstance,
     refreshQRCode,
     refetch: fetchInstances,
+    fetchInstances,
+    generateIntelligentInstanceName,
     
     // Modal controls
     closeQRModal: closeModal,

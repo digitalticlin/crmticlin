@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, Shield, AlertTriangle } from "lucide-react";
@@ -42,7 +43,7 @@ export const WhatsAppWebSettings = () => {
   const handleRefreshQRCodeWrapper = async (instanceId: string): Promise<{ qrCode?: string } | null> => {
     try {
       const result = await refreshQRCode(instanceId);
-      if (result?.qrCode) {
+      if (result?.success && result.qrCode) {
         return { qrCode: result.qrCode };
       }
       return null;
