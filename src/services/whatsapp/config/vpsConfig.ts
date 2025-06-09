@@ -1,7 +1,7 @@
 
-// VPS Configuration - ATUALIZADA para Webhook Server na porta 3002
+// VPS Configuration - ATUALIZADA para descoberta automática de porta via SSH
 export const VPS_CONFIG = {
-  baseUrl: 'http://31.97.24.222:3002', // MUDANÇA: Porta 3002 (Webhook Server)
+  baseUrl: 'http://31.97.24.222', // Base URL sem porta (será descoberta dinamicamente)
   authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
   
   endpoints: {
@@ -19,11 +19,21 @@ export const VPS_CONFIG = {
     webhookInstance: '/instance/{instanceId}/webhook'
   },
   
+  // NOVA CONFIGURAÇÃO: Descoberta automática de porta
+  portDiscovery: {
+    enabled: true,
+    defaultPort: 3001,
+    fallbackPort: 3002,
+    testPorts: [3001, 3002, 3000, 8080],
+    timeout: 5000
+  },
+  
   timeouts: {
     connection: 10000,    // 10 seconds
     message: 30000,       // 30 seconds  
     qrCode: 25000,        // 25 seconds
-    health: 5000          // 5 seconds
+    health: 5000,         // 5 seconds
+    portDiscovery: 15000  // 15 seconds for port discovery
   },
   
   sync: {
@@ -32,6 +42,15 @@ export const VPS_CONFIG = {
     debounceDelay: 1000,        // 1 second
     maxRetries: 3,
     backoffMultiplier: 2
+  },
+
+  // CONFIGURAÇÃO: SSH Mode (nova implementação)
+  ssh: {
+    enabled: true,
+    host: '31.97.24.222',
+    port: 22,
+    username: 'root',
+    timeout: 60000
   },
 
   // NOVA CONFIGURAÇÃO: Webhook automático
@@ -43,8 +62,9 @@ export const VPS_CONFIG = {
   }
 };
 
-export const getEndpointUrl = (endpoint: string): string => {
-  return `${VPS_CONFIG.baseUrl}${endpoint}`;
+export const getEndpointUrl = (endpoint: string, port?: number): string => {
+  const actualPort = port || VPS_CONFIG.portDiscovery.defaultPort;
+  return `${VPS_CONFIG.baseUrl}:${actualPort}${endpoint}`;
 };
 
 export const getRequestHeaders = (): Record<string, string> => {
@@ -52,7 +72,7 @@ export const getRequestHeaders = (): Record<string, string> => {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
     'X-API-Token': VPS_CONFIG.authToken,
-    'User-Agent': 'Supabase-WhatsApp-Client/2.0-Webhook',
+    'User-Agent': 'Supabase-WhatsApp-Client/2.0-SSH',
     'Accept': 'application/json'
   };
 };
