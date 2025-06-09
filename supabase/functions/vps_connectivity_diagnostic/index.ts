@@ -6,332 +6,313 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Configuração da VPS
 const VPS_CONFIG = {
-  primaryUrl: 'http://31.97.24.222:3002',
+  ip: '31.97.24.222',
+  port: 3002,
   authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
-  timeouts: [3000, 5000, 10000, 15000] // Progressive timeouts
+  baseUrl: 'http://31.97.24.222:3002'
 };
 
 serve(async (req) => {
+  const startTime = Date.now();
+  console.log('[VPS Connectivity Diagnostic] 🚀 Iniciando diagnóstico completo...');
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const { testType } = await req.json();
-    const diagnosticId = `diag_${Date.now()}`;
-    console.log(`[VPS Diagnostic] 🔍 Iniciando teste: ${testType} [${diagnosticId}]`);
-
-    let result: any = {};
-
-    switch (testType) {
-      case 'simple_ping':
-        result = await testSimplePing(diagnosticId);
-        break;
-      case 'progressive_timeout':
-        result = await testProgressiveTimeout(diagnosticId);
-        break;
-      case 'health_check':
-        result = await testHealthCheck(diagnosticId);
-        break;
-      case 'create_instance_simulation':
-        result = await testCreateInstanceSimulation(diagnosticId);
-        break;
-      case 'network_analysis':
-        result = await testNetworkAnalysis(diagnosticId);
-        break;
-      default:
-        result = await runFullDiagnostic(diagnosticId);
+  const diagnostic = {
+    timestamp: new Date().toISOString(),
+    tests: [] as any[],
+    summary: {
+      total: 0,
+      passed: 0,
+      failed: 0,
+      duration: 0
     }
+  };
 
-    return new Response(JSON.stringify({
-      success: true,
-      diagnosticId,
-      testType,
-      result,
-      timestamp: new Date().toISOString()
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+  // TESTE 1: Conectividade básica - Health Check
+  console.log('[VPS Diagnostic] 🔍 TESTE 1: Health Check básico...');
+  const healthTest = await testHealthCheck();
+  diagnostic.tests.push(healthTest);
 
-  } catch (error: any) {
-    console.error('[VPS Diagnostic] ❌ Erro geral:', error);
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message,
-      stack: error.stack
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-  }
+  // TESTE 2: Conectividade com headers mínimos
+  console.log('[VPS Diagnostic] 🔍 TESTE 2: Health Check com headers mínimos...');
+  const minimalHeadersTest = await testMinimalHeaders();
+  diagnostic.tests.push(minimalHeadersTest);
+
+  // TESTE 3: Teste de autenticação
+  console.log('[VPS Diagnostic] 🔍 TESTE 3: Teste de autenticação...');
+  const authTest = await testAuthentication();
+  diagnostic.tests.push(authTest);
+
+  // TESTE 4: Teste de criação de instância (payload mínimo)
+  console.log('[VPS Diagnostic] 🔍 TESTE 4: Criação de instância com payload mínimo...');
+  const createInstanceTest = await testCreateInstance();
+  diagnostic.tests.push(createInstanceTest);
+
+  // TESTE 5: Teste de diferentes timeouts
+  console.log('[VPS Diagnostic] 🔍 TESTE 5: Teste com diferentes timeouts...');
+  const timeoutTest = await testDifferentTimeouts();
+  diagnostic.tests.push(timeoutTest);
+
+  // TESTE 6: Teste de DNS/IP direto
+  console.log('[VPS Diagnostic] 🔍 TESTE 6: Teste de resolução DNS...');
+  const dnsTest = await testDNSResolution();
+  diagnostic.tests.push(dnsTest);
+
+  // Calcular estatísticas
+  diagnostic.summary.total = diagnostic.tests.length;
+  diagnostic.summary.passed = diagnostic.tests.filter(t => t.success).length;
+  diagnostic.summary.failed = diagnostic.summary.total - diagnostic.summary.passed;
+  diagnostic.summary.duration = Date.now() - startTime;
+
+  console.log(`[VPS Diagnostic] 📊 Diagnóstico concluído: ${diagnostic.summary.passed}/${diagnostic.summary.total} testes passaram`);
+
+  return new Response(JSON.stringify(diagnostic, null, 2), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
 });
 
-async function testSimplePing(diagnosticId: string) {
-  console.log(`[VPS Diagnostic] 🏓 Teste de ping simples [${diagnosticId}]`);
+// TESTE 1: Health check básico
+async function testHealthCheck(): Promise<any> {
+  const testStart = Date.now();
+  console.log('[VPS Diagnostic] 🔍 Executando health check básico...');
   
-  const startTime = Date.now();
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    
-    const response = await fetch(`${VPS_CONFIG.primaryUrl}/health`, {
+    const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
+      method: 'GET',
+      signal: AbortSignal.timeout(5000)
+    });
+
+    const responseText = await response.text();
+    console.log('[VPS Diagnostic] ✅ Health check response:', responseText.substring(0, 100));
+
+    return {
+      test: 'Health Check Básico',
+      success: response.ok,
+      status: response.status,
+      duration: Date.now() - testStart,
+      details: {
+        url: `${VPS_CONFIG.baseUrl}/health`,
+        responseBody: responseText,
+        headers: Object.fromEntries(response.headers.entries())
+      }
+    };
+  } catch (error) {
+    console.error('[VPS Diagnostic] ❌ Health check falhou:', error);
+    return {
+      test: 'Health Check Básico',
+      success: false,
+      duration: Date.now() - testStart,
+      error: error.message,
+      details: {
+        url: `${VPS_CONFIG.baseUrl}/health`,
+        errorType: error.constructor.name
+      }
+    };
+  }
+}
+
+// TESTE 2: Headers mínimos
+async function testMinimalHeaders(): Promise<any> {
+  const testStart = Date.now();
+  console.log('[VPS Diagnostic] 🔍 Testando com headers mínimos...');
+  
+  try {
+    const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      },
+      signal: AbortSignal.timeout(5000)
+    });
+
+    const responseText = await response.text();
+
+    return {
+      test: 'Headers Mínimos',
+      success: response.ok,
+      status: response.status,
+      duration: Date.now() - testStart,
+      details: {
+        responseBody: responseText
+      }
+    };
+  } catch (error) {
+    console.error('[VPS Diagnostic] ❌ Teste headers mínimos falhou:', error);
+    return {
+      test: 'Headers Mínimos',
+      success: false,
+      duration: Date.now() - testStart,
+      error: error.message
+    };
+  }
+}
+
+// TESTE 3: Autenticação
+async function testAuthentication(): Promise<any> {
+  const testStart = Date.now();
+  console.log('[VPS Diagnostic] 🔍 Testando autenticação...');
+  
+  try {
+    const response = await fetch(`${VPS_CONFIG.baseUrl}/instances`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
-        'User-Agent': 'Supabase-Edge-Diagnostic/1.0'
+        'Content-Type': 'application/json'
       },
-      signal: controller.signal
+      signal: AbortSignal.timeout(8000)
     });
 
-    clearTimeout(timeoutId);
-    const responseTime = Date.now() - startTime;
     const responseText = await response.text();
 
-    console.log(`[VPS Diagnostic] ✅ Ping OK: ${response.status} em ${responseTime}ms [${diagnosticId}]`);
-
     return {
-      success: true,
+      test: 'Teste de Autenticação',
+      success: response.ok,
       status: response.status,
-      responseTime,
-      responseText: responseText.substring(0, 500),
-      headers: Object.fromEntries(response.headers.entries())
+      duration: Date.now() - testStart,
+      details: {
+        url: `${VPS_CONFIG.baseUrl}/instances`,
+        responseBody: responseText.substring(0, 200)
+      }
     };
-
-  } catch (error: any) {
-    const responseTime = Date.now() - startTime;
-    console.error(`[VPS Diagnostic] ❌ Ping falhou em ${responseTime}ms [${diagnosticId}]:`, error.message);
-    
+  } catch (error) {
+    console.error('[VPS Diagnostic] ❌ Teste autenticação falhou:', error);
     return {
+      test: 'Teste de Autenticação',
       success: false,
-      error: error.message,
-      responseTime,
-      errorType: error.name
+      duration: Date.now() - testStart,
+      error: error.message
     };
   }
 }
 
-async function testProgressiveTimeout(diagnosticId: string) {
-  console.log(`[VPS Diagnostic] ⏱️ Teste de timeout progressivo [${diagnosticId}]`);
+// TESTE 4: Criação de instância
+async function testCreateInstance(): Promise<any> {
+  const testStart = Date.now();
+  const testInstanceId = `diagnostic_test_${Date.now()}`;
+  console.log('[VPS Diagnostic] 🔍 Testando criação de instância:', testInstanceId);
   
-  const results = [];
-  
-  for (const timeout of VPS_CONFIG.timeouts) {
-    const startTime = Date.now();
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
-      
-      const response = await fetch(`${VPS_CONFIG.primaryUrl}/health`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${VPS_CONFIG.authToken}`
-        },
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-      const responseTime = Date.now() - startTime;
-      
-      results.push({
-        timeout,
-        success: true,
-        status: response.status,
-        responseTime
-      });
-      
-      console.log(`[VPS Diagnostic] ✅ Timeout ${timeout}ms: sucesso em ${responseTime}ms [${diagnosticId}]`);
-      break; // Se um timeout funcionou, não precisa testar os maiores
-      
-    } catch (error: any) {
-      const responseTime = Date.now() - startTime;
-      results.push({
-        timeout,
-        success: false,
-        error: error.message,
-        responseTime
-      });
-      
-      console.log(`[VPS Diagnostic] ❌ Timeout ${timeout}ms: falhou em ${responseTime}ms [${diagnosticId}]`);
-    }
-  }
-  
-  return { results };
-}
-
-async function testHealthCheck(diagnosticId: string) {
-  console.log(`[VPS Diagnostic] 🔍 Teste de health check detalhado [${diagnosticId}]`);
-  
-  const endpoints = ['/health', '/status', '/instances'];
-  const results = [];
-  
-  for (const endpoint of endpoints) {
-    const startTime = Date.now();
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      
-      const response = await fetch(`${VPS_CONFIG.primaryUrl}${endpoint}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${VPS_CONFIG.authToken}`
-        },
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-      const responseTime = Date.now() - startTime;
-      const responseText = await response.text();
-      
-      results.push({
-        endpoint,
-        success: true,
-        status: response.status,
-        responseTime,
-        responseText: responseText.substring(0, 200)
-      });
-      
-    } catch (error: any) {
-      const responseTime = Date.now() - startTime;
-      results.push({
-        endpoint,
-        success: false,
-        error: error.message,
-        responseTime
-      });
-    }
-  }
-  
-  return { results };
-}
-
-async function testCreateInstanceSimulation(diagnosticId: string) {
-  console.log(`[VPS Diagnostic] 🎯 Simulação de criação de instância [${diagnosticId}]`);
-  
-  const payload = {
-    instanceId: `diagnostic_test_${diagnosticId}`,
-    sessionName: `diagnostic_test_${diagnosticId}`,
-    webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web'
-  };
-  
-  const startTime = Date.now();
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
-    
-    const response = await fetch(`${VPS_CONFIG.primaryUrl}/instance/create`, {
+    const payload = {
+      instanceId: testInstanceId,
+      sessionName: testInstanceId,
+      webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
+      companyId: 'diagnostic-test'
+    };
+
+    const response = await fetch(`${VPS_CONFIG.baseUrl}/instance/create`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${VPS_CONFIG.authToken}`
       },
       body: JSON.stringify(payload),
-      signal: controller.signal
+      signal: AbortSignal.timeout(15000)
     });
 
-    clearTimeout(timeoutId);
-    const responseTime = Date.now() - startTime;
     const responseText = await response.text();
-    
-    console.log(`[VPS Diagnostic] 📊 Simulação: ${response.status} em ${responseTime}ms [${diagnosticId}]`);
-    
+
     return {
-      success: true,
+      test: 'Criação de Instância',
+      success: response.ok,
       status: response.status,
-      responseTime,
-      responseText: responseText.substring(0, 500),
-      payload
+      duration: Date.now() - testStart,
+      details: {
+        url: `${VPS_CONFIG.baseUrl}/instance/create`,
+        payload,
+        responseBody: responseText
+      }
     };
-
-  } catch (error: any) {
-    const responseTime = Date.now() - startTime;
-    console.error(`[VPS Diagnostic] ❌ Simulação falhou em ${responseTime}ms [${diagnosticId}]:`, error.message);
-    
+  } catch (error) {
+    console.error('[VPS Diagnostic] ❌ Teste criação instância falhou:', error);
     return {
+      test: 'Criação de Instância',
       success: false,
-      error: error.message,
-      responseTime,
-      payload,
-      errorType: error.name
+      duration: Date.now() - testStart,
+      error: error.message
     };
   }
 }
 
-async function testNetworkAnalysis(diagnosticId: string) {
-  console.log(`[VPS Diagnostic] 🌐 Análise de rede [${diagnosticId}]`);
+// TESTE 5: Diferentes timeouts
+async function testDifferentTimeouts(): Promise<any> {
+  const testStart = Date.now();
+  console.log('[VPS Diagnostic] 🔍 Testando diferentes timeouts...');
   
-  const tests = [];
-  
-  // Teste 1: DNS Resolution (simulado)
-  try {
-    const dnsStart = Date.now();
-    const response = await fetch('http://31.97.24.222:3002', {
-      method: 'HEAD',
-      signal: AbortSignal.timeout(5000)
-    });
-    const dnsTime = Date.now() - dnsStart;
-    
-    tests.push({
-      test: 'dns_resolution',
-      success: true,
-      time: dnsTime,
-      status: response.status
-    });
-  } catch (error: any) {
-    tests.push({
-      test: 'dns_resolution',
-      success: false,
-      error: error.message
-    });
-  }
-  
-  // Teste 2: Conectividade básica
-  try {
-    const connectStart = Date.now();
-    const response = await fetch(`${VPS_CONFIG.primaryUrl}`, {
-      method: 'HEAD',
-      signal: AbortSignal.timeout(3000)
-    });
-    const connectTime = Date.now() - connectStart;
-    
-    tests.push({
-      test: 'basic_connectivity',
-      success: true,
-      time: connectTime,
-      status: response.status
-    });
-  } catch (error: any) {
-    tests.push({
-      test: 'basic_connectivity',
-      success: false,
-      error: error.message
-    });
-  }
-  
-  return { tests };
-}
+  const timeouts = [3000, 10000, 20000];
+  const results = [];
 
-async function runFullDiagnostic(diagnosticId: string) {
-  console.log(`[VPS Diagnostic] 🔬 Diagnóstico completo [${diagnosticId}]`);
-  
-  const ping = await testSimplePing(diagnosticId);
-  const timeout = await testProgressiveTimeout(diagnosticId);
-  const health = await testHealthCheck(diagnosticId);
-  const simulation = await testCreateInstanceSimulation(diagnosticId);
-  const network = await testNetworkAnalysis(diagnosticId);
-  
+  for (const timeout of timeouts) {
+    try {
+      const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(timeout)
+      });
+
+      const responseText = await response.text();
+      results.push({
+        timeout,
+        success: response.ok,
+        status: response.status,
+        response: responseText.substring(0, 50)
+      });
+    } catch (error) {
+      results.push({
+        timeout,
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
   return {
-    ping,
-    timeout,
-    health,
-    simulation,
-    network,
-    summary: {
-      pingWorking: ping.success,
-      bestTimeout: timeout.results.find(r => r.success)?.timeout || 'none',
-      healthEndpoints: health.results.filter(r => r.success).length,
-      createInstanceWorking: simulation.success,
-      networkIssues: network.tests.filter(t => !t.success).length
+    test: 'Diferentes Timeouts',
+    success: results.some(r => r.success),
+    duration: Date.now() - testStart,
+    details: {
+      results
     }
   };
+}
+
+// TESTE 6: DNS Resolution
+async function testDNSResolution(): Promise<any> {
+  const testStart = Date.now();
+  console.log('[VPS Diagnostic] 🔍 Testando resolução DNS...');
+  
+  try {
+    // Teste direto por IP
+    const ipResponse = await fetch(`http://${VPS_CONFIG.ip}:${VPS_CONFIG.port}/health`, {
+      method: 'GET',
+      signal: AbortSignal.timeout(5000)
+    });
+
+    const ipResponseText = await ipResponse.text();
+
+    return {
+      test: 'Resolução DNS/IP',
+      success: ipResponse.ok,
+      status: ipResponse.status,
+      duration: Date.now() - testStart,
+      details: {
+        directIP: {
+          url: `http://${VPS_CONFIG.ip}:${VPS_CONFIG.port}/health`,
+          success: ipResponse.ok,
+          response: ipResponseText.substring(0, 100)
+        }
+      }
+    };
+  } catch (error) {
+    console.error('[VPS Diagnostic] ❌ Teste DNS falhou:', error);
+    return {
+      test: 'Resolução DNS/IP',
+      success: false,
+      duration: Date.now() - testStart,
+      error: error.message
+    };
+  }
 }
