@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useWhatsAppWebInstances } from "./useWhatsAppWebInstances";
@@ -68,8 +67,7 @@ export const useWhatsAppWebSectionLogic = () => {
       
       // ETAPA 5: Configurar modal APENAS após confirmação completa
       // Type-safe access to instance data
-      const instanceData = ('data' in createdInstance ? createdInstance.data : null) || 
-                          ('instance' in createdInstance ? createdInstance.instance : null);
+      const instanceData = createdInstance.instance;
       const finalInstanceName = instanceData?.instance_name || generatedInstanceName;
       setLocalSelectedInstanceName(finalInstanceName);
       
