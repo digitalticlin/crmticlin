@@ -19,6 +19,7 @@ export interface WhatsAppInstance {
   date_connected?: string;
   date_disconnected?: string;
   company_id?: string;
+  created_by_user_id?: string;
 }
 
 export const useWhatsAppDatabase = () => {
