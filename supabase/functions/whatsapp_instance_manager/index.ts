@@ -6,18 +6,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// CORREÇÃO: Configuração VPS otimizada baseada na análise do código
+// OTIMIZAÇÃO: Configuração VPS ultra-rápida
 const VPS_CONFIG = {
-  baseUrl: 'http://31.97.24.222:3002',
+  primaryUrl: 'http://31.97.24.222:3002',
+  fallbackUrl: 'http://31.97.24.222:3001',
   authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
-  timeout: 45000, // Aumentado para 45 segundos
-  retryAttempts: 2, // Reduzido para evitar loops longos
-  retryDelay: 3000,
+  timeout: 5000, // REDUZIDO: 5 segundos máximo
+  maxRetries: 1, // SEM RETRY: apenas uma tentativa
   webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web'
 };
 
 serve(async (req) => {
-  console.log('[Instance Manager] 🚀 CORREÇÃO VPS: Requisição iniciada:', req.method);
+  const startTime = Date.now();
+  console.log('[Instance Manager] 🚀 OTIMIZAÇÃO: Requisição iniciada:', req.method, `[${startTime}]`);
   
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -37,16 +38,16 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
-      console.error('[Instance Manager] ❌ CORREÇÃO VPS: Erro de autenticação:', authError);
+      console.error('[Instance Manager] ❌ OTIMIZAÇÃO: Erro de autenticação:', authError);
       throw new Error('Usuário não autenticado');
     }
 
-    console.log('[Instance Manager] ✅ CORREÇÃO VPS: Usuário autenticado:', user.id);
+    console.log('[Instance Manager] ✅ OTIMIZAÇÃO: Usuário autenticado:', user.id, `[${Date.now() - startTime}ms]`);
 
     const { action, instanceName, instanceId } = await req.json();
 
     if (action === 'create_instance') {
-      return await createInstanceVPSCorrected(supabase, instanceName, user);
+      return await createInstanceOptimized(supabase, instanceName, user, startTime);
     }
 
     if (action === 'delete_instance_corrected') {
@@ -64,7 +65,7 @@ serve(async (req) => {
     throw new Error('Ação não reconhecida');
 
   } catch (error) {
-    console.error('[Instance Manager] ❌ CORREÇÃO VPS: Erro:', error);
+    console.error('[Instance Manager] ❌ OTIMIZAÇÃO: Erro:', error);
     return new Response(JSON.stringify({
       success: false,
       error: error.message
@@ -75,12 +76,12 @@ serve(async (req) => {
   }
 });
 
-async function createInstanceVPSCorrected(supabase: any, instanceName: string, user: any) {
-  const creationId = `vps_corrected_${Date.now()}`;
-  console.log(`[Instance Manager] 🎯 CORREÇÃO VPS: Criação otimizada [${creationId}]:`, instanceName);
+async function createInstanceOptimized(supabase: any, instanceName: string, user: any, startTime: number) {
+  const creationId = `optimized_${Date.now()}`;
+  console.log(`[Instance Manager] 🎯 OTIMIZAÇÃO: Criação ultra-rápida [${creationId}]:`, instanceName, `[${Date.now() - startTime}ms]`);
 
   try {
-    // 1. Validação e preparação
+    // 1. Validação rápida
     if (!instanceName || instanceName.trim().length < 3) {
       throw new Error('Nome da instância deve ter pelo menos 3 caracteres');
     }
@@ -90,33 +91,9 @@ async function createInstanceVPSCorrected(supabase: any, instanceName: string, u
     const sessionName = `${sanitizedName}_${timestamp}`;
     const vpsInstanceId = sessionName;
 
-    // 2. Salvar no banco PRIMEIRO
-    const instanceRecord = {
-      instance_name: sanitizedName,
-      vps_instance_id: vpsInstanceId,
-      connection_type: 'web',
-      connection_status: 'initializing',
-      created_by_user_id: user.id,
-      server_url: VPS_CONFIG.baseUrl,
-      company_id: null
-    };
+    console.log(`[Instance Manager] 📋 OTIMIZAÇÃO: Preparando payload [${creationId}]:`, vpsInstanceId, `[${Date.now() - startTime}ms]`);
 
-    console.log(`[Instance Manager] 💾 CORREÇÃO VPS: Salvando no banco [${creationId}]:`, instanceRecord);
-    
-    const { data: instance, error: dbError } = await supabase
-      .from('whatsapp_instances')
-      .insert(instanceRecord)
-      .select()
-      .single();
-
-    if (dbError) {
-      console.error(`[Instance Manager] ❌ CORREÇÃO VPS: Erro no banco [${creationId}]:`, dbError);
-      throw new Error(`Erro no banco: ${dbError.message}`);
-    }
-
-    console.log(`[Instance Manager] ✅ CORREÇÃO VPS: Instância salva [${creationId}]:`, instance.id);
-
-    // 3. PAYLOAD CORRETO baseado na análise da VPS
+    // 2. PAYLOAD OTIMIZADO - apenas campos essenciais
     const vpsPayload = {
       instanceId: vpsInstanceId,
       sessionName: sessionName,
@@ -130,55 +107,69 @@ async function createInstanceVPSCorrected(supabase: any, instanceName: string, u
       integration: "WHATSAPP-BAILEYS"
     };
 
-    console.log(`[Instance Manager] 📡 CORREÇÃO VPS: Enviando payload correto [${creationId}]:`, vpsPayload);
+    // 3. TENTAR VPS PRIMEIRO - sem salvar no banco ainda
+    console.log(`[Instance Manager] 📡 OTIMIZAÇÃO: Enviando para VPS [${creationId}]:`, `[${Date.now() - startTime}ms]`);
     
-    // 4. Fazer requisição com headers corretos
-    const vpsResult = await attemptVPSCreationCorrected(vpsPayload, VPS_CONFIG.retryAttempts, creationId);
+    const vpsResult = await attemptVPSCreationFast(vpsPayload, creationId, startTime);
     
-    if (vpsResult.success) {
-      console.log(`[Instance Manager] ✅ CORREÇÃO VPS: Sucesso [${creationId}]:`, vpsResult.data);
-      
-      // Atualizar status para aguardar webhook
-      await supabase
-        .from('whatsapp_instances')
-        .update({ 
-          connection_status: 'waiting_qr',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', instance.id);
-
-      return new Response(JSON.stringify({
-        success: true,
-        instance: instance,
-        vpsInstanceId: vpsInstanceId,
-        vpsCorrected: true,
-        creationId,
-        vpsResponse: vpsResult.data,
-        message: 'Instância criada com sucesso na VPS - aguardando QR Code'
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    } else {
-      // Se falhou na VPS, marcar como erro no banco
-      await supabase
-        .from('whatsapp_instances')
-        .update({ 
-          connection_status: 'vps_error',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', instance.id);
-        
+    if (!vpsResult.success) {
+      // Se VPS falhou, não criar no banco
+      console.error(`[Instance Manager] ❌ OTIMIZAÇÃO: VPS falhou [${creationId}]:`, vpsResult.error, `[${Date.now() - startTime}ms]`);
       throw new Error(`VPS falhou: ${vpsResult.error}`);
     }
 
+    console.log(`[Instance Manager] ✅ OTIMIZAÇÃO: VPS sucesso [${creationId}]:`, `[${Date.now() - startTime}ms]`);
+
+    // 4. APENAS AGORA salvar no banco (VPS já confirmou)
+    const instanceRecord = {
+      instance_name: sanitizedName,
+      vps_instance_id: vpsInstanceId,
+      connection_type: 'web',
+      connection_status: 'waiting_qr',
+      created_by_user_id: user.id,
+      server_url: VPS_CONFIG.primaryUrl,
+      company_id: null
+    };
+
+    console.log(`[Instance Manager] 💾 OTIMIZAÇÃO: Salvando no banco após VPS [${creationId}]:`, `[${Date.now() - startTime}ms]`);
+    
+    const { data: instance, error: dbError } = await supabase
+      .from('whatsapp_instances')
+      .insert(instanceRecord)
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error(`[Instance Manager] ❌ OTIMIZAÇÃO: Erro no banco [${creationId}]:`, dbError, `[${Date.now() - startTime}ms]`);
+      // VPS já foi criada, mas banco falhou - log para correção manual
+      console.error(`[Instance Manager] 🚨 OTIMIZAÇÃO: VPS criada mas banco falhou - instância órfã: ${vpsInstanceId}`);
+      throw new Error(`Erro no banco: ${dbError.message}`);
+    }
+
+    console.log(`[Instance Manager] ✅ OTIMIZAÇÃO: Instância completa [${creationId}]:`, instance.id, `[${Date.now() - startTime}ms]`);
+
+    return new Response(JSON.stringify({
+      success: true,
+      instance: instance,
+      vpsInstanceId: vpsInstanceId,
+      optimized: true,
+      creationId,
+      totalTime: Date.now() - startTime,
+      vpsResponse: vpsResult.data,
+      message: 'Instância criada com sucesso na VPS - aguardando QR Code'
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+
   } catch (error) {
-    console.error(`[Instance Manager] ❌ CORREÇÃO VPS: Erro geral [${creationId}]:`, error);
+    console.error(`[Instance Manager] ❌ OTIMIZAÇÃO: Erro geral [${creationId}]:`, error, `[${Date.now() - startTime}ms]`);
     
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
       creationId,
-      vpsCorrected: true
+      totalTime: Date.now() - startTime,
+      optimized: true
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -186,74 +177,75 @@ async function createInstanceVPSCorrected(supabase: any, instanceName: string, u
   }
 }
 
-async function attemptVPSCreationCorrected(payload: any, maxAttempts: number, creationId: string) {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      console.log(`[Instance Manager] 🔄 CORREÇÃO VPS: Tentativa ${attempt}/${maxAttempts} [${creationId}]`);
-      console.log(`[Instance Manager] 📋 CORREÇÃO VPS: Payload sendo enviado:`, JSON.stringify(payload, null, 2));
-      
-      // CORREÇÃO: Headers melhorados e timeout otimizado
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        console.log(`[Instance Manager] ⏰ CORREÇÃO VPS: Timeout atingido [${creationId}]`);
-        controller.abort();
-      }, VPS_CONFIG.timeout);
-      
-      const response = await fetch(`${VPS_CONFIG.baseUrl}/instance/create`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
-          'Accept': 'application/json',
-          'User-Agent': 'Supabase-WhatsApp-Client/3.0',
-          'Connection': 'keep-alive'
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      console.log(`[Instance Manager] 📥 CORREÇÃO VPS: Response status [${creationId}]:`, response.status);
-      console.log(`[Instance Manager] 📥 CORREÇÃO VPS: Response headers [${creationId}]:`, Object.fromEntries(response.headers.entries()));
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`[Instance Manager] ✅ CORREÇÃO VPS: Response data [${creationId}]:`, data);
-        return { success: true, data };
-      } else {
-        const errorText = await response.text();
-        console.error(`[Instance Manager] ❌ CORREÇÃO VPS: HTTP ${response.status} [${creationId}]:`, errorText);
-        
-        // Se é erro 409 (conflito), a instância já existe
-        if (response.status === 409) {
-          console.log(`[Instance Manager] ⚠️ CORREÇÃO VPS: Instância já existe [${creationId}]`);
-          return { 
-            success: true, 
-            data: { 
-              message: 'Instance already exists',
-              instanceId: payload.instanceId 
-            } 
-          };
-        }
-        
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
-      }
-    } catch (error) {
-      console.error(`[Instance Manager] ⚠️ CORREÇÃO VPS: Tentativa ${attempt} falhou [${creationId}]:`, error.message);
-      
-      if (attempt === maxAttempts) {
-        return { success: false, error: error.message };
-      }
-      
-      // Delay exponencial entre tentativas
-      const backoff = VPS_CONFIG.retryDelay * Math.pow(2, attempt - 1);
-      console.log(`[Instance Manager] ⏳ CORREÇÃO VPS: Aguardando ${backoff}ms [${creationId}]`);
-      await new Promise(resolve => setTimeout(resolve, backoff));
-    }
-  }
+async function attemptVPSCreationFast(payload: any, creationId: string, startTime: number) {
+  // Tentar VPS primária primeiro (3002)
+  console.log(`[Instance Manager] 🔄 OTIMIZAÇÃO: Tentando VPS primária (3002) [${creationId}] [${Date.now() - startTime}ms]`);
   
-  return { success: false, error: 'Máximo de tentativas atingido' };
+  let result = await singleVPSAttempt(VPS_CONFIG.primaryUrl, payload, creationId, startTime);
+  
+  if (result.success) {
+    return result;
+  }
+
+  // Se falhou, tentar fallback (3001) imediatamente
+  console.log(`[Instance Manager] 🔄 OTIMIZAÇÃO: Tentando VPS fallback (3001) [${creationId}] [${Date.now() - startTime}ms]`);
+  
+  result = await singleVPSAttempt(VPS_CONFIG.fallbackUrl, payload, creationId, startTime);
+  
+  return result;
+}
+
+async function singleVPSAttempt(baseUrl: string, payload: any, creationId: string, startTime: number) {
+  try {
+    const requestStart = Date.now();
+    console.log(`[Instance Manager] 📤 OTIMIZAÇÃO: Request para ${baseUrl} [${creationId}] [${Date.now() - startTime}ms]`);
+    
+    // TIMEOUT RIGOROSO: 5 segundos máximo
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.log(`[Instance Manager] ⏰ OTIMIZAÇÃO: Timeout atingido para ${baseUrl} [${creationId}] [${Date.now() - startTime}ms]`);
+      controller.abort();
+    }, VPS_CONFIG.timeout);
+    
+    const response = await fetch(`${baseUrl}/instance/create`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${VPS_CONFIG.authToken}`
+        // OTIMIZAÇÃO: Removidos headers desnecessários
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    const requestTime = Date.now() - requestStart;
+    console.log(`[Instance Manager] 📥 OTIMIZAÇÃO: Response ${response.status} de ${baseUrl} em ${requestTime}ms [${creationId}] [${Date.now() - startTime}ms]`);
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log(`[Instance Manager] ✅ OTIMIZAÇÃO: Sucesso ${baseUrl} [${creationId}]:`, data);
+      return { success: true, data };
+    } else if (response.status === 409) {
+      // Instância já existe - considerar sucesso
+      console.log(`[Instance Manager] ⚠️ OTIMIZAÇÃO: Instância já existe ${baseUrl} [${creationId}]`);
+      return { 
+        success: true, 
+        data: { 
+          message: 'Instance already exists',
+          instanceId: payload.instanceId 
+        } 
+      };
+    } else {
+      const errorText = await response.text();
+      console.error(`[Instance Manager] ❌ OTIMIZAÇÃO: HTTP ${response.status} ${baseUrl} [${creationId}]:`, errorText);
+      return { success: false, error: `HTTP ${response.status}: ${errorText}` };
+    }
+  } catch (error) {
+    console.error(`[Instance Manager] ❌ OTIMIZAÇÃO: Erro ${baseUrl} [${creationId}]:`, error.message, `[${Date.now() - startTime}ms]`);
+    return { success: false, error: error.message };
+  }
 }
 
 async function syncInstanceStatus(supabase: any, instanceId: string, user: any) {
@@ -276,7 +268,7 @@ async function syncInstanceStatus(supabase: any, instanceId: string, user: any) 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
     
-    const response = await fetch(`${VPS_CONFIG.baseUrl}/instance/${instance.vps_instance_id}/status`, {
+    const response = await fetch(`${VPS_CONFIG.primaryUrl}/instance/${instance.vps_instance_id}/status`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${VPS_CONFIG.authToken}`
@@ -362,7 +354,7 @@ async function checkVPSStatus(supabase: any, instanceId: string, user: any) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
     
-    const response = await fetch(`${VPS_CONFIG.baseUrl}/instance/${instance.vps_instance_id}/status`, {
+    const response = await fetch(`${VPS_CONFIG.primaryUrl}/instance/${instance.vps_instance_id}/status`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${VPS_CONFIG.authToken}`
@@ -416,7 +408,7 @@ async function deleteInstanceCorrected(supabase: any, instanceId: string, user: 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-        const deleteResponse = await fetch(`${VPS_CONFIG.baseUrl}/instance/${instance.vps_instance_id}`, {
+        const deleteResponse = await fetch(`${VPS_CONFIG.primaryUrl}/instance/${instance.vps_instance_id}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${VPS_CONFIG.authToken}`
@@ -446,7 +438,7 @@ async function deleteInstanceCorrected(supabase: any, instanceId: string, user: 
 
     return new Response(JSON.stringify({
       success: true,
-      vpsCorrected: true,
+      optimized: true,
       message: 'Instância deletada com sucesso'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
