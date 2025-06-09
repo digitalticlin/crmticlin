@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Wrench, CheckCircle, AlertCircle, Loader2, Code, Zap } from "lucide-react";
+import { Wrench, CheckCircle, AlertCircle, Loader2, Code, Zap, Terminal } from "lucide-react";
 
 export const QRBase64FixImplementation = () => {
   const [isImplementing, setIsImplementing] = useState(false);
@@ -153,57 +153,142 @@ export const QRBase64FixImplementation = () => {
         </Card>
       )}
 
-      {/* Instruções de Teste */}
-      <Card className="border-gray-200">
+      {/* Comando de Verificação Atualizado */}
+      <Card className="border-blue-200">
         <CardHeader>
-          <CardTitle className="text-gray-800">🧪 Como Testar a Correção</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-blue-800">
+            <Terminal className="h-6 w-6" />
+            Verificação Pós-Correção
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4">
             <div>
-              <h4 className="font-semibold mb-2">📋 Execute este comando SSH na VPS:</h4>
+              <h4 className="font-semibold mb-2">🔍 Comando de Verificação Atualizado:</h4>
               <div className="bg-gray-100 p-3 rounded-md text-sm font-mono">
-                <pre>{`# Teste da correção QR Base64
-curl -s "http://31.97.24.222:3002/health" | jq '.version'
+                <pre>{`#!/bin/bash
+# VERIFICAÇÃO PÓS-CORREÇÃO QR Base64
+echo "🔍 VERIFICAÇÃO: Correção QR Base64 Aplicada"
+echo "========================================"
 
-# Criar nova instância
-INSTANCE_NAME="test_fix_$(date +%s)"
-curl -X POST "http://31.97.24.222:3002/instance/create" \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3" \\
-  --data '{"instanceId":"'$INSTANCE_NAME'","sessionName":"TestFix"}'
+VPS_IP="31.97.24.222"
+VPS_PORT="3002"
+AUTH_TOKEN="3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3"
 
-# Aguardar e buscar QR
-sleep 15
-curl -X POST "http://31.97.24.222:3002/instance/qr" \\
+# 1. Verificar versão do servidor (deve ser 4.2.1-QR-BASE64-FIXED)
+echo "1️⃣ HEALTH CHECK - Verificando versão corrigida"
+echo "=============================================="
+HEALTH_RESPONSE=$(curl -s "http://\${VPS_IP}:\${VPS_PORT}/health")
+echo "$HEALTH_RESPONSE" | jq '{
+  status: .status,
+  version: .version,
+  qr_base64_fixed: .qr_base64_fixed,
+  active_instances: .active_instances,
+  complete_implementation: .complete_implementation
+}'
+
+VERSION=$(echo "$HEALTH_RESPONSE" | jq -r '.version // "unknown"')
+echo ""
+if [[ "$VERSION" == *"QR-BASE64-FIXED"* ]]; then
+  echo "✅ CORREÇÃO APLICADA: Versão $VERSION detectada"
+else
+  echo "❌ CORREÇÃO NÃO APLICADA: Versão $VERSION (esperado: *QR-BASE64-FIXED*)"
+  echo "   Execute a correção novamente via interface"
+  exit 1
+fi
+
+# 2. Teste de criação com verificação de formato QR
+echo ""
+echo "2️⃣ TESTE DE INSTÂNCIA - Formato QR Base64"
+echo "========================================"
+INSTANCE_NAME="verify_qr_\$(date +%s)"
+
+# Criar instância
+echo "📤 Criando instância: \$INSTANCE_NAME"
+CREATE_RESPONSE=\$(curl -s -X POST "http://\${VPS_IP}:\${VPS_PORT}/instance/create" \\
   -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3" \\
-  --data '{"instanceId":"'$INSTANCE_NAME'"}' | jq '{
-    qr_format: .qr_format,
-    has_qr_code: .has_qr_code,
-    qr_preview: (.qrCode // "null")[0:60]
-  }'`}</pre>
+  -H "Authorization: Bearer \${AUTH_TOKEN}" \\
+  --data '{"instanceId":"'\$INSTANCE_NAME'","sessionName":"VerifyQR","webhookUrl":"https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web"}')
+
+echo "\$CREATE_RESPONSE" | jq '{success: .success, instanceId: .instanceId, status: .status}'
+
+if [[ \$(echo "\$CREATE_RESPONSE" | jq -r '.success') != "true" ]]; then
+  echo "❌ Falha na criação da instância"
+  exit 1
+fi
+
+# Aguardar QR Code
+echo ""
+echo "⏳ Aguardando QR Code (25 segundos)..."
+sleep 25
+
+# 3. Verificar formato QR Code corrigido
+echo ""
+echo "3️⃣ VERIFICAÇÃO QR CODE - Formato Base64 DataURL"
+echo "============================================="
+QR_RESPONSE=\$(curl -s -X POST "http://\${VPS_IP}:\${VPS_PORT}/instance/qr" \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer \${AUTH_TOKEN}" \\
+  --data '{"instanceId":"'\$INSTANCE_NAME'"}')
+
+echo "\$QR_RESPONSE" | jq '{
+  success: .success,
+  qr_format: .qr_format,
+  has_qr_code: .has_qr_code,
+  status: .status
+}'
+
+QR_CODE=\$(echo "\$QR_RESPONSE" | jq -r '.qrCode // "null"')
+echo ""
+if [[ "\$QR_CODE" == data:image/png;base64,* ]]; then
+  echo "✅ QR CODE CORRIGIDO: Formato data:image/png;base64, detectado"
+  echo "📏 Tamanho QR: \${#QR_CODE} caracteres"
+  echo "🔍 Preview: \${QR_CODE:0:60}..."
+else
+  echo "❌ QR CODE INCORRETO: Não está em formato DataURL"
+  echo "🔍 Formato atual: \${QR_CODE:0:60}..."
+  echo "   Esperado: data:image/png;base64,..."
+fi
+
+# 4. Limpeza
+echo ""
+echo "4️⃣ LIMPEZA DO TESTE"
+echo "=================="
+curl -s -X DELETE "http://\${VPS_IP}:\${VPS_PORT}/instance/\${INSTANCE_NAME}" \\
+  -H "Authorization: Bearer \${AUTH_TOKEN}" | jq '{success: .success}'
+
+echo ""
+echo "🏁 VERIFICAÇÃO CONCLUÍDA!"
+echo "========================"
+echo "✓ Versão do servidor verificada"
+echo "✓ Formato QR Code validado"
+echo "✓ Correção Base64 testada"
+echo ""
+echo "📋 Se tudo estiver ✅, a correção foi aplicada com sucesso!"
+echo "📋 Se algo estiver ❌, execute a correção novamente via interface"`}</pre>
               </div>
             </div>
 
             <div>
-              <h4 className="font-semibold mb-2">✅ Resultados Esperados Após a Correção:</h4>
+              <h4 className="font-semibold mb-2">✅ O que Deve Aparecer Após a Correção:</h4>
               <ul className="list-disc list-inside text-sm space-y-1 ml-4">
-                <li><strong>Versão:</strong> 4.2.1-QR-BASE64-FIXED</li>
+                <li><strong>Versão:</strong> 4.2.1-QR-BASE64-FIXED (ou similar)</li>
+                <li><strong>qr_base64_fixed:</strong> true</li>
                 <li><strong>qr_format:</strong> "base64_data_url"</li>
-                <li><strong>has_qr_code:</strong> true</li>
-                <li><strong>qr_preview:</strong> Deve começar com "data:image/png;base64,"</li>
+                <li><strong>QR Code:</strong> Começa com "data:image/png;base64,"</li>
+                <li><strong>Tamanho QR:</strong> Mais de 1000 caracteres (QR real)</li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-semibold mb-2">🔧 O que a Correção Faz:</h4>
+              <h4 className="font-semibold mb-2">🔧 Principais Melhorias na Correção:</h4>
               <ul className="list-disc list-inside text-sm space-y-1 ml-4">
-                <li>Implementa função ensureBase64Format() tolerante</li>
-                <li>Converte QR string para DataURL se necessário</li>
-                <li>Valida formato antes de retornar</li>
-                <li>Adiciona prefixo data:image/png;base64, quando ausente</li>
-                <li>Mantém compatibilidade com diferentes formatos de entrada</li>
+                <li>Função ensureBase64Format() tolerante a diferentes formatos</li>
+                <li>Endpoint /instance/qr sempre retorna DataURL válido</li>
+                <li>Validação prévia antes de retornar QR Code</li>
+                <li>Conversão automática de string para Base64 quando necessário</li>
+                <li>Logs detalhados para debugging</li>
+                <li>Endpoints JSON sempre válidos (sem erros de parsing)</li>
               </ul>
             </div>
           </div>
