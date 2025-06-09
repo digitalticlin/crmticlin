@@ -5,27 +5,32 @@ import { VPSTestTrigger } from "./VPSTestTrigger";
 import { ModularTestPanel } from "./ModularTestPanel";
 import { VPSEndpointDiscoveryPanel } from "./VPSEndpointDiscovery";
 import { VPSDeepInvestigation } from "./VPSDeepInvestigation";
+import { VPSWebhookCorrector } from "./VPSWebhookCorrector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertTriangle, TestTube, Settings, Monitor, Activity, Search } from "lucide-react";
+import { AlertTriangle, TestTube, Settings, Monitor, Activity, Search, Wrench } from "lucide-react";
 
 export const WhatsAppTestPanel = () => {
   return (
     <div className="space-y-6">
-      <Card className="border-orange-200 bg-orange-50">
+      <Card className="border-green-200 bg-green-50">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-orange-800">
-            <AlertTriangle className="h-5 w-5" />
-            Centro de Diagnóstico WhatsApp Completo
+          <CardTitle className="flex items-center gap-2 text-green-800">
+            <Wrench className="h-5 w-5" />
+            Centro de Diagnóstico WhatsApp - CORREÇÃO DISPONÍVEL
           </CardTitle>
-          <p className="text-orange-700">
-            🎯 <strong>NOVO:</strong> Execute primeiro a "Investigação Profunda" para análise completa e correção automática
+          <p className="text-green-700">
+            🎯 <strong>NOVO:</strong> Use o "Corretor de Webhook" para corrigir a sincronização VPS ↔ Supabase
           </p>
         </CardHeader>
       </Card>
 
-      <Tabs defaultValue="investigation" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
+      <Tabs defaultValue="corrector" className="w-full">
+        <TabsList className="grid w-full grid-cols-7">
+          <TabsTrigger value="corrector" className="gap-2">
+            <Wrench className="h-4 w-4" />
+            Corretor
+          </TabsTrigger>
           <TabsTrigger value="investigation" className="gap-2">
             <Search className="h-4 w-4" />
             Investigação
@@ -51,6 +56,10 @@ export const WhatsAppTestPanel = () => {
             Triggers
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="corrector" className="space-y-6">
+          <VPSWebhookCorrector />
+        </TabsContent>
 
         <TabsContent value="investigation" className="space-y-6">
           <VPSDeepInvestigation />
@@ -80,14 +89,20 @@ export const WhatsAppTestPanel = () => {
       <Card className="border-blue-200 bg-blue-50">
         <CardContent className="p-4">
           <div className="text-sm text-blue-800 space-y-2">
-            <p><strong>🔄 Fluxo Recomendado (ATUALIZADO):</strong></p>
+            <p><strong>🔄 Fluxo Recomendado (ATUALIZADO COM CORREÇÃO):</strong></p>
             <ol className="list-decimal list-inside space-y-1 ml-4">
-              <li><strong>Investigação Profunda:</strong> Análise completa e preparação de scripts de correção</li>
-              <li><strong>Descoberta:</strong> Escaneamento de endpoints para identificar serviços funcionais</li>
-              <li><strong>Diagnóstico:</strong> Teste a situação atual do sistema</li>
-              <li><strong>Correção Manual:</strong> Execute os scripts preparados via SSH na VPS</li>
-              <li><strong>Validação:</strong> Use outros painéis para validar as correções</li>
+              <li><strong>Corretor de Webhook:</strong> ⭐ EXECUTE PRIMEIRO - Corrige sincronização VPS ↔ Supabase</li>
+              <li><strong>Verificação:</strong> Teste se webhook está funcionando após aplicar correção</li>
+              <li><strong>Teste End-to-End:</strong> Crie instância e verifique QR code aparecendo</li>
+              <li><strong>Diagnóstico:</strong> Use outras abas apenas se ainda houver problemas</li>
+              <li><strong>Validação Final:</strong> Confirme fluxo completo funcionando</li>
             </ol>
+            <div className="mt-3 p-3 bg-white/70 rounded border border-blue-200">
+              <p className="font-medium">✨ Após correção aplicada:</p>
+              <p>• QR codes aparecerão automaticamente na interface</p>
+              <p>• Status de conexão será sincronizado em tempo real</p>
+              <p>• Mensagens serão recebidas no Supabase</p>
+            </div>
           </div>
         </CardContent>
       </Card>
