@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -7,11 +6,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// CONFIGURAÇÃO ULTRA-OTIMIZADA: Como servidor antigo - FINAL
+// CONFIGURAÇÃO ULTRA-OTIMIZADA: Como servidor antigo - FINAL CORRIGIDA
 const VPS_CONFIG = {
-  primaryUrl: 'http://31.97.24.222:3002',
+  primaryUrl: 'http://31.97.24.222:3002', // Manter porta atual com webhooks
   authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
-  timeout: 5000, // CORREÇÃO FINAL: 5s ultra agressivo como servidor antigo
+  timeout: 3000, // CORREÇÃO: 3s ultra agressivo como servidor antigo
   webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
   instantResponse: true,
   asyncDelay: 500 // Delay mínimo como servidor antigo
@@ -19,7 +18,7 @@ const VPS_CONFIG = {
 
 serve(async (req) => {
   const startTime = Date.now();
-  console.log('[Instance Manager] 🚀 CORREÇÃO FINAL: Criação instantânea como servidor antigo:', req.method, `[${startTime}]`);
+  console.log('[Instance Manager] 🚀 CONFIGURAÇÃO SERVIDOR ANTIGO: Resposta instantânea:', req.method, `[${startTime}]`);
   
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -48,7 +47,7 @@ serve(async (req) => {
     const { action, instanceName, instanceId } = await req.json();
 
     if (action === 'create_instance') {
-      return await createInstanceInstantFinal(supabase, instanceName, user, startTime);
+      return await createInstanceInstantServerOld(supabase, instanceName, user, startTime);
     }
 
     if (action === 'delete_instance_corrected') {
@@ -70,7 +69,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
-      final_optimization_applied: true
+      server_old_config_applied: true
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -78,10 +77,10 @@ serve(async (req) => {
   }
 });
 
-// CORREÇÃO FINAL: Criação instantânea perfeita como servidor antigo
-async function createInstanceInstantFinal(supabase: any, instanceName: string, user: any, startTime: number) {
-  const creationId = `final_${Date.now()}`;
-  console.log(`[Instance Manager] ⚡ CORREÇÃO FINAL: Criação ultra-instantânea [${creationId}]:`, instanceName, `[${Date.now() - startTime}ms]`);
+// CONFIGURAÇÃO SERVIDOR ANTIGO: Criação instantânea perfeita
+async function createInstanceInstantServerOld(supabase: any, instanceName: string, user: any, startTime: number) {
+  const creationId = `server_old_${Date.now()}`;
+  console.log(`[Instance Manager] ⚡ SERVIDOR ANTIGO: Criação ultra-instantânea [${creationId}]:`, instanceName, `[${Date.now() - startTime}ms]`);
 
   try {
     // 1. Validação ultra-rápida
@@ -94,7 +93,7 @@ async function createInstanceInstantFinal(supabase: any, instanceName: string, u
     const sessionName = `${sanitizedName}_${timestamp}`;
     const vpsInstanceId = sessionName;
 
-    console.log(`[Instance Manager] 💾 CORREÇÃO FINAL: Salvando ultra-rápido no banco [${creationId}]:`, vpsInstanceId, `[${Date.now() - startTime}ms]`);
+    console.log(`[Instance Manager] 💾 SERVIDOR ANTIGO: Salvando ultra-rápido no banco [${creationId}]:`, vpsInstanceId, `[${Date.now() - startTime}ms]`);
 
     // 2. SALVAR NO BANCO PRIMEIRO (padrão servidor antigo)
     const instanceRecord = {
@@ -122,22 +121,22 @@ async function createInstanceInstantFinal(supabase: any, instanceName: string, u
     console.log(`[Instance Manager] ✅ Instância salva ultra-rápido [${creationId}]:`, instance.id, `[${Date.now() - startTime}ms]`);
 
     // 3. RESPOSTA INSTANTÂNEA (padrão servidor antigo)
-    console.log(`[Instance Manager] 🚀 CORREÇÃO FINAL: Retornando resposta instantânea [${creationId}] - tempo total: ${Date.now() - startTime}ms`);
+    console.log(`[Instance Manager] 🚀 SERVIDOR ANTIGO: Retornando resposta instantânea [${creationId}] - tempo total: ${Date.now() - startTime}ms`);
 
     // 4. PROCESSAR VPS EM 500ms (ultra-rápido como servidor antigo)
     setTimeout(() => {
-      initializeVPSUltraFast(supabase, instance, vpsInstanceId, creationId);
+      initializeVPSServerOld(supabase, instance, vpsInstanceId, creationId);
     }, VPS_CONFIG.asyncDelay);
 
     return new Response(JSON.stringify({
       success: true,
       instance: instance,
       vpsInstanceId: vpsInstanceId,
-      final_optimization: true,
+      server_old_config: true,
       creationId,
       totalTime: Date.now() - startTime,
-      message: 'Instância criada instantaneamente - padrão servidor antigo aplicado',
-      server_pattern: 'ultra_fast_final'
+      message: 'Instância criada instantaneamente - configuração servidor antigo aplicada',
+      server_pattern: 'ultra_fast_old_server'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
@@ -150,7 +149,7 @@ async function createInstanceInstantFinal(supabase: any, instanceName: string, u
       error: error.message,
       creationId,
       totalTime: Date.now() - startTime,
-      final_optimization: true
+      server_old_config: true
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -158,9 +157,9 @@ async function createInstanceInstantFinal(supabase: any, instanceName: string, u
   }
 }
 
-// CORREÇÃO FINAL: Inicialização VPS ultra-otimizada
-async function initializeVPSUltraFast(supabase: any, instance: any, vpsInstanceId: string, creationId: string) {
-  console.log(`[Instance Manager] 🔄 CORREÇÃO FINAL: Inicializando VPS ultra-rápido [${creationId}]`);
+// CONFIGURAÇÃO SERVIDOR ANTIGO: Inicialização VPS ultra-otimizada
+async function initializeVPSServerOld(supabase: any, instance: any, vpsInstanceId: string, creationId: string) {
+  console.log(`[Instance Manager] 🔄 SERVIDOR ANTIGO: Inicializando VPS ultra-rápido [${creationId}]`);
   
   try {
     // Payload ultra-mínimo como servidor antigo
@@ -170,11 +169,11 @@ async function initializeVPSUltraFast(supabase: any, instance: any, vpsInstanceI
       webhookUrl: VPS_CONFIG.webhookUrl
     };
 
-    console.log(`[Instance Manager] 📡 CORREÇÃO FINAL: Tentando VPS com timeout 5s ultra-agressivo [${creationId}]`);
+    console.log(`[Instance Manager] 📡 SERVIDOR ANTIGO: Tentando VPS com timeout 3s ultra-agressivo [${creationId}]`);
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
-      console.log(`[Instance Manager] ⏰ CORREÇÃO FINAL: Timeout 5s ultra-agressivo [${creationId}]`);
+      console.log(`[Instance Manager] ⏰ SERVIDOR ANTIGO: Timeout 3s ultra-agressivo [${creationId}]`);
       controller.abort();
     }, VPS_CONFIG.timeout);
 
@@ -185,12 +184,10 @@ async function initializeVPSUltraFast(supabase: any, instance: any, vpsInstanceI
       headers: { 
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
-        'User-Agent': 'Supabase-WhatsApp-Final-Ultra/1.0',
+        'User-Agent': 'Supabase-WhatsApp-ServerOld-Ultra/1.0',
         'Accept': 'application/json',
         'Cache-Control': 'no-cache',
-        'Connection': 'close',
-        'Keep-Alive': 'timeout=5',
-        'X-Priority': 'high'
+        'Connection': 'close'
       },
       body: JSON.stringify(vpsPayload)
     });
@@ -198,7 +195,7 @@ async function initializeVPSUltraFast(supabase: any, instance: any, vpsInstanceI
     clearTimeout(timeoutId);
     
     if (response.ok) {
-      console.log(`[Instance Manager] ✅ CORREÇÃO FINAL: VPS inicializada com sucesso ultra-rápido [${creationId}]`);
+      console.log(`[Instance Manager] ✅ SERVIDOR ANTIGO: VPS inicializada com sucesso ultra-rápido [${creationId}]`);
       
       // Atualizar status para aguardando QR
       await supabase
@@ -211,7 +208,7 @@ async function initializeVPSUltraFast(supabase: any, instance: any, vpsInstanceI
         .eq('id', instance.id);
         
     } else {
-      console.error(`[Instance Manager] ❌ CORREÇÃO FINAL: VPS falhou HTTP ${response.status} [${creationId}]`);
+      console.error(`[Instance Manager] ❌ SERVIDOR ANTIGO: VPS falhou HTTP ${response.status} [${creationId}]`);
       
       // Marcar como erro, mas NÃO falhar a criação (padrão servidor antigo)
       await supabase
@@ -225,7 +222,7 @@ async function initializeVPSUltraFast(supabase: any, instance: any, vpsInstanceI
     }
     
   } catch (error) {
-    console.error(`[Instance Manager] ❌ CORREÇÃO FINAL: Erro na inicialização VPS [${creationId}]:`, error);
+    console.error(`[Instance Manager] ❌ SERVIDOR ANTIGO: Erro na inicialização VPS [${creationId}]:`, error);
     
     // Marcar como recoverable, não como erro fatal (padrão servidor antigo)
     await supabase
@@ -290,7 +287,7 @@ async function syncInstanceStatus(supabase: any, instanceId: string, user: any) 
             connection_status: vpsData.status || instance.connection_status,
             qr_code: vpsData.qrCode || instance.qr_code
           },
-          final_optimization: true
+          server_old_config: true
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
@@ -302,7 +299,7 @@ async function syncInstanceStatus(supabase: any, instanceId: string, user: any) 
         success: true,
         instance: instance,
         warning: 'VPS inacessível, dados do banco de dados',
-        final_optimization: true
+        server_old_config: true
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -313,7 +310,7 @@ async function syncInstanceStatus(supabase: any, instanceId: string, user: any) 
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
-      final_optimization: true
+      server_old_config: true
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -368,7 +365,7 @@ async function deleteInstanceCorrected(supabase: any, instanceId: string, user: 
     return new Response(JSON.stringify({
       success: true,
       message: 'Instância deletada com sucesso',
-      final_optimization: true
+      server_old_config: true
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
@@ -378,7 +375,7 @@ async function deleteInstanceCorrected(supabase: any, instanceId: string, user: 
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
-      final_optimization: true
+      server_old_config: true
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -418,8 +415,8 @@ async function checkVPSStatus(supabase: any, instanceId: string, user: any) {
         success: true,
         vpsStatus: {
           online: isHealthy,
-          responseTime: 'ultra_fast_final',
-          final_optimization: true,
+          responseTime: 'server_old_ultra_fast',
+          server_old_config: true,
           details: responseData
         },
         instance: instance
@@ -433,7 +430,7 @@ async function checkVPSStatus(supabase: any, instanceId: string, user: any) {
         vpsStatus: {
           online: false,
           error: vpsError.message,
-          final_optimization: true
+          server_old_config: true
         },
         instance: instance
       }), {
@@ -446,7 +443,7 @@ async function checkVPSStatus(supabase: any, instanceId: string, user: any) {
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
-      final_optimization: true
+      server_old_config: true
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
