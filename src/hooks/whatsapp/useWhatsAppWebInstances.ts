@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,23 +50,32 @@ export const useWhatsAppWebInstances = () => {
   const createInstance = async (userEmail: string): Promise<{ success: boolean; instance?: WhatsAppWebInstance; error?: string }> => {
     try {
       setIsConnecting(true);
-      console.log('[Instances Hook] 🚀 CORREÇÃO: Criando instância...');
+      console.log('[Instances Hook] 🚀 CORREÇÃO DEEP: Iniciando criação da instância...');
+      console.log('[Instances Hook] 📧 CORREÇÃO DEEP: Email do usuário:', userEmail);
 
       // Gerar nome inteligente
       const intelligentName = await generateIntelligentInstanceName(userEmail);
-      console.log('[Instances Hook] 🎯 CORREÇÃO: Nome gerado:', intelligentName);
+      console.log('[Instances Hook] 🎯 CORREÇÃO DEEP: Nome gerado:', intelligentName);
 
-      // CORREÇÃO: Usar WhatsAppWebService que agora chama whatsapp_instance_manager corretamente
+      // CORREÇÃO DEEP: Debugging completo antes da chamada
+      console.log('[Instances Hook] 📋 CORREÇÃO DEEP: Preparando chamada para WhatsAppWebService...');
+      console.log('[Instances Hook] 🔧 CORREÇÃO DEEP: Service method: createInstance');
+      console.log('[Instances Hook] 📤 CORREÇÃO DEEP: Parâmetros:', { instanceName: intelligentName });
+
+      // Usar WhatsAppWebService corrigido
       const result = await WhatsAppWebService.createInstance(intelligentName);
 
-      console.log('[Instances Hook] 📥 CORREÇÃO: Resultado completo:', result);
+      console.log('[Instances Hook] 📥 CORREÇÃO DEEP: Resultado completo do service:', result);
+      console.log('[Instances Hook] 🔍 CORREÇÃO DEEP: Success flag:', result.success);
+      console.log('[Instances Hook] 📊 CORREÇÃO DEEP: Instance data:', result.instance);
+      console.log('[Instances Hook] ❌ CORREÇÃO DEEP: Error (se houver):', result.error);
 
       if (!result.success) {
-        console.error('[Instances Hook] ❌ CORREÇÃO: Falha na criação:', result.error);
-        throw new Error(result.error || 'Erro ao criar instância');
+        console.error('[Instances Hook] ❌ CORREÇÃO DEEP: Falha detectada:', result.error);
+        throw new Error(result.error || 'Erro desconhecido na criação da instância');
       }
 
-      console.log('[Instances Hook] ✅ CORREÇÃO: Instância criada:', result.instance);
+      console.log('[Instances Hook] ✅ CORREÇÃO DEEP: Instância criada com sucesso:', result.instance);
 
       // Atualizar lista
       await fetchInstances();
@@ -75,17 +83,22 @@ export const useWhatsAppWebInstances = () => {
       // Abrir modal automático se tiver instância
       const newInstance = result.instance;
       if (newInstance?.id) {
-        console.log('[Instances Hook] 📱 CORREÇÃO: Abrindo modal automático...');
+        console.log('[Instances Hook] 📱 CORREÇÃO DEEP: Abrindo modal automático...');
         openQRModal(newInstance.id, newInstance.instance_name);
         toast.success(`Instância "${intelligentName}" criada! Aguarde o QR Code...`);
       } else {
+        console.warn('[Instances Hook] ⚠️ CORREÇÃO DEEP: Instância criada mas sem ID');
         toast.warning('Instância criada, mas dados não disponíveis imediatamente');
       }
 
       return { success: true, instance: newInstance };
 
     } catch (error: any) {
-      console.error('[Instances Hook] ❌ CORREÇÃO: Erro na criação:', error);
+      console.error('[Instances Hook] ❌ CORREÇÃO DEEP: Erro capturado:', error);
+      console.error('[Instances Hook] 🔍 CORREÇÃO DEEP: Tipo do erro:', typeof error);
+      console.error('[Instances Hook] 📋 CORREÇÃO DEEP: Message:', error.message);
+      console.error('[Instances Hook] 📚 CORREÇÃO DEEP: Stack:', error.stack);
+      
       toast.error(`Erro ao criar instância: ${error.message}`);
       return { success: false, error: error.message };
     } finally {

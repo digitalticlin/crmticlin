@@ -8,29 +8,61 @@ export class WhatsAppWebService {
     error?: string;
   }> {
     try {
-      console.log('[WhatsAppWebService] 🚀 Criando instância via whatsapp_instance_manager:', instanceName);
+      console.log('[WhatsAppWebService] 🚀 CORREÇÃO DEEP: Iniciando criação via whatsapp_instance_manager...');
+      console.log('[WhatsAppWebService] 📋 CORREÇÃO DEEP: Nome da instância:', instanceName);
 
-      // CORREÇÃO: Usar whatsapp_instance_manager (que já está corrigida e testada)
+      // CORREÇÃO DEEP: Verificar autenticação primeiro
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      console.log('[WhatsAppWebService] 👤 CORREÇÃO DEEP: Usuário autenticado:', user?.id);
+      
+      if (authError || !user) {
+        console.error('[WhatsAppWebService] ❌ CORREÇÃO DEEP: Erro de autenticação:', authError);
+        throw new Error('Usuário não autenticado');
+      }
+
+      // CORREÇÃO DEEP: Preparar payload completo
+      const payload = {
+        action: 'create_instance',
+        instanceName: instanceName
+      };
+      console.log('[WhatsAppWebService] 📤 CORREÇÃO DEEP: Payload preparado:', payload);
+
+      // CORREÇÃO DEEP: Fazer a chamada com debugging completo
+      console.log('[WhatsAppWebService] 🔗 CORREÇÃO DEEP: Invocando edge function whatsapp_instance_manager...');
+      
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
-        body: {
-          action: 'create_instance',
-          instanceName: instanceName
-        }
+        body: payload
       });
 
+      console.log('[WhatsAppWebService] 📥 CORREÇÃO DEEP: Resposta bruta do Supabase:', { data, error });
+      console.log('[WhatsAppWebService] 🔍 CORREÇÃO DEEP: Tipo da resposta data:', typeof data);
+      console.log('[WhatsAppWebService] 📊 CORREÇÃO DEEP: Conteúdo completo da data:', JSON.stringify(data, null, 2));
+
       if (error) {
-        console.error('[WhatsAppWebService] ❌ Erro do Supabase:', error);
+        console.error('[WhatsAppWebService] ❌ CORREÇÃO DEEP: Erro direto do Supabase:', error);
+        console.error('[WhatsAppWebService] 📋 CORREÇÃO DEEP: Detalhes do erro:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
         throw new Error(`Erro do Supabase: ${error.message}`);
       }
 
-      console.log('[WhatsAppWebService] 📥 Response completa:', data);
+      console.log('[WhatsAppWebService] ✅ CORREÇÃO DEEP: Sem erro do Supabase, analisando data...');
 
-      if (!data?.success) {
-        console.error('[WhatsAppWebService] ❌ Edge function retornou erro:', data?.error);
-        throw new Error(data?.error || 'Erro desconhecido na criação da instância');
+      if (!data) {
+        console.error('[WhatsAppWebService] ❌ CORREÇÃO DEEP: Data é null/undefined');
+        throw new Error('Resposta vazia da edge function');
       }
 
-      console.log('[WhatsAppWebService] ✅ Instância criada com sucesso:', data.instance);
+      if (!data.success) {
+        console.error('[WhatsAppWebService] ❌ CORREÇÃO DEEP: Edge function retornou sucesso=false');
+        console.error('[WhatsAppWebService] 📋 CORREÇÃO DEEP: Erro da edge function:', data.error);
+        throw new Error(data.error || 'Erro desconhecido na criação da instância');
+      }
+
+      console.log('[WhatsAppWebService] ✅ CORREÇÃO DEEP: Sucesso confirmado, dados da instância:', data.instance);
 
       return {
         success: true,
@@ -38,7 +70,11 @@ export class WhatsAppWebService {
       };
 
     } catch (error: any) {
-      console.error('[WhatsAppWebService] ❌ Erro completo:', error);
+      console.error('[WhatsAppWebService] ❌ CORREÇÃO DEEP: Erro capturado no catch:', error);
+      console.error('[WhatsAppWebService] 🔍 CORREÇÃO DEEP: Tipo do erro:', typeof error);
+      console.error('[WhatsAppWebService] 📋 CORREÇÃO DEEP: Message:', error.message);
+      console.error('[WhatsAppWebService] 📚 CORREÇÃO DEEP: Stack trace:', error.stack);
+      
       return {
         success: false,
         error: error.message

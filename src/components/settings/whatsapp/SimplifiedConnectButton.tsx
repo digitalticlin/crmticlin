@@ -1,42 +1,57 @@
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessageSquare, Loader2, Plus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface SimplifiedConnectButtonProps {
   onConnect: () => Promise<void>;
   isConnecting: boolean;
   variant?: "default" | "outline";
-  size?: "default" | "sm" | "lg";
+  size?: "sm" | "default" | "lg";
   text?: string;
 }
 
-export const SimplifiedConnectButton = ({ 
+export function SimplifiedConnectButton({ 
   onConnect, 
   isConnecting,
   variant = "default",
-  size = "lg",
+  size = "default",
   text = "Conectar WhatsApp"
-}: SimplifiedConnectButtonProps) => {
+}: SimplifiedConnectButtonProps) {
+  const [isLoading, setIsLoading] = useState(false);
+
   const handleConnect = async () => {
-    console.log('[Simplified Connect] 🚀 Iniciando conexão...');
-    await onConnect();
+    setIsLoading(true);
+    
+    try {
+      console.log('[SimplifiedConnect] 🚀 CORREÇÃO: Iniciando conexão...');
+      await onConnect();
+      console.log('[SimplifiedConnect] ✅ CORREÇÃO: Conexão concluída');
+    } catch (error: any) {
+      console.error('[SimplifiedConnect] ❌ CORREÇÃO: Erro na conexão:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Se for variante pequena (botão adicionar), renderizar apenas o botão
-  if (variant === "outline") {
+  const loading = isConnecting || isLoading;
+
+  // Se é um botão pequeno/outline, renderizar apenas o botão
+  if (variant === "outline" || size === "sm") {
     return (
       <Button 
         onClick={handleConnect}
-        disabled={isConnecting}
+        disabled={loading}
         variant={variant}
         size={size}
         className="gap-2"
       >
-        {isConnecting ? (
+        {loading ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" />
-            Conectando...
+            {isConnecting ? 'Conectando...' : 'Criando...'}
           </>
         ) : (
           <>
@@ -48,42 +63,55 @@ export const SimplifiedConnectButton = ({
     );
   }
 
-  // Card completo para primeira conexão
+  // Card principal com efeito glassmorphism
   return (
-    <Card>
-      <CardContent className="p-8 text-center">
-        <div className="space-y-6">
-          <div className="p-4 rounded-lg bg-green-100/50 dark:bg-green-900/30 inline-block">
-            <MessageSquare className="h-12 w-12 text-green-600 mx-auto" />
-          </div>
-          
-          <div>
-            <h3 className="text-lg font-medium mb-2">Conectar WhatsApp</h3>
-            <p className="text-muted-foreground mb-6 text-sm">
-              Conecte sua primeira instância WhatsApp para começar a gerenciar conversas automaticamente
-            </p>
-          </div>
-          
-          <Button 
-            onClick={handleConnect}
-            disabled={isConnecting}
-            className="bg-green-600 hover:bg-green-700 text-white gap-2"
-            size={size}
-          >
-            {isConnecting ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin" />
-                Conectando...
-              </>
-            ) : (
-              <>
-                <MessageSquare className="h-5 w-5" />
-                {text}
-              </>
-            )}
-          </Button>
+    <Card className={cn(
+      "relative overflow-hidden border-0 bg-white/10 backdrop-blur-md",
+      "shadow-xl hover:shadow-2xl transition-all duration-300",
+      "bg-gradient-to-br from-white/20 to-white/5",
+      "hover:from-white/30 hover:to-white/10"
+    )}>
+      <CardHeader className="text-center pb-4">
+        <div className="mx-auto mb-4 p-4 rounded-2xl bg-green-500/20 backdrop-blur-sm w-fit">
+          <MessageSquare className="h-12 w-12 text-green-600" />
         </div>
+        <CardTitle className="text-2xl font-bold text-gray-800">
+          Conectar WhatsApp Web
+        </CardTitle>
+        <p className="text-gray-600 mt-2">
+          Crie sua primeira conexão WhatsApp para começar a automatizar mensagens
+        </p>
+      </CardHeader>
+      
+      <CardContent className="text-center pb-8">
+        <Button 
+          onClick={handleConnect}
+          disabled={loading}
+          size="lg"
+          className={cn(
+            "w-full max-w-xs mx-auto h-12 text-lg font-semibold",
+            "bg-green-600 hover:bg-green-700 text-white",
+            "shadow-lg hover:shadow-xl transition-all duration-200",
+            "border-0 backdrop-blur-sm"
+          )}
+        >
+          {loading ? (
+            <>
+              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+              {isConnecting ? 'Conectando...' : 'Criando...'}
+            </>
+          ) : (
+            <>
+              <MessageSquare className="h-5 w-5 mr-2" />
+              Conectar Agora
+            </>
+          )}
+        </Button>
+        
+        <p className="text-sm text-gray-500 mt-4">
+          O processo é seguro e leva apenas alguns segundos
+        </p>
       </CardContent>
     </Card>
   );
-};
+}

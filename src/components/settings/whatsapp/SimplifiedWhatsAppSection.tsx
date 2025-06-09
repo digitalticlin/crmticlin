@@ -7,7 +7,6 @@ import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstance
 import { SimplifiedConnectButton } from "./SimplifiedConnectButton";
 import { WhatsAppInstanceGrid } from "./WhatsAppInstanceGrid";
 import { AutoQRModal } from "./AutoQRModal";
-import { VPSDiagnosticButton } from "./VPSDiagnosticButton";
 
 export const SimplifiedWhatsAppSection = () => {
   const { user } = useAuth();
@@ -27,11 +26,11 @@ export const SimplifiedWhatsAppSection = () => {
 
   const handleConnect = async () => {
     if (!user?.email) {
-      console.error('Email do usuário não disponível');
+      console.error('[Simplified Section] ❌ CORREÇÃO DEEP: Email do usuário não disponível');
       return;
     }
 
-    console.log('[Simplified Section] 🚀 Iniciando conexão para:', user.email);
+    console.log('[Simplified Section] 🚀 CORREÇÃO DEEP: Iniciando conexão para:', user.email);
     await createInstance(user.email);
   };
 
@@ -45,7 +44,7 @@ export const SimplifiedWhatsAppSection = () => {
 
   if (isLoading) {
     return (
-      <Card className="border-green-200 bg-green-50">
+      <Card className="border-green-200 bg-green-50/30 backdrop-blur-sm">
         <CardContent className="flex items-center justify-center py-8">
           <div className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 animate-pulse text-green-600" />
@@ -60,8 +59,8 @@ export const SimplifiedWhatsAppSection = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <Card className="border-green-200 bg-green-50">
+      {/* Header simplificado */}
+      <Card className="border-green-200 bg-green-50/30 backdrop-blur-sm">
         <CardHeader>
           <div className="flex items-center gap-2">
             <MessageSquare className="h-6 w-6 text-green-600" />
@@ -73,22 +72,9 @@ export const SimplifiedWhatsAppSection = () => {
         </CardHeader>
       </Card>
 
-      {/* Diagnóstico VPS */}
-      <Card className="border-blue-200 bg-blue-50">
-        <CardHeader>
-          <CardTitle className="text-blue-800">Diagnóstico de Infraestrutura</CardTitle>
-          <p className="text-sm text-blue-700">
-            Verifique se a VPS e o servidor WhatsApp estão funcionando corretamente
-          </p>
-        </CardHeader>
-        <CardContent>
-          <VPSDiagnosticButton />
-        </CardContent>
-      </Card>
-
-      {/* Content */}
+      {/* Content principal */}
       {!hasInstances ? (
-        // Card de Conectar quando não há instâncias
+        // Card de Conectar modernizado quando não há instâncias
         <SimplifiedConnectButton 
           onConnect={handleConnect}
           isConnecting={isConnecting}
