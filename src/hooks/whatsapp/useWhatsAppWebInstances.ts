@@ -233,6 +233,9 @@ export const useWhatsAppWebInstances = () => {
     fetchInstances,
     syncPendingInstances,
     
+    // Exportar função de nomeação para outros componentes
+    generateIntelligentInstanceName,
+    
     // Modal controls
     closeQRModal: closeModal,
     retryQRCode
