@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -349,6 +350,6 @@ export const useWhatsAppWebInstances = () => {
     generateIntelligentInstanceName,
     closeQRModal,
     retryQRCode,
-    syncPendingInstances // FIXED: Agora exportando a função
+    syncPendingInstances
   };
 };
