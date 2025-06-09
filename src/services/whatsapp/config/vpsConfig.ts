@@ -1,5 +1,5 @@
 
-// VPS Configuration - ATUALIZADA para descoberta automática de porta via SSH
+// VPS Configuration - ATUALIZADA para HTTP direto (sem SSH)
 export const VPS_CONFIG = {
   baseUrl: 'http://31.97.24.222', // Base URL sem porta (será descoberta dinamicamente)
   authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
@@ -13,27 +13,26 @@ export const VPS_CONFIG = {
     createInstance: '/instance/create',
     deleteInstance: '/instance/{instanceId}',
     instanceStatus: '/instance/{instanceId}/status',
-    // NOVOS: Endpoints de webhook
     webhookGlobal: '/webhook/global',
     webhookStatus: '/webhook/global/status',
     webhookInstance: '/instance/{instanceId}/webhook'
   },
   
-  // NOVA CONFIGURAÇÃO: Descoberta automática de porta
-  portDiscovery: {
+  // NOVA CONFIGURAÇÃO: HTTP direto em vez de SSH
+  httpDirect: {
     enabled: true,
-    defaultPort: 3001,
-    fallbackPort: 3002,
-    testPorts: [3001, 3002, 3000, 8080],
-    timeout: 5000
+    defaultPort: 3002,
+    fallbackPorts: [3001, 3000, 8080],
+    timeout: 15000,
+    maxRetries: 3
   },
   
   timeouts: {
-    connection: 10000,    // 10 seconds
+    connection: 15000,    // 15 seconds para HTTP direto
     message: 30000,       // 30 seconds  
     qrCode: 25000,        // 25 seconds
-    health: 5000,         // 5 seconds
-    portDiscovery: 15000  // 15 seconds for port discovery
+    health: 10000,        // 10 seconds
+    discovery: 20000      // 20 seconds para descoberta
   },
   
   sync: {
@@ -44,16 +43,14 @@ export const VPS_CONFIG = {
     backoffMultiplier: 2
   },
 
-  // CONFIGURAÇÃO: SSH Mode (nova implementação)
-  ssh: {
-    enabled: true,
+  // CONFIGURAÇÃO: HTTP Mode (nova implementação)
+  connection: {
+    mode: 'http_direct', // 'ssh' | 'http_direct'
     host: '31.97.24.222',
-    port: 22,
-    username: 'root',
-    timeout: 60000
+    timeout: 15000
   },
 
-  // NOVA CONFIGURAÇÃO: Webhook automático
+  // CONFIGURAÇÃO: Webhook automático
   webhook: {
     enabled: true,
     url: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
@@ -63,7 +60,7 @@ export const VPS_CONFIG = {
 };
 
 export const getEndpointUrl = (endpoint: string, port?: number): string => {
-  const actualPort = port || VPS_CONFIG.portDiscovery.defaultPort;
+  const actualPort = port || VPS_CONFIG.httpDirect.defaultPort;
   return `${VPS_CONFIG.baseUrl}:${actualPort}${endpoint}`;
 };
 
@@ -72,7 +69,7 @@ export const getRequestHeaders = (): Record<string, string> => {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
     'X-API-Token': VPS_CONFIG.authToken,
-    'User-Agent': 'Supabase-WhatsApp-Client/2.0-SSH',
+    'User-Agent': 'Supabase-WhatsApp-Client/2.0-HTTP',
     'Accept': 'application/json'
   };
 };
