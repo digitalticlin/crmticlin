@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, Shield, AlertTriangle } from "lucide-react";
@@ -10,6 +9,7 @@ import { ImprovedConnectWhatsAppButton } from "./ImprovedConnectWhatsAppButton";
 import { CleanupOrphanedInstancesButton } from "./CleanupOrphanedInstancesButton";
 import { OrphanInstanceManager } from "./OrphanInstanceManager";
 import { QRCodeModal } from "./QRCodeModal";
+import { AutoQRModal } from "./AutoQRModal";
 
 export const WhatsAppWebSettings = () => {
   const {
@@ -24,7 +24,8 @@ export const WhatsAppWebSettings = () => {
     createInstance,
     deleteInstance,
     refreshQRCode,
-    closeQRModal
+    closeQRModal,
+    retryQRCode
   } = useWhatsAppWebInstances();
 
   const handleConnect = async () => {
@@ -125,14 +126,15 @@ export const WhatsAppWebSettings = () => {
         />
       )}
 
-      {/* Modal do QR Code - CORREÇÃO: Adicionando props faltantes */}
-      <QRCodeModal
+      {/* Modal do QR Code Automático */}
+      <AutoQRModal
         isOpen={showQRModal}
         onClose={closeQRModal}
         qrCode={selectedQRCode}
         instanceName={selectedInstanceName}
-        instanceId="" // Adicionando prop faltante
-        onRefreshQRCode={handleRefreshQRCodeWrapper} // Adicionando prop faltante
+        isWaiting={!selectedQRCode && !error}
+        error={null} // O erro será tratado internamente pelo modal
+        onRetry={retryQRCode}
       />
     </div>
   );
