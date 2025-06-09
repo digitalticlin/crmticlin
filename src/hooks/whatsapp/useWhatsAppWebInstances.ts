@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppWebInstance } from "@/types/whatsapp";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
 import { useAutoQRModal } from "./useAutoQRModal";
+import { AsyncStatusService } from "@/services/whatsapp/asyncStatusService";
 
 export const useWhatsAppWebInstances = () => {
   const [instances, setInstances] = useState<WhatsAppWebInstance[]>([]);
@@ -141,6 +142,31 @@ export const useWhatsAppWebInstances = () => {
     }
   };
 
+  // Sincronizar instâncias pendentes
+  const syncPendingInstances = async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      console.log('[Instances Hook] 🔄 Sincronizando instâncias pendentes...');
+
+      const result = await AsyncStatusService.recoverPendingInstances();
+
+      if (result.recovered > 0) {
+        await fetchInstances();
+        toast.success(`${result.recovered} instâncias sincronizadas!`);
+      } else if (result.errors.length > 0) {
+        toast.warning(`Nenhuma instância recuperada. ${result.errors.length} erros encontrados.`);
+      } else {
+        toast.info('Nenhuma instância precisava de sincronização');
+      }
+
+      return { success: true };
+
+    } catch (error: any) {
+      console.error('[Instances Hook] ❌ Erro ao sincronizar:', error);
+      toast.error(`Erro na sincronização: ${error.message}`);
+      return { success: false, error: error.message };
+    }
+  };
+
   // Configurar subscription em tempo real para atualizações
   useEffect(() => {
     const channel = supabase
@@ -204,6 +230,7 @@ export const useWhatsAppWebInstances = () => {
     refetch: fetchInstances,
     fetchInstances,
     generateIntelligentInstanceName,
+    syncPendingInstances,
     
     // Modal controls
     closeQRModal: closeModal,

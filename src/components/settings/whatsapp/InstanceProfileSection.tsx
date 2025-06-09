@@ -2,7 +2,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CardTitle } from "@/components/ui/card";
 import { Phone } from "lucide-react";
-import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
+import { WhatsAppWebInstance } from "@/types/whatsapp";
 import { InstanceStatusBadge } from "./InstanceStatusBadge";
 
 interface InstanceProfileSectionProps {

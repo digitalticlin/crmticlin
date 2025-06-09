@@ -23,7 +23,7 @@ import {
   Zap
 } from "lucide-react";
 import { useChatImport } from "@/hooks/whatsapp/useChatImport";
-import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
+import { WhatsAppWebInstance } from "@/types/whatsapp";
 
 interface ChatImportDialogProps {
   instance: WhatsAppWebInstance;

@@ -14,7 +14,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useChatImport } from "@/hooks/whatsapp/useChatImport";
-import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
+import { WhatsAppWebInstance } from "@/types/whatsapp";
 import { useEffect } from "react";
 
 interface ChatImportStatusCardProps {
