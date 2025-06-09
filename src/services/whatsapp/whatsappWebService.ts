@@ -1,98 +1,102 @@
 
-import { InstanceService } from './instanceService';
-import { QRCodeService } from './qrCodeService';
-import { MessagingService } from './messagingService';
 import { supabase } from "@/integrations/supabase/client";
-
-interface WhatsAppServiceResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  instance?: any;
-  instances?: any[];
-  qrCode?: string;
-  waiting?: boolean;
-  source?: string;
-  syncedCount?: number;
-  messageId?: string;
-}
+import { WhatsAppWebInstance } from "@/types/whatsapp";
 
 export class WhatsAppWebService {
-  
-  static async createInstance(instanceName: string): Promise<WhatsAppServiceResponse> {
-    return InstanceService.createInstance(instanceName);
-  }
-
-  static async generateQRCode(instanceId: string): Promise<WhatsAppServiceResponse> {
-    return QRCodeService.generateQRCode(instanceId);
-  }
-
-  static async sendMessage(instanceId: string, phone: string, message: string): Promise<WhatsAppServiceResponse> {
-    return MessagingService.sendMessage(instanceId, phone, message);
-  }
-
-  static async getQRCode(instanceId: string): Promise<WhatsAppServiceResponse> {
-    return QRCodeService.getQRCode(instanceId);
-  }
-
-  static async deleteInstance(instanceId: string): Promise<WhatsAppServiceResponse> {
-    return InstanceService.deleteInstance(instanceId);
-  }
-
-  static async getServerInfo(): Promise<WhatsAppServiceResponse> {
-    return InstanceService.getServerInfo();
-  }
-
-  static async syncInstances(): Promise<WhatsAppServiceResponse> {
+  static async createInstance(instanceName: string): Promise<{
+    success: boolean;
+    instance?: WhatsAppWebInstance;
+    error?: string;
+  }> {
     try {
-      const { data, error } = await supabase.functions.invoke('whatsapp_diagnostic_service', {
+      const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
-          action: 'sync_instances'
+          action: 'create_instance',
+          instanceName: instanceName
         }
       });
 
       if (error) {
-        throw new Error(error.message || 'Erro na sincronização');
+        throw new Error(`Erro do Supabase: ${error.message}`);
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Erro desconhecido na criação da instância');
       }
 
       return {
         success: true,
-        syncedCount: data?.syncedCount || 0,
-        data: data
+        instance: data.instance
       };
 
     } catch (error: any) {
       return {
         success: false,
-        error: error.message,
-        syncedCount: 0
+        error: error.message
       };
     }
   }
 
-  static async checkServerHealth(): Promise<WhatsAppServiceResponse> {
+  static async deleteInstance(instanceId: string): Promise<{
+    success: boolean;
+    error?: string;
+  }> {
     try {
-      const { data, error } = await supabase.functions.invoke('whatsapp_diagnostic_service', {
+      const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
-          action: 'health_check'
+          action: 'delete_instance_corrected',
+          instanceId: instanceId
         }
       });
 
       if (error) {
-        throw new Error(error.message || 'Erro no diagnóstico');
+        throw new Error(`Erro do Supabase: ${error.message}`);
       }
 
-      const isHealthy = data?.success || false;
+      if (!data?.success) {
+        throw new Error(data?.error || 'Erro ao deletar instância');
+      }
+
+      return { success: true };
+
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  static async refreshQRCode(instanceId: string): Promise<{
+    success: boolean;
+    qrCode?: string;
+    error?: string;
+  }> {
+    try {
+      const { data, error } = await supabase.functions.invoke('whatsapp_qr_service', {
+        body: {
+          action: 'generate_qr',
+          instanceId: instanceId
+        }
+      });
+
+      if (error) {
+        throw new Error(`Erro na edge function: ${error.message}`);
+      }
+
+      if (!data?.success) {
+        if (data?.waiting) {
+          return {
+            success: false,
+            error: data.message || 'QR Code ainda sendo gerado'
+          };
+        }
+        throw new Error(data?.error || 'Erro desconhecido ao gerar QR Code');
+      }
 
       return {
-        success: isHealthy,
-        data: {
-          status: isHealthy ? 'healthy' : 'unhealthy',
-          timestamp: new Date().toISOString(),
-          diagnosticSummary: data?.summary,
-          architecture: 'Modular Edge Functions v5.0.0'
-        },
-        error: isHealthy ? undefined : 'Sistema não está completamente funcional'
+        success: true,
+        qrCode: data.qrCode
       };
 
     } catch (error: any) {

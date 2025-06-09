@@ -2,27 +2,9 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { WhatsAppWebInstance } from "@/types/whatsapp";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
 import { useAutoQRModal } from "./useAutoQRModal";
-
-export interface WhatsAppWebInstance {
-  id: string;
-  instance_name: string;
-  phone?: string;
-  connection_status: string;
-  web_status?: string;
-  qr_code?: string;
-  vps_instance_id?: string;
-  created_at: string;
-  date_connected?: string;
-  profile_name?: string;
-  profile_pic_url?: string;
-  history_imported?: boolean;
-  server_url?: string;
-  connection_type?: string;
-  company_id?: string;
-  created_by_user_id?: string;
-}
 
 export const useWhatsAppWebInstances = () => {
   const [instances, setInstances] = useState<WhatsAppWebInstance[]>([]);
