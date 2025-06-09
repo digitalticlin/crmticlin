@@ -33,7 +33,7 @@ export const useWhatsAppWebInstances = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  // CORREÇÃO: Filtrar instâncias por created_by_user_id
+  // CORREÇÃO: Query otimizada com melhor tratamento de estados
   const {
     data: instances = [],
     isLoading,
@@ -43,21 +43,21 @@ export const useWhatsAppWebInstances = () => {
     queryKey: ['whatsappWebInstances', user?.id],
     queryFn: async () => {
       if (!user?.id) {
-        console.log('[Hook] ⏭️ Usuário não autenticado, retornando array vazio');
+        console.log('[Hook] ⏭️ CORREÇÃO: Usuário não autenticado, retornando array vazio');
         return [];
       }
 
-      console.log('[Hook] 📊 Buscando instâncias para usuário:', user.id);
+      console.log('[Hook] 📊 CORREÇÃO: Buscando instâncias para usuário:', user.id);
       
       const { data, error: fetchError } = await supabase
         .from('whatsapp_instances')
         .select('*')
-        .eq('created_by_user_id', user.id) // CORREÇÃO: filtrar por usuário
+        .eq('created_by_user_id', user.id)
         .eq('connection_type', 'web')
         .order('created_at', { ascending: false });
 
       if (fetchError) {
-        console.error('[Hook] ❌ Erro ao buscar instâncias:', fetchError);
+        console.error('[Hook] ❌ CORREÇÃO: Erro ao buscar instâncias:', fetchError);
         throw fetchError;
       }
 
@@ -80,10 +80,35 @@ export const useWhatsAppWebInstances = () => {
         history_imported: instance.history_imported || false
       }));
 
-      console.log(`[Hook] ✅ Instâncias carregadas: ${mappedInstances.length} para usuário ${user.id}`);
+      console.log(`[Hook] ✅ CORREÇÃO: Instâncias carregadas: ${mappedInstances.length} para usuário ${user.id}`);
+      
+      // CORREÇÃO: Verificar instâncias aguardando QR Code
+      const waitingInstances = mappedInstances.filter(i => i.connection_status === 'waiting_qr');
+      if (waitingInstances.length > 0) {
+        console.log('[Hook] 🔍 CORREÇÃO: Instâncias aguardando QR Code:', waitingInstances.length);
+        
+        // CORREÇÃO: Abrir modal automaticamente para primeira instância aguardando
+        const firstWaiting = waitingInstances[0];
+        if (!showQRModal) {
+          console.log('[Hook] 📱 CORREÇÃO: Abrindo modal automático para:', firstWaiting.instance_name);
+          setSelectedInstanceName(firstWaiting.instance_name);
+          setShowQRModal(true);
+          
+          // CORREÇÃO: Iniciar polling para aguardar QR Code
+          setTimeout(() => {
+            refetch();
+          }, 3000);
+        }
+      }
+      
       return mappedInstances;
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
+    refetchInterval: (data) => {
+      // CORREÇÃO: Polling automático quando há instâncias aguardando
+      const hasWaitingInstances = data?.some(i => i.connection_status === 'waiting_qr' || i.connection_status === 'initializing');
+      return hasWaitingInstances ? 5000 : false; // Poll a cada 5s se aguardando
+    }
   });
 
   const createInstance = useCallback(async (instanceName: string) => {
@@ -94,9 +119,8 @@ export const useWhatsAppWebInstances = () => {
     setIsConnecting(true);
     
     try {
-      console.log('[Hook] 🚀 Criando instância:', instanceName, 'para usuário:', user.id);
+      console.log('[Hook] 🚀 CORREÇÃO: Criando instância:', instanceName, 'para usuário:', user.id);
       
-      // CORREÇÃO: Passar autenticação adequada
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
           action: 'create_instance',
@@ -105,7 +129,7 @@ export const useWhatsAppWebInstances = () => {
       });
 
       if (error) {
-        console.error('[Hook] ❌ Erro do Supabase:', error);
+        console.error('[Hook] ❌ CORREÇÃO: Erro do Supabase:', error);
         throw new Error(`Erro na criação: ${error.message}`);
       }
 
@@ -113,17 +137,17 @@ export const useWhatsAppWebInstances = () => {
         throw new Error(data?.error || 'Erro desconhecido na criação da instância');
       }
 
-      console.log('[Hook] ✅ Instância criada:', data.instance);
+      console.log('[Hook] ✅ CORREÇÃO: Instância criada:', data.instance);
       
-      // Atualizar cache
+      // CORREÇÃO: Atualizar cache e mostrar sucesso
       await refetch();
       
-      toast.success(`Instância "${instanceName}" criada com sucesso!`);
+      toast.success(`Instância "${instanceName}" criada! Aguardando QR Code via webhook...`);
       
       return data;
 
     } catch (error: any) {
-      console.error('[Hook] ❌ Erro ao criar instância:', error);
+      console.error('[Hook] ❌ CORREÇÃO: Erro ao criar instância:', error);
       toast.error(`Erro ao criar instância: ${error.message}`);
       throw error;
     } finally {
@@ -137,7 +161,7 @@ export const useWhatsAppWebInstances = () => {
     }
 
     try {
-      console.log('[Hook] 🗑️ Deletando instância:', instanceId, 'para usuário:', user.id);
+      console.log('[Hook] 🗑️ CORREÇÃO: Deletando instância:', instanceId, 'para usuário:', user.id);
       
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
@@ -147,7 +171,7 @@ export const useWhatsAppWebInstances = () => {
       });
 
       if (error) {
-        console.error('[Hook] ❌ Erro do Supabase:', error);
+        console.error('[Hook] ❌ CORREÇÃO: Erro do Supabase:', error);
         throw error;
       }
 
@@ -159,7 +183,7 @@ export const useWhatsAppWebInstances = () => {
       toast.success('Instância deletada com sucesso!');
 
     } catch (error: any) {
-      console.error('[Hook] ❌ Erro ao deletar:', error);
+      console.error('[Hook] ❌ CORREÇÃO: Erro ao deletar:', error);
       toast.error(`Erro ao deletar: ${error.message}`);
       throw error;
     }
@@ -167,7 +191,7 @@ export const useWhatsAppWebInstances = () => {
 
   const refreshQRCode = useCallback(async (instanceId: string) => {
     try {
-      console.log('[Hook] 🔄 Atualizando QR Code:', instanceId);
+      console.log('[Hook] 🔄 CORREÇÃO: Atualizando QR Code:', instanceId);
       
       const { data, error } = await supabase.functions.invoke('whatsapp_qr_service', {
         body: {
@@ -199,7 +223,7 @@ export const useWhatsAppWebInstances = () => {
       };
 
     } catch (error: any) {
-      console.error('[Hook] ❌ Erro ao gerar QR Code:', error);
+      console.error('[Hook] ❌ CORREÇÃO: Erro ao gerar QR Code:', error);
       return {
         success: false,
         error: error.message
@@ -214,15 +238,16 @@ export const useWhatsAppWebInstances = () => {
   }, []);
 
   const closeQRModal = useCallback(() => {
+    console.log('[Hook] 🧹 CORREÇÃO: Fechando modal QR');
     setShowQRModal(false);
     setSelectedQRCode(null);
     setSelectedInstanceName('');
   }, []);
 
   const retryQRCode = useCallback(async () => {
-    // Implementar retry logic se necessário
-    console.log('[Hook] 🔄 Retry QR Code solicitado');
-  }, []);
+    console.log('[Hook] 🔄 CORREÇÃO: Retry QR Code solicitado');
+    await refetch();
+  }, [refetch]);
 
   return {
     instances,

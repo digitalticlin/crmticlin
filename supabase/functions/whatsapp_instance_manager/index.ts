@@ -7,11 +7,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// CONFIGURAÇÃO CORRIGIDA: Servidor Webhook na porta 3002 com timeout adequado
+// CORREÇÃO: Configuração otimizada com timeout adequado baseado nos testes SSH
 const WEBHOOK_SERVER_CONFIG = {
   baseUrl: 'http://31.97.24.222:3002',
   webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
-  timeout: 15000 // Reduzido para 15 segundos
+  timeout: 30000, // CORREÇÃO: Aumentado para 30 segundos baseado nos testes
+  healthTimeout: 15000 // CORREÇÃO: Health check separado com 15s
 };
 
 serve(async (req) => {
@@ -26,7 +27,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // CORREÇÃO CRÍTICA: Implementar autenticação correta
+    // CORREÇÃO: Autenticação simplificada e mais robusta
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('Token de autorização necessário');
@@ -45,7 +46,7 @@ serve(async (req) => {
     const { action, instanceName, instanceId } = await req.json();
 
     if (action === 'create_instance') {
-      return await createInstanceWithWebhook(supabase, instanceName, user);
+      return await createInstanceOptimized(supabase, instanceName, user);
     }
 
     if (action === 'delete_instance_corrected') {
@@ -66,46 +67,32 @@ serve(async (req) => {
   }
 });
 
-async function createInstanceWithWebhook(supabase: any, instanceName: string, user: any) {
+async function createInstanceOptimized(supabase: any, instanceName: string, user: any) {
   const creationId = `create_${Date.now()}`;
-  console.log(`[Instance Manager] 🚀 Criando instância com webhook [${creationId}]:`, instanceName);
+  console.log(`[Instance Manager] 🚀 CORREÇÃO: Criando instância otimizada [${creationId}]:`, instanceName);
 
   try {
-    // 1. Validar dados de entrada
+    // 1. Validação básica apenas
     if (!instanceName || instanceName.trim().length < 3) {
       throw new Error('Nome da instância deve ter pelo menos 3 caracteres');
     }
 
     const sanitizedName = instanceName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
-    
-    // 2. Gerar sessionName único
     const sessionName = `${sanitizedName}_${Date.now()}`;
     const vpsInstanceId = `${sessionName}`;
 
-    // 3. Verificar se já existe instância com esse nome para o usuário
-    const { data: existingInstance } = await supabase
-      .from('whatsapp_instances')
-      .select('id, instance_name')
-      .eq('instance_name', sanitizedName)
-      .eq('created_by_user_id', user.id)
-      .maybeSingle();
-
-    if (existingInstance) {
-      throw new Error(`Já existe uma instância com o nome "${sanitizedName}"`);
-    }
-
-    // 4. CORREÇÃO CRÍTICA: Usar created_by_user_id correto
+    // 2. CORREÇÃO: Criar no banco PRIMEIRO (estratégia otimista)
     const instanceRecord = {
       instance_name: sanitizedName,
       vps_instance_id: vpsInstanceId,
       connection_type: 'web',
       connection_status: 'initializing',
-      created_by_user_id: user.id, // CORRIGIDO: usar user.id em vez de 'system'
+      created_by_user_id: user.id,
       server_url: WEBHOOK_SERVER_CONFIG.baseUrl,
-      company_id: null // Opcional agora
+      company_id: null
     };
 
-    console.log(`[Instance Manager] 💾 Salvando no banco [${creationId}]:`, instanceRecord);
+    console.log(`[Instance Manager] 💾 CORREÇÃO: Salvando no banco primeiro [${creationId}]:`, instanceRecord);
     
     const { data: instance, error: dbError } = await supabase
       .from('whatsapp_instances')
@@ -120,47 +107,12 @@ async function createInstanceWithWebhook(supabase: any, instanceName: string, us
 
     console.log(`[Instance Manager] ✅ Instância salva no banco [${creationId}]:`, instance.id);
 
-    // 5. CORREÇÃO: Testar conectividade VPS antes de criar
-    console.log(`[Instance Manager] 🔍 Testando conectividade VPS [${creationId}]`);
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 segundos para health check
-
-    try {
-      const healthResponse = await fetch(`${WEBHOOK_SERVER_CONFIG.baseUrl}/health`, {
-        method: 'GET',
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (!healthResponse.ok) {
-        throw new Error(`VPS não está saudável: ${healthResponse.status}`);
-      }
-      
-      console.log(`[Instance Manager] ✅ VPS está online [${creationId}]`);
-    } catch (healthError) {
-      clearTimeout(timeoutId);
-      console.error(`[Instance Manager] ❌ VPS inacessível [${creationId}]:`, healthError);
-      
-      // Marcar como erro mas manter no banco para retry posterior
-      await supabase
-        .from('whatsapp_instances')
-        .update({ 
-          connection_status: 'error',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', instance.id);
-      
-      throw new Error(`VPS não acessível: ${healthError.message}`);
-    }
-
-    // 6. Criar instância na VPS com payload correto e timeout adequado
+    // 3. CORREÇÃO: Criar na VPS com estratégia assíncrona (baseado nos testes SSH)
     const vpsPayload = {
       instanceId: vpsInstanceId,
       sessionName: sessionName,
       webhookUrl: WEBHOOK_SERVER_CONFIG.webhookUrl,
-      companyId: user.id, // Usar user.id como identificador
+      companyId: user.id,
       webhook: true,
       webhook_by_events: true,
       webhookEvents: ['messages.upsert', 'qr.update', 'connection.update'],
@@ -168,7 +120,7 @@ async function createInstanceWithWebhook(supabase: any, instanceName: string, us
       markOnlineOnConnect: true
     };
 
-    console.log(`[Instance Manager] 🌐 Criando na VPS [${creationId}] com payload:`, vpsPayload);
+    console.log(`[Instance Manager] 🌐 CORREÇÃO: Criando na VPS [${creationId}] (timeout: ${WEBHOOK_SERVER_CONFIG.timeout}ms)`);
     
     const vpsController = new AbortController();
     const vpsTimeoutId = setTimeout(() => vpsController.abort(), WEBHOOK_SERVER_CONFIG.timeout);
@@ -185,21 +137,57 @@ async function createInstanceWithWebhook(supabase: any, instanceName: string, us
 
       if (!vpsResponse.ok) {
         const errorText = await vpsResponse.text();
+        console.error(`[Instance Manager] ❌ VPS erro [${creationId}]:`, vpsResponse.status, errorText);
+        
+        // CORREÇÃO: Marcar como erro mas manter no banco para retry
+        await supabase
+          .from('whatsapp_instances')
+          .update({ 
+            connection_status: 'error',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', instance.id);
+          
         throw new Error(`VPS respondeu com status ${vpsResponse.status}: ${errorText}`);
       }
 
       const vpsData = await vpsResponse.json();
-      console.log(`[Instance Manager] 📡 Resposta da VPS [${creationId}]:`, vpsData);
+      console.log(`[Instance Manager] 📡 CORREÇÃO: VPS sucesso [${creationId}]:`, vpsData);
+
+      // 4. CORREÇÃO: Atualizar status para aguardar webhook
+      const { data: updatedInstance } = await supabase
+        .from('whatsapp_instances')
+        .update({ 
+          connection_status: 'waiting_qr',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', instance.id)
+        .select()
+        .single();
+
+      console.log(`[Instance Manager] ✅ CORREÇÃO: Instância criada com sucesso [${creationId}] - aguardando webhook`);
+
+      return new Response(JSON.stringify({
+        success: true,
+        instance: updatedInstance || instance,
+        vpsInstanceId: vpsInstanceId,
+        webhook_enabled: true,
+        server_port: 3002,
+        creationId,
+        message: 'Instância criada com sucesso - aguardando QR Code via webhook'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
 
     } catch (vpsError) {
       clearTimeout(vpsTimeoutId);
       console.error(`[Instance Manager] ❌ VPS falhou [${creationId}]:`, vpsError);
       
-      // Marcar como erro mas manter no banco
+      // CORREÇÃO: Marcar como erro mas manter no banco
       await supabase
         .from('whatsapp_instances')
         .update({ 
-          connection_status: 'error',
+          connection_status: 'vps_error',
           updated_at: new Date().toISOString()
         })
         .eq('id', instance.id);
@@ -207,33 +195,8 @@ async function createInstanceWithWebhook(supabase: any, instanceName: string, us
       throw new Error(`Falha ao criar instância na VPS: ${vpsError.message}`);
     }
 
-    // 7. Atualizar status após sucesso na VPS
-    const { data: updatedInstance } = await supabase
-      .from('whatsapp_instances')
-      .update({ 
-        connection_status: 'waiting_qr',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', instance.id)
-      .select()
-      .single();
-
-    console.log(`[Instance Manager] ✅ Instância criada com sucesso [${creationId}]`);
-
-    return new Response(JSON.stringify({
-      success: true,
-      instance: updatedInstance || instance,
-      vpsInstanceId: vpsInstanceId,
-      webhook_enabled: true,
-      server_port: 3002,
-      creationId,
-      message: 'Instância criada com webhook automático'
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-
   } catch (error) {
-    console.error(`[Instance Manager] ❌ ERRO [${creationId}]:`, error);
+    console.error(`[Instance Manager] ❌ ERRO GERAL [${creationId}]:`, error);
     
     return new Response(JSON.stringify({
       success: false,
@@ -250,12 +213,12 @@ async function deleteInstanceCorrected(supabase: any, instanceId: string, user: 
   console.log(`[Instance Manager] 🗑️ Deletando instância: ${instanceId} para usuário: ${user.id}`);
 
   try {
-    // 1. CORREÇÃO: Buscar instância do usuário específico
+    // 1. Buscar instância do usuário específico
     const { data: instance, error: findError } = await supabase
       .from('whatsapp_instances')
       .select('*')
       .eq('id', instanceId)
-      .eq('created_by_user_id', user.id) // CORREÇÃO: filtrar por usuário
+      .eq('created_by_user_id', user.id)
       .single();
 
     if (findError || !instance) {
@@ -285,7 +248,7 @@ async function deleteInstanceCorrected(supabase: any, instanceId: string, user: 
       .from('whatsapp_instances')
       .delete()
       .eq('id', instanceId)
-      .eq('created_by_user_id', user.id); // CORREÇÃO: filtrar por usuário
+      .eq('created_by_user_id', user.id);
 
     if (deleteError) {
       throw new Error(`Erro ao deletar do banco: ${deleteError.message}`);
