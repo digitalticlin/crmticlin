@@ -1,9 +1,9 @@
-
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { AsyncStatusService } from "@/services/whatsapp/asyncStatusService";
 
 export interface WhatsAppWebInstance {
   id: string;
@@ -34,7 +34,7 @@ export const useWhatsAppWebInstances = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  // CORREÇÃO: Query otimizada com melhor tratamento de estados
+  // NOVO: Query otimizada com polling inteligente
   const {
     data: instances = [],
     isLoading,
@@ -44,11 +44,11 @@ export const useWhatsAppWebInstances = () => {
     queryKey: ['whatsappWebInstances', user?.id],
     queryFn: async () => {
       if (!user?.id) {
-        console.log('[Hook] ⏭️ CORREÇÃO: Usuário não autenticado, retornando array vazio');
+        console.log('[Hook] ⏭️ ASYNC: Usuário não autenticado, retornando array vazio');
         return [];
       }
 
-      console.log('[Hook] 📊 CORREÇÃO: Buscando instâncias para usuário:', user.id);
+      console.log('[Hook] 📊 ASYNC: Buscando instâncias para usuário:', user.id);
       
       const { data, error: fetchError } = await supabase
         .from('whatsapp_instances')
@@ -58,7 +58,7 @@ export const useWhatsAppWebInstances = () => {
         .order('created_at', { ascending: false });
 
       if (fetchError) {
-        console.error('[Hook] ❌ CORREÇÃO: Erro ao buscar instâncias:', fetchError);
+        console.error('[Hook] ❌ ASYNC: Erro ao buscar instâncias:', fetchError);
         throw fetchError;
       }
 
@@ -81,20 +81,52 @@ export const useWhatsAppWebInstances = () => {
         history_imported: instance.history_imported || false
       }));
 
-      console.log(`[Hook] ✅ CORREÇÃO: Instâncias carregadas: ${mappedInstances.length} para usuário ${user.id}`);
+      console.log(`[Hook] ✅ ASYNC: Instâncias carregadas: ${mappedInstances.length} para usuário ${user.id}`);
       
       return mappedInstances;
     },
     enabled: !!user?.id,
     refetchInterval: (data) => {
-      // CORREÇÃO: Polling automático quando há instâncias aguardando
-      const hasWaitingInstances = data?.some(i => 
-        i.connection_status === 'waiting_qr' || 
-        i.connection_status === 'initializing'
+      // NOVO: Polling inteligente baseado no status
+      const hasPendingInstances = data?.some(i => 
+        i.connection_status === 'vps_pending' || 
+        i.connection_status === 'initializing' ||
+        i.connection_status === 'waiting_qr'
       );
-      return hasWaitingInstances ? 3000 : false; // Poll a cada 3s se aguardando
+      
+      // Poll mais frequente se há instâncias pendentes
+      return hasPendingInstances ? 5000 : 15000; // 5s vs 15s
     }
   });
+
+  // NOVO: Sincronização automática de instâncias pendentes
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const timer = setTimeout(async () => {
+      const pendingInstances = instances.filter(i => 
+        i.connection_status === 'vps_pending' || 
+        i.connection_status === 'initializing'
+      );
+
+      if (pendingInstances.length > 0) {
+        console.log(`[Hook] 🔄 ASYNC: Auto-sincronizando ${pendingInstances.length} instâncias pendentes`);
+        
+        for (const instance of pendingInstances) {
+          try {
+            await AsyncStatusService.syncInstanceStatus(instance.id);
+          } catch (error) {
+            console.log(`[Hook] ⚠️ ASYNC: Erro na auto-sincronização de ${instance.instance_name}:`, error);
+          }
+        }
+        
+        // Atualizar dados após sincronização
+        refetch();
+      }
+    }, 3000); // Aguardar 3s após carregar para auto-sincronizar
+
+    return () => clearTimeout(timer);
+  }, [instances, user?.id, refetch]);
 
   const createInstance = useCallback(async (instanceName: string) => {
     if (!user?.id) {
@@ -104,30 +136,18 @@ export const useWhatsAppWebInstances = () => {
     setIsConnecting(true);
     
     try {
-      console.log('[Hook] 🚀 CORREÇÃO RÁPIDA: Criando instância OTIMIZADA:', instanceName, 'para usuário:', user.id);
+      console.log('[Hook] 🚀 ASYNC: Criando instância assíncrona:', instanceName, 'para usuário:', user.id);
       
-      // ESTRATÉGIA OTIMIZADA: Criar instância no background e abrir modal imediatamente
-      const createPromise = supabase.functions.invoke('whatsapp_instance_manager', {
+      // NOVO: Criação assíncrona com resposta imediata
+      const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
           action: 'create_instance',
           instanceName: instanceName
         }
       });
 
-      // CORREÇÃO: Abrir modal QR IMEDIATAMENTE após 2 segundos
-      setTimeout(() => {
-        console.log('[Hook] ⚡ CORREÇÃO RÁPIDA: Abrindo modal QR antecipadamente');
-        setSelectedInstanceName(instanceName);
-        setSelectedInstanceId('temp_' + Date.now()); // ID temporário
-        setShowQRModal(true);
-        toast.success(`Modal QR aberto para "${instanceName}" - aguardando criação...`);
-      }, 2000);
-
-      // Aguardar resposta da edge function em background
-      const { data, error } = await createPromise;
-
       if (error) {
-        console.error('[Hook] ❌ CORREÇÃO: Erro do Supabase:', error);
+        console.error('[Hook] ❌ ASYNC: Erro do Supabase:', error);
         throw new Error(`Erro na criação: ${error.message}`);
       }
 
@@ -135,23 +155,43 @@ export const useWhatsAppWebInstances = () => {
         throw new Error(data?.error || 'Erro desconhecido na criação da instância');
       }
 
-      console.log('[Hook] ✅ CORREÇÃO RÁPIDA: Instância criada:', data.instance);
+      console.log('[Hook] ✅ ASYNC: Resposta da criação:', data);
       
-      // CORREÇÃO: Atualizar ID real da instância no modal
-      if (data.instance?.id) {
+      // NOVO: Estratégias diferentes baseadas no resultado
+      if (data.creation_strategy === 'vps_success') {
+        // VPS criou com sucesso - abrir modal imediatamente
+        console.log('[Hook] 🎯 ASYNC: VPS sucesso - abrindo modal QR');
+        setSelectedInstanceName(instanceName);
         setSelectedInstanceId(data.instance.id);
+        setShowQRModal(true);
+        toast.success(`Instância "${instanceName}" criada com sucesso!`);
+        
+      } else if (data.creation_strategy === 'async_pending') {
+        // VPS pendente - aguardar em background
+        console.log('[Hook] ⏳ ASYNC: VPS pendente - iniciando polling');
+        setSelectedInstanceName(instanceName);
+        setSelectedInstanceId(data.instance.id);
+        setShowQRModal(true);
+        toast.info(`Instância "${instanceName}" criada - verificando VPS em background...`);
+        
+        // NOVO: Iniciar polling assíncrono
+        setTimeout(async () => {
+          const success = await AsyncStatusService.startPollingForInstance(data.instance.id, 8);
+          if (success) {
+            refetch(); // Atualizar lista quando polling for bem-sucedido
+          }
+        }, 2000);
       }
       
-      // CORREÇÃO: Atualizar cache
+      // Atualizar cache
       await refetch();
       
       return data;
 
     } catch (error: any) {
-      console.error('[Hook] ❌ CORREÇÃO: Erro ao criar instância:', error);
+      console.error('[Hook] ❌ ASYNC: Erro ao criar instância:', error);
       toast.error(`Erro ao criar instância: ${error.message}`);
       
-      // CORREÇÃO: Fechar modal se erro
       setShowQRModal(false);
       setSelectedInstanceId('');
       setSelectedInstanceName('');
@@ -168,7 +208,7 @@ export const useWhatsAppWebInstances = () => {
     }
 
     try {
-      console.log('[Hook] 🗑️ CORREÇÃO: Deletando instância:', instanceId, 'para usuário:', user.id);
+      console.log('[Hook] 🗑️ ASYNC: Deletando instância:', instanceId, 'para usuário:', user.id);
       
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
@@ -178,7 +218,7 @@ export const useWhatsAppWebInstances = () => {
       });
 
       if (error) {
-        console.error('[Hook] ❌ CORREÇÃO: Erro do Supabase:', error);
+        console.error('[Hook] ❌ ASYNC: Erro do Supabase:', error);
         throw error;
       }
 
@@ -190,7 +230,7 @@ export const useWhatsAppWebInstances = () => {
       toast.success('Instância deletada com sucesso!');
 
     } catch (error: any) {
-      console.error('[Hook] ❌ CORREÇÃO: Erro ao deletar:', error);
+      console.error('[Hook] ❌ ASYNC: Erro ao deletar:', error);
       toast.error(`Erro ao deletar: ${error.message}`);
       throw error;
     }
@@ -198,8 +238,17 @@ export const useWhatsAppWebInstances = () => {
 
   const refreshQRCode = useCallback(async (instanceId: string) => {
     try {
-      console.log('[Hook] 🔄 CORREÇÃO: Atualizando QR Code:', instanceId);
+      console.log('[Hook] 🔄 ASYNC: Atualizando QR Code:', instanceId);
       
+      // NOVO: Tentar sincronizar status primeiro
+      const syncResult = await AsyncStatusService.syncInstanceStatus(instanceId);
+      
+      if (syncResult.success) {
+        console.log('[Hook] ✅ ASYNC: Status sincronizado, tentando QR service');
+        await refetch(); // Atualizar dados após sincronização
+      }
+      
+      // Tentar via QR service como fallback
       const { data, error } = await supabase.functions.invoke('whatsapp_qr_service', {
         body: {
           action: 'generate_qr',
@@ -222,7 +271,6 @@ export const useWhatsAppWebInstances = () => {
         throw new Error(data?.error || 'Erro desconhecido ao gerar QR Code');
       }
 
-      // CORREÇÃO: Atualizar QR Code no modal se estiver aberto
       if (showQRModal && data.qrCode) {
         setSelectedQRCode(data.qrCode);
       }
@@ -235,7 +283,7 @@ export const useWhatsAppWebInstances = () => {
       };
 
     } catch (error: any) {
-      console.error('[Hook] ❌ CORREÇÃO: Erro ao gerar QR Code:', error);
+      console.error('[Hook] ❌ ASYNC: Erro ao gerar QR Code:', error);
       return {
         success: false,
         error: error.message
@@ -250,7 +298,7 @@ export const useWhatsAppWebInstances = () => {
   }, []);
 
   const closeQRModal = useCallback(() => {
-    console.log('[Hook] 🧹 CORREÇÃO: Fechando modal QR');
+    console.log('[Hook] 🧹 ASYNC: Fechando modal QR');
     setShowQRModal(false);
     setSelectedQRCode(null);
     setSelectedInstanceName('');
@@ -258,7 +306,7 @@ export const useWhatsAppWebInstances = () => {
   }, []);
 
   const retryQRCode = useCallback(async () => {
-    console.log('[Hook] 🔄 CORREÇÃO: Retry QR Code solicitado');
+    console.log('[Hook] 🔄 ASYNC: Retry QR Code solicitado');
     
     if (selectedInstanceId && !selectedInstanceId.startsWith('temp_')) {
       await refreshQRCode(selectedInstanceId);
@@ -266,6 +314,24 @@ export const useWhatsAppWebInstances = () => {
       await refetch();
     }
   }, [selectedInstanceId, refreshQRCode, refetch]);
+
+  // NOVO: Função para sincronizar instâncias pendentes manualmente
+  const syncPendingInstances = useCallback(async () => {
+    try {
+      console.log('[Hook] 🔄 ASYNC: Sincronização manual de instâncias pendentes');
+      const result = await AsyncStatusService.recoverPendingInstances();
+      
+      if (result.recovered > 0) {
+        await refetch(); // Atualizar lista se alguma foi recuperada
+      }
+      
+      return result;
+    } catch (error: any) {
+      console.error('[Hook] ❌ ASYNC: Erro na sincronização manual:', error);
+      toast.error(`Erro na sincronização: ${error.message}`);
+      return { recovered: 0, errors: [error.message] };
+    }
+  }, [refetch]);
 
   return {
     instances,
@@ -282,6 +348,7 @@ export const useWhatsAppWebInstances = () => {
     refreshQRCode,
     generateIntelligentInstanceName,
     closeQRModal,
-    retryQRCode
+    retryQRCode,
+    syncPendingInstances // NOVO: Função para sincronização manual
   };
 };

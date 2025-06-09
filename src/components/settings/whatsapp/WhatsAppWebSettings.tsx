@@ -10,6 +10,7 @@ import { ImprovedConnectWhatsAppButton } from "./ImprovedConnectWhatsAppButton";
 import { CleanupOrphanedInstancesButton } from "./CleanupOrphanedInstancesButton";
 import { OrphanInstanceManager } from "./OrphanInstanceManager";
 import { AutoQRModal } from "./AutoQRModal";
+import { AsyncStatusIndicator } from "./AsyncStatusIndicator";
 import { VPSHealthService } from "@/services/whatsapp/vpsHealthService";
 import { WhatsAppCleanupService } from "@/services/whatsapp/cleanupService";
 import { useState, useEffect } from "react";
@@ -33,7 +34,8 @@ export const WhatsAppWebSettings = () => {
     deleteInstance,
     refreshQRCode,
     closeQRModal,
-    retryQRCode
+    retryQRCode,
+    syncPendingInstances // NOVO: Função de sincronização
   } = useWhatsAppWebInstances();
 
   // CORREÇÃO: Monitoramento otimizado da VPS
@@ -51,11 +53,9 @@ export const WhatsAppWebSettings = () => {
       setOrphanCount(count);
     };
 
-    // Verificar inicialmente
     checkVPSHealth();
     checkOrphanCount();
 
-    // CORREÇÃO: Verificar periodicamente (a cada 30 segundos)
     const interval = setInterval(() => {
       checkVPSHealth();
       checkOrphanCount();
@@ -66,12 +66,12 @@ export const WhatsAppWebSettings = () => {
 
   const handleConnect = async () => {
     if (!user?.email) {
-      console.error('[WhatsApp Settings] ❌ CORREÇÃO: Email do usuário não disponível');
+      console.error('[WhatsApp Settings] ❌ ASYNC: Email do usuário não disponível');
       return;
     }
 
     try {
-      console.log('[WhatsApp Settings] 🎯 CORREÇÃO: Criando instância para usuário autenticado:', user.id);
+      console.log('[WhatsApp Settings] 🎯 ASYNC: Criando instância para usuário autenticado:', user.id);
       
       const timestamp = Date.now();
       const emailPrefix = user.email.split('@')[0];
@@ -79,12 +79,12 @@ export const WhatsAppWebSettings = () => {
       
       await createInstance(instanceName);
     } catch (error: any) {
-      console.error('[WhatsApp Settings] ❌ CORREÇÃO: Erro ao conectar:', error);
+      console.error('[WhatsApp Settings] ❌ ASYNC: Erro ao conectar:', error);
     }
   };
 
   const handleShowQR = (instance: any) => {
-    console.log('[WhatsApp Settings] 📱 CORREÇÃO: Mostrando QR Code para:', instance.id);
+    console.log('[WhatsApp Settings] 📱 ASYNC: Mostrando QR Code para:', instance.id);
   };
 
   const handleRefreshQRCodeWrapper = async (instanceId: string): Promise<{ qrCode?: string } | null> => {
@@ -95,7 +95,7 @@ export const WhatsAppWebSettings = () => {
       }
       return null;
     } catch (error: any) {
-      console.error('[WhatsApp Settings] ❌ CORREÇÃO: Erro ao atualizar QR Code:', error);
+      console.error('[WhatsApp Settings] ❌ ASYNC: Erro ao atualizar QR Code:', error);
       return null;
     }
   };
@@ -115,14 +115,21 @@ export const WhatsAppWebSettings = () => {
     );
   }
 
-  // CORREÇÃO: Contar instâncias por status
-  const connectedInstances = instances.filter(i => i.connection_status === 'connected').length;
-  const waitingInstances = instances.filter(i => i.connection_status === 'waiting_qr' || i.connection_status === 'initializing').length;
-  const errorInstances = instances.filter(i => i.connection_status === 'error' || i.connection_status === 'vps_error').length;
+  // ASYNC: Contar instâncias por status com novos status
+  const connectedInstances = instances.filter(i => 
+    i.connection_status === 'connected' || i.connection_status === 'ready'
+  ).length;
+  const waitingInstances = instances.filter(i => i.connection_status === 'waiting_qr').length;
+  const pendingInstances = instances.filter(i => 
+    i.connection_status === 'vps_pending' || i.connection_status === 'initializing'
+  ).length;
+  const errorInstances = instances.filter(i => 
+    i.connection_status === 'error' || i.connection_status === 'vps_error'
+  ).length;
 
   return (
     <div className="space-y-6">
-      {/* CORREÇÃO: Header com status detalhado */}
+      {/* Header com status detalhado */}
       <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -131,14 +138,13 @@ export const WhatsAppWebSettings = () => {
                 <MessageSquare className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-green-800">WhatsApp Web.js</h2>
+                <h2 className="text-xl font-semibold text-green-800">WhatsApp Web.js - Sistema Assíncrono</h2>
                 <p className="text-sm text-green-600">
-                  Sistema corrigido e otimizado (Usuário: {user?.email})
+                  Sistema otimizado com criação assíncrona (Usuário: {user?.email})
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {/* CORREÇÃO: Status VPS */}
               <Badge variant={vpsHealth?.online ? "default" : "destructive"} className="border-green-300">
                 <Activity className="h-3 w-3 mr-1" />
                 VPS {vpsHealth?.online ? 'Online' : 'Offline'}
@@ -147,10 +153,9 @@ export const WhatsAppWebSettings = () => {
               
               <Badge variant="outline" className="border-green-300 text-green-700">
                 <Shield className="h-3 w-3 mr-1" />
-                Correções Ativas
+                Async Ativo
               </Badge>
               
-              {/* CORREÇÃO: Status das instâncias */}
               {connectedInstances > 0 && (
                 <Badge variant="default" className="bg-green-600">
                   <CheckCircle className="h-3 w-3 mr-1" />
@@ -165,6 +170,13 @@ export const WhatsAppWebSettings = () => {
                 </Badge>
               )}
               
+              {pendingInstances > 0 && (
+                <Badge variant="outline" className="bg-orange-100 text-orange-700">
+                  <Activity className="h-3 w-3 mr-1" />
+                  {pendingInstances} Pendente(s)
+                </Badge>
+              )}
+              
               {errorInstances > 0 && (
                 <Badge variant="destructive">
                   <AlertTriangle className="h-3 w-3 mr-1" />
@@ -172,7 +184,6 @@ export const WhatsAppWebSettings = () => {
                 </Badge>
               )}
 
-              {/* Alerta de instâncias órfãs */}
               {orphanCount > 0 && (
                 <Badge variant="destructive">
                   <AlertTriangle className="h-3 w-3 mr-1" />
@@ -184,10 +195,16 @@ export const WhatsAppWebSettings = () => {
         </CardHeader>
       </Card>
 
+      {/* NOVO: Indicador de status assíncrono */}
+      <AsyncStatusIndicator 
+        instances={instances}
+        onRefresh={refetch}
+      />
+
       {/* Sistema de Recuperação de Órfãs */}
       <OrphanInstanceManager />
 
-      {/* CORREÇÃO: Botões de ação */}
+      {/* Botões de ação */}
       <div className="flex gap-3">
         <ImprovedConnectWhatsAppButton 
           onConnect={handleConnect}
@@ -213,7 +230,7 @@ export const WhatsAppWebSettings = () => {
         />
       )}
 
-      {/* CORREÇÃO: Modal do QR Code Automático */}
+      {/* Modal do QR Code Automático */}
       <AutoQRModal
         isOpen={showQRModal}
         onClose={closeQRModal}
