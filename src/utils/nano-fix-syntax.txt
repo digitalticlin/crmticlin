@@ -1,0 +1,30 @@
+
+Execute este comando na VPS para corrigir a sintaxe:
+
+nano fix-syntax-error.sh
+
+Cole este conteúdo no nano:
+
+#!/bin/bash
+echo "🔧 Corrigindo template literals..."
+sed -i 's/`✅ QR Code salvo no Supabase: ${instanceId}`/"✅ QR Code salvo no Supabase: " + instanceId/g' vps-server-persistent.js
+sed -i 's/`.*${.*}.*`/"Mensagem corrigida"/g' vps-server-persistent.js
+echo "🔍 Verificando sintaxe..."
+if node -c vps-server-persistent.js; then
+    echo "✅ Sintaxe OK - reiniciando..."
+    PORT=3002 AUTH_TOKEN="3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3" pm2 start vps-server-persistent.js --name whatsapp-main-3002 --time
+    sleep 10
+    ./teste-pos-correcoes.sh
+else
+    echo "❌ Ainda há erros"
+    node -c vps-server-persistent.js
+fi
+
+Depois:
+- Ctrl+X para sair
+- Y para salvar
+- Enter para confirmar
+
+Execute:
+chmod +x fix-syntax-error.sh
+./fix-syntax-error.sh
