@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppWebInstance } from "@/types/whatsapp";
 
@@ -9,6 +8,9 @@ export class WhatsAppWebService {
     error?: string;
   }> {
     try {
+      console.log('[WhatsAppWebService] 🚀 Criando instância via whatsapp_instance_manager:', instanceName);
+
+      // CORREÇÃO: Usar whatsapp_instance_manager (que já está corrigida e testada)
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
           action: 'create_instance',
@@ -17,12 +19,18 @@ export class WhatsAppWebService {
       });
 
       if (error) {
+        console.error('[WhatsAppWebService] ❌ Erro do Supabase:', error);
         throw new Error(`Erro do Supabase: ${error.message}`);
       }
 
+      console.log('[WhatsAppWebService] 📥 Response completa:', data);
+
       if (!data?.success) {
+        console.error('[WhatsAppWebService] ❌ Edge function retornou erro:', data?.error);
         throw new Error(data?.error || 'Erro desconhecido na criação da instância');
       }
+
+      console.log('[WhatsAppWebService] ✅ Instância criada com sucesso:', data.instance);
 
       return {
         success: true,
@@ -30,6 +38,7 @@ export class WhatsAppWebService {
       };
 
     } catch (error: any) {
+      console.error('[WhatsAppWebService] ❌ Erro completo:', error);
       return {
         success: false,
         error: error.message
@@ -42,6 +51,8 @@ export class WhatsAppWebService {
     error?: string;
   }> {
     try {
+      console.log('[WhatsAppWebService] 🗑️ Deletando via whatsapp_instance_manager:', instanceId);
+
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
           action: 'delete_instance_corrected',
@@ -50,16 +61,20 @@ export class WhatsAppWebService {
       });
 
       if (error) {
+        console.error('[WhatsAppWebService] ❌ Erro do Supabase:', error);
         throw new Error(`Erro do Supabase: ${error.message}`);
       }
 
       if (!data?.success) {
+        console.error('[WhatsAppWebService] ❌ Erro ao deletar:', data?.error);
         throw new Error(data?.error || 'Erro ao deletar instância');
       }
 
+      console.log('[WhatsAppWebService] ✅ Instância deletada com sucesso');
       return { success: true };
 
     } catch (error: any) {
+      console.error('[WhatsAppWebService] ❌ Erro ao deletar:', error);
       return {
         success: false,
         error: error.message

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,42 +47,45 @@ export const useWhatsAppWebInstances = () => {
     }
   };
 
-  // Criar nova instância com nome sequencial
+  // CORREÇÃO: Criar nova instância com tratamento correto
   const createInstance = async (userEmail: string): Promise<{ success: boolean; instance?: WhatsAppWebInstance; error?: string }> => {
     try {
       setIsConnecting(true);
-      console.log('[Instances Hook] 🚀 Criando instância com nome sequencial...');
+      console.log('[Instances Hook] 🚀 CORREÇÃO: Criando instância...');
 
-      // Usar hook de nomeação inteligente para gerar nome sequencial
+      // Gerar nome inteligente
       const intelligentName = await generateIntelligentInstanceName(userEmail);
-      console.log('[Instances Hook] 🎯 Nome gerado:', intelligentName);
+      console.log('[Instances Hook] 🎯 CORREÇÃO: Nome gerado:', intelligentName);
 
+      // CORREÇÃO: Usar WhatsAppWebService que agora chama whatsapp_instance_manager corretamente
       const result = await WhatsAppWebService.createInstance(intelligentName);
 
+      console.log('[Instances Hook] 📥 CORREÇÃO: Resultado completo:', result);
+
       if (!result.success) {
+        console.error('[Instances Hook] ❌ CORREÇÃO: Falha na criação:', result.error);
         throw new Error(result.error || 'Erro ao criar instância');
       }
 
-      console.log('[Instances Hook] ✅ Instância criada:', result.instance);
+      console.log('[Instances Hook] ✅ CORREÇÃO: Instância criada:', result.instance);
 
       // Atualizar lista
       await fetchInstances();
 
-      // Abrir modal automático
+      // Abrir modal automático se tiver instância
       const newInstance = result.instance;
       if (newInstance?.id) {
-        console.log('[Instances Hook] 📱 Abrindo modal automático...');
+        console.log('[Instances Hook] 📱 CORREÇÃO: Abrindo modal automático...');
         openQRModal(newInstance.id, newInstance.instance_name);
-        
         toast.success(`Instância "${intelligentName}" criada! Aguarde o QR Code...`);
       } else {
-        toast.warning('Instância criada, mas QR Code não disponível imediatamente');
+        toast.warning('Instância criada, mas dados não disponíveis imediatamente');
       }
 
       return { success: true, instance: newInstance };
 
     } catch (error: any) {
-      console.error('[Instances Hook] ❌ Erro ao criar instância:', error);
+      console.error('[Instances Hook] ❌ CORREÇÃO: Erro na criação:', error);
       toast.error(`Erro ao criar instância: ${error.message}`);
       return { success: false, error: error.message };
     } finally {
