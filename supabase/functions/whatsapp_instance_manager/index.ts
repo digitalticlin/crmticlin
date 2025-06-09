@@ -6,18 +6,17 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// CORREÇÃO: Configuração assíncrona otimizada
-const WEBHOOK_SERVER_CONFIG = {
+// CORREÇÃO: Configuração VPS baseada nos testes reais
+const VPS_CONFIG = {
   baseUrl: 'http://31.97.24.222:3002',
-  webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
-  timeout: 10000, // REDUZIDO: 10 segundos apenas
-  healthTimeout: 5000, // REDUZIDO: 5 segundos
-  retryAttempts: 2, // NOVO: tentativas de retry
-  authToken: Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3'
+  authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
+  timeout: 30000, // 30 segundos
+  retryAttempts: 3,
+  webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web'
 };
 
 serve(async (req) => {
-  console.log('[Instance Manager] 🚀 ASYNC: Requisição iniciada:', req.method);
+  console.log('[Instance Manager] 🚀 PAYLOAD CORRETO: Requisição iniciada:', req.method);
   
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -37,16 +36,16 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
-      console.error('[Instance Manager] ❌ ASYNC: Erro de autenticação:', authError);
+      console.error('[Instance Manager] ❌ PAYLOAD CORRETO: Erro de autenticação:', authError);
       throw new Error('Usuário não autenticado');
     }
 
-    console.log('[Instance Manager] ✅ ASYNC: Usuário autenticado:', user.id);
+    console.log('[Instance Manager] ✅ PAYLOAD CORRETO: Usuário autenticado:', user.id);
 
     const { action, instanceName, instanceId } = await req.json();
 
     if (action === 'create_instance') {
-      return await createInstanceAsync(supabase, instanceName, user);
+      return await createInstanceWithCorrectPayload(supabase, instanceName, user);
     }
 
     if (action === 'delete_instance_corrected') {
@@ -64,7 +63,7 @@ serve(async (req) => {
     throw new Error('Ação não reconhecida');
 
   } catch (error) {
-    console.error('[Instance Manager] ❌ ASYNC: Erro:', error);
+    console.error('[Instance Manager] ❌ PAYLOAD CORRETO: Erro:', error);
     return new Response(JSON.stringify({
       success: false,
       error: error.message
@@ -75,9 +74,9 @@ serve(async (req) => {
   }
 });
 
-async function createInstanceAsync(supabase: any, instanceName: string, user: any) {
-  const creationId = `async_create_${Date.now()}`;
-  console.log(`[Instance Manager] 🚀 ASYNC: Criação assíncrona [${creationId}]:`, instanceName);
+async function createInstanceWithCorrectPayload(supabase: any, instanceName: string, user: any) {
+  const creationId = `correct_payload_${Date.now()}`;
+  console.log(`[Instance Manager] 🎯 PAYLOAD CORRETO: Criação com payload correto [${creationId}]:`, instanceName);
 
   try {
     // 1. Validação e preparação
@@ -86,21 +85,22 @@ async function createInstanceAsync(supabase: any, instanceName: string, user: an
     }
 
     const sanitizedName = instanceName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
-    const sessionName = `${sanitizedName}_${Date.now()}`;
-    const vpsInstanceId = `${sessionName}`;
+    const timestamp = Date.now();
+    const sessionName = `${sanitizedName}_${timestamp}`;
+    const vpsInstanceId = sessionName; // CORREÇÃO: instanceId igual sessionName
 
-    // 2. ESTRATÉGIA ASYNC: Salvar no banco PRIMEIRO (otimista)
+    // 2. Salvar no banco PRIMEIRO (estratégia otimista)
     const instanceRecord = {
       instance_name: sanitizedName,
       vps_instance_id: vpsInstanceId,
       connection_type: 'web',
       connection_status: 'initializing',
       created_by_user_id: user.id,
-      server_url: WEBHOOK_SERVER_CONFIG.baseUrl,
+      server_url: VPS_CONFIG.baseUrl,
       company_id: null
     };
 
-    console.log(`[Instance Manager] 💾 ASYNC: Salvando no banco [${creationId}]:`, instanceRecord);
+    console.log(`[Instance Manager] 💾 PAYLOAD CORRETO: Salvando no banco [${creationId}]:`, instanceRecord);
     
     const { data: instance, error: dbError } = await supabase
       .from('whatsapp_instances')
@@ -109,97 +109,65 @@ async function createInstanceAsync(supabase: any, instanceName: string, user: an
       .single();
 
     if (dbError) {
-      console.error(`[Instance Manager] ❌ ASYNC: Erro no banco [${creationId}]:`, dbError);
+      console.error(`[Instance Manager] ❌ PAYLOAD CORRETO: Erro no banco [${creationId}]:`, dbError);
       throw new Error(`Erro no banco: ${dbError.message}`);
     }
 
-    console.log(`[Instance Manager] ✅ ASYNC: Instância salva [${creationId}]:`, instance.id);
+    console.log(`[Instance Manager] ✅ PAYLOAD CORRETO: Instância salva [${creationId}]:`, instance.id);
 
-    // 3. ESTRATÉGIA ASYNC: Tentar criar na VPS com timeout reduzido
-    const vpsPayload = {
+    // 3. CORREÇÃO CRÍTICA: Payload EXATAMENTE como seu teste SSH
+    const correctPayload = {
       instanceId: vpsInstanceId,
       sessionName: sessionName,
-      webhookUrl: WEBHOOK_SERVER_CONFIG.webhookUrl,
+      webhookUrl: VPS_CONFIG.webhookUrl,
       companyId: user.id,
       webhook: true,
       webhook_by_events: true,
-      webhookEvents: ['messages.upsert', 'qr.update', 'connection.update'],
+      webhookEvents: ["messages.upsert", "qr.update", "connection.update"],
       qrcode: true,
       markOnlineOnConnect: true
     };
 
-    console.log(`[Instance Manager] 🌐 ASYNC: Tentando VPS [${creationId}] (timeout: ${WEBHOOK_SERVER_CONFIG.timeout}ms)`);
+    console.log(`[Instance Manager] 📡 PAYLOAD CORRETO: Enviando payload correto [${creationId}]:`, correctPayload);
     
-    // NOVO: Usar Promise.race para implementar timeout customizado
-    const vpsPromise = attemptVPSCreation(vpsPayload, WEBHOOK_SERVER_CONFIG.retryAttempts);
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('VPS_TIMEOUT')), WEBHOOK_SERVER_CONFIG.timeout)
-    );
-
-    try {
-      const vpsResult = await Promise.race([vpsPromise, timeoutPromise]);
+    // 4. Fazer requisição com retry e timeout corretos
+    const vpsResult = await attemptVPSCreationWithCorrectPayload(correctPayload, VPS_CONFIG.retryAttempts);
+    
+    if (vpsResult.success) {
+      console.log(`[Instance Manager] ✅ PAYLOAD CORRETO: VPS sucesso [${creationId}]:`, vpsResult.data);
       
-      if (vpsResult.success) {
-        console.log(`[Instance Manager] ✅ ASYNC: VPS sucesso [${creationId}]:`, vpsResult.data);
-        
-        // Atualizar status para aguardar webhook
-        await supabase
-          .from('whatsapp_instances')
-          .update({ 
-            connection_status: 'waiting_qr',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', instance.id);
-
-        return new Response(JSON.stringify({
-          success: true,
-          instance: instance,
-          vpsInstanceId: vpsInstanceId,
-          async_mode: true,
-          creation_strategy: 'vps_success',
-          creationId,
-          message: 'Instância criada com sucesso na VPS - aguardando QR Code'
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-    } catch (vpsError) {
-      console.log(`[Instance Manager] ⚠️ ASYNC: VPS falhou [${creationId}]:`, vpsError.message);
-      
-      // ESTRATÉGIA ASYNC: Continuar mesmo com falha da VPS
+      // Atualizar status para aguardar webhook
       await supabase
         .from('whatsapp_instances')
         .update({ 
-          connection_status: 'vps_pending',
+          connection_status: 'waiting_qr',
           updated_at: new Date().toISOString()
         })
         .eq('id', instance.id);
-
-      // Agendar verificação posterior (background task)
-      scheduleStatusCheck(supabase, instance.id, vpsInstanceId, 3000);
 
       return new Response(JSON.stringify({
         success: true,
         instance: instance,
         vpsInstanceId: vpsInstanceId,
-        async_mode: true,
-        creation_strategy: 'async_pending',
+        correctPayload: true,
         creationId,
-        vps_error: vpsError.message,
-        message: 'Instância salva - VPS será verificado em background'
+        vpsResponse: vpsResult.data,
+        message: 'Instância criada com payload correto - aguardando QR Code'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
+    } else {
+      throw new Error(`VPS falhou com payload correto: ${vpsResult.error}`);
     }
 
   } catch (error) {
-    console.error(`[Instance Manager] ❌ ASYNC: Erro geral [${creationId}]:`, error);
+    console.error(`[Instance Manager] ❌ PAYLOAD CORRETO: Erro geral [${creationId}]:`, error);
     
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
       creationId,
-      async_mode: true
+      correctPayload: true
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -207,19 +175,20 @@ async function createInstanceAsync(supabase: any, instanceName: string, user: an
   }
 }
 
-async function attemptVPSCreation(payload: any, maxAttempts: number) {
+async function attemptVPSCreationWithCorrectPayload(payload: any, maxAttempts: number) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      console.log(`[Instance Manager] 🔄 ASYNC: Tentativa VPS ${attempt}/${maxAttempts}`);
+      console.log(`[Instance Manager] 🔄 PAYLOAD CORRETO: Tentativa VPS ${attempt}/${maxAttempts}`);
+      console.log(`[Instance Manager] 📋 PAYLOAD CORRETO: Payload sendo enviado:`, JSON.stringify(payload, null, 2));
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s por tentativa
+      const timeoutId = setTimeout(() => controller.abort(), VPS_CONFIG.timeout);
       
-      const response = await fetch(`${WEBHOOK_SERVER_CONFIG.baseUrl}/instance/create`, {
+      const response = await fetch(`${VPS_CONFIG.baseUrl}/instance/create`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${WEBHOOK_SERVER_CONFIG.authToken}`
+          'Authorization': `Bearer ${VPS_CONFIG.authToken}`
         },
         body: JSON.stringify(payload),
         signal: controller.signal
@@ -227,70 +196,30 @@ async function attemptVPSCreation(payload: any, maxAttempts: number) {
 
       clearTimeout(timeoutId);
 
+      console.log(`[Instance Manager] 📥 PAYLOAD CORRETO: Response status:`, response.status);
+
       if (response.ok) {
         const data = await response.json();
+        console.log(`[Instance Manager] ✅ PAYLOAD CORRETO: Response data:`, data);
         return { success: true, data };
       } else {
         const errorText = await response.text();
+        console.error(`[Instance Manager] ❌ PAYLOAD CORRETO: HTTP ${response.status}:`, errorText);
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
     } catch (error) {
-      console.log(`[Instance Manager] ⚠️ ASYNC: Tentativa ${attempt} falhou:`, error.message);
+      console.error(`[Instance Manager] ⚠️ PAYLOAD CORRETO: Tentativa ${attempt} falhou:`, error.message);
       
       if (attempt === maxAttempts) {
         throw error;
       }
       
-      // Backoff exponencial: 1s, 2s, 4s...
-      const backoff = Math.pow(2, attempt - 1) * 1000;
+      // Backoff exponencial: 2s, 4s, 8s...
+      const backoff = Math.pow(2, attempt) * 1000;
+      console.log(`[Instance Manager] ⏳ PAYLOAD CORRETO: Aguardando ${backoff}ms antes da próxima tentativa`);
       await new Promise(resolve => setTimeout(resolve, backoff));
     }
   }
-}
-
-async function scheduleStatusCheck(supabase: any, instanceId: string, vpsInstanceId: string, delayMs: number) {
-  console.log(`[Instance Manager] ⏰ ASYNC: Agendando verificação para ${instanceId} em ${delayMs}ms`);
-  
-  // NOVO: Background task para verificar status posteriormente
-  setTimeout(async () => {
-    try {
-      console.log(`[Instance Manager] 🔍 ASYNC: Verificando status background para ${instanceId}`);
-      
-      // Verificar se instância existe na VPS
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      
-      const response = await fetch(`${WEBHOOK_SERVER_CONFIG.baseUrl}/instance/${vpsInstanceId}/status`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${WEBHOOK_SERVER_CONFIG.authToken}`
-        },
-        signal: controller.signal
-      });
-
-      clearTimeout(timeoutId);
-
-      if (response.ok) {
-        const vpsStatus = await response.json();
-        console.log(`[Instance Manager] ✅ ASYNC: Status VPS encontrado:`, vpsStatus);
-        
-        // Atualizar status no banco
-        await supabase
-          .from('whatsapp_instances')
-          .update({ 
-            connection_status: 'waiting_qr',
-            web_status: vpsStatus.status || 'unknown',
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', instanceId);
-
-      } else {
-        console.log(`[Instance Manager] ❌ ASYNC: Status VPS não encontrado para ${vpsInstanceId}`);
-      }
-    } catch (error) {
-      console.error(`[Instance Manager] ❌ ASYNC: Erro na verificação background:`, error);
-    }
-  }, delayMs);
 }
 
 async function syncInstanceStatus(supabase: any, instanceId: string, user: any) {
@@ -313,10 +242,10 @@ async function syncInstanceStatus(supabase: any, instanceId: string, user: any) 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
     
-    const response = await fetch(`${WEBHOOK_SERVER_CONFIG.baseUrl}/instance/${instance.vps_instance_id}/status`, {
+    const response = await fetch(`${VPS_CONFIG.baseUrl}/instance/${instance.vps_instance_id}/status`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${WEBHOOK_SERVER_CONFIG.authToken}`
+        'Authorization': `Bearer ${VPS_CONFIG.authToken}`
       },
       signal: controller.signal
     });
@@ -399,10 +328,10 @@ async function checkVPSStatus(supabase: any, instanceId: string, user: any) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 3000);
     
-    const response = await fetch(`${WEBHOOK_SERVER_CONFIG.baseUrl}/instance/${instance.vps_instance_id}/status`, {
+    const response = await fetch(`${VPS_CONFIG.baseUrl}/instance/${instance.vps_instance_id}/status`, {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${WEBHOOK_SERVER_CONFIG.authToken}`
+        'Authorization': `Bearer ${VPS_CONFIG.authToken}`
       },
       signal: controller.signal
     });
@@ -453,19 +382,18 @@ async function deleteInstanceCorrected(supabase: any, instanceId: string, user: 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-        // CORREÇÃO: Incluir token de autenticação na deleção
-        const deleteResponse = await fetch(`${WEBHOOK_SERVER_CONFIG.baseUrl}/instance/${instance.vps_instance_id}`, {
+        const deleteResponse = await fetch(`${VPS_CONFIG.baseUrl}/instance/${instance.vps_instance_id}`, {
           method: 'DELETE',
           headers: {
-            'Authorization': `Bearer ${WEBHOOK_SERVER_CONFIG.authToken}` // NOVO: Sempre incluir token
+            'Authorization': `Bearer ${VPS_CONFIG.authToken}`
           },
           signal: controller.signal
         });
 
         clearTimeout(timeoutId);
-        console.log(`[Instance Manager] 📡 Delete VPS COM TOKEN status:`, deleteResponse.status);
+        console.log(`[Instance Manager] 📡 Delete VPS status:`, deleteResponse.status);
       } catch (vpsError) {
-        console.log(`[Instance Manager] ⚠️ Erro ao deletar da VPS COM TOKEN (continuando):`, vpsError.message);
+        console.log(`[Instance Manager] ⚠️ Erro ao deletar da VPS (continuando):`, vpsError.message);
       }
     }
 
@@ -480,18 +408,18 @@ async function deleteInstanceCorrected(supabase: any, instanceId: string, user: 
       throw new Error(`Erro ao deletar do banco: ${deleteError.message}`);
     }
 
-    console.log(`[Instance Manager] ✅ Instância deletada com sucesso COM TOKEN`);
+    console.log(`[Instance Manager] ✅ Instância deletada com sucesso`);
 
     return new Response(JSON.stringify({
       success: true,
-      auth_configured: true, // NOVO: Confirmar que autenticação está configurada
-      message: 'Instância deletada com sucesso COM TOKEN'
+      correctPayload: true,
+      message: 'Instância deletada com sucesso'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.error(`[Instance Manager] ❌ Erro ao deletar COM TOKEN:`, error);
+    console.error(`[Instance Manager] ❌ Erro ao deletar:`, error);
     return new Response(JSON.stringify({
       success: false,
       error: error.message
