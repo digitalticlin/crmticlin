@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessageSquare } from "lucide-react";
@@ -8,7 +9,6 @@ import { WhatsAppInstanceGrid } from "./WhatsAppInstanceGrid";
 import { AutoQRModal } from "./AutoQRModal";
 import { VPSDiagnosticButton } from "./VPSDiagnosticButton";
 import { VPSNetworkDiagnosticPanel } from "./VPSNetworkDiagnosticPanel";
-import { VPSFirewallCorrector } from "./VPSFirewallCorrector";
 
 export const SimplifiedWhatsAppSection = () => {
   const { user } = useAuth();
@@ -72,19 +72,6 @@ export const SimplifiedWhatsAppSection = () => {
             Gerencie suas conexões WhatsApp para automação de mensagens
           </p>
         </CardHeader>
-      </Card>
-
-      {/* NOVO: Correção de Firewall - SOLUÇÃO PARA O PROBLEMA IDENTIFICADO */}
-      <Card className="border-red-200 bg-red-50/30 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-red-800 text-sm">🔥 CORREÇÃO URGENTE: Firewall VPS</CardTitle>
-          <p className="text-xs text-red-700">
-            <strong>PROBLEMA DETECTADO:</strong> Todas as portas da VPS estão bloqueadas. Use esta ferramenta para corrigir.
-          </p>
-        </CardHeader>
-        <CardContent>
-          <VPSFirewallCorrector />
-        </CardContent>
       </Card>
 
       {/* NOVO: Diagnóstico de Rede Profundo - FERRAMENTA PRINCIPAL */}
