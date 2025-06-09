@@ -28,7 +28,7 @@ export const useAutoQRModal = () => {
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
   const openQRModal = (instanceId: string, instanceName: string) => {
-    console.log('[Auto QR Modal] 📱 CORREÇÃO: Abrindo modal para:', { instanceId, instanceName });
+    console.log('[Auto QR Modal] 📱 CORREÇÃO FINAL: Abrindo modal para:', { instanceId, instanceName });
     
     // Parar polling anterior se existir
     if (pollingRef.current) {
@@ -47,12 +47,12 @@ export const useAutoQRModal = () => {
       maxAttempts: 15
     });
 
-    // CORREÇÃO: Iniciar polling usando whatsapp_qr_service
+    // CORREÇÃO FINAL: Iniciar polling usando whatsapp_qr_service corrigido
     startQRPolling(instanceId);
   };
 
   const startQRPolling = (instanceId: string) => {
-    console.log('[Auto QR Modal] 🔄 CORREÇÃO: Iniciando polling via whatsapp_qr_service');
+    console.log('[Auto QR Modal] 🔄 CORREÇÃO FINAL: Iniciando polling via whatsapp_qr_service corrigido');
     
     pollingRef.current = setInterval(async () => {
       try {
@@ -62,13 +62,13 @@ export const useAutoQRModal = () => {
           isLoading: true
         }));
 
-        console.log(`[Auto QR Modal] 🔍 CORREÇÃO: Polling tentativa ${modalState.attempt + 1}/${modalState.maxAttempts}`);
+        console.log(`[Auto QR Modal] 🔍 CORREÇÃO FINAL: Polling tentativa ${modalState.attempt + 1}/${modalState.maxAttempts}`);
 
-        // CORREÇÃO: Usar WhatsAppWebService.getQRCode (que usa whatsapp_qr_service)
+        // CORREÇÃO FINAL: Usar WhatsAppWebService.getQRCode (que agora usa whatsapp_qr_service corrigido)
         const result = await WhatsAppWebService.getQRCode(instanceId);
 
         if (result.success && result.qrCode) {
-          console.log('[Auto QR Modal] ✅ CORREÇÃO: QR Code obtido via whatsapp_qr_service!');
+          console.log('[Auto QR Modal] ✅ CORREÇÃO FINAL: QR Code obtido via whatsapp_qr_service corrigido!');
           
           setModalState(prev => ({
             ...prev,
@@ -130,7 +130,7 @@ export const useAutoQRModal = () => {
   const retryQRCode = async () => {
     if (!modalState.instanceId) return;
     
-    console.log('[Auto QR Modal] 🔄 CORREÇÃO: Retry manual via whatsapp_qr_service');
+    console.log('[Auto QR Modal] 🔄 CORREÇÃO FINAL: Retry manual via whatsapp_qr_service corrigido');
     
     setModalState(prev => ({
       ...prev,
@@ -141,7 +141,7 @@ export const useAutoQRModal = () => {
     }));
 
     try {
-      // CORREÇÃO: Usar WhatsAppWebService.refreshQRCode (que usa whatsapp_qr_service)
+      // CORREÇÃO FINAL: Usar WhatsAppWebService.refreshQRCode (que agora usa whatsapp_qr_service corrigido)
       const result = await WhatsAppWebService.refreshQRCode(modalState.instanceId);
       
       if (result.success && result.qrCode) {
@@ -167,7 +167,7 @@ export const useAutoQRModal = () => {
   };
 
   const closeModal = () => {
-    console.log('[Auto QR Modal] 🧹 CORREÇÃO: Fechando modal e parando polling');
+    console.log('[Auto QR Modal] 🧹 CORREÇÃO FINAL: Fechando modal e parando polling');
     
     // Parar polling
     if (pollingRef.current) {

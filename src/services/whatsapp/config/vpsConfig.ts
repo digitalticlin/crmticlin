@@ -1,7 +1,7 @@
 
-// VPS Configuration - ATUALIZADA para HTTP direto (sem SSH)
+// VPS Configuration - CORREÇÃO FINAL: Apenas porta 3002 (3001 REMOVIDA COMPLETAMENTE)
 export const VPS_CONFIG = {
-  baseUrl: 'http://31.97.24.222', // Base URL sem porta (será descoberta dinamicamente)
+  baseUrl: 'http://31.97.24.222:3002', // CORREÇÃO: URL base fixa com porta 3002
   authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
   
   endpoints: {
@@ -18,11 +18,10 @@ export const VPS_CONFIG = {
     webhookInstance: '/instance/{instanceId}/webhook'
   },
   
-  // NOVA CONFIGURAÇÃO: HTTP direto em vez de SSH
+  // CORREÇÃO FINAL: HTTP direto apenas porta 3002
   httpDirect: {
     enabled: true,
-    defaultPort: 3002,
-    fallbackPorts: [3001, 3000, 8080],
+    port: 3002, // FIXO: apenas 3002
     timeout: 15000,
     maxRetries: 3
   },
@@ -43,10 +42,11 @@ export const VPS_CONFIG = {
     backoffMultiplier: 2
   },
 
-  // CONFIGURAÇÃO: HTTP Mode (nova implementação)
+  // CORREÇÃO FINAL: HTTP Mode apenas porta 3002
   connection: {
-    mode: 'http_direct', // 'ssh' | 'http_direct'
+    mode: 'http_direct',
     host: '31.97.24.222',
+    port: 3002, // FIXO
     timeout: 15000
   },
 
@@ -59,9 +59,8 @@ export const VPS_CONFIG = {
   }
 };
 
-export const getEndpointUrl = (endpoint: string, port?: number): string => {
-  const actualPort = port || VPS_CONFIG.httpDirect.defaultPort;
-  return `${VPS_CONFIG.baseUrl}:${actualPort}${endpoint}`;
+export const getEndpointUrl = (endpoint: string): string => {
+  return `${VPS_CONFIG.baseUrl}${endpoint}`;
 };
 
 export const getRequestHeaders = (): Record<string, string> => {
@@ -69,7 +68,7 @@ export const getRequestHeaders = (): Record<string, string> => {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
     'X-API-Token': VPS_CONFIG.authToken,
-    'User-Agent': 'Supabase-WhatsApp-Client/2.0-HTTP',
+    'User-Agent': 'Supabase-WhatsApp-Client/3.0-Final-Correction',
     'Accept': 'application/json'
   };
 };
