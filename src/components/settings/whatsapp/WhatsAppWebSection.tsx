@@ -1,44 +1,97 @@
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare } from "lucide-react";
-import { OptimizedWhatsAppConnection } from "./OptimizedWhatsAppConnection";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MessageSquare, Zap, Settings, TestTube } from "lucide-react";
+import { useWhatsAppDatabase } from "@/hooks/whatsapp/useWhatsAppDatabase";
+import { WhatsAppInstancesList } from "./WhatsAppInstancesList";
+import { ConnectWhatsAppButton } from "./ConnectWhatsAppButton";
+import { WhatsAppWebInstanceManager } from "./WhatsAppWebInstanceManager";
+import { FinalConnectionTest } from "./FinalConnectionTest";
 
 export const WhatsAppWebSection = () => {
-  console.log('[WhatsApp Web Section] 🎯 Interface Otimizada com Fluxo Híbrido');
+  const { instances, isLoading, getActiveInstance } = useWhatsAppDatabase();
+  const [isConnecting, setIsConnecting] = useState(false);
+
+  const activeInstance = getActiveInstance();
+  const hasInstances = instances.length > 0;
+
+  const handleConnect = async () => {
+    setIsConnecting(true);
+    try {
+      // Lógica de conexão será implementada no componente específico
+      console.log('Iniciando conexão WhatsApp...');
+    } catch (error) {
+      console.error('Erro ao conectar:', error);
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 animate-pulse text-green-600" />
+            <span>Carregando configurações WhatsApp...</span>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <Card className="bg-white/60 backdrop-blur-xl border border-white/40 rounded-3xl shadow-glass">
-      <CardHeader className="pb-6">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-green-500/20">
+    <div className="space-y-6">
+      {/* Header */}
+      <Card className="border-green-200 bg-green-50">
+        <CardHeader>
+          <div className="flex items-center gap-2">
             <MessageSquare className="h-6 w-6 text-green-600" />
+            <CardTitle className="text-green-800">WhatsApp Web.js</CardTitle>
           </div>
-          <div>
-            <CardTitle className="text-2xl font-bold text-gray-800">
-              Conexões WhatsApp
-            </CardTitle>
-            <p className="text-sm text-gray-600 mt-1">
-              Gerencie suas instâncias WhatsApp Web.js com fluxo híbrido otimizado
-            </p>
-          </div>
-        </div>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        <div className="bg-blue-50/80 backdrop-blur-sm p-4 rounded-2xl border border-blue-200/50">
-          <h4 className="text-sm font-medium text-blue-900 mb-2">
-            ✨ Fluxo Híbrido Otimizado
-          </h4>
-          <ul className="text-xs text-blue-700 space-y-1">
-            <li>• <strong>Criação Rápida:</strong> Instância criada → Modal abre automaticamente</li>
-            <li>• <strong>Polling Inteligente:</strong> QR Code gerado em até 2 minutos (timeout automático)</li>
-            <li>• <strong>Anti-Polling-Infinito:</strong> Máximo 8 tentativas com progresso visual</li>
-            <li>• <strong>Fallback Manual:</strong> Sempre disponível em caso de timeout</li>
-          </ul>
-        </div>
-        
-        <OptimizedWhatsAppConnection />
-      </CardContent>
-    </Card>
+          <p className="text-sm text-green-700">
+            Gerencie suas conexões WhatsApp Web para automação de mensagens
+          </p>
+        </CardHeader>
+      </Card>
+
+      {/* Main Content */}
+      {!hasInstances ? (
+        <ConnectWhatsAppButton 
+          onConnect={handleConnect}
+          isConnecting={isConnecting}
+        />
+      ) : (
+        <Tabs defaultValue="instances" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="instances" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Gerenciar
+            </TabsTrigger>
+            <TabsTrigger value="create" className="flex items-center gap-2">
+              <Zap className="h-4 w-4" />
+              Nova Instância
+            </TabsTrigger>
+            <TabsTrigger value="test" className="flex items-center gap-2">
+              <TestTube className="h-4 w-4" />
+              Teste Final
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="instances" className="space-y-4">
+            <WhatsAppInstancesList />
+          </TabsContent>
+
+          <TabsContent value="create" className="space-y-4">
+            <WhatsAppWebInstanceManager />
+          </TabsContent>
+
+          <TabsContent value="test" className="space-y-4">
+            <FinalConnectionTest />
+          </TabsContent>
+        </Tabs>
+      )}
+    </div>
   );
 };
