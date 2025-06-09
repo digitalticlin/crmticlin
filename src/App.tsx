@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -152,7 +151,7 @@ function AppContent() {
           }
         />
         <Route
-          path="/global-admin"
+          path="/global-admin/*"
           element={
             <ProtectedRoute>
               <GlobalAdmin />
