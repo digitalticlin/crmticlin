@@ -1,377 +1,238 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-// CORREÇÃO FINAL: Configuração VPS com descoberta automática de porta
-const VPS_DISCOVERY_CONFIG = {
-  endpoints: [
-    'http://31.97.24.222:3002', // Porta principal
-    'http://31.97.24.222:3001'  // Porta alternativa
-  ],
-  authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
-  timeout: 20000, // 20 segundos para QR codes
-  retryAttempts: 3,
-  retryDelay: 2000
-};
+}
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
 
-    // Autenticação
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      throw new Error('Token de autorização necessário');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(
+      req.headers.get('authorization')?.replace('Bearer ', '') ?? ''
+    );
+
+    if (userError || !user) {
+      console.log('[QR Service] ❌ Usuário não autenticado:', userError);
+      return new Response(
+        JSON.stringify({ success: false, error: 'Usuário não autenticado' }),
+        { status: 401, headers: corsHeaders }
+      );
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      console.error('[QR Service] ❌ Erro de autenticação:', authError);
-      throw new Error('Usuário não autenticado');
-    }
+    console.log(`[QR Service] ✅ Usuário autenticado: ${user.id}`);
 
-    console.log('[QR Service] ✅ Usuário autenticado:', user.id);
+    const requestBody = await req.json();
+    const { action } = requestBody;
 
-    const { action, instanceId } = await req.json();
-    console.log(`[QR Service] 📥 CORREÇÃO FINAL: Ação ${action} para instância ${instanceId}`);
+    console.log(`[QR Service] 📥 Ação: ${action}`);
 
-    // CORREÇÃO FINAL: Implementar TODAS as ações com descoberta automática VPS
-    if (action === 'get_qr_code' || action === 'get_qr') {
-      return await getQRCodeWithAutoDiscovery(supabase, instanceId);
-    }
-
-    if (action === 'refresh_qr_code' || action === 'generate_qr') {
-      return await refreshQRCodeWithAutoDiscovery(supabase, instanceId);
-    }
-
-    if (action === 'get_qr_with_details') {
-      return await getQRCodeWithAutoDiscovery(supabase, instanceId);
-    }
-
-    throw new Error(`Ação não reconhecida: ${action}`);
-
-  } catch (error) {
-    console.error('[QR Service] ❌ Erro:', error);
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-  }
-});
-
-// CORREÇÃO FINAL: Descoberta automática de VPS + busca QR com fallback
-async function getQRCodeWithAutoDiscovery(supabase: any, instanceId: string) {
-  console.log(`[QR Service] 🔍 CORREÇÃO FINAL: Busca QR com descoberta automática: ${instanceId}`);
-
-  try {
-    // 1. Buscar instância no banco
-    const { data: instance, error: dbError } = await supabase
-      .from('whatsapp_instances')
-      .select('*')
-      .eq('id', instanceId)
-      .single();
-
-    if (dbError || !instance) {
-      throw new Error('Instância não encontrada');
-    }
-
-    console.log(`[QR Service] 📱 Instância encontrada:`, {
-      id: instance.id,
-      vps_instance_id: instance.vps_instance_id,
-      status: instance.connection_status,
-      hasQR: !!instance.qr_code
-    });
-
-    // 2. Se já temos QR Code no banco e está fresh (menos de 2 minutos), retornar
-    if (instance.qr_code && instance.connection_status === 'waiting_qr') {
-      const updatedAt = new Date(instance.updated_at);
-      const now = new Date();
-      const diffMinutes = (now.getTime() - updatedAt.getTime()) / 60000;
+    // CORREÇÃO: Ação para salvar QR Code direto da VPS
+    if (action === 'save_qr_code') {
+      const { vps_instance_id, qr_code } = requestBody;
       
-      if (diffMinutes < 2) {
-        console.log(`[QR Service] ✅ QR Code fresh no banco (${diffMinutes.toFixed(1)}min)`);
-        return new Response(JSON.stringify({
-          success: true,
-          qrCode: instance.qr_code,
-          status: instance.connection_status,
-          source: 'database_fresh'
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-    }
-
-    // 3. CORREÇÃO FINAL: Descoberta automática de VPS + busca QR
-    if (instance.vps_instance_id) {
-      const workingEndpoint = await discoverWorkingVPSEndpoint();
+      console.log(`[QR Service] 💾 Salvando QR Code para VPS instance: ${vps_instance_id}`);
       
-      if (workingEndpoint) {
-        console.log(`[QR Service] 📡 Endpoint VPS encontrado: ${workingEndpoint}`);
-        
-        const qrResult = await fetchQRFromVPS(workingEndpoint, instance.vps_instance_id);
-        
-        if (qrResult.success && qrResult.qrCode) {
-          console.log(`[QR Service] ✅ QR Code obtido da VPS via descoberta automática`);
-          
-          // Atualizar banco
-          await supabase
-            .from('whatsapp_instances')
-            .update({ 
-              qr_code: qrResult.qrCode,
-              connection_status: 'waiting_qr',
-              server_url: workingEndpoint,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', instanceId);
-
-          return new Response(JSON.stringify({
-            success: true,
-            qrCode: qrResult.qrCode,
-            status: 'waiting_qr',
-            source: 'vps_auto_discovery',
-            vpsEndpoint: workingEndpoint
-          }), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        } else {
-          console.log(`[QR Service] ⚠️ VPS encontrada mas QR não disponível:`, qrResult.message);
-        }
-      } else {
-        console.log(`[QR Service] ❌ Nenhum endpoint VPS acessível`);
-      }
-    }
-
-    // 4. QR Code ainda não disponível - manter status de espera
-    console.log(`[QR Service] ⏳ QR Code ainda não disponível - polling continuará`);
-    return new Response(JSON.stringify({
-      success: false,
-      waiting: true,
-      status: instance.connection_status,
-      message: 'QR Code ainda sendo gerado - polling automático ativo'
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-
-  } catch (error) {
-    console.error(`[QR Service] ❌ Erro na busca QR:`, error);
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-  }
-}
-
-// CORREÇÃO FINAL: Refresh QR com descoberta automática
-async function refreshQRCodeWithAutoDiscovery(supabase: any, instanceId: string) {
-  console.log(`[QR Service] 🔄 CORREÇÃO FINAL: Refresh QR com descoberta automática: ${instanceId}`);
-
-  try {
-    const { data: instance, error: dbError } = await supabase
-      .from('whatsapp_instances')
-      .select('*')
-      .eq('id', instanceId)
-      .single();
-
-    if (dbError || !instance) {
-      throw new Error('Instância não encontrada');
-    }
-
-    if (!instance.vps_instance_id) {
-      throw new Error('VPS Instance ID não encontrado');
-    }
-
-    console.log(`[QR Service] 🔄 Tentando refresh automático para: ${instance.vps_instance_id}`);
-
-    // Descobrir endpoint VPS que funciona
-    const workingEndpoint = await discoverWorkingVPSEndpoint();
-    
-    if (!workingEndpoint) {
-      throw new Error('Nenhum endpoint VPS acessível para refresh');
-    }
-
-    // Tentar refresh na VPS
-    const refreshResult = await refreshQROnVPS(workingEndpoint, instance.vps_instance_id);
-    
-    if (refreshResult.success && refreshResult.qrCode) {
-      // Atualizar banco
-      await supabase
+      const { error: updateError } = await supabase
         .from('whatsapp_instances')
-        .update({ 
-          qr_code: refreshResult.qrCode,
+        .update({
+          qr_code: qr_code,
+          web_status: 'waiting_scan',
           connection_status: 'waiting_qr',
-          server_url: workingEndpoint,
           updated_at: new Date().toISOString()
         })
-        .eq('id', instanceId);
+        .eq('vps_instance_id', vps_instance_id);
 
-      return new Response(JSON.stringify({
-        success: true,
-        qrCode: refreshResult.qrCode,
-        source: 'vps_refresh_auto_discovery',
-        vpsEndpoint: workingEndpoint
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      if (updateError) {
+        console.error('[QR Service] ❌ Erro ao salvar QR Code:', updateError);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Erro ao salvar QR Code' }),
+          { status: 500, headers: corsHeaders }
+        );
+      }
+
+      console.log('[QR Service] ✅ QR Code salvo no banco com sucesso');
+      return new Response(
+        JSON.stringify({ success: true, message: 'QR Code salvo' }),
+        { headers: corsHeaders }
+      );
     }
 
-    throw new Error(`Refresh VPS falhou: ${refreshResult.message}`);
-
-  } catch (error) {
-    console.error(`[QR Service] ❌ Erro no refresh automático:`, error);
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-  }
-}
-
-// FUNÇÃO: Descoberta automática de endpoint VPS que funciona
-async function discoverWorkingVPSEndpoint(): Promise<string | null> {
-  console.log(`[QR Service] 🔍 Descobrindo endpoint VPS que funciona...`);
-  
-  for (const endpoint of VPS_DISCOVERY_CONFIG.endpoints) {
-    try {
-      console.log(`[QR Service] 📡 Testando: ${endpoint}`);
+    // CORREÇÃO: Buscar QR Code otimizado (prioridade banco > VPS)
+    if (action === 'get_qr_code' || action === 'get_qr_code_v3') {
+      const { instanceId } = requestBody;
       
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s para discovery
-      
-      const response = await fetch(`${endpoint}/health`, {
-        method: 'GET',
-        signal: controller.signal,
-        headers: {
-          'Authorization': `Bearer ${VPS_DISCOVERY_CONFIG.authToken}`,
-          'Content-Type': 'application/json',
-          'User-Agent': 'Supabase-QR-Discovery/1.0'
+      console.log(`[QR Service] 📱 Buscando QR Code para: ${instanceId}`);
+
+      // Buscar instância no banco
+      const { data: instance, error: instanceError } = await supabase
+        .from('whatsapp_instances')
+        .select('*')
+        .eq('id', instanceId)
+        .eq('created_by_user_id', user.id)
+        .single();
+
+      if (instanceError || !instance) {
+        console.error(`[QR Service] ❌ Instância não encontrada:`, instanceError);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Instância não encontrada' }),
+          { status: 404, headers: corsHeaders }
+        );
+      }
+
+      console.log(`[QR Service] 📋 Instância encontrada:`, {
+        id: instance.id,
+        vps_instance_id: instance.vps_instance_id,
+        status: instance.connection_status,
+        hasQR: !!instance.qr_code
+      });
+
+      // PRIORIDADE 1: QR Code válido no banco (últimos 5 minutos)
+      if (instance.qr_code && instance.updated_at) {
+        const qrAge = Date.now() - new Date(instance.updated_at).getTime();
+        const maxAge = 5 * 60 * 1000; // 5 minutos
+        
+        if (qrAge < maxAge && instance.qr_code.startsWith('data:image/')) {
+          console.log(`[QR Service] ✅ QR Code válido do banco (${Math.round(qrAge/1000)}s)`);
+          return new Response(
+            JSON.stringify({
+              success: true,
+              qrCode: instance.qr_code,
+              source: 'database',
+              instanceId,
+              instanceName: instance.instance_name,
+              age: Math.round(qrAge/1000)
+            }),
+            { headers: corsHeaders }
+          );
         }
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        console.log(`[QR Service] ✅ Endpoint funcionando: ${endpoint}`);
-        return endpoint;
-      } else {
-        console.log(`[QR Service] ⚠️ Endpoint ${endpoint} respondeu HTTP ${response.status}`);
       }
-      
-    } catch (error) {
-      console.log(`[QR Service] ❌ Endpoint ${endpoint} inacessível:`, error.message);
-    }
-  }
-  
-  console.log(`[QR Service] 💥 Nenhum endpoint VPS acessível`);
-  return null;
-}
 
-// FUNÇÃO: Buscar QR Code de um endpoint VPS específico
-async function fetchQRFromVPS(endpoint: string, vpsInstanceId: string) {
-  console.log(`[QR Service] 📱 Buscando QR de ${endpoint} para ${vpsInstanceId}`);
-  
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), VPS_DISCOVERY_CONFIG.timeout);
-    
-    const response = await fetch(`${endpoint}/instance/${vpsInstanceId}/qr`, {
-      method: 'GET',
-      signal: controller.signal,
-      headers: {
-        'Authorization': `Bearer ${VPS_DISCOVERY_CONFIG.authToken}`,
-        'Content-Type': 'application/json',
-        'User-Agent': 'Supabase-QR-Fetch/1.0'
+      // PRIORIDADE 2: Buscar da VPS (apenas se necessário)
+      try {
+        console.log(`[QR Service] 🌐 Buscando da VPS: ${instance.vps_instance_id}`);
+        
+        const vpsResponse = await fetch(`http://31.97.24.222:3002/instance/${instance.vps_instance_id}/qr`, {
+          headers: {
+            'Authorization': 'Bearer 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3'
+          },
+          signal: AbortSignal.timeout(8000)
+        });
+
+        if (vpsResponse.ok) {
+          const vpsData = await vpsResponse.json();
+          
+          if (vpsData.success && vpsData.qrCode) {
+            // Normalizar QR Code
+            let normalizedQrCode = vpsData.qrCode;
+            if (!normalizedQrCode.startsWith('data:image/')) {
+              normalizedQrCode = `data:image/png;base64,${normalizedQrCode}`;
+            }
+
+            // Salvar no banco
+            const { error: updateError } = await supabase
+              .from('whatsapp_instances')
+              .update({
+                qr_code: normalizedQrCode,
+                web_status: 'waiting_scan',
+                connection_status: 'waiting_qr',
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', instanceId);
+
+            if (!updateError) {
+              console.log(`[QR Service] ✅ QR Code da VPS salvo no banco`);
+            }
+
+            return new Response(
+              JSON.stringify({
+                success: true,
+                qrCode: normalizedQrCode,
+                source: 'vps',
+                instanceId,
+                instanceName: instance.instance_name
+              }),
+              { headers: corsHeaders }
+            );
+          }
+        }
+      } catch (error) {
+        console.error(`[QR Service] ❌ Erro ao buscar da VPS:`, error.message);
       }
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (response.ok) {
-      const data = await response.json();
-      return {
-        success: data.success || false,
-        qrCode: data.qrCode || data.qr || null,
-        message: data.message || 'QR obtido'
-      };
-    } else {
-      const errorText = await response.text();
-      return {
-        success: false,
-        message: `HTTP ${response.status}: ${errorText}`
-      };
-    }
-    
-  } catch (error) {
-    return {
-      success: false,
-      message: `Erro de rede: ${error.message}`
-    };
-  }
-}
 
-// FUNÇÃO: Refresh QR Code em um endpoint VPS específico
-async function refreshQROnVPS(endpoint: string, vpsInstanceId: string) {
-  console.log(`[QR Service] 🔄 Refresh QR em ${endpoint} para ${vpsInstanceId}`);
-  
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), VPS_DISCOVERY_CONFIG.timeout);
-    
-    const response = await fetch(`${endpoint}/instance/${vpsInstanceId}/qr/refresh`, {
-      method: 'POST',
-      signal: controller.signal,
-      headers: {
-        'Authorization': `Bearer ${VPS_DISCOVERY_CONFIG.authToken}`,
-        'Content-Type': 'application/json',
-        'User-Agent': 'Supabase-QR-Refresh/1.0'
-      },
-      body: JSON.stringify({
-        instanceId: vpsInstanceId,
-        forceRefresh: true
-      })
-    });
-    
-    clearTimeout(timeoutId);
-    
-    if (response.ok) {
-      const data = await response.json();
-      return {
-        success: data.success || false,
-        qrCode: data.qrCode || data.qr || null,
-        message: data.message || 'Refresh realizado'
-      };
-    } else {
-      const errorText = await response.text();
-      return {
-        success: false,
-        message: `HTTP ${response.status}: ${errorText}`
-      };
+      // QR Code ainda não disponível
+      console.log(`[QR Service] ⏳ QR Code ainda sendo gerado`);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          waiting: true,
+          error: 'QR Code ainda sendo gerado',
+          instanceId,
+          instanceName: instance.instance_name,
+          status: instance.connection_status
+        }),
+        { headers: corsHeaders }
+      );
     }
-    
+
+    // Refresh QR Code
+    if (action === 'refresh_qr_code') {
+      const { instanceId } = requestBody;
+      
+      console.log(`[QR Service] 🔄 Refresh QR para: ${instanceId}`);
+
+      // Limpar QR Code atual
+      const { error: clearError } = await supabase
+        .from('whatsapp_instances')
+        .update({
+          qr_code: null,
+          web_status: 'initializing',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', instanceId)
+        .eq('created_by_user_id', user.id);
+
+      if (clearError) {
+        console.error('[QR Service] ❌ Erro ao limpar QR:', clearError);
+      }
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'QR Code limpo, novo será gerado automaticamente'
+        }),
+        { headers: corsHeaders }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ success: false, error: 'Ação não reconhecida' }),
+      { status: 400, headers: corsHeaders }
+    );
+
   } catch (error) {
-    return {
-      success: false,
-      message: `Erro de rede: ${error.message}`
-    };
+    console.error(`[QR Service] ❌ Erro geral:`, error);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      }),
+      { 
+        status: 500,
+        headers: corsHeaders
+      }
+    );
   }
-}
+})

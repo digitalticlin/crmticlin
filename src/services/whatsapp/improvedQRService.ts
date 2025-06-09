@@ -14,7 +14,7 @@ interface QRCodeResult {
 export class ImprovedQRService {
   static async getQRCodeWithDetails(instanceId: string): Promise<QRCodeResult> {
     try {
-      console.log(`[Improved QR Service] 🎯 CORREÇÃO: Usando VPS corrigida para QR Code: ${instanceId}`);
+      console.log(`[Improved QR Service] 🎯 CORREÇÃO: Buscando QR Code otimizado: ${instanceId}`);
 
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
@@ -22,7 +22,7 @@ export class ImprovedQRService {
         throw new Error('Usuário não autenticado');
       }
 
-      // CORREÇÃO: Usar whatsapp_qr_service com a VPS corrigida
+      // CORREÇÃO: Usar whatsapp_qr_service otimizado
       const { data, error } = await supabase.functions.invoke('whatsapp_qr_service', {
         body: {
           action: 'get_qr_code_v3',
@@ -30,7 +30,13 @@ export class ImprovedQRService {
         }
       });
 
-      console.log(`[Improved QR Service] 📥 Resposta da edge function:`, data);
+      console.log(`[Improved QR Service] 📥 Resposta otimizada:`, {
+        success: data?.success,
+        hasQrCode: !!(data?.qrCode),
+        source: data?.source,
+        waiting: data?.waiting,
+        error: data?.error || error?.message
+      });
 
       if (error) {
         console.error(`[Improved QR Service] ❌ Edge Function error:`, error);
@@ -42,11 +48,11 @@ export class ImprovedQRService {
       }
 
       if (data.success && data.qrCode) {
-        console.log(`[Improved QR Service] ✅ QR Code obtido com sucesso!`);
+        console.log(`[Improved QR Service] ✅ QR Code obtido com sucesso (fonte: ${data.source})!`);
         return {
           success: true,
           qrCode: data.qrCode,
-          source: data.source || 'vps_corrected',
+          source: data.source || 'optimized',
           instanceId: data.instanceId,
           webStatus: data.webStatus || 'waiting_scan'
         };
@@ -57,7 +63,7 @@ export class ImprovedQRService {
         return {
           success: false,
           waiting: true,
-          error: data.error || 'QR Code ainda sendo gerado na VPS corrigida',
+          error: data.error || 'QR Code ainda sendo gerado via sistema otimizado',
           instanceId: data.instanceId
         };
       }
@@ -90,7 +96,7 @@ export class ImprovedQRService {
       const data = await response.json();
       
       if (data.success && data.version) {
-        console.log('[Improved QR Service] ✅ VPS online:', data);
+        console.log('[Improved QR Service] ✅ VPS online (corrigida):', data);
         return {
           online: true,
           version: data.version
@@ -104,6 +110,38 @@ export class ImprovedQRService {
       return {
         online: false,
         error: error.message
+      };
+    }
+  }
+
+  // NOVO: Método para refresh otimizado
+  static async refreshQRCode(instanceId: string): Promise<QRCodeResult> {
+    try {
+      console.log(`[Improved QR Service] 🔄 Refresh QR Code: ${instanceId}`);
+
+      const { data, error } = await supabase.functions.invoke('whatsapp_qr_service', {
+        body: {
+          action: 'refresh_qr_code',
+          instanceId: instanceId
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Erro ao fazer refresh do QR Code');
+      }
+
+      console.log(`[Improved QR Service] ✅ Refresh realizado com sucesso`);
+      
+      // Aguardar um pouco e buscar novamente
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      return await this.getQRCodeWithDetails(instanceId);
+
+    } catch (error: any) {
+      console.error(`[Improved QR Service] ❌ Erro no refresh:`, error);
+      return {
+        success: false,
+        error: error.message || 'Erro ao fazer refresh do QR Code'
       };
     }
   }

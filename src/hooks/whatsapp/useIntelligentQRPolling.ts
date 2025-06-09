@@ -1,6 +1,6 @@
 
 import { useState, useCallback, useRef } from 'react';
-import { AutoQRPolling } from '@/components/settings/whatsapp/connection/AutoQRPolling';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PollingOptions {
   maxAttempts?: number;
@@ -21,10 +21,12 @@ export const useIntelligentQRPolling = () => {
   const [timedOut, setTimedOut] = useState(false);
   const [isWaiting, setIsWaiting] = useState(false);
 
-  const pollingRef = useRef<AutoQRPolling | null>(null);
+  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // CORREÇÃO: Polling otimizado com QR service
   const startPolling = useCallback(async (instanceId: string, options: PollingOptions = {}) => {
-    console.log(`[Intelligent QR Polling] 🚀 CORREÇÃO: Iniciando polling inteligente para VPS corrigida: ${instanceId}`);
+    console.log(`[Intelligent QR Polling] 🚀 CORREÇÃO: Iniciando polling otimizado: ${instanceId}`);
     
     // Reset state
     setIsPolling(true);
@@ -35,7 +37,9 @@ export const useIntelligentQRPolling = () => {
     setIsWaiting(true);
 
     const {
-      maxAttempts = 8,
+      maxAttempts = 20,
+      intervalMs = 3000, // 3 segundos entre tentativas
+      timeoutMs = 60000, // 60 segundos timeout total
       progressCallback,
       successCallback,
       errorCallback,
@@ -44,52 +48,108 @@ export const useIntelligentQRPolling = () => {
 
     // Stop previous polling if exists
     if (pollingRef.current) {
-      pollingRef.current.stop('novo polling iniciado');
+      clearInterval(pollingRef.current);
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
     }
 
-    // Create new polling instance
-    pollingRef.current = new AutoQRPolling(
-      instanceId,
-      maxAttempts,
-      (qrCodeData: string) => {
-        console.log(`[Intelligent QR Polling] ✅ QR Code recebido!`);
-        setQrCode(qrCodeData);
-        setIsPolling(false);
-        setIsWaiting(false);
-        successCallback?.(qrCodeData);
-      },
-      (errorMsg: string) => {
-        console.log(`[Intelligent QR Polling] ❌ Erro:`, errorMsg);
-        setError(errorMsg);
-        setIsPolling(false);
-        setIsWaiting(false);
-        errorCallback?.(errorMsg);
-      },
-      (current: number, max: number) => {
-        console.log(`[Intelligent QR Polling] 📊 Progresso: ${current}/${max}`);
-        setCurrentAttempt(current);
-        setIsWaiting(false); // Não está mais aguardando, está tentando ativamente
-        progressCallback?.(current, max);
-      },
-      () => {
-        console.log(`[Intelligent QR Polling] ⏰ Timeout!`);
-        setTimedOut(true);
-        setIsPolling(false);
-        setIsWaiting(false);
-        timeoutCallback?.();
-      }
-    );
+    let attempts = 0;
 
-    // Start polling
-    await pollingRef.current.start();
+    // Timeout geral
+    timeoutRef.current = setTimeout(() => {
+      console.log(`[Intelligent QR Polling] ⏰ Timeout geral (${timeoutMs}ms)`);
+      setTimedOut(true);
+      setIsPolling(false);
+      setIsWaiting(false);
+      timeoutCallback?.();
+      
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+      }
+    }, timeoutMs);
+
+    // Polling interval
+    pollingRef.current = setInterval(async () => {
+      attempts++;
+      console.log(`[Intelligent QR Polling] 📱 Tentativa ${attempts}/${maxAttempts} para: ${instanceId}`);
+      
+      setCurrentAttempt(attempts);
+      setIsWaiting(false); // Não está mais aguardando, está tentando ativamente
+      progressCallback?.(attempts, maxAttempts);
+
+      try {
+        // CORREÇÃO: Usar QR service otimizado
+        const { data, error } = await supabase.functions.invoke('whatsapp_qr_service', {
+          body: {
+            action: 'get_qr_code_v3',
+            instanceId: instanceId
+          }
+        });
+
+        console.log(`[Intelligent QR Polling] 📡 Resposta tentativa ${attempts}:`, {
+          success: data?.success,
+          hasQrCode: !!(data?.qrCode),
+          source: data?.source,
+          waiting: data?.waiting,
+          error: data?.error || error?.message
+        });
+
+        if (data?.success && data.qrCode) {
+          // QR Code encontrado!
+          console.log(`[Intelligent QR Polling] ✅ QR Code encontrado na tentativa ${attempts}!`);
+          setQrCode(data.qrCode);
+          setIsPolling(false);
+          setIsWaiting(false);
+          successCallback?.(data.qrCode);
+          
+          // Limpar intervals
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          if (timeoutRef.current) clearTimeout(timeoutRef.current);
+          return;
+        }
+
+        if (data?.waiting) {
+          console.log(`[Intelligent QR Polling] ⏳ Tentativa ${attempts}: QR ainda sendo gerado`);
+          // Continuar polling
+          return;
+        }
+
+        if (data?.error || error) {
+          console.log(`[Intelligent QR Polling] ❌ Erro na tentativa ${attempts}:`, data?.error || error?.message);
+        }
+
+      } catch (pollError: any) {
+        console.error(`[Intelligent QR Polling] ❌ Erro na tentativa ${attempts}:`, pollError);
+      }
+
+      // Verificar se atingiu máximo de tentativas
+      if (attempts >= maxAttempts) {
+        console.log(`[Intelligent QR Polling] ⏰ Máximo de tentativas atingido (${maxAttempts})`);
+        setIsPolling(false);
+        setIsWaiting(false);
+        setError('Timeout: QR Code não foi gerado após múltiplas tentativas');
+        errorCallback?.('Timeout: QR Code não foi gerado após múltiplas tentativas');
+        
+        // Limpar intervals
+        if (pollingRef.current) clearInterval(pollingRef.current);
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      }
+    }, intervalMs);
+
   }, []);
 
   const stopPolling = useCallback((reason: string = 'manual') => {
     console.log(`[Intelligent QR Polling] 🛑 Parando polling: ${reason}`);
     
     if (pollingRef.current) {
-      pollingRef.current.stop(reason);
+      clearInterval(pollingRef.current);
       pollingRef.current = null;
+    }
+    
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
     }
     
     setIsPolling(false);
