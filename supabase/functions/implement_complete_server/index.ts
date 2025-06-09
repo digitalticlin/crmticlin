@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -129,7 +130,7 @@ async function ensureSessionDirectory() {
 // CORREÇÃO QR BASE64: Função para garantir formato DataURL válido
 function ensureBase64Format(qrData) {
   try {
-    console.log(\`🔍 [QR Fix] Validando formato QR: \${typeof qrData}\`);
+    console.log('🔍 [QR Fix] Validando formato QR:', typeof qrData);
     
     // Se já é data URL válido, retornar como está
     if (typeof qrData === 'string' && qrData.startsWith('data:image/')) {
@@ -139,7 +140,7 @@ function ensureBase64Format(qrData) {
     
     // Se é Base64 puro, adicionar prefixo
     if (typeof qrData === 'string' && qrData.match(/^[A-Za-z0-9+/]+=*$/)) {
-      const dataURL = \`data:image/png;base64,\${qrData}\`;
+      const dataURL = 'data:image/png;base64,' + qrData;
       console.log('✅ [QR Fix] QR Code convertido de Base64 puro para Data URL');
       return dataURL;
     }
@@ -170,7 +171,7 @@ function ensureBase64Format(qrData) {
 // Inicialização do cliente WhatsApp
 async function initializeWhatsAppClient(instanceId, sessionName, webhookUrl = null) {
   try {
-    console.log(\`🚀 [\${instanceId}] Inicializando cliente WhatsApp...\`);
+    console.log('[' + instanceId + '] Inicializando cliente WhatsApp...');
     
     const client = new Client({
       authStrategy: new LocalAuth({
@@ -195,7 +196,7 @@ async function initializeWhatsAppClient(instanceId, sessionName, webhookUrl = nu
 
     // Timeout generoso
     const initTimeout = setTimeout(() => {
-      console.log(\`⏰ [\${instanceId}] Timeout na inicialização - mantendo instância\`);
+      console.log('[' + instanceId + '] Timeout na inicialização - mantendo instância');
       const instance = instances.get(instanceId);
       if (instance && instance.status === 'initializing') {
         instance.status = 'timeout_but_available';
@@ -206,8 +207,8 @@ async function initializeWhatsAppClient(instanceId, sessionName, webhookUrl = nu
     // Event handlers
     client.on('qr', async (qr) => {
       try {
-        console.log(\`📱 [\${instanceId}] QR Code recebido! Aplicando correção Base64...\`);
-        console.log(\`🔍 [\${instanceId}] QR original tipo: \${typeof qr}, preview: \${qr.substring(0, 50)}...\`);
+        console.log('[' + instanceId + '] QR Code recebido! Aplicando correção Base64...');
+        console.log('[' + instanceId + '] QR original tipo:', typeof qr);
         
         // CORREÇÃO: Garantir formato Base64 DataURL sempre
         const qrBase64 = await ensureBase64Format(qr);
@@ -218,14 +219,13 @@ async function initializeWhatsAppClient(instanceId, sessionName, webhookUrl = nu
           instance.status = 'qr_ready';
           instance.lastSeen = new Date().toISOString();
           
-          console.log(\`✅ [\${instanceId}] QR Code convertido e salvo (tamanho: \${qrBase64.length})\`);
-          console.log(\`🔍 [\${instanceId}] QR Base64 preview: \${qrBase64.substring(0, 60)}...\`);
+          console.log('[' + instanceId + '] QR Code convertido e salvo (tamanho:', qrBase64.length + ')');
           
           // Validar formato final
           if (qrBase64.startsWith('data:image/png;base64,')) {
-            console.log(\`✅ [\${instanceId}] QR Code em formato DataURL válido confirmado\`);
+            console.log('[' + instanceId + '] QR Code em formato DataURL válido confirmado');
           } else {
-            console.log(\`⚠️ [\${instanceId}] AVISO: QR Code não está em formato DataURL esperado\`);
+            console.log('[' + instanceId + '] AVISO: QR Code não está em formato DataURL esperado');
           }
           
           // Enviar webhook se configurado
@@ -245,7 +245,7 @@ async function initializeWhatsAppClient(instanceId, sessionName, webhookUrl = nu
           }
         }
       } catch (error) {
-        console.error(\`❌ [\${instanceId}] Erro ao processar QR:\`, error);
+        console.error('[' + instanceId + '] Erro ao processar QR:', error);
         const instance = instances.get(instanceId);
         if (instance) {
           instance.status = 'qr_error';
@@ -255,7 +255,7 @@ async function initializeWhatsAppClient(instanceId, sessionName, webhookUrl = nu
     });
 
     client.on('ready', () => {
-      console.log(\`✅ [\${instanceId}] Cliente conectado!\`);
+      console.log('[' + instanceId + '] Cliente conectado!');
       clearTimeout(initTimeout);
       const instance = instances.get(instanceId);
       if (instance) {
@@ -283,7 +283,7 @@ async function initializeWhatsAppClient(instanceId, sessionName, webhookUrl = nu
     });
 
     client.on('authenticated', () => {
-      console.log(\`🔐 [\${instanceId}] Cliente autenticado\`);
+      console.log('[' + instanceId + '] Cliente autenticado');
       clearTimeout(initTimeout);
       const instance = instances.get(instanceId);
       if (instance) {
@@ -293,7 +293,7 @@ async function initializeWhatsAppClient(instanceId, sessionName, webhookUrl = nu
     });
 
     client.on('auth_failure', (msg) => {
-      console.error(\`❌ [\${instanceId}] Falha auth:\`, msg);
+      console.error('[' + instanceId + '] Falha auth:', msg);
       const instance = instances.get(instanceId);
       if (instance) {
         instance.status = 'auth_failed';
@@ -303,7 +303,7 @@ async function initializeWhatsAppClient(instanceId, sessionName, webhookUrl = nu
     });
 
     client.on('disconnected', (reason) => {
-      console.log(\`🔌 [\${instanceId}] Desconectado:\`, reason);
+      console.log('[' + instanceId + '] Desconectado:', reason);
       const instance = instances.get(instanceId);
       if (instance) {
         instance.status = 'disconnected';
@@ -314,7 +314,7 @@ async function initializeWhatsAppClient(instanceId, sessionName, webhookUrl = nu
 
     // Capturar mensagens
     client.on('message_create', async (message) => {
-      console.log(\`📨 [\${instanceId}] Mensagem:\`, {
+      console.log('[' + instanceId + '] Mensagem:', {
         from: message.from,
         fromMe: message.fromMe,
         body: message.body?.substring(0, 30) + '...'
@@ -341,15 +341,15 @@ async function initializeWhatsAppClient(instanceId, sessionName, webhookUrl = nu
             timestamp: new Date().toISOString()
           });
         } catch (error) {
-          console.error(\`❌ [\${instanceId}] Erro webhook:\`, error.message);
+          console.error('[' + instanceId + '] Erro webhook:', error.message);
         }
       }
     });
 
     // Inicializar em background
-    console.log(\`🔄 [\${instanceId}] Inicializando em background...\`);
+    console.log('[' + instanceId + '] Inicializando em background...');
     client.initialize().catch(error => {
-      console.error(\`❌ [\${instanceId}] Erro na inicialização:\`, error.message);
+      console.error('[' + instanceId + '] Erro na inicialização:', error.message);
       const instance = instances.get(instanceId);
       if (instance) {
         instance.status = 'init_error';
@@ -359,7 +359,7 @@ async function initializeWhatsAppClient(instanceId, sessionName, webhookUrl = nu
     });
     
   } catch (error) {
-    console.error(\`❌ [\${instanceId}] Erro geral:\`, error.message);
+    console.error('[' + instanceId + '] Erro geral:', error.message);
     const instance = instances.get(instanceId);
     if (instance) {
       instance.status = 'error';
@@ -378,19 +378,20 @@ async function sendWebhook(webhookUrl, data) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${API_TOKEN}`
+        'Authorization': 'Bearer 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3'
       },
       body: JSON.stringify(data),
       timeout: 10000
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+      const errorText = await response.text();
+      throw new Error('HTTP ' + response.status + ': ' + errorText);
     }
 
-    console.log(`✅ Webhook enviado`);
+    console.log('✅ Webhook enviado');
   } catch (error) {
-    console.error(`❌ Erro webhook:`, error.message);
+    console.error('❌ Erro webhook:', error.message);
   }
 }
 
@@ -470,7 +471,7 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
     
     const finalWebhookUrl = webhookUrl || 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web';
     
-    console.log(\`✅ [\${instanceId}] Criação iniciada...\`);
+    console.log('[' + instanceId + '] Criação iniciada...');
     
     // Inicializar imediatamente em background
     initializeWhatsAppClient(instanceId, sessionName, finalWebhookUrl);
@@ -523,8 +524,8 @@ app.post('/instance/qr', authenticateToken, (req, res) => {
       
       // Verificação dupla do formato
       if (!qrCodeFormatted.startsWith('data:image/png;base64,')) {
-        console.log(\`⚠️ [\${instanceId}] QR Code não está em formato DataURL, corrigindo...\`);
-        qrCodeFormatted = \`data:image/png;base64,\${qrCodeFormatted}\`;
+        console.log('[' + instanceId + '] QR Code não está em formato DataURL, corrigindo...');
+        qrCodeFormatted = 'data:image/png;base64,' + qrCodeFormatted;
       }
       
       res.json({
@@ -621,9 +622,9 @@ app.delete('/instance/:instanceId', authenticateToken, async (req, res) => {
     if (instance.client) {
       try {
         await instance.client.destroy();
-        console.log(\`🔌 [\${instanceId}] Cliente destruído\`);
+        console.log('[' + instanceId + '] Cliente destruído');
       } catch (error) {
-        console.error(\`❌ [\${instanceId}] Erro ao destruir:\`, error);
+        console.error('[' + instanceId + '] Erro ao destruir:', error);
       }
     }
     
@@ -666,15 +667,15 @@ app.post('/send', authenticateToken, async (req, res) => {
     if (instance.status !== 'ready') {
       return res.status(400).json({
         success: false,
-        error: \`Instância não está pronta. Status: \${instance.status}\`
+        error: 'Instância não está pronta. Status: ' + instance.status
       });
     }
     
-    const formattedPhone = phone.includes('@') ? phone : \`\${phone}@s.whatsapp.net\`;
+    const formattedPhone = phone.includes('@') ? phone : phone + '@s.whatsapp.net';
     
     const sentMessage = await instance.client.sendMessage(formattedPhone, message);
     
-    console.log(\`📤 [\${instanceId}] Mensagem enviada para \${phone}\`);
+    console.log('[' + instanceId + '] Mensagem enviada para ' + phone);
     
     res.json({
       success: true,
@@ -711,9 +712,9 @@ process.on('SIGINT', async () => {
     if (instance.client) {
       try {
         await instance.client.destroy();
-        console.log(\`🔌 [\${instanceId}] Cliente desconectado\`);
+        console.log('[' + instanceId + '] Cliente desconectado');
       } catch (error) {
-        console.error(\`❌ [\${instanceId}] Erro ao desconectar:\`, error);
+        console.error('[' + instanceId + '] Erro ao desconectar:', error);
       }
     }
   }
@@ -727,12 +728,12 @@ async function startServer() {
   await ensureSessionDirectory();
   
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(\`🚀 WhatsApp VPS QR-BASE64-FIXED Server na porta \${PORT}\`);
-    console.log(\`📊 Health: http://31.97.24.222:\${PORT}/health\`);
-    console.log(\`🔑 Token: \${API_TOKEN.substring(0, 10)}...\`);
-    console.log(\`📱 Versão: \${SERVER_VERSION}\`);
-    console.log(\`✅ QR BASE64 FIX: Sempre formato data:image/png;base64,\`);
-    console.log(\`🔧 FUNCIONALIDADES: QR DataURL garantido, validação dupla\`);
+    console.log('🚀 WhatsApp VPS QR-BASE64-FIXED Server na porta ' + PORT);
+    console.log('📊 Health: http://31.97.24.222:' + PORT + '/health');
+    console.log('🔑 Token: ' + API_TOKEN.substring(0, 10) + '...');
+    console.log('📱 Versão: ' + SERVER_VERSION);
+    console.log('✅ QR BASE64 FIX: Sempre formato data:image/png;base64,');
+    console.log('🔧 FUNCIONALIDADES: QR DataURL garantido, validação dupla');
   });
 }
 
@@ -793,7 +794,8 @@ echo "📋 Execute o teste de verificação novamente!"
           'Validação dupla de formato implementada',
           'Logs detalhados de debug ativados',
           'Health check atualizado com qr_base64_fixed: true',
-          'Endpoint /instance/qr corrigido'
+          'Endpoint /instance/qr corrigido',
+          'Template literals corrigidos para evitar erros de sintaxe'
         ],
         next_steps: [
           'Execute o comando de verificação novamente',
