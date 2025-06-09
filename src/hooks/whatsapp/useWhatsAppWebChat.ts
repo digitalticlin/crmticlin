@@ -116,29 +116,34 @@ export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) =
             text: text,
             from_me: true,
           },
-        ]);
+        ])
+        .select();
 
       if (error) {
         throw error;
       }
 
-      // Optimistically update the messages
-      const newMessage: Message = {
-        id: data[0].id,
-        text: text,
-        fromMe: true,
-        timestamp: new Date().toISOString(),
-        status: "sent",
-        mediaType: "text",
-        sender: "user",
-        time: new Date().toLocaleTimeString('pt-BR', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        }),
-        isIncoming: false
-      };
+      // Check if data exists and has at least one item
+      if (data && data.length > 0) {
+        // Optimistically update the messages
+        const newMessage: Message = {
+          id: data[0].id,
+          text: text,
+          fromMe: true,
+          timestamp: new Date().toISOString(),
+          status: "sent",
+          mediaType: "text",
+          sender: "user",
+          time: new Date().toLocaleTimeString('pt-BR', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          isIncoming: false
+        };
 
-      setMessages(prevMessages => [...prevMessages, newMessage]);
+        setMessages(prevMessages => [...prevMessages, newMessage]);
+      }
+      
       return true;
     } catch (error) {
       console.error('[WhatsApp Chat] ❌ Error sending message:', error);

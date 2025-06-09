@@ -42,7 +42,7 @@ export function useChat() {
   useRealtimeLeads({
     selectedContact,
     fetchContacts,
-    fetchMessages: () => fetchMessages(),
+    fetchMessages: () => fetchMessages(selectedContact),
     receiveNewLead,
     activeInstanceId: activeInstance?.id || null
   });
@@ -54,9 +54,9 @@ export function useChat() {
     isManualLoading,
   } = useChatActions({
     selectedContact,
-    sendMessageWhatsApp: (text: string) => sendMessageWhatsApp(text),
+    sendMessageWhatsApp: (text: string) => sendMessageWhatsApp(selectedContact, text),
     fetchContacts,
-    fetchMessages: () => fetchMessages(),
+    fetchMessages: () => fetchMessages(selectedContact),
   });
 
   // The setContacts was a no-op, can be kept for API consistency or removed if unused
