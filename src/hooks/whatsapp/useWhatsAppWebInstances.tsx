@@ -349,6 +349,6 @@ export const useWhatsAppWebInstances = () => {
     generateIntelligentInstanceName,
     closeQRModal,
     retryQRCode,
-    syncPendingInstances // NOVO: Função para sincronização manual
+    syncPendingInstances // FIXED: Agora exportando a função
   };
 };
