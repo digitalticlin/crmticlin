@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Contact } from '@/types/chat';
 import { useWhatsAppDatabase } from './whatsapp/useWhatsAppDatabase';
@@ -18,6 +19,24 @@ export const useWhatsAppChat = (userEmail: string) => {
   const { instances, getActiveInstance } = useWhatsAppDatabase();
   const activeInstance = getActiveInstance();
 
+  // Convert WhatsAppInstance to WhatsAppWebInstance for compatibility
+  const webActiveInstance = activeInstance ? {
+    id: activeInstance.id,
+    instance_name: activeInstance.instance_name,
+    connection_type: activeInstance.connection_type || 'web',
+    server_url: activeInstance.server_url || '',
+    vps_instance_id: activeInstance.vps_instance_id || '',
+    web_status: activeInstance.web_status || '',
+    connection_status: activeInstance.connection_status,
+    qr_code: activeInstance.qr_code,
+    phone: activeInstance.phone,
+    profile_name: activeInstance.profile_name,
+    profile_pic_url: activeInstance.profile_pic_url,
+    date_connected: activeInstance.date_connected,
+    date_disconnected: activeInstance.date_disconnected,
+    company_id: activeInstance.company_id || ''
+  } : null;
+
   // Use the new WhatsApp Web chat hook
   const {
     contacts,
@@ -28,7 +47,7 @@ export const useWhatsAppChat = (userEmail: string) => {
     isSending,
     fetchContacts,
     fetchMessages
-  } = useWhatsAppWebChat(activeInstance);
+  } = useWhatsAppWebChat(webActiveInstance);
 
   // Get contact notes
   const {

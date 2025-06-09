@@ -12,6 +12,13 @@ export interface WhatsAppInstance {
   created_at: string;
   updated_at: string;
   vps_instance_id?: string;
+  connection_type: string;
+  server_url?: string;
+  web_status?: string;
+  profile_pic_url?: string;
+  date_connected?: string;
+  date_disconnected?: string;
+  company_id?: string;
 }
 
 export const useWhatsAppDatabase = () => {
@@ -55,6 +62,15 @@ export const useWhatsAppDatabase = () => {
     return activeInstance || null;
   };
 
+  // Calcular métricas de saúde
+  const connectedInstances = instances.filter(i => 
+    i.connection_status === 'connected' || i.connection_status === 'ready'
+  ).length;
+
+  const totalInstances = instances.length;
+  const healthScore = totalInstances === 0 ? 0 : Math.round((connectedInstances / totalInstances) * 100);
+  const isHealthy = healthScore >= 70;
+
   // Recarregar instâncias
   const refetch = () => {
     fetchInstances();
@@ -92,6 +108,11 @@ export const useWhatsAppDatabase = () => {
     error,
     getActiveInstance,
     refetch,
-    fetchInstances
+    fetchInstances,
+    // Health metrics
+    healthScore,
+    isHealthy,
+    totalInstances,
+    connectedInstances
   };
 };

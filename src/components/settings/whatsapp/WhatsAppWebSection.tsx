@@ -52,6 +52,24 @@ export const WhatsAppWebSection = () => {
     );
   }
 
+  // Convert instances to WhatsAppWebInstance format for the grid component
+  const webInstances = instances.map(instance => ({
+    id: instance.id,
+    instance_name: instance.instance_name,
+    connection_type: instance.connection_type || 'web',
+    server_url: instance.server_url || '',
+    vps_instance_id: instance.vps_instance_id || '',
+    web_status: instance.web_status || '',
+    connection_status: instance.connection_status,
+    qr_code: instance.qr_code,
+    phone: instance.phone,
+    profile_name: instance.profile_name,
+    profile_pic_url: instance.profile_pic_url,
+    date_connected: instance.date_connected,
+    date_disconnected: instance.date_disconnected,
+    company_id: instance.company_id || ''
+  }));
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -107,7 +125,7 @@ export const WhatsAppWebSection = () => {
 
           <TabsContent value="instances" className="space-y-4">
             <WhatsAppWebInstancesGrid 
-              instances={instances}
+              instances={webInstances}
               onRefreshQR={handleRefreshQR}
               onDelete={handleDelete}
               onShowQR={handleShowQR}
