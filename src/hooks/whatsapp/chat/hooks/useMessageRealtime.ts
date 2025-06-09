@@ -1,8 +1,7 @@
-
 import { useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { Contact } from '@/types/chat';
-import { WhatsAppWebInstance } from '../../useWhatsAppWebInstances';
+import { WhatsAppWebInstance } from '@/types/whatsapp';
 
 interface UseMessageRealtimeProps {
   selectedContact: Contact | null;

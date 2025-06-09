@@ -1,9 +1,8 @@
-
 // FASE 3: Hook otimizado para contatos WhatsApp
-import { useState, useCallback } from 'react';
-import { Contact } from '@/types/chat';
-import { WhatsAppWebInstance } from './useWhatsAppWebInstances';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
+import { Contact } from '@/types/chat';
+import { WhatsAppWebInstance } from '@/types/whatsapp';
 import { useFakeContacts } from './chat/useFakeContacts';
 import { useLeadSorting } from './chat/useLeadSorting';
 
@@ -91,6 +90,10 @@ export const useWhatsAppContacts = (
       setIsLoadingContacts(false);
     }
   }, [activeInstance, companyId, sortLeadsByRecentMessage, getFakeContacts]);
+
+  useEffect(() => {
+    fetchContacts();
+  }, [fetchContacts]);
 
   return {
     contacts,

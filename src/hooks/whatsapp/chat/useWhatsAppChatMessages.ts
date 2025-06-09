@@ -1,7 +1,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { Contact, Message } from '@/types/chat';
-import { WhatsAppWebInstance } from '../useWhatsAppWebInstances';
+import { WhatsAppWebInstance } from '@/types/whatsapp';
 import { MessageService } from './services/messageService';
 import { useMessageRealtime } from './hooks/useMessageRealtime';
 

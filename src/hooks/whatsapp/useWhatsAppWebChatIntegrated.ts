@@ -1,286 +1,114 @@
-import { useState, useEffect, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useCallback, useEffect } from 'react';
 import { Contact, Message } from '@/types/chat';
-import { WhatsAppWebInstance } from './useWhatsAppWebInstances';
-import { useChatDatabase } from './useChatDatabase';
-import { WebhookConfigService } from '@/services/whatsapp/webhookConfigService';
+import { WhatsAppWebInstance } from '@/types/whatsapp';
+import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
-import { UnreadMessagesService } from '@/services/whatsapp/unreadMessagesService';
+import { toast } from "sonner";
 
-export const useWhatsAppWebChatIntegrated = (activeInstance: WhatsAppWebInstance | null) => {
+interface UseWhatsAppWebChatIntegratedProps {
+  activeInstance: WhatsAppWebInstance | null;
+}
+
+export const useWhatsAppWebChatIntegrated = ({ activeInstance }: UseWhatsAppWebChatIntegratedProps) => {
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
-  const isMountedRef = useRef(true);
-  const { mapLeadToContact, mapDbMessageToMessage } = useChatDatabase();
-
-  // Configurar webhook automaticamente quando instância estiver conectada
-  useEffect(() => {
-    if (activeInstance && 
-        ['open', 'ready'].includes(activeInstance.connection_status) && 
-        activeInstance.vps_instance_id) {
-      
-      console.log('[WhatsApp Chat Integrated] 🔧 Configurando webhook para instância conectada');
-      WebhookConfigService.configureWebhookForInstance(activeInstance.vps_instance_id)
-        .then(() => {
-          console.log('[WhatsApp Chat Integrated] ✅ Webhook configurado automaticamente');
-        })
-        .catch((error) => {
-          console.error('[WhatsApp Chat Integrated] ❌ Erro ao configurar webhook:', error);
-        });
-    }
-  }, [activeInstance?.connection_status, activeInstance?.vps_instance_id]);
-
-  // Fetch contacts (leads) from database
-  const fetchContacts = async () => {
-    if (!activeInstance || !isMountedRef.current) {
+  // Fetch contacts
+  const fetchContacts = useCallback(async () => {
+    if (!activeInstance) {
+      setContacts([]);
       return;
     }
 
+    setIsLoadingContacts(true);
     try {
-      setIsLoadingContacts(true);
-      console.log('[WhatsApp Chat Integrated] Fetching contacts from database...');
-
-      const { data: leadsData, error } = await supabase
-        .from('leads')
+      const { data, error } = await supabase
+        .from('contacts')
         .select('*')
-        .eq('whatsapp_number_id', activeInstance.id)
-        .order('updated_at', { ascending: false });
+        .eq('instance_id', activeInstance.id)
+        .order('name', { ascending: true });
 
       if (error) {
-        console.error('[WhatsApp Chat Integrated] Error fetching contacts:', error);
-        return;
+        throw error;
       }
 
-      if (isMountedRef.current && leadsData) {
-        const mappedContacts = leadsData.map(lead => mapLeadToContact(lead));
-        setContacts(mappedContacts);
-        console.log('[WhatsApp Chat Integrated] Contacts loaded:', mappedContacts.length);
-      }
-    } catch (error) {
-      console.error('[WhatsApp Chat Integrated] Error in fetchContacts:', error);
+      const contactsData = data || [];
+      setContacts(contactsData);
+    } catch (error: any) {
+      console.error('[WhatsApp Chat] ❌ Error fetching contacts:', error);
+      toast.error(`Erro ao buscar contatos: ${error.message}`);
     } finally {
-      if (isMountedRef.current) {
-        setIsLoadingContacts(false);
-      }
+      setIsLoadingContacts(false);
     }
-  };
+  }, [activeInstance]);
 
-  // Fetch messages for selected contact
-  const fetchMessages = async () => {
-    if (!activeInstance || !selectedContact || !isMountedRef.current) {
+  // Fetch messages for a contact
+  const fetchMessages = useCallback(async (contact: Contact | null) => {
+    if (!activeInstance || !contact) {
+      setMessages([]);
       return;
     }
 
+    setIsLoadingMessages(true);
     try {
-      setIsLoadingMessages(true);
-      console.log('[WhatsApp Chat Integrated] Fetching messages for contact:', selectedContact.id);
-
-      const { data: messagesData, error } = await supabase
+      const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .eq('lead_id', selectedContact.id)
-        .eq('whatsapp_number_id', activeInstance.id)
-        .order('timestamp', { ascending: true });
+        .eq('instance_id', activeInstance.id)
+        .eq('lead_id', contact.id)
+        .order('created_at', { ascending: true });
 
       if (error) {
-        console.error('[WhatsApp Chat Integrated] Error fetching messages:', error);
-        return;
+        throw error;
       }
 
-      if (isMountedRef.current && messagesData) {
-        const mappedMessages = messagesData.map(msg => mapDbMessageToMessage(msg));
-        setMessages(mappedMessages);
-        console.log('[WhatsApp Chat Integrated] Messages loaded:', mappedMessages.length);
-      }
-    } catch (error) {
-      console.error('[WhatsApp Chat Integrated] Error in fetchMessages:', error);
+      const messagesData = data || [];
+      setMessages(messagesData);
+    } catch (error: any) {
+      console.error('[WhatsApp Chat] ❌ Error fetching messages:', error);
+      toast.error(`Erro ao buscar mensagens: ${error.message}`);
     } finally {
-      if (isMountedRef.current) {
-        setIsLoadingMessages(false);
-      }
+      setIsLoadingMessages(false);
     }
-  };
+  }, [activeInstance]);
 
-  // Send message via WhatsApp Web Service
-  const sendMessage = async (text: string) => {
-    if (!selectedContact || !activeInstance || !text.trim()) {
-      return;
+  // Send message
+  const sendMessage = useCallback(async (contact: Contact | null, text: string): Promise<boolean> => {
+    if (!activeInstance || !contact) {
+      toast.error('Instância ou contato não selecionado');
+      return false;
     }
 
+    setIsSending(true);
     try {
-      setIsSending(true);
-      console.log('[WhatsApp Chat Integrated] Sending message via integrated service...');
+      const result = await WhatsAppWebService.sendMessage(activeInstance.id, contact.phone, text);
 
-      const result = await WhatsAppWebService.sendMessage(
-        activeInstance.vps_instance_id || activeInstance.id,
-        selectedContact.phone.replace(/\D/g, ''),
-        text
-      );
-
-      if (result.success) {
-        console.log('[WhatsApp Chat Integrated] Message sent successfully');
-        
-        // Atualizar último mensagem do lead
-        await supabase
-          .from('leads')
-          .update({
-            last_message: text,
-            last_message_time: new Date().toISOString()
-          })
-          .eq('id', selectedContact.id);
-        
-        // Refresh messages after sending
-        setTimeout(() => fetchMessages(), 1000);
-      } else {
-        console.error('[WhatsApp Chat Integrated] Failed to send message:', result.error);
-        throw new Error(result.error);
+      if (!result.success) {
+        throw new Error(result.error || 'Erro ao enviar mensagem');
       }
-    } catch (error) {
-      console.error('[WhatsApp Chat Integrated] Error in sendMessage:', error);
-      throw error;
+
+      // Refresh messages after sending
+      setTimeout(() => fetchMessages(contact), 500);
+      return true;
+    } catch (error: any) {
+      console.error('[WhatsApp Chat] ❌ Error sending message:', error);
+      toast.error(`Erro ao enviar mensagem: ${error.message}`);
+      return false;
     } finally {
       setIsSending(false);
     }
-  };
+  }, [activeInstance, fetchMessages]);
 
-  // Função para definir contato selecionado e marcar mensagens como lidas
-  const setSelectedContactAndMarkAsRead = async (contact: Contact | null) => {
-    console.log('[WhatsApp Chat Integrated] 📖 Selecionando contato:', contact?.name);
-    
-    // Se há um contato anterior e ele tem mensagens não lidas, manter o estado atual
-    // Se o novo contato é diferente, marcar as mensagens como lidas
-    if (contact && contact.unreadCount && contact.unreadCount > 0) {
-      console.log('[WhatsApp Chat Integrated] 🔄 Marcando mensagens como lidas para:', contact.name);
-      
-      const success = await UnreadMessagesService.markAsRead(contact.id);
-      if (success) {
-        // CORREÇÃO: Atualizar localmente o contador para undefined em vez de 0
-        setContacts(prevContacts => 
-          prevContacts.map(c => 
-            c.id === contact.id 
-              ? { ...c, unreadCount: undefined }
-              : c
-          )
-        );
-      }
-    }
-    
-    setSelectedContact(contact);
-  };
-
-  // Load contacts when active instance changes
+  // Load contacts on instance change
   useEffect(() => {
-    if (activeInstance) {
-      fetchContacts();
-    } else {
-      setContacts([]);
-    }
-  }, [activeInstance]);
-
-  // Load messages when selected contact changes
-  useEffect(() => {
-    if (selectedContact) {
-      fetchMessages();
-    } else {
-      setMessages([]);
-    }
-  }, [selectedContact]);
-
-  // Realtime subscription for messages
-  useEffect(() => {
-    if (!activeInstance || !selectedContact) return;
-
-    console.log('[WhatsApp Chat Integrated] Setting up realtime for messages...');
-
-    const channel = supabase
-      .channel(`messages-integrated-${selectedContact.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'messages',
-          filter: `lead_id=eq.${selectedContact.id}`
-        },
-        (payload) => {
-          console.log('[WhatsApp Chat Integrated] New message realtime:', payload.eventType);
-          if (isMountedRef.current) {
-            fetchMessages();
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [activeInstance, selectedContact]);
-
-  // Realtime subscription for contacts (leads) - com foco em unread_count
-  useEffect(() => {
-    if (!activeInstance) return;
-
-    console.log('[WhatsApp Chat Integrated] Setting up realtime for contacts/unread counts...');
-
-    const channel = supabase
-      .channel(`leads-integrated-${activeInstance.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'leads',
-          filter: `whatsapp_number_id=eq.${activeInstance.id}`
-        },
-        (payload) => {
-          console.log('[WhatsApp Chat Integrated] Contacts realtime update:', payload.eventType);
-          
-          // Se é uma atualização e envolve unread_count, atualizar imediatamente
-          if (payload.eventType === 'UPDATE' && payload.new) {
-            const updatedLead = payload.new as any;
-            setContacts(prevContacts => 
-              prevContacts.map(contact => 
-                contact.id === updatedLead.id 
-                  ? { 
-                      ...contact, 
-                      // CORREÇÃO: Usar undefined se unread_count for 0 ou falsy
-                      unreadCount: updatedLead.unread_count && updatedLead.unread_count > 0 
-                        ? updatedLead.unread_count 
-                        : undefined 
-                    }
-                  : contact
-              )
-            );
-          }
-          
-          if (isMountedRef.current) {
-            fetchContacts();
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [activeInstance]);
-
-  // Cleanup
-  useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
+    fetchContacts();
+  }, [activeInstance, fetchContacts]);
 
   return {
     contacts,
-    selectedContact,
-    setSelectedContact: setSelectedContactAndMarkAsRead, // Usar função que marca como lida
     messages,
     sendMessage,
     isLoadingContacts,

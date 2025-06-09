@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
-import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
+import { WhatsAppWebInstance } from "@/types/whatsapp";
 import { InstanceProfileSection } from "./InstanceProfileSection";
 import { InstanceActionButton } from "./InstanceActionButton";
 import { InstanceStatusMessages } from "./InstanceStatusMessages";

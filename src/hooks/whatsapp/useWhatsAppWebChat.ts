@@ -1,219 +1,123 @@
-
-import { useState, useEffect, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useCallback, useEffect } from 'react';
 import { Contact, Message } from '@/types/chat';
-import { WhatsAppWebInstance } from './useWhatsAppWebInstances';
-import { useChatDatabase } from './useChatDatabase';
+import { WhatsAppWebInstance } from '@/types/whatsapp';
+import { supabase } from "@/integrations/supabase/client";
 
-// Chat-specific hook that only reads from database
 export const useWhatsAppWebChat = (activeInstance: WhatsAppWebInstance | null) => {
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
-  const isMountedRef = useRef(true);
-  const { mapLeadToContact, mapDbMessageToMessage } = useChatDatabase();
-
-  // Fetch contacts (leads) from database
-  const fetchContacts = async () => {
-    if (!activeInstance || !isMountedRef.current) {
+  // Fetch contacts
+  const fetchContacts = useCallback(async () => {
+    if (!activeInstance) {
+      setContacts([]);
       return;
     }
 
+    setIsLoadingContacts(true);
     try {
-      setIsLoadingContacts(true);
-      console.log('[useWhatsAppWebChat] Fetching contacts from database...');
-
-      const { data: leadsData, error } = await supabase
-        .from('leads')
+      const { data, error } = await supabase
+        .from('contacts')
         .select('*')
-        .eq('whatsapp_number_id', activeInstance.id)
-        .order('updated_at', { ascending: false });
+        .eq('instance_id', activeInstance.id)
+        .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('[useWhatsAppWebChat] Error fetching contacts:', error);
-        return;
-      }
-
-      if (isMountedRef.current && leadsData) {
-        const mappedContacts = leadsData.map(lead => mapLeadToContact(lead));
-        setContacts(mappedContacts);
-        console.log('[useWhatsAppWebChat] Contacts loaded:', mappedContacts.length);
-      }
-    } catch (error) {
-      console.error('[useWhatsAppWebChat] Error in fetchContacts:', error);
-    } finally {
-      if (isMountedRef.current) {
-        setIsLoadingContacts(false);
-      }
-    }
-  };
-
-  // Fetch messages for selected contact - fixed to use current selectedContact
-  const fetchMessages = async () => {
-    if (!activeInstance || !selectedContact || !isMountedRef.current) {
-      return;
-    }
-
-    try {
-      setIsLoadingMessages(true);
-      console.log('[useWhatsAppWebChat] Fetching messages for contact:', selectedContact.id);
-
-      const { data: messagesData, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('lead_id', selectedContact.id)
-        .eq('whatsapp_number_id', activeInstance.id)
-        .order('timestamp', { ascending: true });
-
-      if (error) {
-        console.error('[useWhatsAppWebChat] Error fetching messages:', error);
-        return;
-      }
-
-      if (isMountedRef.current && messagesData) {
-        const mappedMessages = messagesData.map(msg => mapDbMessageToMessage(msg));
-        setMessages(mappedMessages);
-        console.log('[useWhatsAppWebChat] Messages loaded:', mappedMessages.length);
-      }
-    } catch (error) {
-      console.error('[useWhatsAppWebChat] Error in fetchMessages:', error);
-    } finally {
-      if (isMountedRef.current) {
-        setIsLoadingMessages(false);
-      }
-    }
-  };
-
-  // Send message (this would use an Edge Function to send via VPS)
-  const sendMessage = async (text: string) => {
-    if (!selectedContact || !activeInstance || !text.trim()) {
-      return;
-    }
-
-    try {
-      setIsSending(true);
-      console.log('[useWhatsAppWebChat] Sending message via Edge Function...');
-
-      // Call Edge Function to send message via VPS
-      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
-        body: {
-          action: 'send_message',
-          instanceId: activeInstance.vps_instance_id,
-          to: selectedContact.phone.replace(/\D/g, ''), // Clean phone number
-          message: text
-        }
-      });
-
-      if (error) {
-        console.error('[useWhatsAppWebChat] Error sending message:', error);
         throw error;
       }
 
-      console.log('[useWhatsAppWebChat] Message sent successfully');
-      
-      // Refresh messages after sending
-      setTimeout(() => fetchMessages(), 1000);
+      setContacts(data || []);
     } catch (error) {
-      console.error('[useWhatsAppWebChat] Error in sendMessage:', error);
-      throw error;
+      console.error('[WhatsApp Chat] ❌ Error fetching contacts:', error);
+    } finally {
+      setIsLoadingContacts(false);
+    }
+  }, [activeInstance]);
+
+  // Fetch messages for a contact
+  const fetchMessages = useCallback(async (contact: Contact | null) => {
+    if (!contact || !activeInstance) {
+      setMessages([]);
+      return;
+    }
+
+    setIsLoadingMessages(true);
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('lead_id', contact.id)
+        .eq('instance_id', activeInstance.id)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        throw error;
+      }
+
+      setMessages(data || []);
+    } catch (error) {
+      console.error('[WhatsApp Chat] ❌ Error fetching messages:', error);
+    } finally {
+      setIsLoadingMessages(false);
+    }
+  }, [activeInstance]);
+
+  // Send message
+  const sendMessage = useCallback(async (contact: Contact | null, text: string): Promise<boolean> => {
+    if (!contact || !activeInstance) {
+      return false;
+    }
+
+    setIsSending(true);
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .insert([
+          {
+            instance_id: activeInstance.id,
+            lead_id: contact.id,
+            text: text,
+            from_me: true,
+          },
+        ]);
+
+      if (error) {
+        throw error;
+      }
+
+      // Optimistically update the messages
+      setMessages(prevMessages => [
+        ...prevMessages,
+        {
+          id: data[0].id,
+          instance_id: activeInstance.id,
+          lead_id: contact.id,
+          text: text,
+          from_me: true,
+          created_at: new Date().toISOString(),
+        }
+      ]);
+
+      return true;
+    } catch (error) {
+      console.error('[WhatsApp Chat] ❌ Error sending message:', error);
+      return false;
     } finally {
       setIsSending(false);
     }
-  };
+  }, [activeInstance]);
 
-  // Load contacts when active instance changes
   useEffect(() => {
     if (activeInstance) {
       fetchContacts();
-    } else {
-      setContacts([]);
     }
-  }, [activeInstance]);
-
-  // Load messages when selected contact changes
-  useEffect(() => {
-    if (selectedContact) {
-      fetchMessages();
-    } else {
-      setMessages([]);
-    }
-  }, [selectedContact]);
-
-  // Realtime subscription for messages
-  useEffect(() => {
-    if (!activeInstance || !selectedContact) return;
-
-    console.log('[useWhatsAppWebChat] Setting up realtime for messages...');
-
-    const channel = supabase
-      .channel(`messages-${selectedContact.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'messages',
-          filter: `lead_id=eq.${selectedContact.id}`
-        },
-        (payload) => {
-          console.log('[useWhatsAppWebChat] New message realtime:', payload.eventType);
-          if (isMountedRef.current) {
-            fetchMessages();
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [activeInstance, selectedContact]);
-
-  // Realtime subscription for contacts (leads)
-  useEffect(() => {
-    if (!activeInstance) return;
-
-    console.log('[useWhatsAppWebChat] Setting up realtime for contacts...');
-
-    const channel = supabase
-      .channel(`leads-${activeInstance.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'leads',
-          filter: `whatsapp_number_id=eq.${activeInstance.id}`
-        },
-        (payload) => {
-          console.log('[useWhatsAppWebChat] Contacts realtime update:', payload.eventType);
-          if (isMountedRef.current) {
-            fetchContacts();
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [activeInstance]);
-
-  // Cleanup
-  useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
+  }, [activeInstance, fetchContacts]);
 
   return {
     contacts,
-    selectedContact,
-    setSelectedContact,
     messages,
     sendMessage,
     isLoadingContacts,

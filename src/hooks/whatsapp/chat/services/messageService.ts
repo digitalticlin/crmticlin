@@ -1,94 +1,55 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
-import { mapDbMessageToMessage } from "../helpers/messageHelpers";
 import { Contact, Message } from '@/types/chat';
-import { WhatsAppWebInstance } from '../../useWhatsAppWebInstances';
+import { toast } from "sonner";
+import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
+import { WhatsAppWebInstance } from '@/types/whatsapp';
 
 export class MessageService {
-  static async fetchMessages(
-    selectedContact: Contact | null,
-    activeInstance: WhatsAppWebInstance | null
-  ): Promise<Message[]> {
-    if (!selectedContact || !activeInstance) {
-      return [];
-    }
-
-    console.log('[Message Service FASE 2.0] 📥 Fetching messages via backend:', {
-      leadId: selectedContact.id,
-      instanceId: activeInstance.id
-    });
-
+  static async fetchMessages(contact: Contact, instance: WhatsAppWebInstance): Promise<Message[]> {
     try {
-      // FASE 2.0: Usar backend para buscar histórico se necessário, ou continuar com banco direto
       const { data, error } = await supabase
         .from('messages')
         .select('*')
-        .eq('lead_id', selectedContact.id)
-        .eq('whatsapp_number_id', activeInstance.id)
-        .order('timestamp', { ascending: true });
+        .eq('lead_id', contact.id)
+        .eq('instance_id', instance.id)
+        .order('created_at', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(`Erro ao buscar mensagens: ${error.message}`);
+      }
 
-      const chatMessages: Message[] = (data || []).map(mapDbMessageToMessage);
-
-      console.log('[Message Service FASE 2.0] ✅ Messages loaded via database:', {
-        total: chatMessages.length,
-        sent: chatMessages.filter(m => m.fromMe).length,
-        received: chatMessages.filter(m => !m.fromMe).length
-      });
-      
-      return chatMessages;
-    } catch (error) {
-      console.error('[Message Service FASE 2.0] ❌ Error fetching messages:', error);
-      throw error;
+      return data || [];
+    } catch (error: any) {
+      console.error('[WhatsApp Chat Messages FASE 3] ❌ Erro ao buscar mensagens:', error);
+      toast.error(`Erro ao buscar mensagens: ${error.message}`);
+      return [];
     }
   }
 
-  static async sendMessage(
-    selectedContact: Contact | null,
-    activeInstance: WhatsAppWebInstance | null,
-    text: string
-  ): Promise<boolean> {
-    if (!selectedContact || !activeInstance || !text.trim()) {
-      console.warn('[Message Service FASE 2.0] ⚠️ Cannot send message: missing data');
-      return false;
-    }
-
-    console.log('[Message Service FASE 2.0] 📤 Sending message via backend:', {
-      instanceId: activeInstance.id,
-      phone: selectedContact.phone,
-      textLength: text.length
-    });
-
+  static async sendMessage(contact: Contact, instance: WhatsAppWebInstance, text: string): Promise<boolean> {
     try {
-      // FASE 2.0: USAR APENAS BACKEND - sem chamadas diretas à VPS
-      const result = await WhatsAppWebService.sendMessage(
-        activeInstance.id,
-        selectedContact.phone,
-        text
-      );
-
-      if (result.success) {
-        console.log('[Message Service FASE 2.0] ✅ Message sent successfully via backend');
-        
-        // Atualizar informações do contato
-        await supabase
-          .from('leads')
-          .update({
-            last_message: text,
-            last_message_time: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', selectedContact.id);
-
-        return true;
-      } else {
-        console.error('[Message Service FASE 2.0] ❌ Failed to send message via backend:', result.error);
+      if (!contact?.phone) {
+        toast.error('Número de telefone do contato não encontrado.');
         return false;
       }
-    } catch (error) {
-      console.error('[Message Service FASE 2.0] ❌ Error sending message via backend:', error);
+
+      if (!instance?.id) {
+        toast.error('Instância WhatsApp não identificada.');
+        return false;
+      }
+
+      const result = await WhatsAppWebService.sendMessage(instance.id, contact.phone, text);
+
+      if (!result.success) {
+        toast.error(result.error || 'Erro ao enviar mensagem');
+        return false;
+      }
+
+      toast.success('Mensagem enviada!');
+      return true;
+    } catch (error: any) {
+      console.error('[WhatsApp Chat Messages FASE 3] ❌ Erro ao enviar mensagem:', error);
+      toast.error(`Erro ao enviar mensagem: ${error.message}`);
       return false;
     }
   }

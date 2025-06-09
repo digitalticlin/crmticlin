@@ -1,6 +1,5 @@
-
 import { Wifi, WifiOff, QrCode, Clock, AlertCircle } from "lucide-react";
-import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
+import { WhatsAppWebInstance } from "@/types/whatsapp";
 
 interface StatusInfo {
   label: string;

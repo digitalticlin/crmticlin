@@ -1,9 +1,9 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
-import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
-import { Contact, Message } from '@/types/chat';
-import { WhatsAppWebInstance } from './useWhatsAppWebInstances';
+import { Message, Contact } from '@/types/chat';
+import { toast } from "sonner";
+import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
+import { WhatsAppWebInstance } from '@/types/whatsapp';
 
 export const useWhatsAppMessages = (
   activeInstance: WhatsAppWebInstance | null, 

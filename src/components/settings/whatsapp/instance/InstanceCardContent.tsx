@@ -1,7 +1,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Phone } from "lucide-react";
-import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
+import { WhatsAppWebInstance } from "@/types/whatsapp";
 import { getStatusInfo } from "./InstanceStatusInfo";
 
 interface InstanceCardContentProps {

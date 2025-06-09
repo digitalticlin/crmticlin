@@ -1,7 +1,6 @@
-
 import { ModernCard, ModernCardContent, ModernCardHeader, ModernCardTitle } from "@/components/ui/modern-card";
 import { WhatsAppWebInstanceCard } from "./WhatsAppWebInstanceCard";
-import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
+import { WhatsAppWebInstance } from "@/types/whatsapp";
 
 interface WhatsAppWebInstancesGridProps {
   instances: WhatsAppWebInstance[];

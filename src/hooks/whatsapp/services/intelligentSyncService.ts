@@ -1,108 +1,78 @@
 
-import { useState, useEffect, useCallback } from 'react';
 import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
+import { supabase } from "@/integrations/supabase/client";
 
-interface SyncState {
-  isSyncing: boolean;
-  lastSuccess: Date | null;
-  lastError: string | null;
-  instancesCounted: number;
-  instancesSynced: number;
+interface SyncResult {
+  success: boolean;
+  instancesProcessed: number;
+  errors: string[];
+  details?: any;
 }
 
-export const useIntelligentSync = (refreshInstances: () => void) => {
-  const [syncState, setSyncState] = useState<SyncState>({
-    isSyncing: false,
-    lastSuccess: null,
-    lastError: null,
-    instancesCounted: 0,
-    instancesSynced: 0
-  });
-
-  const syncInstances = async () => {
+export class IntelligentSyncService {
+  static async performIntelligentSync(): Promise<SyncResult> {
     try {
-      setSyncState({ ...syncState, isSyncing: true, lastError: null });
+      console.log('[Intelligent Sync] 🔄 Iniciando sincronização inteligente...');
       
-      // Log de início
-      console.log('[Intelligent Sync] 🔄 Iniciando sincronização inteligente');
+      // 1. Verificar saúde geral do servidor
+      const healthCheck = await WhatsAppWebService.checkServerHealth();
       
-      // Passo 1: Verificar se servidor está online
-      const serverHealth = await WhatsAppWebService.checkServerHealth();
-      if (!serverHealth.success) {
-        throw new Error('Servidor não está respondendo: ' + (serverHealth.error || 'Erro desconhecido'));
+      if (!healthCheck.success) {
+        throw new Error(`Servidor não disponível: ${healthCheck.error}`);
       }
       
-      // Passo 2: Buscar instâncias do servidor
+      // 2. Obter informações do servidor
       const serverInfo = await WhatsAppWebService.getServerInfo();
+      
       if (!serverInfo.success) {
-        throw new Error('Falha ao buscar instâncias: ' + (serverInfo.error || 'Erro desconhecido'));
+        console.warn('[Intelligent Sync] ⚠️ Não foi possível obter info do servidor');
       }
       
-      // Fixed: Use instances property directly from serverInfo
-      const remoteInstances = serverInfo.instances || [];
+      // 3. Buscar instâncias locais que precisam de sync
+      const { data: localInstances, error } = await supabase
+        .from('whatsapp_instances')
+        .select('*')
+        .eq('connection_type', 'web')
+        .in('connection_status', ['pending', 'connecting', 'waiting_scan']);
       
-      // Converter para o formato padronizado
-      const mappedRemoteInstances = remoteInstances.map(instance => ({
-        vps_instance_id: instance.instanceId,
-        phone: instance.phone || '',
-        status: instance.status || 'unknown',
-        name: instance.instance_name || instance.instanceName || ''
-      }));
+      if (error) {
+        throw new Error(`Erro ao buscar instâncias locais: ${error.message}`);
+      }
       
-      console.log(`[Intelligent Sync] 📊 ${mappedRemoteInstances.length} instâncias encontradas no servidor`);
-
-      // Passo 3: Sincronizar com backend via Edge Function
+      // 4. Executar sincronização com o servidor VPS
       const syncResult = await WhatsAppWebService.syncInstances();
       
-      if (syncResult.success) {
-        console.log(`[Intelligent Sync] ✅ Sincronização concluída: ${
-          syncResult.data?.summary?.updated || 0} instâncias atualizadas`);
-        
-        setSyncState({
-          isSyncing: false,
-          lastSuccess: new Date(),
-          lastError: null,
-          instancesCounted: mappedRemoteInstances.length,
-          instancesSynced: syncResult.data?.summary?.updated || 0
-        });
-        
-        // Recarregar instâncias após sincronização
-        if (refreshInstances) {
-          refreshInstances();
-        }
-        
-      } else {
-        throw new Error('Falha na sincronização: ' + (syncResult.error || 'Erro desconhecido'));
+      if (!syncResult.success) {
+        throw new Error(`Erro na sincronização: ${syncResult.error}`);
       }
+      
+      // 5. Verificar quantas instâncias foram processadas
+      const instancesProcessed = syncResult.data?.instances?.length || 0;
+      
+      console.log('[Intelligent Sync] ✅ Sincronização concluída', {
+        instancesLocal: localInstances?.length || 0,
+        instancesProcessed,
+        serverHealth: healthCheck.data
+      });
+      
+      return {
+        success: true,
+        instancesProcessed,
+        errors: [],
+        details: {
+          localInstances: localInstances?.length || 0,
+          serverInfo: serverInfo.data
+        }
+      };
       
     } catch (error: any) {
       console.error('[Intelligent Sync] ❌ Erro:', error);
-      setSyncState({
-        ...syncState,
-        isSyncing: false,
-        lastError: error.message
-      });
+      
+      return {
+        success: false,
+        instancesProcessed: 0,
+        errors: [error.message]
+      };
     }
-  };
-
-  const debouncedSync = useCallback(() => {
-    syncInstances();
-  }, [syncInstances]);
-
-  useEffect(() => {
-    // Iniciar sincronização a cada 60 segundos
-    const intervalId = setInterval(() => {
-      if (!syncState.isSyncing) {
-        debouncedSync();
-      }
-    }, 60000);
-
-    // Limpar intervalo ao desmontar
-    return () => clearInterval(intervalId);
-  }, [debouncedSync, syncState.isSyncing]);
-
-  return {
-    ...syncState,
-    syncInstances: debouncedSync
-  };
-};
+  }
+}

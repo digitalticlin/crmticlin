@@ -1,8 +1,7 @@
-
 import { Button } from "@/components/ui/button";
 import { QrCode, Trash2, Loader2 } from "lucide-react";
 import { getStatusInfo } from "./InstanceStatusInfo";
-import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
+import { WhatsAppWebInstance } from "@/types/whatsapp";
 
 interface InstanceCardActionsProps {
   instance: WhatsAppWebInstance;

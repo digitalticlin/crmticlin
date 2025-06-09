@@ -15,7 +15,7 @@ import {
   ChevronUp,
   History
 } from "lucide-react";
-import { WhatsAppWebInstance } from "@/hooks/whatsapp/useWhatsAppWebInstances";
+import { WhatsAppWebInstance } from "@/types/whatsapp";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChatImporter } from "./ChatImporter";
 import { ChatHistoryImporter } from "./ChatHistoryImporter";

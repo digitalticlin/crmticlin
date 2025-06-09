@@ -1,8 +1,7 @@
-
 import { useCallback } from 'react';
 import { QRCodeService } from '@/services/whatsapp/qrCodeService';
 import { StatusSyncService } from '@/services/whatsapp/statusSyncService';
-import { WhatsAppWebInstance } from './useWhatsAppWebInstances';
+import { WhatsAppWebInstance } from '@/types/whatsapp';
 
 export const useInstanceQRCode = (
   instances: WhatsAppWebInstance[], 

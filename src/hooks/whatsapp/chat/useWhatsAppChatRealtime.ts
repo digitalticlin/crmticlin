@@ -1,9 +1,8 @@
-
 // FASE 3: Realtime para chat WhatsApp Web.js
 import { useEffect } from 'react';
-import { Contact } from '@/types/chat';
-import { WhatsAppWebInstance } from '../useWhatsAppWebInstances';
 import { supabase } from "@/integrations/supabase/client";
+import { Contact } from '@/types/chat';
+import { WhatsAppWebInstance } from '@/types/whatsapp';
 
 export const useWhatsAppChatRealtime = (
   activeInstance: WhatsAppWebInstance | null,
