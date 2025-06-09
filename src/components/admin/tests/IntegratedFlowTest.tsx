@@ -1,10 +1,11 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, XCircle, Clock, AlertTriangle, PlayCircle, RefreshCw } from "lucide-react";
+import { CheckCircle, XCircle, Clock, AlertTriangle, PlayCircle, RefreshCw, Loader2 } from "lucide-react";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
@@ -77,7 +78,8 @@ export const IntegratedFlowTest = () => {
       const instanceResult = await WhatsAppWebService.createInstance(testInstanceName);
       
       if (instanceResult.success && instanceResult.instance) {
-        testInstanceId = instanceResult.instance.instanceId || instanceResult.instance.instanceName;
+        // Use the correct property name from the interface
+        testInstanceId = instanceResult.instance.id || instanceResult.instance.instance_name;
         addStep('✅ Instância criada com sucesso', 'success', instanceResult.instance);
         
         await new Promise(resolve => setTimeout(resolve, 2000));

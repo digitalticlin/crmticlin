@@ -1,10 +1,11 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { QRCode } from "lucide-react";
+import { QrCode } from "lucide-react";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
 
 export const QRCodeGenerationTest = () => {
@@ -59,7 +60,7 @@ export const QRCodeGenerationTest = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <QRCode className="h-5 w-5" />
+          <QrCode className="h-5 w-5" />
           Teste de Geração de QR Code
         </CardTitle>
         <CardDescription>
@@ -89,7 +90,7 @@ export const QRCodeGenerationTest = () => {
             </>
           ) : (
             <>
-              <QRCode className="h-4 w-4 mr-2" />
+              <QrCode className="h-4 w-4 mr-2" />
               Gerar QR Code
             </>
           )}
