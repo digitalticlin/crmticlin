@@ -34,7 +34,8 @@ export const useWhatsAppChat = (userEmail: string) => {
     profile_pic_url: activeInstance.profile_pic_url,
     date_connected: activeInstance.date_connected,
     date_disconnected: activeInstance.date_disconnected,
-    company_id: activeInstance.company_id || ''
+    company_id: activeInstance.company_id || '',
+    created_by_user_id: activeInstance.created_by_user_id || null
   } : null;
 
   // Use the new WhatsApp Web chat hook

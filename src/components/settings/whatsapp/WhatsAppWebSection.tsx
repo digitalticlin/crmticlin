@@ -67,7 +67,8 @@ export const WhatsAppWebSection = () => {
     profile_pic_url: instance.profile_pic_url,
     date_connected: instance.date_connected,
     date_disconnected: instance.date_disconnected,
-    company_id: instance.company_id || ''
+    company_id: instance.company_id || '',
+    created_by_user_id: instance.created_by_user_id || null
   }));
 
   return (
