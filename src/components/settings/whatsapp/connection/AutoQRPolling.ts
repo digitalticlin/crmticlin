@@ -1,110 +1,104 @@
 
-import { toast } from "sonner";
+import { ImprovedQRService } from "@/services/whatsapp/improvedQRService";
 
 export class AutoQRPolling {
-  private intervalId: NodeJS.Timeout | null = null;
-  private attempts = 0;
-  private readonly maxAttempts = 6;
-  private isActive = false;
-  private isConnected = false;
+  private instanceId: string;
+  private isPolling: boolean = false;
+  private pollingInterval: number | null = null;
+  private maxAttempts: number;
+  private currentAttempt: number = 0;
+  private onQRCode: (qrCode: string) => void;
+  private onError: (error: string) => void;
+  private onProgress: (current: number, max: number) => void;
+  private onTimeout: () => void;
 
   constructor(
-    private instanceId: string,
-    private instanceName: string,
-    private refreshQRCode: (instanceId: string) => Promise<{ qrCode?: string; success?: boolean; waiting?: boolean; connected?: boolean } | null>,
-    private onSuccess: (qrCode: string) => void,
-    private onConnected?: () => void
-  ) {}
-
-  async start(delay = 0) {
-    if (this.isActive) {
-      console.log('[Auto QR] ⚠️ Polling já ativo - ignorando nova chamada');
-      return;
-    }
-
-    if (this.isConnected) {
-      console.log('[Auto QR] ⚠️ Instância já conectada - não iniciando polling');
-      return;
-    }
-
-    console.log('[Auto QR] 🚀 Iniciando polling controlado v4.0 para:', this.instanceName);
-    
-    setTimeout(() => {
-      this.startPolling();
-    }, delay);
+    instanceId: string,
+    maxAttempts: number = 8,
+    onQRCode: (qrCode: string) => void,
+    onError: (error: string) => void,
+    onProgress: (current: number, max: number) => void,
+    onTimeout: () => void
+  ) {
+    this.instanceId = instanceId;
+    this.maxAttempts = maxAttempts;
+    this.onQRCode = onQRCode;
+    this.onError = onError;
+    this.onProgress = onProgress;
+    this.onTimeout = onTimeout;
   }
 
-  private startPolling() {
-    if (this.isActive || this.isConnected) return;
-    
-    this.isActive = true;
-    this.attempts = 0;
+  async start(): Promise<void> {
+    if (this.isPolling) {
+      console.log('[Auto QR Polling] ⚠️ Polling já está ativo');
+      return;
+    }
 
-    this.intervalId = setInterval(async () => {
-      this.attempts++;
-      console.log(`[Auto QR] 📡 Tentativa ${this.attempts}/${this.maxAttempts} para ${this.instanceName}`);
-      
-      try {
-        const result = await this.refreshQRCode(this.instanceId);
-        
-        // NOVO: Verificar se conectou
-        if (result?.connected) {
-          console.log('[Auto QR] ✅ Instância conectada! Parando polling');
-          this.isConnected = true;
-          this.stop();
-          if (this.onConnected) {
-            this.onConnected();
-          }
-          toast.success(`"${this.instanceName}" conectado com sucesso!`);
-          return;
-        }
-        
-        if (result?.success && result.qrCode) {
-          console.log('[Auto QR] ✅ QR Code obtido automaticamente!');
-          this.onSuccess(result.qrCode);
-          this.stop();
-          toast.success(`QR Code pronto para "${this.instanceName}"!`);
-          return;
-        }
-        
-        if (result?.waiting) {
-          console.log('[Auto QR] ⏳ QR Code ainda sendo gerado...');
-        }
-        
-        if (this.attempts >= this.maxAttempts) {
-          console.log('[Auto QR] ⏰ Timeout do polling');
-          this.stop();
-          toast.info(`QR Code não gerado automaticamente. Use o botão "Gerar QR Code" manualmente.`);
-        }
-        
-      } catch (error: any) {
-        console.error('[Auto QR] ❌ Erro no polling:', error);
-        if (this.attempts >= this.maxAttempts) {
-          this.stop();
-          toast.error(`Erro no polling: ${error.message}`);
-        }
+    console.log(`[Auto QR Polling] 🚀 CORREÇÃO: Iniciando polling para VPS corrigida: ${this.instanceId}`);
+    this.isPolling = true;
+    this.currentAttempt = 0;
+
+    // CORREÇÃO: Aguardar 4 segundos antes da primeira tentativa (VPS precisa processar)
+    await new Promise(resolve => setTimeout(resolve, 4000));
+
+    this.pollingInterval = window.setInterval(async () => {
+      if (!this.isPolling) {
+        this.stop('polling parado');
+        return;
       }
-    }, 5000);
+
+      this.currentAttempt++;
+      console.log(`[Auto QR Polling] 🔄 Tentativa ${this.currentAttempt}/${this.maxAttempts} para ${this.instanceId}`);
+      
+      this.onProgress(this.currentAttempt, this.maxAttempts);
+
+      try {
+        const result = await ImprovedQRService.getQRCodeWithDetails(this.instanceId);
+        
+        if (result.success && result.qrCode) {
+          console.log(`[Auto QR Polling] ✅ QR Code obtido na tentativa ${this.currentAttempt}!`);
+          this.onQRCode(result.qrCode);
+          this.stop('QR Code obtido');
+          return;
+        }
+
+        if (result.waiting) {
+          console.log(`[Auto QR Polling] ⏳ Tentativa ${this.currentAttempt}: QR ainda sendo gerado`);
+          // Continuar polling
+          return;
+        }
+
+        if (result.error) {
+          console.log(`[Auto QR Polling] ❌ Erro na tentativa ${this.currentAttempt}:`, result.error);
+        }
+
+      } catch (error: any) {
+        console.error(`[Auto QR Polling] ❌ Erro na tentativa ${this.currentAttempt}:`, error);
+      }
+
+      if (this.currentAttempt >= this.maxAttempts) {
+        console.log(`[Auto QR Polling] ⏰ Timeout após ${this.maxAttempts} tentativas`);
+        this.onTimeout();
+        this.stop('timeout');
+      }
+    }, 4000); // 4 segundos entre tentativas
   }
 
-  stop() {
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
-      this.intervalId = null;
+  stop(reason: string = 'manual'): void {
+    console.log(`[Auto QR Polling] 🛑 Parando polling: ${reason}`);
+    this.isPolling = false;
+    
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
     }
-    this.isActive = false;
-    this.attempts = 0;
-    console.log('[Auto QR] 🛑 Polling parado');
   }
 
-  // NOVO: Método para marcar como conectado externamente
-  markAsConnected() {
-    this.isConnected = true;
-    this.stop();
+  getCurrentAttempt(): number {
+    return this.currentAttempt;
   }
 
-  // NOVO: Método para verificar se está conectado
-  getConnectionStatus() {
-    return this.isConnected;
+  isActive(): boolean {
+    return this.isPolling;
   }
 }
