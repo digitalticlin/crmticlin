@@ -18,13 +18,17 @@ export const WhatsAppTestPanel = () => {
             Centro de Diagnóstico WhatsApp Completo
           </CardTitle>
           <p className="text-orange-700">
-            🎯 <strong>PRIORIDADE:</strong> Execute primeiro a "Descoberta de Endpoints" para identificar os endpoints corretos da VPS
+            🎯 <strong>NOVO:</strong> Execute primeiro a "Investigação Profunda" para análise completa e correção automática
           </p>
         </CardHeader>
       </Card>
 
-      <Tabs defaultValue="discovery" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+      <Tabs defaultValue="investigation" className="w-full">
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="investigation" className="gap-2">
+            <Search className="h-4 w-4" />
+            Investigação
+          </TabsTrigger>
           <TabsTrigger value="discovery" className="gap-2">
             <Search className="h-4 w-4" />
             Descoberta
@@ -46,6 +50,10 @@ export const WhatsAppTestPanel = () => {
             Triggers
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="investigation" className="space-y-6">
+          <VPSDeepInvestigation />
+        </TabsContent>
 
         <TabsContent value="discovery" className="space-y-6">
           <VPSEndpointDiscoveryPanel />
@@ -71,11 +79,12 @@ export const WhatsAppTestPanel = () => {
       <Card className="border-blue-200 bg-blue-50">
         <CardContent className="p-4">
           <div className="text-sm text-blue-800 space-y-2">
-            <p><strong>🔄 Fluxo Recomendado:</strong></p>
+            <p><strong>🔄 Fluxo Recomendado (ATUALIZADO):</strong></p>
             <ol className="list-decimal list-inside space-y-1 ml-4">
-              <li><strong>Descoberta:</strong> Execute primeiro para identificar endpoints funcionais</li>
+              <li><strong>Investigação Profunda:</strong> Análise completa e preparação de scripts de correção</li>
+              <li><strong>Descoberta:</strong> Escaneamento de endpoints para identificar serviços funcionais</li>
               <li><strong>Diagnóstico:</strong> Teste a situação atual do sistema</li>
-              <li><strong>Correção:</strong> Implemente as correções baseadas nos endpoints descobertos</li>
+              <li><strong>Correção Manual:</strong> Execute os scripts preparados via SSH na VPS</li>
               <li><strong>Validação:</strong> Use outros painéis para validar as correções</li>
             </ol>
           </div>
