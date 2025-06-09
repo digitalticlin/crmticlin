@@ -134,6 +134,8 @@ export const WhatsAppWebSettings = () => {
         qrCode={selectedQRCode}
         instanceName={selectedInstanceName}
         isWaiting={!selectedQRCode && !error}
+        currentAttempt={0}
+        maxAttempts={5}
         error={null} // O erro será tratado internamente pelo modal
         onRetry={retryQRCode}
       />
