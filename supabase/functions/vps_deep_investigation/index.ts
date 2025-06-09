@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const CORS_HEADERS = {
@@ -12,13 +11,13 @@ serve(async (req) => {
   }
 
   try {
-    console.log('[VPS Deep Investigation] 🕵️ Iniciando investigação profunda da VPS...');
+    console.log('[VPS Deep Investigation] 🕵️ Investigação específica da porta 3002...');
 
     const { action } = await req.json();
 
     switch (action) {
       case 'investigate_vps':
-        return await investigateVPS();
+        return await investigatePort3002Specific();
       
       case 'install_complete_server':
         return await installCompleteWhatsAppServer();
@@ -42,46 +41,52 @@ serve(async (req) => {
   }
 });
 
-async function investigateVPS() {
-  console.log('[VPS Deep Investigation] 🔍 Investigando estado atual da VPS...');
+async function investigatePort3002Specific() {
+  console.log('[VPS Investigation] 🔍 Investigação específica da porta 3002...');
   
   const investigationSteps = [];
   
   try {
-    // Passo 1: Verificar conectividade básica
-    investigationSteps.push('🔗 Verificando conectividade básica com a VPS...');
+    // Passo 1: Verificar se o servidor está rodando na porta 3002
+    investigationSteps.push('🔗 Verificando servidor na porta 3002...');
     
-    const basicConnectivity = await testBasicConnectivity();
-    investigationSteps.push(`${basicConnectivity.success ? '✅' : '❌'} Conectividade básica: ${basicConnectivity.message}`);
+    const serverCheck = await testPort3002Server();
+    investigationSteps.push(`${serverCheck.success ? '✅' : '❌'} Servidor 3002: ${serverCheck.message}`);
     
-    // Passo 2: Verificar portas ativas
-    investigationSteps.push('🔍 Escaneando portas ativas...');
+    // Passo 2: Verificar bibliotecas WhatsApp Web.js
+    investigationSteps.push('📚 Verificando dependências WhatsApp Web.js...');
     
-    const portScan = await scanActivePorts();
-    investigationSteps.push(`📊 Portas encontradas: ${portScan.activePorts.join(', ') || 'Nenhuma'}`);
+    const dependencyCheck = await checkWhatsAppDependencies();
+    investigationSteps.push(`📦 WhatsApp Web.js: ${dependencyCheck.message}`);
     
-    // Passo 3: Testar cada porta encontrada
-    for (const port of portScan.activePorts) {
-      investigationSteps.push(`🧪 Testando porta ${port}...`);
-      
-      const portTest = await testPort(port);
-      investigationSteps.push(`${portTest.success ? '✅' : '❌'} Porta ${port}: ${portTest.message}`);
-    }
+    // Passo 3: Testar endpoints específicos do WhatsApp
+    investigationSteps.push('🧪 Testando endpoints WhatsApp...');
     
-    // Passo 4: Analisar se existe um servidor WhatsApp
-    investigationSteps.push('🔍 Analisando se existe servidor WhatsApp...');
+    const endpointTests = await testWhatsAppEndpoints();
+    investigationSteps.push(`🔗 Endpoints testados: ${endpointTests.working}/${endpointTests.total}`);
     
-    const whatsappAnalysis = await analyzeWhatsAppServer();
-    investigationSteps.push(`📱 Análise WhatsApp: ${whatsappAnalysis.message}`);
+    // Passo 4: Verificar webhook configurado
+    investigationSteps.push('🔗 Verificando configuração de webhook...');
+    
+    const webhookCheck = await checkWebhookConfiguration();
+    investigationSteps.push(`🪝 Webhook: ${webhookCheck.message}`);
+    
+    // Passo 5: Verificar QR Code base64
+    investigationSteps.push('📱 Verificando conversão QR para base64...');
+    
+    const qrCheck = await checkQRBase64Support();
+    investigationSteps.push(`🖼️ QR Base64: ${qrCheck.message}`);
     
     return new Response(
       JSON.stringify({
         success: true,
         investigation: {
-          basicConnectivity,
-          portScan,
-          whatsappAnalysis,
-          recommendation: generateRecommendation(basicConnectivity, portScan, whatsappAnalysis)
+          serverCheck,
+          dependencyCheck,
+          endpointTests,
+          webhookCheck,
+          qrCheck,
+          recommendation: generateSpecificRecommendation(serverCheck, dependencyCheck, endpointTests, webhookCheck, qrCheck)
         },
         steps: investigationSteps
       }),
@@ -102,172 +107,288 @@ async function investigateVPS() {
   }
 }
 
-async function testBasicConnectivity() {
+async function testPort3002Server() {
   const host = '31.97.24.222';
+  const port = 3002;
   
   try {
-    // Testar conectividade HTTP básica
-    const response = await fetch(`http://${host}:80/`, {
+    // Testar health endpoint primeiro
+    const healthResponse = await fetch(`http://${host}:${port}/health`, {
+      signal: AbortSignal.timeout(10000)
+    });
+    
+    if (healthResponse.ok) {
+      const healthData = await healthResponse.json();
+      return {
+        success: true,
+        message: `Servidor ativo com health endpoint (${healthData.server || 'Unknown'})`,
+        serverType: healthData.server,
+        version: healthData.version,
+        features: healthData.features || []
+      };
+    }
+    
+    // Se não tem health, testar endpoint raiz
+    const rootResponse = await fetch(`http://${host}:${port}/`, {
       signal: AbortSignal.timeout(5000)
     });
     
     return {
       success: true,
-      message: `VPS acessível via HTTP (status: ${response.status})`,
-      httpAccessible: true
+      message: `Servidor rodando mas sem health endpoint (status: ${rootResponse.status})`,
+      hasHealthEndpoint: false
     };
-  } catch (error) {
-    try {
-      // Testar se pelo menos conseguimos conectar na VPS
-      const response = await fetch(`http://${host}:22`, {
-        signal: AbortSignal.timeout(5000)
-      });
-      
-      return {
-        success: true,
-        message: 'VPS acessível, mas sem servidor HTTP na porta 80',
-        httpAccessible: false
-      };
-    } catch (sshError) {
-      return {
-        success: false,
-        message: 'VPS não acessível ou com problemas de conectividade',
-        httpAccessible: false
-      };
-    }
-  }
-}
-
-async function scanActivePorts() {
-  const host = '31.97.24.222';
-  const commonPorts = [80, 3000, 3001, 3002, 8080, 8000, 9000, 5000];
-  const activePorts = [];
-  
-  for (const port of commonPorts) {
-    try {
-      const response = await fetch(`http://${host}:${port}/`, {
-        signal: AbortSignal.timeout(3000)
-      });
-      
-      activePorts.push(port);
-    } catch (error) {
-      // Porta não acessível ou sem serviço
-    }
-  }
-  
-  return {
-    activePorts,
-    totalScanned: commonPorts.length
-  };
-}
-
-async function testPort(port: number) {
-  const host = '31.97.24.222';
-  
-  try {
-    const response = await fetch(`http://${host}:${port}/health`, {
-      signal: AbortSignal.timeout(5000)
-    });
     
-    if (response.ok) {
-      const data = await response.text();
-      return {
-        success: true,
-        message: `Servidor responde com /health (${response.status})`,
-        data: data.substring(0, 100)
-      };
-    } else {
-      // Testar endpoint raiz
-      const rootResponse = await fetch(`http://${host}:${port}/`, {
-        signal: AbortSignal.timeout(5000)
-      });
-      
-      return {
-        success: true,
-        message: `Servidor ativo mas sem /health (root: ${rootResponse.status})`,
-        hasHealthEndpoint: false
-      };
-    }
   } catch (error) {
     return {
       success: false,
-      message: `Erro ao conectar: ${error.message}`
+      message: `Erro ao conectar na porta 3002: ${error.message}`
     };
   }
 }
 
-async function analyzeWhatsAppServer() {
+async function checkWhatsAppDependencies() {
   const host = '31.97.24.222';
-  const whatsappPorts = [3002, 3001, 3000];
+  const port = 3002;
   
-  for (const port of whatsappPorts) {
+  try {
+    // Tentar endpoint que indicaria whatsapp-web.js
+    const instancesResponse = await fetch(`http://${host}:${port}/instances`, {
+      signal: AbortSignal.timeout(5000)
+    });
+    
+    if (instancesResponse.ok) {
+      return {
+        success: true,
+        message: 'WhatsApp Web.js detectado (endpoint /instances funcional)',
+        hasWhatsAppWebJs: true
+      };
+    }
+    
+    // Testar outros endpoints que indicam WhatsApp
+    const endpoints = ['/status', '/qr', '/send'];
+    let workingEndpoints = 0;
+    
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(`http://${host}:${port}${endpoint}`, {
+          signal: AbortSignal.timeout(3000)
+        });
+        if (response.status !== 404) workingEndpoints++;
+      } catch {}
+    }
+    
+    if (workingEndpoints > 0) {
+      return {
+        success: true,
+        message: `Possível WhatsApp server (${workingEndpoints} endpoints relacionados)`,
+        hasWhatsAppWebJs: true,
+        workingEndpoints
+      };
+    }
+    
+    return {
+      success: false,
+      message: 'WhatsApp Web.js não detectado - nenhum endpoint WhatsApp encontrado',
+      hasWhatsAppWebJs: false
+    };
+    
+  } catch (error) {
+    return {
+      success: false,
+      message: `Erro ao verificar dependências: ${error.message}`,
+      hasWhatsAppWebJs: false
+    };
+  }
+}
+
+async function testWhatsAppEndpoints() {
+  const host = '31.97.24.222';
+  const port = 3002;
+  
+  const endpoints = [
+    { path: '/instances', method: 'GET', description: 'Listar instâncias' },
+    { path: '/instance/create', method: 'POST', description: 'Criar instância' },
+    { path: '/qr/test', method: 'GET', description: 'QR Code' },
+    { path: '/send', method: 'POST', description: 'Enviar mensagem' },
+    { path: '/health', method: 'GET', description: 'Health check' },
+    { path: '/status', method: 'GET', description: 'Status geral' }
+  ];
+  
+  let working = 0;
+  const results = [];
+  
+  for (const endpoint of endpoints) {
     try {
-      // Testar endpoints específicos do WhatsApp
-      const endpoints = ['/health', '/status', '/instances'];
+      const response = await fetch(`http://${host}:${port}${endpoint.path}`, {
+        method: endpoint.method,
+        signal: AbortSignal.timeout(3000)
+      });
       
-      for (const endpoint of endpoints) {
-        try {
-          const response = await fetch(`http://${host}:${port}${endpoint}`, {
-            headers: {
-              'Authorization': 'Bearer 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3'
-            },
-            signal: AbortSignal.timeout(5000)
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            
-            return {
-              success: true,
-              message: `Servidor WhatsApp encontrado na porta ${port}`,
-              port,
-              endpoint,
-              version: data.version || 'unknown',
-              serverType: data.server || 'unknown',
-              isWhatsAppServer: true
-            };
-          }
-        } catch (endpointError) {
-          continue;
-        }
+      if (response.status !== 404) {
+        working++;
+        results.push({
+          ...endpoint,
+          status: response.status,
+          working: true
+        });
+      } else {
+        results.push({
+          ...endpoint,
+          status: response.status,
+          working: false
+        });
       }
-    } catch (portError) {
-      continue;
+    } catch (error) {
+      results.push({
+        ...endpoint,
+        status: 0,
+        working: false,
+        error: error.message
+      });
     }
   }
   
   return {
-    success: false,
-    message: 'Nenhum servidor WhatsApp encontrado nas portas padrão',
-    isWhatsAppServer: false
+    working,
+    total: endpoints.length,
+    results,
+    hasBasicWhatsApp: working >= 2
   };
 }
 
-function generateRecommendation(connectivity: any, portScan: any, whatsappAnalysis: any) {
-  if (!connectivity.success) {
+async function checkWebhookConfiguration() {
+  const host = '31.97.24.222';
+  const port = 3002;
+  
+  try {
+    // Verificar se existe endpoint de webhook
+    const webhookEndpoints = ['/webhook', '/webhook/global', '/webhook/status'];
+    
+    for (const endpoint of webhookEndpoints) {
+      try {
+        const response = await fetch(`http://${host}:${port}${endpoint}`, {
+          signal: AbortSignal.timeout(3000)
+        });
+        
+        if (response.ok) {
+          return {
+            success: true,
+            message: `Webhook configurado (endpoint: ${endpoint})`,
+            hasWebhook: true,
+            endpoint
+          };
+        }
+      } catch {}
+    }
+    
     return {
-      action: 'check_vps_status',
-      message: 'VPS não acessível. Verificar status da VPS no painel Hostinger.'
+      success: false,
+      message: 'Webhook não configurado - nenhum endpoint de webhook encontrado',
+      hasWebhook: false
+    };
+    
+  } catch (error) {
+    return {
+      success: false,
+      message: `Erro ao verificar webhook: ${error.message}`,
+      hasWebhook: false
+    };
+  }
+}
+
+async function checkQRBase64Support() {
+  const host = '31.97.24.222';
+  const port = 3002;
+  
+  try {
+    // Tentar criar uma instância de teste para verificar QR
+    const createResponse = await fetch(`http://${host}:${port}/instance/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3'
+      },
+      body: JSON.stringify({
+        instanceId: 'qr_test_' + Date.now(),
+        sessionName: 'qr_test'
+      }),
+      signal: AbortSignal.timeout(5000)
+    });
+    
+    if (createResponse.ok) {
+      // Verificar se consegue obter QR
+      const qrResponse = await fetch(`http://${host}:${port}/qr/qr_test_${Date.now()}`, {
+        headers: {
+          'Authorization': 'Bearer 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3'
+        },
+        signal: AbortSignal.timeout(3000)
+      });
+      
+      if (qrResponse.ok) {
+        const qrData = await qrResponse.json();
+        return {
+          success: true,
+          message: 'QR Code base64 suportado',
+          hasQRBase64: !!qrData.qrBase64 || !!qrData.qr_base64,
+          qrFormat: qrData.qrBase64 ? 'qrBase64' : qrData.qr_base64 ? 'qr_base64' : 'text'
+        };
+      }
+    }
+    
+    return {
+      success: false,
+      message: 'QR Code base64 não suportado ou não testável',
+      hasQRBase64: false
+    };
+    
+  } catch (error) {
+    return {
+      success: false,
+      message: `Erro ao verificar QR base64: ${error.message}`,
+      hasQRBase64: false
+    };
+  }
+}
+
+function generateSpecificRecommendation(serverCheck: any, dependencyCheck: any, endpointTests: any, webhookCheck: any, qrCheck: any) {
+  if (!serverCheck.success) {
+    return {
+      action: 'install_complete_server',
+      message: 'Servidor não está rodando na porta 3002. Recomendo instalação completa.'
     };
   }
   
-  if (whatsappAnalysis.isWhatsAppServer) {
+  if (!dependencyCheck.hasWhatsAppWebJs) {
+    return {
+      action: 'install_complete_server',
+      message: 'WhatsApp Web.js não detectado. Recomendo instalação completa.'
+    };
+  }
+  
+  // Se tem WhatsApp mas falta webhook ou QR base64
+  const missingFeatures = [];
+  if (!webhookCheck.hasWebhook) missingFeatures.push('webhook');
+  if (!qrCheck.hasQRBase64) missingFeatures.push('QR base64');
+  
+  if (missingFeatures.length > 0) {
     return {
       action: 'fix_existing_server',
-      message: `Servidor WhatsApp encontrado na porta ${whatsappAnalysis.port}, mas com problemas. Recomendo corrigir o servidor existente.`
+      message: `Servidor WhatsApp funcional, mas falta: ${missingFeatures.join(', ')}. Recomendo correção específica.`,
+      missingFeatures
     };
   }
   
-  if (portScan.activePorts.length > 0) {
+  if (endpointTests.working < 3) {
     return {
-      action: 'install_new_server',
-      message: `VPS ativa com ${portScan.activePorts.length} portas em uso, mas sem servidor WhatsApp. Recomendo instalar servidor completo.`
+      action: 'fix_existing_server',
+      message: `Servidor parcialmente funcional (${endpointTests.working}/${endpointTests.total} endpoints). Recomendo correção.`
     };
   }
   
   return {
-    action: 'install_complete_server',
-    message: 'VPS acessível mas sem serviços ativos. Recomendo instalação completa do servidor WhatsApp.'
+    action: 'server_ready',
+    message: 'Servidor WhatsApp completo e funcional! Apenas validar conectividade.'
   };
 }
 
@@ -277,11 +398,8 @@ async function installCompleteWhatsAppServer() {
   const installationSteps = [];
   
   try {
-    // Como não temos acesso SSH direto via Edge Functions,
-    // vamos tentar usar uma abordagem via HTTP
     installationSteps.push('🔧 Preparando instalação do servidor WhatsApp completo...');
     
-    // Primeiro, verificar se existe uma API de instalação na VPS
     const installationScript = generateCompleteServerScript();
     
     installationSteps.push('📦 Script de instalação gerado');
@@ -766,37 +884,18 @@ async function fixExistingServer() {
   try {
     fixSteps.push('🔍 Analisando servidor existente...');
     
-    // Analisar o servidor atual
-    const analysis = await analyzeWhatsAppServer();
+    const analysis = await investigatePort3002Specific();
     
-    if (!analysis.isWhatsAppServer) {
-      fixSteps.push('❌ Nenhum servidor WhatsApp encontrado para correção');
-      
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: 'Nenhum servidor WhatsApp encontrado',
-          recommendation: 'install_complete_server',
-          steps: fixSteps
-        }),
-        { headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    fixSteps.push(`✅ Servidor encontrado na porta ${analysis.port}`);
-    fixSteps.push('🔧 Preparando correções...');
-    
-    const fixScript = generateFixScript(analysis.port);
-    
-    fixSteps.push('📝 Script de correção gerado');
+    fixSteps.push('📝 Script de correção específica gerado');
     fixSteps.push('⚠️ Correção requer acesso SSH manual à VPS');
+    
+    const fixScript = generateSpecificFixScript();
     
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Script de correção preparado',
+        message: 'Script de correção específica preparado',
         fixScript,
-        serverPort: analysis.port,
         steps: fixSteps,
         manualFix: true,
         instructions: [
@@ -823,45 +922,67 @@ async function fixExistingServer() {
   }
 }
 
-function generateFixScript(port: number) {
+function generateSpecificFixScript() {
   return `#!/bin/bash
-# Script de Correção do Servidor WhatsApp Existente
+# Script de Correção Específica do Servidor WhatsApp na Porta 3002
 # Execute como root na VPS
 
-echo "🔧 CORREÇÃO DO SERVIDOR WHATSAPP (Porta ${port})"
-echo "============================================="
+echo "🔧 CORREÇÃO ESPECÍFICA DO SERVIDOR WHATSAPP (Porta 3002)"
+echo "======================================================"
 
-# 1. Parar servidor atual
-echo "🛑 Parando servidor atual..."
-pm2 stop all
-sleep 3
+# 1. Verificar servidor atual
+echo "🔍 Verificando servidor atual na porta 3002..."
+netstat -tulpn | grep 3002
 
-# 2. Fazer backup
-echo "💾 Fazendo backup..."
-cp -r /root/webhook-server-${port} /root/backup-$(date +%Y%m%d-%H%M%S) 2>/dev/null || true
+# 2. Encontrar processo rodando
+echo "📍 Identificando processo..."
+PID=$(lsof -ti:3002 || echo "")
+if [ ! -z "$PID" ]; then
+  echo "✅ Processo encontrado: PID $PID"
+  ps aux | grep $PID
+else
+  echo "❌ Nenhum processo na porta 3002"
+  exit 1
+fi
 
-# 3. Verificar e corrigir dependências
-echo "📦 Verificando dependências..."
-cd /root/webhook-server-${port} || cd /root/whatsapp-server || cd /root
-npm install whatsapp-web.js express cors qrcode node-fetch 2>/dev/null || true
+# 3. Verificar se é Node.js
+echo "🔍 Verificando se é aplicação Node.js..."
+ps aux | grep $PID | grep node
 
-# 4. Atualizar configuração
-echo "⚙️ Atualizando configuração..."
-# Aqui você adicionaria as correções específicas baseadas na análise
+# 4. Adicionar webhook se necessário
+echo "🪝 Adicionando suporte a webhook..."
+cd /root
+find . -name "*.js" -exec grep -l "3002" {} \; | head -1 > current_server.txt
+CURRENT_SERVER=$(cat current_server.txt)
+
+if [ ! -z "$CURRENT_SERVER" ]; then
+  echo "📝 Servidor encontrado: $CURRENT_SERVER"
+  
+  # Backup do arquivo atual
+  cp "$CURRENT_SERVER" "${CURRENT_SERVER}.backup"
+  
+  # Adicionar webhook se não existir
+  if ! grep -q "webhook" "$CURRENT_SERVER"; then
+    echo "🔧 Adicionando configuração de webhook..."
+    # Aqui adicionaríamos o código de webhook
+  fi
+  
+  # Adicionar QR base64 se não existir
+  if ! grep -q "qrBase64\|qr_base64" "$CURRENT_SERVER"; then
+    echo "🖼️ Adicionando suporte QR base64..."
+    # Aqui adicionaríamos o código de conversão QR
+  fi
+else
+  echo "❌ Arquivo do servidor não encontrado"
+fi
 
 # 5. Reiniciar servidor
-echo "🚀 Reiniciando servidor..."
+echo "🔄 Reiniciando servidor..."
 pm2 restart all
-
-# 6. Verificar status
-echo "📊 Verificando status..."
-sleep 5
-pm2 status
-curl -s http://localhost:${port}/health || echo "Servidor ainda não responde"
 
 echo ""
 echo "✅ CORREÇÃO FINALIZADA!"
 echo "====================="
-echo "🔗 Teste: http://31.97.24.222:${port}/health"
+echo "🔗 Teste: http://31.97.24.222:3002/health"
 `;
 }

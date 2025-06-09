@@ -4,6 +4,7 @@ import { VPSConnectivityTest } from "../settings/whatsapp/VPSConnectivityTest";
 import { VPSTestTrigger } from "./VPSTestTrigger";
 import { ModularTestPanel } from "./ModularTestPanel";
 import { VPSEndpointDiscoveryPanel } from "./VPSEndpointDiscovery";
+import { VPSDeepInvestigation } from "./VPSDeepInvestigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertTriangle, TestTube, Settings, Monitor, Activity, Search } from "lucide-react";
