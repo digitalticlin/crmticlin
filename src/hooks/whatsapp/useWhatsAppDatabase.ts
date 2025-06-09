@@ -1,43 +1,97 @@
 
-import { useStabilizedInstanceSync } from './useStabilizedInstanceSync';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
-// FASE 1: Hook principal atualizado para usar sync estabilizado
+export interface WhatsAppInstance {
+  id: string;
+  instance_name: string;
+  connection_status: string;
+  phone?: string;
+  profile_name?: string;
+  qr_code?: string;
+  created_at: string;
+  updated_at: string;
+  vps_instance_id?: string;
+}
+
 export const useWhatsAppDatabase = () => {
-  const { 
-    instances, 
-    isLoading, 
-    error, 
-    refetch,
-    healthScore,
-    isHealthy
-  } = useStabilizedInstanceSync();
+  const [instances, setInstances] = useState<WhatsAppInstance[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const getActiveInstance = () => {
-    // Priorizar instâncias conectadas e com telefone
-    const connectedInstances = instances.filter(i => 
-      ['open', 'ready'].includes(i.connection_status) && 
-      i.phone &&
-      i.vps_instance_id // Não é órfã
-    );
+  // Buscar instâncias do banco
+  const fetchInstances = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
 
-    if (connectedInstances.length > 0) {
-      return connectedInstances[0];
+      const { data, error } = await supabase
+        .from('whatsapp_instances')
+        .select('*')
+        .eq('connection_type', 'web')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const instancesData = data || [];
+      setInstances(instancesData);
+      
+      console.log('[useWhatsAppDatabase] Instâncias carregadas:', instancesData.length);
+      
+    } catch (error: any) {
+      console.error('[useWhatsAppDatabase] Erro ao buscar instâncias:', error);
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
     }
-
-    // Fallback para qualquer instância com telefone
-    const instancesWithPhone = instances.filter(i => i.phone);
-    return instancesWithPhone.length > 0 ? instancesWithPhone[0] : null;
   };
+
+  // Obter instância ativa
+  const getActiveInstance = (): WhatsAppInstance | null => {
+    const activeInstance = instances.find(i => 
+      i.connection_status === 'connected' || 
+      i.connection_status === 'ready'
+    );
+    return activeInstance || null;
+  };
+
+  // Recarregar instâncias
+  const refetch = () => {
+    fetchInstances();
+  };
+
+  // Configurar subscription em tempo real
+  useEffect(() => {
+    fetchInstances();
+
+    const channel = supabase
+      .channel('whatsapp-instances-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'whatsapp_instances',
+          filter: 'connection_type=eq.web'
+        },
+        (payload) => {
+          console.log('[useWhatsAppDatabase] Atualização em tempo real:', payload);
+          fetchInstances(); // Recarregar quando houver mudanças
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   return {
     instances,
     isLoading,
     error,
-    refetch,
     getActiveInstance,
-    healthScore,
-    isHealthy,
-    totalInstances: instances.length,
-    connectedInstances: instances.filter(i => ['open', 'ready'].includes(i.connection_status)).length
+    refetch,
+    fetchInstances
   };
 };
