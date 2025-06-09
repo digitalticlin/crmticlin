@@ -7,12 +7,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// CORREÇÃO: Configuração otimizada com timeout adequado baseado nos testes SSH
+// CORREÇÃO: Configuração otimizada com TOKEN DE AUTENTICAÇÃO
 const WEBHOOK_SERVER_CONFIG = {
   baseUrl: 'http://31.97.24.222:3002',
   webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
-  timeout: 30000, // CORREÇÃO: Aumentado para 30 segundos baseado nos testes
-  healthTimeout: 15000 // CORREÇÃO: Health check separado com 15s
+  timeout: 30000,
+  healthTimeout: 15000,
+  // NOVA: Token de autenticação para VPS
+  authToken: Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3'
 };
 
 serve(async (req) => {
@@ -107,7 +109,7 @@ async function createInstanceOptimized(supabase: any, instanceName: string, user
 
     console.log(`[Instance Manager] ✅ Instância salva no banco [${creationId}]:`, instance.id);
 
-    // 3. CORREÇÃO: Criar na VPS com estratégia assíncrona (baseado nos testes SSH)
+    // 3. CORREÇÃO: Criar na VPS COM TOKEN DE AUTENTICAÇÃO
     const vpsPayload = {
       instanceId: vpsInstanceId,
       sessionName: sessionName,
@@ -120,15 +122,19 @@ async function createInstanceOptimized(supabase: any, instanceName: string, user
       markOnlineOnConnect: true
     };
 
-    console.log(`[Instance Manager] 🌐 CORREÇÃO: Criando na VPS [${creationId}] (timeout: ${WEBHOOK_SERVER_CONFIG.timeout}ms)`);
+    console.log(`[Instance Manager] 🌐 CORREÇÃO: Criando na VPS COM TOKEN [${creationId}] (timeout: ${WEBHOOK_SERVER_CONFIG.timeout}ms)`);
     
     const vpsController = new AbortController();
     const vpsTimeoutId = setTimeout(() => vpsController.abort(), WEBHOOK_SERVER_CONFIG.timeout);
 
     try {
+      // CORREÇÃO: Incluir token de autenticação SEMPRE
       const vpsResponse = await fetch(`${WEBHOOK_SERVER_CONFIG.baseUrl}/instance/create`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${WEBHOOK_SERVER_CONFIG.authToken}` // NOVO: Sempre incluir token
+        },
         body: JSON.stringify(vpsPayload),
         signal: vpsController.signal
       });
@@ -152,7 +158,7 @@ async function createInstanceOptimized(supabase: any, instanceName: string, user
       }
 
       const vpsData = await vpsResponse.json();
-      console.log(`[Instance Manager] 📡 CORREÇÃO: VPS sucesso [${creationId}]:`, vpsData);
+      console.log(`[Instance Manager] 📡 CORREÇÃO: VPS sucesso COM TOKEN [${creationId}]:`, vpsData);
 
       // 4. CORREÇÃO: Atualizar status para aguardar webhook
       const { data: updatedInstance } = await supabase
@@ -165,7 +171,7 @@ async function createInstanceOptimized(supabase: any, instanceName: string, user
         .select()
         .single();
 
-      console.log(`[Instance Manager] ✅ CORREÇÃO: Instância criada com sucesso [${creationId}] - aguardando webhook`);
+      console.log(`[Instance Manager] ✅ CORREÇÃO: Instância criada com sucesso COM TOKEN [${creationId}] - aguardando webhook`);
 
       return new Response(JSON.stringify({
         success: true,
@@ -174,14 +180,15 @@ async function createInstanceOptimized(supabase: any, instanceName: string, user
         webhook_enabled: true,
         server_port: 3002,
         creationId,
-        message: 'Instância criada com sucesso - aguardando QR Code via webhook'
+        auth_configured: true, // NOVO: Confirmar que autenticação está configurada
+        message: 'Instância criada com sucesso COM TOKEN - aguardando QR Code via webhook'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
 
     } catch (vpsError) {
       clearTimeout(vpsTimeoutId);
-      console.error(`[Instance Manager] ❌ VPS falhou [${creationId}]:`, vpsError);
+      console.error(`[Instance Manager] ❌ VPS falhou COM TOKEN [${creationId}]:`, vpsError);
       
       // CORREÇÃO: Marcar como erro mas manter no banco
       await supabase
@@ -192,11 +199,11 @@ async function createInstanceOptimized(supabase: any, instanceName: string, user
         })
         .eq('id', instance.id);
       
-      throw new Error(`Falha ao criar instância na VPS: ${vpsError.message}`);
+      throw new Error(`Falha ao criar instância na VPS COM TOKEN: ${vpsError.message}`);
     }
 
   } catch (error) {
-    console.error(`[Instance Manager] ❌ ERRO GERAL [${creationId}]:`, error);
+    console.error(`[Instance Manager] ❌ ERRO GERAL COM TOKEN [${creationId}]:`, error);
     
     return new Response(JSON.stringify({
       success: false,
@@ -210,7 +217,7 @@ async function createInstanceOptimized(supabase: any, instanceName: string, user
 }
 
 async function deleteInstanceCorrected(supabase: any, instanceId: string, user: any) {
-  console.log(`[Instance Manager] 🗑️ Deletando instância: ${instanceId} para usuário: ${user.id}`);
+  console.log(`[Instance Manager] 🗑️ Deletando instância COM TOKEN: ${instanceId} para usuário: ${user.id}`);
 
   try {
     // 1. Buscar instância do usuário específico
@@ -225,21 +232,25 @@ async function deleteInstanceCorrected(supabase: any, instanceId: string, user: 
       throw new Error('Instância não encontrada ou você não tem permissão para deletá-la');
     }
 
-    // 2. Deletar da VPS se tiver vps_instance_id
+    // 2. Deletar da VPS COM TOKEN se tiver vps_instance_id
     if (instance.vps_instance_id) {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
 
+        // CORREÇÃO: Incluir token de autenticação na deleção
         const deleteResponse = await fetch(`${WEBHOOK_SERVER_CONFIG.baseUrl}/instance/${instance.vps_instance_id}`, {
           method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${WEBHOOK_SERVER_CONFIG.authToken}` // NOVO: Sempre incluir token
+          },
           signal: controller.signal
         });
 
         clearTimeout(timeoutId);
-        console.log(`[Instance Manager] 📡 Delete VPS status:`, deleteResponse.status);
+        console.log(`[Instance Manager] 📡 Delete VPS COM TOKEN status:`, deleteResponse.status);
       } catch (vpsError) {
-        console.log(`[Instance Manager] ⚠️ Erro ao deletar da VPS (continuando):`, vpsError.message);
+        console.log(`[Instance Manager] ⚠️ Erro ao deletar da VPS COM TOKEN (continuando):`, vpsError.message);
       }
     }
 
@@ -254,17 +265,18 @@ async function deleteInstanceCorrected(supabase: any, instanceId: string, user: 
       throw new Error(`Erro ao deletar do banco: ${deleteError.message}`);
     }
 
-    console.log(`[Instance Manager] ✅ Instância deletada com sucesso`);
+    console.log(`[Instance Manager] ✅ Instância deletada com sucesso COM TOKEN`);
 
     return new Response(JSON.stringify({
       success: true,
-      message: 'Instância deletada com sucesso'
+      auth_configured: true, // NOVO: Confirmar que autenticação está configurada
+      message: 'Instância deletada com sucesso COM TOKEN'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.error(`[Instance Manager] ❌ Erro ao deletar:`, error);
+    console.error(`[Instance Manager] ❌ Erro ao deletar COM TOKEN:`, error);
     return new Response(JSON.stringify({
       success: false,
       error: error.message
