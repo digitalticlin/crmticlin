@@ -5,19 +5,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Activity, CheckCircle, AlertTriangle, Loader2, Zap } from "lucide-react";
+import { 
+  Activity, 
+  CheckCircle, 
+  AlertTriangle, 
+  Loader2, 
+  Zap, 
+  Network,
+  Timer,
+  Heart,
+  TestTube,
+  Wifi
+} from "lucide-react";
 
 export const VPSDiagnosticButton = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [diagnosticResult, setDiagnosticResult] = useState<any>(null);
 
-  const runDiagnostic = async () => {
+  const runDiagnostic = async (testType: string = 'full') => {
     try {
       setIsRunning(true);
-      toast.loading('Executando diagnóstico da VPS...', { id: 'vps-diagnostic' });
+      toast.loading(`Executando ${testType}...`, { id: 'vps-diagnostic' });
 
-      const { data, error } = await supabase.functions.invoke('vps_quick_diagnostic', {
-        body: {}
+      const { data, error } = await supabase.functions.invoke('vps_connectivity_diagnostic', {
+        body: { testType }
       });
 
       if (error) {
@@ -27,11 +38,11 @@ export const VPSDiagnosticButton = () => {
       setDiagnosticResult(data);
       
       if (data.success) {
-        const summary = data.diagnostic_results.summary;
-        if (summary.vps_online && summary.whatsapp_server_online) {
-          toast.success('VPS e WhatsApp Server estão online!', { id: 'vps-diagnostic' });
+        const summary = data.result.summary;
+        if (summary?.pingWorking) {
+          toast.success('Conectividade VPS confirmada!', { id: 'vps-diagnostic' });
         } else {
-          toast.warning('Problemas detectados na infraestrutura', { id: 'vps-diagnostic' });
+          toast.warning('Problemas de conectividade detectados', { id: 'vps-diagnostic' });
         }
       } else {
         toast.error('Falha no diagnóstico', { id: 'vps-diagnostic' });
@@ -49,120 +60,186 @@ export const VPSDiagnosticButton = () => {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'SUCCESS':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
-      case 'ERROR':
-        return <AlertTriangle className="h-4 w-4 text-red-600" />;
-      default:
-        return <Activity className="h-4 w-4 text-gray-400" />;
-    }
+  const getStatusIcon = (success: boolean) => {
+    return success ? 
+      <CheckCircle className="h-4 w-4 text-green-600" /> : 
+      <AlertTriangle className="h-4 w-4 text-red-600" />;
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'SUCCESS':
-        return <Badge className="bg-green-100 text-green-800">Sucesso</Badge>;
-      case 'ERROR':
-        return <Badge variant="destructive">Erro</Badge>;
-      default:
-        return <Badge variant="secondary">Desconhecido</Badge>;
-    }
+  const getStatusBadge = (success: boolean) => {
+    return success ? 
+      <Badge className="bg-green-100 text-green-800">Sucesso</Badge> : 
+      <Badge variant="destructive">Erro</Badge>;
   };
 
   return (
     <div className="space-y-4">
-      <Button 
-        onClick={runDiagnostic}
-        disabled={isRunning}
-        className="w-full"
-        variant="outline"
-      >
-        {isRunning ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            Executando Diagnóstico...
-          </>
-        ) : (
-          <>
-            <Zap className="h-4 w-4 mr-2" />
-            Diagnóstico Rápido da VPS
-          </>
-        )}
-      </Button>
+      {/* Botões de Teste */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+        <Button 
+          onClick={() => runDiagnostic('simple_ping')}
+          disabled={isRunning}
+          variant="outline"
+          size="sm"
+        >
+          <Wifi className="h-4 w-4 mr-1" />
+          Ping
+        </Button>
+        
+        <Button 
+          onClick={() => runDiagnostic('progressive_timeout')}
+          disabled={isRunning}
+          variant="outline"
+          size="sm"
+        >
+          <Timer className="h-4 w-4 mr-1" />
+          Timeout
+        </Button>
+        
+        <Button 
+          onClick={() => runDiagnostic('health_check')}
+          disabled={isRunning}
+          variant="outline"
+          size="sm"
+        >
+          <Heart className="h-4 w-4 mr-1" />
+          Health
+        </Button>
+        
+        <Button 
+          onClick={() => runDiagnostic('create_instance_simulation')}
+          disabled={isRunning}
+          variant="outline"
+          size="sm"
+        >
+          <TestTube className="h-4 w-4 mr-1" />
+          Criar Inst.
+        </Button>
+        
+        <Button 
+          onClick={() => runDiagnostic('network_analysis')}
+          disabled={isRunning}
+          variant="outline"
+          size="sm"
+        >
+          <Network className="h-4 w-4 mr-1" />
+          Rede
+        </Button>
+        
+        <Button 
+          onClick={() => runDiagnostic('full')}
+          disabled={isRunning}
+          className="col-span-2 md:col-span-1"
+        >
+          {isRunning ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin mr-1" />
+              Executando...
+            </>
+          ) : (
+            <>
+              <Zap className="h-4 w-4 mr-1" />
+              Completo
+            </>
+          )}
+        </Button>
+      </div>
 
+      {/* Resultados */}
       {diagnosticResult && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="h-5 w-5" />
-              Resultado do Diagnóstico
+              Diagnóstico VPS - {diagnosticResult.testType}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {diagnosticResult.success ? (
               <>
-                {/* Resumo */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">VPS Online:</span>
-                    {diagnosticResult.diagnostic_results.summary.vps_online ? (
-                      <Badge className="bg-green-100 text-green-800">Sim</Badge>
-                    ) : (
-                      <Badge variant="destructive">Não</Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">WhatsApp Server:</span>
-                    {diagnosticResult.diagnostic_results.summary.whatsapp_server_online ? (
-                      <Badge className="bg-green-100 text-green-800">Online</Badge>
-                    ) : (
-                      <Badge variant="destructive">Offline</Badge>
-                    )}
-                  </div>
-                </div>
-
-                {/* Testes Detalhados */}
-                <div className="space-y-2">
-                  <h4 className="font-medium text-sm">Testes Executados:</h4>
-                  {Object.entries(diagnosticResult.diagnostic_results.tests).map(([testName, testResult]: [string, any]) => (
-                    <div key={testName} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(testResult.status)}
-                        <span className="text-sm">{testName.replace(/_/g, ' ')}</span>
-                      </div>
-                      {getStatusBadge(testResult.status)}
+                {/* Resumo (se for diagnóstico completo) */}
+                {diagnosticResult.result.summary && (
+                  <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded">
+                    <div className="text-sm">
+                      <span className="font-medium">Ping:</span>
+                      {getStatusBadge(diagnosticResult.result.summary.pingWorking)}
                     </div>
-                  ))}
+                    <div className="text-sm">
+                      <span className="font-medium">Melhor Timeout:</span>
+                      <Badge variant="secondary">
+                        {diagnosticResult.result.summary.bestTimeout}ms
+                      </Badge>
+                    </div>
+                    <div className="text-sm">
+                      <span className="font-medium">Endpoints OK:</span>
+                      <Badge variant="secondary">
+                        {diagnosticResult.result.summary.healthEndpoints}/3
+                      </Badge>
+                    </div>
+                    <div className="text-sm">
+                      <span className="font-medium">Criar Instância:</span>
+                      {getStatusBadge(diagnosticResult.result.summary.createInstanceWorking)}
+                    </div>
+                  </div>
+                )}
+
+                {/* Resultados detalhados */}
+                <div className="space-y-3">
+                  {/* Ping simples */}
+                  {diagnosticResult.result.success !== undefined && (
+                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(diagnosticResult.result.success)}
+                        <span className="text-sm">Ping Simples</span>
+                        {diagnosticResult.result.responseTime && (
+                          <Badge variant="outline">{diagnosticResult.result.responseTime}ms</Badge>
+                        )}
+                      </div>
+                      {getStatusBadge(diagnosticResult.result.success)}
+                    </div>
+                  )}
+
+                  {/* Resultados de timeout progressivo */}
+                  {diagnosticResult.result.results && (
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-sm">Testes de Timeout:</h4>
+                      {diagnosticResult.result.results.map((result: any, index: number) => (
+                        <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                          <div className="flex items-center gap-2">
+                            {getStatusIcon(result.success)}
+                            <span className="text-sm">{result.timeout}ms</span>
+                            {result.responseTime && (
+                              <Badge variant="outline">{result.responseTime}ms</Badge>
+                            )}
+                          </div>
+                          {getStatusBadge(result.success)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Health check detalhado */}
+                  {diagnosticResult.result.health?.results && (
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-sm">Health Check:</h4>
+                      {diagnosticResult.result.health.results.map((result: any, index: number) => (
+                        <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                          <div className="flex items-center gap-2">
+                            {getStatusIcon(result.success)}
+                            <span className="text-sm">{result.endpoint}</span>
+                            {result.responseTime && (
+                              <Badge variant="outline">{result.responseTime}ms</Badge>
+                            )}
+                          </div>
+                          {getStatusBadge(result.success)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-
-                {/* Problemas Encontrados */}
-                {diagnosticResult.diagnostic_results.summary.connectivity_issues.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-sm text-red-700">Problemas Encontrados:</h4>
-                    <ul className="list-disc list-inside space-y-1">
-                      {diagnosticResult.diagnostic_results.summary.connectivity_issues.map((issue: string, index: number) => (
-                        <li key={index} className="text-sm text-red-600">{issue}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {/* Recomendações */}
-                {diagnosticResult.diagnostic_results.summary.recommendations.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-sm text-blue-700">Recomendações:</h4>
-                    <ul className="list-disc list-inside space-y-1">
-                      {diagnosticResult.diagnostic_results.summary.recommendations.map((rec: string, index: number) => (
-                        <li key={index} className="text-sm text-blue-600">{rec}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
 
                 <div className="text-xs text-gray-500">
-                  Tempo total: {diagnosticResult.total_time_ms}ms
+                  ID: {diagnosticResult.diagnosticId} | {diagnosticResult.timestamp}
                 </div>
               </>
             ) : (
