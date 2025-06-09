@@ -7,6 +7,7 @@ import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstance
 import { SimplifiedConnectButton } from "./SimplifiedConnectButton";
 import { WhatsAppInstanceGrid } from "./WhatsAppInstanceGrid";
 import { AutoQRModal } from "./AutoQRModal";
+import { VPSDiagnosticButton } from "./VPSDiagnosticButton";
 
 export const SimplifiedWhatsAppSection = () => {
   const { user } = useAuth();
@@ -70,6 +71,19 @@ export const SimplifiedWhatsAppSection = () => {
             Gerencie suas conexões WhatsApp para automação de mensagens
           </p>
         </CardHeader>
+      </Card>
+
+      {/* Diagnóstico VPS */}
+      <Card className="border-blue-200 bg-blue-50">
+        <CardHeader>
+          <CardTitle className="text-blue-800">Diagnóstico de Infraestrutura</CardTitle>
+          <p className="text-sm text-blue-700">
+            Verifique se a VPS e o servidor WhatsApp estão funcionando corretamente
+          </p>
+        </CardHeader>
+        <CardContent>
+          <VPSDiagnosticButton />
+        </CardContent>
       </Card>
 
       {/* Content */}
