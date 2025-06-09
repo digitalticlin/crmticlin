@@ -7,8 +7,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// CORREÇÃO: Servidor Webhook na porta 3002 (SEM MAIS 3001)
+// CORREÇÃO: Servidor Webhook na porta 3002 com diagnóstico
 const WEBHOOK_SERVER_URL = 'http://31.97.24.222:3002';
+const VPS_AUTH_TOKEN = '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
+const VPS_TIMEOUT = 20000; // 20 segundos para QR codes
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -20,7 +22,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // CORREÇÃO: Adicionar autenticação como no instance_manager
+    // Autenticação como no instance_manager
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('Token de autorização necessário');
@@ -37,6 +39,7 @@ serve(async (req) => {
     console.log('[QR Service] ✅ Usuário autenticado:', user.id);
 
     const { action, instanceId } = await req.json();
+    console.log(`[QR Service] 📥 Ação recebida: ${action} para instância: ${instanceId}`);
 
     // CORREÇÃO: Implementar TODAS as ações que o frontend está chamando
     if (action === 'get_qr_code') {
@@ -55,6 +58,10 @@ serve(async (req) => {
       return await generateQR(supabase, instanceId);
     }
 
+    if (action === 'get_qr') {
+      return await getQRCode(supabase, instanceId);
+    }
+
     throw new Error(`Ação não reconhecida: ${action}`);
 
   } catch (error) {
@@ -69,9 +76,9 @@ serve(async (req) => {
   }
 });
 
-// CORREÇÃO: Implementar todas as funções que faltavam
+// CORREÇÃO: Função principal de busca QR com diagnóstico avançado
 async function getQRCode(supabase: any, instanceId: string) {
-  console.log(`[QR Service] 🔍 Buscando QR Code: ${instanceId}`);
+  console.log(`[QR Service] 🔍 DIAGNÓSTICO: Buscando QR Code: ${instanceId}`);
 
   try {
     // 1. Buscar instância no banco
@@ -88,10 +95,11 @@ async function getQRCode(supabase: any, instanceId: string) {
     console.log(`[QR Service] 📱 Instância encontrada:`, {
       id: instance.id,
       vps_instance_id: instance.vps_instance_id,
-      status: instance.connection_status
+      status: instance.connection_status,
+      hasQR: !!instance.qr_code
     });
 
-    // 2. Se já temos QR Code no banco, retornar
+    // 2. Se já temos QR Code no banco e instância está aguardando, retornar
     if (instance.qr_code && instance.connection_status === 'waiting_qr') {
       console.log(`[QR Service] ✅ QR Code disponível no banco`);
       return new Response(JSON.stringify({
@@ -104,20 +112,31 @@ async function getQRCode(supabase: any, instanceId: string) {
       });
     }
 
-    // 3. Buscar QR Code na VPS (CORREÇÃO: porta 3002)
+    // 3. Buscar QR Code na VPS com diagnóstico
     if (instance.vps_instance_id) {
       try {
+        console.log(`[QR Service] 📡 DIAGNÓSTICO: Tentando VPS para ${instance.vps_instance_id}`);
+        
         const vpsResponse = await fetch(`${WEBHOOK_SERVER_URL}/instance/${instance.vps_instance_id}/qr`, {
           method: 'GET',
           headers: {
-            'Authorization': 'Bearer 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
-            'Content-Type': 'application/json'
+            'Authorization': `Bearer ${VPS_AUTH_TOKEN}`,
+            'Content-Type': 'application/json',
+            'User-Agent': 'Supabase-QR-Service/2.0',
+            'Accept': 'application/json'
           },
-          signal: AbortSignal.timeout(15000) // 15s timeout
+          signal: AbortSignal.timeout(VPS_TIMEOUT)
         });
+
+        console.log(`[QR Service] 📥 VPS respondeu: HTTP ${vpsResponse.status}`);
 
         if (vpsResponse.ok) {
           const vpsData = await vpsResponse.json();
+          console.log(`[QR Service] 📋 Dados VPS:`, {
+            success: vpsData.success,
+            hasQR: !!vpsData.qrCode,
+            status: vpsData.status
+          });
           
           if (vpsData.success && vpsData.qrCode) {
             console.log(`[QR Service] 📡 QR Code obtido da VPS`);
@@ -136,13 +155,14 @@ async function getQRCode(supabase: any, instanceId: string) {
               success: true,
               qrCode: vpsData.qrCode,
               status: 'waiting_qr',
-              source: 'vps_webhook_server_3002'
+              source: 'vps_diagnostic_success'
             }), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' }
             });
           }
         } else {
-          console.log(`[QR Service] ⚠️ VPS respondeu com status:`, vpsResponse.status);
+          const errorText = await vpsResponse.text();
+          console.log(`[QR Service] ⚠️ VPS HTTP ${vpsResponse.status}:`, errorText.substring(0, 200));
         }
       } catch (vpsError) {
         console.log(`[QR Service] ⚠️ Erro na VPS:`, vpsError.message);
@@ -172,8 +192,9 @@ async function getQRCode(supabase: any, instanceId: string) {
   }
 }
 
+// CORREÇÃO: Refresh QR Code com endpoint correto
 async function refreshQRCode(supabase: any, instanceId: string) {
-  console.log(`[QR Service] 🔄 Refresh QR Code: ${instanceId}`);
+  console.log(`[QR Service] 🔄 DIAGNÓSTICO: Refresh QR Code: ${instanceId}`);
 
   try {
     const { data: instance, error: dbError } = await supabase
@@ -190,15 +211,24 @@ async function refreshQRCode(supabase: any, instanceId: string) {
       throw new Error('VPS Instance ID não encontrado');
     }
 
-    // CORREÇÃO: Gerar novo QR Code na VPS (porta 3002)
+    console.log(`[QR Service] 🔄 Tentando refresh na VPS para: ${instance.vps_instance_id}`);
+
+    // Tentar endpoint de refresh na VPS
     const vpsResponse = await fetch(`${WEBHOOK_SERVER_URL}/instance/${instance.vps_instance_id}/qr/refresh`, {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
-        'Content-Type': 'application/json'
+        'Authorization': `Bearer ${VPS_AUTH_TOKEN}`,
+        'Content-Type': 'application/json',
+        'User-Agent': 'Supabase-QR-Refresh/2.0'
       },
-      signal: AbortSignal.timeout(15000)
+      body: JSON.stringify({
+        instanceId: instance.vps_instance_id,
+        forceRefresh: true
+      }),
+      signal: AbortSignal.timeout(VPS_TIMEOUT)
     });
+
+    console.log(`[QR Service] 📥 Refresh VPS respondeu: HTTP ${vpsResponse.status}`);
 
     if (vpsResponse.ok) {
       const vpsData = await vpsResponse.json();
@@ -221,9 +251,12 @@ async function refreshQRCode(supabase: any, instanceId: string) {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
+    } else {
+      const errorText = await vpsResponse.text();
+      console.log(`[QR Service] ❌ Refresh falhou:`, errorText.substring(0, 200));
     }
 
-    throw new Error(`VPS respondeu com status ${vpsResponse.status}`);
+    throw new Error(`VPS refresh falhou com status ${vpsResponse.status}`);
 
   } catch (error) {
     console.error(`[QR Service] ❌ Erro no refresh:`, error);
