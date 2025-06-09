@@ -7,7 +7,7 @@ import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstance
 import { SimplifiedConnectButton } from "./SimplifiedConnectButton";
 import { WhatsAppInstanceGrid } from "./WhatsAppInstanceGrid";
 import { AutoQRModal } from "./AutoQRModal";
-import { VPSConnectivityTest } from "./VPSConnectivityTest";
+import { VPSAdvancedDashboard } from "./VPSAdvancedDashboard";
 
 export const SimplifiedWhatsAppSection = () => {
   const { user } = useAuth();
@@ -60,10 +60,10 @@ export const SimplifiedWhatsAppSection = () => {
 
   return (
     <div className="space-y-6">
-      {/* Diagnóstico VPS - Seção principal */}
-      <VPSConnectivityTest />
+      {/* Dashboard Avançado VPS - Nova Seção Principal */}
+      <VPSAdvancedDashboard />
 
-      {/* Content principal */}
+      {/* Content principal das instâncias */}
       {!hasInstances ? (
         // Card de Conectar modernizado quando não há instâncias
         <SimplifiedConnectButton 
