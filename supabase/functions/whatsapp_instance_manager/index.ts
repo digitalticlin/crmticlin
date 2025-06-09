@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -6,19 +7,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// CONFIGURAÇÃO ULTRA-OTIMIZADA: Como servidor antigo - FINAL CORRIGIDA
+// CORREÇÃO APLICADA: Headers simplificados + timeout aumentado + payload corrigido
 const VPS_CONFIG = {
-  primaryUrl: 'http://31.97.24.222:3002', // Manter porta atual com webhooks
+  primaryUrl: 'http://31.97.24.222:3002',
   authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
-  timeout: 3000, // CORREÇÃO: 3s ultra agressivo como servidor antigo
+  timeout: 15000, // CORREÇÃO 1: Aumentado de 3s para 15s
   webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
   instantResponse: true,
-  asyncDelay: 500 // Delay mínimo como servidor antigo
+  asyncDelay: 500
 };
 
 serve(async (req) => {
   const startTime = Date.now();
-  console.log('[Instance Manager] 🚀 CONFIGURAÇÃO SERVIDOR ANTIGO: Resposta instantânea:', req.method, `[${startTime}]`);
+  console.log('[Instance Manager] 🚀 CORREÇÃO APLICADA: Headers simplificados + timeout 15s:', req.method, `[${startTime}]`);
   
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -47,7 +48,7 @@ serve(async (req) => {
     const { action, instanceName, instanceId } = await req.json();
 
     if (action === 'create_instance') {
-      return await createInstanceInstantServerOld(supabase, instanceName, user, startTime);
+      return await createInstanceCorrected(supabase, instanceName, user, startTime);
     }
 
     if (action === 'delete_instance_corrected') {
@@ -69,7 +70,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
-      server_old_config_applied: true
+      corrections_applied: true
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -77,13 +78,13 @@ serve(async (req) => {
   }
 });
 
-// CONFIGURAÇÃO SERVIDOR ANTIGO: Criação instantânea perfeita
-async function createInstanceInstantServerOld(supabase: any, instanceName: string, user: any, startTime: number) {
-  const creationId = `server_old_${Date.now()}`;
-  console.log(`[Instance Manager] ⚡ SERVIDOR ANTIGO: Criação ultra-instantânea [${creationId}]:`, instanceName, `[${Date.now() - startTime}ms]`);
+// CORREÇÃO PRINCIPAL: Função de criação com headers simplificados
+async function createInstanceCorrected(supabase: any, instanceName: string, user: any, startTime: number) {
+  const creationId = `corrected_${Date.now()}`;
+  console.log(`[Instance Manager] 🔧 CORREÇÃO: Criação com headers simplificados [${creationId}]:`, instanceName);
 
   try {
-    // 1. Validação ultra-rápida
+    // 1. Validação
     if (!instanceName || instanceName.trim().length < 3) {
       throw new Error('Nome da instância deve ter pelo menos 3 caracteres');
     }
@@ -93,18 +94,30 @@ async function createInstanceInstantServerOld(supabase: any, instanceName: strin
     const sessionName = `${sanitizedName}_${timestamp}`;
     const vpsInstanceId = sessionName;
 
-    console.log(`[Instance Manager] 💾 SERVIDOR ANTIGO: Salvando ultra-rápido no banco [${creationId}]:`, vpsInstanceId, `[${Date.now() - startTime}ms]`);
+    // 2. Buscar company_id do usuário
+    let companyId = null;
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('company_id')
+      .eq('id', user.id)
+      .maybeSingle();
 
-    // 2. SALVAR NO BANCO PRIMEIRO (padrão servidor antigo)
+    if (userProfile?.company_id) {
+      companyId = userProfile.company_id;
+    }
+
+    console.log(`[Instance Manager] 📋 CORREÇÃO: Company ID encontrado: ${companyId} [${creationId}]`);
+
+    // 3. Salvar no banco PRIMEIRO
     const instanceRecord = {
       instance_name: sanitizedName,
       vps_instance_id: vpsInstanceId,
       connection_type: 'web',
-      connection_status: 'creating', // Status inicial como servidor antigo
+      connection_status: 'creating',
       web_status: 'initializing',
       created_by_user_id: user.id,
       server_url: VPS_CONFIG.primaryUrl,
-      company_id: null
+      company_id: companyId
     };
 
     const { data: instance, error: dbError } = await supabase
@@ -114,42 +127,41 @@ async function createInstanceInstantServerOld(supabase: any, instanceName: strin
       .single();
 
     if (dbError) {
-      console.error(`[Instance Manager] ❌ Erro no banco [${creationId}]:`, dbError, `[${Date.now() - startTime}ms]`);
+      console.error(`[Instance Manager] ❌ Erro no banco [${creationId}]:`, dbError);
       throw new Error(`Erro no banco: ${dbError.message}`);
     }
 
-    console.log(`[Instance Manager] ✅ Instância salva ultra-rápido [${creationId}]:`, instance.id, `[${Date.now() - startTime}ms]`);
+    console.log(`[Instance Manager] ✅ Instância salva [${creationId}]:`, instance.id);
 
-    // 3. RESPOSTA INSTANTÂNEA (padrão servidor antigo)
-    console.log(`[Instance Manager] 🚀 SERVIDOR ANTIGO: Retornando resposta instantânea [${creationId}] - tempo total: ${Date.now() - startTime}ms`);
+    // 4. RESPOSTA INSTANTÂNEA
+    console.log(`[Instance Manager] 🚀 CORREÇÃO: Retornando resposta instantânea [${creationId}]`);
 
-    // 4. PROCESSAR VPS EM 500ms (ultra-rápido como servidor antigo)
+    // 5. PROCESSAR VPS EM BACKGROUND com correções
     setTimeout(() => {
-      initializeVPSServerOld(supabase, instance, vpsInstanceId, creationId);
+      initializeVPSCorrected(supabase, instance, vpsInstanceId, creationId, companyId);
     }, VPS_CONFIG.asyncDelay);
 
     return new Response(JSON.stringify({
       success: true,
       instance: instance,
       vpsInstanceId: vpsInstanceId,
-      server_old_config: true,
+      corrections_applied: true,
       creationId,
       totalTime: Date.now() - startTime,
-      message: 'Instância criada instantaneamente - configuração servidor antigo aplicada',
-      server_pattern: 'ultra_fast_old_server'
+      message: 'Instância criada - correções aplicadas (headers simplificados, timeout 15s, companyId incluído)'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.error(`[Instance Manager] ❌ Erro na criação instantânea [${creationId}]:`, error, `[${Date.now() - startTime}ms]`);
+    console.error(`[Instance Manager] ❌ Erro na criação corrigida [${creationId}]:`, error);
     
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
       creationId,
       totalTime: Date.now() - startTime,
-      server_old_config: true
+      corrections_applied: true
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -157,37 +169,35 @@ async function createInstanceInstantServerOld(supabase: any, instanceName: strin
   }
 }
 
-// CONFIGURAÇÃO SERVIDOR ANTIGO: Inicialização VPS ultra-otimizada
-async function initializeVPSServerOld(supabase: any, instance: any, vpsInstanceId: string, creationId: string) {
-  console.log(`[Instance Manager] 🔄 SERVIDOR ANTIGO: Inicializando VPS ultra-rápido [${creationId}]`);
+// CORREÇÃO PRINCIPAL: Inicialização VPS com headers simples do servidor antigo
+async function initializeVPSCorrected(supabase: any, instance: any, vpsInstanceId: string, creationId: string, companyId: any) {
+  console.log(`[Instance Manager] 🔧 CORREÇÃO: Inicializando VPS com headers simples [${creationId}]`);
   
   try {
-    // Payload ultra-mínimo como servidor antigo
+    // CORREÇÃO: Payload idêntico ao servidor antigo + companyId
     const vpsPayload = {
       instanceId: vpsInstanceId,
       sessionName: vpsInstanceId,
-      webhookUrl: VPS_CONFIG.webhookUrl
+      webhookUrl: VPS_CONFIG.webhookUrl,
+      companyId: companyId || instance.created_by_user_id // CORREÇÃO: CompanyId incluído
     };
 
-    console.log(`[Instance Manager] 📡 SERVIDOR ANTIGO: Tentando VPS com timeout 3s ultra-agressivo [${creationId}]`);
+    console.log(`[Instance Manager] 📤 CORREÇÃO: Payload corrigido [${creationId}]:`, vpsPayload);
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
-      console.log(`[Instance Manager] ⏰ SERVIDOR ANTIGO: Timeout 3s ultra-agressivo [${creationId}]`);
+      console.log(`[Instance Manager] ⏰ CORREÇÃO: Timeout 15s aplicado [${creationId}]`);
       controller.abort();
-    }, VPS_CONFIG.timeout);
+    }, VPS_CONFIG.timeout); // 15s timeout
 
-    // Headers ultra-otimizados como servidor antigo
+    // CORREÇÃO: Headers SIMPLES como servidor antigo espera
     const response = await fetch(`${VPS_CONFIG.primaryUrl}/instance/create`, {
       method: 'POST',
       signal: controller.signal,
       headers: { 
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
-        'User-Agent': 'Supabase-WhatsApp-ServerOld-Ultra/1.0',
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache',
-        'Connection': 'close'
+        'Authorization': `Bearer ${VPS_CONFIG.authToken}`
+        // CORREÇÃO: Removidos todos os headers extras (X-API-Token, User-Agent complexo, Connection: close)
       },
       body: JSON.stringify(vpsPayload)
     });
@@ -195,7 +205,8 @@ async function initializeVPSServerOld(supabase: any, instance: any, vpsInstanceI
     clearTimeout(timeoutId);
     
     if (response.ok) {
-      console.log(`[Instance Manager] ✅ SERVIDOR ANTIGO: VPS inicializada com sucesso ultra-rápido [${creationId}]`);
+      const responseData = await response.text();
+      console.log(`[Instance Manager] ✅ CORREÇÃO: VPS respondeu com sucesso [${creationId}]:`, responseData.substring(0, 200));
       
       // Atualizar status para aguardando QR
       await supabase
@@ -208,28 +219,28 @@ async function initializeVPSServerOld(supabase: any, instance: any, vpsInstanceI
         .eq('id', instance.id);
         
     } else {
-      console.error(`[Instance Manager] ❌ SERVIDOR ANTIGO: VPS falhou HTTP ${response.status} [${creationId}]`);
+      console.error(`[Instance Manager] ❌ CORREÇÃO: VPS falhou HTTP ${response.status} [${creationId}]`);
       
-      // Marcar como erro, mas NÃO falhar a criação (padrão servidor antigo)
+      // Marcar como erro
       await supabase
         .from('whatsapp_instances')
         .update({
-          connection_status: 'waiting_qr', // Manter como waiting para retry automático
-          web_status: 'vps_delayed_but_recoverable',
+          connection_status: 'error',
+          web_status: 'vps_error_after_correction',
           updated_at: new Date().toISOString()
         })
         .eq('id', instance.id);
     }
     
   } catch (error) {
-    console.error(`[Instance Manager] ❌ SERVIDOR ANTIGO: Erro na inicialização VPS [${creationId}]:`, error);
+    console.error(`[Instance Manager] ❌ CORREÇÃO: Erro na inicialização VPS [${creationId}]:`, error);
     
-    // Marcar como recoverable, não como erro fatal (padrão servidor antigo)
+    // Marcar como erro de conectividade
     await supabase
       .from('whatsapp_instances')
       .update({
-        connection_status: 'waiting_qr', // Permitir retry automático
-        web_status: 'vps_timeout_but_recoverable',
+        connection_status: 'error',
+        web_status: 'connectivity_error_after_correction',
         updated_at: new Date().toISOString()
       })
       .eq('id', instance.id);
@@ -252,14 +263,17 @@ async function syncInstanceStatus(supabase: any, instanceId: string, user: any) 
       throw new Error('Instância não encontrada');
     }
 
-    // Buscar status na VPS
+    // Buscar status na VPS com headers corrigidos
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), VPS_CONFIG.timeout);
 
       const response = await fetch(`${VPS_CONFIG.primaryUrl}/instance/${instance.vps_instance_id}/status`, {
         method: 'GET',
-        signal: controller.signal
+        signal: controller.signal,
+        headers: {
+          'Authorization': `Bearer ${VPS_CONFIG.authToken}`
+        }
       });
 
       clearTimeout(timeoutId);
@@ -287,7 +301,7 @@ async function syncInstanceStatus(supabase: any, instanceId: string, user: any) 
             connection_status: vpsData.status || instance.connection_status,
             qr_code: vpsData.qrCode || instance.qr_code
           },
-          server_old_config: true
+          corrections_applied: true
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
@@ -299,7 +313,7 @@ async function syncInstanceStatus(supabase: any, instanceId: string, user: any) 
         success: true,
         instance: instance,
         warning: 'VPS inacessível, dados do banco de dados',
-        server_old_config: true
+        corrections_applied: true
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -310,7 +324,7 @@ async function syncInstanceStatus(supabase: any, instanceId: string, user: any) 
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
-      server_old_config: true
+      corrections_applied: true
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -336,7 +350,7 @@ async function deleteInstanceCorrected(supabase: any, instanceId: string, user: 
     if (instance.vps_instance_id) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const timeoutId = setTimeout(() => controller.abort(), VPS_CONFIG.timeout);
 
         await fetch(`${VPS_CONFIG.primaryUrl}/instance/${instance.vps_instance_id}/delete`, {
           method: 'DELETE',
@@ -365,7 +379,7 @@ async function deleteInstanceCorrected(supabase: any, instanceId: string, user: 
     return new Response(JSON.stringify({
       success: true,
       message: 'Instância deletada com sucesso',
-      server_old_config: true
+      corrections_applied: true
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
@@ -375,7 +389,7 @@ async function deleteInstanceCorrected(supabase: any, instanceId: string, user: 
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
-      server_old_config: true
+      corrections_applied: true
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -400,11 +414,14 @@ async function checkVPSStatus(supabase: any, instanceId: string, user: any) {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), VPS_CONFIG.timeout);
 
       const response = await fetch(`${VPS_CONFIG.primaryUrl}/health`, {
         method: 'GET',
-        signal: controller.signal
+        signal: controller.signal,
+        headers: {
+          'Authorization': `Bearer ${VPS_CONFIG.authToken}`
+        }
       });
 
       clearTimeout(timeoutId);
@@ -415,8 +432,8 @@ async function checkVPSStatus(supabase: any, instanceId: string, user: any) {
         success: true,
         vpsStatus: {
           online: isHealthy,
-          responseTime: 'server_old_ultra_fast',
-          server_old_config: true,
+          responseTime: 'corrected_15s_timeout',
+          corrections_applied: true,
           details: responseData
         },
         instance: instance
@@ -430,7 +447,7 @@ async function checkVPSStatus(supabase: any, instanceId: string, user: any) {
         vpsStatus: {
           online: false,
           error: vpsError.message,
-          server_old_config: true
+          corrections_applied: true
         },
         instance: instance
       }), {
@@ -443,7 +460,7 @@ async function checkVPSStatus(supabase: any, instanceId: string, user: any) {
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
-      server_old_config: true
+      corrections_applied: true
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
