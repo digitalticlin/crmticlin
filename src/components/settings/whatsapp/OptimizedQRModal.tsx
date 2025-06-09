@@ -4,7 +4,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, RefreshCw, QrCode, Smartphone, CheckCircle, AlertTriangle, Clock } from "lucide-react";
-import { useIntelligentQRPolling } from "@/hooks/whatsapp/useIntelligentQRPolling";
 
 interface OptimizedQRModalProps {
   isOpen: boolean;
@@ -12,6 +11,13 @@ interface OptimizedQRModalProps {
   instanceId: string;
   instanceName: string;
   autoStartPolling?: boolean;
+  qrCode?: string | null;
+  isPolling?: boolean;
+  isWaiting?: boolean;
+  currentAttempt?: number;
+  maxAttempts?: number;
+  error?: string | null;
+  onRetry?: () => void;
 }
 
 export const OptimizedQRModal = ({
@@ -19,85 +25,49 @@ export const OptimizedQRModal = ({
   onClose,
   instanceId,
   instanceName,
-  autoStartPolling = false
+  autoStartPolling = false,
+  qrCode = null,
+  isPolling = false,
+  isWaiting = false,
+  currentAttempt = 0,
+  maxAttempts = 8,
+  error = null,
+  onRetry
 }: OptimizedQRModalProps) => {
-  const [manualRefreshMode, setManualRefreshMode] = useState(false);
+  const [hasError, setHasError] = useState(false);
   
-  const {
-    isPolling,
-    currentAttempt,
-    qrCode,
-    error,
-    timedOut,
-    isWaiting,
-    startPolling,
-    stopPolling,
-    reset
-  } = useIntelligentQRPolling();
+  const progressPercentage = maxAttempts > 0 ? (currentAttempt / maxAttempts) * 100 : 0;
 
-  const maxAttempts = 8;
-  const progressPercentage = (currentAttempt / maxAttempts) * 100;
-
-  // Auto-start polling se solicitado (após criação de instância)
+  // Reset error state quando modal abre
   useEffect(() => {
-    if (isOpen && autoStartPolling && instanceId && !isPolling && !qrCode && !isWaiting) {
-      console.log('[Optimized QR Modal] 🚀 Auto-iniciando polling após criação');
-      handleStartPolling();
+    if (isOpen) {
+      setHasError(false);
     }
-  }, [isOpen, autoStartPolling, instanceId, isPolling, qrCode, isWaiting]);
+  }, [isOpen]);
 
-  // Cleanup ao fechar modal
+  // Detectar erros
   useEffect(() => {
-    if (!isOpen) {
-      console.log('[Optimized QR Modal] 🧹 Modal fechado - limpando polling');
-      stopPolling('modal fechado');
-      reset();
-      setManualRefreshMode(false);
+    if (error) {
+      setHasError(true);
     }
-  }, [isOpen, stopPolling, reset]);
-
-  const handleStartPolling = async () => {
-    console.log(`[Optimized QR Modal] 🔄 Iniciando polling para: ${instanceName}`);
-    setManualRefreshMode(false);
-    
-    await startPolling(instanceId, {
-      maxAttempts: 8,
-      timeoutMs: 120000, // 2 minutos máximo
-      intervalMs: 4000,  // 4 segundos entre tentativas
-      initialDelayMs: 4000, // 4 segundos de delay inicial
-      progressCallback: (current, max) => {
-        console.log(`[Optimized QR Modal] 📊 Progresso: ${current}/${max}`);
-      },
-      successCallback: (qrCode) => {
-        console.log(`[Optimized QR Modal] ✅ QR Code obtido!`);
-      },
-      errorCallback: (error) => {
-        console.log(`[Optimized QR Modal] ❌ Erro no polling:`, error);
-        setManualRefreshMode(true);
-      },
-      timeoutCallback: () => {
-        console.log(`[Optimized QR Modal] ⏰ Timeout no polling`);
-        setManualRefreshMode(true);
-      }
-    });
-  };
+  }, [error]);
 
   const handleClose = () => {
-    console.log('[Optimized QR Modal] 🧹 Fechando modal e parando polling');
-    stopPolling('usuário fechou modal');
-    reset();
+    console.log('[Optimized QR Modal] 🧹 HÍBRIDO: Fechando modal');
     onClose();
   };
 
   const handleRetry = () => {
-    console.log('[Optimized QR Modal] 🔄 Retry manual solicitado');
-    reset();
-    handleStartPolling();
+    console.log('[Optimized QR Modal] 🔄 HÍBRIDO: Retry solicitado');
+    setHasError(false);
+    if (onRetry) {
+      onRetry();
+    }
   };
 
   const renderModalContent = () => {
     // QR Code pronto
-    if (qrCode) {
+    if (qrCode && !hasError) {
       return (
         <div className="flex flex-col items-center space-y-4">
           <div className="bg-white p-4 rounded-lg shadow-md">
@@ -127,14 +97,14 @@ export const OptimizedQRModal = ({
     }
 
     // Erro ou timeout
-    if (error || timedOut) {
+    if (hasError || error) {
       return (
         <div className="flex flex-col items-center space-y-4">
           <div className="w-64 h-64 bg-red-50 rounded-lg flex flex-col items-center justify-center space-y-4">
             <AlertTriangle className="h-12 w-12 text-red-500" />
             <div className="text-center space-y-2">
               <p className="text-sm font-medium text-red-900">
-                {timedOut ? 'Timeout' : 'Erro ao gerar QR Code'}
+                Erro ao gerar QR Code
               </p>
               <p className="text-xs text-red-700">
                 {error || 'Tente novamente em alguns minutos'}
@@ -153,7 +123,7 @@ export const OptimizedQRModal = ({
       );
     }
 
-    // Aguardando delay inicial (nova feature)
+    // Aguardando delay inicial
     if (isWaiting) {
       return (
         <div className="flex flex-col items-center space-y-4">
@@ -161,29 +131,21 @@ export const OptimizedQRModal = ({
             <Clock className="h-12 w-12 animate-pulse text-blue-600" />
             <div className="text-center space-y-3">
               <p className="text-sm font-medium text-blue-900">
-                Aguardando VPS processar...
+                Preparando QR Code...
               </p>
               <div className="w-full space-y-2">
                 <div className="w-full bg-blue-200 rounded-full h-2">
                   <div className="bg-blue-600 h-2 rounded-full animate-pulse w-3/4"></div>
                 </div>
                 <p className="text-xs text-blue-700">
-                  Instância criada, preparando QR Code
+                  Instância criada, aguarde...
                 </p>
                 <p className="text-xs text-blue-600">
-                  Aguarde 4 segundos para a VPS processar
+                  Sistema híbrido em funcionamento
                 </p>
               </div>
             </div>
           </div>
-
-          <Button 
-            onClick={() => stopPolling('usuário cancelou')}
-            variant="outline"
-            className="text-red-600 border-red-300 hover:bg-red-50"
-          >
-            Cancelar
-          </Button>
         </div>
       );
     }
@@ -204,57 +166,29 @@ export const OptimizedQRModal = ({
                   Tentativa {currentAttempt} de {maxAttempts}
                 </p>
                 <p className="text-xs text-blue-600">
-                  Aguarde enquanto a VPS gera o QR Code
+                  Sistema híbrido ativo
                 </p>
               </div>
             </div>
           </div>
-
-          <Button 
-            onClick={() => stopPolling('usuário cancelou')}
-            variant="outline"
-            className="text-red-600 border-red-300 hover:bg-red-50"
-          >
-            Cancelar
-          </Button>
         </div>
       );
     }
 
-    // Estado inicial ou modo manual
+    // Estado inicial
     return (
       <div className="flex flex-col items-center space-y-4">
         <div className="w-64 h-64 bg-gray-50 rounded-lg flex flex-col items-center justify-center space-y-4">
           <QrCode className="h-12 w-12 text-gray-400" />
           <div className="text-center space-y-2">
             <p className="text-sm font-medium text-gray-700">
-              QR Code não disponível
+              Preparando...
             </p>
             <p className="text-xs text-gray-500">
-              {manualRefreshMode ? 'Clique em "Gerar QR Code" para tentar novamente' : 'Clique para gerar o QR Code'}
+              Sistema híbrido iniciado
             </p>
           </div>
         </div>
-
-        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 w-full">
-          <div className="flex items-start gap-3">
-            <Smartphone className="h-5 w-5 text-blue-600 mt-0.5" />
-            <div className="text-sm">
-              <p className="font-medium text-blue-900 mb-1">Como conectar:</p>
-              <p className="text-blue-700 text-xs">
-                O QR Code será gerado automaticamente. Escaneie com seu WhatsApp para conectar.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <Button
-          onClick={handleStartPolling}
-          className="bg-green-600 hover:bg-green-700 w-full"
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Gerar QR Code
-        </Button>
       </div>
     );
   };
@@ -280,7 +214,7 @@ export const OptimizedQRModal = ({
             Fechar
           </Button>
           
-          {qrCode && (
+          {qrCode && !hasError && (
             <Button 
               onClick={handleRetry}
               variant="outline"

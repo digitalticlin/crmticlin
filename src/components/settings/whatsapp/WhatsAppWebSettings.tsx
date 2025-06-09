@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, Shield, AlertTriangle, Activity, CheckCircle } from "lucide-react";
@@ -29,13 +28,17 @@ export const WhatsAppWebSettings = () => {
     showQRModal,
     selectedQRCode,
     selectedInstanceName,
+    isPolling,
+    currentAttempt,
+    isWaiting,
+    maxAttempts,
     refetch,
     createInstance,
     deleteInstance,
     refreshQRCode,
     closeQRModal,
     retryQRCode,
-    syncPendingInstances // NOVO: Função de sincronização
+    syncPendingInstances
   } = useWhatsAppWebInstances();
 
   // CORREÇÃO: Monitoramento otimizado da VPS
@@ -66,20 +69,21 @@ export const WhatsAppWebSettings = () => {
 
   const handleConnect = async () => {
     if (!user?.email) {
-      console.error('[WhatsApp Settings] ❌ ASYNC: Email do usuário não disponível');
+      console.error('[WhatsApp Settings] ❌ HÍBRIDO: Email do usuário não disponível');
       return;
     }
 
     try {
-      console.log('[WhatsApp Settings] 🎯 ASYNC: Criando instância para usuário autenticado:', user.id);
+      console.log('[WhatsApp Settings] 🎯 HÍBRIDO: Criando instância para usuário autenticado:', user.id);
       
       const timestamp = Date.now();
       const emailPrefix = user.email.split('@')[0];
       const instanceName = `whatsapp_${emailPrefix}_${timestamp}`;
       
+      // HÍBRIDO: createInstance já vai abrir o modal automaticamente
       await createInstance(instanceName);
     } catch (error: any) {
-      console.error('[WhatsApp Settings] ❌ ASYNC: Erro ao conectar:', error);
+      console.error('[WhatsApp Settings] ❌ HÍBRIDO: Erro ao conectar:', error);
     }
   };
 
@@ -230,17 +234,13 @@ export const WhatsAppWebSettings = () => {
         />
       )}
 
-      {/* Modal do QR Code Automático */}
-      <AutoQRModal
+      {/* HÍBRIDO: Modal do QR Code com Polling Inteligente */}
+      <OptimizedQRModal
         isOpen={showQRModal}
         onClose={closeQRModal}
-        qrCode={selectedQRCode}
+        instanceId={currentInstanceId || ''}
         instanceName={selectedInstanceName}
-        isWaiting={!selectedQRCode && !error}
-        currentAttempt={0}
-        maxAttempts={5}
-        error={null}
-        onRetry={retryQRCode}
+        autoStartPolling={false} // Polling já foi iniciado pelo hook
       />
     </div>
   );

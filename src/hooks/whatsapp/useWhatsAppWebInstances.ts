@@ -1,242 +1,206 @@
 
-import { useState, useEffect } from "react";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { WhatsAppWebInstance } from "@/types/whatsapp";
+import { useState, useEffect, useCallback } from "react";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
-import { useAutoQRModal } from "./useAutoQRModal";
-import { AsyncStatusService } from "@/services/whatsapp/asyncStatusService";
-import { useIntelligentNaming } from "./useIntelligentNaming";
+import { ImprovedQRService } from "@/services/whatsapp/improvedQRService";
+import { useIntelligentQRPolling } from "./useIntelligentQRPolling";
+import { toast } from "sonner";
 
 export const useWhatsAppWebInstances = () => {
-  const [instances, setInstances] = useState<WhatsAppWebInstance[]>([]);
+  const [instances, setInstances] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Sistema de QR automático
-  const { modalState, openQRModal, closeModal, retryQRCode } = useAutoQRModal();
-  
-  // Hook de nomeação inteligente
-  const { generateIntelligentInstanceName } = useIntelligentNaming();
+  // HÍBRIDO: Estados do modal e polling
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [selectedQRCode, setSelectedQRCode] = useState<string | null>(null);
+  const [selectedInstanceName, setSelectedInstanceName] = useState<string>('');
+  const [currentInstanceId, setCurrentInstanceId] = useState<string | null>(null);
 
-  // Buscar instâncias
-  const fetchInstances = async (): Promise<WhatsAppWebInstance[]> => {
+  // HÍBRIDO: Hook de polling inteligente
+  const {
+    isPolling,
+    currentAttempt,
+    qrCode: pollingQRCode,
+    error: pollingError,
+    timedOut,
+    isWaiting,
+    startPolling,
+    stopPolling,
+    reset: resetPolling
+  } = useIntelligentQRPolling();
+
+  // HÍBRIDO: Sincronizar QR Code do polling com o modal
+  useEffect(() => {
+    if (pollingQRCode && showQRModal) {
+      console.log(`[Instances Hook] ✅ HÍBRIDO: QR Code obtido via polling!`);
+      setSelectedQRCode(pollingQRCode);
+      toast.success('QR Code gerado com sucesso!');
+    }
+  }, [pollingQRCode, showQRModal]);
+
+  // HÍBRIDO: Tratar erros do polling
+  useEffect(() => {
+    if (pollingError && showQRModal) {
+      console.log(`[Instances Hook] ❌ HÍBRIDO: Erro no polling:`, pollingError);
+      toast.error(`Erro ao gerar QR Code: ${pollingError}`);
+    }
+  }, [pollingError, showQRModal]);
+
+  // HÍBRIDO: Tratar timeout do polling
+  useEffect(() => {
+    if (timedOut && showQRModal) {
+      console.log(`[Instances Hook] ⏰ HÍBRIDO: Timeout no polling`);
+      toast.error('Timeout ao gerar QR Code. Tente novamente.');
+    }
+  }, [timedOut, showQRModal]);
+
+  const fetchInstances = useCallback(async () => {
     try {
-      setIsLoading(true);
       setError(null);
-
-      const { data, error } = await supabase
-        .from('whatsapp_instances')
-        .select('*')
-        .eq('connection_type', 'web')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const instancesData = data || [];
-      setInstances(instancesData);
-      return instancesData;
-    } catch (error: any) {
-      console.error('[Instances Hook] ❌ Erro ao buscar instâncias:', error);
-      setError(error.message);
-      toast.error('Erro ao carregar instâncias');
-      return [];
+      const data = await WhatsAppWebService.getInstances();
+      setInstances(data);
+    } catch (err: any) {
+      console.error('[Instances Hook] ❌ Erro ao buscar instâncias:', err);
+      setError(err.message || 'Erro ao buscar instâncias');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  // CORREÇÃO: Criar nova instância usando edge function correta
-  const createInstance = async (userEmail: string): Promise<{ success: boolean; instance?: WhatsAppWebInstance; error?: string }> => {
+  useEffect(() => {
+    fetchInstances();
+  }, [fetchInstances]);
+
+  const createInstance = useCallback(async (instanceName: string) => {
+    setIsConnecting(true);
+    setError(null);
+    
     try {
-      setIsConnecting(true);
-      console.log('[Instances Hook] 🚀 CORREÇÃO: Usando edge functions corretas...');
-      console.log('[Instances Hook] 📧 Email do usuário:', userEmail);
-
-      // Gerar nome inteligente
-      const intelligentName = await generateIntelligentInstanceName(userEmail);
-      console.log('[Instances Hook] 🎯 Nome gerado:', intelligentName);
-
-      console.log('[Instances Hook] 📋 CORREÇÃO: Chamando WhatsAppWebService.createInstance corrigido...');
-
-      // CORREÇÃO: Usar WhatsAppWebService corrigido (que usa whatsapp_instance_manager)
-      const result = await WhatsAppWebService.createInstance(intelligentName);
-
-      console.log('[Instances Hook] 📥 CORREÇÃO: Resultado do service corrigido:', result);
+      console.log(`[Instances Hook] 🚀 HÍBRIDO: Criando instância: ${instanceName}`);
+      
+      const result = await WhatsAppWebService.createInstance(instanceName);
+      
+      console.log(`[Instances Hook] 📥 HÍBRIDO: Resultado:`, {
+        success: result.success,
+        hasInstance: !!(result.instance),
+        shouldShowModal: result.shouldShowModal,
+        error: result.error
+      });
 
       if (!result.success) {
-        console.error('[Instances Hook] ❌ CORREÇÃO: Falha detectada:', result.error);
-        throw new Error(result.error || 'Erro desconhecido na criação da instância');
+        throw new Error(result.error || 'Erro ao criar instância');
       }
 
-      console.log('[Instances Hook] ✅ CORREÇÃO: Instância criada com sucesso via edge functions corretas');
+      if (result.success && result.instance && result.shouldShowModal) {
+        console.log(`[Instances Hook] 🎯 HÍBRIDO: Abrindo modal e iniciando polling para: ${result.instance.id}`);
+        
+        // HÍBRIDO: Configurar modal
+        setCurrentInstanceId(result.instance.id);
+        setSelectedInstanceName(result.instance.instance_name);
+        setSelectedQRCode(null);
+        setShowQRModal(true);
+        
+        // HÍBRIDO: Iniciar polling automaticamente
+        await startPolling(result.instance.id, {
+          maxAttempts: 8,
+          timeoutMs: 120000,
+          intervalMs: 4000,
+          successCallback: (qrCode) => {
+            console.log(`[Instances Hook] ✅ HÍBRIDO: QR Code recebido via callback!`);
+            setSelectedQRCode(qrCode);
+          },
+          errorCallback: (error) => {
+            console.log(`[Instances Hook] ❌ HÍBRIDO: Erro via callback:`, error);
+          },
+          timeoutCallback: () => {
+            console.log(`[Instances Hook] ⏰ HÍBRIDO: Timeout via callback`);
+          }
+        });
+        
+        toast.success('Instância criada! Gerando QR Code...');
+      }
 
-      // Atualizar lista
+      // Atualizar lista de instâncias
       await fetchInstances();
 
-      // CORREÇÃO: Abrir modal SEMPRE após criação bem-sucedida (resposta instantânea)
-      const newInstance = result.instance;
-      if (newInstance?.id) {
-        console.log('[Instances Hook] 📱 CORREÇÃO: Abrindo modal QR instantaneamente...');
-        openQRModal(newInstance.id, newInstance.instance_name);
-        toast.success(`Instância "${intelligentName}" criada! Modal QR aberto - aguarde o QR code...`);
-      } else {
-        console.warn('[Instances Hook] ⚠️ Instância criada mas sem ID válido');
-        toast.warning('Instância criada, mas dados não disponíveis imediatamente');
-      }
-
-      return { success: true, instance: newInstance };
-
     } catch (error: any) {
-      console.error('[Instances Hook] ❌ CORREÇÃO: Erro capturado:', error);
+      console.error(`[Instances Hook] ❌ HÍBRIDO: Erro na criação:`, error);
+      setError(error.message);
       toast.error(`Erro ao criar instância: ${error.message}`);
-      return { success: false, error: error.message };
     } finally {
       setIsConnecting(false);
     }
-  };
+  }, [startPolling, fetchInstances]);
 
-  // Deletar instância
-  const deleteInstance = async (instanceId: string): Promise<{ success: boolean; error?: string }> => {
+  const deleteInstance = useCallback(async (instanceId: string) => {
     try {
-      console.log('[Instances Hook] 🗑️ CORREÇÃO: Deletando via edge functions corretas:', instanceId);
-
       const result = await WhatsAppWebService.deleteInstance(instanceId);
-
-      if (!result.success) {
-        throw new Error(result.error || 'Erro ao deletar instância');
+      
+      if (result.success) {
+        toast.success('Instância deletada com sucesso');
+        await fetchInstances();
+      } else {
+        throw new Error(result.error);
       }
-
-      // Atualizar lista
-      await fetchInstances();
-      toast.success('Instância deletada com sucesso');
-
-      return { success: true };
-
     } catch (error: any) {
       console.error('[Instances Hook] ❌ Erro ao deletar:', error);
       toast.error(`Erro ao deletar instância: ${error.message}`);
-      return { success: false, error: error.message };
     }
-  };
+  }, [fetchInstances]);
 
-  // CORREÇÃO: Gerar novo QR Code usando whatsapp_qr_service
-  const refreshQRCode = async (instanceId: string): Promise<{ success: boolean; qrCode?: string; error?: string }> => {
+  const refreshQRCode = useCallback(async (instanceId: string) => {
     try {
-      console.log('[Instances Hook] 🔄 CORREÇÃO: Gerando QR via whatsapp_qr_service:', instanceId);
-
-      const instance = instances.find(i => i.id === instanceId);
-      if (!instance) {
-        throw new Error('Instância não encontrada');
-      }
-
-      // Abrir modal automático
-      openQRModal(instanceId, instance.instance_name);
-      
-      // CORREÇÃO: Usar WhatsAppWebService.refreshQRCode (que usa whatsapp_qr_service)
-      const result = await WhatsAppWebService.refreshQRCode(instanceId);
+      const result = await ImprovedQRService.refreshQRCode(instanceId);
       
       if (result.success && result.qrCode) {
-        toast.success('QR Code gerado com sucesso!');
         return { success: true, qrCode: result.qrCode };
-      } else if (result.waiting) {
-        toast.info('QR Code sendo preparado...');
-        // Tentar novamente em 3 segundos
-        setTimeout(() => {
-          retryQRCode();
-        }, 3000);
-        return { success: true };
-      } else {
-        throw new Error(result.error || 'Erro ao gerar QR Code');
       }
-
+      
+      throw new Error(result.error || 'Erro ao atualizar QR Code');
     } catch (error: any) {
-      console.error('[Instances Hook] ❌ Erro ao gerar QR:', error);
-      toast.error(`Erro ao gerar QR Code: ${error.message}`);
+      console.error('[Instances Hook] ❌ Erro ao atualizar QR:', error);
       return { success: false, error: error.message };
     }
-  };
-
-  // Sincronizar instâncias pendentes
-  const syncPendingInstances = async (): Promise<{ success: boolean; error?: string }> => {
-    try {
-      console.log('[Instances Hook] 🔄 CORREÇÃO: Sincronizando via edge functions corretas...');
-
-      const result = await AsyncStatusService.recoverPendingInstances();
-
-      if (result.recovered > 0) {
-        await fetchInstances();
-        toast.success(`${result.recovered} instâncias sincronizadas!`);
-      } else if (result.errors.length > 0) {
-        toast.warning(`Nenhuma instância recuperada. ${result.errors.length} erros encontrados.`);
-      } else {
-        toast.info('Nenhuma instância precisava de sincronização');
-      }
-
-      return { success: true };
-
-    } catch (error: any) {
-      console.error('[Instances Hook] ❌ Erro ao sincronizar:', error);
-      toast.error(`Erro na sincronização: ${error.message}`);
-      return { success: false, error: error.message };
-    }
-  };
-
-  // CORREÇÃO: Subscription melhorado para funcionar com edge functions corretas
-  useEffect(() => {
-    const channel = supabase
-      .channel('whatsapp-instances-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'whatsapp_instances',
-          filter: 'connection_type=eq.web'
-        },
-        (payload) => {
-          console.log('[Instances Hook] 📡 CORREÇÃO: Atualização em tempo real:', payload);
-          
-          // Recarregar instâncias quando houver mudanças
-          fetchInstances();
-          
-          // Notificar sobre mudanças de status
-          if (payload.eventType === 'UPDATE' && payload.new) {
-            const newStatus = payload.new.connection_status;
-            const oldStatus = payload.old?.connection_status;
-            
-            if (newStatus !== oldStatus) {
-              if (newStatus === 'connected') {
-                toast.success(`${payload.new.instance_name} conectado!`);
-                // Fechar modal quando conectar
-                closeModal();
-              } else if (newStatus === 'disconnected') {
-                toast.warning(`${payload.new.instance_name} desconectado`);
-              } else if (newStatus === 'waiting_qr') {
-                toast.info(`${payload.new.instance_name} aguardando QR Code`);
-              }
-            }
-            
-            // CORREÇÃO: Se QR code foi atualizado, notificar o modal
-            if (payload.new.qr_code && payload.new.qr_code !== payload.old?.qr_code) {
-              console.log('[Instances Hook] 📱 CORREÇÃO: QR Code atualizado via webhook!');
-              toast.success('QR Code recebido via webhook!');
-            }
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [closeModal]);
-
-  // Carregar instâncias na inicialização
-  useEffect(() => {
-    fetchInstances();
   }, []);
+
+  const closeQRModal = useCallback(() => {
+    console.log(`[Instances Hook] 🧹 HÍBRIDO: Fechando modal e parando polling`);
+    setShowQRModal(false);
+    setSelectedQRCode(null);
+    setSelectedInstanceName('');
+    setCurrentInstanceId(null);
+    stopPolling('modal fechado');
+    resetPolling();
+  }, [stopPolling, resetPolling]);
+
+  const retryQRCode = useCallback(async () => {
+    if (!currentInstanceId) {
+      console.error('[Instances Hook] ❌ HÍBRIDO: Nenhuma instância para retry');
+      return;
+    }
+
+    console.log(`[Instances Hook] 🔄 HÍBRIDO: Retry para instância: ${currentInstanceId}`);
+    
+    // Reset estado
+    setSelectedQRCode(null);
+    resetPolling();
+    
+    // Reiniciar polling
+    await startPolling(currentInstanceId, {
+      maxAttempts: 8,
+      timeoutMs: 120000,
+      intervalMs: 4000,
+      successCallback: (qrCode) => {
+        setSelectedQRCode(qrCode);
+      }
+    });
+  }, [currentInstanceId, startPolling, resetPolling]);
+
+  const syncPendingInstances = useCallback(async () => {
+    console.log('[Instances Hook] 🔄 HÍBRIDO: Sincronizando instâncias pendentes...');
+    await fetchInstances();
+  }, [fetchInstances]);
 
   return {
     instances,
@@ -244,24 +208,24 @@ export const useWhatsAppWebInstances = () => {
     isConnecting,
     error,
     
-    // Modal automático
-    showQRModal: modalState.isOpen,
-    selectedQRCode: modalState.qrCode,
-    selectedInstanceName: modalState.instanceName,
+    // HÍBRIDO: Estados do modal
+    showQRModal,
+    selectedQRCode,
+    selectedInstanceName,
     
-    // Ações
+    // HÍBRIDO: Estados do polling
+    isPolling,
+    currentAttempt,
+    isWaiting,
+    maxAttempts: 8,
+    
+    // Métodos
+    refetch: fetchInstances,
     createInstance,
     deleteInstance,
     refreshQRCode,
-    refetch: fetchInstances,
-    fetchInstances,
-    syncPendingInstances,
-    
-    // Exportar função de nomeação para outros componentes
-    generateIntelligentInstanceName,
-    
-    // Modal controls
-    closeQRModal: closeModal,
-    retryQRCode
+    closeQRModal,
+    retryQRCode,
+    syncPendingInstances
   };
 };
