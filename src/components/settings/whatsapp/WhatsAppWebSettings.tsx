@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Shield, AlertTriangle } from "lucide-react";
+import { MessageSquare, Shield, AlertTriangle, Activity } from "lucide-react";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { WhatsAppWebLoadingState } from "./WhatsAppWebLoadingState";
 import { WhatsAppWebEmptyState } from "./WhatsAppWebEmptyState";
@@ -9,10 +9,17 @@ import { WhatsAppWebInstancesGrid } from "./WhatsAppWebInstancesGrid";
 import { ImprovedConnectWhatsAppButton } from "./ImprovedConnectWhatsAppButton";
 import { CleanupOrphanedInstancesButton } from "./CleanupOrphanedInstancesButton";
 import { OrphanInstanceManager } from "./OrphanInstanceManager";
-import { QRCodeModal } from "./QRCodeModal";
 import { AutoQRModal } from "./AutoQRModal";
+import { VPSHealthService } from "@/services/whatsapp/vpsHealthService";
+import { WhatsAppCleanupService } from "@/services/whatsapp/cleanupService";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const WhatsAppWebSettings = () => {
+  const [vpsHealth, setVpsHealth] = useState<{ online: boolean; responseTime?: number } | null>(null);
+  const [orphanCount, setOrphanCount] = useState<number>(0);
+  const { user } = useAuth();
+  
   const {
     instances,
     isLoading,
@@ -29,17 +36,58 @@ export const WhatsAppWebSettings = () => {
     retryQRCode
   } = useWhatsAppWebInstances();
 
+  // Monitorar saúde da VPS
+  useEffect(() => {
+    const checkVPSHealth = async () => {
+      const health = await VPSHealthService.checkVPSHealth();
+      setVpsHealth({
+        online: health.online,
+        responseTime: health.responseTime
+      });
+    };
+
+    const checkOrphanCount = async () => {
+      const count = await WhatsAppCleanupService.getOrphanInstancesCount();
+      setOrphanCount(count);
+    };
+
+    // Verificar inicialmente
+    checkVPSHealth();
+    checkOrphanCount();
+
+    // Verificar periodicamente (a cada 30 segundos)
+    const interval = setInterval(() => {
+      checkVPSHealth();
+      checkOrphanCount();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const handleConnect = async () => {
-    const timestamp = Date.now();
-    const instanceName = `whatsapp_${timestamp}`;
-    await createInstance(instanceName);
+    if (!user?.email) {
+      console.error('[WhatsApp Settings] ❌ Email do usuário não disponível');
+      return;
+    }
+
+    try {
+      console.log('[WhatsApp Settings] 🎯 CORREÇÃO: Criando instância para usuário autenticado:', user.id);
+      
+      const timestamp = Date.now();
+      const emailPrefix = user.email.split('@')[0];
+      const instanceName = `whatsapp_${emailPrefix}_${timestamp}`;
+      
+      await createInstance(instanceName);
+    } catch (error: any) {
+      console.error('[WhatsApp Settings] ❌ Erro ao conectar:', error);
+    }
   };
 
   const handleShowQR = (instance: any) => {
-    // Implementação para mostrar QR code modal
+    console.log('[WhatsApp Settings] 📱 Mostrando QR Code para:', instance.id);
+    // Implementação para mostrar QR code modal se necessário
   };
 
-  // CORREÇÃO: Função que retorna o resultado correto
   const handleRefreshQRCodeWrapper = async (instanceId: string): Promise<{ qrCode?: string } | null> => {
     try {
       const result = await refreshQRCode(instanceId);
@@ -47,8 +95,8 @@ export const WhatsAppWebSettings = () => {
         return { qrCode: result.qrCode };
       }
       return null;
-    } catch (error) {
-      console.error('Erro ao atualizar QR Code:', error);
+    } catch (error: any) {
+      console.error('[WhatsApp Settings] ❌ Erro ao atualizar QR Code:', error);
       return null;
     }
   };
@@ -81,18 +129,34 @@ export const WhatsAppWebSettings = () => {
               <div>
                 <h2 className="text-xl font-semibold text-green-800">WhatsApp Web.js</h2>
                 <p className="text-sm text-green-600">
-                  Conecte suas instâncias WhatsApp via Web.js
+                  Conecte suas instâncias WhatsApp via Web.js (Usuário: {user?.email})
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {/* Status VPS */}
+              <Badge variant={vpsHealth?.online ? "default" : "destructive"} className="border-green-300">
+                <Activity className="h-3 w-3 mr-1" />
+                VPS {vpsHealth?.online ? 'Online' : 'Offline'}
+                {vpsHealth?.responseTime && ` (${vpsHealth.responseTime}ms)`}
+              </Badge>
+              
               <Badge variant="outline" className="border-green-300 text-green-700">
                 <Shield className="h-3 w-3 mr-1" />
                 Proteção Ativa
               </Badge>
+              
               <Badge variant="secondary">
                 {instances.length} instância(s)
               </Badge>
+
+              {/* Alerta de instâncias órfãs */}
+              {orphanCount > 0 && (
+                <Badge variant="destructive">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  {orphanCount} órfã(s)
+                </Badge>
+              )}
             </div>
           </CardTitle>
         </CardHeader>
@@ -136,7 +200,7 @@ export const WhatsAppWebSettings = () => {
         isWaiting={!selectedQRCode && !error}
         currentAttempt={0}
         maxAttempts={5}
-        error={null} // O erro será tratado internamente pelo modal
+        error={null}
         onRetry={retryQRCode}
       />
     </div>

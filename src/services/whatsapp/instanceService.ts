@@ -16,13 +16,22 @@ export class InstanceService {
     try {
       console.log(`[Instance Service] 🚀 Criando instância: ${instanceName}`);
 
+      // CORREÇÃO: Validar autenticação antes
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        throw new Error('Usuário não autenticado');
+      }
+
       if (!instanceName || instanceName.trim().length < 3) {
         throw new Error('Nome da instância deve ter pelo menos 3 caracteres');
       }
 
       const normalizedName = instanceName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
 
-      // CORREÇÃO: Continuar usando whatsapp_instance_manager que já funciona
+      console.log(`[Instance Service] 👤 Criando para usuário: ${user.id} (${user.email})`);
+
+      // CORREÇÃO: Usar whatsapp_instance_manager com autenticação correta
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
           action: 'create_instance',
@@ -59,9 +68,18 @@ export class InstanceService {
 
   static async deleteInstance(instanceId: string): Promise<WhatsAppServiceResponse> {
     try {
-      console.log(`[Instance Service] 🗑️ CORREÇÃO: Deletando instância com endpoint correto: ${instanceId}`);
+      console.log(`[Instance Service] 🗑️ Deletando instância: ${instanceId}`);
 
-      // CORREÇÃO: Usar whatsapp_instance_manager com ação corrigida
+      // CORREÇÃO: Validar autenticação antes
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      console.log(`[Instance Service] 👤 Deletando para usuário: ${user.id}`);
+
+      // CORREÇÃO: Usar whatsapp_instance_manager com endpoint correto
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
           action: 'delete_instance_corrected',
@@ -90,9 +108,24 @@ export class InstanceService {
 
   static async getServerInfo(): Promise<WhatsAppServiceResponse> {
     try {
+      // CORREÇÃO: Buscar apenas instâncias do usuário atual
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        console.log('[Instance Service] ⚠️ Usuário não autenticado, retornando dados limitados');
+        return {
+          success: true,
+          data: {
+            instances: [],
+            server: 'WhatsApp Modular Architecture v5.0.0 via VPS + Webhook (Sem Autenticação)'
+          }
+        };
+      }
+
       const { data: instances } = await supabase
         .from('whatsapp_instances')
         .select('*')
+        .eq('created_by_user_id', user.id) // CORREÇÃO: filtrar por usuário
         .eq('connection_type', 'web')
         .order('created_at', { ascending: false });
 
@@ -100,7 +133,7 @@ export class InstanceService {
         success: true,
         data: {
           instances: instances || [],
-          server: 'WhatsApp Modular Architecture v5.0.0 via VPS + Webhook (Endpoints Corrigidos)'
+          server: `WhatsApp Modular Architecture v5.0.0 via VPS + Webhook (Usuário: ${user.email})`
         }
       };
 

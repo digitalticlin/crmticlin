@@ -1,213 +1,243 @@
+
 import { useState, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
-interface QRCodeResult {
-  qrCode: string;
+export interface WhatsAppWebInstance {
+  id: string;
+  instance_name: string;
+  connection_type: string;
+  server_url: string;
+  vps_instance_id: string;
+  web_status: string;
+  connection_status: string;
+  qr_code: string | null;
+  phone: string | null;
+  profile_name: string | null;
+  profile_pic_url: string | null;
+  date_connected: string | null;
+  date_disconnected: string | null;
+  company_id: string | null;
+  created_by_user_id: string | null;
+  history_imported?: boolean;
 }
 
 export const useWhatsAppWebInstances = () => {
-  const [instances, setInstances] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showQRModal, setShowQRModal] = useState(false);
   const [selectedQRCode, setSelectedQRCode] = useState<string | null>(null);
   const [selectedInstanceName, setSelectedInstanceName] = useState<string>('');
+  
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
 
-  const refetch = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  // CORREÇÃO: Filtrar instâncias por created_by_user_id
+  const {
+    data: instances = [],
+    isLoading,
+    error,
+    refetch
+  } = useQuery({
+    queryKey: ['whatsappWebInstances', user?.id],
+    queryFn: async () => {
+      if (!user?.id) {
+        console.log('[Hook] ⏭️ Usuário não autenticado, retornando array vazio');
+        return [];
+      }
 
-    try {
-      const { data, error } = await supabase
+      console.log('[Hook] 📊 Buscando instâncias para usuário:', user.id);
+      
+      const { data, error: fetchError } = await supabase
         .from('whatsapp_instances')
         .select('*')
+        .eq('created_by_user_id', user.id) // CORREÇÃO: filtrar por usuário
         .eq('connection_type', 'web')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Erro ao buscar instâncias:', error);
-        setError(error.message);
-      } else {
-        setInstances(data || []);
+      if (fetchError) {
+        console.error('[Hook] ❌ Erro ao buscar instâncias:', fetchError);
+        throw fetchError;
       }
-    } catch (error: any) {
-      console.error('Erro inesperado ao buscar instâncias:', error);
-      setError(error.message);
-    } finally {
-      setIsLoading(false);
+
+      const mappedInstances: WhatsAppWebInstance[] = (data || []).map(instance => ({
+        id: instance.id,
+        instance_name: instance.instance_name,
+        connection_type: instance.connection_type || 'web',
+        server_url: instance.server_url || '',
+        vps_instance_id: instance.vps_instance_id || '',
+        web_status: instance.web_status || '',
+        connection_status: instance.connection_status || '',
+        qr_code: instance.qr_code,
+        phone: instance.phone,
+        profile_name: instance.profile_name,
+        profile_pic_url: instance.profile_pic_url,
+        date_connected: instance.date_connected,
+        date_disconnected: instance.date_disconnected,
+        company_id: instance.company_id,
+        created_by_user_id: instance.created_by_user_id,
+        history_imported: instance.history_imported || false
+      }));
+
+      console.log(`[Hook] ✅ Instâncias carregadas: ${mappedInstances.length} para usuário ${user.id}`);
+      return mappedInstances;
+    },
+    enabled: !!user?.id
+  });
+
+  const createInstance = useCallback(async (instanceName: string) => {
+    if (!user?.id) {
+      throw new Error('Usuário não autenticado');
     }
-  }, []);
 
-  const createInstance = async (instanceName: string) => {
+    setIsConnecting(true);
+    
     try {
-      console.log('[useWhatsAppWebInstances] 🚀 CREATEINSTANCE CHAMADO');
-      console.log('[useWhatsAppWebInstances] 📊 Parâmetros:', { instanceName });
-      console.log('[useWhatsAppWebInstances] 🔧 Validando nome...');
+      console.log('[Hook] 🚀 Criando instância:', instanceName, 'para usuário:', user.id);
       
-      if (!instanceName || instanceName.trim().length < 3) {
-        throw new Error('Nome da instância deve ter pelo menos 3 caracteres');
-      }
-
-      const normalizedName = instanceName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
-      console.log('[useWhatsAppWebInstances] ✅ Nome normalizado:', normalizedName);
-
-      setIsConnecting(true);
-      setError(null);
-
-      console.log('[useWhatsAppWebInstances] 📡 CHAMANDO EDGE FUNCTION: whatsapp_instance_manager');
-      console.log('[useWhatsAppWebInstances] 📦 Payload:', {
-        action: 'create_instance',
-        instanceName: normalizedName
-      });
-
-      const { data, error: invokeError } = await supabase.functions.invoke('whatsapp_instance_manager', {
+      // CORREÇÃO: Passar autenticação adequada
+      const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
           action: 'create_instance',
-          instanceName: normalizedName
+          instanceName: instanceName
         }
       });
 
-      console.log('[useWhatsAppWebInstances] 📥 RESPOSTA DA EDGE FUNCTION:');
-      console.log('[useWhatsAppWebInstances] - Error:', invokeError);
-      console.log('[useWhatsAppWebInstances] - Data:', data);
-
-      if (invokeError) {
-        console.error('[useWhatsAppWebInstances] ❌ ERRO NA INVOCAÇÃO:', invokeError);
-        throw new Error(`Erro na chamada da função: ${invokeError.message}`);
+      if (error) {
+        console.error('[Hook] ❌ Erro do Supabase:', error);
+        throw new Error(`Erro na criação: ${error.message}`);
       }
 
-      if (!data) {
-        console.error('[useWhatsAppWebInstances] ❌ DATA É NULL/UNDEFINED');
-        throw new Error('Resposta vazia da função');
+      if (!data?.success) {
+        throw new Error(data?.error || 'Erro desconhecido na criação da instância');
       }
 
-      if (!data.success) {
-        console.error('[useWhatsAppWebInstances] ❌ SUCCESS = FALSE:', data.error);
-        throw new Error(data.error || 'Erro desconhecido na criação da instância');
-      }
-
-      console.log('[useWhatsAppWebInstances] ✅ INSTÂNCIA CRIADA COM SUCESSO:', data.instance);
+      console.log('[Hook] ✅ Instância criada:', data.instance);
       
-      // Atualizar lista de instâncias
+      // Atualizar cache
       await refetch();
       
-      toast.success(`Instância "${normalizedName}" criada com sucesso!`);
+      toast.success(`Instância "${instanceName}" criada com sucesso!`);
       
       return data;
 
     } catch (error: any) {
-      console.error('[useWhatsAppWebInstances] 💥 ERRO FINAL:', error);
-      console.error('[useWhatsAppWebInstances] 📋 Stack trace:', error.stack);
-      
-      setError(error.message);
+      console.error('[Hook] ❌ Erro ao criar instância:', error);
       toast.error(`Erro ao criar instância: ${error.message}`);
       throw error;
     } finally {
       setIsConnecting(false);
     }
-  };
+  }, [user?.id, refetch]);
 
-  const deleteInstance = async (instanceId: string) => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
-        body: {
-          action: 'delete_instance',
-          instanceId: instanceId
-        }
-      });
-
-      if (error) {
-        console.error('Erro ao deletar instância:', error);
-        setError(error.message);
-        toast.error(`Erro ao deletar instância: ${error.message}`);
-      } else {
-        toast.success('Instância deletada com sucesso!');
-      }
-    } catch (error: any) {
-      console.error('Erro inesperado ao deletar instância:', error);
-      setError(error.message);
-      toast.error(`Erro ao deletar instância: ${error.message}`);
-    } finally {
-      setIsLoading(false);
-      await refetch();
+  const deleteInstance = useCallback(async (instanceId: string) => {
+    if (!user?.id) {
+      throw new Error('Usuário não autenticado');
     }
-  };
 
-  const refreshQRCode = async (instanceId: string): Promise<QRCodeResult | null> => {
     try {
+      console.log('[Hook] 🗑️ Deletando instância:', instanceId, 'para usuário:', user.id);
+      
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
-          action: 'get_qr_code',
+          action: 'delete_instance_corrected',
           instanceId: instanceId
         }
       });
 
       if (error) {
-        console.error('Erro ao obter QR Code:', error);
-        toast.error(`Erro ao obter QR Code: ${error.message}`);
-        return null;
+        console.error('[Hook] ❌ Erro do Supabase:', error);
+        throw error;
       }
 
       if (!data?.success) {
-        console.error('Falha ao obter QR Code:', data?.error);
-        toast.error(`Falha ao obter QR Code: ${data?.error || 'Erro desconhecido'}`);
-        return null;
+        throw new Error(data?.error || 'Erro ao deletar instância');
       }
 
-      if (data?.qrCode) {
-        return { qrCode: data.qrCode };
-      } else {
-        toast.warning('QR Code não disponível ainda.');
-        return null;
-      }
+      await refetch();
+      toast.success('Instância deletada com sucesso!');
+
     } catch (error: any) {
-      console.error('Erro inesperado ao obter QR Code:', error);
-      toast.error(`Erro ao obter QR Code: ${error.message}`);
-      return null;
+      console.error('[Hook] ❌ Erro ao deletar:', error);
+      toast.error(`Erro ao deletar: ${error.message}`);
+      throw error;
     }
-  };
+  }, [user?.id, refetch]);
 
-  const generateIntelligentInstanceName = async (userEmail: string): Promise<string> => {
+  const refreshQRCode = useCallback(async (instanceId: string) => {
+    try {
+      console.log('[Hook] 🔄 Atualizando QR Code:', instanceId);
+      
+      const { data, error } = await supabase.functions.invoke('whatsapp_qr_service', {
+        body: {
+          action: 'generate_qr',
+          instanceId: instanceId
+        }
+      });
+
+      if (error) {
+        throw new Error(`Erro na edge function: ${error.message}`);
+      }
+
+      if (!data?.success) {
+        if (data?.waiting) {
+          return {
+            success: false,
+            waiting: true,
+            message: data.message || 'QR Code ainda sendo gerado'
+          };
+        }
+        throw new Error(data?.error || 'Erro desconhecido ao gerar QR Code');
+      }
+
+      await refetch();
+      
+      return {
+        success: true,
+        qrCode: data.qrCode
+      };
+
+    } catch (error: any) {
+      console.error('[Hook] ❌ Erro ao gerar QR Code:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }, [refetch]);
+
+  const generateIntelligentInstanceName = useCallback(async (userEmail: string) => {
+    const emailPrefix = userEmail.split('@')[0];
     const timestamp = Date.now();
-    const baseName = userEmail.split('@')[0];
-    return `whatsapp_${baseName}_${timestamp}`;
-  };
+    return `whatsapp_${emailPrefix}_${timestamp}`;
+  }, []);
 
-  const showQRCodeModal = (qrCode: string, instanceName: string) => {
-    setSelectedQRCode(qrCode);
-    setSelectedInstanceName(instanceName);
-    setShowQRModal(true);
-  };
-
-  const closeQRModal = () => {
+  const closeQRModal = useCallback(() => {
     setShowQRModal(false);
     setSelectedQRCode(null);
     setSelectedInstanceName('');
-  };
+  }, []);
 
-  useCallback(() => {
-    refetch();
-  }, [refetch]);
+  const retryQRCode = useCallback(async () => {
+    // Implementar retry logic se necessário
+    console.log('[Hook] 🔄 Retry QR Code solicitado');
+  }, []);
 
   return {
     instances,
     isLoading,
     isConnecting,
-    error,
-    createInstance,
-    deleteInstance,
-    refetch,
-    refreshQRCode,
-    generateIntelligentInstanceName,
+    error: error?.message || null,
     showQRModal,
     selectedQRCode,
     selectedInstanceName,
-    showQRCodeModal,
-    closeQRModal
+    refetch,
+    createInstance,
+    deleteInstance,
+    refreshQRCode,
+    generateIntelligentInstanceName,
+    closeQRModal,
+    retryQRCode
   };
 };
