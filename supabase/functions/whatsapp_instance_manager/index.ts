@@ -6,18 +6,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// CORREÇÃO CRÍTICA: Configuração VPS baseada nos testes SSH reais
+// CORREÇÃO: Configuração VPS otimizada baseada na análise do código
 const VPS_CONFIG = {
   baseUrl: 'http://31.97.24.222:3002',
   authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
-  timeout: 35000, // Aumentado para 35 segundos
-  retryAttempts: 3,
-  retryDelay: 2000,
+  timeout: 45000, // Aumentado para 45 segundos
+  retryAttempts: 2, // Reduzido para evitar loops longos
+  retryDelay: 3000,
   webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web'
 };
 
 serve(async (req) => {
-  console.log('[Instance Manager] 🚀 CORREÇÃO SSH: Requisição iniciada:', req.method);
+  console.log('[Instance Manager] 🚀 CORREÇÃO VPS: Requisição iniciada:', req.method);
   
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -37,16 +37,16 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
-      console.error('[Instance Manager] ❌ CORREÇÃO SSH: Erro de autenticação:', authError);
+      console.error('[Instance Manager] ❌ CORREÇÃO VPS: Erro de autenticação:', authError);
       throw new Error('Usuário não autenticado');
     }
 
-    console.log('[Instance Manager] ✅ CORREÇÃO SSH: Usuário autenticado:', user.id);
+    console.log('[Instance Manager] ✅ CORREÇÃO VPS: Usuário autenticado:', user.id);
 
     const { action, instanceName, instanceId } = await req.json();
 
     if (action === 'create_instance') {
-      return await createInstanceSSHCorrected(supabase, instanceName, user);
+      return await createInstanceVPSCorrected(supabase, instanceName, user);
     }
 
     if (action === 'delete_instance_corrected') {
@@ -64,7 +64,7 @@ serve(async (req) => {
     throw new Error('Ação não reconhecida');
 
   } catch (error) {
-    console.error('[Instance Manager] ❌ CORREÇÃO SSH: Erro:', error);
+    console.error('[Instance Manager] ❌ CORREÇÃO VPS: Erro:', error);
     return new Response(JSON.stringify({
       success: false,
       error: error.message
@@ -75,9 +75,9 @@ serve(async (req) => {
   }
 });
 
-async function createInstanceSSHCorrected(supabase: any, instanceName: string, user: any) {
-  const creationId = `ssh_corrected_${Date.now()}`;
-  console.log(`[Instance Manager] 🎯 CORREÇÃO SSH: Criação baseada em teste SSH [${creationId}]:`, instanceName);
+async function createInstanceVPSCorrected(supabase: any, instanceName: string, user: any) {
+  const creationId = `vps_corrected_${Date.now()}`;
+  console.log(`[Instance Manager] 🎯 CORREÇÃO VPS: Criação otimizada [${creationId}]:`, instanceName);
 
   try {
     // 1. Validação e preparação
@@ -88,7 +88,7 @@ async function createInstanceSSHCorrected(supabase: any, instanceName: string, u
     const sanitizedName = instanceName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
     const timestamp = Date.now();
     const sessionName = `${sanitizedName}_${timestamp}`;
-    const vpsInstanceId = sessionName; // CORREÇÃO: instanceId igual sessionName
+    const vpsInstanceId = sessionName;
 
     // 2. Salvar no banco PRIMEIRO
     const instanceRecord = {
@@ -101,7 +101,7 @@ async function createInstanceSSHCorrected(supabase: any, instanceName: string, u
       company_id: null
     };
 
-    console.log(`[Instance Manager] 💾 CORREÇÃO SSH: Salvando no banco [${creationId}]:`, instanceRecord);
+    console.log(`[Instance Manager] 💾 CORREÇÃO VPS: Salvando no banco [${creationId}]:`, instanceRecord);
     
     const { data: instance, error: dbError } = await supabase
       .from('whatsapp_instances')
@@ -110,14 +110,14 @@ async function createInstanceSSHCorrected(supabase: any, instanceName: string, u
       .single();
 
     if (dbError) {
-      console.error(`[Instance Manager] ❌ CORREÇÃO SSH: Erro no banco [${creationId}]:`, dbError);
+      console.error(`[Instance Manager] ❌ CORREÇÃO VPS: Erro no banco [${creationId}]:`, dbError);
       throw new Error(`Erro no banco: ${dbError.message}`);
     }
 
-    console.log(`[Instance Manager] ✅ CORREÇÃO SSH: Instância salva [${creationId}]:`, instance.id);
+    console.log(`[Instance Manager] ✅ CORREÇÃO VPS: Instância salva [${creationId}]:`, instance.id);
 
-    // 3. PAYLOAD EXATO DO TESTE SSH
-    const sshPayload = {
+    // 3. PAYLOAD CORRETO baseado na análise da VPS
+    const vpsPayload = {
       instanceId: vpsInstanceId,
       sessionName: sessionName,
       webhookUrl: VPS_CONFIG.webhookUrl,
@@ -126,16 +126,17 @@ async function createInstanceSSHCorrected(supabase: any, instanceName: string, u
       webhook_by_events: true,
       webhookEvents: ["messages.upsert", "qr.update", "connection.update"],
       qrcode: true,
-      markOnlineOnConnect: true
+      markOnlineOnConnect: true,
+      integration: "WHATSAPP-BAILEYS"
     };
 
-    console.log(`[Instance Manager] 📡 CORREÇÃO SSH: Enviando payload SSH [${creationId}]:`, sshPayload);
+    console.log(`[Instance Manager] 📡 CORREÇÃO VPS: Enviando payload correto [${creationId}]:`, vpsPayload);
     
-    // 4. Fazer requisição com retry baseado no teste SSH
-    const vpsResult = await attemptVPSCreationSSH(sshPayload, VPS_CONFIG.retryAttempts, creationId);
+    // 4. Fazer requisição com headers corretos
+    const vpsResult = await attemptVPSCreationCorrected(vpsPayload, VPS_CONFIG.retryAttempts, creationId);
     
     if (vpsResult.success) {
-      console.log(`[Instance Manager] ✅ CORREÇÃO SSH: VPS sucesso [${creationId}]:`, vpsResult.data);
+      console.log(`[Instance Manager] ✅ CORREÇÃO VPS: Sucesso [${creationId}]:`, vpsResult.data);
       
       // Atualizar status para aguardar webhook
       await supabase
@@ -150,25 +151,34 @@ async function createInstanceSSHCorrected(supabase: any, instanceName: string, u
         success: true,
         instance: instance,
         vpsInstanceId: vpsInstanceId,
-        sshCorrected: true,
+        vpsCorrected: true,
         creationId,
         vpsResponse: vpsResult.data,
-        message: 'Instância criada com payload SSH correto - aguardando QR Code'
+        message: 'Instância criada com sucesso na VPS - aguardando QR Code'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     } else {
-      throw new Error(`VPS falhou com payload SSH: ${vpsResult.error}`);
+      // Se falhou na VPS, marcar como erro no banco
+      await supabase
+        .from('whatsapp_instances')
+        .update({ 
+          connection_status: 'vps_error',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', instance.id);
+        
+      throw new Error(`VPS falhou: ${vpsResult.error}`);
     }
 
   } catch (error) {
-    console.error(`[Instance Manager] ❌ CORREÇÃO SSH: Erro geral [${creationId}]:`, error);
+    console.error(`[Instance Manager] ❌ CORREÇÃO VPS: Erro geral [${creationId}]:`, error);
     
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
       creationId,
-      sshCorrected: true
+      vpsCorrected: true
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -176,20 +186,27 @@ async function createInstanceSSHCorrected(supabase: any, instanceName: string, u
   }
 }
 
-async function attemptVPSCreationSSH(payload: any, maxAttempts: number, creationId: string) {
+async function attemptVPSCreationCorrected(payload: any, maxAttempts: number, creationId: string) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      console.log(`[Instance Manager] 🔄 CORREÇÃO SSH: Tentativa VPS ${attempt}/${maxAttempts} [${creationId}]`);
-      console.log(`[Instance Manager] 📋 CORREÇÃO SSH: Payload SSH sendo enviado:`, JSON.stringify(payload, null, 2));
+      console.log(`[Instance Manager] 🔄 CORREÇÃO VPS: Tentativa ${attempt}/${maxAttempts} [${creationId}]`);
+      console.log(`[Instance Manager] 📋 CORREÇÃO VPS: Payload sendo enviado:`, JSON.stringify(payload, null, 2));
       
+      // CORREÇÃO: Headers melhorados e timeout otimizado
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), VPS_CONFIG.timeout);
+      const timeoutId = setTimeout(() => {
+        console.log(`[Instance Manager] ⏰ CORREÇÃO VPS: Timeout atingido [${creationId}]`);
+        controller.abort();
+      }, VPS_CONFIG.timeout);
       
       const response = await fetch(`${VPS_CONFIG.baseUrl}/instance/create`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${VPS_CONFIG.authToken}`
+          'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+          'Accept': 'application/json',
+          'User-Agent': 'Supabase-WhatsApp-Client/3.0',
+          'Connection': 'keep-alive'
         },
         body: JSON.stringify(payload),
         signal: controller.signal
@@ -197,30 +214,46 @@ async function attemptVPSCreationSSH(payload: any, maxAttempts: number, creation
 
       clearTimeout(timeoutId);
 
-      console.log(`[Instance Manager] 📥 CORREÇÃO SSH: Response status [${creationId}]:`, response.status);
+      console.log(`[Instance Manager] 📥 CORREÇÃO VPS: Response status [${creationId}]:`, response.status);
+      console.log(`[Instance Manager] 📥 CORREÇÃO VPS: Response headers [${creationId}]:`, Object.fromEntries(response.headers.entries()));
 
       if (response.ok) {
         const data = await response.json();
-        console.log(`[Instance Manager] ✅ CORREÇÃO SSH: Response data [${creationId}]:`, data);
+        console.log(`[Instance Manager] ✅ CORREÇÃO VPS: Response data [${creationId}]:`, data);
         return { success: true, data };
       } else {
         const errorText = await response.text();
-        console.error(`[Instance Manager] ❌ CORREÇÃO SSH: HTTP ${response.status} [${creationId}]:`, errorText);
+        console.error(`[Instance Manager] ❌ CORREÇÃO VPS: HTTP ${response.status} [${creationId}]:`, errorText);
+        
+        // Se é erro 409 (conflito), a instância já existe
+        if (response.status === 409) {
+          console.log(`[Instance Manager] ⚠️ CORREÇÃO VPS: Instância já existe [${creationId}]`);
+          return { 
+            success: true, 
+            data: { 
+              message: 'Instance already exists',
+              instanceId: payload.instanceId 
+            } 
+          };
+        }
+        
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
     } catch (error) {
-      console.error(`[Instance Manager] ⚠️ CORREÇÃO SSH: Tentativa ${attempt} falhou [${creationId}]:`, error.message);
+      console.error(`[Instance Manager] ⚠️ CORREÇÃO VPS: Tentativa ${attempt} falhou [${creationId}]:`, error.message);
       
       if (attempt === maxAttempts) {
-        throw error;
+        return { success: false, error: error.message };
       }
       
-      // Delay entre tentativas
-      const backoff = VPS_CONFIG.retryDelay * attempt;
-      console.log(`[Instance Manager] ⏳ CORREÇÃO SSH: Aguardando ${backoff}ms antes da próxima tentativa [${creationId}]`);
+      // Delay exponencial entre tentativas
+      const backoff = VPS_CONFIG.retryDelay * Math.pow(2, attempt - 1);
+      console.log(`[Instance Manager] ⏳ CORREÇÃO VPS: Aguardando ${backoff}ms [${creationId}]`);
       await new Promise(resolve => setTimeout(resolve, backoff));
     }
   }
+  
+  return { success: false, error: 'Máximo de tentativas atingido' };
 }
 
 async function syncInstanceStatus(supabase: any, instanceId: string, user: any) {
@@ -413,7 +446,7 @@ async function deleteInstanceCorrected(supabase: any, instanceId: string, user: 
 
     return new Response(JSON.stringify({
       success: true,
-      sshCorrected: true,
+      vpsCorrected: true,
       message: 'Instância deletada com sucesso'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
