@@ -6,13 +6,13 @@ export const VPS_CONFIG = {
   
   endpoints: {
     health: '/health',
-    status: '/status',
+    status: '/status', // CORREÇÃO: Endpoint que vamos adicionar na VPS
     instances: '/instances',
     qrCode: '/instance/{instanceId}/qr',
-    sendMessage: '/send',
+    sendMessage: '/send', // CORREÇÃO: Endpoint que vamos adicionar na VPS
     createInstance: '/instance/create',
     deleteInstance: '/instance/{instanceId}',
-    instanceStatus: '/instance/{instanceId}/status',
+    instanceStatus: '/instance/{instanceId}/status', // CORREÇÃO: Endpoint que vamos adicionar
     webhookGlobal: '/webhook/global',
     webhookStatus: '/webhook/global/status',
     webhookInstance: '/instance/{instanceId}/webhook'

@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { VPS_CONFIG } from "../config/vpsConfig";
-import { ServiceResponse } from "../types/whatsappWebTypes";
+import { MessageSendResponse } from "../types/whatsappWebTypes";
 import { cleanPhoneNumber } from "@/utils/phoneFormatter";
 
 export class MessageSendingService {
@@ -8,7 +8,7 @@ export class MessageSendingService {
     instanceId: string, 
     phone: string, 
     message: string
-  ): Promise<ServiceResponse> {
+  ): Promise<MessageSendResponse> {
     const startTime = Date.now();
     
     try {
@@ -45,11 +45,9 @@ export class MessageSendingService {
 
       return { 
         success: true,
-        data: {
-          messageId: vpsResponse.messageId || `manual_${Date.now()}`,
-          timestamp: vpsResponse.timestamp || new Date().toISOString(),
-          leadId
-        }
+        messageId: vpsResponse.messageId || `manual_${Date.now()}`,
+        timestamp: vpsResponse.timestamp || new Date().toISOString(),
+        leadId
       };
 
     } catch (error) {
@@ -133,7 +131,8 @@ export class MessageSendingService {
   }
 
   private static async sendToVPS(vpsInstanceId: string, formattedPhone: string, message: string) {
-    const vpsUrl = `${VPS_CONFIG.baseUrl}${VPS_CONFIG.endpoints.sendMessage}`;
+    // CORREÇÃO: Usar endpoint /send que vamos adicionar na VPS
+    const vpsUrl = `${VPS_CONFIG.baseUrl}/send`;
     const requestBody = {
       instanceId: vpsInstanceId,
       phone: formattedPhone,
@@ -276,7 +275,7 @@ export class MessageSendingService {
     return newLead.id;
   }
 
-  private static handleError(error: any, duration: number, instanceId: string, phone: string): ServiceResponse {
+  private static handleError(error: any, duration: number, instanceId: string, phone: string): MessageSendResponse {
     console.error('[MessageSending] ❌ Error sending message:', {
       error: error instanceof Error ? error.message : error,
       duration: `${duration}ms`,

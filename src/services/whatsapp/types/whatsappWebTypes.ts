@@ -35,6 +35,26 @@ export interface ServerHealthResponse extends ServiceResponse {
   timestamp?: string;
 }
 
+// CORREÇÃO: Interface para resposta de envio de mensagem
+export interface MessageSendResponse extends ServiceResponse {
+  messageId?: string;
+  timestamp?: string;
+  leadId?: string;
+}
+
+// CORREÇÃO: Interface para resposta de sincronização
+export interface SyncResponse extends ServiceResponse {
+  data?: {
+    summary?: {
+      updated: number;
+      preserved: number;
+      adopted: number;
+      errors: number;
+    };
+    instances?: any[];
+  };
+}
+
 // VPS Server Communication Types
 export interface VPSCreateInstanceRequest {
   instanceId: string;

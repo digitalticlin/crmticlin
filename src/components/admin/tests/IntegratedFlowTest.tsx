@@ -1,213 +1,209 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle, XCircle, Clock, AlertTriangle, PlayCircle, RefreshCw, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
-import { toast } from "sonner";
-import { Input } from "@/components/ui/input";
+import { MessageSendingService } from "@/services/whatsapp/services/messageSendingService";
+import { MessageSendResponse } from "@/services/whatsapp/types/whatsappWebTypes";
+import { PlayCircle, CheckCircle, AlertTriangle, Clock } from "lucide-react";
 
 interface TestStep {
-  description: string;
-  status: 'running' | 'success' | 'error' | 'warning';
-  details?: any;
+  id: string;
+  name: string;
+  status: 'pending' | 'running' | 'success' | 'error';
+  result?: any;
+  error?: string;
 }
 
 export const IntegratedFlowTest = () => {
   const [isRunning, setIsRunning] = useState(false);
-  const [result, setResult] = useState<any>(null);
-  const [steps, setSteps] = useState<TestStep[]>([]);
-  const [currentStep, setCurrentStep] = useState('');
-  const [testInstanceName, setTestInstanceName] = useState('test-instance-' + Date.now());
-  let testInstanceId: string;
+  const [currentStep, setCurrentStep] = useState(0);
+  const [steps, setSteps] = useState<TestStep[]>([
+    { id: 'health', name: 'Verificar saúde do servidor', status: 'pending' },
+    { id: 'create', name: 'Criar instância de teste', status: 'pending' },
+    { id: 'qr', name: 'Obter QR Code', status: 'pending' },
+    { id: 'message', name: 'Enviar mensagem de teste', status: 'pending' },
+    { id: 'delete', name: 'Deletar instância de teste', status: 'pending' },
+  ]);
 
-  if (isRunning) {
-    return (
-      <Card className="animate-pulse">
-        <CardHeader>
-          <CardTitle>Executando Teste Integrado...</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>Por favor, aguarde...</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const addStep = (description: string, status: 'running' | 'success' | 'error' | 'warning', details: any = null) => {
-    setSteps(prev => [...prev, { description, status, details }]);
+  const updateStep = (stepId: string, status: TestStep['status'], result?: any, error?: string) => {
+    setSteps(prev => prev.map(step => 
+      step.id === stepId ? { ...step, status, result, error } : step
+    ));
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'success':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'error':
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      case 'running':
-        return <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />;
-      case 'warning':
-        return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
-      default:
-        return <Clock className="h-4 w-4 text-gray-400" />;
-    }
-  };
-
-  const executeTest = async () => {
+  const runIntegratedTest = async () => {
     setIsRunning(true);
-    setResult(null);
-    setCurrentStep('Iniciando');
+    setCurrentStep(0);
     
-    const steps: TestStep[] = [];
-    
+    // Reset all steps
+    setSteps(prev => prev.map(step => ({ ...step, status: 'pending', result: undefined, error: undefined })));
+
     try {
-      addStep('Verificando conectividade do servidor...', 'running');
+      // Step 1: Health Check
+      setCurrentStep(1);
+      updateStep('health', 'running');
       const healthResult = await WhatsAppWebService.checkServerHealth();
-      
-      if (healthResult.success) {
-        addStep('✅ Servidor conectado e funcionando', 'success', healthResult.data);
-      } else {
-        addStep(`❌ Falha na conectividade: ${healthResult.error}`, 'error');
-        return;
+      updateStep('health', healthResult.success ? 'success' : 'error', healthResult, healthResult.error);
+
+      if (!healthResult.success) {
+        throw new Error('Servidor não está saudável');
       }
 
-      addStep('Criando instância de teste...', 'running');
-      const instanceResult = await WhatsAppWebService.createInstance(testInstanceName);
-      
-      if (instanceResult.success && instanceResult.instance) {
-        // Use the correct property name from the interface
-        testInstanceId = instanceResult.instance.id || instanceResult.instance.instance_name;
-        addStep('✅ Instância criada com sucesso', 'success', instanceResult.instance);
-        
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        addStep('Obtendo QR Code...', 'running');
-        const qrResult = await WhatsAppWebService.getQRCode(testInstanceId);
-        
-        if (qrResult.success) {
-          addStep('✅ QR Code obtido', 'success', { qrCode: qrResult.qrCode });
-        } else {
-          addStep(`⚠️ QR Code não disponível: ${qrResult.error}`, 'warning');
-        }
+      // Step 2: Create Instance
+      setCurrentStep(2);
+      updateStep('create', 'running');
+      const instanceName = `test_${Date.now()}`;
+      const createResult = await WhatsAppWebService.createInstance(instanceName);
+      updateStep('create', createResult.success ? 'success' : 'error', createResult, createResult.error);
 
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        addStep('Testando envio de mensagem...', 'running');
-        const messageResult = await WhatsAppWebService.sendMessage(
-          testInstanceId,
-          '5511999999999',
-          'Teste automatizado - ' + new Date().toISOString()
-        );
-        
-        if (messageResult.success) {
-          addStep('✅ Mensagem enviada', 'success', { messageId: messageResult.messageId });
-        } else {
-          addStep(`❌ Falha no envio: ${messageResult.error}`, 'error');
-        }
-
-        addStep('Limpando instância de teste...', 'running');
-        const deleteResult = await WhatsAppWebService.deleteInstance(testInstanceId);
-        
-        if (deleteResult.success) {
-          addStep('✅ Instância removida', 'success');
-        } else {
-          addStep(`⚠️ Aviso na remoção: ${deleteResult.error}`, 'warning');
-        }
-        
-      } else {
-        addStep(`❌ Falha na criação: ${instanceResult.error}`, 'error');
+      if (!createResult.success || !createResult.instance) {
+        throw new Error('Falha ao criar instância');
       }
+
+      const instanceId = createResult.instance.id;
+
+      // Step 3: Get QR Code (with retries)
+      setCurrentStep(3);
+      updateStep('qr', 'running');
+      let qrResult;
+      let attempts = 0;
+      const maxAttempts = 5;
+
+      do {
+        attempts++;
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2 seconds
+        qrResult = await WhatsAppWebService.getQRCode(instanceId);
+        
+        if (qrResult.success && qrResult.qrCode) {
+          break;
+        }
+        
+        if (attempts >= maxAttempts) {
+          throw new Error('QR Code não foi gerado após múltiplas tentativas');
+        }
+      } while (attempts < maxAttempts);
+
+      updateStep('qr', qrResult.success ? 'success' : 'error', qrResult, qrResult.error);
+
+      // Step 4: Send Test Message
+      setCurrentStep(4);
+      updateStep('message', 'running');
       
+      // CORREÇÃO: Aguardar resultado tipado com messageId
+      const messageResult: MessageSendResponse = await MessageSendingService.sendMessage(
+        instanceId,
+        '5511999999999',
+        'Mensagem de teste do sistema integrado'
+      );
+      
+      updateStep('message', messageResult.success ? 'success' : 'error', messageResult, messageResult.error);
+
+      // Step 5: Delete Instance
+      setCurrentStep(5);
+      updateStep('delete', 'running');
+      const deleteResult = await WhatsAppWebService.deleteInstance(instanceId);
+      updateStep('delete', deleteResult.success ? 'success' : 'error', deleteResult, deleteResult.error);
+
+      setCurrentStep(6); // Complete
+
     } catch (error: any) {
-      addStep(`❌ Erro inesperado: ${error.message}`, 'error');
+      console.error('[IntegratedFlowTest] ❌ Erro no teste:', error);
+      // Mark current step as error
+      const currentStepId = steps[currentStep - 1]?.id;
+      if (currentStepId) {
+        updateStep(currentStepId, 'error', undefined, error.message);
+      }
     } finally {
-      setCurrentStep('Finalizado');
       setIsRunning(false);
     }
   };
+
+  const progress = (currentStep / steps.length) * 100;
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <PlayCircle className="h-5 w-5 text-blue-500" />
-          Teste Integrado do Sistema
+          <PlayCircle className="h-5 w-5" />
+          Teste de Fluxo Integrado
         </CardTitle>
-        <CardDescription>
-          Executa um fluxo completo de criação, uso e exclusão de instância
-        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center space-x-2">
-          <Input
-            type="text"
-            placeholder="Nome da instância de teste"
-            value={testInstanceName}
-            onChange={(e) => setTestInstanceName(e.target.value)}
-            disabled={isRunning}
-          />
-          <Button
-            onClick={executeTest}
-            disabled={isRunning}
-            className="flex items-center gap-2"
-          >
-            {isRunning ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Executando...
-              </>
-            ) : (
-              <>
-                <PlayCircle className="h-4 w-4" />
-                Iniciar Teste
-              </>
-            )}
-          </Button>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span>Progresso do teste</span>
+            <span>{Math.round(progress)}%</span>
+          </div>
+          <Progress value={progress} className="w-full" />
         </div>
 
-        {steps.length > 0 && (
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold">Passos do Teste:</h3>
-            <ScrollArea className="h-80">
-              <div className="space-y-2">
-                {steps.map((step, index) => (
-                  <Card key={index} className={`border-l-4 ${
-                    step.status === 'success' ? 'border-green-500' :
-                    step.status === 'error' ? 'border-red-500' :
-                    step.status === 'warning' ? 'border-yellow-500' :
-                    'border-blue-500'
-                  }`}>
-                    <CardContent className="p-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(step.status)}
-                          <span className="font-medium">{step.description}</span>
-                        </div>
-                        {step.status !== 'running' && (
-                          <Badge variant="outline">
-                            {step.status.toUpperCase()}
-                          </Badge>
-                        )}
-                      </div>
-                      {step.details && (
-                        <details className="mt-2">
-                          <summary className="cursor-pointer text-sm text-gray-600 hover:text-gray-800">
-                            Ver detalhes
-                          </summary>
-                          <pre className="mt-1 p-2 bg-gray-100 rounded text-xs overflow-auto">
-                            {JSON.stringify(step.details, null, 2)}
-                          </pre>
-                        </details>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
+        <Button 
+          onClick={runIntegratedTest}
+          disabled={isRunning}
+          className="w-full"
+        >
+          {isRunning ? (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Executando teste...
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <PlayCircle className="h-4 w-4" />
+              Executar Teste Completo
+            </div>
+          )}
+        </Button>
+
+        <div className="space-y-2">
+          {steps.map((step, index) => (
+            <div key={step.id} className="flex items-center gap-3 p-3 border rounded-lg">
+              <div className="flex-shrink-0">
+                {step.status === 'pending' && <Clock className="h-4 w-4 text-gray-400" />}
+                {step.status === 'running' && (
+                  <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                )}
+                {step.status === 'success' && <CheckCircle className="h-4 w-4 text-green-600" />}
+                {step.status === 'error' && <AlertTriangle className="h-4 w-4 text-red-600" />}
               </div>
-            </ScrollArea>
-          </div>
+              
+              <div className="flex-1">
+                <div className="font-medium">{step.name}</div>
+                {step.error && (
+                  <div className="text-sm text-red-600">{step.error}</div>
+                )}
+                {step.result && step.status === 'success' && (
+                  <div className="text-sm text-gray-600">
+                    {/* CORREÇÃO: Verificar se result.messageId existe */}
+                    {step.result.messageId && `ID: ${step.result.messageId}`}
+                    {step.result.instance && `Instância: ${step.result.instance.instance_name}`}
+                    {step.result.qrCode && 'QR Code gerado'}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {!isRunning && steps.some(s => s.status !== 'pending') && (
+          <Alert className={steps.every(s => s.status === 'success') ? "border-green-200 bg-green-50" : "border-yellow-200 bg-yellow-50"}>
+            <AlertDescription>
+              {steps.every(s => s.status === 'success') ? (
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <span className="text-green-900">✅ Todos os testes passaram! Sistema funcionando corretamente.</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                  <span className="text-yellow-900">⚠️ Alguns testes falharam. Verifique os detalhes acima.</span>
+                </div>
+              )}
+            </AlertDescription>
+          </Alert>
         )}
       </CardContent>
     </Card>

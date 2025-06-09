@@ -1,5 +1,5 @@
-
 import { supabase } from "@/integrations/supabase/client";
+import { SyncResponse } from "./types/whatsappWebTypes";
 
 export class WhatsAppWebService {
   static async createInstance(instanceName: string): Promise<{
@@ -276,7 +276,8 @@ export class WhatsAppWebService {
     }
   }
 
-  static async syncInstances(): Promise<{ success: boolean; error?: string }> {
+  // CORREÇÃO: Método syncInstances com retorno tipado
+  static async syncInstances(): Promise<SyncResponse> {
     try {
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_monitor', {
         body: {
@@ -290,12 +291,30 @@ export class WhatsAppWebService {
 
       return {
         success: data?.success || false,
-        error: data?.error
+        error: data?.error,
+        data: data?.data || {
+          summary: {
+            updated: 0,
+            preserved: 0,
+            adopted: 0,
+            errors: 0
+          },
+          instances: []
+        }
       };
     } catch (error: any) {
       return {
         success: false,
-        error: error.message || 'Erro na sincronização'
+        error: error.message || 'Erro na sincronização',
+        data: {
+          summary: {
+            updated: 0,
+            preserved: 0,
+            adopted: 0,
+            errors: 1
+          },
+          instances: []
+        }
       };
     }
   }

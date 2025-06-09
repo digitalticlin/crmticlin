@@ -1,78 +1,66 @@
 
-import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
-import { supabase } from "@/integrations/supabase/client";
-
-interface SyncResult {
-  success: boolean;
-  instancesProcessed: number;
-  errors: string[];
-  details?: any;
-}
+import { InstanceSyncService } from "./instanceSyncService";
+import { SyncResponse } from "@/services/whatsapp/types/whatsappWebTypes";
 
 export class IntelligentSyncService {
-  static async performIntelligentSync(): Promise<SyncResult> {
-    try {
-      console.log('[Intelligent Sync] 🔄 Iniciando sincronização inteligente...');
-      
-      // 1. Verificar saúde geral do servidor
-      const healthCheck = await WhatsAppWebService.checkServerHealth();
-      
-      if (!healthCheck.success) {
-        throw new Error(`Servidor não disponível: ${healthCheck.error}`);
-      }
-      
-      // 2. Obter informações do servidor
-      const serverInfo = await WhatsAppWebService.getServerInfo();
-      
-      if (!serverInfo.success) {
-        console.warn('[Intelligent Sync] ⚠️ Não foi possível obter info do servidor');
-      }
-      
-      // 3. Buscar instâncias locais que precisam de sync
-      const { data: localInstances, error } = await supabase
-        .from('whatsapp_instances')
-        .select('*')
-        .eq('connection_type', 'web')
-        .in('connection_status', ['pending', 'connecting', 'waiting_scan']);
-      
-      if (error) {
-        throw new Error(`Erro ao buscar instâncias locais: ${error.message}`);
-      }
-      
-      // 4. Executar sincronização com o servidor VPS
-      const syncResult = await WhatsAppWebService.syncInstances();
-      
-      if (!syncResult.success) {
-        throw new Error(`Erro na sincronização: ${syncResult.error}`);
-      }
-      
-      // 5. Verificar quantas instâncias foram processadas
-      const instancesProcessed = syncResult.data?.instances?.length || 0;
-      
-      console.log('[Intelligent Sync] ✅ Sincronização concluída', {
-        instancesLocal: localInstances?.length || 0,
-        instancesProcessed,
-        serverHealth: healthCheck.data
-      });
-      
-      return {
-        success: true,
-        instancesProcessed,
-        errors: [],
-        details: {
-          localInstances: localInstances?.length || 0,
-          serverInfo: serverInfo.data
-        }
-      };
-      
-    } catch (error: any) {
-      console.error('[Intelligent Sync] ❌ Erro:', error);
-      
+  private static isRunning = false;
+  private static lastSync = 0;
+  private static readonly SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutos
+
+  static async performIntelligentSync(): Promise<SyncResponse> {
+    if (this.isRunning) {
+      console.log('[IntelligentSync] ⏳ Sincronização já em andamento');
       return {
         success: false,
-        instancesProcessed: 0,
-        errors: [error.message]
+        error: 'Sincronização já em andamento',
+        data: {
+          summary: { updated: 0, preserved: 0, adopted: 0, errors: 1 },
+          instances: []
+        }
       };
+    }
+
+    const now = Date.now();
+    if (now - this.lastSync < this.SYNC_INTERVAL) {
+      console.log('[IntelligentSync] ⏰ Aguardando intervalo mínimo');
+      return {
+        success: false,
+        error: 'Aguardando intervalo mínimo',
+        data: {
+          summary: { updated: 0, preserved: 0, adopted: 0, errors: 1 },
+          instances: []
+        }
+      };
+    }
+
+    this.isRunning = true;
+    this.lastSync = now;
+
+    try {
+      console.log('[IntelligentSync] 🧠 Iniciando sincronização inteligente...');
+
+      // CORREÇÃO: Usar método corrigido com retorno tipado
+      const result = await InstanceSyncService.syncAllInstances();
+      
+      console.log('[IntelligentSync] ✅ Sincronização inteligente concluída:', {
+        success: result.success,
+        summary: result.data?.summary
+      });
+
+      return result;
+
+    } catch (error: any) {
+      console.error('[IntelligentSync] ❌ Erro na sincronização inteligente:', error);
+      return {
+        success: false,
+        error: error.message || 'Erro na sincronização inteligente',
+        data: {
+          summary: { updated: 0, preserved: 0, adopted: 0, errors: 1 },
+          instances: []
+        }
+      };
+    } finally {
+      this.isRunning = false;
     }
   }
 }

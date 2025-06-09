@@ -1,11 +1,15 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
+
+// CORREÇÃO: Apenas porta 3002
+const VPS_SERVER_URL = 'http://31.97.24.222:3002';
+const VPS_AUTH_TOKEN = '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -69,7 +73,7 @@ serve(async (req) => {
       );
     }
 
-    // CORREÇÃO: Buscar QR Code otimizado (prioridade banco > VPS)
+    // CORREÇÃO: Buscar QR Code otimizado (banco + fallback VPS)
     if (action === 'get_qr_code' || action === 'get_qr_code_v3') {
       const { instanceId } = requestBody;
       
@@ -119,13 +123,13 @@ serve(async (req) => {
         }
       }
 
-      // PRIORIDADE 2: Buscar da VPS (apenas se necessário)
+      // PRIORIDADE 2: Buscar da VPS
       try {
-        console.log(`[QR Service] 🌐 Buscando da VPS: ${instance.vps_instance_id}`);
+        console.log(`[QR Service] 🌐 CORREÇÃO: Buscando da VPS porta 3002: ${instance.vps_instance_id}`);
         
-        const vpsResponse = await fetch(`http://31.97.24.222:3002/instance/${instance.vps_instance_id}/qr`, {
+        const vpsResponse = await fetch(`${VPS_SERVER_URL}/instance/${instance.vps_instance_id}/qr`, {
           headers: {
-            'Authorization': 'Bearer 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3'
+            'Authorization': `Bearer ${VPS_AUTH_TOKEN}`
           },
           signal: AbortSignal.timeout(8000)
         });
@@ -186,11 +190,27 @@ serve(async (req) => {
       );
     }
 
-    // Refresh QR Code
+    // Refresh QR Code - CORREÇÃO: usando apenas porta 3002
     if (action === 'refresh_qr_code') {
       const { instanceId } = requestBody;
       
       console.log(`[QR Service] 🔄 Refresh QR para: ${instanceId}`);
+
+      // Buscar instância para ter o vps_instance_id
+      const { data: instance, error: instanceError } = await supabase
+        .from('whatsapp_instances')
+        .select('vps_instance_id')
+        .eq('id', instanceId)
+        .eq('created_by_user_id', user.id)
+        .single();
+        
+      if (instanceError || !instance || !instance.vps_instance_id) {
+        console.error(`[QR Service] ❌ Instância não encontrada:`, instanceError);
+        return new Response(
+          JSON.stringify({ success: false, error: 'Instância não encontrada' }),
+          { status: 404, headers: corsHeaders }
+        );
+      }
 
       // Limpar QR Code atual
       const { error: clearError } = await supabase
@@ -207,10 +227,27 @@ serve(async (req) => {
         console.error('[QR Service] ❌ Erro ao limpar QR:', clearError);
       }
 
+      // CORREÇÃO: Tentar forçar regeneração de QR na VPS (porta 3002)
+      try {
+        // Esta chamada pode falhar se o endpoint não existir, mas tentaremos mesmo assim
+        await fetch(`${VPS_SERVER_URL}/instance/${instance.vps_instance_id}/refresh`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${VPS_AUTH_TOKEN}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ command: 'regenerate_qr' }),
+          signal: AbortSignal.timeout(5000)
+        }).catch(e => console.error('[QR Service] Erro no refresh VPS (ignorando):', e));
+      } catch (e) {
+        console.error('[QR Service] Erro no refresh VPS (ignorando):', e);
+      }
+
       return new Response(
         JSON.stringify({
           success: true,
-          message: 'QR Code limpo, novo será gerado automaticamente'
+          message: 'QR Code limpo, novo será gerado automaticamente',
+          port: 3002
         }),
         { headers: corsHeaders }
       );

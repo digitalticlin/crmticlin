@@ -7,7 +7,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// CONFIGURAÇÃO: Servidor Webhook na porta 3002
+// CORREÇÃO: Servidor Webhook na porta 3002
 const WEBHOOK_SERVER_URL = 'http://31.97.24.222:3002';
 
 serve(async (req) => {
@@ -22,7 +22,7 @@ serve(async (req) => {
 
     const { action, instanceId, phone, message } = await req.json();
 
-    if (action === 'send_message_corrected') {
+    if (action === 'send_message' || action === 'send_message_corrected') {
       return await sendMessageCorrected(supabase, instanceId, phone, message);
     }
 
@@ -68,13 +68,15 @@ async function sendMessageCorrected(supabase: any, instanceId: string, phone: st
     // 3. Enviar via servidor webhook (porta 3002)
     const sendResponse = await fetch(`${WEBHOOK_SERVER_URL}/send`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3` 
+      },
       body: JSON.stringify({
         instanceId: instance.vps_instance_id,
         phone: cleanPhone,
         message: message
-      }),
-      timeout: 30000
+      })
     });
 
     if (!sendResponse.ok) {

@@ -2,197 +2,146 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
-import { supabase } from "@/integrations/supabase/client";
-import { MessageCircle, Loader2 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { MessageSendingService } from "@/services/whatsapp/services/messageSendingService";
+import { MessageSendResponse } from "@/services/whatsapp/types/whatsappWebTypes";
+import { MessageSquare, Send, AlertTriangle, CheckCircle } from "lucide-react";
 
-interface TestResult {
-  status: 'idle' | 'running' | 'success' | 'error' | 'warning';
-  message: string;
-  details?: any;
-}
+export const MessageTest = () => {
+  const [instanceId, setInstanceId] = useState("");
+  const [phone, setPhone] = useState("");
+  const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<MessageSendResponse | null>(null);
 
-interface MessageTestProps {
-  onResult: (result: TestResult) => void;
-}
+  const handleSendMessage = async () => {
+    if (!instanceId || !phone || !message) {
+      setResult({
+        success: false,
+        error: "Todos os campos são obrigatórios"
+      });
+      return;
+    }
 
-export const MessageTest = ({ onResult }: MessageTestProps) => {
-  const [isRunning, setIsRunning] = useState(false);
-  const [instanceId, setInstanceId] = useState('');
-  const [testPhone, setTestPhone] = useState('5511999999999');
-  const [testMessage, setTestMessage] = useState('Teste de mensagem automática');
-
-  const runTest = async () => {
-    setIsRunning(true);
-    onResult({ status: 'running', message: 'Iniciando teste de envio de mensagem...' });
+    setIsLoading(true);
+    setResult(null);
 
     try {
-      const startTime = Date.now();
-
-      // ETAPA 1: Verificar se instância está pronta
-      onResult({ status: 'running', message: 'Verificando status da instância...' });
+      console.log('[MessageTest] 📤 Enviando mensagem de teste...');
       
-      const { data: instance, error: instanceError } = await supabase
-        .from('whatsapp_instances')
-        .select('*')
-        .eq('id', instanceId)
-        .single();
-
-      if (instanceError || !instance) {
-        throw new Error('Instância não encontrada no Supabase');
-      }
-
-      if (!['ready', 'open'].includes(instance.connection_status)) {
-        throw new Error(`Instância não está pronta. Status: ${instance.connection_status}`);
-      }
-
-      // ETAPA 2: Enviar mensagem de teste
-      onResult({ status: 'running', message: 'Enviando mensagem teste...' });
+      const response = await MessageSendingService.sendMessage(
+        instanceId,
+        phone,
+        message
+      );
       
-      const sendResult = await WhatsAppWebService.sendMessage(instanceId, testPhone, testMessage);
+      console.log('[MessageTest] 📥 Resposta recebida:', response);
+      setResult(response);
       
-      if (!sendResult.success) {
-        throw new Error(`Falha no envio: ${sendResult.error}`);
-      }
-
-      // ETAPA 3: Verificar se mensagem foi salva no banco
-      onResult({ status: 'running', message: 'Verificando salvamento da mensagem...' });
-      
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Aguardar salvamento
-      
-      const { data: sentMessages, error: messageError } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('whatsapp_number_id', instanceId)
-        .eq('text', testMessage)
-        .eq('from_me', true)
-        .order('timestamp', { ascending: false })
-        .limit(1);
-
-      if (messageError) {
-        throw new Error(`Erro ao consultar mensagens: ${messageError.message}`);
-      }
-
-      const messageSaved = sentMessages && sentMessages.length > 0;
-
-      // ETAPA 4: Verificar criação/atualização do lead
-      const { data: leads, error: leadError } = await supabase
-        .from('leads')
-        .select('*')
-        .eq('whatsapp_number_id', instanceId)
-        .eq('phone', testPhone);
-
-      const leadExists = leads && leads.length > 0;
-
-      // RESULTADO
-      let status: 'success' | 'warning' = 'success';
-      let message = `Mensagem enviada com sucesso em ${Date.now() - startTime}ms`;
-
-      if (!messageSaved) {
-        status = 'warning';
-        message = 'Mensagem enviada mas não foi salva no banco de dados';
-      }
-
-      onResult({
-        status,
-        message,
-        details: {
-          sendTime: Date.now() - startTime,
-          messageId: sendResult.messageId,
-          messageSaved,
-          leadExists,
-          leadData: leadExists ? leads[0] : null,
-          messageData: messageSaved ? sentMessages[0] : null,
-          instanceStatus: instance.connection_status,
-          testData: {
-            phone: testPhone,
-            message: testMessage
-          }
-        }
-      });
-
     } catch (error: any) {
-      onResult({
-        status: 'error',
-        message: `Erro no teste de mensagem: ${error.message}`,
-        details: {
-          error: error.message,
-          instanceId,
-          testPhone,
-          testMessage,
-          timestamp: new Date().toISOString()
-        }
+      console.error('[MessageTest] ❌ Erro no teste:', error);
+      setResult({
+        success: false,
+        error: error.message || 'Erro desconhecido'
       });
     } finally {
-      setIsRunning(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="msg-instance-id">ID da Instância</Label>
-        <Input
-          id="msg-instance-id"
-          value={instanceId}
-          onChange={(e) => setInstanceId(e.target.value)}
-          placeholder="UUID da instância"
-          disabled={isRunning}
-        />
-      </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <MessageSquare className="h-5 w-5" />
+          Teste de Envio de Mensagem
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">ID da Instância</label>
+            <Input
+              value={instanceId}
+              onChange={(e) => setInstanceId(e.target.value)}
+              placeholder="ID da instância WhatsApp"
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Telefone</label>
+            <Input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="5511999999999"
+            />
+          </div>
+        </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="test-phone">Telefone de Teste</Label>
-        <Input
-          id="test-phone"
-          value={testPhone}
-          onChange={(e) => setTestPhone(e.target.value)}
-          placeholder="5511999999999"
-          disabled={isRunning}
-        />
-      </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Mensagem</label>
+          <Textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Digite sua mensagem de teste..."
+            rows={3}
+          />
+        </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="test-message">Mensagem de Teste</Label>
-        <Textarea
-          id="test-message"
-          value={testMessage}
-          onChange={(e) => setTestMessage(e.target.value)}
-          placeholder="Mensagem que será enviada"
-          disabled={isRunning}
-          rows={3}
-        />
-      </div>
-      
-      <Button 
-        onClick={runTest} 
-        disabled={isRunning || !instanceId.trim() || !testPhone.trim() || !testMessage.trim()}
-        className="w-full gap-2"
-      >
-        {isRunning ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Enviando Mensagem...
-          </>
-        ) : (
-          <>
-            <MessageCircle className="h-4 w-4" />
-            Testar Envio de Mensagem
-          </>
+        <Button 
+          onClick={handleSendMessage}
+          disabled={isLoading || !instanceId || !phone || !message}
+          className="w-full"
+        >
+          {isLoading ? (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Enviando...
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Send className="h-4 w-4" />
+              Enviar Mensagem
+            </div>
+          )}
+        </Button>
+
+        {result && (
+          <Alert className={result.success ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"}>
+            <div className="flex items-start gap-2">
+              {result.success ? (
+                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
+              ) : (
+                <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5" />
+              )}
+              <AlertDescription className="flex-1">
+                {result.success ? (
+                  <div className="space-y-1">
+                    <p className="font-medium text-green-900">✅ Mensagem enviada com sucesso!</p>
+                    {/* CORREÇÃO: Usar propriedade messageId que agora existe */}
+                    {result.messageId && (
+                      <p className="text-sm text-green-700">ID da mensagem: {result.messageId}</p>
+                    )}
+                    {result.timestamp && (
+                      <p className="text-sm text-green-700">Timestamp: {result.timestamp}</p>
+                    )}
+                    {result.leadId && (
+                      <p className="text-sm text-green-700">Lead ID: {result.leadId}</p>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <p className="font-medium text-red-900">❌ Falha no envio</p>
+                    <p className="text-sm text-red-700">{result.error}</p>
+                  </div>
+                )}
+              </AlertDescription>
+            </div>
+          </Alert>
         )}
-      </Button>
-      
-      <div className="text-xs text-muted-foreground">
-        <p><strong>Este teste vai:</strong></p>
-        <ul className="list-disc list-inside space-y-1 mt-1">
-          <li>Verificar se instância está pronta</li>
-          <li>Enviar mensagem de teste</li>
-          <li>Verificar se foi salva no banco</li>
-          <li>Verificar criação de lead</li>
-        </ul>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
