@@ -19,13 +19,14 @@ export const useSyncOperations = (addLog: (message: string) => void) => {
     try {
       addLog("🔐 Verificando autenticação...");
       
-      const { data, error } = await supabase.functions.invoke('whatsapp_web_server', {
+      // Usar a função modular auto_sync_instances em vez da função genérica removida
+      const { data, error } = await supabase.functions.invoke('auto_sync_instances', {
         body: {
           action: 'sync_all_instances'
         }
       });
 
-      addLog("📥 Resposta recebida do servidor de sincronização");
+      addLog("📥 Resposta recebida do serviço de sincronização modular");
 
       if (error) {
         addLog(`❌ Erro na requisição: ${error.message}`);
@@ -33,51 +34,47 @@ export const useSyncOperations = (addLog: (message: string) => void) => {
       }
 
       if (data && data.success) {
-        const summary = data.summary || {};
-        const results = data.results || {};
+        const syncResults = data.syncResults || {};
         
         addLog(`✅ Sincronização GLOBAL concluída com sucesso!`);
-        addLog(`📊 VPS: ${summary.vps_instances || 0} instâncias encontradas`);
-        addLog(`📊 Supabase antes: ${summary.supabase_instances || 0} instâncias`);
-        addLog(`🆕 Instâncias adicionadas: ${results.added || 0}`);
-        addLog(`🔄 Instâncias atualizadas: ${results.updated || 0}`);
-        addLog(`🔗 Vínculos preservados: ${results.preserved_links || 0}`);
+        addLog(`📊 VPS: ${syncResults.vps_instances || 0} instâncias encontradas`);
+        addLog(`📊 Supabase antes: ${syncResults.db_instances || 0} instâncias`);
+        addLog(`🆕 Instâncias adicionadas: ${syncResults.new_instances || 0}`);
+        addLog(`🔄 Instâncias atualizadas: ${syncResults.updated_instances || 0}`);
         
-        if (results.errors && results.errors.length > 0) {
-          addLog(`⚠️ Erros encontrados: ${results.errors.length}`);
-          results.errors.forEach((error: any, index: number) => {
-            addLog(`  ${index + 1}. ${error.vpsId || 'unknown'}: ${error.error}`);
+        if (syncResults.errors && syncResults.errors.length > 0) {
+          addLog(`⚠️ Erros encontrados: ${syncResults.errors.length}`);
+          syncResults.errors.forEach((error: string, index: number) => {
+            addLog(`  ${index + 1}. ${error}`);
           });
         } else {
           addLog(`✅ Nenhum erro encontrado - sincronização perfeita!`);
         }
 
-        addLog(`⏱️ Tempo de execução: ${data.execution_time_ms || 0}ms`);
         addLog(`🎯 RESULTADO: Supabase agora é um espelho perfeito da VPS`);
         
         setResult({
           success: true,
           data: {
             syncId: data.syncId || 'global-sync',
-            syncedCount: (results.added || 0) + (results.updated || 0),
-            createdCount: results.added || 0,
-            updatedCount: results.updated || 0,
-            errorCount: results.errors?.length || 0,
-            vpsInstancesCount: summary.vps_instances || 0,
-            supabaseInstancesCount: summary.supabase_instances || 0,
+            syncedCount: (syncResults.new_instances || 0) + (syncResults.updated_instances || 0),
+            createdCount: syncResults.new_instances || 0,
+            updatedCount: syncResults.updated_instances || 0,
+            errorCount: syncResults.errors?.length || 0,
+            vpsInstancesCount: syncResults.vps_instances || 0,
+            supabaseInstancesCount: syncResults.db_instances || 0,
             syncLog: [
-              `Adicionadas: ${results.added}`, 
-              `Atualizadas: ${results.updated}`, 
-              `Preservadas: ${results.preserved_links}`,
-              `Total VPS: ${summary.vps_instances}`
+              `Adicionadas: ${syncResults.new_instances}`, 
+              `Atualizadas: ${syncResults.updated_instances}`, 
+              `Total VPS: ${syncResults.vps_instances}`
             ],
-            message: `Sincronização global completa! ${results.added || 0} novas instâncias, ${results.updated || 0} atualizadas`
+            message: `Sincronização global completa! ${syncResults.new_instances || 0} novas instâncias, ${syncResults.updated_instances || 0} atualizadas`
           }
         });
 
-        const successMessage = results.added > 0 
-          ? `Sincronização GLOBAL concluída! ${results.added} novas instâncias, ${results.updated} atualizadas`
-          : `Sincronização GLOBAL concluída! ${results.updated || 0} instâncias atualizadas`;
+        const successMessage = syncResults.new_instances > 0 
+          ? `Sincronização GLOBAL concluída! ${syncResults.new_instances} novas instâncias, ${syncResults.updated_instances} atualizadas`
+          : `Sincronização GLOBAL concluída! ${syncResults.updated_instances || 0} instâncias atualizadas`;
         
         toast.success(successMessage);
       } else {
@@ -109,8 +106,8 @@ export const useSyncOperations = (addLog: (message: string) => void) => {
 
   return {
     isRunning,
-    isStatusSync: false, // Removidas as operações que não funcionam
-    isOrphanSync: false, // Removidas as operações que não funcionam
+    isStatusSync: false,
+    isOrphanSync: false,
     result,
     executeGlobalSync,
     executeStatusSync: () => {
