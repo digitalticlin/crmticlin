@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Rocket, CheckCircle, AlertCircle, Loader2, Server, Code, Zap } from "lucide-react";
+import { QRBase64FixImplementation } from "./QRBase64FixImplementation";
 
 export const CompleteServerImplementation = () => {
   const [isImplementing, setIsImplementing] = useState(false);
@@ -46,6 +47,9 @@ export const CompleteServerImplementation = () => {
 
   return (
     <div className="space-y-6">
+      {/* Correção QR Base64 - NOVO */}
+      <QRBase64FixImplementation />
+
       {/* Card de Implementação */}
       <Card className="border-blue-200 bg-blue-50">
         <CardHeader>
