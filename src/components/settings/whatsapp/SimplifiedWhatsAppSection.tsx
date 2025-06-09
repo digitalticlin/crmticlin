@@ -7,9 +7,6 @@ import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstance
 import { SimplifiedConnectButton } from "./SimplifiedConnectButton";
 import { WhatsAppInstanceGrid } from "./WhatsAppInstanceGrid";
 import { AutoQRModal } from "./AutoQRModal";
-import { VPSDiagnosticButton } from "./VPSDiagnosticButton";
-import { VPSNetworkDiagnosticPanel } from "./VPSNetworkDiagnosticPanel";
-import { VPSFirewallCorrector } from "./VPSFirewallCorrector";
 
 export const SimplifiedWhatsAppSection = () => {
   const { user } = useAuth();
@@ -62,58 +59,6 @@ export const SimplifiedWhatsAppSection = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header simplificado */}
-      <Card className="border-green-200 bg-green-50/30 backdrop-blur-sm">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <MessageSquare className="h-6 w-6 text-green-600" />
-            <CardTitle className="text-green-800">WhatsApp Web</CardTitle>
-          </div>
-          <p className="text-sm text-green-700">
-            Gerencie suas conexões WhatsApp para automação de mensagens
-          </p>
-        </CardHeader>
-      </Card>
-
-      {/* NOVO: Correção Automática de Firewall - SOLUÇÃO COMPLETA */}
-      <Card className="border-red-200 bg-red-50/30 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-red-800 text-sm">🔥 CORREÇÃO AUTOMÁTICA: Firewall VPS</CardTitle>
-          <p className="text-xs text-red-700">
-            <strong>SOLUÇÃO COMPLETA:</strong> Detecta IP atual, identifica ranges em falta e gera solicitação automática para Hostinger
-          </p>
-        </CardHeader>
-        <CardContent>
-          <VPSFirewallCorrector />
-        </CardContent>
-      </Card>
-
-      {/* NOVO: Diagnóstico de Rede Profundo - FERRAMENTA PRINCIPAL */}
-      <Card className="border-orange-200 bg-orange-50/30 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-orange-800 text-sm">🔬 Diagnóstico Profundo de Rede</CardTitle>
-          <p className="text-xs text-orange-700">
-            Análise detalhada da conectividade Edge Function → VPS para identificar bloqueios
-          </p>
-        </CardHeader>
-        <CardContent>
-          <VPSNetworkDiagnosticPanel />
-        </CardContent>
-      </Card>
-
-      {/* Diagnóstico VPS - Ferramenta Técnica */}
-      <Card className="border-blue-200 bg-blue-50/30 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-blue-800 text-sm">🔧 Diagnóstico VPS</CardTitle>
-          <p className="text-xs text-blue-700">
-            Ferramenta técnica para diagnosticar problemas de conectividade
-          </p>
-        </CardHeader>
-        <CardContent>
-          <VPSDiagnosticButton />
-        </CardContent>
-      </Card>
-
       {/* Content principal */}
       {!hasInstances ? (
         // Card de Conectar modernizado quando não há instâncias
