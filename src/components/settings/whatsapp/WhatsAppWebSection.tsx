@@ -2,11 +2,12 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageSquare, Zap, Settings, TestTube } from "lucide-react";
+import { MessageSquare, Zap, Settings, TestTube, Rocket } from "lucide-react";
 import { useWhatsAppDatabase } from "@/hooks/whatsapp/useWhatsAppDatabase";
 import { WhatsAppWebInstancesGrid } from "./WhatsAppWebInstancesGrid";
 import { ImprovedConnectWhatsAppButton } from "./ImprovedConnectWhatsAppButton";
 import { FinalConnectionTest } from "./FinalConnectionTest";
+import { CompleteServerImplementation } from "./CompleteServerImplementation";
 
 export const WhatsAppWebSection = () => {
   const { instances, isLoading, getActiveInstance } = useWhatsAppDatabase();
@@ -87,74 +88,78 @@ export const WhatsAppWebSection = () => {
       </Card>
 
       {/* Main Content */}
-      {!hasInstances ? (
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center space-y-4">
-              <div className="p-4 rounded-lg bg-green-100/50 dark:bg-green-900/30 inline-block">
-                <MessageSquare className="h-12 w-12 text-green-600 mx-auto" />
-              </div>
-              <div>
-                <h3 className="text-lg font-medium mb-2">Conectar WhatsApp Web.js</h3>
-                <p className="text-muted-foreground mb-4 text-sm">
-                  Crie sua primeira instância WhatsApp para começar a usar o sistema
-                </p>
-              </div>
-              <ImprovedConnectWhatsAppButton 
-                onConnect={handleConnect}
-                isConnecting={isConnecting}
-              />
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Tabs defaultValue="instances" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="instances" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Gerenciar
-            </TabsTrigger>
-            <TabsTrigger value="create" className="flex items-center gap-2">
-              <Zap className="h-4 w-4" />
-              Nova Instância
-            </TabsTrigger>
-            <TabsTrigger value="test" className="flex items-center gap-2">
-              <TestTube className="h-4 w-4" />
-              Teste Final
-            </TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue="implement" className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="implement" className="flex items-center gap-2">
+            <Rocket className="h-4 w-4" />
+            Implementar
+          </TabsTrigger>
+          <TabsTrigger value="instances" className="flex items-center gap-2">
+            <Settings className="h-4 w-4" />
+            Gerenciar
+          </TabsTrigger>
+          <TabsTrigger value="create" className="flex items-center gap-2">
+            <Zap className="h-4 w-4" />
+            Nova Instância
+          </TabsTrigger>
+          <TabsTrigger value="test" className="flex items-center gap-2">
+            <TestTube className="h-4 w-4" />
+            Teste Final
+          </TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="instances" className="space-y-4">
+        <TabsContent value="implement" className="space-y-4">
+          <CompleteServerImplementation />
+        </TabsContent>
+
+        <TabsContent value="instances" className="space-y-4">
+          {!hasInstances ? (
+            <Card>
+              <CardContent className="p-6">
+                <div className="text-center space-y-4">
+                  <div className="p-4 rounded-lg bg-green-100/50 dark:bg-green-900/30 inline-block">
+                    <MessageSquare className="h-12 w-12 text-green-600 mx-auto" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">Nenhuma Instância Encontrada</h3>
+                    <p className="text-muted-foreground mb-4 text-sm">
+                      Implemente o servidor completo primeiro, depois crie sua primeira instância
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
             <WhatsAppWebInstancesGrid 
               instances={webInstances}
               onRefreshQR={handleRefreshQR}
               onDelete={handleDelete}
               onShowQR={handleShowQR}
             />
-          </TabsContent>
+          )}
+        </TabsContent>
 
-          <TabsContent value="create" className="space-y-4">
-            <Card>
-              <CardContent className="p-6">
-                <div className="text-center space-y-4">
-                  <h3 className="text-lg font-medium">Criar Nova Instância</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Adicione uma nova conexão WhatsApp ao sistema
-                  </p>
-                  <ImprovedConnectWhatsAppButton 
-                    onConnect={handleConnect}
-                    isConnecting={isConnecting}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+        <TabsContent value="create" className="space-y-4">
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-center space-y-4">
+                <h3 className="text-lg font-medium">Criar Nova Instância</h3>
+                <p className="text-muted-foreground text-sm">
+                  Adicione uma nova conexão WhatsApp ao sistema
+                </p>
+                <ImprovedConnectWhatsAppButton 
+                  onConnect={handleConnect}
+                  isConnecting={isConnecting}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          <TabsContent value="test" className="space-y-4">
-            <FinalConnectionTest />
-          </TabsContent>
-        </Tabs>
-      )}
+        <TabsContent value="test" className="space-y-4">
+          <FinalConnectionTest />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
