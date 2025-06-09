@@ -7,7 +7,6 @@ import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstance
 import { SimplifiedConnectButton } from "./SimplifiedConnectButton";
 import { WhatsAppInstanceGrid } from "./WhatsAppInstanceGrid";
 import { AutoQRModal } from "./AutoQRModal";
-import { VPSAdvancedDashboard } from "./VPSAdvancedDashboard";
 
 export const SimplifiedWhatsAppSection = () => {
   const { user } = useAuth();
@@ -27,11 +26,11 @@ export const SimplifiedWhatsAppSection = () => {
 
   const handleConnect = async () => {
     if (!user?.email) {
-      console.error('[Simplified Section] ❌ CORREÇÃO DEEP: Email do usuário não disponível');
+      console.error('[Simplified Section] ❌ Email do usuário não disponível');
       return;
     }
 
-    console.log('[Simplified Section] 🚀 CORREÇÃO DEEP: Iniciando conexão para:', user.email);
+    console.log('[Simplified Section] 🚀 Iniciando conexão para:', user.email);
     await createInstance(user.email);
   };
 
@@ -60,9 +59,6 @@ export const SimplifiedWhatsAppSection = () => {
 
   return (
     <div className="space-y-6">
-      {/* Dashboard Avançado VPS - Nova Seção Principal */}
-      <VPSAdvancedDashboard />
-
       {/* Content principal das instâncias */}
       {!hasInstances ? (
         // Card de Conectar modernizado quando não há instâncias
