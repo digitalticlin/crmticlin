@@ -252,4 +252,3 @@ echo "📋 Próximos passos:"
 echo "1. Verifique se o servidor está respondendo"
 echo "2. Teste criação de instância via interface"
 echo "3. Monitore: pm2 logs whatsapp-main-3002"
-

@@ -29,4 +29,3 @@ pm2 logs whatsapp-main-3002 --lines 5
 
 echo ""
 echo "✅ Teste concluído!"
-
