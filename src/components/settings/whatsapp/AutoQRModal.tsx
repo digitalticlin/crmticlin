@@ -23,6 +23,8 @@ interface AutoQRModalProps {
   qrCode: string | null;
   instanceName: string | null;
   isWaiting: boolean;
+  currentAttempt: number;
+  maxAttempts: number;
   error: string | null;
   onRetry: () => void;
 }
@@ -33,6 +35,8 @@ export const AutoQRModal = ({
   qrCode,
   instanceName,
   isWaiting,
+  currentAttempt,
+  maxAttempts,
   error,
   onRetry
 }: AutoQRModalProps) => {
@@ -48,6 +52,11 @@ export const AutoQRModal = ({
             <p className="text-sm text-blue-700">
               Aguarde enquanto o QR Code é gerado automaticamente...
             </p>
+            {currentAttempt > 0 && (
+              <p className="text-xs text-blue-600 mt-2">
+                Tentativa {currentAttempt} de {maxAttempts}
+              </p>
+            )}
             <div className="mt-4 flex items-center justify-center gap-2">
               <div className="h-2 w-2 bg-blue-400 rounded-full animate-bounce"></div>
               <div className="h-2 w-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
