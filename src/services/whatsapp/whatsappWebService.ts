@@ -8,6 +8,8 @@ interface WhatsAppServiceResponse<T = any> {
   error?: string;
   instance?: WhatsAppWebInstance;
   qrCode?: string;
+  waiting?: boolean;
+  messageId?: string;
 }
 
 export class WhatsAppWebService {
@@ -198,6 +200,189 @@ export class WhatsAppWebService {
 
     } catch (error: any) {
       console.error(`[WhatsApp Web Service] ❌ Erro ao gerar QR via proxy:`, error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  // NOVOS MÉTODOS ADICIONADOS PARA COMPATIBILIDADE:
+
+  static async checkServerHealth(): Promise<WhatsAppServiceResponse> {
+    try {
+      console.log(`[WhatsApp Web Service] 🩺 CORREÇÃO VIA PROXY: Verificando saúde do servidor`);
+
+      // CORREÇÃO: Usar hostinger_proxy para verificar saúde
+      const { data, error } = await supabase.functions.invoke('hostinger_proxy', {
+        body: {
+          action: 'check_server_health'
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Erro na chamada via proxy');
+      }
+
+      if (!data || !data.success) {
+        throw new Error(data?.error || 'Servidor não está saudável');
+      }
+
+      return {
+        success: true,
+        data: {
+          status: data.status || 'online',
+          version: data.version || '1.0.0',
+          server: data.server || 'WhatsApp via SSH Proxy',
+          uptime: data.uptime || 'N/A',
+          permanentMode: data.permanentMode || true,
+          activeInstances: data.activeInstances || 0
+        }
+      };
+
+    } catch (error: any) {
+      console.error(`[WhatsApp Web Service] ❌ Erro ao verificar saúde via proxy:`, error);
+      return {
+        success: false,
+        error: error.message,
+        data: { status: 'offline' }
+      };
+    }
+  }
+
+  static async getQRCode(instanceId: string): Promise<WhatsAppServiceResponse> {
+    try {
+      console.log(`[WhatsApp Web Service] 🔍 CORREÇÃO VIA PROXY: Obtendo QR Code para: ${instanceId}`);
+
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      // CORREÇÃO: Usar hostinger_proxy para obter QR
+      const { data, error } = await supabase.functions.invoke('hostinger_proxy', {
+        body: {
+          action: 'get_qr_code',
+          instanceId: instanceId,
+          userId: user.id
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Erro na chamada via proxy');
+      }
+
+      if (!data || !data.success) {
+        if (data?.waiting) {
+          return {
+            success: true,
+            waiting: true,
+            qrCode: null
+          };
+        }
+        throw new Error(data?.error || 'Erro ao obter QR via proxy');
+      }
+
+      return {
+        success: true,
+        qrCode: data.qrCode,
+        waiting: false
+      };
+
+    } catch (error: any) {
+      console.error(`[WhatsApp Web Service] ❌ Erro ao obter QR via proxy:`, error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  static async sendMessage(instanceId: string, phone: string, message: string): Promise<WhatsAppServiceResponse> {
+    try {
+      console.log(`[WhatsApp Web Service] 📤 CORREÇÃO VIA PROXY: Enviando mensagem:`, { instanceId, phone, messageLength: message.length });
+
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      // CORREÇÃO: Usar hostinger_proxy para enviar mensagem
+      const { data, error } = await supabase.functions.invoke('hostinger_proxy', {
+        body: {
+          action: 'send_message',
+          instanceId: instanceId,
+          phone: phone.replace(/\D/g, ''),
+          message: message,
+          userId: user.id
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Erro na chamada via proxy');
+      }
+
+      if (!data || !data.success) {
+        throw new Error(data?.error || 'Erro ao enviar mensagem via proxy');
+      }
+
+      return {
+        success: true,
+        messageId: data.messageId || `msg_${Date.now()}`
+      };
+
+    } catch (error: any) {
+      console.error(`[WhatsApp Web Service] ❌ Erro ao enviar mensagem via proxy:`, error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  static async syncInstances(): Promise<WhatsAppServiceResponse> {
+    try {
+      console.log(`[WhatsApp Web Service] 🔄 CORREÇÃO VIA PROXY: Sincronizando instâncias`);
+
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      // CORREÇÃO: Usar hostinger_proxy para sincronizar
+      const { data, error } = await supabase.functions.invoke('hostinger_proxy', {
+        body: {
+          action: 'sync_instances',
+          userId: user.id
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Erro na chamada via proxy');
+      }
+
+      if (!data || !data.success) {
+        throw new Error(data?.error || 'Erro ao sincronizar via proxy');
+      }
+
+      return {
+        success: true,
+        data: {
+          summary: {
+            updated: data.updated || 0,
+            preserved: data.preserved || 0,
+            adopted: data.adopted || 0,
+            errors: data.errors || 0
+          },
+          instances: data.instances || []
+        }
+      };
+
+    } catch (error: any) {
+      console.error(`[WhatsApp Web Service] ❌ Erro ao sincronizar via proxy:`, error);
       return {
         success: false,
         error: error.message
