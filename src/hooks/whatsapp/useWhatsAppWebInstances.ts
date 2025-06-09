@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +5,7 @@ import { WhatsAppWebInstance } from "@/types/whatsapp";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
 import { useAutoQRModal } from "./useAutoQRModal";
 import { AsyncStatusService } from "@/services/whatsapp/asyncStatusService";
+import { useIntelligentNaming } from "./useIntelligentNaming";
 
 export const useWhatsAppWebInstances = () => {
   const [instances, setInstances] = useState<WhatsAppWebInstance[]>([]);
@@ -15,6 +15,9 @@ export const useWhatsAppWebInstances = () => {
 
   // Sistema de QR automático
   const { modalState, openQRModal, closeModal, retryQRCode } = useAutoQRModal();
+  
+  // Hook de nomeação inteligente
+  const { generateIntelligentInstanceName } = useIntelligentNaming();
 
   // Buscar instâncias
   const fetchInstances = async (): Promise<WhatsAppWebInstance[]> => {
@@ -43,20 +46,17 @@ export const useWhatsAppWebInstances = () => {
     }
   };
 
-  // Gerar nome inteligente da instância
-  const generateIntelligentInstanceName = async (userEmail: string): Promise<string> => {
-    const timestamp = Date.now();
-    const baseName = userEmail.split('@')[0];
-    return `whatsapp_${baseName}_${timestamp}`;
-  };
-
-  // Criar nova instância
-  const createInstance = async (instanceName: string): Promise<{ success: boolean; instance?: WhatsAppWebInstance; error?: string }> => {
+  // Criar nova instância com nome sequencial
+  const createInstance = async (userEmail: string): Promise<{ success: boolean; instance?: WhatsAppWebInstance; error?: string }> => {
     try {
       setIsConnecting(true);
-      console.log('[Instances Hook] 🚀 Criando instância:', instanceName);
+      console.log('[Instances Hook] 🚀 Criando instância com nome sequencial...');
 
-      const result = await WhatsAppWebService.createInstance(instanceName);
+      // Usar hook de nomeação inteligente para gerar nome sequencial
+      const intelligentName = await generateIntelligentInstanceName(userEmail);
+      console.log('[Instances Hook] 🎯 Nome gerado:', intelligentName);
+
+      const result = await WhatsAppWebService.createInstance(intelligentName);
 
       if (!result.success) {
         throw new Error(result.error || 'Erro ao criar instância');
@@ -73,7 +73,7 @@ export const useWhatsAppWebInstances = () => {
         console.log('[Instances Hook] 📱 Abrindo modal automático...');
         openQRModal(newInstance.id, newInstance.instance_name);
         
-        toast.success(`Instância "${instanceName}" criada! Aguarde o QR Code...`);
+        toast.success(`Instância "${intelligentName}" criada! Aguarde o QR Code...`);
       } else {
         toast.warning('Instância criada, mas QR Code não disponível imediatamente');
       }
@@ -193,6 +193,8 @@ export const useWhatsAppWebInstances = () => {
             if (newStatus !== oldStatus) {
               if (newStatus === 'connected') {
                 toast.success(`${payload.new.instance_name} conectado!`);
+                // Fechar modal quando conectar
+                closeModal();
               } else if (newStatus === 'disconnected') {
                 toast.warning(`${payload.new.instance_name} desconectado`);
               }
@@ -205,7 +207,7 @@ export const useWhatsAppWebInstances = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [closeModal]);
 
   // Carregar instâncias na inicialização
   useEffect(() => {
@@ -229,7 +231,6 @@ export const useWhatsAppWebInstances = () => {
     refreshQRCode,
     refetch: fetchInstances,
     fetchInstances,
-    generateIntelligentInstanceName,
     syncPendingInstances,
     
     // Modal controls
