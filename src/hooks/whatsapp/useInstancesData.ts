@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { supabase } from "@/integrations/supabase/client";
 import { WhatsAppWebInstance } from '@/types/whatsapp';
 
 export const useInstancesData = () => {

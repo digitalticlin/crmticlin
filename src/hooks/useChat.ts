@@ -23,12 +23,12 @@ export function useChat() {
     selectedContact,
     setSelectedContact,
     messages,
-    sendMessage: sendMessageWhatsApp, // Renamed to avoid conflict in useChatActions
+    sendMessage: sendMessageWhatsApp,
     fetchContacts,
     isLoadingContacts: isLoadingWhatsAppContacts,
     isLoadingMessages,
     fetchMessages,
-    activeInstance // CORRIGIDO: Obtendo activeInstance
+    activeInstance
   } = useWhatsAppChat(userEmail);
 
   // Contact Notes Management
@@ -42,9 +42,9 @@ export function useChat() {
   useRealtimeLeads({
     selectedContact,
     fetchContacts,
-    fetchMessages,
+    fetchMessages: () => fetchMessages(),
     receiveNewLead,
-    activeInstanceId: activeInstance?.id || null // CORRIGIDO: Passando ID da instância ativa
+    activeInstanceId: activeInstance?.id || null
   });
 
   // Chat Actions (Send Message, Manual Refresh)
@@ -54,9 +54,9 @@ export function useChat() {
     isManualLoading,
   } = useChatActions({
     selectedContact,
-    sendMessageWhatsApp, // Pass the renamed function
+    sendMessageWhatsApp: (text: string) => sendMessageWhatsApp(text),
     fetchContacts,
-    fetchMessages,
+    fetchMessages: () => fetchMessages(),
   });
 
   // The setContacts was a no-op, can be kept for API consistency or removed if unused
@@ -74,7 +74,7 @@ export function useChat() {
     setContactNotes,
     updateContactNotes: handleUpdateContactNotes,
     sendMessage: handleSendMessage,
-    isLoadingContacts: isLoadingWhatsAppContacts || isManualLoading, // Combined loading state
+    isLoadingContacts: isLoadingWhatsAppContacts || isManualLoading,
     isLoadingMessages,
     handleManualRefresh,
   };

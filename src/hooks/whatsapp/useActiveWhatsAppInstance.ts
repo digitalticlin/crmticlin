@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
-import { useWhatsAppWebInstances, WhatsAppWebInstance } from './useWhatsAppWebInstances';
+import { useWhatsAppWebInstances } from './useWhatsAppWebInstances';
+import { WhatsAppWebInstance } from '@/types/whatsapp';
 
 export const useActiveWhatsAppInstance = () => {
   const [activeInstance, setActiveInstance] = useState<WhatsAppWebInstance | null>(null);

@@ -14,6 +14,13 @@ export const WhatsAppChatTabs = () => {
     isSending
   } = useWhatsAppChatContext();
 
+  // Wrapper to handle the sendMessage signature difference
+  const handleSendMessage = (message: string) => {
+    if (selectedContact) {
+      sendMessage(message);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col relative z-10">
       <WhatsAppChatLayout
@@ -21,7 +28,7 @@ export const WhatsAppChatTabs = () => {
         selectedContact={selectedContact}
         onSelectContact={setSelectedContact}
         messages={messages}
-        onSendMessage={sendMessage}
+        onSendMessage={handleSendMessage}
         isLoadingContacts={isLoadingContacts}
         isLoadingMessages={isLoadingMessages}
         isSending={isSending}
