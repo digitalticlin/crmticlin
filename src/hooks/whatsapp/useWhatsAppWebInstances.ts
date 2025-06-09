@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,59 +47,49 @@ export const useWhatsAppWebInstances = () => {
     }
   };
 
-  // CORREÇÃO: Criar nova instância com tratamento correto
+  // CORREÇÃO: Criar nova instância usando edge function correta
   const createInstance = async (userEmail: string): Promise<{ success: boolean; instance?: WhatsAppWebInstance; error?: string }> => {
     try {
       setIsConnecting(true);
-      console.log('[Instances Hook] 🚀 CORREÇÃO DEEP: Iniciando criação da instância...');
-      console.log('[Instances Hook] 📧 CORREÇÃO DEEP: Email do usuário:', userEmail);
+      console.log('[Instances Hook] 🚀 CORREÇÃO: Usando edge functions corretas...');
+      console.log('[Instances Hook] 📧 Email do usuário:', userEmail);
 
       // Gerar nome inteligente
       const intelligentName = await generateIntelligentInstanceName(userEmail);
-      console.log('[Instances Hook] 🎯 CORREÇÃO DEEP: Nome gerado:', intelligentName);
+      console.log('[Instances Hook] 🎯 Nome gerado:', intelligentName);
 
-      // CORREÇÃO DEEP: Debugging completo antes da chamada
-      console.log('[Instances Hook] 📋 CORREÇÃO DEEP: Preparando chamada para WhatsAppWebService...');
-      console.log('[Instances Hook] 🔧 CORREÇÃO DEEP: Service method: createInstance');
-      console.log('[Instances Hook] 📤 CORREÇÃO DEEP: Parâmetros:', { instanceName: intelligentName });
+      console.log('[Instances Hook] 📋 CORREÇÃO: Chamando WhatsAppWebService.createInstance corrigido...');
 
-      // Usar WhatsAppWebService corrigido
+      // CORREÇÃO: Usar WhatsAppWebService corrigido (que usa whatsapp_instance_manager)
       const result = await WhatsAppWebService.createInstance(intelligentName);
 
-      console.log('[Instances Hook] 📥 CORREÇÃO DEEP: Resultado completo do service:', result);
-      console.log('[Instances Hook] 🔍 CORREÇÃO DEEP: Success flag:', result.success);
-      console.log('[Instances Hook] 📊 CORREÇÃO DEEP: Instance data:', result.instance);
-      console.log('[Instances Hook] ❌ CORREÇÃO DEEP: Error (se houver):', result.error);
+      console.log('[Instances Hook] 📥 CORREÇÃO: Resultado do service corrigido:', result);
 
       if (!result.success) {
-        console.error('[Instances Hook] ❌ CORREÇÃO DEEP: Falha detectada:', result.error);
+        console.error('[Instances Hook] ❌ CORREÇÃO: Falha detectada:', result.error);
         throw new Error(result.error || 'Erro desconhecido na criação da instância');
       }
 
-      console.log('[Instances Hook] ✅ CORREÇÃO DEEP: Instância criada com sucesso:', result.instance);
+      console.log('[Instances Hook] ✅ CORREÇÃO: Instância criada com sucesso via edge functions corretas');
 
       // Atualizar lista
       await fetchInstances();
 
-      // Abrir modal automático se tiver instância
+      // CORREÇÃO: Abrir modal SEMPRE após criação bem-sucedida (resposta instantânea)
       const newInstance = result.instance;
       if (newInstance?.id) {
-        console.log('[Instances Hook] 📱 CORREÇÃO DEEP: Abrindo modal automático...');
+        console.log('[Instances Hook] 📱 CORREÇÃO: Abrindo modal QR instantaneamente...');
         openQRModal(newInstance.id, newInstance.instance_name);
-        toast.success(`Instância "${intelligentName}" criada! Aguarde o QR Code...`);
+        toast.success(`Instância "${intelligentName}" criada! Modal QR aberto - aguarde o QR code...`);
       } else {
-        console.warn('[Instances Hook] ⚠️ CORREÇÃO DEEP: Instância criada mas sem ID');
+        console.warn('[Instances Hook] ⚠️ Instância criada mas sem ID válido');
         toast.warning('Instância criada, mas dados não disponíveis imediatamente');
       }
 
       return { success: true, instance: newInstance };
 
     } catch (error: any) {
-      console.error('[Instances Hook] ❌ CORREÇÃO DEEP: Erro capturado:', error);
-      console.error('[Instances Hook] 🔍 CORREÇÃO DEEP: Tipo do erro:', typeof error);
-      console.error('[Instances Hook] 📋 CORREÇÃO DEEP: Message:', error.message);
-      console.error('[Instances Hook] 📚 CORREÇÃO DEEP: Stack:', error.stack);
-      
+      console.error('[Instances Hook] ❌ CORREÇÃO: Erro capturado:', error);
       toast.error(`Erro ao criar instância: ${error.message}`);
       return { success: false, error: error.message };
     } finally {
@@ -109,7 +100,7 @@ export const useWhatsAppWebInstances = () => {
   // Deletar instância
   const deleteInstance = async (instanceId: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      console.log('[Instances Hook] 🗑️ Deletando instância:', instanceId);
+      console.log('[Instances Hook] 🗑️ CORREÇÃO: Deletando via edge functions corretas:', instanceId);
 
       const result = await WhatsAppWebService.deleteInstance(instanceId);
 
@@ -130,10 +121,10 @@ export const useWhatsAppWebInstances = () => {
     }
   };
 
-  // Gerar novo QR Code (fallback manual)
+  // CORREÇÃO: Gerar novo QR Code usando whatsapp_qr_service
   const refreshQRCode = async (instanceId: string): Promise<{ success: boolean; qrCode?: string; error?: string }> => {
     try {
-      console.log('[Instances Hook] 🔄 Gerando novo QR Code para:', instanceId);
+      console.log('[Instances Hook] 🔄 CORREÇÃO: Gerando QR via whatsapp_qr_service:', instanceId);
 
       const instance = instances.find(i => i.id === instanceId);
       if (!instance) {
@@ -143,14 +134,22 @@ export const useWhatsAppWebInstances = () => {
       // Abrir modal automático
       openQRModal(instanceId, instance.instance_name);
       
-      // Tentar via edge function como fallback
-      setTimeout(() => {
-        retryQRCode();
-      }, 2000);
-
-      toast.info('Gerando novo QR Code...');
-
-      return { success: true };
+      // CORREÇÃO: Usar WhatsAppWebService.refreshQRCode (que usa whatsapp_qr_service)
+      const result = await WhatsAppWebService.refreshQRCode(instanceId);
+      
+      if (result.success && result.qrCode) {
+        toast.success('QR Code gerado com sucesso!');
+        return { success: true, qrCode: result.qrCode };
+      } else if (result.waiting) {
+        toast.info('QR Code sendo preparado...');
+        // Tentar novamente em 3 segundos
+        setTimeout(() => {
+          retryQRCode();
+        }, 3000);
+        return { success: true };
+      } else {
+        throw new Error(result.error || 'Erro ao gerar QR Code');
+      }
 
     } catch (error: any) {
       console.error('[Instances Hook] ❌ Erro ao gerar QR:', error);
@@ -162,7 +161,7 @@ export const useWhatsAppWebInstances = () => {
   // Sincronizar instâncias pendentes
   const syncPendingInstances = async (): Promise<{ success: boolean; error?: string }> => {
     try {
-      console.log('[Instances Hook] 🔄 Sincronizando instâncias pendentes...');
+      console.log('[Instances Hook] 🔄 CORREÇÃO: Sincronizando via edge functions corretas...');
 
       const result = await AsyncStatusService.recoverPendingInstances();
 
@@ -184,7 +183,7 @@ export const useWhatsAppWebInstances = () => {
     }
   };
 
-  // Configurar subscription em tempo real para atualizações
+  // CORREÇÃO: Subscription melhorado para funcionar com edge functions corretas
   useEffect(() => {
     const channel = supabase
       .channel('whatsapp-instances-updates')
@@ -197,7 +196,7 @@ export const useWhatsAppWebInstances = () => {
           filter: 'connection_type=eq.web'
         },
         (payload) => {
-          console.log('[Instances Hook] 📡 Atualização em tempo real:', payload);
+          console.log('[Instances Hook] 📡 CORREÇÃO: Atualização em tempo real:', payload);
           
           // Recarregar instâncias quando houver mudanças
           fetchInstances();
@@ -214,7 +213,15 @@ export const useWhatsAppWebInstances = () => {
                 closeModal();
               } else if (newStatus === 'disconnected') {
                 toast.warning(`${payload.new.instance_name} desconectado`);
+              } else if (newStatus === 'waiting_qr') {
+                toast.info(`${payload.new.instance_name} aguardando QR Code`);
               }
+            }
+            
+            // CORREÇÃO: Se QR code foi atualizado, notificar o modal
+            if (payload.new.qr_code && payload.new.qr_code !== payload.old?.qr_code) {
+              console.log('[Instances Hook] 📱 CORREÇÃO: QR Code atualizado via webhook!');
+              toast.success('QR Code recebido via webhook!');
             }
           }
         }

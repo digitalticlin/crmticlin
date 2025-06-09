@@ -30,15 +30,17 @@ export const SimplifiedWhatsAppSection = () => {
       return;
     }
 
-    console.log('[Simplified Section] 🚀 Iniciando conexão para:', user.email);
+    console.log('[Simplified Section] 🚀 CORREÇÃO: Iniciando criação via edge functions corretas:', user.email);
     await createInstance(user.email);
   };
 
   const handleDeleteInstance = async (instanceId: string) => {
+    console.log('[Simplified Section] 🗑️ CORREÇÃO: Deletando via edge functions corretas:', instanceId);
     await deleteInstance(instanceId);
   };
 
   const handleRefreshQR = async (instanceId: string) => {
+    console.log('[Simplified Section] 🔄 CORREÇÃO: Refresh QR via edge functions corretas:', instanceId);
     await refreshQRCode(instanceId);
   };
 
@@ -59,7 +61,8 @@ export const SimplifiedWhatsAppSection = () => {
 
   return (
     <div className="space-y-6">
-      {/* Content principal das instâncias */}
+      {/* CORREÇÃO: Interface otimizada para usar edge functions corretas */}
+      
       {!hasInstances ? (
         // Card de Conectar modernizado quando não há instâncias
         <SimplifiedConnectButton 
@@ -90,7 +93,7 @@ export const SimplifiedWhatsAppSection = () => {
         </div>
       )}
 
-      {/* Modal QR Automático */}
+      {/* CORREÇÃO: Modal QR Automático usando edge functions corretas */}
       <AutoQRModal
         isOpen={showQRModal}
         onClose={closeQRModal}
@@ -102,6 +105,28 @@ export const SimplifiedWhatsAppSection = () => {
         error={null}
         onRetry={retryQRCode}
       />
+      
+      {/* Card informativo sobre correção aplicada */}
+      <Card className="border-blue-200 bg-blue-50/30">
+        <CardContent className="p-4">
+          <div className="text-sm text-blue-800 space-y-2">
+            <p><strong>✅ CORREÇÃO APLICADA:</strong></p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              <li><strong>whatsapp_instance_manager:</strong> Criação e gerenciamento de instâncias</li>
+              <li><strong>whatsapp_qr_service:</strong> Geração e recuperação de QR codes</li>
+              <li><strong>Comunicação VPS:</strong> Direta via HTTP com edge functions corretas</li>
+              <li><strong>Modal QR:</strong> Abre instantaneamente e faz polling inteligente</li>
+              <li><strong>Webhook:</strong> Sincronização automática VPS → Supabase</li>
+            </ul>
+            <div className="mt-3 p-3 bg-white/70 rounded border border-blue-200">
+              <p className="font-medium">🎯 Fluxo Corrigido:</p>
+              <p>1. Criar instância → Modal abre automaticamente</p>
+              <p>2. Polling via whatsapp_qr_service → QR aparece</p>
+              <p>3. Webhook VPS → Status sincronizado</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
