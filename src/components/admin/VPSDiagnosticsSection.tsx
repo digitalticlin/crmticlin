@@ -1,60 +1,70 @@
 
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { VPSCleanupTool } from "../settings/whatsapp/VPSCleanupTool";
-import { VPSAutoCorrector } from "../settings/whatsapp/VPSAutoCorrector";
-import { VPSWebhookInvestigator } from "../settings/whatsapp/VPSWebhookInvestigator";
-import { AutoImportExecutor } from "../settings/whatsapp/AutoImportExecutor";
-import { Wrench, Trash2, Search, Download } from "lucide-react";
+import { VPSQuickDiagnostic } from "./vps/VPSQuickDiagnostic";
+import { VPSAdvancedDiagnostic } from "./vps/VPSAdvancedDiagnostic";
+import { VPSAutoFixPanel } from "./vps/VPSAutoFixPanel";
+import { AdvancedWebhookInstaller } from "./hostinger/AdvancedWebhookInstaller";
+import { QuickVPSCorrection } from "./hostinger/QuickVPSCorrection";
+import { 
+  Server, 
+  Wrench, 
+  Zap, 
+  TestTube, 
+  AlertTriangle
+} from "lucide-react";
 
 export const VPSDiagnosticsSection = () => {
-  const [activeTab, setActiveTab] = useState("cleanup");
-
   return (
     <div className="space-y-6">
+      {/* Quick VPS Correction - Novo componente prioritário */}
+      <QuickVPSCorrection />
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Wrench className="h-5 w-5" />
-            Diagnósticos e Correção VPS
+            <Server className="h-5 w-5" />
+            Diagnósticos e Correções VPS
           </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Ferramentas completas para diagnosticar e corrigir problemas na VPS WhatsApp
+          </p>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <Tabs defaultValue="quick" className="w-full">
             <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="cleanup" className="gap-2">
-                <Trash2 className="h-4 w-4" />
-                Limpeza
+              <TabsTrigger value="quick" className="gap-2">
+                <Zap className="h-4 w-4" />
+                Rápido
               </TabsTrigger>
-              <TabsTrigger value="corrector" className="gap-2">
+              <TabsTrigger value="advanced" className="gap-2">
+                <TestTube className="h-4 w-4" />
+                Avançado
+              </TabsTrigger>
+              <TabsTrigger value="autofix" className="gap-2">
                 <Wrench className="h-4 w-4" />
                 Correção
               </TabsTrigger>
-              <TabsTrigger value="investigator" className="gap-2">
-                <Search className="h-4 w-4" />
-                Investigação
-              </TabsTrigger>
-              <TabsTrigger value="import" className="gap-2">
-                <Download className="h-4 w-4" />
-                Importação
+              <TabsTrigger value="installer" className="gap-2">
+                <AlertTriangle className="h-4 w-4" />
+                Installer
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="cleanup" className="space-y-4">
-              <VPSCleanupTool />
+            <TabsContent value="quick" className="mt-6">
+              <VPSQuickDiagnostic />
             </TabsContent>
 
-            <TabsContent value="corrector" className="space-y-4">
-              <VPSAutoCorrector />
+            <TabsContent value="advanced" className="mt-6">
+              <VPSAdvancedDiagnostic />
             </TabsContent>
 
-            <TabsContent value="investigator" className="space-y-4">
-              <VPSWebhookInvestigator />
+            <TabsContent value="autofix" className="mt-6">
+              <VPSAutoFixPanel />
             </TabsContent>
 
-            <TabsContent value="import" className="space-y-4">
-              <AutoImportExecutor />
+            <TabsContent value="installer" className="mt-6">
+              <AdvancedWebhookInstaller />
             </TabsContent>
           </Tabs>
         </CardContent>
