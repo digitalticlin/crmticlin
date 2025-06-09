@@ -72,6 +72,12 @@ export const useWhatsAppWebInstances = () => {
     fetchInstances();
   }, [fetchInstances]);
 
+  const generateIntelligentInstanceName = useCallback(async (userEmail: string): Promise<string> => {
+    const timestamp = Date.now();
+    const emailPrefix = userEmail.split('@')[0].replace(/[^a-zA-Z0-9]/g, '');
+    return `whatsapp_${emailPrefix}_${timestamp}`;
+  }, []);
+
   const createInstance = useCallback(async (instanceName: string) => {
     setIsConnecting(true);
     setError(null);
@@ -119,15 +125,19 @@ export const useWhatsAppWebInstances = () => {
         });
         
         toast.success('Instância criada! Gerando QR Code...');
+        
+        return result; // RETORNAR O RESULTADO
       }
 
       // Atualizar lista de instâncias
       await fetchInstances();
+      return result;
 
     } catch (error: any) {
       console.error(`[Instances Hook] ❌ HÍBRIDO: Erro na criação:`, error);
       setError(error.message);
       toast.error(`Erro ao criar instância: ${error.message}`);
+      throw error;
     } finally {
       setIsConnecting(false);
     }
@@ -221,11 +231,13 @@ export const useWhatsAppWebInstances = () => {
     
     // Métodos
     refetch: fetchInstances,
+    fetchInstances, // MÉTODO ADICIONAL
     createInstance,
     deleteInstance,
     refreshQRCode,
     closeQRModal,
     retryQRCode,
-    syncPendingInstances
+    syncPendingInstances,
+    generateIntelligentInstanceName // MÉTODO ADICIONAL
   };
 };

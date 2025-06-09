@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, Shield, AlertTriangle, Activity, CheckCircle } from "lucide-react";
@@ -8,7 +9,7 @@ import { WhatsAppWebInstancesGrid } from "./WhatsAppWebInstancesGrid";
 import { ImprovedConnectWhatsAppButton } from "./ImprovedConnectWhatsAppButton";
 import { CleanupOrphanedInstancesButton } from "./CleanupOrphanedInstancesButton";
 import { OrphanInstanceManager } from "./OrphanInstanceManager";
-import { AutoQRModal } from "./AutoQRModal";
+import { OptimizedQRModal } from "./OptimizedQRModal";
 import { AsyncStatusIndicator } from "./AsyncStatusIndicator";
 import { VPSHealthService } from "@/services/whatsapp/vpsHealthService";
 import { WhatsAppCleanupService } from "@/services/whatsapp/cleanupService";
@@ -238,9 +239,15 @@ export const WhatsAppWebSettings = () => {
       <OptimizedQRModal
         isOpen={showQRModal}
         onClose={closeQRModal}
-        instanceId={currentInstanceId || ''}
+        instanceId={selectedInstanceName} // CORREÇÃO: usar selectedInstanceName temporariamente
         instanceName={selectedInstanceName}
         autoStartPolling={false} // Polling já foi iniciado pelo hook
+        qrCode={selectedQRCode}
+        isPolling={isPolling}
+        isWaiting={isWaiting}
+        currentAttempt={currentAttempt}
+        maxAttempts={maxAttempts}
+        onRetry={retryQRCode}
       />
     </div>
   );
