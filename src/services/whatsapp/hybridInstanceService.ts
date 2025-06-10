@@ -1,28 +1,20 @@
 
-
 import { supabase } from "@/integrations/supabase/client";
-
-// Configuração atualizada para FASE 2 - criação direta
-const VPS_CONFIG = {
-  baseUrl: 'http://31.97.24.222:3002',
-  authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
-  timeout: 30000 // 30s timeout para criação direta
-};
 
 interface HybridResponse {
   success: boolean;
   instance?: any;
   error?: string;
-  method?: 'direct_edge_function';
+  method?: 'edge_function_only';
   operationId?: string;
   intelligent_name?: string;
   user_email?: string;
 }
 
 export class HybridInstanceService {
-  // FASE 2: Usar APENAS a Edge Function com criação direta (sem health check)
+  // CORREÇÃO: Usar APENAS a Edge Function (sem fallback para VPS direto)
   static async createInstance(): Promise<HybridResponse> {
-    console.log('[Hybrid Service] 🚀 FASE 2: Criação DIRETA via Edge Function (sem health check)');
+    console.log('[Hybrid Service] 🚀 CORREÇÃO: Usando APENAS Edge Function (sem VPS direto)');
 
     // VALIDAÇÃO INICIAL
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -37,9 +29,9 @@ export class HybridInstanceService {
 
     console.log('[Hybrid Service] 👤 Usuário autenticado:', user.email);
 
-    // FASE 2: Usar Edge Function com sistema inteligente de nomes
+    // CORREÇÃO: Usar APENAS Edge Function (sem chamadas diretas ao VPS)
     try {
-      console.log('[Hybrid Service] 📡 FASE 2: Usando Edge Function com nome inteligente baseado em email...');
+      console.log('[Hybrid Service] 📡 CORREÇÃO: Chamando Edge Function whatsapp_instance_manager...');
       
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
@@ -48,41 +40,44 @@ export class HybridInstanceService {
         }
       });
 
+      console.log('[Hybrid Service] 📥 CORREÇÃO: Resposta da Edge Function:', {
+        success: data?.success,
+        hasInstance: !!(data?.instance),
+        error: data?.error || error?.message
+      });
+
       if (error) {
-        console.error('[Hybrid Service] ⚠️ Edge Function direta error:', error);
-        throw new Error(`Edge Function direta error: ${error.message}`);
+        console.error('[Hybrid Service] ❌ CORREÇÃO: Edge Function error:', error);
+        throw new Error(`Edge Function error: ${error.message}`);
       }
 
       if (data && data.success && data.instance) {
-        console.log('[Hybrid Service] ✅ FASE 2: Edge Function direta funcionou!');
+        console.log('[Hybrid Service] ✅ CORREÇÃO: Edge Function funcionou!');
         console.log('[Hybrid Service] 🎯 Nome inteligente gerado:', data.intelligent_name);
-        console.log('[Hybrid Service] 📊 Skip Health Check:', data.skip_health_check);
         console.log('[Hybrid Service] 🆔 Operation ID:', data.operationId);
         
         return {
           success: true,
           instance: data.instance,
-          method: 'direct_edge_function',
+          method: 'edge_function_only',
           operationId: data.operationId,
           intelligent_name: data.intelligent_name,
           user_email: data.user_email
         };
       }
 
-      throw new Error(data?.error || 'Edge Function direta retornou erro');
+      throw new Error(data?.error || 'Edge Function retornou erro');
 
     } catch (edgeFunctionError: any) {
-      console.error('[Hybrid Service] ❌ FASE 2: Edge Function direta falhou:', edgeFunctionError);
+      console.error('[Hybrid Service] ❌ CORREÇÃO: Edge Function falhou:', edgeFunctionError);
       
-      // Analisar o tipo de erro para fornecer mensagem específica
+      // CORREÇÃO: NÃO fazer fallback para VPS direto - apenas reportar erro
       let errorMessage = edgeFunctionError.message;
       
-      if (errorMessage.includes('Timeout')) {
-        errorMessage = 'Timeout na comunicação com VPS - criação direta falhou. Tente novamente.';
-      } else if (errorMessage.includes('HTTP')) {
-        errorMessage = 'Erro de comunicação com servidor VPS. Verifique sua conexão.';
-      } else if (errorMessage.includes('Email do usuário é obrigatório')) {
-        errorMessage = 'Erro na geração do nome da instância. Email do usuário não encontrado.';
+      if (errorMessage.includes('Failed to fetch')) {
+        errorMessage = 'Erro de conexão com Edge Function. Verifique sua internet.';
+      } else if (errorMessage.includes('500')) {
+        errorMessage = 'Erro interno da Edge Function. Tente novamente.';
       }
       
       throw new Error(errorMessage);
@@ -91,6 +86,8 @@ export class HybridInstanceService {
 
   static async deleteInstance(instanceId: string): Promise<{ success: boolean; error?: string }> {
     try {
+      console.log('[Hybrid Service] 🗑️ CORREÇÃO: Deletando via Edge Function apenas:', instanceId);
+      
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
           action: 'delete_instance_corrected',
@@ -104,7 +101,7 @@ export class HybridInstanceService {
 
       return { success: true };
     } catch (error: any) {
-      console.error('[Hybrid Service] ❌ Erro ao deletar:', error);
+      console.error('[Hybrid Service] ❌ CORREÇÃO: Erro ao deletar:', error);
       return {
         success: false,
         error: error.message || 'Erro ao deletar instância'
@@ -112,4 +109,3 @@ export class HybridInstanceService {
     }
   }
 }
-

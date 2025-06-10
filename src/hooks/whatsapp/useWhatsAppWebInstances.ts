@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,10 +9,6 @@ interface CreateInstanceResult {
   instance?: any;
   error?: string;
   operationId?: string;
-  vps_health?: {
-    latency: number;
-    healthy: boolean;
-  };
   intelligent_name?: string;
 }
 
@@ -56,7 +53,7 @@ export const useWhatsAppWebInstances = () => {
         return;
       }
 
-      console.log('[Hook] ✅ FASE 2: Instâncias carregadas:', data?.length || 0);
+      console.log('[Hook] ✅ CORREÇÃO: Instâncias carregadas via Supabase:', data?.length || 0);
       setInstances(data || []);
     } catch (error: any) {
       console.error('[Hook] ❌ Erro geral:', error);
@@ -73,7 +70,7 @@ export const useWhatsAppWebInstances = () => {
   const startProgressTimer = (initialMessage: string) => {
     let timeElapsed = 0;
     setCreationProgress({
-      phase: 'STARTING_DIRECT',
+      phase: 'EDGE_FUNCTION_ONLY',
       message: initialMessage,
       timeElapsed: 0
     });
@@ -85,24 +82,24 @@ export const useWhatsAppWebInstances = () => {
         timeElapsed
       } : null);
 
-      // Mensagens baseadas no tempo decorrido para criação direta
-      if (timeElapsed === 15) {
+      // Mensagens baseadas no tempo decorrido para Edge Function
+      if (timeElapsed === 10) {
         setCreationProgress(prev => prev ? {
           ...prev,
-          phase: 'DIRECT_VPS_COMMUNICATION',
-          message: 'Comunicação direta com VPS... (15s)'
+          phase: 'EDGE_FUNCTION_PROCESSING',
+          message: 'Edge Function processando... (10s)'
         } : null);
-      } else if (timeElapsed === 30) {
+      } else if (timeElapsed === 20) {
         setCreationProgress(prev => prev ? {
           ...prev,
-          phase: 'DIRECT_RETRY_LOGIC',
-          message: 'Primeira tentativa demorou, tentando novamente... (30s)'
+          phase: 'EDGE_FUNCTION_VPS_COMM',
+          message: 'Edge Function comunicando com VPS... (20s)'
         } : null);
-      } else if (timeElapsed === 45) {
+      } else if (timeElapsed === 35) {
         setCreationProgress(prev => prev ? {
           ...prev,
-          phase: 'DIRECT_WARNING',
-          message: 'Criação direta está demorando... Aguarde mais um pouco (45s)'
+          phase: 'EDGE_FUNCTION_WAITING',
+          message: 'Aguardando resposta da Edge Function... (35s)'
         } : null);
       }
     }, 1000);
@@ -120,20 +117,20 @@ export const useWhatsAppWebInstances = () => {
     setCreationProgress(null);
   };
 
-  // FASE 2: Criar instância com sistema direto (sem instanceName)
+  // CORREÇÃO: Criar instância APENAS via Edge Function
   const createInstance = async (): Promise<CreateInstanceResult> => {
     setIsConnecting(true);
     
     try {
-      console.log('[Hook] 🚀 FASE 2: Iniciando criação DIRETA (sem health check)');
+      console.log('[Hook] 🚀 CORREÇÃO: Iniciando criação VIA EDGE FUNCTION APENAS');
       
-      // Iniciar timer de progresso para criação direta
-      const timer = startProgressTimer('Iniciando criação direta da instância...');
+      // Iniciar timer de progresso para Edge Function
+      const timer = startProgressTimer('Chamando Edge Function whatsapp_instance_manager...');
       
       // Atualizar progresso
       setCreationProgress({
-        phase: 'DIRECT_CREATION',
-        message: 'Gerando nome inteligente baseado no email...',
+        phase: 'EDGE_FUNCTION_CALL',
+        message: 'Enviando requisição para Edge Function...',
         timeElapsed: 0
       });
 
@@ -143,43 +140,42 @@ export const useWhatsAppWebInstances = () => {
       stopProgressTimer();
 
       if (result.success && result.instance) {
-        console.log('[Hook] ✅ FASE 2: Sucesso com criação direta!');
+        console.log('[Hook] ✅ CORREÇÃO: Sucesso via Edge Function!');
         
         // Mostrar informações sobre nome inteligente
         if (result.intelligent_name) {
           toast.success(`Instância criada com sucesso!`, {
-            description: `Nome inteligente: ${result.intelligent_name} (criação direta)`
+            description: `Nome inteligente: ${result.intelligent_name} (via Edge Function)`
           });
         } else {
           toast.success('Instância criada com sucesso!', {
-            description: `Criação direta sem health check concluída`
+            description: `Criação via Edge Function concluída`
           });
         }
 
         await loadInstances(); // Recarregar lista
         
-        // UX CORRIGIDA: NÃO abrir modal automaticamente
-        console.log('[Hook] 📋 UX: Modal NÃO será aberto automaticamente (FASE 2)');
+        console.log('[Hook] 📋 CORREÇÃO: Modal NÃO será aberto automaticamente');
 
         return result;
       }
 
-      throw new Error(result.error || 'Falha desconhecida na criação direta');
+      throw new Error(result.error || 'Falha desconhecida na Edge Function');
 
     } catch (error: any) {
       stopProgressTimer();
-      console.error('[Hook] ❌ FASE 2: Erro na criação direta:', error);
+      console.error('[Hook] ❌ CORREÇÃO: Erro na Edge Function:', error);
       
-      // Mensagens de erro específicas para criação direta
+      // Mensagens de erro específicas para Edge Function
       let errorMessage = error.message;
       let errorDescription = '';
       
-      if (error.message.includes('Timeout')) {
-        errorMessage = 'Timeout na criação direta';
-        errorDescription = 'A comunicação com o servidor VPS falhou';
-      } else if (error.message.includes('HTTP')) {
-        errorMessage = 'Erro de comunicação com servidor VPS';
-        errorDescription = 'Verifique sua conexão e tente novamente';
+      if (error.message.includes('Failed to fetch')) {
+        errorMessage = 'Erro de conexão com Edge Function';
+        errorDescription = 'Verifique sua conexão com a internet';
+      } else if (error.message.includes('500')) {
+        errorMessage = 'Erro interno da Edge Function';
+        errorDescription = 'Tente novamente em alguns segundos';
       } else if (error.message.includes('Email do usuário é obrigatório')) {
         errorMessage = 'Erro na geração do nome da instância';
         errorDescription = 'Email do usuário não encontrado';
@@ -187,7 +183,7 @@ export const useWhatsAppWebInstances = () => {
       
       toast.error(errorMessage, {
         description: errorDescription,
-        id: 'creating-instance-direct-error'
+        id: 'creating-instance-edge-function-error'
       });
       
       return { success: false, error: error.message };
@@ -198,6 +194,7 @@ export const useWhatsAppWebInstances = () => {
 
   const deleteInstance = async (instanceId: string) => {
     try {
+      console.log('[Hook] 🗑️ CORREÇÃO: Deletando via Edge Function:', instanceId);
       const result = await HybridInstanceService.deleteInstance(instanceId);
       
       if (result.success) {
@@ -214,6 +211,8 @@ export const useWhatsAppWebInstances = () => {
 
   const refreshQRCode = async (instanceId: string) => {
     try {
+      console.log('[Hook] 🔄 CORREÇÃO: Refresh QR via Edge Function whatsapp_qr_service:', instanceId);
+      
       const { data, error } = await supabase.functions.invoke('whatsapp_qr_service', {
         body: {
           action: 'get_qr_code_v3',

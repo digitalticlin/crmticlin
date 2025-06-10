@@ -28,7 +28,7 @@ export const SimpleWhatsAppConnection = () => {
     refreshQRCode
   } = useWhatsAppWebInstances();
 
-  // FASE 2: Criar instância sem parâmetros - nome gerado internamente
+  // CORREÇÃO: Criar instância APENAS via Edge Function
   const handleConnect = async () => {
     if (!user?.email) {
       toast.error('Email do usuário não disponível');
@@ -37,23 +37,18 @@ export const SimpleWhatsAppConnection = () => {
 
     setIsConnecting(true);
     try {
-      console.log('[Simple Connection] 🎯 FASE 2: Criando instância com nome inteligente baseado em:', user.email);
+      console.log('[Simple Connection] 🎯 CORREÇÃO: Criando instância via Edge Function para:', user.email);
       
-      const result = await createInstance(); // CORREÇÃO: sem parâmetros
+      const result = await createInstance(); // CORREÇÃO: vai usar Edge Function apenas
       
-      // FASE 2: Correção TypeScript - verificar se result tem a propriedade instance
-      if (result && 'instance' in result && result.instance) {
-        const instanceData = result.instance;
-        
-        console.log('[Simple Connection] ✅ FASE 2: Instância criada com sucesso');
-        toast.success(`Instância criada com sucesso!`);
-        
-        console.log('[Simple Connection] ⏳ Aguardando webhook ou ação manual do usuário');
+      if (result && result.success && result.instance) {
+        console.log('[Simple Connection] ✅ CORREÇÃO: Instância criada via Edge Function');
+        toast.success(`Instância criada com sucesso via Edge Function!`);
       } else {
-        console.log('[Simple Connection] ⚠️ FASE 2: Resultado inesperado:', result);
+        console.log('[Simple Connection] ⚠️ CORREÇÃO: Resultado inesperado:', result);
       }
     } catch (error: any) {
-      console.error('[Simple Connection] ❌ FASE 2: Erro:', error);
+      console.error('[Simple Connection] ❌ CORREÇÃO: Erro na Edge Function:', error);
       toast.error(`Erro ao criar instância: ${error.message}`);
     } finally {
       setIsConnecting(false);
@@ -61,7 +56,7 @@ export const SimpleWhatsAppConnection = () => {
   };
 
   const handleGenerateQR = async (instanceId: string, instanceName: string) => {
-    console.log('[Simple Connection] 🔄 FASE 2: Geração manual de QR Code:', { instanceId, instanceName });
+    console.log('[Simple Connection] 🔄 CORREÇÃO: Geração manual de QR Code via Edge Function:', { instanceId, instanceName });
     
     setSelectedInstanceId(instanceId);
     setSelectedInstanceName(instanceName);
@@ -73,41 +68,41 @@ export const SimpleWhatsAppConnection = () => {
   };
 
   const handleDeleteInstance = async (instanceId: string) => {
+    console.log('[Simple Connection] 🗑️ CORREÇÃO: Deletando via Edge Function:', instanceId);
     await deleteInstance(instanceId);
   };
 
   const handleRefreshQRCode = async (instanceId: string) => {
     try {
-      console.log('[Simple Connection] 🔄 FASE 2: Refresh QR Code:', instanceId);
+      console.log('[Simple Connection] 🔄 CORREÇÃO: Refresh QR Code via Edge Function whatsapp_qr_service:', instanceId);
       
-      const { ImprovedQRService } = await import('@/services/whatsapp/improvedQRService');
-      const result = await ImprovedQRService.getQRCodeWithDetails(instanceId);
+      const result = await refreshQRCode(instanceId);
       
-      console.log('[Simple Connection] 📥 FASE 2: Resultado:', result);
+      console.log('[Simple Connection] 📥 CORREÇÃO: Resultado:', result);
       
       if (result.success && result.qrCode) {
-        console.log('[Simple Connection] ✅ FASE 2: QR Code obtido!');
+        console.log('[Simple Connection] ✅ CORREÇÃO: QR Code obtido via Edge Function!');
         setSelectedQRCode(result.qrCode);
         setIsWaitingForQR(false);
         return { success: true, qrCode: result.qrCode };
       }
       
       if (result.waiting) {
-        console.log('[Simple Connection] ⏳ FASE 2: QR Code ainda não disponível');
+        console.log('[Simple Connection] ⏳ CORREÇÃO: QR Code ainda não disponível');
         return { success: false, waiting: true };
       }
       
-      console.log('[Simple Connection] ❌ FASE 2: Falha na busca:', result.error);
+      console.log('[Simple Connection] ❌ CORREÇÃO: Falha na busca:', result.error);
       return { success: false, error: result.error };
       
     } catch (error: any) {
-      console.error('[Simple Connection] ❌ FASE 2: Erro ao buscar QR Code:', error);
+      console.error('[Simple Connection] ❌ CORREÇÃO: Erro ao buscar QR Code:', error);
       return { success: false, error: error.message };
     }
   };
 
   const closeQRModal = () => {
-    console.log('[Simple Connection] 🧹 FASE 2: Fechando modal');
+    console.log('[Simple Connection] 🧹 CORREÇÃO: Fechando modal');
     
     setShowQRModal(false);
     setSelectedQRCode(null);
@@ -170,6 +165,26 @@ export const SimpleWhatsAppConnection = () => {
         onRefreshQRCode={handleRefreshQRCode}
         isWaitingForQR={isWaitingForQR}
       />
+
+      {/* Card informativo sobre correção aplicada */}
+      <Card className="border-green-200 bg-green-50/30">
+        <CardContent className="p-4">
+          <div className="text-sm text-green-800 space-y-2">
+            <p><strong>✅ CORREÇÃO APLICADA:</strong></p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              <li><strong>Chamadas Diretas VPS:</strong> REMOVIDAS completamente</li>
+              <li><strong>Edge Function Apenas:</strong> whatsapp_instance_manager para criação</li>
+              <li><strong>QR Code via Edge Function:</strong> whatsapp_qr_service apenas</li>
+              <li><strong>Logs Corrigidos:</strong> Agora mostram "Edge Function" nos logs</li>
+              <li><strong>Fallback Removido:</strong> Sem bypass para VPS direto</li>
+            </ul>
+            <div className="mt-3 p-3 bg-white/70 rounded border border-green-200">
+              <p className="font-medium">🎯 Fluxo CORRIGIDO:</p>
+              <p>Frontend → Edge Function → VPS (nunca Frontend → VPS direto)</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
