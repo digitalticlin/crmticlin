@@ -262,37 +262,60 @@ serve(async (req) => {
 
     console.log('[EDGE_ONLY] Cliente Supabase criado para Operation ID:', operationId);
 
-    // Autenticação
+    // CORREÇÃO FINAL: Autenticação OBRIGATÓRIA
     const authHeader = req.headers.get('Authorization');
     let currentUser = null;
     
     console.log('[EDGE_ONLY] Auth header presente:', !!authHeader);
     
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.replace('Bearer ', '');
-      
-      try {
-        console.log('[EDGE_ONLY] Validando token JWT...');
-        const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-        if (userError) {
-          console.log('[EDGE_ONLY] Erro na validação:', userError);
-        } else if (user) {
-          currentUser = user;
-          console.log('[EDGE_ONLY] Usuário autenticado:', user.id, user.email);
-        }
-      } catch (authError) {
-        console.log('[EDGE_ONLY] Exceção na autenticação:', authError);
-      }
-    }
-
-    if (!currentUser) {
-      console.log('[EDGE_ONLY] Usuário não autenticado, retornando 401');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('[EDGE_ONLY] ❌ Token de autorização ausente ou inválido');
       
       return new Response(JSON.stringify({
         success: false,
-        error: 'Usuário não autenticado - token obrigatório',
+        error: 'Token de autorização obrigatório. Faça login novamente.',
         operationId,
-        executionId
+        executionId,
+        requiresAuth: true
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    
+    try {
+      console.log('[EDGE_ONLY] Validando token JWT...');
+      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+      
+      if (userError || !user) {
+        console.log('[EDGE_ONLY] ❌ Token inválido ou usuário não encontrado:', userError);
+        
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Token inválido ou expirado. Faça login novamente.',
+          operationId,
+          executionId,
+          requiresAuth: true
+        }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      currentUser = user;
+      console.log('[EDGE_ONLY] ✅ Usuário autenticado:', user.id, user.email);
+      
+    } catch (authError) {
+      console.log('[EDGE_ONLY] ❌ Exceção na autenticação:', authError);
+      
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Erro na validação do token. Tente fazer login novamente.',
+        operationId,
+        executionId,
+        requiresAuth: true
       }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

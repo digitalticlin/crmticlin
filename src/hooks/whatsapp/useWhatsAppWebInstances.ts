@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -110,24 +111,33 @@ export const useWhatsAppWebInstances = () => {
     setCreationProgress(null);
   };
 
-  // CORREÇÃO FINAL: Criar instância APENAS via ApiClient
+  // CORREÇÃO FINAL: Criar instância APENAS via ApiClient COM VERIFICAÇÃO DE AUTH
   const createInstance = async (): Promise<CreateInstanceResult> => {
     setIsConnecting(true);
     
     try {
-      console.log('[Hook] 🚀 CORREÇÃO FINAL: Iniciando criação VIA API CLIENT (Edge Function apenas)');
+      console.log('[Hook] 🚀 CORREÇÃO FINAL: Verificando autenticação antes de criar instância');
+      
+      // VERIFICAR AUTENTICAÇÃO PRIMEIRO
+      const authCheck = await ApiClient.checkAuth();
+      if (!authCheck.authenticated) {
+        throw new Error('Usuário não autenticado. Faça login novamente.');
+      }
+      
+      console.log('[Hook] ✅ Usuário autenticado:', authCheck.user?.email);
+      console.log('[Hook] 🚀 Iniciando criação VIA API CLIENT (Edge Function apenas)');
       
       // Iniciar timer de progresso
       const timer = startProgressTimer('Chamando Edge Function whatsapp_instance_manager via ApiClient...');
       
       setCreationProgress({
         phase: 'API_CLIENT_CALL',
-        message: 'Enviando requisição via ApiClient...',
+        message: 'Enviando requisição via ApiClient com autenticação...',
         timeElapsed: 0
       });
 
       // USAR APENAS API CLIENT - SEM FALLBACKS
-      const result = await ApiClient.createInstance('user_email_from_auth') as CreateInstanceResult;
+      const result = await ApiClient.createInstance(authCheck.user?.email) as CreateInstanceResult;
       
       // Parar timer
       stopProgressTimer();
@@ -160,7 +170,10 @@ export const useWhatsAppWebInstances = () => {
       let errorMessage = error.message;
       let errorDescription = '';
       
-      if (error.message.includes('Failed to fetch')) {
+      if (error.message.includes('não autenticado')) {
+        errorMessage = 'Sessão expirada';
+        errorDescription = 'Por favor, faça login novamente';
+      } else if (error.message.includes('Failed to fetch')) {
         errorMessage = 'Erro de conexão com Edge Function';
         errorDescription = 'Verifique sua conexão com a internet';
       } else if (error.message.includes('500')) {

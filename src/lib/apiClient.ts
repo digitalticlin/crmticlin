@@ -11,16 +11,26 @@ export interface ApiResponse<T = any> {
 }
 
 class ApiClient {
-  // MÉTODO CENTRALIZADO PARA CRIAR INSTÂNCIA
+  // MÉTODO CENTRALIZADO PARA CRIAR INSTÂNCIA COM AUTENTICAÇÃO CORRETA
   static async createInstance(userEmail: string): Promise<ApiResponse> {
     try {
-      console.log('[API Client] 🚀 Criando instância via Edge Function para:', userEmail);
+      console.log('[API Client] 🚀 CORREÇÃO FINAL: Criando instância via Edge Function para:', userEmail);
       
-      // SEMPRE usar a Edge Function - NUNCA VPS direto
+      // VERIFICAR AUTENTICAÇÃO ANTES DE CHAMAR EDGE FUNCTION
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        console.error('[API Client] ❌ Usuário não autenticado:', authError);
+        throw new Error('Usuário não autenticado. Faça login novamente.');
+      }
+      
+      console.log('[API Client] ✅ Usuário autenticado:', user.id, user.email);
+      
+      // SEMPRE usar a Edge Function - NUNCA VPS direto - COM TOKEN AUTOMÁTICO
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
           action: 'create_instance'
-          // Email será obtido do token do usuário autenticado
+          // Email será obtido do token do usuário autenticado automaticamente
         }
       });
 
@@ -66,6 +76,13 @@ class ApiClient {
     try {
       console.log('[API Client] 🗑️ Deletando instância via Edge Function:', instanceId);
       
+      // VERIFICAR AUTENTICAÇÃO
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        throw new Error('Usuário não autenticado');
+      }
+      
       // SEMPRE usar a Edge Function - NUNCA VPS direto
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
@@ -95,6 +112,13 @@ class ApiClient {
   static async getQRCode(instanceId: string): Promise<ApiResponse> {
     try {
       console.log('[API Client] 📱 Obtendo QR Code via Edge Function whatsapp_qr_service');
+      
+      // VERIFICAR AUTENTICAÇÃO
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        throw new Error('Usuário não autenticado');
+      }
       
       // SEMPRE usar a Edge Function whatsapp_qr_service - NUNCA VPS direto
       const { data, error } = await supabase.functions.invoke('whatsapp_qr_service', {
@@ -143,6 +167,13 @@ class ApiClient {
     try {
       console.log('[API Client] 🔄 Refresh QR via Edge Function whatsapp_qr_service');
       
+      // VERIFICAR AUTENTICAÇÃO
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        throw new Error('Usuário não autenticado');
+      }
+      
       // SEMPRE usar a Edge Function - NUNCA VPS direto
       const { data, error } = await supabase.functions.invoke('whatsapp_qr_service', {
         body: {
@@ -178,6 +209,30 @@ class ApiClient {
         success: false,
         error: error.message || 'Erro ao fazer refresh do QR Code',
         method: 'EDGE_FUNCTION_ONLY'
+      };
+    }
+  }
+
+  // MÉTODO PARA VERIFICAR AUTENTICAÇÃO
+  static async checkAuth(): Promise<{ authenticated: boolean; user?: any; error?: string }> {
+    try {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      if (error || !user) {
+        return {
+          authenticated: false,
+          error: error?.message || 'Usuário não autenticado'
+        };
+      }
+      
+      return {
+        authenticated: true,
+        user: user
+      };
+    } catch (error: any) {
+      return {
+        authenticated: false,
+        error: error.message
       };
     }
   }
