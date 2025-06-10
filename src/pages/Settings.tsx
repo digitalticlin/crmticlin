@@ -16,7 +16,7 @@ export default function Settings() {
       <ModernPageHeader 
         title="Configurações" 
         description="Gerencie as configurações da sua conta e preferências do sistema"
-        rightContent={<VPSStatusIndicator />}
+        action={<VPSStatusIndicator />}
       />
       
       <Tabs defaultValue="whatsapp" className="w-full">
