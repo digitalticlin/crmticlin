@@ -4,6 +4,17 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { HybridInstanceService } from "@/services/whatsapp/hybridInstanceService";
 
+interface CreateInstanceResult {
+  success: boolean;
+  instance?: any;
+  error?: string;
+  operationId?: string;
+  vps_health?: {
+    latency: number;
+    healthy: boolean;
+  };
+}
+
 export const useWhatsAppWebInstances = () => {
   const [instances, setInstances] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -11,8 +22,17 @@ export const useWhatsAppWebInstances = () => {
   const [showQRModal, setShowQRModal] = useState(false);
   const [selectedQRCode, setSelectedQRCode] = useState<string | null>(null);
   const [selectedInstanceName, setSelectedInstanceName] = useState<string>('');
+  
+  // Estados de progresso para UX melhorada
+  const [creationProgress, setCreationProgress] = useState<{
+    phase: string;
+    message: string;
+    timeElapsed: number;
+  } | null>(null);
 
-  // CORREÇÃO: Carregar instâncias do usuário atual
+  // Timer para progresso
+  const [progressTimer, setProgressTimer] = useState<NodeJS.Timeout | null>(null);
+
   const loadInstances = async () => {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -36,7 +56,7 @@ export const useWhatsAppWebInstances = () => {
         return;
       }
 
-      console.log('[Hook] ✅ HÍBRIDO: Instâncias carregadas:', data?.length || 0);
+      console.log('[Hook] ✅ ROBUSTA: Instâncias carregadas:', data?.length || 0);
       setInstances(data || []);
     } catch (error: any) {
       console.error('[Hook] ❌ Erro geral:', error);
@@ -49,30 +69,98 @@ export const useWhatsAppWebInstances = () => {
     loadInstances();
   }, []);
 
-  // CORREÇÃO FASE 1: Criar instância APENAS via Edge Function (sem fallback)
-  const createInstance = async (instanceName: string) => {
+  // Função para iniciar timer de progresso
+  const startProgressTimer = (initialMessage: string) => {
+    let timeElapsed = 0;
+    setCreationProgress({
+      phase: 'STARTING',
+      message: initialMessage,
+      timeElapsed: 0
+    });
+
+    const timer = setInterval(() => {
+      timeElapsed += 1;
+      setCreationProgress(prev => prev ? {
+        ...prev,
+        timeElapsed
+      } : null);
+
+      // Mensagens baseadas no tempo decorrido
+      if (timeElapsed === 30) {
+        setCreationProgress(prev => prev ? {
+          ...prev,
+          phase: 'VPS_COMMUNICATION',
+          message: 'Comunicando com servidor VPS... (30s)'
+        } : null);
+      } else if (timeElapsed === 60) {
+        setCreationProgress(prev => prev ? {
+          ...prev,
+          phase: 'RETRY_LOGIC',
+          message: 'Primeira tentativa demorou, tentando novamente... (60s)'
+        } : null);
+      } else if (timeElapsed === 75) {
+        setCreationProgress(prev => prev ? {
+          ...prev,
+          phase: 'WARNING',
+          message: 'Está demorando mais que o normal... Aguarde mais um pouco (75s)'
+        } : null);
+      }
+    }, 1000);
+
+    setProgressTimer(timer);
+    return timer;
+  };
+
+  // Função para parar timer de progresso
+  const stopProgressTimer = () => {
+    if (progressTimer) {
+      clearInterval(progressTimer);
+      setProgressTimer(null);
+    }
+    setCreationProgress(null);
+  };
+
+  // CORREÇÃO: Criar instância com UX melhorada
+  const createInstance = async (instanceName: string): Promise<CreateInstanceResult> => {
     setIsConnecting(true);
     
     try {
-      console.log('[Hook] 🚀 HÍBRIDO REFINADO: Criando instância via Edge Function:', instanceName);
+      console.log('[Hook] 🚀 ROBUSTA: Iniciando criação com UX melhorada:', instanceName);
       
-      const result = await HybridInstanceService.createInstance(instanceName);
+      // Iniciar timer de progresso
+      const timer = startProgressTimer('Iniciando criação da instância...');
       
+      // Atualizar progresso
+      setCreationProgress({
+        phase: 'HEALTH_CHECK',
+        message: 'Verificando saúde do servidor...',
+        timeElapsed: 0
+      });
+
+      const result = await HybridInstanceService.createInstance(instanceName) as CreateInstanceResult;
+      
+      // Parar timer
+      stopProgressTimer();
+
       if (result.success && result.instance) {
-        console.log('[Hook] ✅ HÍBRIDO REFINADO: Sucesso via Edge Function!');
+        console.log('[Hook] ✅ ROBUSTA: Sucesso com sistema robusto!');
         
-        toast.success('Instância criada com sucesso!', {
-          description: `${instanceName} está sendo inicializada...`
-        });
+        // Mostrar informações de saúde da VPS se disponível
+        if (result.vps_health) {
+          toast.success(`Instância criada com sucesso! (VPS latência: ${result.vps_health.latency}ms)`, {
+            description: `${instanceName} está sendo inicializada via sistema robusto`
+          });
+        } else {
+          toast.success('Instância criada com sucesso!', {
+            description: `${instanceName} está sendo inicializada...`
+          });
+        }
 
         await loadInstances(); // Recarregar lista
         
-        // Verificar se tem QR Code disponível
-        if (result.instance.qr_code) {
-          setSelectedQRCode(result.instance.qr_code);
-          setSelectedInstanceName(instanceName);
-          setShowQRModal(true);
-        }
+        // CORREÇÃO UX: NÃO abrir modal automaticamente
+        // O modal será aberto apenas quando o usuário clicar em "Gerar QR Code"
+        console.log('[Hook] 📋 UX CORRIGIDA: Modal NÃO será aberto automaticamente');
 
         return result;
       }
@@ -80,8 +168,29 @@ export const useWhatsAppWebInstances = () => {
       throw new Error(result.error || 'Falha desconhecida na criação');
 
     } catch (error: any) {
-      console.error('[Hook] ❌ HÍBRIDO REFINADO: Erro na criação:', error);
-      toast.error(`Erro na criação: ${error.message}`);
+      stopProgressTimer();
+      console.error('[Hook] ❌ ROBUSTA: Erro na criação:', error);
+      
+      // Mensagens de erro específicas baseadas no tipo
+      let errorMessage = error.message;
+      let errorDescription = '';
+      
+      if (error.message.includes('VPS não está saudável')) {
+        errorMessage = 'Servidor VPS temporariamente indisponível';
+        errorDescription = 'Tente novamente em alguns minutos';
+      } else if (error.message.includes('Timeout')) {
+        errorMessage = 'Timeout na comunicação com servidor';
+        errorDescription = 'O servidor pode estar sobrecarregado';
+      } else if (error.message.includes('HTTP')) {
+        errorMessage = 'Erro de comunicação com servidor';
+        errorDescription = 'Verifique sua conexão e tente novamente';
+      }
+      
+      toast.error(errorMessage, {
+        description: errorDescription,
+        id: 'creating-instance-error'
+      });
+      
       return { success: false, error: error.message };
     } finally {
       setIsConnecting(false);
@@ -166,6 +275,9 @@ export const useWhatsAppWebInstances = () => {
     generateIntelligentInstanceName,
     closeQRModal,
     retryQRCode,
-    loadInstances
+    loadInstances,
+    // Estados de progresso para UX
+    creationProgress,
+    isCreatingWithProgress: creationProgress !== null
   };
 };

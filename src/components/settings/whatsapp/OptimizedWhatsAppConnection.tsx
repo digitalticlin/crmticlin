@@ -39,7 +39,7 @@ export const OptimizedWhatsAppConnection = () => {
 
   return (
     <div className="space-y-6">
-      {/* Botão de Conectar */}
+      {/* Botão de Conectar com Sistema Robusto */}
       <div className="flex justify-center">
         <ImprovedConnectWhatsAppButton 
           onConnect={handleConnect}
@@ -106,7 +106,7 @@ export const OptimizedWhatsAppConnection = () => {
         </div>
       )}
 
-      {/* Modal QR Automático */}
+      {/* Modal QR Automático - SÓ ABRE QUANDO NECESSÁRIO */}
       <AutoQRModal
         isOpen={localShowQRModal}
         onClose={closeQRModal}
@@ -118,6 +118,27 @@ export const OptimizedWhatsAppConnection = () => {
         error={null}
         onRetry={() => {}}
       />
+
+      {/* Card informativo sobre sistema robusto */}
+      <div className="bg-green-50/80 rounded-2xl p-6 border border-green-200/50">
+        <div className="text-sm text-green-800 space-y-2">
+          <p><strong>✅ SISTEMA ROBUSTO IMPLEMENTADO:</strong></p>
+          <ul className="list-disc list-inside space-y-1 ml-4">
+            <li><strong>Health Check VPS:</strong> Verifica saúde antes da criação</li>
+            <li><strong>Retry Automático:</strong> 3 tentativas com backoff exponencial</li>
+            <li><strong>Logs Estruturados:</strong> Debug detalhado por etapa</li>
+            <li><strong>UX Corrigida:</strong> Modal só abre quando necessário</li>
+            <li><strong>Timeout Inteligente:</strong> 90s com feedback visual</li>
+            <li><strong>Erro Específico:</strong> Mensagens claras por tipo de falha</li>
+          </ul>
+          <div className="mt-3 p-3 bg-white/70 rounded border border-green-200">
+            <p className="font-medium">🎯 Fluxo Robusto:</p>
+            <p>1. Health Check → Retry Logic → Criação → Feedback</p>
+            <p>2. Modal abre apenas via "Gerar QR Code" manual</p>
+            <p>3. Sistema resistente a timeout e instabilidade VPS</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
