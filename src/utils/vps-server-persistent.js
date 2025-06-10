@@ -1,5 +1,3 @@
-
-
 // Servidor WhatsApp Web.js com PERSISTÊNCIA e ENDPOINTS CORRETOS para Edge Function
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const express = require('express');
@@ -22,9 +20,29 @@ const INSTANCES_FILE = path.join(PERSISTENCE_DIR, 'active_instances.json');
 // Armazenamento de instâncias ativas
 const activeInstances = new Map();
 
-// CORREÇÃO PUPPETEER: Configuração robusta para VPS
+// CORREÇÃO PUPPETEER: Configuração robusta para VPS - ATUALIZADA
 const PUPPETEER_CONFIG = {
   headless: true,
+  // CORREÇÃO: Detectar automaticamente o melhor executável
+  executablePath: (() => {
+    const fs = require('fs');
+    const executables = [
+      '/usr/bin/google-chrome-stable',
+      '/usr/bin/google-chrome', 
+      '/usr/bin/chromium-browser'
+    ];
+    
+    for (const exe of executables) {
+      if (fs.existsSync(exe)) {
+        console.log(`🎯 Puppeteer usando executável: ${exe}`);
+        return exe;
+      }
+    }
+    
+    console.log('⚠️ Usando Puppeteer padrão (nenhum executável específico encontrado)');
+    return undefined;
+  })(),
+  
   args: [
     '--no-sandbox',
     '--disable-setuid-sandbox',
@@ -66,11 +84,25 @@ const PUPPETEER_CONFIG = {
     '--hide-scrollbars',
     '--mute-audio',
     '--disable-logging',
-    '--disable-gl-drawing-for-tests'
+    '--disable-gl-drawing-for-tests',
+    // CORREÇÃO: Args específicos para resolver "Protocol error Session closed"
+    '--disable-blink-features=AutomationControlled',
+    '--disable-client-side-phishing-detection',
+    '--disable-component-extensions-with-background-pages',
+    '--disable-default-apps',
+    '--disable-hang-monitor',
+    '--disable-prompt-on-repost',
+    '--disable-sync',
+    '--metrics-recording-only',
+    '--no-default-browser-check',
+    '--no-first-run',
+    '--password-store=basic',
+    '--use-mock-keychain'
   ],
   ignoreHTTPSErrors: true,
   ignoreDefaultArgs: ['--disable-extensions'],
-  timeout: 60000
+  timeout: 30000, // CORREÇÃO: Reduzido de 60s para 30s
+  dumpio: false   // CORREÇÃO: Desabilitado para produção
 };
 
 // CORREÇÃO: Função sendWebhook movida para o TOPO - antes de qualquer uso
@@ -189,10 +221,11 @@ async function loadInstancesState() {
 
 // CORREÇÃO: Função melhorada para inicializar cliente WhatsApp
 async function initializeWhatsAppClient(instance, retryCount = 0) {
-  const maxRetries = 3;
+  const maxRetries = 2; // CORREÇÃO: Reduzido de 3 para 2
   
   try {
     console.log(`🚀 Inicializando cliente WhatsApp para: ${instance.instanceId} (tentativa ${retryCount + 1}/${maxRetries + 1})`);
+    console.log(`🎯 Executável Puppeteer: ${PUPPETEER_CONFIG.executablePath || 'Padrão'}`);
     
     // Limpar cliente anterior se existir
     if (instance.client) {
@@ -216,17 +249,17 @@ async function initializeWhatsAppClient(instance, retryCount = 0) {
     instance.client = client;
     instance.status = 'initializing';
 
-    // Timeout para inicialização
+    // CORREÇÃO: Timeout reduzido para 60 segundos
     const initTimeout = setTimeout(() => {
       console.log(`⏰ Timeout na inicialização de ${instance.instanceId} - tentando novamente...`);
       if (retryCount < maxRetries) {
-        setTimeout(() => initializeWhatsAppClient(instance, retryCount + 1), 5000);
+        setTimeout(() => initializeWhatsAppClient(instance, retryCount + 1), 3000);
       } else {
         console.error(`❌ Máximo de tentativas atingido para ${instance.instanceId}`);
         instance.status = 'failed';
         instance.error = 'Timeout na inicialização após múltiplas tentativas';
       }
-    }, 90000); // 90 segundos
+    }, 60000); // CORREÇÃO: Reduzido de 90s para 60s
 
     // Event handlers
     client.on('qr', (qr) => {
@@ -280,6 +313,37 @@ async function initializeWhatsAppClient(instance, retryCount = 0) {
       clearTimeout(initTimeout);
       instance.status = 'disconnected';
       saveInstancesState();
+      
+      // CORREÇÃO: Reconectar automaticamente se a sessão foi fechada inesperadamente
+      if (reason === 'NAVIGATION' || reason.includes('Session closed')) {
+        console.log(`🔄 Tentando reconectar ${instance.instanceId} após erro de sessão...`);
+        setTimeout(() => {
+          if (retryCount < maxRetries) {
+            initializeWhatsAppClient(instance, retryCount + 1);
+          }
+        }, 5000);
+      }
+    });
+
+    // CORREÇÃO: Adicionar handler para erro de protocolo
+    client.on('error', (error) => {
+      console.error(`❌ Erro no cliente WhatsApp ${instance.instanceId}:`, error.message);
+      clearTimeout(initTimeout);
+      
+      if (error.message.includes('Protocol error') || error.message.includes('Session closed')) {
+        console.log(`🔄 Erro de protocolo detectado - reiniciando ${instance.instanceId}...`);
+        instance.status = 'protocol_error';
+        
+        setTimeout(() => {
+          if (retryCount < maxRetries) {
+            initializeWhatsAppClient(instance, retryCount + 1);
+          }
+        }, 5000);
+      } else {
+        instance.status = 'error';
+        instance.error = error.message;
+      }
+      saveInstancesState();
     });
 
     // Capturar mensagens
@@ -321,20 +385,30 @@ async function initializeWhatsAppClient(instance, retryCount = 0) {
       }
     });
 
-    // CORREÇÃO: Inicializar com retry automático
+    // CORREÇÃO: Inicializar com retry automático e timeout específico
     console.log(`🔄 Iniciando cliente WhatsApp para ${instance.instanceId}...`);
-    await client.initialize();
+    
+    // CORREÇÃO: Adicionar timeout específico para o initialize
+    const initPromise = client.initialize();
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Initialize timeout')), 45000);
+    });
+    
+    await Promise.race([initPromise, timeoutPromise]);
     
   } catch (error) {
     console.error(`❌ Erro ao inicializar cliente: ${instance.instanceId}`, error.message);
     instance.status = 'error';
     instance.error = error.message;
     
-    if (retryCount < maxRetries) {
-      console.log(`🔄 Retry ${retryCount + 1}/${maxRetries} em 15 segundos para ${instance.instanceId}...`);
-      setTimeout(() => initializeWhatsAppClient(instance, retryCount + 1), 15000);
-    } else {
-      console.error(`💥 Falha final na inicialização de ${instance.instanceId} após ${maxRetries + 1} tentativas`);
+    // CORREÇÃO: Retry específico para erros de protocolo
+    if (error.message.includes('Protocol error') || error.message.includes('Session closed') || error.message.includes('Initialize timeout')) {
+      if (retryCount < maxRetries) {
+        console.log(`🔄 Retry ${retryCount + 1}/${maxRetries} para erro de protocolo em ${instance.instanceId}...`);
+        setTimeout(() => initializeWhatsAppClient(instance, retryCount + 1), 10000);
+      } else {
+        console.error(`💥 Falha final na inicialização de ${instance.instanceId} após ${maxRetries + 1} tentativas`);
+      }
     }
     
     saveInstancesState();
@@ -746,4 +820,3 @@ process.on('SIGINT', async () => {
 startServer().catch(console.error);
 
 module.exports = app;
-
