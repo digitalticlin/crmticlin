@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Activity, CheckCircle, AlertTriangle, Plus } from "lucide-react";
+import { MessageSquare, Activity, CheckCircle, AlertTriangle, Plus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WhatsAppInstanceGrid } from "./WhatsAppInstanceGrid";
 import { AutoQRModal } from "./AutoQRModal";
@@ -12,11 +12,11 @@ import { toast } from "sonner";
 
 export const OptimizedSettingsSection = () => {
   const { user } = useAuth();
-  const [isConnecting, setIsConnecting] = useState(false);
 
   const {
     instances,
     isLoading,
+    isConnecting,
     showQRModal,
     selectedQRCode,
     selectedInstanceName,
@@ -24,44 +24,42 @@ export const OptimizedSettingsSection = () => {
     deleteInstance,
     refreshQRCode,
     closeQRModal,
-    retryQRCode
+    retryQRCode,
+    qrPollingActive
   } = useWhatsAppWebInstances();
 
-  // Criar instância otimizada com o VPS corrigido
+  // JORNADA UX: Click → Modal → QR automático
   const handleOptimizedConnect = async () => {
     if (!user?.email) {
       toast.error('Email do usuário não disponível');
       return;
     }
 
-    setIsConnecting(true);
+    console.log('[Optimized Settings] 🚀 UX FLUIDA: Iniciando criação para:', user.email);
+    
     try {
-      console.log('[Optimized Settings] 🚀 VPS CORRIGIDO: Criando instância via ApiClient para:', user.email);
-      
+      // Chamada principal - modal abre automaticamente dentro do hook
       const result = await createInstance();
       
       if (result && result.success) {
-        console.log('[Optimized Settings] ✅ VPS CORRIGIDO: Instância criada com sucesso!');
-        toast.success('Instância WhatsApp criada com sucesso!');
-      } else {
-        console.log('[Optimized Settings] ⚠️ VPS CORRIGIDO: Resultado inesperado:', result);
-        toast.info('Instância iniciada - aguarde o QR Code aparecer');
+        console.log('[Optimized Settings] ✅ UX FLUIDA: Instância criada!', {
+          intelligentName: result.intelligent_name,
+          instanceId: result.instance?.id
+        });
       }
     } catch (error: any) {
-      console.error('[Optimized Settings] ❌ VPS CORRIGIDO: Erro:', error);
-      toast.error(`Erro ao criar instância: ${error.message}`);
-    } finally {
-      setIsConnecting(false);
+      console.error('[Optimized Settings] ❌ UX FLUIDA: Erro:', error);
+      // Toast já é mostrado no hook
     }
   };
 
   const handleDeleteInstance = async (instanceId: string) => {
-    console.log('[Optimized Settings] 🗑️ VPS CORRIGIDO: Deletando via ApiClient:', instanceId);
+    console.log('[Optimized Settings] 🗑️ Deletando via ApiClient:', instanceId);
     await deleteInstance(instanceId);
   };
 
   const handleRefreshQR = async (instanceId: string) => {
-    console.log('[Optimized Settings] 🔄 VPS CORRIGIDO: Refresh QR via ApiClient:', instanceId);
+    console.log('[Optimized Settings] 🔄 Refresh QR via ApiClient:', instanceId);
     await refreshQRCode(instanceId);
   };
 
@@ -89,7 +87,7 @@ export const OptimizedSettingsSection = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header com status detalhado do VPS corrigido */}
+      {/* Header com status da jornada UX */}
       <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -98,21 +96,16 @@ export const OptimizedSettingsSection = () => {
                 <MessageSquare className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-green-800">WhatsApp Settings - VPS Corrigido</h2>
+                <h2 className="text-xl font-semibold text-green-800">WhatsApp Settings - UX Fluida</h2>
                 <p className="text-sm text-green-600">
-                  Sistema 100% funcional - SyntaxError eliminado (Usuário: {user?.email})
+                  Jornada: Click → Modal → Nome Inteligente → QR Automático (Usuário: {user?.email})
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="default" className="bg-green-600 text-white">
                 <CheckCircle className="h-3 w-3 mr-1" />
-                VPS Online
-              </Badge>
-              
-              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                <Activity className="h-3 w-3 mr-1" />
-                Status 200 OK
+                Sistema Ativo
               </Badge>
               
               {connectedInstances > 0 && (
@@ -140,7 +133,7 @@ export const OptimizedSettingsSection = () => {
         </CardHeader>
       </Card>
 
-      {/* Botão principal de conectar */}
+      {/* Botão principal da jornada UX */}
       <div className="flex justify-center">
         <Button 
           onClick={handleOptimizedConnect}
@@ -150,13 +143,13 @@ export const OptimizedSettingsSection = () => {
         >
           {isConnecting ? (
             <>
-              <Activity className="h-5 w-5 animate-spin" />
-              Conectando via VPS Corrigido...
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Criando Instância...
             </>
           ) : (
             <>
               <Plus className="h-5 w-5" />
-              Conectar Nova Instância WhatsApp
+              Conectar WhatsApp
             </>
           )}
         </Button>
@@ -196,39 +189,38 @@ export const OptimizedSettingsSection = () => {
         </Card>
       )}
 
-      {/* Modal QR otimizado */}
+      {/* Modal QR com UX fluida */}
       <AutoQRModal
         isOpen={showQRModal}
         onClose={closeQRModal}
         qrCode={selectedQRCode}
         instanceName={selectedInstanceName}
-        isWaiting={!selectedQRCode}
+        isWaiting={qrPollingActive || (!selectedQRCode && showQRModal)}
         currentAttempt={0}
         maxAttempts={15}
         error={null}
         onRetry={retryQRCode}
       />
       
-      {/* Card informativo sobre VPS corrigido */}
+      {/* Card informativo sobre UX implementada */}
       <Card className="border-green-200 bg-green-50/30">
         <CardContent className="p-4">
           <div className="text-sm text-green-800 space-y-2">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-600" />
-              <strong>✅ VPS CORRIGIDO E 100% FUNCIONAL</strong>
+              <strong>✅ JORNADA UX FLUIDA IMPLEMENTADA</strong>
             </div>
             <ul className="list-disc list-inside space-y-1 ml-4">
-              <li><strong>SyntaxError:</strong> ❌ ELIMINADO completamente</li>
-              <li><strong>Status 000:</strong> ❌ CORRIGIDO - agora retorna 200</li>
-              <li><strong>Health Endpoint:</strong> ✅ Funcionando (200 OK)</li>
-              <li><strong>Status Endpoint:</strong> ✅ Funcionando (200 OK)</li>
-              <li><strong>Criação Instância:</strong> ✅ Funcionando perfeitamente</li>
-              <li><strong>QR Code:</strong> ✅ Geração automática funcionando</li>
-              <li><strong>PM2 Cache:</strong> ✅ Limpo e otimizado</li>
+              <li><strong>Click no Botão:</strong> ✅ Chama createInstance() imediatamente</li>
+              <li><strong>Nome Inteligente:</strong> ✅ {user?.email?.split('@')[0] || 'usuario'} → {user?.email?.split('@')[0] || 'usuario'}1, {user?.email?.split('@')[0] || 'usuario'}2...</li>
+              <li><strong>Modal Imediato:</strong> ✅ Abre antes mesmo da Edge Function responder</li>
+              <li><strong>Edge Function:</strong> ✅ whatsapp_instance_manager com instanceName</li>
+              <li><strong>Polling Automático:</strong> ✅ Busca QR Code a cada 3s por 45s</li>
+              <li><strong>QR Automático:</strong> ✅ Aparece assim que VPS gerar (base64)</li>
             </ul>
             <div className="mt-3 p-3 bg-white/70 rounded border border-green-200">
-              <p className="font-medium">🎯 Sistema Integrado e Testado:</p>
-              <p>Frontend → ApiClient → Edge Function → VPS Corrigido (Status 200)</p>
+              <p className="font-medium">🎯 Fluxo Implementado:</p>
+              <p>1. Click → 2. Modal "Gerando QR Code..." → 3. Edge Function → 4. VPS → 5. QR aparece automaticamente</p>
             </div>
           </div>
         </CardContent>

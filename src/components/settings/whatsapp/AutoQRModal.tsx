@@ -13,7 +13,8 @@ import {
   RefreshCw, 
   CheckCircle,
   AlertCircle,
-  Wifi
+  Wifi,
+  Zap
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -42,21 +43,24 @@ export const AutoQRModal = ({
 }: AutoQRModalProps) => {
   
   const renderContent = () => {
-    // ESTADO: Aguardando QR Code
+    // ESTADO: Aguardando QR Code (UX FLUIDA)
     if (isWaiting && !qrCode && !error) {
       return (
         <div className="text-center py-8 space-y-4">
           <div className="bg-blue-50/80 p-6 rounded-2xl border border-blue-200/50">
             <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-blue-600" />
-            <h3 className="font-medium text-blue-900 mb-2">Preparando Conexão</h3>
-            <p className="text-sm text-blue-700">
-              Aguarde enquanto o QR Code é gerado automaticamente...
+            <h3 className="font-medium text-blue-900 mb-2">Gerando QR Code...</h3>
+            <p className="text-sm text-blue-700 mb-3">
+              Aguarde enquanto criamos sua instância WhatsApp
             </p>
-            {currentAttempt > 0 && (
-              <p className="text-xs text-blue-600 mt-2">
-                Tentativa {currentAttempt} de {maxAttempts}
-              </p>
+            
+            {instanceName && (
+              <div className="bg-white/70 p-3 rounded-xl border border-blue-200/50">
+                <p className="text-xs text-blue-600 font-medium">Nome da Instância:</p>
+                <p className="text-sm font-bold text-blue-800">{instanceName}</p>
+              </div>
             )}
+            
             <div className="mt-4 flex items-center justify-center gap-2">
               <div className="h-2 w-2 bg-blue-400 rounded-full animate-bounce"></div>
               <div className="h-2 w-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
@@ -66,40 +70,49 @@ export const AutoQRModal = ({
           
           <div className="bg-green-50/80 p-4 rounded-xl border border-green-200/50">
             <div className="flex items-center gap-2 justify-center text-green-700">
-              <Wifi className="h-4 w-4" />
+              <Zap className="h-4 w-4" />
               <span className="text-sm font-medium">Sistema Automático Ativo</span>
             </div>
             <p className="text-xs text-green-600 mt-1">
-              O QR Code aparecerá automaticamente via webhook
+              QR Code aparecerá automaticamente quando pronto
             </p>
           </div>
         </div>
       );
     }
 
-    // ESTADO: QR Code disponível
+    // ESTADO: QR Code disponível (UX FLUIDA)
     if (qrCode && !error) {
       return (
         <div className="text-center space-y-6">
-          <div className="bg-white/70 p-4 rounded-2xl border border-white/40 shadow-lg">
+          {/* QR Code com destaque */}
+          <div className="bg-white/70 p-4 rounded-2xl border-2 border-green-200 shadow-lg">
             <img 
               src={qrCode} 
-              alt="QR Code WhatsApp" 
+              alt="QR Code para conexão do WhatsApp" 
               className="w-64 h-64 rounded-xl mx-auto"
             />
           </div>
           
+          {/* Badge de sucesso */}
           <div className="bg-green-50/80 p-4 rounded-2xl border border-green-200/50">
             <div className="flex items-center gap-2 justify-center text-green-700 mb-3">
               <CheckCircle className="h-5 w-5" />
               <span className="font-medium">QR Code Pronto!</span>
             </div>
             
+            {instanceName && (
+              <div className="mb-3 p-2 bg-white/70 rounded-lg">
+                <p className="text-xs text-green-600">Instância:</p>
+                <p className="text-sm font-bold text-green-800">{instanceName}</p>
+              </div>
+            )}
+            
             <div className="flex items-start gap-3 text-left">
               <Smartphone className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
               <div className="text-sm text-green-700">
                 <p className="font-medium mb-2">Como conectar:</p>
-                <ol className="space-y-1">
+                <ol className="space-y-1 text-xs">
                   <li>1. Abra o WhatsApp no seu celular</li>
                   <li>2. Vá em Menu → Aparelhos conectados</li>
                   <li>3. Toque em "Conectar um aparelho"</li>
@@ -126,7 +139,7 @@ export const AutoQRModal = ({
             size="sm"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
-            Atualizar QR Code
+            Gerar Novo QR Code
           </Button>
         </div>
       );
@@ -143,6 +156,13 @@ export const AutoQRModal = ({
               {error}
             </p>
             
+            {instanceName && (
+              <div className="mb-4 p-3 bg-white/70 rounded-lg">
+                <p className="text-xs text-red-600">Instância:</p>
+                <p className="text-sm font-bold text-red-800">{instanceName}</p>
+              </div>
+            )}
+            
             <Button 
               onClick={onRetry}
               className="bg-red-600 hover:bg-red-700 text-white rounded-xl"
@@ -156,7 +176,7 @@ export const AutoQRModal = ({
       );
     }
 
-    // ESTADO: Padrão
+    // ESTADO: Padrão (inicializando)
     return (
       <div className="text-center py-8">
         <QrCode className="h-12 w-12 mx-auto mb-4 text-gray-400" />
@@ -174,11 +194,9 @@ export const AutoQRModal = ({
               <QrCode className="h-6 w-6 text-green-600" />
               <div className="text-left">
                 <span className="text-lg font-bold text-gray-800">Conectar WhatsApp</span>
-                {instanceName && (
-                  <p className="text-sm font-normal text-gray-600 mt-1">
-                    {instanceName.length > 25 ? instanceName.substring(0, 22) + "..." : instanceName}
-                  </p>
-                )}
+                <p className="text-sm font-normal text-gray-600 mt-1">
+                  UX Fluida - Sistema Automático
+                </p>
               </div>
             </div>
             
