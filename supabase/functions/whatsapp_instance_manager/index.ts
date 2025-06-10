@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -45,10 +46,21 @@ async function checkVPSHealth(): Promise<{ healthy: boolean; latency: number; er
   });
 
   try {
-    // CORREÇÃO: Timeout mais baixo para health check
+    // DEBUG: Log detalhado da requisição
+    console.log('[DEBUG] Iniciando fetch para health check');
+    console.log('[DEBUG] URL:', `${VPS_CONFIG.baseUrl}/health`);
+    console.log('[DEBUG] Headers:', {
+      'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+      'Content-Type': 'application/json'
+    });
+    
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+    const timeoutId = setTimeout(() => {
+      console.log('[DEBUG] AbortController disparado após 10s');
+      controller.abort();
+    }, 10000);
 
+    console.log('[DEBUG] Fazendo fetch...');
     const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
       method: 'GET',
       headers: {
@@ -60,6 +72,10 @@ async function checkVPSHealth(): Promise<{ healthy: boolean; latency: number; er
 
     clearTimeout(timeoutId);
     const latency = Date.now() - startTime;
+    
+    console.log('[DEBUG] Fetch completado!');
+    console.log('[DEBUG] Status:', response.status);
+    console.log('[DEBUG] Status Text:', response.statusText);
 
     logStructured({
       timestamp: new Date().toISOString(),
@@ -81,6 +97,10 @@ async function checkVPSHealth(): Promise<{ healthy: boolean; latency: number; er
     }
   } catch (error) {
     const latency = Date.now() - startTime;
+    
+    console.log('[DEBUG] Erro no fetch:', error);
+    console.log('[DEBUG] Tipo do erro:', error.name);
+    console.log('[DEBUG] Mensagem:', error.message);
     
     logStructured({
       timestamp: new Date().toISOString(),
@@ -111,11 +131,26 @@ async function makeVPSRequestWithRetry(endpoint: string, method: string, payload
   });
 
   try {
-    // CORREÇÃO: Timeout mais granular com AbortController
+    // DEBUG: Log detalhado da requisição principal
+    const fullUrl = `${VPS_CONFIG.baseUrl}${endpoint}`;
+    console.log('[DEBUG] === REQUISIÇÃO VPS ===');
+    console.log('[DEBUG] URL completa:', fullUrl);
+    console.log('[DEBUG] Método:', method);
+    console.log('[DEBUG] Payload:', JSON.stringify(payload));
+    console.log('[DEBUG] Headers:', {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+      'User-Agent': 'Supabase-Edge-Function/1.0'
+    });
+    
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), VPS_CONFIG.timeout);
+    const timeoutId = setTimeout(() => {
+      console.log(`[DEBUG] Timeout de ${VPS_CONFIG.timeout}ms atingido, abortando requisição`);
+      controller.abort();
+    }, VPS_CONFIG.timeout);
 
-    const response = await fetch(`${VPS_CONFIG.baseUrl}${endpoint}`, {
+    console.log('[DEBUG] Iniciando fetch principal...');
+    const response = await fetch(fullUrl, {
       method,
       headers: {
         'Content-Type': 'application/json',
@@ -128,6 +163,11 @@ async function makeVPSRequestWithRetry(endpoint: string, method: string, payload
 
     clearTimeout(timeoutId);
     const duration = Date.now() - startTime;
+    
+    console.log('[DEBUG] Fetch principal completado!');
+    console.log('[DEBUG] Status da resposta:', response.status);
+    console.log('[DEBUG] Status text:', response.statusText);
+    console.log('[DEBUG] Content-Type:', response.headers.get('content-type'));
 
     logStructured({
       timestamp: new Date().toISOString(),
@@ -144,6 +184,8 @@ async function makeVPSRequestWithRetry(endpoint: string, method: string, payload
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.log('[DEBUG] Resposta de erro:', errorText);
+      
       logStructured({
         timestamp: new Date().toISOString(),
         phase: 'VPS_REQUEST',
@@ -156,7 +198,9 @@ async function makeVPSRequestWithRetry(endpoint: string, method: string, payload
       throw new Error(`VPS HTTP Error ${response.status}: ${response.statusText} - ${errorText}`);
     }
 
+    console.log('[DEBUG] Fazendo parse do JSON...');
     const data = await response.json();
+    console.log('[DEBUG] JSON parseado:', JSON.stringify(data));
     
     logStructured({
       timestamp: new Date().toISOString(),
@@ -171,6 +215,12 @@ async function makeVPSRequestWithRetry(endpoint: string, method: string, payload
 
   } catch (error) {
     const duration = Date.now() - startTime;
+    
+    console.log('[DEBUG] === ERRO NA REQUISIÇÃO VPS ===');
+    console.log('[DEBUG] Tipo do erro:', error.name);
+    console.log('[DEBUG] Mensagem:', error.message);
+    console.log('[DEBUG] Stack:', error.stack);
+    console.log('[DEBUG] Duração até erro:', duration, 'ms');
     
     logStructured({
       timestamp: new Date().toISOString(),
@@ -189,6 +239,8 @@ async function makeVPSRequestWithRetry(endpoint: string, method: string, payload
     // CORREÇÃO: Retry logic mais inteligente
     if (attemptNumber < VPS_CONFIG.retryAttempts) {
       const backoffDelay = VPS_CONFIG.backoffMultiplier * attemptNumber;
+      
+      console.log(`[DEBUG] Tentando novamente em ${backoffDelay}ms...`);
       
       logStructured({
         timestamp: new Date().toISOString(),
@@ -217,6 +269,11 @@ serve(async (req) => {
 
   const operationId = `op_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
   
+  console.log('[DEBUG] === NOVA OPERAÇÃO INICIADA ===');
+  console.log('[DEBUG] Operation ID:', operationId);
+  console.log('[DEBUG] Método HTTP:', req.method);
+  console.log('[DEBUG] URL:', req.url);
+  
   logStructured({
     timestamp: new Date().toISOString(),
     phase: 'OPERATION_START',
@@ -230,9 +287,13 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    console.log('[DEBUG] Cliente Supabase criado');
+
     // CORREÇÃO: Autenticação mais robusta
     const authHeader = req.headers.get('Authorization');
     let currentUser = null;
+    
+    console.log('[DEBUG] Auth header presente:', !!authHeader);
     
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.replace('Bearer ', '');
@@ -245,8 +306,10 @@ serve(async (req) => {
       });
       
       try {
+        console.log('[DEBUG] Validando token JWT...');
         const { data: { user }, error: userError } = await supabase.auth.getUser(token);
         if (userError) {
+          console.log('[DEBUG] Erro na validação:', userError);
           logStructured({
             timestamp: new Date().toISOString(),
             phase: 'AUTHENTICATION',
@@ -256,6 +319,7 @@ serve(async (req) => {
           });
         } else if (user) {
           currentUser = user;
+          console.log('[DEBUG] Usuário autenticado:', user.id, user.email);
           logStructured({
             timestamp: new Date().toISOString(),
             phase: 'AUTHENTICATION',
@@ -265,6 +329,7 @@ serve(async (req) => {
           });
         }
       } catch (authError) {
+        console.log('[DEBUG] Exceção na autenticação:', authError);
         logStructured({
           timestamp: new Date().toISOString(),
           phase: 'AUTHENTICATION',
@@ -276,6 +341,7 @@ serve(async (req) => {
     }
 
     if (!currentUser) {
+      console.log('[DEBUG] Usuário não autenticado, retornando 401');
       logStructured({
         timestamp: new Date().toISOString(),
         phase: 'OPERATION_END',
@@ -293,7 +359,10 @@ serve(async (req) => {
       });
     }
 
+    console.log('[DEBUG] Fazendo parse do body...');
     const { action, instanceName, instanceId } = await req.json();
+    
+    console.log('[DEBUG] Body parseado:', { action, instanceName, instanceId });
     
     logStructured({
       timestamp: new Date().toISOString(),
@@ -304,13 +373,16 @@ serve(async (req) => {
     });
 
     if (action === 'create_instance') {
+      console.log('[DEBUG] Redirecionando para createInstanceRobust');
       return await createInstanceRobust(supabase, instanceName, currentUser, operationId);
     }
 
     if (action === 'delete_instance_corrected') {
+      console.log('[DEBUG] Redirecionando para deleteInstanceRobust');
       return await deleteInstanceRobust(supabase, instanceId, currentUser, operationId);
     }
 
+    console.log('[DEBUG] Ação desconhecida:', action);
     logStructured({
       timestamp: new Date().toISOString(),
       phase: 'OPERATION_END',
@@ -329,6 +401,10 @@ serve(async (req) => {
     });
 
   } catch (error) {
+    console.log('[DEBUG] === ERRO GERAL NA EDGE FUNCTION ===');
+    console.log('[DEBUG] Erro:', error);
+    console.log('[DEBUG] Stack:', error.stack);
+    
     logStructured({
       timestamp: new Date().toISOString(),
       phase: 'OPERATION_END',
@@ -350,6 +426,11 @@ serve(async (req) => {
 });
 
 async function createInstanceRobust(supabase: any, instanceName: string, user: any, operationId: string) {
+  console.log('[DEBUG] === CRIAR INSTÂNCIA ROBUSTO ===');
+  console.log('[DEBUG] Instance Name:', instanceName);
+  console.log('[DEBUG] User ID:', user.id);
+  console.log('[DEBUG] Operation ID:', operationId);
+  
   logStructured({
     timestamp: new Date().toISOString(),
     phase: 'CREATE_INSTANCE',
@@ -365,6 +446,8 @@ async function createInstanceRobust(supabase: any, instanceName: string, user: a
 
     const normalizedName = instanceName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
     
+    console.log('[DEBUG] Nome normalizado:', normalizedName);
+    
     logStructured({
       timestamp: new Date().toISOString(),
       phase: 'CREATE_INSTANCE',
@@ -373,20 +456,36 @@ async function createInstanceRobust(supabase: any, instanceName: string, user: a
       data: { original: instanceName, normalized: normalizedName }
     });
 
-    // CORREÇÃO: Health check opcional para debug
-    logStructured({
-      timestamp: new Date().toISOString(),
-      phase: 'CREATE_INSTANCE',
-      action: 'Skipping health check for debug - proceeding directly to VPS',
-      status: 'warning'
-    });
+    // FASE 1: Health check da VPS
+    console.log('[DEBUG] === FASE 1: HEALTH CHECK ===');
+    const healthCheck = await checkVPSHealth();
+    
+    console.log('[DEBUG] Resultado do health check:', healthCheck);
+    
+    if (!healthCheck.healthy) {
+      console.log('[DEBUG] VPS não está saudável, abortando criação');
+      logStructured({
+        timestamp: new Date().toISOString(),
+        phase: 'CREATE_INSTANCE',
+        action: 'VPS health check failed - aborting creation',
+        status: 'error',
+        data: { healthCheck }
+      });
+      
+      throw new Error(`VPS não está saudável: ${healthCheck.error} (latência: ${healthCheck.latency}ms)`);
+    }
 
-    // FASE 2: Comunicação direta com VPS
+    console.log('[DEBUG] VPS saudável, prosseguindo...');
+
+    // FASE 2: Comunicação com VPS
+    console.log('[DEBUG] === FASE 2: COMUNICAÇÃO VPS ===');
     const vpsPayload = {
       instanceId: normalizedName,
       sessionName: normalizedName,
       webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web'
     };
+
+    console.log('[DEBUG] Payload para VPS:', vpsPayload);
 
     logStructured({
       timestamp: new Date().toISOString(),
@@ -397,6 +496,8 @@ async function createInstanceRobust(supabase: any, instanceName: string, user: a
     });
 
     const vpsData = await makeVPSRequestWithRetry('/instance/create', 'POST', vpsPayload);
+
+    console.log('[DEBUG] Resposta da VPS:', vpsData);
 
     if (!vpsData.success) {
       throw new Error(vpsData.error || 'VPS retornou success: false');
@@ -411,6 +512,7 @@ async function createInstanceRobust(supabase: any, instanceName: string, user: a
     });
 
     // FASE 3: Salvar no Supabase
+    console.log('[DEBUG] === FASE 3: SALVAR NO SUPABASE ===');
     logStructured({
       timestamp: new Date().toISOString(),
       phase: 'CREATE_INSTANCE',
@@ -418,22 +520,27 @@ async function createInstanceRobust(supabase: any, instanceName: string, user: a
       status: 'start'
     });
 
+    const instanceData = {
+      instance_name: normalizedName,
+      connection_type: 'web',
+      server_url: VPS_CONFIG.baseUrl,
+      vps_instance_id: vpsData.instanceId || normalizedName,
+      web_status: 'initializing',
+      connection_status: 'vps_created',
+      created_by_user_id: user.id,
+      company_id: null
+    };
+    
+    console.log('[DEBUG] Dados para inserir no Supabase:', instanceData);
+
     const { data: newInstance, error: dbError } = await supabase
       .from('whatsapp_instances')
-      .insert({
-        instance_name: normalizedName,
-        connection_type: 'web',
-        server_url: VPS_CONFIG.baseUrl,
-        vps_instance_id: vpsData.instanceId || normalizedName,
-        web_status: 'initializing',
-        connection_status: 'vps_created',
-        created_by_user_id: user.id,
-        company_id: null
-      })
+      .insert(instanceData)
       .select()
       .single();
 
     if (dbError) {
+      console.log('[DEBUG] Erro no banco:', dbError);
       logStructured({
         timestamp: new Date().toISOString(),
         phase: 'CREATE_INSTANCE',
@@ -443,6 +550,8 @@ async function createInstanceRobust(supabase: any, instanceName: string, user: a
       });
       throw new Error(`Erro ao salvar instância no banco: ${dbError.message}`);
     }
+
+    console.log('[DEBUG] Instância salva no banco:', newInstance);
 
     logStructured({
       timestamp: new Date().toISOString(),
@@ -455,22 +564,26 @@ async function createInstanceRobust(supabase: any, instanceName: string, user: a
       }
     });
 
+    console.log('[DEBUG] === SUCESSO COMPLETO ===');
+    console.log('[DEBUG] Nova instância criada:', newInstance.id);
+
     return new Response(JSON.stringify({
       success: true,
       instance: newInstance,
       vps_response: vpsData,
       user_id: user.id,
       operationId,
-      vps_health: {
-        latency: 5, // Mock value since we skipped health check
-        healthy: true
-      },
-      message: 'Instância criada com sistema robusto (health check skipped for debug)'
+      vps_health: healthCheck,
+      message: 'Instância criada com sistema robusto e logs detalhados'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
+    console.log('[DEBUG] === ERRO NA CRIAÇÃO ===');
+    console.log('[DEBUG] Erro:', error);
+    console.log('[DEBUG] Stack:', error.stack);
+    
     logStructured({
       timestamp: new Date().toISOString(),
       phase: 'OPERATION_END',
@@ -496,7 +609,7 @@ async function createInstanceRobust(supabase: any, instanceName: string, user: a
       operationId,
       action: 'create_instance',
       instanceName: instanceName,
-      method: 'robust_edge_function_with_retry_corrected'
+      method: 'robust_edge_function_with_detailed_logs'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -505,6 +618,10 @@ async function createInstanceRobust(supabase: any, instanceName: string, user: a
 }
 
 async function deleteInstanceRobust(supabase: any, instanceId: string, user: any, operationId: string) {
+  console.log('[DEBUG] === DELETAR INSTÂNCIA ROBUSTO ===');
+  console.log('[DEBUG] Instance ID:', instanceId);
+  console.log('[DEBUG] User ID:', user.id);
+  
   logStructured({
     timestamp: new Date().toISOString(),
     phase: 'DELETE_INSTANCE',
@@ -524,6 +641,8 @@ async function deleteInstanceRobust(supabase: any, instanceId: string, user: any
       throw new Error('Instância não encontrada: ' + fetchError.message);
     }
 
+    console.log('[DEBUG] Instância encontrada:', instance);
+
     logStructured({
       timestamp: new Date().toISOString(),
       phase: 'DELETE_INSTANCE',
@@ -535,6 +654,8 @@ async function deleteInstanceRobust(supabase: any, instanceId: string, user: any
     // Deletar da VPS se tiver vps_instance_id
     if (instance.vps_instance_id) {
       try {
+        console.log('[DEBUG] Deletando da VPS:', instance.vps_instance_id);
+        
         logStructured({
           timestamp: new Date().toISOString(),
           phase: 'DELETE_INSTANCE',
@@ -544,6 +665,8 @@ async function deleteInstanceRobust(supabase: any, instanceId: string, user: any
         
         await makeVPSRequestWithRetry(`/instance/${instance.vps_instance_id}`, 'DELETE', {});
         
+        console.log('[DEBUG] Deletado da VPS com sucesso');
+        
         logStructured({
           timestamp: new Date().toISOString(),
           phase: 'DELETE_INSTANCE',
@@ -551,6 +674,7 @@ async function deleteInstanceRobust(supabase: any, instanceId: string, user: any
           status: 'success'
         });
       } catch (vpsError) {
+        console.log('[DEBUG] Erro ao deletar da VPS (continuando):', vpsError);
         logStructured({
           timestamp: new Date().toISOString(),
           phase: 'DELETE_INSTANCE',
@@ -562,6 +686,7 @@ async function deleteInstanceRobust(supabase: any, instanceId: string, user: any
     }
 
     // Deletar do banco
+    console.log('[DEBUG] Deletando do banco...');
     const { error: deleteError } = await supabase
       .from('whatsapp_instances')
       .delete()
@@ -570,6 +695,8 @@ async function deleteInstanceRobust(supabase: any, instanceId: string, user: any
     if (deleteError) {
       throw new Error(`Erro ao deletar instância do banco: ${deleteError.message}`);
     }
+
+    console.log('[DEBUG] Deletado do banco com sucesso');
 
     logStructured({
       timestamp: new Date().toISOString(),
@@ -588,6 +715,9 @@ async function deleteInstanceRobust(supabase: any, instanceId: string, user: any
     });
 
   } catch (error) {
+    console.log('[DEBUG] === ERRO NA DELEÇÃO ===');
+    console.log('[DEBUG] Erro:', error);
+    
     logStructured({
       timestamp: new Date().toISOString(),
       phase: 'OPERATION_END',
