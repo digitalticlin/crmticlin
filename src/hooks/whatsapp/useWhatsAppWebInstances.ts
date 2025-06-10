@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,23 +61,25 @@ export const useWhatsAppWebInstances = () => {
     loadInstances();
   }, []);
 
-  // ETAPA 1: Gerar nome inteligente baseado no usuário
-  const generateIntelligentInstanceName = async (): Promise<string> => {
+  // ETAPA 1: Gerar nome inteligente baseado no usuário (aceita email opcional)
+  const generateIntelligentInstanceName = async (emailOverride?: string): Promise<string> => {
     try {
-      if (!user?.email) {
+      const userEmail = emailOverride || user?.email;
+      
+      if (!userEmail) {
         console.log('[Hook] ⚠️ Email não disponível, usando fallback');
         return `whatsapp_${Date.now()}`;
       }
 
       // Extrair username do email (digitalticlin@gmail.com → digitalticlin)
-      const username = user.email.split('@')[0].toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
+      const username = userEmail.split('@')[0].toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
       console.log('[Hook] 📧 Username extraído:', username);
 
       // Buscar instâncias existentes do usuário para determinar próximo número
       const { data: existingInstances, error } = await supabase
         .from('whatsapp_instances')
         .select('instance_name')
-        .eq('created_by_user_id', user.id)
+        .eq('created_by_user_id', user?.id)
         .eq('connection_type', 'web');
 
       if (error) {
@@ -299,7 +300,7 @@ export const useWhatsAppWebInstances = () => {
     closeQRModal,
     retryQRCode,
     loadInstances,
-    generateIntelligentInstanceName, // ADICIONADO: Exportar função para V2/V3
+    generateIntelligentInstanceName, // CORRIGIDO: Função agora aceita email opcional
     // Estados adicionais para UX
     qrPollingActive,
     currentInstanceId
