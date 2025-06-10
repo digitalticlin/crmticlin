@@ -1,4 +1,5 @@
 
+
 // Servidor WhatsApp Web.js com PERSISTÊNCIA e ENDPOINTS CORRETOS para Edge Function
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const express = require('express');
@@ -71,6 +72,38 @@ const PUPPETEER_CONFIG = {
   ignoreDefaultArgs: ['--disable-extensions'],
   timeout: 60000
 };
+
+// CORREÇÃO: Função sendWebhook movida para o TOPO - antes de qualquer uso
+async function sendWebhook(webhookUrl, data) {
+  try {
+    console.log(`🔗 Enviando webhook para: ${webhookUrl}`, {
+      event: data.event,
+      instanceName: data.instanceName,
+      timestamp: data.timestamp
+    });
+    
+    // Importação dinâmica do node-fetch
+    const fetch = (await import('node-fetch')).default;
+    
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${AUTH_TOKEN}`
+      },
+      body: JSON.stringify(data),
+      timeout: 10000
+    });
+
+    if (response.ok) {
+      console.log(`✅ Webhook ${data.event} enviado com sucesso`);
+    } else {
+      console.log(`⚠️ Webhook ${data.event} falhou: ${response.status}`);
+    }
+  } catch (error) {
+    console.error(`❌ Erro ao enviar webhook:`, error.message);
+  }
+}
 
 // Middleware de autenticação
 function authenticateToken(req, res, next) {
@@ -308,27 +341,6 @@ async function initializeWhatsAppClient(instance, retryCount = 0) {
   }
 }
 
-// Função para enviar webhook
-async function sendWebhook(webhookUrl, data) {
-  const fetch = (await import('node-fetch')).default;
-  
-  console.log(`🔗 Enviando webhook para: ${webhookUrl}`, {
-    event: data.event,
-    instanceName: data.instanceName,
-    timestamp: data.timestamp
-  });
-  
-  await fetch(webhookUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${AUTH_TOKEN}`
-    },
-    body: JSON.stringify(data),
-    timeout: 10000
-  });
-}
-
 // Salvar estado periodicamente
 setInterval(saveInstancesState, 30000);
 
@@ -336,6 +348,7 @@ setInterval(saveInstancesState, 30000);
 
 // ENDPOINT RAIZ - Para teste de conectividade
 app.get('/', (req, res) => {
+  console.log('🌐 [DEBUG] Endpoint raiz chamado');
   res.json({
     success: true,
     status: 'VPS WhatsApp Server Online - CORRETO',
@@ -733,3 +746,4 @@ process.on('SIGINT', async () => {
 startServer().catch(console.error);
 
 module.exports = app;
+
