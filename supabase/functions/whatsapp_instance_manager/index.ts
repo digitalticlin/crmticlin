@@ -254,7 +254,21 @@ async function makeDirectVPSRequest(endpoint: string, method: string, payload: a
 }
 
 serve(async (req) => {
+  // PASSO 1: LOG INICIAL CRÍTICO - PRIMEIRO SINAL DE VIDA
+  const executionId = `exec_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  console.log('🚨🚨🚨 EDGE FUNCTION INICIOU EXECUÇÃO 🚨🚨🚨');
+  console.log('Execution ID:', executionId);
+  console.log('Timestamp:', new Date().toISOString());
+  console.log('Método HTTP:', req.method);
+  console.log('URL Completa:', req.url);
+  console.log('User-Agent:', req.headers.get('User-Agent') || 'N/A');
+  console.log('Origin:', req.headers.get('Origin') || 'N/A');
+  console.log('Referer:', req.headers.get('Referer') || 'N/A');
+  console.log('Authorization presente:', !!req.headers.get('Authorization'));
+  console.log('🚨🚨🚨 EDGE FUNCTION LOGS ACIMA CONFIRMAM EXECUÇÃO 🚨🚨🚨');
+
   if (req.method === 'OPTIONS') {
+    console.log('[PREFLIGHT] Respondendo CORS preflight para Execution ID:', executionId);
     return new Response(null, { headers: corsHeaders });
   }
 
@@ -262,6 +276,7 @@ serve(async (req) => {
   
   console.log('[DIRECT] === NOVA OPERAÇÃO DIRETA (FASE 2) ===');
   console.log('[DIRECT] Operation ID:', operationId);
+  console.log('[DIRECT] Execution ID:', executionId);
   console.log('[DIRECT] Método HTTP:', req.method);
   console.log('[DIRECT] URL:', req.url);
   console.log('[DIRECT] Configuração VPS:', {
@@ -273,7 +288,7 @@ serve(async (req) => {
   logStructured({
     timestamp: new Date().toISOString(),
     phase: 'OPERATION_START_DIRECT',
-    action: `Direct operation ${operationId} started (FASE 2)`,
+    action: `Direct operation ${operationId} started (FASE 2) - Execution ${executionId}`,
     status: 'start',
     data: { method: req.method, url: req.url, vpsConfig: VPS_CONFIG }
   });
@@ -283,7 +298,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log('[DIRECT] Cliente Supabase criado');
+    console.log('[DIRECT] Cliente Supabase criado para Operation ID:', operationId);
 
     // ... keep existing code (authentication logic) the same ...
 
@@ -338,7 +353,7 @@ serve(async (req) => {
     }
 
     if (!currentUser) {
-      console.log('[DIRECT] Usuário não autenticado, retornando 401');
+      console.log('[DIRECT] Usuário não autenticado, retornando 401 para Operation ID:', operationId);
       logStructured({
         timestamp: new Date().toISOString(),
         phase: 'OPERATION_END',
@@ -349,14 +364,15 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         success: false,
         error: 'Usuário não autenticado - token obrigatório',
-        operationId
+        operationId,
+        executionId
       }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    console.log('[DIRECT] Fazendo parse do body...');
+    console.log('[DIRECT] Fazendo parse do body para Operation ID:', operationId);
     const { action, instanceName, instanceId } = await req.json();
     
     console.log('[DIRECT] Body parseado:', { action, instanceName, instanceId });
@@ -370,12 +386,12 @@ serve(async (req) => {
     });
 
     if (action === 'create_instance') {
-      console.log('[DIRECT] Redirecionando para createInstanceDirect');
+      console.log('[DIRECT] Redirecionando para createInstanceDirect - Operation ID:', operationId);
       return await createInstanceDirect(supabase, currentUser, operationId);
     }
 
     if (action === 'delete_instance_corrected') {
-      console.log('[DIRECT] Redirecionando para deleteInstanceDirect');
+      console.log('[DIRECT] Redirecionando para deleteInstanceDirect - Operation ID:', operationId);
       return await deleteInstanceDirect(supabase, instanceId, currentUser, operationId);
     }
 
@@ -391,7 +407,8 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: false,
       error: 'Ação não reconhecida: ' + action,
-      operationId
+      operationId,
+      executionId
     }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -399,6 +416,8 @@ serve(async (req) => {
 
   } catch (error) {
     console.log('[DIRECT] === ERRO GERAL NA EDGE FUNCTION ===');
+    console.log('[DIRECT] Execution ID:', executionId);
+    console.log('[DIRECT] Operation ID:', operationId);
     console.log('[DIRECT] Erro:', error);
     console.log('[DIRECT] Stack:', error.stack);
     
@@ -407,13 +426,14 @@ serve(async (req) => {
       phase: 'OPERATION_END',
       action: `Operation ${operationId} failed with error`,
       status: 'error',
-      data: { error: error.message, stack: error.stack }
+      data: { error: error.message, stack: error.stack, executionId }
     });
     
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
       operationId,
+      executionId,
       details: 'Erro na Edge Function com criação direta FASE 2'
     }), {
       status: 500,
