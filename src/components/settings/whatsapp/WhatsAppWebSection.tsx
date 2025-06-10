@@ -23,23 +23,24 @@ export const WhatsAppWebSection = () => {
     retryQRCode
   } = useWhatsAppWebInstances();
 
+  // FASE 2: Criar instância sem parâmetros
   const handleConnect = async () => {
     if (!user?.email) {
       console.error('[WhatsApp Section] ❌ Email do usuário não disponível');
       return;
     }
 
-    console.log('[WhatsApp Section] 🚀 HÍBRIDO: Iniciando criação via método híbrido:', user.email);
-    await createInstance(user.email);
+    console.log('[WhatsApp Section] 🚀 FASE 2: Iniciando criação via método direto:', user.email);
+    await createInstance(); // CORREÇÃO: sem parâmetros
   };
 
   const handleDeleteInstance = async (instanceId: string) => {
-    console.log('[WhatsApp Section] 🗑️ HÍBRIDO: Deletando via método híbrido:', instanceId);
+    console.log('[WhatsApp Section] 🗑️ FASE 2: Deletando via método direto:', instanceId);
     await deleteInstance(instanceId);
   };
 
   const handleRefreshQR = async (instanceId: string) => {
-    console.log('[WhatsApp Section] 🔄 HÍBRIDO: Refresh QR via método híbrido:', instanceId);
+    console.log('[WhatsApp Section] 🔄 FASE 2: Refresh QR via método direto:', instanceId);
     await refreshQRCode(instanceId);
   };
 
@@ -97,23 +98,23 @@ export const WhatsAppWebSection = () => {
         onRetry={retryQRCode}
       />
       
-      {/* Card informativo sobre método híbrido */}
+      {/* Card informativo sobre método direto */}
       <Card className="border-blue-200 bg-blue-50/30">
         <CardContent className="p-4">
           <div className="text-sm text-blue-800 space-y-2">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-600" />
-              <strong>✅ MÉTODO HÍBRIDO ATIVADO</strong>
+              <strong>✅ FASE 2 - MÉTODO DIRETO ATIVADO</strong>
             </div>
             <ul className="list-disc list-inside space-y-1 ml-4">
-              <li><strong>Prioridade 1:</strong> Edge Function corrigida com configuração do script</li>
-              <li><strong>Fallback:</strong> Comunicação direta VPS se Edge Function falhar</li>
+              <li><strong>Prioridade 1:</strong> Edge Function com criação direta</li>
+              <li><strong>Skip Health Check:</strong> Comunicação direta com VPS</li>
               <li><strong>Multi-tenant:</strong> Instâncias isoladas por usuário</li>
-              <li><strong>Monitoramento:</strong> Logs detalhados de ambos os métodos</li>
+              <li><strong>Monitoramento:</strong> Logs detalhados do método direto</li>
             </ul>
             <div className="mt-3 p-3 bg-white/70 rounded border border-blue-200">
-              <p className="font-medium">🎯 Fluxo Híbrido:</p>
-              <p>1. Tentar Edge Function → 2. Se falhar, usar VPS direto → 3. Modal QR automático</p>
+              <p className="font-medium">🎯 Fluxo FASE 2:</p>
+              <p>1. Tentar Edge Function direta → 2. Modal QR automático → 3. Sincronização</p>
             </div>
           </div>
         </CardContent>

@@ -22,8 +22,7 @@ export const useWhatsAppWebSectionLogic = () => {
     isConnecting,
     createInstance,
     deleteInstance,
-    refreshQRCode,
-    generateIntelligentInstanceName
+    refreshQRCode
   } = useWhatsAppWebInstances();
 
   const { isPolling, currentAttempt, maxAttempts, startPolling, stopPolling } = useAutomaticQRPolling();
@@ -42,21 +41,19 @@ export const useWhatsAppWebSectionLogic = () => {
     };
   }, [stopPolling]);
 
-  // Fluxo SINCRONIZADO - VPS-Frontend
+  // FASE 2: Fluxo SINCRONIZADO - VPS-Frontend (sem parâmetros)
   const handleConnect = async () => {
     try {
       // ETAPA 1: Preparar criação
       setIsCreatingInstance(true);
       setCreationStage('Iniciando conexão...');
       
-      // ETAPA 2: Gerar nome da instância
-      const generatedInstanceName = await generateIntelligentInstanceName(userEmail);
-      
+      // ETAPA 2: FASE 2 - Criação sem parâmetros (nome gerado internamente)
       setCreationStage('Preparando WhatsApp...');
-      toast.loading(`Criando instância "${generatedInstanceName}"...`, { id: 'creating-instance' });
+      toast.loading(`Criando instância com nome inteligente...`, { id: 'creating-instance' });
       
       // ETAPA 3: AGUARDAR confirmação COMPLETA da VPS
-      const createdInstance = await createInstance(generatedInstanceName);
+      const createdInstance = await createInstance(); // CORREÇÃO: sem parâmetros
       
       if (!createdInstance || !createdInstance.success) {
         throw new Error('Falha ao criar instância');
@@ -70,7 +67,7 @@ export const useWhatsAppWebSectionLogic = () => {
       // CORREÇÃO: Verificar se createdInstance tem propriedade instance
       if ('instance' in createdInstance && createdInstance.instance) {
         const instanceData = createdInstance.instance;
-        const finalInstanceName = instanceData?.instance_name || generatedInstanceName;
+        const finalInstanceName = instanceData?.instance_name || `whatsapp_${Date.now()}`;
         setLocalSelectedInstanceName(finalInstanceName);
         
         const qrCode = instanceData?.qr_code;

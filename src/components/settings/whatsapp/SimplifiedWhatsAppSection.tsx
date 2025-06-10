@@ -24,23 +24,24 @@ export const SimplifiedWhatsAppSection = () => {
     retryQRCode
   } = useWhatsAppWebInstances();
 
+  // FASE 2: Criar instância sem parâmetros
   const handleConnect = async () => {
     if (!user?.email) {
       console.error('[Simplified Section] ❌ Email do usuário não disponível');
       return;
     }
 
-    console.log('[Simplified Section] 🚀 CORREÇÃO: Iniciando criação via edge functions corretas:', user.email);
-    await createInstance(user.email);
+    console.log('[Simplified Section] 🚀 FASE 2: Iniciando criação via edge functions corretas:', user.email);
+    await createInstance(); // CORREÇÃO: sem parâmetros
   };
 
   const handleDeleteInstance = async (instanceId: string) => {
-    console.log('[Simplified Section] 🗑️ CORREÇÃO: Deletando via edge functions corretas:', instanceId);
+    console.log('[Simplified Section] 🗑️ FASE 2: Deletando via edge functions corretas:', instanceId);
     await deleteInstance(instanceId);
   };
 
   const handleRefreshQR = async (instanceId: string) => {
-    console.log('[Simplified Section] 🔄 CORREÇÃO: Refresh QR via edge functions corretas:', instanceId);
+    console.log('[Simplified Section] 🔄 FASE 2: Refresh QR via edge functions corretas:', instanceId);
     await refreshQRCode(instanceId);
   };
 
@@ -61,7 +62,7 @@ export const SimplifiedWhatsAppSection = () => {
 
   return (
     <div className="space-y-6">
-      {/* CORREÇÃO: Interface otimizada para usar edge functions corretas */}
+      {/* FASE 2: Interface otimizada para usar edge functions corretas */}
       
       {!hasInstances ? (
         // Card de Conectar modernizado quando não há instâncias
@@ -93,7 +94,7 @@ export const SimplifiedWhatsAppSection = () => {
         </div>
       )}
 
-      {/* CORREÇÃO: Modal QR Automático usando edge functions corretas */}
+      {/* FASE 2: Modal QR Automático usando edge functions corretas */}
       <AutoQRModal
         isOpen={showQRModal}
         onClose={closeQRModal}
@@ -110,7 +111,7 @@ export const SimplifiedWhatsAppSection = () => {
       <Card className="border-blue-200 bg-blue-50/30">
         <CardContent className="p-4">
           <div className="text-sm text-blue-800 space-y-2">
-            <p><strong>✅ CORREÇÃO APLICADA:</strong></p>
+            <p><strong>✅ FASE 2 APLICADA:</strong></p>
             <ul className="list-disc list-inside space-y-1 ml-4">
               <li><strong>whatsapp_instance_manager:</strong> Criação e gerenciamento de instâncias</li>
               <li><strong>whatsapp_qr_service:</strong> Geração e recuperação de QR codes</li>
@@ -119,7 +120,7 @@ export const SimplifiedWhatsAppSection = () => {
               <li><strong>Webhook:</strong> Sincronização automática VPS → Supabase</li>
             </ul>
             <div className="mt-3 p-3 bg-white/70 rounded border border-blue-200">
-              <p className="font-medium">🎯 Fluxo Corrigido:</p>
+              <p className="font-medium">🎯 Fluxo FASE 2:</p>
               <p>1. Criar instância → Modal abre automaticamente</p>
               <p>2. Polling via whatsapp_qr_service → QR aparece</p>
               <p>3. Webhook VPS → Status sincronizado</p>

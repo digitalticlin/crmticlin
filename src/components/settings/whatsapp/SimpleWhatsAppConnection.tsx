@@ -25,11 +25,10 @@ export const SimpleWhatsAppConnection = () => {
     isLoading,
     createInstance,
     deleteInstance,
-    refreshQRCode,
-    generateIntelligentInstanceName
+    refreshQRCode
   } = useWhatsAppWebInstances();
 
-  // FASE 2: Corrigir interface e loading state
+  // FASE 2: Criar instância sem parâmetros - nome gerado internamente
   const handleConnect = async () => {
     if (!user?.email) {
       toast.error('Email do usuário não disponível');
@@ -38,17 +37,16 @@ export const SimpleWhatsAppConnection = () => {
 
     setIsConnecting(true);
     try {
-      const intelligentName = await generateIntelligentInstanceName(user.email);
-      console.log('[Simple Connection] 🎯 FASE 2: Criando instância:', intelligentName);
+      console.log('[Simple Connection] 🎯 FASE 2: Criando instância com nome inteligente baseado em:', user.email);
       
-      const result = await createInstance(intelligentName);
+      const result = await createInstance(); // CORREÇÃO: sem parâmetros
       
       // FASE 2: Correção TypeScript - verificar se result tem a propriedade instance
       if (result && 'instance' in result && result.instance) {
         const instanceData = result.instance;
         
         console.log('[Simple Connection] ✅ FASE 2: Instância criada com sucesso');
-        toast.success(`Instância "${intelligentName}" criada com sucesso!`);
+        toast.success(`Instância criada com sucesso!`);
         
         console.log('[Simple Connection] ⏳ Aguardando webhook ou ação manual do usuário');
       } else {

@@ -62,6 +62,7 @@ export const WhatsAppWebSettings = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // FASE 2: Criar instância sem parâmetros
   const handleConnect = async () => {
     if (!user?.email) {
       console.error('[WhatsApp Settings] ❌ FASE 2: Email do usuário não disponível');
@@ -71,11 +72,7 @@ export const WhatsAppWebSettings = () => {
     try {
       console.log('[WhatsApp Settings] 🎯 FASE 2: Criando instância para usuário autenticado:', user.id);
       
-      const timestamp = Date.now();
-      const emailPrefix = user.email.split('@')[0];
-      const instanceName = `whatsapp_${emailPrefix}_${timestamp}`;
-      
-      await createInstance(instanceName);
+      await createInstance(); // CORREÇÃO: sem parâmetros
     } catch (error: any) {
       console.error('[WhatsApp Settings] ❌ FASE 2: Erro ao conectar:', error);
     }
