@@ -1,5 +1,4 @@
-
-// WhatsApp Web.js Server V4.0 - ENDPOINTS CORRIGIDOS
+// WhatsApp Web.js Server V4.0 - ENDPOINTS CORRIGIDOS + CLIENT ID SANITIZATION
 const express = require('express');
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
@@ -12,8 +11,8 @@ const app = express();
 const PORT = 3002;
 const API_TOKEN = '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
 
-// VERSION CONTROL - ENDPOINTS CORRIGIDOS
-const SERVER_VERSION = '4.0.0-ENDPOINTS-FIXED';
+// VERSION CONTROL - ENDPOINTS CORRIGIDOS + CLIENT ID FIX
+const SERVER_VERSION = '4.1.0-CLIENT-ID-FIXED';
 const BUILD_DATE = new Date().toISOString();
 
 console.log(`🚀 Iniciando WhatsApp Server ${SERVER_VERSION}`);
@@ -22,6 +21,28 @@ console.log(`📅 Build: ${BUILD_DATE}`);
 // Configurar CORS e parsing
 app.use(cors());
 app.use(express.json());
+
+// CORREÇÃO: Função para sanitizar clientId
+function sanitizeClientId(instanceId) {
+  if (!instanceId || typeof instanceId !== 'string') {
+    throw new Error('Instance ID deve ser uma string válida');
+  }
+  
+  // Remove caracteres especiais e mantém apenas alfanuméricos, underscores e hífens
+  // Converte múltiplos underscores em um só
+  const sanitized = instanceId
+    .replace(/[^a-zA-Z0-9_-]/g, '_')  // Substitui caracteres inválidos por underscore
+    .replace(/_{2,}/g, '_')           // Múltiplos underscores viram um só
+    .replace(/^_+|_+$/g, '')         // Remove underscores do início e fim
+    .substring(0, 50);               // Limita tamanho
+  
+  if (!sanitized || sanitized.length < 1) {
+    throw new Error('Instance ID resultou em string vazia após sanitização');
+  }
+  
+  console.log(`🧹 [Sanitization] Original: "${instanceId}" → Sanitized: "${sanitized}"`);
+  return sanitized;
+}
 
 // Configuração Puppeteer VPS otimizada V4.0
 const VPS_PUPPETEER_CONFIG = {
@@ -88,14 +109,18 @@ async function ensureSessionDirectory() {
   }
 }
 
-// Inicialização do cliente WhatsApp - BACKGROUND PROCESSING
+// Inicialização do cliente WhatsApp - CORREÇÃO CLIENT ID
 async function initializeWhatsAppClient(instanceId, sessionName, webhookUrl = null) {
   try {
-    console.log(`[${instanceId}] 🚀 Inicializando cliente WhatsApp em background...`);
+    console.log(`[${instanceId}] 🚀 Inicializando cliente WhatsApp com CLIENT ID corrigido...`);
+    
+    // CORREÇÃO: Sanitizar clientId antes de usar
+    const sanitizedClientId = sanitizeClientId(sessionName);
+    console.log(`[${instanceId}] 🧹 Client ID sanitizado: "${sessionName}" → "${sanitizedClientId}"`);
     
     const client = new Client({
       authStrategy: new LocalAuth({
-        clientId: sessionName,
+        clientId: sanitizedClientId,  // USAR CLIENT ID SANITIZADO
         dataPath: SESSIONS_DIR
       }),
       puppeteer: VPS_PUPPETEER_CONFIG
@@ -105,6 +130,7 @@ async function initializeWhatsAppClient(instanceId, sessionName, webhookUrl = nu
     instances.set(instanceId, {
       client,
       sessionName,
+      sanitizedClientId,  // GUARDAR O CLIENT ID SANITIZADO
       webhookUrl,
       status: 'initializing',
       createdAt: new Date().toISOString(),
@@ -115,7 +141,7 @@ async function initializeWhatsAppClient(instanceId, sessionName, webhookUrl = nu
       messages: []
     });
 
-    console.log(`[${instanceId}] ✅ Instância armazenada com status 'initializing'`);
+    console.log(`[${instanceId}] ✅ Instância armazenada com CLIENT ID sanitizado: "${sanitizedClientId}"`);
 
     // Timeout para evitar travamento
     const initTimeout = setTimeout(() => {
@@ -330,7 +356,8 @@ app.get('/health', (req, res) => {
     status: instance.status,
     phone: instance.phone,
     hasQR: !!instance.qrCode,
-    session: instance.sessionName
+    session: instance.sessionName,
+    sanitizedClientId: instance.sanitizedClientId
   }));
 
   res.json({
@@ -344,7 +371,7 @@ app.get('/health', (req, res) => {
     active_instances: instances.size,
     instances: instancesList,
     vps_optimized: true,
-    endpoints_fixed: true
+    client_id_sanitization: true
   });
 });
 
@@ -356,6 +383,7 @@ app.get('/status', (req, res) => {
     phone: instance.phone,
     hasQR: !!instance.qrCode,
     session: instance.sessionName,
+    sanitizedClientId: instance.sanitizedClientId,
     lastSeen: instance.lastSeen,
     messageCount: instance.messages?.length || 0
   }));
@@ -370,11 +398,11 @@ app.get('/status', (req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     memory: process.memoryUsage(),
-    endpoints_fixed: true
+    client_id_sanitization: true
   });
 });
 
-// CORREÇÃO: Endpoint /instances que estava faltando
+// Listar instâncias
 app.get('/instances', authenticateToken, (req, res) => {
   console.log('📋 Listando todas as instâncias...');
   
@@ -385,6 +413,7 @@ app.get('/instances', authenticateToken, (req, res) => {
       instanceId: instanceId,
       status: instance.status,
       sessionName: instance.sessionName,
+      sanitizedClientId: instance.sanitizedClientId,
       phone: instance.phone,
       profileName: instance.profileName,
       lastSeen: instance.lastSeen,
@@ -406,17 +435,30 @@ app.get('/instances', authenticateToken, (req, res) => {
   });
 });
 
-// CORREÇÃO: Criar instância - RESPOSTA RÁPIDA
+// CORREÇÃO: Criar instância com validação CLIENT ID
 app.post('/instance/create', authenticateToken, async (req, res) => {
   try {
     const { instanceId, sessionName, webhookUrl } = req.body;
     
-    console.log(`🔥 CRIAÇÃO RÁPIDA: ${instanceId} (${sessionName})`);
+    console.log(`🔥 CRIAÇÃO CLIENT ID CORRIGIDA: ${instanceId} (${sessionName})`);
     
     if (!instanceId || !sessionName) {
       return res.status(400).json({
         success: false,
         error: 'instanceId e sessionName são obrigatórios'
+      });
+    }
+    
+    // CORREÇÃO: Validar CLIENT ID antes de prosseguir
+    try {
+      const sanitizedClientId = sanitizeClientId(sessionName);
+      console.log(`🧹 [Create] Client ID validation: "${sessionName}" → "${sanitizedClientId}"`);
+    } catch (sanitizeError) {
+      return res.status(400).json({
+        success: false,
+        error: `Client ID inválido: ${sanitizeError.message}`,
+        received_session_name: sessionName,
+        fix_suggestion: 'Use apenas caracteres alfanuméricos, underscores e hífens'
       });
     }
     
@@ -431,7 +473,7 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
     const finalWebhookUrl = webhookUrl || 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web';
     
     // RESPOSTA IMEDIATA - não aguardar inicialização
-    console.log(`[${instanceId}] ⚡ Resposta imediata - inicializando em background`);
+    console.log(`[${instanceId}] ⚡ Resposta imediata - inicializando em background com CLIENT ID corrigido`);
     
     // Inicializar em background (sem await)
     setImmediate(() => {
@@ -444,11 +486,10 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
       instanceId,
       sessionName,
       status: 'creating',
-      message: 'Instância sendo criada - aguarde 30s para QR code',
+      message: 'Instância sendo criada com CLIENT ID corrigido - aguarde 30s para QR code',
       webhookUrl: finalWebhookUrl,
       server_version: SERVER_VERSION,
-      fast_response: true,
-      background_init: true
+      client_id_fixed: true
     });
     
   } catch (error) {
@@ -461,7 +502,7 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
   }
 });
 
-// Obter QR Code
+// Obter QR Code via POST
 app.post('/instance/qr', authenticateToken, (req, res) => {
   try {
     const { instanceId } = req.body;
@@ -489,7 +530,8 @@ app.post('/instance/qr', authenticateToken, (req, res) => {
         status: instance.status,
         instanceId: instanceId,
         timestamp: new Date().toISOString(),
-        has_qr_code: true
+        has_qr_code: true,
+        sanitized_client_id: instance.sanitizedClientId
       });
     } else {
       res.json({
@@ -502,6 +544,62 @@ app.post('/instance/qr', authenticateToken, (req, res) => {
                 'QR Code sendo gerado',
         instanceId: instanceId,
         has_qr_code: false,
+        sanitized_client_id: instance.sanitizedClientId,
+        info: {
+          created_at: instance.createdAt,
+          last_seen: instance.lastSeen,
+          current_status: instance.status
+        }
+      });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao obter QR Code:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// CORREÇÃO: Adicionar endpoint GET para QR Code
+app.get('/instance/:instanceId/qr', authenticateToken, (req, res) => {
+  try {
+    const { instanceId } = req.params;
+    
+    console.log(`📱 GET QR Code para instância: ${instanceId}`);
+    
+    const instance = instances.get(instanceId);
+    
+    if (!instance) {
+      return res.status(404).json({
+        success: false,
+        error: 'Instância não encontrada',
+        instanceId: instanceId
+      });
+    }
+    
+    if (instance.qrCode) {
+      res.json({
+        success: true,
+        qrCode: instance.qrCode,
+        status: instance.status,
+        instanceId: instanceId,
+        timestamp: new Date().toISOString(),
+        has_qr_code: true,
+        sanitized_client_id: instance.sanitizedClientId
+      });
+    } else {
+      res.json({
+        success: false,
+        error: 'QR Code ainda não disponível',
+        status: instance.status,
+        message: instance.status === 'ready' ? 'Instância já conectada' : 
+                instance.status === 'initializing' ? 'Aguarde - inicializando cliente' :
+                instance.status === 'waiting_qr' ? 'Cliente carregado - gerando QR' :
+                'QR Code sendo gerado',
+        instanceId: instanceId,
+        has_qr_code: false,
+        sanitized_client_id: instance.sanitizedClientId,
         info: {
           created_at: instance.createdAt,
           last_seen: instance.lastSeen,
@@ -542,7 +640,8 @@ app.get('/instance/:instanceId/status', authenticateToken, (req, res) => {
       lastSeen: instance.lastSeen,
       error: instance.error || null,
       createdAt: instance.createdAt,
-      messageCount: instance.messages?.length || 0
+      messageCount: instance.messages?.length || 0,
+      sanitizedClientId: instance.sanitizedClientId
     });
   } catch (error) {
     console.error('❌ Erro ao obter status:', error);
@@ -764,13 +863,13 @@ async function startServer() {
   await ensureSessionDirectory();
   
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 WhatsApp VPS Server (ENDPOINTS FIXED) na porta ${PORT}`);
+    console.log(`🚀 WhatsApp VPS Server (CLIENT ID FIXED) na porta ${PORT}`);
     console.log(`📊 Health: http://31.97.24.222:${PORT}/health`);
     console.log(`📋 Status: http://31.97.24.222:${PORT}/status`);
     console.log(`📱 Instances: http://31.97.24.222:${PORT}/instances`);
     console.log(`🔑 Token: ${API_TOKEN.substring(0, 10)}...`);
     console.log(`📱 Versão: ${SERVER_VERSION}`);
-    console.log(`✅ CORREÇÕES: Endpoint /instances, timeout resposta criação, novos endpoints de teste`);
+    console.log(`✅ CORREÇÕES: CLIENT ID sanitization, endpoint GET QR, validação CLIENT ID`);
   });
 }
 
