@@ -1,29 +1,28 @@
 
+
 import { supabase } from "@/integrations/supabase/client";
 
-// Usando a nova Edge Function robusta
+// Configuração atualizada para FASE 2 - criação direta
 const VPS_CONFIG = {
   baseUrl: 'http://31.97.24.222:3002',
   authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
-  timeout: 90000 // 90s timeout alinhado com a Edge Function
+  timeout: 30000 // 30s timeout para criação direta
 };
 
 interface HybridResponse {
   success: boolean;
   instance?: any;
   error?: string;
-  method?: 'robust_edge_function';
+  method?: 'direct_edge_function';
   operationId?: string;
-  vps_health?: {
-    latency: number;
-    healthy: boolean;
-  };
+  intelligent_name?: string;
+  user_email?: string;
 }
 
 export class HybridInstanceService {
-  // Usar APENAS a Edge Function robusta (sem fallback)
-  static async createInstance(instanceName: string): Promise<HybridResponse> {
-    console.log('[Hybrid Service] 🚀 SISTEMA ROBUSTO: Criando via Edge Function robusta:', instanceName);
+  // FASE 2: Usar APENAS a Edge Function com criação direta (sem health check)
+  static async createInstance(): Promise<HybridResponse> {
+    console.log('[Hybrid Service] 🚀 FASE 2: Criação DIRETA via Edge Function (sem health check)');
 
     // VALIDAÇÃO INICIAL
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -32,56 +31,58 @@ export class HybridInstanceService {
       throw new Error('Usuário não autenticado');
     }
 
-    if (!instanceName || instanceName.trim().length < 3) {
-      throw new Error('Nome da instância deve ter pelo menos 3 caracteres');
+    if (!user.email) {
+      throw new Error('Email do usuário é obrigatório para gerar nome inteligente');
     }
 
-    const normalizedName = instanceName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+    console.log('[Hybrid Service] 👤 Usuário autenticado:', user.email);
 
-    // Usar APENAS a Edge Function robusta
+    // FASE 2: Usar Edge Function com sistema inteligente de nomes
     try {
-      console.log('[Hybrid Service] 📡 SISTEMA ROBUSTO: Usando Edge Function robusta como proxy com retry...');
+      console.log('[Hybrid Service] 📡 FASE 2: Usando Edge Function com nome inteligente baseado em email...');
       
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
-          action: 'create_instance',
-          instanceName: normalizedName
+          action: 'create_instance'
+          // Não passamos instanceName - será gerado inteligentemente baseado no email
         }
       });
 
       if (error) {
-        console.error('[Hybrid Service] ⚠️ Edge Function robusta error:', error);
-        throw new Error(`Edge Function robusta error: ${error.message}`);
+        console.error('[Hybrid Service] ⚠️ Edge Function direta error:', error);
+        throw new Error(`Edge Function direta error: ${error.message}`);
       }
 
       if (data && data.success && data.instance) {
-        console.log('[Hybrid Service] ✅ SISTEMA ROBUSTO: Edge Function robusta funcionou!');
-        console.log('[Hybrid Service] 📊 VPS Health:', data.vps_health);
+        console.log('[Hybrid Service] ✅ FASE 2: Edge Function direta funcionou!');
+        console.log('[Hybrid Service] 🎯 Nome inteligente gerado:', data.intelligent_name);
+        console.log('[Hybrid Service] 📊 Skip Health Check:', data.skip_health_check);
         console.log('[Hybrid Service] 🆔 Operation ID:', data.operationId);
         
         return {
           success: true,
           instance: data.instance,
-          method: 'robust_edge_function',
+          method: 'direct_edge_function',
           operationId: data.operationId,
-          vps_health: data.vps_health
+          intelligent_name: data.intelligent_name,
+          user_email: data.user_email
         };
       }
 
-      throw new Error(data?.error || 'Edge Function robusta retornou erro');
+      throw new Error(data?.error || 'Edge Function direta retornou erro');
 
     } catch (edgeFunctionError: any) {
-      console.error('[Hybrid Service] ❌ SISTEMA ROBUSTO: Edge Function robusta falhou:', edgeFunctionError);
+      console.error('[Hybrid Service] ❌ FASE 2: Edge Function direta falhou:', edgeFunctionError);
       
       // Analisar o tipo de erro para fornecer mensagem específica
       let errorMessage = edgeFunctionError.message;
       
-      if (errorMessage.includes('VPS não está saudável')) {
-        errorMessage = 'Servidor VPS temporariamente indisponível. Tente novamente em alguns minutos.';
-      } else if (errorMessage.includes('Timeout')) {
-        errorMessage = 'Timeout na comunicação - servidor pode estar sobrecarregado. O sistema tentou automaticamente.';
+      if (errorMessage.includes('Timeout')) {
+        errorMessage = 'Timeout na comunicação com VPS - criação direta falhou. Tente novamente.';
       } else if (errorMessage.includes('HTTP')) {
-        errorMessage = 'Erro de comunicação com servidor. Verifique sua conexão.';
+        errorMessage = 'Erro de comunicação com servidor VPS. Verifique sua conexão.';
+      } else if (errorMessage.includes('Email do usuário é obrigatório')) {
+        errorMessage = 'Erro na geração do nome da instância. Email do usuário não encontrado.';
       }
       
       throw new Error(errorMessage);
@@ -111,3 +112,4 @@ export class HybridInstanceService {
     }
   }
 }
+

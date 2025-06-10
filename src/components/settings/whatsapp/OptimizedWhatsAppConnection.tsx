@@ -39,7 +39,7 @@ export const OptimizedWhatsAppConnection = () => {
 
   return (
     <div className="space-y-6">
-      {/* Botão de Conectar com Sistema Robusto */}
+      {/* Botão de Conectar com Sistema Direto */}
       <div className="flex justify-center">
         <ImprovedConnectWhatsAppButton 
           onConnect={handleConnect}
@@ -119,23 +119,23 @@ export const OptimizedWhatsAppConnection = () => {
         onRetry={() => {}}
       />
 
-      {/* Card informativo sobre sistema robusto */}
-      <div className="bg-green-50/80 rounded-2xl p-6 border border-green-200/50">
-        <div className="text-sm text-green-800 space-y-2">
-          <p><strong>✅ SISTEMA ROBUSTO IMPLEMENTADO:</strong></p>
+      {/* Card informativo sobre FASE 2 - Sistema Direto */}
+      <div className="bg-blue-50/80 rounded-2xl p-6 border border-blue-200/50">
+        <div className="text-sm text-blue-800 space-y-2">
+          <p><strong>✅ FASE 2 - SISTEMA DIRETO IMPLEMENTADO:</strong></p>
           <ul className="list-disc list-inside space-y-1 ml-4">
-            <li><strong>Health Check VPS:</strong> Verifica saúde antes da criação</li>
-            <li><strong>Retry Automático:</strong> 3 tentativas com backoff exponencial</li>
-            <li><strong>Logs Estruturados:</strong> Debug detalhado por etapa</li>
-            <li><strong>UX Corrigida:</strong> Modal só abre quando necessário</li>
-            <li><strong>Timeout Inteligente:</strong> 90s com feedback visual</li>
-            <li><strong>Erro Específico:</strong> Mensagens claras por tipo de falha</li>
+            <li><strong>❌ Health Check Removido:</strong> Comunicação direta com VPS</li>
+            <li><strong>🎯 Nomes Inteligentes:</strong> Baseados no email do usuário</li>
+            <li><strong>🔄 Retry Automático:</strong> 3 tentativas com backoff</li>
+            <li><strong>📊 Logs Detalhados:</strong> Debug completo por Request ID</li>
+            <li><strong>⚡ Criação Rápida:</strong> ~30s timeout direto</li>
+            <li><strong>👤 Multi-tenant:</strong> Nomes únicos por usuário</li>
           </ul>
-          <div className="mt-3 p-3 bg-white/70 rounded border border-green-200">
-            <p className="font-medium">🎯 Fluxo Robusto:</p>
-            <p>1. Health Check → Retry Logic → Criação → Feedback</p>
-            <p>2. Modal abre apenas via "Gerar QR Code" manual</p>
-            <p>3. Sistema resistente a timeout e instabilidade VPS</p>
+          <div className="mt-3 p-3 bg-white/70 rounded border border-blue-200">
+            <p className="font-medium">🚀 Fluxo FASE 2:</p>
+            <p>1. Email → Nome Inteligente → Verificar Unicidade → VPS Direto</p>
+            <p>2. Exemplo: <code>digitalticlin_gmail_com</code>, <code>digitalticlin_gmail_com_2</code></p>
+            <p>3. Sem health check = Criação ~25s mais rápida</p>
           </div>
         </div>
       </div>

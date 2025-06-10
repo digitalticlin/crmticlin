@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +12,7 @@ interface CreateInstanceResult {
     latency: number;
     healthy: boolean;
   };
+  intelligent_name?: string;
 }
 
 export const useWhatsAppWebInstances = () => {
@@ -56,7 +56,7 @@ export const useWhatsAppWebInstances = () => {
         return;
       }
 
-      console.log('[Hook] ✅ ROBUSTA: Instâncias carregadas:', data?.length || 0);
+      console.log('[Hook] ✅ FASE 2: Instâncias carregadas:', data?.length || 0);
       setInstances(data || []);
     } catch (error: any) {
       console.error('[Hook] ❌ Erro geral:', error);
@@ -73,7 +73,7 @@ export const useWhatsAppWebInstances = () => {
   const startProgressTimer = (initialMessage: string) => {
     let timeElapsed = 0;
     setCreationProgress({
-      phase: 'STARTING',
+      phase: 'STARTING_DIRECT',
       message: initialMessage,
       timeElapsed: 0
     });
@@ -85,24 +85,24 @@ export const useWhatsAppWebInstances = () => {
         timeElapsed
       } : null);
 
-      // Mensagens baseadas no tempo decorrido
-      if (timeElapsed === 30) {
+      // Mensagens baseadas no tempo decorrido para criação direta
+      if (timeElapsed === 15) {
         setCreationProgress(prev => prev ? {
           ...prev,
-          phase: 'VPS_COMMUNICATION',
-          message: 'Comunicando com servidor VPS... (30s)'
+          phase: 'DIRECT_VPS_COMMUNICATION',
+          message: 'Comunicação direta com VPS... (15s)'
         } : null);
-      } else if (timeElapsed === 60) {
+      } else if (timeElapsed === 30) {
         setCreationProgress(prev => prev ? {
           ...prev,
-          phase: 'RETRY_LOGIC',
-          message: 'Primeira tentativa demorou, tentando novamente... (60s)'
+          phase: 'DIRECT_RETRY_LOGIC',
+          message: 'Primeira tentativa demorou, tentando novamente... (30s)'
         } : null);
-      } else if (timeElapsed === 75) {
+      } else if (timeElapsed === 45) {
         setCreationProgress(prev => prev ? {
           ...prev,
-          phase: 'WARNING',
-          message: 'Está demorando mais que o normal... Aguarde mais um pouco (75s)'
+          phase: 'DIRECT_WARNING',
+          message: 'Criação direta está demorando... Aguarde mais um pouco (45s)'
         } : null);
       }
     }, 1000);
@@ -120,75 +120,74 @@ export const useWhatsAppWebInstances = () => {
     setCreationProgress(null);
   };
 
-  // CORREÇÃO: Criar instância com UX melhorada
-  const createInstance = async (instanceName: string): Promise<CreateInstanceResult> => {
+  // FASE 2: Criar instância com sistema direto (sem instanceName)
+  const createInstance = async (): Promise<CreateInstanceResult> => {
     setIsConnecting(true);
     
     try {
-      console.log('[Hook] 🚀 ROBUSTA: Iniciando criação com UX melhorada:', instanceName);
+      console.log('[Hook] 🚀 FASE 2: Iniciando criação DIRETA (sem health check)');
       
-      // Iniciar timer de progresso
-      const timer = startProgressTimer('Iniciando criação da instância...');
+      // Iniciar timer de progresso para criação direta
+      const timer = startProgressTimer('Iniciando criação direta da instância...');
       
       // Atualizar progresso
       setCreationProgress({
-        phase: 'HEALTH_CHECK',
-        message: 'Verificando saúde do servidor...',
+        phase: 'DIRECT_CREATION',
+        message: 'Gerando nome inteligente baseado no email...',
         timeElapsed: 0
       });
 
-      const result = await HybridInstanceService.createInstance(instanceName) as CreateInstanceResult;
+      const result = await HybridInstanceService.createInstance() as CreateInstanceResult;
       
       // Parar timer
       stopProgressTimer();
 
       if (result.success && result.instance) {
-        console.log('[Hook] ✅ ROBUSTA: Sucesso com sistema robusto!');
+        console.log('[Hook] ✅ FASE 2: Sucesso com criação direta!');
         
-        // Mostrar informações de saúde da VPS se disponível
-        if (result.vps_health) {
-          toast.success(`Instância criada com sucesso! (VPS latência: ${result.vps_health.latency}ms)`, {
-            description: `${instanceName} está sendo inicializada via sistema robusto`
+        // Mostrar informações sobre nome inteligente
+        if (result.intelligent_name) {
+          toast.success(`Instância criada com sucesso!`, {
+            description: `Nome inteligente: ${result.intelligent_name} (criação direta)`
           });
         } else {
           toast.success('Instância criada com sucesso!', {
-            description: `${instanceName} está sendo inicializada...`
+            description: `Criação direta sem health check concluída`
           });
         }
 
         await loadInstances(); // Recarregar lista
         
-        // CORREÇÃO UX: NÃO abrir modal automaticamente
-        // O modal será aberto apenas quando o usuário clicar em "Gerar QR Code"
-        console.log('[Hook] 📋 UX CORRIGIDA: Modal NÃO será aberto automaticamente');
+        // UX CORRIGIDA: NÃO abrir modal automaticamente
+        console.log('[Hook] 📋 UX: Modal NÃO será aberto automaticamente (FASE 2)');
 
         return result;
       }
 
-      throw new Error(result.error || 'Falha desconhecida na criação');
+      throw new Error(result.error || 'Falha desconhecida na criação direta');
 
     } catch (error: any) {
       stopProgressTimer();
-      console.error('[Hook] ❌ ROBUSTA: Erro na criação:', error);
+      console.error('[Hook] ❌ FASE 2: Erro na criação direta:', error);
       
-      // Mensagens de erro específicas baseadas no tipo
+      // Mensagens de erro específicas para criação direta
       let errorMessage = error.message;
       let errorDescription = '';
       
-      if (error.message.includes('VPS não está saudável')) {
-        errorMessage = 'Servidor VPS temporariamente indisponível';
-        errorDescription = 'Tente novamente em alguns minutos';
-      } else if (error.message.includes('Timeout')) {
-        errorMessage = 'Timeout na comunicação com servidor';
-        errorDescription = 'O servidor pode estar sobrecarregado';
+      if (error.message.includes('Timeout')) {
+        errorMessage = 'Timeout na criação direta';
+        errorDescription = 'A comunicação com o servidor VPS falhou';
       } else if (error.message.includes('HTTP')) {
-        errorMessage = 'Erro de comunicação com servidor';
+        errorMessage = 'Erro de comunicação com servidor VPS';
         errorDescription = 'Verifique sua conexão e tente novamente';
+      } else if (error.message.includes('Email do usuário é obrigatório')) {
+        errorMessage = 'Erro na geração do nome da instância';
+        errorDescription = 'Email do usuário não encontrado';
       }
       
       toast.error(errorMessage, {
         description: errorDescription,
-        id: 'creating-instance-error'
+        id: 'creating-instance-direct-error'
       });
       
       return { success: false, error: error.message };

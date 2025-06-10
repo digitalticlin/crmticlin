@@ -6,14 +6,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// FASE 1: CONFIGURAÇÃO CORRIGIDA COM TIMEOUTS CONSISTENTES
+// FASE 2: CONFIGURAÇÃO OTIMIZADA SEM HEALTH CHECK OBRIGATÓRIO
 const VPS_CONFIG = {
   baseUrl: 'http://31.97.24.222:3002',
   authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
-  timeout: 30000, // Consistente: 30s para todas operações
-  healthTimeout: 25000, // CORRIGIDO: Health check com 25s (antes era 10s)
-  retryAttempts: 3, // Aumentado para 3 tentativas
-  backoffMultiplier: 1500 // Aumentado delay entre tentativas
+  timeout: 30000, // 30s para criação direta
+  retryAttempts: 3,
+  backoffMultiplier: 1500
 };
 
 interface LogEntry {
@@ -23,8 +22,8 @@ interface LogEntry {
   duration?: number;
   status: 'start' | 'success' | 'error' | 'warning';
   data?: any;
-  origin?: string; // NOVO: IP de origem
-  headers?: any; // NOVO: Headers da requisição
+  origin?: string;
+  headers?: any;
 }
 
 function logStructured(entry: LogEntry) {
@@ -37,169 +36,119 @@ async function wait(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// FASE 1: HEALTH CHECK CORRIGIDO COM LOGS DETALHADOS
-async function checkVPSHealthWithDiagnosis(): Promise<{ healthy: boolean; latency: number; error?: string; diagnostics: any }> {
-  const startTime = Date.now();
-  const diagnostics = {
-    timeout: VPS_CONFIG.healthTimeout,
-    userAgent: 'Supabase-Edge-WhatsApp-Diagnostic/1.0',
-    timestamp: new Date().toISOString(),
-    attempt: 1
-  };
+// FASE 2: FUNÇÃO PARA GERAR NOME INTELIGENTE BASEADO NO EMAIL
+function generateIntelligentInstanceName(email: string): string {
+  if (!email || !email.includes('@')) {
+    return `whatsapp_${Date.now()}`;
+  }
+  
+  // Converter email para nome válido
+  const emailPart = email.split('@')[0];
+  const domainPart = email.split('@')[1].replace(/\./g, '_');
+  const baseName = `${emailPart}_${domainPart}`.toLowerCase().replace(/[^a-zA-Z0-9_]/g, '_');
+  
+  return baseName;
+}
+
+// FASE 2: FUNÇÃO PARA VERIFICAR E GERAR NOME ÚNICO
+async function generateUniqueInstanceName(supabase: any, userEmail: string, userId: string): Promise<string> {
+  const baseName = generateIntelligentInstanceName(userEmail);
   
   logStructured({
     timestamp: new Date().toISOString(),
-    phase: 'VPS_HEALTH_DIAGNOSTIC',
-    action: 'Starting enhanced VPS health check',
+    phase: 'INTELLIGENT_NAMING',
+    action: `Generated base name: ${baseName}`,
     status: 'start',
-    data: diagnostics
+    data: { userEmail, baseName }
   });
 
-  try {
-    console.log('[DIAGNOSTIC] === ENHANCED HEALTH CHECK START ===');
-    console.log('[DIAGNOSTIC] URL:', `${VPS_CONFIG.baseUrl}/health`);
-    console.log('[DIAGNOSTIC] Timeout configurado:', VPS_CONFIG.healthTimeout, 'ms');
-    console.log('[DIAGNOSTIC] User-Agent:', diagnostics.userAgent);
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.log('[DIAGNOSTIC] TIMEOUT ATINGIDO após', VPS_CONFIG.healthTimeout, 'ms - AbortController disparado');
-      controller.abort();
-    }, VPS_CONFIG.healthTimeout); // CORRIGIDO: 25s em vez de 10s
+  // Verificar instâncias existentes do usuário
+  const { data: existingInstances, error } = await supabase
+    .from('whatsapp_instances')
+    .select('instance_name')
+    .eq('created_by_user_id', userId)
+    .eq('connection_type', 'web');
 
-    console.log('[DIAGNOSTIC] Iniciando fetch com timeout de', VPS_CONFIG.healthTimeout, 'ms...');
-    const response = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
-        'Content-Type': 'application/json',
-        'User-Agent': diagnostics.userAgent,
-        'X-Request-Source': 'Supabase-Edge-Function',
-        'X-Request-Time': diagnostics.timestamp
-      },
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-    const latency = Date.now() - startTime;
-    
-    console.log('[DIAGNOSTIC] === RESPOSTA RECEBIDA ===');
-    console.log('[DIAGNOSTIC] Status:', response.status);
-    console.log('[DIAGNOSTIC] Status Text:', response.statusText);
-    console.log('[DIAGNOSTIC] Latência:', latency, 'ms');
-    console.log('[DIAGNOSTIC] Headers de resposta:', Object.fromEntries(response.headers.entries()));
-
-    const responseData = {
-      status: response.status, 
-      statusText: response.statusText,
-      latency,
-      headers: Object.fromEntries(response.headers.entries()),
-      url: response.url
-    };
-
-    logStructured({
-      timestamp: new Date().toISOString(),
-      phase: 'VPS_HEALTH_DIAGNOSTIC',
-      action: 'VPS health response received',
-      status: 'success',
-      duration: latency,
-      data: responseData
-    });
-
-    if (response.ok) {
-      console.log('[DIAGNOSTIC] ✅ Health check SUCESSO com', latency, 'ms');
-      return { 
-        healthy: true, 
-        latency, 
-        diagnostics: { ...diagnostics, response: responseData }
-      };
-    } else {
-      console.log('[DIAGNOSTIC] ❌ Health check FALHOU - Status não OK:', response.status);
-      return { 
-        healthy: false, 
-        latency, 
-        error: `HTTP ${response.status}: ${response.statusText}`,
-        diagnostics: { ...diagnostics, response: responseData }
-      };
-    }
-  } catch (error) {
-    const latency = Date.now() - startTime;
-    
-    console.log('[DIAGNOSTIC] === ERRO NO HEALTH CHECK ===');
-    console.log('[DIAGNOSTIC] Tipo do erro:', error.name);
-    console.log('[DIAGNOSTIC] Mensagem:', error.message);
-    console.log('[DIAGNOSTIC] Latência até erro:', latency, 'ms');
-    console.log('[DIAGNOSTIC] É AbortError?', error.name === 'AbortError');
-    console.log('[DIAGNOSTIC] Stack completo:', error.stack);
-    
-    const errorData = {
-      name: error.name,
-      message: error.message,
-      latency,
-      isTimeout: error.name === 'AbortError',
-      stack: error.stack
-    };
-    
-    logStructured({
-      timestamp: new Date().toISOString(),
-      phase: 'VPS_HEALTH_DIAGNOSTIC',
-      action: 'VPS health check failed with detailed error',
-      status: 'error',
-      duration: latency,
-      data: errorData
-    });
-    
-    return { 
-      healthy: false, 
-      latency, 
-      error: error.message,
-      diagnostics: { ...diagnostics, error: errorData }
-    };
+  if (error) {
+    console.log('[INTELLIGENT_NAMING] ⚠️ Erro ao buscar instâncias:', error);
+    return `${baseName}_${Date.now()}`;
   }
+
+  const existingNames = existingInstances?.map(i => i.instance_name) || [];
+  
+  // Se o nome base não existe, usar ele
+  if (!existingNames.includes(baseName)) {
+    logStructured({
+      timestamp: new Date().toISOString(),
+      phase: 'INTELLIGENT_NAMING',
+      action: `Base name available: ${baseName}`,
+      status: 'success',
+      data: { finalName: baseName, existingCount: existingNames.length }
+    });
+    return baseName;
+  }
+
+  // Encontrar próximo número disponível
+  let counter = 2;
+  let candidateName = `${baseName}_${counter}`;
+  
+  while (existingNames.includes(candidateName)) {
+    counter++;
+    candidateName = `${baseName}_${counter}`;
+  }
+
+  logStructured({
+    timestamp: new Date().toISOString(),
+    phase: 'INTELLIGENT_NAMING',
+    action: `Generated unique name: ${candidateName}`,
+    status: 'success',
+    data: { finalName: candidateName, counter, existingCount: existingNames.length }
+  });
+
+  return candidateName;
 }
 
-// FASE 1: REQUISIÇÃO VPS COM LOGS APRIMORADOS
-async function makeVPSRequestWithEnhancedDiagnostics(endpoint: string, method: string, payload: any, attemptNumber = 1): Promise<any> {
+// FASE 2: REQUISIÇÃO VPS DIRETTA (SEM HEALTH CHECK)
+async function makeDirectVPSRequest(endpoint: string, method: string, payload: any, attemptNumber = 1): Promise<any> {
   const startTime = Date.now();
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
   
   logStructured({
     timestamp: new Date().toISOString(),
-    phase: 'VPS_REQUEST_DIAGNOSTIC',
-    action: `Enhanced attempt ${attemptNumber}/${VPS_CONFIG.retryAttempts} - ${method} ${endpoint}`,
+    phase: 'DIRECT_VPS_REQUEST',
+    action: `Direct attempt ${attemptNumber}/${VPS_CONFIG.retryAttempts} - ${method} ${endpoint}`,
     status: 'start',
     data: { payload, attempt: attemptNumber, requestId }
   });
 
   try {
     const fullUrl = `${VPS_CONFIG.baseUrl}${endpoint}`;
-    console.log('[DIAGNOSTIC] === REQUISIÇÃO VPS DETALHADA ===');
-    console.log('[DIAGNOSTIC] Request ID:', requestId);
-    console.log('[DIAGNOSTIC] URL completa:', fullUrl);
-    console.log('[DIAGNOSTIC] Método:', method);
-    console.log('[DIAGNOSTIC] Tentativa:', attemptNumber, 'de', VPS_CONFIG.retryAttempts);
-    console.log('[DIAGNOSTIC] Timeout configurado:', VPS_CONFIG.timeout, 'ms');
-    console.log('[DIAGNOSTIC] Payload size:', JSON.stringify(payload).length, 'bytes');
+    console.log('[DIRECT_VPS] === REQUISIÇÃO DIRETA VPS ===');
+    console.log('[DIRECT_VPS] Request ID:', requestId);
+    console.log('[DIRECT_VPS] URL completa:', fullUrl);
+    console.log('[DIRECT_VPS] Método:', method);
+    console.log('[DIRECT_VPS] Tentativa:', attemptNumber, 'de', VPS_CONFIG.retryAttempts);
+    console.log('[DIRECT_VPS] Timeout configurado:', VPS_CONFIG.timeout, 'ms');
     
     const requestHeaders = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
-      'User-Agent': 'Supabase-Edge-WhatsApp-Enhanced/1.0',
+      'User-Agent': 'Supabase-Edge-Direct/2.0',
       'X-Request-ID': requestId,
-      'X-Request-Source': 'Supabase-Edge-Function',
+      'X-Request-Source': 'Supabase-Direct-Creation',
       'X-Attempt-Number': attemptNumber.toString(),
       'X-Request-Time': new Date().toISOString()
     };
     
-    console.log('[DIAGNOSTIC] Headers da requisição:', requestHeaders);
+    console.log('[DIRECT_VPS] Headers da requisição:', requestHeaders);
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
-      console.log(`[DIAGNOSTIC] TIMEOUT principal de ${VPS_CONFIG.timeout}ms atingido para Request ID: ${requestId}`);
+      console.log(`[DIRECT_VPS] TIMEOUT de ${VPS_CONFIG.timeout}ms atingido para Request ID: ${requestId}`);
       controller.abort();
     }, VPS_CONFIG.timeout);
 
-    console.log('[DIAGNOSTIC] Iniciando fetch principal...');
+    console.log('[DIRECT_VPS] Iniciando fetch direto...');
     const response = await fetch(fullUrl, {
       method,
       headers: requestHeaders,
@@ -210,36 +159,34 @@ async function makeVPSRequestWithEnhancedDiagnostics(endpoint: string, method: s
     clearTimeout(timeoutId);
     const duration = Date.now() - startTime;
     
-    console.log('[DIAGNOSTIC] === RESPOSTA PRINCIPAL RECEBIDA ===');
-    console.log('[DIAGNOSTIC] Request ID:', requestId);
-    console.log('[DIAGNOSTIC] Status da resposta:', response.status);
-    console.log('[DIAGNOSTIC] Status text:', response.statusText);
-    console.log('[DIAGNOSTIC] Content-Type:', response.headers.get('content-type'));
-    console.log('[DIAGNOSTIC] Duração total:', duration, 'ms');
+    console.log('[DIRECT_VPS] === RESPOSTA DIRETA RECEBIDA ===');
+    console.log('[DIRECT_VPS] Request ID:', requestId);
+    console.log('[DIRECT_VPS] Status da resposta:', response.status);
+    console.log('[DIRECT_VPS] Status text:', response.statusText);
+    console.log('[DIRECT_VPS] Duração total:', duration, 'ms');
 
     logStructured({
       timestamp: new Date().toISOString(),
-      phase: 'VPS_REQUEST_DIAGNOSTIC',
-      action: 'Enhanced VPS response received',
+      phase: 'DIRECT_VPS_REQUEST',
+      action: 'Direct VPS response received',
       status: 'success',
       duration,
       data: { 
         requestId,
         status: response.status,
         statusText: response.statusText,
-        contentType: response.headers.get('content-type'),
         attempt: attemptNumber
       }
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.log('[DIAGNOSTIC] ❌ Resposta de erro (Request ID:', requestId, '):', errorText);
+      console.log('[DIRECT_VPS] ❌ Resposta de erro (Request ID:', requestId, '):', errorText);
       
       logStructured({
         timestamp: new Date().toISOString(),
-        phase: 'VPS_REQUEST_DIAGNOSTIC',
-        action: `Enhanced VPS returned error ${response.status}`,
+        phase: 'DIRECT_VPS_REQUEST',
+        action: `Direct VPS returned error ${response.status}`,
         status: 'error',
         duration,
         data: { requestId, status: response.status, error: errorText, statusText: response.statusText }
@@ -248,15 +195,14 @@ async function makeVPSRequestWithEnhancedDiagnostics(endpoint: string, method: s
       throw new Error(`VPS HTTP Error ${response.status}: ${response.statusText} - ${errorText} (Request ID: ${requestId})`);
     }
 
-    console.log('[DIAGNOSTIC] Fazendo parse do JSON...');
+    console.log('[DIRECT_VPS] Fazendo parse do JSON...');
     const data = await response.json();
-    console.log('[DIAGNOSTIC] ✅ JSON parseado com sucesso (Request ID:', requestId, ')');
-    console.log('[DIAGNOSTIC] Dados recebidos:', JSON.stringify(data).substring(0, 200) + '...');
+    console.log('[DIRECT_VPS] ✅ JSON parseado com sucesso (Request ID:', requestId, ')');
     
     logStructured({
       timestamp: new Date().toISOString(),
-      phase: 'VPS_REQUEST_DIAGNOSTIC',
-      action: 'Enhanced VPS request successful',
+      phase: 'DIRECT_VPS_REQUEST',
+      action: 'Direct VPS request successful',
       status: 'success',
       duration,
       data: { requestId, success: data.success, instanceId: data.instanceId }
@@ -267,19 +213,17 @@ async function makeVPSRequestWithEnhancedDiagnostics(endpoint: string, method: s
   } catch (error) {
     const duration = Date.now() - startTime;
     
-    console.log('[DIAGNOSTIC] === ERRO NA REQUISIÇÃO VPS ===');
-    console.log('[DIAGNOSTIC] Request ID:', requestId);
-    console.log('[DIAGNOSTIC] Tentativa:', attemptNumber, 'de', VPS_CONFIG.retryAttempts);
-    console.log('[DIAGNOSTIC] Tipo do erro:', error.name);
-    console.log('[DIAGNOSTIC] Mensagem:', error.message);
-    console.log('[DIAGNOSTIC] Stack:', error.stack);
-    console.log('[DIAGNOSTIC] Duração até erro:', duration, 'ms');
-    console.log('[DIAGNOSTIC] É timeout?', error.name === 'AbortError');
+    console.log('[DIRECT_VPS] === ERRO NA REQUISIÇÃO DIRETA ===');
+    console.log('[DIRECT_VPS] Request ID:', requestId);
+    console.log('[DIRECT_VPS] Tentativa:', attemptNumber, 'de', VPS_CONFIG.retryAttempts);
+    console.log('[DIRECT_VPS] Tipo do erro:', error.name);
+    console.log('[DIRECT_VPS] Mensagem:', error.message);
+    console.log('[DIRECT_VPS] Duração até erro:', duration, 'ms');
     
     logStructured({
       timestamp: new Date().toISOString(),
-      phase: 'VPS_REQUEST_DIAGNOSTIC',
-      action: `Enhanced attempt ${attemptNumber} failed`,
+      phase: 'DIRECT_VPS_REQUEST',
+      action: `Direct attempt ${attemptNumber} failed`,
       status: 'error',
       duration,
       data: { 
@@ -287,32 +231,22 @@ async function makeVPSRequestWithEnhancedDiagnostics(endpoint: string, method: s
         error: error.message, 
         name: error.name,
         isAborted: error.name === 'AbortError',
-        isTimeout: error.message.includes('timeout') || error.name === 'AbortError',
         attempt: attemptNumber
       }
     });
 
-    // FASE 1: RETRY MELHORADO
+    // RETRY LOGIC
     if (attemptNumber < VPS_CONFIG.retryAttempts) {
       const backoffDelay = VPS_CONFIG.backoffMultiplier * attemptNumber;
       
-      console.log(`[DIAGNOSTIC] 🔄 Tentando novamente Request ID ${requestId} em ${backoffDelay}ms... (tentativa ${attemptNumber + 1}/${VPS_CONFIG.retryAttempts})`);
+      console.log(`[DIRECT_VPS] 🔄 Tentando novamente Request ID ${requestId} em ${backoffDelay}ms... (tentativa ${attemptNumber + 1}/${VPS_CONFIG.retryAttempts})`);
       
-      logStructured({
-        timestamp: new Date().toISOString(),
-        phase: 'RETRY_LOGIC_ENHANCED',
-        action: `Waiting ${backoffDelay}ms before enhanced retry ${attemptNumber + 1}`,
-        status: 'warning',
-        data: { requestId, backoffDelay, nextAttempt: attemptNumber + 1 }
-      });
-
       await wait(backoffDelay);
-      return makeVPSRequestWithEnhancedDiagnostics(endpoint, method, payload, attemptNumber + 1);
+      return makeDirectVPSRequest(endpoint, method, payload, attemptNumber + 1);
     }
 
-    // FASE 1: MELHOR CLASSIFICAÇÃO DE ERROS
     if (error.name === 'AbortError') {
-      throw new Error(`VPS Timeout após ${VPS_CONFIG.timeout}ms - servidor pode estar sobrecarregado (Request ID: ${requestId})`);
+      throw new Error(`VPS Timeout após ${VPS_CONFIG.timeout}ms - tentativa direta falhou (Request ID: ${requestId})`);
     }
 
     throw error;
@@ -326,21 +260,20 @@ serve(async (req) => {
 
   const operationId = `op_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
   
-  console.log('[DIAGNOSTIC] === NOVA OPERAÇÃO INICIADA (FASE 1) ===');
-  console.log('[DIAGNOSTIC] Operation ID:', operationId);
-  console.log('[DIAGNOSTIC] Método HTTP:', req.method);
-  console.log('[DIAGNOSTIC] URL:', req.url);
-  console.log('[DIAGNOSTIC] Configuração VPS:', {
+  console.log('[DIRECT] === NOVA OPERAÇÃO DIRETA (FASE 2) ===');
+  console.log('[DIRECT] Operation ID:', operationId);
+  console.log('[DIRECT] Método HTTP:', req.method);
+  console.log('[DIRECT] URL:', req.url);
+  console.log('[DIRECT] Configuração VPS:', {
     baseUrl: VPS_CONFIG.baseUrl,
     timeout: VPS_CONFIG.timeout,
-    healthTimeout: VPS_CONFIG.healthTimeout,
     retryAttempts: VPS_CONFIG.retryAttempts
   });
   
   logStructured({
     timestamp: new Date().toISOString(),
-    phase: 'OPERATION_START_ENHANCED',
-    action: `Enhanced operation ${operationId} started`,
+    phase: 'OPERATION_START_DIRECT',
+    action: `Direct operation ${operationId} started (FASE 2)`,
     status: 'start',
     data: { method: req.method, url: req.url, vpsConfig: VPS_CONFIG }
   });
@@ -350,14 +283,14 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log('[DIAGNOSTIC] Cliente Supabase criado');
+    console.log('[DIRECT] Cliente Supabase criado');
 
     // ... keep existing code (authentication logic) the same ...
 
     const authHeader = req.headers.get('Authorization');
     let currentUser = null;
     
-    console.log('[DIAGNOSTIC] Auth header presente:', !!authHeader);
+    console.log('[DIRECT] Auth header presente:', !!authHeader);
     
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.replace('Bearer ', '');
@@ -370,10 +303,10 @@ serve(async (req) => {
       });
       
       try {
-        console.log('[DIAGNOSTIC] Validando token JWT...');
+        console.log('[DIRECT] Validando token JWT...');
         const { data: { user }, error: userError } = await supabase.auth.getUser(token);
         if (userError) {
-          console.log('[DIAGNOSTIC] Erro na validação:', userError);
+          console.log('[DIRECT] Erro na validação:', userError);
           logStructured({
             timestamp: new Date().toISOString(),
             phase: 'AUTHENTICATION',
@@ -383,7 +316,7 @@ serve(async (req) => {
           });
         } else if (user) {
           currentUser = user;
-          console.log('[DIAGNOSTIC] Usuário autenticado:', user.id, user.email);
+          console.log('[DIRECT] Usuário autenticado:', user.id, user.email);
           logStructured({
             timestamp: new Date().toISOString(),
             phase: 'AUTHENTICATION',
@@ -393,7 +326,7 @@ serve(async (req) => {
           });
         }
       } catch (authError) {
-        console.log('[DIAGNOSTIC] Exceção na autenticação:', authError);
+        console.log('[DIRECT] Exceção na autenticação:', authError);
         logStructured({
           timestamp: new Date().toISOString(),
           phase: 'AUTHENTICATION',
@@ -405,7 +338,7 @@ serve(async (req) => {
     }
 
     if (!currentUser) {
-      console.log('[DIAGNOSTIC] Usuário não autenticado, retornando 401');
+      console.log('[DIRECT] Usuário não autenticado, retornando 401');
       logStructured({
         timestamp: new Date().toISOString(),
         phase: 'OPERATION_END',
@@ -423,10 +356,10 @@ serve(async (req) => {
       });
     }
 
-    console.log('[DIAGNOSTIC] Fazendo parse do body...');
+    console.log('[DIRECT] Fazendo parse do body...');
     const { action, instanceName, instanceId } = await req.json();
     
-    console.log('[DIAGNOSTIC] Body parseado:', { action, instanceName, instanceId });
+    console.log('[DIRECT] Body parseado:', { action, instanceName, instanceId });
     
     logStructured({
       timestamp: new Date().toISOString(),
@@ -437,16 +370,16 @@ serve(async (req) => {
     });
 
     if (action === 'create_instance') {
-      console.log('[DIAGNOSTIC] Redirecionando para createInstanceEnhanced');
-      return await createInstanceEnhanced(supabase, instanceName, currentUser, operationId);
+      console.log('[DIRECT] Redirecionando para createInstanceDirect');
+      return await createInstanceDirect(supabase, currentUser, operationId);
     }
 
     if (action === 'delete_instance_corrected') {
-      console.log('[DIAGNOSTIC] Redirecionando para deleteInstanceEnhanced');
-      return await deleteInstanceEnhanced(supabase, instanceId, currentUser, operationId);
+      console.log('[DIRECT] Redirecionando para deleteInstanceDirect');
+      return await deleteInstanceDirect(supabase, instanceId, currentUser, operationId);
     }
 
-    console.log('[DIAGNOSTIC] Ação desconhecida:', action);
+    console.log('[DIRECT] Ação desconhecida:', action);
     logStructured({
       timestamp: new Date().toISOString(),
       phase: 'OPERATION_END',
@@ -465,9 +398,9 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.log('[DIAGNOSTIC] === ERRO GERAL NA EDGE FUNCTION ===');
-    console.log('[DIAGNOSTIC] Erro:', error);
-    console.log('[DIAGNOSTIC] Stack:', error.stack);
+    console.log('[DIRECT] === ERRO GERAL NA EDGE FUNCTION ===');
+    console.log('[DIRECT] Erro:', error);
+    console.log('[DIRECT] Stack:', error.stack);
     
     logStructured({
       timestamp: new Date().toISOString(),
@@ -481,7 +414,7 @@ serve(async (req) => {
       success: false,
       error: error.message,
       operationId,
-      details: 'Erro na Edge Function com diagnóstico FASE 1'
+      details: 'Erro na Edge Function com criação direta FASE 2'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -489,81 +422,61 @@ serve(async (req) => {
   }
 });
 
-// FASE 1: FUNÇÃO CREATEINSTANCE APRIMORADA
-async function createInstanceEnhanced(supabase: any, instanceName: string, user: any, operationId: string) {
-  console.log('[DIAGNOSTIC] === CRIAR INSTÂNCIA ENHANCED (FASE 1) ===');
-  console.log('[DIAGNOSTIC] Instance Name:', instanceName);
-  console.log('[DIAGNOSTIC] User ID:', user.id);
-  console.log('[DIAGNOSTIC] Operation ID:', operationId);
+// FASE 2: FUNÇÃO CREATEINSTANCE DIRETA (SEM HEALTH CHECK)
+async function createInstanceDirect(supabase: any, user: any, operationId: string) {
+  console.log('[DIRECT] === CRIAR INSTÂNCIA DIRETA (FASE 2) ===');
+  console.log('[DIRECT] User ID:', user.id);
+  console.log('[DIRECT] User Email:', user.email);
+  console.log('[DIRECT] Operation ID:', operationId);
   
   logStructured({
     timestamp: new Date().toISOString(),
-    phase: 'CREATE_INSTANCE_ENHANCED',
-    action: `Starting FASE 1 enhanced instance creation for ${instanceName}`,
+    phase: 'CREATE_INSTANCE_DIRECT',
+    action: `Starting FASE 2 direct instance creation for user ${user.email}`,
     status: 'start',
-    data: { instanceName, userId: user.id, operationId }
+    data: { userId: user.id, userEmail: user.email, operationId }
   });
 
   try {
-    if (!instanceName || instanceName.trim().length < 3) {
-      throw new Error('Nome da instância deve ter pelo menos 3 caracteres');
+    if (!user.email) {
+      throw new Error('Email do usuário é obrigatório para gerar nome da instância');
     }
 
-    const normalizedName = instanceName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
+    // FASE 2: GERAR NOME INTELIGENTE ÚNICO
+    console.log('[DIRECT] === FASE 2: GERAÇÃO DE NOME INTELIGENTE ===');
+    const intelligentInstanceName = await generateUniqueInstanceName(supabase, user.email, user.id);
     
-    console.log('[DIAGNOSTIC] Nome normalizado:', normalizedName);
+    console.log('[DIRECT] Nome inteligente gerado:', intelligentInstanceName);
     
     logStructured({
       timestamp: new Date().toISOString(),
-      phase: 'CREATE_INSTANCE_ENHANCED',
-      action: 'Instance name normalized',
+      phase: 'CREATE_INSTANCE_DIRECT',
+      action: 'Intelligent instance name generated',
       status: 'success',
-      data: { original: instanceName, normalized: normalizedName }
+      data: { originalEmail: user.email, intelligentName: intelligentInstanceName }
     });
 
-    // FASE 1: HEALTH CHECK APRIMORADO
-    console.log('[DIAGNOSTIC] === FASE 1: ENHANCED HEALTH CHECK ===');
-    const healthCheck = await checkVPSHealthWithDiagnosis();
-    
-    console.log('[DIAGNOSTIC] Resultado do enhanced health check:', healthCheck);
-    
-    if (!healthCheck.healthy) {
-      console.log('[DIAGNOSTIC] ⚠️ VPS não está saudável, mas tentando criação mesmo assim (FASE 1 - bypass)');
-      logStructured({
-        timestamp: new Date().toISOString(),
-        phase: 'CREATE_INSTANCE_ENHANCED',
-        action: 'VPS health check failed - attempting creation anyway (FASE 1 bypass)',
-        status: 'warning',
-        data: { healthCheck }
-      });
-      
-      // FASE 1: EM VEZ DE ABORTAR, TENTAR CRIAÇÃO DIRETA
-      console.log('[DIAGNOSTIC] 🚀 FASE 1: Tentando criação DIRETA mesmo com health check falhando...');
-    } else {
-      console.log('[DIAGNOSTIC] ✅ VPS saudável, prosseguindo normalmente...');
-    }
-
-    // FASE 1: COMUNICAÇÃO COM VPS APRIMORADA
-    console.log('[DIAGNOSTIC] === FASE 1: ENHANCED VPS COMMUNICATION ===');
+    // FASE 2: COMUNICAÇÃO DIRETA COM VPS (SEM HEALTH CHECK)
+    console.log('[DIRECT] === FASE 2: COMUNICAÇÃO DIRETA VPS (SEM HEALTH CHECK) ===');
     const vpsPayload = {
-      instanceId: normalizedName,
-      sessionName: normalizedName,
+      instanceId: intelligentInstanceName,
+      sessionName: intelligentInstanceName,
       webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web'
     };
 
-    console.log('[DIAGNOSTIC] Payload para VPS (FASE 1):', vpsPayload);
+    console.log('[DIRECT] Payload para VPS (FASE 2):', vpsPayload);
 
     logStructured({
       timestamp: new Date().toISOString(),
-      phase: 'CREATE_INSTANCE_ENHANCED',
-      action: 'Sending enhanced create request to VPS with FASE 1 diagnostics',
+      phase: 'CREATE_INSTANCE_DIRECT',
+      action: 'Sending direct create request to VPS (FASE 2 - no health check)',
       status: 'start',
       data: { payload: vpsPayload }
     });
 
-    const vpsData = await makeVPSRequestWithEnhancedDiagnostics('/instance/create', 'POST', vpsPayload);
+    const vpsData = await makeDirectVPSRequest('/instance/create', 'POST', vpsPayload);
 
-    console.log('[DIAGNOSTIC] ✅ Resposta da VPS (FASE 1):', vpsData);
+    console.log('[DIRECT] ✅ Resposta da VPS (FASE 2):', vpsData);
 
     if (!vpsData.success) {
       throw new Error(vpsData.error || 'VPS retornou success: false');
@@ -571,33 +484,33 @@ async function createInstanceEnhanced(supabase: any, instanceName: string, user:
 
     logStructured({
       timestamp: new Date().toISOString(),
-      phase: 'CREATE_INSTANCE_ENHANCED',
-      action: 'FASE 1 VPS instance creation successful',
+      phase: 'CREATE_INSTANCE_DIRECT',
+      action: 'FASE 2 VPS instance creation successful',
       status: 'success',
       data: { vpsInstanceId: vpsData.instanceId }
     });
 
-    // FASE 1: SALVAR NO SUPABASE
-    console.log('[DIAGNOSTIC] === FASE 1: SALVAR NO SUPABASE ===');
+    // FASE 2: SALVAR NO SUPABASE
+    console.log('[DIRECT] === FASE 2: SALVAR NO SUPABASE ===');
     logStructured({
       timestamp: new Date().toISOString(),
-      phase: 'CREATE_INSTANCE_ENHANCED',
-      action: 'Saving FASE 1 instance to Supabase',
+      phase: 'CREATE_INSTANCE_DIRECT',
+      action: 'Saving FASE 2 instance to Supabase',
       status: 'start'
     });
 
     const instanceData = {
-      instance_name: normalizedName,
+      instance_name: intelligentInstanceName,
       connection_type: 'web',
       server_url: VPS_CONFIG.baseUrl,
-      vps_instance_id: vpsData.instanceId || normalizedName,
+      vps_instance_id: vpsData.instanceId || intelligentInstanceName,
       web_status: 'initializing',
       connection_status: 'vps_created',
       created_by_user_id: user.id,
       company_id: null
     };
     
-    console.log('[DIAGNOSTIC] Dados para inserir no Supabase (FASE 1):', instanceData);
+    console.log('[DIRECT] Dados para inserir no Supabase (FASE 2):', instanceData);
 
     const { data: newInstance, error: dbError } = await supabase
       .from('whatsapp_instances')
@@ -606,33 +519,35 @@ async function createInstanceEnhanced(supabase: any, instanceName: string, user:
       .single();
 
     if (dbError) {
-      console.log('[DIAGNOSTIC] Erro no banco (FASE 1):', dbError);
+      console.log('[DIRECT] Erro no banco (FASE 2):', dbError);
       logStructured({
         timestamp: new Date().toISOString(),
-        phase: 'CREATE_INSTANCE_ENHANCED',
-        action: 'FASE 1 Database save failed',
+        phase: 'CREATE_INSTANCE_DIRECT',
+        action: 'FASE 2 Database save failed',
         status: 'error',
         data: { error: dbError.message }
       });
       throw new Error(`Erro ao salvar instância no banco: ${dbError.message}`);
     }
 
-    console.log('[DIAGNOSTIC] ✅ Instância salva no banco (FASE 1):', newInstance);
+    console.log('[DIRECT] ✅ Instância salva no banco (FASE 2):', newInstance);
 
     logStructured({
       timestamp: new Date().toISOString(),
       phase: 'OPERATION_END',
-      action: `FASE 1 Operation ${operationId} completed successfully`,
+      action: `FASE 2 Operation ${operationId} completed successfully`,
       status: 'success',
       data: { 
         instanceId: newInstance.id, 
         instanceName: newInstance.instance_name,
-        phase: 'FASE_1_DIAGNOSTIC'
+        phase: 'FASE_2_DIRECT_CREATION',
+        userEmail: user.email,
+        skipHealthCheck: true
       }
     });
 
-    console.log('[DIAGNOSTIC] === FASE 1 SUCESSO COMPLETO ===');
-    console.log('[DIAGNOSTIC] Nova instância criada com diagnóstico:', newInstance.id);
+    console.log('[DIRECT] === FASE 2 SUCESSO COMPLETO (SEM HEALTH CHECK) ===');
+    console.log('[DIRECT] Nova instância criada diretamente:', newInstance.id);
 
     return new Response(JSON.stringify({
       success: true,
@@ -640,35 +555,36 @@ async function createInstanceEnhanced(supabase: any, instanceName: string, user:
       vps_response: vpsData,
       user_id: user.id,
       operationId,
-      vps_health: healthCheck,
-      phase: 'FASE_1_DIAGNOSTIC',
-      diagnostics: healthCheck.diagnostics,
-      message: 'Instância criada com sistema FASE 1 - diagnóstico aprimorado'
+      phase: 'FASE_2_DIRECT_CREATION',
+      intelligent_name: intelligentInstanceName,
+      user_email: user.email,
+      skip_health_check: true,
+      message: 'Instância criada com sistema FASE 2 - criação direta sem health check'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.log('[DIAGNOSTIC] === ERRO NA CRIAÇÃO (FASE 1) ===');
-    console.log('[DIAGNOSTIC] Erro:', error);
-    console.log('[DIAGNOSTIC] Stack:', error.stack);
+    console.log('[DIRECT] === ERRO NA CRIAÇÃO DIRETA (FASE 2) ===');
+    console.log('[DIRECT] Erro:', error);
+    console.log('[DIRECT] Stack:', error.stack);
     
     logStructured({
       timestamp: new Date().toISOString(),
       phase: 'OPERATION_END',
-      action: `FASE 1 Operation ${operationId} failed during creation`,
+      action: `FASE 2 Operation ${operationId} failed during direct creation`,
       status: 'error',
-      data: { error: error.message, phase: 'FASE_1_DIAGNOSTIC' }
+      data: { error: error.message, phase: 'FASE_2_DIRECT_CREATION' }
     });
     
     let errorMessage = error.message;
     let errorType = 'UNKNOWN_ERROR';
     
     if (error.name === 'AbortError' || error.message.includes('Timeout')) {
-      errorMessage = 'FASE 1 - Timeout na comunicação com VPS - diagnóstico ativo';
-      errorType = 'VPS_TIMEOUT_DIAGNOSED';
+      errorMessage = 'FASE 2 - Timeout na criação direta da VPS';
+      errorType = 'VPS_TIMEOUT_DIRECT';
     } else if (error.message.includes('HTTP')) {
-      errorType = 'VPS_HTTP_ERROR_DIAGNOSED';
+      errorType = 'VPS_HTTP_ERROR_DIRECT';
     }
     
     return new Response(JSON.stringify({
@@ -677,9 +593,9 @@ async function createInstanceEnhanced(supabase: any, instanceName: string, user:
       errorType,
       operationId,
       action: 'create_instance',
-      instanceName: instanceName,
-      phase: 'FASE_1_DIAGNOSTIC',
-      method: 'enhanced_edge_function_with_detailed_diagnostics'
+      phase: 'FASE_2_DIRECT_CREATION',
+      method: 'direct_edge_function_no_health_check',
+      user_email: user?.email
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -687,16 +603,16 @@ async function createInstanceEnhanced(supabase: any, instanceName: string, user:
   }
 }
 
-// FASE 1: FUNÇÃO DELETE APRIMORADA
-async function deleteInstanceEnhanced(supabase: any, instanceId: string, user: any, operationId: string) {
-  console.log('[DIAGNOSTIC] === DELETAR INSTÂNCIA ENHANCED (FASE 1) ===');
-  console.log('[DIAGNOSTIC] Instance ID:', instanceId);
-  console.log('[DIAGNOSTIC] User ID:', user.id);
+// FASE 2: FUNÇÃO DELETE DIRETA
+async function deleteInstanceDirect(supabase: any, instanceId: string, user: any, operationId: string) {
+  console.log('[DIRECT] === DELETAR INSTÂNCIA DIRETA (FASE 2) ===');
+  console.log('[DIRECT] Instance ID:', instanceId);
+  console.log('[DIRECT] User ID:', user.id);
   
   logStructured({
     timestamp: new Date().toISOString(),
-    phase: 'DELETE_INSTANCE_ENHANCED',
-    action: `Starting FASE 1 enhanced instance deletion for ${instanceId}`,
+    phase: 'DELETE_INSTANCE_DIRECT',
+    action: `Starting FASE 2 direct instance deletion for ${instanceId}`,
     status: 'start',
     data: { instanceId, userId: user.id, operationId }
   });
@@ -712,12 +628,12 @@ async function deleteInstanceEnhanced(supabase: any, instanceId: string, user: a
       throw new Error('Instância não encontrada: ' + fetchError.message);
     }
 
-    console.log('[DIAGNOSTIC] Instância encontrada (FASE 1):', instance);
+    console.log('[DIRECT] Instância encontrada (FASE 2):', instance);
 
     logStructured({
       timestamp: new Date().toISOString(),
-      phase: 'DELETE_INSTANCE_ENHANCED',
-      action: 'FASE 1 Instance found in database',
+      phase: 'DELETE_INSTANCE_DIRECT',
+      action: 'FASE 2 Instance found in database',
       status: 'success',
       data: { instanceName: instance.instance_name, vpsInstanceId: instance.vps_instance_id }
     });
@@ -725,31 +641,31 @@ async function deleteInstanceEnhanced(supabase: any, instanceId: string, user: a
     // Deletar da VPS se tiver vps_instance_id
     if (instance.vps_instance_id) {
       try {
-        console.log('[DIAGNOSTIC] Deletando da VPS (FASE 1):', instance.vps_instance_id);
+        console.log('[DIRECT] Deletando da VPS (FASE 2):', instance.vps_instance_id);
         
         logStructured({
           timestamp: new Date().toISOString(),
-          phase: 'DELETE_INSTANCE_ENHANCED',
-          action: 'FASE 1 Deleting from VPS with enhanced diagnostics',
+          phase: 'DELETE_INSTANCE_DIRECT',
+          action: 'FASE 2 Deleting from VPS directly',
           status: 'start'
         });
         
-        await makeVPSRequestWithEnhancedDiagnostics(`/instance/${instance.vps_instance_id}`, 'DELETE', {});
+        await makeDirectVPSRequest(`/instance/${instance.vps_instance_id}`, 'DELETE', {});
         
-        console.log('[DIAGNOSTIC] ✅ Deletado da VPS com sucesso (FASE 1)');
+        console.log('[DIRECT] ✅ Deletado da VPS com sucesso (FASE 2)');
         
         logStructured({
           timestamp: new Date().toISOString(),
-          phase: 'DELETE_INSTANCE_ENHANCED',
-          action: 'FASE 1 VPS deletion successful',
+          phase: 'DELETE_INSTANCE_DIRECT',
+          action: 'FASE 2 VPS deletion successful',
           status: 'success'
         });
       } catch (vpsError) {
-        console.log('[DIAGNOSTIC] ⚠️ Erro ao deletar da VPS (FASE 1 - continuando):', vpsError);
+        console.log('[DIRECT] ⚠️ Erro ao deletar da VPS (FASE 2 - continuando):', vpsError);
         logStructured({
           timestamp: new Date().toISOString(),
-          phase: 'DELETE_INSTANCE_ENHANCED',
-          action: 'FASE 1 VPS deletion failed but continuing',
+          phase: 'DELETE_INSTANCE_DIRECT',
+          action: 'FASE 2 VPS deletion failed but continuing',
           status: 'warning',
           data: { error: vpsError.message }
         });
@@ -757,7 +673,7 @@ async function deleteInstanceEnhanced(supabase: any, instanceId: string, user: a
     }
 
     // Deletar do banco
-    console.log('[DIAGNOSTIC] Deletando do banco (FASE 1)...');
+    console.log('[DIRECT] Deletando do banco (FASE 2)...');
     const { error: deleteError } = await supabase
       .from('whatsapp_instances')
       .delete()
@@ -767,33 +683,33 @@ async function deleteInstanceEnhanced(supabase: any, instanceId: string, user: a
       throw new Error(`Erro ao deletar instância do banco: ${deleteError.message}`);
     }
 
-    console.log('[DIAGNOSTIC] ✅ Deletado do banco com sucesso (FASE 1)');
+    console.log('[DIRECT] ✅ Deletado do banco com sucesso (FASE 2)');
 
     logStructured({
       timestamp: new Date().toISOString(),
       phase: 'OPERATION_END',
-      action: `FASE 1 Operation ${operationId} deletion completed successfully`,
+      action: `FASE 2 Operation ${operationId} deletion completed successfully`,
       status: 'success'
     });
 
     return new Response(JSON.stringify({
       success: true,
-      message: 'Instância deletada com sistema FASE 1 aprimorado',
+      message: 'Instância deletada com sistema FASE 2 direto',
       operationId,
       user_id: user?.id,
-      phase: 'FASE_1_DIAGNOSTIC'
+      phase: 'FASE_2_DIRECT_DELETION'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.log('[DIAGNOSTIC] === ERRO NA DELEÇÃO (FASE 1) ===');
-    console.log('[DIAGNOSTIC] Erro:', error);
+    console.log('[DIRECT] === ERRO NA DELEÇÃO DIRETA (FASE 2) ===');
+    console.log('[DIRECT] Erro:', error);
     
     logStructured({
       timestamp: new Date().toISOString(),
       phase: 'OPERATION_END',
-      action: `FASE 1 Operation ${operationId} deletion failed`,
+      action: `FASE 2 Operation ${operationId} deletion failed`,
       status: 'error',
       data: { error: error.message }
     });
@@ -804,7 +720,7 @@ async function deleteInstanceEnhanced(supabase: any, instanceId: string, user: a
       operationId,
       action: 'delete_instance',
       instanceId: instanceId,
-      phase: 'FASE_1_DIAGNOSTIC'
+      phase: 'FASE_2_DIRECT_DELETION'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
