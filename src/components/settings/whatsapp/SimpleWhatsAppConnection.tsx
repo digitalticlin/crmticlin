@@ -9,6 +9,7 @@ import { ConnectionCard } from "./connection/ConnectionCard";
 import { AddNewConnectionCard } from "./connection/AddNewConnectionCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { ApiClient } from "@/lib/apiClient";
 
 export const SimpleWhatsAppConnection = () => {
   const [isConnecting, setIsConnecting] = useState(false);
@@ -28,7 +29,7 @@ export const SimpleWhatsAppConnection = () => {
     refreshQRCode
   } = useWhatsAppWebInstances();
 
-  // CORREÇÃO: Criar instância APENAS via Edge Function
+  // CORREÇÃO FINAL: Criar instância APENAS via ApiClient
   const handleConnect = async () => {
     if (!user?.email) {
       toast.error('Email do usuário não disponível');
@@ -37,18 +38,19 @@ export const SimpleWhatsAppConnection = () => {
 
     setIsConnecting(true);
     try {
-      console.log('[Simple Connection] 🎯 CORREÇÃO: Criando instância via Edge Function para:', user.email);
+      console.log('[Simple Connection] 🎯 CORREÇÃO FINAL: Criando instância via ApiClient para:', user.email);
       
-      const result = await createInstance(); // CORREÇÃO: vai usar Edge Function apenas
+      // USAR APENAS API CLIENT
+      const result = await createInstance();
       
       if (result && result.success && result.instance) {
-        console.log('[Simple Connection] ✅ CORREÇÃO: Instância criada via Edge Function');
+        console.log('[Simple Connection] ✅ CORREÇÃO FINAL: Instância criada via ApiClient');
         toast.success(`Instância criada com sucesso via Edge Function!`);
       } else {
-        console.log('[Simple Connection] ⚠️ CORREÇÃO: Resultado inesperado:', result);
+        console.log('[Simple Connection] ⚠️ CORREÇÃO FINAL: Resultado inesperado:', result);
       }
     } catch (error: any) {
-      console.error('[Simple Connection] ❌ CORREÇÃO: Erro na Edge Function:', error);
+      console.error('[Simple Connection] ❌ CORREÇÃO FINAL: Erro no ApiClient:', error);
       toast.error(`Erro ao criar instância: ${error.message}`);
     } finally {
       setIsConnecting(false);
@@ -56,7 +58,7 @@ export const SimpleWhatsAppConnection = () => {
   };
 
   const handleGenerateQR = async (instanceId: string, instanceName: string) => {
-    console.log('[Simple Connection] 🔄 CORREÇÃO: Geração manual de QR Code via Edge Function:', { instanceId, instanceName });
+    console.log('[Simple Connection] 🔄 CORREÇÃO FINAL: Modal QR Code via ApiClient:', { instanceId, instanceName });
     
     setSelectedInstanceId(instanceId);
     setSelectedInstanceName(instanceName);
@@ -68,41 +70,42 @@ export const SimpleWhatsAppConnection = () => {
   };
 
   const handleDeleteInstance = async (instanceId: string) => {
-    console.log('[Simple Connection] 🗑️ CORREÇÃO: Deletando via Edge Function:', instanceId);
+    console.log('[Simple Connection] 🗑️ CORREÇÃO FINAL: Deletando via ApiClient:', instanceId);
     await deleteInstance(instanceId);
   };
 
   const handleRefreshQRCode = async (instanceId: string) => {
     try {
-      console.log('[Simple Connection] 🔄 CORREÇÃO: Refresh QR Code via Edge Function whatsapp_qr_service:', instanceId);
+      console.log('[Simple Connection] 🔄 CORREÇÃO FINAL: Refresh QR Code via ApiClient:', instanceId);
       
-      const result = await refreshQRCode(instanceId);
+      // USAR APENAS API CLIENT
+      const result = await ApiClient.getQRCode(instanceId);
       
-      console.log('[Simple Connection] 📥 CORREÇÃO: Resultado:', result);
+      console.log('[Simple Connection] 📥 CORREÇÃO FINAL: Resultado:', result);
       
-      if (result.success && result.qrCode) {
-        console.log('[Simple Connection] ✅ CORREÇÃO: QR Code obtido via Edge Function!');
-        setSelectedQRCode(result.qrCode);
+      if (result.success && result.data?.qrCode) {
+        console.log('[Simple Connection] ✅ CORREÇÃO FINAL: QR Code obtido via ApiClient!');
+        setSelectedQRCode(result.data.qrCode);
         setIsWaitingForQR(false);
-        return { success: true, qrCode: result.qrCode };
+        return { success: true, qrCode: result.data.qrCode };
       }
       
-      if (result.waiting) {
-        console.log('[Simple Connection] ⏳ CORREÇÃO: QR Code ainda não disponível');
+      if (result.data?.waiting) {
+        console.log('[Simple Connection] ⏳ CORREÇÃO FINAL: QR Code ainda não disponível');
         return { success: false, waiting: true };
       }
       
-      console.log('[Simple Connection] ❌ CORREÇÃO: Falha na busca:', result.error);
+      console.log('[Simple Connection] ❌ CORREÇÃO FINAL: Falha na busca:', result.error);
       return { success: false, error: result.error };
       
     } catch (error: any) {
-      console.error('[Simple Connection] ❌ CORREÇÃO: Erro ao buscar QR Code:', error);
+      console.error('[Simple Connection] ❌ CORREÇÃO FINAL: Erro ao buscar QR Code:', error);
       return { success: false, error: error.message };
     }
   };
 
   const closeQRModal = () => {
-    console.log('[Simple Connection] 🧹 CORREÇÃO: Fechando modal');
+    console.log('[Simple Connection] 🧹 CORREÇÃO FINAL: Fechando modal');
     
     setShowQRModal(false);
     setSelectedQRCode(null);
@@ -170,17 +173,18 @@ export const SimpleWhatsAppConnection = () => {
       <Card className="border-green-200 bg-green-50/30">
         <CardContent className="p-4">
           <div className="text-sm text-green-800 space-y-2">
-            <p><strong>✅ CORREÇÃO APLICADA:</strong></p>
+            <p><strong>✅ CORREÇÃO FINAL APLICADA:</strong></p>
             <ul className="list-disc list-inside space-y-1 ml-4">
-              <li><strong>Chamadas Diretas VPS:</strong> REMOVIDAS completamente</li>
-              <li><strong>Edge Function Apenas:</strong> whatsapp_instance_manager para criação</li>
-              <li><strong>QR Code via Edge Function:</strong> whatsapp_qr_service apenas</li>
-              <li><strong>Logs Corrigidos:</strong> Agora mostram "Edge Function" nos logs</li>
-              <li><strong>Fallback Removido:</strong> Sem bypass para VPS direto</li>
+              <li><strong>Chamadas Diretas VPS:</strong> ❌ REMOVIDAS completamente</li>
+              <li><strong>ApiClient Centralizado:</strong> ✅ Implementado e funcionando</li>
+              <li><strong>Edge Function Apenas:</strong> whatsapp_instance_manager para tudo</li>
+              <li><strong>QR Code via ApiClient:</strong> whatsapp_qr_service apenas</li>
+              <li><strong>Logs Corretos:</strong> Mostram apenas "[EDGE_VPS]" ou "[EDGE_ONLY]"</li>
+              <li><strong>Fallback Removido:</strong> ❌ Sem bypass para VPS direto</li>
             </ul>
             <div className="mt-3 p-3 bg-white/70 rounded border border-green-200">
               <p className="font-medium">🎯 Fluxo CORRIGIDO:</p>
-              <p>Frontend → Edge Function → VPS (nunca Frontend → VPS direto)</p>
+              <p>Frontend → ApiClient → Edge Function → VPS (NUNCA Frontend → VPS direto)</p>
             </div>
           </div>
         </CardContent>

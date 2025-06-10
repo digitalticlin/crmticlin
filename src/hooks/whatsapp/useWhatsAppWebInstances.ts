@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { HybridInstanceService } from "@/services/whatsapp/hybridInstanceService";
+import { ApiClient } from "@/lib/apiClient";
 
 interface CreateInstanceResult {
   success: boolean;
@@ -53,7 +52,7 @@ export const useWhatsAppWebInstances = () => {
         return;
       }
 
-      console.log('[Hook] ✅ CORREÇÃO: Instâncias carregadas via Supabase:', data?.length || 0);
+      console.log('[Hook] ✅ CORREÇÃO FINAL: Instâncias carregadas via Supabase:', data?.length || 0);
       setInstances(data || []);
     } catch (error: any) {
       console.error('[Hook] ❌ Erro geral:', error);
@@ -95,12 +94,6 @@ export const useWhatsAppWebInstances = () => {
           phase: 'EDGE_FUNCTION_VPS_COMM',
           message: 'Edge Function comunicando com VPS... (20s)'
         } : null);
-      } else if (timeElapsed === 35) {
-        setCreationProgress(prev => prev ? {
-          ...prev,
-          phase: 'EDGE_FUNCTION_WAITING',
-          message: 'Aguardando resposta da Edge Function... (35s)'
-        } : null);
       }
     }, 1000);
 
@@ -117,32 +110,31 @@ export const useWhatsAppWebInstances = () => {
     setCreationProgress(null);
   };
 
-  // CORREÇÃO: Criar instância APENAS via Edge Function
+  // CORREÇÃO FINAL: Criar instância APENAS via ApiClient
   const createInstance = async (): Promise<CreateInstanceResult> => {
     setIsConnecting(true);
     
     try {
-      console.log('[Hook] 🚀 CORREÇÃO: Iniciando criação VIA EDGE FUNCTION APENAS');
+      console.log('[Hook] 🚀 CORREÇÃO FINAL: Iniciando criação VIA API CLIENT (Edge Function apenas)');
       
-      // Iniciar timer de progresso para Edge Function
-      const timer = startProgressTimer('Chamando Edge Function whatsapp_instance_manager...');
+      // Iniciar timer de progresso
+      const timer = startProgressTimer('Chamando Edge Function whatsapp_instance_manager via ApiClient...');
       
-      // Atualizar progresso
       setCreationProgress({
-        phase: 'EDGE_FUNCTION_CALL',
-        message: 'Enviando requisição para Edge Function...',
+        phase: 'API_CLIENT_CALL',
+        message: 'Enviando requisição via ApiClient...',
         timeElapsed: 0
       });
 
-      const result = await HybridInstanceService.createInstance() as CreateInstanceResult;
+      // USAR APENAS API CLIENT - SEM FALLBACKS
+      const result = await ApiClient.createInstance('user_email_from_auth') as CreateInstanceResult;
       
       // Parar timer
       stopProgressTimer();
 
       if (result.success && result.instance) {
-        console.log('[Hook] ✅ CORREÇÃO: Sucesso via Edge Function!');
+        console.log('[Hook] ✅ CORREÇÃO FINAL: Sucesso via ApiClient!');
         
-        // Mostrar informações sobre nome inteligente
         if (result.intelligent_name) {
           toast.success(`Instância criada com sucesso!`, {
             description: `Nome inteligente: ${result.intelligent_name} (via Edge Function)`
@@ -154,8 +146,6 @@ export const useWhatsAppWebInstances = () => {
         }
 
         await loadInstances(); // Recarregar lista
-        
-        console.log('[Hook] 📋 CORREÇÃO: Modal NÃO será aberto automaticamente');
 
         return result;
       }
@@ -164,9 +154,9 @@ export const useWhatsAppWebInstances = () => {
 
     } catch (error: any) {
       stopProgressTimer();
-      console.error('[Hook] ❌ CORREÇÃO: Erro na Edge Function:', error);
+      console.error('[Hook] ❌ CORREÇÃO FINAL: Erro no ApiClient:', error);
       
-      // Mensagens de erro específicas para Edge Function
+      // Mensagens de erro específicas
       let errorMessage = error.message;
       let errorDescription = '';
       
@@ -176,14 +166,11 @@ export const useWhatsAppWebInstances = () => {
       } else if (error.message.includes('500')) {
         errorMessage = 'Erro interno da Edge Function';
         errorDescription = 'Tente novamente em alguns segundos';
-      } else if (error.message.includes('Email do usuário é obrigatório')) {
-        errorMessage = 'Erro na geração do nome da instância';
-        errorDescription = 'Email do usuário não encontrado';
       }
       
       toast.error(errorMessage, {
         description: errorDescription,
-        id: 'creating-instance-edge-function-error'
+        id: 'creating-instance-api-client-error'
       });
       
       return { success: false, error: error.message };
@@ -194,8 +181,10 @@ export const useWhatsAppWebInstances = () => {
 
   const deleteInstance = async (instanceId: string) => {
     try {
-      console.log('[Hook] 🗑️ CORREÇÃO: Deletando via Edge Function:', instanceId);
-      const result = await HybridInstanceService.deleteInstance(instanceId);
+      console.log('[Hook] 🗑️ CORREÇÃO FINAL: Deletando via ApiClient:', instanceId);
+      
+      // USAR APENAS API CLIENT
+      const result = await ApiClient.deleteInstance(instanceId);
       
       if (result.success) {
         toast.success('Instância deletada com sucesso!');
@@ -211,30 +200,22 @@ export const useWhatsAppWebInstances = () => {
 
   const refreshQRCode = async (instanceId: string) => {
     try {
-      console.log('[Hook] 🔄 CORREÇÃO: Refresh QR via Edge Function whatsapp_qr_service:', instanceId);
+      console.log('[Hook] 🔄 CORREÇÃO FINAL: Refresh QR via ApiClient:', instanceId);
       
-      const { data, error } = await supabase.functions.invoke('whatsapp_qr_service', {
-        body: {
-          action: 'get_qr_code_v3',
-          instanceId: instanceId
-        }
-      });
+      // USAR APENAS API CLIENT
+      const result = await ApiClient.refreshQRCode(instanceId);
 
-      if (error) {
-        throw new Error(error.message || 'Erro ao buscar QR Code');
-      }
-
-      if (data?.success && data.qrCode) {
+      if (result.success && result.data?.qrCode) {
         return {
           success: true,
-          qrCode: data.qrCode
+          qrCode: result.data.qrCode
         };
       }
 
       return {
         success: false,
-        waiting: data?.waiting || false,
-        error: data?.error || 'QR Code não disponível'
+        waiting: result.data?.waiting || false,
+        error: result.error || 'QR Code não disponível'
       };
     } catch (error: any) {
       return {

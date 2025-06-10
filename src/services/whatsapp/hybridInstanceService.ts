@@ -1,78 +1,45 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { ApiClient } from "@/lib/apiClient";
 
 interface HybridResponse {
   success: boolean;
   instance?: any;
   error?: string;
-  method?: 'edge_function_only';
+  method?: string;
   operationId?: string;
   intelligent_name?: string;
   user_email?: string;
 }
 
 export class HybridInstanceService {
-  // CORREÇÃO: Usar APENAS a Edge Function (sem fallback para VPS direto)
+  // USAR APENAS EDGE FUNCTION VIA API CLIENT
   static async createInstance(): Promise<HybridResponse> {
-    console.log('[Hybrid Service] 🚀 CORREÇÃO: Usando APENAS Edge Function (sem VPS direto)');
+    console.log('[Hybrid Service] 🚀 CORREÇÃO FINAL: Usando APENAS Edge Function via ApiClient');
 
-    // VALIDAÇÃO INICIAL
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    
-    if (userError || !user) {
-      throw new Error('Usuário não autenticado');
-    }
-
-    if (!user.email) {
-      throw new Error('Email do usuário é obrigatório para gerar nome inteligente');
-    }
-
-    console.log('[Hybrid Service] 👤 Usuário autenticado:', user.email);
-
-    // CORREÇÃO: Usar APENAS Edge Function (sem chamadas diretas ao VPS)
     try {
-      console.log('[Hybrid Service] 📡 CORREÇÃO: Chamando Edge Function whatsapp_instance_manager...');
-      
-      const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
-        body: {
-          action: 'create_instance'
-          // Não passamos instanceName - será gerado inteligentemente baseado no email
-        }
-      });
+      // USAR CLIENTE CENTRALIZADO - NUNCA CHAMADAS DIRETAS
+      const result = await ApiClient.createInstance('user_email_from_auth');
 
-      console.log('[Hybrid Service] 📥 CORREÇÃO: Resposta da Edge Function:', {
-        success: data?.success,
-        hasInstance: !!(data?.instance),
-        error: data?.error || error?.message
-      });
-
-      if (error) {
-        console.error('[Hybrid Service] ❌ CORREÇÃO: Edge Function error:', error);
-        throw new Error(`Edge Function error: ${error.message}`);
-      }
-
-      if (data && data.success && data.instance) {
-        console.log('[Hybrid Service] ✅ CORREÇÃO: Edge Function funcionou!');
-        console.log('[Hybrid Service] 🎯 Nome inteligente gerado:', data.intelligent_name);
-        console.log('[Hybrid Service] 🆔 Operation ID:', data.operationId);
+      if (result.success && result.instance) {
+        console.log('[Hybrid Service] ✅ CORREÇÃO FINAL: Sucesso via Edge Function!');
         
         return {
           success: true,
-          instance: data.instance,
-          method: 'edge_function_only',
-          operationId: data.operationId,
-          intelligent_name: data.intelligent_name,
-          user_email: data.user_email
+          instance: result.instance,
+          method: 'EDGE_FUNCTION_ONLY',
+          operationId: result.operationId,
+          intelligent_name: result.instance?.instance_name,
+          user_email: 'from_auth_token'
         };
       }
 
-      throw new Error(data?.error || 'Edge Function retornou erro');
+      throw new Error(result.error || 'Falha na Edge Function');
 
-    } catch (edgeFunctionError: any) {
-      console.error('[Hybrid Service] ❌ CORREÇÃO: Edge Function falhou:', edgeFunctionError);
+    } catch (error: any) {
+      console.error('[Hybrid Service] ❌ CORREÇÃO FINAL: Erro na Edge Function:', error);
       
-      // CORREÇÃO: NÃO fazer fallback para VPS direto - apenas reportar erro
-      let errorMessage = edgeFunctionError.message;
+      // SEM FALLBACK PARA VPS DIRETO - APENAS REPORTAR ERRO
+      let errorMessage = error.message;
       
       if (errorMessage.includes('Failed to fetch')) {
         errorMessage = 'Erro de conexão com Edge Function. Verifique sua internet.';
@@ -86,22 +53,21 @@ export class HybridInstanceService {
 
   static async deleteInstance(instanceId: string): Promise<{ success: boolean; error?: string }> {
     try {
-      console.log('[Hybrid Service] 🗑️ CORREÇÃO: Deletando via Edge Function apenas:', instanceId);
+      console.log('[Hybrid Service] 🗑️ CORREÇÃO FINAL: Deletando via Edge Function apenas:', instanceId);
       
-      const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
-        body: {
-          action: 'delete_instance_corrected',
-          instanceId: instanceId
-        }
-      });
-
-      if (error) {
-        throw new Error(error.message || 'Erro ao deletar instância');
+      // USAR CLIENTE CENTRALIZADO - NUNCA CHAMADAS DIRETAS
+      const result = await ApiClient.deleteInstance(instanceId);
+      
+      if (result.success) {
+        return { success: true };
       }
 
-      return { success: true };
+      return {
+        success: false,
+        error: result.error || 'Erro ao deletar instância'
+      };
     } catch (error: any) {
-      console.error('[Hybrid Service] ❌ CORREÇÃO: Erro ao deletar:', error);
+      console.error('[Hybrid Service] ❌ CORREÇÃO FINAL: Erro ao deletar:', error);
       return {
         success: false,
         error: error.message || 'Erro ao deletar instância'

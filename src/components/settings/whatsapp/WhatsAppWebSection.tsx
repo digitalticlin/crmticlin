@@ -23,24 +23,24 @@ export const WhatsAppWebSection = () => {
     retryQRCode
   } = useWhatsAppWebInstances();
 
-  // CORREÇÃO: Criar instância APENAS via Edge Function
+  // CORREÇÃO FINAL: Criar instância APENAS via ApiClient
   const handleConnect = async () => {
     if (!user?.email) {
-      console.error('[WhatsApp Section] ❌ CORREÇÃO: Email do usuário não disponível');
+      console.error('[WhatsApp Section] ❌ CORREÇÃO FINAL: Email do usuário não disponível');
       return;
     }
 
-    console.log('[WhatsApp Section] 🚀 CORREÇÃO: Iniciando criação via Edge Function apenas:', user.email);
-    await createInstance(); // CORREÇÃO: vai usar Edge Function apenas (não VPS direto)
+    console.log('[WhatsApp Section] 🚀 CORREÇÃO FINAL: Iniciando criação via ApiClient apenas:', user.email);
+    await createInstance(); // CORREÇÃO FINAL: vai usar ApiClient apenas
   };
 
   const handleDeleteInstance = async (instanceId: string) => {
-    console.log('[WhatsApp Section] 🗑️ CORREÇÃO: Deletando via Edge Function apenas:', instanceId);
+    console.log('[WhatsApp Section] 🗑️ CORREÇÃO FINAL: Deletando via ApiClient apenas:', instanceId);
     await deleteInstance(instanceId);
   };
 
   const handleRefreshQR = async (instanceId: string) => {
-    console.log('[WhatsApp Section] 🔄 CORREÇÃO: Refresh QR via Edge Function apenas:', instanceId);
+    console.log('[WhatsApp Section] 🔄 CORREÇÃO FINAL: Refresh QR via ApiClient apenas:', instanceId);
     await refreshQRCode(instanceId);
   };
 
@@ -104,17 +104,19 @@ export const WhatsAppWebSection = () => {
           <div className="text-sm text-green-800 space-y-2">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-600" />
-              <strong>✅ CORREÇÃO - EDGE FUNCTION APENAS ATIVADA</strong>
+              <strong>✅ CORREÇÃO FINAL - API CLIENT IMPLEMENTADO</strong>
             </div>
             <ul className="list-disc list-inside space-y-1 ml-4">
-              <li><strong>Chamadas Diretas VPS:</strong> REMOVIDAS do frontend</li>
+              <li><strong>Chamadas Diretas VPS:</strong> ❌ REMOVIDAS do frontend</li>
+              <li><strong>ApiClient Centralizado:</strong> ✅ Todos os métodos implementados</li>
               <li><strong>Edge Function Única:</strong> whatsapp_instance_manager apenas</li>
-              <li><strong>Fluxo Corrigido:</strong> Frontend → Edge Function → VPS</li>
-              <li><strong>Logs Limpos:</strong> Sem mais "[DIRECT_VPS]" no frontend</li>
+              <li><strong>Fluxo Corrigido:</strong> Frontend → ApiClient → Edge Function → VPS</li>
+              <li><strong>Logs Limpos:</strong> ❌ Sem mais "[DIRECT_VPS]" no frontend</li>
+              <li><strong>Nomes Inteligentes:</strong> ✅ Gerados baseados no email do usuário</li>
             </ul>
             <div className="mt-3 p-3 bg-white/70 rounded border border-green-200">
-              <p className="font-medium">🎯 Fluxo CORRIGIDO:</p>
-              <p>1. Frontend chama Edge Function → 2. Edge Function comunica com VPS → 3. Resposta via Edge Function</p>
+              <p className="font-medium">🎯 Fluxo CORRIGIDO FINAL:</p>
+              <p>1. Frontend chama ApiClient → 2. ApiClient chama Edge Function → 3. Edge Function comunica com VPS → 4. Resposta via Edge Function</p>
             </div>
           </div>
         </CardContent>

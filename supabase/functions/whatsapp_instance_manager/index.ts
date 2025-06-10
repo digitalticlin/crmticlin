@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -6,11 +7,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// FASE 2: CONFIGURAÇÃO OTIMIZADA SEM HEALTH CHECK OBRIGATÓRIO
+// CONFIGURAÇÃO VPS CENTRALIZADA
 const VPS_CONFIG = {
   baseUrl: 'http://31.97.24.222:3002',
   authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
-  timeout: 30000, // 30s para criação direta
+  timeout: 30000,
   retryAttempts: 3,
   backoffMultiplier: 1500
 };
@@ -22,8 +23,6 @@ interface LogEntry {
   duration?: number;
   status: 'start' | 'success' | 'error' | 'warning';
   data?: any;
-  origin?: string;
-  headers?: any;
 }
 
 function logStructured(entry: LogEntry) {
@@ -36,21 +35,20 @@ async function wait(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-// FASE 2: FUNÇÃO PARA GERAR NOME INTELIGENTE BASEADO NO EMAIL
+// FUNÇÃO PARA GERAR NOME INTELIGENTE BASEADO NO EMAIL
 function generateIntelligentInstanceName(email: string): string {
   if (!email || !email.includes('@')) {
     return `whatsapp_${Date.now()}`;
   }
   
-  // Converter email para nome válido
+  // Converter email para nome válido (apenas parte antes do @)
   const emailPart = email.split('@')[0];
-  const domainPart = email.split('@')[1].replace(/\./g, '_');
-  const baseName = `${emailPart}_${domainPart}`.toLowerCase().replace(/[^a-zA-Z0-9_]/g, '_');
+  const baseName = emailPart.toLowerCase().replace(/[^a-zA-Z0-9_]/g, '_');
   
   return baseName;
 }
 
-// FASE 2: FUNÇÃO PARA VERIFICAR E GERAR NOME ÚNICO
+// FUNÇÃO PARA VERIFICAR E GERAR NOME ÚNICO
 async function generateUniqueInstanceName(supabase: any, userEmail: string, userId: string): Promise<string> {
   const baseName = generateIntelligentInstanceName(userEmail);
   
@@ -89,12 +87,12 @@ async function generateUniqueInstanceName(supabase: any, userEmail: string, user
   }
 
   // Encontrar próximo número disponível
-  let counter = 2;
-  let candidateName = `${baseName}_${counter}`;
+  let counter = 1;
+  let candidateName = `${baseName}${counter}`;
   
   while (existingNames.includes(candidateName)) {
     counter++;
-    candidateName = `${baseName}_${counter}`;
+    candidateName = `${baseName}${counter}`;
   }
 
   logStructured({
@@ -108,47 +106,46 @@ async function generateUniqueInstanceName(supabase: any, userEmail: string, user
   return candidateName;
 }
 
-// FASE 2: REQUISIÇÃO VPS DIRETTA (SEM HEALTH CHECK)
-async function makeDirectVPSRequest(endpoint: string, method: string, payload: any, attemptNumber = 1): Promise<any> {
+// FUNÇÃO PARA COMUNICAÇÃO VPS VIA EDGE FUNCTION
+async function makeVPSRequest(endpoint: string, method: string, payload: any, attemptNumber = 1): Promise<any> {
   const startTime = Date.now();
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
   
   logStructured({
     timestamp: new Date().toISOString(),
-    phase: 'DIRECT_VPS_REQUEST',
-    action: `Direct attempt ${attemptNumber}/${VPS_CONFIG.retryAttempts} - ${method} ${endpoint}`,
+    phase: 'EDGE_VPS_REQUEST',
+    action: `Edge Function attempt ${attemptNumber}/${VPS_CONFIG.retryAttempts} - ${method} ${endpoint}`,
     status: 'start',
     data: { payload, attempt: attemptNumber, requestId }
   });
 
   try {
     const fullUrl = `${VPS_CONFIG.baseUrl}${endpoint}`;
-    console.log('[DIRECT_VPS] === REQUISIÇÃO DIRETA VPS ===');
-    console.log('[DIRECT_VPS] Request ID:', requestId);
-    console.log('[DIRECT_VPS] URL completa:', fullUrl);
-    console.log('[DIRECT_VPS] Método:', method);
-    console.log('[DIRECT_VPS] Tentativa:', attemptNumber, 'de', VPS_CONFIG.retryAttempts);
-    console.log('[DIRECT_VPS] Timeout configurado:', VPS_CONFIG.timeout, 'ms');
+    console.log('[EDGE_VPS] === REQUISIÇÃO VIA EDGE FUNCTION ===');
+    console.log('[EDGE_VPS] Request ID:', requestId);
+    console.log('[EDGE_VPS] URL completa:', fullUrl);
+    console.log('[EDGE_VPS] Método:', method);
+    console.log('[EDGE_VPS] Tentativa:', attemptNumber, 'de', VPS_CONFIG.retryAttempts);
     
     const requestHeaders = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
-      'User-Agent': 'Supabase-Edge-Direct/2.0',
+      'User-Agent': 'Supabase-Edge-Function/2.0',
       'X-Request-ID': requestId,
-      'X-Request-Source': 'Supabase-Direct-Creation',
+      'X-Request-Source': 'Supabase-Edge-Only',
       'X-Attempt-Number': attemptNumber.toString(),
       'X-Request-Time': new Date().toISOString()
     };
     
-    console.log('[DIRECT_VPS] Headers da requisição:', requestHeaders);
+    console.log('[EDGE_VPS] Headers da requisição:', requestHeaders);
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
-      console.log(`[DIRECT_VPS] TIMEOUT de ${VPS_CONFIG.timeout}ms atingido para Request ID: ${requestId}`);
+      console.log(`[EDGE_VPS] TIMEOUT de ${VPS_CONFIG.timeout}ms atingido para Request ID: ${requestId}`);
       controller.abort();
     }, VPS_CONFIG.timeout);
 
-    console.log('[DIRECT_VPS] Iniciando fetch direto...');
+    console.log('[EDGE_VPS] Iniciando fetch via Edge Function...');
     const response = await fetch(fullUrl, {
       method,
       headers: requestHeaders,
@@ -159,16 +156,15 @@ async function makeDirectVPSRequest(endpoint: string, method: string, payload: a
     clearTimeout(timeoutId);
     const duration = Date.now() - startTime;
     
-    console.log('[DIRECT_VPS] === RESPOSTA DIRETA RECEBIDA ===');
-    console.log('[DIRECT_VPS] Request ID:', requestId);
-    console.log('[DIRECT_VPS] Status da resposta:', response.status);
-    console.log('[DIRECT_VPS] Status text:', response.statusText);
-    console.log('[DIRECT_VPS] Duração total:', duration, 'ms');
+    console.log('[EDGE_VPS] === RESPOSTA VIA EDGE FUNCTION ===');
+    console.log('[EDGE_VPS] Request ID:', requestId);
+    console.log('[EDGE_VPS] Status da resposta:', response.status);
+    console.log('[EDGE_VPS] Duração total:', duration, 'ms');
 
     logStructured({
       timestamp: new Date().toISOString(),
-      phase: 'DIRECT_VPS_REQUEST',
-      action: 'Direct VPS response received',
+      phase: 'EDGE_VPS_REQUEST',
+      action: 'Edge Function VPS response received',
       status: 'success',
       duration,
       data: { 
@@ -181,56 +177,35 @@ async function makeDirectVPSRequest(endpoint: string, method: string, payload: a
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.log('[DIRECT_VPS] ❌ Resposta de erro (Request ID:', requestId, '):', errorText);
+      console.log('[EDGE_VPS] ❌ Resposta de erro via Edge Function:', errorText);
       
-      logStructured({
-        timestamp: new Date().toISOString(),
-        phase: 'DIRECT_VPS_REQUEST',
-        action: `Direct VPS returned error ${response.status}`,
-        status: 'error',
-        duration,
-        data: { requestId, status: response.status, error: errorText, statusText: response.statusText }
-      });
-      
-      throw new Error(`VPS HTTP Error ${response.status}: ${response.statusText} - ${errorText} (Request ID: ${requestId})`);
+      throw new Error(`VPS HTTP Error ${response.status}: ${response.statusText} - ${errorText}`);
     }
 
-    console.log('[DIRECT_VPS] Fazendo parse do JSON...');
     const data = await response.json();
-    console.log('[DIRECT_VPS] ✅ JSON parseado com sucesso (Request ID:', requestId, ')');
+    console.log('[EDGE_VPS] ✅ JSON parseado com sucesso via Edge Function');
     
-    logStructured({
-      timestamp: new Date().toISOString(),
-      phase: 'DIRECT_VPS_REQUEST',
-      action: 'Direct VPS request successful',
-      status: 'success',
-      duration,
-      data: { requestId, success: data.success, instanceId: data.instanceId }
-    });
-
     return data;
 
   } catch (error) {
     const duration = Date.now() - startTime;
     
-    console.log('[DIRECT_VPS] === ERRO NA REQUISIÇÃO DIRETA ===');
-    console.log('[DIRECT_VPS] Request ID:', requestId);
-    console.log('[DIRECT_VPS] Tentativa:', attemptNumber, 'de', VPS_CONFIG.retryAttempts);
-    console.log('[DIRECT_VPS] Tipo do erro:', error.name);
-    console.log('[DIRECT_VPS] Mensagem:', error.message);
-    console.log('[DIRECT_VPS] Duração até erro:', duration, 'ms');
+    console.log('[EDGE_VPS] === ERRO NA REQUISIÇÃO VIA EDGE FUNCTION ===');
+    console.log('[EDGE_VPS] Request ID:', requestId);
+    console.log('[EDGE_VPS] Tentativa:', attemptNumber, 'de', VPS_CONFIG.retryAttempts);
+    console.log('[EDGE_VPS] Tipo do erro:', error.name);
+    console.log('[EDGE_VPS] Mensagem:', error.message);
     
     logStructured({
       timestamp: new Date().toISOString(),
-      phase: 'DIRECT_VPS_REQUEST',
-      action: `Direct attempt ${attemptNumber} failed`,
+      phase: 'EDGE_VPS_REQUEST',
+      action: `Edge Function attempt ${attemptNumber} failed`,
       status: 'error',
       duration,
       data: { 
         requestId,
         error: error.message, 
         name: error.name,
-        isAborted: error.name === 'AbortError',
         attempt: attemptNumber
       }
     });
@@ -239,14 +214,14 @@ async function makeDirectVPSRequest(endpoint: string, method: string, payload: a
     if (attemptNumber < VPS_CONFIG.retryAttempts) {
       const backoffDelay = VPS_CONFIG.backoffMultiplier * attemptNumber;
       
-      console.log(`[DIRECT_VPS] 🔄 Tentando novamente Request ID ${requestId} em ${backoffDelay}ms... (tentativa ${attemptNumber + 1}/${VPS_CONFIG.retryAttempts})`);
+      console.log(`[EDGE_VPS] 🔄 Tentando novamente via Edge Function em ${backoffDelay}ms...`);
       
       await wait(backoffDelay);
-      return makeDirectVPSRequest(endpoint, method, payload, attemptNumber + 1);
+      return makeVPSRequest(endpoint, method, payload, attemptNumber + 1);
     }
 
     if (error.name === 'AbortError') {
-      throw new Error(`VPS Timeout após ${VPS_CONFIG.timeout}ms - tentativa direta falhou (Request ID: ${requestId})`);
+      throw new Error(`VPS Timeout após ${VPS_CONFIG.timeout}ms via Edge Function`);
     }
 
     throw error;
@@ -254,18 +229,12 @@ async function makeDirectVPSRequest(endpoint: string, method: string, payload: a
 }
 
 serve(async (req) => {
-  // PASSO 1: LOG INICIAL CRÍTICO - PRIMEIRO SINAL DE VIDA
   const executionId = `exec_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-  console.log('🚨🚨🚨 EDGE FUNCTION INICIOU EXECUÇÃO 🚨🚨🚨');
+  console.log('🚀 EDGE FUNCTION INICIOU EXECUÇÃO');
   console.log('Execution ID:', executionId);
   console.log('Timestamp:', new Date().toISOString());
   console.log('Método HTTP:', req.method);
   console.log('URL Completa:', req.url);
-  console.log('User-Agent:', req.headers.get('User-Agent') || 'N/A');
-  console.log('Origin:', req.headers.get('Origin') || 'N/A');
-  console.log('Referer:', req.headers.get('Referer') || 'N/A');
-  console.log('Authorization presente:', !!req.headers.get('Authorization'));
-  console.log('🚨🚨🚨 EDGE FUNCTION LOGS ACIMA CONFIRMAM EXECUÇÃO 🚨🚨🚨');
 
   if (req.method === 'OPTIONS') {
     console.log('[PREFLIGHT] Respondendo CORS preflight para Execution ID:', executionId);
@@ -274,23 +243,16 @@ serve(async (req) => {
 
   const operationId = `op_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
   
-  console.log('[DIRECT] === NOVA OPERAÇÃO DIRETA (FASE 2) ===');
-  console.log('[DIRECT] Operation ID:', operationId);
-  console.log('[DIRECT] Execution ID:', executionId);
-  console.log('[DIRECT] Método HTTP:', req.method);
-  console.log('[DIRECT] URL:', req.url);
-  console.log('[DIRECT] Configuração VPS:', {
-    baseUrl: VPS_CONFIG.baseUrl,
-    timeout: VPS_CONFIG.timeout,
-    retryAttempts: VPS_CONFIG.retryAttempts
-  });
+  console.log('[EDGE_ONLY] === NOVA OPERAÇÃO VIA EDGE FUNCTION ===');
+  console.log('[EDGE_ONLY] Operation ID:', operationId);
+  console.log('[EDGE_ONLY] Execution ID:', executionId);
   
   logStructured({
     timestamp: new Date().toISOString(),
-    phase: 'OPERATION_START_DIRECT',
-    action: `Direct operation ${operationId} started (FASE 2) - Execution ${executionId}`,
+    phase: 'OPERATION_START_EDGE_ONLY',
+    action: `Edge-only operation ${operationId} started - Execution ${executionId}`,
     status: 'start',
-    data: { method: req.method, url: req.url, vpsConfig: VPS_CONFIG }
+    data: { method: req.method, url: req.url }
   });
 
   try {
@@ -298,68 +260,33 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log('[DIRECT] Cliente Supabase criado para Operation ID:', operationId);
+    console.log('[EDGE_ONLY] Cliente Supabase criado para Operation ID:', operationId);
 
-    // ... keep existing code (authentication logic) the same ...
-
+    // Autenticação
     const authHeader = req.headers.get('Authorization');
     let currentUser = null;
     
-    console.log('[DIRECT] Auth header presente:', !!authHeader);
+    console.log('[EDGE_ONLY] Auth header presente:', !!authHeader);
     
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.replace('Bearer ', '');
       
-      logStructured({
-        timestamp: new Date().toISOString(),
-        phase: 'AUTHENTICATION',
-        action: 'Validating JWT token',
-        status: 'start'
-      });
-      
       try {
-        console.log('[DIRECT] Validando token JWT...');
+        console.log('[EDGE_ONLY] Validando token JWT...');
         const { data: { user }, error: userError } = await supabase.auth.getUser(token);
         if (userError) {
-          console.log('[DIRECT] Erro na validação:', userError);
-          logStructured({
-            timestamp: new Date().toISOString(),
-            phase: 'AUTHENTICATION',
-            action: 'JWT validation failed',
-            status: 'error',
-            data: { error: userError.message, code: userError.code }
-          });
+          console.log('[EDGE_ONLY] Erro na validação:', userError);
         } else if (user) {
           currentUser = user;
-          console.log('[DIRECT] Usuário autenticado:', user.id, user.email);
-          logStructured({
-            timestamp: new Date().toISOString(),
-            phase: 'AUTHENTICATION',
-            action: 'User authenticated successfully',
-            status: 'success',
-            data: { userId: user.id, email: user.email }
-          });
+          console.log('[EDGE_ONLY] Usuário autenticado:', user.id, user.email);
         }
       } catch (authError) {
-        console.log('[DIRECT] Exceção na autenticação:', authError);
-        logStructured({
-          timestamp: new Date().toISOString(),
-          phase: 'AUTHENTICATION',
-          action: 'Authentication failed',
-          status: 'error',
-          data: { error: authError.message }
-        });
+        console.log('[EDGE_ONLY] Exceção na autenticação:', authError);
       }
     }
 
     if (!currentUser) {
-      console.log('[DIRECT] Usuário não autenticado, retornando 401 para Operation ID:', operationId);
-      logStructured({
-        timestamp: new Date().toISOString(),
-        phase: 'OPERATION_END',
-        action: `Operation ${operationId} failed - no authentication`,
-        status: 'error'
-      });
+      console.log('[EDGE_ONLY] Usuário não autenticado, retornando 401');
       
       return new Response(JSON.stringify({
         success: false,
@@ -372,37 +299,22 @@ serve(async (req) => {
       });
     }
 
-    console.log('[DIRECT] Fazendo parse do body para Operation ID:', operationId);
+    console.log('[EDGE_ONLY] Fazendo parse do body para Operation ID:', operationId);
     const { action, instanceName, instanceId } = await req.json();
     
-    console.log('[DIRECT] Body parseado:', { action, instanceName, instanceId });
-    
-    logStructured({
-      timestamp: new Date().toISOString(),
-      phase: 'REQUEST_PARSING',
-      action: `Action received: ${action}`,
-      status: 'success',
-      data: { action, instanceName, instanceId, userId: currentUser.id }
-    });
+    console.log('[EDGE_ONLY] Body parseado:', { action, instanceName, instanceId });
 
     if (action === 'create_instance') {
-      console.log('[DIRECT] Redirecionando para createInstanceDirect - Operation ID:', operationId);
-      return await createInstanceDirect(supabase, currentUser, operationId);
+      console.log('[EDGE_ONLY] Redirecionando para createInstanceViaEdge');
+      return await createInstanceViaEdge(supabase, currentUser, operationId);
     }
 
     if (action === 'delete_instance_corrected') {
-      console.log('[DIRECT] Redirecionando para deleteInstanceDirect - Operation ID:', operationId);
-      return await deleteInstanceDirect(supabase, instanceId, currentUser, operationId);
+      console.log('[EDGE_ONLY] Redirecionando para deleteInstanceViaEdge');
+      return await deleteInstanceViaEdge(supabase, instanceId, currentUser, operationId);
     }
 
-    console.log('[DIRECT] Ação desconhecida:', action);
-    logStructured({
-      timestamp: new Date().toISOString(),
-      phase: 'OPERATION_END',
-      action: `Operation ${operationId} failed - unknown action`,
-      status: 'error',
-      data: { action }
-    });
+    console.log('[EDGE_ONLY] Ação desconhecida:', action);
 
     return new Response(JSON.stringify({
       success: false,
@@ -415,26 +327,17 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.log('[DIRECT] === ERRO GERAL NA EDGE FUNCTION ===');
-    console.log('[DIRECT] Execution ID:', executionId);
-    console.log('[DIRECT] Operation ID:', operationId);
-    console.log('[DIRECT] Erro:', error);
-    console.log('[DIRECT] Stack:', error.stack);
-    
-    logStructured({
-      timestamp: new Date().toISOString(),
-      phase: 'OPERATION_END',
-      action: `Operation ${operationId} failed with error`,
-      status: 'error',
-      data: { error: error.message, stack: error.stack, executionId }
-    });
+    console.log('[EDGE_ONLY] === ERRO GERAL NA EDGE FUNCTION ===');
+    console.log('[EDGE_ONLY] Execution ID:', executionId);
+    console.log('[EDGE_ONLY] Operation ID:', operationId);
+    console.log('[EDGE_ONLY] Erro:', error);
     
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
       operationId,
       executionId,
-      details: 'Erro na Edge Function com criação direta FASE 2'
+      details: 'Erro na Edge Function (apenas Edge)'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -442,17 +345,17 @@ serve(async (req) => {
   }
 });
 
-// FASE 2: FUNÇÃO CREATEINSTANCE DIRETA (SEM HEALTH CHECK)
-async function createInstanceDirect(supabase: any, user: any, operationId: string) {
-  console.log('[DIRECT] === CRIAR INSTÂNCIA DIRETA (FASE 2) ===');
-  console.log('[DIRECT] User ID:', user.id);
-  console.log('[DIRECT] User Email:', user.email);
-  console.log('[DIRECT] Operation ID:', operationId);
+// FUNÇÃO CREATEINSTANCE VIA EDGE FUNCTION APENAS
+async function createInstanceViaEdge(supabase: any, user: any, operationId: string) {
+  console.log('[EDGE_ONLY] === CRIAR INSTÂNCIA VIA EDGE FUNCTION APENAS ===');
+  console.log('[EDGE_ONLY] User ID:', user.id);
+  console.log('[EDGE_ONLY] User Email:', user.email);
+  console.log('[EDGE_ONLY] Operation ID:', operationId);
   
   logStructured({
     timestamp: new Date().toISOString(),
-    phase: 'CREATE_INSTANCE_DIRECT',
-    action: `Starting FASE 2 direct instance creation for user ${user.email}`,
+    phase: 'CREATE_INSTANCE_EDGE_ONLY',
+    action: `Starting Edge-only instance creation for user ${user.email}`,
     status: 'start',
     data: { userId: user.id, userEmail: user.email, operationId }
   });
@@ -462,62 +365,32 @@ async function createInstanceDirect(supabase: any, user: any, operationId: strin
       throw new Error('Email do usuário é obrigatório para gerar nome da instância');
     }
 
-    // FASE 2: GERAR NOME INTELIGENTE ÚNICO
-    console.log('[DIRECT] === FASE 2: GERAÇÃO DE NOME INTELIGENTE ===');
+    // GERAR NOME INTELIGENTE ÚNICO
+    console.log('[EDGE_ONLY] === GERAÇÃO DE NOME INTELIGENTE ===');
     const intelligentInstanceName = await generateUniqueInstanceName(supabase, user.email, user.id);
     
-    console.log('[DIRECT] Nome inteligente gerado:', intelligentInstanceName);
-    
-    logStructured({
-      timestamp: new Date().toISOString(),
-      phase: 'CREATE_INSTANCE_DIRECT',
-      action: 'Intelligent instance name generated',
-      status: 'success',
-      data: { originalEmail: user.email, intelligentName: intelligentInstanceName }
-    });
+    console.log('[EDGE_ONLY] Nome inteligente gerado:', intelligentInstanceName);
 
-    // FASE 2: COMUNICAÇÃO DIRETA COM VPS (SEM HEALTH CHECK)
-    console.log('[DIRECT] === FASE 2: COMUNICAÇÃO DIRETA VPS (SEM HEALTH CHECK) ===');
+    // COMUNICAÇÃO VPS VIA EDGE FUNCTION
+    console.log('[EDGE_ONLY] === COMUNICAÇÃO VPS VIA EDGE FUNCTION ===');
     const vpsPayload = {
       instanceId: intelligentInstanceName,
       sessionName: intelligentInstanceName,
       webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web'
     };
 
-    console.log('[DIRECT] Payload para VPS (FASE 2):', vpsPayload);
+    console.log('[EDGE_ONLY] Payload para VPS via Edge Function:', vpsPayload);
 
-    logStructured({
-      timestamp: new Date().toISOString(),
-      phase: 'CREATE_INSTANCE_DIRECT',
-      action: 'Sending direct create request to VPS (FASE 2 - no health check)',
-      status: 'start',
-      data: { payload: vpsPayload }
-    });
+    const vpsData = await makeVPSRequest('/instance/create', 'POST', vpsPayload);
 
-    const vpsData = await makeDirectVPSRequest('/instance/create', 'POST', vpsPayload);
-
-    console.log('[DIRECT] ✅ Resposta da VPS (FASE 2):', vpsData);
+    console.log('[EDGE_ONLY] ✅ Resposta da VPS via Edge Function:', vpsData);
 
     if (!vpsData.success) {
       throw new Error(vpsData.error || 'VPS retornou success: false');
     }
 
-    logStructured({
-      timestamp: new Date().toISOString(),
-      phase: 'CREATE_INSTANCE_DIRECT',
-      action: 'FASE 2 VPS instance creation successful',
-      status: 'success',
-      data: { vpsInstanceId: vpsData.instanceId }
-    });
-
-    // FASE 2: SALVAR NO SUPABASE
-    console.log('[DIRECT] === FASE 2: SALVAR NO SUPABASE ===');
-    logStructured({
-      timestamp: new Date().toISOString(),
-      phase: 'CREATE_INSTANCE_DIRECT',
-      action: 'Saving FASE 2 instance to Supabase',
-      status: 'start'
-    });
+    // SALVAR NO SUPABASE
+    console.log('[EDGE_ONLY] === SALVAR NO SUPABASE ===');
 
     const instanceData = {
       instance_name: intelligentInstanceName,
@@ -530,7 +403,7 @@ async function createInstanceDirect(supabase: any, user: any, operationId: strin
       company_id: null
     };
     
-    console.log('[DIRECT] Dados para inserir no Supabase (FASE 2):', instanceData);
+    console.log('[EDGE_ONLY] Dados para inserir no Supabase:', instanceData);
 
     const { data: newInstance, error: dbError } = await supabase
       .from('whatsapp_instances')
@@ -539,35 +412,26 @@ async function createInstanceDirect(supabase: any, user: any, operationId: strin
       .single();
 
     if (dbError) {
-      console.log('[DIRECT] Erro no banco (FASE 2):', dbError);
-      logStructured({
-        timestamp: new Date().toISOString(),
-        phase: 'CREATE_INSTANCE_DIRECT',
-        action: 'FASE 2 Database save failed',
-        status: 'error',
-        data: { error: dbError.message }
-      });
+      console.log('[EDGE_ONLY] Erro no banco:', dbError);
       throw new Error(`Erro ao salvar instância no banco: ${dbError.message}`);
     }
 
-    console.log('[DIRECT] ✅ Instância salva no banco (FASE 2):', newInstance);
+    console.log('[EDGE_ONLY] ✅ Instância salva no banco:', newInstance);
 
     logStructured({
       timestamp: new Date().toISOString(),
       phase: 'OPERATION_END',
-      action: `FASE 2 Operation ${operationId} completed successfully`,
+      action: `Edge-only Operation ${operationId} completed successfully`,
       status: 'success',
       data: { 
         instanceId: newInstance.id, 
         instanceName: newInstance.instance_name,
-        phase: 'FASE_2_DIRECT_CREATION',
-        userEmail: user.email,
-        skipHealthCheck: true
+        method: 'EDGE_FUNCTION_ONLY',
+        userEmail: user.email
       }
     });
 
-    console.log('[DIRECT] === FASE 2 SUCESSO COMPLETO (SEM HEALTH CHECK) ===');
-    console.log('[DIRECT] Nova instância criada diretamente:', newInstance.id);
+    console.log('[EDGE_ONLY] === SUCESSO COMPLETO VIA EDGE FUNCTION ===');
 
     return new Response(JSON.stringify({
       success: true,
@@ -575,36 +439,34 @@ async function createInstanceDirect(supabase: any, user: any, operationId: strin
       vps_response: vpsData,
       user_id: user.id,
       operationId,
-      phase: 'FASE_2_DIRECT_CREATION',
+      method: 'EDGE_FUNCTION_ONLY',
       intelligent_name: intelligentInstanceName,
       user_email: user.email,
-      skip_health_check: true,
-      message: 'Instância criada com sistema FASE 2 - criação direta sem health check'
+      message: 'Instância criada via Edge Function apenas'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.log('[DIRECT] === ERRO NA CRIAÇÃO DIRETA (FASE 2) ===');
-    console.log('[DIRECT] Erro:', error);
-    console.log('[DIRECT] Stack:', error.stack);
+    console.log('[EDGE_ONLY] === ERRO NA CRIAÇÃO VIA EDGE FUNCTION ===');
+    console.log('[EDGE_ONLY] Erro:', error);
     
     logStructured({
       timestamp: new Date().toISOString(),
       phase: 'OPERATION_END',
-      action: `FASE 2 Operation ${operationId} failed during direct creation`,
+      action: `Edge-only Operation ${operationId} failed`,
       status: 'error',
-      data: { error: error.message, phase: 'FASE_2_DIRECT_CREATION' }
+      data: { error: error.message, method: 'EDGE_FUNCTION_ONLY' }
     });
     
     let errorMessage = error.message;
     let errorType = 'UNKNOWN_ERROR';
     
     if (error.name === 'AbortError' || error.message.includes('Timeout')) {
-      errorMessage = 'FASE 2 - Timeout na criação direta da VPS';
-      errorType = 'VPS_TIMEOUT_DIRECT';
+      errorMessage = 'Timeout na criação via Edge Function';
+      errorType = 'VPS_TIMEOUT_EDGE_FUNCTION';
     } else if (error.message.includes('HTTP')) {
-      errorType = 'VPS_HTTP_ERROR_DIRECT';
+      errorType = 'VPS_HTTP_ERROR_EDGE_FUNCTION';
     }
     
     return new Response(JSON.stringify({
@@ -613,8 +475,7 @@ async function createInstanceDirect(supabase: any, user: any, operationId: strin
       errorType,
       operationId,
       action: 'create_instance',
-      phase: 'FASE_2_DIRECT_CREATION',
-      method: 'direct_edge_function_no_health_check',
+      method: 'EDGE_FUNCTION_ONLY',
       user_email: user?.email
     }), {
       status: 500,
@@ -623,19 +484,11 @@ async function createInstanceDirect(supabase: any, user: any, operationId: strin
   }
 }
 
-// FASE 2: FUNÇÃO DELETE DIRETA
-async function deleteInstanceDirect(supabase: any, instanceId: string, user: any, operationId: string) {
-  console.log('[DIRECT] === DELETAR INSTÂNCIA DIRETA (FASE 2) ===');
-  console.log('[DIRECT] Instance ID:', instanceId);
-  console.log('[DIRECT] User ID:', user.id);
-  
-  logStructured({
-    timestamp: new Date().toISOString(),
-    phase: 'DELETE_INSTANCE_DIRECT',
-    action: `Starting FASE 2 direct instance deletion for ${instanceId}`,
-    status: 'start',
-    data: { instanceId, userId: user.id, operationId }
-  });
+// FUNÇÃO DELETE VIA EDGE FUNCTION
+async function deleteInstanceViaEdge(supabase: any, instanceId: string, user: any, operationId: string) {
+  console.log('[EDGE_ONLY] === DELETAR INSTÂNCIA VIA EDGE FUNCTION ===');
+  console.log('[EDGE_ONLY] Instance ID:', instanceId);
+  console.log('[EDGE_ONLY] User ID:', user.id);
   
   try {
     const { data: instance, error: fetchError } = await supabase
@@ -648,99 +501,52 @@ async function deleteInstanceDirect(supabase: any, instanceId: string, user: any
       throw new Error('Instância não encontrada: ' + fetchError.message);
     }
 
-    console.log('[DIRECT] Instância encontrada (FASE 2):', instance);
+    console.log('[EDGE_ONLY] Instância encontrada:', instance);
 
-    logStructured({
-      timestamp: new Date().toISOString(),
-      phase: 'DELETE_INSTANCE_DIRECT',
-      action: 'FASE 2 Instance found in database',
-      status: 'success',
-      data: { instanceName: instance.instance_name, vpsInstanceId: instance.vps_instance_id }
-    });
-
-    // Deletar da VPS se tiver vps_instance_id
+    // Deletar da VPS via Edge Function
     if (instance.vps_instance_id) {
       try {
-        console.log('[DIRECT] Deletando da VPS (FASE 2):', instance.vps_instance_id);
+        console.log('[EDGE_ONLY] Deletando da VPS via Edge Function:', instance.vps_instance_id);
         
-        logStructured({
-          timestamp: new Date().toISOString(),
-          phase: 'DELETE_INSTANCE_DIRECT',
-          action: 'FASE 2 Deleting from VPS directly',
-          status: 'start'
-        });
+        await makeVPSRequest(`/instance/${instance.vps_instance_id}`, 'DELETE', {});
         
-        await makeDirectVPSRequest(`/instance/${instance.vps_instance_id}`, 'DELETE', {});
-        
-        console.log('[DIRECT] ✅ Deletado da VPS com sucesso (FASE 2)');
-        
-        logStructured({
-          timestamp: new Date().toISOString(),
-          phase: 'DELETE_INSTANCE_DIRECT',
-          action: 'FASE 2 VPS deletion successful',
-          status: 'success'
-        });
+        console.log('[EDGE_ONLY] ✅ Deletado da VPS com sucesso via Edge Function');
       } catch (vpsError) {
-        console.log('[DIRECT] ⚠️ Erro ao deletar da VPS (FASE 2 - continuando):', vpsError);
-        logStructured({
-          timestamp: new Date().toISOString(),
-          phase: 'DELETE_INSTANCE_DIRECT',
-          action: 'FASE 2 VPS deletion failed but continuing',
-          status: 'warning',
-          data: { error: vpsError.message }
-        });
+        console.log('[EDGE_ONLY] ⚠️ Erro ao deletar da VPS (continuando):', vpsError);
       }
     }
 
     // Deletar do banco
-    console.log('[DIRECT] Deletando do banco (FASE 2)...');
+    console.log('[EDGE_ONLY] Deletando do banco via Edge Function...');
     const { error: deleteError } = await supabase
       .from('whatsapp_instances')
       .delete()
       .eq('id', instanceId);
 
     if (deleteError) {
-      throw new Error(`Erro ao deletar instância do banco: ${deleteError.message}`);
+      throw new Error(`Erro ao deletar do banco: ${deleteError.message}`);
     }
 
-    console.log('[DIRECT] ✅ Deletado do banco com sucesso (FASE 2)');
-
-    logStructured({
-      timestamp: new Date().toISOString(),
-      phase: 'OPERATION_END',
-      action: `FASE 2 Operation ${operationId} deletion completed successfully`,
-      status: 'success'
-    });
+    console.log('[EDGE_ONLY] ✅ Instância deletada com sucesso via Edge Function');
 
     return new Response(JSON.stringify({
       success: true,
-      message: 'Instância deletada com sistema FASE 2 direto',
+      message: 'Instância deletada com sucesso via Edge Function',
       operationId,
-      user_id: user?.id,
-      phase: 'FASE_2_DIRECT_DELETION'
+      method: 'EDGE_FUNCTION_ONLY'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.log('[DIRECT] === ERRO NA DELEÇÃO DIRETA (FASE 2) ===');
-    console.log('[DIRECT] Erro:', error);
-    
-    logStructured({
-      timestamp: new Date().toISOString(),
-      phase: 'OPERATION_END',
-      action: `FASE 2 Operation ${operationId} deletion failed`,
-      status: 'error',
-      data: { error: error.message }
-    });
+    console.log('[EDGE_ONLY] === ERRO NA DELEÇÃO VIA EDGE FUNCTION ===');
+    console.log('[EDGE_ONLY] Erro:', error);
     
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
       operationId,
-      action: 'delete_instance',
-      instanceId: instanceId,
-      phase: 'FASE_2_DIRECT_DELETION'
+      method: 'EDGE_FUNCTION_ONLY'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
