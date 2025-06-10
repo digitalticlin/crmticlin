@@ -1,5 +1,5 @@
 
-// Servidor WhatsApp Web.js com PERSISTÊNCIA e PUPPETEER CORRIGIDO para VPS
+// Servidor WhatsApp Web.js com PERSISTÊNCIA e ENDPOINTS CORRETOS para Edge Function
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const express = require('express');
 const cors = require('cors');
@@ -332,7 +332,21 @@ async function sendWebhook(webhookUrl, data) {
 // Salvar estado periodicamente
 setInterval(saveInstancesState, 30000);
 
-// Endpoints da API
+// ENDPOINTS CORRETOS PARA EDGE FUNCTION
+
+// ENDPOINT RAIZ - Para teste de conectividade
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    status: 'VPS WhatsApp Server Online - CORRETO',
+    timestamp: new Date().toISOString(),
+    server: 'WhatsApp Web.js Server com Puppeteer VPS',
+    version: '3.1.0-ENDPOINTS-CORRETOS',
+    activeInstances: activeInstances.size,
+    port: PORT,
+    message: 'Servidor funcionando corretamente com endpoints para Edge Function'
+  });
+});
 
 // Health check
 app.get('/health', (req, res) => {
@@ -386,12 +400,15 @@ app.get('/instances', authenticateToken, (req, res) => {
   });
 });
 
-// Criar instância
+// ENDPOINT CORRETO QUE A EDGE FUNCTION CHAMA
 app.post('/instance/create', authenticateToken, async (req, res) => {
   try {
+    console.log('🚀 [ENDPOINT CORRETO] Recebendo requisição da Edge Function:', req.body);
+    
     const { instanceId, sessionName, webhookUrl, companyId } = req.body;
     
     if (!instanceId || !sessionName) {
+      console.log('❌ Dados obrigatórios ausentes:', { instanceId, sessionName });
       return res.status(400).json({
         success: false,
         error: 'instanceId e sessionName são obrigatórios'
@@ -399,6 +416,7 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
     }
     
     if (activeInstances.has(instanceId)) {
+      console.log('❌ Instância já existe:', instanceId);
       return res.status(409).json({
         success: false,
         error: 'Instância já existe'
@@ -420,16 +438,22 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
     
     activeInstances.set(instanceId, instance);
     
+    console.log('✅ Instância criada no mapa:', instanceId);
+    
     // Inicializar cliente com delay
     setTimeout(() => initializeWhatsAppClient(instance), 2000);
     
     await saveInstancesState();
     
+    console.log('✅ [SUCESSO] Resposta enviada para Edge Function');
+    
     res.json({
       success: true,
       instanceId,
       status: 'creating',
-      message: 'Instância criada e inicializando com Puppeteer corrigido'
+      message: 'Instância criada e inicializando com Puppeteer corrigido',
+      timestamp: new Date().toISOString(),
+      webhookUrl: finalWebhookUrl
     });
     
   } catch (error) {
@@ -621,6 +645,44 @@ app.post('/instance/delete', authenticateToken, async (req, res) => {
   }
 });
 
+// ENDPOINT DELETE VIA GET (para compatibilidade)
+app.delete('/instance/:instanceId', authenticateToken, async (req, res) => {
+  try {
+    const instanceId = req.params.instanceId;
+    
+    const instance = activeInstances.get(instanceId);
+    if (!instance) {
+      return res.status(404).json({
+        success: false,
+        error: 'Instância não encontrada'
+      });
+    }
+    
+    if (instance.client) {
+      try {
+        await instance.client.destroy();
+      } catch (error) {
+        console.error('❌ Erro ao destruir cliente:', error);
+      }
+    }
+    
+    activeInstances.delete(instanceId);
+    await saveInstancesState();
+    
+    res.json({
+      success: true,
+      message: 'Instância deletada com sucesso'
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro ao deletar instância:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // Error handler
 app.use((error, req, res, next) => {
   console.error('❌ Erro no servidor:', error);
@@ -643,6 +705,7 @@ async function startServer() {
     console.log(`🔑 Token: ${AUTH_TOKEN === '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3' ? '✅ Token configurado' : '⚠️  USANDO TOKEN PADRÃO'}`);
     console.log(`💾 Instâncias carregadas: ${activeInstances.size}`);
     console.log(`🔧 Puppeteer: VPS-OPTIMIZED com retry automático`);
+    console.log(`✅ ENDPOINTS CORRETOS PARA EDGE FUNCTION IMPLEMENTADOS`);
   });
 }
 
