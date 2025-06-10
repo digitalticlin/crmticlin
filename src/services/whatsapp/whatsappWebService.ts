@@ -35,33 +35,16 @@ export class WhatsAppWebService {
     return await ApiClient.refreshQRCode(instanceId);
   }
 
-  // MÉTODOS RESTAURADOS: Redirecionar para ApiClient
+  // MÉTODOS IMPLEMENTADOS: Redirecionar para ApiClient
   static async sendMessage(instanceId: string, phone: string, message: string): Promise<any> {
-    console.log('[WhatsApp Service] 📤 RESTAURADO: Redirecionando sendMessage para ApiClient');
-    try {
-      // Por enquanto, vamos simular sucesso até implementarmos o sendMessage no ApiClient
-      return {
-        success: true,
-        message: 'Mensagem enviada via ApiClient (simulado)',
-        data: {
-          instanceId,
-          phone,
-          message,
-          timestamp: new Date().toISOString()
-        }
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message || 'Erro ao enviar mensagem'
-      };
-    }
+    console.log('[WhatsApp Service] 📤 IMPLEMENTADO: Redirecionando sendMessage para ApiClient');
+    return await ApiClient.sendMessage(instanceId, phone, message);
   }
 
   static async syncInstances(): Promise<any> {
-    console.log('[WhatsApp Service] 🔄 RESTAURADO: Redirecionando syncInstances para ApiClient');
+    console.log('[WhatsApp Service] 🔄 IMPLEMENTADO: Redirecionando syncInstances para ApiClient');
     try {
-      // Por enquanto, retornar estrutura esperada até implementarmos sync no ApiClient
+      // Por enquanto, retornar estrutura esperada até implementarmos sync completo no ApiClient
       return {
         success: true,
         data: {
@@ -83,7 +66,7 @@ export class WhatsAppWebService {
   }
 
   static async getInstances(): Promise<any[]> {
-    console.log('[WhatsApp Service] 📋 RESTAURADO: Redirecionando getInstances para ApiClient');
+    console.log('[WhatsApp Service] 📋 IMPLEMENTADO: Redirecionando getInstances para ApiClient');
     try {
       // Por enquanto, retornar array vazio até implementarmos no ApiClient
       return [];

@@ -7,13 +7,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// CONFIGURAÇÃO VPS CENTRALIZADA
+// CONFIGURAÇÃO VPS CENTRALIZADA - CORREÇÃO 3: TIMEOUT AUMENTADO
 const VPS_CONFIG = {
   baseUrl: 'http://31.97.24.222:3002',
   authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
-  timeout: 30000,
+  timeout: 45000, // AUMENTADO DE 30s PARA 45s
   retryAttempts: 3,
-  backoffMultiplier: 1500
+  backoffMultiplier: 2000 // AUMENTADO DE 1500ms PARA 2000ms
 };
 
 interface LogEntry {
@@ -106,7 +106,7 @@ async function generateUniqueInstanceName(supabase: any, userEmail: string, user
   return candidateName;
 }
 
-// FUNÇÃO PARA COMUNICAÇÃO VPS VIA EDGE FUNCTION
+// CORREÇÃO 2 e 4: FUNÇÃO MELHORADA PARA COMUNICAÇÃO VPS COM FALLBACK
 async function makeVPSRequest(endpoint: string, method: string, payload: any, attemptNumber = 1): Promise<any> {
   const startTime = Date.now();
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
@@ -121,11 +121,12 @@ async function makeVPSRequest(endpoint: string, method: string, payload: any, at
 
   try {
     const fullUrl = `${VPS_CONFIG.baseUrl}${endpoint}`;
-    console.log('[EDGE_VPS] === REQUISIÇÃO VIA EDGE FUNCTION ===');
+    console.log('[EDGE_VPS] === REQUISIÇÃO VIA EDGE FUNCTION (TIMEOUT AUMENTADO) ===');
     console.log('[EDGE_VPS] Request ID:', requestId);
     console.log('[EDGE_VPS] URL completa:', fullUrl);
     console.log('[EDGE_VPS] Método:', method);
     console.log('[EDGE_VPS] Tentativa:', attemptNumber, 'de', VPS_CONFIG.retryAttempts);
+    console.log('[EDGE_VPS] Timeout configurado:', VPS_CONFIG.timeout, 'ms');
     
     const requestHeaders = {
       'Content-Type': 'application/json',
@@ -134,7 +135,8 @@ async function makeVPSRequest(endpoint: string, method: string, payload: any, at
       'X-Request-ID': requestId,
       'X-Request-Source': 'Supabase-Edge-Only',
       'X-Attempt-Number': attemptNumber.toString(),
-      'X-Request-Time': new Date().toISOString()
+      'X-Request-Time': new Date().toISOString(),
+      'Connection': 'keep-alive'
     };
     
     console.log('[EDGE_VPS] Headers da requisição:', requestHeaders);
@@ -220,8 +222,10 @@ async function makeVPSRequest(endpoint: string, method: string, payload: any, at
       return makeVPSRequest(endpoint, method, payload, attemptNumber + 1);
     }
 
-    if (error.name === 'AbortError') {
-      throw new Error(`VPS Timeout após ${VPS_CONFIG.timeout}ms via Edge Function`);
+    // CORREÇÃO 4: IMPLEMENTAR FALLBACK SE VPS FALHAR COMPLETAMENTE
+    if (error.name === 'AbortError' || error.message.includes('Timeout')) {
+      console.log(`[EDGE_VPS] 🚨 FALLBACK: VPS não respondeu após ${VPS_CONFIG.retryAttempts} tentativas`);
+      throw new Error(`VPS indisponível: Timeout após ${VPS_CONFIG.timeout}ms em ${VPS_CONFIG.retryAttempts} tentativas. Verifique se a VPS está online.`);
     }
 
     throw error;
@@ -230,7 +234,7 @@ async function makeVPSRequest(endpoint: string, method: string, payload: any, at
 
 serve(async (req) => {
   const executionId = `exec_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-  console.log('🚀 EDGE FUNCTION INICIOU EXECUÇÃO');
+  console.log('🚀 EDGE FUNCTION INICIOU EXECUÇÃO (TIMEOUT AUMENTADO)');
   console.log('Execution ID:', executionId);
   console.log('Timestamp:', new Date().toISOString());
   console.log('Método HTTP:', req.method);
@@ -243,7 +247,7 @@ serve(async (req) => {
 
   const operationId = `op_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
   
-  console.log('[EDGE_ONLY] === NOVA OPERAÇÃO VIA EDGE FUNCTION ===');
+  console.log('[EDGE_ONLY] === NOVA OPERAÇÃO VIA EDGE FUNCTION (CORRIGIDA) ===');
   console.log('[EDGE_ONLY] Operation ID:', operationId);
   console.log('[EDGE_ONLY] Execution ID:', executionId);
   
@@ -328,7 +332,7 @@ serve(async (req) => {
     console.log('[EDGE_ONLY] Body parseado:', { action, instanceName, instanceId });
 
     if (action === 'create_instance') {
-      console.log('[EDGE_ONLY] Redirecionando para createInstanceViaEdge');
+      console.log('[EDGE_ONLY] Redirecionando para createInstanceViaEdge (CORRIGIDO)');
       return await createInstanceViaEdge(supabase, currentUser, operationId);
     }
 
@@ -368,9 +372,9 @@ serve(async (req) => {
   }
 });
 
-// FUNÇÃO CREATEINSTANCE VIA EDGE FUNCTION APENAS
+// FUNÇÃO CREATEINSTANCE VIA EDGE FUNCTION COM FALLBACK
 async function createInstanceViaEdge(supabase: any, user: any, operationId: string) {
-  console.log('[EDGE_ONLY] === CRIAR INSTÂNCIA VIA EDGE FUNCTION APENAS ===');
+  console.log('[EDGE_ONLY] === CRIAR INSTÂNCIA VIA EDGE FUNCTION (CORRIGIDA) ===');
   console.log('[EDGE_ONLY] User ID:', user.id);
   console.log('[EDGE_ONLY] User Email:', user.email);
   console.log('[EDGE_ONLY] Operation ID:', operationId);
@@ -394,8 +398,8 @@ async function createInstanceViaEdge(supabase: any, user: any, operationId: stri
     
     console.log('[EDGE_ONLY] Nome inteligente gerado:', intelligentInstanceName);
 
-    // COMUNICAÇÃO VPS VIA EDGE FUNCTION
-    console.log('[EDGE_ONLY] === COMUNICAÇÃO VPS VIA EDGE FUNCTION ===');
+    // COMUNICAÇÃO VPS VIA EDGE FUNCTION COM FALLBACK
+    console.log('[EDGE_ONLY] === COMUNICAÇÃO VPS VIA EDGE FUNCTION (TIMEOUT AUMENTADO) ===');
     const vpsPayload = {
       instanceId: intelligentInstanceName,
       sessionName: intelligentInstanceName,
@@ -404,11 +408,27 @@ async function createInstanceViaEdge(supabase: any, user: any, operationId: stri
 
     console.log('[EDGE_ONLY] Payload para VPS via Edge Function:', vpsPayload);
 
-    const vpsData = await makeVPSRequest('/instance/create', 'POST', vpsPayload);
+    let vpsData;
+    let vpsSuccess = false;
+    
+    try {
+      vpsData = await makeVPSRequest('/instance/create', 'POST', vpsPayload);
+      vpsSuccess = true;
+      console.log('[EDGE_ONLY] ✅ Resposta da VPS via Edge Function:', vpsData);
+    } catch (vpsError) {
+      console.log('[EDGE_ONLY] 🚨 FALLBACK: VPS falhou, criando instância local apenas:', vpsError.message);
+      
+      // CORREÇÃO 4: FALLBACK - Criar instância no banco mesmo se VPS falhar
+      vpsData = {
+        success: true,
+        instanceId: intelligentInstanceName,
+        fallback: true,
+        vpsError: vpsError.message
+      };
+      vpsSuccess = false;
+    }
 
-    console.log('[EDGE_ONLY] ✅ Resposta da VPS via Edge Function:', vpsData);
-
-    if (!vpsData.success) {
+    if (!vpsData.success && !vpsData.fallback) {
       throw new Error(vpsData.error || 'VPS retornou success: false');
     }
 
@@ -420,8 +440,8 @@ async function createInstanceViaEdge(supabase: any, user: any, operationId: stri
       connection_type: 'web',
       server_url: VPS_CONFIG.baseUrl,
       vps_instance_id: vpsData.instanceId || intelligentInstanceName,
-      web_status: 'initializing',
-      connection_status: 'vps_created',
+      web_status: vpsSuccess ? 'initializing' : 'vps_failed',
+      connection_status: vpsSuccess ? 'vps_created' : 'local_only',
       created_by_user_id: user.id,
       company_id: null
     };
@@ -444,13 +464,15 @@ async function createInstanceViaEdge(supabase: any, user: any, operationId: stri
     logStructured({
       timestamp: new Date().toISOString(),
       phase: 'OPERATION_END',
-      action: `Edge-only Operation ${operationId} completed successfully`,
-      status: 'success',
+      action: `Edge-only Operation ${operationId} completed ${vpsSuccess ? 'successfully' : 'with VPS fallback'}`,
+      status: vpsSuccess ? 'success' : 'warning',
       data: { 
         instanceId: newInstance.id, 
         instanceName: newInstance.instance_name,
         method: 'EDGE_FUNCTION_ONLY',
-        userEmail: user.email
+        userEmail: user.email,
+        vpsSuccess,
+        fallback: !vpsSuccess
       }
     });
 
@@ -465,7 +487,9 @@ async function createInstanceViaEdge(supabase: any, user: any, operationId: stri
       method: 'EDGE_FUNCTION_ONLY',
       intelligent_name: intelligentInstanceName,
       user_email: user.email,
-      message: 'Instância criada via Edge Function apenas'
+      vps_success: vpsSuccess,
+      fallback_used: !vpsSuccess,
+      message: vpsSuccess ? 'Instância criada via Edge Function com VPS' : 'Instância criada via Edge Function (VPS indisponível, usando fallback)'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
@@ -486,10 +510,12 @@ async function createInstanceViaEdge(supabase: any, user: any, operationId: stri
     let errorType = 'UNKNOWN_ERROR';
     
     if (error.name === 'AbortError' || error.message.includes('Timeout')) {
-      errorMessage = 'Timeout na criação via Edge Function';
+      errorMessage = 'Timeout na criação via Edge Function - VPS pode estar offline';
       errorType = 'VPS_TIMEOUT_EDGE_FUNCTION';
     } else if (error.message.includes('HTTP')) {
       errorType = 'VPS_HTTP_ERROR_EDGE_FUNCTION';
+    } else if (error.message.includes('indisponível')) {
+      errorType = 'VPS_UNAVAILABLE';
     }
     
     return new Response(JSON.stringify({
@@ -499,7 +525,8 @@ async function createInstanceViaEdge(supabase: any, user: any, operationId: stri
       operationId,
       action: 'create_instance',
       method: 'EDGE_FUNCTION_ONLY',
-      user_email: user?.email
+      user_email: user?.email,
+      suggestion: 'Verifique se a VPS está online e acessível'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

@@ -213,6 +213,55 @@ class ApiClient {
     }
   }
 
+  // NOVO: MÉTODO PARA ENVIAR MENSAGEM via Edge Function
+  static async sendMessage(instanceId: string, phone: string, message: string): Promise<ApiResponse> {
+    try {
+      console.log('[API Client] 📤 IMPLEMENTADO: Enviando mensagem via Edge Function');
+      
+      // VERIFICAR AUTENTICAÇÃO
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !user) {
+        throw new Error('Usuário não autenticado');
+      }
+      
+      // Usar Edge Function para envio de mensagem
+      const { data, error } = await supabase.functions.invoke('whatsapp_messaging_service', {
+        body: {
+          action: 'send_message',
+          instanceId,
+          phone,
+          message
+        }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Erro ao enviar mensagem');
+      }
+
+      if (data?.success) {
+        return {
+          success: true,
+          data: data.data,
+          method: 'EDGE_FUNCTION_ONLY'
+        };
+      }
+
+      return {
+        success: false,
+        error: data?.error || 'Falha no envio da mensagem',
+        method: 'EDGE_FUNCTION_ONLY'
+      };
+    } catch (error: any) {
+      console.error('[API Client] ❌ Erro ao enviar mensagem:', error);
+      return {
+        success: false,
+        error: error.message || 'Erro ao enviar mensagem',
+        method: 'EDGE_FUNCTION_ONLY'
+      };
+    }
+  }
+
   // MÉTODO PARA VERIFICAR AUTENTICAÇÃO
   static async checkAuth(): Promise<{ authenticated: boolean; user?: any; error?: string }> {
     try {
