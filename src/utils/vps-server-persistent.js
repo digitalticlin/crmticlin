@@ -1,4 +1,4 @@
-// Servidor WhatsApp Web.js com PERSISTÊNCIA e ENDPOINTS CORRETOS para Edge Function
+// Servidor WhatsApp Web.js com CORREÇÃO PUPPETEER ESPECÍFICA para VPS
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const express = require('express');
 const cors = require('cors');
@@ -20,29 +20,38 @@ const INSTANCES_FILE = path.join(PERSISTENCE_DIR, 'active_instances.json');
 // Armazenamento de instâncias ativas
 const activeInstances = new Map();
 
-// CORREÇÃO PUPPETEER: Configuração robusta para VPS - ATUALIZADA
-const PUPPETEER_CONFIG = {
-  headless: true,
-  // CORREÇÃO: Detectar automaticamente o melhor executável
-  executablePath: (() => {
-    const fs = require('fs');
-    const executables = [
-      '/usr/bin/google-chrome-stable',
-      '/usr/bin/google-chrome', 
-      '/usr/bin/chromium-browser'
-    ];
-    
-    for (const exe of executables) {
+// CORREÇÃO PUPPETEER ESPECÍFICA - Baseada no diagnóstico VPS
+function detectOptimalExecutable() {
+  const fs = require('fs');
+  
+  // PRIORIDADE: Google Chrome Stable primeiro (melhor compatibilidade)
+  const executables = [
+    '/usr/bin/google-chrome-stable', // PRIORIDADE 1: Melhor compatibilidade
+    '/usr/bin/google-chrome',        // PRIORIDADE 2: Chrome padrão
+    '/usr/bin/chromium-browser'      // PRIORIDADE 3: Chromium (pode ter AppArmor issues)
+  ];
+  
+  for (const exe of executables) {
+    try {
       if (fs.existsSync(exe)) {
-        console.log(`🎯 Puppeteer usando executável: ${exe}`);
+        console.log(`🎯 CORREÇÃO PUPPETEER: Usando executável ${exe}`);
         return exe;
       }
+    } catch (error) {
+      console.log(`⚠️ Executável não acessível: ${exe}`);
     }
-    
-    console.log('⚠️ Usando Puppeteer padrão (nenhum executável específico encontrado)');
-    return undefined;
-  })(),
+  }
   
+  console.log('⚠️ CORREÇÃO: Nenhum executável Chrome encontrado, usando Puppeteer padrão');
+  return undefined;
+}
+
+// CORREÇÃO PUPPETEER: Configuração específica para AppArmor e VPS
+const PUPPETEER_CONFIG_CORRECTED = {
+  headless: true,
+  executablePath: detectOptimalExecutable(),
+  
+  // CORREÇÃO: Args específicos para AppArmor e snap issues
   args: [
     '--no-sandbox',
     '--disable-setuid-sandbox',
@@ -52,69 +61,62 @@ const PUPPETEER_CONFIG = {
     '--no-zygote',
     '--single-process',
     '--disable-gpu',
+    
+    // CORREÇÃO ESPECÍFICA: AppArmor bypass
+    '--disable-features=VizDisplayCompositor',
     '--disable-background-timer-throttling',
     '--disable-backgrounding-occluded-windows',
     '--disable-renderer-backgrounding',
-    '--disable-features=TranslateUI,VizDisplayCompositor',
     '--disable-ipc-flooding-protection',
     '--disable-extensions',
     '--disable-default-apps',
     '--disable-sync',
     '--disable-translate',
     '--disable-plugins',
-    '--disable-plugins-discovery',
     '--disable-web-security',
+    
+    // CORREÇÃO: Memory e performance
     '--memory-pressure-off',
     '--max_old_space_size=512',
     '--disable-web-gl',
     '--disable-webgl',
     '--disable-threaded-animation',
     '--disable-threaded-scrolling',
-    '--disable-in-process-stack-traces',
-    '--disable-histogram-customizer',
-    '--disable-gl-extensions',
-    '--disable-composited-antialiasing',
-    '--disable-canvas-aa',
-    '--disable-3d-apis',
-    '--disable-accelerated-mjpeg-decode',
-    '--disable-accelerated-video-decode',
-    '--disable-animatable-transform-fullscreen',
-    '--disable-background-networking',
-    '--disable-sync-preferences',
     '--hide-scrollbars',
     '--mute-audio',
     '--disable-logging',
-    '--disable-gl-drawing-for-tests',
-    // CORREÇÃO: Args específicos para resolver "Protocol error Session closed"
+    
+    // CORREÇÃO ESPECÍFICA: Para snap chromium issues
     '--disable-blink-features=AutomationControlled',
     '--disable-client-side-phishing-detection',
     '--disable-component-extensions-with-background-pages',
-    '--disable-default-apps',
     '--disable-hang-monitor',
     '--disable-prompt-on-repost',
-    '--disable-sync',
     '--metrics-recording-only',
     '--no-default-browser-check',
-    '--no-first-run',
     '--password-store=basic',
-    '--use-mock-keychain'
+    '--use-mock-keychain',
+    
+    // CORREÇÃO: Específico para AppArmor denials
+    '--disable-namespace-sandbox',
+    '--disable-seccomp-filter-sandbox'
   ],
+  
   ignoreHTTPSErrors: true,
   ignoreDefaultArgs: ['--disable-extensions'],
-  timeout: 30000, // CORREÇÃO: Reduzido de 60s para 30s
-  dumpio: false   // CORREÇÃO: Desabilitado para produção
+  timeout: 25000, // CORREÇÃO: Timeout otimizado
+  dumpio: true    // CORREÇÃO: Ativar para debug inicial
 };
 
-// CORREÇÃO: Função sendWebhook movida para o TOPO - antes de qualquer uso
+// CORREÇÃO: Função sendWebhook melhorada
 async function sendWebhook(webhookUrl, data) {
   try {
-    console.log(`🔗 Enviando webhook para: ${webhookUrl}`, {
+    console.log(`🔗 CORREÇÃO: Enviando webhook para: ${webhookUrl}`, {
       event: data.event,
       instanceName: data.instanceName,
       timestamp: data.timestamp
     });
     
-    // Importação dinâmica do node-fetch
     const fetch = (await import('node-fetch')).default;
     
     const response = await fetch(webhookUrl, {
@@ -128,12 +130,12 @@ async function sendWebhook(webhookUrl, data) {
     });
 
     if (response.ok) {
-      console.log(`✅ Webhook ${data.event} enviado com sucesso`);
+      console.log(`✅ CORREÇÃO: Webhook ${data.event} enviado com sucesso`);
     } else {
-      console.log(`⚠️ Webhook ${data.event} falhou: ${response.status}`);
+      console.log(`⚠️ CORREÇÃO: Webhook ${data.event} falhou: ${response.status}`);
     }
   } catch (error) {
-    console.error(`❌ Erro ao enviar webhook:`, error.message);
+    console.error(`❌ CORREÇÃO: Erro ao enviar webhook:`, error.message);
   }
 }
 
@@ -221,19 +223,20 @@ async function loadInstancesState() {
 
 // CORREÇÃO: Função melhorada para inicializar cliente WhatsApp
 async function initializeWhatsAppClient(instance, retryCount = 0) {
-  const maxRetries = 2; // CORREÇÃO: Reduzido de 3 para 2
+  const maxRetries = 2;
   
   try {
-    console.log(`🚀 Inicializando cliente WhatsApp para: ${instance.instanceId} (tentativa ${retryCount + 1}/${maxRetries + 1})`);
-    console.log(`🎯 Executável Puppeteer: ${PUPPETEER_CONFIG.executablePath || 'Padrão'}`);
+    console.log(`🚀 CORREÇÃO PUPPETEER: Inicializando cliente para: ${instance.instanceId} (tentativa ${retryCount + 1}/${maxRetries + 1})`);
+    console.log(`🎯 CORREÇÃO: Executável: ${PUPPETEER_CONFIG_CORRECTED.executablePath || 'Padrão'}`);
+    console.log(`🔧 CORREÇÃO: ${PUPPETEER_CONFIG_CORRECTED.args.length} argumentos configurados`);
     
     // Limpar cliente anterior se existir
     if (instance.client) {
       try {
         await instance.client.destroy();
-        console.log(`🧹 Cliente anterior destruído para: ${instance.instanceId}`);
+        console.log(`🧹 CORREÇÃO: Cliente anterior destruído para: ${instance.instanceId}`);
       } catch (error) {
-        console.log(`⚠️ Erro ao destruir cliente anterior: ${error.message}`);
+        console.log(`⚠️ CORREÇÃO: Erro ao destruir cliente anterior: ${error.message}`);
       }
       instance.client = null;
     }
@@ -243,27 +246,27 @@ async function initializeWhatsAppClient(instance, retryCount = 0) {
         clientId: instance.sessionName,
         dataPath: path.join(PERSISTENCE_DIR, 'sessions')
       }),
-      puppeteer: PUPPETEER_CONFIG
+      puppeteer: PUPPETEER_CONFIG_CORRECTED
     });
 
     instance.client = client;
     instance.status = 'initializing';
 
-    // CORREÇÃO: Timeout reduzido para 60 segundos
+    // CORREÇÃO: Timeout específico para AppArmor issues
     const initTimeout = setTimeout(() => {
-      console.log(`⏰ Timeout na inicialização de ${instance.instanceId} - tentando novamente...`);
+      console.log(`⏰ CORREÇÃO: Timeout na inicialização de ${instance.instanceId} - retry automático...`);
       if (retryCount < maxRetries) {
-        setTimeout(() => initializeWhatsAppClient(instance, retryCount + 1), 3000);
+        setTimeout(() => initializeWhatsAppClient(instance, retryCount + 1), 5000);
       } else {
-        console.error(`❌ Máximo de tentativas atingido para ${instance.instanceId}`);
+        console.error(`❌ CORREÇÃO: Máximo de tentativas atingido para ${instance.instanceId}`);
         instance.status = 'failed';
-        instance.error = 'Timeout na inicialização após múltiplas tentativas';
+        instance.error = 'Timeout após múltiplas tentativas (AppArmor/Puppeteer issue)';
       }
-    }, 60000); // CORREÇÃO: Reduzido de 90s para 60s
+    }, 45000); // CORREÇÃO: 45s timeout
 
-    // Event handlers
+    // Event handlers melhorados
     client.on('qr', (qr) => {
-      console.log(`📱 QR Code gerado para: ${instance.instanceId}`);
+      console.log(`📱 CORREÇÃO: QR Code gerado para: ${instance.instanceId}`);
       clearTimeout(initTimeout);
       instance.qrCode = qr;
       instance.status = 'qr_ready';
@@ -277,13 +280,13 @@ async function initializeWhatsAppClient(instance, retryCount = 0) {
           timestamp: new Date().toISOString(),
           server_url: `http://localhost:${PORT}`
         }).catch(error => {
-          console.error(`❌ Erro ao enviar QR via webhook:`, error.message);
+          console.error(`❌ CORREÇÃO: Erro ao enviar QR via webhook:`, error.message);
         });
       }
     });
 
     client.on('ready', () => {
-      console.log(`✅ Cliente pronto para: ${instance.instanceId}`);
+      console.log(`✅ CORREÇÃO: Cliente pronto para: ${instance.instanceId}`);
       clearTimeout(initTimeout);
       instance.status = 'ready';
       instance.qrCode = null;
@@ -291,54 +294,57 @@ async function initializeWhatsAppClient(instance, retryCount = 0) {
     });
 
     client.on('authenticated', () => {
-      console.log(`🔐 Cliente autenticado para: ${instance.instanceId}`);
+      console.log(`🔐 CORREÇÃO: Cliente autenticado para: ${instance.instanceId}`);
       clearTimeout(initTimeout);
       instance.status = 'authenticated';
       saveInstancesState();
     });
 
     client.on('auth_failure', (msg) => {
-      console.error(`❌ Falha na autenticação para: ${instance.instanceId}`, msg);
+      console.error(`❌ CORREÇÃO: Falha na autenticação para: ${instance.instanceId}`, msg);
       clearTimeout(initTimeout);
       instance.status = 'auth_failed';
       if (retryCount < maxRetries) {
-        console.log(`🔄 Tentando novamente em 10 segundos...`);
+        console.log(`🔄 CORREÇÃO: Retry automático em 10 segundos...`);
         setTimeout(() => initializeWhatsAppClient(instance, retryCount + 1), 10000);
       }
       saveInstancesState();
     });
 
     client.on('disconnected', (reason) => {
-      console.log(`🔌 Cliente desconectado: ${instance.instanceId} - ${reason}`);
+      console.log(`🔌 CORREÇÃO: Cliente desconectado: ${instance.instanceId} - ${reason}`);
       clearTimeout(initTimeout);
       instance.status = 'disconnected';
       saveInstancesState();
       
-      // CORREÇÃO: Reconectar automaticamente se a sessão foi fechada inesperadamente
-      if (reason === 'NAVIGATION' || reason.includes('Session closed')) {
-        console.log(`🔄 Tentando reconectar ${instance.instanceId} após erro de sessão...`);
+      // CORREÇÃO: Reconectar específico para AppArmor/Puppeteer issues
+      if (reason === 'NAVIGATION' || reason.includes('Session closed') || reason.includes('Protocol error')) {
+        console.log(`🔄 CORREÇÃO: Reconectando ${instance.instanceId} após AppArmor/Puppeteer issue...`);
         setTimeout(() => {
           if (retryCount < maxRetries) {
             initializeWhatsAppClient(instance, retryCount + 1);
           }
-        }, 5000);
+        }, 8000);
       }
     });
 
-    // CORREÇÃO: Adicionar handler para erro de protocolo
+    // CORREÇÃO: Handler específico para erros de AppArmor/Puppeteer
     client.on('error', (error) => {
-      console.error(`❌ Erro no cliente WhatsApp ${instance.instanceId}:`, error.message);
+      console.error(`❌ CORREÇÃO: Erro no cliente WhatsApp ${instance.instanceId}:`, error.message);
       clearTimeout(initTimeout);
       
-      if (error.message.includes('Protocol error') || error.message.includes('Session closed')) {
-        console.log(`🔄 Erro de protocolo detectado - reiniciando ${instance.instanceId}...`);
-        instance.status = 'protocol_error';
+      if (error.message.includes('Protocol error') || 
+          error.message.includes('Session closed') ||
+          error.message.includes('Navigation') ||
+          error.message.includes('Target closed')) {
+        console.log(`🔄 CORREÇÃO: Erro de Puppeteer/AppArmor detectado - reiniciando ${instance.instanceId}...`);
+        instance.status = 'puppeteer_error';
         
         setTimeout(() => {
           if (retryCount < maxRetries) {
             initializeWhatsAppClient(instance, retryCount + 1);
           }
-        }, 5000);
+        }, 6000);
       } else {
         instance.status = 'error';
         instance.error = error.message;
@@ -348,7 +354,7 @@ async function initializeWhatsAppClient(instance, retryCount = 0) {
 
     // Capturar mensagens
     client.on('message_create', async (message) => {
-      console.log(`📨 Mensagem capturada para ${instance.instanceId}:`, {
+      console.log(`📨 CORREÇÃO: Mensagem capturada para ${instance.instanceId}:`, {
         from: message.from,
         to: message.to,
         fromMe: message.fromMe,
@@ -380,34 +386,38 @@ async function initializeWhatsAppClient(instance, retryCount = 0) {
             server_url: `http://localhost:${PORT}`
           });
         } catch (error) {
-          console.error(`❌ Erro ao enviar webhook para ${instance.instanceId}:`, error.message);
+          console.error(`❌ CORREÇÃO: Erro ao enviar webhook para ${instance.instanceId}:`, error.message);
         }
       }
     });
 
-    // CORREÇÃO: Inicializar com retry automático e timeout específico
-    console.log(`🔄 Iniciando cliente WhatsApp para ${instance.instanceId}...`);
+    // CORREÇÃO: Inicializar com configuração específica para AppArmor
+    console.log(`🔄 CORREÇÃO: Iniciando cliente WhatsApp com config AppArmor para ${instance.instanceId}...`);
     
     // CORREÇÃO: Adicionar timeout específico para o initialize
     const initPromise = client.initialize();
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Initialize timeout')), 45000);
+      setTimeout(() => reject(new Error('CORREÇÃO: Initialize timeout (AppArmor issue)')), 40000);
     });
     
     await Promise.race([initPromise, timeoutPromise]);
     
   } catch (error) {
-    console.error(`❌ Erro ao inicializar cliente: ${instance.instanceId}`, error.message);
+    console.error(`❌ CORREÇÃO: Erro ao inicializar cliente: ${instance.instanceId}`, error.message);
     instance.status = 'error';
     instance.error = error.message;
     
-    // CORREÇÃO: Retry específico para erros de protocolo
-    if (error.message.includes('Protocol error') || error.message.includes('Session closed') || error.message.includes('Initialize timeout')) {
+    // CORREÇÃO: Retry específico para issues de AppArmor/Puppeteer
+    if (error.message.includes('Protocol error') || 
+        error.message.includes('Session closed') || 
+        error.message.includes('Initialize timeout') ||
+        error.message.includes('AppArmor') ||
+        error.message.includes('Target closed')) {
       if (retryCount < maxRetries) {
-        console.log(`🔄 Retry ${retryCount + 1}/${maxRetries} para erro de protocolo em ${instance.instanceId}...`);
-        setTimeout(() => initializeWhatsAppClient(instance, retryCount + 1), 10000);
+        console.log(`🔄 CORREÇÃO: Retry ${retryCount + 1}/${maxRetries} para AppArmor/Puppeteer issue em ${instance.instanceId}...`);
+        setTimeout(() => initializeWhatsAppClient(instance, retryCount + 1), 12000);
       } else {
-        console.error(`💥 Falha final na inicialização de ${instance.instanceId} após ${maxRetries + 1} tentativas`);
+        console.error(`💥 CORREÇÃO: Falha final na inicialização de ${instance.instanceId} após ${maxRetries + 1} tentativas (AppArmor/Puppeteer)`);
       }
     }
     
@@ -786,13 +796,12 @@ async function startServer() {
   await loadInstancesState();
   
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 WhatsApp Web.js Server com Puppeteer CORRIGIDO rodando na porta ${PORT}`);
+    console.log(`🚀 WhatsApp Web.js Server com CORREÇÃO PUPPETEER rodando na porta ${PORT}`);
     console.log(`📊 Status: http://localhost:${PORT}/health`);
-    console.log(`📂 Persistência: ${PERSISTENCE_DIR}`);
-    console.log(`🔑 Token: ${AUTH_TOKEN === '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3' ? '✅ Token configurado' : '⚠️  USANDO TOKEN PADRÃO'}`);
+    console.log(`🔧 CORREÇÃO: Puppeteer usando ${PUPPETEER_CONFIG_CORRECTED.executablePath || 'padrão'}`);
+    console.log(`✅ CORREÇÃO: ${PUPPETEER_CONFIG_CORRECTED.args.length} argumentos AppArmor configurados`);
+    console.log(`🛡️ CORREÇÃO: AppArmor bypass habilitado`);
     console.log(`💾 Instâncias carregadas: ${activeInstances.size}`);
-    console.log(`🔧 Puppeteer: VPS-OPTIMIZED com retry automático`);
-    console.log(`✅ ENDPOINTS CORRETOS PARA EDGE FUNCTION IMPLEMENTADOS`);
   });
 }
 
