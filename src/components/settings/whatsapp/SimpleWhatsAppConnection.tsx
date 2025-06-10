@@ -7,7 +7,6 @@ import { SimpleInstanceCard } from "./SimpleInstanceCard";
 import { QRCodeModal } from "./QRCodeModal";
 import { ConnectionCard } from "./connection/ConnectionCard";
 import { AddNewConnectionCard } from "./connection/AddNewConnectionCard";
-import { AutoQRPolling } from "./connection/AutoQRPolling";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
@@ -18,9 +17,6 @@ export const SimpleWhatsAppConnection = () => {
   const [selectedInstanceName, setSelectedInstanceName] = useState<string>('');
   const [selectedInstanceId, setSelectedInstanceId] = useState<string>('');
   const [isWaitingForQR, setIsWaitingForQR] = useState(false);
-
-  // CORREÇÃO CRÍTICA: Controle único do AutoQRPolling - SEM INICIALIZAÇÃO AUTOMÁTICA
-  const [autoPolling, setAutoPolling] = useState<AutoQRPolling | null>(null);
 
   const { user } = useAuth();
   
@@ -33,40 +29,33 @@ export const SimpleWhatsAppConnection = () => {
     generateIntelligentInstanceName
   } = useWhatsAppWebInstances();
 
+  // FASE 2: Corrigir interface e loading state
   const handleConnect = async () => {
     if (!user?.email) {
       toast.error('Email do usuário não disponível');
       return;
     }
 
-    // Parar polling anterior se existir
-    if (autoPolling) {
-      autoPolling.stop();
-      setAutoPolling(null);
-    }
-
     setIsConnecting(true);
     try {
       const intelligentName = await generateIntelligentInstanceName(user.email);
-      console.log('[Simple Connection] 🎯 Criando instância:', intelligentName);
+      console.log('[Simple Connection] 🎯 FASE 2: Criando instância:', intelligentName);
       
-      const createdInstanceResponse = await createInstance(intelligentName);
+      const result = await createInstance(intelligentName);
       
-      if (createdInstanceResponse && createdInstanceResponse.instance) {
-        const instanceData = createdInstanceResponse.instance;
+      // FASE 2: Correção TypeScript - verificar se result tem a propriedade instance
+      if (result && 'instance' in result && result.instance) {
+        const instanceData = result.instance;
         
-        console.log('[Simple Connection] ✅ Instância criada - AGUARDANDO WEBHOOK DA VPS');
-        toast.success(`Instância "${intelligentName}" criada! Aguardando webhook da VPS...`);
+        console.log('[Simple Connection] ✅ FASE 2: Instância criada com sucesso');
+        toast.success(`Instância "${intelligentName}" criada com sucesso!`);
         
-        // CORREÇÃO CRÍTICA: NÃO INICIAR POLLING AUTOMÁTICO
-        // O modal só deve abrir quando:
-        // 1. Webhook da VPS enviar QR Code, ou
-        // 2. Usuário clicar em "Gerar QR Code" manualmente
-        
-        console.log('[Simple Connection] ⏳ Aguardando webhook ou ação manual do usuário - SEM POLLING AUTOMÁTICO');
+        console.log('[Simple Connection] ⏳ Aguardando webhook ou ação manual do usuário');
+      } else {
+        console.log('[Simple Connection] ⚠️ FASE 2: Resultado inesperado:', result);
       }
     } catch (error: any) {
-      console.error('[Simple Connection] ❌ Erro:', error);
+      console.error('[Simple Connection] ❌ FASE 2: Erro:', error);
       toast.error(`Erro ao criar instância: ${error.message}`);
     } finally {
       setIsConnecting(false);
@@ -74,73 +63,53 @@ export const SimpleWhatsAppConnection = () => {
   };
 
   const handleGenerateQR = async (instanceId: string, instanceName: string) => {
-    console.log('[Simple Connection] 🔄 Geração manual de QR Code:', { instanceId, instanceName });
-    
-    // Parar polling anterior
-    if (autoPolling) {
-      autoPolling.stop();
-      setAutoPolling(null);
-    }
+    console.log('[Simple Connection] 🔄 FASE 2: Geração manual de QR Code:', { instanceId, instanceName });
     
     setSelectedInstanceId(instanceId);
     setSelectedInstanceName(instanceName);
     setSelectedQRCode(null);
-    setIsWaitingForQR(false); // CORREÇÃO: Não marcar como waiting para não iniciar polling automático
+    setIsWaitingForQR(false);
     setShowQRModal(true);
-    
-    // CORREÇÃO: NÃO criar AutoQRPolling aqui - deixar apenas o modal controlar o polling manual
     
     toast.info(`Modal aberto para ${instanceName}. Clique em "Gerar QR Code" para iniciar.`);
   };
 
   const handleDeleteInstance = async (instanceId: string) => {
-    // Parar polling se deletando instância ativa
-    if (autoPolling && selectedInstanceId === instanceId) {
-      autoPolling.stop();
-      setAutoPolling(null);
-    }
-    
     await deleteInstance(instanceId);
   };
 
   const handleRefreshQRCode = async (instanceId: string) => {
     try {
-      console.log('[Simple Connection] 🔄 Refresh QR Code:', instanceId);
+      console.log('[Simple Connection] 🔄 FASE 2: Refresh QR Code:', instanceId);
       
       const { ImprovedQRService } = await import('@/services/whatsapp/improvedQRService');
       const result = await ImprovedQRService.getQRCodeWithDetails(instanceId);
       
-      console.log('[Simple Connection] 📥 Resultado:', result);
+      console.log('[Simple Connection] 📥 FASE 2: Resultado:', result);
       
       if (result.success && result.qrCode) {
-        console.log('[Simple Connection] ✅ QR Code obtido!');
+        console.log('[Simple Connection] ✅ FASE 2: QR Code obtido!');
         setSelectedQRCode(result.qrCode);
         setIsWaitingForQR(false);
         return { success: true, qrCode: result.qrCode };
       }
       
       if (result.waiting) {
-        console.log('[Simple Connection] ⏳ QR Code ainda não disponível');
+        console.log('[Simple Connection] ⏳ FASE 2: QR Code ainda não disponível');
         return { success: false, waiting: true };
       }
       
-      console.log('[Simple Connection] ❌ Falha na busca:', result.error);
+      console.log('[Simple Connection] ❌ FASE 2: Falha na busca:', result.error);
       return { success: false, error: result.error };
       
     } catch (error: any) {
-      console.error('[Simple Connection] ❌ Erro ao buscar QR Code:', error);
+      console.error('[Simple Connection] ❌ FASE 2: Erro ao buscar QR Code:', error);
       return { success: false, error: error.message };
     }
   };
 
   const closeQRModal = () => {
-    console.log('[Simple Connection] 🧹 Fechando modal e parando polling');
-    
-    // CORREÇÃO: Parar polling ao fechar modal
-    if (autoPolling) {
-      autoPolling.stop();
-      setAutoPolling(null);
-    }
+    console.log('[Simple Connection] 🧹 FASE 2: Fechando modal');
     
     setShowQRModal(false);
     setSelectedQRCode(null);

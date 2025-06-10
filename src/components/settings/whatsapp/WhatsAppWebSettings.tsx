@@ -9,8 +9,7 @@ import { WhatsAppWebInstancesGrid } from "./WhatsAppWebInstancesGrid";
 import { ImprovedConnectWhatsAppButton } from "./ImprovedConnectWhatsAppButton";
 import { CleanupOrphanedInstancesButton } from "./CleanupOrphanedInstancesButton";
 import { OrphanInstanceManager } from "./OrphanInstanceManager";
-import { OptimizedQRModal } from "./OptimizedQRModal";
-import { AsyncStatusIndicator } from "./AsyncStatusIndicator";
+import { AutoQRModal } from "./AutoQRModal";
 import { VPSHealthService } from "@/services/whatsapp/vpsHealthService";
 import { WhatsAppCleanupService } from "@/services/whatsapp/cleanupService";
 import { useState, useEffect } from "react";
@@ -21,28 +20,23 @@ export const WhatsAppWebSettings = () => {
   const [orphanCount, setOrphanCount] = useState<number>(0);
   const { user } = useAuth();
   
+  // FASE 2: Correção TypeScript - remover propriedades inexistentes
   const {
     instances,
     isLoading,
     isConnecting,
-    error,
     showQRModal,
     selectedQRCode,
     selectedInstanceName,
-    isPolling,
-    currentAttempt,
-    isWaiting,
-    maxAttempts,
-    refetch,
     createInstance,
     deleteInstance,
     refreshQRCode,
     closeQRModal,
     retryQRCode,
-    syncPendingInstances
+    loadInstances
   } = useWhatsAppWebInstances();
 
-  // CORREÇÃO: Monitoramento otimizado da VPS
+  // FASE 2: Monitoramento otimizado da VPS
   useEffect(() => {
     const checkVPSHealth = async () => {
       const health = await VPSHealthService.checkVPSHealth();
@@ -70,26 +64,25 @@ export const WhatsAppWebSettings = () => {
 
   const handleConnect = async () => {
     if (!user?.email) {
-      console.error('[WhatsApp Settings] ❌ HÍBRIDO: Email do usuário não disponível');
+      console.error('[WhatsApp Settings] ❌ FASE 2: Email do usuário não disponível');
       return;
     }
 
     try {
-      console.log('[WhatsApp Settings] 🎯 HÍBRIDO: Criando instância para usuário autenticado:', user.id);
+      console.log('[WhatsApp Settings] 🎯 FASE 2: Criando instância para usuário autenticado:', user.id);
       
       const timestamp = Date.now();
       const emailPrefix = user.email.split('@')[0];
       const instanceName = `whatsapp_${emailPrefix}_${timestamp}`;
       
-      // HÍBRIDO: createInstance já vai abrir o modal automaticamente
       await createInstance(instanceName);
     } catch (error: any) {
-      console.error('[WhatsApp Settings] ❌ HÍBRIDO: Erro ao conectar:', error);
+      console.error('[WhatsApp Settings] ❌ FASE 2: Erro ao conectar:', error);
     }
   };
 
   const handleShowQR = (instance: any) => {
-    console.log('[WhatsApp Settings] 📱 ASYNC: Mostrando QR Code para:', instance.id);
+    console.log('[WhatsApp Settings] 📱 FASE 2: Mostrando QR Code para:', instance.id);
   };
 
   const handleRefreshQRCodeWrapper = async (instanceId: string): Promise<{ qrCode?: string } | null> => {
@@ -100,7 +93,7 @@ export const WhatsAppWebSettings = () => {
       }
       return null;
     } catch (error: any) {
-      console.error('[WhatsApp Settings] ❌ ASYNC: Erro ao atualizar QR Code:', error);
+      console.error('[WhatsApp Settings] ❌ FASE 2: Erro ao atualizar QR Code:', error);
       return null;
     }
   };
@@ -109,18 +102,7 @@ export const WhatsAppWebSettings = () => {
     return <WhatsAppWebLoadingState />;
   }
 
-  if (error) {
-    return (
-      <Card className="border-red-200 bg-red-50/30">
-        <CardContent className="p-6 text-center">
-          <AlertTriangle className="h-8 w-8 text-red-600 mx-auto mb-2" />
-          <p className="text-red-700">Erro ao carregar instâncias: {error}</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  // ASYNC: Contar instâncias por status com novos status
+  // FASE 2: Contar instâncias por status
   const connectedInstances = instances.filter(i => 
     i.connection_status === 'connected' || i.connection_status === 'ready'
   ).length;
@@ -143,9 +125,9 @@ export const WhatsAppWebSettings = () => {
                 <MessageSquare className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-green-800">WhatsApp Web.js - Sistema Assíncrono</h2>
+                <h2 className="text-xl font-semibold text-green-800">WhatsApp Web.js - FASE 2 Refinado</h2>
                 <p className="text-sm text-green-600">
-                  Sistema otimizado com criação assíncrona (Usuário: {user?.email})
+                  Sistema corrigido - Edge Function como proxy único (Usuário: {user?.email})
                 </p>
               </div>
             </div>
@@ -158,7 +140,7 @@ export const WhatsAppWebSettings = () => {
               
               <Badge variant="outline" className="border-green-300 text-green-700">
                 <Shield className="h-3 w-3 mr-1" />
-                Async Ativo
+                FASE 2 Ativo
               </Badge>
               
               {connectedInstances > 0 && (
@@ -200,12 +182,6 @@ export const WhatsAppWebSettings = () => {
         </CardHeader>
       </Card>
 
-      {/* NOVO: Indicador de status assíncrono */}
-      <AsyncStatusIndicator 
-        instances={instances}
-        onRefresh={refetch}
-      />
-
       {/* Sistema de Recuperação de Órfãs */}
       <OrphanInstanceManager />
 
@@ -216,7 +192,7 @@ export const WhatsAppWebSettings = () => {
           isConnecting={isConnecting}
         />
         <CleanupOrphanedInstancesButton 
-          onCleanupComplete={refetch}
+          onCleanupComplete={loadInstances}
         />
       </div>
 
@@ -235,18 +211,16 @@ export const WhatsAppWebSettings = () => {
         />
       )}
 
-      {/* HÍBRIDO: Modal do QR Code com Polling Inteligente */}
-      <OptimizedQRModal
+      {/* FASE 2: Modal do QR Code simplificado */}
+      <AutoQRModal
         isOpen={showQRModal}
         onClose={closeQRModal}
-        instanceId={selectedInstanceName} // CORREÇÃO: usar selectedInstanceName temporariamente
-        instanceName={selectedInstanceName}
-        autoStartPolling={false} // Polling já foi iniciado pelo hook
         qrCode={selectedQRCode}
-        isPolling={isPolling}
-        isWaiting={isWaiting}
-        currentAttempt={currentAttempt}
-        maxAttempts={maxAttempts}
+        instanceName={selectedInstanceName}
+        isWaiting={false}
+        currentAttempt={0}
+        maxAttempts={15}
+        error={null}
         onRetry={retryQRCode}
       />
     </div>

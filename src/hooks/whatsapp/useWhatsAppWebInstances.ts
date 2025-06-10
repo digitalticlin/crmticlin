@@ -12,7 +12,7 @@ export const useWhatsAppWebInstances = () => {
   const [selectedQRCode, setSelectedQRCode] = useState<string | null>(null);
   const [selectedInstanceName, setSelectedInstanceName] = useState<string>('');
 
-  // CARREGAR INSTÂNCIAS DO USUÁRIO ATUAL
+  // CORREÇÃO: Carregar instâncias do usuário atual
   const loadInstances = async () => {
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -26,7 +26,7 @@ export const useWhatsAppWebInstances = () => {
       const { data, error } = await supabase
         .from('whatsapp_instances')
         .select('*')
-        .eq('created_by_user_id', user.id) // FILTRO POR USUÁRIO
+        .eq('created_by_user_id', user.id)
         .eq('connection_type', 'web')
         .order('created_at', { ascending: false });
 
@@ -49,19 +49,19 @@ export const useWhatsAppWebInstances = () => {
     loadInstances();
   }, []);
 
-  // CRIAR INSTÂNCIA COM MÉTODO HÍBRIDO
+  // CORREÇÃO FASE 1: Criar instância APENAS via Edge Function (sem fallback)
   const createInstance = async (instanceName: string) => {
     setIsConnecting(true);
     
     try {
-      console.log('[Hook] 🚀 HÍBRIDO: Criando instância:', instanceName);
+      console.log('[Hook] 🚀 HÍBRIDO REFINADO: Criando instância via Edge Function:', instanceName);
       
       const result = await HybridInstanceService.createInstance(instanceName);
       
       if (result.success && result.instance) {
-        console.log(`[Hook] ✅ HÍBRIDO: Sucesso via ${result.method.toUpperCase()}!`);
+        console.log('[Hook] ✅ HÍBRIDO REFINADO: Sucesso via Edge Function!');
         
-        toast.success(`Instância criada via ${result.method === 'edge_function' ? 'Edge Function' : 'VPS Direto'}!`, {
+        toast.success('Instância criada com sucesso!', {
           description: `${instanceName} está sendo inicializada...`
         });
 
@@ -80,7 +80,7 @@ export const useWhatsAppWebInstances = () => {
       throw new Error(result.error || 'Falha desconhecida na criação');
 
     } catch (error: any) {
-      console.error('[Hook] ❌ HÍBRIDO: Erro na criação:', error);
+      console.error('[Hook] ❌ HÍBRIDO REFINADO: Erro na criação:', error);
       toast.error(`Erro na criação: ${error.message}`);
       return { success: false, error: error.message };
     } finally {
@@ -150,7 +150,6 @@ export const useWhatsAppWebInstances = () => {
   };
 
   const retryQRCode = async () => {
-    // Implementação de retry se necessário
     console.log('[Hook] 🔄 Retry QR Code...');
   };
 
