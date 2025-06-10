@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useWhatsAppWebInstances } from "./useWhatsAppWebInstances";
@@ -19,13 +20,13 @@ export const useWhatsAppWebV2Logic = () => {
   const {
     instances,
     isLoading,
-    fetchInstances,
+    loadInstances,
     generateIntelligentInstanceName
   } = useWhatsAppWebInstances();
 
   // CORREÇÃO: Criar wrapper que não retorna valor
   const refreshInstances = async (): Promise<void> => {
-    await fetchInstances();
+    await loadInstances();
   };
 
   const {

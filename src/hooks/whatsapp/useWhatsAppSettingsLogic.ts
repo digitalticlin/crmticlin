@@ -120,7 +120,7 @@ export const useWhatsAppSettingsLogic = () => {
       
       console.log('[useWhatsAppSettingsLogic] ✅ Executando sync controlado para usuário...');
       
-      await whatsAppHooks.refetch();
+      await whatsAppHooks.loadInstances();
       
       if (!isUnmountedRef.current) {
         toast.success("Status do WhatsApp sincronizado com sucesso!");
@@ -136,7 +136,7 @@ export const useWhatsAppSettingsLogic = () => {
         syncInProgressRef.current = false;
       }
     }
-  }, [whatsAppHooks.instances.length, whatsAppHooks.refetch]);
+  }, [whatsAppHooks.instances.length, whatsAppHooks.loadInstances]);
 
   // CORREÇÃO: Refresh throttled
   const refreshUserInstances = useCallback(() => {
@@ -144,11 +144,11 @@ export const useWhatsAppSettingsLogic = () => {
     
     if (user?.id && !isUnmountedRef.current && !syncInProgressRef.current) {
       console.log('[useWhatsAppSettingsLogic] ✅ Executando refresh controlado');
-      whatsAppHooks.refetch();
+      whatsAppHooks.loadInstances();
     } else {
       console.log('[useWhatsAppSettingsLogic] ⏸️ Refresh ignorado - condições de proteção');
     }
-  }, [user?.id, whatsAppHooks.refetch]);
+  }, [user?.id, whatsAppHooks.loadInstances]);
 
   console.log('[useWhatsAppSettingsLogic] Hook retornando dados otimizados (migrado)');
 

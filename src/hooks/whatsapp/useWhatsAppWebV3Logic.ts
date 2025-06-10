@@ -20,13 +20,13 @@ export const useWhatsAppWebV3Logic = () => {
   const {
     instances,
     isLoading,
-    fetchInstances,
+    loadInstances,
     generateIntelligentInstanceName
   } = useWhatsAppWebInstances();
 
   // Wrapper para refreshInstances
   const refreshInstances = async (): Promise<void> => {
-    await fetchInstances();
+    await loadInstances();
   };
 
   const {

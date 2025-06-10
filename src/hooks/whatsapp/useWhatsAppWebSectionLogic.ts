@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useWhatsAppWebInstances } from "./useWhatsAppWebInstances";
@@ -66,37 +67,39 @@ export const useWhatsAppWebSectionLogic = () => {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // ETAPA 5: Configurar modal APENAS após confirmação completa
-      // Type-safe access to instance data
-      const instanceData = createdInstance.instance;
-      const finalInstanceName = instanceData?.instance_name || generatedInstanceName;
-      setLocalSelectedInstanceName(finalInstanceName);
-      
-      const qrCode = instanceData?.qr_code;
-      if (qrCode) {
-        // QR Code disponível - VPS processou completamente
-        setLocalSelectedQRCode(qrCode);
-        setIsWaitingForQR(false);
-        setCreationStage('Pronto para escanear!');
-        toast.success(`QR Code pronto! Escaneie para conectar.`, { id: 'creating-instance' });
-      } else {
-        // QR Code não disponível - iniciar polling
-        setIsWaitingForQR(true);
-        setCreationStage('Preparando QR Code...');
-        toast.info(`Preparando QR Code para "${finalInstanceName}"...`, { id: 'creating-instance' });
+      // CORREÇÃO: Verificar se createdInstance tem propriedade instance
+      if ('instance' in createdInstance && createdInstance.instance) {
+        const instanceData = createdInstance.instance;
+        const finalInstanceName = instanceData?.instance_name || generatedInstanceName;
+        setLocalSelectedInstanceName(finalInstanceName);
         
-        // Polling com confirmação de instância existente
-        const instanceId = instanceData?.id;
-        if (instanceId) {
-          await startPolling(
-            instanceId,
-            finalInstanceName,
-            (qrCode: string) => {
-              setLocalSelectedQRCode(qrCode);
-              setIsWaitingForQR(false);
-              setCreationStage('Pronto para escanear!');
-              toast.success('QR Code pronto! Escaneie para conectar.', { id: 'creating-instance' });
-            }
-          );
+        const qrCode = instanceData?.qr_code;
+        if (qrCode) {
+          // QR Code disponível - VPS processou completamente
+          setLocalSelectedQRCode(qrCode);
+          setIsWaitingForQR(false);
+          setCreationStage('Pronto para escanear!');
+          toast.success(`QR Code pronto! Escaneie para conectar.`, { id: 'creating-instance' });
+        } else {
+          // QR Code não disponível - iniciar polling
+          setIsWaitingForQR(true);
+          setCreationStage('Preparando QR Code...');
+          toast.info(`Preparando QR Code para "${finalInstanceName}"...`, { id: 'creating-instance' });
+          
+          // Polling com confirmação de instância existente
+          const instanceId = instanceData?.id;
+          if (instanceId) {
+            await startPolling(
+              instanceId,
+              finalInstanceName,
+              (qrCode: string) => {
+                setLocalSelectedQRCode(qrCode);
+                setIsWaitingForQR(false);
+                setCreationStage('Pronto para escanear!');
+                toast.success('QR Code pronto! Escaneie para conectar.', { id: 'creating-instance' });
+              }
+            );
+          }
         }
       }
       
