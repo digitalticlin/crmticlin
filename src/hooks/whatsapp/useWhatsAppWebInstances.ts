@@ -299,6 +299,7 @@ export const useWhatsAppWebInstances = () => {
     closeQRModal,
     retryQRCode,
     loadInstances,
+    generateIntelligentInstanceName, // ADICIONADO: Exportar função para V2/V3
     // Estados adicionais para UX
     qrPollingActive,
     currentInstanceId
