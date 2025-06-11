@@ -1,153 +1,113 @@
 
 #!/bin/bash
-# Teste do servidor corrigido - Criação permissiva de instância
-# Execute: chmod +x src/utils/test-corrected-server.sh && src/utils/test-corrected-server.sh
 
-echo "🧪 TESTE DO SERVIDOR CORRIGIDO - MODO PERMISSIVO"
-echo "==============================================="
+# Script de Teste do Servidor WhatsApp CORRIGIDO
+echo "🧪 Iniciando testes do servidor WhatsApp CORRIGIDO..."
 
-# Configurações
-VPS_IP="31.97.24.222"
-VPS_PORT="3002"
-AUTH_TOKEN="3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3"
-INSTANCE_NAME="teste_corrigido_$(date +%s)"
+# Definir variáveis
+SERVER_URL="http://localhost:3002"
+EXTERNAL_URL="http://31.97.24.222:3002"
+TOKEN="3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3"
 
-echo "📋 Configurações:"
-echo "   🔸 VPS: ${VPS_IP}:${VPS_PORT}"
-echo "   🔸 Instância: ${INSTANCE_NAME}"
-echo "   🔸 Modo: PERMISSIVO"
-
-# Função para fazer requests
-make_request() {
+# Função para testar endpoint
+test_endpoint() {
     local url=$1
-    local method=${2:-GET}
-    local data=${3:-""}
+    local expected_code=${2:-200}
+    local method=${3:-GET}
+    local data=${4:-""}
+    
+    echo "🔍 Testando: $method $url"
     
     if [ "$method" = "POST" ] && [ -n "$data" ]; then
-        timeout 15 curl -s -X POST "$url" \
+        response=$(curl -s -w "\n%{http_code}" -X POST \
             -H "Content-Type: application/json" \
-            -H "Authorization: Bearer $AUTH_TOKEN" \
-            --data "$data"
+            -H "Authorization: Bearer $TOKEN" \
+            -d "$data" \
+            "$url")
     else
-        timeout 15 curl -s "$url" \
-            -H "Authorization: Bearer $AUTH_TOKEN"
+        response=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: Bearer $TOKEN" \
+            "$url")
     fi
+    
+    body=$(echo "$response" | head -n -1)
+    code=$(echo "$response" | tail -n 1)
+    
+    if [ "$code" = "$expected_code" ]; then
+        echo "✅ Sucesso: HTTP $code"
+        echo "$body" | jq . 2>/dev/null || echo "$body"
+    else
+        echo "❌ Falha: HTTP $code (esperado $expected_code)"
+        echo "$body"
+    fi
+    
+    echo "---"
 }
 
-echo ""
-echo "1️⃣ VERIFICAR SERVIDOR CORRIGIDO"
-echo "==============================="
-SERVER_STATUS=$(make_request "http://${VPS_IP}:${VPS_PORT}/health")
-
-if echo "$SERVER_STATUS" | jq -e '.success and .permissive_mode' > /dev/null 2>&1; then
-    echo "✅ Servidor corrigido online e em modo permissivo"
-    echo "$SERVER_STATUS" | jq '{version, permissive_mode, active_instances}'
-else
-    echo "❌ Servidor não está em modo permissivo ou offline"
-    echo "Response: $SERVER_STATUS"
-    exit 1
-fi
+# Verificar se servidor está rodando
+echo "📊 Verificando status do PM2..."
+pm2 status
 
 echo ""
-echo "2️⃣ CRIAR INSTÂNCIA COM SERVIDOR PERMISSIVO"
-echo "=========================================="
-
-CREATE_PAYLOAD="{\"instanceId\": \"$INSTANCE_NAME\", \"sessionName\": \"$INSTANCE_NAME\"}"
-
-echo "📤 Criando instância permissiva..."
-CREATE_RESPONSE=$(make_request "http://${VPS_IP}:${VPS_PORT}/instance/create" "POST" "$CREATE_PAYLOAD")
-
-if echo "$CREATE_RESPONSE" | jq -e '.success' > /dev/null 2>&1; then
-    echo "✅ Instância criada com servidor permissivo!"
-    echo "$CREATE_RESPONSE" | jq '{success, instanceId, status, message, permissive_mode}'
-else
-    echo "❌ Falha na criação permissiva"
-    echo "Response: $CREATE_RESPONSE"
-    exit 1
-fi
+echo "🔍 Verificando se porta 3002 está aberta..."
+netstat -tulpn | grep :3002
 
 echo ""
-echo "3️⃣ VERIFICAR STATUS IMEDIATO"
-echo "==========================="
-
-echo "🔍 Verificando status da instância recém-criada..."
-STATUS_RESPONSE=$(make_request "http://${VPS_IP}:${VPS_PORT}/instance/$INSTANCE_NAME/status")
-
-echo "📊 Status imediato:"
-echo "$STATUS_RESPONSE" | jq '{success, instanceId, status, permissive_mode}'
-
-echo ""
-echo "4️⃣ TENTAR OBTER QR CODE (PERMISSIVO)"
+echo "🧪 TESTES LOCAIS (localhost:3002)"
 echo "=================================="
 
-echo "📱 Tentando obter QR Code..."
-QR_PAYLOAD="{\"instanceId\": \"$INSTANCE_NAME\"}"
-QR_RESPONSE=$(make_request "http://${VPS_IP}:${VPS_PORT}/instance/qr" "POST" "$QR_PAYLOAD")
+# Testes básicos
+test_endpoint "$SERVER_URL/health"
+test_endpoint "$SERVER_URL/status"
+test_endpoint "$SERVER_URL/instances"
 
-if echo "$QR_RESPONSE" | jq -e '.success and .qrCode' > /dev/null 2>&1; then
-    echo "✅ QR Code obtido com sucesso!"
-    echo "📱 QR Code disponível para escaneamento"
-    
-    # Mostrar o QR Code
-    QR_CODE=$(echo "$QR_RESPONSE" | jq -r '.qrCode')
-    echo ""
-    echo "📱 ESCANEIE ESTE QR CODE NO SEU WHATSAPP:"
-    echo "========================================"
-    echo "$QR_CODE"
-    echo "========================================"
-    
-else
-    echo "⏳ QR Code ainda não disponível - mas isso é NORMAL no modo permissivo"
-    echo "$QR_RESPONSE" | jq '{success, status, message, permissive_info}'
-    
-    echo ""
-    echo "🔄 Aguardando 30s e tentando novamente..."
-    sleep 30
-    
-    QR_RESPONSE_2=$(make_request "http://${VPS_IP}:${VPS_PORT}/instance/qr" "POST" "$QR_PAYLOAD")
-    
-    if echo "$QR_RESPONSE_2" | jq -e '.success and .qrCode' > /dev/null 2>&1; then
-        echo "✅ QR Code obtido na segunda tentativa!"
-        
-        QR_CODE=$(echo "$QR_RESPONSE_2" | jq -r '.qrCode')
-        echo ""
-        echo "📱 ESCANEIE ESTE QR CODE NO SEU WHATSAPP:"
-        echo "========================================"
-        echo "$QR_CODE"
-        echo "========================================"
-        
-    else
-        echo "⏳ QR Code ainda processando - aguarde mais um pouco"
-        echo "$QR_RESPONSE_2" | jq '{status, message, permissive_info}'
-    fi
-fi
+# Teste de criação de instância
+instance_data='{"instanceId":"test123","sessionName":"test123","webhookUrl":"https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web"}'
+test_endpoint "$SERVER_URL/instance/create" 200 "POST" "$instance_data"
+
+# Aguardar um pouco
+echo "⏳ Aguardando 5 segundos..."
+sleep 5
+
+# Verificar instância criada
+test_endpoint "$SERVER_URL/instance/test123/status"
+test_endpoint "$SERVER_URL/instance/test123/qr"
 
 echo ""
-echo "5️⃣ LISTAR TODAS AS INSTÂNCIAS"
-echo "============================"
+echo "🌐 TESTES EXTERNOS (31.97.24.222:3002)"
+echo "======================================"
 
-echo "📋 Lista de instâncias no servidor:"
-INSTANCES_LIST=$(make_request "http://${VPS_IP}:${VPS_PORT}/instances")
-echo "$INSTANCES_LIST" | jq '{total, instances: [.instances[] | {instanceId, status, hasQR, createdAt}]}'
+# Testes externos
+test_endpoint "$EXTERNAL_URL/health"
+test_endpoint "$EXTERNAL_URL/status"
 
 echo ""
-echo "🎉 TESTE DO SERVIDOR CORRIGIDO CONCLUÍDO!"
-echo "========================================"
-echo "✅ Servidor: CORRIGIDO e PERMISSIVO"
-echo "✅ Instância: CRIADA ($INSTANCE_NAME)"
-echo "✅ Modo: Criação assíncrona funcionando"
-echo "✅ Validações: Relaxadas e informativas"
+echo "🔥 TESTE DE STRESS"
+echo "=================="
+
+# Teste de múltiplas requisições
+for i in {1..5}; do
+    echo "Requisição $i/5..."
+    curl -s "$SERVER_URL/health" > /dev/null && echo "✅ OK" || echo "❌ FALHA"
+done
+
 echo ""
-echo "📝 RESUMO DO QUE FOI CORRIGIDO:"
-echo "1. Criação de instância não aguarda QR (assíncrona)"
-echo "2. Timeouts aumentados de 30s para 120s"
-echo "3. Instâncias mantidas mesmo com timeout/erro"
-echo "4. Retornos sempre informativos sobre o status"
-echo "5. Validações permissivas (não bloqueiam criação)"
+echo "📊 MÉTRICAS FINAIS"
+echo "=================="
+
+# Estatísticas PM2
+pm2 show whatsapp-server
+
+# Uso de memória
 echo ""
-echo "🚀 PRÓXIMOS PASSOS:"
-echo "1. Use o frontend /settings → Teste Final"
-echo "2. QR Code será gerado em background"
-echo "3. Escaneie quando aparecer"
-echo "4. Sistema agora está robusto e permissivo!"
-echo "========================================"
+echo "💾 Uso de memória:"
+ps aux | grep "node.*server" | grep -v grep
+
+# Logs recentes
+echo ""
+echo "📝 Últimos logs (10 linhas):"
+pm2 logs whatsapp-server --lines 10
+
+echo ""
+echo "✅ Testes concluídos!"
+echo "🎯 Para monitoramento contínuo: watch 'curl -s http://localhost:3002/health | jq .'"

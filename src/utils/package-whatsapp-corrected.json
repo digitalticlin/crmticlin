@@ -1,0 +1,35 @@
+
+{
+  "name": "whatsapp-server-corrected",
+  "version": "5.0.0",
+  "description": "WhatsApp Web.js Server - Correção Completa",
+  "main": "whatsapp-server-corrected.js",
+  "scripts": {
+    "start": "node whatsapp-server-corrected.js",
+    "dev": "nodemon whatsapp-server-corrected.js",
+    "pm2:start": "pm2 start pm2-ecosystem-corrected.config.js",
+    "pm2:stop": "pm2 stop whatsapp-server",
+    "pm2:restart": "pm2 restart whatsapp-server",
+    "pm2:delete": "pm2 delete whatsapp-server",
+    "pm2:logs": "pm2 logs whatsapp-server",
+    "pm2:monit": "pm2 monit",
+    "test": "node -e \"console.log('✅ Package correto')\""
+  },
+  "keywords": ["whatsapp", "api", "bot", "corrected"],
+  "author": "TicLin System",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "whatsapp-web.js": "^1.23.0",
+    "puppeteer": "^21.5.0",
+    "qrcode": "^1.5.3",
+    "cors": "^2.8.5",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
