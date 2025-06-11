@@ -71,8 +71,7 @@ export const MonitoringPanel = ({ logs, onClear }: MonitoringPanelProps) => {
     return date.toLocaleTimeString('pt-BR', { 
       hour: '2-digit', 
       minute: '2-digit', 
-      second: '2-digit',
-      fractionalSecondDigits: 3
+      second: '2-digit'
     });
   };
 
