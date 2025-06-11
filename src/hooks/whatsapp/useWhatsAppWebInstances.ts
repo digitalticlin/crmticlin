@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +11,8 @@ interface CreateInstanceResult {
   error?: string;
   operationId?: string;
   intelligent_name?: string;
+  fallback_used?: boolean;
+  mode?: string;
 }
 
 export const useWhatsAppWebInstances = () => {

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,7 +24,7 @@ export const WhatsAppWebSection = () => {
     showQRModal,
     selectedQRCode,
     selectedInstanceName,
-    createInstance, // CORREÇÃO: Usar o hook
+    createInstance,
     deleteInstance,
     refreshQRCode,
     closeQRModal,
@@ -34,7 +33,6 @@ export const WhatsAppWebSection = () => {
     loadInstances
   } = useWhatsAppWebInstances();
 
-  // CORREÇÃO: Função para adicionar log de monitoramento
   const addMonitoringLog = (step: string, status: 'pending' | 'success' | 'error', details: any = {}) => {
     const logEntry = {
       id: Date.now(),
@@ -49,7 +47,6 @@ export const WhatsAppWebSection = () => {
     console.log(`[Monitoring] ${step} - ${status}:`, details);
   };
 
-  // CORREÇÃO: Usar hook otimizado em vez de chamada direta
   const handleCreateInstance = async () => {
     if (!user?.email) {
       toast.error('Email do usuário não disponível');
@@ -59,11 +56,9 @@ export const WhatsAppWebSection = () => {
     setIsCreatingInstance(true);
     setShowMonitoring(true);
     
-    // Limpar logs anteriores
     setMonitoringData([]);
     
     try {
-      // ETAPA 1: Iniciando via hook otimizado
       addMonitoringLog('1. Iniciando Criação Otimizada via Hook', 'pending', {
         userEmail: user.email,
         method: 'HOOK_TO_EDGE_FUNCTION_OPTIMIZED'
@@ -71,7 +66,6 @@ export const WhatsAppWebSection = () => {
 
       console.log('[WhatsApp Web] 🚀 Criando instância via hook otimizado para:', user.email);
       
-      // CORREÇÃO: Usar hook otimizado em vez de supabase.functions.invoke direto
       const result = await createInstance();
       
       if (!result || !result.success) {
@@ -85,8 +79,8 @@ export const WhatsAppWebSection = () => {
       addMonitoringLog('2. Hook Otimizado Executado com Sucesso', 'success', {
         instanceId: result.instance?.id,
         method: 'HOOK_SUCCESS_OPTIMIZED',
-        fallbackUsed: result.fallback_used,
-        mode: result.mode
+        fallbackUsed: result.fallback_used || false,
+        mode: result.mode || 'normal'
       });
 
       console.log('[WhatsApp Web] ✅ Instância criada via hook otimizado:', result);
@@ -101,7 +95,6 @@ export const WhatsAppWebSection = () => {
         });
       }
 
-      // Atualizar lista de instâncias
       await loadInstances();
       
       addMonitoringLog('3. Lista Atualizada (Otimizada)', 'success', {
