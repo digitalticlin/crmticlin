@@ -1,18 +1,18 @@
 
-// VPS Configuration - CORREÇÃO FINAL: Apenas porta 3002 (3001 REMOVIDA COMPLETAMENTE)
+// VPS Configuration - CORREÇÃO FINAL: Apenas porta 3002
 export const VPS_CONFIG = {
   baseUrl: 'http://31.97.24.222:3002', // CORREÇÃO: URL base fixa com porta 3002
   authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
   
   endpoints: {
     health: '/health',
-    status: '/status', // CORREÇÃO: Endpoint que vamos adicionar na VPS
+    status: '/status',
     instances: '/instances',
     qrCode: '/instance/{instanceId}/qr',
-    sendMessage: '/send', // CORREÇÃO: Endpoint que vamos adicionar na VPS
+    sendMessage: '/send',
     createInstance: '/instance/create',
     deleteInstance: '/instance/{instanceId}',
-    instanceStatus: '/instance/{instanceId}/status', // CORREÇÃO: Endpoint que vamos adicionar
+    instanceStatus: '/instance/{instanceId}/status',
     webhookGlobal: '/webhook/global',
     webhookStatus: '/webhook/global/status',
     webhookInstance: '/instance/{instanceId}/webhook'
@@ -27,17 +27,17 @@ export const VPS_CONFIG = {
   },
   
   timeouts: {
-    connection: 15000,    // 15 seconds para HTTP direto
-    message: 30000,       // 30 seconds  
-    qrCode: 25000,        // 25 seconds
-    health: 10000,        // 10 seconds
-    discovery: 20000      // 20 seconds para descoberta
+    connection: 15000,
+    message: 30000,
+    qrCode: 25000,
+    health: 10000,
+    discovery: 20000
   },
   
   sync: {
-    interval: 180000,           // 3 minutes
-    healthCheckInterval: 120000, // 2 minutes
-    debounceDelay: 1000,        // 1 second
+    interval: 180000,
+    healthCheckInterval: 120000,
+    debounceDelay: 1000,
     maxRetries: 3,
     backoffMultiplier: 2
   },
