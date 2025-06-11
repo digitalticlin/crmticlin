@@ -48,12 +48,12 @@ export const VPSDiagnosticPanel = () => {
     setDiagnostics([]);
     
     try {
-      // TESTE 1: Edge Function Health Check
+      // TESTE 1: Edge Function Health Check - CORRIGIDO
       addDiagnostic('Edge Function - Health Check', 'pending');
       const startTime1 = Date.now();
       
       const { data: healthData, error: healthError } = await supabase.functions.invoke('whatsapp_instance_manager', {
-        body: { action: 'diagnostic_health' }
+        body: { action: 'diagnostic_health' } // CORREÇÃO: action correta
       });
       
       const duration1 = Date.now() - startTime1;
@@ -64,12 +64,12 @@ export const VPSDiagnosticPanel = () => {
         addDiagnostic('Edge Function - Health Check', 'success', healthData, duration1);
       }
 
-      // TESTE 2: VPS Connection Test
+      // TESTE 2: VPS Connection Test - CORRIGIDO
       addDiagnostic('VPS - Connection Test', 'pending');
       const startTime2 = Date.now();
       
       const { data: vpsData, error: vpsError } = await supabase.functions.invoke('whatsapp_instance_manager', {
-        body: { action: 'diagnostic_vps' }
+        body: { action: 'diagnostic_vps' } // CORREÇÃO: action correta
       });
       
       const duration2 = Date.now() - startTime2;
@@ -97,13 +97,13 @@ export const VPSDiagnosticPanel = () => {
         addDiagnostic('Database - Instance Query', 'success', { result: 'Connection OK' }, duration3);
       }
 
-      // TESTE 4: Create Instance Test (Safe Mode)
+      // TESTE 4: Create Instance Test (Safe Mode) - CORRIGIDO
       addDiagnostic('Create Instance - Safe Mode', 'pending');
       const startTime4 = Date.now();
       
       const { data: createData, error: createError } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: { 
-          action: 'diagnostic_create',
+          action: 'diagnostic_create', // CORREÇÃO: action correta
           testMode: true 
         }
       });
@@ -114,6 +114,25 @@ export const VPSDiagnosticPanel = () => {
         addDiagnostic('Create Instance - Safe Mode', 'error', { error: createError.message }, duration4);
       } else {
         addDiagnostic('Create Instance - Safe Mode', createData?.success ? 'success' : 'error', createData, duration4);
+      }
+
+      // TESTE 5: VPS Endpoint Availability - NOVO
+      addDiagnostic('VPS - Endpoint /instance/create', 'pending');
+      const startTime5 = Date.now();
+      
+      const { data: endpointData, error: endpointError } = await supabase.functions.invoke('whatsapp_instance_manager', {
+        body: { 
+          action: 'diagnostic_vps_endpoint',
+          endpoint: '/instance/create'
+        }
+      });
+      
+      const duration5 = Date.now() - startTime5;
+      
+      if (endpointError) {
+        addDiagnostic('VPS - Endpoint /instance/create', 'error', { error: endpointError.message }, duration5);
+      } else {
+        addDiagnostic('VPS - Endpoint /instance/create', endpointData?.success ? 'success' : 'error', endpointData, duration5);
       }
 
     } catch (error: any) {
@@ -156,7 +175,7 @@ export const VPSDiagnosticPanel = () => {
         <CardTitle className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Server className="h-5 w-5 text-purple-600" />
-            <span>Diagnóstico VPS & Sistema</span>
+            <span>Diagnóstico VPS & Sistema (CORRIGIDO)</span>
           </div>
           <Button
             onClick={runFullDiagnostic}

@@ -10,7 +10,6 @@ import { AutoQRModal } from "./AutoQRModal";
 import { MonitoringPanel } from "./MonitoringPanel";
 import { VPSDiagnosticPanel } from "./VPSDiagnosticPanel";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 export const WhatsAppWebSection = () => {
   const { user } = useAuth();
@@ -25,6 +24,7 @@ export const WhatsAppWebSection = () => {
     showQRModal,
     selectedQRCode,
     selectedInstanceName,
+    createInstance, // CORREÇÃO: Usar o hook
     deleteInstance,
     refreshQRCode,
     closeQRModal,
@@ -33,7 +33,7 @@ export const WhatsAppWebSection = () => {
     loadInstances
   } = useWhatsAppWebInstances();
 
-  // Função para adicionar log de monitoramento
+  // CORREÇÃO: Função para adicionar log de monitoramento
   const addMonitoringLog = (step: string, status: 'pending' | 'success' | 'error', details: any = {}) => {
     const logEntry = {
       id: Date.now(),
@@ -48,6 +48,7 @@ export const WhatsAppWebSection = () => {
     console.log(`[Monitoring] ${step} - ${status}:`, details);
   };
 
+  // CORREÇÃO: Usar hook em vez de chamada direta
   const handleCreateInstance = async () => {
     if (!user?.email) {
       toast.error('Email do usuário não disponível');
@@ -61,111 +62,53 @@ export const WhatsAppWebSection = () => {
     setMonitoringData([]);
     
     try {
-      // ETAPA 1: Iniciando requisição VIA API SUPABASE
-      addMonitoringLog('1. Iniciando Requisição via API Supabase', 'pending', {
+      // ETAPA 1: Iniciando via hook
+      addMonitoringLog('1. Iniciando Criação via Hook', 'pending', {
         userEmail: user.email,
-        action: 'create_instance',
-        method: 'SUPABASE_API_ONLY'
+        method: 'HOOK_TO_EDGE_FUNCTION'
       });
 
-      console.log('[WhatsApp Web] 🚀 Criando instância via API Supabase para:', user.email);
+      console.log('[WhatsApp Web] 🚀 Criando instância via hook para:', user.email);
       
-      // Gerar nome inteligente baseado no email
-      const intelligentName = user.email.split('@')[0].toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
+      // CORREÇÃO: Usar hook em vez de supabase.functions.invoke direto
+      const result = await createInstance();
       
-      addMonitoringLog('2. Nome Inteligente Gerado', 'success', {
-        originalEmail: user.email,
-        intelligentName
-      });
-
-      // ETAPA 2: Chamando Edge Function via API Supabase (NÃO HTTP)
-      addMonitoringLog('3. Chamando Edge Function via API', 'pending', {
-        method: 'supabase.functions.invoke',
-        function: 'whatsapp_instance_manager',
-        payload: {
-          action: 'create_instance',
-          instanceName: intelligentName
-        }
-      });
-
-      const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
-        body: {
-          action: 'create_instance',
-          instanceName: intelligentName
-        }
-      });
-
-      if (error) {
-        addMonitoringLog('3. API Supabase Error', 'error', {
-          error: error.message,
-          errorType: 'SUPABASE_API_ERROR'
+      if (!result || !result.success) {
+        addMonitoringLog('ERRO: Hook falhou', 'error', {
+          result,
+          method: 'HOOK_FAILURE'
         });
-        throw new Error(error.message);
+        throw new Error(result?.error || 'Hook de criação falhou');
       }
 
-      addMonitoringLog('3. API Supabase Success', 'success', {
-        responseReceived: !!data,
-        success: data?.success,
-        method: 'API_ONLY'
+      addMonitoringLog('2. Hook Executado com Sucesso', 'success', {
+        instanceId: result.instance?.id,
+        method: 'HOOK_SUCCESS'
       });
 
-      if (!data?.success) {
-        addMonitoringLog('4. Edge Function Response Error', 'error', {
-          functionError: data?.error || 'Resposta inválida da Edge Function',
-          fullResponse: data
-        });
-        throw new Error(data?.error || 'Falha na Edge Function');
-      }
+      console.log('[WhatsApp Web] ✅ Instância criada via hook:', result);
 
-      // ETAPA 3: Instância criada com sucesso via API
-      addMonitoringLog('4. Instância Criada via API', 'success', {
-        instanceId: data.instance?.id,
-        vpsInstanceId: data.instance?.vps_instance_id,
-        instanceName: intelligentName,
-        method: 'SUPABASE_API_ONLY'
+      toast.success(`Instância criada via hook!`, {
+        description: "Sistema corrigido - usando hook → ApiClient → Edge Function"
       });
-
-      console.log('[WhatsApp Web] ✅ Instância criada via API:', {
-        instanceName: intelligentName,
-        instanceId: data.instance?.id
-      });
-
-      toast.success(`Instância "${intelligentName}" criada via API!`, {
-        description: "Sistema corrigido - usando apenas API Supabase"
-      });
-
-      // ETAPA 4: Aguardando Webhook (se VPS disponível)
-      if (data.vps_success) {
-        addMonitoringLog('5. Aguardando Webhook VPS', 'pending', {
-          expectedWebhook: 'qr_code_update',
-          timeout: '30 segundos'
-        });
-      } else {
-        addMonitoringLog('5. Modo Fallback Ativo', 'success', {
-          reason: 'VPS indisponível',
-          fallbackMode: true
-        });
-      }
 
       // Atualizar lista de instâncias
       await loadInstances();
       
-      addMonitoringLog('6. Lista Atualizada via API', 'success', {
+      addMonitoringLog('3. Lista Atualizada', 'success', {
         totalInstances: instances.length + 1,
-        method: 'SUPABASE_API_ONLY'
+        method: 'HOOK_COMPLETE'
       });
 
     } catch (error: any) {
-      console.error('[WhatsApp Web] ❌ Erro ao criar via API:', error);
+      console.error('[WhatsApp Web] ❌ Erro no hook:', error);
       
-      addMonitoringLog('ERRO FINAL API', 'error', {
+      addMonitoringLog('ERRO FINAL HOOK', 'error', {
         errorMessage: error.message,
-        errorStack: error.stack,
-        timestamp: new Date().toISOString(),
-        method: 'SUPABASE_API_ERROR'
+        method: 'HOOK_ERROR'
       });
 
-      toast.error(`Erro na criação via API: ${error.message}`);
+      toast.error(`Erro no hook: ${error.message}`);
     } finally {
       setIsCreatingInstance(false);
     }
@@ -216,7 +159,7 @@ export const WhatsAppWebSection = () => {
               <div>
                 <h2 className="text-xl font-semibold text-green-800">WhatsApp Web Settings</h2>
                 <p className="text-sm text-green-600">
-                  ✅ CORRIGIDO: Edge Function → API Supabase → VPS → Webhook (Usuário: {user?.email})
+                  ✅ CORRIGIDO: Frontend → Hook → ApiClient → Edge Function → VPS (Usuário: {user?.email})
                 </p>
               </div>
             </div>
@@ -262,12 +205,12 @@ export const WhatsAppWebSection = () => {
           {isCreatingInstance ? (
             <>
               <Loader2 className="h-5 w-5 animate-spin" />
-              Criando via API...
+              Criando via Hook...
             </>
           ) : (
             <>
               <Plus className="h-5 w-5" />
-              Conectar WhatsApp (API)
+              Conectar WhatsApp (Hook)
             </>
           )}
         </Button>
@@ -332,7 +275,7 @@ export const WhatsAppWebSection = () => {
               disabled={isCreatingInstance}
               className="bg-green-600 hover:bg-green-700 text-white"
             >
-              {isCreatingInstance ? 'Criando via API...' : 'Conectar Primeira Instância (API)'}
+              {isCreatingInstance ? 'Criando via Hook...' : 'Conectar Primeira Instância (Hook)'}
             </Button>
           </CardContent>
         </Card>

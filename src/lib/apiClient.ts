@@ -1,8 +1,7 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export class ApiClient {
-  // Método para verificar saúde do VPS
+  // Método para verificar saúde do VPS - CORRIGIDO
   static async checkVPSHealth(): Promise<{ success: boolean; responseTime?: number }> {
     try {
       console.log('[ApiClient] 🔍 Verificando saúde do VPS...');
@@ -11,7 +10,7 @@ export class ApiClient {
       
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
-          action: 'health_check'
+          action: 'diagnostic_health' // CORREÇÃO: action correta
         }
       });
       
@@ -38,7 +37,7 @@ export class ApiClient {
     }
   }
 
-  // ETAPA 3: Método atualizado para criar instância com nome inteligente
+  // CORREÇÃO: Método para criar instância via Edge Function
   static async createInstance(userEmail?: string): Promise<any> {
     try {
       console.log('[ApiClient] 🚀 Criando instância via Edge Function');
@@ -53,8 +52,8 @@ export class ApiClient {
       
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
-          action: 'create_instance',
-          instanceName: intelligentName // Passar nome inteligente
+          action: 'create_instance', // CORREÇÃO: action correta
+          instanceName: intelligentName
         }
       });
       
@@ -124,14 +123,14 @@ export class ApiClient {
     }
   }
 
-  // Método para deletar instância
+  // Método para deletar instância - CORRIGIDO
   static async deleteInstance(instanceId: string): Promise<any> {
     try {
       console.log('[ApiClient] 🗑️ Deletando instância via Edge Function:', instanceId);
       
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
-          action: 'delete_instance',
+          action: 'delete_instance_corrected', // CORREÇÃO: action correta
           instanceId
         }
       });

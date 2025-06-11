@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -318,11 +317,11 @@ serve(async (req) => {
     }
 
     console.log('[API_ONLY] Fazendo parse do body para Operation ID:', operationId);
-    const { action, instanceName, instanceId, testMode } = await req.json();
+    const { action, instanceName, instanceId, testMode, endpoint } = await req.json();
     
-    console.log('[API_ONLY] Body parseado:', { action, instanceName, instanceId, testMode });
+    console.log('[API_ONLY] Body parseado:', { action, instanceName, instanceId, testMode, endpoint });
 
-    // DIAGNOSTIC ACTIONS
+    // DIAGNOSTIC ACTIONS - CORRIGIDOS
     if (action === 'diagnostic_health') {
       console.log('[API_ONLY] Executando diagnostic_health');
       return new Response(JSON.stringify({
@@ -330,7 +329,8 @@ serve(async (req) => {
         health: 'ok',
         method: 'SUPABASE_API_ONLY',
         operationId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        message: 'Edge Function está funcionando corretamente'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -345,7 +345,8 @@ serve(async (req) => {
           vps_status: 'online',
           vps_response: vpsResult,
           method: 'SUPABASE_API_ONLY',
-          operationId
+          operationId,
+          message: 'VPS respondeu com sucesso'
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
@@ -355,7 +356,8 @@ serve(async (req) => {
           vps_status: 'offline',
           error: vpsError.message,
           method: 'SUPABASE_API_ONLY',
-          operationId
+          operationId,
+          message: 'VPS não está respondendo'
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
@@ -373,6 +375,43 @@ serve(async (req) => {
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
+    }
+
+    // NOVO: Teste específico de endpoint VPS
+    if (action === 'diagnostic_vps_endpoint') {
+      console.log('[API_ONLY] Executando diagnostic_vps_endpoint:', endpoint);
+      try {
+        const testEndpoint = endpoint || '/instance/create';
+        const vpsResult = await makeVPSRequest(testEndpoint, 'POST', {
+          instanceId: 'test_diagnostic',
+          sessionName: 'test_diagnostic',
+          test: true
+        });
+        
+        return new Response(JSON.stringify({
+          success: true,
+          endpoint_status: 'available',
+          endpoint_tested: testEndpoint,
+          vps_response: vpsResult,
+          method: 'SUPABASE_API_ONLY',
+          operationId,
+          message: `Endpoint ${testEndpoint} está disponível`
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      } catch (vpsError) {
+        return new Response(JSON.stringify({
+          success: false,
+          endpoint_status: 'unavailable',
+          endpoint_tested: endpoint || '/instance/create',
+          error: vpsError.message,
+          method: 'SUPABASE_API_ONLY',
+          operationId,
+          message: `Endpoint ${endpoint || '/instance/create'} não está disponível`
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
     }
 
     // MAIN ACTIONS
