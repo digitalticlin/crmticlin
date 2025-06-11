@@ -26,7 +26,7 @@ export const OptimizedSettingsSection = () => {
     closeQRModal,
     retryQRCode,
     qrPollingActive,
-    refetch
+    loadInstances // CORREÇÃO: Usar loadInstances ao invés de refetch
   } = useWhatsAppWebInstances();
 
   // CORREÇÃO: Criar instância via edge function whatsapp_instance_manager
@@ -71,7 +71,7 @@ export const OptimizedSettingsSection = () => {
       });
 
       // Atualizar lista de instâncias
-      await refetch();
+      await loadInstances();
 
     } catch (error: any) {
       console.error('[Settings] ❌ Erro ao criar instância:', error);
@@ -244,7 +244,7 @@ export const OptimizedSettingsSection = () => {
               <li><strong>Nome Inteligente:</strong> ✅ Baseado no email do usuário</li>
               <li><strong>Autenticação:</strong> ✅ Automática via Supabase</li>
               <li><strong>Feedback:</strong> ✅ Toast com success/error</li>
-              <li><strong>Atualização:</strong> ✅ Refetch automático da lista</li>
+              <li><strong>Atualização:</strong> ✅ loadInstances automático da lista</li>
             </ul>
             <div className="mt-3 p-3 bg-white/70 rounded border border-blue-200">
               <p className="font-medium">🎯 Fluxo Corrigido:</p>
