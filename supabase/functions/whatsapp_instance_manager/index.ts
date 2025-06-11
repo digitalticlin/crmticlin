@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
   const executionId = `exec_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
   
   try {
-    console.log(`🚀 EDGE FUNCTION VIA API OFICIAL INICIOU`);
+    console.log(`🚀 EDGE FUNCTION NÍVEL 8 - SEM PUPPETEER INICIOU`);
 
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -39,21 +39,27 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { action, instanceName, instanceId } = body;
 
-    console.log(`[${action}] Processando via API oficial para usuário: ${user.email}`);
+    console.log(`[${action}] Processando NÍVEL 8 para usuário: ${user.email}`);
 
     switch (action) {
       case 'create_instance':
-        return await createInstanceViaAPI(supabase, user, instanceName);
+        return await createInstanceViaBaileys(supabase, user, instanceName);
       
       case 'delete_instance_corrected':
-        return await deleteInstanceViaAPI(supabase, user, instanceId);
+        return await deleteInstanceViaBaileys(supabase, user, instanceId);
+      
+      case 'get_qr_code':
+        return await getQRCodeViaBaileys(supabase, user, instanceId);
+      
+      case 'health_check':
+        return await healthCheckViaBaileys();
       
       default:
         throw new Error(`Action não suportada: ${action}`);
     }
 
   } catch (error: any) {
-    console.error(`❌ Erro na Edge Function:`, error.message);
+    console.error(`❌ Erro na Edge Function NÍVEL 8:`, error.message);
     return new Response(
       JSON.stringify({ 
         success: false, 
@@ -67,34 +73,34 @@ Deno.serve(async (req) => {
   }
 });
 
-async function createInstanceViaAPI(supabase: any, user: any, instanceName: string) {
+async function createInstanceViaBaileys(supabase: any, user: any, instanceName: string) {
   try {
     // Gerar nome inteligente
     const intelligentName = await generateIntelligentName(supabase, user, instanceName);
-    console.log(`[CREATE] Nome gerado: ${intelligentName}`);
+    console.log(`[CREATE BAILEYS] Nome gerado: ${intelligentName}`);
 
-    // Tentar VPS diretamente desta Edge Function
-    const vpsResult = await attemptVPSCreationDirectly(intelligentName);
+    // Tentar VPS com Baileys (sem Puppeteer)
+    const vpsResult = await attemptVPSCreationWithBaileys(intelligentName);
     
     if (vpsResult.success) {
-      console.log(`[CREATE] ✅ VPS Success via API oficial`);
+      console.log(`[CREATE BAILEYS] ✅ VPS Success com Baileys`);
       // Salvar no banco com dados VPS
       const instance = await saveInstanceToDatabase(supabase, user, intelligentName, 'connected', vpsResult.data);
       return createSuccessResponse(instance, vpsResult, intelligentName, user.email, false);
     } else {
-      console.log(`[CREATE] 🚨 VPS Fallback via API oficial: ${vpsResult.error}`);
+      console.log(`[CREATE BAILEYS] 🚨 VPS Fallback: ${vpsResult.error}`);
       // Criar instância apenas no banco (fallback)
       const instance = await saveInstanceToDatabase(supabase, user, intelligentName, 'database_only');
       return createSuccessResponse(instance, vpsResult, intelligentName, user.email, true);
     }
 
   } catch (error: any) {
-    console.error(`[CREATE] ❌ Erro:`, error.message);
+    console.error(`[CREATE BAILEYS] ❌ Erro:`, error.message);
     throw error;
   }
 }
 
-async function deleteInstanceViaAPI(supabase: any, user: any, instanceId: string) {
+async function deleteInstanceViaBaileys(supabase: any, user: any, instanceId: string) {
   try {
     // Buscar instância
     const { data: instance, error } = await supabase
@@ -108,11 +114,11 @@ async function deleteInstanceViaAPI(supabase: any, user: any, instanceId: string
       throw new Error('Instância não encontrada');
     }
 
-    console.log(`[DELETE] Removendo via API oficial: ${instance.instance_name}`);
+    console.log(`[DELETE BAILEYS] Removendo: ${instance.instance_name}`);
 
-    // Tentar deletar da VPS diretamente se existir
+    // Deletar da VPS usando endpoint correto
     if (instance.vps_instance_id) {
-      await attemptVPSDeletionDirectly(instance.vps_instance_id);
+      await attemptVPSDeletionWithBaileys(instance.vps_instance_id);
     }
 
     // Deletar do banco
@@ -125,7 +131,7 @@ async function deleteInstanceViaAPI(supabase: any, user: any, instanceId: string
       throw new Error(`Erro ao deletar do banco: ${deleteError.message}`);
     }
 
-    console.log(`[DELETE] ✅ Sucesso via API oficial`);
+    console.log(`[DELETE BAILEYS] ✅ Sucesso`);
 
     return new Response(
       JSON.stringify({ success: true }),
@@ -136,22 +142,130 @@ async function deleteInstanceViaAPI(supabase: any, user: any, instanceId: string
     );
 
   } catch (error: any) {
-    console.error(`[DELETE] ❌ Erro:`, error.message);
+    console.error(`[DELETE BAILEYS] ❌ Erro:`, error.message);
     throw error;
   }
 }
 
-async function attemptVPSCreationDirectly(instanceId: string) {
+async function getQRCodeViaBaileys(supabase: any, user: any, instanceId: string) {
+  try {
+    console.log(`[QR BAILEYS] Obtendo QR Code para: ${instanceId}`);
+    
+    // Buscar instância do usuário
+    const { data: instance, error } = await supabase
+      .from('whatsapp_instances')
+      .select('*')
+      .eq('id', instanceId)
+      .eq('created_by_user_id', user.id)
+      .single();
+
+    if (error || !instance) {
+      throw new Error('Instância não encontrada');
+    }
+
+    const vpsUrl = Deno.env.get('VPS_SERVER_URL') || 'http://31.97.24.222:3002';
+    const vpsToken = Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // Aumentado para 30s
+
+    const response = await fetch(`${vpsUrl}/instance/${instance.vps_instance_id}/qr`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${vpsToken}`,
+      },
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`VPS HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    return new Response(
+      JSON.stringify({
+        success: data.success || false,
+        qrCode: data.qrCode || null,
+        waiting: !data.success,
+        error: data.error || null
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+
+  } catch (error: any) {
+    console.error(`[QR BAILEYS] ❌ Erro:`, error.message);
+    return new Response(
+      JSON.stringify({
+        success: false,
+        waiting: false,
+        error: error.message
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+}
+
+async function healthCheckViaBaileys() {
+  try {
+    const vpsUrl = Deno.env.get('VPS_SERVER_URL') || 'http://31.97.24.222:3002';
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const response = await fetch(`${vpsUrl}/health`, {
+      method: 'GET',
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    const isHealthy = response.ok;
+    
+    return new Response(
+      JSON.stringify({
+        success: isHealthy,
+        message: isHealthy ? 'VPS online com Baileys' : 'VPS offline'
+      }),
+      {
+        status: isHealthy ? 200 : 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+
+  } catch (error: any) {
+    return new Response(
+      JSON.stringify({
+        success: false,
+        error: `Health check falhou: ${error.message}`
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
+  }
+}
+
+async function attemptVPSCreationWithBaileys(instanceId: string) {
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
   
   try {
-    console.log(`[VPS DIRECT] Criando diretamente: ${instanceId}...`);
+    console.log(`[VPS BAILEYS] Criando com Baileys: ${instanceId}...`);
     
     const vpsUrl = Deno.env.get('VPS_SERVER_URL') || 'http://31.97.24.222:3002';
     const vpsToken = Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // Aumentado para 30s
 
     const response = await fetch(`${vpsUrl}/instance/create`, {
       method: 'POST',
@@ -163,8 +277,8 @@ async function attemptVPSCreationDirectly(instanceId: string) {
         instanceId,
         sessionName: instanceId,
         webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
-        lightweight: true,
-        skipPuppeteer: true
+        useBaileys: true, // NOVA FLAG PARA USAR BAILEYS
+        skipPuppeteer: true // DESATIVAR PUPPETEER
       }),
       signal: controller.signal
     });
@@ -176,42 +290,47 @@ async function attemptVPSCreationDirectly(instanceId: string) {
     }
 
     const data = await response.json();
-    console.log(`[VPS DIRECT] ✅ Criado com sucesso`);
+    console.log(`[VPS BAILEYS] ✅ Criado com sucesso usando Baileys`);
     
     return { success: true, data };
 
   } catch (error: any) {
-    console.log(`[VPS DIRECT] ❌ Falhou: ${error.message}`);
+    console.log(`[VPS BAILEYS] ❌ Falhou: ${error.message}`);
     return { 
       success: false, 
-      error: `VPS_DIRECT_ERROR: ${error.message}. Criando instância em modo fallback.`
+      error: `VPS_BAILEYS_ERROR: ${error.message}. Criando instância em modo fallback.`
     };
   }
 }
 
-async function attemptVPSDeletionDirectly(instanceId: string) {
+async function attemptVPSDeletionWithBaileys(instanceId: string) {
   try {
-    console.log(`[VPS DIRECT] Deletando: ${instanceId}...`);
+    console.log(`[VPS BAILEYS] Deletando: ${instanceId}...`);
     
     const vpsUrl = Deno.env.get('VPS_SERVER_URL') || 'http://31.97.24.222:3002';
     const vpsToken = Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-    await fetch(`${vpsUrl}/instance/${instanceId}`, {
-      method: 'DELETE',
+    // Usar endpoint correto para deleção
+    await fetch(`${vpsUrl}/instance/delete`, {
+      method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         'Authorization': `Bearer ${vpsToken}`,
       },
+      body: JSON.stringify({
+        instanceId: instanceId
+      }),
       signal: controller.signal
     });
 
     clearTimeout(timeoutId);
-    console.log(`[VPS DIRECT] ✅ Deletado`);
+    console.log(`[VPS BAILEYS] ✅ Deletado`);
 
   } catch (error: any) {
-    console.log(`[VPS DIRECT] ⚠️ Erro ao deletar (não crítico): ${error.message}`);
+    console.log(`[VPS BAILEYS] ⚠️ Erro ao deletar (não crítico): ${error.message}`);
   }
 }
 
@@ -280,15 +399,15 @@ function createSuccessResponse(instance: any, vpsResult: any, intelligentName: s
         instanceId: intelligentName,
         fallback: fallbackUsed,
         vpsError: vpsResult.error || null,
-        mode: fallbackUsed ? 'database_only' : 'vps_connected_direct'
+        mode: fallbackUsed ? 'database_only' : 'baileys_connected_direct'
       },
       user_id: instance.created_by_user_id,
       intelligent_name: intelligentName,
       user_email: userEmail,
       vps_success: vpsResult.success,
       fallback_used: fallbackUsed,
-      mode: fallbackUsed ? 'database_only' : 'vps_connected_direct',
-      message: fallbackUsed ? 'Instância criada em modo fallback (VPS lenta/indisponível)' : 'Instância criada com sucesso via API oficial'
+      mode: fallbackUsed ? 'database_only' : 'baileys_connected_direct',
+      message: fallbackUsed ? 'Instância criada em modo fallback (VPS lenta/indisponível)' : 'Instância criada com sucesso via Baileys (sem Puppeteer)'
     }),
     {
       status: 200,

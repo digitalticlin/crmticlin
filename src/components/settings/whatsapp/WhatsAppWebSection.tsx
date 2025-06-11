@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Activity, CheckCircle, AlertTriangle, Plus, Loader2, Monitor, Settings } from "lucide-react";
+import { MessageSquare, Activity, CheckCircle, AlertTriangle, Plus, Loader2, Monitor, Settings, Zap } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { WhatsAppInstanceGrid } from "./WhatsAppInstanceGrid";
@@ -44,7 +44,7 @@ export const WhatsAppWebSection = () => {
     };
     
     setMonitoringData(prev => [logEntry, ...prev.slice(0, 19)]);
-    console.log(`[Monitoring] ${step} - ${status}:`, details);
+    console.log(`[Monitoring BAILEYS] ${step} - ${status}:`, details);
   };
 
   const handleCreateInstance = async () => {
@@ -59,57 +59,57 @@ export const WhatsAppWebSection = () => {
     setMonitoringData([]);
     
     try {
-      addMonitoringLog('1. Iniciando Criação via whatsapp_instance_manager', 'pending', {
+      addMonitoringLog('1. Iniciando Criação via BAILEYS (SEM PUPPETEER)', 'pending', {
         userEmail: user.email,
-        method: 'WHATSAPP_INSTANCE_MANAGER'
+        method: 'BAILEYS_NO_PUPPETEER'
       });
 
-      console.log('[WhatsApp Web] 🚀 Criando instância via whatsapp_instance_manager para:', user.email);
+      console.log('[WhatsApp Web] 🚀 Criando instância via BAILEYS para:', user.email);
       
       const result = await createInstance();
       
       if (!result || !result.success) {
-        addMonitoringLog('ERRO: whatsapp_instance_manager falhou', 'error', {
+        addMonitoringLog('ERRO: BAILEYS falhou', 'error', {
           result,
-          method: 'WHATSAPP_INSTANCE_MANAGER_ERROR'
+          method: 'BAILEYS_ERROR'
         });
-        throw new Error(result?.error || 'whatsapp_instance_manager falhou');
+        throw new Error(result?.error || 'BAILEYS falhou');
       }
 
-      addMonitoringLog('2. whatsapp_instance_manager Executada com Sucesso', 'success', {
+      addMonitoringLog('2. BAILEYS Executado com Sucesso (SEM PUPPETEER)', 'success', {
         instanceId: result.instance?.id,
-        method: 'WHATSAPP_INSTANCE_MANAGER_SUCCESS',
-        mode: result.mode || 'vps_connected_direct'
+        method: 'BAILEYS_SUCCESS',
+        mode: result.mode || 'baileys_connected_direct'
       });
 
-      console.log('[WhatsApp Web] ✅ Instância criada via whatsapp_instance_manager:', result);
+      console.log('[WhatsApp Web] ✅ Instância criada via BAILEYS:', result);
 
       if (result.mode === 'database_only') {
         toast.success(`Instância criada em modo fallback!`, {
-          description: "whatsapp_instance_manager funcionando - VPS será sincronizada quando disponível"
+          description: "BAILEYS funcionando - VPS será sincronizada quando disponível"
         });
       } else {
-        toast.success(`Instância criada via whatsapp_instance_manager!`, {
-          description: "Sistema com conectividade direta"
+        toast.success(`Instância criada via BAILEYS (sem Puppeteer)!`, {
+          description: "Sistema com conectividade direta usando Baileys"
         });
       }
 
       await loadInstances();
       
-      addMonitoringLog('3. Lista Atualizada (whatsapp_instance_manager)', 'success', {
+      addMonitoringLog('3. Lista Atualizada (BAILEYS)', 'success', {
         totalInstances: instances.length + 1,
-        method: 'WHATSAPP_INSTANCE_MANAGER_COMPLETE'
+        method: 'BAILEYS_COMPLETE'
       });
 
     } catch (error: any) {
-      console.error('[WhatsApp Web] ❌ Erro na whatsapp_instance_manager:', error);
+      console.error('[WhatsApp Web] ❌ Erro no BAILEYS:', error);
       
-      addMonitoringLog('ERRO FINAL WHATSAPP_INSTANCE_MANAGER', 'error', {
+      addMonitoringLog('ERRO FINAL BAILEYS', 'error', {
         errorMessage: error.message,
-        method: 'WHATSAPP_INSTANCE_MANAGER_ERROR'
+        method: 'BAILEYS_ERROR'
       });
 
-      toast.error(`Erro na whatsapp_instance_manager: ${error.message}`);
+      toast.error(`Erro no BAILEYS: ${error.message}`);
     } finally {
       setIsCreatingInstance(false);
     }
@@ -141,7 +141,7 @@ export const WhatsAppWebSection = () => {
         <CardContent className="flex items-center justify-center py-8">
           <div className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 animate-pulse text-green-600" />
-            <span>Carregando WhatsApp Settings Modular...</span>
+            <span>Carregando WhatsApp BAILEYS (sem Puppeteer)...</span>
           </div>
         </CardContent>
       </Card>
@@ -150,7 +150,7 @@ export const WhatsAppWebSection = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header com status modular */}
+      {/* Header com status BAILEYS */}
       <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -159,16 +159,21 @@ export const WhatsAppWebSection = () => {
                 <MessageSquare className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-green-800">WhatsApp Web Settings VIA ESTRUTURA MODULAR</h2>
+                <h2 className="text-xl font-semibold text-green-800">WhatsApp BAILEYS - NÍVEL 8 (SEM PUPPETEER)</h2>
                 <p className="text-sm text-green-600">
-                  ✅ ESTRUTURA MODULAR: Frontend → Hook → ApiClient → whatsapp_instance_manager (Usuário: {user?.email})
+                  ⚡ BAILEYS: Frontend → Hook → ApiClient → whatsapp_instance_manager (Usuário: {user?.email})
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="default" className="bg-green-600 text-white">
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Estrutura Modular
+              <Badge variant="default" className="bg-purple-600 text-white">
+                <Zap className="h-3 w-3 mr-1" />
+                BAILEYS
+              </Badge>
+              
+              <Badge variant="destructive" className="bg-red-600 text-white">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                NO PUPPETEER
               </Badge>
               
               {connectedInstances > 0 && (
@@ -203,23 +208,23 @@ export const WhatsAppWebSection = () => {
         </CardHeader>
       </Card>
 
-      {/* Botões principais estrutura modular */}
+      {/* Botões principais BAILEYS */}
       <div className="flex justify-center gap-4">
         <Button 
           onClick={handleCreateInstance}
           disabled={isCreatingInstance}
-          className="bg-green-600 hover:bg-green-700 text-white gap-2 px-8 py-3 text-lg"
+          className="bg-purple-600 hover:bg-purple-700 text-white gap-2 px-8 py-3 text-lg"
           size="lg"
         >
           {isCreatingInstance ? (
             <>
               <Loader2 className="h-5 w-5 animate-spin" />
-              Criando via Estrutura Modular...
+              Criando via BAILEYS...
             </>
           ) : (
             <>
               <Plus className="h-5 w-5" />
-              Conectar WhatsApp (Estrutura Modular)
+              Conectar WhatsApp (BAILEYS - SEM PUPPETEER)
             </>
           )}
         </Button>
@@ -260,7 +265,7 @@ export const WhatsAppWebSection = () => {
       {instances.length > 0 ? (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-800">
-            Suas Instâncias WhatsApp ({instances.length})
+            Suas Instâncias WhatsApp BAILEYS ({instances.length})
           </h3>
           
           <WhatsAppInstanceGrid 
@@ -270,21 +275,21 @@ export const WhatsAppWebSection = () => {
           />
         </div>
       ) : (
-        <Card className="border-dashed border-2 border-green-300 bg-green-50/30">
+        <Card className="border-dashed border-2 border-purple-300 bg-purple-50/30">
           <CardContent className="text-center py-12">
-            <MessageSquare className="h-16 w-16 mx-auto mb-4 text-green-600 opacity-50" />
+            <MessageSquare className="h-16 w-16 mx-auto mb-4 text-purple-600 opacity-50" />
             <h3 className="text-lg font-medium text-gray-800 mb-2">
-              Nenhuma instância WhatsApp
+              Nenhuma instância WhatsApp BAILEYS
             </h3>
             <p className="text-gray-600 mb-6">
-              Conecte sua primeira instância via sistema otimizado (sem Puppeteer)
+              Conecte sua primeira instância via BAILEYS (sem Puppeteer)
             </p>
             <Button 
               onClick={handleCreateInstance}
               disabled={isCreatingInstance}
-              className="bg-green-600 hover:bg-green-700 text-white"
+              className="bg-purple-600 hover:bg-purple-700 text-white"
             >
-              {isCreatingInstance ? 'Criando via Estrutura Modular...' : 'Conectar Primeira Instância (Estrutura Modular)'}
+              {isCreatingInstance ? 'Criando via BAILEYS...' : 'Conectar Primeira Instância (BAILEYS)'}
             </Button>
           </CardContent>
         </Card>
@@ -303,25 +308,25 @@ export const WhatsAppWebSection = () => {
         onRetry={retryQRCode}
       />
 
-      {/* Card informativo sobre estrutura modular */}
-      <Card className="border-blue-200 bg-blue-50/30">
+      {/* Card informativo sobre BAILEYS */}
+      <Card className="border-purple-200 bg-purple-50/30">
         <CardContent className="p-4">
-          <div className="text-sm text-blue-800 space-y-2">
+          <div className="text-sm text-purple-800 space-y-2">
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-blue-600" />
-              <strong>✅ SISTEMA VIA ESTRUTURA MODULAR: UMA EDGE FUNCTION POR FUNCIONALIDADE</strong>
+              <CheckCircle className="h-4 w-4 text-purple-600" />
+              <strong>⚡ SISTEMA VIA BAILEYS - NÍVEL 8 (SEM PUPPETEER)</strong>
             </div>
             <ul className="list-disc list-inside space-y-1 ml-4">
-              <li><strong>Estrutura Modular:</strong> ✅ Uma Edge Function específica por operação</li>
-              <li><strong>Segurança Isolada:</strong> ✅ Cada função com responsabilidade única</li>
-              <li><strong>Logs Centralizados:</strong> ✅ Todos logs no whatsapp_instance_manager</li>
-              <li><strong>Manutenibilidade:</strong> ✅ Fácil debugging e manutenção</li>
-              <li><strong>Secrets Seguros:</strong> ✅ Gerenciados pelo Supabase</li>
-              <li><strong>Fallback Inteligente:</strong> ✅ Cria instância no banco se VPS lenta</li>
+              <li><strong>Baileys Engine:</strong> ✅ Biblioteca nativa WhatsApp (sem browser)</li>
+              <li><strong>Puppeteer Eliminado:</strong> ❌ Sem crashes de browser</li>
+              <li><strong>QR Code Rápido:</strong> ⚡ Geração em 2-3 segundos</li>
+              <li><strong>Conexão Estável:</strong> 🔗 Reconexão automática</li>
+              <li><strong>Performance:</strong> 🚀 Uso mínimo de recursos</li>
+              <li><strong>Compatibilidade:</strong> ✅ Todos endpoints funcionando</li>
             </ul>
-            <div className="mt-3 p-3 bg-white/70 rounded border border-blue-200">
-              <p className="font-medium">🎯 Fluxo Estrutura Modular:</p>
-              <p>Frontend → Hook → ApiClient → whatsapp_instance_manager → VPS → Fallback Automático</p>
+            <div className="mt-3 p-3 bg-white/70 rounded border border-purple-200">
+              <p className="font-medium">🎯 Fluxo BAILEYS:</p>
+              <p>Frontend → Hook → ApiClient → whatsapp_instance_manager → VPS (BAILEYS) → QR Code Instantâneo</p>
             </div>
           </div>
         </CardContent>

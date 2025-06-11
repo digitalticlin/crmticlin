@@ -8,7 +8,6 @@ export class ApiClient {
       
       const startTime = Date.now();
       
-      // Usar whatsapp_instance_manager para health check (sem action específica, só teste de conectividade)
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
           action: 'health_check'
@@ -17,10 +16,9 @@ export class ApiClient {
       
       const responseTime = Date.now() - startTime;
       
-      // Se chegou até aqui, a edge function está respondendo
-      const isHealthy = !error && responseTime < 10000;
+      const isHealthy = !error && data?.success;
       
-      console.log('[ApiClient] ✅ VPS Health Check via whatsapp_instance_manager:', { 
+      console.log('[ApiClient] ✅ VPS Health Check BAILEYS:', { 
         success: isHealthy, 
         responseTime: `${responseTime}ms`
       });
@@ -36,12 +34,11 @@ export class ApiClient {
     }
   }
 
-  // Método para criar instância via API oficial - MANTIDO
+  // Criar instância via Baileys (sem Puppeteer)
   static async createInstance(userEmail?: string): Promise<any> {
     try {
-      console.log('[ApiClient] 🚀 Criando instância via API oficial Supabase');
+      console.log('[ApiClient] 🚀 Criando instância via BAILEYS (sem Puppeteer)');
       
-      // Gerar nome inteligente baseado no email
       let intelligentName = 'whatsapp';
       if (userEmail) {
         intelligentName = userEmail.split('@')[0].toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
@@ -66,7 +63,7 @@ export class ApiClient {
         throw new Error(data?.error || 'Falha ao criar instância');
       }
       
-      console.log('[ApiClient] ✅ Instância criada via API oficial:', {
+      console.log('[ApiClient] ✅ Instância criada via BAILEYS:', {
         instanceName: intelligentName,
         instanceId: data.instance?.id,
         mode: data.mode
@@ -86,10 +83,10 @@ export class ApiClient {
     }
   }
 
-  // Método para obter QR Code via API oficial
+  // Obter QR Code via Baileys
   static async getQRCode(instanceId: string): Promise<any> {
     try {
-      console.log('[ApiClient] 📱 Obtendo QR Code via whatsapp_instance_manager:', instanceId);
+      console.log('[ApiClient] 📱 Obtendo QR Code via BAILEYS:', instanceId);
       
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
@@ -103,7 +100,7 @@ export class ApiClient {
         return { success: false, error: error.message };
       }
       
-      console.log('[ApiClient] 📥 QR Code response:', {
+      console.log('[ApiClient] 📥 QR Code response BAILEYS:', {
         success: data?.success,
         hasQrCode: !!data?.qrCode,
         waiting: data?.waiting
@@ -124,10 +121,10 @@ export class ApiClient {
     }
   }
 
-  // Método para deletar instância via API oficial
+  // Deletar instância via Baileys
   static async deleteInstance(instanceId: string): Promise<any> {
     try {
-      console.log('[ApiClient] 🗑️ Deletando instância via whatsapp_instance_manager:', instanceId);
+      console.log('[ApiClient] 🗑️ Deletando instância via BAILEYS:', instanceId);
       
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
@@ -146,7 +143,7 @@ export class ApiClient {
         throw new Error(data?.error || 'Falha ao deletar instância');
       }
       
-      console.log('[ApiClient] ✅ Instância deletada via whatsapp_instance_manager');
+      console.log('[ApiClient] ✅ Instância deletada via BAILEYS');
       
       return { success: true };
       
@@ -159,12 +156,11 @@ export class ApiClient {
   // Método para atualizar QR Code via API oficial
   static async refreshQRCode(instanceId: string): Promise<any> {
     try {
-      console.log('[ApiClient] 🔄 Atualizando QR Code via whatsapp_instance_manager:', instanceId);
+      console.log('[ApiClient] 🔄 Atualizando QR Code via BAILEYS:', instanceId);
       
-      // Usar o mesmo método de obter QR Code
       const result = await this.getQRCode(instanceId);
       
-      console.log('[ApiClient] ✅ QR Code atualizado via whatsapp_instance_manager');
+      console.log('[ApiClient] ✅ QR Code atualizado via BAILEYS');
       
       return {
         success: result.success,
@@ -200,7 +196,7 @@ export class ApiClient {
 
   static async sendMessage(instanceId: string, phone: string, message: string): Promise<any> {
     try {
-      console.log('[ApiClient] 📤 Enviando mensagem via Edge Function');
+      console.log('[ApiClient] 📤 Enviando mensagem via BAILEYS');
       
       const { data, error } = await supabase.functions.invoke('whatsapp_messaging_service', {
         body: {
@@ -216,7 +212,7 @@ export class ApiClient {
         throw new Error(error.message);
       }
       
-      console.log('[ApiClient] ✅ Mensagem enviada');
+      console.log('[ApiClient] ✅ Mensagem enviada via BAILEYS');
       
       return { success: data?.success || false };
       
@@ -229,7 +225,7 @@ export class ApiClient {
   // Diagnósticos via whatsapp_instance_manager
   static async runVPSDiagnostics(): Promise<any> {
     try {
-      console.log('[ApiClient] 🔧 Executando diagnósticos via whatsapp_instance_manager');
+      console.log('[ApiClient] 🔧 Executando diagnósticos BAILEYS');
       
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
@@ -245,7 +241,7 @@ export class ApiClient {
       return {
         success: !error,
         responseTime: 'N/A',
-        source: 'whatsapp_instance_manager'
+        source: 'baileys_server'
       };
       
     } catch (error: any) {
@@ -256,7 +252,7 @@ export class ApiClient {
 
   // Método para bloquear chamadas diretas VPS - MANTIDO
   static blockDirectVPSCall(methodName: string): never {
-    const errorMessage = `❌ Método ${methodName} foi BLOQUEADO. Use apenas Edge Functions via ApiClient.`;
+    const errorMessage = `❌ Método ${methodName} foi BLOQUEADO. Use apenas Edge Functions via ApiClient com BAILEYS.`;
     console.error('[ApiClient] ' + errorMessage);
     throw new Error(errorMessage);
   }
