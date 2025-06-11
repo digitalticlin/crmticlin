@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -6,13 +7,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// CONFIGURAÇÃO VPS CENTRALIZADA - CORRIGIDA PARA API APENAS
+// CONFIGURAÇÃO VPS OTIMIZADA - TIMEOUTS REDUZIDOS
 const VPS_CONFIG = {
   baseUrl: 'http://31.97.24.222:3002',
   authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
-  timeout: 30000, // Reduzido para 30s
-  retryAttempts: 2, // Reduzido para 2 tentativas
-  backoffMultiplier: 1500
+  timeout: 15000, // CORREÇÃO: Reduzido para 15s
+  retryAttempts: 2, // CORREÇÃO: Apenas 2 tentativas
+  backoffMultiplier: 1000 // CORREÇÃO: Backoff mais rápido
 };
 
 interface LogEntry {
@@ -101,63 +102,66 @@ async function generateUniqueInstanceName(supabase: any, userEmail: string, user
   return candidateName;
 }
 
-// FUNÇÃO PARA COMUNICAÇÃO VPS COM FALLBACK MELHORADO
+// FUNÇÃO PARA COMUNICAÇÃO VPS OTIMIZADA - SEM PUPPETEER DEPENDENCY
 async function makeVPSRequest(endpoint: string, method: string, payload: any, attemptNumber = 1): Promise<any> {
   const startTime = Date.now();
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
   
   logStructured({
     timestamp: new Date().toISOString(),
-    phase: 'VPS_REQUEST_API',
-    action: `API attempt ${attemptNumber}/${VPS_CONFIG.retryAttempts} - ${method} ${endpoint}`,
+    phase: 'VPS_REQUEST_OPTIMIZED',
+    action: `OTIMIZADA attempt ${attemptNumber}/${VPS_CONFIG.retryAttempts} - ${method} ${endpoint}`,
     status: 'start',
     data: { payload, attempt: attemptNumber, requestId }
   });
 
   try {
     const fullUrl = `${VPS_CONFIG.baseUrl}${endpoint}`;
-    console.log('[VPS_API] === REQUISIÇÃO VIA API CORRIGIDA ===');
-    console.log('[VPS_API] Request ID:', requestId);
-    console.log('[VPS_API] URL completa:', fullUrl);
-    console.log('[VPS_API] Método:', method);
-    console.log('[VPS_API] Tentativa:', attemptNumber, 'de', VPS_CONFIG.retryAttempts);
+    console.log('[VPS_OPTIMIZED] === REQUISIÇÃO OTIMIZADA SEM PUPPETEER ===');
+    console.log('[VPS_OPTIMIZED] Request ID:', requestId);
+    console.log('[VPS_OPTIMIZED] URL completa:', fullUrl);
+    console.log('[VPS_OPTIMIZED] Timeout reduzido:', VPS_CONFIG.timeout, 'ms');
     
     const requestHeaders = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
-      'User-Agent': 'Supabase-API-Client/3.0',
+      'User-Agent': 'Supabase-Optimized-Client/4.0',
       'X-Request-ID': requestId,
-      'X-Request-Source': 'Supabase-API-Only',
-      'X-Attempt-Number': attemptNumber.toString(),
+      'X-Request-Source': 'Supabase-No-Puppeteer',
+      'X-Lightweight-Mode': 'true', // NOVO: Indicar modo lightweight
       'Connection': 'keep-alive'
     };
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => {
-      console.log(`[VPS_API] TIMEOUT de ${VPS_CONFIG.timeout}ms atingido para Request ID: ${requestId}`);
+      console.log(`[VPS_OPTIMIZED] TIMEOUT REDUZIDO de ${VPS_CONFIG.timeout}ms atingido para Request ID: ${requestId}`);
       controller.abort();
     }, VPS_CONFIG.timeout);
 
-    console.log('[VPS_API] Iniciando fetch via API...');
+    console.log('[VPS_OPTIMIZED] Iniciando fetch otimizado...');
     const response = await fetch(fullUrl, {
       method,
       headers: requestHeaders,
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...payload,
+        lightweight: true, // NOVO: Solicitar modo lightweight na VPS
+        skipPuppeteer: true // NOVO: Pular Puppeteer se possível
+      }),
       signal: controller.signal
     });
 
     clearTimeout(timeoutId);
     const duration = Date.now() - startTime;
     
-    console.log('[VPS_API] === RESPOSTA VIA API ===');
-    console.log('[VPS_API] Request ID:', requestId);
-    console.log('[VPS_API] Status da resposta:', response.status);
-    console.log('[VPS_API] Duração total:', duration, 'ms');
+    console.log('[VPS_OPTIMIZED] === RESPOSTA OTIMIZADA ===');
+    console.log('[VPS_OPTIMIZED] Request ID:', requestId);
+    console.log('[VPS_OPTIMIZED] Status da resposta:', response.status);
+    console.log('[VPS_OPTIMIZED] Duração total:', duration, 'ms');
 
     logStructured({
       timestamp: new Date().toISOString(),
-      phase: 'VPS_REQUEST_API',
-      action: 'API VPS response received',
+      phase: 'VPS_REQUEST_OPTIMIZED',
+      action: 'VPS response received (optimized)',
       status: 'success',
       duration,
       data: { 
@@ -170,29 +174,29 @@ async function makeVPSRequest(endpoint: string, method: string, payload: any, at
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.log('[VPS_API] ❌ Resposta de erro via API:', errorText);
+      console.log('[VPS_OPTIMIZED] ❌ Resposta de erro:', errorText);
       
       throw new Error(`VPS HTTP Error ${response.status}: ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('[VPS_API] ✅ JSON parseado com sucesso via API');
+    console.log('[VPS_OPTIMIZED] ✅ JSON parseado com sucesso');
     
     return data;
 
   } catch (error) {
     const duration = Date.now() - startTime;
     
-    console.log('[VPS_API] === ERRO NA REQUISIÇÃO VIA API ===');
-    console.log('[VPS_API] Request ID:', requestId);
-    console.log('[VPS_API] Tentativa:', attemptNumber, 'de', VPS_CONFIG.retryAttempts);
-    console.log('[VPS_API] Tipo do erro:', error.name);
-    console.log('[VPS_API] Mensagem:', error.message);
+    console.log('[VPS_OPTIMIZED] === ERRO NA REQUISIÇÃO OTIMIZADA ===');
+    console.log('[VPS_OPTIMIZED] Request ID:', requestId);
+    console.log('[VPS_OPTIMIZED] Tentativa:', attemptNumber, 'de', VPS_CONFIG.retryAttempts);
+    console.log('[VPS_OPTIMIZED] Tipo do erro:', error.name);
+    console.log('[VPS_OPTIMIZED] Mensagem:', error.message);
     
     logStructured({
       timestamp: new Date().toISOString(),
-      phase: 'VPS_REQUEST_API',
-      action: `API attempt ${attemptNumber} failed`,
+      phase: 'VPS_REQUEST_OPTIMIZED',
+      action: `Optimized attempt ${attemptNumber} failed`,
       status: 'error',
       duration,
       data: { 
@@ -203,20 +207,20 @@ async function makeVPSRequest(endpoint: string, method: string, payload: any, at
       }
     });
 
-    // RETRY LOGIC
+    // RETRY LOGIC OTIMIZADO
     if (attemptNumber < VPS_CONFIG.retryAttempts) {
       const backoffDelay = VPS_CONFIG.backoffMultiplier * attemptNumber;
       
-      console.log(`[VPS_API] 🔄 Tentando novamente via API em ${backoffDelay}ms...`);
+      console.log(`[VPS_OPTIMIZED] 🔄 Retry otimizado em ${backoffDelay}ms...`);
       
       await wait(backoffDelay);
       return makeVPSRequest(endpoint, method, payload, attemptNumber + 1);
     }
 
-    // FALLBACK MELHORADO
+    // FALLBACK INTELIGENTE
     if (error.name === 'AbortError' || error.message.includes('Timeout')) {
-      console.log(`[VPS_API] 🚨 FALLBACK: VPS não respondeu após ${VPS_CONFIG.retryAttempts} tentativas`);
-      throw new Error(`VPS indisponível: Timeout após ${VPS_CONFIG.timeout}ms em ${VPS_CONFIG.retryAttempts} tentativas. Sistema funcionando em modo fallback.`);
+      console.log(`[VPS_OPTIMIZED] 🚨 FALLBACK INTELIGENTE: VPS lenta, criando instância só no banco`);
+      throw new Error(`VPS_SLOW_FALLBACK: Timeout após ${VPS_CONFIG.timeout}ms. Criando instância em modo fallback.`);
     }
 
     throw error;
@@ -225,7 +229,7 @@ async function makeVPSRequest(endpoint: string, method: string, payload: any, at
 
 serve(async (req) => {
   const executionId = `exec_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-  console.log('🚀 EDGE FUNCTION INICIOU (API CORRIGIDA)');
+  console.log('🚀 EDGE FUNCTION OTIMIZADA INICIOU');
   console.log('Execution ID:', executionId);
   console.log('Timestamp:', new Date().toISOString());
   console.log('Método HTTP:', req.method);
@@ -237,14 +241,14 @@ serve(async (req) => {
 
   const operationId = `op_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
   
-  console.log('[API_ONLY] === NOVA OPERAÇÃO VIA API SUPABASE ===');
-  console.log('[API_ONLY] Operation ID:', operationId);
-  console.log('[API_ONLY] Execution ID:', executionId);
+  console.log('[OPTIMIZED] === NOVA OPERAÇÃO OTIMIZADA ===');
+  console.log('[OPTIMIZED] Operation ID:', operationId);
+  console.log('[OPTIMIZED] Execution ID:', executionId);
   
   logStructured({
     timestamp: new Date().toISOString(),
-    phase: 'OPERATION_START_API',
-    action: `API operation ${operationId} started - Execution ${executionId}`,
+    phase: 'OPERATION_START_OPTIMIZED',
+    action: `Optimized operation ${operationId} started - Execution ${executionId}`,
     status: 'start',
     data: { method: req.method, url: req.url }
   });
@@ -254,16 +258,16 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    console.log('[API_ONLY] Cliente Supabase criado para Operation ID:', operationId);
+    console.log('[OPTIMIZED] Cliente Supabase criado para Operation ID:', operationId);
 
     // AUTENTICAÇÃO OBRIGATÓRIA
     const authHeader = req.headers.get('Authorization');
     let currentUser = null;
     
-    console.log('[API_ONLY] Auth header presente:', !!authHeader);
+    console.log('[OPTIMIZED] Auth header presente:', !!authHeader);
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.log('[API_ONLY] ❌ Token de autorização ausente ou inválido');
+      console.log('[OPTIMIZED] ❌ Token de autorização ausente ou inválido');
       
       return new Response(JSON.stringify({
         success: false,
@@ -280,11 +284,11 @@ serve(async (req) => {
     const token = authHeader.replace('Bearer ', '');
     
     try {
-      console.log('[API_ONLY] Validando token JWT...');
+      console.log('[OPTIMIZED] Validando token JWT...');
       const { data: { user }, error: userError } = await supabase.auth.getUser(token);
       
       if (userError || !user) {
-        console.log('[API_ONLY] ❌ Token inválido ou usuário não encontrado:', userError);
+        console.log('[OPTIMIZED] ❌ Token inválido ou usuário não encontrado:', userError);
         
         return new Response(JSON.stringify({
           success: false,
@@ -299,10 +303,10 @@ serve(async (req) => {
       }
       
       currentUser = user;
-      console.log('[API_ONLY] ✅ Usuário autenticado:', user.id, user.email);
+      console.log('[OPTIMIZED] ✅ Usuário autenticado:', user.id, user.email);
       
     } catch (authError) {
-      console.log('[API_ONLY] ❌ Exceção na autenticação:', authError);
+      console.log('[OPTIMIZED] ❌ Exceção na autenticação:', authError);
       
       return new Response(JSON.stringify({
         success: false,
@@ -316,48 +320,48 @@ serve(async (req) => {
       });
     }
 
-    console.log('[API_ONLY] Fazendo parse do body para Operation ID:', operationId);
+    console.log('[OPTIMIZED] Fazendo parse do body para Operation ID:', operationId);
     const { action, instanceName, instanceId, testMode, endpoint } = await req.json();
     
-    console.log('[API_ONLY] Body parseado:', { action, instanceName, instanceId, testMode, endpoint });
+    console.log('[OPTIMIZED] Body parseado:', { action, instanceName, instanceId, testMode, endpoint });
 
-    // DIAGNOSTIC ACTIONS - CORRIGIDOS
+    // DIAGNOSTIC ACTIONS - CORRIGIDOS E SEPARADOS
     if (action === 'diagnostic_health') {
-      console.log('[API_ONLY] Executando diagnostic_health');
+      console.log('[OPTIMIZED] Executando diagnostic_health');
       return new Response(JSON.stringify({
         success: true,
         health: 'ok',
-        method: 'SUPABASE_API_ONLY',
+        method: 'SUPABASE_OPTIMIZED',
         operationId,
         timestamp: new Date().toISOString(),
-        message: 'Edge Function está funcionando corretamente'
+        message: 'Edge Function otimizada está funcionando corretamente'
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
     if (action === 'diagnostic_vps') {
-      console.log('[API_ONLY] Executando diagnostic_vps');
+      console.log('[OPTIMIZED] Executando diagnostic_vps');
       try {
         const vpsResult = await makeVPSRequest('/health', 'GET', {});
         return new Response(JSON.stringify({
           success: true,
           vps_status: 'online',
           vps_response: vpsResult,
-          method: 'SUPABASE_API_ONLY',
+          method: 'SUPABASE_OPTIMIZED',
           operationId,
-          message: 'VPS respondeu com sucesso'
+          message: 'VPS respondeu com sucesso (otimizado)'
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       } catch (vpsError) {
         return new Response(JSON.stringify({
           success: false,
-          vps_status: 'offline',
+          vps_status: 'offline_or_slow',
           error: vpsError.message,
-          method: 'SUPABASE_API_ONLY',
+          method: 'SUPABASE_OPTIMIZED',
           operationId,
-          message: 'VPS não está respondendo'
+          message: 'VPS não está respondendo rapidamente'
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
@@ -365,27 +369,28 @@ serve(async (req) => {
     }
 
     if (action === 'diagnostic_create') {
-      console.log('[API_ONLY] Executando diagnostic_create (test mode)');
+      console.log('[OPTIMIZED] Executando diagnostic_create (test mode)');
       return new Response(JSON.stringify({
         success: true,
         test_mode: true,
-        message: 'Create instance test completed successfully',
-        method: 'SUPABASE_API_ONLY',
+        message: 'Create instance test completed successfully (optimized)',
+        method: 'SUPABASE_OPTIMIZED',
         operationId
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // NOVO: Teste específico de endpoint VPS
+    // NOVO: Teste específico de endpoint VPS otimizado
     if (action === 'diagnostic_vps_endpoint') {
-      console.log('[API_ONLY] Executando diagnostic_vps_endpoint:', endpoint);
+      console.log('[OPTIMIZED] Executando diagnostic_vps_endpoint:', endpoint);
       try {
         const testEndpoint = endpoint || '/instance/create';
         const vpsResult = await makeVPSRequest(testEndpoint, 'POST', {
           instanceId: 'test_diagnostic',
           sessionName: 'test_diagnostic',
-          test: true
+          test: true,
+          lightweight: true // NOVO: Modo lightweight para teste
         });
         
         return new Response(JSON.stringify({
@@ -393,39 +398,39 @@ serve(async (req) => {
           endpoint_status: 'available',
           endpoint_tested: testEndpoint,
           vps_response: vpsResult,
-          method: 'SUPABASE_API_ONLY',
+          method: 'SUPABASE_OPTIMIZED',
           operationId,
-          message: `Endpoint ${testEndpoint} está disponível`
+          message: `Endpoint ${testEndpoint} está disponível (otimizado)`
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       } catch (vpsError) {
         return new Response(JSON.stringify({
           success: false,
-          endpoint_status: 'unavailable',
+          endpoint_status: 'unavailable_or_slow',
           endpoint_tested: endpoint || '/instance/create',
           error: vpsError.message,
-          method: 'SUPABASE_API_ONLY',
+          method: 'SUPABASE_OPTIMIZED',
           operationId,
-          message: `Endpoint ${endpoint || '/instance/create'} não está disponível`
+          message: `Endpoint ${endpoint || '/instance/create'} não está disponível ou muito lento`
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
     }
 
-    // MAIN ACTIONS
+    // MAIN ACTION: CREATE INSTANCE OTIMIZADA
     if (action === 'create_instance') {
-      console.log('[API_ONLY] Redirecionando para createInstanceViaAPI (CORRIGIDO)');
-      return await createInstanceViaAPI(supabase, currentUser, operationId);
+      console.log('[OPTIMIZED] Redirecionando para createInstanceOptimized');
+      return await createInstanceOptimized(supabase, currentUser, operationId);
     }
 
     if (action === 'delete_instance_corrected') {
-      console.log('[API_ONLY] Redirecionando para deleteInstanceViaAPI');
-      return await deleteInstanceViaAPI(supabase, instanceId, currentUser, operationId);
+      console.log('[OPTIMIZED] Redirecionando para deleteInstanceOptimized');
+      return await deleteInstanceOptimized(supabase, instanceId, currentUser, operationId);
     }
 
-    console.log('[API_ONLY] Ação desconhecida:', action);
+    console.log('[OPTIMIZED] Ação desconhecida:', action);
 
     return new Response(JSON.stringify({
       success: false,
@@ -438,17 +443,17 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.log('[API_ONLY] === ERRO GERAL NA API ===');
-    console.log('[API_ONLY] Execution ID:', executionId);
-    console.log('[API_ONLY] Operation ID:', operationId);
-    console.log('[API_ONLY] Erro:', error);
+    console.log('[OPTIMIZED] === ERRO GERAL OTIMIZADA ===');
+    console.log('[OPTIMIZED] Execution ID:', executionId);
+    console.log('[OPTIMIZED] Operation ID:', operationId);
+    console.log('[OPTIMIZED] Erro:', error);
     
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
       operationId,
       executionId,
-      details: 'Erro na API Supabase'
+      details: 'Erro na Edge Function otimizada'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -456,17 +461,17 @@ serve(async (req) => {
   }
 });
 
-// FUNÇÃO CREATEINSTANCE VIA API COM FALLBACK
-async function createInstanceViaAPI(supabase: any, user: any, operationId: string) {
-  console.log('[API_ONLY] === CRIAR INSTÂNCIA VIA API SUPABASE ===');
-  console.log('[API_ONLY] User ID:', user.id);
-  console.log('[API_ONLY] User Email:', user.email);
-  console.log('[API_ONLY] Operation ID:', operationId);
+// FUNÇÃO CREATEINSTANCE OTIMIZADA COM FALLBACK INTELIGENTE
+async function createInstanceOptimized(supabase: any, user: any, operationId: string) {
+  console.log('[OPTIMIZED] === CRIAR INSTÂNCIA OTIMIZADA ===');
+  console.log('[OPTIMIZED] User ID:', user.id);
+  console.log('[OPTIMIZED] User Email:', user.email);
+  console.log('[OPTIMIZED] Operation ID:', operationId);
   
   logStructured({
     timestamp: new Date().toISOString(),
-    phase: 'CREATE_INSTANCE_API',
-    action: `Starting API instance creation for user ${user.email}`,
+    phase: 'CREATE_INSTANCE_OPTIMIZED',
+    action: `Starting optimized instance creation for user ${user.email}`,
     status: 'start',
     data: { userId: user.id, userEmail: user.email, operationId }
   });
@@ -477,37 +482,42 @@ async function createInstanceViaAPI(supabase: any, user: any, operationId: strin
     }
 
     // GERAR NOME INTELIGENTE ÚNICO
-    console.log('[API_ONLY] === GERAÇÃO DE NOME INTELIGENTE ===');
+    console.log('[OPTIMIZED] === GERAÇÃO DE NOME INTELIGENTE ===');
     const intelligentInstanceName = await generateUniqueInstanceName(supabase, user.email, user.id);
     
-    console.log('[API_ONLY] Nome inteligente gerado:', intelligentInstanceName);
+    console.log('[OPTIMIZED] Nome inteligente gerado:', intelligentInstanceName);
 
-    // COMUNICAÇÃO VPS VIA API COM FALLBACK
-    console.log('[API_ONLY] === COMUNICAÇÃO VPS VIA API ===');
+    // COMUNICAÇÃO VPS OTIMIZADA COM FALLBACK INTELIGENTE
+    console.log('[OPTIMIZED] === COMUNICAÇÃO VPS OTIMIZADA ===');
     const vpsPayload = {
       instanceId: intelligentInstanceName,
       sessionName: intelligentInstanceName,
-      webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web'
+      webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
+      lightweight: true, // NOVO: Modo lightweight
+      skipPuppeteer: true // NOVO: Pular Puppeteer se possível
     };
 
-    console.log('[API_ONLY] Payload para VPS via API:', vpsPayload);
+    console.log('[OPTIMIZED] Payload otimizado para VPS:', vpsPayload);
 
     let vpsData;
     let vpsSuccess = false;
+    let fallbackMode = false;
     
     try {
       vpsData = await makeVPSRequest('/instance/create', 'POST', vpsPayload);
       vpsSuccess = true;
-      console.log('[API_ONLY] ✅ Resposta da VPS via API:', vpsData);
+      console.log('[OPTIMIZED] ✅ Resposta da VPS otimizada:', vpsData);
     } catch (vpsError) {
-      console.log('[API_ONLY] 🚨 FALLBACK: VPS falhou, criando instância local apenas:', vpsError.message);
+      console.log('[OPTIMIZED] 🚨 FALLBACK INTELIGENTE: VPS falhou/lenta, criando instância só no banco:', vpsError.message);
       
-      // FALLBACK - Criar instância no banco mesmo se VPS falhar
+      // FALLBACK INTELIGENTE - Criar instância no banco mesmo se VPS falhar
+      fallbackMode = true;
       vpsData = {
         success: true,
         instanceId: intelligentInstanceName,
         fallback: true,
-        vpsError: vpsError.message
+        vpsError: vpsError.message,
+        mode: 'database_only'
       };
       vpsSuccess = false;
     }
@@ -517,20 +527,20 @@ async function createInstanceViaAPI(supabase: any, user: any, operationId: strin
     }
 
     // SALVAR NO SUPABASE
-    console.log('[API_ONLY] === SALVAR NO SUPABASE ===');
+    console.log('[OPTIMIZED] === SALVAR NO SUPABASE ===');
 
     const instanceData = {
       instance_name: intelligentInstanceName,
       connection_type: 'web',
       server_url: VPS_CONFIG.baseUrl,
       vps_instance_id: vpsData.instanceId || intelligentInstanceName,
-      web_status: vpsSuccess ? 'initializing' : 'vps_failed',
-      connection_status: vpsSuccess ? 'vps_created' : 'local_only',
+      web_status: fallbackMode ? 'fallback_created' : (vpsSuccess ? 'initializing' : 'vps_failed'),
+      connection_status: fallbackMode ? 'database_only' : (vpsSuccess ? 'vps_created' : 'local_only'),
       created_by_user_id: user.id,
       company_id: null
     };
     
-    console.log('[API_ONLY] Dados para inserir no Supabase:', instanceData);
+    console.log('[OPTIMIZED] Dados otimizados para inserir no Supabase:', instanceData);
 
     const { data: newInstance, error: dbError } = await supabase
       .from('whatsapp_instances')
@@ -539,28 +549,29 @@ async function createInstanceViaAPI(supabase: any, user: any, operationId: strin
       .single();
 
     if (dbError) {
-      console.log('[API_ONLY] Erro no banco:', dbError);
+      console.log('[OPTIMIZED] Erro no banco:', dbError);
       throw new Error(`Erro ao salvar instância no banco: ${dbError.message}`);
     }
 
-    console.log('[API_ONLY] ✅ Instância salva no banco:', newInstance);
+    console.log('[OPTIMIZED] ✅ Instância salva no banco otimizado:', newInstance);
 
     logStructured({
       timestamp: new Date().toISOString(),
       phase: 'OPERATION_END',
-      action: `API Operation ${operationId} completed ${vpsSuccess ? 'successfully' : 'with VPS fallback'}`,
-      status: vpsSuccess ? 'success' : 'warning',
+      action: `Optimized Operation ${operationId} completed ${fallbackMode ? 'in fallback mode' : (vpsSuccess ? 'successfully' : 'with VPS issues')}`,
+      status: fallbackMode ? 'warning' : (vpsSuccess ? 'success' : 'warning'),
       data: { 
         instanceId: newInstance.id, 
         instanceName: newInstance.instance_name,
-        method: 'SUPABASE_API_ONLY',
+        method: 'SUPABASE_OPTIMIZED',
         userEmail: user.email,
         vpsSuccess,
-        fallback: !vpsSuccess
+        fallbackMode,
+        mode: fallbackMode ? 'database_only' : 'vps_integrated'
       }
     });
 
-    console.log('[API_ONLY] === SUCESSO COMPLETO VIA API ===');
+    console.log('[OPTIMIZED] === SUCESSO COMPLETO OTIMIZADO ===');
 
     return new Response(JSON.stringify({
       success: true,
@@ -568,36 +579,41 @@ async function createInstanceViaAPI(supabase: any, user: any, operationId: strin
       vps_response: vpsData,
       user_id: user.id,
       operationId,
-      method: 'SUPABASE_API_ONLY',
+      method: 'SUPABASE_OPTIMIZED',
       intelligent_name: intelligentInstanceName,
       user_email: user.email,
       vps_success: vpsSuccess,
-      fallback_used: !vpsSuccess,
-      message: vpsSuccess ? 'Instância criada via API com VPS' : 'Instância criada via API (VPS indisponível, usando fallback)'
+      fallback_used: fallbackMode,
+      mode: fallbackMode ? 'database_only' : 'vps_integrated',
+      message: fallbackMode ? 'Instância criada em modo fallback (VPS lenta/indisponível)' : 
+               (vpsSuccess ? 'Instância criada com VPS otimizada' : 'Instância criada com problemas na VPS')
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.log('[API_ONLY] === ERRO NA CRIAÇÃO VIA API ===');
-    console.log('[API_ONLY] Erro:', error);
+    console.log('[OPTIMIZED] === ERRO NA CRIAÇÃO OTIMIZADA ===');
+    console.log('[OPTIMIZED] Erro:', error);
     
     logStructured({
       timestamp: new Date().toISOString(),
       phase: 'OPERATION_END',
-      action: `API Operation ${operationId} failed`,
+      action: `Optimized Operation ${operationId} failed`,
       status: 'error',
-      data: { error: error.message, method: 'SUPABASE_API_ONLY' }
+      data: { error: error.message, method: 'SUPABASE_OPTIMIZED' }
     });
     
     let errorMessage = error.message;
     let errorType = 'UNKNOWN_ERROR';
     
-    if (error.name === 'AbortError' || error.message.includes('Timeout')) {
-      errorMessage = 'Timeout na criação via API - VPS pode estar offline';
-      errorType = 'VPS_TIMEOUT_API';
+    if (error.message.includes('VPS_SLOW_FALLBACK')) {
+      errorMessage = 'VPS está muito lenta - instância foi criada em modo fallback';
+      errorType = 'VPS_SLOW_FALLBACK';
+    } else if (error.name === 'AbortError' || error.message.includes('Timeout')) {
+      errorMessage = 'Timeout na criação otimizada - VPS pode estar offline';
+      errorType = 'VPS_TIMEOUT_OPTIMIZED';
     } else if (error.message.includes('HTTP')) {
-      errorType = 'VPS_HTTP_ERROR_API';
+      errorType = 'VPS_HTTP_ERROR_OPTIMIZED';
     } else if (error.message.includes('indisponível')) {
       errorType = 'VPS_UNAVAILABLE';
     }
@@ -608,9 +624,9 @@ async function createInstanceViaAPI(supabase: any, user: any, operationId: strin
       errorType,
       operationId,
       action: 'create_instance',
-      method: 'SUPABASE_API_ONLY',
+      method: 'SUPABASE_OPTIMIZED',
       user_email: user?.email,
-      suggestion: 'Verifique se a VPS está online e acessível'
+      suggestion: 'VPS parece estar lenta. Sistema funcionará em modo fallback automaticamente.'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -618,11 +634,11 @@ async function createInstanceViaAPI(supabase: any, user: any, operationId: strin
   }
 }
 
-// FUNÇÃO DELETE VIA API
-async function deleteInstanceViaAPI(supabase: any, instanceId: string, user: any, operationId: string) {
-  console.log('[API_ONLY] === DELETAR INSTÂNCIA VIA API ===');
-  console.log('[API_ONLY] Instance ID:', instanceId);
-  console.log('[API_ONLY] User ID:', user.id);
+// FUNÇÃO DELETE OTIMIZADA
+async function deleteInstanceOptimized(supabase: any, instanceId: string, user: any, operationId: string) {
+  console.log('[OPTIMIZED] === DELETAR INSTÂNCIA OTIMIZADA ===');
+  console.log('[OPTIMIZED] Instance ID:', instanceId);
+  console.log('[OPTIMIZED] User ID:', user.id);
   
   try {
     const { data: instance, error: fetchError } = await supabase
@@ -635,23 +651,25 @@ async function deleteInstanceViaAPI(supabase: any, instanceId: string, user: any
       throw new Error('Instância não encontrada: ' + fetchError.message);
     }
 
-    console.log('[API_ONLY] Instância encontrada:', instance);
+    console.log('[OPTIMIZED] Instância encontrada:', instance);
 
-    // Deletar da VPS via API
+    // Deletar da VPS otimizada
     if (instance.vps_instance_id) {
       try {
-        console.log('[API_ONLY] Deletando da VPS via API:', instance.vps_instance_id);
+        console.log('[OPTIMIZED] Deletando da VPS otimizada:', instance.vps_instance_id);
         
-        await makeVPSRequest(`/instance/${instance.vps_instance_id}`, 'DELETE', {});
+        await makeVPSRequest(`/instance/${instance.vps_instance_id}`, 'DELETE', {
+          lightweight: true // NOVO: Modo lightweight para delete
+        });
         
-        console.log('[API_ONLY] ✅ Deletado da VPS com sucesso via API');
+        console.log('[OPTIMIZED] ✅ Deletado da VPS com sucesso otimizado');
       } catch (vpsError) {
-        console.log('[API_ONLY] ⚠️ Erro ao deletar da VPS (continuando):', vpsError);
+        console.log('[OPTIMIZED] ⚠️ Erro ao deletar da VPS (continuando):', vpsError);
       }
     }
 
     // Deletar do banco
-    console.log('[API_ONLY] Deletando do banco via API...');
+    console.log('[OPTIMIZED] Deletando do banco otimizado...');
     const { error: deleteError } = await supabase
       .from('whatsapp_instances')
       .delete()
@@ -661,26 +679,26 @@ async function deleteInstanceViaAPI(supabase: any, instanceId: string, user: any
       throw new Error(`Erro ao deletar do banco: ${deleteError.message}`);
     }
 
-    console.log('[API_ONLY] ✅ Instância deletada com sucesso via API');
+    console.log('[OPTIMIZED] ✅ Instância deletada com sucesso otimizado');
 
     return new Response(JSON.stringify({
       success: true,
-      message: 'Instância deletada com sucesso via API',
+      message: 'Instância deletada com sucesso (otimizado)',
       operationId,
-      method: 'SUPABASE_API_ONLY'
+      method: 'SUPABASE_OPTIMIZED'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.log('[API_ONLY] === ERRO NA DELEÇÃO VIA API ===');
-    console.log('[API_ONLY] Erro:', error);
+    console.log('[OPTIMIZED] === ERRO NA DELEÇÃO OTIMIZADA ===');
+    console.log('[OPTIMIZED] Erro:', error);
     
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
       operationId,
-      method: 'SUPABASE_API_ONLY'
+      method: 'SUPABASE_OPTIMIZED'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

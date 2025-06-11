@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, AlertCircle, Activity } from "lucide-react";
-import { ApiClient } from "@/lib/apiClient";
 
 interface VPSStatus {
   online: boolean;
@@ -17,21 +16,33 @@ export const VPSStatusIndicator = () => {
   const checkVPSStatus = async () => {
     setIsChecking(true);
     try {
-      console.log('[VPS Status] 🔍 Verificando status do VPS corrigido...');
+      console.log('[VPS Status] 🔍 Verificando status do VPS via teste simples...');
       
       const startTime = Date.now();
-      const result = await ApiClient.checkVPSHealth();
+      
+      // CORREÇÃO: Usar fetch simples para health check rápido, sem Edge Function
+      const response = await fetch('http://31.97.24.222:3002/health', {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
+          'Content-Type': 'application/json'
+        },
+        signal: AbortSignal.timeout(5000) // 5s timeout apenas
+      });
+      
       const responseTime = Date.now() - startTime;
+      const isOnline = response.ok;
       
       setVpsStatus({
-        online: result.success,
+        online: isOnline,
         responseTime,
         lastCheck: new Date()
       });
       
       console.log('[VPS Status] 📊 Status obtido:', {
-        online: result.success,
-        responseTime: `${responseTime}ms`
+        online: isOnline,
+        responseTime: `${responseTime}ms`,
+        status: response.status
       });
       
     } catch (error: any) {
@@ -48,8 +59,8 @@ export const VPSStatusIndicator = () => {
   useEffect(() => {
     checkVPSStatus();
     
-    // Verificar status a cada 30 segundos
-    const interval = setInterval(checkVPSStatus, 30000);
+    // Verificar status a cada 60 segundos (menos frequente)
+    const interval = setInterval(checkVPSStatus, 60000);
     
     return () => clearInterval(interval);
   }, []);
@@ -65,10 +76,11 @@ export const VPSStatusIndicator = () => {
     }
 
     if (vpsStatus.online) {
+      const isSlowVps = vpsStatus.responseTime && vpsStatus.responseTime > 2000;
       return (
-        <Badge variant="default" className="bg-green-600 text-white">
+        <Badge variant="default" className={isSlowVps ? "bg-yellow-600 text-white" : "bg-green-600 text-white"}>
           <CheckCircle className="h-3 w-3 mr-1" />
-          VPS Online
+          VPS {isSlowVps ? 'Lenta' : 'Online'}
           {vpsStatus.responseTime && ` (${vpsStatus.responseTime}ms)`}
         </Badge>
       );

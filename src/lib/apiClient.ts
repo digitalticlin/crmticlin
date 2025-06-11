@@ -1,46 +1,47 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export class ApiClient {
-  // Método para verificar saúde do VPS - CORRIGIDO
+  // Método para verificar saúde do VPS - CORRIGIDO PARA HEALTH CHECK RÁPIDO
   static async checkVPSHealth(): Promise<{ success: boolean; responseTime?: number }> {
     try {
-      console.log('[ApiClient] 🔍 Verificando saúde do VPS...');
+      console.log('[ApiClient] 🔍 Health check VPS via fetch direto...');
       
       const startTime = Date.now();
       
-      const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
-        body: {
-          action: 'diagnostic_health' // CORREÇÃO: action correta
-        }
+      // CORREÇÃO: Health check direto para VPS, sem Edge Function
+      const response = await fetch('http://31.97.24.222:3002/health', {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer 3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
+          'Content-Type': 'application/json'
+        },
+        signal: AbortSignal.timeout(5000) // 5s timeout
       });
       
       const responseTime = Date.now() - startTime;
       
-      if (error) {
-        console.error('[ApiClient] ❌ Erro na verificação de saúde:', error);
-        return { success: false };
-      }
-      
-      console.log('[ApiClient] ✅ VPS Health Check:', { 
-        success: data?.success, 
-        responseTime: `${responseTime}ms` 
+      console.log('[ApiClient] ✅ VPS Health Check Direto:', { 
+        success: response.ok, 
+        responseTime: `${responseTime}ms`,
+        status: response.status 
       });
       
       return { 
-        success: data?.success || false, 
+        success: response.ok, 
         responseTime 
       };
       
     } catch (error: any) {
-      console.error('[ApiClient] ❌ Erro na verificação de saúde:', error);
+      console.error('[ApiClient] ❌ Erro no health check direto:', error);
       return { success: false };
     }
   }
 
-  // CORREÇÃO: Método para criar instância via Edge Function
+  // CORREÇÃO: Método para criar instância via Edge Function - SEM TIMEOUT ALTO
   static async createInstance(userEmail?: string): Promise<any> {
     try {
-      console.log('[ApiClient] 🚀 Criando instância via Edge Function');
+      console.log('[ApiClient] 🚀 Criando instância via Edge Function OTIMIZADA');
       
       // Gerar nome inteligente baseado no email
       let intelligentName = 'whatsapp';
@@ -229,6 +230,30 @@ export class ApiClient {
     } catch (error: any) {
       console.error('[ApiClient] ❌ Erro ao enviar mensagem:', error);
       throw error;
+    }
+  }
+
+  // NOVO: Diagnósticos separados que não afetam criação de instância
+  static async runVPSDiagnostics(): Promise<any> {
+    try {
+      console.log('[ApiClient] 🔧 Executando diagnósticos VPS via Edge Function');
+      
+      const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
+        body: {
+          action: 'diagnostic_health'
+        }
+      });
+      
+      if (error) {
+        console.error('[ApiClient] ❌ Erro nos diagnósticos:', error);
+        return { success: false, error: error.message };
+      }
+      
+      return data;
+      
+    } catch (error: any) {
+      console.error('[ApiClient] ❌ Erro ao executar diagnósticos:', error);
+      return { success: false, error: error.message };
     }
   }
 
