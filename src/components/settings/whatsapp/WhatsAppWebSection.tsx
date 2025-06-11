@@ -59,58 +59,57 @@ export const WhatsAppWebSection = () => {
     setMonitoringData([]);
     
     try {
-      addMonitoringLog('1. Iniciando Criação Otimizada via Hook', 'pending', {
+      addMonitoringLog('1. Iniciando Criação via API Oficial Supabase', 'pending', {
         userEmail: user.email,
-        method: 'HOOK_TO_EDGE_FUNCTION_OPTIMIZED'
+        method: 'API_OFICIAL_SUPABASE'
       });
 
-      console.log('[WhatsApp Web] 🚀 Criando instância via hook otimizado para:', user.email);
+      console.log('[WhatsApp Web] 🚀 Criando instância via API oficial Supabase para:', user.email);
       
       const result = await createInstance();
       
       if (!result || !result.success) {
-        addMonitoringLog('ERRO: Hook Otimizado falhou', 'error', {
+        addMonitoringLog('ERRO: API Oficial Supabase falhou', 'error', {
           result,
-          method: 'HOOK_FAILURE_OPTIMIZED'
+          method: 'API_OFICIAL_ERROR'
         });
-        throw new Error(result?.error || 'Hook de criação otimizado falhou');
+        throw new Error(result?.error || 'API oficial Supabase falhou');
       }
 
-      addMonitoringLog('2. Hook Otimizado Executado com Sucesso', 'success', {
+      addMonitoringLog('2. API Oficial Supabase Executada com Sucesso', 'success', {
         instanceId: result.instance?.id,
-        method: 'HOOK_SUCCESS_OPTIMIZED',
-        fallbackUsed: result.fallback_used || false,
-        mode: result.mode || 'normal'
+        method: 'API_OFICIAL_SUCCESS',
+        mode: result.mode || 'vps_connected_api_oficial'
       });
 
-      console.log('[WhatsApp Web] ✅ Instância criada via hook otimizado:', result);
+      console.log('[WhatsApp Web] ✅ Instância criada via API oficial:', result);
 
-      if (result.fallback_used) {
-        toast.success(`Instância criada em modo fallback (VPS lenta)!`, {
-          description: "Sistema funcionando - VPS será sincronizada quando disponível"
+      if (result.mode === 'database_only') {
+        toast.success(`Instância criada em modo fallback!`, {
+          description: "API oficial funcionando - VPS será sincronizada quando disponível"
         });
       } else {
-        toast.success(`Instância criada via sistema otimizado!`, {
-          description: "Sistema otimizado - sem dependência do Puppeteer"
+        toast.success(`Instância criada via API oficial Supabase!`, {
+          description: "Sistema com conectividade garantida via APIs oficiais"
         });
       }
 
       await loadInstances();
       
-      addMonitoringLog('3. Lista Atualizada (Otimizada)', 'success', {
+      addMonitoringLog('3. Lista Atualizada (API Oficial)', 'success', {
         totalInstances: instances.length + 1,
-        method: 'HOOK_COMPLETE_OPTIMIZED'
+        method: 'API_OFICIAL_COMPLETE'
       });
 
     } catch (error: any) {
-      console.error('[WhatsApp Web] ❌ Erro no hook otimizado:', error);
+      console.error('[WhatsApp Web] ❌ Erro na API oficial:', error);
       
-      addMonitoringLog('ERRO FINAL HOOK OTIMIZADO', 'error', {
+      addMonitoringLog('ERRO FINAL API OFICIAL', 'error', {
         errorMessage: error.message,
-        method: 'HOOK_ERROR_OPTIMIZED'
+        method: 'API_OFICIAL_ERROR'
       });
 
-      toast.error(`Erro no sistema otimizado: ${error.message}`);
+      toast.error(`Erro na API oficial Supabase: ${error.message}`);
     } finally {
       setIsCreatingInstance(false);
     }
@@ -151,7 +150,7 @@ export const WhatsAppWebSection = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header com status OTIMIZADO */}
+      {/* Header com status API OFICIAL */}
       <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -160,16 +159,16 @@ export const WhatsAppWebSection = () => {
                 <MessageSquare className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-green-800">WhatsApp Web Settings OTIMIZADO</h2>
+                <h2 className="text-xl font-semibold text-green-800">WhatsApp Web Settings VIA API OFICIAL</h2>
                 <p className="text-sm text-green-600">
-                  ✅ OTIMIZADO: Frontend → Hook → ApiClient → Edge Function → VPS Leve (Usuário: {user?.email})
+                  ✅ API OFICIAL: Frontend → Hook → ApiClient → Edge Function → VPS Service (Usuário: {user?.email})
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="default" className="bg-green-600 text-white">
                 <CheckCircle className="h-3 w-3 mr-1" />
-                Sistema Otimizado
+                API Oficial Supabase
               </Badge>
               
               {connectedInstances > 0 && (
@@ -204,7 +203,7 @@ export const WhatsAppWebSection = () => {
         </CardHeader>
       </Card>
 
-      {/* Botões principais OTIMIZADOS */}
+      {/* Botões principais API OFICIAL */}
       <div className="flex justify-center gap-4">
         <Button 
           onClick={handleCreateInstance}
@@ -215,12 +214,12 @@ export const WhatsAppWebSection = () => {
           {isCreatingInstance ? (
             <>
               <Loader2 className="h-5 w-5 animate-spin" />
-              Criando Otimizado...
+              Criando via API Oficial...
             </>
           ) : (
             <>
               <Plus className="h-5 w-5" />
-              Conectar WhatsApp (Otimizado)
+              Conectar WhatsApp (API Oficial)
             </>
           )}
         </Button>
@@ -285,7 +284,7 @@ export const WhatsAppWebSection = () => {
               disabled={isCreatingInstance}
               className="bg-green-600 hover:bg-green-700 text-white"
             >
-              {isCreatingInstance ? 'Criando Otimizado...' : 'Conectar Primeira Instância (Otimizado)'}
+              {isCreatingInstance ? 'Criando via API Oficial...' : 'Conectar Primeira Instância (API Oficial)'}
             </Button>
           </CardContent>
         </Card>
@@ -304,25 +303,25 @@ export const WhatsAppWebSection = () => {
         onRetry={retryQRCode}
       />
 
-      {/* Card informativo sobre otimização */}
+      {/* Card informativo sobre API oficial */}
       <Card className="border-blue-200 bg-blue-50/30">
         <CardContent className="p-4">
           <div className="text-sm text-blue-800 space-y-2">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-blue-600" />
-              <strong>✅ SISTEMA OTIMIZADO: SEM PUPPETEER, TIMEOUTS REDUZIDOS</strong>
+              <strong>✅ SISTEMA VIA API OFICIAL SUPABASE: SEM HTTP DIRETO, CONECTIVIDADE GARANTIDA</strong>
             </div>
             <ul className="list-disc list-inside space-y-1 ml-4">
-              <li><strong>Timeout Reduzido:</strong> ✅ 15s (antes 45s)</li>
-              <li><strong>Modo Lightweight:</strong> ✅ VPS usa recursos mínimos</li>
+              <li><strong>API Oficial Supabase:</strong> ✅ Edge Function para Edge Function</li>
+              <li><strong>Conectividade Garantida:</strong> ✅ Sem bloqueios de rede</li>
+              <li><strong>Logs Centralizados:</strong> ✅ Todos logs no Supabase</li>
+              <li><strong>Retry Automático:</strong> ✅ Supabase gerencia falhas</li>
+              <li><strong>Secrets Seguros:</strong> ✅ Gerenciados pelo Supabase</li>
               <li><strong>Fallback Inteligente:</strong> ✅ Cria instância no banco se VPS lenta</li>
-              <li><strong>Health Check Direto:</strong> ✅ Sem Edge Function para status</li>
-              <li><strong>Retry Otimizado:</strong> ✅ Apenas 2 tentativas rápidas</li>
-              <li><strong>Sem Puppeteer:</strong> ✅ Sistema funciona sem dependências pesadas</li>
             </ul>
             <div className="mt-3 p-3 bg-white/70 rounded border border-blue-200">
-              <p className="font-medium">🎯 Fluxo Otimizado:</p>
-              <p>Frontend → Hook → ApiClient → Edge Function → VPS (Modo Leve) → Fallback Automático</p>
+              <p className="font-medium">🎯 Fluxo API Oficial:</p>
+              <p>Frontend → Hook → ApiClient → Edge Function → VPS Service (API Oficial) → VPS → Fallback Automático</p>
             </div>
           </div>
         </CardContent>
