@@ -18,30 +18,30 @@ export const VPSStatusIndicator = () => {
   const checkVPSStatus = async () => {
     setIsChecking(true);
     try {
-      console.log('[VPS Status] 🔍 Verificando status via API oficial Supabase...');
+      console.log('[VPS Status] 🔍 Verificando status via whatsapp_instance_manager...');
       
-      // CORREÇÃO: Usar ApiClient que usa APIs oficiais Supabase
+      // Usar ApiClient que usa whatsapp_instance_manager
       const result = await ApiClient.checkVPSHealth();
       
       setVpsStatus({
         online: result.success,
         responseTime: result.responseTime,
         lastCheck: new Date(),
-        source: 'api_oficial_supabase'
+        source: 'whatsapp_instance_manager'
       });
       
-      console.log('[VPS Status] 📊 Status obtido via API oficial:', {
+      console.log('[VPS Status] 📊 Status obtido via whatsapp_instance_manager:', {
         online: result.success,
         responseTime: result.responseTime ? `${result.responseTime}ms` : 'N/A',
-        source: 'api_oficial_supabase'
+        source: 'whatsapp_instance_manager'
       });
       
     } catch (error: any) {
-      console.error('[VPS Status] ❌ Erro ao verificar status via API oficial:', error);
+      console.error('[VPS Status] ❌ Erro ao verificar status:', error);
       setVpsStatus({
         online: false,
         lastCheck: new Date(),
-        source: 'api_oficial_supabase'
+        source: 'whatsapp_instance_manager'
       });
     } finally {
       setIsChecking(false);
@@ -51,7 +51,7 @@ export const VPSStatusIndicator = () => {
   useEffect(() => {
     checkVPSStatus();
     
-    // Verificar status a cada 60 segundos (menos frequente)
+    // Verificar status a cada 60 segundos
     const interval = setInterval(checkVPSStatus, 60000);
     
     return () => clearInterval(interval);
@@ -62,7 +62,7 @@ export const VPSStatusIndicator = () => {
       return (
         <Badge variant="secondary" className="bg-blue-100 text-blue-800">
           <Activity className="h-3 w-3 mr-1 animate-spin" />
-          Verificando via API...
+          Verificando...
         </Badge>
       );
     }
@@ -72,7 +72,7 @@ export const VPSStatusIndicator = () => {
       return (
         <Badge variant="default" className={isSlowVps ? "bg-yellow-600 text-white" : "bg-green-600 text-white"}>
           <CheckCircle className="h-3 w-3 mr-1" />
-          VPS {isSlowVps ? 'Lenta' : 'Online'} (API)
+          VPS {isSlowVps ? 'Lenta' : 'Online'}
           {vpsStatus.responseTime && ` (${vpsStatus.responseTime}ms)`}
         </Badge>
       );
@@ -81,7 +81,7 @@ export const VPSStatusIndicator = () => {
     return (
       <Badge variant="destructive">
         <AlertCircle className="h-3 w-3 mr-1" />
-        VPS Offline (API)
+        VPS Offline
       </Badge>
     );
   };
@@ -91,7 +91,7 @@ export const VPSStatusIndicator = () => {
       {getStatusBadge()}
       {vpsStatus.lastCheck && (
         <span className="text-xs text-gray-500">
-          Última verificação via API oficial: {vpsStatus.lastCheck.toLocaleTimeString()}
+          Última verificação: {vpsStatus.lastCheck.toLocaleTimeString()}
         </span>
       )}
     </div>

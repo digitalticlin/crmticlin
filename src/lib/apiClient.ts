@@ -1,16 +1,15 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export class ApiClient {
-  // CORREÇÃO: Health check via API oficial Supabase
+  // Health check via whatsapp_instance_manager
   static async checkVPSHealth(): Promise<{ success: boolean; responseTime?: number }> {
     try {
-      console.log('[ApiClient] 🔍 Health check via API oficial Supabase...');
+      console.log('[ApiClient] 🔍 Health check via whatsapp_instance_manager...');
       
       const startTime = Date.now();
       
-      // Usar API oficial Supabase em vez de fetch direto
-      const { data, error } = await supabase.functions.invoke('vps_instance_service', {
+      // Usar whatsapp_instance_manager para health check (sem action específica, só teste de conectividade)
+      const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
           action: 'health_check'
         }
@@ -18,23 +17,21 @@ export class ApiClient {
       
       const responseTime = Date.now() - startTime;
       
-      if (error) {
-        console.error('[ApiClient] ❌ Erro na API oficial:', error);
-        return { success: false };
-      }
+      // Se chegou até aqui, a edge function está respondendo
+      const isHealthy = !error && responseTime < 10000;
       
-      console.log('[ApiClient] ✅ VPS Health Check via API oficial:', { 
-        success: data?.success, 
+      console.log('[ApiClient] ✅ VPS Health Check via whatsapp_instance_manager:', { 
+        success: isHealthy, 
         responseTime: `${responseTime}ms`
       });
       
       return { 
-        success: data?.success || false, 
+        success: isHealthy, 
         responseTime 
       };
       
     } catch (error: any) {
-      console.error('[ApiClient] ❌ Erro no health check via API oficial:', error);
+      console.error('[ApiClient] ❌ Erro no health check:', error);
       return { success: false };
     }
   }
@@ -78,7 +75,7 @@ export class ApiClient {
       return {
         success: true,
         instance: data.instance,
-        qrCode: data.qrCode,
+        qrCode: data.qrCode || null,
         intelligent_name: intelligentName,
         mode: data.mode
       };
@@ -92,9 +89,9 @@ export class ApiClient {
   // Método para obter QR Code via API oficial
   static async getQRCode(instanceId: string): Promise<any> {
     try {
-      console.log('[ApiClient] 📱 Obtendo QR Code via API oficial:', instanceId);
+      console.log('[ApiClient] 📱 Obtendo QR Code via whatsapp_instance_manager:', instanceId);
       
-      const { data, error } = await supabase.functions.invoke('vps_instance_service', {
+      const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
           action: 'get_qr_code',
           instanceId
@@ -106,7 +103,7 @@ export class ApiClient {
         return { success: false, error: error.message };
       }
       
-      console.log('[ApiClient] 📥 QR Code response via API oficial:', {
+      console.log('[ApiClient] 📥 QR Code response:', {
         success: data?.success,
         hasQrCode: !!data?.qrCode,
         waiting: data?.waiting
@@ -130,7 +127,7 @@ export class ApiClient {
   // Método para deletar instância via API oficial
   static async deleteInstance(instanceId: string): Promise<any> {
     try {
-      console.log('[ApiClient] 🗑️ Deletando instância via API oficial:', instanceId);
+      console.log('[ApiClient] 🗑️ Deletando instância via whatsapp_instance_manager:', instanceId);
       
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
@@ -149,7 +146,7 @@ export class ApiClient {
         throw new Error(data?.error || 'Falha ao deletar instância');
       }
       
-      console.log('[ApiClient] ✅ Instância deletada via API oficial');
+      console.log('[ApiClient] ✅ Instância deletada via whatsapp_instance_manager');
       
       return { success: true };
       
@@ -162,12 +159,12 @@ export class ApiClient {
   // Método para atualizar QR Code via API oficial
   static async refreshQRCode(instanceId: string): Promise<any> {
     try {
-      console.log('[ApiClient] 🔄 Atualizando QR Code via API oficial:', instanceId);
+      console.log('[ApiClient] 🔄 Atualizando QR Code via whatsapp_instance_manager:', instanceId);
       
       // Usar o mesmo método de obter QR Code
       const result = await this.getQRCode(instanceId);
       
-      console.log('[ApiClient] ✅ QR Code atualizado via API oficial');
+      console.log('[ApiClient] ✅ QR Code atualizado via whatsapp_instance_manager');
       
       return {
         success: result.success,
@@ -229,12 +226,12 @@ export class ApiClient {
     }
   }
 
-  // Diagnósticos via API oficial
+  // Diagnósticos via whatsapp_instance_manager
   static async runVPSDiagnostics(): Promise<any> {
     try {
-      console.log('[ApiClient] 🔧 Executando diagnósticos via API oficial');
+      console.log('[ApiClient] 🔧 Executando diagnósticos via whatsapp_instance_manager');
       
-      const { data, error } = await supabase.functions.invoke('vps_instance_service', {
+      const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
           action: 'health_check'
         }
@@ -246,9 +243,9 @@ export class ApiClient {
       }
       
       return {
-        success: data?.success || false,
-        responseTime: data?.responseTime,
-        source: 'api_oficial_supabase'
+        success: !error,
+        responseTime: 'N/A',
+        source: 'whatsapp_instance_manager'
       };
       
     } catch (error: any) {

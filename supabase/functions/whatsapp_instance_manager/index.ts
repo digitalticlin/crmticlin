@@ -73,8 +73,8 @@ async function createInstanceViaAPI(supabase: any, user: any, instanceName: stri
     const intelligentName = await generateIntelligentName(supabase, user, instanceName);
     console.log(`[CREATE] Nome gerado: ${intelligentName}`);
 
-    // Tentar VPS via API oficial Supabase
-    const vpsResult = await attemptVPSCreationViaAPI(supabase, intelligentName);
+    // Tentar VPS diretamente desta Edge Function
+    const vpsResult = await attemptVPSCreationDirectly(intelligentName);
     
     if (vpsResult.success) {
       console.log(`[CREATE] ✅ VPS Success via API oficial`);
@@ -110,9 +110,9 @@ async function deleteInstanceViaAPI(supabase: any, user: any, instanceId: string
 
     console.log(`[DELETE] Removendo via API oficial: ${instance.instance_name}`);
 
-    // Tentar deletar da VPS via API oficial se existir
+    // Tentar deletar da VPS diretamente se existir
     if (instance.vps_instance_id) {
-      await attemptVPSDeletionViaAPI(supabase, instance.vps_instance_id);
+      await attemptVPSDeletionDirectly(instance.vps_instance_id);
     }
 
     // Deletar do banco
@@ -138,6 +138,80 @@ async function deleteInstanceViaAPI(supabase: any, user: any, instanceId: string
   } catch (error: any) {
     console.error(`[DELETE] ❌ Erro:`, error.message);
     throw error;
+  }
+}
+
+async function attemptVPSCreationDirectly(instanceId: string) {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+  
+  try {
+    console.log(`[VPS DIRECT] Criando diretamente: ${instanceId}...`);
+    
+    const vpsUrl = Deno.env.get('VPS_SERVER_URL') || 'http://31.97.24.222:3002';
+    const vpsToken = Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    const response = await fetch(`${vpsUrl}/instance/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${vpsToken}`,
+      },
+      body: JSON.stringify({
+        instanceId,
+        sessionName: instanceId,
+        webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
+        lightweight: true,
+        skipPuppeteer: true
+      }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`VPS HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log(`[VPS DIRECT] ✅ Criado com sucesso`);
+    
+    return { success: true, data };
+
+  } catch (error: any) {
+    console.log(`[VPS DIRECT] ❌ Falhou: ${error.message}`);
+    return { 
+      success: false, 
+      error: `VPS_DIRECT_ERROR: ${error.message}. Criando instância em modo fallback.`
+    };
+  }
+}
+
+async function attemptVPSDeletionDirectly(instanceId: string) {
+  try {
+    console.log(`[VPS DIRECT] Deletando: ${instanceId}...`);
+    
+    const vpsUrl = Deno.env.get('VPS_SERVER_URL') || 'http://31.97.24.222:3002';
+    const vpsToken = Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    await fetch(`${vpsUrl}/instance/${instanceId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${vpsToken}`,
+      },
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+    console.log(`[VPS DIRECT] ✅ Deletado`);
+
+  } catch (error: any) {
+    console.log(`[VPS DIRECT] ⚠️ Erro ao deletar (não crítico): ${error.message}`);
   }
 }
 
@@ -167,69 +241,6 @@ async function generateIntelligentName(supabase: any, user: any, baseInstanceNam
     return candidateName;
   } catch (error) {
     return `whatsapp_${Date.now()}`;
-  }
-}
-
-async function attemptVPSCreationViaAPI(supabase: any, instanceId: string) {
-  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-  
-  try {
-    console.log(`[VPS API] Criando via API oficial Supabase: ${instanceId}...`);
-    
-    // Usar API oficial Supabase em vez de HTTP direto
-    const { data, error } = await supabase.functions.invoke('vps_instance_service', {
-      body: {
-        action: 'create_instance',
-        instanceId,
-        config: {
-          sessionName: instanceId,
-          webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
-          lightweight: true,
-          skipPuppeteer: true
-        }
-      }
-    });
-
-    if (error) {
-      throw new Error(`API Error: ${error.message}`);
-    }
-
-    if (data?.success) {
-      console.log(`[VPS API] ✅ Criado com sucesso via API oficial`);
-      return { success: true, data: data.data };
-    } else {
-      throw new Error(data?.error || 'Falha na API VPS');
-    }
-
-  } catch (error: any) {
-    console.log(`[VPS API] ❌ Falhou: ${error.message}`);
-    return { 
-      success: false, 
-      error: `API_OFICIAL_ERROR: ${error.message}. Criando instância em modo fallback.`
-    };
-  }
-}
-
-async function attemptVPSDeletionViaAPI(supabase: any, instanceId: string) {
-  try {
-    console.log(`[VPS API] Deletando via API oficial: ${instanceId}...`);
-    
-    // Usar API oficial Supabase em vez de HTTP direto
-    const { data, error } = await supabase.functions.invoke('vps_instance_service', {
-      body: {
-        action: 'delete_instance',
-        instanceId
-      }
-    });
-
-    if (error) {
-      console.log(`[VPS API] ⚠️ Erro ao deletar (não crítico): ${error.message}`);
-    } else {
-      console.log(`[VPS API] ✅ Deletado via API oficial`);
-    }
-
-  } catch (error: any) {
-    console.log(`[VPS API] ⚠️ Erro ao deletar (não crítico): ${error.message}`);
   }
 }
 
@@ -269,15 +280,15 @@ function createSuccessResponse(instance: any, vpsResult: any, intelligentName: s
         instanceId: intelligentName,
         fallback: fallbackUsed,
         vpsError: vpsResult.error || null,
-        mode: fallbackUsed ? 'database_only' : 'vps_connected_api_oficial'
+        mode: fallbackUsed ? 'database_only' : 'vps_connected_direct'
       },
       user_id: instance.created_by_user_id,
       intelligent_name: intelligentName,
       user_email: userEmail,
       vps_success: vpsResult.success,
       fallback_used: fallbackUsed,
-      mode: fallbackUsed ? 'database_only' : 'vps_connected_api_oficial',
-      message: fallbackUsed ? 'Instância criada em modo fallback (VPS via API oficial lenta/indisponível)' : 'Instância criada com sucesso via API oficial Supabase'
+      mode: fallbackUsed ? 'database_only' : 'vps_connected_direct',
+      message: fallbackUsed ? 'Instância criada em modo fallback (VPS lenta/indisponível)' : 'Instância criada com sucesso via API oficial'
     }),
     {
       status: 200,

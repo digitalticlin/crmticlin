@@ -59,57 +59,57 @@ export const WhatsAppWebSection = () => {
     setMonitoringData([]);
     
     try {
-      addMonitoringLog('1. Iniciando Criação via API Oficial Supabase', 'pending', {
+      addMonitoringLog('1. Iniciando Criação via whatsapp_instance_manager', 'pending', {
         userEmail: user.email,
-        method: 'API_OFICIAL_SUPABASE'
+        method: 'WHATSAPP_INSTANCE_MANAGER'
       });
 
-      console.log('[WhatsApp Web] 🚀 Criando instância via API oficial Supabase para:', user.email);
+      console.log('[WhatsApp Web] 🚀 Criando instância via whatsapp_instance_manager para:', user.email);
       
       const result = await createInstance();
       
       if (!result || !result.success) {
-        addMonitoringLog('ERRO: API Oficial Supabase falhou', 'error', {
+        addMonitoringLog('ERRO: whatsapp_instance_manager falhou', 'error', {
           result,
-          method: 'API_OFICIAL_ERROR'
+          method: 'WHATSAPP_INSTANCE_MANAGER_ERROR'
         });
-        throw new Error(result?.error || 'API oficial Supabase falhou');
+        throw new Error(result?.error || 'whatsapp_instance_manager falhou');
       }
 
-      addMonitoringLog('2. API Oficial Supabase Executada com Sucesso', 'success', {
+      addMonitoringLog('2. whatsapp_instance_manager Executada com Sucesso', 'success', {
         instanceId: result.instance?.id,
-        method: 'API_OFICIAL_SUCCESS',
-        mode: result.mode || 'vps_connected_api_oficial'
+        method: 'WHATSAPP_INSTANCE_MANAGER_SUCCESS',
+        mode: result.mode || 'vps_connected_direct'
       });
 
-      console.log('[WhatsApp Web] ✅ Instância criada via API oficial:', result);
+      console.log('[WhatsApp Web] ✅ Instância criada via whatsapp_instance_manager:', result);
 
       if (result.mode === 'database_only') {
         toast.success(`Instância criada em modo fallback!`, {
-          description: "API oficial funcionando - VPS será sincronizada quando disponível"
+          description: "whatsapp_instance_manager funcionando - VPS será sincronizada quando disponível"
         });
       } else {
-        toast.success(`Instância criada via API oficial Supabase!`, {
-          description: "Sistema com conectividade garantida via APIs oficiais"
+        toast.success(`Instância criada via whatsapp_instance_manager!`, {
+          description: "Sistema com conectividade direta"
         });
       }
 
       await loadInstances();
       
-      addMonitoringLog('3. Lista Atualizada (API Oficial)', 'success', {
+      addMonitoringLog('3. Lista Atualizada (whatsapp_instance_manager)', 'success', {
         totalInstances: instances.length + 1,
-        method: 'API_OFICIAL_COMPLETE'
+        method: 'WHATSAPP_INSTANCE_MANAGER_COMPLETE'
       });
 
     } catch (error: any) {
-      console.error('[WhatsApp Web] ❌ Erro na API oficial:', error);
+      console.error('[WhatsApp Web] ❌ Erro na whatsapp_instance_manager:', error);
       
-      addMonitoringLog('ERRO FINAL API OFICIAL', 'error', {
+      addMonitoringLog('ERRO FINAL WHATSAPP_INSTANCE_MANAGER', 'error', {
         errorMessage: error.message,
-        method: 'API_OFICIAL_ERROR'
+        method: 'WHATSAPP_INSTANCE_MANAGER_ERROR'
       });
 
-      toast.error(`Erro na API oficial Supabase: ${error.message}`);
+      toast.error(`Erro na whatsapp_instance_manager: ${error.message}`);
     } finally {
       setIsCreatingInstance(false);
     }
@@ -141,7 +141,7 @@ export const WhatsAppWebSection = () => {
         <CardContent className="flex items-center justify-center py-8">
           <div className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 animate-pulse text-green-600" />
-            <span>Carregando WhatsApp Settings Otimizado...</span>
+            <span>Carregando WhatsApp Settings Modular...</span>
           </div>
         </CardContent>
       </Card>
@@ -150,7 +150,7 @@ export const WhatsAppWebSection = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header com status API OFICIAL */}
+      {/* Header com status modular */}
       <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -159,16 +159,16 @@ export const WhatsAppWebSection = () => {
                 <MessageSquare className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-green-800">WhatsApp Web Settings VIA API OFICIAL</h2>
+                <h2 className="text-xl font-semibold text-green-800">WhatsApp Web Settings VIA ESTRUTURA MODULAR</h2>
                 <p className="text-sm text-green-600">
-                  ✅ API OFICIAL: Frontend → Hook → ApiClient → Edge Function → VPS Service (Usuário: {user?.email})
+                  ✅ ESTRUTURA MODULAR: Frontend → Hook → ApiClient → whatsapp_instance_manager (Usuário: {user?.email})
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="default" className="bg-green-600 text-white">
                 <CheckCircle className="h-3 w-3 mr-1" />
-                API Oficial Supabase
+                Estrutura Modular
               </Badge>
               
               {connectedInstances > 0 && (
@@ -203,7 +203,7 @@ export const WhatsAppWebSection = () => {
         </CardHeader>
       </Card>
 
-      {/* Botões principais API OFICIAL */}
+      {/* Botões principais estrutura modular */}
       <div className="flex justify-center gap-4">
         <Button 
           onClick={handleCreateInstance}
@@ -214,12 +214,12 @@ export const WhatsAppWebSection = () => {
           {isCreatingInstance ? (
             <>
               <Loader2 className="h-5 w-5 animate-spin" />
-              Criando via API Oficial...
+              Criando via Estrutura Modular...
             </>
           ) : (
             <>
               <Plus className="h-5 w-5" />
-              Conectar WhatsApp (API Oficial)
+              Conectar WhatsApp (Estrutura Modular)
             </>
           )}
         </Button>
@@ -284,7 +284,7 @@ export const WhatsAppWebSection = () => {
               disabled={isCreatingInstance}
               className="bg-green-600 hover:bg-green-700 text-white"
             >
-              {isCreatingInstance ? 'Criando via API Oficial...' : 'Conectar Primeira Instância (API Oficial)'}
+              {isCreatingInstance ? 'Criando via Estrutura Modular...' : 'Conectar Primeira Instância (Estrutura Modular)'}
             </Button>
           </CardContent>
         </Card>
@@ -303,25 +303,25 @@ export const WhatsAppWebSection = () => {
         onRetry={retryQRCode}
       />
 
-      {/* Card informativo sobre API oficial */}
+      {/* Card informativo sobre estrutura modular */}
       <Card className="border-blue-200 bg-blue-50/30">
         <CardContent className="p-4">
           <div className="text-sm text-blue-800 space-y-2">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-blue-600" />
-              <strong>✅ SISTEMA VIA API OFICIAL SUPABASE: SEM HTTP DIRETO, CONECTIVIDADE GARANTIDA</strong>
+              <strong>✅ SISTEMA VIA ESTRUTURA MODULAR: UMA EDGE FUNCTION POR FUNCIONALIDADE</strong>
             </div>
             <ul className="list-disc list-inside space-y-1 ml-4">
-              <li><strong>API Oficial Supabase:</strong> ✅ Edge Function para Edge Function</li>
-              <li><strong>Conectividade Garantida:</strong> ✅ Sem bloqueios de rede</li>
-              <li><strong>Logs Centralizados:</strong> ✅ Todos logs no Supabase</li>
-              <li><strong>Retry Automático:</strong> ✅ Supabase gerencia falhas</li>
+              <li><strong>Estrutura Modular:</strong> ✅ Uma Edge Function específica por operação</li>
+              <li><strong>Segurança Isolada:</strong> ✅ Cada função com responsabilidade única</li>
+              <li><strong>Logs Centralizados:</strong> ✅ Todos logs no whatsapp_instance_manager</li>
+              <li><strong>Manutenibilidade:</strong> ✅ Fácil debugging e manutenção</li>
               <li><strong>Secrets Seguros:</strong> ✅ Gerenciados pelo Supabase</li>
               <li><strong>Fallback Inteligente:</strong> ✅ Cria instância no banco se VPS lenta</li>
             </ul>
             <div className="mt-3 p-3 bg-white/70 rounded border border-blue-200">
-              <p className="font-medium">🎯 Fluxo API Oficial:</p>
-              <p>Frontend → Hook → ApiClient → Edge Function → VPS Service (API Oficial) → VPS → Fallback Automático</p>
+              <p className="font-medium">🎯 Fluxo Estrutura Modular:</p>
+              <p>Frontend → Hook → ApiClient → whatsapp_instance_manager → VPS → Fallback Automático</p>
             </div>
           </div>
         </CardContent>
