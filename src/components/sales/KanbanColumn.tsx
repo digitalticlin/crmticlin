@@ -173,9 +173,9 @@ export function KanbanColumn({
                         provided={provided}
                         onClick={() => onOpenLeadDetail(lead)}
                         onOpenChat={onOpenChat ? () => onOpenChat(lead) : undefined}
-                        onMoveToWonLost={onMoveToWonLost ? (status: "won" | "lost") => onMoveToWonLost(lead, status) : undefined}
+                        onMoveToWon={onMoveToWonLost ? () => onMoveToWonLost(lead, "won") : undefined}
+                        onMoveToLost={onMoveToWonLost ? () => onMoveToWonLost(lead, "lost") : undefined}
                         onReturnToFunnel={onReturnToFunnel ? () => onReturnToFunnel(lead) : undefined}
-                        isInWonLostStage={column.id === wonStageId || column.id === lostStageId}
                         isWonLostView={isWonLostView}
                         wonStageId={wonStageId}
                         lostStageId={lostStageId}

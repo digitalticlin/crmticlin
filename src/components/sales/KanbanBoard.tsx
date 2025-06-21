@@ -88,7 +88,6 @@ export const KanbanBoard = ({
           onMoveToWonLost={!isWonLostView ? onMoveToWonLost : undefined}
           onReturnToFunnel={isWonLostView ? onReturnToFunnel : undefined}
           isWonLostView={isWonLostView}
-          renderClone={renderClone}
           wonStageId={wonStageId}
           lostStageId={lostStageId}
         />
