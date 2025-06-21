@@ -20,7 +20,7 @@ export function useFunnelManagement() {
 
   useEffect(() => {
     if (user) {
-      console.log('[Funnel Management] 🔓 ACESSO TOTAL - carregando todos os funis...', { userId: user.id, email: user.email });
+      console.log('[Funnel Management] 🔑 Usuário autenticado, carregando funis...', { userId: user.id, email: user.email });
       loadFunnels();
     } else {
       console.log('[Funnel Management] ❌ Usuário não autenticado');
@@ -36,9 +36,9 @@ export function useFunnelManagement() {
     
     setLoading(true);
     try {
-      console.log('[Funnel Management] 🔓 ACESSO TOTAL - buscando TODOS os funis');
+      console.log('[Funnel Management] 🔍 Buscando funis do usuário autenticado');
       
-      // Buscar TODOS os funis sem filtros
+      // Buscar funis do usuário usando RLS
       const { data, error } = await supabase
         .from("funnels")
         .select("*")
@@ -49,7 +49,7 @@ export function useFunnelManagement() {
         throw error;
       }
 
-      console.log('[Funnel Management] 📊 Funis encontrados (ACESSO TOTAL):', { 
+      console.log('[Funnel Management] 📊 Funis encontrados:', { 
         foundFunnels: data?.length || 0, 
         funnels: data
       });
@@ -60,14 +60,8 @@ export function useFunnelManagement() {
         console.log('[Funnel Management] ✅ Selecionando primeiro funil:', data[0]);
         setSelectedFunnel(data[0]);
       } else if (!data || data.length === 0) {
-        console.log('[Funnel Management] ⚠️ Nenhum funil encontrado, criando funil padrão...');
-        
-        try {
-          await createFunnel("Funil Principal", "Funil padrão criado automaticamente");
-        } catch (createError) {
-          console.error('[Funnel Management] ❌ Erro ao criar funil padrão:', createError);
-          toast.error("Erro ao criar funil padrão.");
-        }
+        console.log('[Funnel Management] ⚠️ Nenhum funil encontrado');
+        toast.info("Nenhum funil encontrado. Verifique se você está logado corretamente.");
       }
     } catch (error: any) {
       console.error("[Funnel Management] ❌ Erro ao carregar funis:", error);
@@ -84,15 +78,14 @@ export function useFunnelManagement() {
     }
 
     try {
-      console.log('[Funnel Management] 📝 Criando novo funil (ACESSO TOTAL):', { name, description, userId: user.id });
+      console.log('[Funnel Management] 📝 Criando novo funil:', { name, description, userId: user.id });
       
       const { data, error } = await supabase
         .from("funnels")
         .insert({ 
           name, 
           description,
-          created_by_user_id: user.id,
-          company_id: null
+          created_by_user_id: user.id
         })
         .select()
         .single();
@@ -123,10 +116,10 @@ export function useFunnelManagement() {
     if (!user) return;
 
     const defaultStages = [
-      { title: "ENTRADA DE LEAD", color: "#3b82f6", order_position: 1 },
-      { title: "QUALIFICAÇÃO", color: "#8b5cf6", order_position: 2 },
-      { title: "PROPOSTA", color: "#f59e0b", order_position: 3 },
-      { title: "NEGOCIAÇÃO", color: "#ef4444", order_position: 4 },
+      { title: "Entrada de Leads", color: "#3b82f6", order_position: 1, is_fixed: true },
+      { title: "Em atendimento", color: "#8b5cf6", order_position: 2 },
+      { title: "Em negociação", color: "#f59e0b", order_position: 3 },
+      { title: "Entrar em contato", color: "#ef4444", order_position: 4 },
       { title: "GANHO", color: "#10b981", order_position: 5, is_won: true, is_fixed: true },
       { title: "PERDIDO", color: "#6b7280", order_position: 6, is_lost: true, is_fixed: true }
     ];
@@ -136,7 +129,6 @@ export function useFunnelManagement() {
         ...stage,
         funnel_id: funnelId,
         created_by_user_id: user.id,
-        company_id: null,
         is_won: stage.is_won || false,
         is_lost: stage.is_lost || false,
         is_fixed: stage.is_fixed || false
@@ -161,9 +153,8 @@ export function useFunnelManagement() {
 
   const updateFunnel = async (funnelId: string, updates: Partial<Funnel>) => {
     try {
-      console.log('[Funnel Management] 📝 Atualizando funil (ACESSO TOTAL):', { funnelId, updates });
+      console.log('[Funnel Management] 📝 Atualizando funil:', { funnelId, updates });
       
-      // Atualizar SEM verificações de permissão
       const { data, error } = await supabase
         .from("funnels")
         .update(updates)
@@ -201,9 +192,8 @@ export function useFunnelManagement() {
 
   const deleteFunnel = async (funnelId: string) => {
     try {
-      console.log('[Funnel Management] 🗑️ Deletando funil (ACESSO TOTAL):', funnelId);
+      console.log('[Funnel Management] 🗑️ Deletando funil:', funnelId);
       
-      // Deletar SEM verificações de permissão
       const { error } = await supabase
         .from("funnels")
         .delete()

@@ -1,95 +1,189 @@
 
 import { useState } from "react";
-import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
-import { ColumnHeader } from "./column/ColumnHeader";
-import { ColumnContent } from "./column/ColumnContent";
-import { ColumnColorBar } from "./column/ColumnColorBar";
+import { Droppable, Draggable } from "react-beautiful-dnd";
+import { MoreVertical, Edit, Trash2, Plus, Lock } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { LeadCard } from "./LeadCard";
+import { KanbanColumn as KanbanColumnType, KanbanLead } from "@/types/kanban";
+import { toast } from "sonner";
 
 interface KanbanColumnProps {
-  column: IKanbanColumn;
+  column: KanbanColumnType;
+  index: number;
   onOpenLeadDetail: (lead: KanbanLead) => void;
-  onUpdate?: (updatedColumn: IKanbanColumn) => void;
-  onDelete?: (columnId: string) => void;
+  onUpdateColumn?: (column: KanbanColumnType) => void;
+  onDeleteColumn?: (columnId: string) => void;
   onOpenChat?: (lead: KanbanLead) => void;
   onMoveToWonLost?: (lead: KanbanLead, status: "won" | "lost") => void;
   onReturnToFunnel?: (lead: KanbanLead) => void;
   isWonLostView?: boolean;
-  renderClone?: any;
-  onAnyCardMouseEnter?: () => void;
-  onAnyCardMouseLeave?: () => void;
   wonStageId?: string;
   lostStageId?: string;
 }
 
-export const KanbanColumn = ({
+export function KanbanColumn({
   column,
+  index,
   onOpenLeadDetail,
-  onUpdate,
-  onDelete,
+  onUpdateColumn,
+  onDeleteColumn,
   onOpenChat,
   onMoveToWonLost,
   onReturnToFunnel,
   isWonLostView = false,
-  renderClone,
-  onAnyCardMouseEnter,
-  onAnyCardMouseLeave,
   wonStageId,
   lostStageId
-}: KanbanColumnProps) => {
-  const [isHovered, setIsHovered] = useState(false);
+}: KanbanColumnProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(column.title);
 
-  const handleUpdate = (field: keyof IKanbanColumn, value: any) => {
-    if (onUpdate) {
-      onUpdate({ ...column, [field]: value });
+  // Verificar se o estágio é fixo baseado no título
+  const isFixedStage = column.title === "GANHO" || column.title === "PERDIDO" || column.title === "Entrada de Leads" || column.isFixed;
+
+  const handleSaveTitle = async () => {
+    if (editTitle.trim() && editTitle !== column.title && onUpdateColumn) {
+      try {
+        await onUpdateColumn({ ...column, title: editTitle.trim() });
+        setIsEditing(false);
+      } catch (error: any) {
+        toast.error(error.message || "Erro ao atualizar estágio");
+        setEditTitle(column.title); // Revert on error
+      }
+    } else {
+      setIsEditing(false);
+      setEditTitle(column.title);
     }
   };
 
-  const handleDelete = () => {
-    if (onDelete) {
-      onDelete(column.id);
+  const handleDelete = async () => {
+    if (onDeleteColumn) {
+      try {
+        await onDeleteColumn(column.id);
+      } catch (error: any) {
+        toast.error(error.message || "Erro ao deletar estágio");
+      }
     }
   };
 
-  if (column.isHidden) {
-    return null;
-  }
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSaveTitle();
+    } else if (e.key === "Escape") {
+      setIsEditing(false);
+      setEditTitle(column.title);
+    }
+  };
 
   return (
-    <div
-      className="flex flex-col h-full w-80 bg-white/20 backdrop-blur-xl border border-white/40 rounded-3xl shadow-2xl hover:shadow-3xl transition-all duration-500 hover:bg-white/25"
-      style={{
-        background: 'linear-gradient(135deg, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0.15) 100%)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        borderImage: 'linear-gradient(135deg, rgba(255,255,255,0.6), rgba(255,255,255,0.2)) 1',
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <ColumnColorBar color={column.color} />
-      
-      <ColumnHeader
-        column={column}
-        isHovered={isHovered}
-        canEdit={!column.isFixed && !isWonLostView}
-        onUpdate={handleUpdate}
-        onDelete={handleDelete}
-      />
+    <Draggable draggableId={column.id} index={index} isDragDisabled={isFixedStage}>
+      {(provided) => (
+        <div
+          ref={provided.innerRef}
+          {...provided.draggableProps}
+          className="bg-gray-50 rounded-lg p-4 min-w-[300px] max-w-[300px] flex flex-col"
+        >
+          {/* Header */}
+          <div
+            {...provided.dragHandleProps}
+            className="flex items-center justify-between mb-4"
+          >
+            <div className="flex items-center gap-2 flex-1">
+              {isFixedStage && <Lock className="h-4 w-4 text-gray-500" />}
+              {isEditing ? (
+                <Input
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  onBlur={handleSaveTitle}
+                  onKeyDown={handleKeyPress}
+                  className="text-sm font-medium bg-white"
+                  autoFocus
+                />
+              ) : (
+                <h3 
+                  className={cn(
+                    "text-sm font-medium text-gray-900 truncate",
+                    isFixedStage && "text-gray-600"
+                  )}
+                  style={{ color: column.color }}
+                >
+                  {column.title}
+                </h3>
+              )}
+              <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
+                {column.leads.length}
+              </span>
+            </div>
 
-      <ColumnContent
-        columnId={column.id}
-        leads={column.leads}
-        onOpenLeadDetail={onOpenLeadDetail}
-        onOpenChat={onOpenChat}
-        onMoveToWonLost={onMoveToWonLost}
-        onReturnToFunnel={onReturnToFunnel}
-        isWonLostView={isWonLostView}
-        renderClone={renderClone}
-        onAnyCardMouseEnter={onAnyCardMouseEnter}
-        onAnyCardMouseLeave={onAnyCardMouseLeave}
-        wonStageId={wonStageId}
-        lostStageId={lostStageId}
-      />
-    </div>
+            {/* Actions - apenas mostrar se não for estágio fixo e não for view de ganhos/perdidos */}
+            {!isFixedStage && !isWonLostView && (onUpdateColumn || onDeleteColumn) && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {onUpdateColumn && (
+                    <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Editar
+                    </DropdownMenuItem>
+                  )}
+                  {onDeleteColumn && (
+                    <DropdownMenuItem onClick={handleDelete} className="text-red-600">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Excluir
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+
+          {/* Color bar */}
+          <div
+            className="h-1 rounded-full mb-4"
+            style={{ backgroundColor: column.color || "#e0e0e0" }}
+          />
+
+          {/* Leads */}
+          <Droppable droppableId={column.id} type="lead">
+            {(provided, snapshot) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className={cn(
+                  "flex-1 space-y-3 min-h-[200px] transition-colors",
+                  snapshot.isDraggingOver && "bg-blue-50"
+                )}
+              >
+                {column.leads.map((lead, index) => (
+                  <LeadCard
+                    key={lead.id}
+                    lead={lead}
+                    index={index}
+                    onClick={() => onOpenLeadDetail(lead)}
+                    onOpenChat={onOpenChat}
+                    onMoveToWonLost={onMoveToWonLost}
+                    onReturnToFunnel={onReturnToFunnel}
+                    isInWonLostStage={column.id === wonStageId || column.id === lostStageId}
+                    isWonLostView={isWonLostView}
+                  />
+                ))}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </div>
+      )}
+    </Draggable>
   );
-};
+}

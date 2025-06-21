@@ -66,8 +66,7 @@ export function useStageManagement() {
     const { error } = await supabase
       .from("leads")
       .update({ kanban_stage_id: stageId })
-      .eq("id", leadId)
-      .eq("created_by_user_id", user.id);
+      .eq("id", leadId);
 
     if (error) throw error;
 
@@ -79,6 +78,12 @@ export function useStageManagement() {
       throw new Error("Usuário não autenticado");
     }
 
+    // Verificar se não é um título reservado para estágios fixos
+    const reservedTitles = ['GANHO', 'PERDIDO', 'Entrada de Leads'];
+    if (reservedTitles.includes(title)) {
+      throw new Error("Este nome é reservado para estágios do sistema");
+    }
+
     const { error } = await supabase
       .from("kanban_stages")
       .insert({
@@ -86,6 +91,9 @@ export function useStageManagement() {
         color,
         funnel_id: funnelId,
         created_by_user_id: user.id,
+        is_fixed: false,
+        is_won: false,
+        is_lost: false
       });
 
     if (error) throw error;
@@ -98,11 +106,29 @@ export function useStageManagement() {
       throw new Error("Usuário não autenticado");
     }
 
+    // Verificar se o estágio é fixo antes de permitir edição
+    const { data: stage } = await supabase
+      .from("kanban_stages")
+      .select("is_fixed, title")
+      .eq("id", columnId)
+      .single();
+
+    if (stage?.is_fixed) {
+      throw new Error("Estágios fixos não podem ser modificados");
+    }
+
+    // Verificar se não está tentando usar um título reservado
+    if (updates.title) {
+      const reservedTitles = ['GANHO', 'PERDIDO', 'Entrada de Leads'];
+      if (reservedTitles.includes(updates.title)) {
+        throw new Error("Este nome é reservado para estágios do sistema");
+      }
+    }
+
     const { error } = await supabase
       .from("kanban_stages")
       .update(updates)
-      .eq("id", columnId)
-      .eq("created_by_user_id", user.id);
+      .eq("id", columnId);
 
     if (error) throw error;
 
@@ -114,11 +140,21 @@ export function useStageManagement() {
       throw new Error("Usuário não autenticado");
     }
 
+    // Verificar se o estágio é fixo antes de permitir exclusão
+    const { data: stage } = await supabase
+      .from("kanban_stages")
+      .select("is_fixed, title")
+      .eq("id", columnId)
+      .single();
+
+    if (stage?.is_fixed) {
+      throw new Error("Estágios fixos não podem ser removidos");
+    }
+
     const { error } = await supabase
       .from("kanban_stages")
       .delete()
-      .eq("id", columnId)
-      .eq("created_by_user_id", user.id);
+      .eq("id", columnId);
 
     if (error) throw error;
 
