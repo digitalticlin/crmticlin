@@ -15,8 +15,8 @@ class RealtimeManager {
   private channel: any = null;
   private callbacks: Map<string, RealtimeCallback> = new Map();
   private isSubscribed = false;
-  private isSubscribing = false;
   private userId: string | null = null;
+  private subscriptionPromise: Promise<void> | null = null;
 
   static getInstance(): RealtimeManager {
     if (!RealtimeManager.instance) {
@@ -28,8 +28,8 @@ class RealtimeManager {
   private constructor() {}
 
   async initialize(userId: string) {
-    if (this.userId === userId && (this.isSubscribed || this.isSubscribing)) {
-      return; // Already initialized or initializing for this user
+    if (this.userId === userId && this.isSubscribed) {
+      return; // Already initialized for this user
     }
 
     if (this.userId !== userId) {
@@ -37,13 +37,23 @@ class RealtimeManager {
     }
 
     this.userId = userId;
-    await this.setupChannel();
+    
+    // If already subscribing, wait for it to complete
+    if (this.subscriptionPromise) {
+      await this.subscriptionPromise;
+      return;
+    }
+
+    this.subscriptionPromise = this.setupChannel();
+    await this.subscriptionPromise;
+    this.subscriptionPromise = null;
   }
 
-  private async setupChannel() {
-    if (!this.userId || this.channel || this.isSubscribing) return;
+  private async setupChannel(): Promise<void> {
+    if (!this.userId || this.channel || this.isSubscribed) {
+      return;
+    }
 
-    this.isSubscribing = true;
     console.log('[Realtime Manager] 🔄 Setting up unified channel for user:', this.userId);
 
     try {
@@ -87,21 +97,32 @@ class RealtimeManager {
           (payload) => this.handleCallback('instanceUpdate', payload)
         );
 
-      // Subscribe only once and wait for completion
-      const subscriptionResult = await new Promise((resolve) => {
+      // Subscribe and wait for completion
+      return new Promise((resolve, reject) => {
+        if (!this.channel) {
+          reject(new Error('Channel not created'));
+          return;
+        }
+
         this.channel.subscribe((status: string) => {
           console.log('[Realtime Manager] Subscription status:', status);
-          this.isSubscribed = status === 'SUBSCRIBED';
-          this.isSubscribing = false;
-          resolve(status);
+          
+          if (status === 'SUBSCRIBED') {
+            this.isSubscribed = true;
+            console.log('[Realtime Manager] ✅ Channel subscription completed');
+            resolve();
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            this.isSubscribed = false;
+            console.error('[Realtime Manager] ❌ Subscription failed with status:', status);
+            reject(new Error(`Subscription failed: ${status}`));
+          }
         });
       });
-
-      console.log('[Realtime Manager] ✅ Channel subscription completed:', subscriptionResult);
     } catch (error) {
       console.error('[Realtime Manager] ❌ Error setting up channel:', error);
-      this.isSubscribing = false;
       this.isSubscribed = false;
+      this.channel = null;
+      throw error;
     }
   }
 
@@ -139,7 +160,7 @@ class RealtimeManager {
       this.channel = null;
     }
     this.isSubscribed = false;
-    this.isSubscribing = false;
+    this.subscriptionPromise = null;
     this.callbacks.clear();
   }
 
@@ -152,7 +173,6 @@ export const useRealtimeManager = () => {
   const { userId } = useCompanyData();
   const manager = useRef(RealtimeManager.getInstance());
   const isMountedRef = useRef(true);
-  const initializingRef = useRef(false);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -162,12 +182,9 @@ export const useRealtimeManager = () => {
   }, []);
 
   useEffect(() => {
-    if (userId && isMountedRef.current && !initializingRef.current) {
-      initializingRef.current = true;
-      manager.current.initialize(userId).finally(() => {
-        if (isMountedRef.current) {
-          initializingRef.current = false;
-        }
+    if (userId && isMountedRef.current) {
+      manager.current.initialize(userId).catch((error) => {
+        console.error('[Realtime Manager] Initialization failed:', error);
       });
     }
 
