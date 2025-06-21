@@ -2,7 +2,6 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Contact } from '@/types/chat';
-import { useRealtimeMessages } from './useRealtimeMessages';
 
 interface UseRealtimeLeadsProps {
   selectedContact: Contact | null;
@@ -13,8 +12,8 @@ interface UseRealtimeLeadsProps {
 }
 
 /**
- * Hook para escutar leads e mensagens em tempo real
- * Agora otimizado para sincronização de unread_count
+ * Hook consolidado para escutar leads e mensagens em tempo real
+ * Corrigido para evitar múltiplas subscrições
  */
 export const useRealtimeLeads = ({
   selectedContact,
@@ -24,27 +23,14 @@ export const useRealtimeLeads = ({
   activeInstanceId
 }: UseRealtimeLeadsProps) => {
 
-  // Setup realtime messages subscription
-  useRealtimeMessages({
-    selectedContact,
-    activeInstanceId,
-    onNewMessage: async () => {
-      if (fetchMessages) {
-        await fetchMessages();
-      }
-    },
-    onContactUpdate: async () => {
-      await fetchContacts();
-    }
-  });
-
   useEffect(() => {
     if (!activeInstanceId) return;
 
-    console.log('[Realtime Leads] Setting up leads subscription for instance:', activeInstanceId);
+    console.log('[Realtime Leads] Setting up consolidated subscription for instance:', activeInstanceId);
 
+    // Canal único para todas as operações de tempo real
     const channel = supabase
-      .channel('leads-changes')
+      .channel(`unified-realtime-${activeInstanceId}`)
       .on(
         'postgres_changes',
         {
@@ -74,15 +60,41 @@ export const useRealtimeLeads = ({
         (payload) => {
           console.log('[Realtime Leads] Lead updated (sync unread_count):', payload);
           
-          // Refresh contacts list when leads are updated (principalmente unread_count)
+          // Refresh contacts list when leads are updated
+          fetchContacts();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `whatsapp_number_id=eq.${activeInstanceId}`
+        },
+        (payload) => {
+          console.log('[Realtime Leads] New message received:', payload);
+          
+          const newMessage = payload.new as any;
+          
+          // Se a mensagem é para o contato selecionado, atualizar mensagens
+          if (selectedContact && newMessage.lead_id === selectedContact.id) {
+            console.log('[Realtime Leads] Message for selected contact, updating messages');
+            if (fetchMessages) {
+              fetchMessages();
+            }
+          }
+          
+          // Sempre atualizar a lista de contatos para mostrar a nova mensagem
+          console.log('[Realtime Leads] Updating contact list');
           fetchContacts();
         }
       )
       .subscribe();
 
     return () => {
-      console.log('[Realtime Leads] Cleaning up subscription');
+      console.log('[Realtime Leads] Cleaning up consolidated subscription');
       supabase.removeChannel(channel);
     };
-  }, [fetchContacts, receiveNewLead, activeInstanceId]);
+  }, [selectedContact, activeInstanceId, fetchContacts, fetchMessages, receiveNewLead]);
 };
