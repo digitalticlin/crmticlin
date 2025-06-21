@@ -1,35 +1,35 @@
 
-// FASE 3: Hook para resolver company_id do usuário
-import { useState, useEffect } from 'react';
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
-export const useCompanyResolver = (userEmail: string): string | null => {
-  const [companyId, setCompanyId] = useState<string | null>(null);
+export function useCompanyResolver() {
+  const { user } = useAuth();
 
-  useEffect(() => {
-    const getCompanyId = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('company_id')
-            .eq('id', user.id)
-            .single();
+  const { data: userProfile } = useQuery({
+    queryKey: ["user-profile", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
 
-          if (profile?.company_id) {
-            setCompanyId(profile.company_id);
-          }
-        }
-      } catch (error) {
-        console.error('[Company Resolver FASE 3] ❌ Error getting company ID:', error);
-      }
-    };
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
 
-    if (userEmail) {
-      getCompanyId();
-    }
-  }, [userEmail]);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
 
-  return companyId;
-};
+  // Use created_by_user_id for company resolution
+  const companyId = userProfile?.created_by_user_id || user?.id;
+  const isOwnCompany = userProfile?.created_by_user_id === user?.id || !userProfile?.created_by_user_id;
+
+  return {
+    companyId,
+    isOwnCompany,
+    userProfile
+  };
+}

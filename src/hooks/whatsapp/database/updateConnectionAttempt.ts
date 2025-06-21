@@ -1,30 +1,46 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-/**
- * Records connection attempts in the database (success or failure)
- */
-export const updateConnectionAttempt = async (
-  instanceId: string, 
-  success: boolean, 
-  errorMessage?: string
-) => {
-  console.log(`Recording connection attempt for instance ${instanceId}: ${success ? 'Success' : 'Failed'}`);
-  
+interface ConnectionAttemptData {
+  instanceId: string;
+  userId: string;
+  status: 'attempting' | 'success' | 'failed';
+  error?: string;
+}
+
+export async function updateConnectionAttempt({
+  instanceId,
+  userId,
+  status,
+  error
+}: ConnectionAttemptData) {
   try {
-    const { error } = await supabase
-      .from('whatsapp_connection_logs')
-      .insert({
-        whatsapp_number_id: instanceId, // Use whatsapp_number_id instead of instance_id
-        status: success ? 'connected' : 'disconnected', // Use correct enum values
-        details: errorMessage || null, // Use details field instead of error_message
-        created_at: new Date().toISOString()
-      });
-      
-    if (error) {
-      console.error("Error recording connection attempt:", error);
+    console.log(`📝 Updating connection attempt for instance ${instanceId}:`, {
+      status,
+      error: error?.substring(0, 100)
+    });
+
+    // Update the whatsapp_instances table instead of non-existent whatsapp_connection_logs
+    const { error: updateError } = await supabase
+      .from("whatsapp_instances")
+      .update({
+        connection_status: status === 'success' ? 'connected' : status === 'failed' ? 'error' : 'connecting',
+        updated_at: new Date().toISOString(),
+        web_status: error || (status === 'success' ? 'Connected successfully' : 'Attempting connection')
+      })
+      .eq("id", instanceId)
+      .eq("created_by_user_id", userId);
+
+    if (updateError) {
+      console.error("❌ Error updating connection attempt:", updateError);
+      throw updateError;
     }
-  } catch (insertError) {
-    console.error("Exception recording connection attempt:", insertError);
+
+    console.log("✅ Connection attempt updated successfully");
+    return true;
+
+  } catch (error) {
+    console.error("💥 Failed to update connection attempt:", error);
+    throw error;
   }
-};
+}

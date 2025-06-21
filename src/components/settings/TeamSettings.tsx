@@ -16,9 +16,9 @@ export default function TeamSettings() {
   const { permissions, loading: permissionsLoading } = useUserPermissions();
   const {
     teamMembers,
-    loading,
+    isLoading,
     createTeamMember,
-    removeTeamMember,
+    removeMember,
   } = useTeamManagement(user?.id);
 
   const { allWhatsApps, allFunnels, auxDataLoading } = useTeamAuxiliaryData(user?.id);
@@ -62,7 +62,7 @@ export default function TeamSettings() {
     );
   }
 
-  if (loading || auxDataLoading) {
+  if (isLoading || auxDataLoading) {
     return (
       <div className="min-h-[500px] flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -75,6 +75,30 @@ export default function TeamSettings() {
       </div>
     );
   }
+
+  // Transform the mutation function to match ManualMemberForm interface
+  const handleCreateMember = async (data: {
+    full_name: string;
+    email: string;
+    password: string;
+    role: "operational" | "manager";
+    assignedWhatsAppIds: string[];
+    assignedFunnelIds: string[];
+  }): Promise<boolean> => {
+    try {
+      await createTeamMember.mutateAsync({
+        fullName: data.full_name,
+        username: data.email.split('@')[0], // Extract username from email
+        role: data.role === "manager" ? "admin" : "operational",
+        whatsappAccess: data.assignedWhatsAppIds,
+        funnelAccess: data.assignedFunnelIds,
+      });
+      return true;
+    } catch (error) {
+      console.error("Error creating member:", error);
+      return false;
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -93,8 +117,8 @@ export default function TeamSettings() {
         </div>
         
         <ManualMemberForm
-          onSubmit={createTeamMember.mutateAsync}
-          loading={loading}
+          onSubmit={handleCreateMember}
+          loading={isLoading}
           allWhatsApps={allWhatsApps}
           allFunnels={allFunnels}
         />
@@ -169,7 +193,7 @@ export default function TeamSettings() {
 
         <TeamMembersList 
           members={teamMembers}
-          onRemoveMember={removeTeamMember.mutateAsync}
+          onRemoveMember={removeMember.mutateAsync}
         />
       </div>
     </div>

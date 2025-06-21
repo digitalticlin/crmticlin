@@ -6,9 +6,9 @@ import { useTagDatabase } from "./useTagDatabase";
 
 export function useRealSalesFunnel(funnelId?: string) {
   const { leads, refetchLeads } = useLeadsDatabase(funnelId);
-  const { tags, loadTags } = useTagDatabase();
+  const { tags } = useTagDatabase();
   
-  const { createLead, isLoading: isCreatingLead } = useLeadCreation(funnelId);
+  const createLead = useLeadCreation(funnelId);
   
   const { 
     moveToWonLost,
@@ -40,7 +40,7 @@ export function useRealSalesFunnel(funnelId?: string) {
     leads,
     tags,
     createLead: handleCreateLead,
-    isCreatingLead,
+    isCreatingLead: createLead.isPending,
     moveToWonLost: handleMoveToWonLost,
     moveLeadToStage,
     addColumn,
@@ -48,7 +48,6 @@ export function useRealSalesFunnel(funnelId?: string) {
     deleteColumn,
     refetchData: () => {
       refetchLeads();
-      loadTags();
     }
   };
 }

@@ -9,12 +9,10 @@ export interface TeamMember {
   full_name: string;
   email?: string;
   username?: string;
-  role: 'admin' | 'user' | 'operational';
+  role: 'admin' | 'operational';
   created_at: string;
   whatsapp_access: string[];
   funnel_access: string[];
-  whatsapp_numbers?: { id: string; instance_name: string }[];
-  funnels?: { id: string; name: string }[];
 }
 
 export function useTeamManagement(companyId?: string | null) {
@@ -42,12 +40,10 @@ export function useTeamManagement(companyId?: string | null) {
         full_name: profile.full_name,
         username: profile.username,
         email: `${profile.username}@domain.com`, // Placeholder since we don't have email in profiles
-        role: profile.role === 'manager' ? 'user' : profile.role, // Map manager to user
+        role: profile.role === 'manager' ? 'admin' : profile.role,
         created_at: profile.created_at,
         whatsapp_access: profile.whatsapp_access?.map((w: any) => w.whatsapp_number_id) || [],
         funnel_access: profile.funnel_access?.map((f: any) => f.funnel_id) || [],
-        whatsapp_numbers: [], // Will be populated separately if needed
-        funnels: [] // Will be populated separately if needed
       }));
     },
     enabled: !!companyId,
@@ -89,7 +85,7 @@ export function useTeamManagement(companyId?: string | null) {
     mutationFn: async (memberData: {
       fullName: string;
       username: string;
-      role: 'admin' | 'user' | 'operational';
+      role: 'admin' | 'operational';
       whatsappAccess: string[];
       funnelAccess: string[];
     }) => {
@@ -101,7 +97,7 @@ export function useTeamManagement(companyId?: string | null) {
         .insert({
           full_name: memberData.fullName,
           username: memberData.username,
-          role: memberData.role === 'user' ? 'operational' : memberData.role, // Map user to operational
+          role: memberData.role,
           created_by_user_id: user.id,
         })
         .select()
@@ -215,12 +211,12 @@ export function useTeamManagement(companyId?: string | null) {
   });
 
   const updateMemberRole = useMutation({
-    mutationFn: async ({ memberId, role }: { memberId: string; role: 'admin' | 'user' | 'operational' }) => {
+    mutationFn: async ({ memberId, role }: { memberId: string; role: 'admin' | 'operational' }) => {
       if (!user?.id) throw new Error("Usuário não autenticado");
 
       const { error } = await supabase
         .from("profiles")
-        .update({ role: role === 'user' ? 'operational' : role })
+        .update({ role })
         .eq("id", memberId)
         .eq("created_by_user_id", user.id);
 
@@ -275,8 +271,6 @@ export function useTeamManagement(companyId?: string | null) {
     whatsappInstances,
     funnels,
     isLoading,
-    loading: isLoading,
-    members: teamMembers,
     createTeamMember,
     removeTeamMember: removeMember,
     updateMemberAccess,

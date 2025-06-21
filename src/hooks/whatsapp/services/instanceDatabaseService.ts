@@ -1,65 +1,94 @@
 
-import { useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { WhatsAppWebInstance } from '../types/whatsappWebTypes';
+import { supabase } from "@/integrations/supabase/client";
 
-export const useInstanceDatabase = (userId: string | null, userLoading: boolean) => {
-  const isMountedRef = useRef(true);
+export interface InstanceData {
+  instance_name: string;
+  phone: string;
+  created_by_user_id: string;
+  connection_status: string;
+  connection_type: string;
+  server_url: string;
+  vps_instance_id: string;
+  web_status: string;
+  qr_code: string;
+  session_data?: any;
+}
 
-  // Fetch instances from database
-  const fetchInstances = useCallback(async (): Promise<WhatsAppWebInstance[]> => {
-    if (!userId || userLoading) {
-      console.log('[Hook] ⏭️ Fetch skipped - no user ID or loading');
-      return [];
+export const saveInstanceToDatabase = async (instanceData: InstanceData) => {
+  try {
+    console.log("💾 Saving instance to database:", {
+      instance_name: instanceData.instance_name,
+      created_by_user_id: instanceData.created_by_user_id,
+      connection_status: instanceData.connection_status
+    });
+
+    // Check if instance already exists
+    const { data: existingInstance } = await supabase
+      .from("whatsapp_instances")
+      .select("id")
+      .eq("instance_name", instanceData.instance_name)
+      .eq("created_by_user_id", instanceData.created_by_user_id)
+      .single();
+
+    if (existingInstance) {
+      // Update existing instance
+      const { data: updatedInstance, error: updateError } = await supabase
+        .from("whatsapp_instances")
+        .update({
+          phone: instanceData.phone,
+          connection_status: instanceData.connection_status,
+          connection_type: instanceData.connection_type,
+          server_url: instanceData.server_url,
+          vps_instance_id: instanceData.vps_instance_id,
+          web_status: instanceData.web_status,
+          qr_code: instanceData.qr_code,
+          session_data: instanceData.session_data,
+          updated_at: new Date().toISOString(),
+          date_connected: instanceData.connection_status === "connected" ? new Date().toISOString() : null,
+        })
+        .eq("id", existingInstance.id)
+        .select()
+        .single();
+
+      if (updateError) throw updateError;
+      return updatedInstance;
     }
 
-    try {
-      console.log('[Hook] 📊 Fetching instances from database for user:', userId);
-      
-      const { data, error: fetchError } = await supabase
-        .from('whatsapp_instances')
-        .select('*')
-        .eq('created_by_user_id', userId)
-        .eq('connection_type', 'web')
-        .order('created_at', { ascending: false });
+    // Create new instance
+    const { data: newInstance, error: insertError } = await supabase
+      .from("whatsapp_instances")
+      .insert({
+        instance_name: instanceData.instance_name,
+        phone: instanceData.phone,
+        created_by_user_id: instanceData.created_by_user_id,
+        connection_status: instanceData.connection_status,
+        connection_type: instanceData.connection_type,
+        server_url: instanceData.server_url,
+        vps_instance_id: instanceData.vps_instance_id,
+        web_status: instanceData.web_status,
+        qr_code: instanceData.qr_code,
+        session_data: instanceData.session_data,
+        date_connected: instanceData.connection_status === "connected" ? new Date().toISOString() : null,
+      })
+      .select()
+      .single();
 
-      if (!isMountedRef.current) return [];
+    if (insertError) throw insertError;
+    return newInstance;
 
-      if (fetchError) {
-        throw fetchError;
-      }
+  } catch (error) {
+    console.error("💥 Error saving instance to database:", error);
+    throw error;
+  }
+};
 
-      const mappedInstances: WhatsAppWebInstance[] = (data || []).map(instance => ({
-        id: instance.id,
-        instance_name: instance.instance_name,
-        connection_type: instance.connection_type || 'web',
-        server_url: instance.server_url || '',
-        vps_instance_id: instance.vps_instance_id || '',
-        web_status: instance.web_status || '',
-        connection_status: instance.connection_status || '',
-        qr_code: instance.qr_code,
-        phone: instance.phone,
-        profile_name: instance.profile_name,
-        profile_pic_url: instance.profile_pic_url,
-        date_connected: instance.date_connected,
-        date_disconnected: instance.date_disconnected,
-        company_id: instance.company_id
-      }));
+export const getCurrentUserId = async (): Promise<string> => {
+  const userResult = await supabase.auth.getUser();
+  const userId = userResult.data.user?.id;
 
-      console.log(`✅ Instâncias carregadas: ${mappedInstances.length} (modo usuário)`);
-      return mappedInstances;
-      
-    } catch (error: any) {
-      if (isMountedRef.current) {
-        console.error('[Hook] ❌ Error fetching instances:', error);
-        throw error;
-      }
-      return [];
-    }
-  }, [userId, userLoading]);
+  if (!userId) {
+    throw new Error("Usuário não autenticado");
+  }
 
-  return {
-    fetchInstances,
-    isMountedRef
-  };
+  return userId;
 };
