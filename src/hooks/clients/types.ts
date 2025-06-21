@@ -12,10 +12,6 @@ export interface ClientData {
   phone: string;
   email?: string;
   address?: string;
-  city?: string;
-  state?: string;
-  country?: string;
-  zip_code?: string;
   company?: string;
   notes?: string;
   purchase_value?: number;
@@ -23,7 +19,7 @@ export interface ClientData {
   document_id?: string;
   created_at: string;
   updated_at: string;
-  company_id: string;
+  created_by_user_id: string;
   contacts?: LeadContact[];
 }
 
@@ -34,10 +30,6 @@ export interface ClientFormData {
   phone: string;
   email?: string;
   address?: string;
-  city?: string;
-  state?: string;
-  country?: string;
-  zip_code?: string;
   company?: string;
   notes?: string;
   purchase_value?: number;

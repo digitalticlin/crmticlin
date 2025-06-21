@@ -1,18 +1,18 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ClientData, LeadContact } from "./types";
+import { ClientData } from "./types";
 
-export const useDefaultWhatsAppInstance = (companyId: string | null) => {
+export const useDefaultWhatsAppInstance = (userId: string | null) => {
   return useQuery({
-    queryKey: ["default-whatsapp", companyId],
+    queryKey: ["default-whatsapp", userId],
     queryFn: async () => {
-      if (!companyId) return null;
+      if (!userId) return null;
       
       const { data, error } = await supabase
         .from("whatsapp_instances")
         .select("id")
-        .eq("company_id", companyId)
+        .eq("created_by_user_id", userId)
         .limit(1)
         .maybeSingle();
 
@@ -23,21 +23,21 @@ export const useDefaultWhatsAppInstance = (companyId: string | null) => {
 
       return data;
     },
-    enabled: !!companyId,
+    enabled: !!userId,
   });
 };
 
-export const useClientsQuery = (companyId: string | null) => {
+export const useClientsQuery = (userId: string | null) => {
   return useQuery({
-    queryKey: ["clients", companyId],
+    queryKey: ["clients", userId],
     queryFn: async (): Promise<ClientData[]> => {
-      if (!companyId) return [];
+      if (!userId) return [];
       
-      // Buscar leads
+      // Buscar leads do usuário
       const { data: leadsData, error: leadsError } = await supabase
         .from("leads")
         .select("*")
-        .eq("company_id", companyId)
+        .eq("created_by_user_id", userId)
         .order("created_at", { ascending: false });
 
       if (leadsError) {
@@ -45,47 +45,26 @@ export const useClientsQuery = (companyId: string | null) => {
         throw leadsError;
       }
 
-      // Buscar contatos para cada lead
-      const clientsWithContacts = await Promise.all(
-        (leadsData || []).map(async (lead) => {
-          const { data: contactsData } = await supabase
-            .from("lead_contacts")
-            .select("*")
-            .eq("lead_id", lead.id)
-            .order("is_primary", { ascending: false });
+      // Mapear leads para o formato ClientData
+      const clientsData: ClientData[] = (leadsData || []).map(lead => ({
+        id: lead.id,
+        name: lead.name || "Nome não informado",
+        phone: lead.phone,
+        email: lead.email,
+        address: lead.address,
+        company: lead.company,
+        notes: lead.notes,
+        purchase_value: lead.purchase_value,
+        document_type: undefined, // Não temos este campo na nova estrutura
+        document_id: lead.document_id,
+        created_at: lead.created_at,
+        updated_at: lead.updated_at,
+        created_by_user_id: lead.created_by_user_id,
+        contacts: [], // Não temos tabela separada de contatos
+      }));
 
-          const contacts: LeadContact[] = (contactsData || []).map(contact => ({
-            id: contact.id,
-            contact_type: contact.contact_type as 'phone' | 'email' | 'whatsapp',
-            contact_value: contact.contact_value,
-            is_primary: contact.is_primary,
-          }));
-
-          return {
-            id: lead.id,
-            name: lead.name || "Nome não informado",
-            phone: lead.phone,
-            email: lead.email,
-            address: lead.address,
-            city: lead.city,
-            state: lead.state,
-            country: lead.country,
-            zip_code: lead.zip_code,
-            company: lead.company,
-            notes: lead.notes,
-            purchase_value: lead.purchase_value,
-            document_type: lead.document_type as 'cpf' | 'cnpj' | undefined,
-            document_id: lead.document_id,
-            created_at: lead.created_at,
-            updated_at: lead.updated_at,
-            company_id: lead.company_id,
-            contacts,
-          } as ClientData;
-        })
-      );
-
-      return clientsWithContacts;
+      return clientsData;
     },
-    enabled: !!companyId,
+    enabled: !!userId,
   });
 };

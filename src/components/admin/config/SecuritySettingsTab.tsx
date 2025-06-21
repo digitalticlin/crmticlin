@@ -29,7 +29,6 @@ import { Loader2, Plus, Shield, Trash2, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-// Updated type to match new enum
 type UserRole = "admin" | "operational" | "manager";
 
 interface SecuritySettingsTabProps {
@@ -52,13 +51,13 @@ export function SecuritySettingsTab({ config, onConfigChange }: SecuritySettings
     try {
       setLoading(true);
       
-      // Buscar o company_id do usuário logado
+      // Buscar o current user
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       
       const { data: currentUser } = await supabase
         .from('profiles')
-        .select('company_id, role')
+        .select('role')
         .eq('id', session.user.id)
         .single();
         
@@ -67,11 +66,11 @@ export function SecuritySettingsTab({ config, onConfigChange }: SecuritySettings
         return;
       }
         
-      // Buscar todos os usuários da empresa
+      // Buscar todos os usuários da organização (criados pelo admin atual)
       const { data, error } = await supabase
         .from('profiles')
-        .select('*, auth_users:id(email, created_at)')
-        .eq('company_id', currentUser.company_id)
+        .select('*')
+        .eq('created_by_user_id', session.user.id)
         .order('created_at', { ascending: false });
         
       if (error) throw error;
@@ -94,17 +93,9 @@ export function SecuritySettingsTab({ config, onConfigChange }: SecuritySettings
     try {
       setInviting(true);
       
-      // Buscar o company_id do usuário logado
+      // Buscar o current user
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Usuário não autenticado");
-      
-      const { data: currentUser } = await supabase
-        .from('profiles')
-        .select('company_id')
-        .eq('id', session.user.id)
-        .single();
-        
-      if (!currentUser) throw new Error("Perfil de usuário não encontrado");
       
       // Implementação fictícia - na produção, isso seria uma chamada para uma função edge
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -195,7 +186,7 @@ export function SecuritySettingsTab({ config, onConfigChange }: SecuritySettings
           </div>
           
           <div>
-            <h3 className="text-lg font-medium mb-4">Usuários da Empresa</h3>
+            <h3 className="text-lg font-medium mb-4">Usuários da Organização</h3>
             
             {loading ? (
               <div className="flex justify-center py-8">
@@ -207,7 +198,7 @@ export function SecuritySettingsTab({ config, onConfigChange }: SecuritySettings
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nome</TableHead>
-                      <TableHead>Email</TableHead>
+                      <TableHead>ID do Usuário</TableHead>
                       <TableHead>Função</TableHead>
                       <TableHead className="w-[100px]">Ações</TableHead>
                     </TableRow>
@@ -223,7 +214,7 @@ export function SecuritySettingsTab({ config, onConfigChange }: SecuritySettings
                       users.map((user) => (
                         <TableRow key={user.id}>
                           <TableCell className="font-medium">{user.full_name}</TableCell>
-                          <TableCell>{user.auth_users?.email}</TableCell>
+                          <TableCell className="text-xs text-gray-500">{user.id}</TableCell>
                           <TableCell>
                             <Select 
                               defaultValue={user.role} 

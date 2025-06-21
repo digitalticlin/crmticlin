@@ -55,15 +55,9 @@ export const ChatHistoryImporter = ({
       setImportResult(data);
 
       if (data.success) {
-        // Marcar como importado no banco
-        const { error: updateError } = await supabase
-          .from('whatsapp_instances')
-          .update({ history_imported: true })
-          .eq('id', instanceId);
-
-        if (updateError) {
-          console.error('Erro ao marcar instância como importada:', updateError);
-        }
+        // Marcar como importado - usando um campo personalizado na sessão ou estado local
+        // Como não temos o campo no banco, vamos usar localStorage
+        localStorage.setItem(`history_imported_${instanceId}`, 'true');
 
         const { contactsImported, messagesImported } = data.summary || {};
         toast.success(`Histórico importado! ${contactsImported || 0} contatos e ${messagesImported || 0} mensagens.`);
@@ -96,8 +90,11 @@ export const ChatHistoryImporter = ({
     );
   }
 
+  // Verificar se já foi importado via localStorage
+  const isImported = historyImported || localStorage.getItem(`history_imported_${instanceId}`) === 'true';
+
   // Se já foi importado, mostrar apenas informação
-  if (historyImported) {
+  if (isImported) {
     return (
       <Card className="bg-green-50 border-green-200">
         <CardContent className="p-4">

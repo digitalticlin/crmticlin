@@ -28,10 +28,17 @@ const PlanUsageStats = ({ currentPlan, plans }: PlanUsageStatsProps) => {
   useEffect(() => {
     const checkSuperAdmin = async () => {
       try {
-        const { data: superAdmin, error } = await supabase.rpc('is_super_admin');
-        if (!error) {
-          setIsSuperAdmin(superAdmin || false);
-        }
+        // Verificar se o usuário atual é admin
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+          
+        setIsSuperAdmin(profile?.role === 'admin' || false);
       } catch (error) {
         console.error("Erro ao verificar SuperAdmin:", error);
       }
@@ -53,7 +60,7 @@ const PlanUsageStats = ({ currentPlan, plans }: PlanUsageStatsProps) => {
         <CardTitle>Detalhes do Plano Atual</CardTitle>
         <CardDescription>
           {isSuperAdmin 
-            ? "Você é um SuperAdmin com acesso ilimitado" 
+            ? "Você é um Admin com acesso avançado" 
             : `Seu plano ${activePlan.name} inclui os seguintes limites`}
         </CardDescription>
       </CardHeader>
@@ -68,7 +75,7 @@ const PlanUsageStats = ({ currentPlan, plans }: PlanUsageStatsProps) => {
               <div className="bg-ticlin h-2 rounded-full" style={{ width: isSuperAdmin ? "100%" : "60%" }}></div>
             </div>
             <div className="text-xs text-right mt-1">
-              {isSuperAdmin ? "Acesso ilimitado" : `3 de ${activePlan.limits.whatsappNumbers} utilizados`}
+              {isSuperAdmin ? "Acesso avançado" : `3 de ${activePlan.limits.whatsappNumbers} utilizados`}
             </div>
           </div>
           
@@ -81,7 +88,7 @@ const PlanUsageStats = ({ currentPlan, plans }: PlanUsageStatsProps) => {
               <div className="bg-ticlin h-2 rounded-full" style={{ width: isSuperAdmin ? "100%" : "30%" }}></div>
             </div>
             <div className="text-xs text-right mt-1">
-              {isSuperAdmin ? "Acesso ilimitado" : `3 de ${activePlan.limits.teamMembers} utilizados`}
+              {isSuperAdmin ? "Acesso avançado" : `3 de ${activePlan.limits.teamMembers} utilizados`}
             </div>
           </div>
           
@@ -94,7 +101,7 @@ const PlanUsageStats = ({ currentPlan, plans }: PlanUsageStatsProps) => {
               <div className="bg-ticlin h-2 rounded-full" style={{ width: isSuperAdmin ? "100%" : "33%" }}></div>
             </div>
             <div className="text-xs text-right mt-1">
-              {isSuperAdmin ? "Acesso ilimitado" : `1 de ${activePlan.limits.aiAgents} utilizados`}
+              {isSuperAdmin ? "Acesso avançado" : `1 de ${activePlan.limits.aiAgents} utilizados`}
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useCompanyData } from "./useCompanyData";
+import { useAuth } from "@/contexts/AuthContext";
 import { ClientData, ClientFormData } from "./clients/types";
 import { useDefaultWhatsAppInstance, useClientsQuery } from "./clients/queries";
 import { useCreateClientMutation, useUpdateClientMutation, useDeleteClientMutation } from "./clients/mutations";
@@ -10,16 +10,17 @@ export function useRealClientManagement() {
   const [selectedClient, setSelectedClient] = useState<ClientData | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isCreateMode, setIsCreateMode] = useState(false);
-  const { companyId } = useCompanyData();
+  const { user } = useAuth();
+  const userId = user?.id;
 
   // Queries
-  const defaultWhatsAppQuery = useDefaultWhatsAppInstance(companyId);
-  const clientsQuery = useClientsQuery(companyId);
+  const defaultWhatsAppQuery = useDefaultWhatsAppInstance(userId || null);
+  const clientsQuery = useClientsQuery(userId || null);
 
   // Mutations
-  const createClientMutation = useCreateClientMutation(companyId);
-  const updateClientMutation = useUpdateClientMutation(companyId);
-  const deleteClientMutation = useDeleteClientMutation(companyId);
+  const createClientMutation = useCreateClientMutation(userId || '');
+  const updateClientMutation = useUpdateClientMutation(userId || '');
+  const deleteClientMutation = useDeleteClientMutation(userId || '');
 
   const handleSelectClient = (client: ClientData) => {
     setSelectedClient(client);
@@ -124,10 +125,6 @@ export function useRealClientManagement() {
 
   const handleUpdateAddress = async (data: { 
     address: string; 
-    city: string; 
-    state: string; 
-    country: string; 
-    zip_code: string 
   }) => {
     if (!selectedClient) return;
     

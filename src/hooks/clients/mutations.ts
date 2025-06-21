@@ -1,19 +1,19 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ClientFormData, LeadContact } from "./types";
+import { ClientFormData } from "./types";
 import { toast } from "sonner";
 
-export function useCreateClientMutation(companyId: string) {
+export function useCreateClientMutation(userId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (data: ClientFormData) => {
-      // First, get a default WhatsApp instance for the company
+      // First, get a default WhatsApp instance for the user
       const { data: whatsappInstance, error: whatsappError } = await supabase
         .from("whatsapp_instances")
         .select("id")
-        .eq("company_id", companyId)
+        .eq("created_by_user_id", userId)
         .eq("connection_status", "connected")
         .limit(1)
         .maybeSingle();
@@ -28,7 +28,7 @@ export function useCreateClientMutation(companyId: string) {
         const { data: anyInstance } = await supabase
           .from("whatsapp_instances")
           .select("id")
-          .eq("company_id", companyId)
+          .eq("created_by_user_id", userId)
           .limit(1)
           .maybeSingle();
         
@@ -36,22 +36,39 @@ export function useCreateClientMutation(companyId: string) {
       }
 
       if (!whatsappNumberId) {
-        throw new Error("Nenhuma instância do WhatsApp encontrada para esta empresa");
+        throw new Error("Nenhuma instância do WhatsApp encontrada para este usuário");
       }
 
-      // Prepare lead data without contacts
+      // Get the default funnel for this user
+      const { data: defaultFunnel } = await supabase
+        .from("funnels")
+        .select("id")
+        .eq("created_by_user_id", userId)
+        .limit(1)
+        .maybeSingle();
+
+      if (!defaultFunnel) {
+        throw new Error("Nenhum funil encontrado para este usuário");
+      }
+
+      // Prepare lead data without contacts (we'll store them in the main fields)
       const { contacts, ...leadData } = data;
       
-      // Get the next order_position - only if we have a kanban_stage_id
+      // Get the next order_position for the default stage
+      const { data: defaultStage } = await supabase
+        .from("kanban_stages")
+        .select("id")
+        .eq("funnel_id", defaultFunnel.id)
+        .order("order_position")
+        .limit(1)
+        .maybeSingle();
+
       let nextOrderPosition = 0;
-      
-      // Since clients don't necessarily have a kanban stage, we'll set a default position
-      // If the client data includes a kanban_stage_id, we can calculate the position
-      if ('kanban_stage_id' in leadData && leadData.kanban_stage_id) {
+      if (defaultStage) {
         const { data: maxPositionData } = await supabase
           .from("leads")
           .select("order_position")
-          .eq("kanban_stage_id", leadData.kanban_stage_id as string)
+          .eq("kanban_stage_id", defaultStage.id)
           .order("order_position", { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -63,8 +80,10 @@ export function useCreateClientMutation(companyId: string) {
         .from("leads")
         .insert({
           ...leadData,
-          company_id: companyId,
+          created_by_user_id: userId,
           whatsapp_number_id: whatsappNumberId,
+          funnel_id: defaultFunnel.id,
+          kanban_stage_id: defaultStage?.id,
           order_position: nextOrderPosition,
         })
         .select()
@@ -72,29 +91,10 @@ export function useCreateClientMutation(companyId: string) {
 
       if (error) throw error;
 
-      // Insert contacts if provided
-      if (contacts && contacts.length > 0) {
-        const contactsToInsert = contacts.map(contact => ({
-          lead_id: insertData.id,
-          contact_type: contact.contact_type,
-          contact_value: contact.contact_value,
-          is_primary: contact.is_primary || false,
-        }));
-
-        const { error: contactsError } = await supabase
-          .from("lead_contacts")
-          .insert(contactsToInsert);
-
-        if (contactsError) {
-          console.error("Erro ao inserir contatos:", contactsError);
-          // Don't throw here as the lead was created successfully
-        }
-      }
-
       return insertData;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["clients", companyId] });
+      queryClient.invalidateQueries({ queryKey: ["clients", userId] });
       toast.success("Cliente criado com sucesso!");
     },
     onError: (error) => {
@@ -104,7 +104,7 @@ export function useCreateClientMutation(companyId: string) {
   });
 }
 
-export function useUpdateClientMutation(companyId: string) {
+export function useUpdateClientMutation(userId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -120,7 +120,7 @@ export function useUpdateClientMutation(companyId: string) {
       return updateData;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["clients", companyId] });
+      queryClient.invalidateQueries({ queryKey: ["clients", userId] });
     },
     onError: (error) => {
       console.error("Erro ao atualizar cliente:", error);
@@ -129,7 +129,7 @@ export function useUpdateClientMutation(companyId: string) {
   });
 }
 
-export function useDeleteClientMutation(companyId: string) {
+export function useDeleteClientMutation(userId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -142,7 +142,7 @@ export function useDeleteClientMutation(companyId: string) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["clients", companyId] });
+      queryClient.invalidateQueries({ queryKey: ["clients", userId] });
       toast.success("Cliente removido com sucesso!");
     },
     onError: (error) => {

@@ -22,7 +22,7 @@ interface DBInstance {
   vps_instance_id: string;
   connection_status: string;
   phone: string;
-  company_id: string;
+  created_by_user_id: string;
 }
 
 interface DiagnosticResult {
@@ -98,9 +98,19 @@ export const WhatsAppDiagnostic = () => {
       addLog(`🔍 Instâncias faltantes no VPS: ${missingInstances.length}`);
       addLog(`${syncNeeded ? '⚠️' : '✅'} Sincronização ${syncNeeded ? 'necessária' : 'em dia'}`);
 
+      // Corrigir os tipos para corresponder à nova estrutura
+      const adaptedDbInstances: DBInstance[] = dbInstances?.map(db => ({
+        id: db.id,
+        instance_name: db.instance_name,
+        vps_instance_id: db.vps_instance_id || '',
+        connection_status: db.connection_status,
+        phone: db.phone || '',
+        created_by_user_id: db.created_by_user_id
+      })) || [];
+
       const diagnosticResult: DiagnosticResult = {
         vpsInstances,
-        dbInstances: dbInstances || [],
+        dbInstances: adaptedDbInstances,
         orphanInstances,
         missingInstances,
         syncNeeded
