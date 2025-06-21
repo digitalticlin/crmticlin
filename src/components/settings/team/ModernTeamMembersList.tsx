@@ -39,9 +39,9 @@ export const ModernTeamMembersList = ({
           color: "bg-purple-100 text-purple-800 border-purple-200",
           description: "Acesso total ao sistema"
         };
-      case "manager":
+      case "user":
         return {
-          label: "GESTOR",
+          label: "USUÁRIO",
           icon: TrendingUp,
           color: "bg-blue-100 text-blue-800 border-blue-200",
           description: "Acesso completo exceto gestão de equipe"
@@ -111,45 +111,46 @@ export const ModernTeamMembersList = ({
                     </Badge>
                   </div>
 
-                  <p className="text-gray-600 text-sm mb-3">{member.email}</p>
+                  <p className="text-gray-600 text-sm mb-3">{member.email || `${member.username}@domain.com`}</p>
                   <p className="text-gray-500 text-xs mb-4">{roleInfo.description}</p>
 
                   {/* Permissões específicas para operacional */}
                   {member.role === "operational" && (
                     <div className="space-y-3">
-                      {member.whatsapp_numbers.length > 0 && (
+                      {member.whatsapp_access && member.whatsapp_access.length > 0 && (
                         <div>
                           <div className="flex items-center gap-2 mb-2">
                             <Phone className="h-4 w-4 text-green-600" />
                             <span className="text-sm font-medium text-gray-700">WhatsApp Permitidos:</span>
                           </div>
                           <div className="flex flex-wrap gap-2">
-                            {member.whatsapp_numbers.map((whatsapp) => (
-                              <Badge key={whatsapp.id} variant="outline" className="text-xs">
-                                {whatsapp.instance_name}
+                            {member.whatsapp_access.map((whatsappId) => (
+                              <Badge key={whatsappId} variant="outline" className="text-xs">
+                                WhatsApp {whatsappId.slice(0, 8)}
                               </Badge>
                             ))}
                           </div>
                         </div>
                       )}
 
-                      {member.funnels.length > 0 && (
+                      {member.funnel_access && member.funnel_access.length > 0 && (
                         <div>
                           <div className="flex items-center gap-2 mb-2">
                             <TrendingUp className="h-4 w-4 text-blue-600" />
                             <span className="text-sm font-medium text-gray-700">Funis Permitidos:</span>
                           </div>
                           <div className="flex flex-wrap gap-2">
-                            {member.funnels.map((funnel) => (
-                              <Badge key={funnel.id} variant="outline" className="text-xs">
-                                {funnel.name}
+                            {member.funnel_access.map((funnelId) => (
+                              <Badge key={funnelId} variant="outline" className="text-xs">
+                                Funil {funnelId.slice(0, 8)}
                               </Badge>
                             ))}
                           </div>
                         </div>
                       )}
 
-                      {member.whatsapp_numbers.length === 0 && member.funnels.length === 0 && (
+                      {(!member.whatsapp_access || member.whatsapp_access.length === 0) && 
+                       (!member.funnel_access || member.funnel_access.length === 0) && (
                         <p className="text-amber-600 text-sm bg-amber-50 p-2 rounded-lg">
                           ⚠️ Usuário sem permissões específicas definidas
                         </p>

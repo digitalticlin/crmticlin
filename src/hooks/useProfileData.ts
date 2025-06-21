@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 export function useProfileData() {
   const { user } = useAuth();
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
@@ -22,12 +22,14 @@ export function useProfileData() {
         return null;
       }
 
-      return {
-        ...data,
-        full_name: data?.full_name || "Usuário",
-        avatar_url: null // This field doesn't exist in the database yet
-      };
+      return data;
     },
     enabled: !!user?.id,
   });
+
+  return {
+    ...query,
+    fullName: query.data?.full_name || "Usuário",
+    avatarUrl: null // This field doesn't exist in the database yet
+  };
 }

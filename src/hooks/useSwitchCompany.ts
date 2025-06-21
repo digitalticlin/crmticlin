@@ -3,11 +3,13 @@ import { useProfileData } from "./useProfileData";
 import { useCompanyData } from "./useCompanyData";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Troca o company_id do perfil do usuário e recarrega dados do contexto
 export function useSwitchCompany(userId?: string | null) {
-  const { loadProfileData } = useProfileData();
+  const { refetch } = useProfileData();
   const { companyId } = useCompanyData();
+  const queryClient = useQueryClient();
 
   const switchCompany = async (newCompanyId: string) => {
     if (!userId) return;
@@ -15,7 +17,7 @@ export function useSwitchCompany(userId?: string | null) {
     // Atualiza o perfil
     const { error } = await supabase
       .from("profiles")
-      .update({ company_id: newCompanyId, updated_at: new Date().toISOString() })
+      .update({ updated_at: new Date().toISOString() })
       .eq("id", userId);
 
     if (error) {
@@ -24,7 +26,8 @@ export function useSwitchCompany(userId?: string | null) {
     }
 
     // Recarregar dados do perfil
-    await loadProfileData(userId);
+    await refetch();
+    await queryClient.invalidateQueries({ queryKey: ["profile"] });
     
     toast.success("Empresa alterada com sucesso");
   };

@@ -1,105 +1,54 @@
 
-import { useCompanyData } from "../useCompanyData";
-import { useStageDatabase } from "./useStageDatabase";
 import { useLeadsDatabase } from "./useLeadsDatabase";
-import { useTagDatabase } from "./useTagDatabase";
-import { useKanbanColumns } from "./useKanbanColumns";
-import { useLeadActions } from "./useLeadActions";
 import { useStageManagement } from "./useStageManagement";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useLeadCreation } from "./useLeadCreation";
+import { useTagDatabase } from "./useTagDatabase";
 
-export const useRealSalesFunnel = (funnelId?: string) => {
-  const { companyId } = useCompanyData();
-  const { stages, refetchStages } = useStageDatabase(funnelId);
+export function useRealSalesFunnel(funnelId?: string) {
   const { leads, refetchLeads } = useLeadsDatabase(funnelId);
-  const { tags, createTag } = useTagDatabase(companyId);
-
-  const { columns, setColumns } = useKanbanColumns(stages, leads, funnelId);
+  const { tags, loadTags } = useTagDatabase();
   
-  const {
-    selectedLead,
-    isLeadDetailOpen,
-    setIsLeadDetailOpen,
-    openLeadDetail,
-    updateLeadNotes,
-    updateLeadPurchaseValue,
-    updateLeadAssignedUser,
-    updateLeadName,
-    toggleTagOnLead
-  } = useLeadActions(funnelId);
-
-  const {
+  const { createLead, isLoading: isCreatingLead } = useLeadCreation(funnelId);
+  
+  const { 
+    moveToWonLost,
     moveLeadToStage,
     addColumn,
     updateColumn,
-    deleteColumn
-  } = useStageManagement(funnelId, stages, setColumns, refetchStages, refetchLeads);
+    deleteColumn 
+  } = useStageManagement();
 
-  // Encontrar IDs dos estágios de ganho e perdido
-  const wonStageId = stages.find(s => s.is_won)?.id;
-  const lostStageId = stages.find(s => s.is_lost)?.id;
-
-  // Função para receber novo lead (usado quando vem do chat)
-  const receiveNewLead = async (leadData: any) => {
-    if (!funnelId) return;
-
-    const entryStage = stages.find(s => s.title === "ENTRADA DE LEAD");
-    if (!entryStage) return;
-
+  const handleCreateLead = async (leadData: any) => {
     try {
-      const { error } = await supabase
-        .from("leads")
-        .update({
-          kanban_stage_id: entryStage.id,
-          funnel_id: funnelId
-        })
-        .eq("id", leadData.id);
-
-      if (error) throw error;
-
-      await refetchLeads();
-      toast.success("Novo lead adicionado ao funil");
+      await createLead.mutateAsync(leadData);
+      refetchLeads();
     } catch (error) {
-      console.error("Erro ao adicionar lead ao funil:", error);
+      console.error("Erro ao criar lead:", error);
+    }
+  };
+
+  const handleMoveToWonLost = async (leadId: string, status: "won" | "lost", value: number, note: string) => {
+    try {
+      await moveToWonLost.mutateAsync({ leadId, status, value, note });
+      refetchLeads();
+    } catch (error) {
+      console.error("Erro ao mover lead:", error);
     }
   };
 
   return {
-    // Estado
-    columns,
-    setColumns,
-    selectedLead,
-    isLeadDetailOpen,
-    setIsLeadDetailOpen,
-    
-    // Dados do funil
-    stages,
-    leads, // Retornando leads totais
-    availableTags: tags,
-    wonStageId,
-    lostStageId,
-    
-    // Ações do funil
+    leads,
+    tags,
+    createLead: handleCreateLead,
+    isCreatingLead,
+    moveToWonLost: handleMoveToWonLost,
+    moveLeadToStage,
     addColumn,
     updateColumn,
     deleteColumn,
-    moveLeadToStage,
-    
-    // Ações do lead - ajustadas para usar IDs
-    openLeadDetail,
-    toggleTagOnLead: (leadId: string, tagId: string) => toggleTagOnLead(leadId, tagId, tags),
-    updateLeadNotes: (leadId: string, notes: string) => updateLeadNotes(leadId, notes),
-    updateLeadPurchaseValue: (leadId: string, value: number | undefined) => updateLeadPurchaseValue(leadId, value),
-    updateLeadAssignedUser: (leadId: string, user: string) => updateLeadAssignedUser(leadId, user),
-    updateLeadName: (leadId: string, name: string) => updateLeadName(leadId, name),
-    receiveNewLead,
-    
-    // Ações de tag
-    createTag,
-    
-    // Funções de refresh
-    refetchStages,
-    refetchLeads
+    refetchData: () => {
+      refetchLeads();
+      loadTags();
+    }
   };
-};
+}

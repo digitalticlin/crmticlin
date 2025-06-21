@@ -15,7 +15,7 @@ export default function TeamSettings() {
   const { user } = useAuth();
   const { permissions, loading: permissionsLoading } = useUserPermissions();
   const {
-    members,
+    teamMembers,
     loading,
     createTeamMember,
     removeTeamMember,
@@ -93,7 +93,7 @@ export default function TeamSettings() {
         </div>
         
         <ManualMemberForm
-          onSubmit={createTeamMember}
+          onSubmit={createTeamMember.mutateAsync}
           loading={loading}
           allWhatsApps={allWhatsApps}
           allFunnels={allFunnels}
@@ -120,7 +120,7 @@ export default function TeamSettings() {
               </div>
               <div>
                 <p className="text-sm text-gray-700">Total de Membros</p>
-                <p className="text-2xl font-bold text-gray-800">{members.length}</p>
+                <p className="text-2xl font-bold text-gray-800">{teamMembers.length}</p>
               </div>
             </div>
           </div>
@@ -133,7 +133,7 @@ export default function TeamSettings() {
               <div>
                 <p className="text-sm text-gray-700">Administradores</p>
                 <p className="text-2xl font-bold text-gray-800">
-                  {members.filter(m => m.role === 'admin').length}
+                  {teamMembers.filter(m => m.role === 'admin').length}
                 </p>
               </div>
             </div>
@@ -147,7 +147,7 @@ export default function TeamSettings() {
               <div>
                 <p className="text-sm text-gray-700">Operacionais</p>
                 <p className="text-2xl font-bold text-gray-800">
-                  {members.filter(m => m.role === 'operational').length}
+                  {teamMembers.filter(m => m.role === 'operational').length}
                 </p>
               </div>
             </div>
@@ -168,8 +168,8 @@ export default function TeamSettings() {
         </div>
 
         <TeamMembersList 
-          members={members}
-          onRemoveMember={removeTeamMember}
+          members={teamMembers}
+          onRemoveMember={removeTeamMember.mutateAsync}
         />
       </div>
     </div>
