@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useCompanyData } from "@/hooks/useCompanyData";
 import { useSearchParams } from "react-router-dom";
 import { useWhatsAppDatabase } from "@/hooks/whatsapp/useWhatsAppDatabase";
+import { WhatsAppConnectionStatus } from "@/types/whatsapp";
 import { toast } from 'sonner';
 
 interface WhatsAppChatContextType extends ReturnType<typeof useWhatsAppWebChatIntegrated> {
@@ -63,7 +64,7 @@ export const WhatsAppChatProvider = ({ children }: { children: React.ReactNode }
     }
   }, [activeInstance, isHealthy, healthScore, totalInstances, connectedInstances]);
 
-  // Convert WhatsAppInstance to WhatsAppWebInstance for compatibility
+  // Convert WhatsAppInstance to WhatsAppWebInstance for compatibility with proper type casting
   const webActiveInstance = activeInstance ? {
     id: activeInstance.id,
     instance_name: activeInstance.instance_name,
@@ -71,7 +72,7 @@ export const WhatsAppChatProvider = ({ children }: { children: React.ReactNode }
     server_url: activeInstance.server_url || '',
     vps_instance_id: activeInstance.vps_instance_id || '',
     web_status: activeInstance.web_status || '',
-    connection_status: activeInstance.connection_status,
+    connection_status: (activeInstance.connection_status || 'disconnected') as WhatsAppConnectionStatus,
     qr_code: activeInstance.qr_code,
     phone: activeInstance.phone,
     profile_name: activeInstance.profile_name,
@@ -80,7 +81,8 @@ export const WhatsAppChatProvider = ({ children }: { children: React.ReactNode }
     date_disconnected: activeInstance.date_disconnected,
     created_by_user_id: activeInstance.created_by_user_id || '',
     created_at: activeInstance.created_at || new Date().toISOString(),
-    updated_at: activeInstance.updated_at || new Date().toISOString()
+    updated_at: activeInstance.updated_at || new Date().toISOString(),
+    history_imported: false
   } : null;
 
   const chatData = useWhatsAppWebChatIntegrated(webActiveInstance);

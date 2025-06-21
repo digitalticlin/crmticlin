@@ -1,6 +1,6 @@
 
 import { PageLayout } from "@/components/layout/PageLayout";
-import { useRealSalesFunnel } from "@/hooks/salesFunnel/useRealSalesFunnel";
+import { useExtendedSalesFunnel } from "@/hooks/salesFunnel/useExtendedSalesFunnel";
 import { useNewLeadIntegration } from "@/hooks/salesFunnel/useNewLeadIntegration";
 import { useFunnelManagement } from "@/hooks/salesFunnel/useFunnelManagement";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -42,9 +42,9 @@ export default function SalesFunnel() {
     moveLeadToStage,
     wonStageId,
     lostStageId,
-    refetchLeads: originalRefetchLeads,
-    refetchStages: originalRefetchStages
-  } = useRealSalesFunnel(selectedFunnel?.id);
+    refetchLeads,
+    refetchStages
+  } = useExtendedSalesFunnel(selectedFunnel?.id);
 
   useNewLeadIntegration(selectedFunnel?.id);
 
@@ -71,51 +71,32 @@ export default function SalesFunnel() {
     }
   };
 
-  // Wrapper functions to convert QueryObserverResult to void
-  const refetchLeads = async (): Promise<void> => {
-    try {
-      console.log('[SalesFunnel] 🔄 Recarregando leads...');
-      await originalRefetchLeads();
-    } catch (error) {
-      console.error('[SalesFunnel] ❌ Erro ao recarregar leads:', error);
-    }
-  };
-
-  const refetchStages = async (): Promise<void> => {
-    try {
-      console.log('[SalesFunnel] 🔄 Recarregando estágios...');
-      await originalRefetchStages();
-    } catch (error) {
-      console.error('[SalesFunnel] ❌ Erro ao recarregar estágios:', error);
-    }
-  };
-
   // Wrapper functions para usar selectedLead.id quando necessário
   const handleUpdateLeadNotes = (notes: string) => {
     if (selectedLead?.id) {
       console.log('[SalesFunnel] 📝 Atualizando notas do lead:', selectedLead.id);
-      updateLeadNotes(selectedLead.id, notes);
+      updateLeadNotes(notes);
     }
   };
 
   const handleUpdateLeadPurchaseValue = (value: number | undefined) => {
     if (selectedLead?.id) {
       console.log('[SalesFunnel] 💰 Atualizando valor do lead:', selectedLead.id, value);
-      updateLeadPurchaseValue(selectedLead.id, value);
+      updateLeadPurchaseValue(value);
     }
   };
 
   const handleUpdateLeadAssignedUser = (user: string) => {
     if (selectedLead?.id) {
       console.log('[SalesFunnel] 👤 Atualizando usuário responsável:', selectedLead.id, user);
-      updateLeadAssignedUser(selectedLead.id, user);
+      updateLeadAssignedUser(user);
     }
   };
 
   const handleUpdateLeadName = (name: string) => {
     if (selectedLead?.id) {
       console.log('[SalesFunnel] 📛 Atualizando nome do lead:', selectedLead.id, name);
-      updateLeadName(selectedLead.id, name);
+      updateLeadName(name);
     }
   };
 

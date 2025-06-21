@@ -41,8 +41,8 @@ export function useChat() {
   // Realtime Lead Subscription (runs its own useEffect)
   useRealtimeLeads({
     selectedContact,
-    fetchContacts,
-    fetchMessages: () => fetchMessages(selectedContact),
+    fetchContacts: async () => fetchContacts(),
+    fetchMessages: async () => selectedContact ? fetchMessages() : Promise.resolve(),
     receiveNewLead,
     activeInstanceId: activeInstance?.id || null
   });
@@ -54,9 +54,9 @@ export function useChat() {
     isManualLoading,
   } = useChatActions({
     selectedContact,
-    sendMessageWhatsApp: (text: string) => sendMessageWhatsApp(selectedContact, text),
-    fetchContacts,
-    fetchMessages: () => fetchMessages(selectedContact),
+    sendMessageWhatsApp: (text: string) => sendMessageWhatsApp(text),
+    fetchContacts: async () => fetchContacts(),
+    fetchMessages: async () => selectedContact ? fetchMessages() : Promise.resolve(),
   });
 
   // The setContacts was a no-op, can be kept for API consistency or removed if unused

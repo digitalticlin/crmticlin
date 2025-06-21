@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { WhatsAppWebInstance } from "@/types/whatsapp";
+import { WhatsAppWebInstance, WhatsAppConnectionStatus } from "@/types/whatsapp";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function useInstancesData() {
@@ -26,9 +26,10 @@ export function useInstancesData() {
 
       if (error) throw error;
 
-      // Transform data to match WhatsAppWebInstance interface
+      // Transform data to match WhatsAppWebInstance interface with proper type casting
       const transformedData: WhatsAppWebInstance[] = (data || []).map(instance => ({
         ...instance,
+        connection_status: (instance.connection_status || 'disconnected') as WhatsAppConnectionStatus,
         created_by_user_id: instance.created_by_user_id,
         created_at: instance.created_at || new Date().toISOString(),
         updated_at: instance.updated_at || new Date().toISOString(),
