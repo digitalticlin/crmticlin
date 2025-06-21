@@ -123,9 +123,10 @@ export const useInstanceMonitor = (companyId: string | null) => {
           vpsStatus
         });
 
-        // Mostrar alertas críticos
+        // Mostrar alertas críticos - check if alert is new
+        const currentAlerts = alerts;
         newAlerts.forEach(alert => {
-          if (!alerts.includes(alert)) {
+          if (!currentAlerts.includes(alert)) {
             if (healthScore < 30) {
               toast.error(`🚨 ${alert}`);
             } else if (healthScore < 70) {
@@ -142,7 +143,7 @@ export const useInstanceMonitor = (companyId: string | null) => {
     } catch (error) {
       console.error('[Instance Monitor] 💥 Erro no monitoramento:', error);
     }
-  }, [companyId, alerts]);
+  }, [companyId]); // Simplified dependency array
 
   // FASE 3: Monitor a cada 15 segundos
   useEffect(() => {
