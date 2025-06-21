@@ -49,9 +49,9 @@ export function LeadSystemInfoSection({ client }: LeadSystemInfoSectionProps) {
               </span>
             </div>
             <div className="flex justify-between items-center text-sm">
-              <span className="text-white/70">Empresa ID:</span>
+              <span className="text-white/70">Organização ID:</span>
               <span className="text-white/80 font-mono text-xs bg-white/10 px-2 py-1 rounded">
-                {client.company_id}
+                {client.created_by_user_id}
               </span>
             </div>
           </div>

@@ -1,54 +1,58 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
-export interface ClientDeal {
+export interface Deal {
   id: string;
-  status: "won" | "lost";
+  lead_id: string;
+  status: 'won' | 'lost';
   value: number;
-  date: string;
   note?: string;
+  date: string;
   created_at: string;
+  created_by_user_id: string;
 }
 
-export const useClientDeals = (clientId: string) => {
+export function useClientDeals(leadId: string | undefined) {
+  const { user } = useAuth();
+  
   return useQuery({
-    queryKey: ["client-deals", clientId],
-    queryFn: async (): Promise<ClientDeal[]> => {
+    queryKey: ["client-deals", leadId],
+    queryFn: async (): Promise<Deal[]> => {
+      if (!leadId || !user?.id) return [];
+      
       const { data, error } = await supabase
         .from("deals")
         .select("*")
-        .eq("lead_id", clientId)
-        .order("date", { ascending: false });
+        .eq("lead_id", leadId)
+        .eq("created_by_user_id", user.id)
+        .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erro ao buscar deals:", error);
+        throw error;
+      }
 
-      return (data || []).map(deal => ({
-        id: deal.id,
-        status: deal.status as "won" | "lost",
-        value: Number(deal.value || 0),
-        date: deal.date,
-        note: deal.note || undefined,
-        created_at: deal.created_at
-      }));
+      return data || [];
     },
-    enabled: !!clientId,
+    enabled: !!leadId && !!user?.id,
   });
-};
+}
 
-export const useCreateDeal = (clientId: string) => {
+export function useCreateDeal() {
   const queryClient = useQueryClient();
-  
+  const { user } = useAuth();
+
   return useMutation({
-    mutationFn: async (dealData: { status: "won" | "lost"; value: number; note?: string }) => {
+    mutationFn: async (dealData: Omit<Deal, 'id' | 'created_at' | 'created_by_user_id'>) => {
+      if (!user?.id) throw new Error("Usuário não autenticado");
+      
       const { data, error } = await supabase
         .from("deals")
         .insert({
-          lead_id: clientId,
-          status: dealData.status,
-          value: dealData.value,
-          note: dealData.note,
-          created_by: (await supabase.auth.getUser()).data.user?.id
+          ...dealData,
+          created_by_user_id: user.id,
         })
         .select()
         .single();
@@ -56,26 +60,8 @@ export const useCreateDeal = (clientId: string) => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["client-deals", clientId] });
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["client-deals", data.lead_id] });
     },
   });
-};
-
-export const useDeleteDeal = (clientId: string) => {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (dealId: string) => {
-      const { error } = await supabase
-        .from("deals")
-        .delete()
-        .eq("id", dealId);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["client-deals", clientId] });
-    },
-  });
-};
+}

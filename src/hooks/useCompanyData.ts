@@ -8,5 +8,7 @@ export function useCompanyData() {
   // que é o primeiro admin (owner) da organização
   return {
     companyId: user?.id || null, // O próprio user ID serve como company ID
+    userId: user?.id || null, // Adicionar userId para compatibilidade
+    loading: false, // Adicionar loading para compatibilidade
   };
 }
