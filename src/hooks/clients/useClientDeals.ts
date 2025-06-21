@@ -14,6 +14,9 @@ export interface Deal {
   created_by_user_id: string;
 }
 
+// Export alias for backward compatibility
+export type ClientDeal = Deal;
+
 export function useClientDeals(leadId: string | undefined) {
   const { user } = useAuth();
   
@@ -34,7 +37,10 @@ export function useClientDeals(leadId: string | undefined) {
         throw error;
       }
 
-      return data || [];
+      return (data || []).map(deal => ({
+        ...deal,
+        status: deal.status as 'won' | 'lost'
+      }));
     },
     enabled: !!leadId && !!user?.id,
   });
@@ -62,6 +68,28 @@ export function useCreateDeal() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["client-deals", data.lead_id] });
+    },
+  });
+}
+
+export function useDeleteDeal() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (dealId: string) => {
+      if (!user?.id) throw new Error("Usuário não autenticado");
+      
+      const { error } = await supabase
+        .from("deals")
+        .delete()
+        .eq("id", dealId)
+        .eq("created_by_user_id", user.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["client-deals"] });
     },
   });
 }

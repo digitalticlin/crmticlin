@@ -1,19 +1,17 @@
 
 import { DashboardConfig, defaultConfig } from "../types/dashboardConfigTypes";
-import { DashboardConfigService } from "../services/dashboardConfigService";
+import { dashboardConfigService } from "../services/dashboardConfigService";
 import { validateConfig, deepClone } from "../utils/configUtils";
 
 export const configOperations = {
   async loadConfig(userId: string, companyId: string): Promise<DashboardConfig | null> {
     console.log("=== LOADING CONFIG ===");
     
-    const loadedConfig = await DashboardConfigService.retryOperation(
-      () => DashboardConfigService.loadConfig(userId, companyId)
-    );
+    const loadedConfig = await dashboardConfigService.getConfig(userId);
     
-    if (loadedConfig && validateConfig(loadedConfig)) {
+    if (loadedConfig && validateConfig(loadedConfig.layoutConfig)) {
       console.log("✅ Config loaded:", loadedConfig);
-      return loadedConfig;
+      return loadedConfig.layoutConfig;
     }
     
     console.log("ℹ️ No valid config found");
@@ -22,9 +20,7 @@ export const configOperations = {
 
   async createInitialConfig(userId: string, companyId: string): Promise<DashboardConfig> {
     console.log("🔨 Creating initial config");
-    await DashboardConfigService.retryOperation(
-      () => DashboardConfigService.saveConfig(userId, companyId, defaultConfig)
-    );
+    await dashboardConfigService.saveConfig(userId, defaultConfig);
     console.log("✅ Initial config created");
     return defaultConfig;
   },
@@ -39,9 +35,7 @@ export const configOperations = {
         setSaving(true);
         try {
           console.log("💾 Saving config");
-          await DashboardConfigService.retryOperation(
-            () => DashboardConfigService.saveConfig(userId, companyId, configToSave)
-          );
+          await dashboardConfigService.saveConfig(userId, configToSave);
           console.log("✅ Config saved");
         } catch (error) {
           console.error("❌ Save error:", error);
