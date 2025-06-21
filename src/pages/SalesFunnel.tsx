@@ -1,178 +1,20 @@
 
 import { PageLayout } from "@/components/layout/PageLayout";
-import { useExtendedSalesFunnel } from "@/hooks/salesFunnel/useExtendedSalesFunnel";
-import { useNewLeadIntegration } from "@/hooks/salesFunnel/useNewLeadIntegration";
-import { useFunnelManagement } from "@/hooks/salesFunnel/useFunnelManagement";
-import { useUserRole } from "@/hooks/useUserRole";
-import { SalesFunnelProvider } from "@/components/sales/funnel/SalesFunnelProvider";
-import { FunnelLoadingState } from "@/components/sales/funnel/FunnelLoadingState";
-import { FunnelEmptyState } from "@/components/sales/funnel/FunnelEmptyState";
+import { SalesFunnelContextProvider } from "@/components/sales/funnel/SalesFunnelContextProvider";
+import { SalesFunnelStateHandler } from "@/components/sales/funnel/SalesFunnelStateHandler";
 import { SalesFunnelContent } from "@/components/sales/funnel/SalesFunnelContent";
-import { KanbanLead, KanbanColumn } from "@/types/kanban";
+import { useSalesFunnelMain } from "@/hooks/salesFunnel/useSalesFunnelMain";
 
 export default function SalesFunnel() {
-  const { isAdmin, role } = useUserRole();
-  
   const {
+    funnelLoading,
     funnels,
     selectedFunnel,
     setSelectedFunnel,
-    createFunnel: originalCreateFunnel,
-    loading: funnelLoading
-  } = useFunnelManagement();
-
-  const {
-    columns,
-    setColumns,
-    selectedLead,
-    isLeadDetailOpen,
-    setIsLeadDetailOpen,
-    availableTags,
-    stages,
-    leads: rawLeads,
-    addColumn,
-    updateColumn,
-    deleteColumn,
-    openLeadDetail,
-    toggleTagOnLead,
-    createTag: createTagMutation,
-    updateLeadNotes,
-    updateLeadPurchaseValue,
-    updateLeadAssignedUser,
-    updateLeadName,
-    moveLeadToStage: originalMoveLeadToStage,
-    wonStageId,
-    lostStageId,
-    refetchLeads,
-    refetchStages
-  } = useExtendedSalesFunnel(selectedFunnel?.id);
-
-  useNewLeadIntegration(selectedFunnel?.id);
-
-  // Transform leads to match KanbanLead interface
-  const leads: KanbanLead[] = rawLeads?.map(lead => ({
-    id: lead.id,
-    name: lead.name,
-    phone: lead.phone,
-    email: lead.email,
-    columnId: lead.kanban_stage_id,
-    tags: lead.tags?.map(tagRelation => ({
-      id: tagRelation.tag.id,
-      name: tagRelation.tag.name,
-      color: tagRelation.tag.color || '#3b82f6'
-    })) || [],
-    notes: lead.notes,
-    purchaseValue: lead.purchase_value ? Number(lead.purchase_value) : undefined,
-    assignedUser: lead.owner_id,
-    lastMessage: lead.last_message || '',
-    lastMessageTime: lead.last_message_time || '',
-    createdAt: lead.created_at,
-    address: lead.address,
-    company: lead.company,
-    documentId: lead.document_id
-  })) || [];
-
-  // Debug logs mais detalhados
-  console.log('[SalesFunnel] 🔍 Estado atual:', {
-    funnelsCount: funnels.length,
-    selectedFunnel: selectedFunnel ? { id: selectedFunnel.id, name: selectedFunnel.name } : null,
-    funnelLoading,
+    createFunnel,
     isAdmin,
-    role,
-    stagesCount: stages?.length || 0,
-    leadsCount: leads?.length || 0,
-    hasPermissionErrors: false // Agora as políticas RLS foram corrigidas
-  });
-
-  // Wrapper function to match the expected interface
-  const createFunnel = async (name: string, description?: string): Promise<void> => {
-    try {
-      console.log('[SalesFunnel] 📝 Criando funil:', { name, description, isAdmin, role });
-      await originalCreateFunnel(name, description);
-    } catch (error) {
-      console.error('[SalesFunnel] ❌ Erro ao criar funil:', error);
-      throw error;
-    }
-  };
-
-  // Wrapper function for addColumn to match expected signature
-  const wrappedAddColumn = (title: string) => {
-    if (selectedFunnel?.id) {
-      addColumn(title, '#e0e0e0', selectedFunnel.id);
-    }
-  };
-
-  // Wrapper function for updateColumn to match expected signature
-  const wrappedUpdateColumn = (column: KanbanColumn) => {
-    if (selectedFunnel?.id) {
-      updateColumn(column.id, { title: column.title, color: column.color });
-    }
-  };
-
-  // Wrapper function for createTag to match expected signature
-  const wrappedCreateTag = (name: string, color: string) => {
-    createTagMutation({ name, color });
-  };
-
-  // Wrapper function for moveLeadToStage to match expected signature
-  const wrappedMoveLeadToStage = (lead: KanbanLead, columnId: string) => {
-    if (lead.id) {
-      originalMoveLeadToStage(lead.id, columnId);
-    }
-  };
-
-  // Wrapper functions para usar selectedLead.id quando necessário
-  const handleUpdateLeadNotes = (notes: string) => {
-    if (selectedLead?.id) {
-      console.log('[SalesFunnel] 📝 Atualizando notas do lead:', selectedLead.id);
-      updateLeadNotes(notes);
-    }
-  };
-
-  const handleUpdateLeadPurchaseValue = (value: number | undefined) => {
-    if (selectedLead?.id) {
-      console.log('[SalesFunnel] 💰 Atualizando valor do lead:', selectedLead.id, value);
-      updateLeadPurchaseValue(value);
-    }
-  };
-
-  const handleUpdateLeadAssignedUser = (user: string) => {
-    if (selectedLead?.id) {
-      console.log('[SalesFunnel] 👤 Atualizando usuário responsável:', selectedLead.id, user);
-      updateLeadAssignedUser(user);
-    }
-  };
-
-  const handleUpdateLeadName = (name: string) => {
-    if (selectedLead?.id) {
-      console.log('[SalesFunnel] 📛 Atualizando nome do lead:', selectedLead.id, name);
-      updateLeadName(name);
-    }
-  };
-
-  // Estado de carregamento
-  if (funnelLoading) {
-    console.log('[SalesFunnel] ⏳ Carregando funis...');
-    return <FunnelLoadingState />;
-  }
-
-  // Empty state - mostrar apenas se realmente não houver funis após o carregamento
-  if (!selectedFunnel && funnels.length === 0 && !funnelLoading) {
-    console.log('[SalesFunnel] ❌ Nenhum funil encontrado, mostrando empty state');
-    return (
-      <FunnelEmptyState 
-        isAdmin={isAdmin}
-        onCreateFunnel={createFunnel}
-      />
-    );
-  }
-
-  // Se tem funis mas nenhum selecionado, selecionar o primeiro
-  if (funnels.length > 0 && !selectedFunnel) {
-    console.log('[SalesFunnel] 🔄 Selecionando primeiro funil disponível:', funnels[0]);
-    setSelectedFunnel(funnels[0]);
-    return <FunnelLoadingState />;
-  }
+    stages
+  } = useSalesFunnelMain();
 
   // Verificar se o funil selecionado tem estágios
   if (selectedFunnel && (!stages || stages.length === 0)) {
@@ -181,47 +23,23 @@ export default function SalesFunnel() {
 
   console.log('[SalesFunnel] ✅ Renderizando conteúdo do funil:', {
     funnelName: selectedFunnel?.name,
-    stagesCount: stages?.length || 0,
-    columnsCount: columns?.length || 0
+    stagesCount: stages?.length || 0
   });
-
-  const contextValue = {
-    funnels,
-    selectedFunnel,
-    setSelectedFunnel,
-    createFunnel,
-    funnelLoading,
-    columns,
-    setColumns,
-    selectedLead,
-    isLeadDetailOpen,
-    setIsLeadDetailOpen,
-    availableTags,
-    stages,
-    leads,
-    addColumn: wrappedAddColumn,
-    updateColumn: wrappedUpdateColumn,
-    deleteColumn,
-    openLeadDetail,
-    toggleTagOnLead,
-    createTag: wrappedCreateTag,
-    updateLeadNotes: handleUpdateLeadNotes,
-    updateLeadPurchaseValue: handleUpdateLeadPurchaseValue,
-    updateLeadAssignedUser: handleUpdateLeadAssignedUser,
-    updateLeadName: handleUpdateLeadName,
-    moveLeadToStage: wrappedMoveLeadToStage,
-    isAdmin,
-    wonStageId,
-    lostStageId,
-    refetchLeads,
-    refetchStages
-  };
 
   return (
     <PageLayout>
-      <SalesFunnelProvider value={contextValue}>
-        <SalesFunnelContent />
-      </SalesFunnelProvider>
+      <SalesFunnelStateHandler
+        funnelLoading={funnelLoading}
+        funnels={funnels}
+        selectedFunnel={selectedFunnel}
+        setSelectedFunnel={setSelectedFunnel}
+        createFunnel={createFunnel}
+        isAdmin={isAdmin}
+      >
+        <SalesFunnelContextProvider>
+          <SalesFunnelContent />
+        </SalesFunnelContextProvider>
+      </SalesFunnelStateHandler>
     </PageLayout>
   );
 }
