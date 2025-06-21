@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompanyData } from '@/hooks/useCompanyData';
-import { useUnifiedRealtime } from '../realtime/useUnifiedRealtime';
+import { useRealtimeManager } from '../realtime/useRealtimeManager';
 import { toast } from 'sonner';
 
 interface StabilizedSyncState {
@@ -15,9 +15,6 @@ interface StabilizedSyncState {
   healthScore: number;
 }
 
-/**
- * Hook de Sync Estabilizado - now uses unified realtime
- */
 export const useStabilizedInstanceSync = () => {
   const [state, setState] = useState<StabilizedSyncState>({
     instances: [],
@@ -30,8 +27,10 @@ export const useStabilizedInstanceSync = () => {
   });
 
   const { userId } = useCompanyData();
+  const { registerCallback, unregisterCallback } = useRealtimeManager();
   const isMountedRef = useRef(true);
   const lastFetchRef = useRef<number>(0);
+  const hookId = useRef(`stabilized-sync-${Math.random()}`).current;
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -48,7 +47,6 @@ export const useStabilizedInstanceSync = () => {
     const now = Date.now();
     const timeSinceLast = now - lastFetchRef.current;
     
-    // Debounce for 200ms
     if (!forceRefresh && timeSinceLast < 200) {
       console.log('[Stabilized Sync] ⏸️ Debounce active');
       return state.instances;
@@ -76,7 +74,6 @@ export const useStabilizedInstanceSync = () => {
       const instances = data || [];
       console.log(`[Stabilized Sync] ✅ ${instances.length} user instances loaded`);
       
-      // Calculate health metrics
       const connectedInstances = instances.filter(i => ['open', 'ready'].includes(i.connection_status));
       const orphanInstances = instances.filter(i => !i.vps_instance_id);
       const healthScore = instances.length > 0 ? Math.round((connectedInstances.length / instances.length) * 100) : 100;
@@ -92,7 +89,6 @@ export const useStabilizedInstanceSync = () => {
           healthScore
         }));
 
-        // Log ready instances
         const readyInstances = instances.filter(i => ['open', 'ready'].includes(i.connection_status));
         if (readyInstances.length > 0) {
           console.log(`[Stabilized Sync] 🎯 ${readyInstances.length} instances READY`);
@@ -115,18 +111,19 @@ export const useStabilizedInstanceSync = () => {
     }
   }, [userId, state.instances]);
 
-  // Handle realtime updates
-  const handleInstanceUpdate = useCallback((payload: any) => {
-    console.log('[Stabilized Sync] 📡 Real-time update:', payload.eventType);
-    performOptimizedSync(true);
-  }, [performOptimizedSync]);
+  useEffect(() => {
+    const handleInstanceUpdate = (payload: any) => {
+      console.log('[Stabilized Sync] 📡 Real-time update:', payload.eventType);
+      performOptimizedSync(true);
+    };
 
-  // Use unified realtime for instance updates
-  useUnifiedRealtime({
-    onInstanceUpdate: handleInstanceUpdate
-  });
+    registerCallback(`${hookId}-instance-update`, 'instanceUpdate', handleInstanceUpdate);
 
-  // Initial fetch
+    return () => {
+      unregisterCallback(`${hookId}-instance-update`);
+    };
+  }, [performOptimizedSync, registerCallback, unregisterCallback, hookId]);
+
   useEffect(() => {
     if (userId && isMountedRef.current) {
       performOptimizedSync(true);

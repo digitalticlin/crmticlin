@@ -1,5 +1,6 @@
 
-import { useUnifiedRealtime } from '../realtime/useUnifiedRealtime';
+import { useEffect, useRef } from 'react';
+import { useRealtimeManager } from '../realtime/useRealtimeManager';
 import { Contact } from '@/types/chat';
 
 interface UseRealtimeLeadsProps {
@@ -10,9 +11,6 @@ interface UseRealtimeLeadsProps {
   activeInstanceId: string | null;
 }
 
-/**
- * Hook for lead realtime updates - now uses unified realtime manager
- */
 export const useRealtimeLeads = ({
   selectedContact,
   fetchContacts,
@@ -20,40 +18,46 @@ export const useRealtimeLeads = ({
   receiveNewLead,
   activeInstanceId
 }: UseRealtimeLeadsProps) => {
+  const { registerCallback, unregisterCallback } = useRealtimeManager();
+  const hookId = useRef(`realtime-leads-${Math.random()}`).current;
 
-  const handleLeadInsert = (payload: any) => {
-    console.log('[Realtime Leads] New lead received:', payload);
-    const newLead = payload.new as any;
-    receiveNewLead(newLead);
-    fetchContacts();
-  };
+  useEffect(() => {
+    const handleLeadInsert = (payload: any) => {
+      console.log('[Realtime Leads] New lead received:', payload);
+      const newLead = payload.new as any;
+      receiveNewLead(newLead);
+      fetchContacts();
+    };
 
-  const handleLeadUpdate = (payload: any) => {
-    console.log('[Realtime Leads] Lead updated:', payload);
-    fetchContacts();
-  };
+    const handleLeadUpdate = (payload: any) => {
+      console.log('[Realtime Leads] Lead updated:', payload);
+      fetchContacts();
+    };
 
-  const handleMessageInsert = (payload: any) => {
-    console.log('[Realtime Leads] New message received:', payload);
-    const newMessage = payload.new as any;
-    
-    // If message is for selected contact, update messages
-    if (selectedContact && newMessage.lead_id === selectedContact.id) {
-      console.log('[Realtime Leads] Message for selected contact, updating messages');
-      if (fetchMessages) {
-        fetchMessages();
+    const handleMessageInsert = (payload: any) => {
+      console.log('[Realtime Leads] New message received:', payload);
+      const newMessage = payload.new as any;
+      
+      if (selectedContact && newMessage.lead_id === selectedContact.id) {
+        console.log('[Realtime Leads] Message for selected contact, updating messages');
+        if (fetchMessages) {
+          fetchMessages();
+        }
       }
-    }
-    
-    // Always update contact list
-    console.log('[Realtime Leads] Updating contact list');
-    fetchContacts();
-  };
+      
+      console.log('[Realtime Leads] Updating contact list');
+      fetchContacts();
+    };
 
-  useUnifiedRealtime({
-    onLeadInsert: handleLeadInsert,
-    onLeadUpdate: handleLeadUpdate,
-    onMessageInsert: handleMessageInsert,
-    activeInstanceId
-  });
+    // Register callbacks
+    registerCallback(`${hookId}-lead-insert`, 'leadInsert', handleLeadInsert);
+    registerCallback(`${hookId}-lead-update`, 'leadUpdate', handleLeadUpdate);
+    registerCallback(`${hookId}-message-insert`, 'messageInsert', handleMessageInsert, activeInstanceId);
+
+    return () => {
+      unregisterCallback(`${hookId}-lead-insert`);
+      unregisterCallback(`${hookId}-lead-update`);
+      unregisterCallback(`${hookId}-message-insert`);
+    };
+  }, [selectedContact, fetchContacts, fetchMessages, receiveNewLead, activeInstanceId, registerCallback, unregisterCallback, hookId]);
 };
