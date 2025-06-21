@@ -7,7 +7,7 @@ import { SalesFunnelProvider } from "@/components/sales/funnel/SalesFunnelProvid
 import { FunnelLoadingState } from "@/components/sales/funnel/FunnelLoadingState";
 import { FunnelEmptyState } from "@/components/sales/funnel/FunnelEmptyState";
 import { SalesFunnelContent } from "@/components/sales/funnel/SalesFunnelContent";
-import { KanbanLead } from "@/types/kanban";
+import { KanbanLead, KanbanColumn } from "@/types/kanban";
 
 export default function SalesFunnel() {
   const { isAdmin, role } = useUserRole();
@@ -34,7 +34,7 @@ export default function SalesFunnel() {
     deleteColumn,
     openLeadDetail,
     toggleTagOnLead,
-    createTag,
+    createTag: createTagMutation,
     updateLeadNotes,
     updateLeadPurchaseValue,
     updateLeadAssignedUser,
@@ -106,6 +106,11 @@ export default function SalesFunnel() {
     if (selectedFunnel?.id) {
       updateColumn(column.id, { title: column.title, color: column.color });
     }
+  };
+
+  // Wrapper function for createTag to match expected signature
+  const wrappedCreateTag = (name: string, color: string) => {
+    createTagMutation({ name, color });
   };
 
   // Wrapper functions para usar selectedLead.id quando necessário
@@ -191,7 +196,7 @@ export default function SalesFunnel() {
     deleteColumn,
     openLeadDetail,
     toggleTagOnLead,
-    createTag,
+    createTag: wrappedCreateTag,
     updateLeadNotes: handleUpdateLeadNotes,
     updateLeadPurchaseValue: handleUpdateLeadPurchaseValue,
     updateLeadAssignedUser: handleUpdateLeadAssignedUser,
