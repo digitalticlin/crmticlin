@@ -3,7 +3,7 @@ import { Funnel } from "@/types/funnel";
 import { TrendingUp, Users, Target, Award, AlertCircle } from "lucide-react";
 
 interface ModernFunnelHeaderProps {
-  selectedFunnel: Funnel;
+  selectedFunnel: Funnel | null;
   totalLeads: number;
   wonLeads: number;
   lostLeads: number;
@@ -27,8 +27,8 @@ export function ModernFunnelHeader({
         description: "Visualize os resultados finais dos seus leads"
       }
     : {
-        title: selectedFunnel.name,
-        description: selectedFunnel.description || "Gerencie seus leads e oportunidades de vendas"
+        title: selectedFunnel?.name || "Carregando funil...",
+        description: selectedFunnel?.description || "Aguarde enquanto carregamos as informações do funil"
       };
 
   return (
