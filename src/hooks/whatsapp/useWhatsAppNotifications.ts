@@ -101,18 +101,17 @@ export const useWhatsAppNotifications = (companyId: string | null) => {
       }
     };
 
-    // Type the callback registration explicitly to avoid type inference issues
-    const instanceCallbackId = 'whatsapp-instance-notifications';
-    const messageCallbackId = 'whatsapp-message-notifications';
+    // Use simple string literals and explicit options to avoid type inference issues
+    const instanceOptions = { companyId };
+    const messageOptions = {};
 
-    // Use explicit typing to avoid infinite type instantiation
-    registerCallback(instanceCallbackId, 'instanceUpdate', handleInstanceNotification, { companyId });
-    registerCallback(messageCallbackId, 'messageInsert', handleMessageNotification, {});
+    registerCallback('whatsapp-instance-notifications', 'instanceUpdate', handleInstanceNotification, instanceOptions);
+    registerCallback('whatsapp-message-notifications', 'messageInsert', handleMessageNotification, messageOptions);
 
     return () => {
       console.log('[WhatsApp Notifications] Cleaning up notification callbacks');
-      unregisterCallback(instanceCallbackId);
-      unregisterCallback(messageCallbackId);
+      unregisterCallback('whatsapp-instance-notifications');
+      unregisterCallback('whatsapp-message-notifications');
     };
   }, [companyId, registerCallback, unregisterCallback]);
 };
