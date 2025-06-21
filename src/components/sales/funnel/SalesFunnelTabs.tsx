@@ -54,19 +54,36 @@ export const SalesFunnelTabs = ({
 }: SalesFunnelTabsProps) => {
   const [activeTab, setActiveTab] = useState("funnel");
 
-  // Buscar leads das etapas GANHO e PERDIDO diretamente dos leads totais
+  // Buscar leads das etapas GANHO e PERDIDO para a aba won-lost
   const wonLostLeads = leads?.filter(lead => {
     const leadStage = stages?.find(stage => stage.id === lead.columnId);
-    return leadStage && (leadStage.title === "GANHO" || leadStage.title === "PERDIDO");
+    return leadStage && (leadStage.is_won || leadStage.is_lost);
   }) || [];
 
-  // Filtrar colunas para mostrar apenas Ganhos e Perdidos na aba won-lost
+  console.log('[SalesFunnelTabs] 📊 Estado atual:', {
+    activeTab,
+    totalStages: stages?.length || 0,
+    totalLeads: leads?.length || 0,
+    wonLostLeads: wonLostLeads.length,
+    columnsCount: columns.length,
+    stages: stages?.map(s => ({ title: s.title, isWon: s.is_won, isLost: s.is_lost }))
+  });
+
+  // Criar colunas para aba won-lost (apenas GANHO e PERDIDO)
   const displayColumns = activeTab === "won-lost" 
     ? stages
-        ?.filter(stage => stage.title === "GANHO" || stage.title === "PERDIDO")
+        ?.filter(stage => stage.is_won || stage.is_lost)
         .map(stage => {
-          // Buscar leads reais dessa stage diretamente dos leads totais
+          // Buscar leads reais dessa stage
           const stageLeads = leads?.filter(lead => lead.columnId === stage.id) || [];
+          
+          console.log('[SalesFunnelTabs] 🏆 Criando coluna won-lost:', {
+            stageTitle: stage.title,
+            stageId: stage.id,
+            leadsCount: stageLeads.length,
+            isWon: stage.is_won,
+            isLost: stage.is_lost
+          });
           
           return {
             id: stage.id,
@@ -79,8 +96,14 @@ export const SalesFunnelTabs = ({
         }) || []
     : columns;
 
+  console.log('[SalesFunnelTabs] 📋 Colunas a exibir:', {
+    activeTab,
+    displayColumnsCount: displayColumns.length,
+    displayColumns: displayColumns.map(c => ({ title: c.title, leadsCount: c.leads.length }))
+  });
+
   const handleColumnsChange = (newColumns: any[]) => {
-    console.log("Aplicando atualização otimista das colunas:", newColumns);
+    console.log('[SalesFunnelTabs] 🔄 Atualizando colunas:', newColumns.length);
     setColumns(newColumns);
   };
 
@@ -92,11 +115,11 @@ export const SalesFunnelTabs = ({
         totalLeads={columns.reduce((acc, col) => acc + col.leads.length, 0)}
         wonLeads={wonLostLeads.filter(lead => {
           const leadStage = stages?.find(stage => stage.id === lead.columnId);
-          return leadStage?.title === "GANHO";
+          return leadStage?.is_won;
         }).length}
         lostLeads={wonLostLeads.filter(lead => {
           const leadStage = stages?.find(stage => stage.id === lead.columnId);
-          return leadStage?.title === "PERDIDO";
+          return leadStage?.is_lost;
         }).length}
         activeTab={activeTab}
       />

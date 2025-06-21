@@ -10,22 +10,33 @@ export function useStageDatabase(funnelId?: string) {
   const stagesQuery = useQuery({
     queryKey: ["kanban_stages", funnelId],
     queryFn: async () => {
-      if (!funnelId) return [];
+      if (!funnelId) {
+        console.log('[useStageDatabase] ⚠️ Nenhum funnelId fornecido');
+        return [];
+      }
       
-      console.log('[useStageDatabase] 🔓 ACESSO POR USUÁRIO - buscando estágios do funil');
+      console.log('[useStageDatabase] 🔍 Buscando estágios do funil:', funnelId);
       
-      // Buscar estágios criados pelo usuário
+      // Buscar estágios do funil específico
       const { data, error } = await supabase
         .from("kanban_stages")
         .select("*")
         .eq("funnel_id", funnelId)
         .order("order_position", { ascending: true });
         
-      if (error) throw error;
+      if (error) {
+        console.error('[useStageDatabase] ❌ Erro ao buscar estágios:', error);
+        throw error;
+      }
       
-      console.log('[useStageDatabase] ✅ Estágios encontrados (ACESSO POR USUÁRIO):', data?.length || 0);
+      console.log('[useStageDatabase] ✅ Estágios encontrados:', {
+        count: data?.length || 0,
+        stages: data?.map(s => ({ id: s.id, title: s.title, order: s.order_position }))
+      });
+      
       return data ?? [];
     },
+    enabled: !!funnelId,
   });
 
   return {

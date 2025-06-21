@@ -69,24 +69,45 @@ export function useSalesFunnelMain() {
   })) || [];
 
   // Debug logs mais detalhados
-  console.log('[SalesFunnel] 🔍 Estado atual:', {
+  console.log('[SalesFunnelMain] 🔍 Estado completo:', {
     funnelsCount: funnels.length,
-    selectedFunnel: selectedFunnel ? { id: selectedFunnel.id, name: selectedFunnel.name } : null,
+    selectedFunnel: selectedFunnel ? { 
+      id: selectedFunnel.id, 
+      name: selectedFunnel.name 
+    } : null,
     funnelLoading,
     isAdmin,
     role,
     stagesCount: stages?.length || 0,
+    stagesDetails: stages?.map(s => ({ 
+      id: s.id, 
+      title: s.title, 
+      order: s.order_position,
+      isWon: s.is_won,
+      isLost: s.is_lost,
+      isFixed: s.is_fixed
+    })),
     leadsCount: leads?.length || 0,
-    hasPermissionErrors: false // Agora as políticas RLS foram corrigidas
+    leadsDetails: leads?.map(l => ({
+      id: l.id,
+      name: l.name,
+      columnId: l.columnId
+    })),
+    columnsCount: columns.length,
+    columnsDetails: columns.map(c => ({
+      id: c.id,
+      title: c.title,
+      leadsCount: c.leads.length
+    }))
   });
 
   // Wrapper function to match the expected interface
   const createFunnel = async (name: string, description?: string): Promise<void> => {
     try {
-      console.log('[SalesFunnel] 📝 Criando funil:', { name, description, isAdmin, role });
+      console.log('[SalesFunnelMain] 📝 Criando funil:', { name, description, isAdmin, role });
       await originalCreateFunnel(name, description);
     } catch (error) {
-      console.error('[SalesFunnel] ❌ Erro ao criar funil:', error);
+      console.error('[SalesFunnelMain] ❌ Erro ao criar funil:', error);
       throw error;
     }
   };
