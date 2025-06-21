@@ -14,8 +14,8 @@ export const useTeamAuxiliaryData = (companyId: string | null): AuxiliaryData =>
   const [auxDataLoading, setAuxDataLoading] = useState(false);
   
   // Refs para controlar execuções
-  const auxDataLoadedRef = useRef(false);
-  const isUnmountedRef = useRef(false);
+  const auxDataLoadedRef = useRef<boolean>(false);
+  const isUnmountedRef = useRef<boolean>(false);
 
   // Cleanup no desmonte
   useEffect(() => {
@@ -33,7 +33,7 @@ export const useTeamAuxiliaryData = (companyId: string | null): AuxiliaryData =>
       return;
     }
 
-    const fetchAuxData = async () => {
+    const fetchAuxData = async (): Promise<void> => {
       try {
         console.log('[useTeamAuxiliaryData] Fetching auxiliary data for company:', companyId);
         setAuxDataLoading(true);
@@ -79,7 +79,7 @@ export const useTeamAuxiliaryData = (companyId: string | null): AuxiliaryData =>
       }
     };
 
-    fetchAuxData();
+    void fetchAuxData();
   }, [companyId]);
 
   return {
