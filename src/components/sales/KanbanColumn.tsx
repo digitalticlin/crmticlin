@@ -165,18 +165,23 @@ export function KanbanColumn({
                   snapshot.isDraggingOver && "bg-blue-50"
                 )}
               >
-                {column.leads.map((lead, index) => (
-                  <LeadCard
-                    key={lead.id}
-                    lead={lead}
-                    index={index}
-                    onClick={() => onOpenLeadDetail(lead)}
-                    onOpenChat={onOpenChat ? () => onOpenChat(lead) : undefined}
-                    onMoveToWonLost={onMoveToWonLost ? (status: "won" | "lost") => onMoveToWonLost(lead, status) : undefined}
-                    onReturnToFunnel={onReturnToFunnel ? () => onReturnToFunnel(lead) : undefined}
-                    isInWonLostStage={column.id === wonStageId || column.id === lostStageId}
-                    isWonLostView={isWonLostView}
-                  />
+                {column.leads.map((lead, leadIndex) => (
+                  <Draggable key={lead.id} draggableId={lead.id} index={leadIndex}>
+                    {(provided) => (
+                      <LeadCard
+                        lead={lead}
+                        provided={provided}
+                        onClick={() => onOpenLeadDetail(lead)}
+                        onOpenChat={onOpenChat ? () => onOpenChat(lead) : undefined}
+                        onMoveToWonLost={onMoveToWonLost ? (status: "won" | "lost") => onMoveToWonLost(lead, status) : undefined}
+                        onReturnToFunnel={onReturnToFunnel ? () => onReturnToFunnel(lead) : undefined}
+                        isInWonLostStage={column.id === wonStageId || column.id === lostStageId}
+                        isWonLostView={isWonLostView}
+                        wonStageId={wonStageId}
+                        lostStageId={lostStageId}
+                      />
+                    )}
+                  </Draggable>
                 ))}
                 {provided.placeholder}
               </div>

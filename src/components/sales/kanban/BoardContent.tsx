@@ -11,7 +11,6 @@ interface BoardContentProps {
   onMoveToWonLost?: (lead: KanbanLead, status: "won" | "lost") => void;
   onReturnToFunnel?: (lead: KanbanLead) => void;
   isWonLostView?: boolean;
-  renderClone?: any;
   wonStageId?: string;
   lostStageId?: string;
 }
@@ -25,17 +24,17 @@ export const BoardContent = ({
   onMoveToWonLost,
   onReturnToFunnel,
   isWonLostView = false,
-  renderClone,
   wonStageId,
   lostStageId
 }: BoardContentProps) => {
   return (
     <div className="flex-1 h-full overflow-x-auto overflow-y-hidden kanban-scrollbar">
       <div className="flex h-full min-w-max gap-6 p-6" style={{ minHeight: 'calc(100vh - 200px)' }}>
-        {columns.map((column) => (
+        {columns.map((column, index) => (
           <KanbanColumnComponent
             key={column.id}
             column={column}
+            index={index}
             onOpenLeadDetail={onOpenLeadDetail}
             onUpdateColumn={onColumnUpdate}
             onDeleteColumn={onColumnDelete}
@@ -43,7 +42,6 @@ export const BoardContent = ({
             onMoveToWonLost={onMoveToWonLost}
             onReturnToFunnel={onReturnToFunnel}
             isWonLostView={isWonLostView}
-            renderClone={renderClone}
             wonStageId={wonStageId}
             lostStageId={lostStageId}
           />
