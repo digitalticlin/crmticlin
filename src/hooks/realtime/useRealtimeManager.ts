@@ -15,6 +15,7 @@ class RealtimeManager {
   private channel: any = null;
   private callbacks: Map<string, RealtimeCallback> = new Map();
   private isSubscribed = false;
+  private isSubscribing = false;
   private userId: string | null = null;
 
   static getInstance(): RealtimeManager {
@@ -26,64 +27,82 @@ class RealtimeManager {
 
   private constructor() {}
 
-  initialize(userId: string) {
-    if (this.userId === userId && this.isSubscribed) {
-      return; // Already initialized for this user
+  async initialize(userId: string) {
+    if (this.userId === userId && (this.isSubscribed || this.isSubscribing)) {
+      return; // Already initialized or initializing for this user
     }
 
-    this.cleanup();
+    if (this.userId !== userId) {
+      await this.cleanup();
+    }
+
     this.userId = userId;
-    this.setupChannel();
+    await this.setupChannel();
   }
 
-  private setupChannel() {
-    if (!this.userId || this.channel) return;
+  private async setupChannel() {
+    if (!this.userId || this.channel || this.isSubscribing) return;
 
+    this.isSubscribing = true;
     console.log('[Realtime Manager] 🔄 Setting up unified channel for user:', this.userId);
 
-    this.channel = supabase
-      .channel(`unified-realtime-${this.userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'leads'
-        },
-        (payload) => this.handleCallback('leadInsert', payload)
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'leads'
-        },
-        (payload) => this.handleCallback('leadUpdate', payload)
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages'
-        },
-        (payload) => this.handleCallback('messageInsert', payload)
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'whatsapp_instances',
-          filter: `created_by_user_id=eq.${this.userId}`
-        },
-        (payload) => this.handleCallback('instanceUpdate', payload)
-      )
-      .subscribe((status: string) => {
-        console.log('[Realtime Manager] Subscription status:', status);
-        this.isSubscribed = status === 'SUBSCRIBED';
+    try {
+      this.channel = supabase
+        .channel(`unified-realtime-${this.userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'leads'
+          },
+          (payload) => this.handleCallback('leadInsert', payload)
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'leads'
+          },
+          (payload) => this.handleCallback('leadUpdate', payload)
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages'
+          },
+          (payload) => this.handleCallback('messageInsert', payload)
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'whatsapp_instances',
+            filter: `created_by_user_id=eq.${this.userId}`
+          },
+          (payload) => this.handleCallback('instanceUpdate', payload)
+        );
+
+      // Subscribe only once and wait for completion
+      const subscriptionResult = await new Promise((resolve) => {
+        this.channel.subscribe((status: string) => {
+          console.log('[Realtime Manager] Subscription status:', status);
+          this.isSubscribed = status === 'SUBSCRIBED';
+          this.isSubscribing = false;
+          resolve(status);
+        });
       });
+
+      console.log('[Realtime Manager] ✅ Channel subscription completed:', subscriptionResult);
+    } catch (error) {
+      console.error('[Realtime Manager] ❌ Error setting up channel:', error);
+      this.isSubscribing = false;
+      this.isSubscribed = false;
+    }
   }
 
   private handleCallback(type: RealtimeCallback['type'], payload: any) {
@@ -109,13 +128,18 @@ class RealtimeManager {
     this.callbacks.delete(id);
   }
 
-  cleanup() {
+  async cleanup() {
     if (this.channel) {
       console.log('[Realtime Manager] 🧹 Cleaning up channel');
-      supabase.removeChannel(this.channel);
+      try {
+        await supabase.removeChannel(this.channel);
+      } catch (error) {
+        console.error('[Realtime Manager] Error removing channel:', error);
+      }
       this.channel = null;
     }
     this.isSubscribed = false;
+    this.isSubscribing = false;
     this.callbacks.clear();
   }
 
@@ -128,6 +152,7 @@ export const useRealtimeManager = () => {
   const { userId } = useCompanyData();
   const manager = useRef(RealtimeManager.getInstance());
   const isMountedRef = useRef(true);
+  const initializingRef = useRef(false);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -137,8 +162,13 @@ export const useRealtimeManager = () => {
   }, []);
 
   useEffect(() => {
-    if (userId && isMountedRef.current) {
-      manager.current.initialize(userId);
+    if (userId && isMountedRef.current && !initializingRef.current) {
+      initializingRef.current = true;
+      manager.current.initialize(userId).finally(() => {
+        if (isMountedRef.current) {
+          initializingRef.current = false;
+        }
+      });
     }
 
     return () => {
