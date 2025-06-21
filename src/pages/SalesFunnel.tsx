@@ -1,4 +1,3 @@
-
 import { PageLayout } from "@/components/layout/PageLayout";
 import { useExtendedSalesFunnel } from "@/hooks/salesFunnel/useExtendedSalesFunnel";
 import { useNewLeadIntegration } from "@/hooks/salesFunnel/useNewLeadIntegration";
@@ -102,6 +101,13 @@ export default function SalesFunnel() {
     }
   };
 
+  // Wrapper function for updateColumn to match expected signature
+  const wrappedUpdateColumn = (column: KanbanColumn) => {
+    if (selectedFunnel?.id) {
+      updateColumn(column.id, { title: column.title, color: column.color });
+    }
+  };
+
   // Wrapper functions para usar selectedLead.id quando necessário
   const handleUpdateLeadNotes = (notes: string) => {
     if (selectedLead?.id) {
@@ -181,7 +187,7 @@ export default function SalesFunnel() {
     stages,
     leads,
     addColumn: wrappedAddColumn,
-    updateColumn,
+    updateColumn: wrappedUpdateColumn,
     deleteColumn,
     openLeadDetail,
     toggleTagOnLead,
