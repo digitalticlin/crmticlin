@@ -1,3 +1,4 @@
+
 import { PageLayout } from "@/components/layout/PageLayout";
 import { useExtendedSalesFunnel } from "@/hooks/salesFunnel/useExtendedSalesFunnel";
 import { useNewLeadIntegration } from "@/hooks/salesFunnel/useNewLeadIntegration";
@@ -39,7 +40,7 @@ export default function SalesFunnel() {
     updateLeadPurchaseValue,
     updateLeadAssignedUser,
     updateLeadName,
-    moveLeadToStage,
+    moveLeadToStage: originalMoveLeadToStage,
     wonStageId,
     lostStageId,
     refetchLeads,
@@ -111,6 +112,13 @@ export default function SalesFunnel() {
   // Wrapper function for createTag to match expected signature
   const wrappedCreateTag = (name: string, color: string) => {
     createTagMutation({ name, color });
+  };
+
+  // Wrapper function for moveLeadToStage to match expected signature
+  const wrappedMoveLeadToStage = (lead: KanbanLead, columnId: string) => {
+    if (lead.id) {
+      originalMoveLeadToStage(lead.id, columnId);
+    }
   };
 
   // Wrapper functions para usar selectedLead.id quando necessário
@@ -201,7 +209,7 @@ export default function SalesFunnel() {
     updateLeadPurchaseValue: handleUpdateLeadPurchaseValue,
     updateLeadAssignedUser: handleUpdateLeadAssignedUser,
     updateLeadName: handleUpdateLeadName,
-    moveLeadToStage,
+    moveLeadToStage: wrappedMoveLeadToStage,
     isAdmin,
     wonStageId,
     lostStageId,
