@@ -80,7 +80,7 @@ export const useTeamAuxiliaryData = (companyId: string | null): AuxiliaryData =>
     };
 
     fetchAuxData();
-  }, [companyId]); // Simplified dependency array
+  }, [companyId]);
 
   return {
     allWhatsApps,
