@@ -101,12 +101,13 @@ export const useWhatsAppNotifications = (companyId: string | null) => {
       }
     };
 
-    // Use simple string literals and explicit options to avoid type inference issues
-    const instanceOptions = { companyId };
-    const messageOptions = {};
+    // Break the circular type dependency by using type assertions
+    const instanceCallbackType = 'instanceUpdate' as const;
+    const messageCallbackType = 'messageInsert' as const;
 
-    registerCallback('whatsapp-instance-notifications', 'instanceUpdate', handleInstanceNotification, instanceOptions);
-    registerCallback('whatsapp-message-notifications', 'messageInsert', handleMessageNotification, messageOptions);
+    // Register callbacks with explicit type casting to avoid infinite type resolution
+    registerCallback('whatsapp-instance-notifications', instanceCallbackType, handleInstanceNotification, { companyId });
+    registerCallback('whatsapp-message-notifications', messageCallbackType, handleMessageNotification, {});
 
     return () => {
       console.log('[WhatsApp Notifications] Cleaning up notification callbacks');
