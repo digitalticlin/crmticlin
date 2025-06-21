@@ -1,202 +1,239 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCcw, Loader2, Database } from "lucide-react";
-import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { 
+  RefreshCw, 
+  Search, 
+  Trash2, 
+  CheckCircle, 
+  AlertTriangle,
+  MessageSquare,
+  Users
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
-import { GlobalInstanceActions } from "./GlobalInstanceActions";
+import { toast } from "sonner";
+
+interface WhatsAppInstance {
+  id: string;
+  instance_name: string;
+  phone?: string;
+  connection_status: string;
+  created_by_user_id?: string;
+  created_at: string;
+  profile_name?: string;
+}
 
 export const GlobalInstanceManagement = () => {
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSync, setLastSync] = useState<Date | null>(null);
+  const [instances, setInstances] = useState<WhatsAppInstance[]>([]);
+  const [filteredInstances, setFilteredInstances] = useState<WhatsAppInstance[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [userProfiles, setUserProfiles] = useState<Record<string, any>>({});
 
-  // Buscar instâncias do Supabase
-  const { data: instances, isLoading, refetch } = useQuery({
-    queryKey: ['global-instances'],
-    queryFn: async () => {
-      const { data, error } = await supabase
+  useEffect(() => {
+    fetchInstances();
+  }, []);
+
+  useEffect(() => {
+    const filtered = instances.filter(instance =>
+      instance.instance_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      instance.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      instance.profile_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredInstances(filtered);
+  }, [instances, searchTerm]);
+
+  const fetchInstances = async () => {
+    try {
+      setIsLoading(true);
+      
+      const { data: instancesData, error } = await supabase
         .from('whatsapp_instances')
         .select('*')
-        .eq('connection_type', 'web')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data || [];
-    },
-    refetchInterval: 30000 // Auto-refresh a cada 30 segundos
-  });
 
-  const executeGlobalSync = async () => {
-    setIsSyncing(true);
-    
-    try {
-      console.log("🔄 Executando sincronização global manual...");
-      toast.info("Iniciando sincronização global VPS ↔ Supabase...");
+      setInstances(instancesData || []);
+      
+      // Buscar perfis dos usuários para exibir informações completas
+      if (instancesData && instancesData.length > 0) {
+        const userIds = [...new Set(instancesData.map(i => i.created_by_user_id).filter(Boolean))];
+        
+        if (userIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, full_name')
+            .in('id', userIds);
 
-      // CORREÇÃO: Usar auto_whatsapp_sync para sync global
-      const { data, error } = await supabase.functions.invoke('auto_whatsapp_sync', {
-        body: {
-          action: 'sync_all_instances'
+          if (profiles) {
+            const profileMap = profiles.reduce((acc, profile) => {
+              acc[profile.id] = profile;
+              return acc;
+            }, {} as Record<string, any>);
+            setUserProfiles(profileMap);
+          }
         }
-      });
-
-      if (error) {
-        console.error("❌ Erro na sincronização:", error);
-        throw error;
-      }
-
-      if (data && data.success) {
-        const summary = data.summary || {};
-        const results = data.results || {};
-        
-        console.log("✅ Sincronização concluída:", results);
-        
-        setLastSync(new Date());
-        refetch(); // Atualizar a lista de instâncias
-        
-        const successMsg = `Sincronização concluída! ${results.added || 0} adicionadas, ${results.updated || 0} atualizadas, ${results.orphans_linked || 0} órfãs vinculadas, ${results.orphans_deleted || 0} órfãs excluídas`;
-        
-        toast.success(successMsg);
-      } else {
-        const errorMessage = data?.error || 'Erro desconhecido na sincronização';
-        console.error("❌ Sincronização falhou:", errorMessage);
-        toast.error(`Falha na sincronização: ${errorMessage}`);
       }
       
-    } catch (error: any) {
-      console.error("💥 Erro na sincronização:", error);
-      toast.error(`Erro na sincronização: ${error.message || "Erro desconhecido"}`);
+    } catch (error) {
+      console.error('Erro ao buscar instâncias:', error);
+      toast.error('Erro ao carregar instâncias');
     } finally {
-      setIsSyncing(false);
+      setIsLoading(false);
     }
   };
 
-  const orphanCount = instances?.filter(i => !i.created_by_user_id).length || 0;
-  const connectedCount = instances?.filter(i => ['open', 'ready'].includes(i.connection_status)).length || 0;
+  const handleDeleteInstance = async (instanceId: string, instanceName: string) => {
+    if (!confirm(`Tem certeza que deseja deletar a instância "${instanceName}"?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('whatsapp_instances')
+        .delete()
+        .eq('id', instanceId);
+
+      if (error) throw error;
+
+      toast.success(`Instância "${instanceName}" deletada com sucesso`);
+      await fetchInstances();
+      
+    } catch (error) {
+      console.error('Erro ao deletar instância:', error);
+      toast.error('Erro ao deletar instância');
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    if (status === 'connected' || status === 'ready') {
+      return <Badge className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" />Conectada</Badge>;
+    } else if (status === 'disconnected') {
+      return <Badge variant="secondary">Desconectada</Badge>;
+    } else if (status === 'error') {
+      return <Badge variant="destructive"><AlertTriangle className="h-3 w-3 mr-1" />Erro</Badge>;
+    } else {
+      return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Painel de Controle */}
-      <Card className="bg-white/30 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5 text-blue-500" />
-            Gerenciamento Global de Instâncias
-          </CardTitle>
-          <p className="text-sm text-gray-600">
-            Sincronize e monitore todas as instâncias WhatsApp entre VPS e Supabase
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-sm font-medium">Sincronização Manual</p>
-              <p className="text-xs text-gray-500">
-                {lastSync 
-                  ? `Última execução: ${lastSync.toLocaleString()}`
-                  : "Nunca executada nesta sessão"
-                }
-              </p>
-            </div>
-            
-            <Button
-              onClick={executeGlobalSync}
-              disabled={isSyncing}
-              className="gap-2"
-              size="lg"
-            >
-              {isSyncing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Sincronizando...
-                </>
-              ) : (
-                <>
-                  <RefreshCcw className="h-4 w-4" />
-                  Sincronizar Agora
-                </>
-              )}
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div>
-              <div className="text-2xl font-bold text-blue-600">{instances?.length || 0}</div>
-              <div className="text-xs text-gray-500">Total</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-green-600">{connectedCount}</div>
-              <div className="text-xs text-gray-500">Conectadas</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold text-orange-600">{orphanCount}</div>
-              <div className="text-xs text-gray-500">Órfãs</div>
-            </div>
-          </div>
-
-          <div className="text-xs text-gray-500 space-y-1">
-            <p>🔄 Sincronização automática: A cada 10 minutos</p>
-            <p>📡 Real-time: Mudanças instantâneas</p>
-            <p>🔗 Vincula órfãs automaticamente</p>
-            <p>🗑️ Exclui órfãs não vinculáveis</p>
-            <p>🔒 Exclusão bidirecional VPS ↔ Supabase</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Lista de Instâncias */}
-      <Card className="bg-white/30 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Instâncias Sincronizadas</span>
-            <Badge variant="secondary">
-              {instances?.length || 0} instâncias
-            </Badge>
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Gerenciamento Global de Instâncias
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline">
+                {instances.length} instância(s)
+              </Badge>
+              <Button onClick={fetchInstances} size="sm" variant="outline">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Atualizar
+              </Button>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400 mb-2" />
-              <p className="text-gray-600">Carregando instâncias...</p>
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Buscar por nome, telefone ou perfil..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
             </div>
-          ) : instances && instances.length > 0 ? (
-            <div className="space-y-3">
-              {instances.map((instance) => (
-                <GlobalInstanceActions
-                  key={instance.id}
-                  instance={instance}
-                  onRefresh={() => refetch()}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <Database className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-              <h3 className="text-lg font-medium text-gray-700 mb-2">
-                Nenhuma instância encontrada
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Execute a sincronização para importar instâncias da VPS
-              </p>
-              <Button onClick={executeGlobalSync} disabled={isSyncing}>
-                {isSyncing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Sincronizando...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCcw className="h-4 w-4 mr-2" />
-                    Sincronizar Agora
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
+          </div>
+
+          <div className="space-y-4">
+            {filteredInstances.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                {searchTerm ? 'Nenhuma instância encontrada com os filtros aplicados' : 'Nenhuma instância encontrada'}
+              </div>
+            ) : (
+              filteredInstances.map((instance) => (
+                <div key={instance.id} className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <MessageSquare className="h-5 w-5 text-green-600" />
+                      <div>
+                        <h3 className="font-medium">{instance.instance_name}</h3>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          {instance.phone && <span>📱 {instance.phone}</span>}
+                          {instance.profile_name && <span>👤 {instance.profile_name}</span>}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      {getStatusBadge(instance.connection_status)}
+                      <Button
+                        onClick={() => handleDeleteInstance(instance.id, instance.instance_name)}
+                        size="sm"
+                        variant="destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="font-medium">Proprietário:</span>
+                      <div className="flex items-center gap-1 text-gray-600">
+                        <Users className="h-3 w-3" />
+                        {instance.created_by_user_id 
+                          ? userProfiles[instance.created_by_user_id]?.full_name || 'Usuário desconhecido'
+                          : <span className="text-red-600">Órfã</span>
+                        }
+                      </div>
+                    </div>
+                    <div>
+                      <span className="font-medium">Criado em:</span>
+                      <p className="text-gray-600">
+                        {new Date(instance.created_at).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="font-medium">Status:</span>
+                      <p className="text-gray-600">{instance.connection_status}</p>
+                    </div>
+                  </div>
+
+                  {!instance.created_by_user_id && (
+                    <div className="bg-red-50 border border-red-200 rounded p-2">
+                      <div className="flex items-center gap-2 text-red-800 text-sm">
+                        <AlertTriangle className="h-4 w-4" />
+                        <span className="font-medium">Instância órfã detectada</span>
+                      </div>
+                      <p className="text-red-700 text-xs mt-1">
+                        Esta instância não possui um proprietário definido e deve ser investigada
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -1,11 +1,9 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
+import { Activity, CheckCircle, AlertTriangle, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Activity, Clock, CheckCircle2, AlertCircle, RotateCcw, Play } from "lucide-react";
 
 interface SyncLog {
   id: string;
@@ -15,224 +13,130 @@ interface SyncLog {
   instances_added: number;
   instances_updated: number;
   errors_count: number;
-  execution_duration_ms: number;
-  error_details: any;
+  execution_duration_ms?: number;
+  error_details?: any;
+  created_at: string;
 }
 
 export const AutoSyncMonitor = () => {
   const [syncLogs, setSyncLogs] = useState<SyncLog[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [manualSyncLoading, setManualSyncLoading] = useState(false);
-
-  const fetchSyncLogs = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('auto_sync_logs')
-        .select('*')
-        .order('execution_time', { ascending: false })
-        .limit(10);
-
-      if (error) throw error;
-      setSyncLogs(data || []);
-    } catch (error) {
-      console.error('Erro ao buscar logs de sincronização:', error);
-      toast.error('Erro ao carregar logs de sincronização');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const triggerManualSync = async () => {
-    setManualSyncLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('auto_whatsapp_sync');
-
-      if (error) throw error;
-
-      toast.success('Sincronização manual executada com sucesso!');
-      setTimeout(fetchSyncLogs, 2000); // Recarregar logs após 2 segundos
-    } catch (error) {
-      console.error('Erro na sincronização manual:', error);
-      toast.error('Erro ao executar sincronização manual');
-    } finally {
-      setManualSyncLoading(false);
-    }
-  };
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchSyncLogs();
-    
-    // Recarregar logs a cada 30 segundos
-    const interval = setInterval(fetchSyncLogs, 30000);
-    return () => clearInterval(interval);
   }, []);
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'success':
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
-      case 'partial':
-        return <AlertCircle className="h-4 w-4 text-yellow-500" />;
-      case 'error':
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
-      default:
-        return <Clock className="h-4 w-4 text-gray-500" />;
+  const fetchSyncLogs = async () => {
+    try {
+      setIsLoading(true);
+      
+      const { data, error } = await supabase
+        .from('auto_sync_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      
+      setSyncLogs(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar logs de sincronização:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'success': return 'bg-green-100 text-green-800';
-      case 'partial': return 'bg-yellow-100 text-yellow-800';
-      case 'error': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+  const getStatusBadge = (status: string) => {
+    if (status === 'success') {
+      return <Badge className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" />Sucesso</Badge>;
+    } else if (status === 'error') {
+      return <Badge variant="destructive"><AlertTriangle className="h-3 w-3 mr-1" />Erro</Badge>;
+    } else {
+      return <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" />Processando</Badge>;
     }
   };
 
-  const lastSync = syncLogs[0];
-  const isRecentSync = lastSync && 
-    new Date().getTime() - new Date(lastSync.execution_time).getTime() < 10 * 60 * 1000; // Últimos 10 minutos
-
-  return (
-    <div className="space-y-6">
-      {/* Status da Sincronização Automática */}
+  if (isLoading) {
+    return (
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-blue-600" />
-              Status da Sincronização Automática
-            </div>
-            <Button 
-              onClick={triggerManualSync}
-              disabled={manualSyncLoading}
-              variant="outline"
-              size="sm"
-              className="gap-2"
-            >
-              {manualSyncLoading ? (
-                <RotateCcw className="h-4 w-4 animate-spin" />
-              ) : (
-                <Play className="h-4 w-4" />
-              )}
-              Executar Agora
-            </Button>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Monitor de Sincronização Automática
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full ${isRecentSync ? 'bg-green-500' : 'bg-red-500'}`} />
-              <div>
-                <p className="text-sm font-medium">Sistema de Sync</p>
-                <p className="text-xs text-gray-600">
-                  {isRecentSync ? 'Ativo' : 'Inativo'}
-                </p>
-              </div>
-            </div>
-            
-            {lastSync && (
-              <>
-                <div className="flex items-center gap-3">
-                  {getStatusIcon(lastSync.status)}
-                  <div>
-                    <p className="text-sm font-medium">Última Execução</p>
-                    <p className="text-xs text-gray-600">
-                      {new Date(lastSync.execution_time).toLocaleString('pt-BR')}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-3">
-                  <Clock className="h-4 w-4 text-gray-500" />
-                  <div>
-                    <p className="text-sm font-medium">Duração</p>
-                    <p className="text-xs text-gray-600">
-                      {lastSync.execution_duration_ms}ms
-                    </p>
-                  </div>
-                </div>
-              </>
-            )}
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
         </CardContent>
       </Card>
+    );
+  }
 
-      {/* Histórico de Sincronizações */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Histórico de Sincronizações</span>
-            <Button 
-              onClick={fetchSyncLogs}
-              disabled={loading}
-              variant="ghost"
-              size="sm"
-            >
-              <RotateCcw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </Button>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {loading ? (
-              <div className="text-center py-8">Carregando...</div>
-            ) : syncLogs.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                Nenhum log de sincronização encontrado
-              </div>
-            ) : (
-              syncLogs.map(log => (
-                <div key={log.id} className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      {getStatusIcon(log.status)}
-                      <Badge className={getStatusColor(log.status)}>
-                        {log.status}
-                      </Badge>
-                      <span className="text-sm text-gray-600">
-                        {new Date(log.execution_time).toLocaleString('pt-BR')}
-                      </span>
-                    </div>
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Activity className="h-5 w-5" />
+          Monitor de Sincronização Automática
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {syncLogs.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              Nenhum log de sincronização encontrado
+            </div>
+          ) : (
+            syncLogs.map((log) => (
+              <div key={log.id} className="border rounded-lg p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(log.status)}
+                    <span className="text-sm text-gray-600">
+                      {new Date(log.execution_time).toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+                  {log.execution_duration_ms && (
                     <span className="text-xs text-gray-500">
                       {log.execution_duration_ms}ms
                     </span>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <span className="font-medium text-gray-600">Encontradas:</span>
-                      <span className="ml-1">{log.instances_found}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-green-600">Adicionadas:</span>
-                      <span className="ml-1">{log.instances_added}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-blue-600">Atualizadas:</span>
-                      <span className="ml-1">{log.instances_updated}</span>
-                    </div>
-                    <div>
-                      <span className="font-medium text-red-600">Erros:</span>
-                      <span className="ml-1">{log.errors_count}</span>
-                    </div>
-                  </div>
-                  
-                  {log.error_details && (
-                    <div className="mt-3 p-2 bg-red-50 rounded text-xs text-red-700">
-                      <strong>Detalhes dos erros:</strong>
-                      <pre className="mt-1 whitespace-pre-wrap">
-                        {JSON.stringify(log.error_details, null, 2)}
-                      </pre>
-                    </div>
                   )}
                 </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium">Encontradas:</span>
+                    <p className="text-blue-600">{log.instances_found}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium">Adicionadas:</span>
+                    <p className="text-green-600">{log.instances_added}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium">Atualizadas:</span>
+                    <p className="text-orange-600">{log.instances_updated}</p>
+                  </div>
+                  <div>
+                    <span className="font-medium">Erros:</span>
+                    <p className="text-red-600">{log.errors_count}</p>
+                  </div>
+                </div>
+
+                {log.error_details && (
+                  <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-sm">
+                    <strong>Detalhes do erro:</strong>
+                    <pre className="text-xs mt-1 overflow-x-auto">
+                      {JSON.stringify(log.error_details, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 };

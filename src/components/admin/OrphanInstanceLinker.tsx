@@ -1,251 +1,252 @@
 
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
+import { AlertTriangle, Link, Users, Loader2, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Search, Link, Users, Building2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface OrphanInstance {
   id: string;
   instance_name: string;
-  vps_instance_id: string;
-  phone: string | null;
-  profile_name: string | null;
+  phone?: string;
   connection_status: string;
   created_at: string;
 }
 
-interface Company {
+interface UserProfile {
   id: string;
-  name: string;
-  active: boolean;
+  full_name: string;
 }
 
 export const OrphanInstanceLinker = () => {
   const [orphanInstances, setOrphanInstances] = useState<OrphanInstance[]>([]);
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCompany, setSelectedCompany] = useState<string>("");
-  const [selectedInstances, setSelectedInstances] = useState<string[]>([]);
-
-  const fetchOrphanInstances = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('whatsapp_instances')
-        .select('*')
-        .is('company_id', null)
-        .eq('connection_type', 'web')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setOrphanInstances(data || []);
-    } catch (error) {
-      console.error('Erro ao buscar instâncias órfãs:', error);
-      toast.error('Erro ao carregar instâncias órfãs');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchCompanies = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('companies')
-        .select('id, name, active')
-        .eq('active', true)
-        .order('name');
-
-      if (error) throw error;
-      setCompanies(data || []);
-    } catch (error) {
-      console.error('Erro ao buscar empresas:', error);
-      toast.error('Erro ao carregar empresas');
-    }
-  };
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLinking, setIsLinking] = useState<string | null>(null);
+  const [selectedUsers, setSelectedUsers] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    fetchOrphanInstances();
-    fetchCompanies();
+    fetchData();
   }, []);
 
-  const filteredInstances = orphanInstances.filter(instance =>
-    instance.instance_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (instance.phone && instance.phone.includes(searchTerm)) ||
-    (instance.profile_name && instance.profile_name.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Buscar instâncias órfãs
+      const { data: orphans, error: orphansError } = await supabase
+        .from('whatsapp_instances')
+        .select('*')
+        .is('created_by_user_id', null);
 
-  const handleSelectInstance = (instanceId: string) => {
-    setSelectedInstances(prev => 
-      prev.includes(instanceId) 
-        ? prev.filter(id => id !== instanceId)
-        : [...prev, instanceId]
-    );
+      if (orphansError) throw orphansError;
+
+      // Buscar usuários disponíveis
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .eq('role', 'admin');
+
+      if (profilesError) throw profilesError;
+
+      setOrphanInstances(orphans || []);
+      setUsers(profiles || []);
+      
+    } catch (error) {
+      console.error('Erro ao buscar dados:', error);
+      toast.error('Erro ao carregar dados');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleLinkInstances = async () => {
-    if (!selectedCompany || selectedInstances.length === 0) {
-      toast.error('Selecione uma empresa e pelo menos uma instância');
+  const handleLinkInstance = async (instanceId: string) => {
+    const selectedUserId = selectedUsers[instanceId];
+    
+    if (!selectedUserId) {
+      toast.error('Selecione um usuário para vincular');
       return;
     }
 
-    setLoading(true);
     try {
+      setIsLinking(instanceId);
+      
       const { error } = await supabase
         .from('whatsapp_instances')
-        .update({ company_id: selectedCompany })
-        .in('id', selectedInstances);
+        .update({ created_by_user_id: selectedUserId })
+        .eq('id', instanceId);
 
       if (error) throw error;
 
-      toast.success(`${selectedInstances.length} instância(s) vinculada(s) com sucesso!`);
-      setSelectedInstances([]);
-      setSelectedCompany("");
-      fetchOrphanInstances(); // Recarregar lista
+      toast.success('Instância vinculada com sucesso');
+      await fetchData();
+      
     } catch (error) {
-      console.error('Erro ao vincular instâncias:', error);
-      toast.error('Erro ao vincular instâncias');
+      console.error('Erro ao vincular instância:', error);
+      toast.error('Erro ao vincular instância');
     } finally {
-      setLoading(false);
+      setIsLinking(null);
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'ready': return 'bg-green-500';
-      case 'connecting': return 'bg-yellow-500';
-      case 'disconnected': return 'bg-red-500';
-      default: return 'bg-gray-500';
+  const handleBulkLink = async () => {
+    const linksToProcess = Object.entries(selectedUsers).filter(([_, userId]) => userId);
+    
+    if (linksToProcess.length === 0) {
+      toast.error('Selecione pelo menos uma instância para vincular');
+      return;
+    }
+
+    try {
+      setIsLinking('bulk');
+      
+      const promises = linksToProcess.map(([instanceId, userId]) =>
+        supabase
+          .from('whatsapp_instances')
+          .update({ created_by_user_id: userId })
+          .eq('id', instanceId)
+      );
+
+      await Promise.all(promises);
+      
+      toast.success(`${linksToProcess.length} instância(s) vinculada(s) com sucesso`);
+      await fetchData();
+      setSelectedUsers({});
+      
+    } catch (error) {
+      console.error('Erro no vínculo em lote:', error);
+      toast.error('Erro ao vincular instâncias em lote');
+    } finally {
+      setIsLinking(null);
     }
   };
 
-  return (
-    <div className="space-y-6">
+  if (isLoading) {
+    return (
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Link className="h-5 w-5 text-orange-600" />
-            Vincular Instâncias Órfãs ({orphanInstances.length})
-          </CardTitle>
-          <p className="text-sm text-gray-600">
-            Vincule instâncias que foram sincronizadas da VPS mas ainda não estão associadas a uma empresa
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Controles de busca e vinculação */}
-          <div className="flex gap-4 items-end">
-            <div className="flex-1">
-              <label className="text-sm font-medium">Buscar instâncias</label>
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Buscar por nome, telefone ou perfil..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="flex-1">
-              <label className="text-sm font-medium">Empresa</label>
-              <Select value={selectedCompany} onValueChange={setSelectedCompany}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma empresa" />
-                </SelectTrigger>
-                <SelectContent>
-                  {companies.map(company => (
-                    <SelectItem key={company.id} value={company.id}>
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4" />
-                        {company.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button 
-              onClick={handleLinkInstances}
-              disabled={loading || !selectedCompany || selectedInstances.length === 0}
-              className="gap-2"
-            >
-              <Link className="h-4 w-4" />
-              Vincular ({selectedInstances.length})
-            </Button>
-          </div>
-
-          {/* Lista de instâncias órfãs */}
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {loading ? (
-              <div className="text-center py-8">Carregando...</div>
-            ) : filteredInstances.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                {orphanInstances.length === 0 ? (
-                  <>
-                    <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    Nenhuma instância órfã encontrada!
-                  </>
-                ) : (
-                  'Nenhuma instância encontrada com o filtro atual'
-                )}
-              </div>
-            ) : (
-              filteredInstances.map(instance => (
-                <div
-                  key={instance.id}
-                  className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-                    selectedInstances.includes(instance.id) 
-                      ? 'border-blue-500 bg-blue-50' 
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                  onClick={() => handleSelectInstance(instance.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h4 className="font-medium">{instance.instance_name}</h4>
-                        <Badge 
-                          variant="secondary" 
-                          className={`${getStatusColor(instance.connection_status)} text-white`}
-                        >
-                          {instance.connection_status}
-                        </Badge>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
-                        <div>
-                          <span className="font-medium">VPS ID:</span> {instance.vps_instance_id}
-                        </div>
-                        <div>
-                          <span className="font-medium">Telefone:</span> {instance.phone || 'N/A'}
-                        </div>
-                        <div>
-                          <span className="font-medium">Perfil:</span> {instance.profile_name || 'N/A'}
-                        </div>
-                        <div>
-                          <span className="font-medium">Criado:</span> {new Date(instance.created_at).toLocaleDateString('pt-BR')}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="ml-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedInstances.includes(instance.id)}
-                        onChange={() => handleSelectInstance(instance.id)}
-                        className="h-4 w-4 text-blue-600"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </CardContent>
       </Card>
-    </div>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 text-orange-500" />
+          Vincular Instâncias Órfãs
+          <Badge variant="outline" className="ml-2">
+            {orphanInstances.length} órfã(s)
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {orphanInstances.length === 0 ? (
+          <div className="text-center py-8">
+            <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Nenhuma instância órfã encontrada
+            </h3>
+            <p className="text-gray-600">
+              Todas as instâncias estão devidamente vinculadas aos seus proprietários
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 text-orange-800 mb-2">
+                <AlertTriangle className="h-5 w-5" />
+                <span className="font-medium">Atenção</span>
+              </div>
+              <p className="text-orange-700 text-sm">
+                {orphanInstances.length} instância(s) órfã(s) detectada(s). 
+                Vincule-as aos proprietários corretos para garantir a segurança dos dados.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {orphanInstances.map((instance) => (
+                <div key={instance.id} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h3 className="font-medium">{instance.instance_name}</h3>
+                      <div className="text-sm text-gray-600">
+                        {instance.phone && <span>📱 {instance.phone}</span>}
+                        <span className="ml-2">
+                          Criada em {new Date(instance.created_at).toLocaleDateString('pt-BR')}
+                        </span>
+                      </div>
+                    </div>
+                    <Badge 
+                      variant={instance.connection_status === 'connected' ? 'default' : 'secondary'}
+                    >
+                      {instance.connection_status}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <Select 
+                      value={selectedUsers[instance.id] || ""} 
+                      onValueChange={(value) => 
+                        setSelectedUsers(prev => ({ ...prev, [instance.id]: value }))
+                      }
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Selecione um proprietário..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {users.map((user) => (
+                          <SelectItem key={user.id} value={user.id}>
+                            <div className="flex items-center gap-2">
+                              <Users className="h-4 w-4" />
+                              {user.full_name}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Button
+                      onClick={() => handleLinkInstance(instance.id)}
+                      disabled={!selectedUsers[instance.id] || isLinking === instance.id}
+                      size="sm"
+                    >
+                      {isLinking === instance.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Link className="h-4 w-4 mr-2" />
+                      )}
+                      Vincular
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {Object.keys(selectedUsers).filter(key => selectedUsers[key]).length > 0 && (
+              <div className="flex justify-end">
+                <Button 
+                  onClick={handleBulkLink}
+                  disabled={isLinking === 'bulk'}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {isLinking === 'bulk' ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Link className="h-4 w-4 mr-2" />
+                  )}
+                  Vincular Todas Selecionadas
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
