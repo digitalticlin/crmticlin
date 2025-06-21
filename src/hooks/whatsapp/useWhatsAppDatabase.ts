@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useRealtimeManager } from '../realtime/useRealtimeManager';
 
 export interface WhatsAppInstance {
   id: string;
@@ -26,8 +27,8 @@ export const useWhatsAppDatabase = () => {
   const [instances, setInstances] = useState<WhatsAppInstance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { registerCallback, unregisterCallback } = useRealtimeManager();
 
-  // Buscar instâncias do banco
   const fetchInstances = async () => {
     try {
       setIsLoading(true);
@@ -54,7 +55,6 @@ export const useWhatsAppDatabase = () => {
     }
   };
 
-  // Obter instância ativa
   const getActiveInstance = (): WhatsAppInstance | null => {
     const activeInstance = instances.find(i => 
       i.connection_status === 'connected' || 
@@ -63,7 +63,6 @@ export const useWhatsAppDatabase = () => {
     return activeInstance || null;
   };
 
-  // Calcular métricas de saúde
   const connectedInstances = instances.filter(i => 
     i.connection_status === 'connected' || i.connection_status === 'ready'
   ).length;
@@ -72,36 +71,31 @@ export const useWhatsAppDatabase = () => {
   const healthScore = totalInstances === 0 ? 0 : Math.round((connectedInstances / totalInstances) * 100);
   const isHealthy = healthScore >= 70;
 
-  // Recarregar instâncias
   const refetch = () => {
     fetchInstances();
   };
 
-  // Configurar subscription em tempo real
   useEffect(() => {
     fetchInstances();
 
-    const channel = supabase
-      .channel('whatsapp-instances-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'whatsapp_instances',
-          filter: 'connection_type=eq.web'
-        },
-        (payload) => {
-          console.log('[useWhatsAppDatabase] Atualização em tempo real:', payload);
-          fetchInstances(); // Recarregar quando houver mudanças
-        }
-      )
-      .subscribe();
+    const handleInstanceUpdate = (payload: any) => {
+      console.log('[useWhatsAppDatabase] Atualização em tempo real:', payload);
+      fetchInstances();
+    };
+
+    registerCallback(
+      'whatsapp-database-realtime',
+      'whatsappInstanceUpdate',
+      handleInstanceUpdate,
+      {
+        filters: { connection_type: 'web' }
+      }
+    );
 
     return () => {
-      supabase.removeChannel(channel);
+      unregisterCallback('whatsapp-database-realtime');
     };
-  }, []);
+  }, [registerCallback, unregisterCallback]);
 
   return {
     instances,
@@ -110,7 +104,6 @@ export const useWhatsAppDatabase = () => {
     getActiveInstance,
     refetch,
     fetchInstances,
-    // Health metrics
     healthScore,
     isHealthy,
     totalInstances,

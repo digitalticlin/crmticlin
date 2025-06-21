@@ -30,7 +30,6 @@ export const useStabilizedInstanceSync = () => {
   const { registerCallback, unregisterCallback } = useRealtimeManager();
   const isMountedRef = useRef(true);
   const lastFetchRef = useRef<number>(0);
-  const hookId = useRef(`stabilized-sync-${Math.random()}`).current;
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -117,12 +116,16 @@ export const useStabilizedInstanceSync = () => {
       performOptimizedSync(true);
     };
 
-    registerCallback(`${hookId}-instance-update`, 'instanceUpdate', handleInstanceUpdate);
+    registerCallback(
+      'stabilized-sync-instance-update',
+      'instanceUpdate',
+      handleInstanceUpdate
+    );
 
     return () => {
-      unregisterCallback(`${hookId}-instance-update`);
+      unregisterCallback('stabilized-sync-instance-update');
     };
-  }, [performOptimizedSync, registerCallback, unregisterCallback, hookId]);
+  }, [performOptimizedSync, registerCallback, unregisterCallback]);
 
   useEffect(() => {
     if (userId && isMountedRef.current) {

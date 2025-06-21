@@ -1,53 +1,22 @@
 
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useRealtimeManager } from '../realtime/useRealtimeManager';
 import { toast } from 'sonner';
 
 export const useWhatsAppNotifications = (companyId: string | null) => {
+  const { registerCallback, unregisterCallback } = useRealtimeManager();
+
   useEffect(() => {
     if (!companyId) return;
 
     console.log('[WhatsApp Notifications] Setting up notification system');
-
-    // Notificações para instâncias
-    const instanceNotificationsChannel = supabase
-      .channel('instance-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'whatsapp_instances',
-          filter: `company_id=eq.${companyId}`
-        },
-        (payload) => {
-          handleInstanceNotification(payload);
-        }
-      )
-      .subscribe();
-
-    // Notificações para mensagens
-    const messageNotificationsChannel = supabase
-      .channel('message-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages'
-        },
-        (payload) => {
-          handleMessageNotification(payload);
-        }
-      )
-      .subscribe();
 
     const handleInstanceNotification = (payload: any) => {
       const oldRecord = payload.old;
       const newRecord = payload.new;
 
       if (oldRecord && newRecord) {
-        // Verificar mudanças de status importantes
         if (oldRecord.connection_status !== newRecord.connection_status) {
           const statusMessages = {
             'open': {
@@ -94,7 +63,6 @@ export const useWhatsAppNotifications = (companyId: string | null) => {
           }
         }
 
-        // Notificar quando número for registrado
         if (!oldRecord.phone && newRecord.phone) {
           toast.success('📞 Número Registrado', {
             description: `WhatsApp +${newRecord.phone} foi registrado com sucesso`,
@@ -107,9 +75,7 @@ export const useWhatsAppNotifications = (companyId: string | null) => {
     const handleMessageNotification = (payload: any) => {
       const messageData = payload.new;
       
-      // Só notificar mensagens recebidas (não enviadas pelo usuário)
       if (!messageData.from_me && messageData.text) {
-        // Verificar se a mensagem é de uma instância da empresa
         supabase
           .from('whatsapp_instances')
           .select('instance_name, company_id')
@@ -126,7 +92,6 @@ export const useWhatsAppNotifications = (companyId: string | null) => {
                 action: {
                   label: 'Ver Chat',
                   onClick: () => {
-                    // Aqui poderia implementar navegação para o chat
                     console.log('Navigate to chat:', messageData.lead_id);
                   }
                 }
@@ -136,10 +101,25 @@ export const useWhatsAppNotifications = (companyId: string | null) => {
       }
     };
 
+    registerCallback(
+      'whatsapp-instance-notifications',
+      'instanceUpdate',
+      handleInstanceNotification,
+      {
+        companyId: companyId
+      }
+    );
+
+    registerCallback(
+      'whatsapp-message-notifications',
+      'messageInsert',
+      handleMessageNotification
+    );
+
     return () => {
-      console.log('[WhatsApp Notifications] Cleaning up notification channels');
-      supabase.removeChannel(instanceNotificationsChannel);
-      supabase.removeChannel(messageNotificationsChannel);
+      console.log('[WhatsApp Notifications] Cleaning up notification callbacks');
+      unregisterCallback('whatsapp-instance-notifications');
+      unregisterCallback('whatsapp-message-notifications');
     };
-  }, [companyId]);
+  }, [companyId, registerCallback, unregisterCallback]);
 };

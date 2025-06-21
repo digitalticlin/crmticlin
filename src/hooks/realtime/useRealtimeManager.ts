@@ -5,9 +5,14 @@ import { useCompanyData } from '../useCompanyData';
 
 interface RealtimeCallback {
   id: string;
-  type: 'leadInsert' | 'leadUpdate' | 'messageInsert' | 'instanceUpdate';
+  type: 'leadInsert' | 'leadUpdate' | 'messageInsert' | 'instanceUpdate' | 'whatsappInstanceUpdate' | 'notification';
   callback: (payload: any) => void;
   activeInstanceId?: string | null;
+  companyId?: string | null;
+  leadId?: string | null;
+  filters?: {
+    [key: string]: any;
+  };
 }
 
 class RealtimeManager {
@@ -16,7 +21,10 @@ class RealtimeManager {
   private callbacks: Map<string, RealtimeCallback> = new Map();
   private isSubscribed = false;
   private userId: string | null = null;
+  private companyId: string | null = null;
   private subscriptionPromise: Promise<void> | null = null;
+  private retryCount = 0;
+  private maxRetries = 3;
 
   static getInstance(): RealtimeManager {
     if (!RealtimeManager.instance) {
@@ -27,18 +35,18 @@ class RealtimeManager {
 
   private constructor() {}
 
-  async initialize(userId: string) {
-    if (this.userId === userId && this.isSubscribed) {
-      return; // Already initialized for this user
+  async initialize(userId: string, companyId?: string | null) {
+    if (this.userId === userId && this.companyId === companyId && this.isSubscribed) {
+      return;
     }
 
-    if (this.userId !== userId) {
+    if (this.userId !== userId || this.companyId !== companyId) {
       await this.cleanup();
     }
 
     this.userId = userId;
+    this.companyId = companyId;
     
-    // If already subscribing, wait for it to complete
     if (this.subscriptionPromise) {
       await this.subscriptionPromise;
       return;
@@ -95,9 +103,17 @@ class RealtimeManager {
             filter: `created_by_user_id=eq.${this.userId}`
           },
           (payload) => this.handleCallback('instanceUpdate', payload)
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'whatsapp_instances'
+          },
+          (payload) => this.handleCallback('whatsappInstanceUpdate', payload)
         );
 
-      // Subscribe and wait for completion
       return new Promise((resolve, reject) => {
         if (!this.channel) {
           reject(new Error('Channel not created'));
@@ -109,12 +125,22 @@ class RealtimeManager {
           
           if (status === 'SUBSCRIBED') {
             this.isSubscribed = true;
+            this.retryCount = 0;
             console.log('[Realtime Manager] ✅ Channel subscription completed');
             resolve();
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
             this.isSubscribed = false;
             console.error('[Realtime Manager] ❌ Subscription failed with status:', status);
-            reject(new Error(`Subscription failed: ${status}`));
+            
+            if (this.retryCount < this.maxRetries) {
+              this.retryCount++;
+              console.log(`[Realtime Manager] 🔄 Retrying subscription (${this.retryCount}/${this.maxRetries})`);
+              setTimeout(() => {
+                this.setupChannel().then(resolve).catch(reject);
+              }, 1000 * this.retryCount);
+            } else {
+              reject(new Error(`Subscription failed after ${this.maxRetries} retries: ${status}`));
+            }
           }
         });
       });
@@ -129,24 +155,76 @@ class RealtimeManager {
   private handleCallback(type: RealtimeCallback['type'], payload: any) {
     this.callbacks.forEach((callback) => {
       if (callback.type === type) {
-        // For message inserts, check if we need to filter by instance
+        let shouldExecute = true;
+
+        // Aplicar filtros específicos
         if (type === 'messageInsert' && callback.activeInstanceId) {
           const messageData = payload.new;
           if (messageData.whatsapp_number_id !== callback.activeInstanceId) {
-            return; // Skip this callback
+            shouldExecute = false;
           }
         }
-        callback.callback(payload);
+
+        if (type === 'whatsappInstanceUpdate' && callback.companyId) {
+          const instanceData = payload.new;
+          if (instanceData.company_id !== callback.companyId) {
+            shouldExecute = false;
+          }
+        }
+
+        if (callback.leadId && payload.new?.lead_id !== callback.leadId) {
+          shouldExecute = false;
+        }
+
+        // Aplicar filtros personalizados
+        if (callback.filters && shouldExecute) {
+          for (const [key, value] of Object.entries(callback.filters)) {
+            if (payload.new?.[key] !== value) {
+              shouldExecute = false;
+              break;
+            }
+          }
+        }
+
+        if (shouldExecute) {
+          try {
+            callback.callback(payload);
+          } catch (error) {
+            console.error('[Realtime Manager] ❌ Error in callback:', error);
+          }
+        }
       }
     });
   }
 
-  registerCallback(id: string, type: RealtimeCallback['type'], callback: (payload: any) => void, activeInstanceId?: string | null) {
-    this.callbacks.set(id, { id, type, callback, activeInstanceId });
+  registerCallback(
+    id: string, 
+    type: RealtimeCallback['type'], 
+    callback: (payload: any) => void, 
+    options?: {
+      activeInstanceId?: string | null;
+      companyId?: string | null;
+      leadId?: string | null;
+      filters?: { [key: string]: any };
+    }
+  ) {
+    this.callbacks.set(id, { 
+      id, 
+      type, 
+      callback, 
+      activeInstanceId: options?.activeInstanceId,
+      companyId: options?.companyId,
+      leadId: options?.leadId,
+      filters: options?.filters
+    });
+    console.log(`[Realtime Manager] 📝 Registered callback: ${id} for ${type}`);
   }
 
   unregisterCallback(id: string) {
-    this.callbacks.delete(id);
+    const removed = this.callbacks.delete(id);
+    if (removed) {
+      console.log(`[Realtime Manager] 🗑️ Unregistered callback: ${id}`);
+    }
   }
 
   async cleanup() {
@@ -162,15 +240,20 @@ class RealtimeManager {
     this.isSubscribed = false;
     this.subscriptionPromise = null;
     this.callbacks.clear();
+    this.retryCount = 0;
   }
 
   getConnectionStatus() {
     return this.isSubscribed;
   }
+
+  getActiveCallbacks() {
+    return Array.from(this.callbacks.keys());
+  }
 }
 
 export const useRealtimeManager = () => {
-  const { userId } = useCompanyData();
+  const { userId, companyId } = useCompanyData();
   const manager = useRef(RealtimeManager.getInstance());
   const isMountedRef = useRef(true);
 
@@ -183,7 +266,7 @@ export const useRealtimeManager = () => {
 
   useEffect(() => {
     if (userId && isMountedRef.current) {
-      manager.current.initialize(userId).catch((error) => {
+      manager.current.initialize(userId, companyId).catch((error) => {
         console.error('[Realtime Manager] Initialization failed:', error);
       });
     }
@@ -191,10 +274,20 @@ export const useRealtimeManager = () => {
     return () => {
       // Don't cleanup on unmount, let other components continue using it
     };
-  }, [userId]);
+  }, [userId, companyId]);
 
-  const registerCallback = useCallback((id: string, type: RealtimeCallback['type'], callback: (payload: any) => void, activeInstanceId?: string | null) => {
-    manager.current.registerCallback(id, type, callback, activeInstanceId);
+  const registerCallback = useCallback((
+    id: string, 
+    type: RealtimeCallback['type'], 
+    callback: (payload: any) => void, 
+    options?: {
+      activeInstanceId?: string | null;
+      companyId?: string | null;
+      leadId?: string | null;
+      filters?: { [key: string]: any };
+    }
+  ) => {
+    manager.current.registerCallback(id, type, callback, options);
   }, []);
 
   const unregisterCallback = useCallback((id: string) => {
@@ -204,6 +297,7 @@ export const useRealtimeManager = () => {
   return {
     registerCallback,
     unregisterCallback,
-    isConnected: manager.current.getConnectionStatus()
+    isConnected: manager.current.getConnectionStatus(),
+    activeCallbacks: manager.current.getActiveCallbacks()
   };
 };

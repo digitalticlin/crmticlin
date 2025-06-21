@@ -9,8 +9,8 @@ interface UseRealtimeMessagesProps {
 }
 
 /**
- * Hook simplificado - agora a lógica de tempo real está consolidada no useRealtimeLeads
- * Este hook é mantido para compatibilidade mas não faz subscrições duplicadas
+ * Hook simplificado - toda a lógica de tempo real foi consolidada no useRealtimeManager
+ * Este hook é mantido apenas para compatibilidade com componentes existentes
  */
 export const useRealtimeMessages = ({
   selectedContact,
@@ -20,7 +20,10 @@ export const useRealtimeMessages = ({
 }: UseRealtimeMessagesProps) => {
   
   useEffect(() => {
-    console.log('[Realtime Messages] Hook initialized but logic moved to useRealtimeLeads to avoid duplicate subscriptions');
-    // A lógica foi movida para useRealtimeLeads para evitar múltiplas subscrições
+    console.log('[Realtime Messages] All realtime logic has been consolidated in useRealtimeManager');
+    console.log('[Realtime Messages] This hook is now a placeholder for compatibility');
+    
+    // A lógica foi movida para useRealtimeManager e outros hooks específicos
+    // Este hook não faz mais subscrições diretas para evitar conflitos
   }, [selectedContact, activeInstanceId, onNewMessage, onContactUpdate]);
 };

@@ -2,68 +2,59 @@
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useCompanyData } from "../useCompanyData";
+import { useRealtimeManager } from "../realtime/useRealtimeManager";
 import { toast } from "sonner";
 
-/**
- * Hook para integrar novos leads vindos do chat com o funil de vendas
- */
 export const useNewLeadIntegration = (selectedFunnelId?: string) => {
   const { companyId } = useCompanyData();
+  const { registerCallback, unregisterCallback } = useRealtimeManager();
 
   useEffect(() => {
     if (!companyId || !selectedFunnelId) return;
 
-    // Escutar novos leads criados no chat
-    const channel = supabase
-      .channel('new-leads-integration')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'leads',
-          filter: `company_id=eq.${companyId}`
-        },
-        async (payload) => {
-          console.log('Novo lead detectado:', payload.new);
-          
-          // Se o lead não tem kanban_stage_id, atribuir ao estágio "ENTRADA DE LEAD"
-          if (!payload.new.kanban_stage_id) {
-            try {
-              // Buscar o estágio "ENTRADA DE LEAD" do funil selecionado
-              const { data: entryStage } = await supabase
-                .from('kanban_stages')
-                .select('id')
-                .eq('funnel_id', selectedFunnelId)
-                .eq('title', 'ENTRADA DE LEAD')
-                .single();
+    const handleNewLead = async (payload: any) => {
+      console.log('Novo lead detectado:', payload.new);
+      
+      if (!payload.new.kanban_stage_id) {
+        try {
+          const { data: entryStage } = await supabase
+            .from('kanban_stages')
+            .select('id')
+            .eq('funnel_id', selectedFunnelId)
+            .eq('title', 'ENTRADA DE LEAD')
+            .single();
 
-              if (entryStage) {
-                // Atualizar o lead com o estágio correto
-                await supabase
-                  .from('leads')
-                  .update({
-                    kanban_stage_id: entryStage.id,
-                    funnel_id: selectedFunnelId
-                  })
-                  .eq('id', payload.new.id);
+          if (entryStage) {
+            await supabase
+              .from('leads')
+              .update({
+                kanban_stage_id: entryStage.id,
+                funnel_id: selectedFunnelId
+              })
+              .eq('id', payload.new.id);
 
-                toast.success(`Novo lead "${payload.new.name || payload.new.phone}" adicionado ao funil!`);
-              }
-            } catch (error) {
-              console.error('Erro ao integrar novo lead:', error);
-            }
+            toast.success(`Novo lead "${payload.new.name || payload.new.phone}" adicionado ao funil!`);
           }
+        } catch (error) {
+          console.error('Erro ao integrar novo lead:', error);
         }
-      )
-      .subscribe();
+      }
+    };
+
+    registerCallback(
+      'new-lead-integration',
+      'leadInsert',
+      handleNewLead,
+      {
+        filters: { funnel_id: selectedFunnelId }
+      }
+    );
 
     return () => {
-      supabase.removeChannel(channel);
+      unregisterCallback('new-lead-integration');
     };
-  }, [companyId, selectedFunnelId]);
+  }, [companyId, selectedFunnelId, registerCallback, unregisterCallback]);
 
-  // Função para mover lead existente para o funil
   const addExistingLeadToFunnel = async (leadId: string) => {
     if (!selectedFunnelId) {
       toast.error("Nenhum funil selecionado");
@@ -71,7 +62,6 @@ export const useNewLeadIntegration = (selectedFunnelId?: string) => {
     }
 
     try {
-      // Buscar o estágio "ENTRADA DE LEAD"
       const { data: entryStage } = await supabase
         .from('kanban_stages')
         .select('id')
@@ -84,7 +74,6 @@ export const useNewLeadIntegration = (selectedFunnelId?: string) => {
         return;
       }
 
-      // Atualizar o lead
       const { error } = await supabase
         .from('leads')
         .update({
