@@ -10,9 +10,10 @@ export const useWhatsAppRealtime = () => {
   const { instances } = useWhatsAppInstanceState();
   const { updateInstance } = useWhatsAppInstanceActions();
   
-  // CORREÇÃO: Refs simples sem debounce complexo
+  // Refs para controle de subscrição
   const channelRef = useRef<any>(null);
   const isMountedRef = useRef(true);
+  const isSubscribedRef = useRef(false);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -24,12 +25,20 @@ export const useWhatsAppRealtime = () => {
   useEffect(() => {
     if (!user?.id || !isMountedRef.current) return;
 
+    // Prevent duplicate subscriptions
+    if (isSubscribedRef.current && channelRef.current) {
+      console.log('[WhatsApp Realtime] Subscription already active, skipping');
+      return;
+    }
+
     console.log('[WhatsApp Realtime] 🔄 Configurando real-time para usuário:', user.id);
     
-    // CORREÇÃO: Remover canal anterior se existir
+    // Remover canal anterior se existir
     if (channelRef.current) {
       console.log('[WhatsApp Realtime] 🧹 Removendo canal anterior');
       supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+      isSubscribedRef.current = false;
     }
 
     // Canal consolidado filtrado por created_by_user_id
@@ -41,7 +50,7 @@ export const useWhatsAppRealtime = () => {
           event: '*',
           schema: 'public',
           table: 'whatsapp_instances',
-          filter: `created_by_user_id=eq.${user.id}` // CORREÇÃO: Filtrar por created_by_user_id
+          filter: `created_by_user_id=eq.${user.id}`
         },
         (payload) => {
           if (!isMountedRef.current) return;
@@ -62,7 +71,15 @@ export const useWhatsAppRealtime = () => {
           handleNewMessage(payload);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[WhatsApp Realtime] Subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          isSubscribedRef.current = true;
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.error('[WhatsApp Realtime] Subscription failed:', status);
+          isSubscribedRef.current = false;
+        }
+      });
 
     const handleNewMessage = (payload: any) => {
       const messageData = payload.new;
@@ -80,7 +97,7 @@ export const useWhatsAppRealtime = () => {
       if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
         const newRecord = payload.new as any;
         
-        // CORREÇÃO: Verificar se a instância pertence ao usuário atual
+        // Verificar se a instância pertence ao usuário atual
         if (newRecord.created_by_user_id === user.id) {
           const isConnected = ['open', 'ready', 'connected'].includes(newRecord.connection_status);
 
@@ -140,7 +157,7 @@ export const useWhatsAppRealtime = () => {
       }
     };
 
-    // CORREÇÃO: Cleanup simples
+    // Cleanup simples
     return () => {
       console.log('[WhatsApp Realtime] 🧹 Cleanup executado');
       isMountedRef.current = false;
@@ -149,6 +166,7 @@ export const useWhatsAppRealtime = () => {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
+      isSubscribedRef.current = false;
     };
   }, [user?.id, updateInstance]);
 
