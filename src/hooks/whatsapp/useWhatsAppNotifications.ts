@@ -101,19 +101,25 @@ export const useWhatsAppNotifications = (companyId: string | null) => {
       }
     };
 
+    // Use explicit type annotations to avoid type inference issues
+    const instanceOptions = {
+      companyId: companyId
+    };
+
+    const messageOptions = {};
+
     registerCallback(
       'whatsapp-instance-notifications',
       'instanceUpdate',
       handleInstanceNotification,
-      {
-        companyId: companyId
-      }
+      instanceOptions
     );
 
     registerCallback(
       'whatsapp-message-notifications',
       'messageInsert',
-      handleMessageNotification
+      handleMessageNotification,
+      messageOptions
     );
 
     return () => {
