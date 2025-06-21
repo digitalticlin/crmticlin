@@ -8,7 +8,7 @@ export function useRealSalesFunnel(funnelId?: string) {
   const { leads, refetchLeads } = useLeadsDatabase(funnelId);
   const { tags } = useTagDatabase();
   
-  const createLead = useLeadCreation(funnelId);
+  const createLeadMutation = useLeadCreation();
   
   const { 
     moveToWonLost,
@@ -20,7 +20,7 @@ export function useRealSalesFunnel(funnelId?: string) {
 
   const handleCreateLead = async (leadData: any) => {
     try {
-      await createLead.mutateAsync(leadData);
+      await createLeadMutation.mutateAsync(leadData);
       refetchLeads();
     } catch (error) {
       console.error("Erro ao criar lead:", error);
@@ -40,7 +40,7 @@ export function useRealSalesFunnel(funnelId?: string) {
     leads,
     tags,
     createLead: handleCreateLead,
-    isCreatingLead: createLead.isPending,
+    isCreatingLead: createLeadMutation.isPending,
     moveToWonLost: handleMoveToWonLost,
     moveLeadToStage,
     addColumn,

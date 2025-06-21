@@ -83,7 +83,7 @@ export async function saveInstanceToDatabase({
           vps_instance_id: vpsInstanceId,
           web_status: webStatus,
           qr_code: qrCode,
-          session_data: sessionData,
+          session_data: sessionData as any, // Cast to any for Json compatibility
           updated_at: new Date().toISOString(),
           date_connected: connectionStatus === "connected" ? new Date().toISOString() : null,
         })
@@ -115,7 +115,7 @@ export async function saveInstanceToDatabase({
         vps_instance_id: vpsInstanceId,
         web_status: webStatus,
         qr_code: qrCode,
-        session_data: sessionData,
+        session_data: sessionData as any, // Cast to any for Json compatibility
         date_connected: connectionStatus === "connected" ? new Date().toISOString() : null,
       })
       .select()
@@ -134,3 +134,14 @@ export async function saveInstanceToDatabase({
     throw error;
   }
 }
+
+export const getCurrentUserId = async (): Promise<string> => {
+  const userResult = await supabase.auth.getUser();
+  const userId = userResult.data.user?.id;
+
+  if (!userId) {
+    throw new Error("Usuário não autenticado");
+  }
+
+  return userId;
+};

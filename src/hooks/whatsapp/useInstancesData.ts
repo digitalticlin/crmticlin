@@ -9,35 +9,51 @@ export function useInstancesData() {
   const [instances, setInstances] = useState<WhatsAppWebInstance[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchInstances = async () => {
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        console.log('⚠️ Usuário não autenticado');
+        setInstances([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("whatsapp_instances")
+        .select("*")
+        .eq("created_by_user_id", user.id);
+
+      if (error) throw error;
+
+      // Transform data to match WhatsAppWebInstance interface
+      const transformedData: WhatsAppWebInstance[] = (data || []).map(instance => ({
+        ...instance,
+        created_by_user_id: instance.created_by_user_id,
+        created_at: instance.created_at || new Date().toISOString(),
+        updated_at: instance.updated_at || new Date().toISOString(),
+        history_imported: instance.history_imported || false,
+      }));
+
+      setInstances(transformedData);
+    } catch (error) {
+      console.error("Error fetching instances:", error);
+      setInstances([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!user?.id) return;
-
-    const fetchInstances = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("whatsapp_instances")
-          .select("*")
-          .eq("created_by_user_id", user.id);
-
-        if (error) throw error;
-
-        // Transform data to match WhatsAppWebInstance interface
-        const transformedData: WhatsAppWebInstance[] = (data || []).map(instance => ({
-          ...instance,
-          created_by_user_id: instance.created_by_user_id,
-        }));
-
-        setInstances(transformedData);
-      } catch (error) {
-        console.error("Error fetching instances:", error);
-        setInstances([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchInstances();
   }, [user?.id]);
 
-  return { instances, loading, setInstances };
+  return { 
+    instances, 
+    loading,
+    isLoading: loading, 
+    setInstances,
+    refetch: fetchInstances
+  };
 }

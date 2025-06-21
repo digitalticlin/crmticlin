@@ -24,7 +24,7 @@ import { toast } from "sonner";
 export const ModernWhatsAppPanel = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   
-  const { instances, isLoading, refetch } = useInstancesData();
+  const { instances, loading, refetch } = useInstancesData();
   const { 
     syncCount, 
     healthScore, 
@@ -223,7 +223,7 @@ export const ModernWhatsAppPanel = () => {
           </p>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {loading ? (
             <div className="text-center py-8">
               <RefreshCw className="h-8 w-8 animate-spin mx-auto text-gray-400 mb-2" />
               <p className="text-gray-600">Carregando instâncias...</p>
@@ -270,7 +270,7 @@ export const ModernWhatsAppPanel = () => {
                     >
                       {instance.connection_status === 'open' ? 'Conectado' :
                        instance.connection_status === 'connecting' ? 'Conectando' :
-                       instance.connection_status === 'waiting_scan' ? 'Aguardando QR' :
+                       instance.connection_status === 'qr_ready' ? 'Aguardando QR' :
                        'Desconectado'}
                     </Badge>
                     

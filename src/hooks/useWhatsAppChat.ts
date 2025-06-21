@@ -8,12 +8,12 @@ import { useContactNotes } from './whatsapp/useContactNotes';
 
 // DEPRECATED: Use useWhatsAppWebChat instead
 // This hook is kept for backward compatibility but should be replaced
-export const useWhatsAppChat = (userEmail: string) => {
+export const useWhatsAppChat = (userEmail?: string) => {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
   // Get user company ID
-  const companyId = useCompanyResolver(userEmail);
+  const { companyId } = useCompanyResolver();
 
   // Use database-only approach
   const { instances, getActiveInstance } = useWhatsAppDatabase();
@@ -34,8 +34,9 @@ export const useWhatsAppChat = (userEmail: string) => {
     profile_pic_url: activeInstance.profile_pic_url,
     date_connected: activeInstance.date_connected,
     date_disconnected: activeInstance.date_disconnected,
-    company_id: activeInstance.company_id || '',
-    created_by_user_id: activeInstance.created_by_user_id || null
+    created_by_user_id: activeInstance.created_by_user_id || '',
+    created_at: activeInstance.created_at || new Date().toISOString(),
+    updated_at: activeInstance.updated_at || new Date().toISOString()
   } : null;
 
   // Use the new WhatsApp Web chat hook
@@ -43,12 +44,8 @@ export const useWhatsAppChat = (userEmail: string) => {
     contacts,
     messages,
     sendMessage,
-    isLoadingContacts,
-    isLoadingMessages,
-    isSending,
-    fetchContacts,
-    fetchMessages
-  } = useWhatsAppWebChat(webActiveInstance);
+    loading
+  } = useWhatsAppWebChat(webActiveInstance?.id || '');
 
   // Get contact notes
   const {
@@ -73,15 +70,15 @@ export const useWhatsAppChat = (userEmail: string) => {
     setSelectedContact,
     messages,
     sendMessage,
-    isLoadingContacts,
-    isLoadingMessages,
-    isSending,
+    isLoadingContacts: loading,
+    isLoadingMessages: loading,
+    isSending: false,
     lastRefresh,
     contactNotes,
     setContactNotes,
     updateContactNotes,
-    fetchContacts,
-    fetchMessages,
+    fetchContacts: () => {},
+    fetchMessages: () => {},
     activeInstance
   };
 };

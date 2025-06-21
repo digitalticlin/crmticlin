@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -40,7 +39,7 @@ export function useTeamManagement(companyId?: string | null) {
         full_name: profile.full_name,
         username: profile.username,
         email: `${profile.username}@domain.com`, // Placeholder since we don't have email in profiles
-        role: profile.role === 'manager' ? 'admin' : profile.role,
+        role: profile.role === 'manager' ? 'admin' : (profile.role === 'operational' ? 'operational' : 'admin'),
         created_at: profile.created_at,
         whatsapp_access: profile.whatsapp_access?.map((w: any) => w.whatsapp_number_id) || [],
         funnel_access: profile.funnel_access?.map((f: any) => f.funnel_id) || [],
@@ -91,10 +90,13 @@ export function useTeamManagement(companyId?: string | null) {
     }) => {
       if (!user?.id) throw new Error("Usuário não autenticado");
 
-      // Create profile first
+      // Create profile first - generate a unique ID
+      const profileId = crypto.randomUUID();
+      
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .insert({
+          id: profileId,
           full_name: memberData.fullName,
           username: memberData.username,
           role: memberData.role,

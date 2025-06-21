@@ -5,7 +5,10 @@ export type WhatsAppConnectionStatus =
   | "connected" 
   | "error" 
   | "qr_ready" 
-  | "authenticating";
+  | "authenticating"
+  | "ready"
+  | "open"
+  | "waiting_scan";
 
 export interface WhatsAppWebResult {
   success: boolean;
@@ -13,6 +16,7 @@ export interface WhatsAppWebResult {
   qrCode?: string;
   sessionData?: any;
   error?: string;
+  [key: string]: any; // Index signature for Json compatibility
 }
 
 export interface WhatsAppWebInstance {
@@ -34,6 +38,7 @@ export interface WhatsAppWebInstance {
   created_at: string;
   updated_at: string;
   n8n_webhook_url?: string;
+  history_imported?: boolean;
 }
 
 export interface WhatsAppMessage {
