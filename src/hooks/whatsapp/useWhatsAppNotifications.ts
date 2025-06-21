@@ -18,7 +18,7 @@ export const useWhatsAppNotifications = (companyId: string | null) => {
 
       if (oldRecord && newRecord) {
         if (oldRecord.connection_status !== newRecord.connection_status) {
-          const statusMessages = {
+          const statusMessages: Record<string, { title: string; description: string; type: 'success' | 'error' | 'info' }> = {
             'open': {
               title: '🟢 WhatsApp Conectado',
               description: `${newRecord.instance_name} está online e pronto para uso`,
@@ -41,7 +41,7 @@ export const useWhatsAppNotifications = (companyId: string | null) => {
             }
           };
 
-          const statusInfo = statusMessages[newRecord.connection_status as keyof typeof statusMessages];
+          const statusInfo = statusMessages[newRecord.connection_status];
           
           if (statusInfo) {
             if (statusInfo.type === 'success') {

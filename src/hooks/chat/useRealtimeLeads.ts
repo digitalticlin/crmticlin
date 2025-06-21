@@ -52,7 +52,9 @@ export const useRealtimeLeads = ({
     // Register callbacks
     registerCallback(`${hookId}-lead-insert`, 'leadInsert', handleLeadInsert);
     registerCallback(`${hookId}-lead-update`, 'leadUpdate', handleLeadUpdate);
-    registerCallback(`${hookId}-message-insert`, 'messageInsert', handleMessageInsert, activeInstanceId);
+    registerCallback(`${hookId}-message-insert`, 'messageInsert', handleMessageInsert, {
+      activeInstanceId: activeInstanceId
+    });
 
     return () => {
       unregisterCallback(`${hookId}-lead-insert`);

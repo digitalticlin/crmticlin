@@ -42,7 +42,9 @@ export const useWhatsAppChatRealtime = (
       await fetchContacts();
     };
 
-    registerCallback(`${hookId}-message-insert`, 'messageInsert', handleMessageInsert, activeInstance?.id || null);
+    registerCallback(`${hookId}-message-insert`, 'messageInsert', handleMessageInsert, {
+      activeInstanceId: activeInstance?.id || null
+    });
     registerCallback(`${hookId}-lead-update`, 'leadUpdate', handleLeadUpdate);
     registerCallback(`${hookId}-lead-insert`, 'leadInsert', handleLeadInsert);
 
