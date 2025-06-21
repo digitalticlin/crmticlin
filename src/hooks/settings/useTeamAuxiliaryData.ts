@@ -8,9 +8,20 @@ interface AuxiliaryData {
   auxDataLoading: boolean;
 }
 
+// Explicit types for the database responses
+type WhatsAppInstance = {
+  id: string;
+  instance_name: string;
+};
+
+type Funnel = {
+  id: string;
+  name: string;
+};
+
 export const useTeamAuxiliaryData = (companyId: string | null): AuxiliaryData => {
-  const [allWhatsApps, setAllWhatsApps] = useState<{ id: string; instance_name: string }[]>([]);
-  const [allFunnels, setAllFunnels] = useState<{ id: string; name: string }[]>([]);
+  const [allWhatsApps, setAllWhatsApps] = useState<WhatsAppInstance[]>([]);
+  const [allFunnels, setAllFunnels] = useState<Funnel[]>([]);
   const [auxDataLoading, setAuxDataLoading] = useState(false);
   
   // Refs para controlar execuções
@@ -39,11 +50,11 @@ export const useTeamAuxiliaryData = (companyId: string | null): AuxiliaryData =>
         setAuxDataLoading(true);
         auxDataLoadedRef.current = true;
 
-        // Buscar WhatsApp instances
+        // Buscar WhatsApp instances with explicit typing
         const { data: whatsapps, error: whatsappError } = await supabase
           .from("whatsapp_instances")
           .select("id, instance_name")
-          .eq("company_id", companyId);
+          .eq("company_id", companyId) as { data: WhatsAppInstance[] | null; error: any };
 
         if (isUnmountedRef.current) return;
 
@@ -54,11 +65,11 @@ export const useTeamAuxiliaryData = (companyId: string | null): AuxiliaryData =>
           console.log('[useTeamAuxiliaryData] WhatsApp instances loaded:', whatsapps?.length || 0);
         }
 
-        // Buscar Funis
+        // Buscar Funis with explicit typing
         const { data: funnels, error: funnelsError } = await supabase
           .from("funnels")
           .select("id, name")
-          .eq("company_id", companyId);
+          .eq("company_id", companyId) as { data: Funnel[] | null; error: any };
 
         if (isUnmountedRef.current) return;
 
