@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompanyData } from '@/hooks/useCompanyData';
+import { useUnifiedRealtime } from '../realtime/useUnifiedRealtime';
 import { toast } from 'sonner';
 
 interface StabilizedSyncState {
@@ -15,7 +16,7 @@ interface StabilizedSyncState {
 }
 
 /**
- * Hook de Sync Estabilizado - CORRIGIDO para usar created_by_user_id
+ * Hook de Sync Estabilizado - now uses unified realtime
  */
 export const useStabilizedInstanceSync = () => {
   const [state, setState] = useState<StabilizedSyncState>({
@@ -39,7 +40,6 @@ export const useStabilizedInstanceSync = () => {
     };
   }, []);
 
-  // **CORREÇÃO**: Sync baseado em created_by_user_id (não company_id)
   const performOptimizedSync = useCallback(async (forceRefresh = false): Promise<any[]> => {
     if (!userId || !isMountedRef.current) {
       return [];
@@ -48,9 +48,9 @@ export const useStabilizedInstanceSync = () => {
     const now = Date.now();
     const timeSinceLast = now - lastFetchRef.current;
     
-    // Debounce reduzido para 200ms
+    // Debounce for 200ms
     if (!forceRefresh && timeSinceLast < 200) {
-      console.log('[Stabilized Sync] ⏸️ Debounce ativo');
+      console.log('[Stabilized Sync] ⏸️ Debounce active');
       return state.instances;
     }
 
@@ -58,9 +58,8 @@ export const useStabilizedInstanceSync = () => {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
       lastFetchRef.current = now;
 
-      console.log('[Stabilized Sync] 🔄 Executando sync para usuário:', userId);
+      console.log('[Stabilized Sync] 🔄 Executing sync for user:', userId);
 
-      // **CORREÇÃO**: Buscar por created_by_user_id
       const { data, error: fetchError } = await supabase
         .from('whatsapp_instances')
         .select('*')
@@ -75,9 +74,9 @@ export const useStabilizedInstanceSync = () => {
       }
 
       const instances = data || [];
-      console.log(`[Stabilized Sync] ✅ ${instances.length} instâncias do usuário carregadas`);
+      console.log(`[Stabilized Sync] ✅ ${instances.length} user instances loaded`);
       
-      // Calcular métricas de saúde
+      // Calculate health metrics
       const connectedInstances = instances.filter(i => ['open', 'ready'].includes(i.connection_status));
       const orphanInstances = instances.filter(i => !i.vps_instance_id);
       const healthScore = instances.length > 0 ? Math.round((connectedInstances.length / instances.length) * 100) : 100;
@@ -93,13 +92,10 @@ export const useStabilizedInstanceSync = () => {
           healthScore
         }));
 
-        // Log de instâncias prontas para mostrar
+        // Log ready instances
         const readyInstances = instances.filter(i => ['open', 'ready'].includes(i.connection_status));
         if (readyInstances.length > 0) {
-          console.log(`[Stabilized Sync] 🎯 ${readyInstances.length} instâncias PRONTAS para exibir`);
-          readyInstances.forEach(instance => {
-            console.log(`[Stabilized Sync] - ${instance.instance_name}: ${instance.connection_status} | Phone: ${instance.phone} | Profile: ${instance.profile_name}`);
-          });
+          console.log(`[Stabilized Sync] 🎯 ${readyInstances.length} instances READY`);
         }
       }
       
@@ -107,7 +103,7 @@ export const useStabilizedInstanceSync = () => {
       
     } catch (error: any) {
       if (isMountedRef.current) {
-        console.error('[Stabilized Sync] ❌ Erro no sync:', error);
+        console.error('[Stabilized Sync] ❌ Sync error:', error);
         setState(prev => ({
           ...prev,
           error: error.message,
@@ -119,37 +115,16 @@ export const useStabilizedInstanceSync = () => {
     }
   }, [userId, state.instances]);
 
-  // **CORREÇÃO**: Real-time baseado em created_by_user_id
-  useEffect(() => {
-    if (!userId) return;
+  // Handle realtime updates
+  const handleInstanceUpdate = useCallback((payload: any) => {
+    console.log('[Stabilized Sync] 📡 Real-time update:', payload.eventType);
+    performOptimizedSync(true);
+  }, [performOptimizedSync]);
 
-    console.log('[Stabilized Sync] 📡 Configurando real-time para usuário:', userId);
-
-    const channel = supabase
-      .channel(`whatsapp-stabilized-${userId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'whatsapp_instances',
-          filter: `created_by_user_id=eq.${userId}`
-        },
-        (payload) => {
-          if (!isMountedRef.current) return;
-          
-          console.log('[Stabilized Sync] 📡 Real-time update:', payload.eventType);
-          
-          // Update imediato após mudança
-          performOptimizedSync(true);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId, performOptimizedSync]);
+  // Use unified realtime for instance updates
+  useUnifiedRealtime({
+    onInstanceUpdate: handleInstanceUpdate
+  });
 
   // Initial fetch
   useEffect(() => {
@@ -158,10 +133,9 @@ export const useStabilizedInstanceSync = () => {
     }
   }, [userId]);
 
-  // **CORREÇÃO**: Healing global que verifica órfãs created_by_user_id: NULL
   const forceOrphanHealing = useCallback(async () => {
     try {
-      console.log('[Stabilized Sync] 🔍 Verificando órfãs globais (created_by_user_id: NULL)...');
+      console.log('[Stabilized Sync] 🔍 Checking global orphans...');
       
       const { data: globalOrphans } = await supabase
         .from('whatsapp_instances')
@@ -170,18 +144,18 @@ export const useStabilizedInstanceSync = () => {
         .eq('connection_type', 'web');
 
       if (globalOrphans && globalOrphans.length > 0) {
-        toast.info(`${globalOrphans.length} instâncias órfãs globais detectadas (created_by_user_id: NULL)`);
-        console.log('[Stabilized Sync] 🏠 Órfãs globais encontradas:', globalOrphans.map(o => ({
+        toast.info(`${globalOrphans.length} orphaned instances detected`);
+        console.log('[Stabilized Sync] 🏠 Global orphans found:', globalOrphans.map(o => ({
           name: o.instance_name,
           phone: o.phone,
           status: o.connection_status
         })));
       } else {
-        toast.success('Nenhuma instância órfã global encontrada!');
+        toast.success('No orphaned instances found!');
       }
     } catch (error) {
-      console.error('[Stabilized Sync] ❌ Erro ao verificar órfãs globais:', error);
-      toast.error('Erro ao verificar órfãs globais');
+      console.error('[Stabilized Sync] ❌ Error checking orphans:', error);
+      toast.error('Error checking orphaned instances');
     }
   }, []);
 
