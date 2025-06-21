@@ -50,34 +50,42 @@ export const useTeamAuxiliaryData = (companyId: string | null): AuxiliaryData =>
         setAuxDataLoading(true);
         auxDataLoadedRef.current = true;
 
-        // Buscar WhatsApp instances without type assertion
-        const whatsappQuery = await supabase
-          .from("whatsapp_instances")
-          .select("id, instance_name")
-          .eq("company_id", companyId);
+        // Buscar WhatsApp instances with simple query
+        try {
+          const { data: whatsappData, error: whatsappError } = await supabase
+            .from("whatsapp_instances")
+            .select("id, instance_name")
+            .eq("created_by_user_id", companyId);
 
-        if (isUnmountedRef.current) return;
+          if (isUnmountedRef.current) return;
 
-        if (whatsappQuery.error) {
-          console.error('[useTeamAuxiliaryData] Error fetching WhatsApp instances:', whatsappQuery.error);
-        } else {
-          setAllWhatsApps(whatsappQuery.data || []);
-          console.log('[useTeamAuxiliaryData] WhatsApp instances loaded:', whatsappQuery.data?.length || 0);
+          if (whatsappError) {
+            console.error('[useTeamAuxiliaryData] Error fetching WhatsApp instances:', whatsappError);
+          } else {
+            setAllWhatsApps(whatsappData || []);
+            console.log('[useTeamAuxiliaryData] WhatsApp instances loaded:', whatsappData?.length || 0);
+          }
+        } catch (whatsappErr) {
+          console.error('[useTeamAuxiliaryData] WhatsApp query error:', whatsappErr);
         }
 
-        // Buscar Funis without type assertion
-        const funnelsQuery = await supabase
-          .from("funnels")
-          .select("id, name")
-          .eq("company_id", companyId);
+        // Buscar Funis with simple query
+        try {
+          const { data: funnelsData, error: funnelsError } = await supabase
+            .from("funnels")
+            .select("id, name")
+            .eq("created_by_user_id", companyId);
 
-        if (isUnmountedRef.current) return;
+          if (isUnmountedRef.current) return;
 
-        if (funnelsQuery.error) {
-          console.error('[useTeamAuxiliaryData] Error fetching funnels:', funnelsQuery.error);
-        } else {
-          setAllFunnels(funnelsQuery.data || []);
-          console.log('[useTeamAuxiliaryData] Funnels loaded:', funnelsQuery.data?.length || 0);
+          if (funnelsError) {
+            console.error('[useTeamAuxiliaryData] Error fetching funnels:', funnelsError);
+          } else {
+            setAllFunnels(funnelsData || []);
+            console.log('[useTeamAuxiliaryData] Funnels loaded:', funnelsData?.length || 0);
+          }
+        } catch (funnelsErr) {
+          console.error('[useTeamAuxiliaryData] Funnels query error:', funnelsErr);
         }
       } catch (error) {
         if (!isUnmountedRef.current) {
