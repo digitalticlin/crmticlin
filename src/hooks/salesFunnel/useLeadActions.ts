@@ -18,7 +18,7 @@ export const useLeadActions = (funnelId?: string) => {
     if (!selectedLead || selectedLead.id !== leadId) return;
     
     try {
-      await updateLead({ leadId, fields: { notes } });
+      await updateLead.mutateAsync({ leadId, fields: { notes } });
       setSelectedLead({ ...selectedLead, notes });
       await refetchLeads();
     } catch (error) {
@@ -30,10 +30,8 @@ export const useLeadActions = (funnelId?: string) => {
     if (!selectedLead || selectedLead.id !== leadId) return;
     
     try {
-      await updateLead({ leadId, fields: { purchaseValue } });
-      // Atualizar estado local imediatamente para feedback visual
+      await updateLead.mutateAsync({ leadId, fields: { purchase_value: purchaseValue } });
       setSelectedLead({ ...selectedLead, purchaseValue });
-      // Refetch para sincronizar com o servidor
       await refetchLeads();
     } catch (error) {
       console.error("Erro ao atualizar valor de compra:", error);
@@ -44,7 +42,7 @@ export const useLeadActions = (funnelId?: string) => {
     if (!selectedLead || selectedLead.id !== leadId) return;
     
     try {
-      await updateLead({ leadId, fields: { assignedUser } });
+      await updateLead.mutateAsync({ leadId, fields: { assigned_user: assignedUser } });
       setSelectedLead({ ...selectedLead, assignedUser });
       await refetchLeads();
     } catch (error) {
@@ -56,7 +54,7 @@ export const useLeadActions = (funnelId?: string) => {
     if (!selectedLead || selectedLead.id !== leadId) return;
     
     try {
-      await updateLead({ leadId, fields: { name } });
+      await updateLead.mutateAsync({ leadId, fields: { name } });
       setSelectedLead({ ...selectedLead, name });
       await refetchLeads();
     } catch (error) {
@@ -71,9 +69,9 @@ export const useLeadActions = (funnelId?: string) => {
 
     try {
       if (hasTag) {
-        await removeTagFromLead({ leadId, tagId });
+        await removeTagFromLead.mutateAsync({ leadId, tagId });
       } else {
-        await addTagToLead({ leadId, tagId });
+        await addTagToLead.mutateAsync({ leadId, tagId });
       }
 
       // Atualizar lead selecionado

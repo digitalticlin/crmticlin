@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Trash2, Edit2, Plus, Save, X } from "lucide-react";
 import { useSalesFunnelContext } from "../SalesFunnelProvider";
 import { useTagDatabase } from "@/hooks/salesFunnel/useTagDatabase";
-import { useCompanyData } from "@/hooks/useCompanyData";
 import { toast } from "sonner";
 
 interface TagManagementModalProps {
@@ -18,8 +17,7 @@ interface TagManagementModalProps {
 
 export const TagManagementModal = ({ isOpen, onClose }: TagManagementModalProps) => {
   const { availableTags } = useSalesFunnelContext();
-  const { companyId } = useCompanyData();
-  const { createTag, updateTag, deleteTag, loadTags } = useTagDatabase(companyId);
+  const { createTag, updateTag, deleteTag } = useTagDatabase();
   
   const [editingTag, setEditingTag] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -38,9 +36,8 @@ export const TagManagementModal = ({ isOpen, onClose }: TagManagementModalProps)
     if (!editingTag || !editName.trim()) return;
     
     try {
-      await updateTag(editingTag, editName, editColor);
+      await updateTag.mutateAsync({ id: editingTag, name: editName, color: editColor });
       setEditingTag(null);
-      await loadTags();
       toast.success("Etiqueta atualizada com sucesso!");
     } catch (error) {
       toast.error("Erro ao atualizar etiqueta");
@@ -57,11 +54,10 @@ export const TagManagementModal = ({ isOpen, onClose }: TagManagementModalProps)
     if (!newTagName.trim()) return;
 
     try {
-      await createTag(newTagName, newTagColor);
+      await createTag.mutateAsync({ name: newTagName, color: newTagColor });
       setNewTagName("");
       setNewTagColor("#3b82f6");
       setIsCreating(false);
-      await loadTags();
       toast.success("Nova etiqueta criada com sucesso!");
     } catch (error) {
       toast.error("Erro ao criar etiqueta");
@@ -72,8 +68,7 @@ export const TagManagementModal = ({ isOpen, onClose }: TagManagementModalProps)
     if (!confirm("Tem certeza que deseja excluir esta etiqueta?")) return;
 
     try {
-      await deleteTag(tagId);
-      await loadTags();
+      await deleteTag.mutateAsync(tagId);
       toast.success("Etiqueta excluída com sucesso!");
     } catch (error) {
       toast.error("Erro ao excluir etiqueta");

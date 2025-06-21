@@ -15,7 +15,7 @@ interface CreateLeadModalProps {
 }
 
 export const CreateLeadModal = ({ isOpen, onClose }: CreateLeadModalProps) => {
-  const { createLead, isLoading } = useLeadCreation();
+  const createLeadMutation = useLeadCreation();
   const { stages, availableTags } = useSalesFunnelContext();
   
   const [formData, setFormData] = useState({
@@ -42,16 +42,15 @@ export const CreateLeadModal = ({ isOpen, onClose }: CreateLeadModalProps) => {
     }
 
     try {
-      await createLead({
+      await createLeadMutation.mutateAsync({
         name: formData.name,
         phone: formData.phone,
         email: formData.email,
-        company: formData.company,
-        address: formData.address,
-        purchaseValue: formData.purchaseValue,
-        kanbanStageId: formData.kanbanStageId,
-        tags: formData.tags,
-        notes: formData.notes
+        notes: formData.notes,
+        purchase_value: formData.purchaseValue,
+        funnelId: "", // This will be set in the hook
+        stageId: formData.kanbanStageId,
+        tags: formData.tags
       });
       
       // Reset form
@@ -227,17 +226,17 @@ export const CreateLeadModal = ({ isOpen, onClose }: CreateLeadModalProps) => {
               type="button"
               variant="outline"
               onClick={onClose}
-              disabled={isLoading}
+              disabled={createLeadMutation.isPending}
               className="bg-white/30 backdrop-blur-sm border-white/40 hover:bg-white/50 text-gray-800 rounded-xl px-6"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
-              disabled={isLoading || !formData.name || !formData.phone || !formData.kanbanStageId}
+              disabled={createLeadMutation.isPending || !formData.name || !formData.phone || !formData.kanbanStageId}
               className="bg-gradient-to-r from-ticlin to-ticlin-dark text-black hover:from-ticlin/90 hover:to-ticlin-dark/90 border border-white/30 backdrop-blur-sm rounded-xl px-6"
             >
-              {isLoading ? "Criando..." : "Criar Lead"}
+              {createLeadMutation.isPending ? "Criando..." : "Criar Lead"}
             </Button>
           </div>
         </form>

@@ -8,13 +8,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface AddDealModalProps {
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
-  onAddDeal: (deal: { status: "won" | "lost"; value: number; note?: string }) => Promise<void>;
-  isCreating: boolean;
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (deal: { status: "won" | "lost"; value: number; note?: string }) => Promise<void>;
+  isLoading: boolean;
 }
 
-export function AddDealModal({ isOpen, onOpenChange, onAddDeal, isCreating }: AddDealModalProps) {
+export function AddDealModal({ open, onClose, onSubmit, isLoading }: AddDealModalProps) {
   const [newDeal, setNewDeal] = useState({
     status: "won" as "won" | "lost",
     value: "",
@@ -25,21 +25,21 @@ export function AddDealModal({ isOpen, onOpenChange, onAddDeal, isCreating }: Ad
     if (!newDeal.value) return;
 
     try {
-      await onAddDeal({
+      await onSubmit({
         status: newDeal.status,
         value: parseFloat(newDeal.value),
         note: newDeal.note || undefined
       });
       
       setNewDeal({ status: "won", value: "", note: "" });
-      onOpenChange(false);
+      onClose();
     } catch (error) {
       console.error("Erro ao adicionar deal:", error);
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md bg-white">
         <DialogHeader>
           <DialogTitle className="text-gray-900">Nova Negociação</DialogTitle>
@@ -87,14 +87,14 @@ export function AddDealModal({ isOpen, onOpenChange, onAddDeal, isCreating }: Ad
           <div className="flex gap-2">
             <Button 
               onClick={handleAddDeal}
-              disabled={!newDeal.value || isCreating}
+              disabled={!newDeal.value || isLoading}
               className="bg-[#d3d800] hover:bg-[#b8c200] text-black flex-1"
             >
-              {isCreating ? "Salvando..." : "Salvar"}
+              {isLoading ? "Salvando..." : "Salvar"}
             </Button>
             <Button 
               variant="outline" 
-              onClick={() => onOpenChange(false)}
+              onClick={onClose}
               className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               Cancelar

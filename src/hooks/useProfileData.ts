@@ -1,48 +1,33 @@
 
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
-// Hook simplificado para dados do perfil
-export const useProfileData = () => {
-  const [fullName, setFullName] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+export function useProfileData() {
   const { user } = useAuth();
 
-  const loadProfileData = async (userId: string) => {
-    if (!userId) return;
+  return useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
 
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, avatar_url')
-        .eq('id', userId)
-        .maybeSingle();
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
 
-      if (profile) {
-        setFullName(profile.full_name || '');
-        setAvatarUrl(profile.avatar_url);
+      if (error) {
+        console.error("Error fetching profile:", error);
+        return null;
       }
-    } catch (error) {
-      console.error('Erro ao carregar perfil:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  useEffect(() => {
-    if (user?.id) {
-      loadProfileData(user.id);
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
-
-  return {
-    fullName,
-    avatarUrl,
-    loading,
-    loadProfileData
-  };
-};
+      return {
+        ...data,
+        full_name: data?.full_name || "Usuário",
+        avatar_url: null // This field doesn't exist in the database yet
+      };
+    },
+    enabled: !!user?.id,
+  });
+}

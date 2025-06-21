@@ -58,5 +58,78 @@ export function useStageManagement() {
     },
   });
 
-  return { moveToWonLost };
+  const moveLeadToStage = async (leadId: string, stageId: string) => {
+    if (!user?.id) {
+      throw new Error("Usuário não autenticado");
+    }
+
+    const { error } = await supabase
+      .from("leads")
+      .update({ kanban_stage_id: stageId })
+      .eq("id", leadId)
+      .eq("created_by_user_id", user.id);
+
+    if (error) throw error;
+
+    queryClient.invalidateQueries({ queryKey: ["kanban-leads"] });
+  };
+
+  const addColumn = async (title: string, color: string, funnelId: string) => {
+    if (!user?.id) {
+      throw new Error("Usuário não autenticado");
+    }
+
+    const { error } = await supabase
+      .from("kanban_stages")
+      .insert({
+        title,
+        color,
+        funnel_id: funnelId,
+        created_by_user_id: user.id,
+      });
+
+    if (error) throw error;
+
+    queryClient.invalidateQueries({ queryKey: ["stages"] });
+  };
+
+  const updateColumn = async (columnId: string, updates: any) => {
+    if (!user?.id) {
+      throw new Error("Usuário não autenticado");
+    }
+
+    const { error } = await supabase
+      .from("kanban_stages")
+      .update(updates)
+      .eq("id", columnId)
+      .eq("created_by_user_id", user.id);
+
+    if (error) throw error;
+
+    queryClient.invalidateQueries({ queryKey: ["stages"] });
+  };
+
+  const deleteColumn = async (columnId: string) => {
+    if (!user?.id) {
+      throw new Error("Usuário não autenticado");
+    }
+
+    const { error } = await supabase
+      .from("kanban_stages")
+      .delete()
+      .eq("id", columnId)
+      .eq("created_by_user_id", user.id);
+
+    if (error) throw error;
+
+    queryClient.invalidateQueries({ queryKey: ["stages"] });
+  };
+
+  return { 
+    moveToWonLost, 
+    moveLeadToStage,
+    addColumn,
+    updateColumn,
+    deleteColumn
+  };
 }

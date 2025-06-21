@@ -56,7 +56,7 @@ const kpiConfig = {
 
 export function CustomizableKPIGrid() {
   const { config, loading: configLoading, forceUpdate, getCurrentState } = useDashboardConfig();
-  const { kpis, loading: kpisLoading } = useDashboardKPIs(config.period_filter);
+  const { data: kpis, isLoading: kpisLoading } = useDashboardKPIs(config.period_filter);
 
   // ETAPA 3: useMemo otimizado - dependências simplificadas
   const visibleKPIs = useMemo(() => {

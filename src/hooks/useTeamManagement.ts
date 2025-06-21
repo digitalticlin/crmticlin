@@ -1,201 +1,210 @@
-import { useState, useEffect } from "react";
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 export interface TeamMember {
   id: string;
   full_name: string;
-  email: string;
-  role: "admin" | "operational" | "manager";
-  whatsapp_numbers: { id: string, instance_name: string }[];
-  funnels: { id: string, name: string }[];
-  created_at?: string;
+  username?: string;
+  role: 'admin' | 'user';
+  created_at: string;
+  whatsapp_access: string[];
+  funnel_access: string[];
 }
 
-interface CreateMemberData {
-  full_name: string;
-  email: string;
-  password: string;
-  role: "operational" | "manager";
-  assignedWhatsAppIds: string[];
-  assignedFunnelIds: string[];
-}
+export function useTeamManagement() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-export const useTeamManagement = (companyId?: string | null) => {
-  const [loading, setLoading] = useState(false);
-  const [members, setMembers] = useState<TeamMember[]>([]);
+  const { data: teamMembers = [], isLoading } = useQuery({
+    queryKey: ["team-members", user?.id],
+    queryFn: async (): Promise<TeamMember[]> => {
+      if (!user?.id) return [];
 
-  // Carrega membros da empresa
-  const fetchTeamMembers = async () => {
-    if (!companyId) return;
-    setLoading(true);
-    
-    try {
       const { data: profiles, error } = await supabase
         .from("profiles")
         .select(`
-          id, full_name, role, created_at,
-          user_whatsapp_numbers (
-            whatsapp_number_id,
-            whatsapp_instances!inner (id, instance_name)
-          ),
-          user_funnels (
-            funnel_id,
-            funnels!inner (id, name)
-          )
+          *,
+          whatsapp_access:user_whatsapp_numbers(whatsapp_number_id),
+          funnel_access:user_funnels(funnel_id)
         `)
-        .eq("company_id", companyId)
-        .order("created_at", { ascending: false });
+        .eq("created_by_user_id", user.id);
 
       if (error) throw error;
 
-      // Buscar emails dos usuários do auth
-      const userIds = profiles?.map(p => p.id) || [];
-      if (userIds.length === 0) {
-        setMembers([]);
-        setLoading(false);
-        return;
-      }
+      return (profiles || []).map(profile => ({
+        id: profile.id,
+        full_name: profile.full_name,
+        username: profile.username,
+        role: profile.role,
+        created_at: profile.created_at,
+        whatsapp_access: profile.whatsapp_access?.map((w: any) => w.whatsapp_number_id) || [],
+        funnel_access: profile.funnel_access?.map((f: any) => f.funnel_id) || []
+      }));
+    },
+    enabled: !!user?.id,
+  });
 
-      const { data: authData, error: authError } = await supabase.auth.admin.listUsers();
-      if (authError) throw authError;
+  const { data: whatsappInstances = [] } = useQuery({
+    queryKey: ["whatsapp-instances", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
 
-      const authUserMap = new Map<string, string>();
-      authData.users.forEach((user: any) => {
-        if (user.email) {
-          authUserMap.set(user.id, user.email);
-        }
-      });
+      const { data, error } = await supabase
+        .from("whatsapp_instances")
+        .select("*")
+        .eq("created_by_user_id", user.id);
 
-      setMembers(
-        (profiles || []).map((p: any) => ({
-          id: p.id,
-          full_name: p.full_name || "Sem nome",
-          email: authUserMap.get(p.id) || "Email não encontrado",
-          role: p.role || "operational",
-          created_at: p.created_at,
-          whatsapp_numbers: (p.user_whatsapp_numbers || []).map((wn: any) => ({
-            id: wn.whatsapp_number_id,
-            instance_name: wn.whatsapp_instances?.instance_name || "",
-          })),
-          funnels: (p.user_funnels || []).map((f: any) => ({
-            id: f.funnel_id,
-            name: f.funnels?.name || "",
-          })),
-        }))
-      );
-    } catch (error: any) {
-      console.error("Erro ao buscar membros:", error);
-      toast.error("Erro ao carregar membros da equipe");
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
 
-  // Criar novo membro manualmente
-  const createTeamMember = async (data: CreateMemberData) => {
-    if (!companyId) {
-      toast.error("ID da empresa não encontrado");
-      return false;
-    }
+  const { data: funnels = [] } = useQuery({
+    queryKey: ["funnels", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
 
-    setLoading(true);
-    try {
-      // 1. Criar usuário no auth
-      const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-        email: data.email,
-        password: data.password,
-        email_confirm: true,
-        user_metadata: { 
-          full_name: data.full_name,
-          company_id: companyId,
-          role: data.role
-        },
-      });
+      const { data, error } = await supabase
+        .from("funnels")
+        .select("*")
+        .eq("created_by_user_id", user.id);
 
-      if (authError || !authUser?.user) {
-        throw new Error(authError?.message || "Erro ao criar usuário");
-      }
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
 
-      // 2. Criar/atualizar profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .upsert({
-          id: authUser.user.id,
-          full_name: data.full_name,
-          company_id: companyId,
-          role: data.role,
-        });
+  const updateMemberAccess = useMutation({
+    mutationFn: async ({ 
+      memberId, 
+      whatsappAccess, 
+      funnelAccess 
+    }: { 
+      memberId: string; 
+      whatsappAccess: string[]; 
+      funnelAccess: string[]; 
+    }) => {
+      if (!user?.id) throw new Error("Usuário não autenticado");
 
-      if (profileError) throw profileError;
+      // Remove existing access
+      await supabase
+        .from("user_whatsapp_numbers")
+        .delete()
+        .eq("profile_id", memberId);
 
-      // 3. Atribuir WhatsApp numbers
-      if (data.assignedWhatsAppIds.length > 0) {
-        const whatsappAssignments = data.assignedWhatsAppIds.map(whatsappId => ({
-          profile_id: authUser.user.id,
+      await supabase
+        .from("user_funnels")
+        .delete()
+        .eq("profile_id", memberId);
+
+      // Add new WhatsApp access
+      if (whatsappAccess.length > 0) {
+        const whatsappInserts = whatsappAccess.map(whatsappId => ({
+          profile_id: memberId,
           whatsapp_number_id: whatsappId,
+          created_by_user_id: user.id,
         }));
 
         const { error: whatsappError } = await supabase
           .from("user_whatsapp_numbers")
-          .insert(whatsappAssignments);
+          .insert(whatsappInserts);
 
         if (whatsappError) throw whatsappError;
       }
 
-      // 4. Atribuir funis
-      if (data.assignedFunnelIds.length > 0) {
-        const funnelAssignments = data.assignedFunnelIds.map(funnelId => ({
-          profile_id: authUser.user.id,
+      // Add new funnel access
+      if (funnelAccess.length > 0) {
+        const funnelInserts = funnelAccess.map(funnelId => ({
+          profile_id: memberId,
           funnel_id: funnelId,
+          created_by_user_id: user.id,
         }));
 
         const { error: funnelError } = await supabase
           .from("user_funnels")
-          .insert(funnelAssignments);
+          .insert(funnelInserts);
 
         if (funnelError) throw funnelError;
       }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["team-members"] });
+      toast.success("Acesso do membro atualizado com sucesso!");
+    },
+    onError: (error) => {
+      console.error("Erro ao atualizar acesso:", error);
+      toast.error("Erro ao atualizar acesso do membro");
+    },
+  });
 
-      toast.success("Membro criado com sucesso!");
-      await fetchTeamMembers();
-      return true;
-    } catch (error: any) {
-      console.error("Erro ao criar membro:", error);
-      toast.error(error.message || "Erro ao criar membro da equipe");
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
+  const updateMemberRole = useMutation({
+    mutationFn: async ({ memberId, role }: { memberId: string; role: 'admin' | 'user' }) => {
+      if (!user?.id) throw new Error("Usuário não autenticado");
 
-  // Remover membro da equipe
-  const removeTeamMember = async (profileId: string) => {
-    setLoading(true);
-    try {
-      // Deletar usuário do auth (isso vai cascatear para o profile)
-      const { error } = await supabase.auth.admin.deleteUser(profileId);
+      const { error } = await supabase
+        .from("profiles")
+        .update({ role })
+        .eq("id", memberId)
+        .eq("created_by_user_id", user.id);
+
       if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["team-members"] });
+      toast.success("Função do membro atualizada com sucesso!");
+    },
+    onError: (error) => {
+      console.error("Erro ao atualizar função:", error);
+      toast.error("Erro ao atualizar função do membro");
+    },
+  });
 
+  const removeMember = useMutation({
+    mutationFn: async (memberId: string) => {
+      if (!user?.id) throw new Error("Usuário não autenticado");
+
+      // Remove access records first
+      await supabase
+        .from("user_whatsapp_numbers")
+        .delete()
+        .eq("profile_id", memberId);
+
+      await supabase
+        .from("user_funnels")
+        .delete()
+        .eq("profile_id", memberId);
+
+      // Remove profile
+      const { error } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", memberId)
+        .eq("created_by_user_id", user.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["team-members"] });
       toast.success("Membro removido com sucesso!");
-      await fetchTeamMembers();
-    } catch (error: any) {
+    },
+    onError: (error) => {
       console.error("Erro ao remover membro:", error);
       toast.error("Erro ao remover membro da equipe");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchTeamMembers();
-  }, [companyId]);
+    },
+  });
 
   return {
-    members,
-    loading,
-    fetchTeamMembers,
-    createTeamMember,
-    removeTeamMember,
+    teamMembers,
+    whatsappInstances,
+    funnels,
+    isLoading,
+    updateMemberAccess,
+    updateMemberRole,
+    removeMember
   };
-};
+}
