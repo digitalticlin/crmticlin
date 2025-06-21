@@ -43,6 +43,25 @@ export const KanbanBoard = ({
     isWonLostView
   });
 
+  // Se não há colunas, mostrar estado vazio
+  if (!columns || columns.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+        <div className="text-center">
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Nenhuma etapa encontrada
+          </h3>
+          <p className="text-gray-600">
+            {isWonLostView 
+              ? "Nenhum lead foi ganho ou perdido ainda" 
+              : "Configure as etapas do seu funil para começar"
+            }
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // Cria um mapping para lookup por id mais fácil para renderClone
   const leadMap: Record<string, KanbanLead> = {};
   columns.forEach(col => {

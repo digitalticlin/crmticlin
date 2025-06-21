@@ -69,10 +69,10 @@ export const SalesFunnelTabs = ({
     stages: stages?.map(s => ({ title: s.title, isWon: s.is_won, isLost: s.is_lost }))
   });
 
-  // Criar colunas para aba won-lost (apenas GANHO e PERDIDO)
+  // Criar colunas para aba won-lost (apenas GANHO e PERDIDO) com validação
   const displayColumns = activeTab === "won-lost" 
-    ? stages
-        ?.filter(stage => stage.is_won || stage.is_lost)
+    ? (stages || [])
+        .filter(stage => stage.is_won || stage.is_lost)
         .map(stage => {
           // Buscar leads reais dessa stage
           const stageLeads = leads?.filter(lead => lead.columnId === stage.id) || [];
@@ -93,8 +93,8 @@ export const SalesFunnelTabs = ({
             isFixed: stage.is_fixed || false,
             isHidden: false
           };
-        }) || []
-    : columns;
+        })
+    : columns || [];
 
   console.log('[SalesFunnelTabs] 📋 Colunas a exibir:', {
     activeTab,
@@ -104,7 +104,10 @@ export const SalesFunnelTabs = ({
 
   const handleColumnsChange = (newColumns: any[]) => {
     console.log('[SalesFunnelTabs] 🔄 Atualizando colunas:', newColumns.length);
-    setColumns(newColumns);
+    // Só atualizar se não estiver na aba won-lost
+    if (activeTab !== "won-lost") {
+      setColumns(newColumns);
+    }
   };
 
   return (
@@ -139,7 +142,7 @@ export const SalesFunnelTabs = ({
         wonLostFilters={activeTab === "won-lost" ? wonLostFilters : undefined}
       />
       
-      {/* Board do Kanban - com atualização otimista */}
+      {/* Board do Kanban - com proteção contra colunas vazias */}
       <KanbanBoard
         columns={displayColumns}
         onColumnsChange={handleColumnsChange}

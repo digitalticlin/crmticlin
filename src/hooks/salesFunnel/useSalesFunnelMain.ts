@@ -4,6 +4,7 @@ import { useExtendedSalesFunnel } from "@/hooks/salesFunnel/useExtendedSalesFunn
 import { useNewLeadIntegration } from "@/hooks/salesFunnel/useNewLeadIntegration";
 import { useFunnelManagement } from "@/hooks/salesFunnel/useFunnelManagement";
 import { useSalesFunnelWrappers } from "./useSalesFunnelWrappers";
+import { useKanbanColumns } from "./useKanbanColumns";
 import { KanbanLead } from "@/types/kanban";
 
 export function useSalesFunnelMain() {
@@ -18,8 +19,6 @@ export function useSalesFunnelMain() {
   } = useFunnelManagement();
 
   const {
-    columns,
-    setColumns,
     selectedLead,
     isLeadDetailOpen,
     setIsLeadDetailOpen,
@@ -68,7 +67,9 @@ export function useSalesFunnelMain() {
     documentId: lead.document_id
   })) || [];
 
-  // Debug logs mais detalhados
+  // Use useKanbanColumns to generate proper columns
+  const { columns, setColumns } = useKanbanColumns(stages || [], leads, selectedFunnel?.id);
+
   console.log('[SalesFunnelMain] 🔍 Estado completo:', {
     funnelsCount: funnels.length,
     selectedFunnel: selectedFunnel ? { 
