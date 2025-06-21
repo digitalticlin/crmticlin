@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -43,7 +43,7 @@ export const useInstanceMonitor = (companyId: string | null) => {
   }, []);
 
   // FASE 3: Monitor principal
-  const performMonitoring = useCallback(async () => {
+  const performMonitoring = async () => {
     if (!companyId || !isMountedRef.current) return;
 
     try {
@@ -65,7 +65,7 @@ export const useInstanceMonitor = (companyId: string | null) => {
       const { data: instances, error } = await supabase
         .from('whatsapp_instances')
         .select('*')
-        .eq('company_id', companyId)
+        .eq('created_by_user_id', companyId)
         .eq('connection_type', 'web');
 
       if (error) {
@@ -123,19 +123,19 @@ export const useInstanceMonitor = (companyId: string | null) => {
           vpsStatus
         });
 
-        // Mostrar alertas críticos - check if alert is new
-        const currentAlerts = alerts;
-        newAlerts.forEach(alert => {
-          if (!currentAlerts.includes(alert)) {
-            if (healthScore < 30) {
-              toast.error(`🚨 ${alert}`);
-            } else if (healthScore < 70) {
-              toast.warning(`⚠️ ${alert}`);
+        // Mostrar alertas críticos - get current alerts in closure
+        setAlerts(currentAlerts => {
+          newAlerts.forEach(alert => {
+            if (!currentAlerts.includes(alert)) {
+              if (healthScore < 30) {
+                toast.error(`🚨 ${alert}`);
+              } else if (healthScore < 70) {
+                toast.warning(`⚠️ ${alert}`);
+              }
             }
-          }
+          });
+          return newAlerts;
         });
-
-        setAlerts(newAlerts);
       }
 
       console.log(`[Instance Monitor] 📊 Saúde: ${healthScore}% | Conectadas: ${connectedInstances}/${totalInstances} | Órfãs: ${orphanInstances}`);
@@ -143,7 +143,7 @@ export const useInstanceMonitor = (companyId: string | null) => {
     } catch (error) {
       console.error('[Instance Monitor] 💥 Erro no monitoramento:', error);
     }
-  }, [companyId]); // Simplified dependency array
+  };
 
   // FASE 3: Monitor a cada 15 segundos
   useEffect(() => {
@@ -166,17 +166,17 @@ export const useInstanceMonitor = (companyId: string | null) => {
         clearInterval(monitorIntervalRef.current);
       }
     };
-  }, [companyId, performMonitoring]);
+  }, [companyId]);
 
   // Função para forçar check manual
-  const forceCheck = useCallback(() => {
+  const forceCheck = () => {
     performMonitoring();
-  }, [performMonitoring]);
+  };
 
   // Função para limpar alertas
-  const clearAlerts = useCallback(() => {
+  const clearAlerts = () => {
     setAlerts([]);
-  }, []);
+  };
 
   return {
     stats,
