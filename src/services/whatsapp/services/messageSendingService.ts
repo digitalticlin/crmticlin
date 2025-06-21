@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { VPS_CONFIG } from "../config/vpsConfig";
 import { MessageSendResponse } from "../types/whatsappWebTypes";
@@ -29,7 +30,7 @@ export class MessageSendingService {
       const vpsResponse = await this.sendToVPS(instance.vps_instance_id, formattedPhone, message);
       
       // CORREÇÃO: Usar telefone limpo para buscar/criar lead
-      const leadId = await this.getOrCreateLead(instanceId, cleanPhone, instance.company_id);
+      const leadId = await this.getOrCreateLead(instanceId, cleanPhone, instance.created_by_user_id);
       
       // CORREÇÃO: Forçar salvamento da mensagem enviada mesmo se VPS falhar
       await this.saveSentMessage(instanceId, leadId, message, vpsResponse.messageId || `manual_${Date.now()}`);
@@ -61,7 +62,7 @@ export class MessageSendingService {
     // CORREÇÃO: Buscar por ID da tabela, não por vps_instance_id
     const { data: instance, error: instanceError } = await supabase
       .from('whatsapp_instances')
-      .select('id, vps_instance_id, connection_status, company_id, instance_name')
+      .select('id, vps_instance_id, connection_status, created_by_user_id, instance_name')
       .eq('id', instanceId)
       .single();
 
@@ -74,7 +75,7 @@ export class MessageSendingService {
       // FALLBACK: Tentar buscar por vps_instance_id caso seja esse o valor passado
       const { data: fallbackInstance, error: fallbackError } = await supabase
         .from('whatsapp_instances')
-        .select('id, vps_instance_id, connection_status, company_id, instance_name')
+        .select('id, vps_instance_id, connection_status, created_by_user_id, instance_name')
         .eq('vps_instance_id', instanceId)
         .single();
 
@@ -90,7 +91,7 @@ export class MessageSendingService {
         id: fallbackInstance.id,
         vpsInstanceId: fallbackInstance.vps_instance_id,
         connectionStatus: fallbackInstance.connection_status,
-        companyId: fallbackInstance.company_id,
+        createdByUserId: fallbackInstance.created_by_user_id,
         instanceName: fallbackInstance.instance_name
       });
 
@@ -101,7 +102,7 @@ export class MessageSendingService {
       id: instance.id,
       vpsInstanceId: instance.vps_instance_id,
       connectionStatus: instance.connection_status,
-      companyId: instance.company_id,
+      createdByUserId: instance.created_by_user_id,
       instanceName: instance.instance_name
     });
 
@@ -193,6 +194,9 @@ export class MessageSendingService {
       fromMe: true
     });
 
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
     const { error: saveError } = await supabase.from('messages').insert({
       whatsapp_number_id: instanceId,
       lead_id: leadId,
@@ -201,7 +205,8 @@ export class MessageSendingService {
       status: 'sent',
       external_id: messageId,
       media_type: 'text',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      created_by_user_id: user.id
     });
 
     if (saveError) {
@@ -227,7 +232,7 @@ export class MessageSendingService {
   private static async getOrCreateLead(
     whatsappNumberId: string, 
     phone: string, 
-    companyId: string
+    createdByUserId: string
   ): Promise<string> {
     // CORREÇÃO: Garantir que o telefone esteja limpo
     const cleanPhone = cleanPhoneNumber(phone);
@@ -235,7 +240,7 @@ export class MessageSendingService {
     console.log('[MessageSending] 🔍 Getting or creating lead:', {
       whatsappNumberId,
       cleanPhone,
-      companyId
+      createdByUserId
     });
     
     // Try to find existing lead
@@ -251,6 +256,18 @@ export class MessageSendingService {
       return existingLead.id;
     }
 
+    // Get user's first funnel to assign the lead
+    const { data: funnel } = await supabase
+      .from('funnels')
+      .select('id')
+      .eq('created_by_user_id', createdByUserId)
+      .limit(1)
+      .single();
+
+    if (!funnel) {
+      throw new Error('No funnel found for user');
+    }
+
     // CORREÇÃO: Create new lead com nome baseado no telefone limpo
     console.log('[MessageSending] 🆕 Creating new lead');
     const { data: newLead, error } = await supabase
@@ -259,7 +276,8 @@ export class MessageSendingService {
         phone: cleanPhone,
         name: `Lead-${cleanPhone.substring(cleanPhone.length - 4)}`, // CORREÇÃO: Nome limpo
         whatsapp_number_id: whatsappNumberId,
-        company_id: companyId,
+        created_by_user_id: createdByUserId,
+        funnel_id: funnel.id,
         last_message: 'Conversa iniciada',
         last_message_time: new Date().toISOString()
       })

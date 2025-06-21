@@ -53,6 +53,7 @@ export interface WhatsAppMessage {
   lead_id?: string;
   created_by_user_id: string;
   created_at: string;
+  external_id?: string;
 }
 
 export interface WhatsAppContact {

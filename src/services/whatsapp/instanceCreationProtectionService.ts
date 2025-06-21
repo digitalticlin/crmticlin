@@ -24,7 +24,7 @@ export class InstanceCreationProtectionService {
    */
   static async createInstanceWithProtection(
     instanceName: string,
-    companyId: string
+    createdByUserId: string
   ): Promise<{ success: boolean; instance?: any; error?: string; retries?: number }> {
     let lastError: string = '';
     let retryCount = 0;
@@ -34,7 +34,7 @@ export class InstanceCreationProtectionService {
         console.log(`[Protection] 🛡️ Tentativa ${attempt}/${this.config.maxRetries} de criar instância: ${instanceName}`);
         
         // Verificar se não existe instância com mesmo nome
-        await this.validateInstanceName(instanceName, companyId);
+        await this.validateInstanceName(instanceName, createdByUserId);
         
         // Tentar criar a instância
         const result = await WhatsAppWebService.createInstance(instanceName);
@@ -80,13 +80,13 @@ export class InstanceCreationProtectionService {
   /**
    * Validação de nome de instância
    */
-  private static async validateInstanceName(instanceName: string, companyId: string): Promise<void> {
+  private static async validateInstanceName(instanceName: string, createdByUserId: string): Promise<void> {
     // Verificar no banco local
     const { data: existing, error } = await supabase
       .from('whatsapp_instances')
       .select('id')
       .eq('instance_name', instanceName)
-      .eq('company_id', companyId)
+      .eq('created_by_user_id', createdByUserId)
       .single();
 
     if (existing && !error) {
@@ -126,8 +126,8 @@ export class InstanceCreationProtectionService {
         return { valid: false, error: 'VPS Instance ID ausente' };
       }
 
-      if (!dbInstance.company_id) {
-        return { valid: false, error: 'Company ID ausente' };
+      if (!dbInstance.created_by_user_id) {
+        return { valid: false, error: 'Created By User ID ausente' };
       }
 
       // Verificar se tem QR Code ou está conectada
@@ -209,19 +209,19 @@ export class InstanceCreationProtectionService {
   /**
    * Health Check automático de instâncias
    */
-  static async performInstanceHealthCheck(companyId: string): Promise<{
+  static async performInstanceHealthCheck(createdByUserId: string): Promise<{
     healthy: number;
     warnings: number;
     errors: number;
     details: any[];
   }> {
     try {
-      console.log(`[Protection] 🏥 Health check para empresa: ${companyId}`);
+      console.log(`[Protection] 🏥 Health check para usuário: ${createdByUserId}`);
       
       const { data: instances, error } = await supabase
         .from('whatsapp_instances')
         .select('*')
-        .eq('company_id', companyId)
+        .eq('created_by_user_id', createdByUserId)
         .eq('connection_type', 'web');
 
       if (error) throw error;

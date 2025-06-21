@@ -8,6 +8,7 @@ import { SalesFunnelProvider } from "@/components/sales/funnel/SalesFunnelProvid
 import { FunnelLoadingState } from "@/components/sales/funnel/FunnelLoadingState";
 import { FunnelEmptyState } from "@/components/sales/funnel/FunnelEmptyState";
 import { SalesFunnelContent } from "@/components/sales/funnel/SalesFunnelContent";
+import { KanbanLead } from "@/types/kanban";
 
 export default function SalesFunnel() {
   const { isAdmin, role } = useUserRole();
@@ -28,7 +29,7 @@ export default function SalesFunnel() {
     setIsLeadDetailOpen,
     availableTags,
     stages,
-    leads,
+    leads: rawLeads,
     addColumn,
     updateColumn,
     deleteColumn,
@@ -47,6 +48,25 @@ export default function SalesFunnel() {
   } = useExtendedSalesFunnel(selectedFunnel?.id);
 
   useNewLeadIntegration(selectedFunnel?.id);
+
+  // Transform leads to match KanbanLead interface
+  const leads: KanbanLead[] = rawLeads?.map(lead => ({
+    id: lead.id,
+    name: lead.name,
+    phone: lead.phone,
+    email: lead.email,
+    columnId: lead.kanban_stage_id,
+    tags: lead.tags || [],
+    notes: lead.notes,
+    purchaseValue: lead.purchase_value ? Number(lead.purchase_value) : undefined,
+    assignedUser: lead.owner_id,
+    lastMessage: lead.last_message,
+    lastMessageTime: lead.last_message_time,
+    createdAt: lead.created_at,
+    address: lead.address,
+    company: lead.company,
+    documentId: lead.document_id
+  })) || [];
 
   // Debug logs mais detalhados
   console.log('[SalesFunnel] 🔍 Estado atual:', {

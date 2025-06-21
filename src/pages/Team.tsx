@@ -16,11 +16,10 @@ export default function Team() {
   const { companyId } = useCompanyData();
   const { permissions, loading: permissionsLoading } = useUserPermissions();
   const {
-    members,
-    loading,
-    fetchTeamMembers,
+    teamMembers,
+    isLoading,
     createTeamMember,
-    removeTeamMember,
+    removeMember,
   } = useTeamManagement(companyId);
 
   const [allWhatsApps, setAllWhatsApps] = useState<{ id: string; instance_name: string }[]>([]);
@@ -59,13 +58,13 @@ export default function Team() {
       const { data: whatsapps } = await supabase
         .from("whatsapp_instances")
         .select("id, instance_name")
-        .eq("company_id", companyId);
+        .eq("created_by_user_id", companyId);
       setAllWhatsApps(whatsapps || []);
       
       const { data: funnels } = await supabase
         .from("funnels")
         .select("id, name")
-        .eq("company_id", companyId);
+        .eq("created_by_user_id", companyId);
       setAllFunnels(funnels || []);
     }
     fetchAux();
@@ -74,13 +73,41 @@ export default function Team() {
   const refreshAction = (
     <Button 
       className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 py-2.5 font-medium shadow-lg transition-all duration-200 hover:shadow-xl"
-      onClick={fetchTeamMembers}
-      disabled={loading}
+      onClick={() => window.location.reload()}
+      disabled={isLoading}
     >
-      <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+      <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
       Atualizar
     </Button>
   );
+
+  // Transform the mutation function to match ManualMemberForm interface
+  const handleCreateMember = async (data: {
+    full_name: string;
+    email: string;
+    password: string;
+    role: "operational" | "manager";
+    assignedWhatsAppIds: string[];
+    assignedFunnelIds: string[];
+  }): Promise<boolean> => {
+    try {
+      await createTeamMember.mutateAsync({
+        fullName: data.full_name,
+        username: data.email.split('@')[0],
+        role: data.role === "manager" ? "admin" : "operational",
+        whatsappAccess: data.assignedWhatsAppIds,
+        funnelAccess: data.assignedFunnelIds,
+      });
+      return true;
+    } catch (error) {
+      console.error("Error creating member:", error);
+      return false;
+    }
+  };
+
+  const handleRemoveMember = (memberId: string) => {
+    removeMember.mutate(memberId);
+  };
 
   return (
     <PageLayout>
@@ -93,8 +120,8 @@ export default function Team() {
       <div className="space-y-8">
         {/* Formulário para adicionar membro */}
         <ManualMemberForm
-          onSubmit={createTeamMember}
-          loading={loading}
+          onSubmit={handleCreateMember}
+          loading={isLoading}
           allWhatsApps={allWhatsApps}
           allFunnels={allFunnels}
         />
@@ -109,9 +136,9 @@ export default function Team() {
           </ModernCardHeader>
           <ModernCardContent>
             <ModernTeamMembersList 
-              members={members}
-              onRemoveMember={removeTeamMember}
-              loading={loading}
+              members={teamMembers}
+              onRemoveMember={handleRemoveMember}
+              loading={isLoading}
             />
           </ModernCardContent>
         </ModernCard>

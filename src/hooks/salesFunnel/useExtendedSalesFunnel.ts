@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useRealSalesFunnel } from "./useRealSalesFunnel";
 import { useFunnelManagement } from "./useFunnelManagement";
 import { useStageDatabase } from "./useStageDatabase";
+import { useTagDatabase } from "./useTagDatabase";
 import { KanbanColumn } from "@/types/kanban";
 
 export function useExtendedSalesFunnel(funnelId?: string) {
@@ -12,6 +13,7 @@ export function useExtendedSalesFunnel(funnelId?: string) {
   
   const realFunnelData = useRealSalesFunnel(funnelId);
   const { stages } = useStageDatabase(funnelId);
+  const { createTag } = useTagDatabase();
   
   // Stub functions for compatibility
   const openLeadDetail = (lead: any) => {
@@ -74,6 +76,7 @@ export function useExtendedSalesFunnel(funnelId?: string) {
     updateLeadPurchaseValue,
     updateLeadAssignedUser,
     updateLeadName,
+    createTag: createTag.mutateAsync,
     wonStageId,
     lostStageId,
     refetchLeads,
