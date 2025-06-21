@@ -56,12 +56,16 @@ export default function SalesFunnel() {
     phone: lead.phone,
     email: lead.email,
     columnId: lead.kanban_stage_id,
-    tags: lead.tags || [],
+    tags: lead.tags?.map(tagRelation => ({
+      id: tagRelation.tag.id,
+      name: tagRelation.tag.name,
+      color: tagRelation.tag.color || '#3b82f6'
+    })) || [],
     notes: lead.notes,
     purchaseValue: lead.purchase_value ? Number(lead.purchase_value) : undefined,
     assignedUser: lead.owner_id,
-    lastMessage: lead.last_message,
-    lastMessageTime: lead.last_message_time,
+    lastMessage: lead.last_message || '',
+    lastMessageTime: lead.last_message_time || '',
     createdAt: lead.created_at,
     address: lead.address,
     company: lead.company,
@@ -88,6 +92,13 @@ export default function SalesFunnel() {
     } catch (error) {
       console.error('[SalesFunnel] ❌ Erro ao criar funil:', error);
       throw error;
+    }
+  };
+
+  // Wrapper function for addColumn to match expected signature
+  const wrappedAddColumn = (title: string) => {
+    if (selectedFunnel?.id) {
+      addColumn(title, '#e0e0e0', selectedFunnel.id);
     }
   };
 
@@ -169,7 +180,7 @@ export default function SalesFunnel() {
     availableTags,
     stages,
     leads,
-    addColumn,
+    addColumn: wrappedAddColumn,
     updateColumn,
     deleteColumn,
     openLeadDetail,

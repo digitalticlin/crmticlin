@@ -10,7 +10,7 @@ export class OrphanAdoptionService {
    */
   static async adoptOrphanInstance(
     orphanInstance: OrphanInstance, 
-    companyId: string, 
+    createdByUserId: string, 
     instanceName: string
   ): Promise<AdoptionResult> {
     try {
@@ -28,7 +28,7 @@ export class OrphanAdoptionService {
         .insert({
           instance_name: instanceName,
           phone: orphanInstance.phone || '',
-          company_id: companyId,
+          created_by_user_id: createdByUserId,
           connection_type: 'web',
           server_url: VPS_CONFIG.baseUrl,
           vps_instance_id: orphanInstance.instanceId,

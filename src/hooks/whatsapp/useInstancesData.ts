@@ -33,7 +33,7 @@ export function useInstancesData() {
         created_by_user_id: instance.created_by_user_id,
         created_at: instance.created_at || new Date().toISOString(),
         updated_at: instance.updated_at || new Date().toISOString(),
-        history_imported: instance.history_imported || false,
+        history_imported: false, // Default value since it doesn't exist in DB
       }));
 
       setInstances(transformedData);
