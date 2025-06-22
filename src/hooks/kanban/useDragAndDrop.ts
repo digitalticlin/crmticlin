@@ -1,4 +1,3 @@
-
 import { DropResult } from "react-beautiful-dnd";
 import { KanbanColumn, KanbanLead } from "@/types/kanban";
 import { useDragAndDropCore } from "./useDragAndDropCore";
@@ -17,6 +16,17 @@ export const useDragAndDrop = ({
   onMoveToWonLost,
   isWonLostView = false
 }: UseDragAndDropProps) => {
+  // Verificar se os módulos necessários estão disponíveis
+  if (!useDragAndDropCore || !useDragAndDropOperations) {
+    console.error('[useDragAndDrop] ❌ Módulos de drag and drop não encontrados');
+    // Retornar implementação mínima para evitar erros
+    return {
+      showDropZones: false,
+      onDragStart: () => {},
+      onDragEnd: () => {}
+    };
+  }
+
   const {
     showDropZones,
     setShowDropZones,
@@ -32,24 +42,29 @@ export const useDragAndDrop = ({
   } = useDragAndDropOperations({ columns, onColumnsChange, onMoveToWonLost, isWonLostView });
 
   const onDragEnd = async (result: DropResult) => {
-    setShowDropZones(false);
+    try {
+      setShowDropZones(false);
 
-    if (!validateDragResult(result)) return;
+      if (!validateDragResult(result)) return;
 
-    const { destination, source, draggableId } = result;
-    const { sourceColumn, destColumn } = findColumns(result);
+      const { destination, source, draggableId } = result;
+      const { sourceColumn, destColumn } = findColumns(result);
 
-    if (!sourceColumn || !destColumn) return;
+      if (!sourceColumn || !destColumn) return;
 
-    const lead = findLead(sourceColumn, draggableId);
-    if (!lead) return;
+      const lead = findLead(sourceColumn, draggableId);
+      if (!lead) return;
 
-    const previousColumns = columns;
+      const previousColumns = columns;
 
-    if (source.droppableId === destination!.droppableId) {
-      await handleSameColumnReorder(sourceColumn, source.index, destination!.index, previousColumns);
-    } else {
-      await handleCrossColumnMove(lead, sourceColumn, destColumn, source.index, destination!.index, previousColumns);
+      if (source.droppableId === destination!.droppableId) {
+        await handleSameColumnReorder(sourceColumn, source.index, destination!.index, previousColumns);
+      } else {
+        await handleCrossColumnMove(lead, sourceColumn, destColumn, source.index, destination!.index, previousColumns);
+      }
+    } catch (error) {
+      console.error('[useDragAndDrop] ❌ Erro durante operação de drag and drop:', error);
+      // Não propagar o erro para evitar quebrar a UI
     }
   };
 

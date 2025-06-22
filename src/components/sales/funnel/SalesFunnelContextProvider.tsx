@@ -22,37 +22,44 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     );
   }
 
+  // Garantir que todas as propriedades necessárias estejam definidas
   const contextValue = {
-    funnels: salesFunnelData.funnels,
+    funnels: salesFunnelData.funnels || [],
     selectedFunnel: salesFunnelData.selectedFunnel,
     setSelectedFunnel: salesFunnelData.setSelectedFunnel,
     createFunnel: salesFunnelData.createFunnel,
-    funnelLoading: salesFunnelData.funnelLoading,
-    columns: salesFunnelData.columns,
+    funnelLoading: salesFunnelData.funnelLoading || false,
+    columns: salesFunnelData.columns || [],
     setColumns: salesFunnelData.setColumns,
     selectedLead: salesFunnelData.selectedLead,
-    isLeadDetailOpen: salesFunnelData.isLeadDetailOpen,
+    isLeadDetailOpen: salesFunnelData.isLeadDetailOpen || false,
     setIsLeadDetailOpen: salesFunnelData.setIsLeadDetailOpen,
-    availableTags: salesFunnelData.availableTags,
+    availableTags: salesFunnelData.availableTags || [],
     stages: salesFunnelData.stages || [],
     leads: salesFunnelData.leads || [],
-    addColumn: salesFunnelData.wrappedAddColumn,
-    updateColumn: salesFunnelData.wrappedUpdateColumn,
-    deleteColumn: salesFunnelData.deleteColumn,
-    openLeadDetail: salesFunnelData.openLeadDetail,
-    toggleTagOnLead: salesFunnelData.toggleTagOnLead,
-    createTag: salesFunnelData.wrappedCreateTag,
-    updateLeadNotes: salesFunnelData.handleUpdateLeadNotes,
-    updateLeadPurchaseValue: salesFunnelData.handleUpdateLeadPurchaseValue,
-    updateLeadAssignedUser: salesFunnelData.handleUpdateLeadAssignedUser,
-    updateLeadName: salesFunnelData.handleUpdateLeadName,
-    moveLeadToStage: salesFunnelData.wrappedMoveLeadToStage,
-    isAdmin: salesFunnelData.isAdmin,
+    addColumn: salesFunnelData.wrappedAddColumn || (() => {}),
+    updateColumn: salesFunnelData.wrappedUpdateColumn || (() => {}),
+    deleteColumn: salesFunnelData.deleteColumn || (() => {}),
+    openLeadDetail: salesFunnelData.openLeadDetail || (() => {}),
+    toggleTagOnLead: salesFunnelData.toggleTagOnLead || (() => {}),
+    createTag: salesFunnelData.wrappedCreateTag || (() => {}),
+    updateLeadNotes: salesFunnelData.handleUpdateLeadNotes || (() => {}),
+    updateLeadPurchaseValue: salesFunnelData.handleUpdateLeadPurchaseValue || (() => {}),
+    updateLeadAssignedUser: salesFunnelData.handleUpdateLeadAssignedUser || (() => {}),
+    updateLeadName: salesFunnelData.handleUpdateLeadName || (() => {}),
+    moveLeadToStage: salesFunnelData.wrappedMoveLeadToStage || (() => {}),
+    isAdmin: salesFunnelData.isAdmin || false,
     wonStageId: salesFunnelData.wonStageId,
     lostStageId: salesFunnelData.lostStageId,
-    refetchLeads: salesFunnelData.refetchLeads,
-    refetchStages: salesFunnelData.refetchStages
+    refetchLeads: salesFunnelData.refetchLeads || (async () => {}),
+    refetchStages: salesFunnelData.refetchStages || (async () => {})
   };
+
+  console.log('[SalesFunnelContextProvider] ✅ Provendo contexto com valores:', {
+    funnelName: contextValue.selectedFunnel?.name,
+    stagesCount: contextValue.stages?.length || 0,
+    leadsCount: contextValue.leads?.length || 0
+  });
 
   return (
     <SalesFunnelProvider value={contextValue}>
