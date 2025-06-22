@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MessageSquare, Bell, Sparkles, User, Building } from "lucide-react";
-import { SimplifiedWhatsAppSection } from "./whatsapp/SimplifiedWhatsAppSection";
+import { OptimizedSettingsSection } from "./whatsapp/OptimizedSettingsSection";
 import NotificationSettings from "./NotificationSettings";
 import AISettings from "./AISettings";
 import ProfileSettings from "./ProfileSettings";
@@ -53,7 +53,7 @@ const SettingsTabs = () => {
 
       <div className="mt-6">
         <TabsContent value="whatsapp" className="space-y-6">
-          <SimplifiedWhatsAppSection />
+          <OptimizedSettingsSection />
         </TabsContent>
 
         <TabsContent value="notifications">

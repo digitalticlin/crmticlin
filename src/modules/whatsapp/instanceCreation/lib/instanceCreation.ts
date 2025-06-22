@@ -38,3 +38,6 @@ export class InstanceCreationService {
     }
   }
 }
+
+// Export CreateInstanceResult para resolver import
+export type { CreateInstanceResult } from '../types/instanceTypes';
