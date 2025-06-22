@@ -11,7 +11,7 @@ interface AddNewConnectionCardProps {
 export const AddNewConnectionCard = ({ onConnect, isConnecting }: AddNewConnectionCardProps) => {
   return (
     <Card className="group relative transition-all duration-300 hover:shadow-2xl hover:-translate-y-1
-      bg-gradient-to-br from-green-50/60 to-green-100/40 backdrop-blur-xl 
+      bg-gradient-to-br from-white/80 to-white/60 backdrop-blur-xl 
       border-2 border-dashed border-green-300/70 rounded-2xl overflow-hidden
       cursor-pointer min-h-[280px] flex items-center justify-center" 
       onClick={!isConnecting ? onConnect : undefined}>

@@ -33,7 +33,7 @@ export const SimpleInstanceCard = ({
       case 'ready':
       case 'connected':
         return {
-          color: 'bg-green-100 text-green-800',
+          color: 'bg-green-100/80 text-green-800 backdrop-blur-sm',
           icon: CheckCircle,
           text: 'Conectado',
           description: 'WhatsApp conectado e funcionando'
@@ -41,7 +41,7 @@ export const SimpleInstanceCard = ({
       case 'connecting':
       case 'initializing':
         return {
-          color: 'bg-yellow-100 text-yellow-800',
+          color: 'bg-yellow-100/80 text-yellow-800 backdrop-blur-sm',
           icon: Clock,
           text: 'Conectando',
           description: 'Estabelecendo conexão...'
@@ -50,14 +50,14 @@ export const SimpleInstanceCard = ({
       case 'waiting_scan':
       case 'qr_ready':
         return {
-          color: 'bg-blue-100 text-blue-800',
+          color: 'bg-blue-100/80 text-blue-800 backdrop-blur-sm',
           icon: AlertTriangle,
           text: 'Aguardando QR',
           description: 'QR Code disponível para escaneamento'
         };
       default:
         return {
-          color: 'bg-gray-100 text-gray-800',
+          color: 'bg-gray-100/80 text-gray-800 backdrop-blur-sm',
           icon: AlertTriangle,
           text: 'Desconectado',
           description: 'Precisa conectar'
@@ -76,8 +76,10 @@ export const SimpleInstanceCard = ({
     );
 
   return (
-    <Card className="bg-white/90 backdrop-blur-sm border-l-4 border-l-green-500 shadow-lg hover:shadow-xl transition-all duration-300">
-      <CardHeader className="pb-3">
+    <Card className="bg-gradient-to-br from-white/80 to-white/60 backdrop-blur-xl border border-white/30 shadow-xl hover:shadow-2xl transition-all duration-300 rounded-2xl overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+      
+      <CardHeader className="pb-3 relative z-10">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
             <h3 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -91,14 +93,14 @@ export const SimpleInstanceCard = ({
             )}
           </div>
           
-          <Badge className={statusInfo.color}>
+          <Badge className={`${statusInfo.color} border-white/30`}>
             <StatusIcon className="h-3 w-3 mr-1" />
             {statusInfo.text}
           </Badge>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 relative z-10">
         <div className="text-sm text-gray-600">
           <p>{statusInfo.description}</p>
           {instance.date_connected && (
@@ -117,7 +119,7 @@ export const SimpleInstanceCard = ({
               onModalOpen={onGenerateQR}
               variant="default"
               size="sm"
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+              className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
             />
           )}
           
@@ -126,7 +128,7 @@ export const SimpleInstanceCard = ({
             instanceName={instance.instance_name}
             onSuccess={onDelete}
             variant="outline"
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            className="text-red-600 hover:text-red-700 hover:bg-red-50/80 backdrop-blur-sm border-white/30"
           />
         </div>
       </CardContent>
