@@ -19,6 +19,7 @@ export const CreateInstanceButton = ({
   const { createInstance, isCreating } = useInstanceCreation(onSuccess);
 
   const handleCreate = async () => {
+    console.log('[CreateInstanceButton] 🚀 Iniciando criação de instância');
     await createInstance();
   };
 

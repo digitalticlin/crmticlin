@@ -1,60 +1,59 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { supabase } from '@/integrations/supabase/client';
 
 export interface CreateInstanceParams {
   instanceName?: string;
-  userEmail?: string;
+  userEmail: string;
 }
 
 export interface CreateInstanceResult {
   success: boolean;
   instance?: any;
   error?: string;
-  mode?: string;
 }
 
 export class InstanceCreationService {
-  static async createInstance(params: CreateInstanceParams = {}): Promise<CreateInstanceResult> {
+  static async createInstance(params: CreateInstanceParams): Promise<CreateInstanceResult> {
     try {
-      console.log('[InstanceCreation] 🚀 Criando instância via whatsapp_instance_manager');
+      console.log('[InstanceCreationService] 🚀 Criando instância:', params);
       
       // Gerar nome inteligente se não fornecido
-      let instanceName = params.instanceName;
-      if (!instanceName && params.userEmail) {
-        instanceName = params.userEmail.split('@')[0].toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
-      }
+      const intelligentName = params.instanceName || 
+        params.userEmail.split('@')[0].toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
       
+      // Chamar edge function para criar instância
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
         body: {
           action: 'create_instance',
-          instanceName: instanceName || 'default'
+          instanceName: intelligentName
         }
       });
 
       if (error) {
-        console.error('[InstanceCreation] ❌ Erro do Supabase:', error);
+        console.error('[InstanceCreationService] ❌ Erro do Supabase:', error);
         throw new Error(error.message);
       }
 
       if (!data?.success) {
-        console.error('[InstanceCreation] ❌ Falha na criação:', data?.error);
+        console.error('[InstanceCreationService] ❌ Falha na criação:', data?.error);
         throw new Error(data?.error || 'Falha ao criar instância');
       }
 
-      console.log('[InstanceCreation] ✅ Instância criada com sucesso:', data.instance?.id);
-      
+      console.log('[InstanceCreationService] ✅ Instância criada:', {
+        instanceName: intelligentName,
+        instanceId: data.instance?.id
+      });
+
       return {
         success: true,
-        instance: data.instance,
-        mode: data.mode || 'created'
+        instance: data.instance
       };
 
     } catch (error: any) {
-      console.error('[InstanceCreation] ❌ Erro ao criar instância:', error);
+      console.error('[InstanceCreationService] ❌ Erro:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message || 'Erro desconhecido'
       };
     }
   }

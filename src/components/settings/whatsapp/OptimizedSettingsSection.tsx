@@ -2,17 +2,14 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { Card, CardContent } from "@/components/ui/card";
-import { MessageSquare, Plus, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { MessageSquare } from "lucide-react";
 import { WhatsAppInstanceGrid } from "./WhatsAppInstanceGrid";
 import { AutoQRModal } from "./AutoQRModal";
-import { useState } from "react";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { CreateInstanceButton } from "@/modules/whatsapp/instanceCreation/components/CreateInstanceButton";
+import { QRCodeModal } from "@/modules/whatsapp/instanceCreation/components/QRCodeModal";
 
 export const OptimizedSettingsSection = () => {
   const { user } = useAuth();
-  const [isCreatingInstance, setIsCreatingInstance] = useState(false);
 
   const {
     instances,
@@ -28,55 +25,6 @@ export const OptimizedSettingsSection = () => {
     loadInstances
   } = useWhatsAppWebInstances();
 
-  const handleCreateInstance = async () => {
-    if (!user?.email) {
-      toast.error('Email do usuário não disponível');
-      return;
-    }
-
-    setIsCreatingInstance(true);
-    
-    try {
-      console.log('[Settings] 🚀 Criando instância via whatsapp_instance_manager para:', user.email);
-      
-      const intelligentName = user.email.split('@')[0].toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
-      
-      const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
-        body: {
-          action: 'create_instance',
-          instanceName: intelligentName
-        }
-      });
-
-      if (error) {
-        console.error('[Settings] ❌ Erro do Supabase:', error);
-        throw new Error(error.message);
-      }
-
-      if (!data?.success) {
-        console.error('[Settings] ❌ Falha na criação:', data?.error);
-        throw new Error(data?.error || 'Falha ao criar instância');
-      }
-
-      console.log('[Settings] ✅ Instância criada com sucesso:', {
-        instanceName: intelligentName,
-        instanceId: data.instance?.id
-      });
-
-      toast.success(`Instância "${intelligentName}" criada com sucesso!`, {
-        description: "Aguarde o QR Code para conectar"
-      });
-
-      await loadInstances();
-
-    } catch (error: any) {
-      console.error('[Settings] ❌ Erro ao criar instância:', error);
-      toast.error(`Erro ao criar instância: ${error.message}`);
-    } finally {
-      setIsCreatingInstance(false);
-    }
-  };
-
   const handleDeleteInstance = async (instanceId: string) => {
     console.log('[Settings] 🗑️ Deletando instância:', instanceId);
     await deleteInstance(instanceId);
@@ -85,6 +33,11 @@ export const OptimizedSettingsSection = () => {
   const handleRefreshQR = async (instanceId: string) => {
     console.log('[Settings] 🔄 Refresh QR:', instanceId);
     await refreshQRCode(instanceId);
+  };
+
+  const handleInstanceCreated = async (result: any) => {
+    console.log('[Settings] ✅ Instância criada com sucesso:', result);
+    await loadInstances();
   };
 
   if (isLoading) {
@@ -102,34 +55,30 @@ export const OptimizedSettingsSection = () => {
 
   return (
     <div className="space-y-6">
-      {/* Botão principal para criar instância */}
+      {/* Botão principal para criar instância usando estrutura modular */}
       <div className="flex justify-center">
-        <Button 
-          onClick={handleCreateInstance}
-          disabled={isCreatingInstance}
-          className="bg-green-600 hover:bg-green-700 text-white gap-2 px-8 py-3 text-lg"
+        <CreateInstanceButton 
+          onSuccess={handleInstanceCreated}
+          variant="whatsapp"
           size="lg"
-        >
-          {isCreatingInstance ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Criando Instância...
-            </>
-          ) : (
-            <>
-              <Plus className="h-5 w-5" />
-              Conectar WhatsApp
-            </>
-          )}
-        </Button>
+          className="px-8 py-3 text-lg"
+        />
       </div>
 
       {/* Grid de instâncias ou estado vazio */}
       {instances.length > 0 ? (
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-800">
-            Suas Instâncias WhatsApp ({instances.length})
-          </h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-800">
+              Suas Instâncias WhatsApp ({instances.length})
+            </h3>
+            <CreateInstanceButton 
+              onSuccess={handleInstanceCreated}
+              variant="outline"
+              size="sm"
+              className="text-sm"
+            />
+          </div>
           
           <WhatsAppInstanceGrid 
             instances={instances}
@@ -147,18 +96,19 @@ export const OptimizedSettingsSection = () => {
             <p className="text-gray-600 mb-6">
               Conecte sua primeira instância para começar a usar o sistema
             </p>
-            <Button 
-              onClick={handleCreateInstance}
-              disabled={isCreatingInstance}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              {isCreatingInstance ? 'Criando...' : 'Conectar Primeira Instância'}
-            </Button>
+            <CreateInstanceButton 
+              onSuccess={handleInstanceCreated}
+              variant="whatsapp"
+              size="default"
+            />
           </CardContent>
         </Card>
       )}
 
-      {/* Modal QR */}
+      {/* Modal QR usando estrutura modular */}
+      <QRCodeModal />
+
+      {/* Fallback para modal antigo se necessário */}
       <AutoQRModal
         isOpen={showQRModal}
         onClose={closeQRModal}
@@ -170,6 +120,29 @@ export const OptimizedSettingsSection = () => {
         error={null}
         onRetry={retryQRCode}
       />
+
+      {/* Card informativo sobre integração modular */}
+      <Card className="border-blue-200 bg-blue-50/30">
+        <CardContent className="p-4">
+          <div className="text-sm text-blue-800 space-y-2">
+            <p><strong>✅ ESTRUTURA MODULAR INTEGRADA:</strong></p>
+            <ul className="list-disc list-inside space-y-1 ml-4">
+              <li><strong>CreateInstanceButton:</strong> Componente modular para criação</li>
+              <li><strong>useInstanceCreation:</strong> Hook isolado para lógica de criação</li>
+              <li><strong>QRCodeModal:</strong> Modal modular para QR codes</li>
+              <li><strong>Edge Functions:</strong> whatsapp_instance_manager integrado</li>
+              <li><strong>Compatibilidade:</strong> Mantém funcionalidades existentes</li>
+            </ul>
+            <div className="mt-3 p-3 bg-white/70 rounded border border-blue-200">
+              <p className="font-medium">🎯 Fluxo Modular Ativo:</p>
+              <p>1. CreateInstanceButton → useInstanceCreation</p>
+              <p>2. Edge Function → whatsapp_instance_manager</p>
+              <p>3. QRCodeModal → Exibição automática</p>
+              <p>4. Sincronização → Webhook + Realtime</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
