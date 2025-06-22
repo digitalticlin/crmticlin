@@ -65,6 +65,24 @@ serve(async (req) => {
       console.error('[Auto Sync] ❌ Erro ao buscar instâncias do banco:', error);
     }
 
+    // CORREÇÃO: Buscar o primeiro usuário ativo para instâncias órfãs
+    let defaultUserId = null;
+    try {
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id')
+        .limit(1);
+
+      if (profilesError) {
+        console.error('[Auto Sync] ⚠️ Erro ao buscar usuário padrão:', profilesError);
+      } else if (profiles && profiles.length > 0) {
+        defaultUserId = profiles[0].id;
+        console.log(`[Auto Sync] 👤 Usuário padrão encontrado para órfãs: ${defaultUserId}`);
+      }
+    } catch (error) {
+      console.error('[Auto Sync] ⚠️ Erro ao buscar usuário padrão:', error);
+    }
+
     // 3. Sincronizar status das instâncias existentes
     for (const vpsInstance of vpsInstances) {
       try {
@@ -88,21 +106,29 @@ serve(async (req) => {
             }
           }
         } else {
-          // Criar nova instância no banco (instância órfã na VPS)
-          const { error } = await supabase
-            .from('whatsapp_instances')
-            .insert({
-              instance_name: vpsInstance.instanceId,
-              vps_instance_id: vpsInstance.instanceId,
-              connection_type: 'web',
-              connection_status: vpsInstance.status,
-              created_by_user_id: 'auto_sync',
-              server_url: WEBHOOK_SERVER_URL
-            });
+          // CORREÇÃO: Criar nova instância no banco com UUID válido
+          if (defaultUserId) {
+            const { error } = await supabase
+              .from('whatsapp_instances')
+              .insert({
+                instance_name: vpsInstance.instanceId,
+                vps_instance_id: vpsInstance.instanceId,
+                connection_type: 'web',
+                connection_status: vpsInstance.status,
+                created_by_user_id: defaultUserId, // UUID válido em vez de 'auto_sync'
+                server_url: WEBHOOK_SERVER_URL
+              });
 
-          if (!error) {
-            syncResults.new_instances++;
-            console.log(`[Auto Sync] ➕ Nova instância: ${vpsInstance.instanceId}`);
+            if (!error) {
+              syncResults.new_instances++;
+              console.log(`[Auto Sync] ➕ Nova instância órfã: ${vpsInstance.instanceId}`);
+            } else {
+              console.error(`[Auto Sync] ❌ Erro ao criar órfã ${vpsInstance.instanceId}:`, error);
+              syncResults.errors.push(`Create Error ${vpsInstance.instanceId}: ${error.message}`);
+            }
+          } else {
+            console.log(`[Auto Sync] ⚠️ Órfã ignorada (sem usuário padrão): ${vpsInstance.instanceId}`);
+            syncResults.errors.push(`No default user for orphan: ${vpsInstance.instanceId}`);
           }
         }
       } catch (error) {

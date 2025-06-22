@@ -121,6 +121,7 @@ export const TestSyncButton = () => {
           <p>🎯 Esta função testa a comunicação com a VPS na porta 3002</p>
           <p>📊 Mostra quantas instâncias existem na VPS vs Banco</p>
           <p>🔧 Útil para diagnosticar problemas de sincronização</p>
+          <p>✅ CORREÇÃO: Agora usa UUID válido para instâncias órfãs</p>
         </div>
       </CardContent>
     </Card>
