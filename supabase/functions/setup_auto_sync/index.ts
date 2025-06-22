@@ -8,15 +8,13 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  console.log('[Setup Auto Sync] 🔧 CONFIGURAÇÃO DE SINCRONIZAÇÃO AUTOMÁTICA');
+  console.log('[Setup Auto Sync] 🔧 CONFIGURAÇÃO DE SINCRONIZAÇÃO AUTOMÁTICA CORRIGIDA');
   
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Create Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -26,18 +24,25 @@ serve(async (req) => {
     if (action === 'setup_cron') {
       console.log('[Setup Auto Sync] ⏰ Configurando cron job para sincronização automática...');
 
-      // Configurar cron job para executar a cada 10 minutos
-      const { data, error } = await supabase.rpc('cron_schedule', {
-        job_name: 'auto_whatsapp_sync',
-        schedule: '*/10 * * * *', // A cada 10 minutos
-        command: `
+      // Criar comando SQL para o cron job
+      const cronSQL = `
+        SELECT cron.schedule(
+          'auto_whatsapp_sync_corrected',
+          '*/5 * * * *',
+          $$
           SELECT net.http_post(
-            url := '${supabaseUrl}/functions/v1/auto_whatsapp_sync',
+            url := '${supabaseUrl}/functions/v1/auto_sync_instances',
             headers := '{"Content-Type": "application/json", "Authorization": "Bearer ${supabaseServiceKey}"}'::jsonb,
-            body := '{"auto_trigger": true}'::jsonb
+            body := '{"action": "sync_all_instances", "auto_trigger": true, "cron_execution": true}'::jsonb
           );
-        `
-      });
+          $$
+        );
+      `;
+
+      console.log('[Setup Auto Sync] 📝 Executando SQL para cron job:', cronSQL);
+
+      // Executar via RPC
+      const { data, error } = await supabase.rpc('exec', { sql: cronSQL });
 
       if (error) {
         console.error('[Setup Auto Sync] ❌ Erro ao configurar cron:', error);
@@ -49,30 +54,33 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: true,
-          message: 'Sincronização automática configurada para executar a cada 10 minutos',
-          cron_schedule: '*/10 * * * *'
+          message: 'Sincronização automática configurada para executar a cada 5 minutos',
+          cron_schedule: '*/5 * * * *',
+          vps_auth: 'enabled',
+          enhanced_data_capture: true
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
 
-    } else if (action === 'disable_cron') {
-      console.log('[Setup Auto Sync] 🛑 Desabilitando cron job...');
+    } else if (action === 'test_sync') {
+      console.log('[Setup Auto Sync] 🧪 Testando sincronização manual...');
 
-      const { data, error } = await supabase.rpc('cron_unschedule', {
-        job_name: 'auto_whatsapp_sync'
+      const { data, error } = await supabase.functions.invoke('auto_sync_instances', {
+        body: {
+          action: 'sync_all_instances',
+          manual_test: true
+        }
       });
 
       if (error) {
-        console.error('[Setup Auto Sync] ❌ Erro ao desabilitar cron:', error);
         throw error;
       }
-
-      console.log('[Setup Auto Sync] ✅ Cron job desabilitado');
 
       return new Response(
         JSON.stringify({
           success: true,
-          message: 'Sincronização automática desabilitada'
+          test_result: data,
+          message: 'Teste de sincronização executado com sucesso'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -81,7 +89,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'Ação não reconhecida. Use "setup_cron" ou "disable_cron"'
+          error: 'Ação não reconhecida. Use "setup_cron" ou "test_sync"'
         }),
         { 
           status: 400,

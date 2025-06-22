@@ -7,8 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// CONFIGURAÇÃO ATUALIZADA: Servidor Webhook na porta 3002
+// CONFIGURAÇÃO CORRIGIDA: Servidor Webhook na porta 3002 com autenticação
 const WEBHOOK_SERVER_URL = 'http://31.97.24.222:3002';
+const VPS_AUTH_TOKEN = '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -30,17 +31,35 @@ serve(async (req) => {
       errors: []
     };
 
-    // 1. Buscar instâncias do servidor webhook (porta 3002)
+    // 1. Buscar instâncias do servidor webhook com autenticação correta
     let vpsInstances = [];
     try {
-      const vpsResponse = await fetch(`${WEBHOOK_SERVER_URL}/instances`, { timeout: 15000 });
+      console.log('[Auto Sync] 🔑 Fazendo requisição autenticada para VPS...');
+      
+      const vpsResponse = await fetch(`${WEBHOOK_SERVER_URL}/instances`, { 
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${VPS_AUTH_TOKEN}`,
+          'X-API-Token': VPS_AUTH_TOKEN
+        },
+        signal: AbortSignal.timeout(15000)
+      });
+
       if (vpsResponse.ok) {
         const vpsData = await vpsResponse.json();
+        console.log('[Auto Sync] 📊 Resposta VPS completa:', JSON.stringify(vpsData, null, 2));
+        
         vpsInstances = vpsData.instances || [];
         syncResults.vps_instances = vpsInstances.length;
         console.log(`[Auto Sync] 📡 Encontradas ${vpsInstances.length} instâncias na VPS`);
+        
+        // Log detalhado da estrutura de cada instância
+        vpsInstances.forEach((instance, index) => {
+          console.log(`[Auto Sync] 🔍 Instância ${index + 1}:`, JSON.stringify(instance, null, 2));
+        });
       } else {
-        throw new Error('Servidor webhook não responde');
+        throw new Error(`VPS respondeu com status ${vpsResponse.status}: ${await vpsResponse.text()}`);
       }
     } catch (error) {
       syncResults.errors.push(`VPS Error: ${error.message}`);
@@ -65,7 +84,7 @@ serve(async (req) => {
       console.error('[Auto Sync] ❌ Erro ao buscar instâncias do banco:', error);
     }
 
-    // CORREÇÃO: Buscar o primeiro usuário ativo para instâncias órfãs
+    // Buscar o primeiro usuário ativo para instâncias órfãs
     let defaultUserId = null;
     try {
       const { data: profiles, error: profilesError } = await supabase
@@ -83,62 +102,105 @@ serve(async (req) => {
       console.error('[Auto Sync] ⚠️ Erro ao buscar usuário padrão:', error);
     }
 
-    // 3. Sincronizar status das instâncias existentes
+    // 3. Sincronizar status e dados das instâncias
     for (const vpsInstance of vpsInstances) {
       try {
-        const dbInstance = dbInstances.find(db => db.vps_instance_id === vpsInstance.instanceId);
+        console.log(`[Auto Sync] 🔄 Processando instância VPS:`, JSON.stringify(vpsInstance, null, 2));
+        
+        // Mapear campos VPS para campos do banco
+        const instanceId = vpsInstance.instanceId || vpsInstance.id || vpsInstance.sessionId;
+        const instanceStatus = vpsInstance.status || vpsInstance.state || 'unknown';
+        const instancePhone = vpsInstance.phone || vpsInstance.number || vpsInstance.phoneNumber;
+        const instanceProfileName = vpsInstance.profileName || vpsInstance.profile_name || vpsInstance.name;
+        const instanceProfilePic = vpsInstance.profilePic || vpsInstance.profile_pic || vpsInstance.profilePicUrl;
+        const instanceQrCode = vpsInstance.qrCode || vpsInstance.qr_code || vpsInstance.qr;
+        
+        console.log(`[Auto Sync] 📋 Dados mapeados:`, {
+          instanceId,
+          instanceStatus,
+          instancePhone,
+          instanceProfileName,
+          instanceProfilePic: instanceProfilePic ? 'Presente' : 'Ausente',
+          instanceQrCode: instanceQrCode ? 'Presente' : 'Ausente'
+        });
+
+        const dbInstance = dbInstances.find(db => 
+          db.vps_instance_id === instanceId || 
+          db.instance_name === instanceId
+        );
         
         if (dbInstance) {
-          // Atualizar instância existente se status mudou
-          if (dbInstance.connection_status !== vpsInstance.status) {
-            const { error } = await supabase
-              .from('whatsapp_instances')
-              .update({
-                connection_status: vpsInstance.status,
-                updated_at: new Date().toISOString(),
-                server_url: WEBHOOK_SERVER_URL
-              })
-              .eq('id', dbInstance.id);
+          // Atualizar instância existente com dados completos
+          const updateData = {
+            connection_status: instanceStatus,
+            updated_at: new Date().toISOString(),
+            server_url: WEBHOOK_SERVER_URL
+          };
 
-            if (!error) {
-              syncResults.updated_instances++;
-              console.log(`[Auto Sync] 🔄 Atualizada: ${vpsInstance.instanceId}`);
-            }
+          // Adicionar dados extras se disponíveis
+          if (instancePhone) updateData.phone = instancePhone;
+          if (instanceProfileName) updateData.profile_name = instanceProfileName;
+          if (instanceProfilePic) updateData.profile_pic_url = instanceProfilePic;
+          if (instanceQrCode) updateData.qr_code = instanceQrCode;
+
+          console.log(`[Auto Sync] 💾 Atualizando instância ${instanceId} com dados:`, updateData);
+
+          const { error } = await supabase
+            .from('whatsapp_instances')
+            .update(updateData)
+            .eq('id', dbInstance.id);
+
+          if (!error) {
+            syncResults.updated_instances++;
+            console.log(`[Auto Sync] ✅ Atualizada: ${instanceId} com dados completos`);
+          } else {
+            console.error(`[Auto Sync] ❌ Erro ao atualizar ${instanceId}:`, error);
+            syncResults.errors.push(`Update Error ${instanceId}: ${error.message}`);
           }
         } else {
-          // CORREÇÃO: Criar nova instância no banco com UUID válido
+          // Criar nova instância órfã no banco com dados completos
           if (defaultUserId) {
+            const insertData = {
+              instance_name: instanceId,
+              vps_instance_id: instanceId,
+              connection_type: 'web',
+              connection_status: instanceStatus,
+              created_by_user_id: defaultUserId,
+              server_url: WEBHOOK_SERVER_URL
+            };
+
+            // Adicionar dados extras se disponíveis
+            if (instancePhone) insertData.phone = instancePhone;
+            if (instanceProfileName) insertData.profile_name = instanceProfileName;
+            if (instanceProfilePic) insertData.profile_pic_url = instanceProfilePic;
+            if (instanceQrCode) insertData.qr_code = instanceQrCode;
+
+            console.log(`[Auto Sync] 🆕 Criando nova instância órfã ${instanceId} com dados:`, insertData);
+
             const { error } = await supabase
               .from('whatsapp_instances')
-              .insert({
-                instance_name: vpsInstance.instanceId,
-                vps_instance_id: vpsInstance.instanceId,
-                connection_type: 'web',
-                connection_status: vpsInstance.status,
-                created_by_user_id: defaultUserId, // UUID válido em vez de 'auto_sync'
-                server_url: WEBHOOK_SERVER_URL
-              });
+              .insert(insertData);
 
             if (!error) {
               syncResults.new_instances++;
-              console.log(`[Auto Sync] ➕ Nova instância órfã: ${vpsInstance.instanceId}`);
+              console.log(`[Auto Sync] ➕ Nova instância órfã criada: ${instanceId} com dados completos`);
             } else {
-              console.error(`[Auto Sync] ❌ Erro ao criar órfã ${vpsInstance.instanceId}:`, error);
-              syncResults.errors.push(`Create Error ${vpsInstance.instanceId}: ${error.message}`);
+              console.error(`[Auto Sync] ❌ Erro ao criar órfã ${instanceId}:`, error);
+              syncResults.errors.push(`Create Error ${instanceId}: ${error.message}`);
             }
           } else {
-            console.log(`[Auto Sync] ⚠️ Órfã ignorada (sem usuário padrão): ${vpsInstance.instanceId}`);
-            syncResults.errors.push(`No default user for orphan: ${vpsInstance.instanceId}`);
+            console.log(`[Auto Sync] ⚠️ Órfã ignorada (sem usuário padrão): ${instanceId}`);
+            syncResults.errors.push(`No default user for orphan: ${instanceId}`);
           }
         }
       } catch (error) {
-        syncResults.errors.push(`Sync Error ${vpsInstance.instanceId}: ${error.message}`);
-        console.error(`[Auto Sync] ❌ Erro ao sincronizar ${vpsInstance.instanceId}:`, error);
+        syncResults.errors.push(`Sync Error ${vpsInstance.instanceId || 'unknown'}: ${error.message}`);
+        console.error(`[Auto Sync] ❌ Erro ao sincronizar ${vpsInstance.instanceId || 'unknown'}:`, error);
       }
     }
 
-    // 4. Log da sincronização
-    await supabase.from('auto_sync_logs').insert({
+    // 4. Log da sincronização com detalhes completos
+    const logData = {
       status: syncResults.errors.length === 0 ? 'success' : 'partial',
       instances_found: syncResults.vps_instances,
       instances_updated: syncResults.updated_instances,
@@ -146,18 +208,25 @@ serve(async (req) => {
       errors_count: syncResults.errors.length,
       error_details: syncResults.errors.length > 0 ? { errors: syncResults.errors } : null,
       execution_duration_ms: Date.now()
-    });
+    };
+
+    console.log('[Auto Sync] 📝 Salvando log da sincronização:', logData);
+
+    await supabase.from('auto_sync_logs').insert(logData);
 
     const isSuccess = syncResults.errors.length === 0;
     const summary = `Sincronizado: ${syncResults.updated_instances} atualizadas, ${syncResults.new_instances} novas, ${syncResults.errors.length} erros`;
 
     console.log(`[Auto Sync] ✅ Sincronização concluída: ${summary}`);
+    console.log(`[Auto Sync] 🔍 CORREÇÃO APLICADA: Autenticação VPS e captura de dados completos implementada`);
 
     return new Response(JSON.stringify({
       success: isSuccess,
       syncResults,
       summary,
       server_port: 3002,
+      vps_auth: 'enabled',
+      data_capture: 'enhanced',
       timestamp: new Date().toISOString()
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -168,7 +237,8 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: false,
       error: error.message,
-      server_url: WEBHOOK_SERVER_URL
+      server_url: WEBHOOK_SERVER_URL,
+      vps_auth: 'enabled'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
