@@ -15,6 +15,7 @@ export const useQRCodeModal = () => {
 
   // Limpar estado ao fechar
   const closeModal = useCallback(() => {
+    console.log('[useQRCodeModal] 🔒 Fechando modal');
     setState(prev => ({
       ...prev,
       isOpen: false,
@@ -91,6 +92,8 @@ export const useQRCodeModal = () => {
   useEffect(() => {
     if (!state.instanceId) return;
 
+    console.log('[useQRCodeModal] 🔄 Configurando subscription para:', state.instanceId);
+
     const subscription = supabase
       .channel(`instance_${state.instanceId}`)
       .on('postgres_changes', {
@@ -104,7 +107,7 @@ export const useQRCodeModal = () => {
         const newData = payload.new as any;
         
         // Se QR Code foi atualizado
-        if (newData.qr_code && newData.qr_code !== state.qrCode) {
+        if (newData.qr_code && newData.qr_code !== state.qrCode && newData.qr_code !== 'waiting') {
           console.log('[useQRCodeModal] 📱 Novo QR Code recebido via real-time');
           setState(prev => ({
             ...prev,
@@ -124,7 +127,8 @@ export const useQRCodeModal = () => {
       .subscribe();
 
     return () => {
-      subscription.unsubscribe();
+      console.log('[useQRCodeModal] 🧹 Removendo subscription');
+      supabase.removeChannel(subscription);
     };
   }, [state.instanceId, state.qrCode, closeModal]);
 

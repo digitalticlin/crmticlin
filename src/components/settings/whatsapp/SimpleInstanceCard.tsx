@@ -27,7 +27,7 @@ export const SimpleInstanceCard = ({
 }: SimpleInstanceCardProps) => {
   const { generateQRCode, isGenerating } = useQRCodeGeneration({
     onModalOpen: (instanceId) => {
-      console.log('[SimpleInstanceCard] 🚀 Abrindo modal para:', instanceId);
+      console.log('[SimpleInstanceCard] 🚀 Callback onModalOpen - Abrindo modal para:', instanceId);
       onGenerateQR(instanceId, instance.instance_name);
     }
   });
@@ -75,7 +75,12 @@ export const SimpleInstanceCard = ({
   const isConnected = ['ready', 'connected'].includes(instance.connection_status?.toLowerCase() || '');
 
   const handleGenerateQR = async () => {
-    console.log('[SimpleInstanceCard] 🔄 Gerando QR Code para:', instance.id);
+    console.log('[SimpleInstanceCard] 🔄 Gerando QR Code e abrindo modal para:', instance.id);
+    
+    // CORREÇÃO: Sempre abrir modal primeiro, depois gerar QR
+    onGenerateQR(instance.id, instance.instance_name);
+    
+    // Gerar QR Code em paralelo (modal vai fazer polling/subscription)
     await generateQRCode(instance.id);
   };
 

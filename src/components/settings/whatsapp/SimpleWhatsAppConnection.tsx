@@ -11,7 +11,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useInstanceCreation } from "@/modules/whatsapp/instanceCreation/hooks/useInstanceCreation";
 import { useQRCodeModal } from "@/modules/whatsapp/instanceCreation/hooks/useQRCodeModal";
-import { supabase } from "@/integrations/supabase/client";
 
 export const SimpleWhatsAppConnection = () => {
   const { user } = useAuth();
@@ -27,10 +26,6 @@ export const SimpleWhatsAppConnection = () => {
   const { createInstance, isCreating } = useInstanceCreation(loadInstances);
   const { 
     isOpen: showQRModal,
-    qrCode: selectedQRCode,
-    instanceId: selectedInstanceId,
-    isLoading: isWaitingForQR,
-    error: qrError,
     openModal,
     closeModal
   } = useQRCodeModal();
@@ -49,38 +44,6 @@ export const SimpleWhatsAppConnection = () => {
     }
     setLastInstanceCount(instances.length);
   }, [instances.length, lastInstanceCount, openModal]);
-
-  // Configurar subscription para detectar QR Code de novas instâncias
-  useEffect(() => {
-    if (!user?.email) return;
-
-    const subscription = supabase
-      .channel('new_instances_qr')
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'whatsapp_instances',
-        filter: `created_by_user_id=eq.${user.id}`
-      }, (payload) => {
-        const updatedInstance = payload.new as any;
-        
-        // Se uma instância recém-criada recebeu QR Code
-        if (updatedInstance.qr_code && !showQRModal) {
-          const instanceAge = Date.now() - new Date(updatedInstance.created_at).getTime();
-          const isRecentInstance = instanceAge < 30000; // 30 segundos
-          
-          if (isRecentInstance) {
-            console.log('[Simple Connection] 📱 QR Code recebido para instância recente, abrindo modal');
-            openModal(updatedInstance.id);
-          }
-        }
-      })
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [user?.email, user?.id, showQRModal, openModal]);
 
   const handleConnect = async () => {
     if (!user?.email) {
