@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -76,11 +77,13 @@ export const SimpleInstanceCard = ({
     );
 
   const handleGenerateQR = () => {
-    console.log('[SimpleInstanceCard] 🚀 Abrindo QR code para instância:', instance.id, '(', instance.instance_name, ')');
-    console.log('[SimpleInstanceCard] 📊 Status atual:', instance.connection_status, 'Web status:', instance.web_status);
+    console.log('[SimpleInstanceCard] 🚀 NÍVEL 8: Abrindo QR code para instância:', instance.id);
+    console.log('[SimpleInstanceCard] 📊 NÍVEL 8: Status atual:', instance.connection_status);
     
+    // CORREÇÃO NÍVEL 8: Abrir modal diretamente sem delays
     openModal(instance.id);
     
+    // Callback opcional para compatibilidade
     onGenerateQR?.(instance.id, instance.instance_name);
   };
 

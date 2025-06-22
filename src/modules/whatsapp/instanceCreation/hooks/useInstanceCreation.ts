@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { InstanceCreationService, CreateInstanceResult } from '../lib/instanceCreation';
@@ -18,7 +19,7 @@ export const useInstanceCreation = (onSuccess?: (result: CreateInstanceResult) =
     setIsCreating(true);
     
     try {
-      console.log('[useInstanceCreation] 🚀 Criando instância para:', user.email);
+      console.log('[useInstanceCreation] 🚀 NÍVEL 8: Criando instância para:', user.email);
       
       const result = await InstanceCreationService.createInstance({
         instanceName,
@@ -26,27 +27,15 @@ export const useInstanceCreation = (onSuccess?: (result: CreateInstanceResult) =
       });
 
       if (result.success && result.instance?.id) {
-        console.log('[useInstanceCreation] ✅ Instância criada:', result.instance.id);
+        console.log('[useInstanceCreation] ✅ NÍVEL 8: Instância criada:', result.instance.id);
         
         toast.success(`Instância criada com sucesso!`, {
-          description: "Aguarde o QR Code para conectar"
+          description: "Modal abrindo automaticamente..."
         });
         
-        // Verificação explícita para debug
-        if (typeof openModal === 'function') {
-          console.log('[useInstanceCreation] 📱 openModal é uma função válida');
-        } else {
-          console.error('[useInstanceCreation] ⚠️ openModal não é uma função:', openModal);
-        }
-        
-        // CORREÇÃO: Abrir modal imediatamente sem delays e verificações
-        console.log('[useInstanceCreation] 📱 Abrindo modal QR imediatamente para ID:', result.instance.id);
-        
-        // Envolva em setTimeout para garantir que é processado após outras operações
-        setTimeout(() => {
-          console.log('[useInstanceCreation] ⏱️ Executando abertura do modal após timeout mínimo');
-          openModal(result.instance.id);
-        }, 100);
+        // CORREÇÃO NÍVEL 8: Abrir modal imediatamente sem delays
+        console.log('[useInstanceCreation] 📱 NÍVEL 8: Abrindo modal para ID:', result.instance.id);
+        openModal(result.instance.id);
         
         if (onSuccess) {
           onSuccess(result);
@@ -58,7 +47,7 @@ export const useInstanceCreation = (onSuccess?: (result: CreateInstanceResult) =
       return result;
 
     } catch (error: any) {
-      console.error('[useInstanceCreation] ❌ Erro:', error);
+      console.error('[useInstanceCreation] ❌ NÍVEL 8: Erro:', error);
       toast.error(`Erro ao criar instância: ${error.message}`);
       return null;
     } finally {
