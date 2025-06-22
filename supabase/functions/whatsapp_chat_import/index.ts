@@ -8,9 +8,10 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 };
 
+// CORREÇÃO: URL VPS com porta 3002 e token correto
 const VPS_CONFIG = {
-  baseUrl: 'http://31.97.24.222:3001',
-  authToken: Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
+  baseUrl: 'http://31.97.24.222:3002',
+  authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
   timeout: 45000
 };
 
@@ -49,7 +50,8 @@ async function makeVPSRequest(endpoint: string, method: string = 'GET', payload?
     method,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${VPS_CONFIG.authToken}`
+      'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+      'X-API-Token': VPS_CONFIG.authToken
     },
     signal: AbortSignal.timeout(VPS_CONFIG.timeout)
   };
