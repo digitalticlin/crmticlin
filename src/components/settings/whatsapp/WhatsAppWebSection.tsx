@@ -181,22 +181,10 @@ export const WhatsAppWebSection = () => {
       <div className="flex justify-center gap-4">
         <CreateInstanceButton 
           onSuccess={loadInstances}
-          disabled={isCreatingInstance}
+          variant="whatsapp"
           className="bg-purple-600 hover:bg-purple-700 text-white gap-2 px-8 py-3 text-lg"
           size="lg"
-        >
-          {isCreatingInstance ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Criando via BAILEYS...
-            </>
-          ) : (
-            <>
-              <Plus className="h-5 w-5" />
-              Conectar WhatsApp (BAILEYS - SEM PUPPETEER)
-            </>
-          )}
-        </CreateInstanceButton>
+        />
 
         <Button 
           onClick={() => setShowMonitoring(!showMonitoring)}
@@ -255,11 +243,9 @@ export const WhatsAppWebSection = () => {
             </p>
             <CreateInstanceButton 
               onSuccess={loadInstances}
-              disabled={isCreatingInstance}
+              variant="whatsapp"
               className="bg-purple-600 hover:bg-purple-700 text-white"
-            >
-              {isCreatingInstance ? 'Criando via BAILEYS...' : 'Conectar Primeira Instância (BAILEYS)'}
-            </CreateInstanceButton>
+            />
           </CardContent>
         </Card>
       )}
