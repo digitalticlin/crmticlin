@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MessageSquare, Shield, AlertTriangle, Activity, CheckCircle } from "lucide-react";
@@ -9,7 +8,7 @@ import { WhatsAppWebInstancesGrid } from "./WhatsAppWebInstancesGrid";
 import { CreateInstanceButton } from "@/modules/whatsapp/instanceCreation/components/CreateInstanceButton";
 import { CleanupOrphanedInstancesButton } from "./CleanupOrphanedInstancesButton";
 import { OrphanInstanceManager } from "./OrphanInstanceManager";
-import { AutoQRModal } from "./AutoQRModal";
+import { QRCodeModal } from "@/modules/whatsapp/instanceCreation/components/QRCodeModal";
 import { VPSHealthService } from "@/services/whatsapp/vpsHealthService";
 import { WhatsAppCleanupService } from "@/services/whatsapp/cleanupService";
 import { useState, useEffect } from "react";
@@ -156,6 +155,9 @@ export const WhatsAppWebSettings = () => {
           isConnecting={isCreating}
         />
       )}
+
+      {/* Modal QR unificado */}
+      <QRCodeModal />
     </div>
   );
 };

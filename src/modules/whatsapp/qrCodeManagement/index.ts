@@ -3,7 +3,6 @@
 export { QRCodeService } from './lib/qrCodeService';
 export { useQRCodeGeneration } from './hooks/useQRCodeGeneration';
 export { GenerateQRButton } from './components/GenerateQRButton';
-export { QRCodeModal } from './components/QRCodeModal';
 
 // Types
 export type { 
