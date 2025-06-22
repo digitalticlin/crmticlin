@@ -1,23 +1,26 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import { QueryClient } from 'react-query';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
-import { ProtectedRoute } from './components/ProtectedRoute';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
-import Login from './pages/Login';
+import Login from './pages/Index';
 import Register from './pages/Register';
-import AdminPanel from './pages/AdminPanel';
-import WhatsAppIntegration from './pages/WhatsAppIntegration';
-import FunnelsPage from './pages/FunnelsPage';
-import LeadsPage from './pages/LeadsPage';
-import SettingsPage from './pages/SettingsPage';
-import WhatsAppWebPage from './pages/WhatsAppWebPage';
+import AdminPanel from './pages/Admin';
+import WhatsAppIntegration from './pages/Integration';
+import FunnelsPage from './pages/SalesFunnel';
+import LeadsPage from './pages/Clients';
+import SettingsPage from './pages/Settings';
+import WhatsAppWebPage from './pages/WhatsAppChat';
 import InstanceSyncTest from './pages/InstanceSyncTest';
+
+const queryClient = new QueryClient();
 
 function App() {
   return (
-    <Router>
-      <QueryClient>
+    <QueryClientProvider client={queryClient}>
+      <Router>
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
           <AuthProvider>
             <Routes>
@@ -92,8 +95,8 @@ function App() {
             </Routes>
           </AuthProvider>
         </div>
-      </QueryClient>
-    </Router>
+      </Router>
+    </QueryClientProvider>
   );
 }
 

@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RefreshCcw, Loader2, Plus, Sync } from "lucide-react";
+import { RefreshCcw, Loader2, Plus } from "lucide-react";
 import { useInstanceSyncManager } from "@/hooks/whatsapp/useInstanceSyncManager";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -29,7 +29,7 @@ export const InstanceSyncControls = () => {
     <Card className="bg-white/30 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Sync className="h-5 w-5 text-blue-500" />
+          <RefreshCcw className="h-5 w-5 text-blue-500" />
           Gerenciamento de Instâncias
         </CardTitle>
         <p className="text-sm text-gray-600">

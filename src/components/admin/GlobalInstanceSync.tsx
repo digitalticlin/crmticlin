@@ -8,7 +8,7 @@ import { SyncInfo } from "./sync/SyncInfo";
 import { useInstanceSyncManager } from "@/hooks/whatsapp/useInstanceSyncManager";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCcw, Loader2, Sync } from "lucide-react";
+import { RefreshCcw, Loader2 } from "lucide-react";
 
 export const GlobalInstanceSync = () => {
   const { logs, addLog, clearLogs } = useSyncLogs();
@@ -62,7 +62,7 @@ export const GlobalInstanceSync = () => {
       <Card className="bg-green-50/30 backdrop-blur-xl rounded-3xl border border-green-200/30">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Sync className="h-5 w-5 text-green-500" />
+            <RefreshCcw className="h-5 w-5 text-green-500" />
             Sincronização Modular (Instance Sync)
           </CardTitle>
           <p className="text-sm text-gray-600">
