@@ -15,6 +15,7 @@ import { useQRCodeModal } from "@/modules/whatsapp/instanceCreation/hooks/useQRC
 export const SimpleWhatsAppConnection = () => {
   const { user } = useAuth();
   const [lastInstanceCount, setLastInstanceCount] = useState(0);
+  const [isInitialized, setIsInitialized] = useState(false);
   
   const {
     instances,
@@ -26,18 +27,32 @@ export const SimpleWhatsAppConnection = () => {
   const { createInstance, isCreating } = useInstanceCreation(loadInstances);
   const { openModal } = useQRCodeModal();
 
-  // CORREÇÃO: Detectar nova instância e abrir modal IMEDIATAMENTE
+  // CORREÇÃO: Inicializar contador apenas uma vez
   useEffect(() => {
-    if (instances.length > lastInstanceCount && lastInstanceCount > 0) {
+    if (!isInitialized && !isLoading) {
+      setLastInstanceCount(instances.length);
+      setIsInitialized(true);
+      console.log('[Simple Connection] 🔄 Inicializado com', instances.length, 'instâncias');
+    }
+  }, [instances.length, isLoading, isInitialized]);
+
+  // CORREÇÃO: Detectar QUALQUER nova instância (inclusive a primeira)
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    if (instances.length > lastInstanceCount) {
       const newInstance = instances[instances.length - 1];
       console.log('[Simple Connection] 🎯 NOVA INSTÂNCIA DETECTADA:', newInstance.id);
-      
-      // CORREÇÃO: Abrir modal IMEDIATAMENTE (sem delay)
       console.log('[Simple Connection] 🚀 Abrindo modal IMEDIATO para nova instância');
-      openModal(newInstance.id);
+      
+      // CORREÇÃO: Delay mínimo para garantir que a instância esteja totalmente criada
+      setTimeout(() => {
+        openModal(newInstance.id);
+      }, 100);
     }
+    
     setLastInstanceCount(instances.length);
-  }, [instances.length, lastInstanceCount, openModal]);
+  }, [instances.length, lastInstanceCount, openModal, isInitialized]);
 
   const handleConnect = async () => {
     if (!user?.email) {
