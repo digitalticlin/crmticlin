@@ -1,6 +1,5 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { VPSInstanceService } from "./vpsInstanceService";
 
 export interface OrphanInstance {
   instanceId: string;
@@ -16,6 +15,9 @@ export class OrphanDetectionService {
     try {
       console.log('[Orphan Recovery] 🔍 Identificando instâncias órfãs para empresa:', companyId);
 
+      // Import VPSInstanceService only when needed to avoid circular dependency
+      const { VPSInstanceService } = await import('./vpsInstanceService');
+      
       // Buscar instâncias na VPS
       const vpsInstances = await VPSInstanceService.getVPSInstances();
       
@@ -23,7 +25,7 @@ export class OrphanDetectionService {
       const { data: supabaseInstances, error } = await supabase
         .from('whatsapp_instances')
         .select('vps_instance_id')
-        .eq('company_id', companyId)
+        .eq('created_by_user_id', companyId)
         .eq('connection_type', 'web');
 
       if (error) {
