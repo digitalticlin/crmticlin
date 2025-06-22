@@ -33,6 +33,8 @@ export const KanbanBoard = ({
   wonStageId,
   lostStageId
 }: KanbanBoardProps) => {
+  // *** ALL HOOKS MUST BE CALLED FIRST, BEFORE ANY CONDITIONAL LOGIC ***
+  
   // Validar e estabilizar colunas
   const validatedColumns = useMemo(() => {
     if (!Array.isArray(columns)) {
@@ -48,6 +50,28 @@ export const KanbanBoard = ({
     );
   }, [columns]);
 
+  // Cria um mapping para lookup por id mais fácil para renderClone
+  const leadMap: Record<string, KanbanLead> = useMemo(() => {
+    const map: Record<string, KanbanLead> = {};
+    validatedColumns.forEach(col => {
+      if (Array.isArray(col.leads)) {
+        col.leads.forEach(lead => {
+          if (lead && lead.id) {
+            map[lead.id] = lead;
+          }
+        });
+      }
+    });
+    return map;
+  }, [validatedColumns]);
+
+  // Cria uma key estável baseada nas colunas que irá forçar o remount quando necessário
+  const boardKey = useMemo(() => {
+    return validatedColumns
+      .map(col => `${col.id}-${col.leads?.length || 0}`)
+      .join('-');
+  }, [validatedColumns]);
+
   const { 
     showDropZones, 
     onDragStart, 
@@ -58,6 +82,8 @@ export const KanbanBoard = ({
     onMoveToWonLost, 
     isWonLostView
   });
+
+  // *** NOW WE CAN DO CONDITIONAL LOGIC AFTER ALL HOOKS ARE CALLED ***
 
   // Se não há colunas válidas, mostrar estado vazio
   if (!validatedColumns || validatedColumns.length === 0) {
@@ -78,21 +104,6 @@ export const KanbanBoard = ({
     );
   }
 
-  // Cria um mapping para lookup por id mais fácil para renderClone
-  const leadMap: Record<string, KanbanLead> = useMemo(() => {
-    const map: Record<string, KanbanLead> = {};
-    validatedColumns.forEach(col => {
-      if (Array.isArray(col.leads)) {
-        col.leads.forEach(lead => {
-          if (lead && lead.id) {
-            map[lead.id] = lead;
-          }
-        });
-      }
-    });
-    return map;
-  }, [validatedColumns]);
-
   // Renderização personalizada do clone flutuante durante drag
   const renderClone = (provided: DraggableProvided, snapshot: any, rubric: any) => {
     const leadId = rubric.draggableId;
@@ -112,19 +123,12 @@ export const KanbanBoard = ({
     );
   };
 
-  // Cria uma key estável baseada nas colunas que irá forçar o remount quando necessário
-  const boardKey = useMemo(() => {
-    return validatedColumns
-      .map(col => `${col.id}-${col.leads?.length || 0}`)
-      .join('-');
-  }, [validatedColumns]);
-
   return (
-    <DragDropContext 
-      onDragStart={onDragStart} 
-      onDragEnd={onDragEnd}
-    >
-      <div className="relative w-full h-full flex flex-col" key={boardKey}>
+    <div className="relative w-full h-full flex flex-col" key={boardKey}>
+      <DragDropContext 
+        onDragStart={onDragStart} 
+        onDragEnd={onDragEnd}
+      >
         <BoardContent 
           columns={validatedColumns}
           onOpenLeadDetail={onOpenLeadDetail}
@@ -137,7 +141,7 @@ export const KanbanBoard = ({
           wonStageId={wonStageId}
           lostStageId={lostStageId}
         />
-      </div>
-    </DragDropContext>
+      </DragDropContext>
+    </div>
   );
 };
