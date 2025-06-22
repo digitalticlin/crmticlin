@@ -1,42 +1,27 @@
 
-import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
-  QrCode, 
-  Trash2, 
   Smartphone, 
   Clock, 
   CheckCircle,
-  AlertTriangle,
-  Download,
-  ChevronDown,
-  ChevronUp,
-  History
+  AlertTriangle
 } from "lucide-react";
 import { WhatsAppWebInstance } from "@/types/whatsapp";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChatImporter } from "./ChatImporter";
-import { ChatHistoryImporter } from "./ChatHistoryImporter";
+import { GenerateQRButton } from "@/modules/whatsapp/qrCodeManagement";
+import { DeleteInstanceButton } from "@/modules/whatsapp/instanceDeletion";
 
 interface SimpleInstanceCardProps {
   instance: WhatsAppWebInstance;
   onGenerateQR: (instanceId: string, instanceName: string) => void;
-  onDelete: (instanceId: string) => void;
-  onRefreshQRCode: (instanceId: string) => Promise<{ qrCode?: string; success?: boolean; waiting?: boolean; connected?: boolean } | null>;
+  onDelete: () => void;
 }
 
 export const SimpleInstanceCard = ({ 
   instance, 
   onGenerateQR, 
-  onDelete,
-  onRefreshQRCode 
+  onDelete
 }: SimpleInstanceCardProps) => {
-  const [showImporter, setShowImporter] = useState(false);
-  const [showHistoryImporter, setShowHistoryImporter] = useState(false);
-  const [localHistoryImported, setLocalHistoryImported] = useState(instance.history_imported || false);
-
   const getStatusInfo = () => {
     const status = instance.connection_status?.toLowerCase() || 'unknown';
     
@@ -61,16 +46,16 @@ export const SimpleInstanceCard = ({
       case 'waiting_scan':
         return {
           color: 'bg-blue-100 text-blue-800',
-          icon: QrCode,
+          icon: AlertTriangle,
           text: 'Aguardando QR',
-          description: 'Escaneie o QR Code'
+          description: 'QR Code disponível para escaneamento'
         };
       default:
         return {
           color: 'bg-gray-100 text-gray-800',
           icon: AlertTriangle,
-          text: 'Desconhecido',
-          description: 'Status não identificado'
+          text: 'Desconectado',
+          description: 'Precisa conectar'
         };
     }
   };
@@ -78,10 +63,13 @@ export const SimpleInstanceCard = ({
   const statusInfo = getStatusInfo();
   const StatusIcon = statusInfo.icon;
   const isConnected = ['ready', 'connected'].includes(instance.connection_status?.toLowerCase() || '');
+  const hasQRCode = !!instance.qr_code && instance.qr_code !== 'waiting';
 
-  const handleImportComplete = () => {
-    setLocalHistoryImported(true);
-    setShowHistoryImporter(false);
+  const handleGenerateQR = () => {
+    if (hasQRCode) {
+      // Se já tem QR Code, abrir modal para visualizar
+      onGenerateQR(instance.id, instance.instance_name);
+    }
   };
 
   return (
@@ -118,106 +106,32 @@ export const SimpleInstanceCard = ({
         </div>
 
         <div className="flex gap-2">
-          {!isConnected && (
-            <Button
-              onClick={() => onGenerateQR(instance.id, instance.instance_name)}
-              className="flex-1 bg-blue-600 hover:bg-blue-700"
-              size="sm"
-            >
-              <QrCode className="h-4 w-4 mr-2" />
-              Gerar QR Code
-            </Button>
+          {!isConnected && hasQRCode && (
+            <GenerateQRButton
+              instanceId={instance.id}
+              instanceName={instance.instance_name}
+              onSuccess={handleGenerateQR}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
+              variant="default"
+            />
           )}
           
-          <Button
-            onClick={() => onDelete(instance.id)}
+          {!isConnected && !hasQRCode && (
+            <GenerateQRButton
+              instanceId={instance.id}
+              instanceName={instance.instance_name}
+              className="flex-1"
+            />
+          )}
+          
+          <DeleteInstanceButton
+            instanceId={instance.id}
+            instanceName={instance.instance_name}
+            onSuccess={onDelete}
             variant="outline"
-            size="sm"
             className="text-red-600 hover:text-red-700 hover:bg-red-50"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
+          />
         </div>
-
-        {/* Seções de Importação para instâncias conectadas */}
-        {isConnected && (
-          <div className="space-y-2">
-            {/* Importação de Chat Individual */}
-            <Collapsible open={showImporter} onOpenChange={setShowImporter}>
-              <CollapsibleTrigger asChild>
-                <Button
-                  variant="outline" 
-                  className="w-full flex items-center justify-between"
-                  size="sm"
-                >
-                  <div className="flex items-center gap-2">
-                    <Download className="h-4 w-4" />
-                    Importar Chat Individual
-                  </div>
-                  {showImporter ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </Button>
-              </CollapsibleTrigger>
-              
-              <CollapsibleContent className="mt-3">
-                <ChatImporter
-                  instanceId={instance.id}
-                  instanceName={instance.instance_name}
-                  isConnected={isConnected}
-                />
-              </CollapsibleContent>
-            </Collapsible>
-
-            {/* Importação de Histórico Completo - só mostrar se não foi importado */}
-            {!localHistoryImported && (
-              <Collapsible open={showHistoryImporter} onOpenChange={setShowHistoryImporter}>
-                <CollapsibleTrigger asChild>
-                  <Button
-                    variant="outline" 
-                    className="w-full flex items-center justify-between bg-green-50 border-green-200 hover:bg-green-100"
-                    size="sm"
-                  >
-                    <div className="flex items-center gap-2">
-                      <History className="h-4 w-4 text-green-600" />
-                      <span className="text-green-700">Importar Histórico Completo</span>
-                    </div>
-                    {showHistoryImporter ? (
-                      <ChevronUp className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 text-green-600" />
-                    )}
-                  </Button>
-                </CollapsibleTrigger>
-                
-                <CollapsibleContent className="mt-3">
-                  <ChatHistoryImporter
-                    instanceId={instance.id}
-                    instanceName={instance.instance_name}
-                    isConnected={isConnected}
-                    historyImported={localHistoryImported}
-                    onImportComplete={handleImportComplete}
-                  />
-                </CollapsibleContent>
-              </Collapsible>
-            )}
-
-            {/* Mostrar mensagem quando histórico já foi importado */}
-            {localHistoryImported && (
-              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-center gap-2 text-green-700">
-                  <CheckCircle className="h-4 w-4" />
-                  <span className="text-sm font-medium">Histórico importado</span>
-                </div>
-                <p className="text-xs text-green-600 mt-1">
-                  Mensagens agora aparecem em tempo real no chat
-                </p>
-              </div>
-            )}
-          </div>
-        )}
       </CardContent>
     </Card>
   );

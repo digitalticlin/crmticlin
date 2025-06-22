@@ -1,5 +1,13 @@
 
-// QR Code Management Module
-export { QRCodeApi } from './api/qrCodeApi';
-export { useQRCodeManagement } from './hooks/useQRCodeManagement';
+// QR Code Management
+export { QRCodeService } from './lib/qrCodeService';
+export { useQRCodeGeneration } from './hooks/useQRCodeGeneration';
+export { GenerateQRButton } from './components/GenerateQRButton';
 export { QRCodeModal } from './components/QRCodeModal';
+
+// Types
+export type { 
+  QRCodeRequest, 
+  QRCodeResult,
+  QRCodeModalState
+} from './types/qrCodeTypes';
