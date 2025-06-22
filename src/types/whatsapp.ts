@@ -8,7 +8,10 @@ export type WhatsAppConnectionStatus =
   | "authenticating"
   | "ready"
   | "open"
-  | "waiting_scan";
+  | "waiting_scan"
+  | "waiting_qr"
+  | "database_only"
+  | "vps_error";
 
 export interface WhatsAppWebResult {
   success: boolean;

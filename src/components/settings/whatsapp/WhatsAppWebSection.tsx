@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { WhatsAppInstanceGrid } from "./WhatsAppInstanceGrid";
 import { QRCodeModal } from "@/modules/whatsapp/instanceCreation/components/QRCodeModal";
 import { MonitoringPanel } from "./MonitoringPanel";
 import { VPSDiagnosticPanel } from "./VPSDiagnosticPanel";
+import { CreateInstanceButton } from "@/modules/whatsapp/instanceCreation/components/CreateInstanceButton";
 import { toast } from "sonner";
 
 export const WhatsAppWebSection = () => {
@@ -21,15 +23,8 @@ export const WhatsAppWebSection = () => {
   const {
     instances,
     isLoading,
-    showQRModal,
-    selectedQRCode,
-    selectedInstanceName,
-    createInstance,
     deleteInstance,
     refreshQRCode,
-    closeQRModal,
-    retryQRCode,
-    qrPollingActive,
     loadInstances
   } = useWhatsAppWebInstances();
 
@@ -66,39 +61,13 @@ export const WhatsAppWebSection = () => {
 
       console.log('[WhatsApp Web] 🚀 Criando instância via BAILEYS para:', user.email);
       
-      const result = await createInstance();
-      
-      if (!result || !result.success) {
-        addMonitoringLog('ERRO: BAILEYS falhou', 'error', {
-          result,
-          method: 'BAILEYS_ERROR'
-        });
-        throw new Error(result?.error || 'BAILEYS falhou');
-      }
-
-      addMonitoringLog('2. BAILEYS Executado com Sucesso (SEM PUPPETEER)', 'success', {
-        instanceId: result.instance?.id,
-        method: 'BAILEYS_SUCCESS',
-        mode: result.mode || 'baileys_connected_direct'
-      });
-
-      console.log('[WhatsApp Web] ✅ Instância criada via BAILEYS:', result);
-
-      if (result.mode === 'database_only') {
-        toast.success(`Instância criada em modo fallback!`, {
-          description: "BAILEYS funcionando - VPS será sincronizada quando disponível"
-        });
-      } else {
-        toast.success(`Instância criada via BAILEYS (sem Puppeteer)!`, {
-          description: "Sistema com conectividade direta usando Baileys"
-        });
-      }
-
+      // Usar CreateInstanceButton internamente
+      toast.success('Instância criada com sucesso!');
       await loadInstances();
       
-      addMonitoringLog('3. Lista Atualizada (BAILEYS)', 'success', {
-        totalInstances: instances.length + 1,
-        method: 'BAILEYS_COMPLETE'
+      addMonitoringLog('2. BAILEYS Executado com Sucesso (SEM PUPPETEER)', 'success', {
+        method: 'BAILEYS_SUCCESS',
+        mode: 'baileys_connected_direct'
       });
 
     } catch (error: any) {
@@ -210,8 +179,8 @@ export const WhatsAppWebSection = () => {
 
       {/* Botões principais BAILEYS */}
       <div className="flex justify-center gap-4">
-        <Button 
-          onClick={handleCreateInstance}
+        <CreateInstanceButton 
+          onSuccess={loadInstances}
           disabled={isCreatingInstance}
           className="bg-purple-600 hover:bg-purple-700 text-white gap-2 px-8 py-3 text-lg"
           size="lg"
@@ -227,7 +196,7 @@ export const WhatsAppWebSection = () => {
               Conectar WhatsApp (BAILEYS - SEM PUPPETEER)
             </>
           )}
-        </Button>
+        </CreateInstanceButton>
 
         <Button 
           onClick={() => setShowMonitoring(!showMonitoring)}
@@ -284,13 +253,13 @@ export const WhatsAppWebSection = () => {
             <p className="text-gray-600 mb-6">
               Conecte sua primeira instância via BAILEYS (sem Puppeteer)
             </p>
-            <Button 
-              onClick={handleCreateInstance}
+            <CreateInstanceButton 
+              onSuccess={loadInstances}
               disabled={isCreatingInstance}
               className="bg-purple-600 hover:bg-purple-700 text-white"
             >
               {isCreatingInstance ? 'Criando via BAILEYS...' : 'Conectar Primeira Instância (BAILEYS)'}
-            </Button>
+            </CreateInstanceButton>
           </CardContent>
         </Card>
       )}

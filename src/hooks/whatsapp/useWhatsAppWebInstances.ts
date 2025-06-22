@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { WhatsAppWebInstance } from '@/types/whatsapp';
+import { WhatsAppWebInstance, WhatsAppConnectionStatus } from '@/types/whatsapp';
 import { toast } from 'sonner';
 
 export const useWhatsAppWebInstances = () => {
@@ -24,7 +24,14 @@ export const useWhatsAppWebInstances = () => {
       }
 
       console.log(`[WhatsApp Web Instances] ✅ ${data?.length || 0} instâncias carregadas`);
-      setInstances(data || []);
+      
+      // Converter os dados do banco para o tipo correto
+      const typedInstances: WhatsAppWebInstance[] = (data || []).map(instance => ({
+        ...instance,
+        connection_status: instance.connection_status as WhatsAppConnectionStatus
+      }));
+      
+      setInstances(typedInstances);
     } catch (error: any) {
       console.error('[WhatsApp Web Instances] ❌ Erro geral:', error);
       toast.error(`Erro ao carregar instâncias: ${error.message}`);
