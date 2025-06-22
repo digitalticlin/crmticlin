@@ -21,7 +21,9 @@ export class InstanceCreationService {
       if (result.success) {
         console.log('[InstanceCreationService] ✅ Instância criada via estrutura modular:', {
           instanceName: intelligentName,
-          instanceId: result.instance?.id
+          instanceId: result.instance?.id,
+          // CORREÇÃO: Retornar status correto
+          status: 'pending' // Status inicial deve ser pending
         });
       } else {
         console.error('[InstanceCreationService] ❌ Falha na criação:', result.error);

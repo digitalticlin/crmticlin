@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { InstanceApi } from "@/modules/whatsapp/instanceCreation/api/instanceApi";
 
 interface CreateInstanceResult {
   success: boolean;
@@ -78,21 +77,13 @@ export const useWhatsAppWebInstances = () => {
 
   const refreshQRCode = async (instanceId: string) => {
     try {
-      console.log('[Hook] 🔄 Refresh QR via InstanceApi:', instanceId);
+      console.log('[Hook] 🔄 Refresh QR via QRCodeApi:', instanceId);
       
-      const result = await InstanceApi.getQRCode(instanceId);
-
-      if (result.success && result.qrCode) {
-        return {
-          success: true,
-          qrCode: result.qrCode
-        };
-      }
-
+      // Esta função será integrada com o novo sistema QR
       return {
         success: false,
-        waiting: false,
-        error: result.error || 'QR Code não disponível'
+        waiting: true,
+        message: 'Use o novo sistema QR Code'
       };
     } catch (error: any) {
       return {
