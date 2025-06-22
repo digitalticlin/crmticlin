@@ -12,11 +12,14 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 serve(async (req: Request) => {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+  
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   if (req.method !== "POST") {
+    console.log(`[${requestId}] ❌ Método não permitido: ${req.method}`);
     return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
   }
 
@@ -24,133 +27,163 @@ serve(async (req: Request) => {
 
   try {
     const payload = await req.json();
-    console.log("📱 [QR Webhook] Payload recebido:", JSON.stringify(payload, null, 2));
+    console.log(`[${requestId}] 📱 QR Webhook Payload:`, JSON.stringify(payload, null, 2));
 
-    // Verificar se é evento de QR Code
-    if (payload.event === "qrcode.updated" && payload.data) {
-      const { instance, qrcode } = payload.data;
+    // Extrair dados padronizados
+    const instanceId = payload.instanceId || payload.instance || payload.instanceName;
+    const qrCode = payload.qrCode || payload.qr_code || payload.data?.qrCode;
+    const event = payload.event || payload.type || 'qr_update';
+    
+    console.log(`[${requestId}] 📋 Dados extraídos:`, {
+      instanceId,
+      hasQrCode: !!qrCode,
+      event
+    });
+
+    if (!instanceId) {
+      console.error(`[${requestId}] ❌ Instance ID não encontrado no payload`);
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: "Instance ID é obrigatório",
+        requestId
+      }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400 
+      });
+    }
+
+    // Buscar instância no banco (por vps_instance_id ou instance_name)
+    let instanceQuery = supabase.from('whatsapp_instances').select('*');
+    instanceQuery = instanceQuery.or(`vps_instance_id.eq.${instanceId},instance_name.eq.${instanceId}`);
+    
+    const { data: instance, error: fetchError } = await instanceQuery.single();
+
+    if (fetchError || !instance) {
+      console.error(`[${requestId}] ❌ Instância não encontrada:`, fetchError);
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: "Instância não encontrada",
+        instanceId,
+        requestId
+      }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 404 
+      });
+    }
+
+    console.log(`[${requestId}] ✅ Instância encontrada: ${instance.id} (${instance.instance_name})`);
+
+    // Processar QR Code se presente
+    if (qrCode && (event === 'qr_update' || event === 'qr.update' || event === 'qrcode.updated')) {
+      console.log(`[${requestId}] 📱 Processando QR Code...`);
       
-      if (!instance || !qrcode) {
-        console.error("❌ [QR Webhook] Dados incompletos:", { instance, qrcode: !!qrcode });
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: "Instance ou QR Code ausente" 
-        }), { 
-          headers: corsHeaders, 
-          status: 400 
-        });
+      // Normalizar QR Code
+      let normalizedQR = qrCode;
+      if (!qrCode.startsWith('data:image/')) {
+        normalizedQR = `data:image/png;base64,${qrCode}`;
       }
 
-      console.log(`📱 [QR Webhook] Atualizando QR Code para instância: ${instance}`);
-
-      // Atualizar instância com QR Code
-      const { data: updatedInstance, error } = await supabase
+      const { error: updateError } = await supabase
         .from('whatsapp_instances')
         .update({
-          qr_code: qrcode,
+          qr_code: normalizedQR,
+          web_status: 'waiting_scan',
           connection_status: 'waiting_qr',
-          web_status: 'qr_ready',
           updated_at: new Date().toISOString()
         })
-        .eq('instance_name', instance)
-        .select()
-        .single();
+        .eq('id', instance.id);
 
-      if (error) {
-        console.error("❌ [QR Webhook] Erro ao atualizar instância:", error);
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: error.message 
-        }), { 
-          headers: corsHeaders, 
-          status: 500 
-        });
+      if (updateError) {
+        console.error(`[${requestId}] ❌ Erro ao atualizar QR Code:`, updateError);
+        throw updateError;
       }
 
-      console.log("✅ [QR Webhook] QR Code atualizado com sucesso:", updatedInstance?.id);
-
+      console.log(`[${requestId}] ✅ QR Code atualizado com sucesso`);
+      
       return new Response(JSON.stringify({
         success: true,
         message: "QR Code atualizado com sucesso",
-        instanceId: updatedInstance?.id
-      }), { headers: corsHeaders });
+        instanceId: instance.id,
+        requestId
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Verificar se é evento de conexão
-    if (payload.event === "connection.update" && payload.data) {
-      const { instance, state } = payload.data;
+    // Processar atualização de conexão
+    if (event === 'connection.update' || event === 'status_update') {
+      console.log(`[${requestId}] 🔗 Processando atualização de conexão...`);
       
-      console.log(`🔄 [QR Webhook] Atualizando status de conexão: ${instance} -> ${state}`);
+      const status = payload.status || payload.connection_status || payload.data?.status;
+      const phone = payload.phone || payload.number || payload.data?.phone;
+      const profileName = payload.profileName || payload.profile_name || payload.data?.profileName;
 
-      let connectionStatus = 'disconnected';
-      let webStatus = 'disconnected';
+      console.log(`[${requestId}] 📊 Status recebido:`, { status, phone, profileName });
 
-      switch (state) {
-        case 'open':
-        case 'connected':
-          connectionStatus = 'connected';
-          webStatus = 'connected';
-          break;
-        case 'connecting':
-          connectionStatus = 'connecting';
-          webStatus = 'connecting';
-          break;
-        case 'close':
-        case 'disconnected':
-          connectionStatus = 'disconnected';
-          webStatus = 'disconnected';
-          break;
-      }
+      const statusMapping: Record<string, string> = {
+        'open': 'connected',
+        'ready': 'connected', 
+        'connected': 'connected',
+        'connecting': 'connecting',
+        'disconnected': 'disconnected',
+        'close': 'disconnected',
+        'error': 'error'
+      };
+
+      const connectionStatus = statusMapping[status] || 'disconnected';
 
       const updateData: any = {
         connection_status: connectionStatus,
-        web_status: webStatus,
+        web_status: status,
         updated_at: new Date().toISOString()
       };
 
       if (connectionStatus === 'connected') {
         updateData.date_connected = new Date().toISOString();
-        updateData.qr_code = null; // Limpar QR Code após conexão
+        updateData.qr_code = null;
+        if (phone) updateData.phone = phone;
+        if (profileName) updateData.profile_name = profileName;
       }
 
-      const { error } = await supabase
+      if (connectionStatus === 'disconnected') {
+        updateData.date_disconnected = new Date().toISOString();
+      }
+
+      const { error: updateError } = await supabase
         .from('whatsapp_instances')
         .update(updateData)
-        .eq('instance_name', instance);
+        .eq('id', instance.id);
 
-      if (error) {
-        console.error("❌ [QR Webhook] Erro ao atualizar status:", error);
-        return new Response(JSON.stringify({ 
-          success: false, 
-          error: error.message 
-        }), { 
-          headers: corsHeaders, 
-          status: 500 
-        });
+      if (updateError) {
+        console.error(`[${requestId}] ❌ Erro ao atualizar status:`, updateError);
+        throw updateError;
       }
 
-      console.log(`✅ [QR Webhook] Status atualizado: ${instance} -> ${connectionStatus}`);
+      console.log(`[${requestId}] ✅ Status atualizado: ${connectionStatus}`);
 
       return new Response(JSON.stringify({
         success: true,
         message: "Status de conexão atualizado",
-        connectionStatus
-      }), { headers: corsHeaders });
+        status: connectionStatus,
+        instanceId: instance.id,
+        requestId
+      }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    console.log("ℹ️ [QR Webhook] Evento não processado:", payload.event);
+    console.log(`[${requestId}] ℹ️ Evento não processado:`, event);
     return new Response(JSON.stringify({ 
       success: true, 
-      message: "Evento recebido mas não processado" 
-    }), { headers: corsHeaders });
+      message: "Evento recebido mas não processado",
+      event,
+      requestId
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error: any) {
-    console.error("❌ [QR Webhook] Erro geral:", error);
+    console.error(`[${requestId}] ❌ Erro geral:`, error);
     return new Response(JSON.stringify({ 
       success: false, 
-      error: error.message || "Erro interno" 
+      error: error.message || "Erro interno do servidor",
+      requestId
     }), { 
-      headers: corsHeaders, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500 
     });
   }

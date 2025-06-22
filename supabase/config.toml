@@ -1,1 +1,14 @@
+
 project_id = "rhjgagzstjzynvrakdyj"
+
+[functions.webhook_qr_receiver]
+verify_jwt = false
+
+[functions.webhook_whatsapp_web]
+verify_jwt = false
+
+[functions.whatsapp_messaging_service]
+verify_jwt = false
+
+[functions.webhook_evolution]
+verify_jwt = false
