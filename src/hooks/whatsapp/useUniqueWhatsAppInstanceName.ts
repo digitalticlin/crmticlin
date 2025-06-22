@@ -10,13 +10,21 @@ export const useUniqueWhatsAppInstanceName = (companyId: string) => {
     setIsChecking(true);
     
     try {
-      // Get existing instance names for the company
-      const { data: existingInstances } = await supabase
+      // Get existing instance names for the company - using explicit typing
+      const { data: existingInstances, error } = await supabase
         .from('whatsapp_instances')
         .select('instance_name')
         .eq('company_id', companyId);
 
-      const existingNames = existingInstances?.map(i => i.instance_name.toLowerCase()) || [];
+      if (error) {
+        console.error('Error fetching instances:', error);
+        return `${baseName}_${Date.now()}`;
+      }
+
+      // Extract names with explicit typing to avoid type recursion
+      const existingNames: string[] = (existingInstances || []).map((instance: any) => 
+        instance.instance_name?.toLowerCase() || ''
+      ).filter(Boolean);
       
       // Generate unique name
       let counter = 1;
