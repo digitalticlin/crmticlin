@@ -1,7 +1,6 @@
 
 import { useState, useCallback } from 'react';
 import { WhatsAppWebService } from '@/services/whatsapp/whatsappWebService';
-import { hostingerApi } from '@/services/hostinger/hostingerApiService';
 
 interface DiagnosticState {
   isRunning: boolean;
@@ -42,47 +41,12 @@ export const useHostingerVPS = () => {
         addLog(`❌ Servidor está com problemas: ${serverHealth.error}`);
       }
 
-      // Step 2: Check Hostinger API Key
-      addLog('🔑 Verificando chave da API Hostinger...');
-      const apiKey = process.env.NEXT_PUBLIC_HOSTINGER_API_KEY;
-      
-      if (apiKey) {
-        addLog('✅ Chave da API Hostinger encontrada');
-      } else {
-        addLog('❌ Chave da API Hostinger não configurada');
-      }
-
-      // Step 3: Check Hostinger Account ID
-      addLog('🆔 Verificando ID da conta Hostinger...');
-      const accountId = process.env.NEXT_PUBLIC_HOSTINGER_ACCOUNT_ID;
-      
-      if (accountId) {
-        addLog('✅ ID da conta Hostinger encontrado');
-      } else {
-        addLog('❌ ID da conta Hostinger não configurado');
-      }
-
-      // Step 4: Check Hostinger API connection
-      addLog('📡 Testando conexão com a API Hostinger...');
-      const apiStatus = await hostingerApi.testConnection();
-      
-      if (apiStatus.success) {
-        addLog('✅ Conexão com a API Hostinger estabelecida');
-      } else {
-        addLog(`❌ Falha na conexão com a API Hostinger: ${apiStatus.error}`);
-      }
-
-      // Step 5: Check VPS Status
+      // Step 2: Check VPS Status
       addLog('🖥️ Verificando status do VPS...');
-      const vpsStatus = await hostingerApi.getStatus();
-      
-      if (vpsStatus.success) {
-        addLog(`✅ VPS está operacional`);
-      } else {
-        addLog(`❌ Falha ao obter status do VPS: ${vpsStatus.error}`);
-      }
+      // Removido teste da API Hostinger que foi deletada
+      addLog('ℹ️ API Hostinger removida - usando verificação manual');
 
-      // Step 6: Check if WhatsApp instances on VPS
+      // Step 3: Check if WhatsApp instances on VPS
       addLog('📱 Verificando instâncias WhatsApp no VPS...');
       const serverInfo = await WhatsAppWebService.getServerInfo();
       
