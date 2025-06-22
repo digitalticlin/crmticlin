@@ -4,7 +4,7 @@ import { KanbanColumn } from "@/types/kanban";
 import { KanbanStage } from "@/types/funnel";
 
 export const useKanbanColumns = (stages: KanbanStage[], leads: any[], funnelId?: string) => {
-  // Memoizar as colunas para evitar recriações desnecessárias
+  // Memoizar as colunas com dependências estáveis para evitar recriações desnecessárias
   const columns = useMemo(() => {
     if (!stages?.length || !funnelId) {
       console.log('[useKanbanColumns] ⚠️ Sem stages ou funnelId:', { stagesCount: stages?.length || 0, funnelId });
@@ -49,9 +49,9 @@ export const useKanbanColumns = (stages: KanbanStage[], leads: any[], funnelId?:
     });
 
     return newColumns;
-  }, [stages, leads, funnelId]);
+  }, [stages, leads, funnelId]); // Dependências estáveis
 
-  // Função estável para atualizar colunas
+  // Função estável para atualizar colunas - memoizada para evitar recriações
   const setColumns = useMemo(() => {
     return (newColumns: KanbanColumn[] | ((prev: KanbanColumn[]) => KanbanColumn[])) => {
       console.log('[useKanbanColumns] 📝 Atualizando colunas:', typeof newColumns === 'function' ? 'função' : newColumns.length);

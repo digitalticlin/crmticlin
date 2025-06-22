@@ -4,7 +4,7 @@ import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
 import { useDragAndDrop } from "@/hooks/kanban/useDragAndDrop";
 import { BoardContent } from "./kanban/BoardContent";
 import { LeadCard } from "./LeadCard";
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 
 interface KanbanBoardProps {
   columns: IKanbanColumn[];
@@ -35,7 +35,7 @@ export const KanbanBoard = ({
 }: KanbanBoardProps) => {
   // *** ALL HOOKS MUST BE CALLED FIRST, BEFORE ANY CONDITIONAL LOGIC ***
   
-  // Validar e estabilizar colunas
+  // Validar e estabilizar colunas com referência estável
   const validatedColumns = useMemo(() => {
     if (!Array.isArray(columns)) {
       console.warn('[KanbanBoard] ⚠️ Colunas não são array:', columns);
@@ -50,7 +50,7 @@ export const KanbanBoard = ({
     );
   }, [columns]);
 
-  // Cria um mapping para lookup por id mais fácil para renderClone
+  // Cria um mapping estável para lookup por id mais fácil para renderClone
   const leadMap: Record<string, KanbanLead> = useMemo(() => {
     const map: Record<string, KanbanLead> = {};
     validatedColumns.forEach(col => {
@@ -65,13 +65,15 @@ export const KanbanBoard = ({
     return map;
   }, [validatedColumns]);
 
-  // Cria uma key estável baseada nas colunas que irá forçar o remount quando necessário
+  // Cria uma key super estável baseada apenas nos IDs das colunas (não no conteúdo)
   const boardKey = useMemo(() => {
     return validatedColumns
-      .map(col => `${col.id}-${col.leads?.length || 0}`)
+      .map(col => col.id)
+      .sort() // Garante ordem consistente
       .join('-');
   }, [validatedColumns]);
 
+  // Hook de drag and drop com dependências estáveis
   const { 
     showDropZones, 
     onDragStart, 
@@ -82,6 +84,25 @@ export const KanbanBoard = ({
     onMoveToWonLost, 
     isWonLostView
   });
+
+  // Renderização personalizada do clone flutuante durante drag - memoizada
+  const renderClone = useCallback((provided: DraggableProvided, snapshot: any, rubric: any) => {
+    const leadId = rubric.draggableId;
+    const lead = leadMap[leadId];
+    if (!lead) return null;
+
+    return (
+      <div style={{ width: provided.draggableProps?.style?.width || "340px", pointerEvents: "none" }}>
+        <LeadCard
+          lead={lead}
+          provided={provided}
+          onClick={() => undefined}
+          isDragging={true}
+          isClone={true}
+        />
+      </div>
+    );
+  }, [leadMap]);
 
   // *** NOW WE CAN DO CONDITIONAL LOGIC AFTER ALL HOOKS ARE CALLED ***
 
@@ -103,25 +124,6 @@ export const KanbanBoard = ({
       </div>
     );
   }
-
-  // Renderização personalizada do clone flutuante durante drag
-  const renderClone = (provided: DraggableProvided, snapshot: any, rubric: any) => {
-    const leadId = rubric.draggableId;
-    const lead = leadMap[leadId];
-    if (!lead) return null;
-
-    return (
-      <div style={{ width: provided.draggableProps?.style?.width || "340px", pointerEvents: "none" }}>
-        <LeadCard
-          lead={lead}
-          provided={provided}
-          onClick={() => undefined}
-          isDragging={true}
-          isClone={true}
-        />
-      </div>
-    );
-  };
 
   return (
     <div className="relative w-full h-full flex flex-col" key={boardKey}>

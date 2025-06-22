@@ -1,7 +1,6 @@
 
 import { useState } from "react"; // For contactDetailsOpen
 import { useWhatsAppChat } from "./useWhatsAppChat";
-import { useSalesFunnel } from "./useSalesFunnel";
 import { useUserEmail } from "./chat/useUserEmail";
 import { useContactNotesManager } from "./chat/useContactNotesManager";
 import { useRealtimeLeads } from "./chat/useRealtimeLeads";
@@ -13,9 +12,6 @@ export function useChat() {
 
   // UI State for Contact Details Drawer
   const [contactDetailsOpen, setContactDetailsOpen] = useState(false);
-
-  // Sales Funnel (for receiving new leads)
-  const { receiveNewLead } = useSalesFunnel();
 
   // Core WhatsApp Chat Functionality
   const {
@@ -43,7 +39,7 @@ export function useChat() {
     selectedContact,
     fetchContacts: async () => fetchContacts(),
     fetchMessages: async () => selectedContact ? fetchMessages() : Promise.resolve(),
-    receiveNewLead,
+    receiveNewLead: () => {}, // Stub function - no longer dependent on sales funnel
     activeInstanceId: activeInstance?.id || null
   });
 
