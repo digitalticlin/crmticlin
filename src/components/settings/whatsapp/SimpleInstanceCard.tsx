@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,6 +48,7 @@ export const SimpleInstanceCard = ({
         };
       case 'qr_generated':
       case 'waiting_scan':
+      case 'qr_ready':
         return {
           color: 'bg-blue-100 text-blue-800',
           icon: AlertTriangle,
@@ -68,16 +68,20 @@ export const SimpleInstanceCard = ({
   const statusInfo = getStatusInfo();
   const StatusIcon = statusInfo.icon;
   const isConnected = ['ready', 'connected'].includes(instance.connection_status?.toLowerCase() || '');
+  
+  const needsQrCode = !isConnected || 
+    (instance.web_status === 'waiting_qr') || 
+    ['waiting_scan', 'qr_ready', 'disconnected'].includes(
+      instance.connection_status?.toLowerCase() || 'unknown'
+    );
 
-  // CORREÇÃO DEFINITIVA: Modal abre IMEDIATAMENTE sem delays ou condições
   const handleGenerateQR = () => {
-    console.log('[SimpleInstanceCard] 🚀 CORREÇÃO DEFINITIVA: Abrindo modal IMEDIATO para:', instance.id);
+    console.log('[SimpleInstanceCard] 🚀 Abrindo QR code para instância:', instance.id, '(', instance.instance_name, ')');
+    console.log('[SimpleInstanceCard] 📊 Status atual:', instance.connection_status, 'Web status:', instance.web_status);
     
-    // 1. ABRIR MODAL IMEDIATAMENTE (principal correção)
     openModal(instance.id);
     
-    // 2. Callback legacy para compatibilidade
-    onGenerateQR(instance.id, instance.instance_name);
+    onGenerateQR?.(instance.id, instance.instance_name);
   };
 
   return (
@@ -114,13 +118,13 @@ export const SimpleInstanceCard = ({
         </div>
 
         <div className="flex gap-2">
-          {!isConnected && (
+          {needsQrCode && (
             <Button
               onClick={handleGenerateQR}
               className="flex-1 bg-green-600 hover:bg-green-700 text-white"
             >
               <QrCode className="h-4 w-4 mr-1" />
-              Gerar QR Code
+              {instance.web_status === 'waiting_qr' ? 'Ver QR Code' : 'Gerar QR Code'}
             </Button>
           )}
           
