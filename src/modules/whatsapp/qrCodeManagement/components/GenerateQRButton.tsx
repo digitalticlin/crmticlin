@@ -8,7 +8,7 @@ interface GenerateQRButtonProps {
   instanceId: string;
   instanceName?: string;
   onSuccess?: () => void;
-  onModalOpen?: (instanceId: string) => void;
+  onModalOpen?: (instanceId: string, instanceName: string) => void;
   variant?: "default" | "outline" | "ghost";
   size?: "default" | "sm" | "lg" | "icon";
   className?: string;
@@ -24,8 +24,14 @@ export const GenerateQRButton = ({
   className = ""
 }: GenerateQRButtonProps) => {
   const { generateQRCode, isGenerating } = useQRCodeGeneration({
-    onSuccess,
-    onModalOpen
+    onSuccess: () => {
+      onSuccess?.();
+      // Chamar onModalOpen com ambos os parâmetros após gerar QR
+      if (onModalOpen) {
+        onModalOpen(instanceId, instanceName);
+      }
+    },
+    onModalOpen: onModalOpen ? (id: string) => onModalOpen(id, instanceName) : undefined
   });
 
   const handleGenerateQR = async () => {
