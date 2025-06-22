@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { QRCodeModalState } from '../types/instanceTypes';
@@ -13,6 +13,9 @@ export const useQRCodeModal = () => {
     error: null
   });
 
+  const channelRef = useRef<any>(null);
+  const isSubscribedRef = useRef(false);
+
   // Limpar estado ao fechar
   const closeModal = useCallback(() => {
     console.log('[useQRCodeModal] 🔒 Fechando modal');
@@ -23,6 +26,16 @@ export const useQRCodeModal = () => {
       error: null,
       isLoading: false
     }));
+  }, []);
+
+  // Cleanup function
+  const cleanupSubscription = useCallback(() => {
+    if (channelRef.current && isSubscribedRef.current) {
+      console.log('[useQRCodeModal] 🧹 Removendo subscription');
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+      isSubscribedRef.current = false;
+    }
   }, []);
 
   // Buscar QR Code do Supabase quando modal abrir
@@ -90,47 +103,62 @@ export const useQRCodeModal = () => {
 
   // Configurar subscription para atualizações do QR Code
   useEffect(() => {
-    if (!state.instanceId) return;
+    if (!state.instanceId || !state.isOpen) {
+      return;
+    }
+
+    // Cleanup existing subscription before creating new one
+    cleanupSubscription();
 
     console.log('[useQRCodeModal] 🔄 Configurando subscription para:', state.instanceId);
 
-    const subscription = supabase
-      .channel(`instance_${state.instanceId}`)
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'whatsapp_instances',
-        filter: `id=eq.${state.instanceId}`
-      }, (payload) => {
-        console.log('[useQRCodeModal] 🔄 Atualização em tempo real:', payload.new);
-        
-        const newData = payload.new as any;
-        
-        // Se QR Code foi atualizado
-        if (newData.qr_code && newData.qr_code !== state.qrCode && newData.qr_code !== 'waiting') {
-          console.log('[useQRCodeModal] 📱 Novo QR Code recebido via real-time');
-          setState(prev => ({
-            ...prev,
-            qrCode: newData.qr_code,
-            isLoading: false,
-            error: null
-          }));
-        }
+    try {
+      channelRef.current = supabase
+        .channel(`instance_${state.instanceId}_${Date.now()}`) // Add timestamp to ensure unique channel names
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'whatsapp_instances',
+          filter: `id=eq.${state.instanceId}`
+        }, (payload) => {
+          console.log('[useQRCodeModal] 🔄 Atualização em tempo real:', payload.new);
+          
+          const newData = payload.new as any;
+          
+          // Se QR Code foi atualizado
+          if (newData.qr_code && newData.qr_code !== state.qrCode && newData.qr_code !== 'waiting') {
+            console.log('[useQRCodeModal] 📱 Novo QR Code recebido via real-time');
+            setState(prev => ({
+              ...prev,
+              qrCode: newData.qr_code,
+              isLoading: false,
+              error: null
+            }));
+          }
 
-        // Se conectado, fechar modal
-        if (newData.connection_status === 'ready' || newData.connection_status === 'connected') {
-          console.log('[useQRCodeModal] ✅ Conectado via real-time, fechando modal');
-          toast.success('WhatsApp conectado com sucesso!');
-          closeModal();
-        }
-      })
-      .subscribe();
+          // Se conectado, fechar modal
+          if (newData.connection_status === 'ready' || newData.connection_status === 'connected') {
+            console.log('[useQRCodeModal] ✅ Conectado via real-time, fechando modal');
+            toast.success('WhatsApp conectado com sucesso!');
+            closeModal();
+          }
+        });
 
-    return () => {
-      console.log('[useQRCodeModal] 🧹 Removendo subscription');
-      supabase.removeChannel(subscription);
-    };
-  }, [state.instanceId, state.qrCode, closeModal]);
+      channelRef.current.subscribe((status: string) => {
+        console.log('[useQRCodeModal] 📡 Subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          isSubscribedRef.current = true;
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          isSubscribedRef.current = false;
+        }
+      });
+
+    } catch (error) {
+      console.error('[useQRCodeModal] ❌ Erro ao configurar subscription:', error);
+    }
+
+    return cleanupSubscription;
+  }, [state.instanceId, state.isOpen, state.qrCode, closeModal, cleanupSubscription]);
 
   // Buscar QR Code quando modal abrir
   useEffect(() => {
@@ -139,8 +167,17 @@ export const useQRCodeModal = () => {
     }
   }, [state.isOpen, state.instanceId, fetchQRCodeFromSupabase]);
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      cleanupSubscription();
+    };
+  }, [cleanupSubscription]);
+
   const openModal = useCallback((instanceId: string) => {
     console.log('[useQRCodeModal] 🚀 Abrindo modal para instância:', instanceId);
+    
+    // Reset state completely before opening
     setState({
       isOpen: true,
       qrCode: null,
