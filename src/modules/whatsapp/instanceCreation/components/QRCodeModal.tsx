@@ -5,11 +5,12 @@ import {
   DialogTitle,
   DialogFooter
 } from '@/components/ui/dialog';
-import { Loader2, AlertCircle, RefreshCw, Info, ExternalLink, Bug } from 'lucide-react';
+import { Loader2, AlertCircle, RefreshCw, Info, ExternalLink, Bug, Copy } from 'lucide-react';
 import { useQRCodeModal } from '../hooks/useQRCodeModal';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { toast } from 'sonner';
 
 // Componente para renderizar QR Code com tratamento de erro
 const QRCodeDisplay = ({ qrCode }: { qrCode: string | null }) => {
@@ -17,6 +18,8 @@ const QRCodeDisplay = ({ qrCode }: { qrCode: string | null }) => {
   const [showDebug, setShowDebug] = useState(false);
   const [imgSrc, setImgSrc] = useState<string | null>(null);
   const [imgSize, setImgSize] = useState({ width: 0, height: 0 });
+  const [renderMethod, setRenderMethod] = useState<string>('original');
+  const [renderAttempts, setRenderAttempts] = useState(0);
   
   // CORREÇÃO: Função sanitizeQRCode melhorada para lidar com mais formatos
   const sanitizeQRCode = (qrCode: string): string => {
@@ -26,6 +29,7 @@ const QRCodeDisplay = ({ qrCode }: { qrCode: string | null }) => {
       // Caso 1: É um formato válido de imagem data URL
       if (qrCode.startsWith('data:image/') && qrCode.includes('base64,')) {
         console.log('[QRCodeDisplay] ✅ QR code já está em formato data URL válido');
+        setRenderMethod('data-url');
         return qrCode;
       }
       
@@ -34,6 +38,7 @@ const QRCodeDisplay = ({ qrCode }: { qrCode: string | null }) => {
         const base64Part = qrCode.split('base64,')[1];
         if (base64Part) {
           console.log('[QRCodeDisplay] 🔧 Corrigindo formato para data URL completo');
+          setRenderMethod('extracted-base64');
           return `data:image/png;base64,${base64Part}`;
         }
       }
@@ -41,6 +46,7 @@ const QRCodeDisplay = ({ qrCode }: { qrCode: string | null }) => {
       // Caso 3: É um base64 puro sem prefixo
       if (qrCode.match(/^[A-Za-z0-9+/=]+$/)) {
         console.log('[QRCodeDisplay] 🔧 Convertendo base64 puro para data URL');
+        setRenderMethod('pure-base64');
         return `data:image/png;base64,${qrCode}`;
       }
       
@@ -50,15 +56,18 @@ const QRCodeDisplay = ({ qrCode }: { qrCode: string | null }) => {
         // Tenta extrair qualquer parte que pareça conteúdo base64 após "base64,"
         const match = qrCode.match(/base64,([A-Za-z0-9+/=]+)/);
         if (match && match[1]) {
+          setRenderMethod('regex-extracted');
           return `data:image/png;base64,${match[1]}`;
         }
       }
       
       // Caso de último recurso: retornar o original
       console.log('[QRCodeDisplay] ⚠️ Não foi possível sanitizar, usando original');
+      setRenderMethod('original-fallback');
       return qrCode;
     } catch (error) {
       console.error('[QRCodeDisplay] 🔧 Erro ao sanitizar QR code:', error);
+      setRenderMethod('error-fallback');
       return qrCode; // Retornar original em caso de erro
     }
   };
@@ -66,6 +75,7 @@ const QRCodeDisplay = ({ qrCode }: { qrCode: string | null }) => {
   // Resetar o estado de erro quando o QR code muda
   useEffect(() => {
     setHasError(false);
+    setRenderAttempts(a => a + 1);
     
     // CORREÇÃO: Logging mais detalhado do QR code recebido
     console.log('[QRCodeDisplay] 🖼️ QR Code recebido:',
@@ -120,6 +130,60 @@ const QRCodeDisplay = ({ qrCode }: { qrCode: string | null }) => {
     }
   }, [qrCode]);
 
+  // NOVO: Tentar abordagens alternativas caso a primeira falhe
+  const tryAlternateRendering = () => {
+    if (!qrCode) return;
+
+    try {
+      setRenderAttempts(a => a + 1);
+      console.log('[QRCodeDisplay] 🔄 Tentativa alternativa de renderização:', renderAttempts + 1);
+      
+      let newSrc = '';
+      
+      // Tentar diferentes métodos dependendo do número de tentativas
+      switch (renderAttempts % 3) {
+        case 0:
+          // Extrair base64 puro
+          if (qrCode.includes('base64,')) {
+            newSrc = `data:image/png;base64,${qrCode.split('base64,')[1]}`;
+            setRenderMethod('alt-extracted');
+          }
+          break;
+        case 1:
+          // Tentar com base64 puro
+          if (qrCode.match(/[A-Za-z0-9+/=]{100,}/)) {
+            const match = qrCode.match(/([A-Za-z0-9+/=]{100,})/);
+            if (match && match[1]) {
+              newSrc = `data:image/png;base64,${match[1]}`;
+              setRenderMethod('alt-regex');
+            }
+          }
+          break;
+        default:
+          // Forçar como data URL
+          if (!qrCode.startsWith('data:')) {
+            newSrc = `data:image/png;base64,${qrCode}`;
+            setRenderMethod('alt-forced');
+          }
+          break;
+      }
+
+      if (newSrc && newSrc !== imgSrc) {
+        console.log('[QRCodeDisplay] 🔄 Tentando com método alternativo:', renderMethod);
+        setImgSrc(newSrc);
+        setHasError(false);
+      } else {
+        console.log('[QRCodeDisplay] ❌ Sem mais opções de renderização');
+        // Se já tentamos tudo, mostrar interface para depuração manual
+        setHasError(true);
+        setShowDebug(true);
+      }
+    } catch (error) {
+      console.error('[QRCodeDisplay] ❌ Erro na renderização alternativa:', error);
+      setHasError(true);
+    }
+  };
+
   if (!qrCode) return null;
 
   return (
@@ -128,10 +192,31 @@ const QRCodeDisplay = ({ qrCode }: { qrCode: string | null }) => {
         <div className="flex flex-col items-center space-y-2">
           <AlertCircle className="w-8 h-8 text-amber-500" />
           <p className="text-sm text-muted-foreground text-center">
-            Erro ao carregar o QR Code. Tente atualizá-lo.
+            Erro ao carregar o QR Code. Tente outro método de renderização.
           </p>
-          <div className="w-64 h-64 border border-dashed flex items-center justify-center">
-            <p className="text-muted-foreground">Imagem indisponível</p>
+          <div className="w-64 h-64 border border-dashed flex flex-col items-center justify-center p-4">
+            <p className="text-muted-foreground text-center">Imagem indisponível</p>
+            
+            <div className="mt-4 flex gap-2">
+              <Button 
+                size="sm"
+                variant="outline"
+                onClick={tryAlternateRendering}
+                className="h-8"
+              >
+                Tentar outro método
+              </Button>
+              
+              <Button 
+                size="sm"
+                variant="outline"
+                onClick={() => setShowDebug(true)}
+                className="h-8"
+              >
+                <Bug className="h-4 w-4 mr-1" />
+                Diagnóstico
+              </Button>
+            </div>
           </div>
         </div>
       ) : (
@@ -235,6 +320,9 @@ const QRCodeDisplay = ({ qrCode }: { qrCode: string | null }) => {
           <h4 className="font-semibold mb-1 text-muted-foreground">Detalhes técnicos:</h4>
           <p className="text-muted-foreground">Tamanho: {qrCode.length} caracteres</p>
           <p className="text-muted-foreground">Formato: {qrCode.startsWith('data:image/png') ? 'PNG' : qrCode.startsWith('data:image/') ? qrCode.split(';')[0].replace('data:', '') : 'Desconhecido'}</p>
+          <p className="text-muted-foreground">Método: {renderMethod}</p>
+          <p className="text-muted-foreground">Tentativas: {renderAttempts}</p>
+          <p className="text-muted-foreground">Status: {hasError ? 'Erro' : imgSize.width > 0 ? 'Carregado' : 'Em carregamento'}</p>
           <p className="text-muted-foreground break-all line-clamp-2">Início: {qrCode.substring(0, 30)}...</p>
           <p className="text-muted-foreground">Dimensões: {imgSize.width}x{imgSize.height}</p>
           <p className="text-muted-foreground">Origem: {imgSrc ? 'Sanitizado' : 'Original'}</p>
@@ -244,32 +332,32 @@ const QRCodeDisplay = ({ qrCode }: { qrCode: string | null }) => {
               size="sm" 
               className="h-6 text-xs"
               onClick={() => {
-                const textarea = document.createElement('textarea');
-                textarea.value = qrCode;
-                document.body.appendChild(textarea);
-                textarea.select();
-                document.execCommand('copy');
-                document.body.removeChild(textarea);
-                alert('QR code copiado para a área de transferência');
+                try {
+                  navigator.clipboard.writeText(qrCode);
+                  toast.success('QR code copiado para a área de transferência');
+                } catch (e) {
+                  const textarea = document.createElement('textarea');
+                  textarea.value = qrCode;
+                  document.body.appendChild(textarea);
+                  textarea.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(textarea);
+                  toast.success('QR code copiado para a área de transferência');
+                }
               }}
             >
-              Copiar QR Code
+              <Copy className="h-3 w-3 mr-1" />
+              Copiar
             </Button>
             
             <Button 
               variant="ghost" 
               size="sm"
               className="h-6 text-xs"
-              onClick={() => {
-                // Tentar renderizar novamente com método alternativo
-                const alternativeSrc = qrCode.startsWith('data:image/') 
-                  ? qrCode
-                  : `data:image/png;base64,${qrCode.includes('base64,') ? qrCode.split('base64,')[1] : qrCode}`;
-                setImgSrc(alternativeSrc);
-                setHasError(false);
-              }}
+              onClick={tryAlternateRendering}
             >
-              Corrigir Formato
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Outro método
             </Button>
           </div>
         </div>
@@ -305,7 +393,7 @@ export const QRCodeModal = () => {
   // Diagnóstico quando o estado do modal muda
   useEffect(() => {
     if (isOpen) {
-      addLog(`🔍 Modal aberto para instância: ${instanceId}`);
+      addLog(`🔍 Modal aberto para instância: ${instanceId || 'Não especificada'}`);
       addLog(`🧩 Estado do QR code: ${qrCode ? 'disponível' : 'não disponível'}`);
       
       if (qrCode) {
@@ -391,7 +479,7 @@ export const QRCodeModal = () => {
               <p><strong>Estado:</strong> {isLoading ? 'Carregando' : error ? 'Erro' : qrCode ? 'QR Code Carregado' : 'Aguardando'}</p>
               {qrCode && <p><strong>Tamanho QR:</strong> {qrCode.length} caracteres</p>}
               {qrCode && <p><strong>Formato:</strong> {qrCode.startsWith('data:image/png') ? 'PNG' : qrCode.startsWith('data:image/') ? qrCode.split(';')[0].replace('data:', '') : 'Desconhecido'}</p>}
-              {instanceId && <p><strong>ID da Instância:</strong> {instanceId}</p>}
+              <p><strong>ID da Instância:</strong> {instanceId || 'Não definido'}</p>
               {error && <p><strong>Erro:</strong> {error}</p>}
             </div>
           )}
@@ -444,17 +532,21 @@ export const QRCodeModal = () => {
                     onClick={() => {
                       addLog('📋 Verificando dados brutos');
                       // Tentar buscar dados brutos da instância para diagnóstico
-                      fetch(`/api/whatsapp/instance/debug?id=${instanceId}`)
-                        .then(response => response.json())
-                        .then(data => {
-                          addLog(`🔍 Dados raw: ${JSON.stringify(data).substring(0, 100)}...`);
-                          if (data.qr_code) {
-                            addLog(`📱 QR encontrado: ${data.qr_code.substring(0, 30)}...`);
-                          }
-                        })
-                        .catch(err => {
-                          addLog(`❌ Erro ao buscar dados: ${err.message}`);
-                        });
+                      if (instanceId) {
+                        fetch(`/api/whatsapp/instance/debug?id=${instanceId}`)
+                          .then(response => response.json())
+                          .then(data => {
+                            addLog(`🔍 Dados raw: ${JSON.stringify(data).substring(0, 100)}...`);
+                            if (data.qr_code) {
+                              addLog(`📱 QR encontrado: ${data.qr_code.substring(0, 30)}...`);
+                            }
+                          })
+                          .catch(err => {
+                            addLog(`❌ Erro ao buscar dados: ${err.message}`);
+                          });
+                      } else {
+                        addLog('⚠️ Não é possível verificar sem ID de instância');
+                      }
                     }}
                   >
                     Debug
@@ -485,16 +577,24 @@ export const QRCodeModal = () => {
                   Atualizar QR Code
                 </Button>
                 
-                {showTechnicalInfo && (
+                {showTechnicalInfo && instanceId && (
                   <Button 
                     variant="secondary" 
                     size="sm"
                     onClick={() => {
-                      addLog('🔍 Verificando formato de dados');
-                      if (instanceId) {
-                        // Exibe mais informações de diagnóstico
-                        addLog(`📊 Consultando instância ${instanceId}`);
-                      }
+                      addLog('🔍 Verificando no banco de dados');
+                      fetch(`/api/whatsapp/instance/qrcode?id=${instanceId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                          if (data.qr_code) {
+                            addLog(`✅ QR code encontrado no banco!`);
+                          } else {
+                            addLog(`⚠️ QR code não disponível no banco`);
+                          }
+                        })
+                        .catch(err => {
+                          addLog(`❌ Erro ao verificar: ${err.message}`);
+                        });
                     }}
                   >
                     Verificar Dados

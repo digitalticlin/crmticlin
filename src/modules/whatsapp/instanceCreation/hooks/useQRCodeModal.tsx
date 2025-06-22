@@ -130,9 +130,15 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
   }, [isOpen]);
 
   // CORREÇÃO: Função atualizada para receber QR code diretamente sem validação excessiva
-  const fetchQRCodeWithRetry = useCallback(async (instanceId: string, attempt = 1, maxAttempts = 15) => {
+  // IMPORTANTE: Adicionando todas as dependências corretas para evitar closure bugs
+  const fetchQRCodeWithRetry = useCallback(async (id: string, attempt = 1, maxAttempts = 15) => {
+    if (!id) {
+      console.error('[useQRCodeModal] ❌ ID de instância inválido:', id);
+      return;
+    }
+    
     try {
-      console.log('[useQRCodeModal] 🔍 Tentativa', attempt, 'de', maxAttempts, 'para:', instanceId);
+      console.log('[useQRCodeModal] 🔍 Tentativa', attempt, 'de', maxAttempts, 'para ID:', id);
       
       // Verificar se o modal ainda está aberto
       if (!isOpen) {
@@ -140,11 +146,14 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
         return;
       }
 
+      // CORREÇÃO: Destacar qual ID está sendo consultado
+      console.log('[useQRCodeModal] 🔄 Buscando QR code para instância com ID:', id);
+
       // Buscar dados da instância
       const { data, error } = await supabase
         .from('whatsapp_instances')
         .select('qr_code, connection_status, instance_name')
-        .eq('id', instanceId)
+        .eq('id', id)
         .single();
 
       if (error) {
@@ -153,7 +162,7 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
         if (attempt < maxAttempts && isOpen) {
           console.log('[useQRCodeModal] 🔄 Tentando novamente em 800ms');
           retryTimerRef.current = window.setTimeout(() => {
-            fetchQRCodeWithRetry(instanceId, attempt + 1, maxAttempts);
+            fetchQRCodeWithRetry(id, attempt + 1, maxAttempts);
           }, 800);
         } else {
           setIsLoading(false);
@@ -165,6 +174,7 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
 
       // CORREÇÃO: Imprimir dados completos para diagnóstico
       console.log('[useQRCodeModal] 📊 Dados recebidos:', {
+        id: id,
         connection_status: data?.connection_status,
         instance_name: data?.instance_name,
         qr_code_length: data?.qr_code?.length,
@@ -175,7 +185,7 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
         console.log('[useQRCodeModal] ⚠️ Nenhum dado retornado');
         if (attempt < maxAttempts && isOpen) {
           retryTimerRef.current = window.setTimeout(() => {
-            fetchQRCodeWithRetry(instanceId, attempt + 1, maxAttempts);
+            fetchQRCodeWithRetry(id, attempt + 1, maxAttempts);
           }, 800);
         } else {
           setIsLoading(false);
@@ -193,6 +203,10 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
         return;
       }
       
+      // DEBUG: Verificação extra
+      console.log('[useQRCodeModal] 🔎 QR Code nulo?', data.qr_code === null);
+      console.log('[useQRCodeModal] 🔎 QR Code comprimento:', data.qr_code ? data.qr_code.length : 'N/A');
+
       // CORREÇÃO: Verificar diretamente sem validação excessiva
       if (!data.qr_code) {
         console.log('[useQRCodeModal] ⚠️ QR code não disponível no banco (null)');
@@ -200,7 +214,7 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
         if (attempt < maxAttempts && isOpen) {
           console.log('[useQRCodeModal] 🔄 Tentando novamente em 800ms');
           retryTimerRef.current = window.setTimeout(() => {
-            fetchQRCodeWithRetry(instanceId, attempt + 1, maxAttempts);
+            fetchQRCodeWithRetry(id, attempt + 1, maxAttempts);
           }, 800);
         } else {
           setIsLoading(false);
@@ -231,18 +245,30 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
       
       if (attempt < maxAttempts && isOpen) {
         retryTimerRef.current = window.setTimeout(() => {
-          fetchQRCodeWithRetry(instanceId, attempt + 1, maxAttempts);
+          fetchQRCodeWithRetry(id, attempt + 1, maxAttempts);
         }, 800);
       } else {
         setError(`Erro ao obter QR code: ${err.message || 'Erro desconhecido'}`);
         toast.error(`Erro ao obter QR code: ${err.message || 'Erro desconhecido'}`);
       }
     }
-  }, [isOpen]);
+  }, [isOpen]); // CORREÇÃO: As dependências estão corretas, só precisamos de isOpen aqui
+
+  // CORREÇÃO: Criar uma função para garantir que estamos usando o ID correto
+  const loadQRCode = useCallback((id: string) => {
+    console.log('[useQRCodeModal] ⚙️ loadQRCode chamado com id:', id);
+    fetchQRCodeWithRetry(id, 1, 15);
+  }, [fetchQRCodeWithRetry]);
 
   // Função para abrir o modal
   const openModal = useCallback((id: string) => {
     console.log('[useQRCodeModal] 🚀 Abrindo modal para instância:', id);
+    
+    if (!id) {
+      console.error('[useQRCodeModal] ❌ Tentativa de abrir modal com ID vazio');
+      toast.error('ID de instância inválido');
+      return;
+    }
     
     // Limpar estado anterior
     setQrCode(null);
@@ -258,21 +284,28 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
     // Configurar realtime subscription
     setupRealtimeSubscription(id);
     
-    // CORREÇÃO: Buscar QR code imediatamente
-    fetchQRCodeWithRetry(id);
-  }, [fetchQRCodeWithRetry, setupRealtimeSubscription]);
+    // CORREÇÃO: Buscar QR code imediatamente com o ID correto
+    // Usando setTimeout para garantir que o state foi atualizado
+    setTimeout(() => {
+      console.log('[useQRCodeModal] ⏱️ Executando busca após delay');
+      loadQRCode(id);
+    }, 100);
+    
+  }, [setupRealtimeSubscription, loadQRCode]);
 
   // Função para forçar atualização do QR code
   const refreshQRCode = useCallback(() => {
     if (instanceId) {
-      console.log('[useQRCodeModal] 🔄 Forçando atualização do QR code');
+      console.log('[useQRCodeModal] 🔄 Forçando atualização do QR code para ID:', instanceId);
       setIsLoading(true);
       setError(undefined);
       setQrCode(null);
-      // Reiniciar do começo com nova busca
-      fetchQRCodeWithRetry(instanceId, 1, 15);
+      // CORREÇÃO: Usar a função correta com o ID atual
+      loadQRCode(instanceId);
+    } else {
+      console.error('[useQRCodeModal] ⚠️ Tentativa de refresh sem instanceId definido');
     }
-  }, [fetchQRCodeWithRetry, instanceId]);
+  }, [instanceId, loadQRCode]);
 
   // Função para fechar o modal
   const closeModal = useCallback(() => {
