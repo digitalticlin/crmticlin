@@ -1,3 +1,4 @@
+
 import {
   Dialog,
   DialogContent,
@@ -49,4 +50,4 @@ export const QRCodeModal = () => {
       </DialogContent>
     </Dialog>
   );
-}; 
+};

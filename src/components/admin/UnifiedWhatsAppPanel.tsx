@@ -12,7 +12,6 @@ import { WhatsAppAdminPanel } from "@/components/admin/WhatsAppAdminPanel";
 import { OrphanInstanceLinker } from "@/components/admin/OrphanInstanceLinker";
 import { AutoSyncMonitor } from "@/components/admin/AutoSyncMonitor";
 import { AutoSyncConfigManager } from "@/components/admin/AutoSyncConfigManager";
-import { SystemHealthDashboard } from "@/components/admin/SystemHealthDashboard";
 import { GlobalWebhookManager } from "@/components/admin/GlobalWebhookManager";
 
 export const UnifiedWhatsAppPanel = () => {
@@ -79,7 +78,11 @@ export const UnifiedWhatsAppPanel = () => {
             </TabsList>
 
             <TabsContent value="dashboard" className="mt-6">
-              <SystemHealthDashboard />
+              <div className="text-center py-8">
+                <BarChart3 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Dashboard do Sistema</h3>
+                <p className="text-gray-600">Funcionalidade em desenvolvimento</p>
+              </div>
             </TabsContent>
 
             <TabsContent value="webhook" className="mt-6">

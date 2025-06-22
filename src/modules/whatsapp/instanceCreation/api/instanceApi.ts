@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { EDGE_FUNCTION_CONFIG } from '../constants/config';
 import type { CreateInstanceParams, CreateInstanceResult } from '../types/instanceTypes';

@@ -1,3 +1,4 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
 
 const corsHeaders = {
@@ -12,10 +13,9 @@ Deno.serve(async (req) => {
   }
 
   const executionId = `exec_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+  console.log(`🚀 [${executionId}] ESTRUTURA MODULAR - EDGE FUNCTION INICIADA`);
   
   try {
-    console.log(`🚀 EDGE FUNCTION NÍVEL 8 - SEM PUPPETEER INICIOU`);
-
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       throw new Error('Token de autorização necessário');
@@ -39,31 +39,29 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { action, instanceName, instanceId } = body;
 
-    console.log(`[${action}] Processando NÍVEL 8 para usuário: ${user.email}`);
+    console.log(`[${executionId}] Processando ação: ${action} para usuário: ${user.email}`);
 
     switch (action) {
       case 'create_instance':
-        return await createInstanceViaBaileys(supabase, user, instanceName);
-      
-      case 'delete_instance_corrected':
-        return await deleteInstanceViaBaileys(supabase, user, instanceId);
+        return await createInstanceModular(supabase, user, instanceName, executionId);
       
       case 'get_qr_code':
-        return await getQRCodeViaBaileys(supabase, user, instanceId);
+        return await getQRCodeModular(supabase, user, instanceId, executionId);
       
       case 'health_check':
-        return await healthCheckViaBaileys();
+        return await healthCheckModular(executionId);
       
       default:
         throw new Error(`Action não suportada: ${action}`);
     }
 
   } catch (error: any) {
-    console.error(`❌ Erro na Edge Function NÍVEL 8:`, error.message);
+    console.error(`❌ [${executionId}] Erro na Edge Function:`, error.message);
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: error.message,
+        executionId 
       }),
       {
         status: 500,
@@ -73,83 +71,38 @@ Deno.serve(async (req) => {
   }
 });
 
-async function createInstanceViaBaileys(supabase: any, user: any, instanceName: string) {
+async function createInstanceModular(supabase: any, user: any, instanceName: string, executionId: string) {
   try {
+    console.log(`[${executionId}] 🚀 Criando instância modular: ${instanceName}`);
+    
     // Gerar nome inteligente
     const intelligentName = await generateIntelligentName(supabase, user, instanceName);
-    console.log(`[CREATE BAILEYS] Nome gerado: ${intelligentName}`);
+    console.log(`[${executionId}] 🎯 Nome inteligente: ${intelligentName}`);
 
-    // Tentar VPS com Baileys (sem Puppeteer)
-    const vpsResult = await attemptVPSCreationWithBaileys(intelligentName);
+    // Tentar VPS
+    const vpsResult = await attemptVPSCreation(intelligentName, executionId);
     
     if (vpsResult.success) {
-      console.log(`[CREATE BAILEYS] ✅ VPS Success com Baileys`);
-      // Salvar no banco com dados VPS
-      const instance = await saveInstanceToDatabase(supabase, user, intelligentName, 'connected', vpsResult.data);
-      return createSuccessResponse(instance, vpsResult, intelligentName, user.email, false);
+      console.log(`[${executionId}] ✅ VPS Success`);
+      // CORREÇÃO: Salvar com status "pending" ao invés de "connected"
+      const instance = await saveInstanceToDatabase(supabase, user, intelligentName, 'pending', vpsResult.data);
+      return createSuccessResponse(instance, vpsResult, intelligentName, user.email, false, executionId);
     } else {
-      console.log(`[CREATE BAILEYS] 🚨 VPS Fallback: ${vpsResult.error}`);
+      console.log(`[${executionId}] 🚨 VPS Fallback: ${vpsResult.error}`);
       // Criar instância apenas no banco (fallback)
-      const instance = await saveInstanceToDatabase(supabase, user, intelligentName, 'database_only');
-      return createSuccessResponse(instance, vpsResult, intelligentName, user.email, true);
+      const instance = await saveInstanceToDatabase(supabase, user, intelligentName, 'pending');
+      return createSuccessResponse(instance, vpsResult, intelligentName, user.email, true, executionId);
     }
 
   } catch (error: any) {
-    console.error(`[CREATE BAILEYS] ❌ Erro:`, error.message);
+    console.error(`[${executionId}] ❌ Erro na criação:`, error.message);
     throw error;
   }
 }
 
-async function deleteInstanceViaBaileys(supabase: any, user: any, instanceId: string) {
+async function getQRCodeModular(supabase: any, user: any, instanceId: string, executionId: string) {
   try {
-    // Buscar instância
-    const { data: instance, error } = await supabase
-      .from('whatsapp_instances')
-      .select('*')
-      .eq('id', instanceId)
-      .eq('created_by_user_id', user.id)
-      .single();
-
-    if (error || !instance) {
-      throw new Error('Instância não encontrada');
-    }
-
-    console.log(`[DELETE BAILEYS] Removendo: ${instance.instance_name}`);
-
-    // Deletar da VPS usando endpoint correto
-    if (instance.vps_instance_id) {
-      await attemptVPSDeletionWithBaileys(instance.vps_instance_id);
-    }
-
-    // Deletar do banco
-    const { error: deleteError } = await supabase
-      .from('whatsapp_instances')
-      .delete()
-      .eq('id', instanceId);
-
-    if (deleteError) {
-      throw new Error(`Erro ao deletar do banco: ${deleteError.message}`);
-    }
-
-    console.log(`[DELETE BAILEYS] ✅ Sucesso`);
-
-    return new Response(
-      JSON.stringify({ success: true }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
-
-  } catch (error: any) {
-    console.error(`[DELETE BAILEYS] ❌ Erro:`, error.message);
-    throw error;
-  }
-}
-
-async function getQRCodeViaBaileys(supabase: any, user: any, instanceId: string) {
-  try {
-    console.log(`[QR BAILEYS] Obtendo QR Code para: ${instanceId}`);
+    console.log(`[${executionId}] 📱 Obtendo QR Code para: ${instanceId}`);
     
     // Buscar instância do usuário
     const { data: instance, error } = await supabase
@@ -167,7 +120,7 @@ async function getQRCodeViaBaileys(supabase: any, user: any, instanceId: string)
     const vpsToken = Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // Aumentado para 30s
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
     const response = await fetch(`${vpsUrl}/instance/${instance.vps_instance_id}/qr`, {
       method: 'GET',
@@ -190,7 +143,8 @@ async function getQRCodeViaBaileys(supabase: any, user: any, instanceId: string)
         success: data.success || false,
         qrCode: data.qrCode || null,
         waiting: !data.success,
-        error: data.error || null
+        error: data.error || null,
+        executionId
       }),
       {
         status: 200,
@@ -199,12 +153,13 @@ async function getQRCodeViaBaileys(supabase: any, user: any, instanceId: string)
     );
 
   } catch (error: any) {
-    console.error(`[QR BAILEYS] ❌ Erro:`, error.message);
+    console.error(`[${executionId}] ❌ Erro ao obter QR:`, error.message);
     return new Response(
       JSON.stringify({
         success: false,
         waiting: false,
-        error: error.message
+        error: error.message,
+        executionId
       }),
       {
         status: 500,
@@ -214,7 +169,7 @@ async function getQRCodeViaBaileys(supabase: any, user: any, instanceId: string)
   }
 }
 
-async function healthCheckViaBaileys() {
+async function healthCheckModular(executionId: string) {
   try {
     const vpsUrl = Deno.env.get('VPS_SERVER_URL') || 'http://31.97.24.222:3002';
     
@@ -233,7 +188,8 @@ async function healthCheckViaBaileys() {
     return new Response(
       JSON.stringify({
         success: isHealthy,
-        message: isHealthy ? 'VPS online com Baileys' : 'VPS offline'
+        message: isHealthy ? 'VPS online' : 'VPS offline',
+        executionId
       }),
       {
         status: isHealthy ? 200 : 500,
@@ -245,7 +201,8 @@ async function healthCheckViaBaileys() {
     return new Response(
       JSON.stringify({
         success: false,
-        error: `Health check falhou: ${error.message}`
+        error: `Health check falhou: ${error.message}`,
+        executionId
       }),
       {
         status: 500,
@@ -255,17 +212,16 @@ async function healthCheckViaBaileys() {
   }
 }
 
-async function attemptVPSCreationWithBaileys(instanceId: string) {
-  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-  
+async function attemptVPSCreation(instanceId: string, executionId: string) {
   try {
-    console.log(`[VPS BAILEYS] Criando com Baileys: ${instanceId}...`);
+    console.log(`[${executionId}] 🌐 Criando na VPS: ${instanceId}`);
     
-    const vpsUrl = Deno.env.get('VPS_SERVER_URL') || 'http://31.97.24.222:3002';
+    // CORREÇÃO: Usar URL correta na porta 3002
+    const vpsUrl = 'http://31.97.24.222:3002';
     const vpsToken = Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // Aumentado para 30s
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
     const response = await fetch(`${vpsUrl}/instance/create`, {
       method: 'POST',
@@ -276,9 +232,7 @@ async function attemptVPSCreationWithBaileys(instanceId: string) {
       body: JSON.stringify({
         instanceId,
         sessionName: instanceId,
-        webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
-        useBaileys: true, // NOVA FLAG PARA USAR BAILEYS
-        skipPuppeteer: true // DESATIVAR PUPPETEER
+        webhookUrl: 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_qr_receiver'
       }),
       signal: controller.signal
     });
@@ -290,47 +244,16 @@ async function attemptVPSCreationWithBaileys(instanceId: string) {
     }
 
     const data = await response.json();
-    console.log(`[VPS BAILEYS] ✅ Criado com sucesso usando Baileys`);
+    console.log(`[${executionId}] ✅ VPS criada com sucesso`);
     
     return { success: true, data };
 
   } catch (error: any) {
-    console.log(`[VPS BAILEYS] ❌ Falhou: ${error.message}`);
+    console.log(`[${executionId}] ❌ VPS falhou: ${error.message}`);
     return { 
       success: false, 
-      error: `VPS_BAILEYS_ERROR: ${error.message}. Criando instância em modo fallback.`
+      error: `VPS_ERROR: ${error.message}`
     };
-  }
-}
-
-async function attemptVPSDeletionWithBaileys(instanceId: string) {
-  try {
-    console.log(`[VPS BAILEYS] Deletando: ${instanceId}...`);
-    
-    const vpsUrl = Deno.env.get('VPS_SERVER_URL') || 'http://31.97.24.222:3002';
-    const vpsToken = Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    // Usar endpoint correto para deleção
-    await fetch(`${vpsUrl}/instance/delete`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${vpsToken}`,
-      },
-      body: JSON.stringify({
-        instanceId: instanceId
-      }),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-    console.log(`[VPS BAILEYS] ✅ Deletado`);
-
-  } catch (error: any) {
-    console.log(`[VPS BAILEYS] ⚠️ Erro ao deletar (não crítico): ${error.message}`);
   }
 }
 
@@ -369,10 +292,9 @@ async function saveInstanceToDatabase(supabase: any, user: any, instanceName: st
     connection_type: 'web',
     server_url: 'http://31.97.24.222:3002',
     vps_instance_id: instanceName,
-    web_status: status === 'connected' ? 'connected' : 'fallback_created',
-    connection_status: status,
+    web_status: status === 'pending' ? 'pending' : 'fallback_created',
+    connection_status: status, // CORREÇÃO: usar "pending" ao invés de "connected"
     created_by_user_id: user.id,
-    company_id: null,
     qr_code: vpsData?.qrCode || null
   };
 
@@ -389,7 +311,7 @@ async function saveInstanceToDatabase(supabase: any, user: any, instanceName: st
   return instance;
 }
 
-function createSuccessResponse(instance: any, vpsResult: any, intelligentName: string, userEmail: string, fallbackUsed: boolean) {
+function createSuccessResponse(instance: any, vpsResult: any, intelligentName: string, userEmail: string, fallbackUsed: boolean, executionId: string) {
   return new Response(
     JSON.stringify({
       success: true,
@@ -399,15 +321,16 @@ function createSuccessResponse(instance: any, vpsResult: any, intelligentName: s
         instanceId: intelligentName,
         fallback: fallbackUsed,
         vpsError: vpsResult.error || null,
-        mode: fallbackUsed ? 'database_only' : 'baileys_connected_direct'
+        mode: fallbackUsed ? 'database_only' : 'vps_connected'
       },
       user_id: instance.created_by_user_id,
       intelligent_name: intelligentName,
       user_email: userEmail,
       vps_success: vpsResult.success,
       fallback_used: fallbackUsed,
-      mode: fallbackUsed ? 'database_only' : 'baileys_connected_direct',
-      message: fallbackUsed ? 'Instância criada em modo fallback (VPS lenta/indisponível)' : 'Instância criada com sucesso via Baileys (sem Puppeteer)'
+      mode: fallbackUsed ? 'database_only' : 'vps_connected',
+      message: fallbackUsed ? 'Instância criada em modo fallback' : 'Instância criada com sucesso',
+      executionId
     }),
     {
       status: 200,

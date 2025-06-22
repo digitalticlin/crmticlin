@@ -1,8 +1,5 @@
 
 // Export all services and types from orphan recovery system
-export { OrphanDetectionService } from './orphanDetectionService';
-export { OrphanAdoptionService } from './orphanAdoptionService';
-export { VPSInstanceService } from './vpsInstanceService';
 export { HealthCheckService } from './healthCheckService';
 export type { 
   OrphanInstance, 

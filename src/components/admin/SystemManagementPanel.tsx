@@ -16,9 +16,7 @@ import {
   Download,
   Trash2
 } from "lucide-react";
-import LogsPanel from "@/components/admin/LogsPanel";
 import { SyncLogsPanel } from "@/components/admin/SyncLogsPanel";
-import ConfigPanel from "@/components/admin/ConfigPanel";
 
 export const SystemManagementPanel = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -172,7 +170,11 @@ export const SystemManagementPanel = () => {
                   Visualize e analise todos os eventos e atividades da plataforma
                 </p>
               </div>
-              <LogsPanel />
+              <div className="text-center py-8">
+                <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Logs Gerais</h3>
+                <p className="text-gray-600">Funcionalidade em desenvolvimento</p>
+              </div>
             </TabsContent>
             
             <TabsContent value="sync-logs" className="space-y-4">
@@ -198,7 +200,11 @@ export const SystemManagementPanel = () => {
                   Ajuste parâmetros globais e configurações avançadas da plataforma
                 </p>
               </div>
-              <ConfigPanel />
+              <div className="text-center py-8">
+                <Settings2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Configurações</h3>
+                <p className="text-gray-600">Funcionalidade em desenvolvimento</p>
+              </div>
             </TabsContent>
           </Tabs>
         </CardContent>

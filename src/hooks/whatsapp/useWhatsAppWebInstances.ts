@@ -2,8 +2,8 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { ApiClient } from "@/lib/apiClient";
 import { useAuth } from "@/contexts/AuthContext";
+import { InstanceApi } from "@/modules/whatsapp/instanceCreation/api/instanceApi";
 
 interface CreateInstanceResult {
   success: boolean;
@@ -19,13 +19,9 @@ export const useWhatsAppWebInstances = () => {
   const { user } = useAuth();
   const [instances, setInstances] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [showQRModal, setShowQRModal] = useState(false);
   const [selectedQRCode, setSelectedQRCode] = useState<string | null>(null);
-  const [selectedInstanceName, setSelectedInstanceName] = useState<string>('');
-  const [currentInstanceId, setCurrentInstanceId] = useState<string | null>(null);
-  
-  // Estados para UX melhorada
+  const [selectedInstanceName, setSelectedInstanceName] = useState<string | null>(null);
+  const [showQRModal, setShowQRModal] = useState(false);
   const [qrPollingActive, setQrPollingActive] = useState(false);
 
   const loadInstances = async () => {
@@ -64,183 +60,70 @@ export const useWhatsAppWebInstances = () => {
     loadInstances();
   }, []);
 
-  // ETAPA 1: Gerar nome inteligente baseado no usuário (aceita email opcional)
-  const generateIntelligentInstanceName = async (emailOverride?: string): Promise<string> => {
-    try {
-      const userEmail = emailOverride || user?.email;
-      
-      if (!userEmail) {
-        console.log('[Hook] ⚠️ Email não disponível, usando fallback');
-        return `whatsapp_${Date.now()}`;
-      }
-
-      // Extrair username do email (digitalticlin@gmail.com → digitalticlin)
-      const username = userEmail.split('@')[0].toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
-      console.log('[Hook] 📧 Username extraído:', username);
-
-      // Buscar instâncias existentes do usuário para determinar próximo número
-      const { data: existingInstances, error } = await supabase
-        .from('whatsapp_instances')
-        .select('instance_name')
-        .eq('created_by_user_id', user?.id)
-        .eq('connection_type', 'web');
-
-      if (error) {
-        console.error('[Hook] ❌ Erro ao buscar instâncias existentes:', error);
-        return `${username}_${Date.now()}`;
-      }
-
-      const existingNames = existingInstances?.map(i => i.instance_name) || [];
-      console.log('[Hook] 📋 Nomes existentes:', existingNames);
-
-      // Verificar se o nome base está disponível
-      if (!existingNames.includes(username)) {
-        console.log('[Hook] ✅ Nome base disponível:', username);
-        return username;
-      }
-
-      // Encontrar próximo número disponível
-      let counter = 1;
-      let candidateName = `${username}${counter}`;
-      
-      while (existingNames.includes(candidateName)) {
-        counter++;
-        candidateName = `${username}${counter}`;
-      }
-
-      console.log('[Hook] ✅ Nome inteligente gerado:', candidateName);
-      return candidateName;
-
-    } catch (error) {
-      console.error('[Hook] ❌ Erro na geração de nome inteligente:', error);
-      const fallbackName = `whatsapp_${Date.now()}`;
-      console.log('[Hook] 🔄 Usando nome fallback:', fallbackName);
-      return fallbackName;
-    }
-  };
-
-  // ETAPA 2 & 3: Polling automático para QR Code
-  const startQRPolling = async (instanceId: string, instanceName: string) => {
-    console.log('[Hook] 🔄 Iniciando polling para QR Code:', instanceId);
-    setQrPollingActive(true);
-    
-    const maxAttempts = 15; // 45 segundos (3s * 15)
-    let attempts = 0;
-
-    const pollQRCode = async () => {
-      if (attempts >= maxAttempts) {
-        console.log('[Hook] ⏰ Timeout no polling do QR Code');
-        setQrPollingActive(false);
-        toast.error('Timeout: QR Code não foi gerado em tempo hábil');
-        return;
-      }
-
-      attempts++;
-      console.log(`[Hook] 🔍 Polling QR Code - Tentativa ${attempts}/${maxAttempts}`);
-
-      try {
-        const result = await ApiClient.getQRCode(instanceId);
-        
-        if (result.success && result.data?.qrCode) {
-          console.log('[Hook] ✅ QR Code obtido via polling!');
-          setSelectedQRCode(result.data.qrCode);
-          setQrPollingActive(false);
-          toast.success('QR Code gerado! Escaneie para conectar.');
-          return;
-        }
-
-        if (result.data?.waiting) {
-          console.log('[Hook] ⏳ QR Code ainda sendo gerado...');
-          // Continuar polling
-          setTimeout(pollQRCode, 3000);
-        } else {
-          console.log('[Hook] ❌ Erro no polling:', result.error);
-          setQrPollingActive(false);
-          toast.error(`Erro ao obter QR Code: ${result.error}`);
-        }
-      } catch (error: any) {
-        console.error('[Hook] ❌ Erro no polling:', error);
-        setQrPollingActive(false);
-        toast.error(`Erro no polling: ${error.message}`);
-      }
-    };
-
-    // Aguardar 2 segundos antes do primeiro polling (dar tempo para VPS processar)
-    setTimeout(pollQRCode, 2000);
-  };
-
-  // IMPLEMENTAÇÃO PRINCIPAL: Criar instância com UX fluida
   const createInstance = async (): Promise<CreateInstanceResult> => {
-    setIsConnecting(true);
-    
     try {
-      console.log('[Hook] 🚀 INICIANDO CRIAÇÃO COM UX FLUIDA');
+      console.log('[Hook] 🚀 Criando instância via InstanceApi modular');
       
-      // ETAPA 1: Verificar autenticação
-      const authCheck = await ApiClient.checkAuth();
-      if (!authCheck.authenticated) {
-        throw new Error('Usuário não autenticado. Faça login novamente.');
+      if (!user?.email) {
+        throw new Error('Email do usuário não disponível');
       }
-      
-      console.log('[Hook] ✅ Usuário autenticado:', authCheck.user?.email);
-      
-      // ETAPA 2: Gerar nome inteligente
-      const intelligentName = await generateIntelligentInstanceName();
-      console.log('[Hook] 🎯 Nome inteligente:', intelligentName);
-      
-      // ETAPA 3: Abrir modal IMEDIATAMENTE
-      setSelectedInstanceName(intelligentName);
-      setSelectedQRCode(null);
-      setShowQRModal(true);
-      
-      console.log('[Hook] 📱 Modal aberto - Chamando Edge Function...');
-      
-      // ETAPA 4: Chamar Edge Function com nome inteligente
-      const result = await ApiClient.createInstance(authCheck.user?.email) as CreateInstanceResult;
-      
-      if (result.success && result.instance) {
-        console.log('[Hook] ✅ Instância criada:', result.instance);
-        
-        const instanceId = result.instance.id;
-        setCurrentInstanceId(instanceId);
-        
-        // ETAPA 5: Iniciar polling automático para QR Code
-        await startQRPolling(instanceId, intelligentName);
+
+      const result = await InstanceApi.createInstance({
+        userEmail: user.email,
+        instanceName: user.email.split('@')[0]
+      });
+
+      if (result.success) {
+        console.log('[Hook] ✅ Instância criada:', result);
+        toast.success('Instância criada com sucesso!');
         
         // Recarregar lista
         await loadInstances();
         
-        return result;
+        // CORREÇÃO: Abrir modal QR automaticamente após criação
+        if (result.instance?.id) {
+          console.log('[Hook] 📱 Abrindo modal QR automaticamente:', result.instance.id);
+          setTimeout(() => {
+            refreshQRCode(result.instance.id);
+          }, 1000);
+        }
+      } else {
+        console.error('[Hook] ❌ Falha na criação:', result.error);
+        toast.error(`Erro ao criar instância: ${result.error}`);
       }
 
-      throw new Error(result.error || 'Falha desconhecida na Edge Function');
+      return result;
 
     } catch (error: any) {
-      console.error('[Hook] ❌ Erro na criação:', error);
-      
-      // Fechar modal em caso de erro
-      setShowQRModal(false);
-      
-      toast.error(`Erro ao criar instância: ${error.message}`);
-      
-      return { success: false, error: error.message };
-    } finally {
-      setIsConnecting(false);
+      console.error('[Hook] ❌ Erro ao criar instância:', error);
+      const errorResult = {
+        success: false,
+        error: error.message || 'Erro desconhecido'
+      };
+      toast.error(`Erro: ${error.message}`);
+      return errorResult;
     }
   };
 
   const deleteInstance = async (instanceId: string) => {
     try {
-      console.log('[Hook] 🗑️ Deletando via ApiClient:', instanceId);
+      console.log('[Hook] 🗑️ Deletando instância via Edge Function:', instanceId);
       
-      const result = await ApiClient.deleteInstance(instanceId);
-      
-      if (result.success) {
+      const { data, error } = await supabase.functions.invoke('whatsapp_instance_delete', {
+        body: { instanceId }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data?.success) {
         toast.success('Instância deletada com sucesso!');
         await loadInstances();
       } else {
-        throw new Error(result.error || 'Erro ao deletar');
+        throw new Error(data?.error || 'Erro ao deletar instância');
       }
+
     } catch (error: any) {
       console.error('[Hook] ❌ Erro ao deletar:', error);
       toast.error(`Erro ao deletar: ${error.message}`);
@@ -249,63 +132,103 @@ export const useWhatsAppWebInstances = () => {
 
   const refreshQRCode = async (instanceId: string) => {
     try {
-      console.log('[Hook] 🔄 Refresh QR via ApiClient:', instanceId);
+      console.log('[Hook] 🔄 Refresh QR via QRCodeApi:', instanceId);
       
-      const result = await ApiClient.refreshQRCode(instanceId);
+      // Encontrar a instância para pegar o nome
+      const instance = instances.find(i => i.id === instanceId);
+      const instanceName = instance?.instance_name || 'Instância';
+      
+      // Abrir modal e iniciar processo
+      setSelectedQRCode(null);
+      setSelectedInstanceName(instanceName);
+      setShowQRModal(true);
+      setQrPollingActive(true);
+      
+      // Solicitar QR Code via Edge Function
+      const { data, error } = await supabase.functions.invoke('whatsapp_qr_manager', {
+        body: { instanceId }
+      });
 
-      if (result.success && result.data?.qrCode) {
+      if (error) {
+        console.error('[Hook] ❌ Erro na Edge Function:', error);
+        setQrPollingActive(false);
         return {
-          success: true,
-          qrCode: result.data.qrCode
+          success: false,
+          waiting: false,
+          error: error.message
         };
       }
 
-      return {
-        success: false,
-        waiting: result.data?.waiting || false,
-        error: result.error || 'QR Code não disponível'
-      };
+      if (data?.success && data.qrCode) {
+        console.log('[Hook] ✅ QR Code recebido:', instanceId);
+        setSelectedQRCode(data.qrCode);
+        setQrPollingActive(false);
+        return {
+          success: true,
+          waiting: false,
+          qrCode: data.qrCode,
+          message: 'QR Code obtido com sucesso'
+        };
+      } else if (data?.connected) {
+        console.log('[Hook] ✅ Instância já conectada:', instanceId);
+        setQrPollingActive(false);
+        setShowQRModal(false);
+        toast.success('WhatsApp já está conectado!');
+        await loadInstances();
+        return {
+          success: true,
+          waiting: false,
+          message: 'Instância já conectada'
+        };
+      } else {
+        console.log('[Hook] ⏳ Aguardando QR Code:', instanceId);
+        return {
+          success: false,
+          waiting: true,
+          message: 'Aguardando QR Code'
+        };
+      }
+
     } catch (error: any) {
+      console.error('[Hook] ❌ Erro geral:', error);
+      setQrPollingActive(false);
       return {
         success: false,
+        waiting: false,
         error: error.message || 'Erro ao buscar QR Code'
       };
     }
   };
 
   const closeQRModal = () => {
-    console.log('[Hook] ❌ Fechando modal QR');
+    console.log('[Hook] 🔒 Fechando modal QR');
     setShowQRModal(false);
     setSelectedQRCode(null);
-    setSelectedInstanceName('');
-    setCurrentInstanceId(null);
+    setSelectedInstanceName(null);
     setQrPollingActive(false);
   };
 
   const retryQRCode = async () => {
-    if (currentInstanceId && selectedInstanceName) {
-      console.log('[Hook] 🔄 Tentando novamente QR Code para:', currentInstanceId);
-      setSelectedQRCode(null);
-      await startQRPolling(currentInstanceId, selectedInstanceName);
+    if (selectedInstanceName) {
+      const instance = instances.find(i => i.instance_name === selectedInstanceName);
+      if (instance) {
+        await refreshQRCode(instance.id);
+      }
     }
   };
 
   return {
     instances,
     isLoading,
-    isConnecting,
-    showQRModal,
     selectedQRCode,
     selectedInstanceName,
+    showQRModal,
+    qrPollingActive,
     createInstance,
     deleteInstance,
     refreshQRCode,
     closeQRModal,
     retryQRCode,
-    loadInstances,
-    generateIntelligentInstanceName, // CORRIGIDO: Função agora aceita email opcional
-    // Estados adicionais para UX
-    qrPollingActive,
-    currentInstanceId
+    loadInstances
   };
 };

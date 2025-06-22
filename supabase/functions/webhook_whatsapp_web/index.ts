@@ -11,11 +11,14 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 serve(async (req) => {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   if (req.method !== 'POST') {
+    console.log(`[${requestId}] ❌ Método não permitido: ${req.method}`);
     return new Response('Method not allowed', { status: 405, headers: corsHeaders });
   }
 
@@ -23,54 +26,80 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     const payload = await req.json();
     
-    console.log('[Webhook WhatsApp] 📡 Payload recebido:', JSON.stringify(payload, null, 2));
+    console.log(`[${requestId}] 📡 WhatsApp Web Webhook:`, JSON.stringify(payload, null, 2));
 
-    // Verificar tipo de evento
+    // Extrair dados padronizados
     const eventType = payload.event || payload.type;
-    const instanceId = payload.instance || payload.instanceId;
+    const instanceId = payload.instanceId || payload.instance || payload.instanceName;
     
     if (!instanceId) {
-      console.error('[Webhook WhatsApp] ❌ Instance ID não encontrado');
-      return new Response(JSON.stringify({ success: false, error: 'Instance ID required' }), 
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      console.error(`[${requestId}] ❌ Instance ID não encontrado`);
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Instance ID required',
+        requestId
+      }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
     }
 
+    console.log(`[${requestId}] 📋 Processando evento: ${eventType} para instância: ${instanceId}`);
+
     // CASO 1: QR Code gerado
-    if (eventType === 'qr.update' || eventType === 'qr_code' || payload.qrCode) {
-      return await handleQRCodeUpdate(supabase, payload, instanceId);
+    if (eventType === 'qr.update' || eventType === 'qr_update' || payload.qrCode) {
+      return await handleQRCodeUpdate(supabase, payload, instanceId, requestId);
     }
 
     // CASO 2: Status de conexão atualizado
     if (eventType === 'connection.update' || eventType === 'status_update') {
-      return await handleConnectionUpdate(supabase, payload, instanceId);
+      return await handleConnectionUpdate(supabase, payload, instanceId, requestId);
     }
 
     // CASO 3: Nova mensagem recebida
     if (eventType === 'messages.upsert' || eventType === 'message_received') {
-      return await handleMessageReceived(supabase, payload, instanceId);
+      return await handleMessageReceived(supabase, payload, instanceId, requestId);
     }
 
-    console.log('[Webhook WhatsApp] ℹ️ Evento não processado:', eventType);
-    return new Response(JSON.stringify({ success: true, message: 'Event not processed' }), 
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    console.log(`[${requestId}] ℹ️ Evento não processado:`, eventType);
+    return new Response(JSON.stringify({ 
+      success: true, 
+      message: 'Event not processed',
+      event: eventType,
+      requestId
+    }), { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
 
   } catch (error) {
-    console.error('[Webhook WhatsApp] ❌ Erro:', error);
-    return new Response(JSON.stringify({ success: false, error: error.message }), 
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    console.error(`[${requestId}] ❌ Erro geral:`, error);
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: error.message,
+      requestId
+    }), { 
+      status: 500, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
   }
 });
 
-async function handleQRCodeUpdate(supabase: any, payload: any, instanceId: string) {
-  console.log('[Webhook WhatsApp] 📱 Processando QR Code update para:', instanceId);
+async function handleQRCodeUpdate(supabase: any, payload: any, instanceId: string, requestId: string) {
+  console.log(`[${requestId}] 📱 Processando QR Code update para: ${instanceId}`);
   
   try {
     const qrCode = payload.qrCode || payload.qr_code || payload.data?.qrCode;
     
     if (!qrCode) {
-      console.error('[Webhook WhatsApp] ❌ QR Code não encontrado no payload');
-      return new Response(JSON.stringify({ success: false, error: 'QR Code not found' }), 
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      console.error(`[${requestId}] ❌ QR Code não encontrado no payload`);
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'QR Code not found',
+        requestId
+      }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
     }
 
     // Normalizar QR Code para base64
@@ -79,8 +108,26 @@ async function handleQRCodeUpdate(supabase: any, payload: any, instanceId: strin
       normalizedQR = `data:image/png;base64,${qrCode}`;
     }
 
-    // Atualizar instância com QR Code
-    const { error } = await supabase
+    // Buscar e atualizar instância
+    const { data: instances, error: fetchError } = await supabase
+      .from('whatsapp_instances')
+      .select('id')
+      .or(`vps_instance_id.eq.${instanceId},instance_name.eq.${instanceId}`);
+
+    if (fetchError || !instances?.length) {
+      console.error(`[${requestId}] ❌ Instância não encontrada:`, fetchError);
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Instance not found',
+        instanceId,
+        requestId
+      }), { 
+        status: 404, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
+    const { error: updateError } = await supabase
       .from('whatsapp_instances')
       .update({
         qr_code: normalizedQR,
@@ -88,42 +135,49 @@ async function handleQRCodeUpdate(supabase: any, payload: any, instanceId: strin
         connection_status: 'connecting',
         updated_at: new Date().toISOString()
       })
-      .eq('vps_instance_id', instanceId);
+      .eq('id', instances[0].id);
 
-    if (error) {
-      console.error('[Webhook WhatsApp] ❌ Erro ao atualizar QR Code:', error);
-      throw error;
+    if (updateError) {
+      console.error(`[${requestId}] ❌ Erro ao atualizar QR Code:`, updateError);
+      throw updateError;
     }
 
-    console.log('[Webhook WhatsApp] ✅ QR Code atualizado com sucesso');
+    console.log(`[${requestId}] ✅ QR Code atualizado com sucesso`);
     
     return new Response(JSON.stringify({ 
       success: true, 
       message: 'QR Code updated',
-      instanceId 
+      instanceId: instances[0].id,
+      requestId
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.error('[Webhook WhatsApp] ❌ Erro no QR Code update:', error);
-    return new Response(JSON.stringify({ success: false, error: error.message }), 
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    console.error(`[${requestId}] ❌ Erro no QR Code update:`, error);
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: error.message,
+      requestId
+    }), { 
+      status: 500, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
   }
 }
 
-async function handleConnectionUpdate(supabase: any, payload: any, instanceId: string) {
-  console.log('[Webhook WhatsApp] 🔗 Processando connection update para:', instanceId);
+async function handleConnectionUpdate(supabase: any, payload: any, instanceId: string, requestId: string) {
+  console.log(`[${requestId}] 🔗 Processando connection update para: ${instanceId}`);
   
   try {
     const status = payload.status || payload.connection_status || payload.data?.status;
     const phone = payload.phone || payload.number || payload.data?.phone;
     const profileName = payload.profileName || payload.profile_name || payload.data?.profileName;
     
-    console.log('[Webhook WhatsApp] 📊 Status recebido:', { status, phone, profileName });
+    console.log(`[${requestId}] 📊 Status recebido:`, { status, phone, profileName });
 
     // Mapear status
-    const statusMapping = {
+    const statusMapping: Record<string, string> = {
       'open': 'connected',
       'ready': 'connected', 
       'connected': 'connected',
@@ -135,6 +189,25 @@ async function handleConnectionUpdate(supabase: any, payload: any, instanceId: s
 
     const connectionStatus = statusMapping[status] || 'disconnected';
     const webStatus = status;
+
+    // Buscar instância
+    const { data: instances, error: fetchError } = await supabase
+      .from('whatsapp_instances')
+      .select('id')
+      .or(`vps_instance_id.eq.${instanceId},instance_name.eq.${instanceId}`);
+
+    if (fetchError || !instances?.length) {
+      console.error(`[${requestId}] ❌ Instância não encontrada:`, fetchError);
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Instance not found',
+        instanceId,
+        requestId
+      }), { 
+        status: 404, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
 
     // Preparar dados de atualização
     const updateData: any = {
@@ -158,97 +231,108 @@ async function handleConnectionUpdate(supabase: any, payload: any, instanceId: s
     }
 
     // Atualizar instância
-    const { data: instance, error: updateError } = await supabase
+    const { error: updateError } = await supabase
       .from('whatsapp_instances')
       .update(updateData)
-      .eq('vps_instance_id', instanceId)
-      .select()
-      .single();
+      .eq('id', instances[0].id);
 
     if (updateError) {
-      console.error('[Webhook WhatsApp] ❌ Erro ao atualizar status:', updateError);
+      console.error(`[${requestId}] ❌ Erro ao atualizar status:`, updateError);
       throw updateError;
     }
 
-    console.log('[Webhook WhatsApp] ✅ Status atualizado:', connectionStatus);
-
-    // Se conectado com sucesso, acionar importação de chats
-    if (connectionStatus === 'connected' && instance) {
-      console.log('[Webhook WhatsApp] 🚀 Acionando importação de chats...');
-      
-      // Chamar edge function de importação (assíncrono)
-      supabase.functions.invoke('whatsapp_chat_import', {
-        body: {
-          action: 'import_chats_gradual',
-          instanceId: instance.id,
-          vpsInstanceId: instanceId
-        }
-      }).catch(error => {
-        console.error('[Webhook WhatsApp] ⚠️ Erro ao acionar importação:', error);
-      });
-    }
+    console.log(`[${requestId}] ✅ Status atualizado: ${connectionStatus}`);
 
     return new Response(JSON.stringify({ 
       success: true, 
       message: 'Connection status updated',
       status: connectionStatus,
-      instanceId 
+      instanceId: instances[0].id,
+      requestId
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.error('[Webhook WhatsApp] ❌ Erro no connection update:', error);
-    return new Response(JSON.stringify({ success: false, error: error.message }), 
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    console.error(`[${requestId}] ❌ Erro no connection update:`, error);
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: error.message,
+      requestId
+    }), { 
+      status: 500, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
   }
 }
 
-async function handleMessageReceived(supabase: any, payload: any, instanceId: string) {
-  console.log('[Webhook WhatsApp] 💬 Processando mensagem recebida para:', instanceId);
+async function handleMessageReceived(supabase: any, payload: any, instanceId: string, requestId: string) {
+  console.log(`[${requestId}] 💬 Processando mensagem recebida para: ${instanceId}`);
   
   try {
     // Buscar instância
-    const { data: instance, error: instanceError } = await supabase
+    const { data: instances, error: instanceError } = await supabase
       .from('whatsapp_instances')
       .select('id, created_by_user_id')
-      .eq('vps_instance_id', instanceId)
-      .single();
+      .or(`vps_instance_id.eq.${instanceId},instance_name.eq.${instanceId}`);
 
-    if (instanceError || !instance) {
-      console.error('[Webhook WhatsApp] ❌ Instância não encontrada:', instanceError);
-      throw new Error('Instance not found');
+    if (instanceError || !instances?.length) {
+      console.error(`[${requestId}] ❌ Instância não encontrada:`, instanceError);
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Instance not found',
+        instanceId,
+        requestId
+      }), { 
+        status: 404, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
     }
 
-    // Processar mensagem (aqui você pode expandir a lógica)
+    const instance = instances[0];
+
+    // Processar mensagem
     const messageData = payload.data || payload.message || payload;
     const phone = extractPhoneFromMessage(messageData);
-    const text = messageData.body || messageData.text || '';
+    const text = messageData.body || messageData.text || messageData.message?.text || '';
     const fromMe = messageData.key?.fromMe || false;
 
     if (!phone || fromMe) {
-      return new Response(JSON.stringify({ success: true, message: 'Message ignored' }), 
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      console.log(`[${requestId}] ℹ️ Mensagem ignorada - sem telefone ou enviada por mim`);
+      return new Response(JSON.stringify({ 
+        success: true, 
+        message: 'Message ignored',
+        requestId
+      }), { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
     }
 
-    console.log('[Webhook WhatsApp] 📞 Mensagem de:', phone, 'Texto:', text.substring(0, 50));
+    console.log(`[${requestId}] 📞 Mensagem de: ${phone} | Texto: ${text.substring(0, 50)}`);
 
     // Aqui você pode implementar a lógica de criação/atualização de leads e mensagens
-    // Por enquanto, apenas logamos
+    // Por enquanto, apenas registramos o recebimento
     
     return new Response(JSON.stringify({ 
       success: true, 
       message: 'Message processed',
       phone,
-      instanceId 
+      instanceId: instance.id,
+      requestId
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.error('[Webhook WhatsApp] ❌ Erro ao processar mensagem:', error);
-    return new Response(JSON.stringify({ success: false, error: error.message }), 
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    console.error(`[${requestId}] ❌ Erro ao processar mensagem:`, error);
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: error.message,
+      requestId
+    }), { 
+      status: 500, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    });
   }
 }
 

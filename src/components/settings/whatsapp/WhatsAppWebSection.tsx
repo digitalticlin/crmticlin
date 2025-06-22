@@ -6,7 +6,7 @@ import { MessageSquare, Activity, CheckCircle, AlertTriangle, Plus, Loader2, Mon
 import { useAuth } from "@/contexts/AuthContext";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { WhatsAppInstanceGrid } from "./WhatsAppInstanceGrid";
-import { AutoQRModal } from "./AutoQRModal";
+import { QRCodeModal } from "@/modules/whatsapp/instanceCreation/components/QRCodeModal";
 import { MonitoringPanel } from "./MonitoringPanel";
 import { VPSDiagnosticPanel } from "./VPSDiagnosticPanel";
 import { toast } from "sonner";
@@ -295,18 +295,8 @@ export const WhatsAppWebSection = () => {
         </Card>
       )}
 
-      {/* Modal QR */}
-      <AutoQRModal
-        isOpen={showQRModal}
-        onClose={closeQRModal}
-        qrCode={selectedQRCode}
-        instanceName={selectedInstanceName}
-        isWaiting={qrPollingActive || (!selectedQRCode && showQRModal)}
-        currentAttempt={0}
-        maxAttempts={15}
-        error={null}
-        onRetry={retryQRCode}
-      />
+      {/* Modal QR unificado */}
+      <QRCodeModal />
 
       {/* Card informativo sobre BAILEYS */}
       <Card className="border-purple-200 bg-purple-50/30">

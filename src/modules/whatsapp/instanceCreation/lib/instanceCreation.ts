@@ -1,61 +1,45 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-
-export interface CreateInstanceParams {
-  instanceName?: string;
-  userEmail?: string;
-}
-
-export interface CreateInstanceResult {
-  success: boolean;
-  instance?: any;
-  error?: string;
-  mode?: string;
-}
+import { InstanceApi } from '../api/instanceApi';
+import type { CreateInstanceParams, CreateInstanceResult } from '../types/instanceTypes';
 
 export class InstanceCreationService {
-  static async createInstance(params: CreateInstanceParams = {}): Promise<CreateInstanceResult> {
+  static async createInstance(params: CreateInstanceParams): Promise<CreateInstanceResult> {
     try {
-      console.log('[InstanceCreation] 🚀 Criando instância via whatsapp_instance_manager');
+      console.log('[InstanceCreationService] 🚀 Criando instância via estrutura modular:', params);
       
       // Gerar nome inteligente se não fornecido
-      let instanceName = params.instanceName;
-      if (!instanceName && params.userEmail) {
-        instanceName = params.userEmail.split('@')[0].toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
-      }
+      const intelligentName = params.instanceName || 
+        params.userEmail.split('@')[0].toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
       
-      const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
-        body: {
-          action: 'create_instance',
-          instanceName: instanceName || 'default'
-        }
+      // Chamar API modular
+      const result = await InstanceApi.createInstance({
+        instanceName: intelligentName,
+        userEmail: params.userEmail,
+        companyId: params.companyId
       });
 
-      if (error) {
-        console.error('[InstanceCreation] ❌ Erro do Supabase:', error);
-        throw new Error(error.message);
+      if (result.success) {
+        console.log('[InstanceCreationService] ✅ Instância criada via estrutura modular:', {
+          instanceName: intelligentName,
+          instanceId: result.instance?.id,
+          // CORREÇÃO: Retornar status correto
+          status: 'pending' // Status inicial deve ser pending
+        });
+      } else {
+        console.error('[InstanceCreationService] ❌ Falha na criação:', result.error);
       }
 
-      if (!data?.success) {
-        console.error('[InstanceCreation] ❌ Falha na criação:', data?.error);
-        throw new Error(data?.error || 'Falha ao criar instância');
-      }
-
-      console.log('[InstanceCreation] ✅ Instância criada com sucesso:', data.instance?.id);
-      
-      return {
-        success: true,
-        instance: data.instance,
-        mode: data.mode || 'created'
-      };
+      return result;
 
     } catch (error: any) {
-      console.error('[InstanceCreation] ❌ Erro ao criar instância:', error);
+      console.error('[InstanceCreationService] ❌ Erro:', error);
       return {
         success: false,
-        error: error.message
+        error: error.message || 'Erro desconhecido'
       };
     }
   }
 }
+
+// Export CreateInstanceResult para resolver import
+export type { CreateInstanceResult } from '../types/instanceTypes';

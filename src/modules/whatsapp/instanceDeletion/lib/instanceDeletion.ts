@@ -1,14 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-
-export interface DeleteInstanceParams {
-  instanceId: string;
-}
-
-export interface DeleteInstanceResult {
-  success: boolean;
-  error?: string;
-}
+import { DeleteInstanceParams, DeleteInstanceResult } from '../types/instanceDeletionTypes';
 
 export class InstanceDeletionService {
   static async deleteInstance(params: DeleteInstanceParams): Promise<DeleteInstanceResult> {
@@ -45,3 +37,6 @@ export class InstanceDeletionService {
     }
   }
 }
+
+// Export the types for external use
+export type { DeleteInstanceParams, DeleteInstanceResult } from '../types/instanceDeletionTypes';

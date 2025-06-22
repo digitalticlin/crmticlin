@@ -1,19 +1,20 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { SimpleInstanceCard } from "./SimpleInstanceCard";
-import { QRCodeModal } from "@/modules/whatsapp/qrCode/components/QRCodeModal";
+import { QRCodeModal } from "@/modules/whatsapp/instanceCreation/components/QRCodeModal";
 import { ConnectionCard } from "./connection/ConnectionCard";
 import { AddNewConnectionCard } from "./connection/AddNewConnectionCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useInstanceCreation } from "@/modules/whatsapp/instanceCreation/hooks/useInstanceCreation";
-import { useQRCodeModal } from "@/modules/whatsapp/qrCode/hooks/useQRCodeModal";
+import { useQRCodeModal } from "@/modules/whatsapp/instanceCreation/hooks/useQRCodeModal";
 
 export const SimpleWhatsAppConnection = () => {
   const { user } = useAuth();
+  const [lastInstanceCount, setLastInstanceCount] = useState(0);
   
   const {
     instances,
@@ -23,18 +24,20 @@ export const SimpleWhatsAppConnection = () => {
   } = useWhatsAppWebInstances();
 
   const { createInstance, isCreating } = useInstanceCreation(loadInstances);
-  const { 
-    isOpen: showQRModal,
-    qrCode: selectedQRCode,
-    instanceName: selectedInstanceName,
-    instanceId: selectedInstanceId,
-    isLoading: isWaitingForQR,
-    error: qrError,
-    openModal,
-    closeModal,
-    fetchQRCode,
-    refreshQRCode
-  } = useQRCodeModal();
+  const { openModal } = useQRCodeModal();
+
+  // CORREÇÃO: Detectar nova instância e abrir modal IMEDIATAMENTE
+  useEffect(() => {
+    if (instances.length > lastInstanceCount && lastInstanceCount > 0) {
+      const newInstance = instances[instances.length - 1];
+      console.log('[Simple Connection] 🎯 NOVA INSTÂNCIA DETECTADA:', newInstance.id);
+      
+      // CORREÇÃO: Abrir modal IMEDIATAMENTE (sem delay)
+      console.log('[Simple Connection] 🚀 Abrindo modal IMEDIATO para nova instância');
+      openModal(newInstance.id);
+    }
+    setLastInstanceCount(instances.length);
+  }, [instances.length, lastInstanceCount, openModal]);
 
   const handleConnect = async () => {
     if (!user?.email) {
@@ -42,44 +45,18 @@ export const SimpleWhatsAppConnection = () => {
       return;
     }
 
-    console.log('[Simple Connection] 🎯 Criando instância via módulo modular para:', user.email);
+    console.log('[Simple Connection] 🎯 Criando instância para:', user.email);
     await createInstance();
   };
 
   const handleGenerateQR = async (instanceId: string, instanceName: string) => {
-    console.log('[Simple Connection] 🔄 Modal QR Code via módulo modular:', { instanceId, instanceName });
-    openModal(instanceId, instanceName);
-    toast.info(`Modal aberto para ${instanceName}. Clique em "Gerar QR Code" para iniciar.`);
+    console.log('[Simple Connection] 🔄 CORREÇÃO: Abrindo modal IMEDIATO para:', { instanceId, instanceName });
+    openModal(instanceId);
   };
 
-  const handleDeleteInstance = async (instanceId: string) => {
-    console.log('[Simple Connection] 🗑️ Deletando via hook existente:', instanceId);
-    await deleteInstance(instanceId);
-  };
-
-  const handleRefreshQRCode = async (instanceId: string) => {
-    try {
-      console.log('[Simple Connection] 🔄 Refresh QR Code via módulo modular:', instanceId);
-      
-      const result = await fetchQRCode(instanceId);
-      
-      if (result.success && result.qrCode) {
-        console.log('[Simple Connection] ✅ QR Code obtido via módulo modular!');
-        return { success: true, qrCode: result.qrCode };
-      }
-      
-      if (result.waiting) {
-        console.log('[Simple Connection] ⏳ QR Code ainda não disponível');
-        return { success: false, waiting: true };
-      }
-      
-      console.log('[Simple Connection] ❌ Falha na busca:', result.error);
-      return { success: false, error: result.error };
-      
-    } catch (error: any) {
-      console.error('[Simple Connection] ❌ Erro ao buscar QR Code:', error);
-      return { success: false, error: error.message };
-    }
+  const handleDeleteInstance = async () => {
+    console.log('[Simple Connection] 🗑️ Callback de deleção executado');
+    await loadInstances();
   };
 
   if (isLoading) {
@@ -97,17 +74,7 @@ export const SimpleWhatsAppConnection = () => {
     return (
       <div className="space-y-6">
         <ConnectionCard onConnect={handleConnect} isConnecting={isCreating} />
-
-        <QRCodeModal
-          isOpen={showQRModal}
-          onClose={closeModal}
-          qrCode={selectedQRCode}
-          instanceName={selectedInstanceName}
-          isLoading={isWaitingForQR}
-          error={qrError}
-          onRefresh={refreshQRCode}
-          onGenerate={() => fetchQRCode()}
-        />
+        <QRCodeModal />
       </div>
     );
   }
@@ -121,44 +88,13 @@ export const SimpleWhatsAppConnection = () => {
             instance={instance}
             onGenerateQR={handleGenerateQR}
             onDelete={handleDeleteInstance}
-            onRefreshQRCode={handleRefreshQRCode}
           />
         ))}
         
         <AddNewConnectionCard onConnect={handleConnect} isConnecting={isCreating} />
       </div>
 
-      <QRCodeModal
-        isOpen={showQRModal}
-        onClose={closeModal}
-        qrCode={selectedQRCode}
-        instanceName={selectedInstanceName}
-        isLoading={isWaitingForQR}
-        error={qrError}
-        onRefresh={refreshQRCode}
-        onGenerate={() => fetchQRCode()}
-      />
-
-      {/* Card informativo sobre modularização */}
-      <Card className="border-blue-200 bg-blue-50/30">
-        <CardContent className="p-4">
-          <div className="text-sm text-blue-800 space-y-2">
-            <p><strong>✅ FASE 1 MODULARIZAÇÃO IMPLEMENTADA:</strong></p>
-            <ul className="list-disc list-inside space-y-1 ml-4">
-              <li><strong>Estrutura Modular:</strong> ✅ src/modules/whatsapp/</li>
-              <li><strong>Criação de Instância:</strong> ✅ instanceCreation module</li>
-              <li><strong>QR Code:</strong> ✅ qrCode module</li>
-              <li><strong>Deleção:</strong> ✅ instanceDeletion module</li>
-              <li><strong>Mensagens:</strong> ✅ messaging module</li>
-              <li><strong>Componentes Atualizados:</strong> ✅ Usando novos hooks modulares</li>
-            </ul>
-            <div className="mt-3 p-3 bg-white/70 rounded border border-blue-200">
-              <p className="font-medium">🎯 Próxima Fase:</p>
-              <p>Modularização das Edge Functions (whatsapp_instance_manager, whatsapp_qr_service, etc.)</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <QRCodeModal />
     </div>
   );
 };

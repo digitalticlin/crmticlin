@@ -1,123 +1,66 @@
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SidebarProvider } from "@/contexts/SidebarContext";
+import { PageLayout } from "@/components/layout/PageLayout";
+import { ModernPageHeader } from "@/components/layout/ModernPageHeader";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { GlobalInstanceSync } from "@/components/admin/GlobalInstanceSync";
+import { Link } from "react-router-dom";
 import { 
-  Settings, 
-  Database, 
-  Activity, 
-  Users, 
-  Shield,
-  Bug,
-  Terminal
+  RefreshCcw, 
+  TestTube,
+  ArrowRight
 } from "lucide-react";
-import { GlobalInstanceManagement } from "@/components/admin/GlobalInstanceManagement";
-import { VPSDebugDashboard } from "@/components/admin/VPSDebugDashboard";
 
-const Admin = () => {
+export default function Admin() {
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold text-gray-900">Painel Administrativo</h1>
-        <p className="text-gray-600">
-          Gerencie e monitore todos os aspectos do sistema WhatsApp
-        </p>
-      </div>
-
-      <Tabs defaultValue="vps-debug" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="vps-debug" className="flex items-center gap-2">
-            <Bug className="h-4 w-4" />
-            VPS Debug
-          </TabsTrigger>
-          <TabsTrigger value="instances" className="flex items-center gap-2">
-            <Database className="h-4 w-4" />
-            Instâncias
-          </TabsTrigger>
-          <TabsTrigger value="monitoring" className="flex items-center gap-2">
-            <Activity className="h-4 w-4" />
-            Monitoramento
-          </TabsTrigger>
-          <TabsTrigger value="system" className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Sistema
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Tab 1: VPS Debug */}
-        <TabsContent value="vps-debug" className="space-y-6">
-          <VPSDebugDashboard />
-        </TabsContent>
-
-        {/* Tab 2: Gerenciamento de Instâncias */}
-        <TabsContent value="instances" className="space-y-6">
-          <GlobalInstanceManagement />
-        </TabsContent>
-
-        {/* Tab 3: Monitoramento */}
-        <TabsContent value="monitoring" className="space-y-6">
-          <Card>
+    <SidebarProvider>
+      <PageLayout>
+        <ModernPageHeader 
+          title="Painel Administrativo" 
+          description="Sistema de sincronização e gerenciamento de instâncias WhatsApp"
+        />
+        
+        <div className="space-y-6">
+          {/* Sincronização Global de Instâncias */}
+          <Card className="bg-white/30 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5 text-blue-500" />
-                Monitoramento do Sistema
+                <RefreshCcw className="h-5 w-5 text-blue-500" />
+                Sincronização VPS ↔ Supabase
               </CardTitle>
+              <p className="text-sm text-gray-600">
+                Sincronização global entre instâncias da VPS e banco de dados Supabase
+              </p>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <Activity className="h-8 w-8 mx-auto text-green-500 mb-2" />
-                  <h3 className="font-medium">Status VPS</h3>
-                  <p className="text-sm text-gray-600">Monitoramento da VPS WhatsApp</p>
-                </div>
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <Database className="h-8 w-8 mx-auto text-blue-500 mb-2" />
-                  <h3 className="font-medium">Banco de Dados</h3>
-                  <p className="text-sm text-gray-600">Sincronização e performance</p>
-                </div>
-                <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <Users className="h-8 w-8 mx-auto text-purple-500 mb-2" />
-                  <h3 className="font-medium">Usuários Ativos</h3>
-                  <p className="text-sm text-gray-600">Sessões e atividades</p>
-                </div>
-              </div>
+              <GlobalInstanceSync />
             </CardContent>
           </Card>
-        </TabsContent>
 
-        {/* Tab 4: Configurações do Sistema */}
-        <TabsContent value="system" className="space-y-6">
-          <Card>
+          {/* Link para Página de Testes */}
+          <Card className="bg-gradient-to-r from-green-50/30 to-blue-50/30 backdrop-blur-xl rounded-3xl border border-white/30">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5 text-gray-500" />
-                Configurações do Sistema
+                <TestTube className="h-5 w-5 text-green-500" />
+                Sistema de Testes Completo
               </CardTitle>
+              <p className="text-sm text-gray-600">
+                Acesse a página dedicada para criação dual e testes de instâncias
+              </p>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h3 className="font-medium">Configurações VPS</h3>
-                  <div className="space-y-2 text-sm">
-                    <p><strong>URL:</strong> http://31.97.24.222:3002</p>
-                    <p><strong>Status:</strong> <span className="text-green-600">Online</span></p>
-                    <p><strong>Versão:</strong> WhatsApp Server v3.0.0</p>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <h3 className="font-medium">Configurações Edge Functions</h3>
-                  <div className="space-y-2 text-sm">
-                    <p><strong>Supabase:</strong> <span className="text-green-600">Conectado</span></p>
-                    <p><strong>Webhook:</strong> <span className="text-green-600">Ativo</span></p>
-                    <p><strong>Sincronização:</strong> <span className="text-green-600">Automática</span></p>
-                  </div>
-                </div>
-              </div>
+              <Link to="/instance-sync-test">
+                <Button className="w-full gap-2 bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600">
+                  <TestTube className="h-4 w-4" />
+                  Acessar Página de Testes
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
+        </div>
+      </PageLayout>
+    </SidebarProvider>
   );
-};
-
-export default Admin;
+}

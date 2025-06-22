@@ -1,29 +1,3 @@
-export interface CreateInstanceParams {
-  instanceName?: string;
-  userEmail?: string;
-  companyId?: string;
-}
-
-export interface CreateInstanceResult {
-  success: boolean;
-  instance?: WhatsAppInstance;
-  error?: string;
-  mode?: 'created' | 'existing';
-}
-
-export interface WhatsAppInstance {
-  id: string;
-  instance_name: string;
-  vps_instance_id: string;
-  connection_status: string;
-  web_status: string;
-  qr_code?: string | null;
-  company_id?: string;
-  created_by_user_id: string;
-  server_url: string;
-  created_at: string;
-  updated_at?: string;
-}
 
 export interface QRCodeModalState {
   isOpen: boolean;
@@ -31,4 +5,42 @@ export interface QRCodeModalState {
   isLoading: boolean;
   instanceId: string | null;
   error: string | null;
+}
+
+export interface WhatsAppInstance {
+  id: string;
+  instance_name: string;
+  connection_status: string;
+  connection_type: string;
+  qr_code?: string;
+  phone?: string;
+  profile_name?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateInstanceRequest {
+  instanceName?: string;
+  userEmail: string;
+}
+
+export interface CreateInstanceResponse {
+  success: boolean;
+  instance?: WhatsAppInstance;
+  error?: string;
+  message?: string;
+}
+
+// Tipos adicionais para compatibilidade com instanceApi.ts
+export interface CreateInstanceParams {
+  instanceName?: string;
+  userEmail: string;
+  companyId?: string;
+}
+
+export interface CreateInstanceResult {
+  success: boolean;
+  instance?: WhatsAppInstance;
+  error?: string;
+  mode?: string;
 }

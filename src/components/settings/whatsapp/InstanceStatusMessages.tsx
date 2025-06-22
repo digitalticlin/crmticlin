@@ -1,6 +1,5 @@
 
 import { CheckCircle, Clock } from "lucide-react";
-import { useQRCodeValidation } from "@/hooks/whatsapp/useQRCodeValidation";
 
 interface InstanceStatusMessagesProps {
   connectionStatus: string;
@@ -13,9 +12,6 @@ export function InstanceStatusMessages({
   qrCode, 
   isNewInstance = false 
 }: InstanceStatusMessagesProps) {
-  const { validateQRCode } = useQRCodeValidation();
-  const qrValidation = validateQRCode(qrCode);
-  
   const isConnected = connectionStatus === 'connected' || 
                      connectionStatus === 'ready' || 
                      connectionStatus === 'open';
@@ -48,7 +44,7 @@ export function InstanceStatusMessages({
 
   // New instance or waiting for QR
   if (isNewInstance || qrCode) {
-    const hasValidQR = qrCode && qrValidation.isValid && !qrValidation.isPlaceholder;
+    const hasValidQR = qrCode && qrCode !== 'waiting' && !qrCode.includes('Erro');
     
     return (
       <div className="p-3 bg-yellow-100 border border-yellow-200 rounded-xl">
