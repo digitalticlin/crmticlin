@@ -26,17 +26,15 @@ export const SimpleWhatsAppConnection = () => {
   const { createInstance, isCreating } = useInstanceCreation(loadInstances);
   const { openModal } = useQRCodeModal();
 
-  // Detectar nova instância criada e abrir modal automaticamente
+  // CORREÇÃO: Detectar nova instância e abrir modal IMEDIATAMENTE
   useEffect(() => {
     if (instances.length > lastInstanceCount && lastInstanceCount > 0) {
       const newInstance = instances[instances.length - 1];
-      console.log('[Simple Connection] 🎯 Nova instância detectada:', newInstance.id);
+      console.log('[Simple Connection] 🎯 NOVA INSTÂNCIA DETECTADA:', newInstance.id);
       
-      // Aguardar um pouco para garantir que a instância foi salva
-      setTimeout(() => {
-        console.log('[Simple Connection] 🚀 Abrindo modal unificado para nova instância');
-        openModal(newInstance.id);
-      }, 1000);
+      // CORREÇÃO: Abrir modal IMEDIATAMENTE (sem delay)
+      console.log('[Simple Connection] 🚀 Abrindo modal IMEDIATO para nova instância');
+      openModal(newInstance.id);
     }
     setLastInstanceCount(instances.length);
   }, [instances.length, lastInstanceCount, openModal]);
@@ -47,12 +45,12 @@ export const SimpleWhatsAppConnection = () => {
       return;
     }
 
-    console.log('[Simple Connection] 🎯 Criando instância via módulo modular para:', user.email);
+    console.log('[Simple Connection] 🎯 Criando instância para:', user.email);
     await createInstance();
   };
 
   const handleGenerateQR = async (instanceId: string, instanceName: string) => {
-    console.log('[Simple Connection] 🔄 Abrindo modal QR Code unificado para:', { instanceId, instanceName });
+    console.log('[Simple Connection] 🔄 CORREÇÃO: Abrindo modal IMEDIATO para:', { instanceId, instanceName });
     openModal(instanceId);
   };
 

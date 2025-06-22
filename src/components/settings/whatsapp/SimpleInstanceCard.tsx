@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,6 @@ import {
 import { WhatsAppWebInstance } from "@/types/whatsapp";
 import { DeleteInstanceButton } from "@/modules/whatsapp/instanceDeletion";
 import { useQRCodeModal } from "@/modules/whatsapp/instanceCreation/hooks/useQRCodeModal";
-import { useQRCodeGeneration } from "@/modules/whatsapp/qrCodeManagement";
 
 interface SimpleInstanceCardProps {
   instance: WhatsAppWebInstance;
@@ -27,7 +25,6 @@ export const SimpleInstanceCard = ({
   onDelete
 }: SimpleInstanceCardProps) => {
   const { openModal } = useQRCodeModal();
-  const { generateQRCode, isGenerating } = useQRCodeGeneration();
 
   const getStatusInfo = () => {
     const status = instance.connection_status?.toLowerCase() || 'unknown';
@@ -71,16 +68,14 @@ export const SimpleInstanceCard = ({
   const StatusIcon = statusInfo.icon;
   const isConnected = ['ready', 'connected'].includes(instance.connection_status?.toLowerCase() || '');
 
+  // CORREÇÃO: Modal abre IMEDIATAMENTE ao clicar
   const handleGenerateQR = async () => {
-    console.log('[SimpleInstanceCard] 🚀 Abrindo modal unificado e gerando QR para:', instance.id);
+    console.log('[SimpleInstanceCard] 🚀 CORREÇÃO: Abrindo modal IMEDIATO para:', instance.id);
     
-    // CORREÇÃO: Abrir modal unificado imediatamente
+    // 1. ABRIR MODAL IMEDIATAMENTE (principal correção)
     openModal(instance.id);
     
-    // Gerar QR Code em paralelo (modal vai fazer polling/subscription)
-    await generateQRCode(instance.id);
-    
-    // Callback legacy para compatibilidade (se necessário)
+    // 2. Callback legacy para compatibilidade
     onGenerateQR(instance.id, instance.instance_name);
   };
 
@@ -121,15 +116,10 @@ export const SimpleInstanceCard = ({
           {!isConnected && (
             <Button
               onClick={handleGenerateQR}
-              disabled={isGenerating}
               className="flex-1 bg-green-600 hover:bg-green-700 text-white"
             >
-              {isGenerating ? (
-                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-              ) : (
-                <QrCode className="h-4 w-4 mr-1" />
-              )}
-              {isGenerating ? 'Gerando...' : 'Gerar QR Code'}
+              <QrCode className="h-4 w-4 mr-1" />
+              Gerar QR Code
             </Button>
           )}
           
