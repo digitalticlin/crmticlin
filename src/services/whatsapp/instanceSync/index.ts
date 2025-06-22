@@ -35,7 +35,9 @@ export class InstanceSyncManager {
    * Agenda sincronização automática
    */
   static scheduleAutoSync(intervalMinutes: number = 15) {
-    const { InstanceSyncService } = await import('./instanceSyncService');
-    return InstanceSyncService.scheduleAutoSync(intervalMinutes);
+    // Use dynamic import without await since this is sync scheduling
+    import('./instanceSyncService').then(({ InstanceSyncService }) => {
+      return InstanceSyncService.scheduleAutoSync(intervalMinutes);
+    });
   }
 }
