@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 
 export const useUniqueWhatsAppInstanceName = (companyId: string) => {
@@ -10,21 +10,24 @@ export const useUniqueWhatsAppInstanceName = (companyId: string) => {
     setIsChecking(true);
     
     try {
-      // Get existing instance names for the company - using explicit typing
+      // Fix: Use created_by_user_id instead of company_id and add explicit typing
       const { data: existingInstances, error } = await supabase
         .from('whatsapp_instances')
         .select('instance_name')
-        .eq('company_id', companyId);
+        .eq('created_by_user_id', companyId) as { 
+          data: Array<{ instance_name: string }> | null; 
+          error: any 
+        };
 
       if (error) {
         console.error('Error fetching instances:', error);
         return `${baseName}_${Date.now()}`;
       }
 
-      // Extract names with explicit typing to avoid type recursion
-      const existingNames: string[] = (existingInstances || []).map((instance: any) => 
-        instance.instance_name?.toLowerCase() || ''
-      ).filter(Boolean);
+      // Extract names with safe type handling
+      const existingNames: string[] = (existingInstances || [])
+        .map(instance => instance.instance_name?.toLowerCase() || '')
+        .filter(name => name.length > 0);
       
       // Generate unique name
       let counter = 1;
