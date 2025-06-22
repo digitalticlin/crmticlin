@@ -14,6 +14,7 @@ import LeadsPage from './pages/Clients';
 import SettingsPage from './pages/Settings';
 import WhatsAppWebPage from './pages/WhatsAppChat';
 import InstanceSyncTest from './pages/InstanceSyncTest';
+import GlobalAdmin from './pages/GlobalAdmin';
 
 const queryClient = new QueryClient();
 
@@ -82,13 +83,19 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
-              
-              {/* Nova rota para teste de sincronização */}
               <Route 
                 path="/instance-sync-test" 
                 element={
                   <ProtectedRoute>
                     <InstanceSyncTest />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/global-admin/*" 
+                element={
+                  <ProtectedRoute>
+                    <GlobalAdmin />
                   </ProtectedRoute>
                 } 
               />

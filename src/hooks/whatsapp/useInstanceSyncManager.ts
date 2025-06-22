@@ -1,8 +1,22 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { InstanceSyncManager } from '@/services/whatsapp/instanceSync';
-import type { DualCreationResult, SyncResult } from '@/services/whatsapp/instanceSync';
+import { supabase } from '@/integrations/supabase/client';
+import type { DualCreationResult } from '@/services/whatsapp/instanceSync';
+
+// Tipos para o resultado da sincronização via auto_sync_instances
+interface AutoSyncResult {
+  success: boolean;
+  syncResults?: {
+    vps_instances: number;
+    db_instances: number;
+    new_instances: number;
+    updated_instances: number;
+    errors: string[];
+  };
+  error?: string;
+  summary?: string;
+}
 
 export const useInstanceSyncManager = () => {
   const [isCreating, setIsCreating] = useState(false);
@@ -18,7 +32,13 @@ export const useInstanceSyncManager = () => {
     try {
       console.log('[Hook] 🚀 Criando instância dual:', params);
       
-      const result = await InstanceSyncManager.createInstance(params);
+      // Usar DualCreationService para criar instância
+      const { DualCreationService } = await import('@/services/whatsapp/instanceSync');
+      const result = await DualCreationService.createInstanceDual({
+        instanceName: params.instanceName || '',
+        userEmail: params.userEmail,
+        companyId: params.companyId || ''
+      });
       
       if (result.success) {
         if (result.mode === 'dual_success') {
@@ -41,29 +61,55 @@ export const useInstanceSyncManager = () => {
     }
   };
 
-  const syncAllInstances = async (): Promise<SyncResult | null> => {
+  const syncAllInstances = async (): Promise<AutoSyncResult | null> => {
     setIsSyncing(true);
     
     try {
-      console.log('[Hook] 🔄 Sincronizando todas as instâncias...');
+      console.log('[Hook] 🔄 Sincronizando via auto_sync_instances...');
       
-      const result = await InstanceSyncManager.syncAllInstances();
-      
-      if (result.success && result.data) {
-        const { summary } = result.data;
-        toast.success(
-          `Sincronização concluída! ${summary.added} novas, ${summary.updated} atualizadas`
-        );
-      } else {
-        toast.error(`Erro na sincronização: ${result.error}`);
+      // CORREÇÃO: Usar a Edge Function auto_sync_instances diretamente
+      const { data, error } = await supabase.functions.invoke('auto_sync_instances', {
+        body: {
+          action: 'sync_all_instances',
+          source: 'manual_request'
+        }
+      });
+
+      if (error) {
+        throw new Error(`Erro na Edge Function: ${error.message}`);
       }
-      
-      return result;
+
+      if (data?.success) {
+        const { syncResults } = data;
+        const summary = `${syncResults?.new_instances || 0} novas, ${syncResults?.updated_instances || 0} atualizadas`;
+        
+        console.log('[Hook] ✅ Sincronização concluída:', syncResults);
+        toast.success(`Sincronização concluída! ${summary}`);
+        
+        return {
+          success: true,
+          syncResults,
+          summary: data.summary
+        };
+      } else {
+        const errorMsg = data?.error || 'Erro desconhecido na sincronização';
+        console.error('[Hook] ❌ Falha na sincronização:', errorMsg);
+        toast.error(`Erro na sincronização: ${errorMsg}`);
+        
+        return {
+          success: false,
+          error: errorMsg
+        };
+      }
       
     } catch (error: any) {
       console.error('[Hook] ❌ Erro na sincronização:', error);
       toast.error(`Erro: ${error.message}`);
-      return null;
+      
+      return {
+        success: false,
+        error: error.message
+      };
     } finally {
       setIsSyncing(false);
     }
