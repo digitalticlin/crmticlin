@@ -30,3 +30,17 @@ export interface CreateInstanceResponse {
   error?: string;
   message?: string;
 }
+
+// Tipos adicionais para compatibilidade com instanceApi.ts
+export interface CreateInstanceParams {
+  instanceName?: string;
+  userEmail: string;
+  companyId?: string;
+}
+
+export interface CreateInstanceResult {
+  success: boolean;
+  instance?: WhatsAppInstance;
+  error?: string;
+  mode?: string;
+}
