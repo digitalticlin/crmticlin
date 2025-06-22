@@ -16,12 +16,18 @@ export const useQRCodeModal = () => {
   const channelRef = useRef<any>(null);
   const isSubscribedRef = useRef(false);
   const cleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Cleanup function melhorada
   const cleanupSubscription = useCallback(() => {
     if (cleanupTimeoutRef.current) {
       clearTimeout(cleanupTimeoutRef.current);
       cleanupTimeoutRef.current = null;
+    }
+
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
     }
 
     if (channelRef.current && isSubscribedRef.current) {
@@ -49,10 +55,10 @@ export const useQRCodeModal = () => {
     });
   }, [cleanupSubscription]);
 
-  // Buscar QR Code inicial
-  const fetchQRCodeFromSupabase = useCallback(async (instanceId: string) => {
+  // CORREÇÃO: Função para buscar QR Code com retry automático
+  const fetchQRCodeWithRetry = useCallback(async (instanceId: string, attempt = 1, maxAttempts = 8) => {
     try {
-      console.log('[useQRCodeModal] 🔍 Buscando QR Code inicial para:', instanceId);
+      console.log('[useQRCodeModal] 🔍 Tentativa', attempt, 'de', maxAttempts, 'para:', instanceId);
       
       const { data, error } = await supabase
         .from('whatsapp_instances')
@@ -62,6 +68,15 @@ export const useQRCodeModal = () => {
 
       if (error) {
         console.error('[useQRCodeModal] ❌ Erro ao buscar dados:', error);
+        
+        if (attempt < maxAttempts) {
+          console.log('[useQRCodeModal] 🔄 Tentando novamente em 2s...');
+          retryTimeoutRef.current = setTimeout(() => {
+            fetchQRCodeWithRetry(instanceId, attempt + 1, maxAttempts);
+          }, 2000);
+          return;
+        }
+
         setState(prev => ({
           ...prev,
           error: 'Erro ao carregar dados da instância',
@@ -93,21 +108,36 @@ export const useQRCodeModal = () => {
           error: null
         }));
       } else {
-        console.log('[useQRCodeModal] ⏳ QR Code ainda não disponível');
-        setState(prev => ({
-          ...prev,
-          isLoading: true,
-          error: null
-        }));
+        // CORREÇÃO: Se não tem QR Code e ainda há tentativas, continuar tentando
+        if (attempt < maxAttempts) {
+          console.log('[useQRCodeModal] ⏳ QR Code ainda não disponível, tentando novamente...');
+          retryTimeoutRef.current = setTimeout(() => {
+            fetchQRCodeWithRetry(instanceId, attempt + 1, maxAttempts);
+          }, 2000);
+        } else {
+          console.log('[useQRCodeModal] ❌ QR Code não disponível após todas as tentativas');
+          setState(prev => ({
+            ...prev,
+            error: 'QR Code não disponível. Tente novamente.',
+            isLoading: false
+          }));
+        }
       }
 
     } catch (err: any) {
       console.error('[useQRCodeModal] ❌ Erro inesperado:', err);
-      setState(prev => ({
-        ...prev,
-        error: err.message,
-        isLoading: false
-      }));
+      
+      if (attempt < maxAttempts) {
+        retryTimeoutRef.current = setTimeout(() => {
+          fetchQRCodeWithRetry(instanceId, attempt + 1, maxAttempts);
+        }, 2000);
+      } else {
+        setState(prev => ({
+          ...prev,
+          error: err.message,
+          isLoading: false
+        }));
+      }
     }
   }, [closeModal]);
 
@@ -175,15 +205,15 @@ export const useQRCodeModal = () => {
     return cleanupSubscription;
   }, [state.instanceId, state.isOpen, state.qrCode, closeModal, cleanupSubscription]);
 
-  // Buscar dados quando modal abrir
+  // CORREÇÃO: Buscar dados quando modal abrir com delay adequado
   useEffect(() => {
     if (state.isOpen && state.instanceId) {
-      // Pequeno delay para garantir que o modal seja renderizado
+      // Delay para garantir que o modal seja renderizado e instância esteja no banco
       cleanupTimeoutRef.current = setTimeout(() => {
-        fetchQRCodeFromSupabase(state.instanceId!);
-      }, 100);
+        fetchQRCodeWithRetry(state.instanceId!);
+      }, 300);
     }
-  }, [state.isOpen, state.instanceId, fetchQRCodeFromSupabase]);
+  }, [state.isOpen, state.instanceId, fetchQRCodeWithRetry]);
 
   // Cleanup geral ao desmontar
   useEffect(() => {
@@ -192,9 +222,9 @@ export const useQRCodeModal = () => {
     };
   }, [cleanupSubscription]);
 
-  // Abrir modal - CORREÇÃO: garantir abertura imediata
+  // CORREÇÃO: Abrir modal com garantia de abertura imediata
   const openModal = useCallback((instanceId: string) => {
-    console.log('[useQRCodeModal] 🚀 CORREÇÃO: Abrindo modal imediatamente para:', instanceId);
+    console.log('[useQRCodeModal] 🚀 CORREÇÃO DEFINITIVA: Abrindo modal para:', instanceId);
     
     // Fechar qualquer modal anterior
     cleanupSubscription();

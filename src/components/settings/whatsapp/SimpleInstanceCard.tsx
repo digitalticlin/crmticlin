@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -68,9 +69,9 @@ export const SimpleInstanceCard = ({
   const StatusIcon = statusInfo.icon;
   const isConnected = ['ready', 'connected'].includes(instance.connection_status?.toLowerCase() || '');
 
-  // CORREÇÃO: Modal abre IMEDIATAMENTE ao clicar
-  const handleGenerateQR = async () => {
-    console.log('[SimpleInstanceCard] 🚀 CORREÇÃO: Abrindo modal IMEDIATO para:', instance.id);
+  // CORREÇÃO DEFINITIVA: Modal abre IMEDIATAMENTE sem delays ou condições
+  const handleGenerateQR = () => {
+    console.log('[SimpleInstanceCard] 🚀 CORREÇÃO DEFINITIVA: Abrindo modal IMEDIATO para:', instance.id);
     
     // 1. ABRIR MODAL IMEDIATAMENTE (principal correção)
     openModal(instance.id);
