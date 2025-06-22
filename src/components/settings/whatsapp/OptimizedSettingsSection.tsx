@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessageSquare } from "lucide-react";
 import { CreateInstanceButton } from "@/modules/whatsapp";
-import { QRCodeModal } from "@/modules/whatsapp/qrCodeManagement";
+import { QRCodeModal } from "@/modules/whatsapp/instanceCreation/components/QRCodeModal";
 import { useSupabaseQRCode } from "@/hooks/whatsapp/useSupabaseQRCode";
 import { SimpleInstanceCard } from "./SimpleInstanceCard";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
@@ -117,14 +117,8 @@ export const OptimizedSettingsSection = () => {
         )}
       </div>
 
-      {/* Modal QR Code */}
-      <QRCodeModal
-        isOpen={qrModalState.isOpen}
-        onClose={handleCloseQRModal}
-        qrCode={qrCode}
-        instanceName={qrModalState.instanceName}
-        instanceId={qrModalState.instanceId || ""}
-      />
+      {/* Modal QR Code Unificado */}
+      <QRCodeModal />
     </div>
   );
 };
