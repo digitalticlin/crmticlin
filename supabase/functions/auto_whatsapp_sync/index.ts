@@ -14,7 +14,7 @@ const VPS_CONFIG = {
   timeout: 30000
 };
 
-console.log('[Auto WhatsApp Sync] 🤖 SINCRONIZAÇÃO AUTOMÁTICA E MANUAL DISPONÍVEL');
+console.log('[Auto WhatsApp Sync] 🤖 SINCRONIZAÇÃO AUTOMÁTICA E MANUAL DISPONÍVEL - COM SUPORTE PARA CONNECTION STATUS');
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -92,13 +92,13 @@ serve(async (req) => {
 
 /**
  * Sincronização global completa de instâncias
- * CORREÇÃO: Usar requisição real para VPS
+ * CORREÇÃO: Usar requisição real para VPS + detectar conexões
  */
 async function syncAllInstances(supabase: any) {
   const startTime = Date.now();
   
   try {
-    console.log('[Sync All] 🌐 INICIANDO SINCRONIZAÇÃO GLOBAL COMPLETA');
+    console.log('[Sync All] 🌐 INICIANDO SINCRONIZAÇÃO GLOBAL COMPLETA COM DETECÇÃO DE CONEXÃO');
 
     // CORREÇÃO: Buscar instâncias reais da VPS
     const vpsInstances = await getVPSInstances();
@@ -119,6 +119,7 @@ async function syncAllInstances(supabase: any) {
     const results = {
       added: 0,
       updated: 0,
+      connected_detected: 0,
       orphans_linked: 0,
       orphans_deleted: 0,
       preserved_links: 0,
@@ -133,6 +134,10 @@ async function syncAllInstances(supabase: any) {
         );
 
         if (existingInstance) {
+          // Verificar se houve mudança de status para conectado
+          const wasDisconnected = !['ready', 'connected', 'open'].includes(existingInstance.connection_status?.toLowerCase() || '');
+          const isNowConnected = ['ready', 'connected', 'open'].includes(vpsInstance.status?.toLowerCase() || '');
+          
           // Atualizar instância existente
           const { error: updateError } = await supabase
             .from('whatsapp_instances')
@@ -142,7 +147,9 @@ async function syncAllInstances(supabase: any) {
               phone: vpsInstance.phone,
               profile_name: vpsInstance.profile_name,
               qr_code: vpsInstance.qr_code,
-              updated_at: new Date().toISOString()
+              updated_at: new Date().toISOString(),
+              // Se conectou agora, marcar data de conexão
+              ...(wasDisconnected && isNowConnected ? { date_connected: new Date().toISOString() } : {})
             })
             .eq('id', existingInstance.id);
 
@@ -153,7 +160,14 @@ async function syncAllInstances(supabase: any) {
               results.preserved_links++;
             }
             results.updated++;
-            console.log(`[Sync All] ✅ Atualizada: ${vpsInstance.name}`);
+            
+            // Se detectou nova conexão, incrementar contador
+            if (wasDisconnected && isNowConnected) {
+              results.connected_detected++;
+              console.log(`[Sync All] 🎉 NOVA CONEXÃO DETECTADA: ${vpsInstance.name} (${vpsInstance.phone || 'sem telefone'})`);
+            }
+            
+            console.log(`[Sync All] ✅ Atualizada: ${vpsInstance.name} - Status: ${vpsInstance.status}`);
           }
         } else {
           // Adicionar nova instância órfã
@@ -211,6 +225,11 @@ async function syncAllInstances(supabase: any) {
     
     console.log(`[Sync All] ✅ SINCRONIZAÇÃO CONCLUÍDA em ${executionTime}ms`);
     console.log(`[Sync All] 📊 Resultados:`, results);
+    
+    // Log especial para conexões detectadas
+    if (results.connected_detected > 0) {
+      console.log(`[Sync All] 🎉 ${results.connected_detected} NOVA(S) CONEXÃO(ÕES) DETECTADA(S) - CONNECTION STATUS SYNC ATIVADO`);
+    }
 
     return new Response(
       JSON.stringify({

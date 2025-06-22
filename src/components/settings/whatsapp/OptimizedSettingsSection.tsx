@@ -7,12 +7,26 @@ import { QRCodeModal } from "@/modules/whatsapp/instanceCreation/components/QRCo
 import { SimpleInstanceCard } from "./SimpleInstanceCard";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { useQRCodeModal } from "@/modules/whatsapp/instanceCreation/hooks/useQRCodeModal";
+import { useConnectionStatusSync } from "@/modules/whatsapp/connectionStatusSync";
 
 export const OptimizedSettingsSection = () => {
-  console.log('[Optimized Settings] 🎯 Interface Grid Glassmorphism para WhatsApp Web.js - SISTEMA UNIFICADO');
+  console.log('[Optimized Settings] 🎯 Interface Grid Glassmorphism para WhatsApp Web.js - SISTEMA UNIFICADO COM CONNECTION STATUS SYNC');
 
   const { instances, isLoading, loadInstances } = useWhatsAppWebInstances();
   const { openModal } = useQRCodeModal();
+
+  // NOVO: Configurar Connection Status Sync para atualizar lista automaticamente
+  useConnectionStatusSync({
+    onConnectionDetected: (data) => {
+      console.log('[Optimized Settings] 🎉 Nova conexão detectada, atualizando lista:', data);
+      // Recarregar lista de instâncias para mostrar dados atualizados
+      loadInstances();
+    },
+    onInstanceUpdate: () => {
+      console.log('[Optimized Settings] 🔄 Atualizando lista após mudança de instância');
+      loadInstances();
+    }
+  });
 
   const handleShowQRModal = (instanceId: string, instanceName: string) => {
     console.log('[Optimized Settings] 📱 Abrindo modal unificado para:', instanceName);

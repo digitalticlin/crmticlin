@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useConnectionStatusSync } from '@/modules/whatsapp/connectionStatusSync';
 
 // Interface para o contexto
 interface QRCodeModalContextProps {
@@ -34,7 +35,7 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
 
   // Log quando o Provider é montado
   useEffect(() => {
-    console.log('[QRCodeModalProvider] 🏗️ Componente montado - NÍVEL 8');
+    console.log('[QRCodeModalProvider] 🏗️ Componente montado - NÍVEL 8 COM CONNECTION STATUS SYNC');
     return () => {
       console.log('[QRCodeModalProvider] 🗑️ Componente desmontado');
       // Limpar todos os recursos
@@ -74,6 +75,23 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
     return false;
   };
 
+  // NOVO: Configurar Connection Status Sync para fechar modal automaticamente
+  useConnectionStatusSync({
+    onConnectionDetected: (data) => {
+      // Verificar se é a instância que estamos monitorando
+      if (data.instanceId === instanceId && isOpen) {
+        console.log('[QRCodeModalProvider] 🎉 Conexão detectada para instância atual!', data);
+        
+        // Mostrar toast de sucesso
+        toast.success(`WhatsApp conectado com sucesso! 📱 ${data.phone || 'Número carregando...'}`);
+        
+        // Fechar modal automaticamente
+        console.log('[QRCodeModalProvider] 🚪 Fechando modal automaticamente após conexão');
+        closeModal();
+      }
+    }
+  });
+
   // CORREÇÃO: Polling simplificado
   const startPolling = useCallback((id: string) => {
     console.log('[useQRCodeModal] 🔍 Iniciando polling simplificado para:', id);
@@ -101,7 +119,7 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
 
         // Verificar se foi conectado
         if (data.connection_status === 'connected') {
-          console.log('[useQRCodeModal] 🎉 Instância conectada!');
+          console.log('[useQRCodeModal] 🎉 Instância conectada via polling!');
           toast.success('WhatsApp conectado com sucesso!');
           setQrCode(null);
           setIsLoading(false);
