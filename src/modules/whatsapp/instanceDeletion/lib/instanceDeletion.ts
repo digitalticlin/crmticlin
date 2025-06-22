@@ -5,11 +5,10 @@ import { DeleteInstanceParams, DeleteInstanceResult } from '../types/instanceDel
 export class InstanceDeletionService {
   static async deleteInstance(params: DeleteInstanceParams): Promise<DeleteInstanceResult> {
     try {
-      console.log('[InstanceDeletion] 🗑️ Deletando instância:', params.instanceId);
+      console.log('[InstanceDeletion] 🗑️ Deletando instância via whatsapp_instance_delete:', params.instanceId);
 
-      const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
+      const { data, error } = await supabase.functions.invoke('whatsapp_instance_delete', {
         body: {
-          action: 'delete_instance',
           instanceId: params.instanceId
         }
       });
@@ -24,7 +23,7 @@ export class InstanceDeletionService {
         throw new Error(data?.error || 'Falha ao deletar instância');
       }
 
-      console.log('[InstanceDeletion] ✅ Instância deletada com sucesso');
+      console.log('[InstanceDeletion] ✅ Instância deletada com sucesso via whatsapp_instance_delete');
       
       return { success: true };
 

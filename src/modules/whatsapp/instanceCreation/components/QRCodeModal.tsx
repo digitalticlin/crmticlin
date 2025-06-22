@@ -12,66 +12,54 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
-// Componente para renderizar QR Code com design limpo
+// CORREÇÃO: Componente para renderizar QR Code simplificado
 const QRCodeDisplay = ({ qrCode }: { qrCode: string | null }) => {
   const [hasError, setHasError] = useState(false);
-  const [imgSrc, setImgSrc] = useState<string | null>(null);
   
-  // Função para limpar e preparar o QR Code
+  // CORREÇÃO: Função de sanitização simplificada
   const sanitizeQRCode = (qrCode: string): string => {
+    console.log('[QRCodeDisplay] 🔍 Sanitizando QR Code (primeiros 100 chars):', qrCode.substring(0, 100));
+    
     try {
-      // Caso 1: É um formato válido de imagem data URL
+      // Se já é um data URL válido, retornar diretamente
       if (qrCode.startsWith('data:image/') && qrCode.includes('base64,')) {
+        console.log('[QRCodeDisplay] ✅ QR Code já está no formato correto');
         return qrCode;
       }
       
-      // Caso 2: Contém base64, mas está com formato incompleto
+      // Se contém base64, extrair e formatar
       if (qrCode.includes('base64,')) {
         const base64Part = qrCode.split('base64,')[1];
         if (base64Part) {
-          return `data:image/png;base64,${base64Part}`;
+          const formatted = `data:image/png;base64,${base64Part}`;
+          console.log('[QRCodeDisplay] ✅ QR Code formatado com sucesso');
+          return formatted;
         }
       }
       
-      // Caso 3: É um base64 puro sem prefixo
+      // Se é base64 puro, adicionar prefixo
       if (qrCode.match(/^[A-Za-z0-9+/=]+$/)) {
-        return `data:image/png;base64,${qrCode}`;
+        const formatted = `data:image/png;base64,${qrCode}`;
+        console.log('[QRCodeDisplay] ✅ Adicionado prefixo ao base64 puro');
+        return formatted;
       }
       
-      // Caso 4: É uma string data:image/ truncada ou mal formatada
-      if (qrCode.includes('data:image')) {
-        const match = qrCode.match(/base64,([A-Za-z0-9+/=]+)/);
-        if (match && match[1]) {
-          return `data:image/png;base64,${match[1]}`;
-        }
-      }
-      
+      console.log('[QRCodeDisplay] ⚠️ Formato não reconhecido, retornando original');
       return qrCode;
     } catch (error) {
-      console.error('[QRCodeDisplay] Erro ao preparar QR code:', error);
+      console.error('[QRCodeDisplay] ❌ Erro ao sanitizar QR code:', error);
       return qrCode;
     }
   };
 
-  // Resetar o estado de erro quando o QR code muda
+  // Resetar erro quando QR code muda
   useEffect(() => {
     setHasError(false);
-    
-    if (qrCode && typeof qrCode === 'string') {
-      try {
-        const sanitizedQR = sanitizeQRCode(qrCode);
-        const timestamp = new Date().getTime();
-        setImgSrc(`${sanitizedQR}?t=${timestamp}`);
-      } catch (error) {
-        console.error('[QRCodeDisplay] Erro ao preparar QR code:', error);
-        setHasError(true);
-      }
-    } else {
-      setImgSrc(null);
-    }
   }, [qrCode]);
 
   if (!qrCode) return null;
+
+  const sanitizedQR = sanitizeQRCode(qrCode);
 
   return (
     <div className="flex flex-col items-center space-y-6">
@@ -80,7 +68,7 @@ const QRCodeDisplay = ({ qrCode }: { qrCode: string | null }) => {
           <div className="w-64 h-64 bg-gradient-to-br from-red-50 to-red-100 rounded-2xl border border-red-200 flex flex-col items-center justify-center p-6">
             <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
             <p className="text-red-700 text-center text-sm">
-              Não foi possível exibir o QR Code
+              Erro ao exibir QR Code
             </p>
             <p className="text-red-600 text-center text-xs mt-2">
               Tente gerar um novo código
@@ -93,22 +81,16 @@ const QRCodeDisplay = ({ qrCode }: { qrCode: string | null }) => {
           <div className="relative">
             <div className="w-72 h-72 bg-white/90 backdrop-blur-sm rounded-3xl border border-white/20 shadow-2xl p-6 flex items-center justify-center">
               <img
-                src={imgSrc || qrCode}
+                src={sanitizedQR}
                 alt="QR Code para conectar WhatsApp"
                 className="w-full h-full object-contain rounded-xl"
-                onLoad={() => setHasError(false)}
+                onLoad={() => {
+                  console.log('[QRCodeDisplay] ✅ QR Code carregado com sucesso');
+                  setHasError(false);
+                }}
                 onError={() => {
-                  console.error('[QRCodeDisplay] Erro ao carregar imagem');
-                  if (qrCode.includes('base64,')) {
-                    const fallbackSrc = `data:image/png;base64,${qrCode.split('base64,')[1]}`;
-                    if (imgSrc !== fallbackSrc) {
-                      setImgSrc(fallbackSrc);
-                    } else {
-                      setHasError(true);
-                    }
-                  } else {
-                    setHasError(true);
-                  }
+                  console.error('[QRCodeDisplay] ❌ Erro ao carregar QR Code');
+                  setHasError(true);
                 }}
               />
             </div>
@@ -170,7 +152,7 @@ export const QRCodeModal = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [loadingTime, setLoadingTime] = useState(0);
   
-  // Contador de tempo de loading
+  // CORREÇÃO: Contador de tempo simplificado
   useEffect(() => {
     let timer: number | null = null;
     
@@ -190,13 +172,25 @@ export const QRCodeModal = () => {
   
   const handleRefresh = () => {
     setRefreshing(true);
-    console.log('[QRCodeModal] 🔄 Gerando novo QR code na VPS');
+    console.log('[QRCodeModal] 🔄 Gerando novo QR code');
     refreshQRCode();
     
     setTimeout(() => {
       setRefreshing(false);
     }, 2000);
   };
+
+  // CORREÇÃO: Log do estado do QR Code
+  useEffect(() => {
+    if (qrCode) {
+      console.log('[QRCodeModal] 📱 QR Code recebido:', {
+        length: qrCode.length,
+        startsWithData: qrCode.startsWith('data:'),
+        containsBase64: qrCode.includes('base64'),
+        preview: qrCode.substring(0, 100)
+      });
+    }
+  }, [qrCode]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
@@ -242,7 +236,7 @@ export const QRCodeModal = () => {
           )}
 
           {/* Estado: Erro */}
-          {error && (
+          {error && !qrCode && (
             <div className="flex flex-col items-center space-y-6">
               <div className="w-72 h-72 bg-gradient-to-br from-red-50/80 to-orange-50/80 backdrop-blur-sm rounded-3xl border border-red-200/30 flex flex-col items-center justify-center p-8">
                 <AlertTriangle className="h-16 w-16 text-red-500 mb-4" />
@@ -251,7 +245,7 @@ export const QRCodeModal = () => {
                     Ops! Algo deu errado
                   </p>
                   <p className="text-sm text-red-700">
-                    Não conseguimos preparar a conexão
+                    {error}
                   </p>
                   <p className="text-xs text-red-600 bg-red-100/50 px-3 py-1 rounded-full">
                     Vamos tentar novamente?
@@ -280,9 +274,9 @@ export const QRCodeModal = () => {
           )}
 
           {/* Estado: QR Code disponível */}
-          {qrCode && !error && <QRCodeDisplay qrCode={qrCode} />}
+          {qrCode && <QRCodeDisplay qrCode={qrCode} />}
           
-          {/* Estado: Aguardando sem loading nem erro */}
+          {/* Estado: Aguardando */}
           {isOpen && !isLoading && !qrCode && !error && (
             <div className="flex flex-col items-center space-y-6">
               <div className="w-72 h-72 bg-gradient-to-br from-yellow-50/80 to-orange-50/80 backdrop-blur-sm rounded-3xl border border-yellow-200/30 flex flex-col items-center justify-center p-8">

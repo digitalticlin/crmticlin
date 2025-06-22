@@ -57,25 +57,26 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
     pollingAttemptRef.current = 0;
   }, []);
 
-  // CORREÇÃO NÍVEL 8: Validação simplificada de QR Code
+  // CORREÇÃO: Validação mais simples de QR Code
   const isValidQRCode = (qrCode: string | null): boolean => {
     if (!qrCode || typeof qrCode !== 'string') {
+      console.log('[useQRCodeModal] ⚠️ QR code vazio ou inválido');
       return false;
     }
     
-    // Aceitar qualquer string que pareça um QR code válido
-    if (qrCode.length > 100) { // QR codes são normalmente longos
-      console.log('[useQRCodeModal] ✅ QR code válido detectado:', qrCode.length, 'caracteres');
+    // Aceitar qualquer string que contenha base64 ou data:image
+    if (qrCode.includes('base64') || qrCode.includes('data:image') || qrCode.length > 50) {
+      console.log('[useQRCodeModal] ✅ QR code válido detectado:', qrCode.substring(0, 50) + '...');
       return true;
     }
     
-    console.log('[useQRCodeModal] ⚠️ QR code muito curto:', qrCode.length, 'caracteres');
+    console.log('[useQRCodeModal] ⚠️ QR code não parece válido:', qrCode.length, 'caracteres');
     return false;
   };
 
-  // CORREÇÃO NÍVEL 8: Polling inteligente com retry exponencial
-  const startIntelligentPolling = useCallback((id: string) => {
-    console.log('[useQRCodeModal] 🔍 Iniciando polling inteligente para:', id);
+  // CORREÇÃO: Polling simplificado
+  const startPolling = useCallback((id: string) => {
+    console.log('[useQRCodeModal] 🔍 Iniciando polling simplificado para:', id);
     
     const poll = async () => {
       try {
@@ -85,13 +86,8 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
           .eq('id', id)
           .single();
 
-        if (error) {
+        if (error || !data) {
           console.error('[useQRCodeModal] ❌ Erro no polling:', error);
-          return;
-        }
-
-        if (!data) {
-          console.log('[useQRCodeModal] ⚠️ Instância não encontrada no polling');
           return;
         }
 
@@ -99,12 +95,13 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
           id: id,
           connection_status: data.connection_status,
           instance_name: data.instance_name,
-          qr_code_length: data.qr_code?.length || 0
+          has_qr_code: !!data.qr_code,
+          qr_length: data.qr_code?.length || 0
         });
 
         // Verificar se foi conectado
         if (data.connection_status === 'connected') {
-          console.log('[useQRCodeModal] 🎉 Instância conectada via polling!');
+          console.log('[useQRCodeModal] 🎉 Instância conectada!');
           toast.success('WhatsApp conectado com sucesso!');
           setQrCode(null);
           setIsLoading(false);
@@ -115,7 +112,7 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
 
         // Verificar QR code
         if (data.qr_code && isValidQRCode(data.qr_code)) {
-          console.log('[useQRCodeModal] ✅ QR code obtido via polling!');
+          console.log('[useQRCodeModal] ✅ QR code válido encontrado!');
           setQrCode(data.qr_code);
           setInstanceName(data.instance_name);
           setIsLoading(false);
@@ -130,10 +127,10 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
         console.log('[useQRCodeModal] 🔄 Tentativa de polling:', pollingAttemptRef.current);
 
         // Parar após muitas tentativas
-        if (pollingAttemptRef.current >= 20) {
-          console.log('[useQRCodeModal] ⏰ Timeout do polling após 20 tentativas');
+        if (pollingAttemptRef.current >= 15) {
+          console.log('[useQRCodeModal] ⏰ Timeout do polling após 15 tentativas');
           setIsLoading(false);
-          setError('QR code não disponível após várias tentativas. Tente novamente.');
+          setError('QR code não disponível. Tente gerar novamente.');
           cleanup();
         }
 
@@ -141,7 +138,7 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
         console.error('[useQRCodeModal] ❌ Erro inesperado no polling:', err);
         pollingAttemptRef.current += 1;
         
-        if (pollingAttemptRef.current >= 20) {
+        if (pollingAttemptRef.current >= 15) {
           setIsLoading(false);
           setError(`Erro ao obter QR code: ${err.message}`);
           cleanup();
@@ -149,14 +146,14 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
       }
     };
 
-    // Iniciar polling imediato e depois a cada 1 segundo
+    // Iniciar polling imediato e depois a cada 2 segundos
     poll();
-    pollingIntervalRef.current = window.setInterval(poll, 1000);
+    pollingIntervalRef.current = window.setInterval(poll, 2000);
   }, [cleanup]);
 
-  // CORREÇÃO NÍVEL 8: Configurar realtime ANTES da criação da instância
-  const setupRealtimeSubscription = useCallback((id: string) => {
-    console.log('[useQRCodeModal] 📡 Configurando realtime NÍVEL 8 para:', id);
+  // CORREÇÃO: Realtime simplificado
+  const setupRealtime = useCallback((id: string) => {
+    console.log('[useQRCodeModal] 📡 Configurando realtime para:', id);
     
     // Limpar subscription anterior
     if (realtimeSubscriptionRef.current) {
@@ -165,11 +162,8 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
     }
 
     try {
-      // Canal específico por instância
-      const channelName = `qrcode-instance-${id}`;
-      
       const subscription = supabase
-        .channel(channelName)
+        .channel(`qrcode-${id}`)
         .on(
           'postgres_changes',
           { 
@@ -179,52 +173,44 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
             filter: `id=eq.${id}`
           },
           (payload) => {
-            console.log('[useQRCodeModal] 📱 Atualização realtime NÍVEL 8:', payload);
-            
-            // Verificar se o modal ainda está aberto
-            if (!isOpen) {
-              console.log('[useQRCodeModal] ⚠️ Modal fechado, ignorando atualização realtime');
-              return;
-            }
+            console.log('[useQRCodeModal] 📱 Atualização realtime:', payload);
             
             const newData = payload.new;
             
             // Verificar conexão
             if (newData.connection_status === 'connected') {
-              console.log('[useQRCodeModal] 🎉 Conectado via realtime NÍVEL 8!');
+              console.log('[useQRCodeModal] 🎉 Conectado via realtime!');
               toast.success('WhatsApp conectado com sucesso!');
               setQrCode(null);
               setIsLoading(false);
-              setError('WhatsApp conectado com sucesso! Você pode fechar esta janela.');
+              setError('WhatsApp conectado com sucesso!');
               cleanup();
               return;
             }
             
             // Verificar QR code
             if (newData.qr_code && isValidQRCode(newData.qr_code)) {
-              console.log('[useQRCodeModal] 🔄 QR code recebido via realtime NÍVEL 8');
+              console.log('[useQRCodeModal] 🔄 QR code recebido via realtime');
               setQrCode(newData.qr_code);
               setInstanceName(newData.instance_name);
               setIsLoading(false);
               setError(undefined);
-              toast.success('QR code atualizado! Escaneie com seu WhatsApp.');
-              cleanup(); // Parar polling quando QR code chegar via realtime
+              toast.success('QR code atualizado!');
+              cleanup(); // Parar polling quando QR code chegar
             }
           }
         )
-        .subscribe((status) => {
-          console.log('[useQRCodeModal] 📶 Status realtime NÍVEL 8:', status);
-        });
+        .subscribe();
 
       realtimeSubscriptionRef.current = subscription;
     } catch (err) {
-      console.error('[useQRCodeModal] ❌ Erro ao configurar realtime NÍVEL 8:', err);
+      console.error('[useQRCodeModal] ❌ Erro ao configurar realtime:', err);
     }
-  }, [isOpen, cleanup]);
+  }, [cleanup]);
 
-  // CORREÇÃO NÍVEL 8: Função para abrir o modal
+  // CORREÇÃO: Função para abrir o modal
   const openModal = useCallback((id: string) => {
-    console.log('[useQRCodeModal] 🚀 Abrindo modal NÍVEL 8 para instância:', id);
+    console.log('[useQRCodeModal] 🚀 Abrindo modal para instância:', id);
     
     if (!id) {
       console.error('[useQRCodeModal] ❌ ID de instância inválido');
@@ -242,37 +228,35 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
     // Configurar nova instância
     setInstanceId(id);
     
-    // Abrir modal imediatamente
+    // Abrir modal
     setIsOpen(true);
     
-    // Configurar realtime ANTES de tudo
-    setupRealtimeSubscription(id);
+    // Configurar sistemas
+    setupRealtime(id);
+    startPolling(id);
     
-    // Iniciar polling inteligente
-    startIntelligentPolling(id);
-    
-  }, [cleanup, setupRealtimeSubscription, startIntelligentPolling]);
+  }, [cleanup, setupRealtime, startPolling]);
 
-  // CORREÇÃO NÍVEL 8: Função para forçar atualização
+  // CORREÇÃO: Função para forçar atualização
   const refreshQRCode = useCallback(() => {
     if (instanceId) {
-      console.log('[useQRCodeModal] 🔄 Refresh NÍVEL 8 para ID:', instanceId);
+      console.log('[useQRCodeModal] 🔄 Refresh para ID:', instanceId);
       setIsLoading(true);
       setError(undefined);
       setQrCode(null);
       pollingAttemptRef.current = 0;
       
       // Reiniciar sistemas
-      setupRealtimeSubscription(instanceId);
-      startIntelligentPolling(instanceId);
+      setupRealtime(instanceId);
+      startPolling(instanceId);
     } else {
       console.error('[useQRCodeModal] ⚠️ Tentativa de refresh sem instanceId');
     }
-  }, [instanceId, setupRealtimeSubscription, startIntelligentPolling]);
+  }, [instanceId, setupRealtime, startPolling]);
 
-  // CORREÇÃO NÍVEL 8: Função para fechar o modal
+  // CORREÇÃO: Função para fechar o modal
   const closeModal = useCallback(() => {
-    console.log('[useQRCodeModal] 🚪 Fechando modal NÍVEL 8');
+    console.log('[useQRCodeModal] 🚪 Fechando modal');
     
     cleanup();
     

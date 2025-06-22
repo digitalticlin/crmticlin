@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { WhatsAppWebInstance } from "@/types/whatsapp";
 import { DeleteInstanceButton } from "@/modules/whatsapp/instanceDeletion";
-import { useQRCodeModal } from "@/modules/whatsapp/instanceCreation/hooks/useQRCodeModal";
+import { GenerateQRButton } from "@/modules/whatsapp/qrCodeManagement/components/GenerateQRButton";
 
 interface SimpleInstanceCardProps {
   instance: WhatsAppWebInstance;
@@ -25,7 +25,6 @@ export const SimpleInstanceCard = ({
   onGenerateQR, 
   onDelete
 }: SimpleInstanceCardProps) => {
-  const { openModal } = useQRCodeModal();
 
   const getStatusInfo = () => {
     const status = instance.connection_status?.toLowerCase() || 'unknown';
@@ -76,19 +75,8 @@ export const SimpleInstanceCard = ({
       instance.connection_status?.toLowerCase() || 'unknown'
     );
 
-  const handleGenerateQR = () => {
-    console.log('[SimpleInstanceCard] 🚀 NÍVEL 8: Abrindo QR code para instância:', instance.id);
-    console.log('[SimpleInstanceCard] 📊 NÍVEL 8: Status atual:', instance.connection_status);
-    
-    // CORREÇÃO NÍVEL 8: Abrir modal diretamente sem delays
-    openModal(instance.id);
-    
-    // Callback opcional para compatibilidade
-    onGenerateQR?.(instance.id, instance.instance_name);
-  };
-
   return (
-    <Card className="bg-white border-l-4 border-l-green-500">
+    <Card className="bg-white/90 backdrop-blur-sm border-l-4 border-l-green-500 shadow-lg hover:shadow-xl transition-all duration-300">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
@@ -122,13 +110,15 @@ export const SimpleInstanceCard = ({
 
         <div className="flex gap-2">
           {needsQrCode && (
-            <Button
-              onClick={handleGenerateQR}
+            <GenerateQRButton
+              instanceId={instance.id}
+              instanceName={instance.instance_name}
+              onSuccess={() => console.log('QR Code gerado com sucesso')}
+              onModalOpen={onGenerateQR}
+              variant="default"
+              size="sm"
               className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-            >
-              <QrCode className="h-4 w-4 mr-1" />
-              {instance.web_status === 'waiting_qr' ? 'Ver QR Code' : 'Gerar QR Code'}
-            </Button>
+            />
           )}
           
           <DeleteInstanceButton

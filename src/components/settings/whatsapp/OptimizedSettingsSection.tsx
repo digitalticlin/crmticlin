@@ -9,7 +9,7 @@ import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstance
 import { useQRCodeModal } from "@/modules/whatsapp/instanceCreation/hooks/useQRCodeModal";
 
 export const OptimizedSettingsSection = () => {
-  console.log('[Optimized Settings] 🎯 Interface Simplificada para WhatsApp Web.js - SISTEMA UNIFICADO');
+  console.log('[Optimized Settings] 🎯 Interface Grid Glassmorphism para WhatsApp Web.js - SISTEMA UNIFICADO');
 
   const { instances, isLoading, loadInstances } = useWhatsAppWebInstances();
   const { openModal } = useQRCodeModal();
@@ -39,7 +39,7 @@ export const OptimizedSettingsSection = () => {
       </div>
 
       {/* Botão Criar Nova Instância */}
-      <Card className="bg-green-50/30 backdrop-blur-sm border border-green-200/50">
+      <Card className="bg-gradient-to-br from-green-50/80 to-emerald-50/80 backdrop-blur-sm border border-green-200/50 shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-green-600" />
@@ -58,36 +58,40 @@ export const OptimizedSettingsSection = () => {
         </CardContent>
       </Card>
 
-      {/* Lista de Instâncias */}
+      {/* Grid de Instâncias com Glassmorphism */}
       <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
           Suas Conexões WhatsApp ({instances?.length || 0})
         </h2>
         
         {isLoading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
-            <p className="text-gray-600 mt-2">Carregando instâncias...</p>
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+            <p className="text-gray-600 mt-4">Carregando instâncias...</p>
           </div>
         ) : instances && instances.length > 0 ? (
-          <div className="grid gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {instances.map((instance) => (
-              <SimpleInstanceCard
+              <div 
                 key={instance.id}
-                instance={instance}
-                onGenerateQR={handleShowQRModal}
-                onDelete={handleInstanceDeleted}
-              />
+                className="group transform transition-all duration-300 hover:scale-[1.02] hover:shadow-xl"
+              >
+                <SimpleInstanceCard
+                  instance={instance}
+                  onGenerateQR={handleShowQRModal}
+                  onDelete={handleInstanceDeleted}
+                />
+              </div>
             ))}
           </div>
         ) : (
-          <Card className="text-center py-8">
+          <Card className="text-center py-12 bg-gradient-to-br from-gray-50/80 to-blue-50/80 backdrop-blur-sm border border-gray-200/50 shadow-lg">
             <CardContent>
-              <MessageSquare className="h-12 w-12 mx-auto text-gray-300 mb-4" />
-              <h3 className="text-lg font-medium text-gray-700 mb-2">
+              <MessageSquare className="h-16 w-16 mx-auto text-gray-300 mb-6" />
+              <h3 className="text-xl font-medium text-gray-700 mb-3">
                 Nenhuma conexão WhatsApp
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600 mb-6">
                 Crie sua primeira conexão WhatsApp para começar a usar a automação
               </p>
               <CreateInstanceButton 
