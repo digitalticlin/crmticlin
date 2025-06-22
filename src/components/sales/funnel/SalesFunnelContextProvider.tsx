@@ -1,4 +1,3 @@
-
 import { ReactNode } from "react";
 import { SalesFunnelProvider } from "./SalesFunnelProvider";
 import { useSalesFunnelMain } from "@/hooks/salesFunnel/useSalesFunnelMain";
@@ -9,6 +8,19 @@ interface SalesFunnelContextProviderProps {
 
 export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProviderProps) => {
   const salesFunnelData = useSalesFunnelMain();
+
+  // Verificar se os dados básicos estão carregados antes de renderizar
+  if (!salesFunnelData.selectedFunnel) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            Carregando funil...
+          </h3>
+        </div>
+      </div>
+    );
+  }
 
   const contextValue = {
     funnels: salesFunnelData.funnels,

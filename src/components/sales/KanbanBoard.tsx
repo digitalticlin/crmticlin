@@ -1,10 +1,9 @@
 
-import { DragDropContext, DraggableProvided } from "react-beautiful-dnd";
+import { DragDropContext } from "react-beautiful-dnd";
 import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
 import { useDragAndDrop } from "@/hooks/kanban/useDragAndDrop";
 import { BoardContent } from "./kanban/BoardContent";
-import { LeadCard } from "./LeadCard";
-import { useMemo, useCallback } from "react";
+import { useMemo } from "react";
 
 interface KanbanBoardProps {
   columns: IKanbanColumn[];
@@ -33,9 +32,7 @@ export const KanbanBoard = ({
   wonStageId,
   lostStageId
 }: KanbanBoardProps) => {
-  // *** ALL HOOKS MUST BE CALLED FIRST, BEFORE ANY CONDITIONAL LOGIC ***
-  
-  // Validar e estabilizar colunas com referência estável
+  // Validar colunas
   const validatedColumns = useMemo(() => {
     if (!Array.isArray(columns)) {
       console.warn('[KanbanBoard] ⚠️ Colunas não são array:', columns);
@@ -50,36 +47,15 @@ export const KanbanBoard = ({
     );
   }, [columns]);
 
-  // Cria um mapping estável para lookup por id mais fácil para renderClone
-  const leadMap: Record<string, KanbanLead> = useMemo(() => {
-    const map: Record<string, KanbanLead> = {};
-    validatedColumns.forEach(col => {
-      if (Array.isArray(col.leads)) {
-        col.leads.forEach(lead => {
-          if (lead && lead.id) {
-            map[lead.id] = lead;
-          }
-        });
-      }
-    });
-    return map;
-  }, [validatedColumns]);
-
-  // Hook de drag and drop com dependências estáveis
-  const { 
-    showDropZones, 
-    onDragStart, 
-    onDragEnd 
-  } = useDragAndDrop({ 
+  // Hook de drag and drop
+  const { onDragStart, onDragEnd } = useDragAndDrop({ 
     columns: validatedColumns, 
     onColumnsChange, 
     onMoveToWonLost, 
     isWonLostView
   });
 
-  // *** NOW WE CAN DO CONDITIONAL LOGIC AFTER ALL HOOKS ARE CALLED ***
-
-  // Se não há colunas válidas, mostrar estado vazio
+  // Estado vazio
   if (!validatedColumns || validatedColumns.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
@@ -100,10 +76,7 @@ export const KanbanBoard = ({
 
   return (
     <div className="relative w-full h-full flex flex-col">
-      <DragDropContext 
-        onDragStart={onDragStart} 
-        onDragEnd={onDragEnd}
-      >
+      <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
         <BoardContent 
           columns={validatedColumns}
           onOpenLeadDetail={onOpenLeadDetail}
