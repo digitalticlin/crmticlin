@@ -1,5 +1,6 @@
 
 import { WhatsAppWebSection } from "./whatsapp/WhatsAppWebSection";
+import { TestSyncButton } from "./TestSyncButton";
 
 const WhatsAppSettings = () => {
   console.log('[WhatsApp Settings] 🎯 Interface Simplificada para Usuário Final');
@@ -12,6 +13,9 @@ const WhatsAppSettings = () => {
           Gerencie suas conexões WhatsApp para automação de mensagens
         </p>
       </div>
+
+      {/* Botão de teste de sincronização */}
+      <TestSyncButton />
 
       <WhatsAppWebSection />
     </div>
