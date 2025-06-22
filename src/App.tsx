@@ -15,6 +15,9 @@ import LeadsPage from './pages/Clients';
 import SettingsPage from './pages/Settings';
 import WhatsAppWebPage from './pages/WhatsAppChat';
 import GlobalAdmin from './pages/GlobalAdmin';
+import AutomationPage from './pages/Automation';
+import AIAgentsPage from './pages/AIAgents';
+import PlansPage from './pages/Plans';
 
 const queryClient = new QueryClient();
 
@@ -37,18 +40,18 @@ function App() {
                   } 
                 />
                 <Route 
-                  path="/admin" 
+                  path="/dashboard" 
                   element={
                     <ProtectedRoute>
-                      <AdminPanel />
+                      <Dashboard />
                     </ProtectedRoute>
                   } 
                 />
                 <Route 
-                  path="/whatsapp" 
+                  path="/sales-funnel" 
                   element={
                     <ProtectedRoute>
-                      <WhatsAppIntegration />
+                      <FunnelsPage />
                     </ProtectedRoute>
                   } 
                 />
@@ -61,10 +64,66 @@ function App() {
                   } 
                 />
                 <Route 
+                  path="/whatsapp-chat" 
+                  element={
+                    <ProtectedRoute>
+                      <WhatsAppWebPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/clients" 
+                  element={
+                    <ProtectedRoute>
+                      <LeadsPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
                   path="/leads" 
                   element={
                     <ProtectedRoute>
                       <LeadsPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/automation" 
+                  element={
+                    <ProtectedRoute>
+                      <AutomationPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/integration" 
+                  element={
+                    <ProtectedRoute>
+                      <WhatsAppIntegration />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/whatsapp" 
+                  element={
+                    <ProtectedRoute>
+                      <WhatsAppIntegration />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/ai-agents" 
+                  element={
+                    <ProtectedRoute>
+                      <AIAgentsPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/plans" 
+                  element={
+                    <ProtectedRoute>
+                      <PlansPage />
                     </ProtectedRoute>
                   } 
                 />
@@ -77,15 +136,15 @@ function App() {
                   } 
                 />
                 <Route 
-                  path="/whatsapp-web" 
+                  path="/admin" 
                   element={
                     <ProtectedRoute>
-                      <WhatsAppWebPage />
+                      <AdminPanel />
                     </ProtectedRoute>
                   } 
                 />
                 <Route 
-                  path="/whatsapp-chat" 
+                  path="/whatsapp-web" 
                   element={
                     <ProtectedRoute>
                       <WhatsAppWebPage />

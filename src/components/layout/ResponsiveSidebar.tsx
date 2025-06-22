@@ -37,13 +37,13 @@ export default function ResponsiveSidebar() {
     {
       icon: LayoutDashboard,
       label: "Dashboard",
-      href: "/dashboard",
+      href: "/",
       comingSoon: false
     },
     {
       icon: Kanban,
       label: "Funil de Vendas",
-      href: "/sales-funnel",
+      href: "/funnels",
       comingSoon: false
     },
     {
