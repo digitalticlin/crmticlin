@@ -33,7 +33,7 @@ export const SimpleInstanceCard = ({
       case 'ready':
       case 'connected':
         return {
-          color: 'bg-green-100/80 text-green-800 backdrop-blur-sm',
+          color: 'bg-green-100/60 text-green-800 backdrop-blur-sm border-green-200/50',
           icon: CheckCircle,
           text: 'Conectado',
           description: 'WhatsApp conectado e funcionando'
@@ -41,7 +41,7 @@ export const SimpleInstanceCard = ({
       case 'connecting':
       case 'initializing':
         return {
-          color: 'bg-yellow-100/80 text-yellow-800 backdrop-blur-sm',
+          color: 'bg-yellow-100/60 text-yellow-800 backdrop-blur-sm border-yellow-200/50',
           icon: Clock,
           text: 'Conectando',
           description: 'Estabelecendo conexão...'
@@ -50,14 +50,14 @@ export const SimpleInstanceCard = ({
       case 'waiting_scan':
       case 'qr_ready':
         return {
-          color: 'bg-blue-100/80 text-blue-800 backdrop-blur-sm',
+          color: 'bg-blue-100/60 text-blue-800 backdrop-blur-sm border-blue-200/50',
           icon: AlertTriangle,
           text: 'Aguardando QR',
           description: 'QR Code disponível para escaneamento'
         };
       default:
         return {
-          color: 'bg-gray-100/80 text-gray-800 backdrop-blur-sm',
+          color: 'bg-gray-100/60 text-gray-800 backdrop-blur-sm border-gray-200/50',
           icon: AlertTriangle,
           text: 'Desconectado',
           description: 'Precisa conectar'
@@ -76,8 +76,8 @@ export const SimpleInstanceCard = ({
     );
 
   return (
-    <Card className="bg-gradient-to-br from-white/80 to-white/60 backdrop-blur-xl border border-white/30 shadow-xl hover:shadow-2xl transition-all duration-300 rounded-2xl overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+    <Card className="bg-white/20 backdrop-blur-xl border border-white/20 shadow-glass hover:shadow-glass-lg transition-all duration-300 rounded-2xl overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
       
       <CardHeader className="pb-3 relative z-10">
         <div className="flex items-start justify-between">
@@ -93,7 +93,7 @@ export const SimpleInstanceCard = ({
             )}
           </div>
           
-          <Badge className={`${statusInfo.color} border-white/30`}>
+          <Badge className={`${statusInfo.color}`}>
             <StatusIcon className="h-3 w-3 mr-1" />
             {statusInfo.text}
           </Badge>
@@ -128,7 +128,7 @@ export const SimpleInstanceCard = ({
             instanceName={instance.instance_name}
             onSuccess={onDelete}
             variant="outline"
-            className="text-red-600 hover:text-red-700 hover:bg-red-50/80 backdrop-blur-sm border-white/30"
+            className="text-red-600 hover:text-red-700 hover:bg-red-50/60 backdrop-blur-sm border-white/20"
           />
         </div>
       </CardContent>

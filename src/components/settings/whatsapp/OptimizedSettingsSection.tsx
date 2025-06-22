@@ -83,11 +83,11 @@ export const OptimizedSettingsSection = () => {
       {!hasInstances && (
         <div className="flex justify-center items-center min-h-[400px]">
           <div className="w-full max-w-md">
-            <Card className="bg-gradient-to-br from-white/80 to-white/60 backdrop-blur-xl border border-white/30 shadow-2xl rounded-3xl overflow-hidden">
+            <Card className="bg-white/20 backdrop-blur-xl border border-white/20 shadow-glass rounded-3xl overflow-hidden">
               <CardContent className="p-10 text-center">
                 <div className="inline-flex items-center justify-center w-20 h-20 rounded-full 
-                  bg-gradient-to-br from-green-400/30 to-green-600/30 backdrop-blur-sm mb-6
-                  ring-4 ring-green-200/50">
+                  bg-green-400/20 backdrop-blur-sm mb-6 border border-green-300/30
+                  ring-4 ring-green-200/30">
                   <MessageSquare className="h-10 w-10 text-green-600" />
                 </div>
                 
@@ -119,7 +119,7 @@ export const OptimizedSettingsSection = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Card "Nova Conexão" como primeiro item do grid */}
-            <div className="group transform transition-all duration-300 hover:scale-[1.02] hover:shadow-xl">
+            <div className="group transform transition-all duration-300 hover:scale-[1.02] hover:shadow-glass-lg">
               <AddNewConnectionCard
                 onConnect={handleCreateInstance}
                 isConnecting={isCreating}
@@ -130,7 +130,7 @@ export const OptimizedSettingsSection = () => {
             {instances.map((instance) => (
               <div 
                 key={instance.id}
-                className="group transform transition-all duration-300 hover:scale-[1.02] hover:shadow-xl"
+                className="group transform transition-all duration-300 hover:scale-[1.02] hover:shadow-glass-lg"
               >
                 <SimpleInstanceCard
                   instance={instance}

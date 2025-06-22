@@ -10,17 +10,17 @@ interface AddNewConnectionCardProps {
 
 export const AddNewConnectionCard = ({ onConnect, isConnecting }: AddNewConnectionCardProps) => {
   return (
-    <Card className="group relative transition-all duration-300 hover:shadow-2xl hover:-translate-y-1
-      bg-gradient-to-br from-white/80 to-white/60 backdrop-blur-xl 
-      border-2 border-dashed border-green-300/70 rounded-2xl overflow-hidden
+    <Card className="group relative transition-all duration-300 hover:shadow-glass-lg hover:-translate-y-1
+      bg-white/20 backdrop-blur-xl 
+      border-2 border-dashed border-green-300/50 rounded-2xl overflow-hidden
       cursor-pointer min-h-[280px] flex items-center justify-center" 
       onClick={!isConnecting ? onConnect : undefined}>
       
-      <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
       
       <CardContent className="p-6 text-center relative z-10">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full 
-          bg-gradient-to-br from-green-400/30 to-green-600/30 backdrop-blur-sm mb-4
+          bg-green-400/20 backdrop-blur-sm mb-4 border border-green-300/30
           group-hover:scale-110 transition-transform duration-200">
           {isConnecting ? (
             <Loader2 className="h-8 w-8 text-green-600 animate-spin" />
@@ -48,7 +48,7 @@ export const AddNewConnectionCard = ({ onConnect, isConnecting }: AddNewConnecti
           ) : (
             <>
               <Plus className="h-4 w-4 mr-2" />
-              Conectar (Auto QR)
+              Conectar WhatsApp
             </>
           )}
         </Button>
