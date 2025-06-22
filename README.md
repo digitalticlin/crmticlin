@@ -71,3 +71,69 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+# Implementação de QRCodeModal para Conexão WhatsApp
+
+## Problema Resolvido
+O problema original era que o QR Code para conectar o WhatsApp não estava sendo exibido automaticamente ao clicar no botão "Conectar WhatsApp". Isso ocorria por dois motivos principais:
+
+1. Erro de extensão de arquivo: o arquivo `useQRCodeModal.ts` estava usando JSX sem ter a extensão `.tsx`
+2. Problemas na lógica de exibição do QR Code e tratamento de erros
+
+## Melhorias Implementadas
+
+### 1. Correção de Arquivos
+- Renomeado `useQRCodeModal.ts` para `useQRCodeModal.tsx` para permitir o uso de JSX
+- Atualizado imports e referências em todos os arquivos relacionados
+
+### 2. Melhorias na Lógica de QR Code
+- Implementada validação robusta para QR Codes:
+  - Verifica se é uma string data:image válida
+  - Confirma se tem tamanho adequado (>500 caracteres)
+  - Verifica formato PNG e valida a parte base64
+- Melhorados os logs de diagnóstico para acompanhamento do processo
+- Adicionada verificação do status de conexão já ativa
+
+### 3. Integração em Tempo Real (Realtime)
+- Implementado sistema de Realtime com Supabase para atualizações automáticas de QR Code
+- Configuração de canal dedicado para monitorar mudanças na instância
+- Tratamento de estados de conexão em tempo real
+- Limpeza adequada de inscrições ao fechar modal ou desmontar componente
+
+### 4. Interface de Usuário Aprimorada
+- Componente `QRCodeDisplay` para exibir o QR Code com tratamento de erros de carregamento
+- Contador de tempo durante o carregamento do QR Code
+- Botões para abrir QR Code em nova aba e visualizar detalhes técnicos
+- Painel de informações técnicas para diagnóstico
+- Botão de atualização manual do QR Code
+- Melhor tratamento de erros com mensagens descritivas
+
+### 5. Melhorias no Fluxo de Uso
+- Abertura do modal antes de buscar o QR Code para evitar problemas de timing
+- Sistema de retry com intervalos curtos (800ms) para melhor responsividade
+- Notificações toast para informar o usuário sobre o status
+- Tratamento completo de erros nas várias etapas do processo
+
+### 6. Otimizações Técnicas
+- Limpeza adequada de timeouts e subscrições para evitar memory leaks
+- Verificações de validade antes de processar QR Codes
+- Sistema de contexto React para compartilhar o estado do modal em toda a aplicação
+
+## Arquivos Modificados
+1. `src/modules/whatsapp/instanceCreation/hooks/useQRCodeModal.tsx`
+2. `src/modules/whatsapp/instanceCreation/components/QRCodeModal.tsx`
+3. `src/App.tsx` (verificação para garantir que o provider está presente)
+
+## Como Usar
+O sistema agora funciona da seguinte forma:
+
+1. Ao clicar em "Conectar WhatsApp", o modal abre automaticamente
+2. O sistema busca o QR Code do banco de dados e também se inscreve para atualizações em tempo real
+3. O QR Code é validado antes de ser exibido
+4. O usuário pode escanear o QR Code ou utilizar os botões de ajuda
+5. Informações de diagnóstico estão disponíveis para desenvolvedores
+
+## Considerações Futuras
+- Implementar sistema de expiração para QR Codes antigos
+- Adicionar animações durante transições de estado
+- Melhorar ainda mais o sistema de logs para diagnóstico em produção

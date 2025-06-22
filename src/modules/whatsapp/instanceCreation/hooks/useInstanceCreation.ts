@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { InstanceCreationService, CreateInstanceResult } from '../lib/instanceCreation';
@@ -9,35 +8,6 @@ export const useInstanceCreation = (onSuccess?: (result: CreateInstanceResult) =
   const [isCreating, setIsCreating] = useState(false);
   const { user } = useAuth();
   const { openModal } = useQRCodeModal();
-
-  // CORREÇÃO: Função para aguardar instância estar disponível
-  const waitForInstanceAvailability = async (instanceId: string, maxAttempts = 10): Promise<boolean> => {
-    console.log('[useInstanceCreation] 🔍 Aguardando instância estar disponível:', instanceId);
-    
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        const { supabase } = await import('@/integrations/supabase/client');
-        const { data, error } = await supabase
-          .from('whatsapp_instances')
-          .select('id, instance_name, connection_status')
-          .eq('id', instanceId)
-          .single();
-
-        if (!error && data) {
-          console.log('[useInstanceCreation] ✅ Instância encontrada no banco:', data);
-          return true;
-        }
-
-        console.log('[useInstanceCreation] ⏳ Tentativa', attempt, 'de', maxAttempts);
-        await new Promise(resolve => setTimeout(resolve, 500));
-      } catch (error) {
-        console.log('[useInstanceCreation] ❌ Erro ao verificar instância:', error);
-      }
-    }
-
-    console.log('[useInstanceCreation] ❌ Timeout aguardando instância');
-    return false;
-  };
 
   const createInstance = async (instanceName?: string): Promise<CreateInstanceResult | null> => {
     if (!user?.email) {
@@ -62,20 +32,21 @@ export const useInstanceCreation = (onSuccess?: (result: CreateInstanceResult) =
           description: "Aguarde o QR Code para conectar"
         });
         
-        // CORREÇÃO: Aguardar instância estar disponível no banco antes de abrir modal
-        const isAvailable = await waitForInstanceAvailability(result.instance.id);
-        
-        if (isAvailable) {
-          console.log('[useInstanceCreation] 📱 Abrindo modal QR após confirmação no banco');
-          
-          // CORREÇÃO: Delay adicional para garantir sincronização
-          setTimeout(() => {
-            openModal(result.instance.id);
-          }, 200);
+        // Verificação explícita para debug
+        if (typeof openModal === 'function') {
+          console.log('[useInstanceCreation] 📱 openModal é uma função válida');
         } else {
-          console.warn('[useInstanceCreation] ⚠️ Instância não encontrada no banco, mas continuando...');
-          openModal(result.instance.id);
+          console.error('[useInstanceCreation] ⚠️ openModal não é uma função:', openModal);
         }
+        
+        // CORREÇÃO: Abrir modal imediatamente sem delays e verificações
+        console.log('[useInstanceCreation] 📱 Abrindo modal QR imediatamente para ID:', result.instance.id);
+        
+        // Envolva em setTimeout para garantir que é processado após outras operações
+        setTimeout(() => {
+          console.log('[useInstanceCreation] ⏱️ Executando abertura do modal após timeout mínimo');
+          openModal(result.instance.id);
+        }, 100);
         
         if (onSuccess) {
           onSuccess(result);
