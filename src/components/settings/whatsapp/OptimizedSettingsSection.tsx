@@ -52,18 +52,9 @@ export const OptimizedSettingsSection = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Configurações do WhatsApp</h1>
-          <p className="text-gray-600 mt-1">
-            Gerencie suas conexões WhatsApp para automação de mensagens
-          </p>
-        </div>
-        
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
-          <p className="text-gray-600 mt-4">Carregando instâncias...</p>
-        </div>
+      <div className="text-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+        <p className="text-gray-600 mt-4">Carregando instâncias...</p>
       </div>
     );
   }
@@ -72,13 +63,6 @@ export const OptimizedSettingsSection = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Configurações do WhatsApp</h1>
-        <p className="text-gray-600 mt-1">
-          Gerencie suas conexões WhatsApp para automação de mensagens
-        </p>
-      </div>
-
       {/* Caso 1: Nenhuma instância - Mostrar apenas o card de conexão centralizado */}
       {!hasInstances && (
         <div className="flex justify-center items-center min-h-[400px]">
