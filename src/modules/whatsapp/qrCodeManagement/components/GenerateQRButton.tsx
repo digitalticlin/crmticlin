@@ -24,18 +24,17 @@ export const GenerateQRButton = ({
   className = ""
 }: GenerateQRButtonProps) => {
   const { generateQRCode, isGenerating } = useQRCodeGeneration({
-    onSuccess: () => {
-      onSuccess?.();
-      // Chamar onModalOpen com ambos os parâmetros após gerar QR
-      if (onModalOpen) {
-        onModalOpen(instanceId, instanceName);
-      }
-    },
-    onModalOpen: onModalOpen ? (id: string) => onModalOpen(id, instanceName) : undefined
+    onSuccess,
+    onModalOpen
   });
 
   const handleGenerateQR = async () => {
     await generateQRCode(instanceId);
+    
+    // Chamar onModalOpen após gerar QR Code se foi fornecido
+    if (onModalOpen) {
+      onModalOpen(instanceId, instanceName);
+    }
   };
 
   return (

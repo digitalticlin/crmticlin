@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 
 interface UseQRCodeGenerationOptions {
   onSuccess?: () => void;
-  onModalOpen?: (instanceId: string) => void;
+  onModalOpen?: (instanceId: string, instanceName: string) => void;
 }
 
 export const useQRCodeGeneration = (options: UseQRCodeGenerationOptions = {}) => {
@@ -28,7 +28,7 @@ export const useQRCodeGeneration = (options: UseQRCodeGenerationOptions = {}) =>
           // Abrir modal após geração bem-sucedida
           if (onModalOpen) {
             console.log('[useQRCodeGeneration] 🚀 Abrindo modal após geração');
-            onModalOpen(instanceId);
+            onModalOpen(instanceId, instanceId); // Usando instanceId como instanceName temporariamente
           }
         }
         
@@ -42,7 +42,7 @@ export const useQRCodeGeneration = (options: UseQRCodeGenerationOptions = {}) =>
           // Mesmo esperando, abrir modal para mostrar loading
           if (onModalOpen) {
             console.log('[useQRCodeGeneration] ⏳ Abrindo modal no estado waiting');
-            onModalOpen(instanceId);
+            onModalOpen(instanceId, instanceId); // Usando instanceId como instanceName temporariamente
           }
         } else {
           toast.error(`Erro ao gerar QR Code: ${result.error}`);
