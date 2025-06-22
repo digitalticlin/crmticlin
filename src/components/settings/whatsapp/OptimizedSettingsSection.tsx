@@ -1,8 +1,7 @@
 
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Plus, MessageSquare } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import { CreateInstanceButton } from "@/modules/whatsapp";
 import { QRCodeModal } from "@/modules/whatsapp/qrCodeManagement";
 import { useSupabaseQRCode } from "@/hooks/whatsapp/useSupabaseQRCode";
@@ -12,7 +11,7 @@ import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstance
 export const OptimizedSettingsSection = () => {
   console.log('[Optimized Settings] 🎯 Interface Simplificada para WhatsApp Web.js');
 
-  const { instances, isLoading, refetch } = useWhatsAppWebInstances();
+  const { instances, isLoading, loadInstances } = useWhatsAppWebInstances();
   const [qrModalState, setQrModalState] = useState({
     isOpen: false,
     instanceId: null as string | null,
@@ -40,12 +39,12 @@ export const OptimizedSettingsSection = () => {
 
   const handleInstanceCreated = () => {
     console.log('[Optimized Settings] ✅ Nova instância criada, atualizando lista');
-    refetch();
+    loadInstances();
   };
 
   const handleInstanceDeleted = () => {
     console.log('[Optimized Settings] 🗑️ Instância deletada, atualizando lista');
-    refetch();
+    loadInstances();
   };
 
   return (

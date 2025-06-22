@@ -2,7 +2,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Loader2, QrCode, Smartphone } from "lucide-react";
-import { useQRCodeValidation } from "@/hooks/whatsapp/useQRCodeValidation";
 
 interface AutoQRCodeModalProps {
   isOpen: boolean;
@@ -19,8 +18,7 @@ export function AutoQRCodeModal({
   isLoading,
   onRefresh 
 }: AutoQRCodeModalProps) {
-  const { validateQRCode } = useQRCodeValidation();
-  const qrValidation = validateQRCode(qrCode);
+  const isValidQR = qrCode && qrCode !== 'waiting' && !qrCode.includes('Erro');
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -43,7 +41,7 @@ export function AutoQRCodeModal({
                 </p>
               </div>
             </div>
-          ) : qrCode && qrValidation.isValid ? (
+          ) : qrCode && isValidQR ? (
             <>
               <div className="bg-white/70 p-4 rounded-2xl border border-white/40 shadow-lg">
                 <img 
@@ -78,32 +76,13 @@ export function AutoQRCodeModal({
                 Atualizar QR Code
               </Button>
             </>
-          ) : qrValidation.isPlaceholder ? (
-            <div className="text-center space-y-4">
-              <div className="bg-orange-50/80 backdrop-blur-sm p-6 rounded-2xl border border-orange-200/50">
-                <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-orange-500" />
-                <p className="text-sm font-medium text-orange-900">WhatsApp Web.js inicializando...</p>
-                <p className="text-xs text-orange-700 mt-1">
-                  {qrValidation.errorMessage}
-                </p>
-              </div>
-              <Button 
-                variant="outline" 
-                onClick={onRefresh}
-                className="bg-white/50 hover:bg-white/70 border-white/40 rounded-xl transition-all duration-200"
-                size="sm"
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Tentar novamente
-              </Button>
-            </div>
           ) : (
             <div className="text-center space-y-4">
               <div className="bg-red-50/80 backdrop-blur-sm p-6 rounded-2xl border border-red-200/50">
                 <QrCode className="h-12 w-12 mx-auto mb-4 text-red-400" />
                 <p className="text-sm font-medium text-red-900">Erro ao gerar QR Code</p>
                 <p className="text-xs text-red-700 mt-1">
-                  {qrValidation.errorMessage || 'Tente novamente'}
+                  Tente novamente
                 </p>
               </div>
               <Button 

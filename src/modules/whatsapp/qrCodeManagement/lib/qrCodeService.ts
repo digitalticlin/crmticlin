@@ -50,3 +50,6 @@ export class QRCodeService {
     }
   }
 }
+
+// Exportar o tipo QRCodeResult também
+export type { QRCodeResult } from '../types/qrCodeTypes';

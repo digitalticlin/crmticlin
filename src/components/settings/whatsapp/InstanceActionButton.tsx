@@ -1,7 +1,6 @@
 
 import { Button } from "@/components/ui/button";
 import { CheckCircle, RefreshCw, Eye, QrCode } from "lucide-react";
-import { useQRCodeValidation } from "@/hooks/whatsapp/useQRCodeValidation";
 
 interface InstanceActionButtonProps {
   connectionStatus: string;
@@ -20,31 +19,12 @@ export function InstanceActionButton({
   onRefreshQR,
   onShowQR
 }: InstanceActionButtonProps) {
-  const { validateQRCode } = useQRCodeValidation();
-  const qrValidation = validateQRCode(qrCode);
-  
   const isConnected = connectionStatus === 'connected' || 
                      connectionStatus === 'ready' || 
                      connectionStatus === 'open';
   const isCreating = webStatus === 'creating';
 
-  const getQRStatus = () => {
-    if (!qrCode) {
-      return { status: 'none' };
-    }
-
-    if (qrValidation.isPlaceholder) {
-      return { status: 'placeholder' };
-    }
-
-    if (!qrValidation.isValid) {
-      return { status: 'invalid' };
-    }
-
-    return { status: 'valid' };
-  };
-
-  const qrStatus = getQRStatus();
+  const hasValidQR = qrCode && qrCode !== 'waiting' && !qrCode.includes('Erro');
 
   if (isConnected) {
     return (
@@ -74,7 +54,7 @@ export function InstanceActionButton({
     );
   }
 
-  if (qrStatus.status === 'valid') {
+  if (hasValidQR) {
     return (
       <Button
         variant="outline"
@@ -88,7 +68,7 @@ export function InstanceActionButton({
     );
   }
 
-  if (qrStatus.status === 'placeholder') {
+  if (qrCode === 'waiting') {
     return (
       <Button
         variant="outline"

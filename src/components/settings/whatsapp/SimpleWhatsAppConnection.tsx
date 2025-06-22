@@ -49,9 +49,9 @@ export const SimpleWhatsAppConnection = () => {
     toast.info(`Modal aberto para ${instanceName}. Clique em "Gerar QR Code" para iniciar.`);
   };
 
-  const handleDeleteInstance = async (instanceId: string) => {
-    console.log('[Simple Connection] 🗑️ Deletando via hook existente:', instanceId);
-    await deleteInstance(instanceId);
+  const handleDeleteInstance = async () => {
+    console.log('[Simple Connection] 🗑️ Callback de deleção executado');
+    await loadInstances();
   };
 
   if (isLoading) {
@@ -84,7 +84,6 @@ export const SimpleWhatsAppConnection = () => {
             instance={instance}
             onGenerateQR={handleGenerateQR}
             onDelete={handleDeleteInstance}
-            onRefreshQRCode={() => Promise.resolve({ success: false })}
           />
         ))}
         
