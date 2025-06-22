@@ -14,7 +14,7 @@ const WhatsAppSettings = () => {
         </p>
       </div>
 
-      {/* Botão de teste de sincronização */}
+      {/* Botão de teste de sincronização isolado */}
       <TestSyncButton />
 
       <WhatsAppWebSection />
