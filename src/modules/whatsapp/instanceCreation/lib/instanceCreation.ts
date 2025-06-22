@@ -1,53 +1,33 @@
 
-import { supabase } from '@/integrations/supabase/client';
-
-export interface CreateInstanceParams {
-  instanceName?: string;
-  userEmail: string;
-}
-
-export interface CreateInstanceResult {
-  success: boolean;
-  instance?: any;
-  error?: string;
-}
+import { InstanceApi } from '../api/instanceApi';
+import type { CreateInstanceParams, CreateInstanceResult } from '../types/instanceTypes';
 
 export class InstanceCreationService {
   static async createInstance(params: CreateInstanceParams): Promise<CreateInstanceResult> {
     try {
-      console.log('[InstanceCreationService] 🚀 Criando instância:', params);
+      console.log('[InstanceCreationService] 🚀 Criando instância via estrutura modular:', params);
       
       // Gerar nome inteligente se não fornecido
       const intelligentName = params.instanceName || 
         params.userEmail.split('@')[0].toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
       
-      // Chamar edge function para criar instância
-      const { data, error } = await supabase.functions.invoke('whatsapp_instance_manager', {
-        body: {
-          action: 'create_instance',
-          instanceName: intelligentName
-        }
-      });
-
-      if (error) {
-        console.error('[InstanceCreationService] ❌ Erro do Supabase:', error);
-        throw new Error(error.message);
-      }
-
-      if (!data?.success) {
-        console.error('[InstanceCreationService] ❌ Falha na criação:', data?.error);
-        throw new Error(data?.error || 'Falha ao criar instância');
-      }
-
-      console.log('[InstanceCreationService] ✅ Instância criada:', {
+      // Chamar API modular
+      const result = await InstanceApi.createInstance({
         instanceName: intelligentName,
-        instanceId: data.instance?.id
+        userEmail: params.userEmail,
+        companyId: params.companyId
       });
 
-      return {
-        success: true,
-        instance: data.instance
-      };
+      if (result.success) {
+        console.log('[InstanceCreationService] ✅ Instância criada via estrutura modular:', {
+          instanceName: intelligentName,
+          instanceId: result.instance?.id
+        });
+      } else {
+        console.error('[InstanceCreationService] ❌ Falha na criação:', result.error);
+      }
+
+      return result;
 
     } catch (error: any) {
       console.error('[InstanceCreationService] ❌ Erro:', error);
