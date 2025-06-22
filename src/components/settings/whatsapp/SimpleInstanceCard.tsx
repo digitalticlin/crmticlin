@@ -11,8 +11,9 @@ import {
   Loader2
 } from "lucide-react";
 import { WhatsAppWebInstance } from "@/types/whatsapp";
-import { useQRCodeGeneration } from "@/modules/whatsapp/qrCodeManagement";
 import { DeleteInstanceButton } from "@/modules/whatsapp/instanceDeletion";
+import { useQRCodeModal } from "@/modules/whatsapp/instanceCreation/hooks/useQRCodeModal";
+import { useQRCodeGeneration } from "@/modules/whatsapp/qrCodeManagement";
 
 interface SimpleInstanceCardProps {
   instance: WhatsAppWebInstance;
@@ -25,12 +26,8 @@ export const SimpleInstanceCard = ({
   onGenerateQR, 
   onDelete
 }: SimpleInstanceCardProps) => {
-  const { generateQRCode, isGenerating } = useQRCodeGeneration({
-    onModalOpen: (instanceId) => {
-      console.log('[SimpleInstanceCard] 🚀 Callback onModalOpen - Abrindo modal para:', instanceId);
-      onGenerateQR(instanceId, instance.instance_name);
-    }
-  });
+  const { openModal } = useQRCodeModal();
+  const { generateQRCode, isGenerating } = useQRCodeGeneration();
 
   const getStatusInfo = () => {
     const status = instance.connection_status?.toLowerCase() || 'unknown';
@@ -75,13 +72,16 @@ export const SimpleInstanceCard = ({
   const isConnected = ['ready', 'connected'].includes(instance.connection_status?.toLowerCase() || '');
 
   const handleGenerateQR = async () => {
-    console.log('[SimpleInstanceCard] 🔄 Gerando QR Code e abrindo modal para:', instance.id);
+    console.log('[SimpleInstanceCard] 🚀 Abrindo modal unificado e gerando QR para:', instance.id);
     
-    // CORREÇÃO: Sempre abrir modal primeiro, depois gerar QR
-    onGenerateQR(instance.id, instance.instance_name);
+    // CORREÇÃO: Abrir modal unificado imediatamente
+    openModal(instance.id);
     
     // Gerar QR Code em paralelo (modal vai fazer polling/subscription)
     await generateQRCode(instance.id);
+    
+    // Callback legacy para compatibilidade (se necessário)
+    onGenerateQR(instance.id, instance.instance_name);
   };
 
   return (

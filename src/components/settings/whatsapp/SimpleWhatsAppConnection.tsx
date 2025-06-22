@@ -24,11 +24,7 @@ export const SimpleWhatsAppConnection = () => {
   } = useWhatsAppWebInstances();
 
   const { createInstance, isCreating } = useInstanceCreation(loadInstances);
-  const { 
-    isOpen: showQRModal,
-    openModal,
-    closeModal
-  } = useQRCodeModal();
+  const { openModal } = useQRCodeModal();
 
   // Detectar nova instância criada e abrir modal automaticamente
   useEffect(() => {
@@ -38,7 +34,7 @@ export const SimpleWhatsAppConnection = () => {
       
       // Aguardar um pouco para garantir que a instância foi salva
       setTimeout(() => {
-        console.log('[Simple Connection] 🚀 Abrindo modal para nova instância');
+        console.log('[Simple Connection] 🚀 Abrindo modal unificado para nova instância');
         openModal(newInstance.id);
       }, 1000);
     }
@@ -56,7 +52,7 @@ export const SimpleWhatsAppConnection = () => {
   };
 
   const handleGenerateQR = async (instanceId: string, instanceName: string) => {
-    console.log('[Simple Connection] 🔄 Abrindo modal QR Code para:', { instanceId, instanceName });
+    console.log('[Simple Connection] 🔄 Abrindo modal QR Code unificado para:', { instanceId, instanceName });
     openModal(instanceId);
   };
 
@@ -80,7 +76,6 @@ export const SimpleWhatsAppConnection = () => {
     return (
       <div className="space-y-6">
         <ConnectionCard onConnect={handleConnect} isConnecting={isCreating} />
-
         <QRCodeModal />
       </div>
     );

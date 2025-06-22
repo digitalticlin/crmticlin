@@ -4,37 +4,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessageSquare } from "lucide-react";
 import { CreateInstanceButton } from "@/modules/whatsapp";
 import { QRCodeModal } from "@/modules/whatsapp/instanceCreation/components/QRCodeModal";
-import { useSupabaseQRCode } from "@/hooks/whatsapp/useSupabaseQRCode";
 import { SimpleInstanceCard } from "./SimpleInstanceCard";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
+import { useQRCodeModal } from "@/modules/whatsapp/instanceCreation/hooks/useQRCodeModal";
 
 export const OptimizedSettingsSection = () => {
-  console.log('[Optimized Settings] 🎯 Interface Simplificada para WhatsApp Web.js');
+  console.log('[Optimized Settings] 🎯 Interface Simplificada para WhatsApp Web.js - SISTEMA UNIFICADO');
 
   const { instances, isLoading, loadInstances } = useWhatsAppWebInstances();
-  const [qrModalState, setQrModalState] = useState({
-    isOpen: false,
-    instanceId: null as string | null,
-    instanceName: ""
-  });
-
-  const { qrCode } = useSupabaseQRCode(qrModalState.instanceId);
+  const { openModal } = useQRCodeModal();
 
   const handleShowQRModal = (instanceId: string, instanceName: string) => {
-    console.log('[Optimized Settings] 📱 Abrindo modal QR para:', instanceName);
-    setQrModalState({
-      isOpen: true,
-      instanceId,
-      instanceName
-    });
-  };
-
-  const handleCloseQRModal = () => {
-    setQrModalState({
-      isOpen: false,
-      instanceId: null,
-      instanceName: ""
-    });
+    console.log('[Optimized Settings] 📱 Abrindo modal unificado para:', instanceName);
+    openModal(instanceId);
   };
 
   const handleInstanceCreated = () => {
