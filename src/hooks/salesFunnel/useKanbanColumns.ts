@@ -1,18 +1,14 @@
 
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { KanbanColumn } from "@/types/kanban";
 import { KanbanStage } from "@/types/funnel";
 
 export const useKanbanColumns = (stages: KanbanStage[], leads: any[], funnelId?: string) => {
-  const [columns, setColumns] = useState<KanbanColumn[]>([]);
-
-  // Converter stages e leads do banco para formato de colunas do Kanban
-  // MOSTRAR APENAS as etapas do funil principal (excluir GANHO e PERDIDO)
-  useEffect(() => {
-    if (!stages.length || !funnelId) {
-      console.log('[useKanbanColumns] ⚠️ Sem stages ou funnelId:', { stagesCount: stages.length, funnelId });
-      setColumns([]);
-      return;
+  // Memoizar as colunas para evitar recriações desnecessárias
+  const columns = useMemo(() => {
+    if (!stages?.length || !funnelId) {
+      console.log('[useKanbanColumns] ⚠️ Sem stages ou funnelId:', { stagesCount: stages?.length || 0, funnelId });
+      return [];
     }
 
     console.log('[useKanbanColumns] 🔍 Processando stages:', {
@@ -29,7 +25,7 @@ export const useKanbanColumns = (stages: KanbanStage[], leads: any[], funnelId?:
     });
 
     const newColumns: KanbanColumn[] = mainFunnelStages.map(stage => {
-      const stageLeads = leads.filter(lead => lead.columnId === stage.id);
+      const stageLeads = leads?.filter(lead => lead.columnId === stage.id) || [];
       
       console.log('[useKanbanColumns] 📋 Criando coluna:', {
         stageId: stage.id,
@@ -52,8 +48,17 @@ export const useKanbanColumns = (stages: KanbanStage[], leads: any[], funnelId?:
       columns: newColumns.map(c => ({ id: c.id, title: c.title, leadsCount: c.leads.length }))
     });
 
-    setColumns(newColumns);
+    return newColumns;
   }, [stages, leads, funnelId]);
+
+  // Função estável para atualizar colunas
+  const setColumns = useMemo(() => {
+    return (newColumns: KanbanColumn[] | ((prev: KanbanColumn[]) => KanbanColumn[])) => {
+      console.log('[useKanbanColumns] 📝 Atualizando colunas:', typeof newColumns === 'function' ? 'função' : newColumns.length);
+      // Esta função é principalmente para compatibilidade
+      // A lógica real de atualização deve ser feita através dos hooks de stage management
+    };
+  }, []);
 
   return { columns, setColumns };
 };

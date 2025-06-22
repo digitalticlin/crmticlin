@@ -1,19 +1,44 @@
 
 import { useState } from "react";
 import { useRealSalesFunnel } from "./useRealSalesFunnel";
-import { useFunnelManagement } from "./useFunnelManagement";
 import { useStageDatabase } from "./useStageDatabase";
 import { useTagDatabase } from "./useTagDatabase";
-import { KanbanColumn } from "@/types/kanban";
+import { useKanbanColumns } from "./useKanbanColumns";
+import { KanbanLead } from "@/types/kanban";
 
 export function useExtendedSalesFunnel(funnelId?: string) {
-  const [columns, setColumns] = useState<KanbanColumn[]>([]);
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [isLeadDetailOpen, setIsLeadDetailOpen] = useState(false);
   
   const realFunnelData = useRealSalesFunnel(funnelId);
   const { stages } = useStageDatabase(funnelId);
   const { createTag } = useTagDatabase();
+  
+  // Transform leads to match KanbanLead interface
+  const transformedLeads: KanbanLead[] = realFunnelData.leads?.map(lead => ({
+    id: lead.id,
+    name: lead.name,
+    phone: lead.phone,
+    email: lead.email,
+    columnId: lead.kanban_stage_id,
+    tags: lead.tags?.map(tagRelation => ({
+      id: tagRelation.tag.id,
+      name: tagRelation.tag.name,
+      color: tagRelation.tag.color || '#3b82f6'
+    })) || [],
+    notes: lead.notes,
+    purchaseValue: lead.purchase_value ? Number(lead.purchase_value) : undefined,
+    assignedUser: lead.owner_id,
+    lastMessage: lead.last_message || '',
+    lastMessageTime: lead.last_message_time || '',
+    createdAt: lead.created_at,
+    address: lead.address,
+    company: lead.company,
+    documentId: lead.document_id
+  })) || [];
+
+  // Use useKanbanColumns to generate proper columns
+  const { columns, setColumns } = useKanbanColumns(stages || [], transformedLeads, funnelId);
   
   // Stub functions for compatibility
   const openLeadDetail = (lead: any) => {
@@ -63,6 +88,7 @@ export function useExtendedSalesFunnel(funnelId?: string) {
 
   return {
     ...realFunnelData,
+    leads: transformedLeads,
     columns,
     setColumns,
     selectedLead,

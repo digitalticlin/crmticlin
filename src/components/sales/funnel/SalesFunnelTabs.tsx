@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ModernFunnelHeader } from "./ModernFunnelHeader";
 import { ModernFunnelControlBar } from "./ModernFunnelControlBar";
 import { KanbanBoard } from "../KanbanBoard";
@@ -54,28 +54,36 @@ export const SalesFunnelTabs = ({
 }: SalesFunnelTabsProps) => {
   const [activeTab, setActiveTab] = useState("funnel");
 
+  // Validar dados de entrada
+  const validatedStages = useMemo(() => Array.isArray(stages) ? stages : [], [stages]);
+  const validatedLeads = useMemo(() => Array.isArray(leads) ? leads : [], [leads]);
+  const validatedColumns = useMemo(() => Array.isArray(columns) ? columns : [], [columns]);
+
   // Buscar leads das etapas GANHO e PERDIDO para a aba won-lost
-  const wonLostLeads = leads?.filter(lead => {
-    const leadStage = stages?.find(stage => stage.id === lead.columnId);
-    return leadStage && (leadStage.is_won || leadStage.is_lost);
-  }) || [];
+  const wonLostLeads = useMemo(() => {
+    return validatedLeads.filter(lead => {
+      const leadStage = validatedStages.find(stage => stage.id === lead.columnId);
+      return leadStage && (leadStage.is_won || leadStage.is_lost);
+    });
+  }, [validatedLeads, validatedStages]);
 
   console.log('[SalesFunnelTabs] 📊 Estado atual:', {
     activeTab,
-    totalStages: stages?.length || 0,
-    totalLeads: leads?.length || 0,
+    totalStages: validatedStages.length,
+    totalLeads: validatedLeads.length,
     wonLostLeads: wonLostLeads.length,
-    columnsCount: columns.length,
-    stages: stages?.map(s => ({ title: s.title, isWon: s.is_won, isLost: s.is_lost }))
+    columnsCount: validatedColumns.length,
+    stages: validatedStages.map(s => ({ title: s.title, isWon: s.is_won, isLost: s.is_lost }))
   });
 
-  // Criar colunas para aba won-lost (apenas GANHO e PERDIDO) com validação
-  const displayColumns = activeTab === "won-lost" 
-    ? (stages || [])
+  // Criar colunas para aba won-lost (apenas GANHO e PERDIDO) com validação robusta
+  const displayColumns = useMemo(() => {
+    if (activeTab === "won-lost") {
+      return validatedStages
         .filter(stage => stage.is_won || stage.is_lost)
         .map(stage => {
           // Buscar leads reais dessa stage
-          const stageLeads = leads?.filter(lead => lead.columnId === stage.id) || [];
+          const stageLeads = validatedLeads.filter(lead => lead.columnId === stage.id);
           
           console.log('[SalesFunnelTabs] 🏆 Criando coluna won-lost:', {
             stageTitle: stage.title,
@@ -93,8 +101,10 @@ export const SalesFunnelTabs = ({
             isFixed: stage.is_fixed || false,
             isHidden: false
           };
-        })
-    : columns || [];
+        });
+    }
+    return validatedColumns;
+  }, [activeTab, validatedStages, validatedLeads, validatedColumns]);
 
   console.log('[SalesFunnelTabs] 📋 Colunas a exibir:', {
     activeTab,
@@ -102,10 +112,10 @@ export const SalesFunnelTabs = ({
     displayColumns: displayColumns.map(c => ({ title: c.title, leadsCount: c.leads.length }))
   });
 
-  const handleColumnsChange = (newColumns: any[]) => {
+  const handleColumnsChange = (newColumns: KanbanColumn[]) => {
     console.log('[SalesFunnelTabs] 🔄 Atualizando colunas:', newColumns.length);
     // Só atualizar se não estiver na aba won-lost
-    if (activeTab !== "won-lost") {
+    if (activeTab !== "won-lost" && Array.isArray(newColumns)) {
       setColumns(newColumns);
     }
   };
@@ -115,13 +125,13 @@ export const SalesFunnelTabs = ({
       {/* Header Moderno */}
       <ModernFunnelHeader 
         selectedFunnel={selectedFunnel}
-        totalLeads={columns.reduce((acc, col) => acc + col.leads.length, 0)}
+        totalLeads={validatedColumns.reduce((acc, col) => acc + (col.leads?.length || 0), 0)}
         wonLeads={wonLostLeads.filter(lead => {
-          const leadStage = stages?.find(stage => stage.id === lead.columnId);
+          const leadStage = validatedStages.find(stage => stage.id === lead.columnId);
           return leadStage?.is_won;
         }).length}
         lostLeads={wonLostLeads.filter(lead => {
-          const leadStage = stages?.find(stage => stage.id === lead.columnId);
+          const leadStage = validatedStages.find(stage => stage.id === lead.columnId);
           return leadStage?.is_lost;
         }).length}
         activeTab={activeTab}
@@ -142,7 +152,7 @@ export const SalesFunnelTabs = ({
         wonLostFilters={activeTab === "won-lost" ? wonLostFilters : undefined}
       />
       
-      {/* Board do Kanban - com proteção contra colunas vazias */}
+      {/* Board do Kanban - com validação completa */}
       <KanbanBoard
         columns={displayColumns}
         onColumnsChange={handleColumnsChange}

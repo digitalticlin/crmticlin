@@ -4,8 +4,6 @@ import { useExtendedSalesFunnel } from "@/hooks/salesFunnel/useExtendedSalesFunn
 import { useNewLeadIntegration } from "@/hooks/salesFunnel/useNewLeadIntegration";
 import { useFunnelManagement } from "@/hooks/salesFunnel/useFunnelManagement";
 import { useSalesFunnelWrappers } from "./useSalesFunnelWrappers";
-import { useKanbanColumns } from "./useKanbanColumns";
-import { KanbanLead } from "@/types/kanban";
 
 export function useSalesFunnelMain() {
   const { isAdmin, role } = useUserRole();
@@ -24,7 +22,9 @@ export function useSalesFunnelMain() {
     setIsLeadDetailOpen,
     availableTags,
     stages,
-    leads: rawLeads,
+    leads,
+    columns,
+    setColumns,
     addColumn,
     updateColumn,
     deleteColumn,
@@ -43,32 +43,6 @@ export function useSalesFunnelMain() {
   } = useExtendedSalesFunnel(selectedFunnel?.id);
 
   useNewLeadIntegration(selectedFunnel?.id);
-
-  // Transform leads to match KanbanLead interface
-  const leads: KanbanLead[] = rawLeads?.map(lead => ({
-    id: lead.id,
-    name: lead.name,
-    phone: lead.phone,
-    email: lead.email,
-    columnId: lead.kanban_stage_id,
-    tags: lead.tags?.map(tagRelation => ({
-      id: tagRelation.tag.id,
-      name: tagRelation.tag.name,
-      color: tagRelation.tag.color || '#3b82f6'
-    })) || [],
-    notes: lead.notes,
-    purchaseValue: lead.purchase_value ? Number(lead.purchase_value) : undefined,
-    assignedUser: lead.owner_id,
-    lastMessage: lead.last_message || '',
-    lastMessageTime: lead.last_message_time || '',
-    createdAt: lead.created_at,
-    address: lead.address,
-    company: lead.company,
-    documentId: lead.document_id
-  })) || [];
-
-  // Use useKanbanColumns to generate proper columns
-  const { columns, setColumns } = useKanbanColumns(stages || [], leads, selectedFunnel?.id);
 
   console.log('[SalesFunnelMain] 🔍 Estado completo:', {
     funnelsCount: funnels.length,

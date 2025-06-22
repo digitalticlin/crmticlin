@@ -4,6 +4,7 @@ import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
 import { useDragAndDrop } from "@/hooks/kanban/useDragAndDrop";
 import { BoardContent } from "./kanban/BoardContent";
 import { LeadCard } from "./LeadCard";
+import { useMemo } from "react";
 
 interface KanbanBoardProps {
   columns: IKanbanColumn[];
@@ -32,19 +33,34 @@ export const KanbanBoard = ({
   wonStageId,
   lostStageId
 }: KanbanBoardProps) => {
+  // Validar e estabilizar colunas
+  const validatedColumns = useMemo(() => {
+    if (!Array.isArray(columns)) {
+      console.warn('[KanbanBoard] ⚠️ Colunas não são array:', columns);
+      return [];
+    }
+    
+    return columns.filter(col => 
+      col && 
+      typeof col.id === 'string' && 
+      typeof col.title === 'string' &&
+      Array.isArray(col.leads)
+    );
+  }, [columns]);
+
   const { 
     showDropZones, 
     onDragStart, 
     onDragEnd 
   } = useDragAndDrop({ 
-    columns, 
+    columns: validatedColumns, 
     onColumnsChange, 
     onMoveToWonLost, 
     isWonLostView
   });
 
-  // Se não há colunas, mostrar estado vazio
-  if (!columns || columns.length === 0) {
+  // Se não há colunas válidas, mostrar estado vazio
+  if (!validatedColumns || validatedColumns.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
         <div className="text-center">
@@ -63,12 +79,19 @@ export const KanbanBoard = ({
   }
 
   // Cria um mapping para lookup por id mais fácil para renderClone
-  const leadMap: Record<string, KanbanLead> = {};
-  columns.forEach(col => {
-    col.leads.forEach(lead => {
-      leadMap[lead.id] = lead;
+  const leadMap: Record<string, KanbanLead> = useMemo(() => {
+    const map: Record<string, KanbanLead> = {};
+    validatedColumns.forEach(col => {
+      if (Array.isArray(col.leads)) {
+        col.leads.forEach(lead => {
+          if (lead && lead.id) {
+            map[lead.id] = lead;
+          }
+        });
+      }
     });
-  });
+    return map;
+  }, [validatedColumns]);
 
   // Renderização personalizada do clone flutuante durante drag
   const renderClone = (provided: DraggableProvided, snapshot: any, rubric: any) => {
@@ -89,8 +112,12 @@ export const KanbanBoard = ({
     );
   };
 
-  // Cria uma key baseada nas colunas que irá forçar o remount quando as colunas mudarem
-  const boardKey = columns.map(col => `${col.id}-${col.leads.length}`).join('-');
+  // Cria uma key estável baseada nas colunas que irá forçar o remount quando necessário
+  const boardKey = useMemo(() => {
+    return validatedColumns
+      .map(col => `${col.id}-${col.leads?.length || 0}`)
+      .join('-');
+  }, [validatedColumns]);
 
   return (
     <DragDropContext 
@@ -99,7 +126,7 @@ export const KanbanBoard = ({
     >
       <div className="relative w-full h-full flex flex-col" key={boardKey}>
         <BoardContent 
-          columns={columns}
+          columns={validatedColumns}
           onOpenLeadDetail={onOpenLeadDetail}
           onColumnUpdate={onColumnUpdate}
           onColumnDelete={onColumnDelete}

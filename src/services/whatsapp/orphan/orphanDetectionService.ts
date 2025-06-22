@@ -1,7 +1,12 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { OrphanInstance } from "./types";
 import { VPSInstanceService } from "./vpsInstanceService";
+
+export interface OrphanInstance {
+  instanceId: string;
+  status: string;
+  isOrphan: boolean;
+}
 
 export class OrphanDetectionService {
   /**
@@ -33,7 +38,8 @@ export class OrphanDetectionService {
       const orphans = vpsInstances.filter(vpsInstance => 
         !supabaseInstanceIds.includes(vpsInstance.instanceId)
       ).map(instance => ({
-        ...instance,
+        instanceId: instance.instanceId,
+        status: instance.status,
         isOrphan: true
       }));
 
