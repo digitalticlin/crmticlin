@@ -56,8 +56,8 @@ serve(async (req: Request) => {
 
     console.log(`🌐 [QR Manager] Solicitando QR Code para VPS: ${instance.instance_name}`);
 
-    // Fazer requisição para VPS
-    const vpsUrl = "https://wpp.hostingbrasil.store";
+    // CORREÇÃO: Usar URL correta na porta 3002
+    const vpsUrl = "http://31.97.24.222:3002";
     const response = await fetch(`${vpsUrl}/instance/qrcode/${instance.instance_name}`, {
       method: 'GET',
       headers: {

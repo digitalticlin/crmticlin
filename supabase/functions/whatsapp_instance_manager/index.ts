@@ -84,13 +84,13 @@ async function createInstanceModular(supabase: any, user: any, instanceName: str
     
     if (vpsResult.success) {
       console.log(`[${executionId}] ✅ VPS Success`);
-      // Salvar no banco com dados VPS
-      const instance = await saveInstanceToDatabase(supabase, user, intelligentName, 'connected', vpsResult.data);
+      // CORREÇÃO: Salvar com status "pending" ao invés de "connected"
+      const instance = await saveInstanceToDatabase(supabase, user, intelligentName, 'pending', vpsResult.data);
       return createSuccessResponse(instance, vpsResult, intelligentName, user.email, false, executionId);
     } else {
       console.log(`[${executionId}] 🚨 VPS Fallback: ${vpsResult.error}`);
       // Criar instância apenas no banco (fallback)
-      const instance = await saveInstanceToDatabase(supabase, user, intelligentName, 'database_only');
+      const instance = await saveInstanceToDatabase(supabase, user, intelligentName, 'pending');
       return createSuccessResponse(instance, vpsResult, intelligentName, user.email, true, executionId);
     }
 
@@ -216,7 +216,8 @@ async function attemptVPSCreation(instanceId: string, executionId: string) {
   try {
     console.log(`[${executionId}] 🌐 Criando na VPS: ${instanceId}`);
     
-    const vpsUrl = Deno.env.get('VPS_SERVER_URL') || 'http://31.97.24.222:3002';
+    // CORREÇÃO: Usar URL correta na porta 3002
+    const vpsUrl = 'http://31.97.24.222:3002';
     const vpsToken = Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
     
     const controller = new AbortController();
@@ -231,7 +232,7 @@ async function attemptVPSCreation(instanceId: string, executionId: string) {
       body: JSON.stringify({
         instanceId,
         sessionName: instanceId,
-        webhookUrl: 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_whatsapp_web'
+        webhookUrl: 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_qr_receiver'
       }),
       signal: controller.signal
     });
@@ -291,8 +292,8 @@ async function saveInstanceToDatabase(supabase: any, user: any, instanceName: st
     connection_type: 'web',
     server_url: 'http://31.97.24.222:3002',
     vps_instance_id: instanceName,
-    web_status: status === 'connected' ? 'connected' : 'fallback_created',
-    connection_status: status,
+    web_status: status === 'pending' ? 'pending' : 'fallback_created',
+    connection_status: status, // CORREÇÃO: usar "pending" ao invés de "connected"
     created_by_user_id: user.id,
     qr_code: vpsData?.qrCode || null
   };
