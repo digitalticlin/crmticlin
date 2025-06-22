@@ -1,14 +1,17 @@
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { 
   Smartphone, 
   Clock, 
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  QrCode,
+  Loader2
 } from "lucide-react";
 import { WhatsAppWebInstance } from "@/types/whatsapp";
-import { GenerateQRButton } from "@/modules/whatsapp/qrCodeManagement";
+import { useQRCodeGeneration } from "@/modules/whatsapp/qrCodeManagement";
 import { DeleteInstanceButton } from "@/modules/whatsapp/instanceDeletion";
 
 interface SimpleInstanceCardProps {
@@ -22,6 +25,13 @@ export const SimpleInstanceCard = ({
   onGenerateQR, 
   onDelete
 }: SimpleInstanceCardProps) => {
+  const { generateQRCode, isGenerating } = useQRCodeGeneration({
+    onModalOpen: (instanceId) => {
+      console.log('[SimpleInstanceCard] 🚀 Abrindo modal para:', instanceId);
+      onGenerateQR(instanceId, instance.instance_name);
+    }
+  });
+
   const getStatusInfo = () => {
     const status = instance.connection_status?.toLowerCase() || 'unknown';
     
@@ -63,13 +73,10 @@ export const SimpleInstanceCard = ({
   const statusInfo = getStatusInfo();
   const StatusIcon = statusInfo.icon;
   const isConnected = ['ready', 'connected'].includes(instance.connection_status?.toLowerCase() || '');
-  const hasQRCode = !!instance.qr_code && instance.qr_code !== 'waiting';
 
-  const handleGenerateQR = () => {
-    if (hasQRCode) {
-      // Se já tem QR Code, abrir modal para visualizar
-      onGenerateQR(instance.id, instance.instance_name);
-    }
+  const handleGenerateQR = async () => {
+    console.log('[SimpleInstanceCard] 🔄 Gerando QR Code para:', instance.id);
+    await generateQRCode(instance.id);
   };
 
   return (
@@ -106,22 +113,19 @@ export const SimpleInstanceCard = ({
         </div>
 
         <div className="flex gap-2">
-          {!isConnected && hasQRCode && (
-            <GenerateQRButton
-              instanceId={instance.id}
-              instanceName={instance.instance_name}
-              onSuccess={handleGenerateQR}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white border-blue-600"
-              variant="default"
-            />
-          )}
-          
-          {!isConnected && !hasQRCode && (
-            <GenerateQRButton
-              instanceId={instance.id}
-              instanceName={instance.instance_name}
-              className="flex-1"
-            />
+          {!isConnected && (
+            <Button
+              onClick={handleGenerateQR}
+              disabled={isGenerating}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+            >
+              {isGenerating ? (
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+              ) : (
+                <QrCode className="h-4 w-4 mr-1" />
+              )}
+              {isGenerating ? 'Gerando...' : 'Gerar QR Code'}
+            </Button>
           )}
           
           <DeleteInstanceButton
