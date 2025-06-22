@@ -85,6 +85,14 @@ function App() {
                   } 
                 />
                 <Route 
+                  path="/whatsapp-chat" 
+                  element={
+                    <ProtectedRoute>
+                      <WhatsAppWebPage />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
                   path="/global-admin/*" 
                   element={
                     <ProtectedRoute>
