@@ -65,14 +65,6 @@ export const KanbanBoard = ({
     return map;
   }, [validatedColumns]);
 
-  // Cria uma key super estável baseada apenas nos IDs das colunas (não no conteúdo)
-  const boardKey = useMemo(() => {
-    return validatedColumns
-      .map(col => col.id)
-      .sort() // Garante ordem consistente
-      .join('-');
-  }, [validatedColumns]);
-
   // Hook de drag and drop com dependências estáveis
   const { 
     showDropZones, 
@@ -84,25 +76,6 @@ export const KanbanBoard = ({
     onMoveToWonLost, 
     isWonLostView
   });
-
-  // Renderização personalizada do clone flutuante durante drag - memoizada
-  const renderClone = useCallback((provided: DraggableProvided, snapshot: any, rubric: any) => {
-    const leadId = rubric.draggableId;
-    const lead = leadMap[leadId];
-    if (!lead) return null;
-
-    return (
-      <div style={{ width: provided.draggableProps?.style?.width || "340px", pointerEvents: "none" }}>
-        <LeadCard
-          lead={lead}
-          provided={provided}
-          onClick={() => undefined}
-          isDragging={true}
-          isClone={true}
-        />
-      </div>
-    );
-  }, [leadMap]);
 
   // *** NOW WE CAN DO CONDITIONAL LOGIC AFTER ALL HOOKS ARE CALLED ***
 
@@ -126,7 +99,7 @@ export const KanbanBoard = ({
   }
 
   return (
-    <div className="relative w-full h-full flex flex-col" key={boardKey}>
+    <div className="relative w-full h-full flex flex-col">
       <DragDropContext 
         onDragStart={onDragStart} 
         onDragEnd={onDragEnd}
