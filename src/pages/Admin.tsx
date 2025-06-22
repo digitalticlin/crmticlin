@@ -11,9 +11,9 @@ import {
   Shield
 } from "lucide-react";
 
-// CORREÇÃO: Remover import do VPSDebugDashboard obsoleto
-import { WhatsAppWebAdminPanel } from "@/components/admin/WhatsAppWebAdminPanel";
-import { SimplifiedWhatsAppPanel } from "@/components/admin/SimplifiedWhatsAppPanel";
+// CORREÇÃO: Usar imports default ao invés de named imports
+import WhatsAppWebAdminPanel from "@/components/admin/WhatsAppWebAdminPanel";
+import SimplifiedWhatsAppPanel from "@/components/admin/SimplifiedWhatsAppPanel";
 
 export default function Admin() {
   return (

@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQRCodeManagement } from "@/modules/whatsapp/qrCodeManagement/hooks/useQRCodeManagement";
 import { InstanceApi } from "@/modules/whatsapp/instanceCreation/api/instanceApi";
 
 interface CreateInstanceResult {
@@ -24,9 +23,6 @@ export const useWhatsAppWebInstances = () => {
   const [selectedInstanceName, setSelectedInstanceName] = useState<string | null>(null);
   const [showQRModal, setShowQRModal] = useState(false);
   const [qrPollingActive, setQrPollingActive] = useState(false);
-
-  // Integrar com módulo QR Code Management
-  const { openQRModal, closeQRModal, requestQRCode, getQRState } = useQRCodeManagement();
 
   const loadInstances = async () => {
     try {

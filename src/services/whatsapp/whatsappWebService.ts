@@ -57,10 +57,9 @@ export class WhatsAppWebService {
   static async checkServerHealth(): Promise<any> {
     console.log('[WhatsApp Service] 🔍 CheckServerHealth - redirecionando para InstanceApi');
     try {
-      // Usar a URL correta da VPS na porta 3002
+      // CORREÇÃO: Remover timeout que não existe no RequestInit
       const response = await fetch('http://31.97.24.222:3002/health', {
-        method: 'GET',
-        timeout: 10000
+        method: 'GET'
       });
       
       return {
@@ -81,10 +80,9 @@ export class WhatsAppWebService {
   static async getServerInfo(): Promise<any> {
     console.log('[WhatsApp Service] ℹ️ GetServerInfo - redirecionando para InstanceApi');
     try {
-      // Usar a URL correta da VPS na porta 3002
+      // CORREÇÃO: Remover timeout que não existe no RequestInit
       const response = await fetch('http://31.97.24.222:3002/status', {
-        method: 'GET',
-        timeout: 10000
+        method: 'GET'
       });
       
       const data = await response.json();
