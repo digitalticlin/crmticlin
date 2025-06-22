@@ -1,8 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { HealthCheckResult } from "./types";
-import { OrphanDetectionService } from "./orphanDetectionService";
-import { VPSInstanceService } from "./vpsInstanceService";
+import type { HealthCheckResult } from "./types";
 
 export class HealthCheckService {
   /**
@@ -12,6 +10,10 @@ export class HealthCheckService {
     try {
       console.log('[Orphan Recovery] 🏥 Executando health check completo...');
 
+      // Import only when needed to avoid circular dependencies
+      const { OrphanDetectionService } = await import('./orphanDetectionService');
+      const { VPSInstanceService } = await import('./vpsInstanceService');
+
       const orphans = await OrphanDetectionService.findOrphanInstances(companyId);
       const inconsistencies: any[] = [];
       const recommendations: string[] = [];
@@ -20,7 +22,7 @@ export class HealthCheckService {
       const { data: supabaseInstances } = await supabase
         .from('whatsapp_instances')
         .select('*')
-        .eq('company_id', companyId)
+        .eq('created_by_user_id', companyId)
         .eq('connection_type', 'web');
 
       const vpsInstances = await VPSInstanceService.getVPSInstances();
