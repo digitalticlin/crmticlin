@@ -11,6 +11,9 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+// CORREÇÃO: Adicionar token VPS para autenticação
+const VPS_AUTH_TOKEN = '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -62,10 +65,13 @@ serve(async (req: Request) => {
         
         console.log(`🌐 [Instance Delete] Deletando da VPS: ${instanceName}`);
         
+        // CORREÇÃO: Adicionar token de autenticação VPS
         const vpsResponse = await fetch(`${vpsUrl}/instance/${instanceName}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${VPS_AUTH_TOKEN}`,
+            'X-API-Token': VPS_AUTH_TOKEN
           }
         });
 
