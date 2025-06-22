@@ -37,3 +37,6 @@ export class InstanceDeletionService {
     }
   }
 }
+
+// Export the types for external use
+export type { DeleteInstanceParams, DeleteInstanceResult } from '../types/instanceDeletionTypes';
