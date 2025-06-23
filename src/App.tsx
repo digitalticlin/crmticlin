@@ -23,7 +23,7 @@ import PlansPage from './pages/Plans';
 const queryClient = new QueryClient();
 
 function App() {
-  console.log('[App] 🚀 Inicializando aplicação com QRCodeModalProvider');
+  console.log('[App] 🚀 Inicializando aplicação');
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
@@ -32,11 +32,11 @@ function App() {
             <SidebarProvider>
               <QRCodeModalProvider>
                 <Routes>
-                  {/* Rota de login pública */}
+                  {/* Rotas públicas */}
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   
-                  {/* Rota raiz redireciona para dashboard se autenticado, senão para login */}
+                  {/* Rotas protegidas */}
                   <Route 
                     path="/" 
                     element={
@@ -45,8 +45,6 @@ function App() {
                       </ProtectedRoute>
                     } 
                   />
-                  
-                  {/* Todas as outras rotas protegidas */}
                   <Route 
                     path="/dashboard" 
                     element={
@@ -56,7 +54,7 @@ function App() {
                     } 
                   />
                   <Route 
-                    path="/sales-funnel" 
+                    path="/funnels" 
                     element={
                       <ProtectedRoute>
                         <FunnelsPage />
@@ -64,7 +62,7 @@ function App() {
                     } 
                   />
                   <Route 
-                    path="/funnels" 
+                    path="/sales-funnel" 
                     element={
                       <ProtectedRoute>
                         <FunnelsPage />
