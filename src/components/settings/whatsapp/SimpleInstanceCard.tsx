@@ -13,6 +13,7 @@ import {
 import { WhatsAppWebInstance } from "@/types/whatsapp";
 import { DeleteInstanceButton } from "@/modules/whatsapp/instanceDeletion";
 import { GenerateQRButton } from "@/modules/whatsapp/qrCodeManagement/components/GenerateQRButton";
+import { ImportHistoryButton } from "./history/ImportHistoryButton";
 
 interface SimpleInstanceCardProps {
   instance: WhatsAppWebInstance;
@@ -110,7 +111,7 @@ export const SimpleInstanceCard = ({
           )}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {needsQrCode && (
             <GenerateQRButton
               instanceId={instance.id}
@@ -122,6 +123,13 @@ export const SimpleInstanceCard = ({
               className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-md hover:shadow-lg transition-all duration-200"
             />
           )}
+          
+          {/* NOVO: Botão Importar Histórico - só aparece para instâncias conectadas */}
+          <ImportHistoryButton
+            instanceId={instance.id}
+            instanceName={instance.instance_name}
+            connectionStatus={instance.connection_status || ''}
+          />
           
           <DeleteInstanceButton
             instanceId={instance.id}
