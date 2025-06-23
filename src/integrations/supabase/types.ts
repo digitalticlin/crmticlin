@@ -595,7 +595,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      sync_whatsapp_instances: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       media_type: "text" | "image" | "video" | "audio" | "document"

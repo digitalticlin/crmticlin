@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -31,8 +32,11 @@ function App() {
             <SidebarProvider>
               <QRCodeModalProvider>
                 <Routes>
+                  {/* Rota de login pública */}
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
+                  
+                  {/* Rota raiz redireciona para dashboard se autenticado, senão para login */}
                   <Route 
                     path="/" 
                     element={
@@ -41,6 +45,8 @@ function App() {
                       </ProtectedRoute>
                     } 
                   />
+                  
+                  {/* Todas as outras rotas protegidas */}
                   <Route 
                     path="/dashboard" 
                     element={
