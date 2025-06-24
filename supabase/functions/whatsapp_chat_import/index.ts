@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
@@ -43,17 +44,33 @@ async function authenticateUser(req: Request, supabase: any) {
 
 async function importHistoryFromVPS(supabase: any, instance: any, importType: string = 'both', batchSize: number = 50, lastSyncTimestamp?: string) {
   console.log(`[Chat Import] 📚 Importando histórico da instância: ${instance.instance_name}`);
+  console.log(`[Chat Import] 🔍 VPS Instance ID: "${instance.vps_instance_id}"`);
+  console.log(`[Chat Import] 🔍 Import Type: ${importType}, Batch Size: ${batchSize}`);
+
+  // VALIDAÇÃO CRÍTICA: Verificar se vps_instance_id existe e não está vazio
+  if (!instance.vps_instance_id || instance.vps_instance_id.trim() === '') {
+    console.error(`[Chat Import] ❌ ERRO: vps_instance_id está vazio ou nulo para instância ${instance.instance_name}`);
+    return {
+      success: false,
+      error: 'VPS Instance ID não encontrado para esta instância',
+      contactsImported: 0,
+      messagesImported: 0
+    };
+  }
 
   try {
-    // CORREÇÃO: Usar endpoint correto da VPS
+    // CORREÇÃO: Usar endpoint correto da VPS com vps_instance_id validado
     const url = `${VPS_CONFIG.baseUrl}/instance/${instance.vps_instance_id}/import-history`;
     console.log(`[Chat Import] 🎯 POST ${url}`);
+    console.log(`[Chat Import] 🔐 Usando token: ${VPS_CONFIG.authToken.substring(0, 10)}...`);
     
     const requestBody = {
       importType,
       batchSize,
       ...(lastSyncTimestamp && { lastSyncTimestamp })
     };
+
+    console.log(`[Chat Import] 📤 Body da requisição:`, JSON.stringify(requestBody, null, 2));
 
     const response = await fetch(url, {
       method: 'POST',
@@ -66,19 +83,28 @@ async function importHistoryFromVPS(supabase: any, instance: any, importType: st
       signal: AbortSignal.timeout(VPS_CONFIG.timeout)
     });
 
+    console.log(`[Chat Import] 📋 Response Status: ${response.status}`);
+    
     const responseText = await response.text();
-    console.log(`[Chat Import] 📋 Response (${response.status}):`, responseText.substring(0, 200));
+    console.log(`[Chat Import] 📋 Response Body (primeiros 500 chars):`, responseText.substring(0, 500));
 
     let data;
     try {
       data = JSON.parse(responseText);
-    } catch {
-      data = { raw: responseText };
+    } catch (parseError) {
+      console.error(`[Chat Import] ❌ Erro ao fazer parse da resposta:`, parseError);
+      data = { raw: responseText, parseError: parseError.message };
     }
 
     if (!response.ok) {
-      throw new Error(data.message || data.error || 'Falha ao importar histórico da VPS');
+      console.error(`[Chat Import] ❌ Resposta HTTP não OK:`, response.status, data);
+      throw new Error(data.message || data.error || `HTTP ${response.status}: ${response.statusText}`);
     }
+
+    console.log(`[Chat Import] ✅ Resposta VPS recebida com sucesso:`, {
+      contactsCount: data.contacts?.length || 0,
+      messagesCount: data.messages?.length || 0
+    });
 
     // Processar contatos se existirem
     let contactsImported = 0;
@@ -88,7 +114,10 @@ async function importHistoryFromVPS(supabase: any, instance: any, importType: st
       for (const contact of data.contacts) {
         try {
           const cleanPhone = cleanPhoneNumber(contact.id || contact.phone || '');
-          if (!cleanPhone) continue;
+          if (!cleanPhone) {
+            console.warn(`[Chat Import] ⚠️ Contato sem telefone válido:`, contact);
+            continue;
+          }
 
           // Verificar se já existe
           const { data: existingLead } = await supabase
@@ -113,7 +142,12 @@ async function importHistoryFromVPS(supabase: any, instance: any, importType: st
 
             if (!error) {
               contactsImported++;
+              console.log(`[Chat Import] ✅ Contato salvo: ${cleanPhone}`);
+            } else {
+              console.error(`[Chat Import] ❌ Erro ao salvar contato ${cleanPhone}:`, error);
             }
+          } else {
+            console.log(`[Chat Import] ℹ️ Contato já existe: ${cleanPhone}`);
           }
         } catch (error: any) {
           console.warn(`[Chat Import] ⚠️ Erro ao processar contato:`, error.message);
@@ -129,10 +163,16 @@ async function importHistoryFromVPS(supabase: any, instance: any, importType: st
       for (const message of data.messages) {
         try {
           const phoneNumber = message.from || message.phone || message.remoteJid || '';
-          if (!phoneNumber) continue;
+          if (!phoneNumber) {
+            console.warn(`[Chat Import] ⚠️ Mensagem sem telefone:`, message);
+            continue;
+          }
 
           const cleanPhone = cleanPhoneNumber(phoneNumber.replace('@c.us', ''));
-          if (!cleanPhone) continue;
+          if (!cleanPhone) {
+            console.warn(`[Chat Import] ⚠️ Telefone inválido após limpeza: ${phoneNumber}`);
+            continue;
+          }
 
           // Buscar ou criar lead
           let leadId: string;
@@ -161,10 +201,11 @@ async function importHistoryFromVPS(supabase: any, instance: any, importType: st
               .single();
 
             if (leadError || !newLead) {
-              console.warn(`[Chat Import] ⚠️ Erro ao criar lead para ${cleanPhone}`);
+              console.warn(`[Chat Import] ⚠️ Erro ao criar lead para ${cleanPhone}:`, leadError);
               continue;
             }
             leadId = newLead.id;
+            console.log(`[Chat Import] ✅ Lead criado: ${cleanPhone} -> ${leadId}`);
           }
 
           // Verificar se mensagem já existe
@@ -192,6 +233,11 @@ async function importHistoryFromVPS(supabase: any, instance: any, importType: st
 
             if (!error) {
               messagesImported++;
+              if (messagesImported % 10 === 0) {
+                console.log(`[Chat Import] 📊 ${messagesImported} mensagens processadas...`);
+              }
+            } else {
+              console.error(`[Chat Import] ❌ Erro ao salvar mensagem:`, error);
             }
           }
         } catch (error: any) {
@@ -212,6 +258,7 @@ async function importHistoryFromVPS(supabase: any, instance: any, importType: st
 
   } catch (error: any) {
     console.error(`[Chat Import] ❌ Erro na importação:`, error.message);
+    console.error(`[Chat Import] ❌ Stack trace:`, error.stack);
     return {
       success: false,
       error: error.message,
@@ -363,8 +410,10 @@ serve(async (req) => {
       }
 
       case 'import_chats_gradual': {
-        // Ação especial para ser chamada pelo webhook automaticamente
+        // CORREÇÃO CRÍTICA: Action para importação automática via webhook
         const { instanceId, vpsInstanceId } = body;
+        
+        console.log(`[Chat Import] 🔍 Parâmetros recebidos:`, { instanceId, vpsInstanceId });
         
         if (!instanceId && !vpsInstanceId) {
           return new Response(
@@ -384,24 +433,23 @@ serve(async (req) => {
         const { data: instance, error: instanceError } = await query.single();
 
         if (instanceError || !instance) {
-          console.error(`[Chat Import] ❌ Instância não encontrada:`, instanceError);
+          console.error(`[Chat Import] ❌ Instância não encontrada:`, { instanceId, vpsInstanceId, error: instanceError });
           return new Response(
             JSON.stringify({ success: false, error: 'Instância não encontrada' }),
             { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
 
+        console.log(`[Chat Import] ✅ Instância encontrada:`, {
+          id: instance.id,
+          name: instance.instance_name,
+          vpsInstanceId: instance.vps_instance_id
+        });
+
         console.log(`[Chat Import] 🚀 Importação automática iniciada para: ${instance.instance_name}`);
 
-        // Importação gradual - apenas contatos primeiro
-        const contactResults = await importContacts(supabase, instance, 25);
-        
-        // Aguardar um pouco antes de importar mensagens
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Importar mensagens mais recentes (último mês)
-        const oneMonthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-        const messageResults = await importMessages(supabase, instance, 20, oneMonthAgo);
+        // CORREÇÃO: Usar a função importHistoryFromVPS corretamente
+        const result = await importHistoryFromVPS(supabase, instance, 'both', 25);
 
         // Atualizar timestamp
         await supabase
@@ -413,15 +461,20 @@ serve(async (req) => {
           })
           .eq('id', instance.id);
 
-        console.log(`[Chat Import] ✅ Importação automática concluída: ${contactResults.imported + messageResults.imported} itens`);
+        console.log(`[Chat Import] ✅ Importação automática concluída:`, {
+          contactsImported: result.contactsImported,
+          messagesImported: result.messagesImported,
+          totalImported: result.contactsImported + result.messagesImported
+        });
 
         return new Response(
           JSON.stringify({
-            success: true,
-            message: 'Importação automática concluída',
-            contactsImported: contactResults.imported,
-            messagesImported: messageResults.imported,
-            totalImported: contactResults.imported + messageResults.imported
+            success: result.success,
+            message: result.message || 'Importação automática concluída',
+            contactsImported: result.contactsImported,
+            messagesImported: result.messagesImported,
+            totalImported: result.contactsImported + result.messagesImported,
+            error: result.success ? undefined : result.error
           }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
