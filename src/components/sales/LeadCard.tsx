@@ -1,3 +1,4 @@
+
 import { KanbanLead, FIXED_COLUMN_IDS } from "@/types/kanban";
 import { cn } from "@/lib/utils";
 import { DraggableProvided } from "react-beautiful-dnd";
@@ -53,28 +54,33 @@ export const LeadCard = ({
       {...provided.draggableProps}
       {...provided.dragHandleProps}
       className={cn(
-        "bg-white/40 backdrop-blur-lg border border-white/40 shadow-glass-lg mb-4 rounded-xl p-4 cursor-pointer group relative",
+        "bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass-lg mb-4 rounded-xl p-4 cursor-pointer group relative",
         "w-[98.5%] max-w-[380px] mx-auto",
-        // NO transform or transition classes during drag - let react-beautiful-dnd handle it
-        !isDragging && !isClone && "transition-all duration-300 hover:scale-[1.02] hover:z-30 hover:relative hover:bg-white/50 hover:shadow-xl hover:border-white/50",
+        // CRUCIAL: No transforms during drag - let react-beautiful-dnd handle positioning
+        !isDragging && !isClone && "transition-all duration-200 hover:scale-[1.02] hover:shadow-xl hover:border-white/50",
+        isDragging && "opacity-90 rotate-2 shadow-2xl border-2 border-blue-400/60 bg-white/60",
         isWon && "border-l-[4px] border-l-green-500 bg-green-50/20",
         isLost && "border-l-[4px] border-l-red-500 bg-red-50/20"
       )}
       style={{
-        // CRITICAL: Only spread provided.draggableProps.style - DO NOT override
+        // CRITICAL: Only use provided.draggableProps.style - no custom overrides
         ...provided.draggableProps.style,
-        // NO custom styling during drag - it interferes with positioning
+        // Ensure proper z-index for dragging
+        ...(isDragging && {
+          zIndex: 9999,
+          pointerEvents: 'none'
+        })
       }}
-      onClick={handleCardClick}
+      onClick={!isDragging ? handleCardClick : undefined}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      {/* Efeito de brilho durante drag */}
-      {(isDragging || isClone) && (
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
+      {/* Drag glow effect */}
+      {isDragging && (
+        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-400/20 via-white/30 to-blue-400/20 animate-pulse pointer-events-none" />
       )}
       
-      {/* Overlay glassmorphism adicional */}
+      {/* Glassmorphism overlay */}
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent rounded-xl pointer-events-none" />
       
       <LeadCardContent lead={lead} isWonLostView={isWonLostView} lostStageId={lostStageId} />

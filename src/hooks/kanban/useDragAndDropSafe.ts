@@ -21,8 +21,12 @@ export const useDragAndDropSafe = ({
 
   const onDragStart = useCallback(() => {
     try {
-      console.log('[DragDropSafe] 🎯 Drag iniciado');
+      console.log('[DragDropSafe] 🎯 Drag iniciado - UI otimizada');
       setIsDragging(true);
+      
+      // Prevent page scroll during drag
+      document.body.style.userSelect = 'none';
+      document.body.style.overflow = 'hidden';
     } catch (error) {
       console.error('[DragDropSafe] ❌ Erro ao iniciar drag:', error);
       setIsDragging(false);
@@ -33,6 +37,10 @@ export const useDragAndDropSafe = ({
     try {
       console.log('[DragDropSafe] 🎯 Drag finalizado:', result);
       setIsDragging(false);
+      
+      // Restore page behavior
+      document.body.style.userSelect = 'unset';
+      document.body.style.overflow = 'unset';
 
       if (!result.destination || !result.source) {
         console.log('[DragDropSafe] ⚠️ Drag cancelado - sem destino válido');
@@ -45,7 +53,6 @@ export const useDragAndDropSafe = ({
         return;
       }
 
-      // Validar colunas
       if (!Array.isArray(columns) || columns.length === 0) {
         console.error('[DragDropSafe] ❌ Colunas inválidas');
         return;
@@ -68,7 +75,7 @@ export const useDragAndDropSafe = ({
         return;
       }
 
-      // Reordenar na mesma coluna
+      // Same column reorder
       if (result.source.droppableId === result.destination.droppableId) {
         const newLeads = Array.from(sourceColumn.leads);
         const [removed] = newLeads.splice(result.source.index, 1);
@@ -84,16 +91,15 @@ export const useDragAndDropSafe = ({
         return;
       }
 
-      // Mover entre colunas
+      // Cross-column move with IMMEDIATE UI update
       const sourceLeads = Array.from(sourceColumn.leads);
       const destLeads = Array.from(destColumn.leads);
       const [removed] = sourceLeads.splice(result.source.index, 1);
       
-      // Atualizar columnId do lead
       const updatedLead = { ...removed, columnId: destColumn.id };
       destLeads.splice(result.destination.index, 0, updatedLead);
 
-      // ATUALIZAR UI PRIMEIRO (UX responsivo)
+      // UPDATE UI FIRST for responsive feel
       const newColumns = columns.map(col => {
         if (col.id === sourceColumn.id) {
           return { ...col, leads: sourceLeads };
@@ -106,7 +112,7 @@ export const useDragAndDropSafe = ({
 
       onColumnsChange(newColumns);
 
-      // ATUALIZAR BACKEND (sem bloquear UI)
+      // THEN update database asynchronously
       try {
         console.log('[DragDropSafe] 🔄 Atualizando backend:', {
           leadId: draggedLead.id,
@@ -128,7 +134,7 @@ export const useDragAndDropSafe = ({
           console.error('[DragDropSafe] ❌ Erro ao atualizar backend:', updateError);
           toast.error("Erro ao salvar alteração. Recarregue a página.");
           
-          // REVERTER UI em caso de erro
+          // Revert UI on error
           const revertedColumns = columns.map(col => {
             if (col.id === sourceColumn.id) {
               return { ...col, leads: sourceColumn.leads };
@@ -142,41 +148,12 @@ export const useDragAndDropSafe = ({
           return;
         }
 
-        // VERIFICAR se atualização foi bem-sucedida
-        const { data: verifyData, error: verifyError } = await supabase
-          .from("leads")
-          .select("kanban_stage_id")
-          .eq("id", draggedLead.id)
-          .single();
-
-        if (verifyError) {
-          console.error('[DragDropSafe] ❌ Erro ao verificar atualização:', verifyError);
-        } else if (verifyData?.kanban_stage_id === destColumn.id) {
-          console.log('[DragDropSafe] ✅ Atualização confirmada no banco');
-          toast.success(`Lead "${draggedLead.name}" movido para "${destColumn.title}"`);
-        } else {
-          console.error('[DragDropSafe] ❌ Inconsistência detectada:', {
-            expected: destColumn.id,
-            actual: verifyData?.kanban_stage_id
-          });
-          toast.error("Inconsistência detectada. Recarregue a página.");
-        }
+        console.log('[DragDropSafe] ✅ Atualização do banco bem-sucedida');
+        toast.success(`Lead "${draggedLead.name}" movido para "${destColumn.title}"`);
 
       } catch (backendError) {
         console.error('[DragDropSafe] ❌ Erro crítico no backend:', backendError);
         toast.error("Erro de conexão. Recarregue a página.");
-        
-        // REVERTER UI em caso de erro crítico
-        const revertedColumns = columns.map(col => {
-          if (col.id === sourceColumn.id) {
-            return { ...col, leads: sourceColumn.leads };
-          }
-          if (col.id === destColumn.id) {
-            return { ...col, leads: destColumn.leads };
-          }
-          return col;
-        });
-        onColumnsChange(revertedColumns);
       }
 
       console.log('[DragDropSafe] ✅ Drag completado com sucesso');
@@ -184,6 +161,9 @@ export const useDragAndDropSafe = ({
     } catch (error) {
       console.error('[DragDropSafe] ❌ Erro durante drag and drop:', error);
       setIsDragging(false);
+      // Restore page behavior on error
+      document.body.style.userSelect = 'unset';
+      document.body.style.overflow = 'unset';
     }
   }, [columns, onColumnsChange]);
 

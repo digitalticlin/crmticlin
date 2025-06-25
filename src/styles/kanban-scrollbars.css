@@ -1,60 +1,79 @@
 
-/* Scrollbars minimalistas para o Kanban */
-
-/* Scrollbar horizontal do board principal */
-.kanban-scrollbar::-webkit-scrollbar {
-  height: 6px;
+/* Kanban Column Scrollbars - Optimized for Drag and Drop */
+.kanban-column-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
 }
 
-.kanban-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 3px;
-}
-
-.kanban-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
-  transition: background 0.2s ease;
-}
-
-.kanban-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.35);
-}
-
-/* Scrollbar vertical das colunas */
 .kanban-column-scrollbar::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
 }
 
 .kanban-column-scrollbar::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 2px;
-  margin: 8px 0;
+  background: transparent;
+  border-radius: 3px;
 }
 
 .kanban-column-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 2px;
-  transition: background 0.2s ease;
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
 }
 
 .kanban-column-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(156, 163, 175, 0.8);
 }
 
-/* Firefox */
+/* Board horizontal scrollbar */
 .kanban-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+  scrollbar-color: rgba(156, 163, 175, 0.6) transparent;
 }
 
-.kanban-column-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.2) rgba(255, 255, 255, 0.05);
+.kanban-scrollbar::-webkit-scrollbar {
+  height: 8px;
 }
 
-/* Smooth scrolling */
-.kanban-scrollbar,
-.kanban-column-scrollbar {
-  scroll-behavior: smooth;
+.kanban-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.kanban-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.6);
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.kanban-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.9);
+}
+
+/* CRITICAL: Drag and Drop Portal Styles */
+[data-rbd-drag-handle-context-id] {
+  z-index: 9999 !important;
+}
+
+[data-rbd-draggable-context-id][data-rbd-draggable-id] {
+  position: relative !important;
+}
+
+/* Dragging state styles */
+[data-rbd-draggable-context-id][data-rbd-draggable-id]:has([data-rbd-drag-handle-dragging="true"]) {
+  z-index: 9999 !important;
+  pointer-events: none !important;
+}
+
+/* Drop zone highlighting */
+[data-rbd-droppable-context-id][data-rbd-droppable-id]:has([data-rbd-drag-handle-context-id]) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Prevent text selection during drag */
+body[data-rbd-drag-context-id] {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
 }

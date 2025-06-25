@@ -85,113 +85,109 @@ export function KanbanColumn({
     <div className="bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-2xl px-2.5 py-3 min-w-[300px] max-w-[300px] flex flex-col h-full transition-all duration-300 hover:bg-white/25 hover:shadow-glass-lg">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2 flex-1">
-              {isFixedStage && <Lock className="h-4 w-4 text-gray-500" />}
-              {isEditing ? (
-                <Input
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  onBlur={handleSaveTitle}
-                  onKeyDown={handleKeyPress}
-                  className="text-sm font-medium bg-white"
-                  autoFocus
-                />
-              ) : (
-                <h3 
-                  className={cn(
-                    "text-sm font-medium text-gray-900 truncate",
-                    isFixedStage && "text-gray-600"
-                  )}
-                  style={{ color: column.color }}
-                >
-                  {column.title}
-                </h3>
+        <div className="flex items-center gap-2 flex-1">
+          {isFixedStage && <Lock className="h-4 w-4 text-gray-500" />}
+          {isEditing ? (
+            <Input
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              onBlur={handleSaveTitle}
+              onKeyDown={handleKeyPress}
+              className="text-sm font-medium bg-white"
+              autoFocus
+            />
+          ) : (
+            <h3 
+              className={cn(
+                "text-sm font-medium text-gray-900 truncate",
+                isFixedStage && "text-gray-600"
               )}
-              <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
-                {column.leads.length}
-              </span>
-            </div>
+              style={{ color: column.color }}
+            >
+              {column.title}
+            </h3>
+          )}
+          <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
+            {column.leads.length}
+          </span>
+        </div>
 
-            {/* Actions - apenas mostrar se não for estágio fixo e não for view de ganhos/perdidos */}
-            {!isFixedStage && !isWonLostView && (onUpdateColumn || onDeleteColumn) && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {onUpdateColumn && (
-                    <DropdownMenuItem onClick={() => setIsEditing(true)}>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Editar
-                    </DropdownMenuItem>
-                  )}
-                  {onDeleteColumn && (
-                    <DropdownMenuItem onClick={handleDelete} className="text-red-600">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Excluir
-                    </DropdownMenuItem>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </div>
+        {/* Actions - apenas mostrar se não for estágio fixo e não for view de ganhos/perdidos */}
+        {!isFixedStage && !isWonLostView && (onUpdateColumn || onDeleteColumn) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {onUpdateColumn && (
+                <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Editar
+                </DropdownMenuItem>
+              )}
+              {onDeleteColumn && (
+                <DropdownMenuItem onClick={handleDelete} className="text-red-600">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
 
-          {/* Color bar */}
+      {/* Color bar */}
+      <div
+        className="h-1 rounded-full mb-4"
+        style={{ backgroundColor: column.color || "#e0e0e0" }}
+      />
+
+      {/* OPTIMIZED DROPPABLE - Critical for drag positioning */}
+      <Droppable droppableId={column.id} type="lead">
+        {(provided, snapshot) => (
           <div
-            className="h-1 rounded-full mb-4"
-            style={{ backgroundColor: column.color || "#e0e0e0" }}
-          />
-
-          {/* Leads - SIMPLIFIED FOR DRAG AND DROP */}
-          <Droppable droppableId={column.id} type="lead">
-            {(provided, snapshot) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className={cn(
-                  "flex-1 space-y-3 min-h-[200px] overflow-y-auto kanban-column-scrollbar rounded-xl px-0.5 py-2",
-                  // SIMPLIFIED drag over state - no complex transforms
-                  snapshot.isDraggingOver && "bg-blue-50/30 border-2 border-blue-200/60"
-                )}
-                style={{
-                  // Altura responsiva baseada no viewport e dispositivo
-                  maxHeight: window.innerWidth < 768 
-                    ? "calc(100vh - 350px)" // Mobile: mais espaço para cards
-                    : window.innerWidth < 1024 
-                      ? "calc(100vh - 380px)" // Tablet
-                      : "calc(100vh - 420px)", // Desktop: header maior
-                  height: window.innerWidth < 768 
-                    ? "calc(100vh - 350px)" 
-                    : window.innerWidth < 1024 
-                      ? "calc(100vh - 380px)" 
-                      : "calc(100vh - 420px)"
-                }}
-              >
-                {column.leads.map((lead, leadIndex) => (
-                  <Draggable key={lead.id} draggableId={lead.id} index={leadIndex}>
-                    {(provided, snapshot) => (
-                      <LeadCard
-                        lead={lead}
-                        provided={provided}
-                        onClick={() => onOpenLeadDetail(lead)}
-                        onOpenChat={onOpenChat ? () => onOpenChat(lead) : undefined}
-                        onMoveToWon={onMoveToWonLost ? () => onMoveToWonLost(lead, "won") : undefined}
-                        onMoveToLost={onMoveToWonLost ? () => onMoveToWonLost(lead, "lost") : undefined}
-                        onReturnToFunnel={onReturnToFunnel ? () => onReturnToFunnel(lead) : undefined}
-                        isWonLostView={isWonLostView}
-                        wonStageId={wonStageId}
-                        lostStageId={lostStageId}
-                        isDragging={snapshot.isDragging}
-                      />
-                    )}
-                  </Draggable>
-                ))}
-                {provided.placeholder}
-              </div>
+            ref={provided.innerRef}
+            {...provided.droppableProps}
+            className={cn(
+              "flex-1 space-y-3 min-h-[200px] rounded-xl px-0.5 py-2",
+              "kanban-column-scrollbar overflow-y-auto",
+              // Enhanced drag-over visual feedback
+              snapshot.isDraggingOver && "bg-blue-50/40 border-2 border-dashed border-blue-300/80 transition-all duration-200"
             )}
-          </Droppable>
+            style={{
+              // Fixed height to prevent layout shifts during drag
+              height: "calc(100vh - 420px)",
+              maxHeight: "calc(100vh - 420px)",
+              // Ensure proper stacking context
+              position: 'relative',
+              zIndex: 1
+            }}
+          >
+            {column.leads.map((lead, leadIndex) => (
+              <Draggable key={lead.id} draggableId={lead.id} index={leadIndex}>
+                {(provided, snapshot) => (
+                  <LeadCard
+                    lead={lead}
+                    provided={provided}
+                    onClick={() => onOpenLeadDetail(lead)}
+                    onOpenChat={onOpenChat ? () => onOpenChat(lead) : undefined}
+                    onMoveToWon={onMoveToWonLost ? () => onMoveToWonLost(lead, "won") : undefined}
+                    onMoveToLost={onMoveToWonLost ? () => onMoveToWonLost(lead, "lost") : undefined}
+                    onReturnToFunnel={onReturnToFunnel ? () => onReturnToFunnel(lead) : undefined}
+                    isWonLostView={isWonLostView}
+                    wonStageId={wonStageId}
+                    lostStageId={lostStageId}
+                    isDragging={snapshot.isDragging}
+                  />
+                )}
+              </Draggable>
+            ))}
+            {provided.placeholder}
+          </div>
+        )}
+      </Droppable>
     </div>
   );
 }

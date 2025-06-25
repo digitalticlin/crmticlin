@@ -1,4 +1,3 @@
-
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import ResponsiveSidebar from "@/components/layout/ResponsiveSidebar";
@@ -37,10 +36,11 @@ export function PageLayout({ children, className }: PageLayoutProps) {
       
       <ResponsiveSidebar />
       
-      {/* Container principal com scroll - específico para páginas que não são Kanban */}
+      {/* OPTIMIZED Main container for drag and drop */}
       <main className={cn(
         "fixed top-0 right-0 bottom-0 z-10 transition-all duration-300",
-        className?.includes("kanban") ? "overflow-hidden" : "overflow-auto",
+        // CRITICAL: For kanban pages, no overflow restrictions to allow drag portals
+        className?.includes("kanban") ? "overflow-visible" : "overflow-auto",
         isMobile 
           ? "left-0" 
           : isCollapsed 
@@ -49,9 +49,9 @@ export function PageLayout({ children, className }: PageLayoutProps) {
         className
       )}>
         {className?.includes("kanban") ? (
-          // Layout especial para páginas Kanban - altura fixa responsiva
-          <div className="h-full p-4 md:p-6 flex flex-col">
-            <div className="flex-1 min-h-0">
+          // SPECIAL layout for Kanban - optimized for drag and drop
+          <div className="h-full p-4 md:p-6 flex flex-col" style={{ position: 'relative', zIndex: 1 }}>
+            <div className="flex-1 min-h-0" style={{ position: 'relative' }}>
               {children}
             </div>
           </div>

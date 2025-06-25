@@ -1,3 +1,4 @@
+
 import { ReactNode } from "react";
 import { DragDropContext } from "react-beautiful-dnd";
 import { AdvancedErrorTracker } from "./AdvancedErrorTracker";
@@ -16,7 +17,7 @@ export const StableDragDropWrapper = ({
   onDragStart = () => {},
   onDragEnd = () => {}
 }: StableDragDropWrapperProps) => {
-  console.log('[StableDragDropWrapper] 🔄 Renderizando wrapper');
+  console.log('[StableDragDropWrapper] 🔄 Renderizando wrapper otimizado');
 
   const handleErrorCaptured = (error: Error, errorInfo: any) => {
     console.group('🚨 [StableDragDropWrapper] ERRO CRÍTICO CAPTURADO');
@@ -55,7 +56,7 @@ export const StableDragDropWrapper = ({
   );
 
   try {
-    console.log('[StableDragDropWrapper] 🎯 Inicializando DragDropContext');
+    console.log('[StableDragDropWrapper] 🎯 Inicializando DragDropContext otimizado');
     
     return (
       <AdvancedErrorTracker 
@@ -66,10 +67,14 @@ export const StableDragDropWrapper = ({
         <DragDropContext
           onDragStart={(initial) => {
             console.log('[StableDragDropWrapper] 🟢 Drag iniciado:', initial);
+            // Ensure body doesn't scroll during drag
+            document.body.style.overflow = 'hidden';
             onDragStart();
           }}
           onDragEnd={(result) => {
             console.log('[StableDragDropWrapper] 🟢 Drag finalizado:', result);
+            // Restore body scroll
+            document.body.style.overflow = 'unset';
             onDragEnd(result);
           }}
         >
