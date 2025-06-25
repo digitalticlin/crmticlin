@@ -50,8 +50,10 @@ const SalesFunnelContext = createContext<SalesFunnelContextValue | null>(null);
 export const useSalesFunnelContext = () => {
   const context = useContext(SalesFunnelContext);
   if (!context) {
+    console.error('[SalesFunnelContext] ❌ Contexto não encontrado! Verifique se o componente está dentro do SalesFunnelProvider');
     throw new Error("useSalesFunnelContext must be used within SalesFunnelProvider");
   }
+  console.log('[SalesFunnelContext] ✅ Contexto acessado com sucesso');
   return context;
 };
 

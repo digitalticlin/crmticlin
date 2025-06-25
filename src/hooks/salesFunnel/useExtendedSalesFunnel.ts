@@ -1,5 +1,4 @@
-
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { useRealSalesFunnel } from "./useRealSalesFunnel";
 import { useStageDatabase } from "./useStageDatabase";
 import { useTagDatabase } from "./useTagDatabase";
@@ -15,9 +14,13 @@ export function useExtendedSalesFunnel(funnelId?: string) {
   const { stages } = useStageDatabase(funnelId);
   const { createTag } = useTagDatabase();
   
+  // Estabilizar referências para evitar re-computação desnecessária
+  const stableStages = useMemo(() => stages || [], [stages]);
+  const stableLeads = useMemo(() => realFunnelData.leads || [], [realFunnelData.leads]);
+  
   // Transform leads to match KanbanLead interface - memoizado com dependências estáveis
   const transformedLeads: KanbanLead[] = useMemo(() => {
-    return realFunnelData.leads?.map(lead => ({
+    return stableLeads.map(lead => ({
       id: lead.id,
       name: lead.name,
       phone: lead.phone,
@@ -37,15 +40,19 @@ export function useExtendedSalesFunnel(funnelId?: string) {
       address: lead.address,
       company: lead.company,
       documentId: lead.document_id
-    })) || [];
-  }, [realFunnelData.leads]);
+    }));
+  }, [stableLeads]);
 
   // Use useKanbanColumns to generate proper columns
-  const { columns, setColumns } = useKanbanColumns(stages || [], transformedLeads, funnelId);
+  const { columns, setColumns } = useKanbanColumns(stableStages, transformedLeads, funnelId);
   
   // Find won and lost stages - memoizado
-  const wonStageId = useMemo(() => stages?.find(stage => stage.is_won)?.id, [stages]);
-  const lostStageId = useMemo(() => stages?.find(stage => stage.is_lost)?.id, [stages]);
+  const wonStageId = useMemo(() => stableStages.find(stage => stage.is_won)?.id, [stableStages]);
+  const lostStageId = useMemo(() => stableStages.find(stage => stage.is_lost)?.id, [stableStages]);
+
+  // Usar refs para manter funções estáveis sem re-criação
+  const refetchDataRef = useRef(realFunnelData.refetchData);
+  refetchDataRef.current = realFunnelData.refetchData;
 
   // Funções estáveis com useCallback
   const openLeadDetail = useCallback((lead: any) => {
@@ -73,23 +80,28 @@ export function useExtendedSalesFunnel(funnelId?: string) {
     console.log('Update lead name:', name);
   }, []);
 
+  // Estabilizar refetchLeads para evitar loops infinitos
   const refetchLeads = useCallback(async (): Promise<void> => {
     try {
-      realFunnelData.refetchData();
+      if (refetchDataRef.current) {
+        refetchDataRef.current();
+      }
     } catch (error) {
       console.error('Error refetching leads:', error);
     }
-  }, [realFunnelData]);
+  }, []); // Sem dependências - função estável
 
   const refetchStages = useCallback(async (): Promise<void> => {
     try {
       // Stage refetch is handled by useStageDatabase
+      console.log('Stages refetch handled by useStageDatabase');
     } catch (error) {
       console.error('Error refetching stages:', error);
     }
   }, []);
 
-  return {
+  // Memoizar o retorno para evitar re-renders desnecessários
+  const returnValue = useMemo(() => ({
     ...realFunnelData,
     leads: transformedLeads,
     columns,
@@ -98,7 +110,7 @@ export function useExtendedSalesFunnel(funnelId?: string) {
     isLeadDetailOpen,
     setIsLeadDetailOpen,
     availableTags: realFunnelData.tags,
-    stages,
+    stages: stableStages,
     openLeadDetail,
     toggleTagOnLead,
     updateLeadNotes,
@@ -110,5 +122,26 @@ export function useExtendedSalesFunnel(funnelId?: string) {
     lostStageId,
     refetchLeads,
     refetchStages
-  };
+  }), [
+    realFunnelData,
+    transformedLeads,
+    columns,
+    setColumns,
+    selectedLead,
+    isLeadDetailOpen,
+    stableStages,
+    openLeadDetail,
+    toggleTagOnLead,
+    updateLeadNotes,
+    updateLeadPurchaseValue,
+    updateLeadAssignedUser,
+    updateLeadName,
+    createTag.mutateAsync,
+    wonStageId,
+    lostStageId,
+    refetchLeads,
+    refetchStages
+  ]);
+
+  return returnValue;
 }

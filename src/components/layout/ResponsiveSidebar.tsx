@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -43,7 +42,7 @@ export default function ResponsiveSidebar() {
     {
       icon: Kanban,
       label: "Funil de Vendas",
-      href: "/funnels",
+      href: "/sales-funnel",
       comingSoon: false
     },
     {

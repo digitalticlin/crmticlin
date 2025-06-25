@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useCompanyData } from '../useCompanyData';
@@ -257,6 +256,9 @@ export const useRealtimeManager = () => {
   const manager = useRef(RealtimeManager.getInstance());
   const isMountedRef = useRef(true);
 
+  // Proteção contra inicializações múltiplas
+  const initializationRef = useRef(false);
+
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
@@ -265,16 +267,16 @@ export const useRealtimeManager = () => {
   }, []);
 
   useEffect(() => {
-    if (userId && isMountedRef.current) {
+    if (userId && isMountedRef.current && !initializationRef.current) {
+      initializationRef.current = true;
+      console.log('[Realtime Manager] Initializing ONCE for user:', userId);
+      
       manager.current.initialize(userId, companyId).catch((error) => {
         console.error('[Realtime Manager] Initialization failed:', error);
+        initializationRef.current = false; // Allow retry on failure
       });
     }
-
-    return () => {
-      // Don't cleanup on unmount, let other components continue using it
-    };
-  }, [userId, companyId]);
+  }, [userId, companyId]); // Mantém dependências mas protege contra re-init
 
   const registerCallback = useCallback((
     id: string, 
