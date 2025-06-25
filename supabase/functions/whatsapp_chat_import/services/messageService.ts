@@ -11,90 +11,128 @@ export async function processMessages(supabase: any, messages: any[], instance: 
 
   console.log(`[Message Service] 💬 Processing ${messages.length} messages`);
   
-  for (const message of messages) {
-    try {
-      const phoneNumber = message.from || message.phone || message.remoteJid || '';
-      if (!phoneNumber) {
-        console.warn(`[Message Service] ⚠️ Message without phone:`, message);
-        continue;
-      }
-
-      const cleanPhone = cleanPhoneNumber(phoneNumber.replace('@c.us', ''));
-      if (!cleanPhone) {
-        console.warn(`[Message Service] ⚠️ Invalid phone after cleaning: ${phoneNumber}`);
-        continue;
-      }
-
-      // Find or create lead
-      let leadId: string;
-      const { data: existingLead } = await supabase
-        .from('leads')
-        .select('id')
-        .eq('phone', cleanPhone)
-        .eq('whatsapp_number_id', instance.id)
-        .single();
-
-      if (existingLead) {
-        leadId = existingLead.id;
-      } else {
-        // Create new lead
-        const { data: newLead, error: leadError } = await supabase
-          .from('leads')
-          .insert({
-            phone: cleanPhone,
-            name: `Lead-${cleanPhone.substring(cleanPhone.length - 4)}`,
-            whatsapp_number_id: instance.id,
-            company_id: instance.company_id,
-            last_message: 'Imported conversation',
-            last_message_time: new Date().toISOString()
-          })
-          .select('id')
-          .single();
-
-        if (leadError || !newLead) {
-          console.warn(`[Message Service] ⚠️ Error creating lead for ${cleanPhone}:`, leadError);
+  // Processar mensagens em lotes para melhor performance
+  const batchSize = 25;
+  
+  for (let i = 0; i < messages.length; i += batchSize) {
+    const batch = messages.slice(i, i + batchSize);
+    console.log(`[Message Service] 📦 Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(messages.length / batchSize)}`);
+    
+    for (const message of batch) {
+      try {
+        // Extrair telefone da mensagem
+        const rawPhone = message.from || message.remoteJid || '';
+        const cleanPhone = cleanPhoneNumber(rawPhone);
+        
+        if (!cleanPhone) {
+          console.warn(`[Message Service] ⚠️ Message without valid phone:`, message);
           continue;
         }
-        leadId = newLead.id;
-        console.log(`[Message Service] ✅ Lead created: ${cleanPhone} -> ${leadId}`);
-      }
 
-      // Check if message already exists
-      const messageId = message.id || message.messageId || `import_${Date.now()}_${Math.random()}`;
-      const { data: existingMessage } = await supabase
-        .from('messages')
-        .select('id')
-        .eq('external_id', messageId)
-        .single();
+        // Buscar ou criar lead
+        let leadId = await findOrCreateLead(supabase, cleanPhone, instance);
+        
+        if (!leadId) {
+          console.warn(`[Message Service] ⚠️ Could not find/create lead for:`, cleanPhone);
+          continue;
+        }
 
-      if (!existingMessage) {
-        const { error } = await supabase
+        // Preparar dados da mensagem
+        const messageData = {
+          lead_id: leadId,
+          whatsapp_number_id: instance.id,
+          text: message.body || message.text || '',
+          from_me: message.fromMe || false,
+          timestamp: message.timestamp ? new Date(message.timestamp * 1000).toISOString() : new Date().toISOString(),
+          created_by_user_id: instance.created_by_user_id,
+          media_type: getMediaType(message),
+          media_url: message.mediaUrl || null
+        };
+
+        // Verificar se mensagem já existe (evitar duplicatas)
+        const { data: existingMessage } = await supabase
           .from('messages')
-          .insert({
-            whatsapp_number_id: instance.id,
-            lead_id: leadId,
-            text: message.body || message.text || message.message || '',
-            from_me: message.fromMe || false,
-            status: message.fromMe ? 'sent' : 'received',
-            external_id: messageId,
-            media_type: message.type || 'text',
-            media_url: message.mediaUrl,
-            timestamp: message.timestamp || new Date().toISOString()
-          });
+          .select('id')
+          .eq('lead_id', leadId)
+          .eq('text', messageData.text)
+          .eq('timestamp', messageData.timestamp)
+          .maybeSingle();
 
-        if (!error) {
-          messagesImported++;
-          if (messagesImported % 10 === 0) {
-            console.log(`[Message Service] 📊 ${messagesImported} messages processed...`);
+        if (!existingMessage) {
+          const { error } = await supabase
+            .from('messages')
+            .insert(messageData);
+
+          if (!error) {
+            messagesImported++;
+            console.log(`[Message Service] ✅ Message saved for: ${cleanPhone}`);
+          } else {
+            console.error(`[Message Service] ❌ Error saving message:`, error);
           }
         } else {
-          console.error(`[Message Service] ❌ Error saving message:`, error);
+          console.log(`[Message Service] ℹ️ Message already exists`);
         }
+      } catch (error: any) {
+        console.warn(`[Message Service] ⚠️ Error processing message:`, error.message);
       }
-    } catch (error: any) {
-      console.warn(`[Message Service] ⚠️ Error processing message:`, error.message);
+    }
+
+    // Pequena pausa entre lotes
+    if (i + batchSize < messages.length) {
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
   }
 
+  console.log(`[Message Service] ✅ Messages processed: ${messagesImported}/${messages.length}`);
   return messagesImported;
+}
+
+async function findOrCreateLead(supabase: any, phone: string, instance: any) {
+  try {
+    // Buscar lead existente
+    const { data: existingLead } = await supabase
+      .from('leads')
+      .select('id')
+      .eq('phone', phone)
+      .eq('whatsapp_number_id', instance.id)
+      .maybeSingle();
+
+    if (existingLead) {
+      return existingLead.id;
+    }
+
+    // Criar novo lead
+    const { data: newLead, error } = await supabase
+      .from('leads')
+      .insert({
+        phone,
+        name: `Contato +${phone}`,
+        whatsapp_number_id: instance.id,
+        company_id: instance.company_id || null,
+        created_by_user_id: instance.created_by_user_id,
+        last_message: 'Imported contact',
+        last_message_time: new Date().toISOString()
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error(`[Message Service] ❌ Error creating lead:`, error);
+      return null;
+    }
+
+    console.log(`[Message Service] ✅ Lead created: ${phone}`);
+    return newLead.id;
+  } catch (error: any) {
+    console.error(`[Message Service] ❌ Error in findOrCreateLead:`, error.message);
+    return null;
+  }
+}
+
+function getMediaType(message: any): string {
+  if (message.type === 'image' || message.messageType === 'imageMessage') return 'image';
+  if (message.type === 'video' || message.messageType === 'videoMessage') return 'video';
+  if (message.type === 'audio' || message.messageType === 'audioMessage') return 'audio';
+  if (message.type === 'document' || message.messageType === 'documentMessage') return 'document';
+  return 'text';
 }

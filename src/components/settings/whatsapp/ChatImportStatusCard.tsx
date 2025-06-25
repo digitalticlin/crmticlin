@@ -9,13 +9,14 @@ import {
   Users, 
   Clock,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Info
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useChatImport } from "@/hooks/whatsapp/useChatImport";
 import { WhatsAppWebInstance } from "@/types/whatsapp";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface ChatImportStatusCardProps {
   instance: WhatsAppWebInstance;
@@ -31,6 +32,8 @@ export const ChatImportStatusCard = ({ instance }: ChatImportStatusCardProps) =>
     syncNewMessages
   } = useChatImport();
 
+  const [lastResult, setLastResult] = useState<any>(null);
+
   // Carregar status na inicialização
   useEffect(() => {
     if (instance.id) {
@@ -41,24 +44,29 @@ export const ChatImportStatusCard = ({ instance }: ChatImportStatusCardProps) =>
   const isConnected = ['connected', 'ready', 'open'].includes(instance.connection_status);
   const hasImportHistory = importStatus?.contactsImported > 0 || importStatus?.messagesImported > 0;
 
-  const handleFullImport = () => {
-    importData(instance.id, 'both', 30);
+  const handleFullImport = async () => {
+    const result = await importData(instance.id, 'both', 30);
+    setLastResult(result);
   };
 
-  const handleContactsOnly = () => {
-    importData(instance.id, 'contacts', 50);
+  const handleContactsOnly = async () => {
+    const result = await importData(instance.id, 'contacts', 50);
+    setLastResult(result);
   };
 
-  const handleMessagesOnly = () => {
-    importData(instance.id, 'messages', 30);
+  const handleMessagesOnly = async () => {
+    const result = await importData(instance.id, 'messages', 30);
+    setLastResult(result);
   };
 
-  const handleSyncNew = () => {
-    syncNewMessages(instance.id);
+  const handleSyncNew = async () => {
+    const result = await syncNewMessages(instance.id);
+    setLastResult(result);
   };
 
   const handleRefreshStatus = () => {
     getImportStatus(instance.id);
+    setLastResult(null);
   };
 
   if (!isConnected) {
@@ -139,7 +147,7 @@ export const ChatImportStatusCard = ({ instance }: ChatImportStatusCardProps) =>
         )}
 
         {/* Status Badge */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {hasImportHistory ? (
             <Badge variant="outline" className="border-green-300 text-green-700">
               <CheckCircle className="h-3 w-3 mr-1" />
@@ -158,6 +166,47 @@ export const ChatImportStatusCard = ({ instance }: ChatImportStatusCardProps) =>
             </Badge>
           )}
         </div>
+
+        {/* Resultado da Última Operação */}
+        {lastResult && (
+          <div className={`p-3 rounded-lg border ${
+            lastResult.success 
+              ? 'bg-green-50 border-green-200' 
+              : 'bg-red-50 border-red-200'
+          }`}>
+            <div className="flex items-center gap-2 mb-2">
+              {lastResult.success ? (
+                <CheckCircle className="h-4 w-4 text-green-600" />
+              ) : (
+                <AlertCircle className="h-4 w-4 text-red-600" />
+              )}
+              <span className={`text-sm font-medium ${
+                lastResult.success ? 'text-green-800' : 'text-red-800'
+              }`}>
+                {lastResult.success ? 'Importação Concluída' : 'Erro na Importação'}
+              </span>
+            </div>
+            
+            {lastResult.success && lastResult.summary && (
+              <div className="space-y-1 text-xs text-green-700">
+                <p>✅ {lastResult.summary.contactsImported || 0} contatos importados</p>
+                <p>✅ {lastResult.summary.messagesImported || 0} mensagens importadas</p>
+                {lastResult.summary.totalImported === 0 && (
+                  <p className="flex items-center gap-1 text-blue-700">
+                    <Info className="h-3 w-3" />
+                    Esta instância pode não ter histórico disponível no VPS
+                  </p>
+                )}
+              </div>
+            )}
+            
+            {!lastResult.success && (
+              <p className="text-xs text-red-700">
+                {lastResult.error}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Botões de Ação */}
         <div className="space-y-2">
@@ -230,11 +279,11 @@ export const ChatImportStatusCard = ({ instance }: ChatImportStatusCardProps) =>
           )}
         </div>
 
-        {/* Dica */}
+        {/* Dicas */}
         <div className="bg-blue-50/50 p-3 rounded-lg">
           <p className="text-xs text-blue-700">
-            💡 <strong>Dica:</strong> A importação é automática quando você conecta uma nova instância. 
-            Use a sincronização manual para buscar mensagens mais recentes.
+            💡 <strong>Dica:</strong> Se a importação retornar 0 itens, a instância pode não ter histórico 
+            disponível no VPS ou pode ser necessário reconectar o WhatsApp.
           </p>
         </div>
       </CardContent>
