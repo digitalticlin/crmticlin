@@ -1,5 +1,7 @@
+
 import { useUserRole } from "@/hooks/useUserRole";
 import { useFunnelManagement } from "@/hooks/salesFunnel/useFunnelManagement";
+import { useExtendedSalesFunnel } from "@/hooks/salesFunnel/useExtendedSalesFunnel";
 import { useState } from "react";
 
 export function useSalesFunnelMain() {
@@ -15,7 +17,10 @@ export function useSalesFunnelMain() {
     loading: funnelLoading
   } = useFunnelManagement();
 
-  console.log('[SalesFunnelMain] 🔍 Estado básico:', {
+  // Usar dados reais do funil selecionado
+  const extendedFunnelData = useExtendedSalesFunnel(selectedFunnel?.id);
+
+  console.log('[SalesFunnelMain] 🔍 Estado real:', {
     funnelsCount: funnels.length,
     selectedFunnel: selectedFunnel ? { 
       id: selectedFunnel.id, 
@@ -23,59 +28,80 @@ export function useSalesFunnelMain() {
     } : null,
     funnelLoading,
     isAdmin,
-    role
+    role,
+    realLeadsCount: extendedFunnelData.leads?.length || 0,
+    realStagesCount: extendedFunnelData.stages?.length || 0
   });
 
-  // Estado mínimo para funcionar
-  const mockStages = [
-    { id: 'stage-1', title: 'Entrada de Leads', order_position: 1, is_fixed: true, is_won: false, is_lost: false, color: '#3b82f6' },
-    { id: 'stage-2', title: 'Em atendimento', order_position: 2, is_fixed: false, is_won: false, is_lost: false, color: '#8b5cf6' },
-    { id: 'stage-3', title: 'Em negociação', order_position: 3, is_fixed: false, is_won: false, is_lost: false, color: '#f59e0b' },
-    { id: 'stage-4', title: 'GANHO', order_position: 4, is_fixed: true, is_won: true, is_lost: false, color: '#10b981' },
-    { id: 'stage-5', title: 'PERDIDO', order_position: 5, is_fixed: true, is_won: false, is_lost: true, color: '#6b7280' }
-  ];
+  // Se não há funil selecionado, retornar estado básico
+  if (!selectedFunnel || funnelLoading) {
+    return {
+      // Basic state
+      isAdmin,
+      role,
+      funnelLoading,
+      
+      // Funnel data
+      funnels,
+      selectedFunnel,
+      setSelectedFunnel,
+      createFunnel,
+      
+      // Empty state
+      columns: [],
+      setColumns: () => {},
+      selectedLead: null,
+      isLeadDetailOpen: false,
+      setIsLeadDetailOpen: () => {},
+      availableTags: [],
+      stages: [],
+      leads: [],
+      
+      // Mock actions
+      deleteColumn: () => {},
+      openLeadDetail: () => {},
+      toggleTagOnLead: () => {},
+      wonStageId: undefined,
+      lostStageId: undefined,
+      refetchLeads: async () => {},
+      refetchStages: async () => {},
+      
+      // Wrapped functions
+      wrappedAddColumn: () => {},
+      wrappedUpdateColumn: () => {},
+      wrappedCreateTag: () => {},
+      wrappedMoveLeadToStage: () => {},
+      handleUpdateLeadNotes: () => {},
+      handleUpdateLeadPurchaseValue: () => {},
+      handleUpdateLeadAssignedUser: () => {},
+      handleUpdateLeadName: () => {}
+    };
+  }
 
-  const mockLeads: any[] = [];
-  const mockColumns = mockStages.filter(s => !s.is_won && !s.is_lost).map(stage => ({
-    id: stage.id,
-    title: stage.title,
-    leads: [],
-    color: stage.color,
-    isFixed: stage.is_fixed,
-    isHidden: false
-  }));
-
-  const mockActions = {
-    setColumns: () => {},
-    addColumn: () => {},
-    updateColumn: () => {},
-    deleteColumn: () => {},
-    openLeadDetail: (lead: any) => {
-      setSelectedLead(lead);
-      setIsLeadDetailOpen(true);
-    },
-    toggleTagOnLead: () => {},
-    createTag: () => {},
-    updateLeadNotes: () => {},
-    updateLeadPurchaseValue: () => {},
-    updateLeadAssignedUser: () => {},
-    updateLeadName: () => {},
-    moveLeadToStage: () => {},
-    refetchLeads: async () => {},
-    refetchStages: async () => {}
+  // Usar dados reais do ExtendedSalesFunnel
+  const handleOpenLeadDetail = (lead: any) => {
+    setSelectedLead(lead);
+    setIsLeadDetailOpen(true);
   };
 
   // Wrappers para compatibilidade
   const wrappers = {
-    wrappedAddColumn: mockActions.addColumn,
-    wrappedUpdateColumn: mockActions.updateColumn,
-    wrappedCreateTag: mockActions.createTag,
-    wrappedMoveLeadToStage: mockActions.moveLeadToStage,
-    handleUpdateLeadNotes: mockActions.updateLeadNotes,
-    handleUpdateLeadPurchaseValue: mockActions.updateLeadPurchaseValue,
-    handleUpdateLeadAssignedUser: mockActions.updateLeadAssignedUser,
-    handleUpdateLeadName: mockActions.updateLeadName
+    wrappedAddColumn: extendedFunnelData.addColumn || (() => {}),
+    wrappedUpdateColumn: extendedFunnelData.updateColumn || (() => {}),
+    wrappedCreateTag: extendedFunnelData.createTag || (() => {}),
+    wrappedMoveLeadToStage: extendedFunnelData.moveLeadToStage || (() => {}),
+    handleUpdateLeadNotes: extendedFunnelData.updateLeadNotes,
+    handleUpdateLeadPurchaseValue: extendedFunnelData.updateLeadPurchaseValue,
+    handleUpdateLeadAssignedUser: extendedFunnelData.updateLeadAssignedUser,
+    handleUpdateLeadName: extendedFunnelData.updateLeadName
   };
+
+  console.log('[SalesFunnelMain] ✅ Dados reais carregados:', {
+    columnsCount: extendedFunnelData.columns?.length || 0,
+    leadsCount: extendedFunnelData.leads?.length || 0,
+    stagesCount: extendedFunnelData.stages?.length || 0,
+    tagsCount: extendedFunnelData.availableTags?.length || 0
+  });
 
   return {
     // Basic state
@@ -89,24 +115,29 @@ export function useSalesFunnelMain() {
     setSelectedFunnel,
     createFunnel,
     
-    // Mock Kanban data
-    columns: mockColumns,
-    setColumns: mockActions.setColumns,
-    selectedLead,
-    isLeadDetailOpen,
-    setIsLeadDetailOpen,
-    availableTags: [],
-    stages: mockStages,
-    leads: mockLeads,
+    // Real data do ExtendedSalesFunnel
+    columns: extendedFunnelData.columns || [],
+    setColumns: extendedFunnelData.setColumns,
+    selectedLead: selectedLead || extendedFunnelData.selectedLead,
+    isLeadDetailOpen: isLeadDetailOpen || extendedFunnelData.isLeadDetailOpen,
+    setIsLeadDetailOpen: (open: boolean) => {
+      setIsLeadDetailOpen(open);
+      if (extendedFunnelData.setIsLeadDetailOpen) {
+        extendedFunnelData.setIsLeadDetailOpen(open);
+      }
+    },
+    availableTags: extendedFunnelData.availableTags || [],
+    stages: extendedFunnelData.stages || [],
+    leads: extendedFunnelData.leads || [],
     
-    // Mock Actions
-    deleteColumn: mockActions.deleteColumn,
-    openLeadDetail: mockActions.openLeadDetail,
-    toggleTagOnLead: mockActions.toggleTagOnLead,
-    wonStageId: mockStages.find(s => s.is_won)?.id,
-    lostStageId: mockStages.find(s => s.is_lost)?.id,
-    refetchLeads: mockActions.refetchLeads,
-    refetchStages: mockActions.refetchStages,
+    // Real Actions
+    deleteColumn: extendedFunnelData.deleteColumn || (() => {}),
+    openLeadDetail: handleOpenLeadDetail,
+    toggleTagOnLead: extendedFunnelData.toggleTagOnLead,
+    wonStageId: extendedFunnelData.wonStageId,
+    lostStageId: extendedFunnelData.lostStageId,
+    refetchLeads: extendedFunnelData.refetchLeads,
+    refetchStages: extendedFunnelData.refetchStages,
     
     // Wrapped functions para compatibilidade
     ...wrappers

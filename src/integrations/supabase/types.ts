@@ -602,7 +602,7 @@ export type Database = {
     }
     Enums: {
       media_type: "text" | "image" | "video" | "audio" | "document"
-      message_status: "sent" | "delivered" | "read" | "failed"
+      message_status: "sent" | "delivered" | "read" | "failed" | "received"
       user_role: "admin" | "operational" | "manager"
     }
     CompositeTypes: {
@@ -720,7 +720,7 @@ export const Constants = {
   public: {
     Enums: {
       media_type: ["text", "image", "video", "audio", "document"],
-      message_status: ["sent", "delivered", "read", "failed"],
+      message_status: ["sent", "delivered", "read", "failed", "received"],
       user_role: ["admin", "operational", "manager"],
     },
   },

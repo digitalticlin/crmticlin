@@ -1,3 +1,4 @@
+
 import { ReactNode } from "react";
 import { SalesFunnelProvider } from "./SalesFunnelProvider";
 import { useSalesFunnelMain } from "@/hooks/salesFunnel/useSalesFunnelMain";
@@ -13,7 +14,8 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     funnelLoading: salesFunnelData.funnelLoading,
     funnelsCount: salesFunnelData.funnels?.length || 0,
     selectedFunnel: salesFunnelData.selectedFunnel?.name || 'None',
-    stagesCount: salesFunnelData.stages?.length || 0
+    stagesCount: salesFunnelData.stages?.length || 0,
+    leadsCount: salesFunnelData.leads?.length || 0
   });
 
   // Estado de carregamento
@@ -98,10 +100,11 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     refetchStages: salesFunnelData.refetchStages || (async () => {})
   };
 
-  console.log('[SalesFunnelContextProvider] ✅ Provendo contexto com valores:', {
+  console.log('[SalesFunnelContextProvider] ✅ Provendo contexto com dados REAIS:', {
     funnelName: contextValue.selectedFunnel?.name,
     stagesCount: contextValue.stages?.length || 0,
-    leadsCount: contextValue.leads?.length || 0
+    leadsCount: contextValue.leads?.length || 0,
+    columnsCount: contextValue.columns?.length || 0
   });
 
   return (
