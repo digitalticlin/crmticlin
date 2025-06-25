@@ -1,8 +1,9 @@
 
+
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { KanbanColumn, KanbanLead } from "@/types/kanban";
+import { KanbanColumn, KanbanLead, KanbanTag } from "@/types/kanban";
 import { KanbanStage } from "@/types/funnel";
 import { toast } from "sonner";
 
@@ -14,11 +15,15 @@ interface FunnelData {
   created_at?: string;
 }
 
+// Interface atualizada para compatibilidade com KanbanLead
 interface LeadData {
   id: string;
   name: string;
   phone: string;
   email?: string;
+  company?: string;
+  address?: string;
+  document_id?: string;
   kanban_stage_id: string;
   notes?: string;
   purchase_value?: number;
@@ -26,9 +31,17 @@ interface LeadData {
   last_message?: string;
   last_message_time?: string;
   created_at: string;
-  address?: string;
-  company?: string;
-  document_id?: string;
+  updated_at?: string;
+  funnel_id?: string;
+  created_by_user_id?: string;
+  // Propriedades necessárias para KanbanLead
+  lastMessage: string;
+  lastMessageTime: string;
+  tags: KanbanTag[];
+  columnId?: string;
+  purchaseValue?: number;
+  assignedUser?: string;
+  unread_count?: number;
 }
 
 export function useSalesFunnelDirect() {
@@ -40,7 +53,7 @@ export function useSalesFunnelDirect() {
   const [funnels, setFunnels] = useState<FunnelData[]>([]);
   const [selectedFunnel, setSelectedFunnel] = useState<FunnelData | null>(null);
   const [stages, setStages] = useState<KanbanStage[]>([]);
-  const [leads, setLeads] = useState<LeadData[]>([]);
+  const [leads, setLeads] = useState<KanbanLead[]>([]);
   const [selectedLead, setSelectedLead] = useState<KanbanLead | null>(null);
   const [isLeadDetailOpen, setIsLeadDetailOpen] = useState(false);
 
@@ -166,7 +179,7 @@ export function useSalesFunnelDirect() {
     }
   }, [selectedFunnel?.id, validateData]);
 
-  // Buscar leads
+  // Buscar leads - ATUALIZADO para mapear corretamente para KanbanLead
   const fetchLeads = useCallback(async () => {
     if (!selectedFunnel?.id) {
       console.log('[useSalesFunnelDirect] ⚠️ Sem funil selecionado para buscar leads');
@@ -191,7 +204,28 @@ export function useSalesFunnelDirect() {
       }
 
       console.log('[useSalesFunnelDirect] ✅ Leads encontrados:', data?.length || 0);
-      setLeads(data || []);
+      
+      // Mapear dados para o tipo KanbanLead correto
+      const mappedLeads: KanbanLead[] = (data || []).map((lead): KanbanLead => ({
+        id: lead.id,
+        name: lead.name,
+        phone: lead.phone,
+        email: lead.email,
+        company: lead.company,
+        address: lead.address,
+        documentId: lead.document_id,
+        columnId: lead.kanban_stage_id,
+        notes: lead.notes,
+        purchaseValue: lead.purchase_value ? Number(lead.purchase_value) : undefined,
+        assignedUser: lead.owner_id,
+        lastMessage: lead.last_message || '',
+        lastMessageTime: lead.last_message_time || lead.created_at || '',
+        tags: [], // Inicializar com array vazio - pode ser populado depois
+        created_at: lead.created_at,
+        unread_count: lead.unread_count || 0
+      }));
+      
+      setLeads(mappedLeads);
     } catch (err: any) {
       console.error('[useSalesFunnelDirect] ❌ Erro ao buscar leads:', err);
       setError(`Erro ao carregar leads: ${err.message}`);
@@ -208,21 +242,18 @@ export function useSalesFunnelDirect() {
     }
   }, [user?.id, fetchFunnels]);
 
-  // Effect para carregar stages quando funil muda
   useEffect(() => {
     if (selectedFunnel?.id) {
       fetchStages();
     }
   }, [selectedFunnel?.id, fetchStages]);
 
-  // Effect para carregar leads quando funil muda
   useEffect(() => {
     if (selectedFunnel?.id) {
       fetchLeads();
     }
   }, [selectedFunnel?.id, fetchLeads]);
 
-  // Effect para marcar loading como false
   useEffect(() => {
     if (funnels.length > 0 || error) {
       console.log('[useSalesFunnelDirect] ✅ Carregamento concluído');
@@ -247,32 +278,7 @@ export function useSalesFunnelDirect() {
       
       const kanbanColumns: KanbanColumn[] = mainStages.map(stage => {
         // Encontrar leads para este stage
-        const stageLeads = leads
-          .filter(lead => lead.kanban_stage_id === stage.id)
-          .map((lead): KanbanLead => {
-            try {
-              return {
-                id: lead.id,
-                name: lead.name,
-                phone: lead.phone,
-                email: lead.email,
-                columnId: stage.id,
-                tags: [], // Simplificado por agora
-                notes: lead.notes,
-                purchaseValue: lead.purchase_value ? Number(lead.purchase_value) : undefined,
-                assignedUser: lead.owner_id,
-                lastMessage: lead.last_message || '',
-                lastMessageTime: lead.last_message_time || '',
-                created_at: lead.created_at,
-                address: lead.address,
-                company: lead.company,
-                documentId: lead.document_id
-              };
-            } catch (leadError) {
-              console.error('[useSalesFunnelDirect] ❌ Erro ao transformar lead:', lead.id, leadError);
-              throw new Error(`Erro ao transformar lead ${lead.id}: ${leadError}`);
-            }
-          });
+        const stageLeads = leads.filter(lead => lead.columnId === stage.id);
 
         return {
           id: stage.id,
@@ -335,7 +341,6 @@ export function useSalesFunnelDirect() {
     return lostStage?.id;
   }, [stages]);
 
-  // Ações do funil
   const createFunnel = useCallback(async (name: string, description?: string) => {
     if (!user?.id) return;
 
@@ -364,7 +369,6 @@ export function useSalesFunnelDirect() {
     }
   }, [user?.id, fetchFunnels]);
 
-  // Ações de lead
   const openLeadDetail = useCallback((lead: KanbanLead) => {
     console.log('[useSalesFunnelDirect] 👤 Abrindo detalhes do lead:', lead.id);
     setSelectedLead(lead);
@@ -447,7 +451,6 @@ export function useSalesFunnelDirect() {
     }
   }, [selectedLead, fetchLeads]);
 
-  // Funções de recarga
   const refetchLeads = useCallback(async () => {
     await fetchLeads();
   }, [fetchLeads]);
@@ -518,3 +521,4 @@ export function useSalesFunnelDirect() {
     moveLeadToStage: () => {}
   };
 }
+
