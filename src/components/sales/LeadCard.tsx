@@ -57,7 +57,7 @@ export const LeadCard = ({
         "bg-white/25 backdrop-blur-lg border border-white/30 mb-4 rounded-2xl transition-all duration-300 p-4 cursor-pointer group relative",
         "w-[96%] max-w-[380px] mx-auto hover:shadow-xl",
         isDragging || isClone
-          ? "scale-105 z-[99999] opacity-90 shadow-2xl border-ticlin/50 border-2 pointer-events-none bg-white/40"
+          ? "scale-105 z-[99999] opacity-90 shadow-2xl border-ticlin/50 border-2 pointer-events-none bg-white/40 transform rotate-2"
           : "hover:scale-[1.02] hover:z-30 hover:relative hover:bg-white/35",
         isWon && "border-l-[4px] border-l-green-500",
         isLost && "border-l-[4px] border-l-red-500"
@@ -67,10 +67,13 @@ export const LeadCard = ({
         ...(isDragging || isClone
           ? {
               transformOrigin: "center",
-              boxShadow: "0 25px 50px 0 rgba(0,0,0,0.15), 0 0 0 1px rgba(211,216,0,0.5)",
+              boxShadow: "0 25px 50px 0 rgba(0,0,0,0.25), 0 0 0 1px rgba(211,216,0,0.7), 0 0 20px rgba(211,216,0,0.3)",
               transition: "transform 0.18s cubic-bezier(.16,.83,.81,1), opacity 0.13s, box-shadow 0.18s",
               zIndex: 99999,
               pointerEvents: "none",
+              background: "linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.3) 100%)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
             }
           : {})
       }}
@@ -78,6 +81,11 @@ export const LeadCard = ({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
+      {/* Efeito de brilho durante drag */}
+      {(isDragging || isClone) && (
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" />
+      )}
+      
       <LeadCardContent lead={lead} isWonLostView={isWonLostView} lostStageId={lostStageId} />
       
       {/* Tags and Actions Footer */}

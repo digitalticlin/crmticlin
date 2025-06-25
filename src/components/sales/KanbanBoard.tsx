@@ -32,12 +32,17 @@ export const KanbanBoard = ({
   wonStageId,
   lostStageId
 }: KanbanBoardProps) => {
-  // Validar e estabilizar colunas
+  // Validar e estabilizar colunas com mais detalhes de debug
   const validatedColumns = useMemo(() => {
-    console.log('[KanbanBoard] 🔍 Validando colunas:', {
+    console.log('[KanbanBoard] 🔍 Validando colunas recebidas:', {
       isArray: Array.isArray(columns),
       count: columns?.length || 0,
-      columns: columns?.map(c => ({ id: c?.id, title: c?.title, leadsCount: c?.leads?.length || 0 }))
+      columns: columns?.map(c => ({ 
+        id: c?.id, 
+        title: c?.title, 
+        leadsCount: c?.leads?.length || 0,
+        hasValidLeads: Array.isArray(c?.leads)
+      }))
     });
 
     if (!Array.isArray(columns)) {
@@ -45,14 +50,25 @@ export const KanbanBoard = ({
       return [];
     }
     
-    const filtered = columns.filter(col => 
-      col && 
-      typeof col.id === 'string' && 
-      typeof col.title === 'string' &&
-      Array.isArray(col.leads)
-    );
+    const filtered = columns.filter(col => {
+      const isValid = col && 
+        typeof col.id === 'string' && 
+        typeof col.title === 'string' &&
+        Array.isArray(col.leads);
+      
+      if (!isValid) {
+        console.warn('[KanbanBoard] ⚠️ Coluna inválida filtrada:', col);
+      }
+      
+      return isValid;
+    });
 
-    console.log('[KanbanBoard] ✅ Colunas válidas:', filtered.length);
+    console.log('[KanbanBoard] ✅ Colunas válidas após filtro:', {
+      original: columns.length,
+      filtered: filtered.length,
+      totalLeads: filtered.reduce((acc, col) => acc + col.leads.length, 0)
+    });
+    
     return filtered;
   }, [columns]);
 
@@ -64,24 +80,37 @@ export const KanbanBoard = ({
     isWonLostView
   });
 
-  // Estado vazio
+  // Estado vazio com mais informações
   if (!validatedColumns || validatedColumns.length === 0) {
+    console.log('[KanbanBoard] 📭 Exibindo estado vazio');
     return (
       <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
         <div className="text-center">
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Nenhuma etapa encontrada
+            {Array.isArray(columns) ? "Nenhuma etapa encontrada" : "Erro ao carregar etapas"}
           </h3>
           <p className="text-gray-600">
             {isWonLostView 
               ? "Nenhum lead foi ganho ou perdido ainda" 
-              : "Configure as etapas do seu funil para começar"
+              : Array.isArray(columns) 
+                ? "Configure as etapas do seu funil para começar"
+                : "Recarregue a página para tentar novamente"
             }
           </p>
+          {!Array.isArray(columns) && (
+            <button 
+              onClick={() => window.location.reload()} 
+              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Recarregar Página
+            </button>
+          )}
         </div>
       </div>
     );
   }
+
+  console.log('[KanbanBoard] 🎯 Renderizando board com', validatedColumns.length, 'colunas');
 
   return (
     <div className="relative w-full h-full flex flex-col">
