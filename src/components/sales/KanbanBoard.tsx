@@ -1,8 +1,8 @@
 
-import { DragDropContext } from "react-beautiful-dnd";
 import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
 import { useDragAndDrop } from "@/hooks/kanban/useDragAndDrop";
 import { BoardContent } from "./kanban/BoardContent";
+import { StableDragDropWrapper } from "./funnel/StableDragDropWrapper";
 import { useMemo } from "react";
 
 interface KanbanBoardProps {
@@ -32,22 +32,31 @@ export const KanbanBoard = ({
   wonStageId,
   lostStageId
 }: KanbanBoardProps) => {
-  // Validar colunas
+  // Validar e estabilizar colunas
   const validatedColumns = useMemo(() => {
+    console.log('[KanbanBoard] 🔍 Validando colunas:', {
+      isArray: Array.isArray(columns),
+      count: columns?.length || 0,
+      columns: columns?.map(c => ({ id: c?.id, title: c?.title, leadsCount: c?.leads?.length || 0 }))
+    });
+
     if (!Array.isArray(columns)) {
-      console.warn('[KanbanBoard] ⚠️ Colunas não são array:', columns);
+      console.warn('[KanbanBoard] ⚠️ Colunas não são array, usando array vazio');
       return [];
     }
     
-    return columns.filter(col => 
+    const filtered = columns.filter(col => 
       col && 
       typeof col.id === 'string' && 
       typeof col.title === 'string' &&
       Array.isArray(col.leads)
     );
+
+    console.log('[KanbanBoard] ✅ Colunas válidas:', filtered.length);
+    return filtered;
   }, [columns]);
 
-  // Hook de drag and drop
+  // Hook de drag and drop com colunas estáveis
   const { onDragStart, onDragEnd } = useDragAndDrop({ 
     columns: validatedColumns, 
     onColumnsChange, 
@@ -76,7 +85,7 @@ export const KanbanBoard = ({
 
   return (
     <div className="relative w-full h-full flex flex-col">
-      <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
+      <StableDragDropWrapper onDragStart={onDragStart} onDragEnd={onDragEnd}>
         <BoardContent 
           columns={validatedColumns}
           onOpenLeadDetail={onOpenLeadDetail}
@@ -89,7 +98,7 @@ export const KanbanBoard = ({
           wonStageId={wonStageId}
           lostStageId={lostStageId}
         />
-      </DragDropContext>
+      </StableDragDropWrapper>
     </div>
   );
 };

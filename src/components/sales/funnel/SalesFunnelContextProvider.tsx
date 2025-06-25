@@ -1,5 +1,5 @@
 
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { SalesFunnelProvider } from "./SalesFunnelProvider";
 import { useSalesFunnelMain } from "@/hooks/salesFunnel/useSalesFunnelMain";
 
@@ -9,64 +9,39 @@ interface SalesFunnelContextProviderProps {
 
 export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProviderProps) => {
   const salesFunnelData = useSalesFunnelMain();
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  console.log('[SalesFunnelContextProvider] 📊 Estado REAL atual:', {
+  console.log('[SalesFunnelContextProvider] 📊 Estado atual:', {
     funnelLoading: salesFunnelData.funnelLoading,
     funnelsCount: salesFunnelData.funnels?.length || 0,
     selectedFunnel: salesFunnelData.selectedFunnel?.name || 'None',
     stagesCount: salesFunnelData.stages?.length || 0,
     leadsCount: salesFunnelData.leads?.length || 0,
     columnsCount: salesFunnelData.columns?.length || 0,
-    tagsCount: salesFunnelData.availableTags?.length || 0
+    isInitialized
   });
 
-  // Estado de carregamento
-  if (salesFunnelData.funnelLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900">
-            Carregando funil de vendas...
-          </h3>
-        </div>
-      </div>
-    );
-  }
-
-  // Estado vazio - sem funis
-  if (!salesFunnelData.funnels || salesFunnelData.funnels.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <h3 className="text-lg font-medium text-gray-900 mb-2">
-            Nenhum funil encontrado
-          </h3>
-          <p className="text-gray-600 mb-4">
-            Criando funil padrão automaticamente...
-          </p>
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
-        </div>
-      </div>
-    );
-  }
-
-  // Auto-selecionar primeiro funil se necessário
-  if (!salesFunnelData.selectedFunnel && salesFunnelData.funnels.length > 0) {
-    console.log('[SalesFunnelContextProvider] 🔄 Auto-selecionando primeiro funil');
-    salesFunnelData.setSelectedFunnel(salesFunnelData.funnels[0]);
+  // Auto-selecionar primeiro funil se necessário - sem quebrar o contexto
+  useEffect(() => {
+    if (!salesFunnelData.funnelLoading && 
+        !salesFunnelData.selectedFunnel && 
+        salesFunnelData.funnels && 
+        salesFunnelData.funnels.length > 0) {
+      console.log('[SalesFunnelContextProvider] 🔄 Auto-selecionando primeiro funil');
+      salesFunnelData.setSelectedFunnel(salesFunnelData.funnels[0]);
+    }
     
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900">
-            Carregando dados do funil...
-          </h3>
-        </div>
-      </div>
-    );
-  }
+    // Marcar como inicializado após primeiro load
+    if (!salesFunnelData.funnelLoading && !isInitialized) {
+      setIsInitialized(true);
+    }
+  }, [
+    salesFunnelData.funnelLoading,
+    salesFunnelData.selectedFunnel,
+    salesFunnelData.funnels,
+    salesFunnelData.setSelectedFunnel,
+    isInitialized
+  ]);
 
   // Wrapper para createFunnel retornar Promise<void>
   const createFunnelWrapper = async (name: string, description?: string): Promise<void> => {
@@ -98,21 +73,26 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     }
   };
 
-  // Contexto com dados REAIS
+  // SEMPRE fornecer um contexto válido - nunca retornar early
   const contextValue = {
+    // Funnel data - sempre disponível com fallbacks
     funnels: salesFunnelData.funnels || [],
-    selectedFunnel: salesFunnelData.selectedFunnel,
+    selectedFunnel: salesFunnelData.selectedFunnel || null,
     setSelectedFunnel: salesFunnelData.setSelectedFunnel,
     createFunnel: createFunnelWrapper,
     funnelLoading: salesFunnelData.funnelLoading || false,
+    
+    // Dados com fallbacks seguros
     columns: salesFunnelData.columns || [],
-    setColumns: salesFunnelData.setColumns,
-    selectedLead: salesFunnelData.selectedLead,
+    setColumns: salesFunnelData.setColumns || (() => {}),
+    selectedLead: salesFunnelData.selectedLead || null,
     isLeadDetailOpen: salesFunnelData.isLeadDetailOpen || false,
-    setIsLeadDetailOpen: salesFunnelData.setIsLeadDetailOpen,
+    setIsLeadDetailOpen: salesFunnelData.setIsLeadDetailOpen || (() => {}),
     availableTags: salesFunnelData.availableTags || [],
     stages: salesFunnelData.stages || [],
     leads: salesFunnelData.leads || [],
+    
+    // Ações sempre disponíveis
     addColumn: addColumnWrapper,
     updateColumn: updateColumnWrapper,
     deleteColumn: salesFunnelData.deleteColumn || (() => {}),
@@ -131,7 +111,7 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     refetchStages: salesFunnelData.refetchStages || (async () => {})
   };
 
-  console.log('[SalesFunnelContextProvider] ✅ Provendo contexto com dados REAIS do Supabase');
+  console.log('[SalesFunnelContextProvider] ✅ Fornecendo contexto estável');
 
   return (
     <SalesFunnelProvider value={contextValue}>
