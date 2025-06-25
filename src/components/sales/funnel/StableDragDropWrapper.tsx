@@ -1,9 +1,9 @@
-
 import { ReactNode } from "react";
 import { DragDropContext } from "react-beautiful-dnd";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AdvancedErrorTracker } from "./AdvancedErrorTracker";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import "@/utils/suppressDragDropWarnings";
 
 interface StableDragDropWrapperProps {
   children: ReactNode;
@@ -16,6 +16,20 @@ export const StableDragDropWrapper = ({
   onDragStart = () => {},
   onDragEnd = () => {}
 }: StableDragDropWrapperProps) => {
+  console.log('[StableDragDropWrapper] 🔄 Renderizando wrapper');
+
+  const handleErrorCaptured = (error: Error, errorInfo: any) => {
+    console.group('🚨 [StableDragDropWrapper] ERRO CRÍTICO CAPTURADO');
+    console.error('❌ Erro no Drag and Drop Context:', error);
+    console.error('🎯 Props recebidas:', { 
+      hasOnDragStart: !!onDragStart,
+      hasOnDragEnd: !!onDragEnd,
+      childrenType: typeof children 
+    });
+    console.error('📊 ErrorInfo:', errorInfo);
+    console.groupEnd();
+  };
+
   const dragDropErrorFallback = (
     <div className="flex flex-col items-center justify-center h-64 bg-red-50 rounded-lg border-2 border-dashed border-red-300 p-6">
       <div className="text-center space-y-4">
@@ -28,7 +42,7 @@ export const StableDragDropWrapper = ({
           Erro no Sistema de Drag and Drop
         </h3>
         <p className="text-red-700 text-sm max-w-md">
-          Ocorreu um erro durante a operação de arrastar e soltar. Tente recarregar a página.
+          Ocorreu um erro durante a operação de arrastar e soltar. Verifique o console para mais detalhes.
         </p>
         <div className="flex gap-2 justify-center">
           <Button onClick={() => window.location.reload()} variant="outline" size="sm">
@@ -40,14 +54,31 @@ export const StableDragDropWrapper = ({
     </div>
   );
 
-  return (
-    <ErrorBoundary fallback={dragDropErrorFallback}>
-      <DragDropContext
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
+  try {
+    console.log('[StableDragDropWrapper] 🎯 Inicializando DragDropContext');
+    
+    return (
+      <AdvancedErrorTracker 
+        componentName="StableDragDropWrapper"
+        fallback={dragDropErrorFallback}
+        onErrorCaptured={handleErrorCaptured}
       >
-        {children}
-      </DragDropContext>
-    </ErrorBoundary>
-  );
+        <DragDropContext
+          onDragStart={(initial) => {
+            console.log('[StableDragDropWrapper] 🟢 Drag iniciado:', initial);
+            onDragStart();
+          }}
+          onDragEnd={(result) => {
+            console.log('[StableDragDropWrapper] 🟢 Drag finalizado:', result);
+            onDragEnd(result);
+          }}
+        >
+          {children}
+        </DragDropContext>
+      </AdvancedErrorTracker>
+    );
+  } catch (error) {
+    console.error('[StableDragDropWrapper] ❌ Erro ao renderizar:', error);
+    return dragDropErrorFallback;
+  }
 };

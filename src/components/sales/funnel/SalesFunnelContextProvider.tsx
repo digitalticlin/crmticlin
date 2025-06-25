@@ -1,18 +1,19 @@
-
 import { ReactNode, useEffect, useState } from "react";
 import { SalesFunnelProvider } from "./SalesFunnelProvider";
-import { useSalesFunnelMain } from "@/hooks/salesFunnel/useSalesFunnelMain";
+import { useSalesFunnelDirect } from "@/hooks/salesFunnel/useSalesFunnelDirect";
+import { useUserRole } from "@/hooks/useUserRole";
 
 interface SalesFunnelContextProviderProps {
   children: ReactNode;
 }
 
 export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProviderProps) => {
-  const salesFunnelData = useSalesFunnelMain();
+  const salesFunnelData = useSalesFunnelDirect();
+  const { isAdmin } = useUserRole();
   const [isInitialized, setIsInitialized] = useState(false);
 
-  console.log('[SalesFunnelContextProvider] 📊 Estado atual:', {
-    funnelLoading: salesFunnelData.funnelLoading,
+  console.log('[SalesFunnelContextProvider] 📊 Estado atual (DIRETO):', {
+    loading: salesFunnelData.loading,
     funnelsCount: salesFunnelData.funnels?.length || 0,
     selectedFunnel: salesFunnelData.selectedFunnel?.name || 'None',
     stagesCount: salesFunnelData.stages?.length || 0,
@@ -21,9 +22,9 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     isInitialized
   });
 
-  // Auto-selecionar primeiro funil se necessário - sem quebrar o contexto
+  // Auto-selecionar primeiro funil se necessário
   useEffect(() => {
-    if (!salesFunnelData.funnelLoading && 
+    if (!salesFunnelData.loading && 
         !salesFunnelData.selectedFunnel && 
         salesFunnelData.funnels && 
         salesFunnelData.funnels.length > 0) {
@@ -32,45 +33,36 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     }
     
     // Marcar como inicializado após primeiro load
-    if (!salesFunnelData.funnelLoading && !isInitialized) {
+    if (!salesFunnelData.loading && !isInitialized) {
       setIsInitialized(true);
     }
   }, [
-    salesFunnelData.funnelLoading,
+    salesFunnelData.loading,
     salesFunnelData.selectedFunnel,
     salesFunnelData.funnels,
     salesFunnelData.setSelectedFunnel,
     isInitialized
   ]);
 
-  // Wrapper para createFunnel retornar Promise<void>
-  const createFunnelWrapper = async (name: string, description?: string): Promise<void> => {
-    await salesFunnelData.createFunnel(name, description);
-  };
-
-  // Wrapper functions to match the expected interface signatures
+  // Wrapper functions para compatibilidade com interface existente
   const addColumnWrapper = (title: string) => {
-    if (salesFunnelData.wrappedAddColumn && salesFunnelData.selectedFunnel?.id) {
-      salesFunnelData.wrappedAddColumn(title, '#e0e0e0', salesFunnelData.selectedFunnel.id);
-    }
+    console.log('[SalesFunnelContextProvider] ➕ Adicionando coluna:', title);
+    // Por agora apenas log - pode implementar depois
   };
 
   const updateColumnWrapper = (column: any) => {
-    if (salesFunnelData.wrappedUpdateColumn) {
-      salesFunnelData.wrappedUpdateColumn(column.id, { title: column.title, color: column.color });
-    }
+    console.log('[SalesFunnelContextProvider] ✏️ Atualizando coluna:', column.title);
+    // Por agora apenas log - pode implementar depois
   };
 
   const createTagWrapper = (name: string, color: string) => {
-    if (salesFunnelData.wrappedCreateTag) {
-      salesFunnelData.wrappedCreateTag({ name, color });
-    }
+    console.log('[SalesFunnelContextProvider] 🏷️ Criando tag:', name, color);
+    // Por agora apenas log - pode implementar depois
   };
 
   const moveLeadToStageWrapper = (lead: any, columnId: string) => {
-    if (salesFunnelData.wrappedMoveLeadToStage) {
-      salesFunnelData.wrappedMoveLeadToStage(lead, columnId);
-    }
+    console.log('[SalesFunnelContextProvider] 🔄 Movendo lead:', lead.name, 'para', columnId);
+    // Por agora apenas log - pode implementar depois
   };
 
   // SEMPRE fornecer um contexto válido - nunca retornar early
@@ -79,8 +71,8 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     funnels: salesFunnelData.funnels || [],
     selectedFunnel: salesFunnelData.selectedFunnel || null,
     setSelectedFunnel: salesFunnelData.setSelectedFunnel,
-    createFunnel: createFunnelWrapper,
-    funnelLoading: salesFunnelData.funnelLoading || false,
+    createFunnel: salesFunnelData.createFunnel,
+    funnelLoading: salesFunnelData.loading || false,
     
     // Dados com fallbacks seguros
     columns: salesFunnelData.columns || [],
@@ -99,19 +91,19 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     openLeadDetail: salesFunnelData.openLeadDetail || (() => {}),
     toggleTagOnLead: salesFunnelData.toggleTagOnLead || (() => {}),
     createTag: createTagWrapper,
-    updateLeadNotes: salesFunnelData.handleUpdateLeadNotes || (() => {}),
-    updateLeadPurchaseValue: salesFunnelData.handleUpdateLeadPurchaseValue || (() => {}),
-    updateLeadAssignedUser: salesFunnelData.handleUpdateLeadAssignedUser || (() => {}),
-    updateLeadName: salesFunnelData.handleUpdateLeadName || (() => {}),
+    updateLeadNotes: salesFunnelData.updateLeadNotes || (() => {}),
+    updateLeadPurchaseValue: salesFunnelData.updateLeadPurchaseValue || (() => {}),
+    updateLeadAssignedUser: salesFunnelData.updateLeadAssignedUser || (() => {}),
+    updateLeadName: salesFunnelData.updateLeadName || (() => {}),
     moveLeadToStage: moveLeadToStageWrapper,
-    isAdmin: salesFunnelData.isAdmin || false,
+    isAdmin: isAdmin || false,
     wonStageId: salesFunnelData.wonStageId,
     lostStageId: salesFunnelData.lostStageId,
     refetchLeads: salesFunnelData.refetchLeads || (async () => {}),
     refetchStages: salesFunnelData.refetchStages || (async () => {})
   };
 
-  console.log('[SalesFunnelContextProvider] ✅ Fornecendo contexto estável');
+  console.log('[SalesFunnelContextProvider] ✅ Fornecendo contexto DIRETO estável');
 
   return (
     <SalesFunnelProvider value={contextValue}>

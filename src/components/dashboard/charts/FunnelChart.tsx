@@ -1,14 +1,20 @@
-
 import { useEffect, useState } from "react";
 import ChartCard from "@/components/dashboard/ChartCard";
 import { useCompanyData } from "@/hooks/useCompanyData";
-import { useFunnelManagement } from "@/hooks/salesFunnel/useFunnelManagement";
+import { useSalesFunnelDirect } from "@/hooks/salesFunnel/useSalesFunnelDirect";
 import { useFunnelDashboard } from "@/hooks/salesFunnel/useFunnelDashboard";
 import { useStageDatabase } from "@/hooks/salesFunnel/useStageDatabase";
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TrendingUp } from "lucide-react";
 
-export default function FunnelChart() {
+interface FunnelChartProps {
+  className?: string;
+}
+
+export default function FunnelChart({ className }: FunnelChartProps) {
   const { companyId } = useCompanyData();
-  const { selectedFunnel } = useFunnelManagement(); // Remove o argumento companyId
+  const { selectedFunnel } = useSalesFunnelDirect();
   const { report, loading } = useFunnelDashboard(selectedFunnel?.id || "");
   const { stages } = useStageDatabase(selectedFunnel?.id);
   const [funnelData, setFunnelData] = useState<any[]>([]);

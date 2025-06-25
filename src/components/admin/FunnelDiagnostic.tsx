@@ -1,4 +1,4 @@
-import { useFunnelManagement } from "@/hooks/salesFunnel/useFunnelManagement";
+import { useSalesFunnelDirect } from "@/hooks/salesFunnel/useSalesFunnelDirect";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +7,7 @@ import { RefreshCcw, Bug, User, Database, Zap } from "lucide-react";
 
 export const FunnelDiagnostic = () => {
   const { user, session } = useAuth();
-  const { funnels, selectedFunnel, loading } = useFunnelManagement();
+  const { funnels, selectedFunnel, loading } = useSalesFunnelDirect();
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
 

@@ -37,9 +37,10 @@ export function PageLayout({ children, className }: PageLayoutProps) {
       
       <ResponsiveSidebar />
       
-      {/* Container principal com scroll independente */}
+      {/* Container principal com scroll - específico para páginas que não são Kanban */}
       <main className={cn(
-        "fixed top-0 right-0 bottom-0 z-10 overflow-auto transition-all duration-300",
+        "fixed top-0 right-0 bottom-0 z-10 transition-all duration-300",
+        className?.includes("kanban") ? "overflow-hidden" : "overflow-auto",
         isMobile 
           ? "left-0" 
           : isCollapsed 
@@ -47,9 +48,19 @@ export function PageLayout({ children, className }: PageLayoutProps) {
             : "left-[250px]",
         className
       )}>
-        <div className="p-4 md:p-6 space-y-6 md:space-y-8 min-h-full">
-          {children}
-        </div>
+        {className?.includes("kanban") ? (
+          // Layout especial para páginas Kanban - altura fixa responsiva
+          <div className="h-full p-4 md:p-6 flex flex-col">
+            <div className="flex-1 min-h-0">
+              {children}
+            </div>
+          </div>
+        ) : (
+          // Layout padrão para outras páginas
+          <div className="p-4 md:p-6 space-y-6 md:space-y-8 min-h-full">
+            {children}
+          </div>
+        )}
       </main>
     </div>
   );

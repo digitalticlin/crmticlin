@@ -28,8 +28,8 @@ export const BoardContent = ({
   lostStageId
 }: BoardContentProps) => {
   return (
-    <div className="flex-1 h-full overflow-x-auto overflow-y-hidden kanban-scrollbar">
-      <div className="flex h-full min-w-max gap-6 p-6" style={{ minHeight: 'calc(100vh - 200px)' }}>
+    <div className="flex-1 h-full overflow-hidden">
+      <div className="flex h-full min-w-max gap-6 p-6 overflow-x-auto kanban-scrollbar" style={{ height: '100%' }}>
         {columns.map((column, index) => (
           <KanbanColumnComponent
             key={column.id}

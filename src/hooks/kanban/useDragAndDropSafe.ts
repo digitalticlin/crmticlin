@@ -1,7 +1,8 @@
-
 import { useState, useCallback } from "react";
 import { DropResult } from "react-beautiful-dnd";
 import { KanbanColumn, KanbanLead } from "@/types/kanban";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface UseDragAndDropSafeProps {
   columns: KanbanColumn[];
@@ -92,6 +93,7 @@ export const useDragAndDropSafe = ({
       const updatedLead = { ...removed, columnId: destColumn.id };
       destLeads.splice(result.destination.index, 0, updatedLead);
 
+      // ATUALIZAR UI PRIMEIRO (UX responsivo)
       const newColumns = columns.map(col => {
         if (col.id === sourceColumn.id) {
           return { ...col, leads: sourceLeads };
@@ -103,6 +105,79 @@ export const useDragAndDropSafe = ({
       });
 
       onColumnsChange(newColumns);
+
+      // ATUALIZAR BACKEND (sem bloquear UI)
+      try {
+        console.log('[DragDropSafe] 🔄 Atualizando backend:', {
+          leadId: draggedLead.id,
+          leadName: draggedLead.name,
+          oldStageId: sourceColumn.id,
+          newStageId: destColumn.id,
+          newStageName: destColumn.title
+        });
+
+        const { error: updateError } = await supabase
+          .from("leads")
+          .update({ 
+            kanban_stage_id: destColumn.id,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", draggedLead.id);
+
+        if (updateError) {
+          console.error('[DragDropSafe] ❌ Erro ao atualizar backend:', updateError);
+          toast.error("Erro ao salvar alteração. Recarregue a página.");
+          
+          // REVERTER UI em caso de erro
+          const revertedColumns = columns.map(col => {
+            if (col.id === sourceColumn.id) {
+              return { ...col, leads: sourceColumn.leads };
+            }
+            if (col.id === destColumn.id) {
+              return { ...col, leads: destColumn.leads };
+            }
+            return col;
+          });
+          onColumnsChange(revertedColumns);
+          return;
+        }
+
+        // VERIFICAR se atualização foi bem-sucedida
+        const { data: verifyData, error: verifyError } = await supabase
+          .from("leads")
+          .select("kanban_stage_id")
+          .eq("id", draggedLead.id)
+          .single();
+
+        if (verifyError) {
+          console.error('[DragDropSafe] ❌ Erro ao verificar atualização:', verifyError);
+        } else if (verifyData?.kanban_stage_id === destColumn.id) {
+          console.log('[DragDropSafe] ✅ Atualização confirmada no banco');
+          toast.success(`Lead "${draggedLead.name}" movido para "${destColumn.title}"`);
+        } else {
+          console.error('[DragDropSafe] ❌ Inconsistência detectada:', {
+            expected: destColumn.id,
+            actual: verifyData?.kanban_stage_id
+          });
+          toast.error("Inconsistência detectada. Recarregue a página.");
+        }
+
+      } catch (backendError) {
+        console.error('[DragDropSafe] ❌ Erro crítico no backend:', backendError);
+        toast.error("Erro de conexão. Recarregue a página.");
+        
+        // REVERTER UI em caso de erro crítico
+        const revertedColumns = columns.map(col => {
+          if (col.id === sourceColumn.id) {
+            return { ...col, leads: sourceColumn.leads };
+          }
+          if (col.id === destColumn.id) {
+            return { ...col, leads: destColumn.leads };
+          }
+          return col;
+        });
+        onColumnsChange(revertedColumns);
+      }
 
       console.log('[DragDropSafe] ✅ Drag completado com sucesso');
 

@@ -1,9 +1,9 @@
-
 import { Droppable, Draggable } from "react-beautiful-dnd";
 import { KanbanLead } from "@/types/kanban";
 import { LeadCard } from "@/components/sales/LeadCard";
 import { cn } from "@/lib/utils";
 import React, { useState } from "react";
+import "@/utils/suppressDragDropWarnings";
 
 interface LeadsListProps {
   columnId: string;
@@ -38,13 +38,13 @@ export const LeadsList = ({
   const droppableId = columnId;
 
   return (
-    <Droppable droppableId={droppableId} key={droppableId} renderClone={renderClone}>
+    <Droppable droppableId={droppableId} key={droppableId} renderClone={renderClone || undefined}>
       {(provided, snapshot) => (
         <div
           ref={provided.innerRef}
           {...provided.droppableProps}
           className={cn(
-            "flex-1 h-full overflow-y-auto kanban-column-scrollbar transition-all duration-200 rounded-3xl p-2",
+            "flex-1 overflow-y-auto kanban-column-scrollbar transition-all duration-200 rounded-3xl p-2",
             (typeof hoveredIndex === "number" || snapshot.isDraggingOver) && "overflow-visible",
             snapshot.isDraggingOver &&
               "ring-2 ring-ticlin/80 bg-white/10 shadow-lg scale-[1.02]"
@@ -52,7 +52,17 @@ export const LeadsList = ({
           style={{
             transition: "background-color 0.3s, transform 0.25s, border 0.2s",
             minHeight: "200px",
-            maxHeight: "calc(100vh - 280px)",
+            // Altura responsiva que se adapta ao zoom e tamanho da tela
+            maxHeight: window.innerWidth < 768 
+              ? "calc(100vh - 300px)" // Mobile: mais espaço
+              : window.innerWidth < 1024 
+                ? "calc(100vh - 330px)" // Tablet
+                : "calc(100vh - 370px)", // Desktop
+            height: window.innerWidth < 768 
+              ? "calc(100vh - 300px)" 
+              : window.innerWidth < 1024 
+                ? "calc(100vh - 330px)" 
+                : "calc(100vh - 370px)",
             position: "relative",
             zIndex: 2,
             overflow: (typeof hoveredIndex === "number" || snapshot.isDraggingOver) ? "visible" : "auto",
