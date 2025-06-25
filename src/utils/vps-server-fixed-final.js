@@ -1,5 +1,4 @@
-
-// WhatsApp Web.js Server - CORREÇÃO DEFINITIVA INCREMENTAL
+// WhatsApp Web.js Server - CORREÇÃO DEFINITIVA COM ENDPOINTS DE IMPORTAÇÃO
 const express = require('express');
 const { Client, LocalAuth, MessageMedia } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
@@ -13,10 +12,10 @@ const PORT = 3002;
 const API_TOKEN = '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
 
 // VERSION CONTROL
-const SERVER_VERSION = '4.0.1-FIXED-INCREMENTAL';
+const SERVER_VERSION = '4.1.0-IMPORT-ENDPOINTS';
 const BUILD_DATE = new Date().toISOString();
 
-console.log(`🚀 Iniciando WhatsApp Server ${SERVER_VERSION} - CORREÇÃO INCREMENTAL`);
+console.log(`🚀 Iniciando WhatsApp Server ${SERVER_VERSION} - COM ENDPOINTS DE IMPORTAÇÃO`);
 console.log(`📅 Build: ${BUILD_DATE}`);
 
 // Configurar CORS e parsing
@@ -322,9 +321,86 @@ async function sendWebhook(webhookUrl, data) {
   }
 }
 
-// === ENDPOINTS DA API (PRESERVADOS EXATOS) ===
+// NOVO: Função para extrair histórico de mensagens do WhatsApp Web.js
+async function extractWhatsAppHistory(client, importType = 'both', batchSize = 50) {
+  try {
+    console.log(`📚 Extraindo histórico: ${importType}, limite: ${batchSize}`);
+    
+    const result = {
+      contacts: [],
+      messages: []
+    };
 
-// Health check (PRESERVADO EXATO)
+    if (importType === 'contacts' || importType === 'both') {
+      // Extrair contatos
+      const contacts = await client.getContacts();
+      console.log(`👥 Encontrados ${contacts.length} contatos`);
+      
+      result.contacts = contacts.slice(0, batchSize).map(contact => ({
+        id: contact.id._serialized,
+        name: contact.name || contact.pushname || `Contato-${contact.number}`,
+        pushname: contact.pushname,
+        phone: contact.number,
+        isMyContact: contact.isMyContact,
+        isUser: contact.isUser,
+        isGroup: contact.isGroup,
+        profilePicUrl: contact.profilePicUrl || null
+      }));
+    }
+
+    if (importType === 'messages' || importType === 'both') {
+      // Extrair mensagens dos chats mais recentes
+      const chats = await client.getChats();
+      console.log(`💬 Encontrados ${chats.length} chats`);
+      
+      let totalMessages = 0;
+      
+      for (const chat of chats.slice(0, Math.min(10, chats.length))) {
+        if (totalMessages >= batchSize) break;
+        
+        try {
+          const messages = await chat.fetchMessages({ 
+            limit: Math.min(5, batchSize - totalMessages) 
+          });
+          
+          for (const message of messages) {
+            if (totalMessages >= batchSize) break;
+            
+            result.messages.push({
+              id: message.id._serialized,
+              from: message.from,
+              to: message.to,
+              body: message.body,
+              timestamp: message.timestamp * 1000, // Converter para milliseconds
+              fromMe: message.fromMe,
+              type: message.type,
+              chatId: chat.id._serialized,
+              chatName: chat.name || 'Chat Privado',
+              hasMedia: message.hasMedia,
+              mediaType: message.type !== 'chat' ? message.type : null
+            });
+            
+            totalMessages++;
+          }
+        } catch (chatError) {
+          console.error(`⚠️ Erro ao extrair mensagens do chat ${chat.name}:`, chatError.message);
+          continue;
+        }
+      }
+      
+      console.log(`📤 Total de mensagens extraídas: ${totalMessages}`);
+    }
+
+    return result;
+  } catch (error) {
+    console.error('❌ Erro na extração do histórico:', error);
+    throw error;
+  }
+}
+
+// === ENDPOINTS DA API ===
+
+// CORREÇÃO: Health check com JSON válido
 app.get('/health', (req, res) => {
   const instancesList = Array.from(instances.entries()).map(([id, instance]) => ({
     id,
@@ -344,12 +420,14 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
     active_instances: instances.size,
     instances: instancesList,
-    vps_optimized: true
+    import_endpoints: true
   });
 });
 
-// Status do servidor (PRESERVADO EXATO)
+// CORREÇÃO: Status do servidor com JSON válido
 app.get('/status', (req, res) => {
+  console.log('📋 Status do servidor solicitado');
+  
   const instancesList = Array.from(instances.entries()).map(([id, instance]) => ({
     id,
     status: instance.status,
@@ -369,7 +447,8 @@ app.get('/status', (req, res) => {
     instances: instancesList,
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    memory: process.memoryUsage()
+    memory: process.memoryUsage(),
+    import_ready: true
   });
 });
 
@@ -455,6 +534,188 @@ app.post('/instance/create', authenticateToken, async (req, res) => {
   }
 });
 
+// NOVO: Status individual da instância
+app.get('/instance/:instanceId/status', authenticateToken, (req, res) => {
+  try {
+    const { instanceId } = req.params;
+    
+    console.log(`📊 Status solicitado para instância: ${instanceId}`);
+    
+    const instance = instances.get(instanceId);
+    
+    if (!instance) {
+      return res.status(404).json({
+        success: false,
+        error: 'Instância não encontrada',
+        instanceId: instanceId
+      });
+    }
+    
+    const response = {
+      success: true,
+      instanceId,
+      status: instance.status,
+      phone: instance.phone,
+      profileName: instance.profileName,
+      hasQR: !!instance.qrCode,
+      lastSeen: instance.lastSeen,
+      error: instance.error || null,
+      createdAt: instance.createdAt,
+      messageCount: instance.messages?.length || 0,
+      connected: instance.status === 'ready',
+      canImport: instance.status === 'ready' && instance.client
+    };
+    
+    console.log(`✅ Status retornado para ${instanceId}:`, {
+      status: response.status,
+      connected: response.connected,
+      canImport: response.canImport
+    });
+    
+    res.json(response);
+  } catch (error) {
+    console.error('❌ Erro ao obter status:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// NOVO: Endpoint de importação de histórico
+app.post('/instance/:instanceId/import-history', authenticateToken, async (req, res) => {
+  try {
+    const { instanceId } = req.params;
+    const { importType = 'both', batchSize = 50, lastSyncTimestamp } = req.body;
+    
+    console.log(`📚 Importação de histórico solicitada:`, {
+      instanceId,
+      importType,
+      batchSize,
+      lastSync: lastSyncTimestamp
+    });
+    
+    const instance = instances.get(instanceId);
+    
+    if (!instance) {
+      return res.status(404).json({
+        success: false,
+        error: 'Instância não encontrada',
+        instanceId: instanceId
+      });
+    }
+    
+    if (!instance.client) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cliente WhatsApp não disponível',
+        status: instance.status
+      });
+    }
+    
+    if (instance.status !== 'ready') {
+      return res.status(400).json({
+        success: false,
+        error: `Instância não está pronta. Status: ${instance.status}`,
+        currentStatus: instance.status
+      });
+    }
+    
+    console.log(`🚀 Iniciando extração do histórico para ${instanceId}`);
+    
+    // Extrair histórico do WhatsApp
+    const historyData = await extractWhatsAppHistory(
+      instance.client, 
+      importType, 
+      parseInt(batchSize)
+    );
+    
+    const response = {
+      success: true,
+      instanceId,
+      importType,
+      contacts: historyData.contacts || [],
+      messages: historyData.messages || [],
+      summary: {
+        contactsCount: historyData.contacts?.length || 0,
+        messagesCount: historyData.messages?.length || 0,
+        totalImported: (historyData.contacts?.length || 0) + (historyData.messages?.length || 0)
+      },
+      timestamp: new Date().toISOString()
+    };
+    
+    console.log(`✅ Histórico extraído com sucesso:`, {
+      instanceId,
+      contacts: response.summary.contactsCount,
+      messages: response.summary.messagesCount,
+      total: response.summary.totalImported
+    });
+    
+    res.json(response);
+    
+  } catch (error) {
+    console.error(`❌ Erro na importação de histórico:`, error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      details: 'Erro interno na extração do histórico'
+    });
+  }
+});
+
+// GET QR Code (PRESERVADO EXATO)
+app.get('/instance/:instanceId/qr', authenticateToken, (req, res) => {
+  try {
+    const { instanceId } = req.params;
+    
+    console.log(`📱 GET QR Code para instância: ${instanceId}`);
+    
+    const instance = instances.get(instanceId);
+    
+    if (!instance) {
+      return res.status(404).json({
+        success: false,
+        error: 'Instância não encontrada',
+        instanceId: instanceId
+      });
+    }
+    
+    if (instance.qrCode) {
+      res.json({
+        success: true,
+        qrCode: instance.qrCode,
+        status: instance.status,
+        instanceId: instanceId,
+        timestamp: new Date().toISOString(),
+        has_qr_code: true
+      });
+    } else {
+      res.json({
+        success: false,
+        error: 'QR Code ainda não disponível',
+        status: instance.status,
+        message: instance.status === 'ready' ? 'Instância já conectada' : 
+                instance.status === 'initializing' ? 'Aguarde - inicializando cliente' :
+                instance.status === 'waiting_qr' ? 'Cliente carregado - gerando QR' :
+                'QR Code sendo gerado',
+        instanceId: instanceId,
+        has_qr_code: false,
+        info: {
+          created_at: instance.createdAt,
+          last_seen: instance.lastSeen,
+          current_status: instance.status
+        }
+      });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao obter QR Code:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
 // POST QR Code (PRESERVADO EXATO)
 app.post('/instance/qr', authenticateToken, (req, res) => {
   try {
@@ -512,94 +773,7 @@ app.post('/instance/qr', authenticateToken, (req, res) => {
   }
 });
 
-// CORREÇÃO PRINCIPAL: Adicionar endpoint GET para QR Code (ÚNICA ADIÇÃO)
-app.get('/instance/:instanceId/qr', authenticateToken, (req, res) => {
-  try {
-    const { instanceId } = req.params;
-    
-    console.log(`📱 GET QR Code para instância: ${instanceId}`);
-    
-    const instance = instances.get(instanceId);
-    
-    if (!instance) {
-      return res.status(404).json({
-        success: false,
-        error: 'Instância não encontrada',
-        instanceId: instanceId
-      });
-    }
-    
-    if (instance.qrCode) {
-      res.json({
-        success: true,
-        qrCode: instance.qrCode,
-        status: instance.status,
-        instanceId: instanceId,
-        timestamp: new Date().toISOString(),
-        has_qr_code: true
-      });
-    } else {
-      res.json({
-        success: false,
-        error: 'QR Code ainda não disponível',
-        status: instance.status,
-        message: instance.status === 'ready' ? 'Instância já conectada' : 
-                instance.status === 'initializing' ? 'Aguarde - inicializando cliente' :
-                instance.status === 'waiting_qr' ? 'Cliente carregado - gerando QR' :
-                'QR Code sendo gerado',
-        instanceId: instanceId,
-        has_qr_code: false,
-        info: {
-          created_at: instance.createdAt,
-          last_seen: instance.lastSeen,
-          current_status: instance.status
-        }
-      });
-    }
-  } catch (error) {
-    console.error('❌ Erro ao obter QR Code:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-// Todos os outros endpoints preservados
-app.get('/instance/:instanceId/status', authenticateToken, (req, res) => {
-  try {
-    const { instanceId } = req.params;
-    
-    const instance = instances.get(instanceId);
-    
-    if (!instance) {
-      return res.status(404).json({
-        success: false,
-        error: 'Instância não encontrada'
-      });
-    }
-    
-    res.json({
-      success: true,
-      instanceId,
-      status: instance.status,
-      phone: instance.phone,
-      profileName: instance.profileName,
-      hasQR: !!instance.qrCode,
-      lastSeen: instance.lastSeen,
-      error: instance.error || null,
-      createdAt: instance.createdAt,
-      messageCount: instance.messages?.length || 0
-    });
-  } catch (error) {
-    console.error('❌ Erro ao obter status:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
+// Enviar mensagem
 app.post('/send', authenticateToken, async (req, res) => {
   try {
     const { instanceId, phone, message } = req.body;
@@ -648,6 +822,7 @@ app.post('/send', authenticateToken, async (req, res) => {
   }
 });
 
+// Deletar instância
 app.delete('/instance/:instanceId', authenticateToken, async (req, res) => {
   try {
     const { instanceId } = req.params;
@@ -688,6 +863,7 @@ app.delete('/instance/:instanceId', authenticateToken, async (req, res) => {
   }
 });
 
+// Error handler
 app.use((error, req, res, next) => {
   console.error('❌ Erro no servidor:', error);
   res.status(500).json({
@@ -698,6 +874,7 @@ app.use((error, req, res, next) => {
   });
 });
 
+// Graceful shutdown
 process.on('SIGINT', async () => {
   console.log('🛑 Encerrando servidor...');
   
@@ -716,6 +893,7 @@ process.on('SIGINT', async () => {
   process.exit(0);
 });
 
+// Inicializar servidor
 async function startServer() {
   await ensureSessionDirectory();
   
@@ -726,7 +904,12 @@ async function startServer() {
     console.log(`📱 Instances: http://31.97.24.222:${PORT}/instances`);
     console.log(`🔑 Token: ${API_TOKEN.substring(0, 10)}...`);
     console.log(`📱 Versão: ${SERVER_VERSION}`);
-    console.log(`✅ CORREÇÃO: Endpoint GET QR adicionado, funcionalidade básica preservada`);
+    console.log(`✅ CORREÇÕES IMPLEMENTADAS:`);
+    console.log(`📊 - Endpoint /status corrigido (JSON válido)`);
+    console.log(`🔍 - Endpoint /instance/:id/status implementado`);
+    console.log(`📚 - Endpoint /instance/:id/import-history implementado`);
+    console.log(`🔧 - Sistema de extração de histórico do WhatsApp Web.js`);
+    console.log(`📝 - Logs estruturados para debugging`);
   });
 }
 
