@@ -60,15 +60,24 @@ export const useWhatsAppChatMessages = (
           return;
         }
 
-        const formattedMessages: Message[] = (messagesData || []).map(msg => ({
-          id: msg.id,
-          text: msg.text || '',
-          fromMe: msg.from_me || false,
-          timestamp: new Date(msg.timestamp).toISOString(), // Convert to string
-          status: msg.status === 'received' ? 'delivered' : msg.status, // Handle 'received' status
-          mediaType: msg.media_type || 'text',
-          mediaUrl: msg.media_url,
-        }));
+        const formattedMessages: Message[] = (messagesData || []).map(msg => {
+          // Handle status conversion and filtering
+          let status: "sent" | "delivered" | "read" = "sent";
+          if (msg.status === 'delivered') status = "delivered";
+          else if (msg.status === 'read') status = "read";
+          else if (msg.status === 'received') status = "delivered";
+          // Filter out 'failed' status by defaulting to 'sent'
+
+          return {
+            id: msg.id,
+            text: msg.text || '',
+            fromMe: msg.from_me || false,
+            timestamp: new Date(msg.timestamp).toISOString(),
+            status,
+            mediaType: msg.media_type || 'text',
+            mediaUrl: msg.media_url,
+          };
+        });
 
         setMessages(formattedMessages);
         console.log('[WhatsApp Chat Messages] Messages loaded:', formattedMessages.length);
