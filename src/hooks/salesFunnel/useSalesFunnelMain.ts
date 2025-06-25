@@ -2,12 +2,9 @@
 import { useUserRole } from "@/hooks/useUserRole";
 import { useFunnelManagement } from "@/hooks/salesFunnel/useFunnelManagement";
 import { useExtendedSalesFunnel } from "@/hooks/salesFunnel/useExtendedSalesFunnel";
-import { useState } from "react";
 
 export function useSalesFunnelMain() {
   const { isAdmin, role } = useUserRole();
-  const [selectedLead, setSelectedLead] = useState<any>(null);
-  const [isLeadDetailOpen, setIsLeadDetailOpen] = useState(false);
   
   const {
     funnels,
@@ -17,11 +14,11 @@ export function useSalesFunnelMain() {
     loading: funnelLoading
   } = useFunnelManagement();
 
-  // Usar dados reais do funil selecionado
+  // Usar dados reais através do useExtendedSalesFunnel
   const extendedFunnelData = useExtendedSalesFunnel(selectedFunnel?.id);
 
-  console.log('[SalesFunnelMain] 🔍 Estado real:', {
-    funnelsCount: funnels.length,
+  console.log('[SalesFunnelMain] 🔍 Estado real do funil:', {
+    funnelsCount: funnels?.length || 0,
     selectedFunnel: selectedFunnel ? { 
       id: selectedFunnel.id, 
       name: selectedFunnel.name 
@@ -30,24 +27,25 @@ export function useSalesFunnelMain() {
     isAdmin,
     role,
     realLeadsCount: extendedFunnelData.leads?.length || 0,
-    realStagesCount: extendedFunnelData.stages?.length || 0
+    realStagesCount: extendedFunnelData.stages?.length || 0,
+    realColumnsCount: extendedFunnelData.columns?.length || 0
   });
 
-  // Se não há funil selecionado, retornar estado básico
-  if (!selectedFunnel || funnelLoading) {
+  // Estado de carregamento inicial ou sem funil selecionado
+  if (funnelLoading || !selectedFunnel) {
     return {
       // Basic state
       isAdmin,
       role,
-      funnelLoading,
+      funnelLoading: funnelLoading || true,
       
       // Funnel data
-      funnels,
+      funnels: funnels || [],
       selectedFunnel,
       setSelectedFunnel,
       createFunnel,
       
-      // Empty state
+      // Empty state durante carregamento
       columns: [],
       setColumns: () => {},
       selectedLead: null,
@@ -57,7 +55,7 @@ export function useSalesFunnelMain() {
       stages: [],
       leads: [],
       
-      // Mock actions
+      // Funções vazias durante carregamento
       deleteColumn: () => {},
       openLeadDetail: () => {},
       toggleTagOnLead: () => {},
@@ -66,7 +64,7 @@ export function useSalesFunnelMain() {
       refetchLeads: async () => {},
       refetchStages: async () => {},
       
-      // Wrapped functions
+      // Wrappers vazios
       wrappedAddColumn: () => {},
       wrappedUpdateColumn: () => {},
       wrappedCreateTag: () => {},
@@ -78,36 +76,19 @@ export function useSalesFunnelMain() {
     };
   }
 
-  // Usar dados reais do ExtendedSalesFunnel
-  const handleOpenLeadDetail = (lead: any) => {
-    setSelectedLead(lead);
-    setIsLeadDetailOpen(true);
-  };
-
-  // Wrappers para compatibilidade
-  const wrappers = {
-    wrappedAddColumn: extendedFunnelData.addColumn || (() => {}),
-    wrappedUpdateColumn: extendedFunnelData.updateColumn || (() => {}),
-    wrappedCreateTag: extendedFunnelData.createTag || (() => {}),
-    wrappedMoveLeadToStage: extendedFunnelData.moveLeadToStage || (() => {}),
-    handleUpdateLeadNotes: extendedFunnelData.updateLeadNotes,
-    handleUpdateLeadPurchaseValue: extendedFunnelData.updateLeadPurchaseValue,
-    handleUpdateLeadAssignedUser: extendedFunnelData.updateLeadAssignedUser,
-    handleUpdateLeadName: extendedFunnelData.updateLeadName
-  };
-
-  console.log('[SalesFunnelMain] ✅ Dados reais carregados:', {
+  console.log('[SalesFunnelMain] ✅ Retornando dados REAIS:', {
     columnsCount: extendedFunnelData.columns?.length || 0,
     leadsCount: extendedFunnelData.leads?.length || 0,
     stagesCount: extendedFunnelData.stages?.length || 0,
     tagsCount: extendedFunnelData.availableTags?.length || 0
   });
 
+  // Retornar dados reais do ExtendedSalesFunnel
   return {
     // Basic state
     isAdmin,
     role,
-    funnelLoading,
+    funnelLoading: false,
     
     // Funnel data
     funnels,
@@ -115,31 +96,33 @@ export function useSalesFunnelMain() {
     setSelectedFunnel,
     createFunnel,
     
-    // Real data do ExtendedSalesFunnel
+    // Dados REAIS do Supabase
     columns: extendedFunnelData.columns || [],
-    setColumns: extendedFunnelData.setColumns,
-    selectedLead: selectedLead || extendedFunnelData.selectedLead,
-    isLeadDetailOpen: isLeadDetailOpen || extendedFunnelData.isLeadDetailOpen,
-    setIsLeadDetailOpen: (open: boolean) => {
-      setIsLeadDetailOpen(open);
-      if (extendedFunnelData.setIsLeadDetailOpen) {
-        extendedFunnelData.setIsLeadDetailOpen(open);
-      }
-    },
+    setColumns: extendedFunnelData.setColumns || (() => {}),
+    selectedLead: extendedFunnelData.selectedLead,
+    isLeadDetailOpen: extendedFunnelData.isLeadDetailOpen || false,
+    setIsLeadDetailOpen: extendedFunnelData.setIsLeadDetailOpen || (() => {}),
     availableTags: extendedFunnelData.availableTags || [],
     stages: extendedFunnelData.stages || [],
     leads: extendedFunnelData.leads || [],
     
-    // Real Actions
+    // Ações reais
     deleteColumn: extendedFunnelData.deleteColumn || (() => {}),
-    openLeadDetail: handleOpenLeadDetail,
-    toggleTagOnLead: extendedFunnelData.toggleTagOnLead,
+    openLeadDetail: extendedFunnelData.openLeadDetail || (() => {}),
+    toggleTagOnLead: extendedFunnelData.toggleTagOnLead || (() => {}),
     wonStageId: extendedFunnelData.wonStageId,
     lostStageId: extendedFunnelData.lostStageId,
-    refetchLeads: extendedFunnelData.refetchLeads,
-    refetchStages: extendedFunnelData.refetchStages,
+    refetchLeads: extendedFunnelData.refetchLeads || (async () => {}),
+    refetchStages: extendedFunnelData.refetchStages || (async () => {}),
     
-    // Wrapped functions para compatibilidade
-    ...wrappers
+    // Wrappers para compatibilidade
+    wrappedAddColumn: extendedFunnelData.addColumn || (() => {}),
+    wrappedUpdateColumn: extendedFunnelData.updateColumn || (() => {}),
+    wrappedCreateTag: extendedFunnelData.createTag || (() => {}),
+    wrappedMoveLeadToStage: extendedFunnelData.moveLeadToStage || (() => {}),
+    handleUpdateLeadNotes: extendedFunnelData.updateLeadNotes || (() => {}),
+    handleUpdateLeadPurchaseValue: extendedFunnelData.updateLeadPurchaseValue || (() => {}),
+    handleUpdateLeadAssignedUser: extendedFunnelData.updateLeadAssignedUser || (() => {}),
+    handleUpdateLeadName: extendedFunnelData.updateLeadName || (() => {})
   };
 }

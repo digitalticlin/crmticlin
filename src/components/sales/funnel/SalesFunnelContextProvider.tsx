@@ -10,12 +10,14 @@ interface SalesFunnelContextProviderProps {
 export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProviderProps) => {
   const salesFunnelData = useSalesFunnelMain();
 
-  console.log('[SalesFunnelContextProvider] 📊 Estado atual:', {
+  console.log('[SalesFunnelContextProvider] 📊 Estado REAL atual:', {
     funnelLoading: salesFunnelData.funnelLoading,
     funnelsCount: salesFunnelData.funnels?.length || 0,
     selectedFunnel: salesFunnelData.selectedFunnel?.name || 'None',
     stagesCount: salesFunnelData.stages?.length || 0,
-    leadsCount: salesFunnelData.leads?.length || 0
+    leadsCount: salesFunnelData.leads?.length || 0,
+    columnsCount: salesFunnelData.columns?.length || 0,
+    tagsCount: salesFunnelData.availableTags?.length || 0
   });
 
   // Estado de carregamento
@@ -41,7 +43,7 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
             Nenhum funil encontrado
           </h3>
           <p className="text-gray-600 mb-4">
-            Aguarde... tentando criar funil padrão automaticamente
+            Criando funil padrão automaticamente...
           </p>
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
         </div>
@@ -49,9 +51,8 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     );
   }
 
-  // Verificar se tem funis mas nenhum selecionado
+  // Auto-selecionar primeiro funil se necessário
   if (!salesFunnelData.selectedFunnel && salesFunnelData.funnels.length > 0) {
-    // Auto-selecionar o primeiro funil
     console.log('[SalesFunnelContextProvider] 🔄 Auto-selecionando primeiro funil');
     salesFunnelData.setSelectedFunnel(salesFunnelData.funnels[0]);
     
@@ -60,14 +61,14 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
         <div className="text-center">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <h3 className="text-lg font-medium text-gray-900">
-            Carregando funil...
+            Carregando dados do funil...
           </h3>
         </div>
       </div>
     );
   }
 
-  // Garantir que todas as propriedades necessárias estejam definidas
+  // Contexto com dados REAIS
   const contextValue = {
     funnels: salesFunnelData.funnels || [],
     selectedFunnel: salesFunnelData.selectedFunnel,
@@ -100,11 +101,13 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     refetchStages: salesFunnelData.refetchStages || (async () => {})
   };
 
-  console.log('[SalesFunnelContextProvider] ✅ Provendo contexto com dados REAIS:', {
+  console.log('[SalesFunnelContextProvider] ✅ Provendo contexto com dados REAIS do Supabase:', {
     funnelName: contextValue.selectedFunnel?.name,
     stagesCount: contextValue.stages?.length || 0,
     leadsCount: contextValue.leads?.length || 0,
-    columnsCount: contextValue.columns?.length || 0
+    columnsCount: contextValue.columns?.length || 0,
+    tagsCount: contextValue.availableTags?.length || 0,
+    isDataReal: true
   });
 
   return (
