@@ -75,20 +75,20 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
 
   // Wrapper functions to match the expected interface signatures
   const addColumnWrapper = (title: string) => {
-    if (salesFunnelData.wrappedAddColumn) {
-      salesFunnelData.wrappedAddColumn(title);
+    if (salesFunnelData.wrappedAddColumn && salesFunnelData.selectedFunnel?.id) {
+      salesFunnelData.wrappedAddColumn(title, '#e0e0e0', salesFunnelData.selectedFunnel.id);
     }
   };
 
   const updateColumnWrapper = (column: any) => {
     if (salesFunnelData.wrappedUpdateColumn) {
-      salesFunnelData.wrappedUpdateColumn(column);
+      salesFunnelData.wrappedUpdateColumn(column.id, { title: column.title, color: column.color });
     }
   };
 
   const createTagWrapper = (name: string, color: string) => {
     if (salesFunnelData.wrappedCreateTag) {
-      salesFunnelData.wrappedCreateTag(name, color);
+      salesFunnelData.wrappedCreateTag({ name, color });
     }
   };
 
