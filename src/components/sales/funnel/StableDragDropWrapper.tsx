@@ -11,10 +11,12 @@ interface StableDragDropWrapperProps {
   onDragEnd?: (result: any) => void;
 }
 
-const DragDropErrorFallback = ({ error, resetErrorBoundary }: { error: Error, resetErrorBoundary: () => void }) => {
-  console.error('[StableDragDropWrapper] 🚨 Erro específico no drag and drop:', error);
-  
-  return (
+export const StableDragDropWrapper = ({ 
+  children, 
+  onDragStart = () => {},
+  onDragEnd = () => {}
+}: StableDragDropWrapperProps) => {
+  const dragDropErrorFallback = (
     <div className="flex flex-col items-center justify-center h-64 bg-red-50 rounded-lg border-2 border-dashed border-red-300 p-6">
       <div className="text-center space-y-4">
         <div className="text-red-600">
@@ -26,29 +28,20 @@ const DragDropErrorFallback = ({ error, resetErrorBoundary }: { error: Error, re
           Erro no Sistema de Drag and Drop
         </h3>
         <p className="text-red-700 text-sm max-w-md">
-          <strong>Erro:</strong> {error.message}
+          Ocorreu um erro durante a operação de arrastar e soltar. Tente recarregar a página.
         </p>
         <div className="flex gap-2 justify-center">
-          <Button onClick={resetErrorBoundary} variant="outline" size="sm">
+          <Button onClick={() => window.location.reload()} variant="outline" size="sm">
             <RefreshCw className="w-4 h-4 mr-2" />
-            Tentar Novamente
-          </Button>
-          <Button onClick={() => window.location.reload()} variant="default" size="sm">
             Recarregar Página
           </Button>
         </div>
       </div>
     </div>
   );
-};
 
-export const StableDragDropWrapper = ({ 
-  children, 
-  onDragStart = () => {},
-  onDragEnd = () => {}
-}: StableDragDropWrapperProps) => {
   return (
-    <ErrorBoundary fallback={DragDropErrorFallback}>
+    <ErrorBoundary fallback={dragDropErrorFallback}>
       <DragDropContext
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
