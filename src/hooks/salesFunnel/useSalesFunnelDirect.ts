@@ -1,7 +1,9 @@
+
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { KanbanColumn, KanbanLead } from "@/types/kanban";
+import { KanbanStage } from "@/types/funnel";
 import { toast } from "sonner";
 
 interface FunnelData {
@@ -10,16 +12,6 @@ interface FunnelData {
   description?: string;
   created_by_user_id: string;
   created_at?: string;
-}
-
-interface StageData {
-  id: string;
-  title: string;
-  color: string;
-  order_position: number;
-  is_won: boolean;
-  is_lost: boolean;
-  is_fixed: boolean;
 }
 
 interface LeadData {
@@ -47,7 +39,7 @@ export function useSalesFunnelDirect() {
   // Estados simples e diretos
   const [funnels, setFunnels] = useState<FunnelData[]>([]);
   const [selectedFunnel, setSelectedFunnel] = useState<FunnelData | null>(null);
-  const [stages, setStages] = useState<StageData[]>([]);
+  const [stages, setStages] = useState<KanbanStage[]>([]);
   const [leads, setLeads] = useState<LeadData[]>([]);
   const [selectedLead, setSelectedLead] = useState<KanbanLead | null>(null);
   const [isLeadDetailOpen, setIsLeadDetailOpen] = useState(false);
@@ -152,7 +144,21 @@ export function useSalesFunnelDirect() {
       }
 
       console.log('[useSalesFunnelDirect] ✅ Stages encontrados:', data?.length || 0);
-      setStages(data || []);
+      
+      // Mapear dados para o tipo KanbanStage correto
+      const mappedStages: KanbanStage[] = (data || []).map(stage => ({
+        id: stage.id,
+        title: stage.title,
+        color: stage.color || '#e0e0e0',
+        is_fixed: stage.is_fixed || false,
+        is_won: stage.is_won || false,
+        is_lost: stage.is_lost || false,
+        order_position: stage.order_position,
+        funnel_id: stage.funnel_id,
+        created_by_user_id: stage.created_by_user_id
+      }));
+      
+      setStages(mappedStages);
     } catch (err: any) {
       console.error('[useSalesFunnelDirect] ❌ Erro ao buscar stages:', err);
       setError(`Erro ao carregar etapas: ${err.message}`);
@@ -511,4 +517,4 @@ export function useSalesFunnelDirect() {
     createTag: () => {},
     moveLeadToStage: () => {}
   };
-} 
+}
