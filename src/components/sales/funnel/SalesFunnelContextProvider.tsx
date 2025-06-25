@@ -73,6 +73,31 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     await salesFunnelData.createFunnel(name, description);
   };
 
+  // Wrapper functions to match the expected interface signatures
+  const addColumnWrapper = (title: string) => {
+    if (salesFunnelData.wrappedAddColumn) {
+      salesFunnelData.wrappedAddColumn(title);
+    }
+  };
+
+  const updateColumnWrapper = (column: any) => {
+    if (salesFunnelData.wrappedUpdateColumn) {
+      salesFunnelData.wrappedUpdateColumn(column);
+    }
+  };
+
+  const createTagWrapper = (name: string, color: string) => {
+    if (salesFunnelData.wrappedCreateTag) {
+      salesFunnelData.wrappedCreateTag(name, color);
+    }
+  };
+
+  const moveLeadToStageWrapper = (lead: any, columnId: string) => {
+    if (salesFunnelData.wrappedMoveLeadToStage) {
+      salesFunnelData.wrappedMoveLeadToStage(lead, columnId);
+    }
+  };
+
   // Contexto com dados REAIS
   const contextValue = {
     funnels: salesFunnelData.funnels || [],
@@ -88,17 +113,17 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     availableTags: salesFunnelData.availableTags || [],
     stages: salesFunnelData.stages || [],
     leads: salesFunnelData.leads || [],
-    addColumn: salesFunnelData.wrappedAddColumn || (() => {}),
-    updateColumn: salesFunnelData.wrappedUpdateColumn || (() => {}),
+    addColumn: addColumnWrapper,
+    updateColumn: updateColumnWrapper,
     deleteColumn: salesFunnelData.deleteColumn || (() => {}),
     openLeadDetail: salesFunnelData.openLeadDetail || (() => {}),
     toggleTagOnLead: salesFunnelData.toggleTagOnLead || (() => {}),
-    createTag: salesFunnelData.wrappedCreateTag || (() => {}),
+    createTag: createTagWrapper,
     updateLeadNotes: salesFunnelData.handleUpdateLeadNotes || (() => {}),
     updateLeadPurchaseValue: salesFunnelData.handleUpdateLeadPurchaseValue || (() => {}),
     updateLeadAssignedUser: salesFunnelData.handleUpdateLeadAssignedUser || (() => {}),
     updateLeadName: salesFunnelData.handleUpdateLeadName || (() => {}),
-    moveLeadToStage: salesFunnelData.wrappedMoveLeadToStage || (() => {}),
+    moveLeadToStage: moveLeadToStageWrapper,
     isAdmin: salesFunnelData.isAdmin || false,
     wonStageId: salesFunnelData.wonStageId,
     lostStageId: salesFunnelData.lostStageId,
