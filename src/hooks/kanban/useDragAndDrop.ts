@@ -2,7 +2,6 @@
 import { DropResult } from "react-beautiful-dnd";
 import { KanbanColumn, KanbanLead } from "@/types/kanban";
 import { useDragAndDropSafe } from "./useDragAndDropSafe";
-import { useDragAndDropDatabase } from "./useDragAndDropDatabase";
 
 interface UseDragAndDropProps {
   columns: KanbanColumn[];
@@ -19,7 +18,7 @@ export const useDragAndDrop = ({
 }: UseDragAndDropProps) => {
   console.log('[useDragAndDrop] 🔄 Inicializando com colunas:', columns?.length || 0);
 
-  // Hooks para diferentes funcionalidades
+  // Hook para drag and drop seguro
   const safeImplementation = useDragAndDropSafe({
     columns,
     onColumnsChange,
@@ -27,39 +26,17 @@ export const useDragAndDrop = ({
     isWonLostView
   });
 
-  const databaseOperations = useDragAndDropDatabase();
-
-  // Handler integrado que combina UI + Database
+  // Handler simplificado - apenas UI local
   const handleDragEnd = async (result: DropResult) => {
     try {
-      console.log('[useDragAndDrop] 🎯 Processando drag end integrado');
+      console.log('[useDragAndDrop] 🎯 Processando drag end');
       
-      // Primeiro, atualizar a UI imediatamente (UX responsiva)
+      // Atualizar a UI imediatamente
       await safeImplementation.onDragEnd(result);
       
-      // Depois, sincronizar com banco de dados (persistência)
-      if (result.destination && result.source.droppableId !== result.destination.droppableId) {
-        // Movimento entre colunas - atualizar stage no banco
-        await databaseOperations.moveLeadToDatabase(
-          result.draggableId, 
-          result.destination.droppableId
-        );
-      }
-      
-      // Atualizar posições dentro da coluna
-      const targetColumn = columns.find(col => col.id === (result.destination?.droppableId || result.source.droppableId));
-      if (targetColumn) {
-        const leadIds = targetColumn.leads.map(lead => lead.id);
-        await databaseOperations.updateLeadPositionsInDatabase(
-          result.destination?.droppableId || result.source.droppableId,
-          leadIds
-        );
-      }
-      
-      console.log('[useDragAndDrop] ✅ Drag integrado completado com sucesso');
+      console.log('[useDragAndDrop] ✅ Drag completado com sucesso');
     } catch (error) {
-      console.error('[useDragAndDrop] ❌ Erro no drag integrado:', error);
-      // UI já foi atualizada, então não quebra a experiência do usuário
+      console.error('[useDragAndDrop] ❌ Erro no drag:', error);
     }
   };
 
