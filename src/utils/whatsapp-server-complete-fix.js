@@ -1,4 +1,3 @@
-
 // SERVIDOR WHATSAPP COMPLETO - CORREÇÃO TOTAL COM IMPORTAÇÃO MODULAR
 const express = require('express');
 const crypto = require('crypto');
@@ -10,6 +9,8 @@ const path = require('path');
 
 // Módulos isolados para importação
 const ImportManager = require('./import-manager');
+const ImportManagerCorrected = require('./import-manager-corrected');
+const DiagnosticsManager = require('./diagnostics-manager');
 const WebhookManager = require('./webhook-manager');
 const ConnectionManager = require('./connection-manager');
 
@@ -57,6 +58,8 @@ app.use((req, res, next) => {
 const webhookManager = new WebhookManager(SUPABASE_WEBHOOKS, SUPABASE_SERVICE_KEY);
 const connectionManager = new ConnectionManager(instances, AUTH_DIR, webhookManager);
 const importManager = new ImportManager(instances);
+const importManagerCorrected = new ImportManagerCorrected(instances);
+const diagnosticsManager = new DiagnosticsManager(instances);
 
 // ENDPOINTS PRINCIPAIS
 
@@ -282,7 +285,80 @@ app.get('/instance/:instanceId/status', (req, res) => {
   });
 });
 
-// ENDPOINT DE IMPORTAÇÃO MODULAR - TOTALMENTE ISOLADO
+// NOVO ENDPOINT: Diagnóstico detalhado da estrutura de dados
+app.get('/instance/:instanceId/debug-data', (req, res) => {
+  const { instanceId } = req.params;
+  
+  console.log(`[Debug Data] 🔍 Solicitação de diagnóstico para: ${instanceId}`);
+
+  diagnosticsManager.getInstanceDataStructure(instanceId)
+    .then(diagnostics => {
+      const compatibility = diagnosticsManager.getCompatibilityReport(diagnostics);
+      
+      res.json({
+        success: true,
+        instanceId,
+        diagnostics,
+        compatibility,
+        timestamp: new Date().toISOString()
+      });
+    })
+    .catch(error => {
+      console.error(`[Debug Data] ❌ Erro no diagnóstico:`, error);
+      
+      res.status(500).json({
+        success: false,
+        error: 'Erro no diagnóstico de dados',
+        message: error.message,
+        instanceId,
+        timestamp: new Date().toISOString()
+      });
+    });
+});
+
+// ENDPOINT DE IMPORTAÇÃO CORRIGIDO
+app.post('/instance/:instanceId/import-history-corrected', async (req, res) => {
+  const { instanceId } = req.params;
+  const { importType = 'both', batchSize = 50, lastSyncTimestamp } = req.body;
+  
+  console.log(`[Import Corrected] 📥 Solicitação para ${instanceId}:`, { 
+    importType, 
+    batchSize, 
+    lastSyncTimestamp 
+  });
+
+  try {
+    // Usar o ImportManagerCorrected
+    const result = await importManagerCorrected.importHistory(instanceId, {
+      importType,
+      batchSize,
+      lastSyncTimestamp
+    });
+
+    console.log(`[Import Corrected] ✅ Importação concluída:`, {
+      instanceId,
+      contacts: result.contacts?.length || 0,
+      messages: result.messages?.length || 0,
+      success: result.success,
+      source: result.metadata?.dataSource
+    });
+
+    res.json(result);
+
+  } catch (error) {
+    console.error(`[Import Corrected] ❌ Erro na importação:`, error);
+    
+    res.status(500).json({
+      success: false,
+      error: 'Erro na importação de histórico corrigida',
+      message: error.message,
+      instanceId,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// ENDPOINT DE IMPORTAÇÃO MODULAR - MANTIDO PARA COMPATIBILIDADE
 app.post('/instance/:instanceId/import-history', async (req, res) => {
   const { instanceId } = req.params;
   const { importType = 'both', batchSize = 50, lastSyncTimestamp } = req.body;
@@ -294,7 +370,7 @@ app.post('/instance/:instanceId/import-history', async (req, res) => {
   });
 
   try {
-    // Usar o ImportManager isolado
+    // Usar o ImportManager original
     const result = await importManager.importHistory(instanceId, {
       importType,
       batchSize,
@@ -528,6 +604,7 @@ async function startServer() {
       console.log(`   GET  /instance/:id/qr - Obter QR Code`);
       console.log(`   GET  /instance/:id/status - Status da instância`);
       console.log(`   POST /instance/:id/import-history - Importar histórico (MODULAR)`);
+      console.log(`   POST /instance/:id/import-history-corrected - Importar histórico corrigido`);
       console.log(`   GET  /instance/:id - Detalhes da instância`);
       console.log(`   DELETE /instance/:id - Deletar instância`);
     });
@@ -580,4 +657,4 @@ async function startServer() {
 // Inicializar
 startServer();
 
-module.exports = { app, instances, webhookManager, connectionManager, importManager };
+module.exports = { app, instances, webhookManager, connectionManager, importManager, importManagerCorrected, diagnosticsManager };
