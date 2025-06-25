@@ -68,12 +68,17 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     );
   }
 
+  // Wrapper para createFunnel retornar Promise<void>
+  const createFunnelWrapper = async (name: string, description?: string): Promise<void> => {
+    await salesFunnelData.createFunnel(name, description);
+  };
+
   // Contexto com dados REAIS
   const contextValue = {
     funnels: salesFunnelData.funnels || [],
     selectedFunnel: salesFunnelData.selectedFunnel,
     setSelectedFunnel: salesFunnelData.setSelectedFunnel,
-    createFunnel: salesFunnelData.createFunnel,
+    createFunnel: createFunnelWrapper,
     funnelLoading: salesFunnelData.funnelLoading || false,
     columns: salesFunnelData.columns || [],
     setColumns: salesFunnelData.setColumns,
@@ -83,17 +88,17 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     availableTags: salesFunnelData.availableTags || [],
     stages: salesFunnelData.stages || [],
     leads: salesFunnelData.leads || [],
-    addColumn: salesFunnelData.wrappedAddColumn || (() => {}),
-    updateColumn: salesFunnelData.wrappedUpdateColumn || (() => {}),
+    addColumn: salesFunnelData.addColumn || (() => {}),
+    updateColumn: salesFunnelData.updateColumn || (() => {}),
     deleteColumn: salesFunnelData.deleteColumn || (() => {}),
     openLeadDetail: salesFunnelData.openLeadDetail || (() => {}),
     toggleTagOnLead: salesFunnelData.toggleTagOnLead || (() => {}),
-    createTag: salesFunnelData.wrappedCreateTag || (() => {}),
-    updateLeadNotes: salesFunnelData.handleUpdateLeadNotes || (() => {}),
-    updateLeadPurchaseValue: salesFunnelData.handleUpdateLeadPurchaseValue || (() => {}),
-    updateLeadAssignedUser: salesFunnelData.handleUpdateLeadAssignedUser || (() => {}),
-    updateLeadName: salesFunnelData.handleUpdateLeadName || (() => {}),
-    moveLeadToStage: salesFunnelData.wrappedMoveLeadToStage || (() => {}),
+    createTag: salesFunnelData.createTag || (() => {}),
+    updateLeadNotes: salesFunnelData.updateLeadNotes || (() => {}),
+    updateLeadPurchaseValue: salesFunnelData.updateLeadPurchaseValue || (() => {}),
+    updateLeadAssignedUser: salesFunnelData.updateLeadAssignedUser || (() => {}),
+    updateLeadName: salesFunnelData.updateLeadName || (() => {}),
+    moveLeadToStage: salesFunnelData.moveLeadToStage || (() => {}),
     isAdmin: salesFunnelData.isAdmin || false,
     wonStageId: salesFunnelData.wonStageId,
     lostStageId: salesFunnelData.lostStageId,
@@ -101,14 +106,7 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     refetchStages: salesFunnelData.refetchStages || (async () => {})
   };
 
-  console.log('[SalesFunnelContextProvider] ✅ Provendo contexto com dados REAIS do Supabase:', {
-    funnelName: contextValue.selectedFunnel?.name,
-    stagesCount: contextValue.stages?.length || 0,
-    leadsCount: contextValue.leads?.length || 0,
-    columnsCount: contextValue.columns?.length || 0,
-    tagsCount: contextValue.availableTags?.length || 0,
-    isDataReal: true
-  });
+  console.log('[SalesFunnelContextProvider] ✅ Provendo contexto com dados REAIS do Supabase');
 
   return (
     <SalesFunnelProvider value={contextValue}>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Contact, Message } from '@/types/chat';
 import { WhatsAppWebInstance } from '@/types/whatsapp';
@@ -63,8 +64,8 @@ export const useWhatsAppChatMessages = (
           id: msg.id,
           text: msg.text || '',
           fromMe: msg.from_me || false,
-          timestamp: new Date(msg.timestamp),
-          status: msg.status,
+          timestamp: new Date(msg.timestamp).toISOString(), // Convert to string
+          status: msg.status === 'received' ? 'delivered' : msg.status, // Handle 'received' status
           mediaType: msg.media_type || 'text',
           mediaUrl: msg.media_url,
         }));

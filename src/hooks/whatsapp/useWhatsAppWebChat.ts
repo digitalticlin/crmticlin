@@ -65,7 +65,13 @@ export function useWhatsAppWebChat(instanceId: string) {
 
         if (error) throw error;
 
-        setMessages(messagesData || []);
+        // Filter out 'received' status to match WhatsAppMessage type
+        const filteredMessages = (messagesData || []).map(msg => ({
+          ...msg,
+          status: msg.status === 'received' ? 'delivered' : msg.status
+        })) as WhatsAppMessage[];
+
+        setMessages(filteredMessages);
       } catch (error) {
         console.error("Error fetching messages:", error);
         toast.error("Erro ao carregar mensagens");
