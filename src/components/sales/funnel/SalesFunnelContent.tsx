@@ -4,9 +4,12 @@ import { useWonLostFilters } from "@/hooks/salesFunnel/useWonLostFilters";
 import { SalesFunnelTabs } from "./SalesFunnelTabs";
 import { SalesFunnelModals } from "./SalesFunnelModals";
 import { SalesFunnelActions } from "./SalesFunnelActions";
+import { DataErrorBoundary } from "./DataErrorBoundary";
 import { useSalesFunnelContext } from "./SalesFunnelProvider";
 
 export const SalesFunnelContent = () => {
+  console.log('[SalesFunnelContent] 🚀 Inicializando componente');
+
   const [isStageModalOpen, setIsStageModalOpen] = useState(false);
   const [isDealNoteModalOpen, setIsDealNoteModalOpen] = useState(false);
   const [leadToMove, setLeadToMove] = useState<KanbanLead | null>(null);
@@ -43,10 +46,12 @@ export const SalesFunnelContent = () => {
     refetchStages
   } = useSalesFunnelContext();
 
-  console.log('[SalesFunnelContent] ✅ Contexto carregado com sucesso', {
+  console.log('[SalesFunnelContent] 📊 Contexto carregado:', {
+    funnelId: selectedFunnel?.id,
     funnelName: selectedFunnel?.name,
     stagesCount: stages?.length || 0,
-    leadsCount: leads?.length || 0
+    leadsCount: leads?.length || 0,
+    columnsCount: columns?.length || 0
   });
 
   // Buscar leads das etapas GANHO e PERDIDO diretamente dos leads totais
@@ -109,7 +114,7 @@ export const SalesFunnelContent = () => {
   };
 
   return (
-    <>
+    <DataErrorBoundary context="Funil de Vendas - Dados Principais">
       <SalesFunnelTabs
         funnels={funnels}
         selectedFunnel={selectedFunnel!}
@@ -167,6 +172,6 @@ export const SalesFunnelContent = () => {
         onUpdateAssignedUser={updateLeadAssignedUser}
         onUpdateName={updateLeadName}
       />
-    </>
+    </DataErrorBoundary>
   );
 };

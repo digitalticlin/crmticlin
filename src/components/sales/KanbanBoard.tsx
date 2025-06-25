@@ -3,6 +3,7 @@ import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
 import { useDragAndDrop } from "@/hooks/kanban/useDragAndDrop";
 import { BoardContent } from "./kanban/BoardContent";
 import { StableDragDropWrapper } from "./funnel/StableDragDropWrapper";
+import { DataErrorBoundary } from "./funnel/DataErrorBoundary";
 import { useMemo } from "react";
 
 interface KanbanBoardProps {
@@ -32,21 +33,22 @@ export const KanbanBoard = ({
   wonStageId,
   lostStageId
 }: KanbanBoardProps) => {
+  console.log('[KanbanBoard] 🚀 Renderizando com props:', {
+    columnsReceived: columns?.length || 0,
+    isArray: Array.isArray(columns),
+    columnsPreview: columns?.slice(0, 2).map(c => ({ id: c?.id, title: c?.title, leadsCount: c?.leads?.length }))
+  });
+
   // Validar e estabilizar colunas com mais detalhes de debug
   const validatedColumns = useMemo(() => {
-    console.log('[KanbanBoard] 🔍 Validando colunas recebidas:', {
+    console.log('[KanbanBoard] 🔍 Iniciando validação de colunas:', {
+      received: columns?.length || 0,
       isArray: Array.isArray(columns),
-      count: columns?.length || 0,
-      columns: columns?.map(c => ({ 
-        id: c?.id, 
-        title: c?.title, 
-        leadsCount: c?.leads?.length || 0,
-        hasValidLeads: Array.isArray(c?.leads)
-      }))
+      type: typeof columns
     });
 
     if (!Array.isArray(columns)) {
-      console.warn('[KanbanBoard] ⚠️ Colunas não são array, usando array vazio');
+      console.error('[KanbanBoard] ❌ Colunas não são array:', typeof columns);
       return [];
     }
     
@@ -57,16 +59,26 @@ export const KanbanBoard = ({
         Array.isArray(col.leads);
       
       if (!isValid) {
-        console.warn('[KanbanBoard] ⚠️ Coluna inválida filtrada:', col);
+        console.error('[KanbanBoard] ❌ Coluna inválida filtrada:', {
+          col: col,
+          hasId: !!col?.id,
+          hasTitle: !!col?.title,
+          hasLeadsArray: Array.isArray(col?.leads)
+        });
       }
       
       return isValid;
     });
 
-    console.log('[KanbanBoard] ✅ Colunas válidas após filtro:', {
+    console.log('[KanbanBoard] ✅ Validação concluída:', {
       original: columns.length,
       filtered: filtered.length,
-      totalLeads: filtered.reduce((acc, col) => acc + col.leads.length, 0)
+      totalLeads: filtered.reduce((acc, col) => acc + col.leads.length, 0),
+      columnsDetail: filtered.map(c => ({ 
+        id: c.id, 
+        title: c.title, 
+        leadsCount: c.leads.length 
+      }))
     });
     
     return filtered;
@@ -80,54 +92,71 @@ export const KanbanBoard = ({
     isWonLostView
   });
 
-  // Estado vazio com mais informações
+  // Estado vazio melhorado com mais diagnósticos
   if (!validatedColumns || validatedColumns.length === 0) {
-    console.log('[KanbanBoard] 📭 Exibindo estado vazio');
+    console.log('[KanbanBoard] 📭 Exibindo estado vazio:', {
+      originalColumns: columns?.length || 0,
+      isArray: Array.isArray(columns),
+      validatedLength: validatedColumns?.length || 0
+    });
+
+    const isDataError = Array.isArray(columns) && columns.length > 0;
+    
     return (
       <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
         <div className="text-center">
           <h3 className="text-lg font-medium text-gray-900 mb-2">
-            {Array.isArray(columns) ? "Nenhuma etapa encontrada" : "Erro ao carregar etapas"}
+            {isDataError 
+              ? "Erro nos Dados das Etapas" 
+              : "Nenhuma etapa encontrada"
+            }
           </h3>
-          <p className="text-gray-600">
+          <p className="text-gray-600 mb-4">
             {isWonLostView 
               ? "Nenhum lead foi ganho ou perdido ainda" 
-              : Array.isArray(columns) 
-                ? "Configure as etapas do seu funil para começar"
-                : "Recarregue a página para tentar novamente"
+              : isDataError
+                ? "As etapas foram carregadas mas contêm dados inválidos"
+                : "Configure as etapas do seu funil para começar"
             }
           </p>
-          {!Array.isArray(columns) && (
-            <button 
-              onClick={() => window.location.reload()} 
-              className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              Recarregar Página
-            </button>
+          
+          {isDataError && (
+            <div className="text-xs text-gray-500 bg-gray-100 p-2 rounded mb-4">
+              Debug: {columns.length} etapas carregadas, mas {validatedColumns.length} válidas
+            </div>
           )}
+          
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Recarregar Página
+          </button>
         </div>
       </div>
     );
   }
 
-  console.log('[KanbanBoard] 🎯 Renderizando board com', validatedColumns.length, 'colunas');
+  console.log('[KanbanBoard] 🎯 Renderizando board final com', validatedColumns.length, 'colunas válidas');
 
   return (
     <div className="relative w-full h-full flex flex-col">
-      <StableDragDropWrapper onDragStart={onDragStart} onDragEnd={onDragEnd}>
-        <BoardContent 
-          columns={validatedColumns}
-          onOpenLeadDetail={onOpenLeadDetail}
-          onColumnUpdate={onColumnUpdate}
-          onColumnDelete={onColumnDelete}
-          onOpenChat={onOpenChat}
-          onMoveToWonLost={!isWonLostView ? onMoveToWonLost : undefined}
-          onReturnToFunnel={isWonLostView ? onReturnToFunnel : undefined}
-          isWonLostView={isWonLostView}
-          wonStageId={wonStageId}
-          lostStageId={lostStageId}
-        />
-      </StableDragDropWrapper>
+      <DataErrorBoundary context="Carregamento de dados do Kanban">
+        <StableDragDropWrapper onDragStart={onDragStart} onDragEnd={onDragEnd}>
+          <BoardContent 
+            columns={validatedColumns}
+            onOpenLeadDetail={onOpenLeadDetail}
+            onColumnUpdate={onColumnUpdate}
+            onColumnDelete={onColumnDelete}
+            onOpenChat={onOpenChat}
+            onMoveToWonLost={!isWonLostView ? onMoveToWonLost : undefined}
+            onReturnToFunnel={isWonLostView ? onReturnToFunnel : undefined}
+            isWonLostView={isWonLostView}
+            wonStageId={wonStageId}
+            lostStageId={lostStageId}
+          />
+        </StableDragDropWrapper>
+      </DataErrorBoundary>
     </div>
   );
 };

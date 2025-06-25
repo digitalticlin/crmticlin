@@ -8,10 +8,17 @@ export function useLeadsDatabase(funnelId?: string) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
+  console.log('[useLeadsDatabase] 🔍 Iniciando query com:', { funnelId, userId: user?.id });
+
   const { data: leads = [], refetch: refetchLeads } = useQuery({
     queryKey: ["kanban-leads", funnelId],
     queryFn: async () => {
-      if (!funnelId || !user?.id) return [];
+      if (!funnelId || !user?.id) {
+        console.log('[useLeadsDatabase] ⚠️ Faltam parâmetros:', { funnelId, userId: user?.id });
+        return [];
+      }
+
+      console.log('[useLeadsDatabase] 📊 Executando query para leads...');
 
       const { data, error } = await supabase
         .from("leads")
@@ -25,7 +32,22 @@ export function useLeadsDatabase(funnelId?: string) {
         .eq("created_by_user_id", user.id)
         .order("order_position");
 
-      if (error) throw error;
+      if (error) {
+        console.error('[useLeadsDatabase] ❌ Erro na query:', error);
+        throw error;
+      }
+
+      console.log('[useLeadsDatabase] ✅ Leads carregados:', {
+        count: data?.length || 0,
+        leadsWithStage: data?.filter(l => l.kanban_stage_id).length || 0,
+        leadsWithoutStage: data?.filter(l => !l.kanban_stage_id).length || 0,
+        sample: data?.slice(0, 2).map(l => ({ 
+          id: l.id, 
+          name: l.name, 
+          kanban_stage_id: l.kanban_stage_id 
+        }))
+      });
+
       return data || [];
     },
     enabled: !!funnelId && !!user?.id,
