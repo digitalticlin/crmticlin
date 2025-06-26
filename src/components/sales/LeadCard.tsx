@@ -48,8 +48,6 @@ export const LeadCard = ({
     else onClick();
   };
 
-  console.log('[LeadCard] 🃏 CLONE VISÍVEL - Card:', lead.name, 'isDragging:', isDragging);
-
   return (
     <div
       ref={provided.innerRef}
@@ -60,58 +58,20 @@ export const LeadCard = ({
         "bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass-lg mb-4 rounded-xl p-4 cursor-pointer group",
         "w-[98.5%] max-w-[380px] mx-auto",
         
-        // Estados normais - apenas quando NÃO está em drag
-        !isDragging && "transition-all duration-200 hover:scale-[1.02] hover:shadow-xl hover:border-white/50",
-        
-        // CORREÇÃO CRÍTICA: Estados de drag APENAS visuais - clone 100% visível
-        isDragging && [
-          "!opacity-100", // Força opacidade total
-          "!shadow-2xl", // Sombra máxima
-          "!border-2 !border-blue-500", // Borda azul destacada
-          "!bg-white/95", // Fundo mais opaco
-          "!scale-110", // Maior para destaque
-          "!z-[9999]" // Z-index máximo
-        ],
+        // Estados normais - hover e transições
+        "transition-all duration-200 hover:scale-[1.02] hover:shadow-xl hover:border-white/50",
         
         // Estados especiais para Won/Lost
         isWon && "border-l-[4px] border-l-green-500 bg-green-50/20",
         isLost && "border-l-[4px] border-l-red-500 bg-red-50/20"
       )}
-      style={{
-        // CRÍTICO: Usar APENAS os estilos do react-beautiful-dnd
-        ...provided.draggableProps.style,
-        
-        // CORREÇÃO RADICAL: Durante drag, ZERO interferência no positioning
-        ...(isDragging && {
-          // Garantir máxima visibilidade do clone
-          opacity: '1 !important',
-          visibility: 'visible !important',
-          pointerEvents: 'auto !important',
-          zIndex: 9999,
-          // NUNCA sobrescrever transform, position, top, left - RBD controla
-        })
-      }}
+      style={provided.draggableProps.style}
       onClick={!isDragging ? handleCardClick : undefined}
       onMouseEnter={!isDragging ? onMouseEnter : undefined}
       onMouseLeave={!isDragging ? onMouseLeave : undefined}
     >
-      {/* NOVO: Overlay de destaque APENAS durante drag para máxima visibilidade */}
-      {isDragging && (
-        <div 
-          className="absolute inset-0 rounded-xl pointer-events-none z-10"
-          style={{
-            background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(255, 255, 255, 0.3) 50%, rgba(59, 130, 246, 0.2) 100%)',
-            boxShadow: '0 0 30px rgba(59, 130, 246, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3)',
-            border: '2px solid rgba(59, 130, 246, 0.8)'
-          }}
-        />
-      )}
-      
       {/* Glassmorphism overlay padrão */}
-      <div className={cn(
-        "absolute inset-0 bg-gradient-to-br from-white/5 to-transparent rounded-xl pointer-events-none",
-        isDragging && "from-white/20 to-white/10"
-      )} />
+      <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent rounded-xl pointer-events-none" />
       
       {/* Content sempre visível */}
       <div className="relative z-20">

@@ -209,7 +209,7 @@ body {
     inset 0 -1px 0 rgba(0, 0, 0, 0.05);
 }
 
-/* ===== DRAG AND DROP - REACT BEAUTIFUL DND - CLONE VISÍVEL ===== */
+/* ===== DRAG AND DROP - REACT BEAUTIFUL DND - CORREÇÃO FINAL ===== */
 
 /* CRÍTICO: Cursor states durante drag */
 [data-rbd-drag-handle-context-id] {
@@ -220,15 +220,13 @@ body {
   cursor: grabbing !important;
 }
 
-/* CRÍTICO: Clone 100% visível - máxima prioridade */
+/* CRÍTICO: Clone 100% visível - estilos específicos do RBD */
 [data-rbd-draggable-context-id] {
-  /* Z-index máximo para visibilidade total */
-  z-index: 9999 !important;
+  z-index: 10000 !important;
 }
 
 /* CLONE STYLING - Visibilidade garantida */
 [data-rbd-draggable-context-id][style*="position: fixed"] {
-  /* Estilos visuais para o clone - 100% visível */
   opacity: 1 !important;
   visibility: visible !important;
   box-shadow: 0 25px 50px rgba(0,0,0,0.4) !important;
@@ -236,11 +234,7 @@ body {
   border-radius: 12px !important;
   z-index: 10000 !important;
   background: rgba(255, 255, 255, 0.98) !important;
-  
-  /* CRÍTICO: Permitir que o RBD controle posicionamento */
   pointer-events: auto !important;
-  
-  /* Efeitos visuais adicionais para destaque */
   backdrop-filter: blur(8px) !important;
   -webkit-backdrop-filter: blur(8px) !important;
   transform-origin: center !important;

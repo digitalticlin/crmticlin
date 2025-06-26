@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Droppable, Draggable } from "react-beautiful-dnd";
 import { MoreVertical, Edit, Trash2, Plus, Lock } from "lucide-react";
@@ -43,8 +44,6 @@ export function KanbanColumn({
 }: KanbanColumnProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(column.title);
-
-  console.log('[KanbanColumn] 🏛️ CORREÇÃO AVANÇADA - Coluna:', column.title, 'leads:', column.leads.length);
 
   const isFixedStage = column.title === "GANHO" || column.title === "PERDIDO" || column.title === "Entrada de Leads" || column.isFixed;
 
@@ -145,38 +144,19 @@ export function KanbanColumn({
         style={{ backgroundColor: column.color || "#e0e0e0" }}
       />
 
-      {/* CORREÇÃO CRÍTICA: Droppable otimizado para RBD */}
+      {/* Droppable otimizado para RBD */}
       <Droppable droppableId={column.id} type="lead">
         {(provided, snapshot) => (
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={cn(
-              "flex-1 rounded-xl px-0.5 py-2",
-              "kanban-column-scrollbar",
-              
-              // CORREÇÃO: Overflow dinâmico para permitir drag fluido
-              "overflow-y-auto",
-              
-              // Feedback visual otimizado para drop
-              snapshot.isDraggingOver && [
-                "bg-blue-50/50", 
-                "border-2 border-dashed border-blue-400/70", 
-                "transition-all duration-150"
-              ]
+              "flex-1 rounded-xl px-0.5 py-2 kanban-column-scrollbar overflow-y-auto",
+              snapshot.isDraggingOver && "bg-blue-50/50 border-2 border-dashed border-blue-400/70 transition-all duration-150"
             )}
             style={{
-              // CRÍTICO: Altura flexível mas sem interferir no drag
               minHeight: "400px",
-              maxHeight: "calc(100vh - 200px)",
-              
-              // CORREÇÃO: Remover position relative que interferia
-              // Deixar o container mais simples para o RBD
-              ...(snapshot.isDraggingOver && {
-                minHeight: "450px",
-                paddingTop: "16px",
-                paddingBottom: "16px"
-              })
+              maxHeight: "calc(100vh - 200px)"
             }}
           >
             {column.leads.map((lead, leadIndex) => (
