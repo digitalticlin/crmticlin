@@ -201,7 +201,7 @@ export const AddMemberModal = ({
               <div className="space-y-2">
                 <Label>Funis de Acesso</Label>
                 <MultiSelectFunnels
-                  selectedFunnels={formData.assignedFunnelIds}
+                  selectedIds={formData.assignedFunnelIds}
                   onSelectionChange={(ids) => handleChange("assignedFunnelIds", ids)}
                   allFunnels={allFunnels}
                 />
@@ -210,7 +210,7 @@ export const AddMemberModal = ({
               <div className="space-y-2">
                 <Label>Instâncias WhatsApp</Label>
                 <MultiSelectWhatsApp
-                  selectedWhatsApps={formData.assignedWhatsAppIds}
+                  selectedIds={formData.assignedWhatsAppIds}
                   onSelectionChange={(ids) => handleChange("assignedWhatsAppIds", ids)}
                   allWhatsApps={allWhatsApps}
                 />
