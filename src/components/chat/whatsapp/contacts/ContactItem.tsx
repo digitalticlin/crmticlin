@@ -1,10 +1,10 @@
-
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Contact } from "@/types/chat";
 import { unifiedTags } from "@/data/unifiedFakeData";
 import { useState } from "react";
 import { TagsPopover } from "./TagsPopover";
+import { StageDropdownMenu } from "./StageDropdownMenu";
 import { getTagStyleClasses } from "@/utils/tagColors";
 import { MessageCircle, User, Clock, CheckCheck, Check, DollarSign } from "lucide-react";
 import { formatPhoneDisplay } from "@/utils/phoneFormatter";
@@ -108,13 +108,21 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
           </div>
           
           <div className="flex-1 min-w-0 space-y-1">
-            {/* Header: Nome + Horário + Badge não lidas */}
+            {/* Header: Nome + Horário + Badge não lidas + Menu de Etapa */}
             <div className="flex items-center justify-between gap-2">
               <h3 className="font-semibold text-gray-900 truncate text-base flex-1">
                 {displayName}
               </h3>
               
               <div className="flex items-center gap-2 flex-shrink-0">
+                {/* Menu de Troca de Etapa */}
+                <div onClick={(e) => e.stopPropagation()}>
+                  <StageDropdownMenu 
+                    contact={contact} 
+                    currentStageId={(contact as any).kanban_stage_id}
+                  />
+                </div>
+                
                 {/* Horário da última mensagem */}
                 <span className="text-xs text-gray-500 flex items-center gap-1">
                   <Clock className="h-3 w-3" />
