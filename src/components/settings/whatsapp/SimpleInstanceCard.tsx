@@ -79,12 +79,12 @@ export const SimpleInstanceCard = ({
   return (
     <Card className="group relative transition-all duration-300 hover:shadow-glass-lg hover:-translate-y-1
       bg-white/20 backdrop-blur-xl border border-white/20 shadow-glass rounded-2xl overflow-hidden
-      min-h-[280px] flex flex-col">
+      min-h-[220px] flex flex-col">
       
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
       
-      {/* Header: Nome completo em linha própria */}
-      <CardHeader className="pb-3 relative z-10 flex-shrink-0">
+      {/* Header: Nome completo em linha própria - padding reduzido */}
+      <CardHeader className="pb-2 relative z-10 flex-shrink-0">
         <div className="space-y-2">
           {/* Nome da instância - linha completa */}
           <h3 className="font-semibold text-gray-900 flex items-center gap-2 w-full">
@@ -102,9 +102,9 @@ export const SimpleInstanceCard = ({
         </div>
       </CardHeader>
 
-      {/* Corpo Central: Informações principais */}
-      <CardContent className="flex-1 flex flex-col justify-center items-center text-center space-y-4 relative z-10 px-6">
-        <div className="space-y-3">
+      {/* Corpo Central: Informações principais - espaçamento reduzido */}
+      <CardContent className="flex-1 flex flex-col justify-center items-center text-center space-y-3 relative z-10 px-6">
+        <div className="space-y-2">
           {/* Telefone se disponível */}
           {instance.phone && (
             <div className="flex items-center justify-center gap-2 text-gray-700">
@@ -126,9 +126,9 @@ export const SimpleInstanceCard = ({
         </div>
       </CardContent>
 
-      {/* Footer: Botões de ação organizados horizontalmente */}
-      <div className="p-4 border-t border-white/10 relative z-10 flex-shrink-0">
-        <div className="flex gap-2 justify-center">
+      {/* Footer: Botões de ação - padding e gap reduzidos */}
+      <div className="p-3 border-t border-white/10 relative z-10 flex-shrink-0">
+        <div className="flex gap-1.5 justify-center">
           {needsQrCode && (
             <GenerateQRButton
               instanceId={instance.id}
