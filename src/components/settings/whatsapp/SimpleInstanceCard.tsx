@@ -77,41 +77,54 @@ export const SimpleInstanceCard = ({
     );
 
   return (
-    <Card className="bg-white/20 backdrop-blur-xl border border-white/20 shadow-glass hover:shadow-glass-lg transition-all duration-300 rounded-2xl overflow-hidden">
+    <Card className="group relative transition-all duration-300 hover:shadow-glass-lg hover:-translate-y-1
+      bg-white/20 backdrop-blur-xl border border-white/20 shadow-glass rounded-2xl overflow-hidden
+      min-h-[280px] flex flex-col">
+      
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
       
-      <CardHeader className="pb-3 relative z-10">
-        <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-              <Smartphone className="h-4 w-4" />
-              {instance.instance_name}
-            </h3>
-            {instance.phone && (
-              <p className="text-sm text-gray-600">
-                📱 {instance.phone}
-              </p>
-            )}
-          </div>
+      {/* Header: Nome + Status Badge */}
+      <CardHeader className="pb-3 relative z-10 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-gray-900 flex items-center gap-2 truncate">
+            <Smartphone className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate">{instance.instance_name}</span>
+          </h3>
           
-          <Badge className={`${statusInfo.color}`}>
+          <Badge className={`${statusInfo.color} flex-shrink-0`}>
             <StatusIcon className="h-3 w-3 mr-1" />
             {statusInfo.text}
           </Badge>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4 relative z-10">
-        <div className="text-sm text-gray-600">
-          <p>{statusInfo.description}</p>
-          {instance.date_connected && (
-            <p className="text-xs mt-1">
-              Conectado: {new Date(instance.date_connected).toLocaleDateString('pt-BR')}
+      {/* Corpo Central: Informações principais */}
+      <CardContent className="flex-1 flex flex-col justify-center items-center text-center space-y-4 relative z-10 px-6">
+        <div className="space-y-3">
+          {/* Telefone se disponível */}
+          {instance.phone && (
+            <div className="flex items-center justify-center gap-2 text-gray-700">
+              <span className="text-lg font-medium">📱 {instance.phone}</span>
+            </div>
+          )}
+          
+          {/* Descrição do status */}
+          <p className="text-sm text-gray-600 leading-relaxed">
+            {statusInfo.description}
+          </p>
+          
+          {/* Data de conexão */}
+          {instance.date_connected && isConnected && (
+            <p className="text-xs text-gray-500">
+              Conectado em {new Date(instance.date_connected).toLocaleDateString('pt-BR')}
             </p>
           )}
         </div>
+      </CardContent>
 
-        <div className="flex flex-wrap gap-2">
+      {/* Footer: Botões de ação organizados horizontalmente */}
+      <div className="p-4 border-t border-white/10 relative z-10 flex-shrink-0">
+        <div className="flex gap-2 justify-center">
           {needsQrCode && (
             <GenerateQRButton
               instanceId={instance.id}
@@ -124,7 +137,6 @@ export const SimpleInstanceCard = ({
             />
           )}
           
-          {/* NOVO: Botão Importar Histórico - só aparece para instâncias conectadas */}
           <ImportHistoryButton
             instanceId={instance.id}
             instanceName={instance.instance_name}
@@ -139,7 +151,7 @@ export const SimpleInstanceCard = ({
             className="text-red-600 hover:text-red-700 hover:bg-red-50/60 backdrop-blur-sm border-white/20"
           />
         </div>
-      </CardContent>
+      </div>
     </Card>
   );
 };
