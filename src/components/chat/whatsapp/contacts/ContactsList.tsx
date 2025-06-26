@@ -1,7 +1,6 @@
 
 import { Contact } from "@/types/chat";
 import { ContactItem } from "./ContactItem";
-import { ContactsFilters } from "./ContactsFilters";
 import { EmptyContactsState } from "./EmptyContactsState";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -10,9 +9,7 @@ interface ContactsListProps {
   selectedContact: Contact | null;
   onSelectContact: (contact: Contact) => void;
   searchQuery: string;
-  onSearchChange: (query: string) => void;
-  selectedTags: string[];
-  onTagsChange: (tags: string[]) => void;
+  activeFilter: string;
 }
 
 export const ContactsList = ({
@@ -20,22 +17,10 @@ export const ContactsList = ({
   selectedContact,
   onSelectContact,
   searchQuery,
-  onSearchChange,
-  selectedTags,
-  onTagsChange,
+  activeFilter,
 }: ContactsListProps) => {
   return (
     <div className="h-full flex flex-col bg-white/5 backdrop-blur-lg border-r border-white/20">
-      {/* Filtros de busca */}
-      <div className="p-4 border-b border-white/10">
-        <ContactsFilters
-          searchQuery={searchQuery}
-          onSearchChange={onSearchChange}
-          selectedTags={selectedTags}
-          onTagsChange={onTagsChange}
-        />
-      </div>
-      
       {/* Lista de contatos com scroll customizado */}
       <ScrollArea className="flex-1 contacts-scrollbar">
         <div className="px-2 py-1 space-y-1">
@@ -50,7 +35,10 @@ export const ContactsList = ({
             ))
           ) : (
             <div className="p-8">
-              <EmptyContactsState />
+              <EmptyContactsState 
+                searchQuery={searchQuery}
+                activeFilter={activeFilter}
+              />
             </div>
           )}
         </div>
