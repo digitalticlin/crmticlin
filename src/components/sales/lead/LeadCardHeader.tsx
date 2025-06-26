@@ -18,13 +18,25 @@ export const LeadCardHeader = ({ lead, isWonLostView = false }: LeadCardHeaderPr
   // ATUALIZADO: Usar telefone formatado quando nome não disponível ou é ID
   const displayName = nameIsId ? formatPhoneDisplay(lead.phone) : (lead.name || formatPhoneDisplay(lead.phone));
   
-  // CORREÇÃO: Verificar se há mensagens não lidas de forma mais rigorosa
-  const hasUnreadMessages = lead.unreadCount && lead.unreadCount > 0;
+  // CORREÇÃO: Verificar mensagens não lidas de ambos os campos possíveis
+  const unreadCount = lead.unreadCount !== undefined && lead.unreadCount !== null 
+    ? lead.unreadCount 
+    : lead.unread_count;
+  
+  const hasUnreadMessages = unreadCount !== undefined && unreadCount !== null && unreadCount > 0;
 
   // Aumentar limite do nome já que não temos mais o horário
   const truncatedName = displayName.length > 25 
     ? `${displayName.substring(0, 25)}...` 
     : displayName;
+
+  console.log('[LeadCardHeader] Debug unread messages:', {
+    leadName: lead.name,
+    unreadCount: lead.unreadCount,
+    unread_count: lead.unread_count,
+    finalUnreadCount: unreadCount,
+    hasUnreadMessages
+  });
 
   return (
     <div className="flex items-center gap-3 mb-3">
@@ -51,11 +63,11 @@ export const LeadCardHeader = ({ lead, isWonLostView = false }: LeadCardHeaderPr
           </Badge>
         )}
         
-        {/* CORREÇÃO: Só mostrar badge se realmente houver mensagens não lidas */}
+        {/* CORREÇÃO: Badge de mensagens não lidas com condição melhorada */}
         {hasUnreadMessages && (
           <div className="flex items-center gap-1 bg-red-500 text-white rounded-full px-2 py-1 text-xs flex-shrink-0">
             <MessageCircle className="h-3 w-3" />
-            <span>{lead.unreadCount}</span>
+            <span>{unreadCount}</span>
           </div>
         )}
       </div>
