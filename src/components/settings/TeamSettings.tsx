@@ -5,9 +5,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTeamManagement } from "@/hooks/useTeamManagement";
 import { useTeamAuxiliaryData } from "@/hooks/settings/useTeamAuxiliaryData";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
-import { TeamHeader } from "./team/TeamHeader";
 import { TeamMembersList } from "./team/TeamMembersList";
-import { ManualMemberForm } from "./team/ManualMemberForm";
+import { AddMemberModal } from "./team/AddMemberModal";
+import { AddMemberButton } from "./team/AddMemberButton";
 
 export default function TeamSettings() {
   console.log('[TeamSettings] Component rendering');
@@ -22,6 +22,9 @@ export default function TeamSettings() {
   } = useTeamManagement(user?.id);
 
   const { allWhatsApps, allFunnels, auxDataLoading } = useTeamAuxiliaryData(user?.id);
+  
+  // State for modal
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   
   // Refs para controlar execuções
   const isUnmountedRef = useRef(false);
@@ -76,7 +79,7 @@ export default function TeamSettings() {
     );
   }
 
-  // Transform the mutation function to match ManualMemberForm interface
+  // Transform the mutation function to match AddMemberModal interface
   const handleCreateMember = async (data: {
     full_name: string;
     email: string;
@@ -84,6 +87,7 @@ export default function TeamSettings() {
     role: "operational" | "manager";
     assignedWhatsAppIds: string[];
     assignedFunnelIds: string[];
+    whatsapp_personal?: string;
   }): Promise<boolean> => {
     try {
       await createTeamMember.mutateAsync({
@@ -102,30 +106,8 @@ export default function TeamSettings() {
 
   return (
     <div className="space-y-8">
-      {/* Formulário de adição manual */}
+      {/* 1º Card: Visão Geral da Equipe */}
       <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
-            <div className="p-3 bg-gradient-to-r from-[#D3D800]/20 to-[#D3D800]/10 rounded-2xl">
-              <UserPlus className="h-6 w-6 text-[#D3D800]" />
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold text-gray-800">Adicionar Membro</h3>
-              <p className="text-gray-700">Crie novos membros da equipe com permissões específicas</p>
-            </div>
-          </div>
-        </div>
-        
-        <ManualMemberForm
-          onSubmit={handleCreateMember}
-          loading={isLoading}
-          allWhatsApps={allWhatsApps}
-          allFunnels={allFunnels}
-        />
-      </div>
-
-      {/* Team Overview */}
-      <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "100ms" }}>
         <div className="flex items-center space-x-4 mb-6">
           <div className="p-3 bg-gradient-to-r from-blue-500/20 to-blue-400/10 rounded-2xl">
             <Users className="h-6 w-6 text-blue-400" />
@@ -179,8 +161,8 @@ export default function TeamSettings() {
         </div>
       </div>
 
-      {/* Team Members List */}
-      <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "200ms" }}>
+      {/* 2º Card: Lista de Membros da Equipe */}
+      <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "100ms" }}>
         <div className="flex items-center space-x-4 mb-6">
           <div className="p-3 bg-gradient-to-r from-green-500/20 to-green-400/10 rounded-2xl">
             <Users className="h-6 w-6 text-green-400" />
@@ -196,6 +178,19 @@ export default function TeamSettings() {
           onRemoveMember={removeMember.mutateAsync}
         />
       </div>
+
+      {/* Botão para Adicionar Membro */}
+      <AddMemberButton onClick={() => setIsAddModalOpen(true)} />
+
+      {/* Modal de Adicionar Membro */}
+      <AddMemberModal 
+        open={isAddModalOpen}
+        onOpenChange={setIsAddModalOpen}
+        onSubmit={handleCreateMember}
+        loading={createTeamMember.isPending}
+        allWhatsApps={allWhatsApps}
+        allFunnels={allFunnels}
+      />
     </div>
   );
 }
