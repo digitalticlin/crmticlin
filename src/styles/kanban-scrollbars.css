@@ -59,11 +59,11 @@
   position: relative !important;
 }
 
-/* CRITICAL: Dragging state styles with enhanced visibility */
+/* CRITICAL: Dragging state styles with FULL VISIBILITY */
 [data-rbd-draggable-context-id][data-rbd-draggable-id]:has([data-rbd-drag-handle-dragging="true"]) {
   z-index: 10000 !important;
   pointer-events: none !important;
-  opacity: 0.95 !important;
+  opacity: 1 !important; /* MANTÉM CARD TOTALMENTE VISÍVEL */
 }
 
 /* Enhanced drop zone highlighting */
@@ -95,13 +95,16 @@ body.rbd-dragging * {
   -webkit-touch-callout: none;
 }
 
-/* Enhanced drag preview styling */
+/* CORRIGIDO: Enhanced drag preview styling - MANTÉM VISIBILIDADE TOTAL */
 [data-react-beautiful-dnd-dragging] {
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
-  transform: rotate(2deg) !important;
-  border: 2px solid rgba(59, 130, 246, 0.6) !important;
-  background: rgba(255, 255, 255, 0.95) !important;
-  backdrop-filter: blur(8px) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4) !important;
+  transform: rotate(3deg) scale(1.05) !important;
+  border: 2px solid rgba(59, 130, 246, 0.8) !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(12px) !important;
+  opacity: 1 !important; /* FORÇA VISIBILIDADE COMPLETA */
+  z-index: 10000 !important;
+  transition: all 0.15s ease !important;
 }
 
 /* Prevent layout shifts during drag */
@@ -113,4 +116,13 @@ body.rbd-dragging * {
 /* Enhanced drop animation */
 [data-react-beautiful-dnd-droppable] {
   transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* NOVO: Placeholder otimizado */
+[data-react-beautiful-dnd-placeholder] {
+  opacity: 0.5;
+  border: 2px dashed rgba(59, 130, 246, 0.3);
+  background: rgba(59, 130, 246, 0.05);
+  border-radius: 12px;
+  transition: all 0.2s ease;
 }

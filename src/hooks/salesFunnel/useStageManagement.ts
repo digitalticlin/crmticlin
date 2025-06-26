@@ -84,6 +84,16 @@ export function useStageManagement() {
       throw new Error("Este nome é reservado para estágios do sistema");
     }
 
+    // Buscar a próxima posição
+    const { data: stages } = await supabase
+      .from("kanban_stages")
+      .select("order_position")
+      .eq("funnel_id", funnelId)
+      .order("order_position", { ascending: false })
+      .limit(1);
+
+    const nextPosition = stages && stages.length > 0 ? stages[0].order_position + 1 : 1;
+
     const { error } = await supabase
       .from("kanban_stages")
       .insert({
@@ -93,12 +103,15 @@ export function useStageManagement() {
         created_by_user_id: user.id,
         is_fixed: false,
         is_won: false,
-        is_lost: false
+        is_lost: false,
+        order_position: nextPosition
       });
 
     if (error) throw error;
 
+    // Invalidar queries relacionadas
     queryClient.invalidateQueries({ queryKey: ["stages"] });
+    queryClient.invalidateQueries({ queryKey: ["kanban-stages"] });
   };
 
   const updateColumn = async (columnId: string, updates: any) => {
@@ -133,6 +146,7 @@ export function useStageManagement() {
     if (error) throw error;
 
     queryClient.invalidateQueries({ queryKey: ["stages"] });
+    queryClient.invalidateQueries({ queryKey: ["kanban-stages"] });
   };
 
   const deleteColumn = async (columnId: string) => {
@@ -159,6 +173,12 @@ export function useStageManagement() {
     if (error) throw error;
 
     queryClient.invalidateQueries({ queryKey: ["stages"] });
+    queryClient.invalidateQueries({ queryKey: ["kanban-stages"] });
+  };
+
+  const refreshColumns = async () => {
+    queryClient.invalidateQueries({ queryKey: ["stages"] });
+    queryClient.invalidateQueries({ queryKey: ["kanban-stages"] });
   };
 
   return { 
@@ -166,6 +186,7 @@ export function useStageManagement() {
     moveLeadToStage,
     addColumn,
     updateColumn,
-    deleteColumn
+    deleteColumn,
+    refreshColumns
   };
 }
