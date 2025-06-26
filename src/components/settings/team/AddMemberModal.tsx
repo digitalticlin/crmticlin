@@ -87,9 +87,9 @@ export const AddMemberModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white border border-gray-200">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
+          <DialogTitle className="flex items-center gap-2 text-xl text-gray-800">
             <div className="p-2 bg-gradient-to-r from-blue-500/20 to-blue-400/10 rounded-lg">
               <UserPlus className="h-5 w-5 text-blue-500" />
             </div>
@@ -106,18 +106,19 @@ export const AddMemberModal = ({
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="full_name">Nome Completo *</Label>
+                <Label htmlFor="full_name" className="text-gray-700">Nome Completo *</Label>
                 <Input
                   id="full_name"
                   value={formData.full_name}
                   onChange={(e) => handleChange("full_name", e.target.value)}
                   placeholder="Nome completo do membro"
                   required
+                  className="bg-white border-gray-300 text-gray-900"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
+                <Label htmlFor="email" className="text-gray-700">Email *</Label>
                 <Input
                   id="email"
                   type="email"
@@ -125,17 +126,19 @@ export const AddMemberModal = ({
                   onChange={(e) => handleChange("email", e.target.value)}
                   placeholder="email@exemplo.com"
                   required
+                  className="bg-white border-gray-300 text-gray-900"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="whatsapp_personal">WhatsApp Pessoal</Label>
+              <Label htmlFor="whatsapp_personal" className="text-gray-700">WhatsApp Pessoal</Label>
               <Input
                 id="whatsapp_personal"
                 value={formData.whatsapp_personal}
                 onChange={(e) => handleChange("whatsapp_personal", e.target.value)}
                 placeholder="(00) 00000-0000"
+                className="bg-white border-gray-300 text-gray-900"
               />
             </div>
           </div>
@@ -147,7 +150,7 @@ export const AddMemberModal = ({
             </h3>
             
             <div className="space-y-2">
-              <Label htmlFor="password">Senha *</Label>
+              <Label htmlFor="password" className="text-gray-700">Senha *</Label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Input
@@ -157,6 +160,7 @@ export const AddMemberModal = ({
                     onChange={(e) => handleChange("password", e.target.value)}
                     placeholder="Senha do usuário"
                     required
+                    className="bg-white border-gray-300 text-gray-900"
                   />
                   <button
                     type="button"
@@ -170,7 +174,7 @@ export const AddMemberModal = ({
                   type="button"
                   variant="outline"
                   onClick={generatePassword}
-                  className="px-3"
+                  className="px-3 border-gray-300 text-gray-700 hover:bg-gray-50"
                 >
                   <RefreshCw className="h-4 w-4" />
                 </Button>
@@ -185,12 +189,12 @@ export const AddMemberModal = ({
             </h3>
             
             <div className="space-y-2">
-              <Label htmlFor="role">Nível de Acesso</Label>
+              <Label htmlFor="role" className="text-gray-700">Nível de Acesso</Label>
               <Select value={formData.role} onValueChange={(value: "operational" | "manager") => handleChange("role", value)}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-white border-gray-300 text-gray-900">
                   <SelectValue placeholder="Selecione o nível" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white border-gray-300">
                   <SelectItem value="manager">GESTOR</SelectItem>
                   <SelectItem value="operational">OPERACIONAL</SelectItem>
                 </SelectContent>
@@ -199,7 +203,7 @@ export const AddMemberModal = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Funis de Acesso</Label>
+                <Label className="text-gray-700">Funis de Acesso</Label>
                 <MultiSelectFunnels
                   selectedIds={formData.assignedFunnelIds}
                   onSelectionChange={(ids) => handleChange("assignedFunnelIds", ids)}
@@ -208,7 +212,7 @@ export const AddMemberModal = ({
               </div>
 
               <div className="space-y-2">
-                <Label>Instâncias WhatsApp</Label>
+                <Label className="text-gray-700">Instâncias WhatsApp</Label>
                 <MultiSelectWhatsApp
                   selectedIds={formData.assignedWhatsAppIds}
                   onSelectionChange={(ids) => handleChange("assignedWhatsAppIds", ids)}
@@ -224,13 +228,14 @@ export const AddMemberModal = ({
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={loading}
+              className="border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               disabled={loading || !formData.full_name.trim() || !formData.email.trim() || !formData.password.trim()}
-              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700"
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
             >
               {loading ? "Criando..." : "Criar Membro"}
             </Button>

@@ -29,6 +29,9 @@ export default function TeamSettings() {
   // Refs para controlar execuções
   const isUnmountedRef = useRef(false);
 
+  // Filter out the admin user from team members
+  const teamMembersFiltered = teamMembers.filter(member => member.id !== user?.id);
+
   // Cleanup no desmonte
   useEffect(() => {
     isUnmountedRef.current = false;
@@ -126,7 +129,7 @@ export default function TeamSettings() {
               </div>
               <div>
                 <p className="text-sm text-gray-700">Total de Membros</p>
-                <p className="text-2xl font-bold text-gray-800">{teamMembers.length}</p>
+                <p className="text-2xl font-bold text-gray-800">{teamMembersFiltered.length}</p>
               </div>
             </div>
           </div>
@@ -137,9 +140,9 @@ export default function TeamSettings() {
                 <Crown className="h-5 w-5 text-purple-400" />
               </div>
               <div>
-                <p className="text-sm text-gray-700">Administradores</p>
+                <p className="text-sm text-gray-700">Gestores</p>
                 <p className="text-2xl font-bold text-gray-800">
-                  {teamMembers.filter(m => m.role === 'admin').length}
+                  {teamMembersFiltered.filter(m => m.role === 'admin').length}
                 </p>
               </div>
             </div>
@@ -153,7 +156,7 @@ export default function TeamSettings() {
               <div>
                 <p className="text-sm text-gray-700">Operacionais</p>
                 <p className="text-2xl font-bold text-gray-800">
-                  {teamMembers.filter(m => m.role === 'operational').length}
+                  {teamMembersFiltered.filter(m => m.role === 'operational').length}
                 </p>
               </div>
             </div>
@@ -174,7 +177,7 @@ export default function TeamSettings() {
         </div>
 
         <TeamMembersList 
-          members={teamMembers}
+          members={teamMembersFiltered}
           onRemoveMember={removeMember.mutateAsync}
         />
       </div>
