@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { DropResult } from "react-beautiful-dnd";
 import { KanbanColumn, KanbanLead } from "@/types/kanban";
@@ -21,12 +22,14 @@ export const useDragAndDropSafe = ({
 
   const onDragStart = useCallback(() => {
     try {
-      console.log('[DragDropSafe] 🎯 Drag iniciado - UI otimizada');
+      console.log('[DragDropSafe] 🎯 Iniciando drag - interface otimizada');
       setIsDragging(true);
       
-      // Prevent page scroll during drag
+      // ENHANCED: Better UX during drag
       document.body.style.userSelect = 'none';
       document.body.style.overflow = 'hidden';
+      document.body.style.cursor = 'grabbing';
+      
     } catch (error) {
       console.error('[DragDropSafe] ❌ Erro ao iniciar drag:', error);
       setIsDragging(false);
@@ -35,13 +38,15 @@ export const useDragAndDropSafe = ({
 
   const onDragEnd = useCallback(async (result: DropResult) => {
     try {
-      console.log('[DragDropSafe] 🎯 Drag finalizado:', result);
+      console.log('[DragDropSafe] 🎯 Finalizando drag:', result);
       setIsDragging(false);
       
-      // Restore page behavior
+      // CRITICAL: Restore UI immediately to prevent freezing
       document.body.style.userSelect = 'unset';
       document.body.style.overflow = 'unset';
+      document.body.style.cursor = 'default';
 
+      // Validate drag result
       if (!result.destination || !result.source) {
         console.log('[DragDropSafe] ⚠️ Drag cancelado - sem destino válido');
         return;
@@ -53,8 +58,10 @@ export const useDragAndDropSafe = ({
         return;
       }
 
+      // Validate columns
       if (!Array.isArray(columns) || columns.length === 0) {
         console.error('[DragDropSafe] ❌ Colunas inválidas');
+        toast.error("Erro: dados das etapas inválidos");
         return;
       }
 
@@ -66,16 +73,18 @@ export const useDragAndDropSafe = ({
           sourceId: result.source.droppableId,
           destId: result.destination.droppableId
         });
+        toast.error("Erro: etapa não encontrada");
         return;
       }
 
       const draggedLead = sourceColumn.leads[result.source.index];
       if (!draggedLead) {
         console.error('[DragDropSafe] ❌ Lead não encontrado');
+        toast.error("Erro: item não encontrado");
         return;
       }
 
-      // Same column reorder
+      // OPTIMIZED: Same column reorder
       if (result.source.droppableId === result.destination.droppableId) {
         const newLeads = Array.from(sourceColumn.leads);
         const [removed] = newLeads.splice(result.source.index, 1);
@@ -88,10 +97,11 @@ export const useDragAndDropSafe = ({
         );
 
         onColumnsChange(newColumns);
+        toast.success(`"${draggedLead.name}" reordenado`);
         return;
       }
 
-      // Cross-column move with IMMEDIATE UI update
+      // ENHANCED: Cross-column move with immediate UI update + background sync
       const sourceLeads = Array.from(sourceColumn.leads);
       const destLeads = Array.from(destColumn.leads);
       const [removed] = sourceLeads.splice(result.source.index, 1);
@@ -99,7 +109,7 @@ export const useDragAndDropSafe = ({
       const updatedLead = { ...removed, columnId: destColumn.id };
       destLeads.splice(result.destination.index, 0, updatedLead);
 
-      // UPDATE UI FIRST for responsive feel
+      // PRIORITY 1: Update UI immediately for fluid UX
       const newColumns = columns.map(col => {
         if (col.id === sourceColumn.id) {
           return { ...col, leads: sourceLeads };
@@ -111,10 +121,13 @@ export const useDragAndDropSafe = ({
       });
 
       onColumnsChange(newColumns);
+      
+      // Show immediate feedback
+      toast.success(`"${draggedLead.name}" movido para "${destColumn.title}"`);
 
-      // THEN update database asynchronously
+      // PRIORITY 2: Sync with database in background
       try {
-        console.log('[DragDropSafe] 🔄 Atualizando backend:', {
+        console.log('[DragDropSafe] 🔄 Sincronizando com banco:', {
           leadId: draggedLead.id,
           leadName: draggedLead.name,
           oldStageId: sourceColumn.id,
@@ -131,10 +144,9 @@ export const useDragAndDropSafe = ({
           .eq("id", draggedLead.id);
 
         if (updateError) {
-          console.error('[DragDropSafe] ❌ Erro ao atualizar backend:', updateError);
-          toast.error("Erro ao salvar alteração. Recarregue a página.");
+          console.error('[DragDropSafe] ❌ Erro no banco:', updateError);
           
-          // Revert UI on error
+          // ROLLBACK: Revert UI changes on database error
           const revertedColumns = columns.map(col => {
             if (col.id === sourceColumn.id) {
               return { ...col, leads: sourceColumn.leads };
@@ -144,16 +156,17 @@ export const useDragAndDropSafe = ({
             }
             return col;
           });
+          
           onColumnsChange(revertedColumns);
+          toast.error("Erro ao salvar. Operação revertida.");
           return;
         }
 
-        console.log('[DragDropSafe] ✅ Atualização do banco bem-sucedida');
-        toast.success(`Lead "${draggedLead.name}" movido para "${destColumn.title}"`);
+        console.log('[DragDropSafe] ✅ Sincronização concluída com sucesso');
 
       } catch (backendError) {
         console.error('[DragDropSafe] ❌ Erro crítico no backend:', backendError);
-        toast.error("Erro de conexão. Recarregue a página.");
+        toast.error("Erro de conexão. Recarregue a página se necessário.");
       }
 
       console.log('[DragDropSafe] ✅ Drag completado com sucesso');
@@ -161,9 +174,13 @@ export const useDragAndDropSafe = ({
     } catch (error) {
       console.error('[DragDropSafe] ❌ Erro durante drag and drop:', error);
       setIsDragging(false);
-      // Restore page behavior on error
+      
+      // CRITICAL: Always restore UI state on error
       document.body.style.userSelect = 'unset';
       document.body.style.overflow = 'unset';
+      document.body.style.cursor = 'default';
+      
+      toast.error("Erro durante operação de drag and drop");
     }
   }, [columns, onColumnsChange]);
 

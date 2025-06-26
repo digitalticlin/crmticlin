@@ -49,31 +49,68 @@
   background: rgba(156, 163, 175, 0.9);
 }
 
-/* CRITICAL: Drag and Drop Portal Styles */
+/* ENHANCED: Advanced Drag and Drop Portal Styles */
 [data-rbd-drag-handle-context-id] {
-  z-index: 9999 !important;
+  z-index: 10000 !important;
+  position: relative !important;
 }
 
 [data-rbd-draggable-context-id][data-rbd-draggable-id] {
   position: relative !important;
 }
 
-/* Dragging state styles */
+/* CRITICAL: Dragging state styles with enhanced visibility */
 [data-rbd-draggable-context-id][data-rbd-draggable-id]:has([data-rbd-drag-handle-dragging="true"]) {
-  z-index: 9999 !important;
+  z-index: 10000 !important;
   pointer-events: none !important;
+  opacity: 0.95 !important;
 }
 
-/* Drop zone highlighting */
+/* Enhanced drop zone highlighting */
 [data-rbd-droppable-context-id][data-rbd-droppable-id]:has([data-rbd-drag-handle-context-id]) {
   position: relative;
   z-index: 1;
 }
 
-/* Prevent text selection during drag */
+/* ENHANCED: Global drag state management */
 body[data-rbd-drag-context-id] {
   user-select: none !important;
   -webkit-user-select: none !important;
   -moz-user-select: none !important;
   -ms-user-select: none !important;
+}
+
+/* NEW: Enhanced drag clone visibility */
+body.rbd-dragging {
+  cursor: grabbing !important;
+}
+
+body.rbd-dragging * {
+  cursor: grabbing !important;
+}
+
+/* CRITICAL: Portal container optimization */
+[data-react-beautiful-dnd-drag-handle] {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+
+/* Enhanced drag preview styling */
+[data-react-beautiful-dnd-dragging] {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+  transform: rotate(2deg) !important;
+  border: 2px solid rgba(59, 130, 246, 0.6) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+/* Prevent layout shifts during drag */
+[data-react-beautiful-dnd-drag-handle]:focus {
+  outline: 2px solid rgba(59, 130, 246, 0.5);
+  outline-offset: 2px;
+}
+
+/* Enhanced drop animation */
+[data-react-beautiful-dnd-droppable] {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }

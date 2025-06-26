@@ -17,7 +17,7 @@ export const StableDragDropWrapper = ({
   onDragStart = () => {},
   onDragEnd = () => {}
 }: StableDragDropWrapperProps) => {
-  console.log('[StableDragDropWrapper] 🔄 Renderizando wrapper otimizado');
+  console.log('[StableDragDropWrapper] 🔄 Renderizando wrapper otimizado para drag fluído');
 
   const handleErrorCaptured = (error: Error, errorInfo: any) => {
     console.group('🚨 [StableDragDropWrapper] ERRO CRÍTICO CAPTURADO');
@@ -56,7 +56,7 @@ export const StableDragDropWrapper = ({
   );
 
   try {
-    console.log('[StableDragDropWrapper] 🎯 Inicializando DragDropContext otimizado');
+    console.log('[StableDragDropWrapper] 🎯 Inicializando DragDropContext com controles aprimorados');
     
     return (
       <AdvancedErrorTracker 
@@ -67,15 +67,34 @@ export const StableDragDropWrapper = ({
         <DragDropContext
           onDragStart={(initial) => {
             console.log('[StableDragDropWrapper] 🟢 Drag iniciado:', initial);
-            // Ensure body doesn't scroll during drag
+            
+            // CRITICAL: Prevent page scroll and selection during drag
             document.body.style.overflow = 'hidden';
+            document.body.style.userSelect = 'none';
+            document.body.style.webkitUserSelect = 'none';
+            
+            // Add drag class to body for global styling
+            document.body.classList.add('rbd-dragging');
+            
             onDragStart();
           }}
           onDragEnd={(result) => {
             console.log('[StableDragDropWrapper] 🟢 Drag finalizado:', result);
-            // Restore body scroll
+            
+            // CRITICAL: Restore page behavior immediately
             document.body.style.overflow = 'unset';
+            document.body.style.userSelect = 'unset';
+            document.body.style.webkitUserSelect = 'unset';
+            
+            // Remove drag class
+            document.body.classList.remove('rbd-dragging');
+            
+            // Call handler
             onDragEnd(result);
+          }}
+          onDragUpdate={(update) => {
+            // Optional: Enhanced feedback during drag
+            console.log('[StableDragDropWrapper] 🔄 Drag update:', update);
           }}
         >
           {children}

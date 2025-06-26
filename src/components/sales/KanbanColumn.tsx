@@ -144,7 +144,7 @@ export function KanbanColumn({
         style={{ backgroundColor: column.color || "#e0e0e0" }}
       />
 
-      {/* OPTIMIZED DROPPABLE - Critical for drag positioning */}
+      {/* OPTIMIZED DROPPABLE - Critical fixes for drag positioning */}
       <Droppable droppableId={column.id} type="lead">
         {(provided, snapshot) => (
           <div
@@ -153,16 +153,19 @@ export function KanbanColumn({
             className={cn(
               "flex-1 space-y-3 min-h-[200px] rounded-xl px-0.5 py-2",
               "kanban-column-scrollbar overflow-y-auto",
-              // Enhanced drag-over visual feedback
-              snapshot.isDraggingOver && "bg-blue-50/40 border-2 border-dashed border-blue-300/80 transition-all duration-200"
+              // ENHANCED: Better visual feedback for drop zones
+              snapshot.isDraggingOver && "bg-blue-50/50 border-2 border-dashed border-blue-400/70 transition-all duration-150"
             )}
             style={{
-              // Fixed height to prevent layout shifts during drag
-              height: "calc(100vh - 420px)",
-              maxHeight: "calc(100vh - 420px)",
-              // Ensure proper stacking context
+              // CRITICAL: Fixed height prevents layout shifts that break drag positioning
+              height: "calc(100vh - 400px)",
+              maxHeight: "calc(100vh - 400px)",
+              minHeight: "300px",
+              // Ensure proper stacking and positioning context
               position: 'relative',
-              zIndex: 1
+              zIndex: 1,
+              // IMPORTANT: Prevent scroll interference during drag
+              scrollBehavior: snapshot.isDraggingOver ? 'auto' : 'smooth'
             }}
           >
             {column.leads.map((lead, leadIndex) => (
@@ -185,6 +188,13 @@ export function KanbanColumn({
               </Draggable>
             ))}
             {provided.placeholder}
+            
+            {/* VISUAL: Empty state indicator when dragging over */}
+            {snapshot.isDraggingOver && column.leads.length === 0 && (
+              <div className="flex items-center justify-center h-20 text-blue-500/70 text-sm">
+                Solte o card aqui
+              </div>
+            )}
           </div>
         )}
       </Droppable>
