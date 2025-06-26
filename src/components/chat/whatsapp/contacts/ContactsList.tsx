@@ -1,8 +1,10 @@
 
-import { Contact } from "@/types/chat";
-import { ContactItem } from "./ContactItem";
-import { EmptyContactsState } from "./EmptyContactsState";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
+import { Contact } from "@/types/chat";
+import { formatPhoneDisplay } from "@/utils/phoneFormatter";
+import { MessageCircle, Clock } from "lucide-react";
 
 interface ContactsListProps {
   contacts: Contact[];
@@ -17,41 +19,115 @@ export const ContactsList = ({
   selectedContact,
   onSelectContact,
   searchQuery,
-  activeFilter,
+  activeFilter
 }: ContactsListProps) => {
+  
+  if (contacts.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 mx-auto rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center">
+            <MessageCircle className="h-8 w-8 text-gray-400" />
+          </div>
+          <div>
+            <h3 className="text-lg font-medium text-gray-800 mb-2">Nenhuma conversa</h3>
+            <p className="text-gray-600 text-sm">
+              {searchQuery ? 'Nenhum contato encontrado para sua pesquisa' : 'Suas conversas aparecerão aqui'}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="h-full flex flex-col bg-white/5 backdrop-blur-lg border-r border-white/20">
-      {/* Lista de contatos com scroll customizado */}
-      <ScrollArea className="flex-1 contacts-scrollbar">
-        <div className="px-2 py-1 space-y-1">
-          {contacts.length > 0 ? (
-            contacts.map((contact) => (
-              <ContactItem
-                key={contact.id}
-                contact={contact}
-                isSelected={selectedContact?.id === contact.id}
-                onSelect={onSelectContact}
-              />
-            ))
-          ) : (
-            <div className="p-8">
-              <EmptyContactsState 
-                searchQuery={searchQuery}
-                activeFilter={activeFilter}
-              />
+    <ScrollArea className="flex-1">
+      <div className="divide-y divide-gray-200/50 dark:divide-gray-700/50">
+        {contacts.map((contact) => {
+          const hasUnreadMessages = contact.unreadCount && contact.unreadCount > 0;
+          const displayName = contact.name || formatPhoneDisplay(contact.phone);
+          const isSelected = selectedContact?.id === contact.id;
+          
+          return (
+            <div
+              key={contact.id}
+              className={cn(
+                "p-4 hover:bg-white/20 dark:hover:bg-gray-800/20 cursor-pointer transition-all duration-200 backdrop-blur-sm",
+                isSelected && "bg-white/30 dark:bg-gray-800/30 border-r-2 border-blue-500"
+              )}
+              onClick={() => onSelectContact(contact)}
+            >
+              <div className="flex items-start gap-3">
+                <div className="relative">
+                  <Avatar className="h-12 w-12 border-2 border-white/20">
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 text-gray-800 font-semibold">
+                      {displayName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    </AvatarFallback>
+                    <AvatarImage src={contact.avatar} alt={displayName} />
+                  </Avatar>
+                  
+                  {/* Indicador de status online (placeholder para futuro) */}
+                  {contact.isOnline && (
+                    <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white dark:border-gray-900" />
+                  )}
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <div className="flex justify-between items-start mb-1">
+                    <h3 className={cn(
+                      "font-medium truncate text-base",
+                      hasUnreadMessages ? "text-gray-900 font-semibold" : "text-gray-800"
+                    )}>
+                      {displayName}
+                    </h3>
+                    
+                    <div className="flex items-center gap-2 ml-2">
+                      {contact.lastMessageTime && (
+                        <div className="flex items-center gap-1">
+                          <Clock className="h-3 w-3 text-gray-400" />
+                          <span className={cn(
+                            "text-xs whitespace-nowrap",
+                            hasUnreadMessages ? "text-blue-600 font-medium" : "text-gray-500"
+                          )}>
+                            {contact.lastMessageTime}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {hasUnreadMessages && (
+                        <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full h-6 min-w-[24px] flex items-center justify-center text-xs font-bold shadow-lg animate-pulse">
+                          {contact.unreadCount}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <p className={cn(
+                      "text-sm truncate flex-1",
+                      hasUnreadMessages ? "text-gray-700 font-medium" : "text-gray-600"
+                    )}>
+                      {contact.lastMessage || "Nenhuma mensagem ainda"}
+                    </p>
+                  </div>
+                  
+                  {/* Informações adicionais */}
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-gray-500 bg-white/20 px-2 py-0.5 rounded-full">
+                      {formatPhoneDisplay(contact.phone)}
+                    </span>
+                    {contact.company && (
+                      <span className="text-xs text-gray-500 bg-white/20 px-2 py-0.5 rounded-full truncate max-w-[100px]">
+                        {contact.company}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
-      </ScrollArea>
-      
-      {/* Contador de contatos */}
-      {contacts.length > 0 && (
-        <div className="p-3 border-t border-white/10 text-center">
-          <span className="text-xs text-gray-500">
-            {contacts.length} contato{contacts.length !== 1 ? 's' : ''}
-          </span>
-        </div>
-      )}
-    </div>
+          );
+        })}
+      </div>
+    </ScrollArea>
   );
 };

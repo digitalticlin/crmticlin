@@ -2,31 +2,28 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send } from "lucide-react";
+import { Send, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { QuickMessagesPanel } from "./input/QuickMessagesPanel";
-import { EmojiPicker } from "./input/EmojiPicker";
-import { QuickActionsPopover } from "./input/QuickActionsPopover";
-import { QuickMessagesPopover } from "./input/QuickMessagesPopover";
 
 interface WhatsAppMessageInputProps {
   onSendMessage: (message: string) => void;
   isSending: boolean;
 }
 
-export const WhatsAppMessageInput = ({
-  onSendMessage,
-  isSending
+export const WhatsAppMessageInput = ({ 
+  onSendMessage, 
+  isSending 
 }: WhatsAppMessageInputProps) => {
   const [message, setMessage] = useState("");
-  const [showQuickMessages, setShowQuickMessages] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleSend = () => {
-    if (message.trim() && !isSending) {
-      onSendMessage(message.trim());
+    const trimmedMessage = message.trim();
+    if (trimmedMessage && !isSending) {
+      onSendMessage(trimmedMessage);
       setMessage("");
-      setShowQuickMessages(false);
+      
+      // Reset altura do textarea
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
@@ -40,85 +37,80 @@ export const WhatsAppMessageInput = ({
     }
   };
 
-  const handleQuickMessage = (quickMsg: string) => {
-    setMessage(message + (message ? ' ' : '') + quickMsg);
-    setShowQuickMessages(false);
-    textareaRef.current?.focus();
-  };
-
-  const handleEmojiSelect = (emoji: string) => {
-    const cursorPosition = textareaRef.current?.selectionStart || message.length;
-    const newMessage = message.slice(0, cursorPosition) + emoji + message.slice(cursorPosition);
-    setMessage(newMessage);
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessage(e.target.value);
     
-    setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.setSelectionRange(cursorPosition + emoji.length, cursorPosition + emoji.length);
-        textareaRef.current.focus();
-      }
-    }, 0);
+    // Auto-resize textarea
+    const textarea = e.target;
+    textarea.style.height = 'auto';
+    const scrollHeight = textarea.scrollHeight;
+    textarea.style.height = Math.min(scrollHeight, 120) + 'px';
   };
 
-  const adjustTextareaHeight = () => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
-    }
-  };
+  const canSend = message.trim().length > 0 && !isSending;
 
   return (
-    <div className="p-6 bg-white/10 backdrop-blur-md border-t border-white/20">
-      {/* Quick Messages Panel - mantido para compatibilidade */}
-      {showQuickMessages && (
-        <QuickMessagesPanel
-          onQuickMessage={handleQuickMessage}
-          onClose={() => setShowQuickMessages(false)}
-        />
-      )}
-
-      {/* Message Input */}
-      <div className="flex items-end gap-3">
-        {/* Actions - Separados em dois botões */}
-        <div className="flex gap-2">
-          <QuickActionsPopover />
-          <QuickMessagesPopover onQuickMessage={handleQuickMessage} />
-        </div>
-
-        {/* Text Input */}
+    <div className="p-4 border-t border-white/20 bg-white/10 backdrop-blur-sm">
+      <div className="flex gap-3 items-end">
         <div className="flex-1 relative">
           <Textarea
             ref={textareaRef}
             value={message}
-            onChange={(e) => {
-              setMessage(e.target.value);
-              adjustTextareaHeight();
-            }}
+            onChange={handleTextareaChange}
             onKeyPress={handleKeyPress}
             placeholder="Digite uma mensagem..."
-            className="resize-none bg-white/20 backdrop-blur-sm border-white/30 text-gray-900 placeholder-gray-600 pr-20 min-h-[56px] max-h-[120px] rounded-2xl focus:bg-white/30 focus:border-white/40"
-            rows={1}
+            className={cn(
+              "min-h-[44px] max-h-[120px] resize-none",
+              "bg-white/70 backdrop-blur-sm border-white/30 text-gray-900",
+              "focus:bg-white/80 focus:border-green-400/50 focus:ring-green-400/30",
+              "placeholder:text-gray-500",
+              "rounded-2xl px-4 py-3",
+              "transition-all duration-200"
+            )}
+            disabled={isSending}
           />
           
-          {/* Emoji Button */}
-          <div className="absolute right-3 bottom-3 flex gap-1">
-            <EmojiPicker onEmojiSelect={handleEmojiSelect} />
-          </div>
+          {/* Contador de caracteres */}
+          {message.length > 800 && (
+            <div className={cn(
+              "absolute bottom-2 right-3 text-xs",
+              message.length > 1000 ? "text-red-500" : "text-yellow-600"
+            )}>
+              {message.length}/1500
+            </div>
+          )}
         </div>
-
-        {/* Send Button */}
+        
         <Button
           onClick={handleSend}
-          disabled={!message.trim() || isSending}
+          disabled={!canSend}
+          size="lg"
           className={cn(
-            "h-12 w-12 p-0 rounded-full transition-all duration-200 shadow-lg",
-            message.trim() && !isSending
-              ? "bg-green-500 hover:bg-green-600 text-white shadow-green-500/25 hover:shadow-green-500/40 border-2 border-green-400 hover:border-green-300" 
-              : "bg-gray-300 text-gray-500 cursor-not-allowed border-2 border-transparent"
+            "h-[44px] w-[44px] rounded-full p-0 transition-all duration-200",
+            canSend
+              ? "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg hover:shadow-xl hover:scale-105"
+              : "bg-gray-300 text-gray-500 cursor-not-allowed"
           )}
         >
-          <Send className="h-5 w-5" />
+          {isSending ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <Send className="h-5 w-5" />
+          )}
         </Button>
       </div>
+      
+      {/* Indicador de digitação (placeholder para futuro) */}
+      {isSending && (
+        <div className="flex items-center gap-2 mt-2 text-xs text-gray-600">
+          <div className="flex gap-1">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+          <span>Enviando mensagem...</span>
+        </div>
+      )}
     </div>
   );
 };
