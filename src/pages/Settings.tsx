@@ -17,10 +17,17 @@ export default function Settings() {
           description="Gerencie as configurações da sua conta e preferências do sistema"
         />
         
-        <Tabs defaultValue="whatsapp" className="w-full">
-          {/* Menu de abas expandido para 3 abas e centralizado */}
+        <Tabs defaultValue="profile" className="w-full">
+          {/* Menu de abas reordenado: Perfil, WhatsApp, Equipe */}
           <div className="flex justify-center mb-6">
             <TabsList className="w-full max-w-2xl bg-white/80 backdrop-blur-sm border border-white/30 grid grid-cols-3">
+              <TabsTrigger 
+                value="profile"
+                className="flex items-center gap-2 data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700"
+              >
+                <User className="h-4 w-4" />
+                Perfil
+              </TabsTrigger>
               <TabsTrigger 
                 value="whatsapp" 
                 className="flex items-center gap-2 data-[state=active]:bg-green-100 data-[state=active]:text-green-700"
@@ -35,27 +42,20 @@ export default function Settings() {
                 <Users className="h-4 w-4" />
                 Equipe
               </TabsTrigger>
-              <TabsTrigger 
-                value="profile"
-                className="flex items-center gap-2 data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700"
-              >
-                <User className="h-4 w-4" />
-                Perfil
-              </TabsTrigger>
             </TabsList>
           </div>
 
           {/* Conteúdo das abas */}
+          <TabsContent value="profile">
+            <ProfileSettings />
+          </TabsContent>
+
           <TabsContent value="whatsapp" className="space-y-6">
             <OptimizedSettingsSection />
           </TabsContent>
 
           <TabsContent value="team" className="space-y-6">
             <TeamSettings />
-          </TabsContent>
-
-          <TabsContent value="profile">
-            <ProfileSettings />
           </TabsContent>
         </Tabs>
       </div>
