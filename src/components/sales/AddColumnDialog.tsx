@@ -18,7 +18,7 @@ import { useStageManagement } from "@/hooks/salesFunnel/useStageManagement";
 import { toast } from "sonner";
 
 interface AddColumnDialogProps {
-  onAddColumn?: (title: string) => void; // Manter por compatibilidade, mas usar o hook direto
+  onAddColumn?: (title: string) => void;
 }
 
 const COLORS = [
@@ -54,8 +54,16 @@ export const AddColumnDialog = ({ onAddColumn }: AddColumnDialogProps) => {
 
     setIsLoading(true);
     try {
+      console.log('[AddColumnDialog] Criando nova etapa:', {
+        title: newColumnTitle.trim(),
+        color: selectedColor,
+        funnelId: selectedFunnel.id
+      });
+
       // Usar o hook diretamente para adicionar a coluna
       await addColumn(newColumnTitle.trim(), selectedColor, selectedFunnel.id);
+      
+      console.log('[AddColumnDialog] Etapa criada com sucesso, fazendo refetch...');
       
       // Refresh das colunas
       await refetchStages();

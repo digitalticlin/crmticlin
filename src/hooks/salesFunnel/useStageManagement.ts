@@ -78,40 +78,70 @@ export function useStageManagement() {
       throw new Error("Usuário não autenticado");
     }
 
+    console.log('[useStageManagement] Iniciando criação de coluna:', {
+      title,
+      color,
+      funnelId,
+      userId: user.id
+    });
+
     // Verificar se não é um título reservado para estágios fixos
     const reservedTitles = ['GANHO', 'PERDIDO', 'Entrada de Leads'];
     if (reservedTitles.includes(title)) {
       throw new Error("Este nome é reservado para estágios do sistema");
     }
 
-    // Buscar a próxima posição
-    const { data: stages } = await supabase
-      .from("kanban_stages")
-      .select("order_position")
-      .eq("funnel_id", funnelId)
-      .order("order_position", { ascending: false })
-      .limit(1);
+    try {
+      // Buscar a próxima posição
+      const { data: stages, error: stagesError } = await supabase
+        .from("kanban_stages")
+        .select("order_position")
+        .eq("funnel_id", funnelId)
+        .order("order_position", { ascending: false })
+        .limit(1);
 
-    const nextPosition = stages && stages.length > 0 ? stages[0].order_position + 1 : 1;
+      if (stagesError) {
+        console.error('[useStageManagement] Erro ao buscar stages:', stagesError);
+        throw stagesError;
+      }
 
-    const { error } = await supabase
-      .from("kanban_stages")
-      .insert({
-        title,
-        color,
-        funnel_id: funnelId,
-        created_by_user_id: user.id,
-        is_fixed: false,
-        is_won: false,
-        is_lost: false,
-        order_position: nextPosition
-      });
+      const nextPosition = stages && stages.length > 0 ? stages[0].order_position + 1 : 1;
 
-    if (error) throw error;
+      console.log('[useStageManagement] Próxima posição calculada:', nextPosition);
 
-    // Invalidar queries relacionadas
-    queryClient.invalidateQueries({ queryKey: ["stages"] });
-    queryClient.invalidateQueries({ queryKey: ["kanban-stages"] });
+      // Inserir novo estágio
+      const { data: newStage, error: insertError } = await supabase
+        .from("kanban_stages")
+        .insert({
+          title,
+          color,
+          funnel_id: funnelId,
+          created_by_user_id: user.id,
+          is_fixed: false,
+          is_won: false,
+          is_lost: false,
+          order_position: nextPosition
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('[useStageManagement] Erro ao inserir stage:', insertError);
+        throw insertError;
+      }
+
+      console.log('[useStageManagement] Stage criado com sucesso:', newStage);
+
+      // Invalidar queries relacionadas
+      queryClient.invalidateQueries({ queryKey: ["stages"] });
+      queryClient.invalidateQueries({ queryKey: ["kanban-stages"] });
+      queryClient.invalidateQueries({ queryKey: ["kanban-leads"] });
+
+      return newStage;
+    } catch (error) {
+      console.error('[useStageManagement] Erro geral ao criar coluna:', error);
+      throw error;
+    }
   };
 
   const updateColumn = async (columnId: string, updates: any) => {
