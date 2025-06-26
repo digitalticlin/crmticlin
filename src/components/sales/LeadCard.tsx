@@ -1,3 +1,4 @@
+
 import { KanbanLead, FIXED_COLUMN_IDS } from "@/types/kanban";
 import { cn } from "@/lib/utils";
 import { DraggableProvided } from "react-beautiful-dnd";
@@ -43,16 +44,12 @@ export const LeadCard = ({
   const isLost = isWonLostView && lead.columnId === lostStageId;
   
   const handleCardClick = (e: React.MouseEvent) => {
-    // CRITICAL: Don't handle clicks during drag state
-    if (isDragging) {
-      e.preventDefault();
-      e.stopPropagation();
-      return;
-    }
-    
+    // RADICAL: Não bloquear cliques durante drag - deixar o RBD gerenciar
     if (onOpenChat) onOpenChat();
     else onClick();
   };
+
+  console.log('[LeadCard] 🃏 RADICAL - Card:', lead.name, 'isDragging:', isDragging);
 
   return (
     <div
@@ -60,42 +57,59 @@ export const LeadCard = ({
       {...provided.draggableProps}
       {...provided.dragHandleProps}
       className={cn(
+        // Base do card - design glassmórfico
         "bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass-lg mb-4 rounded-xl p-4 cursor-pointer group relative",
         "w-[98.5%] max-w-[380px] mx-auto",
-        // OPTIMIZED: Clean drag states without conflicting transforms
+        
+        // RADICAL: Estados simplificados - sem conflitos
         !isDragging && "transition-all duration-200 hover:scale-[1.02] hover:shadow-xl hover:border-white/50",
-        // CRITICAL: Simplified drag state - let react-beautiful-dnd handle positioning completely
-        isDragging && "opacity-80 shadow-2xl border-2 border-blue-400/60 bg-white/80 scale-[1.05]",
+        
+        // CRÍTICO: Estado de drag otimizado para clone VISÍVEL
+        isDragging && [
+          "opacity-90", // Levemente transparente mas VISÍVEL
+          "shadow-2xl", // Sombra forte
+          "border-2 border-blue-400/60", // Borda destacada
+          "bg-white/90", // Fundo mais opaco
+          "scale-[1.05]", // Levemente maior
+          "rotate-2", // Rotação sutil
+          "z-[9999]" // Z-index alto
+        ],
+        
+        // Estados especiais para Won/Lost
         isWon && "border-l-[4px] border-l-green-500 bg-green-50/20",
         isLost && "border-l-[4px] border-l-red-500 bg-red-50/20"
       )}
       style={{
-        // CRITICAL: Only use provided styles - no custom overrides that conflict
+        // RADICAL: Usar APENAS os estilos do react-beautiful-dnd
         ...provided.draggableProps.style,
-        // FIXED: Remove pointerEvents none - this was making clone invisible
-        // Ensure proper layering during drag without breaking interaction
+        
+        // CRÍTICO: Garantir que o clone seja sempre visível
         ...(isDragging && {
-          zIndex: 9999,
-          // Keep pointer events to allow proper drag behavior
-          transform: provided.draggableProps.style?.transform || 'none'
+          // Manter o transform do RBD mas garantir visibilidade
+          transform: provided.draggableProps.style?.transform || 'none',
+          // NUNCA usar pointerEvents: 'none' durante drag
+          pointerEvents: 'auto',
+          // Garantir posicionamento correto
+          position: 'relative',
+          zIndex: 9999
         })
       }}
       onClick={handleCardClick}
       onMouseEnter={!isDragging ? onMouseEnter : undefined}
       onMouseLeave={!isDragging ? onMouseLeave : undefined}
     >
-      {/* Enhanced drag visual feedback - more visible during drag */}
+      {/* RADICAL: Overlay de drag VISÍVEL e destacado */}
       {isDragging && (
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-400/40 via-white/50 to-blue-400/40 animate-pulse pointer-events-none z-10" />
+        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-400/30 via-white/40 to-blue-400/30 animate-pulse pointer-events-none z-10" />
       )}
       
-      {/* Glassmorphism overlay - enhanced for drag state */}
+      {/* Glassmorphism overlay padrão */}
       <div className={cn(
         "absolute inset-0 bg-gradient-to-br from-white/5 to-transparent rounded-xl pointer-events-none",
         isDragging && "from-white/20 to-white/10"
       )} />
       
-      {/* Content with proper z-index */}
+      {/* Content sempre visível */}
       <div className="relative z-20">
         <LeadCardContent lead={lead} isWonLostView={isWonLostView} lostStageId={lostStageId} />
         

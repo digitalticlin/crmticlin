@@ -22,11 +22,11 @@ export const useDragAndDropSafe = ({
 
   const onDragStart = useCallback(() => {
     try {
-      console.log('[DragDropSafe] 🎯 Iniciando drag - interface otimizada');
+      console.log('[DragDropSafe] 🎯 RADICAL - Iniciando drag com interface otimizada');
       setIsDragging(true);
       
-      // SIMPLIFIED: Basic drag setup without conflicting with StableDragDropWrapper
-      document.body.classList.add('dragging-active');
+      // RADICAL: Não manipular DOM aqui - deixar para o StableDragDropWrapper
+      // Apenas marcar estado interno
       
     } catch (error) {
       console.error('[DragDropSafe] ❌ Erro ao iniciar drag:', error);
@@ -36,13 +36,12 @@ export const useDragAndDropSafe = ({
 
   const onDragEnd = useCallback(async (result: DropResult) => {
     try {
-      console.log('[DragDropSafe] 🎯 Finalizando drag:', result);
+      console.log('[DragDropSafe] 🎯 RADICAL - Finalizando drag:', result);
       setIsDragging(false);
-      
-      // CRITICAL: Clean up immediately to prevent UI freezing
-      document.body.classList.remove('dragging-active');
 
-      // Validate drag result
+      // RADICAL: Não manipular DOM aqui - StableDragDropWrapper já fez
+
+      // Validação básica
       if (!result.destination || !result.source) {
         console.log('[DragDropSafe] ⚠️ Drag cancelado - sem destino válido');
         return;
@@ -54,7 +53,7 @@ export const useDragAndDropSafe = ({
         return;
       }
 
-      // Validate columns
+      // Validação de colunas
       if (!Array.isArray(columns) || columns.length === 0) {
         console.error('[DragDropSafe] ❌ Colunas inválidas');
         toast.error("Erro: dados das etapas inválidos");
@@ -80,8 +79,10 @@ export const useDragAndDropSafe = ({
         return;
       }
 
-      // OPTIMIZED: Same column reorder
+      // RADICAL: Reordenação na mesma coluna
       if (result.source.droppableId === result.destination.droppableId) {
+        console.log('[DragDropSafe] 🔄 RADICAL - Reordenação na mesma coluna');
+        
         const newLeads = Array.from(sourceColumn.leads);
         const [removed] = newLeads.splice(result.source.index, 1);
         newLeads.splice(result.destination.index, 0, removed);
@@ -97,7 +98,13 @@ export const useDragAndDropSafe = ({
         return;
       }
 
-      // ENHANCED: Cross-column move with immediate UI update + background sync
+      // RADICAL: Movimentação entre colunas com UI imediata + sync em background
+      console.log('[DragDropSafe] 🔄 RADICAL - Movimentação entre colunas:', {
+        leadName: draggedLead.name,
+        from: sourceColumn.title,
+        to: destColumn.title
+      });
+
       const sourceLeads = Array.from(sourceColumn.leads);
       const destLeads = Array.from(destColumn.leads);
       const [removed] = sourceLeads.splice(result.source.index, 1);
@@ -105,7 +112,7 @@ export const useDragAndDropSafe = ({
       const updatedLead = { ...removed, columnId: destColumn.id };
       destLeads.splice(result.destination.index, 0, updatedLead);
 
-      // PRIORITY 1: Update UI immediately for fluid UX
+      // PRIORIDADE 1: Atualizar UI IMEDIATAMENTE
       const newColumns = columns.map(col => {
         if (col.id === sourceColumn.id) {
           return { ...col, leads: sourceLeads };
@@ -118,17 +125,14 @@ export const useDragAndDropSafe = ({
 
       onColumnsChange(newColumns);
       
-      // Show immediate feedback
+      // Feedback imediato
       toast.success(`"${draggedLead.name}" movido para "${destColumn.title}"`);
 
-      // PRIORITY 2: Sync with database in background
+      // PRIORIDADE 2: Sincronizar com banco em background
       try {
-        console.log('[DragDropSafe] 🔄 Sincronizando com banco:', {
+        console.log('[DragDropSafe] 🔄 RADICAL - Sincronizando com Supabase:', {
           leadId: draggedLead.id,
-          leadName: draggedLead.name,
-          oldStageId: sourceColumn.id,
-          newStageId: destColumn.id,
-          newStageName: destColumn.title
+          newStageId: destColumn.id
         });
 
         const { error: updateError } = await supabase
@@ -140,9 +144,9 @@ export const useDragAndDropSafe = ({
           .eq("id", draggedLead.id);
 
         if (updateError) {
-          console.error('[DragDropSafe] ❌ Erro no banco:', updateError);
+          console.error('[DragDropSafe] ❌ Erro no Supabase:', updateError);
           
-          // ROLLBACK: Revert UI changes on database error
+          // ROLLBACK: Reverter UI em caso de erro no banco
           const revertedColumns = columns.map(col => {
             if (col.id === sourceColumn.id) {
               return { ...col, leads: sourceColumn.leads };
@@ -158,22 +162,18 @@ export const useDragAndDropSafe = ({
           return;
         }
 
-        console.log('[DragDropSafe] ✅ Sincronização concluída com sucesso');
+        console.log('[DragDropSafe] ✅ RADICAL - Sincronização Supabase concluída');
 
       } catch (backendError) {
         console.error('[DragDropSafe] ❌ Erro crítico no backend:', backendError);
-        toast.error("Erro de conexão. Recarregue a página se necessário.");
+        toast.error("Erro de conexão. Tente novamente.");
       }
 
-      console.log('[DragDropSafe] ✅ Drag completado com sucesso');
+      console.log('[DragDropSafe] ✅ RADICAL - Drag completado com sucesso');
 
     } catch (error) {
       console.error('[DragDropSafe] ❌ Erro durante drag and drop:', error);
       setIsDragging(false);
-      
-      // CRITICAL: Always clean up on error
-      document.body.classList.remove('dragging-active');
-      
       toast.error("Erro durante operação de drag and drop");
     }
   }, [columns, onColumnsChange]);

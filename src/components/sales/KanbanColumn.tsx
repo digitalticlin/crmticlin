@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Droppable, Draggable } from "react-beautiful-dnd";
 import { MoreVertical, Edit, Trash2, Plus, Lock } from "lucide-react";
@@ -44,7 +45,8 @@ export function KanbanColumn({
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(column.title);
 
-  // Verificar se o estágio é fixo baseado no título
+  console.log('[KanbanColumn] 🏛️ RADICAL - Coluna:', column.title, 'leads:', column.leads.length);
+
   const isFixedStage = column.title === "GANHO" || column.title === "PERDIDO" || column.title === "Entrada de Leads" || column.isFixed;
 
   const handleSaveTitle = async () => {
@@ -54,7 +56,7 @@ export function KanbanColumn({
         setIsEditing(false);
       } catch (error: any) {
         toast.error(error.message || "Erro ao atualizar estágio");
-        setEditTitle(column.title); // Revert on error
+        setEditTitle(column.title);
       }
     } else {
       setIsEditing(false);
@@ -112,7 +114,7 @@ export function KanbanColumn({
           </span>
         </div>
 
-        {/* Actions - apenas mostrar se não for estágio fixo e não for view de ganhos/perdidos */}
+        {/* Actions */}
         {!isFixedStage && !isWonLostView && (onUpdateColumn || onDeleteColumn) && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -144,25 +146,43 @@ export function KanbanColumn({
         style={{ backgroundColor: column.color || "#e0e0e0" }}
       />
 
-      {/* FIXED DROPPABLE - Critical fixes for drag positioning */}
+      {/* RADICAL: Droppable otimizado para drops funcionais */}
       <Droppable droppableId={column.id} type="lead">
         {(provided, snapshot) => (
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={cn(
-              "flex-1 space-y-3 rounded-xl px-0.5 py-2",
-              "kanban-column-scrollbar overflow-y-auto",
-              // ENHANCED: Better visual feedback for drop zones
-              snapshot.isDraggingOver && "bg-blue-50/50 border-2 border-dashed border-blue-400/70 transition-all duration-150"
+              "flex-1 rounded-xl px-0.5 py-2",
+              "kanban-column-scrollbar",
+              
+              // RADICAL: Overflow controlado dinamicamente
+              snapshot.isDraggingOver ? "overflow-visible" : "overflow-y-auto",
+              
+              // Feedback visual otimizado para drop
+              snapshot.isDraggingOver && [
+                "bg-blue-50/50", 
+                "border-2 border-dashed border-blue-400/70", 
+                "transition-all duration-150"
+              ]
             )}
             style={{
-              // CRITICAL: Use flexible height instead of fixed - this was breaking drop detection
+              // RADICAL: Altura flexível para drops funcionais
               minHeight: "400px",
+              height: "auto", // Deixar crescer conforme necessário
+              maxHeight: "calc(100vh - 200px)", // Limite máximo responsivo
               flex: 1,
-              // Ensure proper stacking and positioning context
+              
+              // CRÍTICO: Contexto de posicionamento para drag
               position: 'relative',
-              zIndex: 1
+              zIndex: 1,
+              
+              // Durante drag over, tornar mais espaçoso
+              ...(snapshot.isDraggingOver && {
+                minHeight: "450px",
+                paddingTop: "16px",
+                paddingBottom: "16px"
+              })
             }}
           >
             {column.leads.map((lead, leadIndex) => (
@@ -186,10 +206,10 @@ export function KanbanColumn({
             ))}
             {provided.placeholder}
             
-            {/* VISUAL: Empty state indicator when dragging over */}
+            {/* RADICAL: Indicador de drop otimizado */}
             {snapshot.isDraggingOver && column.leads.length === 0 && (
-              <div className="flex items-center justify-center h-20 text-blue-500/70 text-sm">
-                Solte o card aqui
+              <div className="flex items-center justify-center h-20 text-blue-500/70 text-sm font-medium border-2 border-dashed border-blue-300/50 rounded-lg bg-blue-50/30">
+                ↓ Solte o card aqui ↓
               </div>
             )}
           </div>

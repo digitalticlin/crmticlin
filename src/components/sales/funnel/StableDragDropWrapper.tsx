@@ -17,16 +17,11 @@ export const StableDragDropWrapper = ({
   onDragStart = () => {},
   onDragEnd = () => {}
 }: StableDragDropWrapperProps) => {
-  console.log('[StableDragDropWrapper] 🔄 Renderizando wrapper otimizado para drag fluído');
+  console.log('[StableDragDropWrapper] 🔄 RADICAL - Wrapper otimizado para drag fluído');
 
   const handleErrorCaptured = (error: Error, errorInfo: any) => {
     console.group('🚨 [StableDragDropWrapper] ERRO CRÍTICO CAPTURADO');
     console.error('❌ Erro no Drag and Drop Context:', error);
-    console.error('🎯 Props recebidas:', { 
-      hasOnDragStart: !!onDragStart,
-      hasOnDragEnd: !!onDragEnd,
-      childrenType: typeof children 
-    });
     console.error('📊 ErrorInfo:', errorInfo);
     console.groupEnd();
   };
@@ -43,7 +38,7 @@ export const StableDragDropWrapper = ({
           Erro no Sistema de Drag and Drop
         </h3>
         <p className="text-red-700 text-sm max-w-md">
-          Ocorreu um erro durante a operação de arrastar e soltar. Verifique o console para mais detalhes.
+          Ocorreu um erro durante a operação de arrastar e soltar.
         </p>
         <div className="flex gap-2 justify-center">
           <Button onClick={() => window.location.reload()} variant="outline" size="sm">
@@ -56,7 +51,7 @@ export const StableDragDropWrapper = ({
   );
 
   try {
-    console.log('[StableDragDropWrapper] 🎯 Inicializando DragDropContext com controles centralizados');
+    console.log('[StableDragDropWrapper] 🎯 RADICAL - Inicializando DragDropContext centralizado');
     
     return (
       <AdvancedErrorTracker 
@@ -66,37 +61,45 @@ export const StableDragDropWrapper = ({
       >
         <DragDropContext
           onDragStart={(initial) => {
-            console.log('[StableDragDropWrapper] 🟢 Drag iniciado:', initial);
+            console.log('[StableDragDropWrapper] 🟢 RADICAL - Drag iniciado:', initial.draggableId);
             
-            // CENTRALIZED: All DOM manipulation in one place to avoid conflicts
-            document.body.style.overflow = 'hidden';
-            document.body.style.userSelect = 'none';
-            document.body.style.webkitUserSelect = 'none';
-            document.body.style.cursor = 'grabbing';
+            // RADICAL: Centralizar TODA a manipulação DOM aqui
+            const body = document.body;
             
-            // Add drag class to body for global styling
-            document.body.classList.add('rbd-dragging');
+            // Prevenir scroll e seleção durante drag
+            body.style.overflow = 'hidden';
+            body.style.userSelect = 'none';
+            body.style.webkitUserSelect = 'none';
+            body.style.cursor = 'grabbing';
+            
+            // Classe para CSS global
+            body.classList.add('rbd-dragging');
             
             onDragStart();
           }}
           onDragEnd={(result) => {
-            console.log('[StableDragDropWrapper] 🟢 Drag finalizado:', result);
+            console.log('[StableDragDropWrapper] 🟢 RADICAL - Drag finalizado:', result.draggableId, '->', result.destination?.droppableId);
             
-            // CRITICAL: Restore page behavior immediately and completely
-            document.body.style.overflow = 'unset';
-            document.body.style.userSelect = 'unset';
-            document.body.style.webkitUserSelect = 'unset';
-            document.body.style.cursor = 'default';
+            // RADICAL: Restaurar comportamento da página IMEDIATAMENTE
+            const body = document.body;
             
-            // Remove all drag classes
-            document.body.classList.remove('rbd-dragging');
+            body.style.overflow = '';
+            body.style.userSelect = '';
+            body.style.webkitUserSelect = '';
+            body.style.cursor = '';
             
-            // Call handler
+            // Remover classes
+            body.classList.remove('rbd-dragging');
+            
+            // Chamar handler
             onDragEnd(result);
           }}
           onDragUpdate={(update) => {
-            // Optional: Enhanced feedback during drag
-            console.log('[StableDragDropWrapper] 🔄 Drag update:', update);
+            // Log para debug
+            if (update.destination) {
+              console.log('[StableDragDropWrapper] 🔄 RADICAL - Drag update:', 
+                update.draggableId, 'sobre', update.destination.droppableId);
+            }
           }}
         >
           {children}
