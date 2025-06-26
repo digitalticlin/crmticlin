@@ -14,10 +14,11 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { useSalesFunnelContext } from "./funnel/SalesFunnelProvider";
+import { useStageManagement } from "@/hooks/salesFunnel/useStageManagement";
 import { toast } from "sonner";
 
 interface AddColumnDialogProps {
-  onAddColumn?: (title: string) => void; // Manter por compatibilidade, mas usar o contexto
+  onAddColumn?: (title: string) => void; // Manter por compatibilidade, mas usar o hook direto
 }
 
 const COLORS = [
@@ -37,7 +38,8 @@ export const AddColumnDialog = ({ onAddColumn }: AddColumnDialogProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
-  const { selectedFunnel, addColumn, refreshColumns } = useSalesFunnelContext();
+  const { selectedFunnel, refetchStages } = useSalesFunnelContext();
+  const { addColumn } = useStageManagement();
 
   const handleAddColumn = async () => {
     if (!newColumnTitle.trim()) {
@@ -52,11 +54,11 @@ export const AddColumnDialog = ({ onAddColumn }: AddColumnDialogProps) => {
 
     setIsLoading(true);
     try {
-      // Usar o contexto para adicionar a coluna
+      // Usar o hook diretamente para adicionar a coluna
       await addColumn(newColumnTitle.trim(), selectedColor, selectedFunnel.id);
       
       // Refresh das colunas
-      await refreshColumns();
+      await refetchStages();
       
       // Callback de compatibilidade se fornecido
       if (onAddColumn) {
