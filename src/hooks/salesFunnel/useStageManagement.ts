@@ -1,4 +1,3 @@
-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -78,7 +77,7 @@ export function useStageManagement() {
       throw new Error("Usuário não autenticado");
     }
 
-    console.log('[useStageManagement] Iniciando criação de coluna:', {
+    console.log('[useStageManagement] Iniciando criação de etapa:', {
       title,
       color,
       funnelId,
@@ -132,14 +131,14 @@ export function useStageManagement() {
 
       console.log('[useStageManagement] Stage criado com sucesso:', newStage);
 
-      // Invalidar queries relacionadas
+      // Invalidar queries relacionadas para forçar atualização
       queryClient.invalidateQueries({ queryKey: ["stages"] });
       queryClient.invalidateQueries({ queryKey: ["kanban-stages"] });
       queryClient.invalidateQueries({ queryKey: ["kanban-leads"] });
 
       return newStage;
     } catch (error) {
-      console.error('[useStageManagement] Erro geral ao criar coluna:', error);
+      console.error('[useStageManagement] Erro geral ao criar etapa:', error);
       throw error;
     }
   };
@@ -215,8 +214,70 @@ export function useStageManagement() {
     moveToWonLost, 
     moveLeadToStage,
     addColumn,
-    updateColumn,
-    deleteColumn,
+    updateColumn: async (columnId: string, updates: any) => {
+      if (!user?.id) {
+        throw new Error("Usuário não autenticado");
+      }
+
+      // Verificar se o estágio é fixo antes de permitir edição
+      const { data: stage } = await supabase
+        .from("kanban_stages")
+        .select("is_fixed, title")
+        .eq("id", columnId)
+        .single();
+
+      if (stage?.is_fixed) {
+        throw new Error("Estágios fixos não podem ser modificados");
+      }
+
+      // Verificar se não está tentando usar um título reservado
+      if (updates.title) {
+        const reservedTitles = ['GANHO', 'PERDIDO', 'Entrada de Leads'];
+        if (reservedTitles.includes(updates.title)) {
+          throw new Error("Este nome é reservado para estágios do sistema");
+        }
+      }
+
+      const { error } = await supabase
+        .from("kanban_stages")
+        .update(updates)
+        .eq("id", columnId);
+
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ["stages"] });
+      queryClient.invalidateQueries({ queryKey: ["kanban-stages"] });
+    },
+    deleteColumn: async (columnId: string) => {
+      if (!user?.id) {
+        throw new Error("Usuário não autenticado");
+      }
+
+      // Verificar se o estágio é fixo antes de permitir exclusão
+      const { data: stage } = await supabase
+        .from("kanban_stages")
+        .select("is_fixed, title")
+        .eq("id", columnId)
+        .single();
+
+      if (stage?.is_fixed) {
+        throw new Error("Estágios fixos não podem ser removidos");
+      }
+
+      const { error } = await supabase
+        .from("kanban_stages")
+        .delete()
+        .eq("id", columnId);
+
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ["stages"] });
+      queryClient.invalidateQueries({ queryKey: ["kanban-stages"] });
+    },
+    refreshColumns: async () => {
+      queryClient.invalidateQueries({ queryKey: ["stages"] });
+      queryClient.invalidateQueries({ queryKey: ["kanban-stages"] });
+    },
     refreshColumns
   };
 }

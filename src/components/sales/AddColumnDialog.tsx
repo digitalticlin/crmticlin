@@ -60,12 +60,12 @@ export const AddColumnDialog = ({ onAddColumn }: AddColumnDialogProps) => {
         funnelId: selectedFunnel.id
       });
 
-      // Usar o hook diretamente para adicionar a coluna
-      await addColumn(newColumnTitle.trim(), selectedColor, selectedFunnel.id);
+      // Criar a nova etapa
+      const newStage = await addColumn(newColumnTitle.trim(), selectedColor, selectedFunnel.id);
       
-      console.log('[AddColumnDialog] Etapa criada com sucesso, fazendo refetch...');
+      console.log('[AddColumnDialog] Etapa criada:', newStage);
       
-      // Refresh das colunas
+      // Refresh das etapas
       await refetchStages();
       
       // Callback de compatibilidade se fornecido
@@ -73,12 +73,13 @@ export const AddColumnDialog = ({ onAddColumn }: AddColumnDialogProps) => {
         onAddColumn(newColumnTitle.trim());
       }
       
-      // Reset do form
+      // Reset do form e fechar modal
       setNewColumnTitle("");
       setSelectedColor(COLORS[0]);
       setIsOpen(false);
       
       toast.success("Etapa criada com sucesso!");
+      
     } catch (error: any) {
       console.error("Erro ao criar etapa:", error);
       toast.error(error.message || "Erro ao criar etapa");
