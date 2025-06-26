@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Droppable, Draggable } from "react-beautiful-dnd";
 import { MoreVertical, Edit, Trash2, Plus, Lock } from "lucide-react";
@@ -45,7 +44,7 @@ export function KanbanColumn({
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(column.title);
 
-  console.log('[KanbanColumn] 🏛️ RADICAL - Coluna:', column.title, 'leads:', column.leads.length);
+  console.log('[KanbanColumn] 🏛️ CORREÇÃO AVANÇADA - Coluna:', column.title, 'leads:', column.leads.length);
 
   const isFixedStage = column.title === "GANHO" || column.title === "PERDIDO" || column.title === "Entrada de Leads" || column.isFixed;
 
@@ -146,7 +145,7 @@ export function KanbanColumn({
         style={{ backgroundColor: column.color || "#e0e0e0" }}
       />
 
-      {/* RADICAL: Droppable otimizado para drops funcionais */}
+      {/* CORREÇÃO CRÍTICA: Droppable otimizado para RBD */}
       <Droppable droppableId={column.id} type="lead">
         {(provided, snapshot) => (
           <div
@@ -156,8 +155,8 @@ export function KanbanColumn({
               "flex-1 rounded-xl px-0.5 py-2",
               "kanban-column-scrollbar",
               
-              // RADICAL: Overflow controlado dinamicamente
-              snapshot.isDraggingOver ? "overflow-visible" : "overflow-y-auto",
+              // CORREÇÃO: Overflow dinâmico para permitir drag fluido
+              "overflow-y-auto",
               
               // Feedback visual otimizado para drop
               snapshot.isDraggingOver && [
@@ -167,17 +166,12 @@ export function KanbanColumn({
               ]
             )}
             style={{
-              // RADICAL: Altura flexível para drops funcionais
+              // CRÍTICO: Altura flexível mas sem interferir no drag
               minHeight: "400px",
-              height: "auto", // Deixar crescer conforme necessário
-              maxHeight: "calc(100vh - 200px)", // Limite máximo responsivo
-              flex: 1,
+              maxHeight: "calc(100vh - 200px)",
               
-              // CRÍTICO: Contexto de posicionamento para drag
-              position: 'relative',
-              zIndex: 1,
-              
-              // Durante drag over, tornar mais espaçoso
+              // CORREÇÃO: Remover position relative que interferia
+              // Deixar o container mais simples para o RBD
               ...(snapshot.isDraggingOver && {
                 minHeight: "450px",
                 paddingTop: "16px",
@@ -206,7 +200,7 @@ export function KanbanColumn({
             ))}
             {provided.placeholder}
             
-            {/* RADICAL: Indicador de drop otimizado */}
+            {/* Indicador de drop otimizado */}
             {snapshot.isDraggingOver && column.leads.length === 0 && (
               <div className="flex items-center justify-center h-20 text-blue-500/70 text-sm font-medium border-2 border-dashed border-blue-300/50 rounded-lg bg-blue-50/30">
                 ↓ Solte o card aqui ↓

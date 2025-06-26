@@ -44,12 +44,11 @@ export const LeadCard = ({
   const isLost = isWonLostView && lead.columnId === lostStageId;
   
   const handleCardClick = (e: React.MouseEvent) => {
-    // RADICAL: Não bloquear cliques durante drag - deixar o RBD gerenciar
     if (onOpenChat) onOpenChat();
     else onClick();
   };
 
-  console.log('[LeadCard] 🃏 RADICAL - Card:', lead.name, 'isDragging:', isDragging);
+  console.log('[LeadCard] 🃏 CORREÇÃO AVANÇADA - Card:', lead.name, 'isDragging:', isDragging);
 
   return (
     <div
@@ -61,18 +60,17 @@ export const LeadCard = ({
         "bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass-lg mb-4 rounded-xl p-4 cursor-pointer group relative",
         "w-[98.5%] max-w-[380px] mx-auto",
         
-        // RADICAL: Estados simplificados - sem conflitos
+        // Estados normais - apenas quando NÃO está em drag
         !isDragging && "transition-all duration-200 hover:scale-[1.02] hover:shadow-xl hover:border-white/50",
         
-        // CRÍTICO: Estado de drag otimizado para clone VISÍVEL
+        // CORREÇÃO CRÍTICA: Estados de drag APENAS visuais
         isDragging && [
-          "opacity-90", // Levemente transparente mas VISÍVEL
-          "shadow-2xl", // Sombra forte
-          "border-2 border-blue-400/60", // Borda destacada
+          "opacity-95", // Visibilidade adequada
+          "shadow-2xl", // Sombra destacada
+          "border-2 border-blue-400/60", // Borda de destaque
           "bg-white/90", // Fundo mais opaco
-          "scale-[1.05]", // Levemente maior
-          "rotate-2", // Rotação sutil
-          "z-[9999]" // Z-index alto
+          "scale-105" // Levemente maior
+          // REMOVIDO: rotate, position, z-index - deixar RBD controlar
         ],
         
         // Estados especiais para Won/Lost
@@ -80,33 +78,30 @@ export const LeadCard = ({
         isLost && "border-l-[4px] border-l-red-500 bg-red-50/20"
       )}
       style={{
-        // RADICAL: Usar APENAS os estilos do react-beautiful-dnd
+        // CRÍTICO: Usar APENAS os estilos do react-beautiful-dnd
         ...provided.draggableProps.style,
         
-        // CRÍTICO: Garantir que o clone seja sempre visível
+        // CORREÇÃO RADICAL: Durante drag, deixar RBD controlar tudo
         ...(isDragging && {
-          // Manter o transform do RBD mas garantir visibilidade
-          transform: provided.draggableProps.style?.transform || 'none',
-          // NUNCA usar pointerEvents: 'none' durante drag
-          pointerEvents: 'auto',
-          // Garantir posicionamento correto
-          position: 'relative',
-          zIndex: 9999
+          // NUNCA sobrescrever transform ou position
+          // Apenas garantir que pointer-events funcione
+          pointerEvents: 'auto'
+          // REMOVIDO: position, zIndex, transform - tudo controlado pelo RBD
         })
       }}
-      onClick={handleCardClick}
+      onClick={!isDragging ? handleCardClick : undefined}
       onMouseEnter={!isDragging ? onMouseEnter : undefined}
       onMouseLeave={!isDragging ? onMouseLeave : undefined}
     >
-      {/* RADICAL: Overlay de drag VISÍVEL e destacado */}
+      {/* Overlay visual durante drag - NÃO interfere no posicionamento */}
       {isDragging && (
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-400/30 via-white/40 to-blue-400/30 animate-pulse pointer-events-none z-10" />
+        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-400/20 via-white/30 to-blue-400/20 animate-pulse pointer-events-none z-10" />
       )}
       
       {/* Glassmorphism overlay padrão */}
       <div className={cn(
         "absolute inset-0 bg-gradient-to-br from-white/5 to-transparent rounded-xl pointer-events-none",
-        isDragging && "from-white/20 to-white/10"
+        isDragging && "from-white/15 to-white/5"
       )} />
       
       {/* Content sempre visível */}

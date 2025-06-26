@@ -1,3 +1,4 @@
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import './styles/kanban-scrollbars.css';
 @tailwind base;
@@ -208,9 +209,9 @@ body {
     inset 0 -1px 0 rgba(0, 0, 0, 0.05);
 }
 
-/* ===== REACT-BEAUTIFUL-DND FIXES ===== */
+/* ===== DRAG AND DROP - REACT BEAUTIFUL DND - CORREÇÃO AVANÇADA ===== */
 
-/* Cursor states */
+/* CRÍTICO: Cursor states - manter apenas isso */
 [data-rbd-drag-handle-context-id] {
   cursor: grab !important;
 }
@@ -219,46 +220,40 @@ body {
   cursor: grabbing !important;
 }
 
-/* CRITICAL: Ensure react-beautiful-dnd can control transforms */
+/* IMPORTANTE: Deixar react-beautiful-dnd controlar TUDO durante drag */
 [data-rbd-draggable-context-id] {
-  /* Remove ALL overriding transforms and transitions */
-  transform: none !important;
-  transition: none !important;
-}
-
-/* Dragging element positioning - LET REACT-BEAUTIFUL-DND HANDLE IT */
-[data-rbd-draggable-context-id][data-rbd-draggable-id] {
-  /* Completely hands-off approach - let library handle everything */
-  pointer-events: auto !important;
+  /* REMOVIDO: transform e transition que impediam movimento */
+  /* Apenas z-index para garantir visibilidade */
   z-index: 999 !important;
 }
 
-/* Clone styling during drag */
+/* Clone styling - APENAS visual, SEM posicionamento */
 [data-rbd-draggable-context-id][style*="position: fixed"] {
-  /* ONLY styling, NO positioning overrides */
-  pointer-events: none !important;
-  z-index: 9999 !important;
-  opacity: 0.9 !important;
-  box-shadow: 0 15px 30px rgba(0,0,0,0.2) !important;
+  /* Apenas estilos visuais para o clone */
+  opacity: 0.95 !important;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.3) !important;
   border-radius: 12px !important;
-  /* NEVER override transform or position properties */
-}
-
-/* Elements inside the dragging card */
-[data-rbd-draggable-context-id] * {
-  pointer-events: none !important;
-}
-
-/* Remove any interfering transforms on dragging class */
-.react-beautiful-dnd-dragging {
-  /* Let react-beautiful-dnd handle all positioning */
-  z-index: 9999 !important;
-}
-
-/* CRITICAL: Remove backdrop-filter during drag - it can interfere */
-[data-rbd-draggable-context-id] {
+  z-index: 10000 !important;
+  
+  /* CRÍTICO: Remover backdrop-filter que causa problemas */
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+}
+
+/* Global drag state */
+body.rbd-dragging {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+body.rbd-dragging * {
+  cursor: grabbing !important;
+}
+
+/* Enhanced drag handle focus */
+[data-react-beautiful-dnd-drag-handle]:focus {
+  outline: 2px solid rgba(59, 130, 246, 0.5);
+  outline-offset: 2px;
 }
 
 /* Print styles */
