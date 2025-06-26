@@ -1,5 +1,4 @@
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Contact } from "@/types/chat";
@@ -10,6 +9,7 @@ import { getTagStyleClasses } from "@/utils/tagColors";
 import { MessageCircle, User, Clock, CheckCheck, Check, DollarSign } from "lucide-react";
 import { formatPhoneDisplay } from "@/utils/phoneFormatter";
 import { formatCurrency } from "@/lib/utils";
+import { TiclinAvatar } from "@/components/ui/ticlin-avatar";
 
 interface ContactItemProps {
   contact: Contact;
@@ -45,7 +45,7 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
     ...(contact.company ? [{ type: 'company', value: contact.company }] : [])
   ];
 
-  const visibleItems = allTagItems.slice(0, 3); // Aumentado para 3 já que removemos telefone
+  const visibleItems = allTagItems.slice(0, 3);
   const remainingCount = allTagItems.length - 3;
 
   // Verificar se há mensagens não lidas
@@ -92,14 +92,14 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
         onClick={() => onSelect(contact)}
       >
         <div className="flex items-start gap-3">
-          {/* Avatar com indicador online */}
+          {/* Avatar customizado Ticlin */}
           <div className="relative flex-shrink-0">
-            <Avatar className="h-12 w-12 ring-2 ring-white/10">
-              <AvatarFallback className="bg-gradient-to-br from-green-500 to-green-600 text-white text-sm font-semibold">
-                {displayName.split(' ').map(n => n[0]).join('').substring(0, 2)}
-              </AvatarFallback>
-              <AvatarImage src={contact.avatar} alt={displayName} />
-            </Avatar>
+            <TiclinAvatar 
+              profilePicUrl={contact.profilePicUrl}
+              customAvatar={contact.avatar}
+              name={displayName}
+              size="md"
+            />
             
             {/* Indicador online/offline */}
             {contact.isOnline && (
@@ -157,11 +157,10 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
               )}
             </div>
             
-            {/* Tags + Company - Footer (removido telefone) */}
+            {/* Tags + Company - Footer */}
             {allTagItems.length > 0 && (
               <div className="flex items-center gap-1 overflow-hidden pt-1">
                 <div className="flex items-center gap-1 flex-wrap">
-                  {/* Mostrar até 3 itens agora (tags + company) */}
                   {visibleItems.map((item, index) => (
                     <Badge 
                       key={index}

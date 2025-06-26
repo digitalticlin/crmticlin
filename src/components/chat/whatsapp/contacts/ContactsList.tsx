@@ -1,10 +1,10 @@
 
 import { SubtleScrollArea } from "@/components/ui/subtle-scroll-area";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Contact } from "@/types/chat";
 import { formatPhoneDisplay } from "@/utils/phoneFormatter";
 import { MessageCircle, Clock } from "lucide-react";
+import { TiclinAvatar } from "@/components/ui/ticlin-avatar";
 
 interface ContactsListProps {
   contacts: Contact[];
@@ -69,14 +69,14 @@ export const ContactsList = ({
             >
               <div className="flex items-start gap-3">
                 <div className="relative">
-                  <Avatar className="h-12 w-12 border-2 border-white/20">
-                    <AvatarFallback className="bg-gradient-to-br from-blue-500/20 to-purple-500/20 text-gray-800 font-semibold">
-                      {displayName.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                    </AvatarFallback>
-                    <AvatarImage src={contact.avatar} alt={displayName} />
-                  </Avatar>
+                  <TiclinAvatar 
+                    profilePicUrl={contact.profilePicUrl}
+                    customAvatar={contact.avatar}
+                    name={displayName}
+                    size="md"
+                  />
                   
-                  {/* Indicador de status online (placeholder para futuro) */}
+                  {/* Indicador de status online */}
                   {contact.isOnline && (
                     <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white dark:border-gray-900" />
                   )}

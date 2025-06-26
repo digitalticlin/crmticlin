@@ -68,6 +68,7 @@ export const useWhatsAppWebChatIntegrated = (activeInstance: WhatsAppWebInstance
           }) : undefined,
         unreadCount: lead.unread_count || 0,
         createdAt: lead.created_at,
+        profilePicUrl: lead.profile_pic_url, // Novo campo para foto de perfil do WhatsApp
         isOnline: false // Placeholder para futuro
       }));
 

@@ -1,3 +1,4 @@
+
 // FASE 3: Hook otimizado para contatos WhatsApp
 import { useState, useCallback, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
@@ -39,7 +40,7 @@ export const useWhatsAppContacts = (
           )
         `)
         .eq('whatsapp_number_id', activeInstance.id)
-        .eq('created_by_user_id', companyId) // CORREÇÃO: usar created_by_user_id
+        .eq('created_by_user_id', companyId)
         .order('last_message_time', { ascending: false, nullsFirst: false });
 
       if (error) throw error;
@@ -63,6 +64,7 @@ export const useWhatsAppContacts = (
             : '',
           unreadCount: lead.unread_count && lead.unread_count > 0 ? lead.unread_count : undefined,
           avatar: '',
+          profilePicUrl: lead.profile_pic_url || '', // Novo campo para foto de perfil do WhatsApp
           isOnline: Math.random() > 0.7 // Simulação básica de status online
         };
       });

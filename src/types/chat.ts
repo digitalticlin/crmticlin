@@ -13,6 +13,7 @@ export interface Contact {
   lastMessageTime?: string;
   unreadCount?: number;
   avatar?: string;
+  profilePicUrl?: string; // Nova propriedade para foto de perfil do WhatsApp
   isOnline?: boolean;
   createdAt?: string;
   assignedUser?: string;
