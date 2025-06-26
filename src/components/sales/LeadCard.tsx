@@ -1,4 +1,3 @@
-
 import { KanbanLead, FIXED_COLUMN_IDS } from "@/types/kanban";
 import { cn } from "@/lib/utils";
 import { DraggableProvided } from "react-beautiful-dnd";
@@ -66,35 +65,34 @@ export const LeadCard = ({
         // OPTIMIZED: Clean drag states without conflicting transforms
         !isDragging && "transition-all duration-200 hover:scale-[1.02] hover:shadow-xl hover:border-white/50",
         // CRITICAL: Simplified drag state - let react-beautiful-dnd handle positioning completely
-        isDragging && "opacity-95 shadow-2xl border-2 border-blue-400/60 bg-white/70",
+        isDragging && "opacity-80 shadow-2xl border-2 border-blue-400/60 bg-white/80 scale-[1.05]",
         isWon && "border-l-[4px] border-l-green-500 bg-green-50/20",
         isLost && "border-l-[4px] border-l-red-500 bg-red-50/20"
       )}
       style={{
         // CRITICAL: Only use provided styles - no custom overrides that conflict
         ...provided.draggableProps.style,
-        // Ensure proper layering during drag
+        // FIXED: Remove pointerEvents none - this was making clone invisible
+        // Ensure proper layering during drag without breaking interaction
         ...(isDragging && {
           zIndex: 9999,
-          // Remove pointer events during drag to prevent conflicts
-          pointerEvents: 'none',
-          // Ensure visibility
-          opacity: 0.95
+          // Keep pointer events to allow proper drag behavior
+          transform: provided.draggableProps.style?.transform || 'none'
         })
       }}
       onClick={handleCardClick}
       onMouseEnter={!isDragging ? onMouseEnter : undefined}
       onMouseLeave={!isDragging ? onMouseLeave : undefined}
     >
-      {/* Enhanced drag visual feedback */}
+      {/* Enhanced drag visual feedback - more visible during drag */}
       {isDragging && (
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-400/30 via-white/40 to-blue-400/30 animate-pulse pointer-events-none z-10" />
+        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-400/40 via-white/50 to-blue-400/40 animate-pulse pointer-events-none z-10" />
       )}
       
-      {/* Glassmorphism overlay - adjusted for drag state */}
+      {/* Glassmorphism overlay - enhanced for drag state */}
       <div className={cn(
         "absolute inset-0 bg-gradient-to-br from-white/5 to-transparent rounded-xl pointer-events-none",
-        isDragging && "from-white/10 to-white/5"
+        isDragging && "from-white/20 to-white/10"
       )} />
       
       {/* Content with proper z-index */}

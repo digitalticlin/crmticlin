@@ -56,7 +56,7 @@ export const StableDragDropWrapper = ({
   );
 
   try {
-    console.log('[StableDragDropWrapper] 🎯 Inicializando DragDropContext com controles aprimorados');
+    console.log('[StableDragDropWrapper] 🎯 Inicializando DragDropContext com controles centralizados');
     
     return (
       <AdvancedErrorTracker 
@@ -68,10 +68,11 @@ export const StableDragDropWrapper = ({
           onDragStart={(initial) => {
             console.log('[StableDragDropWrapper] 🟢 Drag iniciado:', initial);
             
-            // CRITICAL: Prevent page scroll and selection during drag
+            // CENTRALIZED: All DOM manipulation in one place to avoid conflicts
             document.body.style.overflow = 'hidden';
             document.body.style.userSelect = 'none';
             document.body.style.webkitUserSelect = 'none';
+            document.body.style.cursor = 'grabbing';
             
             // Add drag class to body for global styling
             document.body.classList.add('rbd-dragging');
@@ -81,12 +82,13 @@ export const StableDragDropWrapper = ({
           onDragEnd={(result) => {
             console.log('[StableDragDropWrapper] 🟢 Drag finalizado:', result);
             
-            // CRITICAL: Restore page behavior immediately
+            // CRITICAL: Restore page behavior immediately and completely
             document.body.style.overflow = 'unset';
             document.body.style.userSelect = 'unset';
             document.body.style.webkitUserSelect = 'unset';
+            document.body.style.cursor = 'default';
             
-            // Remove drag class
+            // Remove all drag classes
             document.body.classList.remove('rbd-dragging');
             
             // Call handler

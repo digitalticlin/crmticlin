@@ -144,28 +144,25 @@ export function KanbanColumn({
         style={{ backgroundColor: column.color || "#e0e0e0" }}
       />
 
-      {/* OPTIMIZED DROPPABLE - Critical fixes for drag positioning */}
+      {/* FIXED DROPPABLE - Critical fixes for drag positioning */}
       <Droppable droppableId={column.id} type="lead">
         {(provided, snapshot) => (
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={cn(
-              "flex-1 space-y-3 min-h-[200px] rounded-xl px-0.5 py-2",
+              "flex-1 space-y-3 rounded-xl px-0.5 py-2",
               "kanban-column-scrollbar overflow-y-auto",
               // ENHANCED: Better visual feedback for drop zones
               snapshot.isDraggingOver && "bg-blue-50/50 border-2 border-dashed border-blue-400/70 transition-all duration-150"
             )}
             style={{
-              // CRITICAL: Fixed height prevents layout shifts that break drag positioning
-              height: "calc(100vh - 400px)",
-              maxHeight: "calc(100vh - 400px)",
-              minHeight: "300px",
+              // CRITICAL: Use flexible height instead of fixed - this was breaking drop detection
+              minHeight: "400px",
+              flex: 1,
               // Ensure proper stacking and positioning context
               position: 'relative',
-              zIndex: 1,
-              // IMPORTANT: Prevent scroll interference during drag
-              scrollBehavior: snapshot.isDraggingOver ? 'auto' : 'smooth'
+              zIndex: 1
             }}
           >
             {column.leads.map((lead, leadIndex) => (

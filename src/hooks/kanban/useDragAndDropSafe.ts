@@ -25,10 +25,8 @@ export const useDragAndDropSafe = ({
       console.log('[DragDropSafe] 🎯 Iniciando drag - interface otimizada');
       setIsDragging(true);
       
-      // ENHANCED: Better UX during drag
-      document.body.style.userSelect = 'none';
-      document.body.style.overflow = 'hidden';
-      document.body.style.cursor = 'grabbing';
+      // SIMPLIFIED: Basic drag setup without conflicting with StableDragDropWrapper
+      document.body.classList.add('dragging-active');
       
     } catch (error) {
       console.error('[DragDropSafe] ❌ Erro ao iniciar drag:', error);
@@ -41,10 +39,8 @@ export const useDragAndDropSafe = ({
       console.log('[DragDropSafe] 🎯 Finalizando drag:', result);
       setIsDragging(false);
       
-      // CRITICAL: Restore UI immediately to prevent freezing
-      document.body.style.userSelect = 'unset';
-      document.body.style.overflow = 'unset';
-      document.body.style.cursor = 'default';
+      // CRITICAL: Clean up immediately to prevent UI freezing
+      document.body.classList.remove('dragging-active');
 
       // Validate drag result
       if (!result.destination || !result.source) {
@@ -175,10 +171,8 @@ export const useDragAndDropSafe = ({
       console.error('[DragDropSafe] ❌ Erro durante drag and drop:', error);
       setIsDragging(false);
       
-      // CRITICAL: Always restore UI state on error
-      document.body.style.userSelect = 'unset';
-      document.body.style.overflow = 'unset';
-      document.body.style.cursor = 'default';
+      // CRITICAL: Always clean up on error
+      document.body.classList.remove('dragging-active');
       
       toast.error("Erro durante operação de drag and drop");
     }
