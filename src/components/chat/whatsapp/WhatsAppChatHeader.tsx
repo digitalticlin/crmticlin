@@ -1,9 +1,9 @@
 
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, Phone, Edit } from "lucide-react";
 import { Contact } from "@/types/chat";
 import { formatPhoneDisplay } from "@/utils/phoneFormatter";
+import { TiclinAvatar } from "@/components/ui/ticlin-avatar";
 
 interface WhatsAppChatHeaderProps {
   selectedContact: Contact;
@@ -11,13 +11,22 @@ interface WhatsAppChatHeaderProps {
   onEditLead: () => void;
 }
 
+// Função para determinar se deve mostrar nome ou telefone (estilo WhatsApp)
+const getDisplayName = (contact: Contact): string => {
+  // Se o nome é diferente do telefone, significa que foi editado pelo usuário
+  if (contact.name && contact.name !== contact.phone && contact.name.trim() !== '') {
+    return contact.name;
+  }
+  // Caso contrário, mostra o telefone formatado
+  return formatPhoneDisplay(contact.phone);
+};
+
 export const WhatsAppChatHeader = ({
   selectedContact,
   onBack,
   onEditLead,
 }: WhatsAppChatHeaderProps) => {
-  // ATUALIZADO: Usar formatPhoneDisplay quando nome não disponível
-  const displayName = selectedContact.name || formatPhoneDisplay(selectedContact.phone);
+  const displayName = getDisplayName(selectedContact);
 
   return (
     <div className="p-4 bg-white/10 backdrop-blur-md border-b border-white/20 flex items-center gap-3">
@@ -32,12 +41,12 @@ export const WhatsAppChatHeader = ({
       
       <div className="flex items-center gap-3 flex-1 cursor-pointer hover:bg-white/20 rounded-lg p-2 -m-2 transition-colors">
         <div className="relative">
-          <Avatar className="h-10 w-10">
-            <AvatarFallback className="bg-gradient-to-br from-green-500 to-green-600 text-white">
-              {displayName.split(' ').map(n => n[0]).join('').substring(0, 2)}
-            </AvatarFallback>
-            <AvatarImage src={selectedContact.avatar} alt={displayName} />
-          </Avatar>
+          <TiclinAvatar 
+            profilePicUrl={selectedContact.profilePicUrl}
+            customAvatar={selectedContact.avatar}
+            name={displayName}
+            size="md"
+          />
           {selectedContact.isOnline && (
             <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white" />
           )}

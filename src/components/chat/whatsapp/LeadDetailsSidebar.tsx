@@ -93,11 +93,11 @@ export const LeadDetailsSidebar = ({
   };
 
   return (
-    <div className="fixed right-0 top-0 bottom-0 w-80 bg-white/20 backdrop-blur-md border-l border-white/30 z-50 transform transition-transform duration-300 shadow-xl">
+    <div className="fixed right-0 top-0 bottom-0 w-96 bg-white/20 backdrop-blur-md border-l border-white/30 z-50 transform transition-transform duration-300 shadow-xl">
       <div className="h-full flex flex-col">
         <SidebarHeader onClose={onClose} />
 
-        <ScrollArea className="flex-1 p-6">
+        <ScrollArea className="flex-1 px-6 py-4">
           <div className="space-y-6">
             <BasicInfoSection
               selectedContact={selectedContact}
