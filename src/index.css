@@ -209,9 +209,9 @@ body {
     inset 0 -1px 0 rgba(0, 0, 0, 0.05);
 }
 
-/* ===== DRAG AND DROP - REACT BEAUTIFUL DND - CORREÇÃO AVANÇADA ===== */
+/* ===== DRAG AND DROP - REACT BEAUTIFUL DND - CLONE VISÍVEL ===== */
 
-/* CRÍTICO: Cursor states - manter apenas isso */
+/* CRÍTICO: Cursor states durante drag */
 [data-rbd-drag-handle-context-id] {
   cursor: grab !important;
 }
@@ -220,24 +220,30 @@ body {
   cursor: grabbing !important;
 }
 
-/* IMPORTANTE: Deixar react-beautiful-dnd controlar TUDO durante drag */
+/* CRÍTICO: Clone 100% visível - máxima prioridade */
 [data-rbd-draggable-context-id] {
-  /* REMOVIDO: transform e transition que impediam movimento */
-  /* Apenas z-index para garantir visibilidade */
-  z-index: 999 !important;
+  /* Z-index máximo para visibilidade total */
+  z-index: 9999 !important;
 }
 
-/* Clone styling - APENAS visual, SEM posicionamento */
+/* CLONE STYLING - Visibilidade garantida */
 [data-rbd-draggable-context-id][style*="position: fixed"] {
-  /* Apenas estilos visuais para o clone */
-  opacity: 0.95 !important;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.3) !important;
+  /* Estilos visuais para o clone - 100% visível */
+  opacity: 1 !important;
+  visibility: visible !important;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.4) !important;
+  border: 3px solid rgba(59, 130, 246, 0.8) !important;
   border-radius: 12px !important;
   z-index: 10000 !important;
+  background: rgba(255, 255, 255, 0.98) !important;
   
-  /* CRÍTICO: Remover backdrop-filter que causa problemas */
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  /* CRÍTICO: Permitir que o RBD controle posicionamento */
+  pointer-events: auto !important;
+  
+  /* Efeitos visuais adicionais para destaque */
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  transform-origin: center !important;
 }
 
 /* Global drag state */
@@ -254,6 +260,29 @@ body.rbd-dragging * {
 [data-react-beautiful-dnd-drag-handle]:focus {
   outline: 2px solid rgba(59, 130, 246, 0.5);
   outline-offset: 2px;
+}
+
+/* IMPORTANTE: Portal container para clone */
+[data-react-beautiful-dnd-drag-handle] {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+}
+
+/* CLONE DURANTE DRAG - Máxima visibilidade */
+[data-react-beautiful-dnd-dragging] {
+  opacity: 1 !important;
+  visibility: visible !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35) !important;
+  border: 3px solid rgba(59, 130, 246, 0.9) !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(12px) !important;
+  z-index: 10000 !important;
+  transform: scale(1.05) !important;
+}
+
+/* Prevent layout shifts during drag */
+[data-react-beautiful-dnd-droppable] {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 /* Print styles */
