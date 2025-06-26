@@ -1,5 +1,6 @@
 
 import { PageLayout } from "@/components/layout/PageLayout";
+import { TrendingUp, Plus } from "lucide-react";
 
 interface FunnelEmptyStateProps {
   isAdmin: boolean;
@@ -14,29 +15,38 @@ export const FunnelEmptyState = ({ isAdmin, onCreateFunnel }: FunnelEmptyStatePr
   return (
     <PageLayout>
       <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="bg-white/20 backdrop-blur-xl border border-white/30 rounded-3xl p-12 shadow-2xl max-w-md w-full text-center">
-          <div className="mb-6">
-            <div className="w-20 h-20 bg-gradient-to-br from-ticlin/20 to-ticlin/40 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <svg className="w-10 h-10 text-ticlin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2m0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
+        <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-12 shadow-glass-lg max-w-lg w-full text-center animate-scale-in">
+          <div className="mb-8">
+            <div className="w-24 h-24 bg-gradient-to-br from-ticlin/20 to-ticlin/40 rounded-full mx-auto mb-6 flex items-center justify-center animate-pulse">
+              <TrendingUp className="w-12 h-12 text-ticlin" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-800 mb-2">Nenhum Funil Encontrado</h3>
-            <p className="text-gray-600 mb-6">
-              {isAdmin ? "Crie seu primeiro funil para começar a gerenciar leads" : "Nenhum funil disponível para você"}
+            <h3 className="text-3xl font-bold text-gray-800 mb-4">
+              Ops! Nenhum funil encontrado
+            </h3>
+            <p className="text-gray-600 text-lg leading-relaxed mb-8">
+              {isAdmin 
+                ? "Que tal começarmos criando seu primeiro funil de vendas? É rápido e fácil!" 
+                : "Parece que ainda não há funis disponíveis para você. Entre em contato com seu administrador."
+              }
             </p>
           </div>
           
           {isAdmin && (
             <button
               onClick={handleCreateFunnel}
-              className="bg-gradient-to-r from-ticlin to-ticlin-dark text-black font-semibold py-3 px-6 rounded-2xl hover:shadow-xl transition-all duration-300 transform hover:scale-105 flex items-center gap-2 mx-auto"
+              className="bg-gradient-to-r from-ticlin to-ticlin-dark text-black font-bold py-4 px-8 rounded-2xl hover:shadow-xl transition-all duration-300 transform hover:scale-105 hover:-translate-y-1 flex items-center gap-3 mx-auto group"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
+              <Plus className="w-6 h-6 group-hover:rotate-90 transition-transform duration-300" />
               Criar Primeiro Funil
             </button>
+          )}
+          
+          {!isAdmin && (
+            <div className="bg-amber-50/50 border border-amber-200/50 rounded-2xl p-6 backdrop-blur-sm">
+              <p className="text-amber-800 font-medium">
+                💡 Dica: Entre em contato com seu administrador para configurar os funis de vendas
+              </p>
+            </div>
           )}
         </div>
       </div>
