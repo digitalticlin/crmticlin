@@ -87,7 +87,7 @@ export const AddMemberModal = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white border border-gray-200">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white/35 backdrop-blur-xl border border-white/30 shadow-2xl rounded-3xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl text-gray-800">
             <div className="p-2 bg-gradient-to-r from-blue-500/20 to-blue-400/10 rounded-lg">
@@ -113,7 +113,7 @@ export const AddMemberModal = ({
                   onChange={(e) => handleChange("full_name", e.target.value)}
                   placeholder="Nome completo do membro"
                   required
-                  className="bg-white border-gray-300 text-gray-900"
+                  className="bg-white/70 backdrop-blur-sm border-white/30 text-gray-900"
                 />
               </div>
 
@@ -126,7 +126,7 @@ export const AddMemberModal = ({
                   onChange={(e) => handleChange("email", e.target.value)}
                   placeholder="email@exemplo.com"
                   required
-                  className="bg-white border-gray-300 text-gray-900"
+                  className="bg-white/70 backdrop-blur-sm border-white/30 text-gray-900"
                 />
               </div>
             </div>
@@ -138,7 +138,7 @@ export const AddMemberModal = ({
                 value={formData.whatsapp_personal}
                 onChange={(e) => handleChange("whatsapp_personal", e.target.value)}
                 placeholder="(00) 00000-0000"
-                className="bg-white border-gray-300 text-gray-900"
+                className="bg-white/70 backdrop-blur-sm border-white/30 text-gray-900"
               />
             </div>
           </div>
@@ -160,7 +160,7 @@ export const AddMemberModal = ({
                     onChange={(e) => handleChange("password", e.target.value)}
                     placeholder="Senha do usuário"
                     required
-                    className="bg-white border-gray-300 text-gray-900"
+                    className="bg-white/70 backdrop-blur-sm border-white/30 text-gray-900"
                   />
                   <button
                     type="button"
@@ -174,7 +174,7 @@ export const AddMemberModal = ({
                   type="button"
                   variant="outline"
                   onClick={generatePassword}
-                  className="px-3 border-gray-300 text-gray-700 hover:bg-gray-50"
+                  className="px-3 bg-white/70 backdrop-blur-sm border-white/30 text-gray-700 hover:bg-white/90"
                 >
                   <RefreshCw className="h-4 w-4" />
                 </Button>
@@ -191,10 +191,10 @@ export const AddMemberModal = ({
             <div className="space-y-2">
               <Label htmlFor="role" className="text-gray-700">Nível de Acesso</Label>
               <Select value={formData.role} onValueChange={(value: "operational" | "manager") => handleChange("role", value)}>
-                <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                <SelectTrigger className="bg-white/70 backdrop-blur-sm border-white/30 text-gray-900">
                   <SelectValue placeholder="Selecione o nível" />
                 </SelectTrigger>
-                <SelectContent className="bg-white border-gray-300">
+                <SelectContent className="bg-white/90 backdrop-blur-sm border-white/30">
                   <SelectItem value="manager">GESTOR</SelectItem>
                   <SelectItem value="operational">OPERACIONAL</SelectItem>
                 </SelectContent>
@@ -228,7 +228,7 @@ export const AddMemberModal = ({
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={loading}
-              className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="bg-white/70 backdrop-blur-sm border-white/30 text-gray-700 hover:bg-white/90"
             >
               Cancelar
             </Button>
