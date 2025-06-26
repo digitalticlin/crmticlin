@@ -1,5 +1,5 @@
 
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { SubtleScrollArea } from "@/components/ui/subtle-scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { Contact } from "@/types/chat";
@@ -51,7 +51,7 @@ export const ContactsList = ({
   }
 
   return (
-    <ScrollArea className="flex-1">
+    <SubtleScrollArea className="flex-1 contacts-scrollbar">
       <div className="divide-y divide-gray-200/50 dark:divide-gray-700/50">
         {contacts.map((contact) => {
           const hasUnreadMessages = contact.unreadCount && contact.unreadCount > 0;
@@ -62,7 +62,7 @@ export const ContactsList = ({
             <div
               key={contact.id}
               className={cn(
-                "p-4 hover:bg-white/20 dark:hover:bg-gray-800/20 cursor-pointer transition-all duration-200 backdrop-blur-sm",
+                "p-4 hover:bg-white/20 dark:hover:bg-gray-800/20 cursor-pointer transition-all duration-200 backdrop-blur-sm contact-item-hover",
                 isSelected && "bg-white/30 dark:bg-gray-800/30 border-r-2 border-blue-500"
               )}
               onClick={() => onSelectContact(contact)}
@@ -105,7 +105,7 @@ export const ContactsList = ({
                       )}
                       
                       {hasUnreadMessages && (
-                        <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full h-6 min-w-[24px] flex items-center justify-center text-xs font-bold shadow-lg animate-pulse">
+                        <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full h-6 min-w-[24px] flex items-center justify-center text-xs font-bold shadow-lg unread-badge">
                           {contact.unreadCount}
                         </div>
                       )}
@@ -121,11 +121,11 @@ export const ContactsList = ({
                     </p>
                   </div>
                   
-                  {/* Área das etiquetas - removido telefone */}
+                  {/* Área das etiquetas */}
                   <div className="flex items-center gap-2 mt-2">
                     {contact.tags && contact.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1">
-                        {contact.tags.slice(0, 2).map((tag, index) => (
+                        {contact.tags.slice(0, 3).map((tag, index) => (
                           <span 
                             key={index}
                             className="text-xs text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full"
@@ -133,9 +133,9 @@ export const ContactsList = ({
                             {tag}
                           </span>
                         ))}
-                        {contact.tags.length > 2 && (
+                        {contact.tags.length > 3 && (
                           <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                            +{contact.tags.length - 2}
+                            +{contact.tags.length - 3}
                           </span>
                         )}
                       </div>
@@ -153,6 +153,6 @@ export const ContactsList = ({
           );
         })}
       </div>
-    </ScrollArea>
+    </SubtleScrollArea>
   );
 };

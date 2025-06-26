@@ -30,7 +30,7 @@ const SubtleScrollBar = React.forwardRef<
     ref={ref}
     orientation={orientation}
     className={cn(
-      "flex touch-none select-none transition-colors",
+      "flex touch-none select-none transition-colors duration-300",
       orientation === "vertical" &&
         "h-full w-1 border-l border-l-transparent p-[1px]",
       orientation === "horizontal" &&
@@ -39,7 +39,7 @@ const SubtleScrollBar = React.forwardRef<
     )}
     {...props}
   >
-    <ScrollAreaPrimitive.ScrollAreaThumb className="relative flex-1 rounded-full bg-white/20 hover:bg-white/30 transition-colors" />
+    <ScrollAreaPrimitive.ScrollAreaThumb className="relative flex-1 rounded-full bg-white/40 hover:bg-white/60 transition-colors duration-300" />
   </ScrollAreaPrimitive.ScrollAreaScrollbar>
 ))
 SubtleScrollBar.displayName = ScrollAreaPrimitive.ScrollAreaScrollbar.displayName

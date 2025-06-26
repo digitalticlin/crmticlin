@@ -1,5 +1,5 @@
 
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { SubtleScrollArea } from "@/components/ui/subtle-scroll-area";
 import { cn } from "@/lib/utils";
 import { Message } from "@/types/chat";
 import { LoadingSpinner } from "@/components/ui/spinner";
@@ -75,7 +75,7 @@ export const WhatsAppMessagesList = ({ messages, isLoading }: WhatsAppMessagesLi
         }}
       />
       
-      <ScrollArea className="h-full relative z-10" ref={scrollAreaRef}>
+      <SubtleScrollArea className="h-full relative z-10 contacts-scrollbar" ref={scrollAreaRef}>
         <div className="p-4 space-y-3 min-h-full flex flex-col justify-end">
           {messages.map((message, index) => {
             const isLastMessage = index === messages.length - 1;
@@ -163,7 +163,7 @@ export const WhatsAppMessagesList = ({ messages, isLoading }: WhatsAppMessagesLi
           {/* Elemento invisível para scroll automático */}
           <div ref={messagesEndRef} />
         </div>
-      </ScrollArea>
+      </SubtleScrollArea>
     </div>
   );
 };
