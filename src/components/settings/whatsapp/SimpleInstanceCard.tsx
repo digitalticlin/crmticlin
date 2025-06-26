@@ -83,18 +83,22 @@ export const SimpleInstanceCard = ({
       
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
       
-      {/* Header: Nome + Status Badge */}
+      {/* Header: Nome completo em linha própria */}
       <CardHeader className="pb-3 relative z-10 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900 flex items-center gap-2 truncate">
+        <div className="space-y-2">
+          {/* Nome da instância - linha completa */}
+          <h3 className="font-semibold text-gray-900 flex items-center gap-2 w-full">
             <Smartphone className="h-4 w-4 flex-shrink-0" />
-            <span className="truncate">{instance.instance_name}</span>
+            <span className="text-base">{instance.instance_name}</span>
           </h3>
           
-          <Badge className={`${statusInfo.color} flex-shrink-0`}>
-            <StatusIcon className="h-3 w-3 mr-1" />
-            {statusInfo.text}
-          </Badge>
+          {/* Badge de status - posicionado abaixo */}
+          <div className="flex justify-start">
+            <Badge className={`${statusInfo.color}`}>
+              <StatusIcon className="h-3 w-3 mr-1" />
+              {statusInfo.text}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
 
