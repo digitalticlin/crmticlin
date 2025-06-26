@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { KanbanLead, FIXED_COLUMN_IDS } from "@/types/kanban";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
-import { User } from "lucide-react";
+import { User, Phone } from "lucide-react";
 import { LeadCardHeader } from "./LeadCardHeader";
 
 interface LeadCardContentProps {
@@ -19,6 +19,16 @@ export const LeadCardContent = ({ lead, isWonLostView = false, lostStageId }: Le
     <>
       {/* Header with Avatar, Name, Unread Count, and Time */}
       <LeadCardHeader lead={lead} isWonLostView={isWonLostView} />
+
+      {/* Phone Number Row */}
+      {lead.phone && (
+        <div className="flex items-center gap-2 mb-2">
+          <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+          <span className="text-xs text-muted-foreground font-medium">
+            {lead.phone}
+          </span>
+        </div>
+      )}
 
       {/* Message and Value Row */}
       <div className="flex justify-between items-start mb-3 gap-2">

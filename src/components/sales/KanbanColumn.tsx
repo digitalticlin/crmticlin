@@ -82,9 +82,9 @@ export function KanbanColumn({
   };
 
   return (
-    <div className="bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-2xl px-2.5 py-3 min-w-[300px] max-w-[300px] flex flex-col h-full transition-all duration-300 hover:bg-white/25 hover:shadow-glass-lg">
+    <div className="bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-2xl px-1.5 py-3 min-w-[300px] max-w-[300px] flex flex-col h-full transition-all duration-300 hover:bg-white/25 hover:shadow-glass-lg">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 px-1">
         <div className="flex items-center gap-2 flex-1">
           {isFixedStage && <Lock className="h-4 w-4 text-gray-500" />}
           {isEditing ? (
@@ -140,7 +140,7 @@ export function KanbanColumn({
 
       {/* Color bar */}
       <div
-        className="h-1 rounded-full mb-4"
+        className="h-1 rounded-full mb-4 mx-1"
         style={{ backgroundColor: column.color || "#e0e0e0" }}
       />
 

@@ -1,27 +1,27 @@
 
-/* Kanban Column Scrollbars - Optimized for Drag and Drop */
+/* Kanban Column Scrollbars - Optimized and Minimalist */
 .kanban-column-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.8) transparent;
 }
 
 .kanban-column-scrollbar::-webkit-scrollbar {
-  width: 6px;
+  width: 4px;
 }
 
 .kanban-column-scrollbar::-webkit-scrollbar-track {
   background: transparent;
-  border-radius: 3px;
+  border-radius: 2px;
 }
 
 .kanban-column-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.5);
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 2px;
   transition: background-color 0.2s ease;
 }
 
 .kanban-column-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.8);
+  background: rgba(255, 255, 255, 1);
 }
 
 /* Board horizontal scrollbar */
