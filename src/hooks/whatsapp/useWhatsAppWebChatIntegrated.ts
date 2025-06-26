@@ -43,7 +43,7 @@ export const useWhatsAppWebChatIntegrated = (activeInstance: WhatsAppWebInstance
         .from('leads')
         .select('*')
         .eq('whatsapp_number_id', currentInstance.id)
-        .order('last_message_time', { ascending: false, nullsLast: true })
+        .order('last_message_time', { ascending: false, nullsFirst: false })
         .order('name', { ascending: true });
 
       if (error) {
