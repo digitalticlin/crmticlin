@@ -1,5 +1,4 @@
 
-
 export interface Contact {
   id: string;
   name: string;
@@ -19,6 +18,10 @@ export interface Contact {
   assignedUser?: string;
   purchaseValue?: number;
   deals?: Deal[];
+  // Novos campos para melhor integração com leads
+  funnelStage?: string;
+  priority?: 'low' | 'medium' | 'high';
+  lastMessageStatus?: 'sent' | 'delivered' | 'read';
 }
 
 export interface Deal {
@@ -42,4 +45,3 @@ export interface Message {
   time?: string;
   isIncoming?: boolean;
 }
-

@@ -1,14 +1,18 @@
 
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { ContactItem } from "./ContactItem";
 import { Contact } from "@/types/chat";
+import { ContactItem } from "./ContactItem";
+import { ContactsFilters } from "./ContactsFilters";
+import { EmptyContactsState } from "./EmptyContactsState";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ContactsListProps {
   contacts: Contact[];
   selectedContact: Contact | null;
   onSelectContact: (contact: Contact) => void;
   searchQuery: string;
-  activeFilter: string;
+  onSearchChange: (query: string) => void;
+  selectedTags: string[];
+  onTagsChange: (tags: string[]) => void;
 }
 
 export const ContactsList = ({
@@ -16,33 +20,50 @@ export const ContactsList = ({
   selectedContact,
   onSelectContact,
   searchQuery,
-  activeFilter
+  onSearchChange,
+  selectedTags,
+  onTagsChange,
 }: ContactsListProps) => {
   return (
-    <div className="h-full">
-      <ScrollArea className="h-full w-full">
-        <div className="space-y-1 p-2">
-          {contacts.map((contact) => (
-            <ContactItem
-              key={contact.id}
-              contact={contact}
-              isSelected={selectedContact?.id === contact.id}
-              onSelect={onSelectContact}
-            />
-          ))}
-          
-          {contacts.length === 0 && (
-            <div className="flex items-center justify-center h-32 text-center">
-              <p className="text-gray-600 text-sm">
-                {searchQuery 
-                  ? "Nenhum contato encontrado" 
-                  : "Nenhuma conversa ainda"
-                }
-              </p>
+    <div className="h-full flex flex-col bg-white/5 backdrop-blur-lg border-r border-white/20">
+      {/* Filtros de busca */}
+      <div className="p-4 border-b border-white/10">
+        <ContactsFilters
+          searchQuery={searchQuery}
+          onSearchChange={onSearchChange}
+          selectedTags={selectedTags}
+          onTagsChange={onTagsChange}
+        />
+      </div>
+      
+      {/* Lista de contatos com scroll customizado */}
+      <ScrollArea className="flex-1 contacts-scrollbar">
+        <div className="px-2 py-1 space-y-1">
+          {contacts.length > 0 ? (
+            contacts.map((contact) => (
+              <ContactItem
+                key={contact.id}
+                contact={contact}
+                isSelected={selectedContact?.id === contact.id}
+                onSelect={onSelectContact}
+              />
+            ))
+          ) : (
+            <div className="p-8">
+              <EmptyContactsState />
             </div>
           )}
         </div>
       </ScrollArea>
+      
+      {/* Contador de contatos */}
+      {contacts.length > 0 && (
+        <div className="p-3 border-t border-white/10 text-center">
+          <span className="text-xs text-gray-500">
+            {contacts.length} contato{contacts.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+      )}
     </div>
   );
 };

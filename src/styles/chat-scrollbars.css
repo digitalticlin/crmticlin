@@ -1,0 +1,54 @@
+
+/* Chat Contacts Scrollbars - WhatsApp-like */
+.contacts-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+}
+
+.contacts-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.contacts-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.contacts-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.contacts-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Contact item hover effects */
+.contact-item-hover {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.contact-item-hover:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* WhatsApp-like unread count badge */
+.unread-badge {
+  background: linear-gradient(135deg, #25D366 0%, #20BA5A 100%);
+  box-shadow: 0 2px 4px rgba(37, 211, 102, 0.3);
+}
+
+/* Message status icons */
+.message-status-sent {
+  color: #8696a0;
+}
+
+.message-status-delivered {
+  color: #4fc3f7;
+}
+
+.message-status-read {
+  color: #25D366;
+}
