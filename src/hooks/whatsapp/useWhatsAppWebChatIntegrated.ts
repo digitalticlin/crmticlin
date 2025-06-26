@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Contact, Message } from '@/types/chat';
 import { WhatsAppWebInstance } from '@/types/whatsapp';
@@ -51,26 +50,31 @@ export const useWhatsAppWebChatIntegrated = (activeInstance: WhatsAppWebInstance
       }
 
       // Map leads to contacts com formatação otimizada
-      const contactsData: Contact[] = (data || []).map(lead => ({
-        id: lead.id,
-        name: lead.name || lead.phone,
-        phone: lead.phone,
-        email: lead.email,
-        address: lead.address,
-        company: lead.company,
-        documentId: lead.document_id,
-        notes: lead.notes,
-        lastMessage: lead.last_message,
-        lastMessageTime: lead.last_message_time ? 
-          new Date(lead.last_message_time).toLocaleTimeString('pt-BR', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          }) : undefined,
-        unreadCount: lead.unread_count || 0,
-        createdAt: lead.created_at,
-        profilePicUrl: lead.profile_pic_url, // Novo campo para foto de perfil do WhatsApp
-        isOnline: false // Placeholder para futuro
-      }));
+      const contactsData: Contact[] = (data || []).map(lead => {
+        // Cast para incluir o novo campo profile_pic_url
+        const leadWithProfilePic = lead as any;
+        
+        return {
+          id: lead.id,
+          name: lead.name || lead.phone,
+          phone: lead.phone,
+          email: lead.email,
+          address: lead.address,
+          company: lead.company,
+          documentId: lead.document_id,
+          notes: lead.notes,
+          lastMessage: lead.last_message,
+          lastMessageTime: lead.last_message_time ? 
+            new Date(lead.last_message_time).toLocaleTimeString('pt-BR', { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            }) : undefined,
+          unreadCount: lead.unread_count || 0,
+          createdAt: lead.created_at,
+          profilePicUrl: leadWithProfilePic.profile_pic_url || '', // Novo campo para foto de perfil do WhatsApp
+          isOnline: false // Placeholder para futuro
+        };
+      });
 
       console.log('[WhatsApp Chat Integrated] ✅ Contacts fetched and sorted:', contactsData.length);
       setContacts(contactsData);

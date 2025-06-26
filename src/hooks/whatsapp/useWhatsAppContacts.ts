@@ -46,6 +46,9 @@ export const useWhatsAppContacts = (
       if (error) throw error;
 
       const mappedContacts: Contact[] = (leads || []).map(lead => {
+        // Cast para incluir o novo campo profile_pic_url
+        const leadWithProfilePic = lead as any;
+        
         // Extrair tags do relacionamento
         const leadTags = lead.lead_tags?.map((lt: any) => lt.tags?.name).filter(Boolean) || [];
         
@@ -64,7 +67,7 @@ export const useWhatsAppContacts = (
             : '',
           unreadCount: lead.unread_count && lead.unread_count > 0 ? lead.unread_count : undefined,
           avatar: '',
-          profilePicUrl: lead.profile_pic_url || '', // Novo campo para foto de perfil do WhatsApp
+          profilePicUrl: leadWithProfilePic.profile_pic_url || '', // Novo campo para foto de perfil do WhatsApp
           isOnline: Math.random() > 0.7 // Simulação básica de status online
         };
       });
