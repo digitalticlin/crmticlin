@@ -14,6 +14,16 @@ interface ContactsListProps {
   activeFilter: string;
 }
 
+// Função para determinar se deve mostrar nome ou telefone (estilo WhatsApp)
+const getDisplayName = (contact: Contact): string => {
+  // Se o nome é diferente do telefone, significa que foi editado pelo usuário
+  if (contact.name && contact.name !== contact.phone && contact.name.trim() !== '') {
+    return contact.name;
+  }
+  // Caso contrário, mostra o telefone formatado
+  return formatPhoneDisplay(contact.phone);
+};
+
 export const ContactsList = ({
   contacts,
   selectedContact,
@@ -45,7 +55,7 @@ export const ContactsList = ({
       <div className="divide-y divide-gray-200/50 dark:divide-gray-700/50">
         {contacts.map((contact) => {
           const hasUnreadMessages = contact.unreadCount && contact.unreadCount > 0;
-          const displayName = contact.name || formatPhoneDisplay(contact.phone);
+          const displayName = getDisplayName(contact);
           const isSelected = selectedContact?.id === contact.id;
           
           return (
@@ -111,11 +121,26 @@ export const ContactsList = ({
                     </p>
                   </div>
                   
-                  {/* Informações adicionais */}
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-xs text-gray-500 bg-white/20 px-2 py-0.5 rounded-full">
-                      {formatPhoneDisplay(contact.phone)}
-                    </span>
+                  {/* Área das etiquetas - removido telefone */}
+                  <div className="flex items-center gap-2 mt-2">
+                    {contact.tags && contact.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {contact.tags.slice(0, 2).map((tag, index) => (
+                          <span 
+                            key={index}
+                            className="text-xs text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                        {contact.tags.length > 2 && (
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                            +{contact.tags.length - 2}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    
                     {contact.company && (
                       <span className="text-xs text-gray-500 bg-white/20 px-2 py-0.5 rounded-full truncate max-w-[100px]">
                         {contact.company}

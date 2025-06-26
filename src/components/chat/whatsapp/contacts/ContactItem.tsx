@@ -17,6 +17,16 @@ interface ContactItemProps {
   onSelect: (contact: Contact) => void;
 }
 
+// Função para determinar se deve mostrar nome ou telefone (estilo WhatsApp)
+const getDisplayName = (contact: Contact): string => {
+  // Se o nome é diferente do telefone, significa que foi editado pelo usuário
+  if (contact.name && contact.name !== contact.phone && contact.name.trim() !== '') {
+    return contact.name;
+  }
+  // Caso contrário, mostra o telefone formatado
+  return formatPhoneDisplay(contact.phone);
+};
+
 export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps) => {
   const [showTagsPopover, setShowTagsPopover] = useState(false);
 
@@ -29,20 +39,20 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
     return 'border-2 border-gray-500 bg-gray-500/20 text-gray-800';
   };
 
-  // Combinar tags e company em um único array para o limite de 2 itens
+  // Priorizar tags sobre company
   const allTagItems = [
     ...(contact.tags || []).map(tag => ({ type: 'tag', value: tag })),
     ...(contact.company ? [{ type: 'company', value: contact.company }] : [])
   ];
 
-  const visibleItems = allTagItems.slice(0, 2);
-  const remainingCount = allTagItems.length - 2;
+  const visibleItems = allTagItems.slice(0, 3); // Aumentado para 3 já que removemos telefone
+  const remainingCount = allTagItems.length - 3;
 
   // Verificar se há mensagens não lidas
   const hasUnreadMessages = contact.unreadCount && contact.unreadCount > 0;
 
-  // Nome ou número formatado para exibição
-  const displayName = contact.name || formatPhoneDisplay(contact.phone);
+  // Nome ou número formatado para exibição (estilo WhatsApp)
+  const displayName = getDisplayName(contact);
 
   // Formatação do horário da última mensagem (estilo WhatsApp)
   const formatMessageTime = (timeString?: string) => {
@@ -147,17 +157,17 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
               )}
             </div>
             
-            {/* Tags + Company - Footer */}
+            {/* Tags + Company - Footer (removido telefone) */}
             {allTagItems.length > 0 && (
               <div className="flex items-center gap-1 overflow-hidden pt-1">
-                <div className="flex items-center gap-1 flex-nowrap">
-                  {/* Mostrar apenas os primeiros 2 itens (tags + company) */}
+                <div className="flex items-center gap-1 flex-wrap">
+                  {/* Mostrar até 3 itens agora (tags + company) */}
                   {visibleItems.map((item, index) => (
                     <Badge 
                       key={index}
                       variant="outline" 
                       className={cn(
-                        "text-[10px] font-medium flex-shrink-0 max-w-[70px] truncate px-1.5 py-0.5 h-5",
+                        "text-[10px] font-medium flex-shrink-0 max-w-[80px] truncate px-1.5 py-0.5 h-5",
                         item.type === 'tag' 
                           ? getTagColor(item.value)
                           : 'border border-gray-400 bg-gray-100 text-gray-700'
@@ -167,11 +177,11 @@ export const ContactItem = ({ contact, isSelected, onSelect }: ContactItemProps)
                     </Badge>
                   ))}
                   
-                  {/* Botão "+x" apenas se houver mais de 2 itens no total */}
+                  {/* Botão "+x" apenas se houver mais de 3 itens no total */}
                   {remainingCount > 0 && (
                     <div onClick={(e) => e.stopPropagation()}>
                       <TagsPopover
-                        contactName={contact.name}
+                        contactName={displayName}
                         tags={contact.tags || []}
                         open={showTagsPopover}
                         onOpenChange={setShowTagsPopover}
