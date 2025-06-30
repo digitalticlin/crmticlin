@@ -33,7 +33,7 @@ export const KanbanBoard = ({
   wonStageId,
   lostStageId
 }: KanbanBoardProps) => {
-  console.log('[KanbanBoard] 🚀 FASES 2+3 - Renderizando com arquitetura otimizada:', {
+  console.log('[KanbanBoard] 🚀 FASES 2+3 - Renderizando com arquitetura otimizada + clone visual:', {
     columnsReceived: columns?.length || 0,
     isArray: Array.isArray(columns)
   });
@@ -52,12 +52,12 @@ export const KanbanBoard = ({
       Array.isArray(col.leads)
     );
 
-    console.log('[KanbanBoard] ✅ Colunas validadas (FASES 2+3):', filtered.length);
+    console.log('[KanbanBoard] ✅ Colunas validadas (FASES 2+3 + Clone):', filtered.length);
     return filtered;
   }, [columns]);
 
-  // Hook de drag and drop TOTALMENTE otimizado (Fases 2 + 3)
-  const { isDragging, onDragStart, onDragEnd } = useDragAndDropOptimized({ 
+  // Hook de drag and drop TOTALMENTE otimizado + Clone Visual
+  const { isDragging, onDragStart, onDragEnd, cloneState } = useDragAndDropOptimized({ 
     columns: validatedColumns, 
     onColumnsChange, 
     onMoveToWonLost, 
@@ -91,12 +91,16 @@ export const KanbanBoard = ({
     );
   }
 
-  console.log('[KanbanBoard] 🎯 FASES 2+3 - Renderizando board com arquitetura refinada');
+  console.log('[KanbanBoard] 🎯 FASES 2+3 + Clone - Renderizando board com clone visual');
 
   return (
     <div className="relative w-full h-full flex flex-col">
-      <DataErrorBoundary context="Kanban Board - Fases 2+3 Implementadas">
-        <StableDragDropWrapper onDragStart={onDragStart} onDragEnd={onDragEnd}>
+      <DataErrorBoundary context="Kanban Board - Fases 2+3 + Clone Visual">
+        <StableDragDropWrapper 
+          onDragStart={onDragStart} 
+          onDragEnd={onDragEnd}
+          cloneState={cloneState}
+        >
           <BoardContentOptimized
             columns={validatedColumns}
             onOpenLeadDetail={onOpenLeadDetail}

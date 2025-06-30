@@ -5,6 +5,7 @@ import { KanbanColumn } from "@/types/kanban";
 import { toast } from "sonner";
 import { useDragState } from "./useDragState";
 import { useDragOperations } from "./useDragOperations";
+import { useDragClone } from "./useDragClone";
 
 interface UseDragAndDropOptimizedProps {
   columns: KanbanColumn[];
@@ -26,13 +27,34 @@ export const useDragAndDropOptimized = ({
     onColumnsChange
   });
 
-  const onDragStart = useCallback(() => {
-    console.log('[DragDropOptimized] 🚀 FASE 2+3 - Drag iniciado com otimizações');
-  }, []);
+  // Sistema de clone integrado
+  const { cloneState, showClone, hideClone } = useDragClone();
+
+  const onDragStart = useCallback((start: any) => {
+    console.log('[DragDropOptimized] 🚀 FASE 2+3 - Drag iniciado com clone visual');
+    
+    // Encontrar o lead sendo arrastado
+    const sourceColumn = columns.find(col => col.id === start.source.droppableId);
+    const draggedLead = sourceColumn?.leads[start.source.index];
+    
+    if (draggedLead) {
+      // Pegar posição inicial do mouse
+      const rect = document.querySelector(`[data-rbd-draggable-id="${start.draggableId}"]`)?.getBoundingClientRect();
+      const initialPosition = rect ? 
+        { x: rect.left, y: rect.top } : 
+        { x: 200, y: 200 };
+      
+      // Mostrar clone
+      showClone(draggedLead, initialPosition);
+    }
+  }, [columns, showClone]);
 
   const onDragEnd = useCallback(async (result: DropResult) => {
     try {
       console.log('[DragDropOptimized] 🏁 FASE 2+3 - Drag finalizado:', result);
+      
+      // Ocultar clone imediatamente
+      hideClone();
       
       // Validações básicas
       if (!result.destination || !result.source) {
@@ -71,13 +93,15 @@ export const useDragAndDropOptimized = ({
     } catch (error) {
       console.error('[DragDropOptimized] ❌ Erro durante drag:', error);
       toast.error("Erro durante operação de drag and drop");
+      hideClone(); // Garantir que clone seja ocultado em caso de erro
       cancelDrag();
     }
-  }, [columns, reorderInSameColumn, moveBetweenColumns, endDrag, cancelDrag]);
+  }, [columns, reorderInSameColumn, moveBetweenColumns, endDrag, cancelDrag, hideClone]);
 
   return {
     isDragging: dragState.isDragging,
     onDragStart,
-    onDragEnd
+    onDragEnd,
+    cloneState // Expor estado do clone para uso no wrapper
   };
 };
