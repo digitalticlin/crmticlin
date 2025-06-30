@@ -5,7 +5,6 @@ import { FunnelLoadingState } from "./FunnelLoadingState";
 import { FunnelEmptyState } from "./FunnelEmptyState";
 import { ModernFunnelHeader } from "./ModernFunnelHeader";
 import { SalesFunnelModals } from "./SalesFunnelModals";
-import { LeadStageHealthMonitor } from "./LeadStageHealthMonitor";
 
 export function SalesFunnelContent() {
   const {
@@ -76,11 +75,6 @@ export function SalesFunnelContent() {
         lostLeads={lostLeads}
         activeTab="funnel"
       />
-      
-      {/* Monitor de Saúde dos Leads */}
-      <div className="px-6 mb-4">
-        <LeadStageHealthMonitor funnelId={selectedFunnel.id} />
-      </div>
       
       <div className="flex-1 overflow-hidden">
         <KanbanBoard
