@@ -1,7 +1,7 @@
 
 import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
 import { useDragAndDropSafe } from "@/hooks/kanban/useDragAndDropSafe";
-import { BoardContent } from "./kanban/BoardContent";
+import { BoardContentOptimized } from "./kanban/BoardContentOptimized";
 import { StableDragDropWrapper } from "./funnel/StableDragDropWrapper";
 import { DataErrorBoundary } from "./funnel/DataErrorBoundary";
 import { useMemo } from "react";
@@ -33,12 +33,12 @@ export const KanbanBoard = ({
   wonStageId,
   lostStageId
 }: KanbanBoardProps) => {
-  console.log('[KanbanBoard] 🚀 RADICAL - Renderizando com drag direto:', {
+  console.log('[KanbanBoard] 🚀 OTIMIZADO - Renderizando com performance melhorada:', {
     columnsReceived: columns?.length || 0,
     isArray: Array.isArray(columns)
   });
 
-  // Validar colunas uma vez
+  // Validar colunas uma vez com memoização
   const validatedColumns = useMemo(() => {
     if (!Array.isArray(columns)) {
       console.error('[KanbanBoard] ❌ Colunas não são array:', typeof columns);
@@ -52,11 +52,11 @@ export const KanbanBoard = ({
       Array.isArray(col.leads)
     );
 
-    console.log('[KanbanBoard] ✅ Colunas validadas:', filtered.length);
+    console.log('[KanbanBoard] ✅ Colunas validadas (OTIMIZADO):', filtered.length);
     return filtered;
   }, [columns]);
 
-  // RADICAL: Usar diretamente useDragAndDropSafe sem intermediários
+  // Hook de drag and drop otimizado
   const { isDragging, onDragStart, onDragEnd } = useDragAndDropSafe({ 
     columns: validatedColumns, 
     onColumnsChange, 
@@ -91,13 +91,13 @@ export const KanbanBoard = ({
     );
   }
 
-  console.log('[KanbanBoard] 🎯 RADICAL - Renderizando board com drag direto');
+  console.log('[KanbanBoard] 🎯 OTIMIZADO - Renderizando board com performance melhorada');
 
   return (
     <div className="relative w-full h-full flex flex-col">
-      <DataErrorBoundary context="Kanban Board - Drag and Drop Radical">
+      <DataErrorBoundary context="Kanban Board - Performance Otimizado">
         <StableDragDropWrapper onDragStart={onDragStart} onDragEnd={onDragEnd}>
-          <BoardContent 
+          <BoardContentOptimized
             columns={validatedColumns}
             onOpenLeadDetail={onOpenLeadDetail}
             onColumnUpdate={onColumnUpdate}
