@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { KanbanColumn, KanbanLead, KanbanTag } from "@/types/kanban";
@@ -53,6 +52,18 @@ export function useSalesFunnelDirect() {
   const [selectedLead, setSelectedLead] = useState<KanbanLead | null>(null);
   const [isLeadDetailOpen, setIsLeadDetailOpen] = useState(false);
 
+  // CORREÇÃO: Refs para controlar execução e evitar loops
+  const fetchingRef = useRef({
+    funnels: false,
+    stages: false,
+    leads: false
+  });
+  
+  const lastFetchedRef = useRef({
+    funnelId: '',
+    stagesCount: 0
+  });
+
   console.log('[useSalesFunnelDirect] 🚀 Hook estado:', {
     userId: user?.id,
     loading,
@@ -62,30 +73,32 @@ export function useSalesFunnelDirect() {
     leadsCount: leads.length
   });
 
-  const validateData = useCallback((type: string, data: any) => {
-    try {
-      if (!data) {
-        console.warn(`[useSalesFunnelDirect] ⚠️ ${type}: dados nulos/undefined`);
+  // CORREÇÃO: Validação otimizada e memoizada
+  const validateData = useMemo(() => {
+    return (type: string, data: any) => {
+      try {
+        if (!data) {
+          console.warn(`[useSalesFunnelDirect] ⚠️ ${type}: dados nulos/undefined`);
+          return false;
+        }
+        if (!Array.isArray(data)) {
+          console.warn(`[useSalesFunnelDirect] ⚠️ ${type}: não é array`, typeof data);
+          return false;
+        }
+        console.log(`[useSalesFunnelDirect] ✅ ${type}: dados válidos (${data.length} items)`);
+        return true;
+      } catch (err) {
+        console.error(`[useSalesFunnelDirect] ❌ Erro na validação de ${type}:`, err);
         return false;
       }
-      if (!Array.isArray(data)) {
-        console.warn(`[useSalesFunnelDirect] ⚠️ ${type}: não é array`, typeof data);
-        return false;
-      }
-      console.log(`[useSalesFunnelDirect] ✅ ${type}: dados válidos (${data.length} items)`);
-      return true;
-    } catch (err) {
-      console.error(`[useSalesFunnelDirect] ❌ Erro na validação de ${type}:`, err);
-      return false;
-    }
+    };
   }, []);
 
-  // Função para garantir que leads tenham stage_id válido
+  // CORREÇÃO: Função isolada para atribuir stage, sem dependências circulares
   const ensureLeadHasStage = useCallback(async (leadId: string, funnelId: string) => {
     if (!user?.id) return;
 
     try {
-      // Buscar a primeira etapa do funil
       const { data: firstStage } = await supabase
         .from('kanban_stages')
         .select('id')
@@ -113,8 +126,12 @@ export function useSalesFunnelDirect() {
     }
   }, [user?.id]);
 
+  // CORREÇÃO: fetchFunnels com controle de execução
   const fetchFunnels = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id || fetchingRef.current.funnels) return;
+    
+    fetchingRef.current.funnels = true;
+    
     try {
       console.log('[useSalesFunnelDirect] 📊 Buscando funis para usuário:', user.id);
       setError(null);
@@ -136,11 +153,23 @@ export function useSalesFunnelDirect() {
       console.error('[useSalesFunnelDirect] ❌ Erro ao buscar funis:', err);
       setError(`Erro ao carregar funis: ${err.message}`);
       toast.error('Erro ao carregar funis');
+    } finally {
+      fetchingRef.current.funnels = false;
     }
   }, [user?.id, selectedFunnel, validateData]);
 
+  // CORREÇÃO: fetchStages com controle de execução
   const fetchStages = useCallback(async () => {
-    if (!selectedFunnel?.id) return;
+    if (!selectedFunnel?.id || fetchingRef.current.stages) return;
+    
+    // Evitar fetch desnecessário se já temos os dados
+    if (lastFetchedRef.current.funnelId === selectedFunnel.id && stages.length > 0) {
+      console.log('[useSalesFunnelDirect] ✅ Stages já carregadas para este funil');
+      return;
+    }
+    
+    fetchingRef.current.stages = true;
+    
     try {
       console.log('[useSalesFunnelDirect] 📊 Buscando etapas para funil:', selectedFunnel.id);
       
@@ -166,6 +195,9 @@ export function useSalesFunnelDirect() {
       }));
       
       setStages(mappedStages);
+      lastFetchedRef.current.funnelId = selectedFunnel.id;
+      lastFetchedRef.current.stagesCount = mappedStages.length;
+      
       console.log('[useSalesFunnelDirect] ✅ Etapas carregadas:', {
         count: mappedStages.length,
         stages: mappedStages.map(s => ({ id: s.id, title: s.title, order: s.order_position }))
@@ -173,11 +205,17 @@ export function useSalesFunnelDirect() {
     } catch (err: any) {
       console.error('[useSalesFunnelDirect] ❌ Erro ao buscar stages:', err);
       setError(`Erro ao carregar etapas: ${err.message}`);
+    } finally {
+      fetchingRef.current.stages = false;
     }
-  }, [selectedFunnel?.id, validateData]);
+  }, [selectedFunnel?.id, validateData, stages.length]);
 
+  // CORREÇÃO: fetchLeads sem dependência de stages, com controle de execução
   const fetchLeads = useCallback(async () => {
-    if (!selectedFunnel?.id) return;
+    if (!selectedFunnel?.id || fetchingRef.current.leads) return;
+    
+    fetchingRef.current.leads = true;
+    
     try {
       console.log('[useSalesFunnelDirect] 📊 Buscando leads para funil:', selectedFunnel.id);
       
@@ -189,22 +227,14 @@ export function useSalesFunnelDirect() {
       if (fetchError) throw fetchError;
       if (!validateData('Leads', data)) throw new Error('Dados de leads inválidos');
 
-      // Processar leads e garantir que todos tenham stage_id
       const processedLeads: KanbanLead[] = [];
       const leadsWithoutStage: string[] = [];
 
       for (const lead of data || []) {
-        // Se o lead não tem stage_id, atribuir a primeira etapa
+        // Se o lead não tem stage_id, marcar para correção posterior
         if (!lead.kanban_stage_id) {
           console.warn(`[useSalesFunnelDirect] ⚠️ Lead ${lead.id} sem etapa, será corrigido`);
           leadsWithoutStage.push(lead.id);
-          
-          // Usar a primeira etapa disponível como fallback
-          const firstStageId = stages.length > 0 ? stages[0].id : null;
-          if (firstStageId) {
-            await ensureLeadHasStage(lead.id, selectedFunnel.id);
-            lead.kanban_stage_id = firstStageId; // Atualizar localmente para UI imediata
-          }
         }
 
         const mappedLead: KanbanLead = {
@@ -215,7 +245,7 @@ export function useSalesFunnelDirect() {
           company: lead.company,
           address: lead.address,
           documentId: lead.document_id,
-          columnId: lead.kanban_stage_id,
+          columnId: lead.kanban_stage_id || '', // Temporário até correção
           notes: lead.notes,
           purchaseValue: lead.purchase_value ? Number(lead.purchase_value) : undefined,
           assignedUser: lead.owner_id,
@@ -233,42 +263,44 @@ export function useSalesFunnelDirect() {
       
       console.log('[useSalesFunnelDirect] ✅ Leads processados:', {
         total: processedLeads.length,
-        withStage: processedLeads.filter(l => l.columnId).length,
-        withoutStage: leadsWithoutStage.length,
-        distribution: stages.map(stage => ({
-          stage: stage.title,
-          count: processedLeads.filter(l => l.columnId === stage.id).length
-        }))
+        withoutStage: leadsWithoutStage.length
       });
       
+      // CORREÇÃO: Corrigir leads sem stage de forma assíncrona, sem bloquear o render
       if (leadsWithoutStage.length > 0) {
-        console.log(`[useSalesFunnelDirect] 🔧 ${leadsWithoutStage.length} leads sem etapa foram corrigidos`);
+        setTimeout(() => {
+          leadsWithoutStage.forEach(leadId => {
+            ensureLeadHasStage(leadId, selectedFunnel.id);
+          });
+        }, 100);
       }
       
     } catch (err: any) {
       console.error('[useSalesFunnelDirect] ❌ Erro ao buscar leads:', err);
       setError(`Erro ao carregar leads: ${err.message}`);
+    } finally {
+      fetchingRef.current.leads = false;
     }
-  }, [selectedFunnel?.id, stages, validateData, ensureLeadHasStage]);
+  }, [selectedFunnel?.id, validateData, ensureLeadHasStage]);
 
   useEffect(() => {
     if (user?.id) {
       setLoading(true);
       fetchFunnels();
     }
-  }, [user?.id, fetchFunnels]);
+  }, [user?.id]); // Removido fetchFunnels das dependências
 
   useEffect(() => {
     if (selectedFunnel?.id) {
       fetchStages();
     }
-  }, [selectedFunnel?.id, fetchStages]);
+  }, [selectedFunnel?.id]); // Removido fetchStages das dependências
 
   useEffect(() => {
-    if (selectedFunnel?.id && stages.length > 0) {
+    if (selectedFunnel?.id && lastFetchedRef.current.stagesCount > 0) {
       fetchLeads();
     }
-  }, [selectedFunnel?.id, stages.length, fetchLeads]);
+  }, [selectedFunnel?.id, lastFetchedRef.current.stagesCount]); // Controlado por ref
 
   useEffect(() => {
     if (funnels.length > 0 || error) {
@@ -276,6 +308,7 @@ export function useSalesFunnelDirect() {
     }
   }, [funnels.length, error]);
 
+  // CORREÇÃO: Memoização otimizada de columns
   const columns = useMemo((): KanbanColumn[] => {
     try {
       if (!stages.length) {
@@ -287,12 +320,6 @@ export function useSalesFunnelDirect() {
       
       const kanbanColumns: KanbanColumn[] = mainStages.map(stage => {
         const stageLeads = leads.filter(lead => lead.columnId === stage.id);
-        
-        console.log(`[useSalesFunnelDirect] 📋 Coluna ${stage.title}:`, {
-          stageId: stage.id,
-          leadsCount: stageLeads.length,
-          leads: stageLeads.map(l => ({ id: l.id, name: l.name }))
-        });
         
         return {
           id: stage.id,
@@ -306,11 +333,7 @@ export function useSalesFunnelDirect() {
 
       console.log('[useSalesFunnelDirect] ✅ Colunas criadas:', {
         totalColumns: kanbanColumns.length,
-        totalLeads: kanbanColumns.reduce((sum, col) => sum + col.leads.length, 0),
-        distribution: kanbanColumns.map(col => ({ 
-          title: col.title, 
-          count: col.leads.length 
-        }))
+        totalLeads: kanbanColumns.reduce((sum, col) => sum + col.leads.length, 0)
       });
 
       return kanbanColumns;
@@ -319,29 +342,27 @@ export function useSalesFunnelDirect() {
       setError(`Erro na transformação de dados: ${err}`);
       return [];
     }
-  }, [stages, leads]);
+  }, [stages, leads]); // Dependências mínimas e estáveis
 
+  // CORREÇÃO: setColumns otimizado
   const setColumns = useCallback((newColumns: KanbanColumn[]) => {
     console.log('[useSalesFunnelDirect] 🔄 Atualizando colunas localmente:', newColumns.length);
     
     try {
-      // Extrair todos os leads das novas colunas
       const allLeads: KanbanLead[] = [];
       newColumns.forEach(column => {
         column.leads.forEach(lead => {
           allLeads.push({
             ...lead,
-            columnId: column.id // Garantir que columnId está correto
+            columnId: column.id
           });
         });
       });
       
-      // Atualizar estado local imediatamente para UI fluida
       setLeads(allLeads);
       
       console.log('[useSalesFunnelDirect] ✅ Estado local atualizado:', {
-        totalLeads: allLeads.length,
-        distribution: newColumns.map(c => ({ title: c.title, count: c.leads.length }))
+        totalLeads: allLeads.length
       });
       
     } catch (err) {
@@ -472,7 +493,7 @@ export function useSalesFunnelDirect() {
     setSelectedFunnel,
     createFunnel,
     columns,
-    setColumns, // AGORA FUNCIONAL
+    setColumns,
     selectedLead,
     isLeadDetailOpen,
     setIsLeadDetailOpen,
