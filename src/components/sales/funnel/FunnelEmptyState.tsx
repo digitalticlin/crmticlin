@@ -1,15 +1,13 @@
 
 import { PageLayout } from "@/components/layout/PageLayout";
 import { TrendingUp, Plus } from "lucide-react";
+import { useSalesFunnelContext } from "./SalesFunnelProvider";
 
-interface FunnelEmptyStateProps {
-  isAdmin: boolean;
-  onCreateFunnel: (name: string, description?: string) => Promise<void>;
-}
+export const FunnelEmptyState = () => {
+  const { isAdmin, createFunnel } = useSalesFunnelContext();
 
-export const FunnelEmptyState = ({ isAdmin, onCreateFunnel }: FunnelEmptyStateProps) => {
   const handleCreateFunnel = () => {
-    onCreateFunnel("Funil Principal", "Funil principal de vendas");
+    createFunnel("Funil Principal", "Funil principal de vendas");
   };
 
   return (

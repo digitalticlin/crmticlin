@@ -1,7 +1,7 @@
 
 import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
-import { useDragAndDropSafe } from "@/hooks/kanban/useDragAndDropSafe";
-import { BoardContent } from "./kanban/BoardContent";
+import { useDragAndDropOptimized } from "@/hooks/kanban/useDragAndDropOptimized";
+import { BoardContentOptimized } from "./kanban/BoardContentOptimized";
 import { StableDragDropWrapper } from "./funnel/StableDragDropWrapper";
 import { DataErrorBoundary } from "./funnel/DataErrorBoundary";
 import { useMemo } from "react";
@@ -33,12 +33,12 @@ export const KanbanBoard = ({
   wonStageId,
   lostStageId
 }: KanbanBoardProps) => {
-  console.log('[KanbanBoard] 🚀 RADICAL - Renderizando com drag direto:', {
+  console.log('[KanbanBoard] 🚀 FASES 2+3 - Renderizando com arquitetura otimizada + clone visual:', {
     columnsReceived: columns?.length || 0,
     isArray: Array.isArray(columns)
   });
 
-  // Validar colunas uma vez
+  // Validar colunas uma vez com memoização
   const validatedColumns = useMemo(() => {
     if (!Array.isArray(columns)) {
       console.error('[KanbanBoard] ❌ Colunas não são array:', typeof columns);
@@ -52,12 +52,12 @@ export const KanbanBoard = ({
       Array.isArray(col.leads)
     );
 
-    console.log('[KanbanBoard] ✅ Colunas validadas:', filtered.length);
+    console.log('[KanbanBoard] ✅ Colunas validadas (FASES 2+3 + Clone):', filtered.length);
     return filtered;
   }, [columns]);
 
-  // RADICAL: Usar diretamente useDragAndDropSafe sem intermediários
-  const { isDragging, onDragStart, onDragEnd } = useDragAndDropSafe({ 
+  // Hook de drag and drop TOTALMENTE otimizado + Clone Visual
+  const { isDragging, onDragStart, onDragEnd, cloneState } = useDragAndDropOptimized({ 
     columns: validatedColumns, 
     onColumnsChange, 
     onMoveToWonLost, 
@@ -91,13 +91,17 @@ export const KanbanBoard = ({
     );
   }
 
-  console.log('[KanbanBoard] 🎯 RADICAL - Renderizando board com drag direto');
+  console.log('[KanbanBoard] 🎯 FASES 2+3 + Clone - Renderizando board com clone visual');
 
   return (
     <div className="relative w-full h-full flex flex-col">
-      <DataErrorBoundary context="Kanban Board - Drag and Drop Radical">
-        <StableDragDropWrapper onDragStart={onDragStart} onDragEnd={onDragEnd}>
-          <BoardContent 
+      <DataErrorBoundary context="Kanban Board - Fases 2+3 + Clone Visual">
+        <StableDragDropWrapper 
+          onDragStart={onDragStart} 
+          onDragEnd={onDragEnd}
+          cloneState={cloneState}
+        >
+          <BoardContentOptimized
             columns={validatedColumns}
             onOpenLeadDetail={onOpenLeadDetail}
             onColumnUpdate={onColumnUpdate}

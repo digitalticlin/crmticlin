@@ -5,6 +5,10 @@ import { Funnel, KanbanStage } from "@/types/funnel";
 import { KanbanTag } from "@/types/kanban";
 
 interface SalesFunnelContextValue {
+  // Estado de carregamento
+  loading: boolean;
+  error: string | null;
+
   // Funnel data
   funnels: Funnel[];
   selectedFunnel: Funnel | null;

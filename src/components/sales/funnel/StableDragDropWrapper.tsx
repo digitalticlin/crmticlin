@@ -2,22 +2,25 @@
 import { ReactNode } from "react";
 import { DragDropContext } from "react-beautiful-dnd";
 import { AdvancedErrorTracker } from "./AdvancedErrorTracker";
+import { DragCloneLayer } from "../drag/DragCloneLayer";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import "@/utils/suppressDragDropWarnings";
 
 interface StableDragDropWrapperProps {
   children: ReactNode;
-  onDragStart?: () => void;
+  onDragStart?: (initial: any) => void;
   onDragEnd?: (result: any) => void;
+  cloneState?: any; // Estado do clone passado do hook
 }
 
 export const StableDragDropWrapper = ({ 
   children, 
   onDragStart = () => {},
-  onDragEnd = () => {}
+  onDragEnd = () => {},
+  cloneState
 }: StableDragDropWrapperProps) => {
-  console.log('[StableDragDropWrapper] 🔄 RADICAL - Wrapper otimizado para drag fluído');
+  console.log('[StableDragDropWrapper] 🔄 RADICAL - Wrapper otimizado com clone visual');
 
   const handleErrorCaptured = (error: Error, errorInfo: any) => {
     console.group('🚨 [StableDragDropWrapper] ERRO CRÍTICO CAPTURADO');
@@ -51,7 +54,7 @@ export const StableDragDropWrapper = ({
   );
 
   try {
-    console.log('[StableDragDropWrapper] 🎯 RADICAL - Inicializando DragDropContext centralizado');
+    console.log('[StableDragDropWrapper] 🎯 RADICAL - Inicializando DragDropContext com clone visual');
     
     return (
       <AdvancedErrorTracker 
@@ -61,7 +64,7 @@ export const StableDragDropWrapper = ({
       >
         <DragDropContext
           onDragStart={(initial) => {
-            console.log('[StableDragDropWrapper] 🟢 RADICAL - Drag iniciado:', initial.draggableId);
+            console.log('[StableDragDropWrapper] 🟢 RADICAL - Drag iniciado com clone:', initial.draggableId);
             
             // RADICAL: Centralizar TODA a manipulação DOM aqui
             const body = document.body;
@@ -75,10 +78,10 @@ export const StableDragDropWrapper = ({
             // Classe para CSS global
             body.classList.add('rbd-dragging');
             
-            onDragStart();
+            onDragStart(initial);
           }}
           onDragEnd={(result) => {
-            console.log('[StableDragDropWrapper] 🟢 RADICAL - Drag finalizado:', result.draggableId, '->', result.destination?.droppableId);
+            console.log('[StableDragDropWrapper] 🟢 RADICAL - Drag finalizado com clone:', result.draggableId, '->', result.destination?.droppableId);
             
             // RADICAL: Restaurar comportamento da página IMEDIATAMENTE
             const body = document.body;
@@ -97,12 +100,15 @@ export const StableDragDropWrapper = ({
           onDragUpdate={(update) => {
             // Log para debug
             if (update.destination) {
-              console.log('[StableDragDropWrapper] 🔄 RADICAL - Drag update:', 
+              console.log('[StableDragDropWrapper] 🔄 RADICAL - Drag update com clone:', 
                 update.draggableId, 'sobre', update.destination.droppableId);
             }
           }}
         >
           {children}
+          
+          {/* Camada de Clone Visual - renderizada como portal */}
+          {cloneState && <DragCloneLayer cloneState={cloneState} />}
         </DragDropContext>
       </AdvancedErrorTracker>
     );
