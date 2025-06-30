@@ -20,10 +20,10 @@ export function SalesFunnelContent() {
     stages,
     leads,
     openLeadDetail,
-    onUpdateNotes,
-    onUpdatePurchaseValue,
-    onUpdateAssignedUser,
-    onUpdateName,
+    updateLeadNotes,
+    updateLeadPurchaseValue,
+    updateLeadAssignedUser,
+    updateLeadName,
     toggleTagOnLead,
     refetchLeads,
     refetchStages
@@ -94,10 +94,10 @@ export function SalesFunnelContent() {
         selectedLead={selectedLead}
         isLeadDetailOpen={isLeadDetailOpen}
         setIsLeadDetailOpen={setIsLeadDetailOpen}
-        onUpdateNotes={onUpdateNotes}
-        onUpdatePurchaseValue={onUpdatePurchaseValue}
-        onUpdateAssignedUser={onUpdateAssignedUser}
-        onUpdateName={onUpdateName}
+        onUpdateNotes={updateLeadNotes}
+        onUpdatePurchaseValue={updateLeadPurchaseValue}
+        onUpdateAssignedUser={updateLeadAssignedUser}
+        onUpdateName={updateLeadName}
         refetchLeads={refetchLeads}
         refetchStages={refetchStages}
       />
