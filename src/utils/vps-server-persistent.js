@@ -353,40 +353,46 @@ async function initializeWhatsAppClient(instance, retryCount = 0) {
     });
 
     // Capturar mensagens
-    client.on('message_create', async (message) => {
-      console.log(`📨 CORREÇÃO: Mensagem capturada para ${instance.instanceId}:`, {
-        from: message.from,
-        to: message.to,
-        fromMe: message.fromMe,
-        body: message.body?.substring(0, 50) + '...',
-        timestamp: new Date().toISOString()
-      });
+    client.on('message_create', async function(message) {
+      console.log('[' + instance.instanceId + '] 💬 Nova mensagem ' + (message.fromMe ? 'ENVIADA PARA: ' : 'RECEBIDA DE: ') + message.from);
+      
+      const instance = activeInstances.get(instance.instanceId);
+      if (instance) {
+        instance.messages.push({
+          id: message.id._serialized || message.id,
+          from: message.from,
+          fromMe: message.fromMe,
+          body: message.body,
+          timestamp: new Date().toISOString()
+        });
+        
+        if (instance.messages.length > 50) {
+          instance.messages = instance.messages.slice(-50);
+        }
+      }
       
       if (instance.webhookUrl) {
         try {
           await sendWebhook(instance.webhookUrl, {
             event: 'messages.upsert',
             instanceName: instance.sessionName,
+            instanceId: instance.instanceId,
             data: { 
               messages: [{
                 key: {
                   id: message.id._serialized || message.id,
                   remoteJid: message.fromMe ? message.to : message.from,
-                  fromMe: message.fromMe
+                  fromMe: message.fromMe // ✅ PRESERVA O CAMPO from_me
                 },
                 message: {
-                  conversation: message.body,
-                  extendedTextMessage: {
-                    text: message.body
-                  }
+                  conversation: message.body
                 }
               }] 
             },
-            timestamp: new Date().toISOString(),
-            server_url: `http://localhost:${PORT}`
+            timestamp: new Date().toISOString()
           });
         } catch (error) {
-          console.error(`❌ CORREÇÃO: Erro ao enviar webhook para ${instance.instanceId}:`, error.message);
+          console.error('[' + instance.instanceId + '] ❌ Erro webhook: ' + error.message);
         }
       }
     });

@@ -1,0 +1,2758 @@
+const express = require('express');
+const crypto = require('crypto');
+const { default: makeWASocket, makeInMemoryStore, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
+const QRCode = require('qrcode');
+const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
+
+global.crypto = crypto;
+
+const app = express();
+const PORT = 3002;
+
+// CONFIGURAÇÃO SUPABASE (Edge Functions públicas corretas)
+const SUPABASE_PROJECT = 'rhjgagzstjzynvrakdyj';
+const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJoamdhZ3pzdGp6eW52cmFrZHlqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDUxMzEwMCwiZXhwIjoyMDY2MDg5MTAwfQ.48XYhDq4XdVTqNhIHdskd6iMcJem38aHzk6U1psfRRM';
+
+const SUPABASE_WEBHOOKS = {
+  QR_RECEIVER: `https://${SUPABASE_PROJECT}.supabase.co/functions/v1/webhook_qr_receiver`,
+  AUTO_SYNC_INSTANCES: `https://${SUPABASE_PROJECT}.supabase.co/functions/v1/auto_sync_instances`,
+  AUTO_WHATSAPP_SYNC: `https://${SUPABASE_PROJECT}.supabase.co/functions/v1/auto_whatsapp_sync`,
+  MESSAGE_RECEIVER: `https://${SUPABASE_PROJECT}.supabase.co/functions/v1/whatsapp_message_service`
+};
+
+const instances = loadInstances();
+
+// STORE BAILEYS PARA PERSISTÊNCIA DE DADOS
+const store = makeInMemoryStore({
+  logger: console
+});
+
+// Configurar persistência do store
+const STORE_FILE = path.join(__dirname, 'store.json');
+
+// Carregar store existente
+if (fs.existsSync(STORE_FILE)) {
+  try {
+    const storeData = JSON.parse(fs.readFileSync(STORE_FILE, 'utf8'));
+    store.fromJSON(storeData);
+    console.log('📁 Store carregado do arquivo');
+  } catch (error) {
+    console.log('⚠️ Erro ao carregar store, criando novo');
+  }
+}
+
+// Salvar store a cada 30 segundos
+setInterval(() => {
+  try {
+    fs.writeFileSync(STORE_FILE, JSON.stringify(store.toJSON(), null, 2));
+  } catch (error) {
+    console.error('❌ Erro ao salvar store:', error.message);
+  }
+}, 30000);
+
+console.log('🗃️ Store Baileys inicializado com persistência');
+
+// PERSISTÊNCIA DE INSTÂNCIAS
+const INSTANCES_FILE = path.join(__dirname, 'instances.json');
+
+// Carregar instâncias salvas
+function loadInstances() {
+  try {
+    if (fs.existsSync(INSTANCES_FILE)) {
+      const savedInstances = JSON.parse(fs.readFileSync(INSTANCES_FILE, 'utf8'));
+      console.log(`📁 ${Object.keys(savedInstances).length} instâncias carregadas do arquivo`);
+      return savedInstances;
+    }
+  } catch (error) {
+    console.log('⚠️ Erro ao carregar instâncias:', error.message);
+  }
+  return {};
+}
+
+// Salvar instâncias
+function saveInstances() {
+  try {
+    const instancesToSave = {};
+    Object.keys(instances).forEach(id => {
+      const instance = instances[id];
+      if (instance) {
+        instancesToSave[id] = {
+          instanceId: instance.instanceId,
+          status: instance.status,
+          connected: instance.connected,
+          phone: instance.phone,
+          profileName: instance.profileName,
+          lastUpdate: instance.lastUpdate,
+          createdByUserId: instance.createdByUserId
+        };
+      }
+    });
+    fs.writeFileSync(INSTANCES_FILE, JSON.stringify(instancesToSave, null, 2));
+  } catch (error) {
+    console.error('❌ Erro ao salvar instâncias:', error.message);
+  }
+}
+
+// Salvar instâncias a cada 10 segundos
+setInterval(saveInstances, 10000);
+
+console.log('💾 Sistema de persistência de instâncias ativado');
+
+
+
+// Configurar diretório de persistência
+const AUTH_DIR = path.join(__dirname, 'auth_info');
+if (!fs.existsSync(AUTH_DIR)) {
+  fs.mkdirSync(AUTH_DIR, { recursive: true });
+  console.log('📁 Diretório auth_info criado');
+}
+
+app.use(express.json());
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
+// Função para enviar webhook para o Supabase
+async function sendSupabaseWebhook(url, data, type = 'general') {
+  try {
+    console.log(`[Supabase Webhook ${type}] 📡 Enviando para: ${url}`);
+
+    const response = await axios.post(url, data, {
+      timeout: 10000,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+        'apikey': SUPABASE_SERVICE_KEY
+      }
+    });
+
+    console.log(`[Supabase Webhook ${type}] ✅ Sucesso: ${response.status}`);
+    return true;
+  } catch (error) {
+    console.error(`[Supabase Webhook ${type}] ❌ Erro:`, error.response?.data || error.message);
+    return false;
+  }
+}
+
+// Webhook: Enviar QR Code
+async function notifyQRCodeGenerated(instanceId, qrCode) {
+  const data = {
+    event: 'qr_update',
+    instanceId,
+    instanceName: instanceId,
+    qrCode,
+    timestamp: new Date().toISOString()
+  };
+  await sendSupabaseWebhook(SUPABASE_WEBHOOKS.QR_RECEIVER, data, 'QR');
+}
+
+// Webhook: Conexão estabelecida
+async function notifyConnectionEstablished(instanceId, phone, profileName) {
+  const data = {
+    event: 'connection_established',
+    instanceId,
+    instanceName: instanceId,
+    status: 'connected',
+    phone,
+    profileName,
+    timestamp: new Date().toISOString()
+  };
+  await sendSupabaseWebhook(SUPABASE_WEBHOOKS.AUTO_WHATSAPP_SYNC, data, 'Connection');
+}
+
+// Webhook: Mensagem recebida
+async function notifyMessageReceived(instanceId, messageData, createdByUserId = null) {
+  try {
+    // Tentar obter foto de perfil do remetente
+    let profilePictureUrl = null;
+    try {
+      const instance = instances[instanceId];
+      if (instance && instance.socket && messageData.from) {
+        const cleanPhone = messageData.from.split('@')[0];
+        if (cleanPhone && cleanPhone.length > 5) {
+          profilePictureUrl = await instance.socket.profilePictureUrl(messageData.from, 'image');
+        }
+      }
+    } catch (profileError) {
+      console.log(`📸 Não foi possível obter foto de perfil para ${messageData.from}`);
+    }
+
+    const data = {
+      event: 'message_received',
+      instanceId,
+      instanceName: instanceId,
+      from: messageData.from,
+      message: { text: messageData.body },
+      timestamp: messageData.timestamp ? new Date(messageData.timestamp * 1000).toISOString() : new Date().toISOString(),
+      createdByUserId,
+      messageStatus: 'delivered',
+      messageDirection: messageData.fromMe ? 'outgoing' : 'incoming',
+      profilePictureUrl: profilePictureUrl,
+      hasProfilePicture: !!profilePictureUrl,
+      data: messageData
+    };
+    await sendSupabaseWebhook(SUPABASE_WEBHOOKS.MESSAGE_RECEIVER, data, 'Message');
+  } catch (error) {
+    console.error('❌ Erro ao notificar mensagem:', error.message);
+  }
+}
+
+// Função para criar instância WhatsApp
+async function createWhatsAppInstance(instanceId, createdByUserId = null) {
+  try {
+    console.log(`🚀 Criando instância: ${instanceId}`);
+
+    const authDir = path.join(AUTH_DIR, instanceId);
+    if (!fs.existsSync(authDir)) {
+      fs.mkdirSync(authDir, { recursive: true });
+    }
+
+    const { state, saveCreds } = await useMultiFileAuthState(authDir);
+
+    const socket = makeWASocket({
+      auth: state,
+      printQRInTerminal: false,
+      browser: ['WhatsApp CRM', 'Chrome', '1.0.0'],
+      connectTimeoutMs: 30000,
+      defaultQueryTimeoutMs: 30000,
+      receiveFullHistory: false,
+      syncFullHistory: false
+    });
+
+    // CONECTAR SOCKET AO STORE
+    store.bind(socket.ev);
+
+    // Definir store no socket para acesso posterior
+    socket.store = store;
+
+    instances[instanceId] = {
+      socket,
+      instanceId,
+      instanceName: instanceId,
+      status: 'connecting',
+      phone: null,
+      profileName: null,
+      connected: false,
+      qrCode: null,
+      lastUpdate: new Date(),
+      attempts: 0,
+      createdByUserId
+    };
+
+    socket.ev.on('creds.update', saveCreds);
+
+    socket.ev.on('connection.update', async (update) => {
+      const { connection, lastDisconnect, qr } = update;
+      console.log(`[${instanceId}] 🔄 Connection update:`, connection);
+
+      instances[instanceId].lastUpdate = new Date();
+
+      if (qr) {
+        console.log(`[${instanceId}] 📱 QR Code gerado`);
+        try {
+          const qrCodeDataURL = await QRCode.toDataURL(qr);
+          instances[instanceId].qrCode = qrCodeDataURL;
+          instances[instanceId].status = 'waiting_qr';
+          await notifyQRCodeGenerated(instanceId, qrCodeDataURL);
+        } catch (error) {
+          console.error(`[${instanceId}] ❌ Erro ao gerar QR Code:`, error);
+        }
+      }
+
+      if (connection === 'close') {
+        const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
+        console.log(`[${instanceId}] 🔴 Conexão fechada. Reconectar:`, shouldReconnect);
+        
+        if (shouldReconnect) {
+          instances[instanceId].attempts = (instances[instanceId].attempts || 0) + 1;
+          if (instances[instanceId].attempts < 5) {
+          setTimeout(() => createWhatsAppInstance(instanceId, createdByUserId), 3000);
+          }
+        } else {
+          instances[instanceId].status = 'logged_out';
+          instances[instanceId].connected = false;
+        }
+      } else if (connection === 'open') {
+        console.log(`[${instanceId}] ✅ Conectado com sucesso!`);
+        instances[instanceId].status = 'ready';
+        instances[instanceId].connected = true;
+        instances[instanceId].qrCode = null;
+        instances[instanceId].attempts = 0;
+
+        const phoneNumber = socket.user?.id?.split('@')[0];
+        const profileName = socket.user?.name || socket.user?.verifiedName || 'Usuário';
+
+        instances[instanceId].phone = phoneNumber;
+        instances[instanceId].profileName = profileName;
+
+        await notifyConnectionEstablished(instanceId, phoneNumber, profileName);
+      }
+    });
+
+    socket.ev.on('messages.upsert', async (messageUpdate) => {
+      const messages = messageUpdate.messages;
+
+      for (const message of messages) {
+        if (message.message) {
+          // ✅ BILATERAL: Processar incoming E outgoing
+          const isOutgoing = message.key?.fromMe || false;
+          const direction = isOutgoing ? 'ENVIADA PARA' : 'RECEBIDA DE';
+
+          // ✅ EXTRAÇÃO COMPLETA DE MÍDIA (TEXTO, IMAGEM, ÁUDIO, VÍDEO)
+          let messageText = '';
+          let mediaType = 'text';
+          let mediaUrl = null;
+          let mediaCaption = null;
+          let fileName = null;
+
+          const msg = message.message;
+
+          if (msg.conversation) {
+            messageText = msg.conversation;
+            mediaType = 'text';
+          } else if (msg.extendedTextMessage?.text) {
+            messageText = msg.extendedTextMessage.text;
+            mediaType = 'text';
+          } else if (msg.imageMessage) {
+            messageText = msg.imageMessage.caption || '[Imagem]';
+            mediaCaption = msg.imageMessage.caption;
+            mediaType = 'image';
+            mediaUrl = msg.imageMessage.url || msg.imageMessage.directPath;
+            fileName = 'image.' + (msg.imageMessage.mimetype?.split('/')[1] || 'jpg');
+          } else if (msg.videoMessage) {
+            messageText = msg.videoMessage.caption || '[Vídeo]';
+            mediaCaption = msg.videoMessage.caption;
+            mediaType = 'video';
+            mediaUrl = msg.videoMessage.url || msg.videoMessage.directPath;
+            fileName = 'video.' + (msg.videoMessage.mimetype?.split('/')[1] || 'mp4');
+          } else if (msg.audioMessage) {
+            messageText = '[Áudio]';
+            mediaType = 'audio';
+            mediaUrl = msg.audioMessage.url || msg.audioMessage.directPath;
+            fileName = 'audio.' + (msg.audioMessage.mimetype?.split('/')[1] || 'ogg');
+          } else if (msg.documentMessage) {
+            messageText = msg.documentMessage.caption || msg.documentMessage.fileName || '[Documento]';
+            mediaCaption = msg.documentMessage.caption;
+            mediaType = 'document';
+            mediaUrl = msg.documentMessage.url || msg.documentMessage.directPath;
+            fileName = msg.documentMessage.fileName || 'document';
+          } else if (msg.stickerMessage) {
+            messageText = '[Sticker]';
+            mediaType = 'sticker';
+            mediaUrl = msg.stickerMessage.url || msg.stickerMessage.directPath;
+          } else {
+            messageText = '[Mensagem de mídia]';
+            mediaType = 'unknown';
+          }
+
+          console.log(`[${instanceId}] 📨 Mensagem ${direction} (${mediaType.toUpperCase()}): ${message.key.remoteJid} | ${messageText.substring(0, 50)}`);
+
+          const messageData = {
+            from: message.key.remoteJid,
+            body: messageText,
+            timestamp: message.messageTimestamp,
+            fromMe: isOutgoing,
+            direction: direction,
+            mediaType: mediaType,
+            mediaUrl: mediaUrl,
+            mediaCaption: mediaCaption,
+            fileName: fileName,
+            messageId: message.key.id
+          };
+
+          await notifyMessageReceived(instanceId, messageData, createdByUserId);
+        }
+      }
+    });
+
+    return socket;
+  } catch (error) {
+    console.error(`❌ Erro ao criar instância ${instanceId}:`, error);
+    throw error;
+  }
+}
+
+// ENDPOINTS DA API
+
+// Health Check
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    port: PORT,
+    instances: Object.keys(instances).length,
+    crypto: typeof crypto !== 'undefined' ? 'available' : 'unavailable',
+    webhooks: {
+      supabase_enabled: true,
+      endpoints: Object.keys(SUPABASE_WEBHOOKS).length,
+      urls: SUPABASE_WEBHOOKS
+    }
+  });
+});
+
+// Status do servidor
+app.get('/status', (req, res) => {
+  const instancesData = Object.values(instances).map(inst => ({
+    instanceId: inst.instanceId,
+    status: inst.status,
+    connected: inst.connected,
+    phone: inst.phone,
+    profileName: inst.profileName
+  }));
+
+  res.json({
+    success: true,
+    status: 'online',
+    server: 'WhatsApp Baileys Server - BILATERAL + MÍDIA COMPLETA',
+    port: PORT,
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    activeInstances: instancesData.length,
+    instances: instancesData,
+    memory: process.memoryUsage(),
+    webhooks: SUPABASE_WEBHOOKS
+  });
+});
+
+// Listar instâncias
+app.get('/instances', (req, res) => {
+  const instancesData = Object.values(instances).map(inst => ({
+    instanceId: inst.instanceId,
+    status: inst.status,
+    connected: inst.connected,
+    phone: inst.phone,
+    profileName: inst.profileName,
+    hasQrCode: !!inst.qrCode
+  }));
+
+  res.json({
+    success: true,
+    instances: instancesData,
+    total: instancesData.length
+  });
+});
+
+// Criar instância
+app.post('/instance/create', async (req, res) => {
+    const { instanceId, createdByUserId } = req.body;
+
+    if (!instanceId) {
+      return res.status(400).json({
+        success: false,
+        error: 'instanceId é obrigatório'
+      });
+    }
+
+    if (instances[instanceId]) {
+      return res.status(409).json({
+        success: false,
+        error: 'Instância já existe'
+      });
+    }
+
+  try {
+    await createWhatsAppInstance(instanceId, createdByUserId);
+    res.json({
+      success: true,
+      message: 'Instância criada com sucesso',
+      instanceId: instanceId
+    });
+  } catch (error) {
+    console.error('Erro ao criar instância:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Obter QR Code
+app.get('/instance/:instanceId/qr', (req, res) => {
+  const { instanceId } = req.params;
+  const instance = instances[instanceId];
+
+  if (!instance) {
+    return res.status(404).json({
+      success: false,
+      error: 'Instância não encontrada'
+    });
+  }
+
+  if (!instance.qrCode) {
+    return res.status(404).json({
+      success: false,
+      error: 'QR Code não disponível'
+    });
+  }
+
+    res.json({
+      success: true,
+    qrCode: instance.qrCode,
+    status: instance.status
+  });
+});
+
+// Status de instância específica
+app.get('/instance/:instanceId', (req, res) => {
+  const { instanceId } = req.params;
+  const instance = instances[instanceId];
+
+  if (!instance) {
+    return res.status(404).json({
+      success: false,
+      message: 'Instância não encontrada'
+    });
+  }
+
+  res.json({
+    success: true,
+    instanceId: instance.instanceId,
+      status: instance.status,
+    phone: instance.phone,
+    profileName: instance.profileName,
+    connected: instance.connected,
+    lastUpdate: instance.lastUpdate,
+    connectionAttempts: instance.attempts || 0,
+    createdByUserId: instance.createdByUserId
+  });
+});
+
+// Enviar mensagem
+app.post('/send', async (req, res) => {
+  try {
+    const { instanceId, phone, message } = req.body;
+
+    if (!instanceId || !phone || !message) {
+      return res.status(400).json({
+        success: false,
+        error: 'instanceId, phone e message são obrigatórios'
+      });
+    }
+
+    const instance = instances[instanceId];
+    if (!instance) {
+      return res.status(404).json({
+        success: false,
+        error: 'Instância não encontrada'
+      });
+    }
+
+    if (!instance.connected || !instance.socket) {
+      return res.status(400).json({
+        success: false,
+        error: 'Instância não está conectada'
+      });
+    }
+
+    const chatId = phone.includes('@') ? phone : `${phone}@c.us`;
+    const messageResult = await instance.socket.sendMessage(chatId, { text: message });
+
+    res.json({
+      success: true,
+      messageId: messageResult.key.id,
+      message: 'Mensagem enviada com sucesso'
+    });
+
+  } catch (error) {
+    console.error('Erro ao enviar mensagem:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Importar histórico (COM CORREÇÕES COMPLETAS - BILATERAL + FOTO)
+app.post('/instance/:instanceId/import-history', async (req, res) => {
+  try {
+    const { instanceId } = req.params;
+    const { importType = 'both', batchSize = 10, lastSyncTimestamp } = req.body;
+
+    console.log('🎯 Import History BILATERAL + FOTO:', { instanceId, importType, batchSize });
+
+    // Buscar instância
+    let instance = null;
+
+    if (typeof instances !== 'undefined') {
+      if (instances && typeof instances.get === 'function') {
+        instance = instances.get(instanceId);
+      } else if (instances && typeof instances === 'object') {
+        instance = instances[instanceId];
+      }
+    }
+
+    if (!instance) {
+      console.log('❌ Instância não encontrada');
+      return res.status(404).json({ success: false, error: 'Instância não encontrada' });
+    }
+
+    // Garantir socketStore
+    const socketStore = instance.socket?.store || (typeof store !== 'undefined' ? store : null);
+    if (!socketStore) {
+      return res.status(500).json({
+        success: false,
+        error: 'Store não disponível',
+        storeInfo: { storeAvailable: false }
+      });
+    }
+
+    let contacts = [];
+    let messages = [];
+
+    // MÉTODO 1: EXTRAIR CONTATOS COM FOTO DE PERFIL
+    if (importType === 'contacts' || importType === 'both') {
+      try {
+        console.log('📞 Extraindo contatos com foto de perfil...');
+
+        if (socketStore.contacts) {
+          for (const [contactKey, contactData] of Object.entries(socketStore.contacts)) {
+            if (contacts.length >= batchSize) break;
+
+            if (contactKey && typeof contactKey === 'string' &&
+                (contactKey.includes('@s.whatsapp.net') || contactKey.includes('@c.us')) &&
+                !contactKey.includes('@g.us') && !contactKey.includes('status@broadcast')) {
+
+              const phone = contactKey.split('@')[0];
+              let contactName = 'Lead-' + phone.substring(phone.length - 4);
+
+              if (contactData && typeof contactData === 'object') {
+                if (contactData.name && contactData.name.trim()) {
+                  contactName = contactData.name.trim();
+                } else if (contactData.notify && contactData.notify.trim()) {
+                  contactName = contactData.notify.trim();
+                }
+              }
+
+              // Tentar obter foto de perfil
+              let profilePictureUrl = null;
+              try {
+                if (instance.socket && phone.length > 5) {
+                  profilePictureUrl = await instance.socket.profilePictureUrl(contactKey, 'image');
+                  console.log(`📸 Foto obtida para ${contactName}: ${profilePictureUrl ? 'SIM' : 'NÃO'}`);
+                }
+              } catch (profileError) {
+                console.log(`📸 Erro ao obter foto para ${contactName}`);
+              }
+
+              contacts.push({
+                from: contactKey,
+                name: contactName,
+                phone: phone,
+                profileName: contactName,
+                profilePictureUrl: profilePictureUrl,
+                hasProfilePicture: !!profilePictureUrl,
+                instanceId: instanceId,
+                source: 'contacts_direct'
+              });
+
+              console.log(`✅ Contato extraído: ${contactName} (${phone})`);
+            }
+          }
+        }
+
+        // MÉTODO 2: EXTRAIR DOS CHATS (dict) SE NECESSÁRIO
+        if (contacts.length < batchSize && socketStore.chats && socketStore.chats.dict) {
+          console.log('📱 Extraindo contatos adicionais de chats.dict...');
+
+          const chatDict = socketStore.chats.dict;
+          for (const [chatKey, chatData] of Object.entries(chatDict)) {
+            if (contacts.length >= batchSize) break;
+
+            if (chatKey && typeof chatKey === 'string' &&
+                (chatKey.includes('@s.whatsapp.net') || chatKey.includes('@c.us')) &&
+                !chatKey.includes('@g.us') && !chatKey.includes('status@broadcast')) {
+
+              // Verificar se já não foi adicionado
+              const alreadyExists = contacts.some(c => c.from === chatKey);
+              if (alreadyExists) continue;
+
+              const phone = chatKey.split('@')[0];
+              let contactName = 'Lead-' + phone.substring(phone.length - 4);
+
+              if (chatData && typeof chatData === 'object') {
+                if (chatData.name && chatData.name.trim()) {
+                  contactName = chatData.name.trim();
+                } else if (chatData.notify && chatData.notify.trim()) {
+                  contactName = chatData.notify.trim();
+                }
+              }
+
+              // Tentar obter foto de perfil
+              let profilePictureUrl = null;
+              try {
+                if (instance.socket && phone.length > 5) {
+                  profilePictureUrl = await instance.socket.profilePictureUrl(chatKey, 'image');
+                }
+              } catch (profileError) {
+                console.log(`📸 Erro ao obter foto para ${contactName}`);
+              }
+
+              contacts.push({
+                from: chatKey,
+                name: contactName,
+                phone: phone,
+                profileName: contactName,
+                profilePictureUrl: profilePictureUrl,
+                hasProfilePicture: !!profilePictureUrl,
+                instanceId: instanceId,
+                source: 'chats_dict'
+              });
+
+              console.log(`✅ Contato adicional extraído: ${contactName} (${phone})`);
+            }
+          }
+        }
+
+        console.log(`🎯 Total de contatos extraídos: ${contacts.length}`);
+
+      } catch (contactError) {
+        console.log('❌ Erro ao extrair contatos:', contactError.message);
+        console.error(contactError.stack);
+      }
+    }
+
+    // EXTRAIR MENSAGENS
+    if (importType === 'messages' || importType === 'both') {
+      try {
+        console.log('💬 Extraindo mensagens de socketStore.messages...');
+
+        if (socketStore.messages) {
+          for (const [chatId, chatMessages] of Object.entries(socketStore.messages)) {
+            if (messages.length >= batchSize) break;
+
+            if (chatId && (chatId.includes('@s.whatsapp.net') || chatId.includes('@c.us')) &&
+                !chatId.includes('@g.us') && !chatId.includes('status@broadcast')) {
+
+              if (Array.isArray(chatMessages)) {
+                const recentMessages = chatMessages.slice(-3); // Últimas 3 mensagens
+
+                for (const msg of recentMessages) {
+                  if (messages.length >= batchSize) break;
+
+                  if (msg && msg.key && msg.message) {
+                    const messageText = msg.message.conversation ||
+                                       msg.message.extendedTextMessage?.text ||
+                                       msg.message.imageMessage?.caption ||
+                                       '[Mídia]';
+
+                    messages.push({
+                      messageId: msg.key.id,
+                      from: msg.key.remoteJid || chatId,
+                      fromMe: !!msg.key.fromMe,
+                      body: messageText,
+                      timestamp: msg.messageTimestamp ?
+                                new Date(msg.messageTimestamp * 1000).toISOString() :
+                                new Date().toISOString(),
+                      messageType: Object.keys(msg.message)[0] || 'text',
+                      instanceId: instanceId,
+                      chatId: chatId
+                    });
+
+                    console.log(`✅ Mensagem extraída: ${messageText.substring(0, 30)}...`);
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        console.log(`🎯 Total de mensagens extraídas: ${messages.length}`);
+
+      } catch (messageError) {
+        console.log('❌ Erro ao extrair mensagens:', messageError.message);
+        console.error(messageError.stack);
+      }
+    }
+
+    console.log('🎉 Importação PERFEITA concluída:', { contacts: contacts.length, messages: messages.length });
+
+    res.json({
+      success: true,
+      instanceId,
+      importType,
+      contacts,
+      messages,
+      totalContacts: contacts.length,
+      totalMessages: messages.length,
+      timestamp: new Date().toISOString(),
+      nextBatchAvailable: false,
+      storeInfo: {
+        totalContactsInStore: Object.keys(socketStore.contacts || {}).length,
+        totalChatsInStore: Object.keys(socketStore.chats || {}).length,
+        storeAvailable: true
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Erro geral na importação:', error.message);
+    console.error('Stack completo:', error.stack);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});app.post('/instance/:instanceId/import-history', async (req, res) => {
+  try {
+    const { instanceId } = req.params;
+    const { importType = 'both', batchSize = 10, lastSyncTimestamp } = req.body;
+
+    console.log('🕵️ INSPECTOR DE STORE ATIVADO');
+    console.log('============================');
+
+    // Buscar instância
+    let instance = null;
+
+    if (typeof instances !== 'undefined') {
+      if (instances && typeof instances.get === 'function') {
+        instance = instances.get(instanceId);
+        console.log('📍 instances é Map');
+      } else if (instances && typeof instances === 'object') {
+        instance = instances[instanceId];
+        console.log('📍 instances é Object');
+      }
+    }
+
+    if (!instance) {
+      console.log('❌ Instância não encontrada');
+      return res.status(404).json({ success: false, error: 'Instância não encontrada' });
+    }
+
+    // Garantir socketStore
+    const socketStore = instance.socket?.store || (typeof store !== 'undefined' ? store : null);
+    if (!socketStore) {
+      return res.status(500).json({ success: false, error: 'Store não disponível' });
+    }
+
+    console.log('🔍 ANÁLISE COMPLETA DO STORE:');
+    console.log('=============================');
+
+    // 1. ESTRUTURA GERAL
+    console.log('📊 Estrutura do socketStore:');
+    console.log('   Keys principais:', Object.keys(socketStore));
+
+    // 2. CHATS DETALHADO
+    if (socketStore.chats) {
+      console.log('');
+      console.log('📱 ANÁLISE DE CHATS:');
+      const chatKeys = Object.keys(socketStore.chats);
+      console.log('   Total de keys:', chatKeys.length);
+      console.log('   Todas as keys:', chatKeys);
+
+      // Analisar cada chat individualmente
+      chatKeys.forEach((key, index) => {
+        const chat = socketStore.chats[key];
+        console.log(``);
+        console.log(`🔍 Chat ${index + 1}:`);
+        console.log(`   Key: ${key}`);
+        console.log(`   Tipo: ${typeof chat}`);
+
+        if (chat && typeof chat === 'object') {
+          console.log(`   Props: ${Object.keys(chat)}`);
+          console.log(`   ID: ${chat.id || 'N/A'}`);
+          console.log(`   Name: ${chat.name || 'N/A'}`);
+          console.log(`   Notify: ${chat.notify || 'N/A'}`);
+
+          // Se o chat tem ID válido, mostrar mais detalhes
+          if (chat.id && typeof chat.id === 'string') {
+            console.log(`   ID contém @s.whatsapp.net: ${chat.id.includes('@s.whatsapp.net')}`);
+            console.log(`   ID contém @c.us: ${chat.id.includes('@c.us')}`);
+            console.log(`   ID contém @g.us: ${chat.id.includes('@g.us')}`);
+          }
+        } else if (typeof chat === 'function') {
+          console.log(`   É função - nome: ${chat.name}`);
+        } else {
+          console.log(`   Valor: ${chat}`);
+        }
+      });
+    }
+
+    // 3. CONTACTS DETALHADO
+    if (socketStore.contacts) {
+      console.log('');
+      console.log('👥 ANÁLISE DE CONTACTS:');
+      const contactKeys = Object.keys(socketStore.contacts);
+      console.log('   Total de contacts:', contactKeys.length);
+      console.log('   Keys de contacts:', contactKeys.slice(0, 10)); // Primeiros 10
+
+      // Mostrar alguns contacts
+      contactKeys.slice(0, 3).forEach((key, index) => {
+        const contact = socketStore.contacts[key];
+        console.log(``);
+        console.log(`👤 Contact ${index + 1}:`);
+        console.log(`   Key: ${key}`);
+        console.log(`   Tipo: ${typeof contact}`);
+        if (contact && typeof contact === 'object') {
+          console.log(`   Props: ${Object.keys(contact)}`);
+          console.log(`   Name: ${contact.name || 'N/A'}`);
+          console.log(`   Notify: ${contact.notify || 'N/A'}`);
+        }
+      });
+    }
+
+    // 4. MESSAGES DETALHADO
+    if (socketStore.messages) {
+      console.log('');
+      console.log('💬 ANÁLISE DE MESSAGES:');
+      const messageKeys = Object.keys(socketStore.messages);
+      console.log('   Total de message keys:', messageKeys.length);
+      console.log('   Message keys:', messageKeys.slice(0, 5)); // Primeiras 5
+    }
+
+    console.log('');
+    console.log('🎯 CONCLUSÃO DA INSPEÇÃO');
+    console.log('========================');
+
+    // Tentar extrair usando a estrutura descoberta
+    let contacts = [];
+
+    // MÉTODO 1: Usar contacts diretamente
+    if (socketStore.contacts) {
+      console.log('🔍 Tentativa 1: Extrair de socketStore.contacts');
+      for (const [contactKey, contactData] of Object.entries(socketStore.contacts)) {
+        if (contacts.length >= 5) break; // Limitar para teste
+
+        if (contactKey && typeof contactKey === 'string' &&
+            (contactKey.includes('@s.whatsapp.net') || contactKey.includes('@c.us')) &&
+            !contactKey.includes('@g.us')) {
+
+          const phone = contactKey.split('@')[0];
+          let contactName = 'Lead-' + phone.substring(phone.length - 4);
+
+          if (contactData && typeof contactData === 'object') {
+            if (contactData.name) contactName = contactData.name;
+            else if (contactData.notify) contactName = contactData.notify;
+          }
+
+          contacts.push({
+            from: contactKey,
+            name: contactName,
+            phone: phone,
+            source: 'contacts_direct'
+          });
+
+          console.log(`✅ MÉTODO 1 - Contato extraído: ${contactName} (${phone})`);
+        }
+      }
+    }
+
+    // MÉTODO 2: Buscar nos chats (ignorando funções)
+    if (contacts.length === 0 && socketStore.chats) {
+      console.log('🔍 Tentativa 2: Extrair de socketStore.chats (modo avançado)');
+      for (const [chatKey, chatData] of Object.entries(socketStore.chats)) {
+        if (contacts.length >= 5) break;
+
+        // Pular funções e chaves de controle
+        if (typeof chatData === 'function' ||
+            ['key', 'dict', 'array', 'get', 'set', 'idGetter'].includes(chatKey)) {
+          continue;
+        }
+
+        // Se o chatData tem estrutura válida
+        if (chatData && typeof chatData === 'object' && chatData.id) {
+          const chatId = chatData.id;
+
+          if (typeof chatId === 'string' &&
+              (chatId.includes('@s.whatsapp.net') || chatId.includes('@c.us')) &&
+              !chatId.includes('@g.us')) {
+
+            const phone = chatId.split('@')[0];
+            let contactName = 'Lead-' + phone.substring(phone.length - 4);
+
+            if (chatData.name) contactName = chatData.name;
+            else if (chatData.notify) contactName = chatData.notify;
+
+            contacts.push({
+              from: chatId,
+              name: contactName,
+              phone: phone,
+              source: 'chats_advanced'
+            });
+
+            console.log(`✅ MÉTODO 2 - Contato extraído: ${contactName} (${phone})`);
+          }
+        }
+      }
+    }
+
+    console.log(`🎉 INSPEÇÃO CONCLUÍDA - ${contacts.length} contatos encontrados`);
+
+    res.json({
+      success: true,
+      instanceId,
+      importType,
+      contacts,
+      messages: [], // Focar em contatos primeiro
+      totalContacts: contacts.length,
+      totalMessages: 0,
+      timestamp: new Date().toISOString(),
+      nextBatchAvailable: false,
+      storeInfo: {
+        totalContactsInStore: Object.keys(socketStore.contacts || {}).length,
+        totalChatsInStore: Object.keys(socketStore.chats || {}).length,
+        storeAvailable: true
+      },
+      debug: {
+        chatKeys: Object.keys(socketStore.chats || {}),
+        contactKeys: Object.keys(socketStore.contacts || {}).slice(0, 10)
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Erro na inspeção:', error.message);
+    console.error('Stack:', error.stack);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});app.post('/instance/:instanceId/import-history', async (req, res) => {
+  try {
+    const { instanceId } = req.params;
+    const { importType = 'both', batchSize = 10, lastSyncTimestamp } = req.body;
+
+    console.log('Import History solicitação:', { instanceId, importType, batchSize });
+
+    // Buscar instância
+    let instance = null;
+
+    if (typeof instances !== 'undefined') {
+      if (instances && typeof instances.get === 'function') {
+        instance = instances.get(instanceId);
+      } else if (instances && typeof instances === 'object') {
+        instance = instances[instanceId];
+      }
+    }
+
+    if (!instance) {
+      console.log('❌ Instância não encontrada');
+      return res.status(404).json({ success: false, error: 'Instância não encontrada' });
+    }
+
+    // Garantir socketStore
+    const socketStore = instance.socket?.store || (typeof store !== 'undefined' ? store : null);
+    if (!socketStore) {
+      return res.status(500).json({
+        success: false,
+        error: 'Store não disponível',
+        storeInfo: { storeAvailable: false }
+      });
+    }
+
+    let contacts = [];
+    let messages = [];
+
+    // EXTRAIR CONTATOS - IGNORANDO CHAVES DE CONTROLE
+    if (importType === 'contacts' || importType === 'both') {
+      try {
+        const chatsFromStore = socketStore.chats || {};
+
+        console.log('📊 Análise do store:', {
+          totalChats: Object.keys(chatsFromStore).length,
+          storeContacts: Object.keys(socketStore.contacts || {}).length
+        });
+
+        for (const [chatKey, chatData] of Object.entries(chatsFromStore)) {
+          if (contacts.length >= batchSize) break;
+
+          // IGNORAR CHAVES DE CONTROLE DO BAILEYS
+          if (chatKey === 'key' || chatKey === 'dict' || chatKey === 'array' ||
+              chatKey === 'idGetter' || chatKey === 'get' || chatKey === 'set' ||
+              typeof chatData === 'function') {
+            console.log(`⏭️ Ignorando chave de controle: ${chatKey}`);
+            continue;
+          }
+
+          if (!chatData || typeof chatData !== 'object') continue;
+
+          const chatId = chatData.id || chatKey;
+
+          console.log(`🔍 Processando chat REAL: ${chatKey} -> ${chatId}`);
+
+          if (chatId && typeof chatId === 'string') {
+            if ((chatId.includes('@s.whatsapp.net') || chatId.includes('@c.us')) &&
+                !chatId.includes('@g.us') &&
+                !chatId.includes('status@broadcast')) {
+
+              const phone = chatId.split('@')[0];
+              let contactName = 'Lead-' + phone.substring(phone.length - 4);
+
+              if (chatData.name && chatData.name.trim()) {
+                contactName = chatData.name.trim();
+              } else if (chatData.notify && chatData.notify.trim()) {
+                contactName = chatData.notify.trim();
+              }
+
+              contacts.push({
+                from: chatId,
+                name: contactName,
+                phone: phone,
+                profileName: contactName,
+                instanceId: instanceId,
+                source: 'chat_extraction'
+              });
+
+              console.log(`✅ CONTATO EXTRAÍDO: ${contactName} (${phone}) de ${chatId}`);
+            } else {
+              console.log(`⏭️ Chat ignorado (grupo/status): ${chatId}`);
+            }
+          }
+        }
+
+        console.log(`🎯 Total de contatos extraídos: ${contacts.length}`);
+
+      } catch (contactError) {
+        console.log('❌ Erro ao extrair contatos:', contactError.message);
+      }
+    }
+
+    // EXTRAIR MENSAGENS - IGNORANDO CHAVES DE CONTROLE
+    if (importType === 'messages' || importType === 'both') {
+      try {
+        const chatsFromStore = socketStore.chats || {};
+        const messagesStore = socketStore.messages || {};
+
+        for (const [chatId, chatData] of Object.entries(chatsFromStore)) {
+          if (messages.length >= batchSize) break;
+
+          // IGNORAR CHAVES DE CONTROLE
+          if (chatId === 'key' || chatId === 'dict' || chatId === 'array' ||
+              chatId === 'idGetter' || typeof chatData === 'function') {
+            continue;
+          }
+
+          const realChatId = chatData?.id || chatId;
+
+          if (realChatId && (realChatId.includes('@s.whatsapp.net') || realChatId.includes('@c.us')) &&
+              !realChatId.includes('@g.us')) {
+
+            const chatMessages = messagesStore[realChatId] || [];
+
+            if (Array.isArray(chatMessages)) {
+              const recentMessages = chatMessages.slice(-3);
+
+              for (const msg of recentMessages) {
+                if (messages.length >= batchSize) break;
+
+                if (msg && msg.key && msg.message) {
+                  const messageText = msg.message.conversation ||
+                                     msg.message.extendedTextMessage?.text ||
+                                     '[Mídia]';
+
+                  messages.push({
+                    messageId: msg.key.id,
+                    from: msg.key.remoteJid || realChatId,
+                    fromMe: !!msg.key.fromMe,
+                    body: messageText,
+                    timestamp: msg.messageTimestamp ?
+                              new Date(msg.messageTimestamp * 1000).toISOString() :
+                              new Date().toISOString(),
+                    messageType: Object.keys(msg.message)[0] || 'text',
+                    instanceId: instanceId,
+                    chatId: realChatId
+                  });
+
+                  console.log(`✅ Mensagem extraída: ${messageText.substring(0, 30)}`);
+                }
+              }
+            }
+          }
+        }
+
+        console.log(`🎯 Total de mensagens extraídas: ${messages.length}`);
+
+      } catch (messageError) {
+        console.log('❌ Erro ao extrair mensagens:', messageError.message);
+      }
+    }
+
+    console.log('🎉 Importação concluída:', { contacts: contacts.length, messages: messages.length });
+
+    res.json({
+      success: true,
+      instanceId,
+      importType,
+      contacts,
+      messages,
+      totalContacts: contacts.length,
+      totalMessages: messages.length,
+      timestamp: new Date().toISOString(),
+      nextBatchAvailable: false,
+      storeInfo: {
+        totalContactsInStore: Object.keys(socketStore.contacts || {}).length,
+        totalChatsInStore: Object.keys(socketStore.chats || {}).length,
+        storeAvailable: true
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Erro geral na importação:', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});app.post('/instance/:instanceId/import-history', async (req, res) => {
+  try {
+    const { instanceId } = req.params;
+    const { importType = 'both', batchSize = 10, lastSyncTimestamp } = req.body;
+
+    console.log('🚀 Import History - DEBUG COMPLETO:', { instanceId, importType, batchSize });
+
+    // BUSCAR INSTÂNCIA
+    let instance = null;
+
+    console.log('🔍 Tipo de instances:', typeof instances);
+    console.log('🔍 Keys de instances:', instances ? Object.keys(instances) : 'instances undefined');
+
+    if (typeof instances !== 'undefined') {
+      if (instances && typeof instances.get === 'function') {
+        instance = instances.get(instanceId);
+        console.log('📍 Usando instances como Map - encontrou:', !!instance);
+      } else if (instances && typeof instances === 'object') {
+        instance = instances[instanceId];
+        console.log('📍 Usando instances como Object - encontrou:', !!instance);
+      }
+    }
+
+    if (!instance) {
+      console.log('❌ Instância não encontrada');
+      return res.status(404).json({ success: false, error: 'Instância não encontrada' });
+    }
+
+    console.log('✅ Instância encontrada');
+    console.log('🔍 Estrutura da instância:', Object.keys(instance));
+
+    // DEBUG DO STORE
+    let socketStore = null;
+
+    console.log('🔍 instance.socket existe:', !!instance.socket);
+    if (instance.socket) {
+      console.log('🔍 instance.socket.store existe:', !!instance.socket.store);
+      if (instance.socket.store) {
+        socketStore = instance.socket.store;
+        console.log('✅ Usando instance.socket.store');
+      }
+    }
+
+    if (!socketStore && typeof store !== 'undefined') {
+      socketStore = store;
+      console.log('✅ Usando store global');
+    }
+
+    if (!socketStore) {
+      console.log('❌ Store não disponível');
+      return res.status(500).json({ success: false, error: 'Store não disponível' });
+    }
+
+    // DEBUG COMPLETO DO STORE
+    console.log('🔍 Estrutura do socketStore:', Object.keys(socketStore));
+    console.log('🔍 socketStore.chats existe:', !!socketStore.chats);
+    console.log('🔍 socketStore.contacts existe:', !!socketStore.contacts);
+    console.log('🔍 socketStore.messages existe:', !!socketStore.messages);
+
+    if (socketStore.chats) {
+      const chatKeys = Object.keys(socketStore.chats);
+      console.log('🔍 Total de chats:', chatKeys.length);
+      console.log('🔍 Primeiras 5 chaves de chat:', chatKeys.slice(0, 5));
+
+      // DEBUG DOS PRIMEIROS CHATS
+      chatKeys.slice(0, 3).forEach((key, index) => {
+        const chat = socketStore.chats[key];
+        console.log(`🔍 Chat ${index + 1}:`);
+        console.log(`   Key: ${key}`);
+        console.log(`   Tipo: ${typeof chat}`);
+        console.log(`   ID: ${chat?.id || 'N/A'}`);
+        console.log(`   Name: ${chat?.name || 'N/A'}`);
+        console.log(`   Keys do objeto: ${Object.keys(chat || {})}`);
+      });
+    }
+
+    let contacts = [];
+    let messages = [];
+
+    // EXTRAIR CONTATOS COM DEBUG
+    if (importType === 'contacts' || importType === 'both') {
+      try {
+        const chatsFromStore = socketStore.chats || {};
+
+        console.log('📊 Começando extração de contatos...');
+
+        for (const [chatKey, chatData] of Object.entries(chatsFromStore)) {
+          if (contacts.length >= batchSize) break;
+
+          console.log(`🔍 Processando chat: ${chatKey}`);
+          console.log(`   Tipo de chatData: ${typeof chatData}`);
+
+          if (!chatData || typeof chatData !== 'object') {
+            console.log(`   ⏭️ Pulando - chatData inválido`);
+            continue;
+          }
+
+          const chatId = chatData.id || chatKey;
+          console.log(`   ChatID determinado: ${chatId}`);
+
+          if (chatId && typeof chatId === 'string') {
+            console.log(`   Verificando filtros para: ${chatId}`);
+
+            const hasWhatsApp = chatId.includes('@s.whatsapp.net') || chatId.includes('@c.us');
+            const isGroup = chatId.includes('@g.us');
+            const isStatus = chatId.includes('status@broadcast');
+
+            console.log(`   hasWhatsApp: ${hasWhatsApp}, isGroup: ${isGroup}, isStatus: ${isStatus}`);
+
+            if (hasWhatsApp && !isGroup && !isStatus) {
+              const phone = chatId.split('@')[0];
+              let contactName = 'Lead-' + phone.substring(phone.length - 4);
+
+              if (chatData.name && chatData.name.trim()) {
+                contactName = chatData.name.trim();
+              } else if (chatData.notify && chatData.notify.trim()) {
+                contactName = chatData.notify.trim();
+              }
+
+              contacts.push({
+                from: chatId,
+                name: contactName,
+                phone: phone,
+                profileName: contactName,
+                instanceId: instanceId,
+                source: 'chat_extraction'
+              });
+
+              console.log(`   ✅ CONTATO EXTRAÍDO: ${contactName} (${phone})`);
+            } else {
+              console.log(`   ⏭️ Chat ignorado pelos filtros`);
+            }
+          } else {
+            console.log(`   ⏭️ ChatID inválido: ${chatId}`);
+          }
+        }
+
+        console.log(`🎯 Total final de contatos: ${contacts.length}`);
+
+      } catch (contactError) {
+        console.log('❌ Erro ao extrair contatos:', contactError.message);
+        console.error(contactError.stack);
+      }
+    }
+
+    console.log('🎉 Debug concluído:', { contacts: contacts.length, messages: messages.length });
+
+    res.json({
+      success: true,
+      instanceId,
+      importType,
+      contacts,
+      messages,
+      totalContacts: contacts.length,
+      totalMessages: messages.length,
+      timestamp: new Date().toISOString(),
+      nextBatchAvailable: false,
+      storeInfo: {
+        totalContactsInStore: Object.keys(socketStore.contacts || {}).length,
+        totalChatsInStore: Object.keys(socketStore.chats || {}).length,
+        storeAvailable: true
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Erro geral:', error.message);
+    console.error('Stack:', error.stack);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});app.post('/instance/:instanceId/import-history', async (req, res) => {
+  try {
+    const { instanceId } = req.params;
+    const { importType = 'both', batchSize = 10, lastSyncTimestamp } = req.body;
+
+    console.log('Import History solicitação:', { instanceId, importType, batchSize });
+
+    // BUSCAR INSTÂNCIA - COMPATÍVEL COM QUALQUER ESTRUTURA
+    let instance = null;
+
+    // Tentar diferentes formas de acessar instances
+    if (typeof instances !== 'undefined') {
+      if (instances && typeof instances.get === 'function') {
+        // instances é Map
+        instance = instances.get(instanceId);
+        console.log('📍 Usando instances como Map');
+      } else if (instances && typeof instances === 'object') {
+        // instances é Object
+        instance = instances[instanceId];
+        console.log('📍 Usando instances como Object');
+      }
+    }
+
+    // Fallback: procurar em estruturas globais
+    if (!instance && typeof global !== 'undefined') {
+      if (global.instances) {
+        instance = global.instances[instanceId] || global.instances.get?.(instanceId);
+      }
+    }
+
+    if (!instance) {
+      console.log('❌ Instância não encontrada:', instanceId);
+      console.log('📊 Debug instances:', typeof instances, Object.keys(instances || {}));
+      return res.status(404).json({
+        success: false,
+        error: 'Instância não encontrada',
+        debug: {
+          instanceId,
+          instancesType: typeof instances,
+          availableInstances: instances ? Object.keys(instances) : []
+        }
+      });
+    }
+
+    console.log('✅ Instância encontrada:', instanceId);
+
+    // GARANTIR SOCKETSTORE
+    let socketStore = null;
+
+    if (instance.socket && instance.socket.store) {
+      socketStore = instance.socket.store;
+      console.log('📍 Usando instance.socket.store');
+    } else if (typeof store !== 'undefined' && store) {
+      socketStore = store;
+      console.log('📍 Usando store global');
+    } else if (instance.store) {
+      socketStore = instance.store;
+      console.log('📍 Usando instance.store');
+    }
+
+    if (!socketStore) {
+      console.log('❌ Store não disponível');
+      return res.status(500).json({
+        success: false,
+        error: 'Store não disponível',
+        storeInfo: { storeAvailable: false }
+      });
+    }
+
+    console.log('✅ Store disponível');
+
+    let contacts = [];
+    let messages = [];
+
+    // EXTRAIR CONTATOS DOS CHATS
+    if (importType === 'contacts' || importType === 'both') {
+      try {
+        const chatsFromStore = socketStore.chats || {};
+
+        console.log('📊 Análise do store:', {
+          totalChats: Object.keys(chatsFromStore).length,
+          storeContacts: Object.keys(socketStore.contacts || {}).length
+        });
+
+        for (const [chatKey, chatData] of Object.entries(chatsFromStore)) {
+          if (contacts.length >= batchSize) break;
+
+          if (!chatData || typeof chatData !== 'object') continue;
+
+          const chatId = chatData.id || chatKey;
+
+          console.log('🔍 Analisando chat:', chatKey, '->', chatId);
+
+          if (chatId && typeof chatId === 'string') {
+            if ((chatId.includes('@s.whatsapp.net') || chatId.includes('@c.us')) &&
+                !chatId.includes('@g.us') &&
+                !chatId.includes('status@broadcast')) {
+
+              const phone = chatId.split('@')[0];
+              let contactName = 'Lead-' + phone.substring(phone.length - 4);
+
+              if (chatData.name && chatData.name.trim()) {
+                contactName = chatData.name.trim();
+              } else if (chatData.notify && chatData.notify.trim()) {
+                contactName = chatData.notify.trim();
+              }
+
+              contacts.push({
+                from: chatId,
+                name: contactName,
+                phone: phone,
+                profileName: contactName,
+                instanceId: instanceId,
+                source: 'chat_extraction'
+              });
+
+              console.log('✅ Contato extraído:', contactName, phone);
+            } else {
+              console.log('⏭️ Chat ignorado (grupo/status):', chatId);
+            }
+          }
+        }
+
+        console.log('🎯 Total de contatos extraídos:', contacts.length);
+
+      } catch (contactError) {
+        console.log('❌ Erro ao extrair contatos:', contactError.message);
+        console.error(contactError.stack);
+      }
+    }
+
+    // EXTRAIR MENSAGENS BILATERAL - MÉTODO CORRIGIDO
+    if (importType === 'messages' || importType === 'both') {
+      try {
+        console.log('💬 Iniciando extração BILATERAL de mensagens...');
+
+        // ESTRATÉGIA 1: Usar socket.loadMessages se disponível
+        if (instance.socket && typeof instance.socket.loadMessages === 'function') {
+          console.log('📥 Tentando usar socket.loadMessages...');
+          
+          try {
+            const chatIds = Object.keys(socketStore.chats || {}).filter(id => 
+              (id.includes('@s.whatsapp.net') || id.includes('@c.us')) && !id.includes('@g.us')
+            );
+
+            for (const chatId of chatIds.slice(0, Math.min(5, batchSize))) {
+              if (messages.length >= batchSize) break;
+
+              try {
+                const chatMessages = await instance.socket.loadMessages(chatId, 10);
+                
+                if (Array.isArray(chatMessages)) {
+                  for (const msg of chatMessages.slice(-5)) {
+                    if (messages.length >= batchSize) break;
+
+                    if (msg && msg.key && msg.message) {
+                      const messageText = msg.message.conversation ||
+                                         msg.message.extendedTextMessage?.text ||
+                                         msg.message.imageMessage?.caption ||
+                                         msg.message.videoMessage?.caption ||
+                                         '[Mídia]';
+
+                      messages.push({
+                        messageId: msg.key.id,
+                        from: msg.key.remoteJid || chatId,
+                        fromMe: !!msg.key.fromMe,
+                        body: messageText,
+                        timestamp: msg.messageTimestamp ?
+                                  new Date(msg.messageTimestamp * 1000).toISOString() :
+                                  new Date().toISOString(),
+                        messageType: Object.keys(msg.message)[0] || 'text',
+                        instanceId: instanceId,
+                        chatId: chatId,
+                        direction: msg.key.fromMe ? 'outgoing' : 'incoming',
+                        source: 'socket_loadMessages'
+                      });
+
+                      console.log(`✅ Mensagem ${msg.key.fromMe ? 'ENVIADA' : 'RECEBIDA'}: ${messageText.substring(0, 30)}`);
+                    }
+                  }
+                }
+              } catch (chatError) {
+                console.log(`⚠️ Erro ao carregar mensagens do chat ${chatId}`);
+              }
+            }
+          } catch (loadError) {
+            console.log('⚠️ socket.loadMessages falhou, tentando método alternativo');
+          }
+        }
+
+        // ESTRATÉGIA 2: Usar socketStore.messages se disponível
+        if (messages.length === 0) {
+          console.log('📦 Tentando usar socketStore.messages...');
+          
+          const messagesStore = socketStore.messages || {};
+          console.log(`📊 SocketStore.messages tem ${Object.keys(messagesStore).length} chaves`);
+
+          // Se messages é um Map
+          if (messagesStore instanceof Map) {
+            console.log('🗺️ SocketStore.messages é um Map');
+            
+            for (const [chatId, chatMessages] of messagesStore) {
+              if (messages.length >= batchSize) break;
+
+              if (chatId && (chatId.includes('@s.whatsapp.net') || chatId.includes('@c.us')) &&
+                  !chatId.includes('@g.us')) {
+
+                if (Array.isArray(chatMessages)) {
+                  const recentMessages = chatMessages.slice(-5);
+
+                  for (const msg of recentMessages) {
+                    if (messages.length >= batchSize) break;
+
+                    if (msg && msg.key && msg.message) {
+                      const messageText = msg.message.conversation ||
+                                         msg.message.extendedTextMessage?.text ||
+                                         msg.message.imageMessage?.caption ||
+                                         '[Mídia]';
+
+                      messages.push({
+                        messageId: msg.key.id,
+                        from: msg.key.remoteJid || chatId,
+                        fromMe: !!msg.key.fromMe,
+                        body: messageText,
+                        timestamp: msg.messageTimestamp ?
+                                  new Date(msg.messageTimestamp * 1000).toISOString() :
+                                  new Date().toISOString(),
+                        messageType: Object.keys(msg.message)[0] || 'text',
+                        instanceId: instanceId,
+                        chatId: chatId,
+                        direction: msg.key.fromMe ? 'outgoing' : 'incoming',
+                        source: 'store_messages_map'
+                      });
+
+                      console.log(`✅ Mensagem ${msg.key.fromMe ? 'ENVIADA' : 'RECEBIDA'}: ${messageText.substring(0, 30)}`);
+                    }
+                  }
+                }
+              }
+            }
+          }
+          // Se messages é um objeto normal
+          else if (typeof messagesStore === 'object') {
+            console.log('📋 SocketStore.messages é um objeto');
+            
+            for (const [chatId, chatMessages] of Object.entries(messagesStore)) {
+              if (messages.length >= batchSize) break;
+
+              if (chatId && (chatId.includes('@s.whatsapp.net') || chatId.includes('@c.us')) &&
+                  !chatId.includes('@g.us')) {
+
+                if (Array.isArray(chatMessages)) {
+                  const recentMessages = chatMessages.slice(-5);
+
+                  for (const msg of recentMessages) {
+                    if (messages.length >= batchSize) break;
+
+                    if (msg && msg.key && msg.message) {
+                      const messageText = msg.message.conversation ||
+                                         msg.message.extendedTextMessage?.text ||
+                                         msg.message.imageMessage?.caption ||
+                                         '[Mídia]';
+
+                      messages.push({
+                        messageId: msg.key.id,
+                        from: msg.key.remoteJid || chatId,
+                        fromMe: !!msg.key.fromMe,
+                        body: messageText,
+                        timestamp: msg.messageTimestamp ?
+                                  new Date(msg.messageTimestamp * 1000).toISOString() :
+                                  new Date().toISOString(),
+                        messageType: Object.keys(msg.message)[0] || 'text',
+                        instanceId: instanceId,
+                        chatId: chatId,
+                        direction: msg.key.fromMe ? 'outgoing' : 'incoming',
+                        source: 'store_messages_object'
+                      });
+
+                      console.log(`✅ Mensagem ${msg.key.fromMe ? 'ENVIADA' : 'RECEBIDA'}: ${messageText.substring(0, 30)}`);
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // ESTRATÉGIA 3: Usar getChatMessages se disponível
+        if (messages.length === 0 && instance.socket && typeof instance.socket.getChatMessages === 'function') {
+          console.log('📨 Tentando usar socket.getChatMessages...');
+          
+          const chatIds = Object.keys(socketStore.chats || {}).filter(id => 
+            (id.includes('@s.whatsapp.net') || id.includes('@c.us')) && !id.includes('@g.us')
+          );
+
+          for (const chatId of chatIds.slice(0, 3)) {
+            if (messages.length >= batchSize) break;
+
+            try {
+              const chatMessages = await instance.socket.getChatMessages(chatId, 5);
+              
+              if (Array.isArray(chatMessages)) {
+                for (const msg of chatMessages) {
+                  if (messages.length >= batchSize) break;
+
+                  if (msg && msg.key && msg.message) {
+                    const messageText = msg.message.conversation ||
+                                       msg.message.extendedTextMessage?.text ||
+                                       '[Mídia]';
+
+                    messages.push({
+                      messageId: msg.key.id,
+                      from: msg.key.remoteJid || chatId,
+                      fromMe: !!msg.key.fromMe,
+                      body: messageText,
+                      timestamp: msg.messageTimestamp ?
+                                new Date(msg.messageTimestamp * 1000).toISOString() :
+                                new Date().toISOString(),
+                      messageType: Object.keys(msg.message)[0] || 'text',
+                      instanceId: instanceId,
+                      chatId: chatId,
+                      direction: msg.key.fromMe ? 'outgoing' : 'incoming',
+                      source: 'socket_getChatMessages'
+                    });
+
+                    console.log(`✅ Mensagem ${msg.key.fromMe ? 'ENVIADA' : 'RECEBIDA'}: ${messageText.substring(0, 30)}`);
+                  }
+                }
+              }
+            } catch (chatError) {
+              console.log(`⚠️ Erro ao obter mensagens do chat ${chatId}`);
+            }
+          }
+        }
+
+        console.log(`🎯 Total de mensagens BILATERAIS extraídas: ${messages.length}`);
+
+      } catch (messageError) {
+        console.log('❌ Erro ao extrair mensagens:', messageError.message);
+        console.error(messageError.stack);
+      }
+    }
+
+    console.log('🎉 Importação concluída:', { contacts: contacts.length, messages: messages.length });
+
+    res.json({
+      success: true,
+      instanceId,
+      importType,
+      contacts,
+      messages,
+      totalContacts: contacts.length,
+      totalMessages: messages.length,
+      timestamp: new Date().toISOString(),
+      nextBatchAvailable: false,
+      storeInfo: {
+        totalContactsInStore: Object.keys(socketStore.contacts || {}).length,
+        totalChatsInStore: Object.keys(socketStore.chats || {}).length,
+        storeAvailable: true
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Erro geral na importação:', error.message);
+    console.error('Stack completo:', error.stack);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});app.post('/instance/:instanceId/import-history', async (req, res) => {
+  try {
+    const { instanceId } = req.params;
+    const { importType = 'both', batchSize = 10, lastSyncTimestamp } = req.body;
+
+    console.log('Import History solicitação:', { instanceId, importType, batchSize });
+
+    const instance = instances.get(instanceId);
+    if (!instance) {
+      return res.status(404).json({ success: false, error: 'Instância não encontrada' });
+    }
+
+    // Garantir socketStore definido
+    const socketStore = instance.socket?.store || store;
+    if (!socketStore) {
+      return res.status(500).json({
+        success: false,
+        error: 'Store não disponível',
+        storeInfo: { storeAvailable: false }
+      });
+    }
+
+    let contacts = [];
+    let messages = [];
+
+    // EXTRAIR CONTATOS DOS CHATS
+    if (importType === 'contacts' || importType === 'both') {
+      try {
+        const chatsFromStore = socketStore.chats || {};
+
+        console.log('Análise do store:', {
+          totalChats: Object.keys(chatsFromStore).length,
+          storeContacts: Object.keys(socketStore.contacts || {}).length
+        });
+
+        for (const [chatKey, chatData] of Object.entries(chatsFromStore)) {
+          if (contacts.length >= batchSize) break;
+
+          if (!chatData || typeof chatData !== 'object') continue;
+
+          const chatId = chatData.id || chatKey;
+
+          if (chatId && typeof chatId === 'string') {
+            if ((chatId.includes('@s.whatsapp.net') || chatId.includes('@c.us')) &&
+                !chatId.includes('@g.us') &&
+                !chatId.includes('status@broadcast')) {
+
+              const phone = chatId.split('@')[0];
+              let contactName = 'Lead-' + phone.substring(phone.length - 4);
+
+              if (chatData.name && chatData.name.trim()) {
+                contactName = chatData.name.trim();
+              } else if (chatData.notify && chatData.notify.trim()) {
+                contactName = chatData.notify.trim();
+              }
+
+              contacts.push({
+                from: chatId,
+                name: contactName,
+                phone: phone,
+                profileName: contactName,
+                instanceId: instanceId,
+                source: 'chat_extraction'
+              });
+
+              console.log('✅ Contato extraído:', contactName, phone);
+            }
+          }
+        }
+
+      } catch (contactError) {
+        console.log('❌ Erro ao extrair contatos:', contactError.message);
+      }
+    }
+
+    // EXTRAIR MENSAGENS DOS CHATS
+    if (importType === 'messages' || importType === 'both') {
+      try {
+        const chatsFromStore = socketStore.chats || {};
+        const messagesStore = socketStore.messages || {};
+
+        for (const [chatId, chatData] of Object.entries(chatsFromStore)) {
+          if (messages.length >= batchSize) break;
+
+          if (chatId && (chatId.includes('@s.whatsapp.net') || chatId.includes('@c.us')) &&
+              !chatId.includes('@g.us')) {
+
+            const chatMessages = messagesStore[chatId] || [];
+
+            if (Array.isArray(chatMessages)) {
+              const recentMessages = chatMessages.slice(-3);
+
+              for (const msg of recentMessages) {
+                if (messages.length >= batchSize) break;
+
+                if (msg && msg.key && msg.message) {
+                  const messageText = msg.message.conversation ||
+                                     msg.message.extendedTextMessage?.text ||
+                                     '[Mídia]';
+
+                  messages.push({
+                    messageId: msg.key.id,
+                    from: msg.key.remoteJid || chatId,
+                    fromMe: !!msg.key.fromMe,
+                    body: messageText,
+                    timestamp: msg.messageTimestamp ?
+                              new Date(msg.messageTimestamp * 1000).toISOString() :
+                              new Date().toISOString(),
+                    messageType: Object.keys(msg.message)[0] || 'text',
+                    instanceId: instanceId,
+                    chatId: chatId
+                  });
+
+                  console.log('✅ Mensagem extraída:', messageText.substring(0, 30));
+                }
+              }
+            }
+          }
+        }
+
+      } catch (messageError) {
+        console.log('❌ Erro ao extrair mensagens:', messageError.message);
+      }
+    }
+
+    console.log('🎉 Importação concluída:', { contacts: contacts.length, messages: messages.length });
+
+    res.json({
+      success: true,
+      instanceId,
+      importType,
+      contacts,
+      messages,
+      totalContacts: contacts.length,
+      totalMessages: messages.length,
+      timestamp: new Date().toISOString(),
+      nextBatchAvailable: false,
+      storeInfo: {
+        totalContactsInStore: Object.keys(socketStore.contacts || {}).length,
+        totalChatsInStore: Object.keys(socketStore.chats || {}).length,
+        storeAvailable: true
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Erro geral na importação:', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});app.post('/instance/:instanceId/import-history', async (req, res) => {
+  const { instanceId } = req.params;
+  const { importType = 'both', batchSize = 50, lastSyncTimestamp } = req.body;
+
+  console.log(`[Import History] 📥 Solicitação para ${instanceId}:`, { importType, batchSize, lastSyncTimestamp });
+
+  const instance = instances[instanceId];
+
+  if (!instance) {
+    return res.status(404).json({
+      success: false,
+      error: 'Instância não encontrada',
+      instanceId
+    });
+  }
+
+  if (!instance.connected || !instance.socket) {
+    return res.status(400).json({
+      success: false,
+      error: 'Instância não está conectada',
+      status: instance.status,
+      instanceId
+    });
+  }
+
+  try {
+    const socket = instance.socket;
+    const contacts = [];
+    const messages = [];
+
+    // IMPORTAR CONTATOS - COM FILTROS CORRIGIDOS
+    if (importType === 'contacts' || importType === 'both') {
+      try {
+        console.log(`[Import History] 👥 Obtendo contatos reais para ${instanceId}...`);
+
+        // EXTRAÇÃO COMPLETA DE CONTATOS DOS CHATS
+        const storeContacts = socketStore.contacts || {};
+        const chatsFromStore = socketStore.chats || {};
+        const messagesStore = socketStore.messages || {};
+
+        console.log(`[Import History] 📊 Análise completa do store:`);
+        console.log(`   - Store contacts: ${Object.keys(storeContacts).length}`);
+        console.log(`   - Chats totais: ${Object.keys(chatsFromStore).length}`);
+        console.log(`   - Messages: ${Object.keys(messagesStore).length}`);
+
+        let importContactCount = 0;
+        const processedContactIds = new Set();
+
+        // EXTRAIR CONTATOS DOS CHATS (onde realmente estão os dados)
+        for (const [chatKey, chatData] of Object.entries(chatsFromStore)) {
+          if (importContactCount >= batchSize) break;
+
+          // Pular se não for objeto válido
+          if (!chatData || typeof chatData !== 'object') continue;
+
+          const chatId = chatData.id || chatKey;
+
+          console.log(`[Import History] 🔍 Analisando chat: ${chatKey} -> ${chatId}`);
+
+          if (chatId && typeof chatId === 'string') {
+            // Filtrar apenas contatos individuais (não grupos nem status)
+            if ((chatId.includes('@s.whatsapp.net') || chatId.includes('@c.us')) &&
+                !chatId.includes('@g.us') &&
+                !chatId.includes('status@broadcast') &&
+                chatId !== 'key' && chatId !== 'idGetter' && chatId !== 'dict') {
+
+              if (!processedContactIds.has(chatId)) {
+                const phone = chatId.split('@')[0];
+
+                // Extrair nome do contato
+                let contactName = `Lead-${phone.substring(phone.length - 4)}`;
+
+                if (chatData.name && chatData.name.trim() !== '') {
+                  contactName = chatData.name.trim();
+                } else if (chatData.notify && chatData.notify.trim() !== '') {
+                  contactName = chatData.notify.trim();
+                } else if (chatData.verifiedName && chatData.verifiedName.trim() !== '') {
+                  contactName = chatData.verifiedName.trim();
+                }
+
+                const contactObj = {
+                  from: chatId,
+                  name: contactName,
+                  phone: phone,
+                  profileName: chatData.verifiedName || contactName,
+                  instanceId: instanceId,
+                  source: 'chat_extraction',
+                  chatData: {
+                    unreadCount: chatData.unreadCount || 0,
+                    lastMessageTime: chatData.lastMessageTime || null,
+                    isGroup: false
+                  }
+                };
+
+                contacts.push(contactObj);
+                processedContactIds.add(chatId);
+                importContactCount++;
+
+                console.log(`[Import History] ✅ Contato extraído: ${contactName} (${phone}) de ${chatId}`);
+              }
+            } else {
+              console.log(`[Import History] ⏭️ Chat ignorado (grupo/status): ${chatId}`);
+            }
+          }
+        }
+
+        console.log(`[Import History] 🎉 ${contacts.length} contatos extraídos dos chats`);
+      } catch (contactError) {
+        console.error(`[Import History] ❌ Erro ao obter contatos:`, contactError);
+      }
+    }
+
+    // IMPORTAR MENSAGENS - COM FILTROS CORRIGIDOS
+    if (importType === 'messages' || importType === 'both') {
+      try {
+        console.log(`[Import History] 💬 Obtendo mensagens reais para ${instanceId}...`);
+
+        const store = socket.store || {};
+        const chatsFromStore = socketStore.chats || {};
+
+        console.log(`[Import History] 📊 Total de chats no store: ${Object.keys(chatsFromStore).length}`);
+
+        let messageCount = 0;
+        const processedChats = Object.values(chatsFromStore)
+          .filter(chat => !chat.id.includes('@g.us')) // CORREÇÃO: Excluir grupos
+          .slice(0, 10);
+
+        for (const chat of processedChats) {
+          if (messageCount >= batchSize) break;
+
+          try {
+            const chatMessages = socketStore.messages?.[chat.id] || [];
+            const recentMessages = Array.from(chatMessages.values()).slice(-10);
+
+            for (const msg of recentMessages) {
+              if (messageCount >= batchSize) break;
+
+              if (msg.message && msg.key) {
+                const messageText = msg.message.conversation ||
+                                 msg.message.extendedTextMessage?.text ||
+                                 msg.message.imageMessage?.caption ||
+                                 msg.message.videoMessage?.caption ||
+                                 '[Mídia]';
+
+                if (lastSyncTimestamp && msg.messageTimestamp) {
+                  const msgTime = new Date(msg.messageTimestamp * 1000);
+                  const syncTime = new Date(lastSyncTimestamp);
+                  if (msgTime <= syncTime) continue;
+                }
+
+                messages.push({
+                  messageId: msg.key.id,
+                  from: msg.key.remoteJid,
+                  fromMe: !!msg.key.fromMe,
+                  body: messageText,
+                  timestamp: msg.messageTimestamp ?
+                            new Date(msg.messageTimestamp * 1000).toISOString() :
+                            new Date().toISOString(),
+                  messageType: Object.keys(msg.message)[0] || 'text',
+                  instanceId: instanceId,
+                  chatId: chat.id
+                });
+
+                messageCount++;
+              }
+            }
+          } catch (chatError) {
+            console.error(`[Import History] ⚠️ Erro ao processar chat ${chat.id}:`, chatError.message);
+          }
+        }
+
+        console.log(`[Import History] ✅ ${messages.length} mensagens reais obtidas`);
+      } catch (messageError) {
+        console.error(`[Import History] ❌ Erro ao obter mensagens:`, messageError);
+      }
+    }
+
+    const response = {
+      success: true,
+      instanceId,
+      importType,
+      contacts: contacts,
+      messages: messages,
+      totalContacts: contacts.length,
+      totalMessages: messages.length,
+      timestamp: new Date().toISOString(),
+      nextBatchAvailable: contacts.length >= batchSize || messages.length >= batchSize,
+      storeInfo: {
+        totalContactsInStore: Object.keys(instance.socket?.store?.contacts || {}).length,
+        totalChatsInStore: Object.keys(instance.socket?.store?.chats || {}).length,
+        storeAvailable: !!instance.socket?.store
+      }
+    };
+
+    console.log(`[Import History] 🎉 Importação REAL concluída para ${instanceId}:`, {
+      contacts: contacts.length,
+      messages: messages.length,
+      storeAvailable: !!instance.socket?.store
+    });
+
+    res.json(response);
+
+  } catch (error) {
+    console.error(`[Import History] ❌ Erro geral na importação:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno na importação de histórico',
+      message: error.message,
+      instanceId,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Deletar instância
+app.post('/instance/delete', (req, res) => {
+  const { instanceId } = req.body;
+
+  if (!instanceId) {
+    return res.status(400).json({
+      success: false,
+      error: 'instanceId é obrigatório'
+    });
+  }
+
+  if (instances[instanceId]) {
+    if (instances[instanceId].socket) {
+      instances[instanceId].socket.end();
+    }
+    delete instances[instanceId];
+
+    const authDir = path.join(AUTH_DIR, instanceId);
+    if (fs.existsSync(authDir)) {
+      fs.rmSync(authDir, { recursive: true });
+    }
+
+    res.json({
+      success: true,
+      message: 'Instância deletada com sucesso'
+    });
+  } else {
+    res.status(404).json({
+      success: false,
+      error: 'Instância não encontrada'
+    });
+  }
+});
+
+// Deletar instância (método alternativo)
+
+// ENDPOINT DEBUG - VERIFICAR STORE
+app.get('/debug/store/:instanceId', (req, res) => {
+  try {
+    const { instanceId } = req.params;
+    const instance = instances[instanceId];
+
+    if (!instance) {
+      return res.status(404).json({ error: 'Instância não encontrada' });
+    }
+
+    const socketStore = instance.socket?.store || store;
+
+    res.json({
+      success: true,
+      instanceId,
+      storeInfo: {
+        storeAvailable: !!socketStore,
+        totalContacts: Object.keys(socketStore.contacts || {}).length,
+        totalChats: Object.keys(socketStore.chats || {}).length,
+        totalMessages: Object.keys(socketStore.messages || {}).length,
+        contactSample: Object.keys(socketStore.contacts || {}).slice(0, 3),
+        chatSample: Object.keys(socketStore.chats || {}).slice(0, 3)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao verificar store', message: error.message });
+  }
+});
+
+app.delete('/instance/:instanceId', (req, res) => {
+  const { instanceId } = req.params;
+
+  if (instances[instanceId]) {
+    if (instances[instanceId].socket) {
+      instances[instanceId].socket.end();
+    }
+    delete instances[instanceId];
+
+    const authDir = path.join(AUTH_DIR, instanceId);
+    if (fs.existsSync(authDir)) {
+      fs.rmSync(authDir, { recursive: true });
+    }
+  }
+
+  res.json({
+    success: true,
+    message: 'Instância removida'
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('🛑 Encerrando servidor...');
+  Object.values(instances).forEach(instance => {
+    if (instance.socket) {
+      instance.socket.end();
+    }
+  });
+  process.exit(0);
+});
+
+// Tratamento de erros globais
+process.on('uncaughtException', (error) => {
+  console.error('🚨 Erro não capturado:', error);
+  // Não encerrar o processo, apenas logar
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🚨 Promise rejeitada não tratada:', reason);
+  // Não encerrar o processo, apenas logar
+});
+
+// Configuração do servidor com timeouts
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Servidor WhatsApp rodando na porta ${PORT}`);
+  console.log(`📡 Supabase Webhooks configurados:`);
+  console.log(`   📱 QR: ${SUPABASE_WEBHOOKS.QR_RECEIVER}`);
+  console.log(`   🔄 Sync Instances: ${SUPABASE_WEBHOOKS.AUTO_SYNC_INSTANCES}`);
+  console.log(`   ✅ Connection: ${SUPABASE_WEBHOOKS.AUTO_WHATSAPP_SYNC}`);
+  console.log(`   💬 Messages: ${SUPABASE_WEBHOOKS.MESSAGE_RECEIVER}`);
+  console.log(`🛡️ Crypto: ${typeof crypto !== 'undefined' ? 'DISPONÍVEL' : 'INDISPONÍVEL'}`);
+  console.log(`⚡ Edge Functions: ${Object.keys(SUPABASE_WEBHOOKS).length} endpoints públicos`);
+  console.log(`🆕 Endpoints disponíveis:`);
+  console.log(`   GET /health - Health check`);
+  console.log(`   GET /status - Status do servidor`);
+  console.log(`   GET /instances - Listar instâncias`);
+  console.log(`   POST /instance/create - Criar instância`);
+  console.log(`   GET /instance/:id/qr - Obter QR Code`);
+  console.log(`   GET /instance/:id - Status da instância`);
+  console.log(`   POST /send - Enviar mensagem`);
+  console.log(`   POST /instance/:id/import-history - Importar histórico`);
+  console.log(`   POST /instance/delete - Deletar instância`);
+  console.log(`📁 Auth Dir: ${AUTH_DIR}`);
+});
+
+// RECONEXÃO AUTOMÁTICA DE INSTÂNCIAS
+setTimeout(() => {
+  const savedInstances = Object.keys(instances);
+  if (savedInstances.length > 0) {
+    console.log(`🔄 Reconectando ${savedInstances.length} instâncias salvas...`);
+    savedInstances.forEach(instanceId => {
+      console.log(`🔌 Reconectando instância: ${instanceId}`);
+      createWhatsAppInstance(instanceId, instances[instanceId].createdByUserId);
+    });
+  } else {
+    console.log('📝 Nenhuma instância salva para reconectar');
+  }
+}, 5000);
+
+// Configurações de timeout do servidor
+server.timeout = 30000; // 30 segundos
+server.keepAliveTimeout = 5000; // 5 segundos
+server.headersTimeout = 6000; // 6 segundos
+
+console.log(`⏱️ Servidor configurado com timeouts:`)
+console.log(`   📡 Request timeout: 30s`)
+console.log(`   🔄 Keep alive: 5s`)
+console.log(`   📝 Headers timeout: 6s`);
+// 🔍 DEBUG INVESTIGATIVO COMPLETO - ESTRUTURA DE MENSAGENS
+
+// Função para investigar estrutura das mensagens
+function investigarEstruturaMensagens(instanceName) {
+    console.log('\n🔍 === DEBUG INVESTIGATIVO COMPLETO - MENSAGENS ===');
+
+    try {
+        // Buscar a instância
+        const instance = instances?.get?.(instanceName) || instances?.[instanceName];
+
+        if (!instance) {
+            console.log('❌ Instância não encontrada:', instanceName);
+            return { error: 'Instância não encontrada' };
+        }
+
+        // Pegar o socketStore
+        const socketStore = instance.socketStore || instance.store || instance;
+
+        if (!socketStore) {
+            console.log('❌ socketStore não disponível');
+            return { error: 'socketStore não disponível' };
+        }
+
+        const resultado = {
+            estrutura_geral: {},
+            mensagens_detalhadas: {},
+            tipos_encontrados: {},
+            amostras_completas: [],
+            estatisticas: {}
+        };
+
+        // 📊 ANÁLISE DA ESTRUTURA GERAL
+        console.log('\n📊 === ESTRUTURA GERAL DO SOCKETSTORE ===');
+        console.log('Propriedades principais:', Object.keys(socketStore));
+
+        resultado.estrutura_geral = {
+            propriedades_principais: Object.keys(socketStore),
+            tem_messages: !!socketStore.messages,
+            tipo_messages: typeof socketStore.messages,
+            tem_chats: !!socketStore.chats,
+            tipo_chats: typeof socketStore.chats
+        };
+
+        // 🔍 INVESTIGAÇÃO PROFUNDA DAS MENSAGENS
+        console.log('\n🔍 === INVESTIGAÇÃO PROFUNDA - socketStore.messages ===');
+
+        if (socketStore.messages) {
+            console.log('Tipo de socketStore.messages:', typeof socketStore.messages);
+            console.log('É array?', Array.isArray(socketStore.messages));
+            console.log('É Map?', socketStore.messages instanceof Map);
+            console.log('Construtor:', socketStore.messages.constructor.name);
+
+            // Se for objeto, mostrar chaves
+            if (typeof socketStore.messages === 'object' && !Array.isArray(socketStore.messages)) {
+                const chaves = Object.keys(socketStore.messages);
+                console.log('Número de chaves:', chaves.length);
+                console.log('Primeiras 5 chaves:', chaves.slice(0, 5));
+
+                resultado.mensagens_detalhadas = {
+                    total_chaves: chaves.length,
+                    primeiras_chaves: chaves.slice(0, 5),
+                    exemplo_estrutura_chave: chaves.length > 0 ? chaves[0] : null
+                };
+
+                // 📝 ANÁLISE DETALHADA DE CADA CHAVE
+                let contador_amostras = 0;
+                for (const chave of chaves.slice(0, 5)) {
+                    try {
+                        const valor = socketStore.messages[chave];
+                        console.log(`\n📝 === ANALISANDO CHAVE: ${chave} ===`);
+                        console.log('Tipo do valor:', typeof valor);
+                        console.log('É array?', Array.isArray(valor));
+
+                        if (Array.isArray(valor)) {
+                            console.log('📊 Tamanho do array:', valor.length);
+                            if (valor.length > 0) {
+                                valor.forEach((msg, index) => {
+                                    if (index < 2) { // Apenas primeiras 2 mensagens
+                                        console.log(`\n  📨 === MENSAGEM ${index + 1} ===`);
+                                        console.log('  Propriedades:', Object.keys(msg));
+
+                                        if (msg.key) {
+                                            console.log('  📞 Key ID:', msg.key.id);
+                                            console.log('  📞 Key remoteJid:', msg.key.remoteJid);
+                                            console.log('  📞 Key fromMe:', msg.key.fromMe);
+                                        }
+
+                                        if (msg.message) {
+                                            console.log('  💬 Message keys:', Object.keys(msg.message));
+
+                                            let tipoMsg = 'unknown';
+                                            let conteudo = '';
+
+                                            if (msg.message.conversation) {
+                                                tipoMsg = 'texto';
+                                                conteudo = msg.message.conversation;
+                                            } else if (msg.message.extendedTextMessage) {
+                                                tipoMsg = 'texto_extendido';
+                                                conteudo = msg.message.extendedTextMessage.text;
+                                            } else if (msg.message.imageMessage) {
+                                                tipoMsg = 'imagem';
+                                                conteudo = msg.message.imageMessage.caption || '[IMAGEM]';
+                                            } else if (msg.message.audioMessage) {
+                                                tipoMsg = 'audio';
+                                                conteudo = '[ÁUDIO]';
+                                            } else if (msg.message.videoMessage) {
+                                                tipoMsg = 'video';
+                                                conteudo = msg.message.videoMessage.caption || '[VÍDEO]';
+                                            } else if (msg.message.documentMessage) {
+                                                tipoMsg = 'documento';
+                                                conteudo = `[DOC: ${msg.message.documentMessage.fileName || 'sem nome'}]`;
+                                            } else if (msg.message.stickerMessage) {
+                                                tipoMsg = 'sticker';
+                                                conteudo = '[STICKER]';
+                                            }
+
+                                            console.log('  🎯 Tipo detectado:', tipoMsg);
+                                            console.log('  📝 Conteúdo:', conteudo.substring(0, 100));
+
+                                            resultado.tipos_encontrados[tipoMsg] = (resultado.tipos_encontrados[tipoMsg] || 0) + 1;
+                                        }
+
+                                        if (msg.messageTimestamp) {
+                                            const data = new Date(msg.messageTimestamp * 1000);
+                                            console.log('  ⏰ Timestamp:', data.toLocaleString('pt-BR'));
+                                        }
+
+                                        if (msg.pushName) {
+                                            console.log('  👤 Nome do remetente:', msg.pushName);
+                                        }
+
+                                        if (contador_amostras < 5) {
+                                            resultado.amostras_completas.push({
+                                                chave: chave,
+                                                index: index,
+                                                tipo: tipoMsg,
+                                                conteudo: conteudo,
+                                                timestamp: msg.messageTimestamp,
+                                                remetente: msg.pushName || 'Desconhecido'
+                                            });
+                                            contador_amostras++;
+                                        }
+                                    }
+                                });
+                            }
+                        } else if (typeof valor === 'object' && valor !== null) {
+                            console.log('📦 Propriedades do objeto:', Object.keys(valor));
+                        }
+                    } catch (err) {
+                        console.log(`❌ Erro ao analisar chave ${chave}:`, err.message);
+                    }
+                }
+            }
+
+            // Se for Map
+            if (socketStore.messages instanceof Map) {
+                console.log('🗺️ É um Map! Tamanho:', socketStore.messages.size);
+                const chaves = Array.from(socketStore.messages.keys());
+                console.log('🗺️ Primeiras chaves:', chaves.slice(0, 5));
+
+                // Analisar entradas do Map
+                let contador = 0;
+                for (const [chave, valor] of socketStore.messages) {
+                    if (contador < 3) {
+                        console.log(`\n🗺️ Map Entry ${contador + 1}: ${chave}`);
+                        console.log('Tipo do valor:', typeof valor);
+                        if (Array.isArray(valor)) {
+                            console.log('Array com', valor.length, 'itens');
+                            if (valor.length > 0) {
+                                const msg = valor[0];
+                                console.log('Primeira mensagem props:', Object.keys(msg));
+                                if (msg.message) {
+                                    console.log('Message props:', Object.keys(msg.message));
+                                }
+                            }
+                        }
+                        contador++;
+                    }
+                }
+            }
+        }
+
+        // 📊 ESTATÍSTICAS FINAIS
+        resultado.estatisticas = {
+            total_tipos_mensagem: Object.keys(resultado.tipos_encontrados).length,
+            distribuicao_tipos: resultado.tipos_encontrados,
+            total_amostras_coletadas: resultado.amostras_completas.length
+        };
+
+        console.log('\n📊 === ESTATÍSTICAS FINAIS ===');
+        console.log('Tipos encontrados:', resultado.tipos_encontrados);
+        console.log('Total amostras:', resultado.amostras_completas.length);
+
+        return resultado;
+
+    } catch (error) {
+        console.log('❌ Erro na investigação:', error);
+        return { error: error.message };
+    }
+}
+
+// 🚀 ENDPOINT DE DEBUG
+app.get('/debug-messages/:instanceName', async (req, res) => {
+    const { instanceName } = req.params;
+
+    console.log(`\n🔍 === INICIANDO DEBUG INVESTIGATIVO - ${instanceName} ===`);
+
+    try {
+        const resultado = investigarEstruturaMensagens(instanceName);
+
+        res.json({
+            success: !resultado.error,
+            instanceName,
+            debug_completo: resultado,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.log('❌ Erro geral no debug:', error);
+        res.json({
+            success: false,
+            error: error.message,
+            instanceName,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// 🎯 ENDPOINT RÁPIDO
+app.get('/quick-debug/:instanceName', async (req, res) => {
+    const { instanceName } = req.params;
+
+    try {
+        const instance = instances?.get?.(instanceName) || instances?.[instanceName];
+
+        if (!instance) {
+            return res.json({ error: 'Instância não encontrada' });
+        }
+
+        const socketStore = instance.socketStore || instance.store || instance;
+
+        if (!socketStore) {
+            return res.json({ error: 'socketStore não encontrado' });
+        }
+
+        const quickInfo = {
+            tem_messages: !!socketStore.messages,
+            tipo_messages: typeof socketStore.messages,
+            chaves_messages: socketStore.messages ? Object.keys(socketStore.messages).length : 0,
+            eh_map: socketStore.messages instanceof Map,
+            eh_array: Array.isArray(socketStore.messages),
+            primeiras_3_chaves: socketStore.messages ? Object.keys(socketStore.messages).slice(0, 3) : [],
+            construtor: socketStore.messages ? socketStore.messages.constructor.name : 'N/A'
+        };
+
+        console.log('🎯 Quick Debug:', quickInfo);
+
+        res.json({
+            success: true,
+            instanceName,
+            quick_info: quickInfo,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        res.json({
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+console.log('🔍 Endpoints de debug adicionados ao servidor');
+// Debug específico para o store Baileys
+app.get('/debug-store/:instanceId', (req, res) => {
+    const { instanceId } = req.params;
+
+    console.log('\n🔍 === DEBUG DO STORE BAILEYS ===');
+    console.log('Instance ID:', instanceId);
+
+    try {
+        const resultado = {
+            store_global: {},
+            mensagens_store: {},
+            chats_store: {},
+            contatos_store: {}
+        };
+
+        // Verificar store global
+        if (typeof store !== 'undefined') {
+            console.log('📦 Store global disponível');
+            resultado.store_global = {
+                tem_messages: !!store.messages,
+                tipo_messages: typeof store.messages,
+                tem_chats: !!store.chats,
+                tipo_chats: typeof store.chats,
+                tem_contacts: !!store.contacts,
+                tipo_contacts: typeof store.contacts
+            };
+
+            // Investigar mensagens no store
+            if (store.messages) {
+                const messageKeys = Object.keys(store.messages);
+                console.log('📨 Chaves de mensagens no store:', messageKeys.length);
+                console.log('📨 Primeiras chaves:', messageKeys.slice(0, 5));
+
+                resultado.mensagens_store = {
+                    total_chaves: messageKeys.length,
+                    primeiras_chaves: messageKeys.slice(0, 5),
+                    tipo_dados: typeof store.messages
+                };
+
+                // Analisar algumas mensagens
+                for (const key of messageKeys.slice(0, 3)) {
+                    const msgs = store.messages[key];
+                    if (Array.isArray(msgs) && msgs.length > 0) {
+                        console.log(`📝 Chave ${key}: ${msgs.length} mensagens`);
+                        const msg = msgs[0];
+                        if (msg.message) {
+                            console.log('💬 Tipo de mensagem:', Object.keys(msg.message));
+                        }
+                    }
+                }
+            }
+
+            // Investigar chats
+            if (store.chats) {
+                const chatKeys = Object.keys(store.chats);
+                console.log('💭 Chats no store:', chatKeys.length);
+                resultado.chats_store = {
+                    total_chats: chatKeys.length,
+                    primeiras_chaves: chatKeys.slice(0, 5)
+                };
+            }
+
+            // Investigar contatos
+            if (store.contacts) {
+                const contactKeys = Object.keys(store.contacts);
+                console.log('👥 Contatos no store:', contactKeys.length);
+                resultado.contatos_store = {
+                    total_contatos: contactKeys.length,
+                    primeiras_chaves: contactKeys.slice(0, 5)
+                };
+            }
+        } else {
+            console.log('❌ Store global não disponível');
+            resultado.error = 'Store global não disponível';
+        }
+
+        res.json({
+            success: true,
+            instanceId,
+            debug_store: resultado,
+            timestamp: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.log('❌ Erro no debug do store:', error);
+        res.json({
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+console.log('🔍 Debug do store adicionado');
+
+// 🔧 CORREÇÃO - Importação de mensagens do store global
+app.post('/instance/:instanceId/import-messages-correto', async (req, res) => {
+    const { instanceId } = req.params;
+
+    console.log(`\n💬 === IMPORTAÇÃO CORRETA DE MENSAGENS - ${instanceId} ===`);
+
+    try {
+        const instance = instances[instanceId];
+        if (!instance) {
+            return res.json({ success: false, error: 'Instância não encontrada' });
+        }
+
+        const mensagensImportadas = [];
+        let totalMensagens = 0;
+        const tiposEncontrados = {};
+
+        // ACESSAR O STORE GLOBAL (onde estão as mensagens reais)
+        if (store && store.messages) {
+            console.log('📦 Acessando store global com', Object.keys(store.messages).length, 'chaves');
+
+            for (const [chatId, mensagens] of Object.entries(store.messages)) {
+                console.log(`\n📱 Processando chat: ${chatId}`);
+                console.log(`📊 Total de mensagens: ${Array.isArray(mensagens) ? mensagens.length : 'não é array'}`);
+
+                // Filtrar apenas chats de WhatsApp (não status@broadcast, etc)
+                if (chatId.includes('@s.whatsapp.net') || chatId.includes('@c.us')) {
+
+                    if (Array.isArray(mensagens)) {
+                        for (const msg of mensagens) {
+                            try {
+                                // Extrair informações da mensagem
+                                const msgData = {
+                                    chatId: chatId,
+                                    messageId: msg.key?.id || `msg_${Date.now()}`,
+                                    from: msg.key?.remoteJid || chatId,
+                                    fromMe: msg.key?.fromMe || false,
+                                    timestamp: msg.messageTimestamp ? new Date(msg.messageTimestamp * 1000).toISOString() : new Date().toISOString(),
+                                    remetente: msg.pushName || 'Desconhecido',
+                                    instanceId: instanceId
+                                };
+
+                                // Detectar tipo e conteúdo da mensagem
+                                let tipoMsg = 'unknown';
+                                let conteudo = '';
+
+                                if (msg.message) {
+                                    if (msg.message.conversation) {
+                                        tipoMsg = 'texto';
+                                        conteudo = msg.message.conversation;
+                                    } else if (msg.message.extendedTextMessage) {
+                                        tipoMsg = 'texto_extendido';
+                                        conteudo = msg.message.extendedTextMessage.text;
+                                    } else if (msg.message.imageMessage) {
+                                        tipoMsg = 'imagem';
+                                        conteudo = msg.message.imageMessage.caption || '[IMAGEM SEM LEGENDA]';
+                                    } else if (msg.message.audioMessage) {
+                                        tipoMsg = 'audio';
+                                        conteudo = '[MENSAGEM DE ÁUDIO]';
+                                        msgData.duracao = msg.message.audioMessage.seconds || 0;
+                                    } else if (msg.message.videoMessage) {
+                                        tipoMsg = 'video';
+                                        conteudo = msg.message.videoMessage.caption || '[VÍDEO SEM LEGENDA]';
+                                    } else if (msg.message.documentMessage) {
+                                        tipoMsg = 'documento';
+                                        conteudo = `[DOCUMENTO: ${msg.message.documentMessage.fileName || 'sem nome'}]`;
+                                    } else if (msg.message.stickerMessage) {
+                                        tipoMsg = 'sticker';
+                                        conteudo = '[STICKER]';
+                                    } else if (msg.message.locationMessage) {
+                                        tipoMsg = 'localizacao';
+                                        conteudo = '[LOCALIZAÇÃO COMPARTILHADA]';
+                                    } else if (msg.message.contactMessage) {
+                                        tipoMsg = 'contato';
+                                        conteudo = `[CONTATO: ${msg.message.contactMessage.displayName || 'sem nome'}]`;
+                                    }
+                                }
+
+                                msgData.tipo = tipoMsg;
+                                msgData.conteudo = conteudo;
+
+                                // Contar tipos
+                                tiposEncontrados[tipoMsg] = (tiposEncontrados[tipoMsg] || 0) + 1;
+
+                                mensagensImportadas.push(msgData);
+                                totalMensagens++;
+
+                                console.log(`  📨 Msg ${totalMensagens}: ${tipoMsg} - ${conteudo.substring(0, 50)}`);
+
+                            } catch (msgError) {
+                                console.log('❌ Erro ao processar mensagem:', msgError.message);
+                            }
+                        }
+                    }
+                } else {
+                    console.log(`  ⏭️  Pulando chat: ${chatId} (não é WhatsApp)`);
+                }
+            }
+        } else {
+            console.log('❌ Store global não disponível ou sem mensagens');
+        }
+
+        console.log(`\n📊 === ESTATÍSTICAS FINAIS ===`);
+        console.log(`Total de mensagens importadas: ${totalMensagens}`);
+        console.log(`Tipos encontrados:`, tiposEncontrados);
+
+        res.json({
+            success: true,
+            instanceId,
+            totalMensagens,
+            mensagensImportadas: mensagensImportadas.slice(0, 10), // Apenas primeiras 10 para não sobrecarregar
+            tiposEncontrados,
+            timestamp: new Date().toISOString(),
+            fonte: 'store_global_baileys'
+        });
+
+    } catch (error) {
+        console.log('❌ Erro na importação de mensagens:', error);
+        res.json({
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+console.log('🔧 Correção de importação de mensagens adicionada');

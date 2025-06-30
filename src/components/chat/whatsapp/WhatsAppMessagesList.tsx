@@ -1,169 +1,259 @@
-
-import { SubtleScrollArea } from "@/components/ui/subtle-scroll-area";
-import { cn } from "@/lib/utils";
-import { Message } from "@/types/chat";
-import { LoadingSpinner } from "@/components/ui/spinner";
-import { Check, CheckCheck } from "lucide-react";
-import { useEffect, useRef } from "react";
+import React, { memo, useMemo, useRef, useEffect, useState } from 'react';
+import { cn } from '@/lib/utils';
+import { Message } from '@/types/chat';
+import { MessageMedia } from './messages/MessageMedia';
 
 interface WhatsAppMessagesListProps {
   messages: Message[];
-  isLoading: boolean;
+  isLoading?: boolean;
+  isLoadingMore?: boolean;
+  hasMoreMessages?: boolean;
+  onLoadMore?: () => Promise<void>;
 }
 
-export const WhatsAppMessagesList = ({ messages, isLoading }: WhatsAppMessagesListProps) => {
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+// SCROLL INTELIGENTE - Detectar scroll para cima para carregar mais mensagens
+const useScrollDetection = (
+  containerRef: React.RefObject<HTMLDivElement>,
+  onLoadMore?: () => Promise<void>,
+  hasMoreMessages = false,
+  isLoadingMore = false
+) => {
+  const [isNearTop, setIsNearTop] = useState(false);
 
-  // Auto-scroll para última mensagem
-  const scrollToBottom = () => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ 
-        behavior: "smooth", 
-        block: "end" 
-      });
-    }
-  };
-
-  // Scroll automático quando novas mensagens chegarem
   useEffect(() => {
-    if (messages.length > 0) {
-      const timer = setTimeout(() => {
-        scrollToBottom();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [messages.length]);
+    const container = containerRef.current;
+    if (!container || !onLoadMore) return;
 
-  if (isLoading && messages.length === 0) {
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isAtTop = scrollTop <= 100; // 100px do topo
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 100; // 100px do final
+
+      setIsNearTop(isAtTop);
+
+      // Carregar mais mensagens quando scroll está próximo do topo
+      if (isAtTop && hasMoreMessages && !isLoadingMore) {
+        // Salvar posição atual antes de carregar mais
+        const currentScrollHeight = scrollHeight;
+        const currentScrollTop = scrollTop;
+
+        onLoadMore().then(() => {
+          // Restaurar posição após carregar novas mensagens
+          setTimeout(() => {
+            const newScrollHeight = container.scrollHeight;
+            const addedHeight = newScrollHeight - currentScrollHeight;
+            container.scrollTop = currentScrollTop + addedHeight;
+          }, 50);
+        });
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [onLoadMore, hasMoreMessages, isLoadingMore]);
+
+  return { isNearTop };
+};
+
+// Componente memoizado para mensagem individual (simples e leve)
+const MessageItem = memo(({ 
+  message, 
+  isNewMessage 
+}: { 
+  message: Message; 
+  isNewMessage: boolean;
+}) => {
+  const isFromMe = message.fromMe || message.sender === "user";
+  
+  // Renderização de conteúdo otimizada
+  const messageContent = useMemo(() => {
+    const isRealMedia = message.mediaType && 
+      message.mediaType !== 'text' && 
+      ['image', 'video', 'audio', 'document'].includes(message.mediaType) &&
+      message.mediaUrl;
+
+    if (!isRealMedia) {
+      return (
+        <div className="space-y-1">
+          {message.text && (
+            <p className={cn(
+              "text-sm leading-relaxed whitespace-pre-wrap break-words",
+              isFromMe ? "text-white" : "text-gray-800"
+            )}>
+              {message.text}
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    // Render mídia com componentes otimizados
     return (
-      <div className="flex-1 flex items-center justify-center bg-white/5 backdrop-blur-sm">
-        <div className="text-center space-y-4">
-          <LoadingSpinner size="lg" />
-          <p className="text-gray-600">Carregando mensagens...</p>
+      <div className="space-y-2">
+        <MessageMedia
+          messageId={message.id}
+          mediaType={message.mediaType as any}
+          mediaUrl={message.mediaUrl}
+          fileName={message.text || undefined}
+        />
+        {message.text && message.text !== '[Mensagem de mídia]' && message.text !== '[Áudio]' && (
+          <p className={cn(
+            "text-sm leading-relaxed whitespace-pre-wrap break-words",
+            isFromMe ? "text-white" : "text-gray-800"
+          )}>
+            {message.text}
+          </p>
+        )}
+      </div>
+    );
+  }, [message.id, message.mediaType, message.mediaUrl, message.text, isFromMe]);
+
+  return (
+    <div className={cn(
+      "flex mb-3 px-4 py-2 transition-all duration-200",
+      isFromMe ? "justify-end" : "justify-start",
+      isNewMessage && "animate-in slide-in-from-bottom-2 duration-300"
+    )}>
+      <div className={cn(
+        "max-w-[80%] md:max-w-[70%] rounded-2xl p-3 shadow-sm",
+        isFromMe 
+          ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-br-md" 
+          : "bg-white text-gray-800 rounded-bl-md border border-gray-100"
+      )}>
+        {messageContent}
+        <div className={cn(
+          "text-xs mt-1 flex items-center justify-end space-x-1",
+          isFromMe ? "text-blue-100" : "text-gray-500"
+        )}>
+          <span>{message.time}</span>
+          {isFromMe && message.status && (
+            <span className={cn(
+              "material-icons text-xs",
+              message.status === 'read' ? 'text-blue-200' : 'text-blue-300'
+            )}>
+              {message.status === 'read' ? '✓✓' : message.status === 'delivered' ? '✓' : '⏱'}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+});
+
+MessageItem.displayName = 'MessageItem';
+
+export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
+  messages,
+  isLoading = false,
+  isLoadingMore = false,
+  hasMoreMessages = false,
+  onLoadMore
+}) => {
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const prevMessagesLengthRef = useRef(messages.length);
+  const isInitialLoadRef = useRef(true);
+
+  // Hook para detectar scroll e carregar mais mensagens
+  const { isNearTop } = useScrollDetection(containerRef, onLoadMore, hasMoreMessages, isLoadingMore);
+
+  // Scroll inteligente - apenas para mensagens novas no final
+  useEffect(() => {
+    const wasNewMessage = messages.length > prevMessagesLengthRef.current;
+    const wasInitialLoad = isInitialLoadRef.current && messages.length > 0;
+    
+    prevMessagesLengthRef.current = messages.length;
+
+    if ((wasNewMessage || wasInitialLoad) && messagesEndRef.current && !isLoadingMore) {
+      // Scroll suave para o final apenas para mensagens novas ou carregamento inicial
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ 
+          behavior: wasInitialLoad ? 'instant' : 'smooth',
+          block: 'end'
+        });
+      }, 100);
+      
+      if (wasInitialLoad) {
+        isInitialLoadRef.current = false;
+      }
+    }
+  }, [messages.length, isLoadingMore]);
+
+  // Memoizar lista de mensagens (ORDEM CORRETA: antigas no topo, recentes no final)
+  const messagesList = useMemo(() => {
+    // Mensagens já vêm na ordem correta do hook (mais antigas primeiro para exibição)
+    const sortedMessages = [...messages].sort((a, b) => 
+      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+
+    return sortedMessages.map((message, index) => {
+      const isNewMessage = index === sortedMessages.length - 1; // Última mensagem é a mais nova
+      
+      return (
+        <MessageItem
+          key={message.id}
+          message={message}
+          isNewMessage={isNewMessage}
+        />
+      );
+    });
+  }, [messages]);
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="flex items-center space-x-2 text-muted-foreground">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+          <span>Carregando mensagens...</span>
         </div>
       </div>
     );
   }
 
-  // SVG pattern para background
-  const watermarkPattern = `data:image/svg+xml;base64,${btoa(`
-    <svg width="120" height="120" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <pattern id="whatsapp-icons" x="0" y="0" width="120" height="120" patternUnits="userSpaceOnUse">
-          <g transform="translate(10, 10)" stroke="currentColor" stroke-width="1" fill="none" opacity="0.03">
-            <path d="m22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-          </g>
-          <g transform="translate(70, 70)" stroke="currentColor" stroke-width="1" fill="none" opacity="0.03">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </g>
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#whatsapp-icons)"/>
-    </svg>
-  `)}`;
+  if (messages.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="text-center text-muted-foreground">
+          <div className="mb-2">💬</div>
+          <p>Nenhuma mensagem ainda</p>
+          <p className="text-sm">Inicie uma conversa!</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex-1 bg-white/5 backdrop-blur-sm relative overflow-hidden">
-      {/* Background pattern */}
-      <div 
-        className="absolute inset-0 opacity-100 text-gray-400"
-        style={{
-          backgroundImage: `url("${watermarkPattern}")`,
-          backgroundRepeat: 'repeat',
-          backgroundSize: '120px 120px'
-        }}
-      />
-      
-      <SubtleScrollArea className="h-full relative z-10 contacts-scrollbar" ref={scrollAreaRef}>
-        <div className="p-4 space-y-3 min-h-full flex flex-col justify-end">
-          {messages.map((message, index) => {
-            const isLastMessage = index === messages.length - 1;
-            const showTimestamp = index === 0 || 
-              (index > 0 && new Date(messages[index - 1].timestamp).getTime() - new Date(message.timestamp).getTime() > 300000); // 5 minutos
-            
-            return (
-              <div key={message.id}>
-                {showTimestamp && (
-                  <div className="flex justify-center my-4">
-                    <span className="bg-white/60 backdrop-blur-sm text-gray-600 text-xs px-3 py-1 rounded-full border border-white/30">
-                      {new Date(message.timestamp).toLocaleDateString('pt-BR', {
-                        weekday: 'short',
-                        day: '2-digit',
-                        month: 'short',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </span>
-                  </div>
-                )}
-                
-                <div
-                  className={cn(
-                    "flex animate-fade-in",
-                    message.isIncoming ? "justify-start" : "justify-end"
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "max-w-[75%] rounded-2xl p-4 shadow-lg relative backdrop-blur-sm transition-all duration-200 hover:scale-[1.02]",
-                      message.isIncoming 
-                        ? "bg-white/70 text-gray-900 rounded-bl-md border border-white/40 hover:bg-white/80" 
-                        : "bg-gradient-to-r from-green-500 to-green-600 text-white rounded-br-md shadow-green-500/25 hover:from-green-600 hover:to-green-700"
-                    )}
-                  >
-                    <p className="break-words leading-relaxed whitespace-pre-wrap">
-                      {message.text}
-                    </p>
-                    
-                    <div className={cn(
-                      "flex items-center justify-end gap-2 mt-2 text-xs",
-                      message.isIncoming ? "text-gray-500" : "text-green-100"
-                    )}>
-                      <span className="font-medium">{message.time}</span>
-                      {!message.isIncoming && (
-                        <div className="ml-1 flex items-center">
-                          {message.status === "sent" && (
-                            <Check className="h-4 w-4 text-green-200" />
-                          )}
-                          {message.status === "delivered" && (
-                            <CheckCheck className="h-4 w-4 text-green-200" />
-                          )}
-                          {message.status === "read" && (
-                            <CheckCheck className="h-4 w-4 text-green-100" />
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-          
-          {/* Loading indicator para mensagens sendo carregadas */}
-          {isLoading && messages.length > 0 && (
-            <div className="flex justify-center py-2">
-              <LoadingSpinner size="sm" />
-            </div>
-          )}
-          
-          {messages.length === 0 && !isLoading && (
-            <div className="flex-1 flex items-center justify-center py-20">
-              <div className="text-center">
-                <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                  <div className="text-4xl">💬</div>
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Inicie uma conversa</h3>
-                <p className="text-gray-600">Envie uma mensagem para começar a conversar</p>
-              </div>
-            </div>
-          )}
-          
-          {/* Elemento invisível para scroll automático */}
-          <div ref={messagesEndRef} />
+    <div 
+      ref={containerRef}
+      className="flex-1 overflow-y-auto pb-4 scroll-smooth"
+      style={{ 
+        scrollBehavior: 'smooth',
+        overflowAnchor: 'none'
+      }}
+    >
+      {/* Indicador de carregamento no topo */}
+      {isLoadingMore && (
+        <div className="flex justify-center py-4">
+          <div className="flex items-center space-x-2 text-xs text-gray-500">
+            <div className="animate-spin rounded-full h-4 w-4 border-b border-gray-400"></div>
+            <span>Carregando mensagens anteriores...</span>
+          </div>
         </div>
-      </SubtleScrollArea>
+      )}
+      
+      {/* Indicador de fim das mensagens */}
+      {!hasMoreMessages && messages.length > 20 && (
+        <div className="flex justify-center py-2">
+          <span className="text-xs text-gray-400">• • • Início da conversa • • •</span>
+        </div>
+      )}
+
+      {messagesList}
+      
+      {/* Elemento para scroll automático */}
+      <div ref={messagesEndRef} />
     </div>
   );
-};
+});
+
+WhatsAppMessagesList.displayName = 'WhatsAppMessagesList';

@@ -1,4 +1,3 @@
-
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { PageLayout } from "@/components/layout/PageLayout";
 import { ModernPageHeader } from "@/components/layout/ModernPageHeader";
@@ -16,6 +15,8 @@ import {
   Settings
 } from "lucide-react";
 import { useState } from "react";
+import { AdminDashboard } from "@/components/admin/AdminDashboard";
+import { PhoneNumberFixer } from "@/components/admin/PhoneNumberFixer";
 
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("sync");
@@ -79,6 +80,9 @@ export default function Admin() {
 
           {/* Aba do Sistema */}
           <TabsContent value="system" className="space-y-6 mt-6">
+            {/* Corretor de Números de Telefone */}
+            <PhoneNumberFixer />
+            
             {/* Link para Página de Testes */}
             <Card className="bg-gradient-to-r from-green-50/30 to-blue-50/30 backdrop-blur-xl rounded-3xl border border-white/30">
               <CardHeader>

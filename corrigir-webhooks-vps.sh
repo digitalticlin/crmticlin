@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 # SCRIPT DE CORREÇÃO: WEBHOOKS VPS → SUPABASE
@@ -213,21 +212,72 @@ app.post('/instance/create', async (req, res) => {
       if (!instance || !instance.connected) return;
 
       for (const message of m.messages) {
-        if (message.key.fromMe) continue; // Ignorar mensagens enviadas por mim
+        // ✅ CORREÇÃO: Permitir tanto incoming quanto outgoing messages
         
-        console.log(`[${instanceId}] 📨 Mensagem recebida:`, message.key.remoteJid);
+        const isOutgoing = message.key.fromMe;
+        const direction = isOutgoing ? 'ENVIADA PARA' : 'RECEBIDA DE';
         
-        // Enviar mensagem para webhook
+        // ✅ EXTRAÇÃO COMPLETA DE DADOS DA MENSAGEM
+        let messageText = '';
+        let mediaType = 'text';
+        let mediaUrl = null;
+        
+        if (message.message) {
+          const msg = message.message;
+          
+          if (msg.conversation) {
+            messageText = msg.conversation;
+            mediaType = 'text';
+          } else if (msg.extendedTextMessage && msg.extendedTextMessage.text) {
+            messageText = msg.extendedTextMessage.text;
+            mediaType = 'text';
+          } else if (msg.imageMessage) {
+            messageText = msg.imageMessage.caption || '[Imagem]';
+            mediaType = 'image';
+            mediaUrl = msg.imageMessage.url || msg.imageMessage.directPath;
+          } else if (msg.videoMessage) {
+            messageText = msg.videoMessage.caption || '[Vídeo]';
+            mediaType = 'video';
+            mediaUrl = msg.videoMessage.url || msg.videoMessage.directPath;
+          } else if (msg.audioMessage) {
+            messageText = '[Áudio]';
+            mediaType = 'audio';
+            mediaUrl = msg.audioMessage.url || msg.audioMessage.directPath;
+          } else if (msg.documentMessage) {
+            messageText = msg.documentMessage.caption || msg.documentMessage.fileName || '[Documento]';
+            mediaType = 'document';
+            mediaUrl = msg.documentMessage.url || msg.documentMessage.directPath;
+          } else {
+            messageText = '[Mensagem de mídia]';
+          }
+        }
+        
+        console.log(`[${instanceId}] 📨 Mensagem ${direction} (${mediaType.toUpperCase()}):`, message.key.remoteJid, '|', messageText.substring(0, 50));
+        
+        // ✅ ENVIAR MENSAGEM PARA WEBHOOK COM DADOS COMPLETOS DE MÍDIA
         await sendWebhook(WEBHOOK_URLS.message, {
-          event: 'message_received',
+          event: 'messages.upsert',
           instanceId,
           instanceName: instanceId,
-          from: message.key.remoteJid,
-          message: {
-            text: message.message?.conversation || message.message?.extendedTextMessage?.text || '[Mídia]'
+          data: {
+            messages: [{
+              key: {
+                id: message.key.id,
+                remoteJid: message.key.remoteJid,
+                fromMe: message.key.fromMe // ✅ PRESERVA O CAMPO from_me
+              },
+              message: {
+                conversation: messageText,
+                // Preservar estrutura original para processamento completo
+                ...message.message
+              },
+              messageTimestamp: message.messageTimestamp,
+              // ✅ DADOS ADICIONAIS DE MÍDIA
+              messageType: mediaType,
+              mediaUrl: mediaUrl
+            }]
           },
-          timestamp: new Date().toISOString(),
-          data: message
+          timestamp: new Date().toISOString()
         }, 'Message');
       }
     });

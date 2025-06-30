@@ -1,4 +1,3 @@
-
 import * as React from "react"
 import * as ScrollAreaPrimitive from "@radix-ui/react-scroll-area"
 
@@ -30,7 +29,7 @@ const SubtleScrollBar = React.forwardRef<
     ref={ref}
     orientation={orientation}
     className={cn(
-      "flex touch-none select-none transition-colors duration-300",
+      "flex touch-none select-none transition-colors duration-300 opacity-30 hover:opacity-60",
       orientation === "vertical" &&
         "h-full w-1 border-l border-l-transparent p-[1px]",
       orientation === "horizontal" &&
@@ -39,7 +38,7 @@ const SubtleScrollBar = React.forwardRef<
     )}
     {...props}
   >
-    <ScrollAreaPrimitive.ScrollAreaThumb className="relative flex-1 rounded-full bg-white/40 hover:bg-white/60 transition-colors duration-300" />
+    <ScrollAreaPrimitive.ScrollAreaThumb className="relative flex-1 rounded-full bg-white/50 hover:bg-white/80 transition-all duration-300 shadow-sm" />
   </ScrollAreaPrimitive.ScrollAreaScrollbar>
 ))
 SubtleScrollBar.displayName = ScrollAreaPrimitive.ScrollAreaScrollbar.displayName

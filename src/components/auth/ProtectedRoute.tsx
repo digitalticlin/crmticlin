@@ -1,5 +1,4 @@
-
-import { ReactNode } from "react";
+import React, { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -7,19 +6,12 @@ interface ProtectedRouteProps {
   children: ReactNode;
 }
 
-const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+const ProtectedRoute = React.memo(({ children }: ProtectedRouteProps) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  console.log(`[ProtectedRoute] Checking access for ${location.pathname}`, {
-    loading,
-    hasUser: !!user,
-    userId: user?.id
-  });
-
   // Se ainda estamos carregando, mostrar loading
   if (loading) {
-    console.log(`[ProtectedRoute] Loading auth state...`);
     return (
       <div className="flex h-screen w-full items-center justify-center">
         {/* Fundo gradiente igual ao resto do app */}
@@ -43,13 +35,13 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   // Se não há usuário autenticado, redirecionar para login
   if (!user) {
-    console.log(`[ProtectedRoute] No user found, redirecting to login`);
     return <Navigate to="/login" replace />;
   }
 
   // Se há usuário autenticado, renderizar o conteúdo da rota
-  console.log(`[ProtectedRoute] User authenticated, rendering protected content`);
   return <>{children}</>;
-};
+});
+
+ProtectedRoute.displayName = 'ProtectedRoute';
 
 export default ProtectedRoute;

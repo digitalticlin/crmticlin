@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { useRealtimeManager } from '../../../realtime/useRealtimeManager';
 import { Contact } from '@/types/chat';
 import { WhatsAppWebInstance } from '@/types/whatsapp';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UseMessageRealtimeProps {
   selectedContact: Contact | null;
@@ -14,67 +14,71 @@ export const useMessageRealtime = ({
   activeInstance,
   onMessageUpdate
 }: UseMessageRealtimeProps) => {
-  const { registerCallback, unregisterCallback } = useRealtimeManager();
-  const hookId = useRef(`message-realtime-${Date.now()}`).current;
-  const debounceTimeoutRef = useRef<any>(null);
+  const channelRef = useRef<any>(null);
+  const lastContactIdRef = useRef<string | null>(null);
   
-  // Estabilizar callback com debouncing
-  const onMessageUpdateRef = useRef(onMessageUpdate);
-  onMessageUpdateRef.current = onMessageUpdate;
-
+  // Callback otimizado com debouncing
   const handleMessageUpdate = useCallback((payload: any) => {
-    console.log('[WhatsApp Chat Messages FASE 3] 🔄 Realtime message update:', payload);
+    const newMessage = payload.new;
     
-    if (payload.new && typeof payload.new === 'object' && 'from_me' in payload.new && 'text' in payload.new) {
-      const messageData = payload.new as any;
-      console.log('[WhatsApp Chat Messages FASE 3] 🔄 Message details:', {
-        event: payload.eventType,
-        fromMe: messageData.from_me,
-        text: messageData.text?.substring(0, 30)
-      });
+    // Validar se a mensagem é relevante
+    if (!selectedContact || !activeInstance) {
+      return;
     }
     
-    // Debouncing para evitar updates excessivos
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
+    // Verificar se é mensagem do contato atual
+    if (newMessage?.lead_id === selectedContact.id && 
+        newMessage?.whatsapp_number_id === activeInstance.id) {
+      
+      // Debouncing para evitar múltiplas atualizações
+      setTimeout(() => {
+        onMessageUpdate();
+      }, 200);
     }
-    
-    debounceTimeoutRef.current = setTimeout(() => {
-      onMessageUpdateRef.current();
-    }, 200);
-  }, []);
+  }, [selectedContact?.id, activeInstance?.id, onMessageUpdate]);
 
   useEffect(() => {
-    if (!activeInstance || !selectedContact) return;
+    // Cleanup channel anterior
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
 
-    console.log('[WhatsApp Chat Messages FASE 3] 🔄 Setting up realtime for messages...');
+    if (!selectedContact || !activeInstance) {
+      return;
+    }
 
-    registerCallback(
-      `${hookId}-${selectedContact.id}-${activeInstance.id}`,
-      'messageInsert',
-      handleMessageUpdate,
-      {
-        leadId: selectedContact.id,
-        activeInstanceId: activeInstance.id
-      }
-    );
+    // Criar novo channel para o contato específico
+    const channelId = `message-realtime-${selectedContact.id}-${activeInstance.id}`;
+    
+    const channel = supabase
+      .channel(channelId)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `lead_id=eq.${selectedContact.id}`
+      }, handleMessageUpdate)
+      .subscribe();
+    
+    channelRef.current = channel;
+    lastContactIdRef.current = selectedContact.id;
 
+    // Cleanup ao desmontar ou mudar dependências
     return () => {
-      console.log('[WhatsApp Chat Messages FASE 3] 🧹 Cleaning up realtime subscription');
-      unregisterCallback(`${hookId}-${selectedContact.id}-${activeInstance.id}`);
-      
-      // Cleanup debounce
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
       }
     };
-  }, [activeInstance?.id, selectedContact?.id, registerCallback, unregisterCallback, hookId, handleMessageUpdate]);
-  
+  }, [selectedContact?.id, activeInstance?.id, handleMessageUpdate]);
+
   // Cleanup geral no unmount
   useEffect(() => {
     return () => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
       }
     };
   }, []);

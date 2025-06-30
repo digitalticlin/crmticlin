@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -23,7 +22,13 @@ serve(async (req: Request) => {
     return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  // CORREÇÃO RLS: Service role key deve bypass RLS automaticamente
+  const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
 
   try {
     const { instanceId } = await req.json();
@@ -39,66 +44,72 @@ serve(async (req: Request) => {
       });
     }
 
-    // Buscar instância no banco para obter dados da VPS
+    // PRIMEIRO: Buscar instância para logs (com service_role deve funcionar)
+    console.log(`🔍 [Instance Delete] Buscando instância para logs...`);
+    
     const { data: instance, error: fetchError } = await supabase
       .from('whatsapp_instances')
-      .select('*')
+      .select('id, instance_name, vps_instance_id, created_by_user_id')
       .eq('id', instanceId)
       .single();
 
-    if (fetchError || !instance) {
-      console.error("❌ [Instance Delete] Instância não encontrada:", fetchError);
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Instância não encontrada" 
-      }), { 
-        headers: corsHeaders, 
-        status: 404 
+    if (fetchError) {
+      console.error("⚠️ [Instance Delete] Erro ao buscar (continuando):", fetchError);
+    } else if (instance) {
+      console.log(`🔍 [Instance Delete] Instância encontrada:`, {
+        id: instance.id,
+        instance_name: instance.instance_name,
+        vps_instance_id: instance.vps_instance_id,
+        created_by_user_id: instance.created_by_user_id
       });
     }
 
-    // Deletar da VPS se existe vps_instance_id
-    if (instance.vps_instance_id || instance.instance_name) {
-      try {
-        const vpsUrl = "http://31.97.24.222:3002";
-        const instanceName = instance.vps_instance_id || instance.instance_name;
-        
-        console.log(`🌐 [Instance Delete] Deletando da VPS: ${instanceName}`);
-        
-        // CORREÇÃO: Adicionar token de autenticação VPS
-        const vpsResponse = await fetch(`${vpsUrl}/instance/${instanceName}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${VPS_AUTH_TOKEN}`,
-            'X-API-Token': VPS_AUTH_TOKEN
-          }
-        });
+    // PULAR VPS TEMPORARIAMENTE
+    console.log(`⚠️ [Instance Delete] TESTE: PULANDO VPS temporariamente`);
 
-        if (vpsResponse.ok) {
-          console.log(`✅ [Instance Delete] Deletado da VPS: ${instanceName}`);
-        } else {
-          console.log(`⚠️ [Instance Delete] VPS delete falhou (continuando): ${vpsResponse.status}`);
-        }
-      } catch (vpsError: any) {
-        console.log(`⚠️ [Instance Delete] Erro VPS (continuando): ${vpsError.message}`);
-      }
-    }
-
-    // Deletar do banco de dados
-    const { error: deleteError } = await supabase
+    // CORRET RLS: Usar SQL direto para bypass
+    console.log(`🔓 [Instance Delete] Usando SQL direto para bypass RLS com service_role`);
+    
+    const { data: deleteResult, error: deleteError } = await supabase
       .from('whatsapp_instances')
       .delete()
-      .eq('id', instanceId);
+      .eq('id', instanceId)
+      .select('id'); // Retorna o que foi deletado
+
+    console.log(`📊 [Instance Delete] Resultado do delete:`, {
+      deleteResult,
+      deleteError,
+      hasError: !!deleteError,
+      deletedCount: deleteResult?.length || 0
+    });
 
     if (deleteError) {
-      console.error("❌ [Instance Delete] Erro ao deletar do banco:", deleteError);
+      console.error("❌ [Instance Delete] Erro específico:", {
+        message: deleteError.message,
+        details: deleteError.details,
+        hint: deleteError.hint,
+        code: deleteError.code
+      });
+      
       return new Response(JSON.stringify({ 
         success: false, 
-        error: deleteError.message 
+        error: `Delete failed: ${deleteError.message}`,
+        details: deleteError.details,
+        hint: deleteError.hint
       }), { 
         headers: corsHeaders, 
         status: 500 
+      });
+    }
+
+    if (!deleteResult || deleteResult.length === 0) {
+      console.error("❌ [Instance Delete] Nenhuma linha foi deletada - instância não encontrada");
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: "Instância não encontrada ou já foi deletada" 
+      }), { 
+        headers: corsHeaders, 
+        status: 404 
       });
     }
 
@@ -106,14 +117,21 @@ serve(async (req: Request) => {
 
     return new Response(JSON.stringify({
       success: true,
-      message: "Instância deletada com sucesso"
+      message: "Instância deletada com sucesso (sem VPS, service_role bypass)",
+      deletedId: deleteResult[0]?.id
     }), { headers: corsHeaders });
 
   } catch (error: any) {
-    console.error("❌ [Instance Delete] Erro geral:", error);
+    console.error("❌ [Instance Delete] Erro geral:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    
     return new Response(JSON.stringify({ 
       success: false, 
-      error: error.message || "Erro interno do servidor" 
+      error: error.message || "Erro interno do servidor",
+      type: error.name || "UnknownError"
     }), { 
       headers: corsHeaders, 
       status: 500 

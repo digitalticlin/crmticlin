@@ -1,11 +1,10 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { DeleteInstanceParams, DeleteInstanceResult } from '../types/instanceDeletionTypes';
 
 export class InstanceDeletionService {
   static async deleteInstance(params: DeleteInstanceParams): Promise<DeleteInstanceResult> {
     try {
-      console.log('[InstanceDeletion] 🗑️ Deletando instância via whatsapp_instance_delete:', params.instanceId);
+      console.log('[InstanceDeletion] 🗑️ Deletando instância via Edge Function (com cascade):', params.instanceId);
 
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_delete', {
         body: {
@@ -23,7 +22,7 @@ export class InstanceDeletionService {
         throw new Error(data?.error || 'Falha ao deletar instância');
       }
 
-      console.log('[InstanceDeletion] ✅ Instância deletada com sucesso via whatsapp_instance_delete');
+      console.log('[InstanceDeletion] ✅ Instância deletada com sucesso via Edge Function (cascade)');
       
       return { success: true };
 

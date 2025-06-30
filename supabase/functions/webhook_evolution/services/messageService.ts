@@ -1,4 +1,3 @@
-
 // deno-lint-ignore-file no-explicit-any
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { extractTextMessage } from "../utils/helpers.ts";
@@ -21,15 +20,17 @@ export async function saveMessage(
 ): Promise<{ success: boolean; error?: string }> {
   const messageText = extractTextMessage(messageData);
   if (!messageText) {
-    return { success: true, error: "Mensagem sem texto para salvar." }; // Not an error, but nothing to save
+    return { success: true, error: "Mensagem sem texto para salvar." };
   }
+
+  const fromMe = messageData.key?.fromMe || false;
 
   const payload: MessagePayload = {
     lead_id: leadId,
-    whatsapp_number_id: whatsappInstanceId, // CORRIGIDO: usar whatsappInstanceId em vez de whatsappNumberId
-    from_me: false, // Assuming all webhook messages are incoming
+    whatsapp_number_id: whatsappInstanceId,
+    from_me: fromMe,
     text: messageText,
-    status: 'received',
+    status: fromMe ? 'sent' : 'received',
     external_id: messageData.key.id,
     timestamp: new Date( (messageData.messageTimestamp || Math.floor(Date.now()/1000)) * 1000).toISOString(),
   };
@@ -41,6 +42,6 @@ export async function saveMessage(
     return { success: false, error: "Erro ao salvar mensagem" };
   }
   
-  console.log("Mensagem salva com sucesso para o lead:", leadId);
+  console.log(`Mensagem ${fromMe ? 'OUTGOING' : 'INCOMING'} salva com sucesso para o lead:`, leadId);
   return { success: true };
 }

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,6 +20,7 @@ interface ImportResult {
     totalImported: number;
     contactsImported: number;
     messagesImported: number;
+    source?: string; // 'baileys' | 'puppeteer'
   };
 }
 
@@ -34,6 +34,8 @@ export const useChatImport = () => {
     try {
       setIsLoadingStatus(true);
       
+      console.log('[Chat Import] 🔍 Buscando status da importação:', instanceId);
+      
       const { data, error } = await supabase.functions.invoke('whatsapp_chat_import', {
         body: {
           action: 'get_import_status',
@@ -45,12 +47,13 @@ export const useChatImport = () => {
 
       if (data?.success) {
         setImportStatus(data.status);
+        console.log('[Chat Import] ✅ Status obtido:', data.status);
         return data.status;
       } else {
         throw new Error(data?.error || 'Erro ao buscar status');
       }
     } catch (error: any) {
-      console.error('[Chat Import] Erro ao buscar status:', error);
+      console.error('[Chat Import] ❌ Erro ao buscar status:', error);
       toast.error(`Erro ao buscar status: ${error.message}`);
       return null;
     } finally {
@@ -58,7 +61,7 @@ export const useChatImport = () => {
     }
   };
 
-  // Importar dados manualmente
+  // Importar dados manualmente via Baileys (VPS atual)
   const importData = async (
     instanceId: string, 
     importType: 'contacts' | 'messages' | 'both' = 'both',
@@ -67,6 +70,7 @@ export const useChatImport = () => {
     try {
       setIsImporting(true);
       
+      console.log('[Chat Import] 🚀 Iniciando importação via Baileys:', { instanceId, importType, batchSize });
       toast.loading('Iniciando importação...', { id: 'import-progress' });
 
       const { data, error } = await supabase.functions.invoke('whatsapp_chat_import', {
@@ -82,6 +86,8 @@ export const useChatImport = () => {
 
       if (data?.success) {
         const summary = data.summary;
+        console.log('[Chat Import] ✅ Importação concluída:', summary);
+        
         toast.success(
           `Importação concluída! ${summary?.totalImported || 0} itens importados`,
           { id: 'import-progress' }
@@ -95,7 +101,7 @@ export const useChatImport = () => {
         throw new Error(data?.error || 'Erro na importação');
       }
     } catch (error: any) {
-      console.error('[Chat Import] Erro na importação:', error);
+      console.error('[Chat Import] ❌ Erro na importação:', error);
       toast.error(`Erro na importação: ${error.message}`, { id: 'import-progress' });
       return null;
     } finally {
@@ -111,6 +117,7 @@ export const useChatImport = () => {
       const lastSyncTimestamp = importStatus?.lastSyncAt || 
         new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); // Últimas 24h se nunca sincronizado
 
+      console.log('[Chat Import] 🔄 Sincronizando mensagens novas desde:', lastSyncTimestamp);
       toast.loading('Sincronizando mensagens novas...', { id: 'sync-progress' });
 
       const { data, error } = await supabase.functions.invoke('whatsapp_chat_import', {
@@ -145,7 +152,7 @@ export const useChatImport = () => {
         throw new Error(data?.error || 'Erro na sincronização');
       }
     } catch (error: any) {
-      console.error('[Chat Import] Erro na sincronização:', error);
+      console.error('[Chat Import] ❌ Erro na sincronização:', error);
       toast.error(`Erro na sincronização: ${error.message}`, { id: 'sync-progress' });
       return null;
     } finally {

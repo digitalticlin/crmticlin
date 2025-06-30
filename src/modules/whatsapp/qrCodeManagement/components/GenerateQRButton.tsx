@@ -1,8 +1,7 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { QrCode, Loader2 } from "lucide-react";
-import { useQRCodeGeneration } from '../hooks/useQRCodeGeneration';
+import { useSmartQRGeneration } from '../hooks/useSmartQRGeneration';
 
 interface GenerateQRButtonProps {
   instanceId: string;
@@ -23,18 +22,13 @@ export const GenerateQRButton = ({
   size = "sm",
   className = ""
 }: GenerateQRButtonProps) => {
-  const { generateQRCode, isGenerating } = useQRCodeGeneration({
+  const { generateSmartQR, isGenerating, status } = useSmartQRGeneration({
     onSuccess,
     onModalOpen
   });
 
   const handleGenerateQR = async () => {
-    await generateQRCode(instanceId);
-    
-    // Chamar onModalOpen após gerar QR Code se foi fornecido
-    if (onModalOpen) {
-      onModalOpen(instanceId, instanceName);
-    }
+    await generateSmartQR(instanceId, instanceName);
   };
 
   return (
@@ -50,7 +44,7 @@ export const GenerateQRButton = ({
       ) : (
         <QrCode className="h-4 w-4 mr-1" />
       )}
-      {isGenerating ? 'Gerando...' : 'Gerar QR Code'}
+      {isGenerating ? (status || 'Processando...') : 'Gerar QR Code'}
     </Button>
   );
 };

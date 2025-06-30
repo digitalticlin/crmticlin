@@ -44,7 +44,7 @@ export async function processMessages(supabase: any, messages: any[], instance: 
           text: message.body || message.text || '',
           from_me: message.fromMe || false,
           timestamp: message.timestamp ? new Date(message.timestamp * 1000).toISOString() : new Date().toISOString(),
-          created_by_user_id: instance.created_by_user_id,
+          created_by_user_id: instance.created_by_user_id, // 🔥 CRÍTICO: Vincular ao criador da instância
           media_type: getMediaType(message),
           media_url: message.mediaUrl || null
         };
@@ -108,8 +108,7 @@ async function findOrCreateLead(supabase: any, phone: string, instance: any) {
         phone,
         name: `Contato +${phone}`,
         whatsapp_number_id: instance.id,
-        company_id: instance.company_id || null,
-        created_by_user_id: instance.created_by_user_id,
+        created_by_user_id: instance.created_by_user_id, // 🔥 CRÍTICO: Vincular ao criador da instância
         last_message: 'Imported contact',
         last_message_time: new Date().toISOString()
       })

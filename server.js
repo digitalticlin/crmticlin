@@ -1,4 +1,3 @@
-
 // SERVIDOR WHATSAPP ORIGINAL FUNCIONAL - SEM MÓDULOS CORROMPIDOS
 const express = require('express');
 const crypto = require('crypto');
@@ -682,3 +681,5 @@ async function startServer() {
 startServer();
 
 module.exports = { app, instances };
+
+

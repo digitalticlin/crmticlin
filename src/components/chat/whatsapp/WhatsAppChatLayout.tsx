@@ -17,8 +17,15 @@ interface WhatsAppChatLayoutProps {
   messages: Message[];
   onSendMessage: (message: string) => void;
   isLoadingContacts: boolean;
+  isLoadingMoreContacts: boolean;
+  hasMoreContacts: boolean;
+  onLoadMoreContacts: () => Promise<void>;
   isLoadingMessages: boolean;
+  isLoadingMore: boolean;
+  hasMoreMessages: boolean;
+  onLoadMoreMessages: () => Promise<void>;
   isSending: boolean;
+  onRefreshMessages?: () => void;
 }
 
 export const WhatsAppChatLayout = ({
@@ -28,8 +35,15 @@ export const WhatsAppChatLayout = ({
   messages,
   onSendMessage,
   isLoadingContacts,
+  isLoadingMoreContacts,
+  hasMoreContacts,
+  onLoadMoreContacts,
   isLoadingMessages,
-  isSending
+  isLoadingMore,
+  hasMoreMessages,
+  onLoadMoreMessages,
+  isSending,
+  onRefreshMessages
 }: WhatsAppChatLayoutProps) => {
   const [isDetailsSidebarOpen, setIsDetailsSidebarOpen] = useState(false);
   const [updatedContacts, setUpdatedContacts] = useState<Contact[]>(contacts);
@@ -70,6 +84,9 @@ export const WhatsAppChatLayout = ({
               selectedContact={selectedContact}
               onSelectContact={onSelectContact}
               isLoading={isLoadingContacts}
+              isLoadingMore={isLoadingMoreContacts}
+              hasMoreContacts={hasMoreContacts}
+              onLoadMoreContacts={onLoadMoreContacts}
             />
           </div>
         ) : (
@@ -80,8 +97,12 @@ export const WhatsAppChatLayout = ({
               onSendMessage={onSendMessage}
               onBack={() => onSelectContact(null)}
               isLoadingMessages={isLoadingMessages}
+              isLoadingMore={isLoadingMore}
+              hasMoreMessages={hasMoreMessages}
+              onLoadMoreMessages={onLoadMoreMessages}
               isSending={isSending}
               onEditLead={handleEditLead}
+              onRefreshMessages={onRefreshMessages}
             />
           </div>
         )}
@@ -106,6 +127,9 @@ export const WhatsAppChatLayout = ({
                 selectedContact={selectedContact}
                 onSelectContact={onSelectContact}
                 isLoading={isLoadingContacts}
+                isLoadingMore={isLoadingMoreContacts}
+                hasMoreContacts={hasMoreContacts}
+                onLoadMoreContacts={onLoadMoreContacts}
               />
             </div>
           </ResizablePanel>
@@ -133,8 +157,12 @@ export const WhatsAppChatLayout = ({
                   onSendMessage={onSendMessage}
                   onBack={() => onSelectContact(null)}
                   isLoadingMessages={isLoadingMessages}
+                  isLoadingMore={isLoadingMore}
+                  hasMoreMessages={hasMoreMessages}
+                  onLoadMoreMessages={onLoadMoreMessages}
                   isSending={isSending}
                   onEditLead={handleEditLead}
+                  onRefreshMessages={onRefreshMessages}
                 />
               ) : (
                 <WhatsAppEmptyState />

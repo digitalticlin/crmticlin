@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -256,21 +255,104 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
   }, [cleanup, setupRealtime, startPolling]);
 
   // CORREÇÃO: Função para forçar atualização
-  const refreshQRCode = useCallback(() => {
+  const refreshQRCode = useCallback(async () => {
     if (instanceId) {
-      console.log('[useQRCodeModal] 🔄 Refresh para ID:', instanceId);
+      console.log('[useQRCodeModal] 🔄 Refresh INTELIGENTE para ID:', instanceId);
       setIsLoading(true);
       setError(undefined);
       setQrCode(null);
       pollingAttemptRef.current = 0;
       
-      // Reiniciar sistemas
-      setupRealtime(instanceId);
-      startPolling(instanceId);
+      try {
+        // USAR EDGE FUNCTIONS para gerar novo QR
+        console.log('[useQRCodeModal] 📡 Tentando whatsapp_qr_manager...');
+        
+        const { data: qrData, error: qrError } = await supabase.functions.invoke('whatsapp_qr_manager', {
+          body: { 
+            instanceId,
+            instanceName: instanceName || 'instância',
+            action: 'generate_qr'
+          }
+        });
+
+        console.log('[useQRCodeModal] 📊 Resultado whatsapp_qr_manager:', { qrData, qrError });
+
+        // Se conseguiu gerar QR para instância existente
+        if (!qrError && qrData?.success && qrData?.qrCode) {
+          console.log('[useQRCodeModal] ✅ QR gerado para instância existente');
+          
+          // Atualizar QR no Supabase
+          const { error: updateError } = await supabase
+            .from('whatsapp_instances')
+            .update({ 
+              qr_code: qrData.qrCode,
+              connection_status: 'qr_generated',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', instanceId);
+
+          if (updateError) {
+            console.error('[useQRCodeModal] ⚠️ Erro ao atualizar QR no banco:', updateError);
+          } else {
+            console.log('[useQRCodeModal] ✅ QR atualizado no Supabase');
+          }
+          
+          // Mostrar QR novo
+          setQrCode(qrData.qrCode);
+          setIsLoading(false);
+          toast.success('QR Code atualizado com sucesso!');
+          return;
+        }
+
+        // FALLBACK: Criar nova instância
+        console.log('[useQRCodeModal] ⚠️ Instância não existe, criando nova...');
+        
+        const { data: createData, error: createError } = await supabase.functions.invoke('whatsapp_instance_manager', {
+          body: { 
+            action: 'create_instance',
+            instanceData: {
+              instanceName: instanceName || 'instância',
+              instanceId
+            }
+          }
+        });
+
+        if (!createError && createData?.success && createData?.qrCode) {
+          console.log('[useQRCodeModal] ✅ Nova instância criada com QR');
+          
+          // Atualizar no banco
+          await supabase
+            .from('whatsapp_instances')
+            .update({ 
+              qr_code: createData.qrCode,
+              connection_status: 'qr_generated',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', instanceId);
+          
+          setQrCode(createData.qrCode);
+          setIsLoading(false);
+          toast.success('Nova instância criada! Escaneie o QR Code.');
+          return;
+        }
+
+        throw new Error(createData?.error || createError?.message || 'Falha ao gerar QR Code');
+
+      } catch (error: any) {
+        console.error('[useQRCodeModal] ❌ Erro no refresh inteligente:', error);
+        setError(`Erro ao gerar novo QR Code: ${error.message}`);
+        setIsLoading(false);
+        toast.error(`Erro ao gerar novo QR Code: ${error.message}`);
+        
+        // FALLBACK: tentar polling tradicional
+        console.log('[useQRCodeModal] ⚠️ Tentando fallback com polling...');
+        setupRealtime(instanceId);
+        startPolling(instanceId);
+      }
     } else {
       console.error('[useQRCodeModal] ⚠️ Tentativa de refresh sem instanceId');
     }
-  }, [instanceId, setupRealtime, startPolling]);
+  }, [instanceId, instanceName, setupRealtime, startPolling]);
 
   // CORREÇÃO: Função para fechar o modal
   const closeModal = useCallback(() => {

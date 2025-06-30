@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessageSquare } from "lucide-react";
@@ -8,6 +7,7 @@ import { SimpleInstanceCard } from "./SimpleInstanceCard";
 import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
 import { useQRCodeModal } from "@/modules/whatsapp/instanceCreation/hooks/useQRCodeModal";
 import { useConnectionStatusSync } from "@/modules/whatsapp/connectionStatusSync";
+import { useInstanceCreation } from "@/modules/whatsapp/instanceCreation/hooks/useInstanceCreation";
 import { AddNewConnectionCard } from "./connection/AddNewConnectionCard";
 
 export const OptimizedSettingsSection = () => {
@@ -15,7 +15,12 @@ export const OptimizedSettingsSection = () => {
 
   const { instances, isLoading, loadInstances } = useWhatsAppWebInstances();
   const { openModal } = useQRCodeModal();
-  const [isCreating, setIsCreating] = useState(false);
+
+  // CORREÇÃO: Usar hook de criação de instância para card "Nova Conexão"
+  const { createInstance, isCreating } = useInstanceCreation((result) => {
+    console.log('[Optimized Settings] ✅ Nova instância criada via card:', result);
+    loadInstances(); // Atualizar lista
+  });
 
   // NOVO: Configurar Connection Status Sync para atualizar lista automaticamente
   useConnectionStatusSync({
@@ -36,7 +41,6 @@ export const OptimizedSettingsSection = () => {
 
   const handleInstanceCreated = () => {
     console.log('[Optimized Settings] ✅ Nova instância criada, atualizando lista');
-    setIsCreating(false);
     loadInstances();
   };
 
@@ -46,8 +50,8 @@ export const OptimizedSettingsSection = () => {
   };
 
   const handleCreateInstance = async () => {
-    setIsCreating(true);
-    // O CreateInstanceButton vai lidar com a criação e chamar onSuccess
+    console.log('[Optimized Settings] 🚀 Criando nova instância via card "Nova Conexão"');
+    await createInstance();
   };
 
   if (isLoading) {

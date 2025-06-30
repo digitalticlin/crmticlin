@@ -1,7 +1,5 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useRealtimeManager } from '../realtime/useRealtimeManager';
 
 export interface WhatsAppInstance {
   id: string;
@@ -27,7 +25,6 @@ export const useWhatsAppDatabase = () => {
   const [instances, setInstances] = useState<WhatsAppInstance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { registerCallback, unregisterCallback } = useRealtimeManager();
 
   const fetchInstances = async () => {
     try {
@@ -38,38 +35,50 @@ export const useWhatsAppDatabase = () => {
         .from('whatsapp_instances')
         .select('*')
         .eq('connection_type', 'web')
-        .order('created_at', { ascending: false });
+        .in('connection_status', ['connected', 'ready', 'connecting', 'disconnected'])
+        .order('connection_status', { ascending: false })
+        .order('created_at', { ascending: false })
+        .limit(20);
 
       if (error) throw error;
 
       const instancesData = data || [];
       setInstances(instancesData);
       
-      console.log('[useWhatsAppDatabase] Instâncias carregadas:', instancesData.length);
-      
     } catch (error: any) {
-      console.error('[useWhatsAppDatabase] Erro ao buscar instâncias:', error);
+      console.error('[WhatsApp Database] Erro ao carregar instâncias:', error);
       setError(error.message);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getActiveInstance = (): WhatsAppInstance | null => {
-    const activeInstance = instances.find(i => 
-      i.connection_status === 'connected' || 
-      i.connection_status === 'ready'
-    );
-    return activeInstance || null;
-  };
+  const getActiveInstance = useMemo(() => {
+    return (): WhatsAppInstance | null => {
+      const activeInstance = instances.find(i => 
+        i.connection_status === 'connected' || 
+        i.connection_status === 'ready'
+      );
+      return activeInstance || null;
+    };
+  }, [instances]);
 
-  const connectedInstances = instances.filter(i => 
-    i.connection_status === 'connected' || i.connection_status === 'ready'
-  ).length;
+  const { connectedInstances, totalInstances, healthScore, isHealthy } = useMemo(() => {
+    const connected = instances.filter(i => 
+      i.connection_status === 'connected' || i.connection_status === 'ready'
+    ).length;
+    
+    const total = instances.length;
+    const score = total === 0 ? 0 : Math.round((connected / total) * 100);
+    const healthy = score >= 70;
 
-  const totalInstances = instances.length;
-  const healthScore = totalInstances === 0 ? 0 : Math.round((connectedInstances / totalInstances) * 100);
-  const isHealthy = healthScore >= 70;
+    return {
+      connectedInstances: connected,
+      totalInstances: total,
+      healthScore: score,
+      isHealthy: healthy
+    };
+  }, [instances]);
 
   const refetch = () => {
     fetchInstances();
@@ -78,24 +87,28 @@ export const useWhatsAppDatabase = () => {
   useEffect(() => {
     fetchInstances();
 
-    const handleInstanceUpdate = (payload: any) => {
-      console.log('[useWhatsAppDatabase] Atualização em tempo real:', payload);
-      fetchInstances();
-    };
-
-    registerCallback(
-      'whatsapp-database-realtime',
-      'whatsappInstanceUpdate',
-      handleInstanceUpdate,
-      {
-        filters: { connection_type: 'web' }
-      }
-    );
+    const channel = supabase
+      .channel('whatsapp-instances-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'whatsapp_instances',
+          filter: 'connection_type=eq.web'
+        },
+        (payload) => {
+          if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
+            fetchInstances();
+          }
+        }
+      )
+      .subscribe();
 
     return () => {
-      unregisterCallback('whatsapp-database-realtime');
+      channel.unsubscribe();
     };
-  }, [registerCallback, unregisterCallback]);
+  }, []);
 
   return {
     instances,

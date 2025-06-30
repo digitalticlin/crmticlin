@@ -249,7 +249,7 @@ async function initializeWhatsAppClient(instanceId, sessionName, webhookUrl = nu
 
     // Capturar mensagens
     client.on('message_create', async (message) => {
-      console.log(`[${instanceId}] 💬 Nova mensagem:`, {
+      console.log(`[${instanceId}] 💬 Nova mensagem ${message.fromMe ? 'ENVIADA PARA' : 'RECEBIDA DE'}:`, {
         from: message.from,
         fromMe: message.fromMe,
         body: message.body?.substring(0, 50) + '...'

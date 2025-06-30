@@ -1,4 +1,3 @@
-
 import { WhatsAppChatHeader } from "./WhatsAppChatHeader";
 import { WhatsAppMessagesList } from "./WhatsAppMessagesList";
 import { WhatsAppMessageInput } from "./WhatsAppMessageInput";
@@ -10,8 +9,12 @@ interface WhatsAppChatAreaProps {
   onSendMessage: (message: string) => void;
   onBack: () => void;
   isLoadingMessages: boolean;
+  isLoadingMore: boolean;
+  hasMoreMessages: boolean;
+  onLoadMoreMessages: () => Promise<void>;
   isSending: boolean;
   onEditLead: () => void;
+  onRefreshMessages?: () => void;
 }
 
 export const WhatsAppChatArea = ({
@@ -20,8 +23,12 @@ export const WhatsAppChatArea = ({
   onSendMessage,
   onBack,
   isLoadingMessages,
+  isLoadingMore,
+  hasMoreMessages,
+  onLoadMoreMessages,
   isSending,
-  onEditLead
+  onEditLead,
+  onRefreshMessages
 }: WhatsAppChatAreaProps) => {
   return (
     <div className="h-full flex flex-col bg-white/5 backdrop-blur-sm relative z-10">
@@ -29,10 +36,15 @@ export const WhatsAppChatArea = ({
         selectedContact={selectedContact} 
         onBack={onBack}
         onEditLead={onEditLead}
+        onRefreshMessages={onRefreshMessages}
+        isRefreshing={isLoadingMessages}
       />
       <WhatsAppMessagesList 
         messages={messages} 
         isLoading={isLoadingMessages}
+        isLoadingMore={isLoadingMore}
+        hasMoreMessages={hasMoreMessages}
+        onLoadMore={onLoadMoreMessages}
       />
       <WhatsAppMessageInput 
         onSendMessage={onSendMessage} 

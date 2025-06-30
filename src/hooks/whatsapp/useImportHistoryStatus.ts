@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -18,32 +17,44 @@ export const useImportHistoryStatus = (instanceId: string) => {
     progress: 0
   });
 
-  // Verificar se já foi importado anteriormente
+  // Verificar se já foi importado anteriormente usando a Edge Function
   useEffect(() => {
     const checkImportStatus = async () => {
       if (!instanceId) return;
 
       try {
-        // Verificar se há mensagens importadas para esta instância
-        const { count } = await supabase
-          .from('messages')
-          .select('*', { count: 'exact', head: true })
-          .eq('whatsapp_number_id', instanceId);
+        console.log('[Import History Status] 🔍 Verificando status via Edge Function:', instanceId);
+        
+        const { data, error } = await supabase.functions.invoke('whatsapp_chat_import', {
+          body: {
+            action: 'get_import_status',
+            instanceId
+          }
+        });
 
-        // Verificar data da última sincronização
-        const { data: instance } = await supabase
-          .from('whatsapp_instances')
-          .select('updated_at')
-          .eq('id', instanceId)
-          .single();
+        if (error) {
+          console.error('[Import History Status] ❌ Erro ao buscar status:', error);
+          return;
+        }
 
-        setStatus(prev => ({
-          ...prev,
-          hasBeenImported: (count || 0) > 0,
-          lastImportDate: instance?.updated_at || null
-        }));
-      } catch (error) {
-        console.error('Erro ao verificar status de importação:', error);
+        if (data?.success && data.status) {
+          const hasImported = (data.status.contactsImported || 0) > 0 || (data.status.messagesImported || 0) > 0;
+          
+          setStatus(prev => ({
+            ...prev,
+            hasBeenImported: hasImported,
+            lastImportDate: data.status.lastSyncAt || data.status.instanceCreatedAt
+          }));
+
+          console.log('[Import History Status] ✅ Status atualizado:', {
+            hasImported,
+            contactsImported: data.status.contactsImported,
+            messagesImported: data.status.messagesImported,
+            lastSync: data.status.lastSyncAt
+          });
+        }
+      } catch (error: any) {
+        console.error('[Import History Status] ❌ Erro ao verificar status:', error);
       }
     };
 

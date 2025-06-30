@@ -1,6 +1,5 @@
-
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Phone, Edit } from "lucide-react";
+import { ArrowLeft, Phone, Edit, RefreshCw } from "lucide-react";
 import { Contact } from "@/types/chat";
 import { formatPhoneDisplay } from "@/utils/phoneFormatter";
 import { TiclinAvatar } from "@/components/ui/ticlin-avatar";
@@ -9,6 +8,8 @@ interface WhatsAppChatHeaderProps {
   selectedContact: Contact;
   onBack: () => void;
   onEditLead: () => void;
+  onRefreshMessages?: () => void;
+  isRefreshing?: boolean;
 }
 
 // Função para determinar se deve mostrar nome ou telefone (estilo WhatsApp)
@@ -25,6 +26,8 @@ export const WhatsAppChatHeader = ({
   selectedContact,
   onBack,
   onEditLead,
+  onRefreshMessages,
+  isRefreshing = false,
 }: WhatsAppChatHeaderProps) => {
   const displayName = getDisplayName(selectedContact);
 
@@ -61,6 +64,17 @@ export const WhatsAppChatHeader = ({
       </div>
       
       <div className="flex items-center gap-2">
+        {onRefreshMessages && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-gray-700 hover:text-gray-900 hover:bg-white/20" 
+            onClick={onRefreshMessages}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
+        )}
         <Button variant="ghost" size="icon" className="text-gray-700 hover:text-gray-900 hover:bg-white/20" onClick={onEditLead}>
           <Edit className="h-5 w-5" />
         </Button>

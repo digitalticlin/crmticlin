@@ -1,7 +1,7 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { 
   Download, 
   RefreshCw, 
@@ -10,7 +10,10 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  Info
+  Info,
+  Loader2,
+  Activity,
+  Zap
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -108,7 +111,6 @@ export const ChatImportStatusCard = ({ instance }: ChatImportStatusCardProps) =>
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Status da Importação */}
         {importStatus && (
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-green-50 p-3 rounded-lg">
@@ -133,7 +135,6 @@ export const ChatImportStatusCard = ({ instance }: ChatImportStatusCardProps) =>
           </div>
         )}
 
-        {/* Última Sincronização */}
         {importStatus?.lastSyncAt && (
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Clock className="h-4 w-4" />
@@ -146,7 +147,6 @@ export const ChatImportStatusCard = ({ instance }: ChatImportStatusCardProps) =>
           </div>
         )}
 
-        {/* Status Badge */}
         <div className="flex items-center gap-2 flex-wrap">
           {hasImportHistory ? (
             <Badge variant="outline" className="border-green-300 text-green-700">
@@ -165,9 +165,28 @@ export const ChatImportStatusCard = ({ instance }: ChatImportStatusCardProps) =>
               Sync Automática
             </Badge>
           )}
+
+          {lastResult?.summary?.source && (
+            <Badge variant="outline" className={
+              lastResult.summary.source === 'puppeteer' 
+                ? 'border-purple-300 text-purple-700' 
+                : 'border-teal-300 text-teal-700'
+            }>
+              {lastResult.summary.source === 'puppeteer' ? (
+                <>
+                  <Activity className="h-3 w-3 mr-1" />
+                  Puppeteer
+                </>
+              ) : (
+                <>
+                  <Zap className="h-3 w-3 mr-1" />
+                  Baileys
+                </>
+              )}
+            </Badge>
+          )}
         </div>
 
-        {/* Resultado da Última Operação */}
         {lastResult && (
           <div className={`p-3 rounded-lg border ${
             lastResult.success 
@@ -185,6 +204,11 @@ export const ChatImportStatusCard = ({ instance }: ChatImportStatusCardProps) =>
               }`}>
                 {lastResult.success ? 'Importação Concluída' : 'Erro na Importação'}
               </span>
+              {lastResult.success && lastResult.summary?.source && (
+                <Badge size="sm" variant="outline" className="ml-auto">
+                  {lastResult.summary.source === 'puppeteer' ? '🎭 Puppeteer' : '⚡ Baileys'}
+                </Badge>
+              )}
             </div>
             
             {lastResult.success && lastResult.summary && (
@@ -208,83 +232,53 @@ export const ChatImportStatusCard = ({ instance }: ChatImportStatusCardProps) =>
           </div>
         )}
 
-        {/* Botões de Ação */}
         <div className="space-y-2">
-          {!hasImportHistory ? (
-            // Primeira importação
-            <div className="space-y-2">
-              <Button
-                onClick={handleFullImport}
-                disabled={isImporting}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                size="sm"
-              >
-                {isImporting ? (
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4 mr-2" />
-                )}
-                Importar Todos os Dados
-              </Button>
-              
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  onClick={handleContactsOnly}
-                  disabled={isImporting}
-                  variant="outline"
-                  size="sm"
-                >
-                  <Users className="h-4 w-4 mr-1" />
-                  Contatos
-                </Button>
-                <Button
-                  onClick={handleMessagesOnly}
-                  disabled={isImporting}
-                  variant="outline"
-                  size="sm"
-                >
-                  <MessageSquare className="h-4 w-4 mr-1" />
-                  Mensagens
-                </Button>
-              </div>
-            </div>
-          ) : (
-            // Sincronização incremental
-            <div className="space-y-2">
-              <Button
-                onClick={handleSyncNew}
-                disabled={isImporting}
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
-                size="sm"
-              >
-                {isImporting ? (
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                )}
-                Sincronizar Novas Mensagens
-              </Button>
-              
-              <Button
-                onClick={handleFullImport}
-                disabled={isImporting}
-                variant="outline"
-                size="sm"
-                className="w-full"
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Reimportar Tudo
-              </Button>
-            </div>
-          )}
-        </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleContactsOnly}
+              disabled={isImporting}
+              className="text-xs flex items-center gap-1"
+            >
+              <Users className="h-3 w-3" />
+              <Zap className="h-3 w-3 text-teal-500" />
+              Contatos
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMessagesOnly}
+              disabled={isImporting}
+              className="text-xs flex items-center gap-1"
+            >
+              <MessageSquare className="h-3 w-3" />
+              <Zap className="h-3 w-3 text-teal-500" />
+              Mensagens
+            </Button>
+          </div>
 
-        {/* Dicas */}
-        <div className="bg-blue-50/50 p-3 rounded-lg">
-          <p className="text-xs text-blue-700">
-            💡 <strong>Dica:</strong> Se a importação retornar 0 itens, a instância pode não ter histórico 
-            disponível no VPS ou pode ser necessário reconectar o WhatsApp.
-          </p>
+          <Button
+            onClick={handleFullImport}
+            disabled={isImporting}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-sm"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            <Zap className="h-3 w-3 mr-1" />
+            Importação Completa (Baileys)
+          </Button>
+
+          {hasImportHistory && (
+            <Button
+              variant="outline"
+              onClick={handleSyncNew}
+              disabled={isImporting}
+              className="w-full text-sm border-green-200 text-green-700 hover:bg-green-50"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Sincronizar Mensagens Novas
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -1,29 +1,30 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useCompanyData } from '../useCompanyData';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface RealtimeCallback {
   id: string;
-  type: 'leadInsert' | 'leadUpdate' | 'messageInsert' | 'instanceUpdate' | 'whatsappInstanceUpdate' | 'notification';
   callback: (payload: any) => void;
-  activeInstanceId?: string | null;
-  companyId?: string | null;
-  leadId?: string | null;
-  filters?: {
-    [key: string]: any;
+  filter?: {
+    leadId?: string;
+    activeInstanceId?: string;
   };
 }
 
 class RealtimeManager {
   private static instance: RealtimeManager;
-  private channel: any = null;
-  private callbacks: Map<string, RealtimeCallback> = new Map();
-  private isSubscribed = false;
   private userId: string | null = null;
-  private companyId: string | null = null;
-  private subscriptionPromise: Promise<void> | null = null;
-  private retryCount = 0;
-  private maxRetries = 3;
+  private channel: any = null;
+  private isSubscribed = false;
+  private callbacks: Map<string, Map<string, RealtimeCallback>> = new Map();
+  private lastUpdateTimes: Map<string, number> = new Map();
+  private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
+  private isInitialized = false;
+  
+  // Configurações otimizadas
+  private readonly DEBOUNCE_TIME = 300;
+  private readonly MIN_UPDATE_INTERVAL = 1000; // Aumentado para 1s
+  private readonly MAX_CALLBACKS_PER_EVENT = 5; // Limitar callbacks
 
   static getInstance(): RealtimeManager {
     if (!RealtimeManager.instance) {
@@ -32,36 +33,24 @@ class RealtimeManager {
     return RealtimeManager.instance;
   }
 
-  private constructor() {}
+  constructor() {
+    this.isInitialized = true;
+  }
 
-  async initialize(userId: string, companyId?: string | null) {
-    if (this.userId === userId && this.companyId === companyId && this.isSubscribed) {
-      return;
+  setUserId(userId: string | null) {
+    if (this.userId !== userId) {
+      this.cleanup();
+      this.userId = userId;
+      if (userId) {
+        this.setupChannel();
+      }
     }
-
-    if (this.userId !== userId || this.companyId !== companyId) {
-      await this.cleanup();
-    }
-
-    this.userId = userId;
-    this.companyId = companyId;
-    
-    if (this.subscriptionPromise) {
-      await this.subscriptionPromise;
-      return;
-    }
-
-    this.subscriptionPromise = this.setupChannel();
-    await this.subscriptionPromise;
-    this.subscriptionPromise = null;
   }
 
   private async setupChannel(): Promise<void> {
     if (!this.userId || this.channel || this.isSubscribed) {
       return;
     }
-
-    console.log('[Realtime Manager] 🔄 Setting up unified channel for user:', this.userId);
 
     try {
       this.channel = supabase
@@ -73,7 +62,7 @@ class RealtimeManager {
             schema: 'public',
             table: 'leads'
           },
-          (payload) => this.handleCallback('leadInsert', payload)
+          (payload) => this.handleCallbackWithFilter('leadInsert', payload)
         )
         .on(
           'postgres_changes',
@@ -82,7 +71,7 @@ class RealtimeManager {
             schema: 'public',
             table: 'leads'
           },
-          (payload) => this.handleCallback('leadUpdate', payload)
+          (payload) => this.handleCallbackWithFilter('leadUpdate', payload)
         )
         .on(
           'postgres_changes',
@@ -91,7 +80,7 @@ class RealtimeManager {
             schema: 'public',
             table: 'messages'
           },
-          (payload) => this.handleCallback('messageInsert', payload)
+          (payload) => this.handleCallbackWithFilter('messageInsert', payload)
         )
         .on(
           'postgres_changes',
@@ -101,7 +90,7 @@ class RealtimeManager {
             table: 'whatsapp_instances',
             filter: `created_by_user_id=eq.${this.userId}`
           },
-          (payload) => this.handleCallback('instanceUpdate', payload)
+          (payload) => this.handleCallbackWithFilter('instanceUpdate', payload)
         )
         .on(
           'postgres_changes',
@@ -110,196 +99,193 @@ class RealtimeManager {
             schema: 'public',
             table: 'whatsapp_instances'
           },
-          (payload) => this.handleCallback('whatsappInstanceUpdate', payload)
+          (payload) => this.handleCallbackWithFilter('whatsappInstanceUpdate', payload)
         );
 
-      return new Promise((resolve, reject) => {
-        if (!this.channel) {
-          reject(new Error('Channel not created'));
-          return;
-        }
-
-        this.channel.subscribe((status: string) => {
-          console.log('[Realtime Manager] Subscription status:', status);
-          
-          if (status === 'SUBSCRIBED') {
+      const { error } = await this.channel.subscribe();
+      
+      if (error) {
+        console.error('[Realtime] ❌ Subscription error:', error);
+      } else {
             this.isSubscribed = true;
-            this.retryCount = 0;
-            console.log('[Realtime Manager] ✅ Channel subscription completed');
-            resolve();
-          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-            this.isSubscribed = false;
-            console.error('[Realtime Manager] ❌ Subscription failed with status:', status);
-            
-            if (this.retryCount < this.maxRetries) {
-              this.retryCount++;
-              console.log(`[Realtime Manager] 🔄 Retrying subscription (${this.retryCount}/${this.maxRetries})`);
-              setTimeout(() => {
-                this.setupChannel().then(resolve).catch(reject);
-              }, 1000 * this.retryCount);
-            } else {
-              reject(new Error(`Subscription failed after ${this.maxRetries} retries: ${status}`));
-            }
-          }
-        });
-      });
-    } catch (error) {
-      console.error('[Realtime Manager] ❌ Error setting up channel:', error);
-      this.isSubscribed = false;
-      this.channel = null;
-      throw error;
-    }
-  }
-
-  private handleCallback(type: RealtimeCallback['type'], payload: any) {
-    this.callbacks.forEach((callback) => {
-      if (callback.type === type) {
-        let shouldExecute = true;
-
-        // Aplicar filtros específicos
-        if (type === 'messageInsert' && callback.activeInstanceId) {
-          const messageData = payload.new;
-          if (messageData.whatsapp_number_id !== callback.activeInstanceId) {
-            shouldExecute = false;
-          }
-        }
-
-        if (type === 'whatsappInstanceUpdate' && callback.companyId) {
-          const instanceData = payload.new;
-          if (instanceData.company_id !== callback.companyId) {
-            shouldExecute = false;
-          }
-        }
-
-        if (callback.leadId && payload.new?.lead_id !== callback.leadId) {
-          shouldExecute = false;
-        }
-
-        // Aplicar filtros personalizados
-        if (callback.filters && shouldExecute) {
-          for (const [key, value] of Object.entries(callback.filters)) {
-            if (payload.new?.[key] !== value) {
-              shouldExecute = false;
-              break;
-            }
-          }
-        }
-
-        if (shouldExecute) {
-          try {
-            callback.callback(payload);
-          } catch (error) {
-            console.error('[Realtime Manager] ❌ Error in callback:', error);
-          }
-        }
       }
-    });
+    } catch (error) {
+      console.error('[Realtime] ❌ Setup error:', error);
+    }
   }
 
-  registerCallback(
-    id: string, 
-    type: RealtimeCallback['type'], 
-    callback: (payload: any) => void, 
-    options?: {
-      activeInstanceId?: string | null;
-      companyId?: string | null;
-      leadId?: string | null;
-      filters?: { [key: string]: any };
+  // Callback handler otimizado com controle rigoroso de frequência
+  private handleCallbackWithFilter(eventType: string, payload: any) {
+    if (!this.isInitialized) return;
+    
+    const now = Date.now();
+    const lastUpdate = this.lastUpdateTimes.get(eventType) || 0;
+    
+    // Throttling rigoroso
+    if (now - lastUpdate < this.MIN_UPDATE_INTERVAL) {
+      return;
     }
-  ) {
-    this.callbacks.set(id, { 
-      id, 
-      type, 
+
+    const callbacks = this.callbacks.get(eventType);
+    if (!callbacks || callbacks.size === 0) {
+      return;
+    }
+
+    // Limitar número de callbacks para evitar spam
+    if (callbacks.size > this.MAX_CALLBACKS_PER_EVENT) {
+      console.warn(`[Realtime] ⚠️ Too many callbacks for ${eventType}:`, callbacks.size);
+      return;
+    }
+
+    // Debouncing avançado por evento
+    const debounceKey = `${eventType}-${payload.new?.id || 'unknown'}`;
+    
+    if (this.debounceTimers.has(debounceKey)) {
+      clearTimeout(this.debounceTimers.get(debounceKey)!);
+    }
+
+    const timer = setTimeout(() => {
+      callbacks.forEach((callbackData, id) => {
+        const shouldTrigger = this.shouldTriggerCallback(callbackData, payload);
+        
+        if (shouldTrigger) {
+          try {
+            callbackData.callback(payload);
+          } catch (error) {
+            console.error(`[Realtime] ❌ Callback error ${id}:`, error);
+          }
+        }
+      });
+      
+      this.debounceTimers.delete(debounceKey);
+    }, this.DEBOUNCE_TIME);
+
+    this.debounceTimers.set(debounceKey, timer);
+    this.lastUpdateTimes.set(eventType, now);
+  }
+
+  // Filtros otimizados
+  private shouldTriggerCallback(callbackData: RealtimeCallback, payload: any): boolean {
+    const { filter } = callbackData;
+    
+    if (!filter) return true;
+    
+    if (filter.leadId && payload.new?.lead_id) {
+      return payload.new.lead_id === filter.leadId;
+    }
+    
+    if (filter.activeInstanceId && payload.new?.whatsapp_number_id) {
+      return payload.new.whatsapp_number_id === filter.activeInstanceId;
+    }
+    
+    return true;
+  }
+
+  registerCallback(id: string, eventType: string, callback: (payload: any) => void, filter?: any) {
+    if (!this.isInitialized) {
+      console.warn('[Realtime] ⚠️ Tentando registrar callback antes da inicialização');
+      return;
+    }
+
+    if (!this.callbacks.has(eventType)) {
+      this.callbacks.set(eventType, new Map());
+    }
+
+    const callbackData: RealtimeCallback = {
+      id,
       callback, 
-      activeInstanceId: options?.activeInstanceId,
-      companyId: options?.companyId,
-      leadId: options?.leadId,
-      filters: options?.filters
-    });
-    console.log(`[Realtime Manager] 📝 Registered callback: ${id} for ${type}`);
+      filter
+    };
+    
+    // Prevenir registros duplicados
+    const eventCallbacks = this.callbacks.get(eventType)!;
+    if (eventCallbacks.has(id)) {
+      eventCallbacks.delete(id); // Remove primeiro se já existe
+    }
+    
+    eventCallbacks.set(id, callbackData);
   }
 
   unregisterCallback(id: string) {
-    const removed = this.callbacks.delete(id);
-    if (removed) {
-      console.log(`[Realtime Manager] 🗑️ Unregistered callback: ${id}`);
-    }
-  }
-
-  async cleanup() {
-    if (this.channel) {
-      console.log('[Realtime Manager] 🧹 Cleaning up channel');
-      try {
-        await supabase.removeChannel(this.channel);
-      } catch (error) {
-        console.error('[Realtime Manager] Error removing channel:', error);
+    if (!this.isInitialized) return;
+    
+    this.callbacks.forEach((callbackMap) => {
+      if (callbackMap.has(id)) {
+        callbackMap.delete(id);
       }
-      this.channel = null;
-    }
-    this.isSubscribed = false;
-    this.subscriptionPromise = null;
+    });
+  }
+
+  cleanup() {
+    // Limpar todos os timers
+    this.debounceTimers.forEach((timer) => {
+      clearTimeout(timer);
+    });
+    this.debounceTimers.clear();
+    
+    // Limpar callbacks
     this.callbacks.clear();
-    this.retryCount = 0;
+    
+    // Unsubscribe do canal
+    if (this.channel && this.isSubscribed) {
+      this.channel.unsubscribe();
+    }
+    
+    this.channel = null;
+    this.isSubscribed = false;
+    this.lastUpdateTimes.clear();
   }
 
-  getConnectionStatus() {
-    return this.isSubscribed;
-  }
-
-  getActiveCallbacks() {
-    return Array.from(this.callbacks.keys());
+  destroy() {
+    this.cleanup();
+    this.isInitialized = false;
+    RealtimeManager.instance = null as any;
   }
 }
 
 export const useRealtimeManager = () => {
-  const { userId, companyId } = useCompanyData();
-  const manager = useRef(RealtimeManager.getInstance());
-  const isMountedRef = useRef(true);
+  const { user } = useAuth();
+  const realtimeManager = RealtimeManager.getInstance();
 
-  // Proteção contra inicializações múltiplas
-  const initializationRef = useRef(false);
-
+  // Configurar userId automaticamente
   useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (userId && isMountedRef.current && !initializationRef.current) {
-      initializationRef.current = true;
-      console.log('[Realtime Manager] Initializing ONCE for user:', userId);
-      
-      manager.current.initialize(userId, companyId).catch((error) => {
-        console.error('[Realtime Manager] Initialization failed:', error);
-        initializationRef.current = false; // Allow retry on failure
-      });
+    if (user?.id && realtimeManager) {
+      realtimeManager.setUserId(user.id);
     }
-  }, [userId, companyId]); // Mantém dependências mas protege contra re-init
+  }, [user?.id, realtimeManager]);
 
-  const registerCallback = useCallback((
-    id: string, 
-    type: RealtimeCallback['type'], 
-    callback: (payload: any) => void, 
-    options?: {
-      activeInstanceId?: string | null;
-      companyId?: string | null;
-      leadId?: string | null;
-      filters?: { [key: string]: any };
+  // Funções de interface compatíveis com verificação de segurança
+  const registerCallback = useCallback((id: string, eventType: string, callback: (payload: any) => void, filter?: any) => {
+    if (realtimeManager && realtimeManager.registerCallback) {
+      realtimeManager.registerCallback(id, eventType, callback, filter);
     }
-  ) => {
-    manager.current.registerCallback(id, type, callback, options);
-  }, []);
+  }, [realtimeManager]);
 
   const unregisterCallback = useCallback((id: string) => {
-    manager.current.unregisterCallback(id);
-  }, []);
+    if (realtimeManager && realtimeManager.unregisterCallback) {
+      realtimeManager.unregisterCallback(id);
+    }
+  }, [realtimeManager]);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup ao desmontar o último componente
+      if (realtimeManager && realtimeManager['callbacks']) {
+        const hasActiveCallbacks = Array.from(realtimeManager['callbacks'].values())
+          .some(map => map.size > 0);
+          
+        if (!hasActiveCallbacks) {
+          realtimeManager.cleanup();
+        }
+      }
+    };
+  }, [realtimeManager]);
 
   return {
     registerCallback,
     unregisterCallback,
-    isConnected: manager.current.getConnectionStatus(),
-    activeCallbacks: manager.current.getActiveCallbacks()
+    isConnected: !!user?.id,
+    // Expor instância para hooks otimizados
+    instance: realtimeManager
   };
 };

@@ -1,28 +1,31 @@
-
 import { Contact } from '@/types/chat';
 
 export const useLeadSorting = () => {
   const sortLeadsByRecentMessage = (leads: Contact[]): Contact[] => {
     return [...leads].sort((a, b) => {
-      // Primeiro: ordenar por mensagens não lidas (mais urgente)
-      if (a.unreadCount && !b.unreadCount) return -1;
-      if (!a.unreadCount && b.unreadCount) return 1;
+      // 1º PRIORIDADE: Mensagens não lidas (mais urgente no topo)
+      const aHasUnread = a.unreadCount && a.unreadCount > 0;
+      const bHasUnread = b.unreadCount && b.unreadCount > 0;
       
-      // Segundo: ordenar por última mensagem (mais recente primeiro)
+      if (aHasUnread && !bHasUnread) return -1;
+      if (!aHasUnread && bHasUnread) return 1;
+      
+      // 2º PRIORIDADE: Última mensagem mais recente
       if (a.lastMessageTime && b.lastMessageTime) {
+        // Converter para timestamp para comparação precisa
         const timeA = new Date(a.lastMessageTime).getTime();
         const timeB = new Date(b.lastMessageTime).getTime();
         
         if (!isNaN(timeA) && !isNaN(timeB)) {
-          return timeB - timeA; // Mais recente primeiro
+          return timeB - timeA; // Mais recente primeiro (ordem DESC)
         }
       }
       
-      // Se apenas um tem data de mensagem, priorizar o que tem
+      // 3º PRIORIDADE: Quem tem data de mensagem sobe
       if (a.lastMessageTime && !b.lastMessageTime) return -1;
       if (!a.lastMessageTime && b.lastMessageTime) return 1;
       
-      // Terceiro: ordenar alfabeticamente por nome
+      // 4º PRIORIDADE: Ordenação alfabética
       return a.name.localeCompare(b.name);
     });
   };

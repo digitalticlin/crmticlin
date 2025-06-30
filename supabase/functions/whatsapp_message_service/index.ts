@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -110,8 +109,98 @@ async function processIncomingMessage(supabase: any, instance: any, payload: any
   
   try {
     const { from, message, timestamp, data } = payload;
-    const messageText = message?.text || data?.message?.conversation || '[Mídia]';
-    const phoneNumber = from || data?.key?.remoteJid?.replace('@s.whatsapp.net', '');
+    
+    // ✅ EXTRAÇÃO CORRETA DE DADOS DA MENSAGEM
+    let messageText = '';
+    let mediaType = 'text';
+    let mediaUrl = null;
+    let fromMe = false;
+    let phoneNumber = '';
+
+    // ✅ DETECTAR DIREÇÃO DA MENSAGEM (BILATERAL)
+    if (data?.fromMe !== undefined) {
+      fromMe = data.fromMe;
+    } else if (data?.key?.fromMe !== undefined) {
+      fromMe = data.key.fromMe;
+    } else if (payload.fromMe !== undefined) {
+      fromMe = payload.fromMe;
+    } else if (message?.fromMe !== undefined) {
+      fromMe = message.fromMe;
+    }
+
+    // ✅ EXTRAIR NÚMERO DE TELEFONE
+    phoneNumber = from || data?.from || data?.key?.remoteJid?.replace('@s.whatsapp.net', '') || '';
+    if (!phoneNumber && data?.key?.remoteJid) {
+      const phoneMatch = data.key.remoteJid.match(/(\d+)@/);
+      phoneNumber = phoneMatch ? phoneMatch[1] : '';
+    }
+
+    // ✅ EXTRAÇÃO COMPLETA DE MÍDIA POR TIPO
+    if (data?.messages && Array.isArray(data.messages)) {
+      const firstMessage = data.messages[0];
+      const msg = firstMessage?.message;
+      
+      if (msg?.conversation) {
+        messageText = msg.conversation;
+        mediaType = 'text';
+      } else if (msg?.extendedTextMessage?.text) {
+        messageText = msg.extendedTextMessage.text;
+        mediaType = 'text';
+      } else if (msg?.imageMessage) {
+        messageText = msg.imageMessage.caption || '[Imagem]';
+        mediaType = 'image';
+        mediaUrl = msg.imageMessage.url || msg.imageMessage.directPath;
+      } else if (msg?.videoMessage) {
+        messageText = msg.videoMessage.caption || '[Vídeo]';
+        mediaType = 'video';
+        mediaUrl = msg.videoMessage.url || msg.videoMessage.directPath;
+      } else if (msg?.audioMessage) {
+        messageText = '[Áudio]';
+        mediaType = 'audio';
+        mediaUrl = msg.audioMessage.url || msg.audioMessage.directPath;
+      } else if (msg?.documentMessage) {
+        messageText = msg.documentMessage.caption || msg.documentMessage.fileName || '[Documento]';
+        mediaType = 'document';
+        mediaUrl = msg.documentMessage.url || msg.documentMessage.directPath;
+      } else {
+        messageText = '[Mensagem de mídia]';
+        mediaType = 'text';
+      }
+    } else {
+      // ✅ FORMATO ALTERNATIVO DE PAYLOAD
+      messageText = message?.text || message?.body || data?.message?.conversation || data?.body || '[Mídia]';
+      
+      // Detectar tipo por propriedades do payload
+      if (data?.mediaType || message?.mediaType) {
+        const detectedType = data?.mediaType || message?.mediaType;
+        switch (detectedType) {
+          case 'imageMessage':
+          case 'image':
+            mediaType = 'image';
+            messageText = messageText === '[Mídia]' ? '[Imagem]' : messageText;
+            break;
+          case 'videoMessage':
+          case 'video':
+            mediaType = 'video';
+            messageText = messageText === '[Mídia]' ? '[Vídeo]' : messageText;
+            break;
+          case 'audioMessage':
+          case 'audio':
+            mediaType = 'audio';
+            messageText = messageText === '[Mídia]' ? '[Áudio]' : messageText;
+            break;
+          case 'documentMessage':
+          case 'document':
+            mediaType = 'document';
+            messageText = messageText === '[Mídia]' ? '[Documento]' : messageText;
+            break;
+          default:
+            mediaType = 'text';
+        }
+      }
+      
+      mediaUrl = data?.mediaUrl || message?.mediaUrl || data?.media_url || message?.media_url;
+    }
     
     if (!phoneNumber) {
       console.log('[Message Service] ⚠️ Número de telefone não identificado');
@@ -123,7 +212,7 @@ async function processIncomingMessage(supabase: any, instance: any, payload: any
       });
     }
 
-    console.log(`[Message Service] 📞 Mensagem de: ${phoneNumber} | Texto: ${messageText}`);
+    console.log(`[Message Service] 📞 Mensagem ${fromMe ? 'ENVIADA PARA' : 'RECEBIDA DE'}: ${phoneNumber} | Tipo: ${mediaType} | Texto: ${messageText.substring(0, 50)}...`);
 
     // Buscar ou criar lead
     let { data: lead, error: leadError } = await supabase
@@ -149,13 +238,13 @@ async function processIncomingMessage(supabase: any, instance: any, payload: any
         .from('leads')
         .insert({
           phone: phoneNumber,
-          name: phoneNumber,
+          name: `Contato ${phoneNumber}`,
           whatsapp_number_id: instance.id,
           created_by_user_id: instance.created_by_user_id,
           funnel_id: defaultFunnel?.id,
           last_message: messageText,
           last_message_time: new Date().toISOString(),
-          unread_count: 1
+          unread_count: fromMe ? 0 : 1 // ✅ Se é outgoing, não conta como não lida
         })
         .select()
         .single();
@@ -169,43 +258,55 @@ async function processIncomingMessage(supabase: any, instance: any, payload: any
       console.log(`[Message Service] ✅ Lead criado: ${lead.id}`);
     } else {
       // Atualizar lead existente
+      const updateData: any = {
+        last_message: messageText,
+        last_message_time: new Date().toISOString(),
+      };
+
+      // ✅ Se é incoming (não from_me), incrementar contador de não lidas
+      if (!fromMe) {
+        updateData.unread_count = (lead.unread_count || 0) + 1;
+      }
+
       await supabase
         .from('leads')
-        .update({
-          last_message: messageText,
-          last_message_time: new Date().toISOString(),
-          unread_count: (lead.unread_count || 0) + 1
-        })
+        .update(updateData)
         .eq('id', lead.id);
       
       console.log(`[Message Service] ✅ Lead atualizado: ${lead.id}`);
     }
 
-    // Salvar mensagem
+    // ✅ SALVAR MENSAGEM COMPLETA COM BILATERAL + MÍDIA
+    const messagePayload = {
+      lead_id: lead.id,
+      whatsapp_number_id: instance.id,
+      text: messageText,
+      from_me: fromMe, // ✅ CAMPO BILATERAL CORRETO
+      timestamp: timestamp || new Date().toISOString(),
+      status: fromMe ? 'sent' : 'received', // ✅ STATUS BASEADO NA DIREÇÃO
+      created_by_user_id: instance.created_by_user_id,
+      media_type: mediaType, // ✅ TIPO DE MÍDIA
+      media_url: mediaUrl     // ✅ URL DA MÍDIA
+    };
+
     const { error: messageError } = await supabase
       .from('messages')
-      .insert({
-        lead_id: lead.id,
-        whatsapp_number_id: instance.id,
-        text: messageText,
-        from_me: false,
-        timestamp: timestamp || new Date().toISOString(),
-        status: 'received',
-        created_by_user_id: instance.created_by_user_id
-      });
+      .insert(messagePayload);
 
     if (messageError) {
       console.error('[Message Service] ❌ Erro ao salvar mensagem:', messageError);
       throw messageError;
     }
 
-    console.log('[Message Service] ✅ Mensagem salva com sucesso');
+    console.log(`[Message Service] ✅ Mensagem ${fromMe ? 'OUTGOING' : 'INCOMING'} ${mediaType.toUpperCase()} salva com sucesso`);
 
     return new Response(JSON.stringify({
       success: true,
       message: 'Mensagem processada com sucesso',
       leadId: lead.id,
-      leadCreated: !leadError
+      leadCreated: !leadError,
+      fromMe: fromMe,
+      mediaType: mediaType
     }), {
       headers: { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' }
     });

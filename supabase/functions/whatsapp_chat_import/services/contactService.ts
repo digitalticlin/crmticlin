@@ -34,7 +34,7 @@ export async function processContacts(supabase: any, contacts: any[], instance: 
             phone: cleanPhone,
             name: contact.name || contact.pushname || `Contact-${cleanPhone.substring(cleanPhone.length - 4)}`,
             whatsapp_number_id: instance.id,
-            company_id: instance.company_id,
+            created_by_user_id: instance.created_by_user_id, // 🔥 CRÍTICO: Vincular ao criador da instância
             last_message: 'Imported contact',
             last_message_time: new Date().toISOString(),
             created_at: new Date().toISOString()
