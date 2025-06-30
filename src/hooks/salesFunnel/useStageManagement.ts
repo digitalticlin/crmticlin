@@ -63,13 +63,19 @@ export function useStageManagement() {
       throw new Error("Usuário não autenticado");
     }
 
+    console.log('[useStageManagement] 🔄 Movendo lead:', { leadId, stageId });
+
     const { error } = await supabase
       .from("leads")
       .update({ kanban_stage_id: stageId })
       .eq("id", leadId);
 
-    if (error) throw error;
+    if (error) {
+      console.error('[useStageManagement] ❌ Erro ao mover lead:', error);
+      throw error;
+    }
 
+    console.log('[useStageManagement] ✅ Lead movido com sucesso');
     queryClient.invalidateQueries({ queryKey: ["kanban-leads"] });
   };
 
@@ -211,12 +217,74 @@ export function useStageManagement() {
     queryClient.invalidateQueries({ queryKey: ["kanban-stages"] });
   };
 
+  // NOVA FUNÇÃO: Garantir que novos leads sempre tenham uma etapa
+  const ensureLeadStage = async (leadId: string, funnelId: string) => {
+    if (!user?.id) return;
+
+    try {
+      // Verificar se o lead já tem uma etapa
+      const { data: leadData } = await supabase
+        .from("leads")
+        .select("kanban_stage_id")
+        .eq("id", leadId)
+        .single();
+
+      if (leadData?.kanban_stage_id) {
+        console.log('[useStageManagement] ✅ Lead já possui etapa:', leadData.kanban_stage_id);
+        return leadData.kanban_stage_id;
+      }
+
+      // Buscar a primeira etapa do funil
+      const { data: firstStage } = await supabase
+        .from("kanban_stages")
+        .select("id")
+        .eq("funnel_id", funnelId)
+        .eq("title", "Entrada de Leads")
+        .single();
+
+      let stageId = firstStage?.id;
+
+      // Se não encontrar "Entrada de Leads", usar a primeira etapa por posição
+      if (!stageId) {
+        const { data: stages } = await supabase
+          .from("kanban_stages")
+          .select("id")
+          .eq("funnel_id", funnelId)
+          .order("order_position")
+          .limit(1);
+
+        stageId = stages?.[0]?.id;
+      }
+
+      if (stageId) {
+        console.log('[useStageManagement] 🔧 Atribuindo etapa ao lead:', { leadId, stageId });
+        
+        const { error: updateError } = await supabase
+          .from("leads")
+          .update({ kanban_stage_id: stageId })
+          .eq("id", leadId);
+
+        if (updateError) {
+          console.error('[useStageManagement] ❌ Erro ao atribuir etapa:', updateError);
+          throw updateError;
+        }
+
+        queryClient.invalidateQueries({ queryKey: ["kanban-leads"] });
+        return stageId;
+      }
+    } catch (error) {
+      console.error('[useStageManagement] ❌ Erro ao garantir etapa do lead:', error);
+      throw error;
+    }
+  };
+
   return { 
     moveToWonLost, 
     moveLeadToStage,
     addColumn,
     updateColumn,
     deleteColumn,
-    refreshColumns
+    refreshColumns,
+    ensureLeadStage
   };
 }

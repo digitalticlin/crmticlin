@@ -119,6 +119,62 @@ export type Database = {
         }
         Relationships: []
       }
+      instances_puppeteer: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          instance_id: string
+          progress: number | null
+          qr_code: string | null
+          session_id: string
+          status: string | null
+          total_contacts: number | null
+          total_messages: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          instance_id: string
+          progress?: number | null
+          qr_code?: string | null
+          session_id: string
+          status?: string | null
+          total_contacts?: number | null
+          total_messages?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          instance_id?: string
+          progress?: number | null
+          qr_code?: string | null
+          session_id?: string
+          status?: string | null
+          total_contacts?: number | null
+          total_messages?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instances_puppeteer_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kanban_stages: {
         Row: {
           color: string | null
@@ -218,6 +274,7 @@ export type Database = {
           email: string | null
           funnel_id: string
           id: string
+          import_source: string | null
           kanban_stage_id: string | null
           last_message: string | null
           last_message_time: string | null
@@ -240,6 +297,7 @@ export type Database = {
           email?: string | null
           funnel_id: string
           id?: string
+          import_source?: string | null
           kanban_stage_id?: string | null
           last_message?: string | null
           last_message_time?: string | null
@@ -262,6 +320,7 @@ export type Database = {
           email?: string | null
           funnel_id?: string
           id?: string
+          import_source?: string | null
           kanban_stage_id?: string | null
           last_message?: string | null
           last_message_time?: string | null
@@ -299,12 +358,68 @@ export type Database = {
           },
         ]
       }
+      media_cache: {
+        Row: {
+          base64_data: string | null
+          cached_url: string | null
+          created_at: string | null
+          expires_at: string | null
+          file_name: string | null
+          file_size: number | null
+          hash: string | null
+          id: string
+          media_type: Database["public"]["Enums"]["media_type"]
+          message_id: string | null
+          original_url: string
+          updated_at: string | null
+        }
+        Insert: {
+          base64_data?: string | null
+          cached_url?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          hash?: string | null
+          id?: string
+          media_type: Database["public"]["Enums"]["media_type"]
+          message_id?: string | null
+          original_url: string
+          updated_at?: string | null
+        }
+        Update: {
+          base64_data?: string | null
+          cached_url?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          hash?: string | null
+          id?: string
+          media_type?: Database["public"]["Enums"]["media_type"]
+          message_id?: string | null
+          original_url?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "media_cache_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: true
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
+          content_hash: string | null
           created_at: string | null
           created_by_user_id: string
+          external_message_id: string | null
           from_me: boolean | null
           id: string
+          import_source: string | null
           lead_id: string | null
           media_type: Database["public"]["Enums"]["media_type"] | null
           media_url: string | null
@@ -314,10 +429,13 @@ export type Database = {
           whatsapp_number_id: string
         }
         Insert: {
+          content_hash?: string | null
           created_at?: string | null
           created_by_user_id: string
+          external_message_id?: string | null
           from_me?: boolean | null
           id?: string
+          import_source?: string | null
           lead_id?: string | null
           media_type?: Database["public"]["Enums"]["media_type"] | null
           media_url?: string | null
@@ -327,10 +445,13 @@ export type Database = {
           whatsapp_number_id: string
         }
         Update: {
+          content_hash?: string | null
           created_at?: string | null
           created_by_user_id?: string
+          external_message_id?: string | null
           from_me?: boolean | null
           id?: string
+          import_source?: string | null
           lead_id?: string | null
           media_type?: Database["public"]["Enums"]["media_type"] | null
           media_url?: string | null
