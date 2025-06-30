@@ -29,12 +29,12 @@ export const BoardContentOptimized = React.memo<BoardContentOptimizedProps>(({
   wonStageId,
   lostStageId
 }) => {
-  console.log('[BoardContentOptimized] 🎯 Renderizando com otimizações:', {
+  console.log('[BoardContentOptimized] 🎯 FASES 2+3 - Renderizando com arquitetura refinada:', {
     columnsCount: columns?.length || 0,
     isWonLostView
   });
 
-  // Handlers otimizados para evitar recriações
+  // Handlers otimizados para evitar recriações (Fase 1 + melhorias Fase 3)
   const { getOptimizedHandlers } = useDragHandlersOptimized({
     onOpenLeadDetail,
     onOpenChat,
@@ -52,10 +52,6 @@ export const BoardContentOptimized = React.memo<BoardContentOptimizedProps>(({
   const containerStyles = useMemo(() => ({
     height: '100%',
     minWidth: 'max-content'
-  }), []);
-
-  const scrollStyles = useMemo(() => ({
-    height: '100%'
   }), []);
 
   if (!validatedColumns.length) {
@@ -92,7 +88,7 @@ export const BoardContentOptimized = React.memo<BoardContentOptimizedProps>(({
     </div>
   );
 }, (prevProps, nextProps) => {
-  // Comparação otimizada do BoardContent
+  // Comparação otimizada do BoardContent (mantida da Fase 1)
   const columnsChanged = 
     prevProps.columns.length !== nextProps.columns.length ||
     prevProps.columns.some((col, index) => {

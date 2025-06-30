@@ -1,6 +1,6 @@
 
 import { KanbanColumn as IKanbanColumn, KanbanLead } from "@/types/kanban";
-import { useDragAndDropSafe } from "@/hooks/kanban/useDragAndDropSafe";
+import { useDragAndDropOptimized } from "@/hooks/kanban/useDragAndDropOptimized";
 import { BoardContentOptimized } from "./kanban/BoardContentOptimized";
 import { StableDragDropWrapper } from "./funnel/StableDragDropWrapper";
 import { DataErrorBoundary } from "./funnel/DataErrorBoundary";
@@ -33,7 +33,7 @@ export const KanbanBoard = ({
   wonStageId,
   lostStageId
 }: KanbanBoardProps) => {
-  console.log('[KanbanBoard] 🚀 OTIMIZADO - Renderizando com performance melhorada:', {
+  console.log('[KanbanBoard] 🚀 FASES 2+3 - Renderizando com arquitetura otimizada:', {
     columnsReceived: columns?.length || 0,
     isArray: Array.isArray(columns)
   });
@@ -52,12 +52,12 @@ export const KanbanBoard = ({
       Array.isArray(col.leads)
     );
 
-    console.log('[KanbanBoard] ✅ Colunas validadas (OTIMIZADO):', filtered.length);
+    console.log('[KanbanBoard] ✅ Colunas validadas (FASES 2+3):', filtered.length);
     return filtered;
   }, [columns]);
 
-  // Hook de drag and drop otimizado
-  const { isDragging, onDragStart, onDragEnd } = useDragAndDropSafe({ 
+  // Hook de drag and drop TOTALMENTE otimizado (Fases 2 + 3)
+  const { isDragging, onDragStart, onDragEnd } = useDragAndDropOptimized({ 
     columns: validatedColumns, 
     onColumnsChange, 
     onMoveToWonLost, 
@@ -91,11 +91,11 @@ export const KanbanBoard = ({
     );
   }
 
-  console.log('[KanbanBoard] 🎯 OTIMIZADO - Renderizando board com performance melhorada');
+  console.log('[KanbanBoard] 🎯 FASES 2+3 - Renderizando board com arquitetura refinada');
 
   return (
     <div className="relative w-full h-full flex flex-col">
-      <DataErrorBoundary context="Kanban Board - Performance Otimizado">
+      <DataErrorBoundary context="Kanban Board - Fases 2+3 Implementadas">
         <StableDragDropWrapper onDragStart={onDragStart} onDragEnd={onDragEnd}>
           <BoardContentOptimized
             columns={validatedColumns}
