@@ -1,3 +1,4 @@
+
 import { ReactNode, useEffect, useState } from "react";
 import { SalesFunnelProvider } from "./SalesFunnelProvider";
 import { useSalesFunnelDirect } from "@/hooks/salesFunnel/useSalesFunnelDirect";
@@ -67,6 +68,10 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
 
   // SEMPRE fornecer um contexto válido - nunca retornar early
   const contextValue = {
+    // Estado de carregamento
+    loading: salesFunnelData.loading || false,
+    error: salesFunnelData.error || null,
+    
     // Funnel data - sempre disponível com fallbacks
     funnels: salesFunnelData.funnels || [],
     selectedFunnel: salesFunnelData.selectedFunnel || null,

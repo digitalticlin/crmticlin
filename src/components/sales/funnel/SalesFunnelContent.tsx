@@ -1,3 +1,4 @@
+
 import { useSalesFunnelContext } from "./SalesFunnelProvider";
 import { KanbanBoard } from "../KanbanBoard";
 import { FunnelLoadingState } from "./FunnelLoadingState";
@@ -62,9 +63,20 @@ export function SalesFunnelContent() {
     return <FunnelEmptyState />;
   }
 
+  // Calcular estatísticas para o header
+  const totalLeads = leads.length;
+  const wonLeads = leads.filter(l => l.columnId === stages.find(s => s.is_won)?.id).length;
+  const lostLeads = leads.filter(l => l.columnId === stages.find(s => s.is_lost)?.id).length;
+
   return (
     <div className="flex flex-col h-full">
-      <ModernFunnelHeader />
+      <ModernFunnelHeader 
+        selectedFunnel={selectedFunnel}
+        totalLeads={totalLeads}
+        wonLeads={wonLeads}
+        lostLeads={lostLeads}
+        activeTab="funnel"
+      />
       
       {/* Monitor de Saúde dos Leads */}
       <div className="px-6 mb-4">
@@ -75,7 +87,7 @@ export function SalesFunnelContent() {
         <KanbanBoard
           columns={columns}
           onColumnsChange={setColumns}
-          onLeadClick={openLeadDetail}
+          onOpenLeadDetail={openLeadDetail}
           availableTags={availableTags}
           onToggleTag={toggleTagOnLead}
         />
@@ -85,10 +97,10 @@ export function SalesFunnelContent() {
         selectedLead={selectedLead}
         isLeadDetailOpen={isLeadDetailOpen}
         setIsLeadDetailOpen={setIsLeadDetailOpen}
-        updateLeadNotes={updateLeadNotes}
-        updateLeadPurchaseValue={updateLeadPurchaseValue}
-        updateLeadAssignedUser={updateLeadAssignedUser}
-        updateLeadName={updateLeadName}
+        onUpdateNotes={updateLeadNotes}
+        onUpdatePurchaseValue={updateLeadPurchaseValue}
+        onUpdateAssignedUser={updateLeadAssignedUser}
+        onUpdateName={updateLeadName}
         refetchLeads={refetchLeads}
         refetchStages={refetchStages}
       />
