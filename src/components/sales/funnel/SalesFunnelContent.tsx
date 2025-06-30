@@ -19,12 +19,11 @@ export function SalesFunnelContent() {
     setIsLeadDetailOpen,
     stages,
     leads,
-    availableTags,
     openLeadDetail,
-    updateLeadNotes,
-    updateLeadPurchaseValue,
-    updateLeadAssignedUser,
-    updateLeadName,
+    onUpdateNotes,
+    onUpdatePurchaseValue,
+    onUpdateAssignedUser,
+    onUpdateName,
     toggleTagOnLead,
     refetchLeads,
     refetchStages
@@ -88,8 +87,6 @@ export function SalesFunnelContent() {
           columns={columns}
           onColumnsChange={setColumns}
           onOpenLeadDetail={openLeadDetail}
-          availableTags={availableTags}
-          onToggleTag={toggleTagOnLead}
         />
       </div>
 
@@ -97,10 +94,10 @@ export function SalesFunnelContent() {
         selectedLead={selectedLead}
         isLeadDetailOpen={isLeadDetailOpen}
         setIsLeadDetailOpen={setIsLeadDetailOpen}
-        onUpdateNotes={updateLeadNotes}
-        onUpdatePurchaseValue={updateLeadPurchaseValue}
-        onUpdateAssignedUser={updateLeadAssignedUser}
-        onUpdateName={updateLeadName}
+        onUpdateNotes={onUpdateNotes}
+        onUpdatePurchaseValue={onUpdatePurchaseValue}
+        onUpdateAssignedUser={onUpdateAssignedUser}
+        onUpdateName={onUpdateName}
         refetchLeads={refetchLeads}
         refetchStages={refetchStages}
       />

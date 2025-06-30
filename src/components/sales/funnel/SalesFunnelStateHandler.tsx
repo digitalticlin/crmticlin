@@ -32,12 +32,7 @@ export const SalesFunnelStateHandler = ({
   // Empty state - mostrar apenas se realmente não houver funis após o carregamento
   if (!selectedFunnel && funnels.length === 0 && !funnelLoading) {
     console.log('[SalesFunnel] ❌ Nenhum funil encontrado, mostrando empty state');
-    return (
-      <FunnelEmptyState 
-        isAdmin={isAdmin}
-        onCreateFunnel={createFunnel}
-      />
-    );
+    return <FunnelEmptyState />;
   }
 
   // Se tem funis mas nenhum selecionado, selecionar o primeiro
