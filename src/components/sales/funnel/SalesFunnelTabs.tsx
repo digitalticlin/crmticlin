@@ -1,4 +1,3 @@
-
 import { useState, useMemo } from "react";
 import { ModernFunnelHeader } from "./ModernFunnelHeader";
 import { ModernFunnelControlBar } from "./ModernFunnelControlBar";
@@ -149,7 +148,6 @@ export const SalesFunnelTabs = ({
         onSelectFunnel={setSelectedFunnel}
         onCreateFunnel={createFunnel}
         isAdmin={isAdmin}
-        wonLostFilters={activeTab === "won-lost" ? wonLostFilters : undefined}
       />
       
       {/* Board do Kanban - com validação completa */}
