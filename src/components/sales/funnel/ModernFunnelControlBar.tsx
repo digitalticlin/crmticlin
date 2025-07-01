@@ -1,12 +1,10 @@
 
 import { FunnelTabButton } from "./controls/FunnelTabButton";
 import { WonLostTabButton } from "./controls/WonLostTabButton";
-import { FunnelActionButtons } from "./controls/FunnelActionButtons";
-import { WonLostFilters } from "./WonLostFilters";
 import { Funnel } from "@/types/funnel";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Plus, Settings, UserPlus, Cog } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,34 +19,26 @@ interface ModernFunnelControlBarProps {
   onAddColumn: () => void;
   onManageTags: () => void;
   onAddLead: () => void;
+  onEditFunnel: () => void;
   funnels: Funnel[];
   selectedFunnel: Funnel | null;
   onSelectFunnel: (funnel: Funnel) => void;
   onCreateFunnel: (name: string, description?: string) => Promise<void>;
   isAdmin: boolean;
-  wonLostFilters?: {
-    searchTerm: string;
-    setSearchTerm: (term: string) => void;
-    selectedTags: string[];
-    setSelectedTags: (tags: string[]) => void;
-    selectedUser: string;
-    setSelectedUser: (user: string) => void;
-    availableTags: any[];
-    availableUsers: string[];
-    onClearFilters: () => void;
-    resultsCount: number;
-  };
 }
 
 export const ModernFunnelControlBar = ({
   activeTab,
   setActiveTab,
+  onAddColumn,
+  onManageTags,
+  onAddLead,
+  onEditFunnel,
   funnels,
   selectedFunnel,
   onSelectFunnel,
   onCreateFunnel,
-  isAdmin,
-  wonLostFilters
+  isAdmin
 }: ModernFunnelControlBarProps) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
@@ -131,11 +121,61 @@ export const ModernFunnelControlBar = ({
       {/* Lado Direito - Botões de Ação */}
       <div className="flex items-center gap-3">
         {activeTab === "funnel" && (
-          <FunnelActionButtons isAdmin={isAdmin} />
+          <div className="flex items-center gap-2">
+            {/* Botão Adicionar Lead */}
+            <Button
+              onClick={onAddLead}
+              size="sm"
+              className="bg-blue-500/80 hover:bg-blue-600/80 backdrop-blur-sm text-white border border-blue-400/30 shadow-sm"
+            >
+              <UserPlus className="w-4 h-4 mr-2" />
+              Novo Lead
+            </Button>
+
+            {/* Botão Gerenciar Tags */}
+            {isAdmin && (
+              <Button
+                onClick={onManageTags}
+                variant="outline"
+                size="sm"
+                className="bg-white/30 backdrop-blur-sm border-white/40 hover:bg-white/50 text-gray-800 hover:text-gray-900 shadow-sm"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Tags
+              </Button>
+            )}
+
+            {/* Botão Adicionar Etapa */}
+            {isAdmin && (
+              <Button
+                onClick={onAddColumn}
+                variant="outline"
+                size="sm"
+                className="bg-white/30 backdrop-blur-sm border-white/40 hover:bg-white/50 text-gray-800 hover:text-gray-900 shadow-sm"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Etapa
+              </Button>
+            )}
+
+            {/* Botão Editar Funil (Engrenagem) */}
+            {isAdmin && (
+              <Button
+                onClick={onEditFunnel}
+                variant="outline"
+                size="sm"
+                className="bg-white/30 backdrop-blur-sm border-white/40 hover:bg-white/50 text-gray-800 hover:text-gray-900 shadow-sm"
+              >
+                <Cog className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
         )}
 
-        {activeTab === "won-lost" && wonLostFilters && (
-          <WonLostFilters {...wonLostFilters} />
+        {activeTab === "won-lost" && (
+          <div className="text-sm text-gray-600 bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2">
+            Filtros serão implementados aqui
+          </div>
         )}
       </div>
     </div>

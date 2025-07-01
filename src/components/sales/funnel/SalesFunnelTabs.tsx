@@ -27,7 +27,6 @@ interface SalesFunnelTabsProps {
   onOpenChat: (lead: KanbanLead) => void;
   onMoveToWonLost: (lead: KanbanLead, status: "won" | "lost") => void;
   onReturnToFunnel: (lead: KanbanLead) => void;
-  wonLostFilters?: any;
 }
 
 export const SalesFunnelTabs = ({
@@ -49,8 +48,7 @@ export const SalesFunnelTabs = ({
   openLeadDetail,
   onOpenChat,
   onMoveToWonLost,
-  onReturnToFunnel,
-  wonLostFilters
+  onReturnToFunnel
 }: SalesFunnelTabsProps) => {
   const [activeTab, setActiveTab] = useState("funnel");
 
@@ -120,6 +118,12 @@ export const SalesFunnelTabs = ({
     }
   };
 
+  // Handler para editar funil (placeholder)
+  const handleEditFunnel = () => {
+    console.log('[SalesFunnelTabs] ⚙️ Editando funil:', selectedFunnel.name);
+    // TODO: Implementar lógica de edição do funil
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Moderno */}
@@ -144,12 +148,12 @@ export const SalesFunnelTabs = ({
         onAddColumn={() => addColumn("Nova etapa")}
         onManageTags={() => {}}
         onAddLead={() => {}}
+        onEditFunnel={handleEditFunnel}
         funnels={funnels}
         selectedFunnel={selectedFunnel}
         onSelectFunnel={setSelectedFunnel}
         onCreateFunnel={createFunnel}
         isAdmin={isAdmin}
-        wonLostFilters={activeTab === "won-lost" ? wonLostFilters : undefined}
       />
       
       {/* Board do Kanban - com validação completa */}
