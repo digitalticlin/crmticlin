@@ -7,6 +7,9 @@ import { FunnelEmptyState } from "./FunnelEmptyState";
 import { ModernFunnelHeader } from "./ModernFunnelHeader";
 import { ModernFunnelControlBar } from "./ModernFunnelControlBar";
 import { SalesFunnelModals } from "./SalesFunnelModals";
+import { CreateLeadModal } from "./modals/CreateLeadModal";
+import { TagManagementModal } from "./modals/TagManagementModal";
+import { FunnelConfigModal } from "./modals/FunnelConfigModal";
 import { useUserRole } from "@/hooks/useUserRole";
 
 export function SalesFunnelContent() {
@@ -36,6 +39,11 @@ export function SalesFunnelContent() {
 
   const { isAdmin } = useUserRole();
   const [activeTab, setActiveTab] = useState("funnel");
+  
+  // Estados para controlar os modais
+  const [isCreateLeadModalOpen, setIsCreateLeadModalOpen] = useState(false);
+  const [isTagManagementModalOpen, setIsTagManagementModalOpen] = useState(false);
+  const [isFunnelConfigModalOpen, setIsFunnelConfigModalOpen] = useState(false);
 
   console.log('[SalesFunnelContent] 🎯 Renderizando com dados:', {
     loading,
@@ -78,18 +86,23 @@ export function SalesFunnelContent() {
 
   // Handlers para as ações do controle bar
   const handleAddColumn = () => {
-    console.log('[SalesFunnelContent] 🔧 Adicionar coluna solicitado');
-    // TODO: Implementar modal de adicionar coluna
+    console.log('[SalesFunnelContent] 🔧 Abrindo modal de configuração do funil');
+    setIsFunnelConfigModalOpen(true);
   };
 
   const handleManageTags = () => {
-    console.log('[SalesFunnelContent] 🏷️ Gerenciar tags solicitado');
-    // TODO: Implementar modal de gerenciar tags
+    console.log('[SalesFunnelContent] 🏷️ Abrindo modal de gerenciar tags');
+    setIsTagManagementModalOpen(true);
   };
 
   const handleAddLead = () => {
-    console.log('[SalesFunnelContent] 👤 Adicionar lead solicitado');
-    // TODO: Implementar modal de adicionar lead
+    console.log('[SalesFunnelContent] 👤 Abrindo modal de adicionar lead');
+    setIsCreateLeadModalOpen(true);
+  };
+
+  const handleEditFunnel = () => {
+    console.log('[SalesFunnelContent] ⚙️ Abrindo modal de configuração do funil');
+    setIsFunnelConfigModalOpen(true);
   };
 
   return (
@@ -102,14 +115,15 @@ export function SalesFunnelContent() {
         activeTab={activeTab}
       />
       
-      {/* Card de Controle com Abas e Botões */}
-      <div className="px-6 pb-4">
+      {/* Card de Controle com Abas e Botões - com espaçamento adequado */}
+      <div className="px-6 pb-4 pt-6">
         <ModernFunnelControlBar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           onAddColumn={handleAddColumn}
           onManageTags={handleManageTags}
           onAddLead={handleAddLead}
+          onEditFunnel={handleEditFunnel}
           funnels={funnels}
           selectedFunnel={selectedFunnel}
           onSelectFunnel={setSelectedFunnel}
@@ -139,6 +153,7 @@ export function SalesFunnelContent() {
         )}
       </div>
 
+      {/* Modais principais do lead */}
       <SalesFunnelModals
         selectedLead={selectedLead}
         isLeadDetailOpen={isLeadDetailOpen}
@@ -149,6 +164,22 @@ export function SalesFunnelContent() {
         onUpdateName={updateLeadName}
         refetchLeads={refetchLeads}
         refetchStages={refetchStages}
+      />
+
+      {/* Modais de ações do control bar */}
+      <CreateLeadModal
+        isOpen={isCreateLeadModalOpen}
+        onClose={() => setIsCreateLeadModalOpen(false)}
+      />
+
+      <TagManagementModal
+        isOpen={isTagManagementModalOpen}
+        onClose={() => setIsTagManagementModalOpen(false)}
+      />
+
+      <FunnelConfigModal
+        isOpen={isFunnelConfigModalOpen}
+        onClose={() => setIsFunnelConfigModalOpen(false)}
       />
     </div>
   );

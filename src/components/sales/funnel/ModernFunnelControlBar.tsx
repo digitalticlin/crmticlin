@@ -4,7 +4,7 @@ import { WonLostTabButton } from "./controls/WonLostTabButton";
 import { Funnel } from "@/types/funnel";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { ChevronDown, Plus, Settings, UserPlus } from "lucide-react";
+import { ChevronDown, Plus, Settings, UserPlus, Cog } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,7 @@ interface ModernFunnelControlBarProps {
   onAddColumn: () => void;
   onManageTags: () => void;
   onAddLead: () => void;
+  onEditFunnel: () => void;
   funnels: Funnel[];
   selectedFunnel: Funnel | null;
   onSelectFunnel: (funnel: Funnel) => void;
@@ -32,6 +33,7 @@ export const ModernFunnelControlBar = ({
   onAddColumn,
   onManageTags,
   onAddLead,
+  onEditFunnel,
   funnels,
   selectedFunnel,
   onSelectFunnel,
@@ -130,6 +132,19 @@ export const ModernFunnelControlBar = ({
               Novo Lead
             </Button>
 
+            {/* Botão Gerenciar Tags */}
+            {isAdmin && (
+              <Button
+                onClick={onManageTags}
+                variant="outline"
+                size="sm"
+                className="bg-white/30 backdrop-blur-sm border-white/40 hover:bg-white/50 text-gray-800 hover:text-gray-900 shadow-sm"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Tags
+              </Button>
+            )}
+
             {/* Botão Adicionar Etapa */}
             {isAdmin && (
               <Button
@@ -143,16 +158,15 @@ export const ModernFunnelControlBar = ({
               </Button>
             )}
 
-            {/* Botão Gerenciar Tags */}
+            {/* Botão Editar Funil (Engrenagem) */}
             {isAdmin && (
               <Button
-                onClick={onManageTags}
+                onClick={onEditFunnel}
                 variant="outline"
                 size="sm"
                 className="bg-white/30 backdrop-blur-sm border-white/40 hover:bg-white/50 text-gray-800 hover:text-gray-900 shadow-sm"
               >
-                <Settings className="w-4 h-4 mr-2" />
-                Tags
+                <Cog className="w-4 h-4" />
               </Button>
             )}
           </div>
