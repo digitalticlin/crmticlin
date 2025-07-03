@@ -7,8 +7,10 @@ import { useTagDatabase } from "./useTagDatabase";
 import { KanbanColumn, KanbanLead, KanbanTag } from "@/types/kanban";
 import { Funnel, KanbanStage } from "@/types/funnel";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function useSalesFunnelDirect() {
+  const { user } = useAuth();
   const [selectedFunnel, setSelectedFunnel] = useState<Funnel | null>(null);
   const [selectedLead, setSelectedLead] = useState<KanbanLead | null>(null);
   const [isLeadDetailOpen, setIsLeadDetailOpen] = useState(false);
@@ -143,12 +145,21 @@ export function useSalesFunnelDirect() {
     setColumns(kanbanColumns);
   }, [stages, leads]);
 
-  // Create funnel function
-  const createFunnel = useCallback(async (name: string, description?: string) => {
+  // Create funnel function - FIXED to return Promise<void>
+  const createFunnel = useCallback(async (name: string, description?: string): Promise<void> => {
+    if (!user?.id) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('funnels')
-        .insert([{ name, description }])
+        .insert([{ 
+          name, 
+          description,
+          created_by_user_id: user.id
+        }])
         .select()
         .single();
 
@@ -156,14 +167,12 @@ export function useSalesFunnelDirect() {
       
       await refetchFunnels();
       toast.success("Funil criado com sucesso!");
-      
-      return data;
     } catch (error: any) {
       console.error('[useSalesFunnelDirect] ❌ Erro ao criar funil:', error);
       toast.error(error.message || "Erro ao criar funil");
       throw error;
     }
-  }, [refetchFunnels]);
+  }, [refetchFunnels, user?.id]);
 
   // IMPLEMENTAR FUNÇÕES DE GERENCIAMENTO DE ETAPAS
   const addColumn = useCallback(async (title: string) => {
