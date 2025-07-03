@@ -159,7 +159,8 @@ export function KanbanColumn({
               maxHeight: "calc(100vh - 200px)"
             }}
           >
-            {column.leads.map((lead, leadIndex) => (
+            {/* Renderização otimizada com limite */}
+            {column.leads.slice(0, 50).map((lead, leadIndex) => (
               <Draggable key={lead.id} draggableId={lead.id} index={leadIndex}>
                 {(provided, snapshot) => (
                   <LeadCard
@@ -179,6 +180,13 @@ export function KanbanColumn({
               </Draggable>
             ))}
             {provided.placeholder}
+            
+            {/* Aviso se há mais leads que o limite */}
+            {column.leads.length > 50 && (
+              <div className="p-2 text-center text-xs text-gray-500 bg-yellow-50 border border-yellow-200 rounded mx-1 mb-2">
+                Mostrando 50 de {column.leads.length} leads
+              </div>
+            )}
             
             {/* Indicador de drop otimizado */}
             {snapshot.isDraggingOver && column.leads.length === 0 && (

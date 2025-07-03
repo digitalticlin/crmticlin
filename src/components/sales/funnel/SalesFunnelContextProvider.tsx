@@ -1,7 +1,7 @@
 
 import { ReactNode, useEffect, useState } from "react";
 import { SalesFunnelProvider } from "./SalesFunnelProvider";
-import { useSalesFunnelDirect } from "@/hooks/salesFunnel/useSalesFunnelDirect";
+import { useSalesFunnelOptimized } from "@/hooks/salesFunnel/useSalesFunnelOptimized";
 import { useUserRole } from "@/hooks/useUserRole";
 
 interface SalesFunnelContextProviderProps {
@@ -9,11 +9,11 @@ interface SalesFunnelContextProviderProps {
 }
 
 export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProviderProps) => {
-  const salesFunnelData = useSalesFunnelDirect();
+  const salesFunnelData = useSalesFunnelOptimized();
   const { isAdmin } = useUserRole();
   const [isInitialized, setIsInitialized] = useState(false);
 
-  console.log('[SalesFunnelContextProvider] 📊 Estado atual (DIRETO):', {
+  console.log('[SalesFunnelContextProvider] 📊 Estado atual (OTIMIZADO):', {
     loading: salesFunnelData.loading,
     funnelsCount: salesFunnelData.funnels?.length || 0,
     selectedFunnel: salesFunnelData.selectedFunnel?.name || 'None',
@@ -130,7 +130,7 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     refetchStages: salesFunnelData.refetchStages || (async () => {})
   };
 
-  console.log('[SalesFunnelContextProvider] ✅ Fornecendo contexto DIRETO estável');
+  console.log('[SalesFunnelContextProvider] ✅ Fornecendo contexto OTIMIZADO estável');
 
   return (
     <SalesFunnelProvider value={contextValue}>

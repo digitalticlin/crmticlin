@@ -40,16 +40,24 @@ export const useDragClone = () => {
     });
   }, []);
 
-  // Listener global para movimento do mouse
+  // Listener global otimizado para movimento do mouse
   useEffect(() => {
     if (!cloneState.isVisible) return;
 
+    let animationId: number;
     const handleMouseMove = (e: MouseEvent) => {
-      updateClonePosition(e.clientX - 190, e.clientY - 80); // Offset para centralizar
+      // Usar requestAnimationFrame para suavizar atualizações
+      cancelAnimationFrame(animationId);
+      animationId = requestAnimationFrame(() => {
+        updateClonePosition(e.clientX - 190, e.clientY - 80);
+      });
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    return () => document.removeEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mousemove', handleMouseMove, { passive: true });
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      cancelAnimationFrame(animationId);
+    };
   }, [cloneState.isVisible, updateClonePosition]);
 
   return {
