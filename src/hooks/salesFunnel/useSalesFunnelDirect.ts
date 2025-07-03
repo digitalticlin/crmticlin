@@ -116,7 +116,7 @@ export function useSalesFunnelDirect() {
           company: lead.company || undefined,
           lastMessage: lead.last_message || "Sem mensagens",
           lastMessageTime: lead.last_message_time ? new Date(lead.last_message_time).toISOString() : new Date().toISOString(),
-          tags: [],
+          tags: [], // Always provide empty array for tags
           notes: lead.notes || undefined,
           columnId: stage.id,
           purchaseValue: lead.purchase_value ? Number(lead.purchase_value) : undefined,

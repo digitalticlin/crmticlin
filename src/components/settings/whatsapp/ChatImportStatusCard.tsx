@@ -14,7 +14,7 @@ interface ImportSession {
   session_id: string;
   instance_id: string;
   user_id: string;
-  status: 'waiting_qr' | 'scanning_qr' | 'connecting' | 'importing_contacts' | 'importing_messages' | 'completed' | 'failed';
+  status: string; // Allow any string from database
   progress: number;
   total_contacts: number;
   total_messages: number;
@@ -59,7 +59,7 @@ export function ChatImportStatusCard({ instanceId, instanceName }: ChatImportSta
       }
 
       if (data) {
-        setImportSession(data);
+        setImportSession(data as ImportSession);
       }
     } catch (error) {
       console.error('Erro ao buscar sessão:', error);
@@ -97,7 +97,7 @@ export function ChatImportStatusCard({ instanceId, instanceName }: ChatImportSta
 
       if (error) throw error;
 
-      setImportSession(data);
+      setImportSession(data as ImportSession);
       
       toast({
         title: "Sucesso",
@@ -173,7 +173,7 @@ export function ChatImportStatusCard({ instanceId, instanceName }: ChatImportSta
         }
 
         if (data) {
-          setImportSession(data);
+          setImportSession(data as ImportSession);
           
           // Parar polling se completou ou falhou
           if (data.status === 'completed' || data.status === 'failed') {

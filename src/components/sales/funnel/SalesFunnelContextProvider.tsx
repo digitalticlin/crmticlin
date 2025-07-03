@@ -79,7 +79,7 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     createFunnel: salesFunnelData.createFunnel,
     funnelLoading: salesFunnelData.loading || false,
     
-    // Dados com fallbacks seguros
+    // Dados com fallbacks seguros - Transform raw database leads to KanbanLead format
     columns: salesFunnelData.columns || [],
     setColumns: salesFunnelData.setColumns || (() => {}),
     selectedLead: salesFunnelData.selectedLead || null,
@@ -87,7 +87,29 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     setIsLeadDetailOpen: salesFunnelData.setIsLeadDetailOpen || (() => {}),
     availableTags: salesFunnelData.availableTags || [],
     stages: salesFunnelData.stages || [],
-    leads: salesFunnelData.leads || [],
+    leads: (salesFunnelData.leads || []).map(lead => ({
+      id: lead.id,
+      name: lead.name,
+      phone: lead.phone,
+      email: lead.email || undefined,
+      company: lead.company || undefined,
+      lastMessage: lead.last_message || "Sem mensagens",
+      lastMessageTime: lead.last_message_time ? new Date(lead.last_message_time).toISOString() : new Date().toISOString(),
+      tags: [],
+      notes: lead.notes || undefined,
+      columnId: lead.kanban_stage_id || undefined,
+      purchaseValue: lead.purchase_value ? Number(lead.purchase_value) : undefined,
+      assignedUser: lead.owner_id || undefined,
+      unreadCount: lead.unread_count || 0,
+      avatar: undefined,
+      created_at: lead.created_at,
+      updated_at: lead.updated_at,
+      company_id: undefined,
+      whatsapp_number_id: lead.whatsapp_number_id || undefined,
+      funnel_id: lead.funnel_id,
+      kanban_stage_id: lead.kanban_stage_id || undefined,
+      owner_id: lead.owner_id || undefined
+    })),
     
     // Ações sempre disponíveis
     addColumn: addColumnWrapper,
