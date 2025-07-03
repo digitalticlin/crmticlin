@@ -17,6 +17,7 @@ export const StageListItem = ({ stage, onUpdate, onDelete }: StageListItemProps)
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(stage.title);
   const [editColor, setEditColor] = useState(stage.color || "#e0e0e0");
+  const [isLoading, setIsLoading] = useState(false);
 
   // Verificar se o estágio é fixo
   const isFixedStage = stage.title === "GANHO" || stage.title === "PERDIDO" || stage.title === "Entrada de Leads" || stage.isFixed;
@@ -27,6 +28,7 @@ export const StageListItem = ({ stage, onUpdate, onDelete }: StageListItemProps)
       return;
     }
 
+    setIsLoading(true);
     try {
       await onUpdate({
         ...stage,
@@ -34,9 +36,10 @@ export const StageListItem = ({ stage, onUpdate, onDelete }: StageListItemProps)
         color: editColor
       });
       setIsEditing(false);
-      toast.success("Estágio atualizado com sucesso!");
     } catch (error: any) {
       toast.error(error.message || "Erro ao atualizar estágio");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -48,11 +51,13 @@ export const StageListItem = ({ stage, onUpdate, onDelete }: StageListItemProps)
 
   const handleDelete = async () => {
     if (window.confirm(`Tem certeza que deseja excluir o estágio "${stage.title}"?`)) {
+      setIsLoading(true);
       try {
         await onDelete(stage.id);
-        toast.success("Estágio excluído com sucesso!");
       } catch (error: any) {
         toast.error(error.message || "Erro ao excluir estágio");
+      } finally {
+        setIsLoading(false);
       }
     }
   };
@@ -77,6 +82,7 @@ export const StageListItem = ({ stage, onUpdate, onDelete }: StageListItemProps)
               onChange={(e) => setEditTitle(e.target.value)}
               placeholder="Nome do estágio"
               className="text-sm"
+              disabled={isLoading}
             />
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-500">Cor:</span>
@@ -85,6 +91,7 @@ export const StageListItem = ({ stage, onUpdate, onDelete }: StageListItemProps)
                 value={editColor}
                 onChange={(e) => setEditColor(e.target.value)}
                 className="w-8 h-6 rounded border cursor-pointer"
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -113,6 +120,7 @@ export const StageListItem = ({ stage, onUpdate, onDelete }: StageListItemProps)
               variant="ghost"
               onClick={handleSave}
               className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+              disabled={isLoading}
             >
               <Save className="h-4 w-4" />
             </Button>
@@ -121,6 +129,7 @@ export const StageListItem = ({ stage, onUpdate, onDelete }: StageListItemProps)
               variant="ghost"
               onClick={handleCancel}
               className="h-8 w-8 p-0 text-gray-500 hover:text-gray-600"
+              disabled={isLoading}
             >
               <X className="h-4 w-4" />
             </Button>
@@ -134,6 +143,7 @@ export const StageListItem = ({ stage, onUpdate, onDelete }: StageListItemProps)
                   variant="ghost"
                   onClick={() => setIsEditing(true)}
                   className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700"
+                  disabled={isLoading}
                 >
                   <Edit2 className="h-4 w-4" />
                 </Button>
@@ -142,6 +152,7 @@ export const StageListItem = ({ stage, onUpdate, onDelete }: StageListItemProps)
                   variant="ghost"
                   onClick={handleDelete}
                   className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                  disabled={isLoading}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

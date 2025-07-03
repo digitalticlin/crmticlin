@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Save } from "lucide-react";
+import { useSalesFunnelContext } from "../../SalesFunnelProvider";
 
 interface CreateStageFormProps {
   onCreateStage: (title: string) => Promise<void>;
@@ -12,25 +13,26 @@ interface CreateStageFormProps {
 export const CreateStageForm = ({ onCreateStage }: CreateStageFormProps) => {
   const [isCreating, setIsCreating] = useState(false);
   const [newStageTitle, setNewStageTitle] = useState("");
-  const [newStageColor, setNewStageColor] = useState("#3b82f6");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleCreate = async () => {
     if (!newStageTitle.trim()) return;
 
+    setIsLoading(true);
     try {
-      await onCreateStage(newStageTitle);
+      await onCreateStage(newStageTitle.trim());
       setNewStageTitle("");
-      setNewStageColor("#3b82f6");
       setIsCreating(false);
     } catch (error) {
       console.error("Erro ao criar estágio:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleCancel = () => {
     setIsCreating(false);
     setNewStageTitle("");
-    setNewStageColor("#3b82f6");
   };
 
   if (isCreating) {
@@ -43,20 +45,19 @@ export const CreateStageForm = ({ onCreateStage }: CreateStageFormProps) => {
             onChange={(e) => setNewStageTitle(e.target.value)}
             placeholder="Nome da etapa"
             className="flex-1"
-          />
-          <input
-            type="color"
-            value={newStageColor}
-            onChange={(e) => setNewStageColor(e.target.value)}
-            className="w-12 h-10 rounded border border-white/20"
+            disabled={isLoading}
           />
         </div>
         <div className="flex gap-2">
-          <Button onClick={handleCreate} className="bg-gradient-to-r from-ticlin to-ticlin-dark text-black">
+          <Button 
+            onClick={handleCreate} 
+            className="bg-gradient-to-r from-ticlin to-ticlin-dark text-black"
+            disabled={isLoading || !newStageTitle.trim()}
+          >
             <Save className="w-4 h-4 mr-2" />
-            Salvar
+            {isLoading ? "Salvando..." : "Salvar"}
           </Button>
-          <Button variant="outline" onClick={handleCancel}>
+          <Button variant="outline" onClick={handleCancel} disabled={isLoading}>
             Cancelar
           </Button>
         </div>
