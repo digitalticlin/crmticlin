@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ImageMessage } from './renderers/ImageMessage';
@@ -7,6 +8,7 @@ import { DocumentMessage } from './renderers/DocumentMessage';
 
 interface MediaCache {
   id: string;
+  message_id: string;
   cached_url: string | null;
   base64_data: string | null;
   media_type: string;
@@ -231,7 +233,7 @@ export const MessageMedia: React.FC<MessageMediaProps> = React.memo(({
     case 'image':
       return <ImageMessage {...mediaProps} />;
     case 'video':
-      return <VideoMessage {...mediaProps} />;
+      return <VideoMessage {...mediaProps} caption="" />;
     case 'audio':
       return <AudioMessage {...mediaProps} />;
     case 'document':
@@ -248,4 +250,4 @@ export const MessageMedia: React.FC<MessageMediaProps> = React.memo(({
   }
 });
 
-MessageMedia.displayName = "MessageMedia"; 
+MessageMedia.displayName = "MessageMedia";

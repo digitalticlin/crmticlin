@@ -1,3 +1,4 @@
+
 import { WhatsAppChatLayout } from "./WhatsAppChatLayout";
 import { useWhatsAppChatContext } from "./WhatsAppChatProvider";
 
@@ -38,7 +39,13 @@ export const WhatsAppChatTabs = () => {
         messages={messages}
         onSendMessage={handleSendMessage}
         isLoadingContacts={isLoadingContacts}
+        isLoadingMoreContacts={false}
+        hasMoreContacts={false}
+        onLoadMoreContacts={async () => {}}
         isLoadingMessages={isLoadingMessages}
+        isLoadingMore={false}
+        hasMoreMessages={false}
+        onLoadMoreMessages={async () => {}}
         isSending={isSending}
         onRefreshMessages={handleRefreshMessages}
       />

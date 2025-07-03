@@ -1,8 +1,7 @@
 
 import { useState, useEffect, useCallback } from "react";
-import { useFunnelDatabase } from "./useFunnelDatabase";
-import { useStageDatabase } from "./useStageDatabase";
-import { useLeadDatabase } from "./useLeadDatabase";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useStageManagement } from "./useStageManagement";
 import { useTagDatabase } from "./useTagDatabase";
 import { KanbanColumn, KanbanLead, KanbanTag } from "@/types/kanban";
@@ -15,11 +14,55 @@ export function useSalesFunnelDirect() {
   const [isLeadDetailOpen, setIsLeadDetailOpen] = useState(false);
   const [columns, setColumns] = useState<KanbanColumn[]>([]);
 
-  // Database hooks
-  const { funnels, loading: funnelLoading, createFunnel, refetchFunnels } = useFunnelDatabase();
-  const { stages, isLoading: stagesLoading, refetchStages } = useStageDatabase(selectedFunnel?.id);
-  const { leads, isLoading: leadsLoading, refetchLeads } = useLeadDatabase(selectedFunnel?.id);
-  const { availableTags } = useTagDatabase();
+  // Database hooks - usando queries diretas
+  const { data: funnels = [], isLoading: funnelLoading, refetch: refetchFunnels } = useQuery({
+    queryKey: ['funnels'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('funnels')
+        .select('*')
+        .order('created_at', { ascending: true });
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  const { data: stages = [], isLoading: stagesLoading, refetch: refetchStages } = useQuery({
+    queryKey: ['stages', selectedFunnel?.id],
+    queryFn: async () => {
+      if (!selectedFunnel?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('kanban_stages')
+        .select('*')
+        .eq('funnel_id', selectedFunnel.id)
+        .order('order_position', { ascending: true });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!selectedFunnel?.id
+  });
+
+  const { data: leads = [], isLoading: leadsLoading, refetch: refetchLeads } = useQuery({
+    queryKey: ['leads', selectedFunnel?.id],
+    queryFn: async () => {
+      if (!selectedFunnel?.id) return [];
+      
+      const { data, error } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('funnel_id', selectedFunnel.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!selectedFunnel?.id
+  });
+
+  const { tags: availableTags } = useTagDatabase();
   
   // Stage management hook - INTEGRADO
   const { 
@@ -99,6 +142,28 @@ export function useSalesFunnelDirect() {
 
     setColumns(kanbanColumns);
   }, [stages, leads]);
+
+  // Create funnel function
+  const createFunnel = useCallback(async (name: string, description?: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('funnels')
+        .insert([{ name, description }])
+        .select()
+        .single();
+
+      if (error) throw error;
+      
+      await refetchFunnels();
+      toast.success("Funil criado com sucesso!");
+      
+      return data;
+    } catch (error: any) {
+      console.error('[useSalesFunnelDirect] ❌ Erro ao criar funil:', error);
+      toast.error(error.message || "Erro ao criar funil");
+      throw error;
+    }
+  }, [refetchFunnels]);
 
   // IMPLEMENTAR FUNÇÕES DE GERENCIAMENTO DE ETAPAS
   const addColumn = useCallback(async (title: string) => {

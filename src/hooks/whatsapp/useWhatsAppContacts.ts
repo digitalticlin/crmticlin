@@ -1,3 +1,4 @@
+
 // FASE 5: Hook corrigido para dados reais do banco + paginação virtual
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { supabase } from "@/integrations/supabase/client";
@@ -136,7 +137,7 @@ export const useWhatsAppContacts = (
         const limit = loadMore ? CONTACTS_PAGE_SIZE : INITIAL_CONTACTS_LIMIT;
         const offset = loadMore ? contacts.length : 0;
 
-        // QUERY OTIMIZADA: Com paginação
+        // QUERY OTIMIZADA: Com paginação - sem nullsLast
         const { data: leads, error } = await supabase
           .from('leads')
           .select(`
@@ -148,8 +149,8 @@ export const useWhatsAppContacts = (
           `)
           .eq('whatsapp_number_id', activeInstance!.id)
           .eq('created_by_user_id', userId!)
-          .order('last_message_time', { ascending: false, nullsLast: true })
-          .order('unread_count', { ascending: false, nullsLast: true })
+          .order('last_message_time', { ascending: false, nullsFirst: false })
+          .order('unread_count', { ascending: false, nullsFirst: false })
           .order('created_at', { ascending: false })
           .range(offset, offset + limit - 1);
 
