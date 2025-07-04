@@ -1,4 +1,3 @@
-
 import { FunnelTabButton } from "./controls/FunnelTabButton";
 import { WonLostTabButton } from "./controls/WonLostTabButton";
 import { Funnel } from "@/types/funnel";
@@ -140,7 +139,6 @@ export const ModernFunnelControlBar = ({
                 size="sm"
                 className="bg-white/30 backdrop-blur-sm border-white/40 hover:bg-white/50 text-gray-800 hover:text-gray-900 shadow-sm"
               >
-                <Settings className="w-4 h-4 mr-2" />
                 Tags
               </Button>
             )}

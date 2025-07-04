@@ -1,3 +1,4 @@
+import { KanbanTag } from "./kanban";
 
 export interface Contact {
   id: string;
@@ -8,7 +9,7 @@ export interface Contact {
   company?: string;
   documentId?: string;
   notes?: string;
-  tags?: string[];
+  tags?: KanbanTag[];
   lastMessage?: string;
   lastMessageTime?: string;
   unreadCount?: number;
@@ -23,6 +24,7 @@ export interface Contact {
   funnelStage?: string;
   priority?: 'low' | 'medium' | 'high';
   lastMessageStatus?: 'sent' | 'delivered' | 'read';
+  leadId?: string;
 }
 
 export interface Deal {
@@ -37,12 +39,11 @@ export interface Message {
   id: string;
   text: string;
   fromMe: boolean;
-  timestamp?: string; // Make optional since some messages use 'time' instead
+  timestamp?: string;
+  time?: string;
   status: "sent" | "delivered" | "read";
   mediaType?: "text" | "image" | "video" | "audio" | "document";
   mediaUrl?: string;
-  // Additional properties used by components
   sender?: "user" | "contact";
-  time?: string;
   isIncoming?: boolean;
 }

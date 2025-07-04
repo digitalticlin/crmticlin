@@ -14,6 +14,7 @@ interface WhatsAppContactsListProps {
   isLoadingMore?: boolean;
   hasMoreContacts?: boolean;
   onLoadMoreContacts?: () => Promise<void>;
+  onRefreshContacts?: () => void;
 }
 
 export const WhatsAppContactsList = React.memo(({
@@ -23,7 +24,8 @@ export const WhatsAppContactsList = React.memo(({
   isLoading,
   isLoadingMore = false,
   hasMoreContacts = false,
-  onLoadMoreContacts
+  onLoadMoreContacts,
+  onRefreshContacts
 }: WhatsAppContactsListProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
@@ -123,6 +125,7 @@ export const WhatsAppContactsList = React.memo(({
         isLoadingMore={isLoadingMore}
         hasMoreContacts={hasMoreContacts}
         onLoadMoreContacts={onLoadMoreContacts}
+        onRefreshContacts={onRefreshContacts}
       />
 
       {/* Loading indicator */}

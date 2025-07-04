@@ -1,4 +1,3 @@
-
 // FASE 5: Hook corrigido para dados reais do banco + paginação virtual
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { supabase } from "@/integrations/supabase/client";
@@ -159,7 +158,11 @@ export const useWhatsAppContacts = (
         // MAPEAMENTO OTIMIZADO
         const mappedContacts: Contact[] = (leads || []).map(lead => {
           const leadWithProfilePic = lead as any;
-          const leadTags = lead.lead_tags?.map((lt: any) => lt.tags?.name).filter(Boolean) || [];
+          const leadTags = lead.lead_tags?.map((lt: any) => ({
+            id: lt.tags?.id,
+            name: lt.tags?.name,
+            color: lt.tags?.color
+          })).filter(Boolean) || [];
           
           return {
             id: lead.id,
@@ -177,7 +180,8 @@ export const useWhatsAppContacts = (
             unreadCount: lead.unread_count && lead.unread_count > 0 ? lead.unread_count : undefined,
             avatar: '',
             profilePicUrl: leadWithProfilePic.profile_pic_url || '',
-            isOnline: Math.random() > 0.7 // Fake status
+            isOnline: Math.random() > 0.7, // Fake status
+            leadId: lead.id // Adicionar leadId
           };
         });
 
@@ -198,10 +202,7 @@ export const useWhatsAppContacts = (
         setHasMoreContacts(hasMore);
 
       } catch (error) {
-        console.error('[WhatsApp Contacts] ❌ Erro na sincronização:', error);
-        if (!loadMore) {
-          setContacts([]);
-        }
+        console.error('[WhatsApp Contacts] Erro ao buscar contatos:', error);
       } finally {
         isLoadingRef.current = false;
         setIsLoadingContacts(false);
@@ -209,69 +210,60 @@ export const useWhatsAppContacts = (
       }
     };
 
-    if (loadMore) {
-      // Execute imediatamente para load more
-      await executeQuery();
+    if (!loadMore) {
+      syncDebounceRef.current = setTimeout(executeQuery, 100);
     } else {
-      // Debounce apenas para carregamento inicial
-      syncDebounceRef.current = setTimeout(executeQuery, 300);
+      executeQuery();
     }
+  }, [contacts, cacheKey, activeInstance?.id, userId, setCachedContacts, getCachedContacts]);
 
-  }, [cacheKey, activeInstance, userId, getCachedContacts, setCachedContacts, contacts]);
+  // Configurar subscription para mudanças nas tags
+  useEffect(() => {
+    if (!activeInstance?.id || !userId) return;
 
-  // Load more contacts
-  const loadMoreContacts = useCallback(async () => {
-    if (!hasMoreContacts || isLoadingMoreContacts || isLoadingContacts) return;
-    await fetchContacts(false, true);
-  }, [hasMoreContacts, isLoadingMoreContacts, isLoadingContacts, fetchContacts]);
+    const channel = supabase
+      .channel('lead-tags-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'lead_tags',
+          filter: `created_by_user_id=eq.${userId}`
+        },
+        () => {
+          // Forçar atualização dos contatos quando houver mudança nas tags
+          fetchContacts(true);
+        }
+      )
+      .subscribe();
 
-  // REALTIME DESABILITADO TEMPORARIAMENTE para evitar loops
-  // useEffect(() => {
-  //   if (!activeInstance?.id || !userId) {
-  //     return;
-  //   }
-  //   // ... realtime subscription
-  // }, [activeInstance?.id, userId]);
+    realtimeChannelRef.current = channel;
 
-  // Carregar contatos quando parâmetros mudarem
+    return () => {
+      if (realtimeChannelRef.current) {
+        supabase.removeChannel(realtimeChannelRef.current);
+      }
+    };
+  }, [activeInstance?.id, userId, fetchContacts]);
+
+  // Carregar contatos iniciais
   useEffect(() => {
     if (cacheKey) {
       fetchContacts();
-    } else {
-      setContacts([]);
-      setHasMoreContacts(true);
-      setIsLoadingContacts(false);
     }
-
-    return () => {
-      if (syncDebounceRef.current) {
-        clearTimeout(syncDebounceRef.current);
-      }
-    };
   }, [cacheKey, fetchContacts]);
-
-  // Cleanup
-  useEffect(() => {
-    return () => {
-      if (realtimeChannelRef.current) {
-        realtimeChannelRef.current.unsubscribe();
-      }
-      if (syncDebounceRef.current) {
-        clearTimeout(syncDebounceRef.current);
-      }
-    };
-  }, []);
 
   return {
     contacts,
     isLoadingContacts,
     isLoadingMoreContacts,
     hasMoreContacts,
-    fetchContacts: useCallback(() => fetchContacts(true), [fetchContacts]),
-    loadMoreContacts,
+    highlightedContact,
+    setHighlightedContact,
     moveContactToTop,
     markAsRead,
-    highlightedContact,
-    setHighlightedContact
+    fetchContacts,
+    loadMoreContacts: () => fetchContacts(false, true)
   };
 };

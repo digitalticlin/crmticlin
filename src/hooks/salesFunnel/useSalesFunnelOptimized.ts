@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useStageManagement } from "./useStageManagement";
 import { useTagDatabase } from "./useTagDatabase";
@@ -13,6 +13,7 @@ const LEADS_PER_PAGE = 50; // Paginação para performance
 
 export function useSalesFunnelOptimized() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [selectedFunnel, setSelectedFunnel] = useState<Funnel | null>(null);
   const [selectedLead, setSelectedLead] = useState<KanbanLead | null>(null);
   const [isLeadDetailOpen, setIsLeadDetailOpen] = useState(false);
@@ -66,17 +67,25 @@ export function useSalesFunnelOptimized() {
           id, name, phone, email, company, notes, 
           last_message, last_message_time, purchase_value, 
           unread_count, owner_id, kanban_stage_id, funnel_id,
-          whatsapp_number_id, created_at, updated_at
+          whatsapp_number_id, created_at, updated_at,
+          lead_tags(
+            tag_id,
+            tags:tag_id(
+              id,
+              name,
+              color
+            )
+          )
         `)
         .eq('funnel_id', selectedFunnel.id)
         .order('updated_at', { ascending: false })
-        .limit(200); // Limite razoável para performance
+        .limit(200);
       
       if (error) throw error;
       return data || [];
     },
     enabled: !!selectedFunnel?.id,
-    staleTime: 30000, // 30 segundos para leads (mais dinâmico)
+    staleTime: 5000, // 5 segundos para leads
     gcTime: CACHE_TIME
   });
 
@@ -129,7 +138,7 @@ export function useSalesFunnelOptimized() {
           company: lead.company || undefined,
           lastMessage: lead.last_message || "Sem mensagens",
           lastMessageTime: lead.last_message_time ? new Date(lead.last_message_time).toISOString() : new Date().toISOString(),
-          tags: [], // Tags carregadas separadamente se necessário
+          tags: lead.lead_tags?.map(lt => lt.tags) || [],
           notes: lead.notes || undefined,
           columnId: stage.id,
           purchaseValue: lead.purchase_value ? Number(lead.purchase_value) : undefined,
@@ -275,6 +284,71 @@ export function useSalesFunnelOptimized() {
   // Identificar estágios especiais
   const wonStageId = stages?.find(s => s.is_won)?.id;
   const lostStageId = stages?.find(s => s.is_lost)?.id;
+
+  // Inscrição em tempo real para atualizações de tags
+  useEffect(() => {
+    if (!selectedFunnel?.id) return;
+
+    // Primeiro, buscar todos os lead_ids do funil selecionado
+    const fetchLeadIds = async () => {
+      console.log('[useSalesFunnelOptimized] 🔍 Buscando lead_ids do funil:', selectedFunnel.id);
+      
+      const { data: leadIds } = await supabase
+        .from('leads')
+        .select('id')
+        .eq('funnel_id', selectedFunnel.id)
+        .order('updated_at', { ascending: false })
+        .limit(200);
+      
+      console.log('[useSalesFunnelOptimized] ✅ Lead IDs encontrados:', leadIds?.length || 0);
+      return leadIds?.map(l => l.id) || [];
+    };
+
+    // Configurar inscrição para mudanças em lead_tags
+    const setupSubscription = async () => {
+      const leadIds = await fetchLeadIds();
+      
+      if (leadIds.length === 0) {
+        console.log('[useSalesFunnelOptimized] ⚠️ Nenhum lead encontrado para monitorar');
+        return;
+      }
+
+      console.log('[useSalesFunnelOptimized] 🔄 Configurando inscrição para', leadIds.length, 'leads');
+
+      const leadTagsChannel = supabase
+        .channel('lead-tags-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*', // INSERT, UPDATE, DELETE
+            schema: 'public',
+            table: 'lead_tags',
+            filter: `lead_id=in.(${leadIds.join(',')})`
+          },
+          (payload) => {
+            console.log('[useSalesFunnelOptimized] 🏷️ Mudança detectada em tags:', payload);
+            // Invalidar o cache e forçar um refetch
+            queryClient.invalidateQueries({
+              queryKey: ['leads-optimized', selectedFunnel.id]
+            });
+          }
+        )
+        .subscribe((status) => {
+          console.log('[useSalesFunnelOptimized] 📡 Status da inscrição:', status);
+        });
+
+      // Cleanup
+      return () => {
+        console.log('[useSalesFunnelOptimized] 🧹 Limpando inscrição de tags');
+        leadTagsChannel.unsubscribe();
+      };
+    };
+
+    const cleanup = setupSubscription();
+    return () => {
+      cleanup.then(cleanupFn => cleanupFn?.());
+    };
+  }, [selectedFunnel?.id, queryClient]);
 
   return {
     // Estado de carregamento

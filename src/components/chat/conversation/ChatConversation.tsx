@@ -1,4 +1,3 @@
-
 import { Contact, Message } from "@/types/chat";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { MessagesList } from "@/components/chat/MessagesList";
@@ -10,6 +9,7 @@ interface ChatConversationProps {
   onOpenContactDetails: () => void;
   onBack: () => void;
   onSendMessage: (message: string) => void;
+  leadId?: string;
 }
 
 export function ChatConversation({
@@ -17,7 +17,8 @@ export function ChatConversation({
   messages,
   onOpenContactDetails,
   onBack,
-  onSendMessage
+  onSendMessage,
+  leadId
 }: ChatConversationProps) {
   return (
     <div className="h-full flex flex-col bg-white/5 dark:bg-black/5 backdrop-blur-lg">
@@ -25,6 +26,7 @@ export function ChatConversation({
         selectedContact={selectedContact} 
         onOpenContactDetails={onOpenContactDetails}
         onBack={onBack}
+        leadId={leadId}
       />
       <MessagesList messages={messages} />
       <MessageInput onSendMessage={onSendMessage} />

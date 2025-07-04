@@ -1,4 +1,3 @@
-
 import { KanbanLead, FIXED_COLUMN_IDS } from "@/types/kanban";
 import { cn } from "@/lib/utils";
 import { DraggableProvided } from "react-beautiful-dnd";
@@ -79,7 +78,7 @@ export const LeadCard = ({
         
         {/* Tags and Actions Footer */}
         <div className="flex justify-between items-center mt-3 pt-2 border-t border-white/30">
-          <div className="flex-1 min-w-0 mr-2">
+          <div className="flex-1 min-w-0 mr-2 max-w-[70%]">
             <LeadCardTags tags={lead.tags} />
           </div>
           <LeadCardActions

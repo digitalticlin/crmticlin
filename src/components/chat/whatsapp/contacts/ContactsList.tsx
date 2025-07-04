@@ -3,6 +3,9 @@ import { cn } from "@/lib/utils";
 import { Contact } from "@/types/chat";
 import { formatPhoneDisplay } from "@/utils/phoneFormatter";
 import { MessageCircle, Clock, TrendingUp } from "lucide-react";
+import { ContactTags } from "./ContactTags";
+import { useTagsSync } from "@/hooks/whatsapp/useTagsSync";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ContactsListProps {
   contacts: Contact[];
@@ -13,6 +16,7 @@ interface ContactsListProps {
   isLoadingMore?: boolean;
   hasMoreContacts?: boolean;
   onLoadMoreContacts?: () => Promise<void>;
+  onRefreshContacts?: () => void;
 }
 
 // Função para determinar se deve mostrar nome ou telefone (estilo WhatsApp)
@@ -31,9 +35,18 @@ export const ContactsList = React.memo(({
   activeFilter,
   isLoadingMore = false,
   hasMoreContacts = false,
-  onLoadMoreContacts
+  onLoadMoreContacts,
+  onRefreshContacts
 }: ContactsListProps) => {
+  const { user } = useAuth();
   const [highlightedContacts, setHighlightedContacts] = useState<Set<string>>(new Set());
+
+  // Usar o hook de sincronização de tags
+  useTagsSync(user?.id || null, () => {
+    if (onRefreshContacts) {
+      onRefreshContacts();
+    }
+  });
 
   // Renderização simplificada para teste
   const renderedContacts = useMemo(() => {
@@ -79,6 +92,9 @@ export const ContactsList = React.memo(({
               )}>
                 {contact.lastMessage || "Nenhuma mensagem ainda"}
               </p>
+
+              {/* Adicionar tags */}
+              <ContactTags tags={contact.tags || []} />
             </div>
           </div>
         </div>

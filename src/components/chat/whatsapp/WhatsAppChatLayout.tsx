@@ -9,6 +9,7 @@ import { WhatsAppChatArea } from "./WhatsAppChatArea";
 import { WhatsAppEmptyState } from "./WhatsAppEmptyState";
 import { LeadDetailsSidebar } from "./LeadDetailsSidebar";
 import { Contact, Message } from "@/types/chat";
+import { useWhatsAppContacts } from "@/hooks/whatsapp/useWhatsAppContacts";
 
 interface WhatsAppChatLayoutProps {
   contacts: Contact[];
@@ -26,6 +27,7 @@ interface WhatsAppChatLayoutProps {
   onLoadMoreMessages: () => Promise<void>;
   isSending: boolean;
   onRefreshMessages?: () => void;
+  onRefreshContacts?: () => void;
 }
 
 export const WhatsAppChatLayout = ({
@@ -43,7 +45,8 @@ export const WhatsAppChatLayout = ({
   hasMoreMessages,
   onLoadMoreMessages,
   isSending,
-  onRefreshMessages
+  onRefreshMessages,
+  onRefreshContacts
 }: WhatsAppChatLayoutProps) => {
   const [isDetailsSidebarOpen, setIsDetailsSidebarOpen] = useState(false);
   const [updatedContacts, setUpdatedContacts] = useState<Contact[]>(contacts);
@@ -67,6 +70,11 @@ export const WhatsAppChatLayout = ({
         : contact
     );
     setUpdatedContacts(newContacts);
+
+    // Refresh contacts list to get updated tags
+    if (onRefreshContacts) {
+      onRefreshContacts();
+    }
   };
 
   const handleEditLead = () => {
@@ -87,6 +95,7 @@ export const WhatsAppChatLayout = ({
               isLoadingMore={isLoadingMoreContacts}
               hasMoreContacts={hasMoreContacts}
               onLoadMoreContacts={onLoadMoreContacts}
+              onRefreshContacts={onRefreshContacts}
             />
           </div>
         ) : (
@@ -130,6 +139,7 @@ export const WhatsAppChatLayout = ({
                 isLoadingMore={isLoadingMoreContacts}
                 hasMoreContacts={hasMoreContacts}
                 onLoadMoreContacts={onLoadMoreContacts}
+                onRefreshContacts={onRefreshContacts}
               />
             </div>
           </ResizablePanel>
@@ -163,6 +173,7 @@ export const WhatsAppChatLayout = ({
                   isSending={isSending}
                   onEditLead={handleEditLead}
                   onRefreshMessages={onRefreshMessages}
+                  leadId={selectedContact.id}
                 />
               ) : (
                 <WhatsAppEmptyState />

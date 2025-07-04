@@ -1,14 +1,15 @@
-
 import { useState } from "react";
 import { Contact } from "@/types/chat";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useLeadDeals } from "@/hooks/salesFunnel/useLeadDeals";
+import { useLeadTags } from "@/hooks/salesFunnel/useLeadTags";
 import { SidebarHeader } from "./sidebar/SidebarHeader";
 import { BasicInfoSection } from "./sidebar/BasicInfoSection";
 import { NotesSection } from "./sidebar/NotesSection";
 import { SalesHistorySection } from "./sidebar/SalesHistorySection";
+import { TagsSection } from "./sidebar/TagsSection";
 import { PurchaseValueField } from "@/components/sales/leadDetail/PurchaseValueField";
 
 interface LeadDetailsSidebarProps {
@@ -29,6 +30,7 @@ export const LeadDetailsSidebar = ({
   const [isLoading, setIsLoading] = useState(false);
 
   const { data: deals = [] } = useLeadDeals(selectedContact?.id);
+  const { leadTags, availableTags, loading: loadingTags, addTag, removeTag, fetchTags } = useLeadTags(selectedContact?.id || '');
 
   if (!selectedContact || !isOpen) return null;
 
@@ -107,6 +109,15 @@ export const LeadDetailsSidebar = ({
               setEditedContact={setEditedContact}
               onSave={handleSave}
               isLoading={isLoading}
+            />
+
+            <TagsSection
+              leadTags={leadTags}
+              availableTags={availableTags}
+              onAddTag={addTag}
+              onRemoveTag={removeTag}
+              onTagsChange={fetchTags}
+              isLoading={loadingTags}
             />
 
             <PurchaseValueField

@@ -1,5 +1,4 @@
-
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { useSalesFunnelContext } from "./SalesFunnelProvider";
 import { KanbanBoard } from "../KanbanBoard";
 import { FunnelLoadingState } from "./FunnelLoadingState";
@@ -7,7 +6,6 @@ import { FunnelEmptyState } from "./FunnelEmptyState";
 import { ModernFunnelHeader } from "./ModernFunnelHeader";
 import { ModernFunnelControlBar } from "./ModernFunnelControlBar";
 import { SalesFunnelModals } from "./SalesFunnelModals";
-import { CreateLeadModal } from "./modals/CreateLeadModal";
 import { TagManagementModal } from "./modals/TagManagementModal";
 import { FunnelConfigModal } from "./modals/FunnelConfigModal";
 import { WonLostFilters } from "./WonLostFilters";
@@ -16,8 +14,12 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { KanbanLead } from "@/types/kanban";
+import { RealClientDetails } from "@/components/clients/RealClientDetails";
+import { ClientData } from "@/hooks/clients/types";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function SalesFunnelContent() {
+  const { user } = useAuth();
   const {
     loading,
     error,
@@ -46,7 +48,7 @@ export function SalesFunnelContent() {
   const [activeTab, setActiveTab] = useState("funnel");
   
   // Estados para controlar os modais
-  const [isCreateLeadModalOpen, setIsCreateLeadModalOpen] = useState(false);
+  const [isCreateClientModalOpen, setIsCreateClientModalOpen] = useState(false);
   const [isTagManagementModalOpen, setIsTagManagementModalOpen] = useState(false);
   const [isFunnelConfigModalOpen, setIsFunnelConfigModalOpen] = useState(false);
 
@@ -55,69 +57,86 @@ export function SalesFunnelContent() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedUser, setSelectedUser] = useState("");
 
-  // Identificar estágios ganho/perdido
-  const wonStageId = stages?.find(s => s.is_won)?.id;
-  const lostStageId = stages?.find(s => s.is_lost)?.id;
+  // Identificar estágios ganho/perdido usando useMemo
+  const { wonStageId, lostStageId } = useMemo(() => ({
+    wonStageId: stages?.find(s => s.is_won)?.id,
+    lostStageId: stages?.find(s => s.is_lost)?.id
+  }), [stages]);
 
-  console.log('[SalesFunnelContent] 🎯 Renderizando com dados:', {
-    loading,
-    error,
-    selectedFunnelId: selectedFunnel?.id,
-    columnsCount: columns.length,
-    leadsCount: leads.length,
-    stagesCount: stages.length,
-    activeTab
-  });
+  // Calcular estatísticas para o header usando useMemo
+  const stats = useMemo(() => ({
+    totalLeads: leads.length,
+    wonLeads: leads.filter(l => l.columnId === wonStageId).length,
+    lostLeads: leads.filter(l => l.columnId === lostStageId).length
+  }), [leads, wonStageId, lostStageId]);
 
-  if (loading) {
-    return <FunnelLoadingState />;
-  }
+  // Estado global para tags
+  const [availableTags, setAvailableTags] = useState([]);
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <p className="text-red-600 mb-2">❌ {error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="text-blue-600 hover:text-blue-800 underline"
-          >
-            Tentar novamente
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Função para carregar todas as tags disponíveis
+  const fetchAvailableTags = useCallback(async () => {
+    try {
+      const { data: tags, error } = await supabase
+        .from('tags')
+        .select('*')
+        .order('name');
 
-  if (!selectedFunnel) {
-    return <FunnelEmptyState />;
-  }
+      if (error) throw error;
+      setAvailableTags(tags);
+    } catch (error) {
+      console.error('Erro ao carregar tags:', error);
+      toast.error('Erro ao carregar tags disponíveis');
+    }
+  }, []);
 
-  // Calcular estatísticas para o header
-  const totalLeads = leads.length;
-  const wonLeads = leads.filter(l => l.columnId === wonStageId).length;
-  const lostLeads = leads.filter(l => l.columnId === lostStageId).length;
+  // Carregar tags ao montar o componente
+  useEffect(() => {
+    fetchAvailableTags();
+  }, [fetchAvailableTags]);
 
   // Handlers para as ações do controle bar
-  const handleAddColumn = () => {
+  const handleAddColumn = useCallback(() => {
     console.log('[SalesFunnelContent] 🔧 Abrindo modal de configuração do funil');
     setIsFunnelConfigModalOpen(true);
-  };
+  }, []);
 
-  const handleManageTags = () => {
+  const handleManageTags = useCallback(() => {
     console.log('[SalesFunnelContent] 🏷️ Abrindo modal de gerenciar tags');
     setIsTagManagementModalOpen(true);
-  };
+  }, []);
 
-  const handleAddLead = () => {
-    console.log('[SalesFunnelContent] 👤 Abrindo modal de adicionar lead');
-    setIsCreateLeadModalOpen(true);
-  };
+  const handleCreateLead = useCallback(async (clientData: Partial<ClientData>) => {
+    try {
+      if (!selectedFunnel?.id || !stages?.length || !user?.id) {
+        toast.error("Funil não selecionado ou sem etapas");
+        return;
+      }
 
-  const handleEditFunnel = () => {
-    console.log('[SalesFunnelContent] ⚙️ Abrindo modal de configuração do funil');
-    setIsFunnelConfigModalOpen(true);
-  };
+      const { error: leadError } = await supabase
+        .from("leads")
+        .insert([{
+          name: clientData.name,
+          phone: clientData.phone,
+          email: clientData.email,
+          company: clientData.company,
+          notes: clientData.notes,
+          funnel_id: selectedFunnel.id,
+          kanban_stage_id: stages[0].id,
+          created_by_user_id: user.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }]);
+
+      if (leadError) throw leadError;
+
+      toast.success("Lead criado com sucesso!");
+      setIsCreateClientModalOpen(false);
+      refetchLeads();
+    } catch (error) {
+      console.error("Erro ao criar lead:", error);
+      toast.error("Erro ao criar lead");
+    }
+  }, [selectedFunnel?.id, stages, refetchLeads, user?.id]);
 
   // Ações dos leads com refresh automático
   const handleMoveToWonLost = useCallback(async (lead: KanbanLead, status: "won" | "lost") => {
@@ -171,13 +190,38 @@ export function SalesFunnelContent() {
     }
   }, [stages, refetchLeads, refetchStages]);
 
+  // Renderização condicional com base no loading e error
+  if (loading) {
+    return <FunnelLoadingState />;
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-red-600 mb-2">❌ {error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="text-blue-600 hover:text-blue-800 underline"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!selectedFunnel) {
+    return <FunnelEmptyState />;
+  }
+
   return (
     <div className="flex flex-col h-full">
       <ModernFunnelHeader 
         selectedFunnel={selectedFunnel}
-        totalLeads={totalLeads}
-        wonLeads={wonLeads}
-        lostLeads={lostLeads}
+        totalLeads={stats.totalLeads}
+        wonLeads={stats.wonLeads}
+        lostLeads={stats.lostLeads}
         activeTab={activeTab}
       />
       
@@ -188,8 +232,8 @@ export function SalesFunnelContent() {
           setActiveTab={setActiveTab}
           onAddColumn={handleAddColumn}
           onManageTags={handleManageTags}
-          onAddLead={handleAddLead}
-          onEditFunnel={handleEditFunnel}
+          onAddLead={() => setIsCreateClientModalOpen(true)}
+          onEditFunnel={() => setIsFunnelConfigModalOpen(true)}
           funnels={funnels}
           selectedFunnel={selectedFunnel}
           onSelectFunnel={setSelectedFunnel}
@@ -218,7 +262,7 @@ export function SalesFunnelContent() {
               setSelectedTags={setSelectedTags}
               selectedUser={selectedUser}
               setSelectedUser={setSelectedUser}
-              availableTags={[]} // TODO: Implementar tags
+              availableTags={availableTags}
               availableUsers={[]} // TODO: Implementar usuários
               onClearFilters={() => {
                 setSearchTerm("");
@@ -244,6 +288,27 @@ export function SalesFunnelContent() {
         )}
       </div>
 
+      {/* Modais */}
+      <RealClientDetails
+        client={null}
+        isOpen={isCreateClientModalOpen}
+        isCreateMode={true}
+        onOpenChange={setIsCreateClientModalOpen}
+        onCreateClient={handleCreateLead}
+      />
+
+      <TagManagementModal
+        isOpen={isTagManagementModalOpen}
+        onClose={() => setIsTagManagementModalOpen(false)}
+        availableTags={availableTags}
+        onTagsChange={fetchAvailableTags}
+      />
+
+      <FunnelConfigModal
+        isOpen={isFunnelConfigModalOpen}
+        onClose={() => setIsFunnelConfigModalOpen(false)}
+      />
+
       {/* Modais principais do lead */}
       <SalesFunnelModals
         selectedLead={selectedLead}
@@ -253,24 +318,10 @@ export function SalesFunnelContent() {
         onUpdatePurchaseValue={updateLeadPurchaseValue}
         onUpdateAssignedUser={updateLeadAssignedUser}
         onUpdateName={updateLeadName}
+        onToggleTag={(tagId: string) => selectedLead && toggleTagOnLead(selectedLead.id, tagId)}
         refetchLeads={refetchLeads}
         refetchStages={refetchStages}
-      />
-
-      {/* Modais de ações do control bar */}
-      <CreateLeadModal
-        isOpen={isCreateLeadModalOpen}
-        onClose={() => setIsCreateLeadModalOpen(false)}
-      />
-
-      <TagManagementModal
-        isOpen={isTagManagementModalOpen}
-        onClose={() => setIsTagManagementModalOpen(false)}
-      />
-
-      <FunnelConfigModal
-        isOpen={isFunnelConfigModalOpen}
-        onClose={() => setIsFunnelConfigModalOpen(false)}
+        availableTags={availableTags}
       />
     </div>
   );

@@ -1,4 +1,3 @@
-
 import { Contact, Message } from "@/types/chat";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { useState } from "react";
@@ -11,6 +10,7 @@ interface ChatAreaProps {
   onOpenContactDetails: () => void;
   onBack: () => void;
   onSendMessage: (message: string) => void;
+  leadId?: string;
 }
 
 export const ChatArea = ({
@@ -19,6 +19,7 @@ export const ChatArea = ({
   onOpenContactDetails,
   onBack,
   onSendMessage,
+  leadId
 }: ChatAreaProps) => {
   const [panelSize, setPanelSize] = useState({
     chat: 65,
@@ -38,6 +39,7 @@ export const ChatArea = ({
           onOpenContactDetails={onOpenContactDetails}
           onBack={onBack}
           onSendMessage={onSendMessage}
+          leadId={leadId}
         />
       </ResizablePanel>
       

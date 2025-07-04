@@ -1,9 +1,8 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,6 +27,7 @@ const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { signIn } = useAuth();
+  const navigate = useNavigate();
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -42,6 +42,7 @@ const LoginForm = () => {
     
     try {
       await signIn(values.email, values.password);
+      navigate("/dashboard");
     } catch (error) {
       console.error("Erro de login:", error);
     } finally {

@@ -1,4 +1,3 @@
-
 import { WhatsAppChatLayout } from "./WhatsAppChatLayout";
 import { useWhatsAppChatContext } from "./WhatsAppChatProvider";
 
@@ -12,7 +11,8 @@ export const WhatsAppChatTabs = () => {
     isLoadingContacts,
     isLoadingMessages,
     isSending,
-    fetchMessages
+    fetchMessages,
+    fetchContacts
   } = useWhatsAppChatContext();
 
   // Wrapper to handle the sendMessage signature difference
@@ -27,6 +27,14 @@ export const WhatsAppChatTabs = () => {
     console.log('[WhatsAppChatTabs] 🔄 Forçando refresh das mensagens...');
     if (fetchMessages) {
       fetchMessages();
+    }
+  };
+
+  // Force refresh contacts (bypass cache)
+  const handleRefreshContacts = () => {
+    console.log('[WhatsAppChatTabs] 🔄 Forçando refresh dos contatos...');
+    if (fetchContacts) {
+      fetchContacts();
     }
   };
 
@@ -48,6 +56,7 @@ export const WhatsAppChatTabs = () => {
         onLoadMoreMessages={async () => {}}
         isSending={isSending}
         onRefreshMessages={handleRefreshMessages}
+        onRefreshContacts={handleRefreshContacts}
       />
     </div>
   );
