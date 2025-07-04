@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useSalesFunnelContext } from "./SalesFunnelProvider";
 import { KanbanBoard } from "../KanbanBoard";
 import { FunnelLoadingState } from "./FunnelLoadingState";
@@ -10,7 +10,12 @@ import { SalesFunnelModals } from "./SalesFunnelModals";
 import { CreateLeadModal } from "./modals/CreateLeadModal";
 import { TagManagementModal } from "./modals/TagManagementModal";
 import { FunnelConfigModal } from "./modals/FunnelConfigModal";
+import { WonLostFilters } from "./WonLostFilters";
+import { WonLostBoard } from "./WonLostBoard";
 import { useUserRole } from "@/hooks/useUserRole";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { KanbanLead } from "@/types/kanban";
 
 export function SalesFunnelContent() {
   const {
@@ -44,6 +49,15 @@ export function SalesFunnelContent() {
   const [isCreateLeadModalOpen, setIsCreateLeadModalOpen] = useState(false);
   const [isTagManagementModalOpen, setIsTagManagementModalOpen] = useState(false);
   const [isFunnelConfigModalOpen, setIsFunnelConfigModalOpen] = useState(false);
+
+  // Estados para filtros da aba Ganhos e Perdidos
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedUser, setSelectedUser] = useState("");
+
+  // Identificar estágios ganho/perdido
+  const wonStageId = stages?.find(s => s.is_won)?.id;
+  const lostStageId = stages?.find(s => s.is_lost)?.id;
 
   console.log('[SalesFunnelContent] 🎯 Renderizando com dados:', {
     loading,
@@ -81,8 +95,8 @@ export function SalesFunnelContent() {
 
   // Calcular estatísticas para o header
   const totalLeads = leads.length;
-  const wonLeads = leads.filter(l => l.columnId === stages.find(s => s.is_won)?.id).length;
-  const lostLeads = leads.filter(l => l.columnId === stages.find(s => s.is_lost)?.id).length;
+  const wonLeads = leads.filter(l => l.columnId === wonStageId).length;
+  const lostLeads = leads.filter(l => l.columnId === lostStageId).length;
 
   // Handlers para as ações do controle bar
   const handleAddColumn = () => {
@@ -104,6 +118,58 @@ export function SalesFunnelContent() {
     console.log('[SalesFunnelContent] ⚙️ Abrindo modal de configuração do funil');
     setIsFunnelConfigModalOpen(true);
   };
+
+  // Ações dos leads com refresh automático
+  const handleMoveToWonLost = useCallback(async (lead: KanbanLead, status: "won" | "lost") => {
+    const stageId = status === "won" ? wonStageId : lostStageId;
+    if (!stageId || !lead.id) return;
+
+    try {
+      const { error } = await supabase
+        .from("leads")
+        .update({ kanban_stage_id: stageId })
+        .eq("id", lead.id);
+
+      if (error) throw error;
+      
+      toast.success(`Lead marcado como ${status === "won" ? "ganho" : "perdido"}!`);
+      
+      // Refresh automático
+      await refetchLeads();
+      await refetchStages();
+      
+      console.log(`[SalesFunnelContent] ✅ Lead ${lead.id} movido para ${status}`);
+    } catch (error) {
+      console.error(`Erro ao mover lead para ${status}:`, error);
+      toast.error(`Erro ao marcar como ${status === "won" ? "ganho" : "perdido"}`);
+    }
+  }, [wonStageId, lostStageId, refetchLeads, refetchStages]);
+
+  const handleReturnToFunnel = useCallback(async (lead: KanbanLead) => {
+    // Encontrar o primeiro estágio normal (não ganho nem perdido)
+    const firstNormalStage = stages?.find(s => !s.is_won && !s.is_lost);
+    if (!firstNormalStage || !lead.id) return;
+
+    try {
+      const { error } = await supabase
+        .from("leads")
+        .update({ kanban_stage_id: firstNormalStage.id })
+        .eq("id", lead.id);
+
+      if (error) throw error;
+      
+      toast.success("Lead retornou ao funil!");
+      
+      // Refresh automático
+      await refetchLeads();
+      await refetchStages();
+      
+      console.log(`[SalesFunnelContent] ↩️ Lead ${lead.id} retornou ao funil`);
+    } catch (error) {
+      console.error("Erro ao retornar lead ao funil:", error);
+      toast.error("Erro ao retornar lead ao funil");
+    }
+  }, [stages, refetchLeads, refetchStages]);
 
   return (
     <div className="flex flex-col h-full">
@@ -138,17 +204,42 @@ export function SalesFunnelContent() {
             columns={columns}
             onColumnsChange={setColumns}
             onOpenLeadDetail={openLeadDetail}
+            onMoveToWonLost={handleMoveToWonLost}
+            wonStageId={wonStageId}
+            lostStageId={lostStageId}
           />
         ) : (
-          <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-            <div className="text-center">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Visualização Ganhos e Perdidos
-              </h3>
-              <p className="text-gray-600">
-                Esta funcionalidade será implementada em breve
-              </p>
-            </div>
+          <div className="space-y-4">
+            {/* Filtros para Ganhos e Perdidos */}
+            <WonLostFilters
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              selectedTags={selectedTags}
+              setSelectedTags={setSelectedTags}
+              selectedUser={selectedUser}
+              setSelectedUser={setSelectedUser}
+              availableTags={[]} // TODO: Implementar tags
+              availableUsers={[]} // TODO: Implementar usuários
+              onClearFilters={() => {
+                setSearchTerm("");
+                setSelectedTags([]);
+                setSelectedUser("");
+              }}
+              resultsCount={leads.filter(l => l.columnId === wonStageId || l.columnId === lostStageId).length}
+            />
+            
+            {/* Board otimizado para Ganhos e Perdidos */}
+            <WonLostBoard
+              stages={stages}
+              leads={leads}
+              onOpenLeadDetail={openLeadDetail}
+              onReturnToFunnel={handleReturnToFunnel}
+              wonStageId={wonStageId}
+              lostStageId={lostStageId}
+              searchTerm={searchTerm}
+              selectedTags={selectedTags}
+              selectedUser={selectedUser}
+            />
           </div>
         )}
       </div>
