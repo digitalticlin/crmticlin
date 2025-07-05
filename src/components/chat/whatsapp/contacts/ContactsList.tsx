@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { cn } from "@/lib/utils";
 import { Contact } from "@/types/chat";
@@ -6,6 +7,7 @@ import { MessageCircle, Clock, TrendingUp } from "lucide-react";
 import { ContactTags } from "./ContactTags";
 import { useTagsSync } from "@/hooks/whatsapp/useTagsSync";
 import { useAuth } from "@/contexts/AuthContext";
+import { UnreadMessagesService } from "@/services/whatsapp/unreadMessagesService";
 
 interface ContactsListProps {
   contacts: Contact[];
@@ -48,7 +50,25 @@ export const ContactsList = React.memo(({
     }
   });
 
-  // Renderização simplificada para teste
+  // Função para marcar mensagens como lidas ao selecionar contato
+  const handleSelectContact = async (contact: Contact) => {
+    // Marcar mensagens como lidas se o contato tem mensagens não lidas
+    if (contact.unreadCount && contact.unreadCount > 0 && contact.leadId) {
+      await UnreadMessagesService.markAsRead(contact.leadId);
+      console.log(`[ContactsList] Marcando mensagens como lidas para: ${contact.name}`);
+      
+      // Atualizar lista de contatos após marcar como lida
+      if (onRefreshContacts) {
+        setTimeout(() => {
+          onRefreshContacts();
+        }, 500);
+      }
+    }
+    
+    onSelectContact(contact);
+  };
+
+  // Renderização dos contatos
   const renderedContacts = useMemo(() => {
     return contacts.map((contact, index) => {
       const hasUnreadMessages = contact.unreadCount && contact.unreadCount > 0;
@@ -59,15 +79,26 @@ export const ContactsList = React.memo(({
         <div
           key={contact.id}
           className={cn(
-            "p-4 hover:bg-white/20 cursor-pointer transition-all duration-300",
+            "p-4 hover:bg-white/20 cursor-pointer transition-all duration-300 border-b border-white/10",
             isSelected && "bg-white/30 border-r-2 border-blue-500"
           )}
-          onClick={() => onSelectContact(contact)}
+          onClick={() => handleSelectContact(contact)}
         >
           <div className="flex items-start gap-3">
-            {/* Avatar simplificado */}
-            <div className="h-12 w-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg">
-              T
+            {/* Avatar com padrão preto e T amarelo */}
+            <div className="relative">
+              <div className="h-12 w-12 rounded-full bg-black flex items-center justify-center ring-2 ring-white/10">
+                <span className="text-yellow-400 font-extrabold text-lg" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+                  T
+                </span>
+              </div>
+              
+              {/* Badge de mensagens não lidas */}
+              {hasUnreadMessages && (
+                <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full h-6 min-w-[24px] flex items-center justify-center text-xs font-bold animate-pulse">
+                  {contact.unreadCount > 99 ? '99+' : contact.unreadCount}
+                </div>
+              )}
             </div>
             
             <div className="flex-1 min-w-0">
@@ -79,28 +110,32 @@ export const ContactsList = React.memo(({
                   {displayName}
                 </h3>
                 
-                {hasUnreadMessages && (
-                  <div className="bg-blue-600 text-white rounded-full h-6 min-w-[24px] flex items-center justify-center text-xs font-bold">
-                    {contact.unreadCount}
-                  </div>
+                {/* Horário da última mensagem */}
+                {contact.lastMessageTime && (
+                  <span className="text-xs text-gray-500 whitespace-nowrap ml-2">
+                    {new Date(contact.lastMessageTime).toLocaleTimeString('pt-BR', {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
                 )}
               </div>
               
               <p className={cn(
-                "text-sm truncate",
+                "text-sm truncate mb-1",
                 hasUnreadMessages ? "text-gray-700 font-medium" : "text-gray-600"
               )}>
                 {contact.lastMessage || "Nenhuma mensagem ainda"}
               </p>
 
-              {/* Adicionar tags */}
+              {/* Tags do contato */}
               <ContactTags tags={contact.tags || []} />
             </div>
           </div>
         </div>
       );
     });
-  }, [contacts, selectedContact, onSelectContact]);
+  }, [contacts, selectedContact, handleSelectContact]);
 
   if (contacts.length === 0) {
     return (
@@ -130,7 +165,7 @@ export const ContactsList = React.memo(({
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="divide-y divide-gray-200/50">
+      <div className="divide-y divide-gray-200/20">
         {renderedContacts}
         
         {/* Indicador de carregamento mais contatos */}
@@ -156,5 +191,4 @@ export const ContactsList = React.memo(({
 
 ContactsList.displayName = 'ContactsList';
 
-// EXPORTAÇÃO CORRIGIDA - apenas default export
 export default ContactsList;
