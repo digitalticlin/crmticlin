@@ -9,8 +9,8 @@ import { useMessageRealtime } from './hooks/useMessageRealtime';
 // Cache global otimizado com timestamps
 const messagesCache = new Map<string, { data: Message[]; timestamp: number; hasMore: boolean; }>();
 const CACHE_DURATION = 3 * 60 * 1000; // 3 minutos
-const INITIAL_LOAD_LIMIT = 30; // Carregar 30 mensagens mais recentes
-const PAGE_SIZE = 20; // Carregar 20 mensagens por vez ao fazer scroll para cima
+const INITIAL_LOAD_LIMIT = 30;
+const PAGE_SIZE = 20;
 
 export const useWhatsAppChatMessages = (
   selectedContact: Contact | null,
@@ -22,18 +22,20 @@ export const useWhatsAppChatMessages = (
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  // Refs para controle de estado e evitar loops
+  // Refs para controle rigoroso e evitar loops
   const isLoadingRef = useRef(false);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastFetchTimeRef = useRef<number>(0);
   const selectedContactRef = useRef(selectedContact);
   const activeInstanceRef = useRef(activeInstance);
+  const currentCacheKeyRef = useRef<string>('');
   
+  // Atualizar refs sem causar re-renders
   selectedContactRef.current = selectedContact;
   activeInstanceRef.current = activeInstance;
 
-  // Verificar cache válido
-  const getCachedMessages = useCallback((key: string): { data: Message[]; hasMore: boolean; } | null => {
+  // Cache helpers otimizados
+  const getCachedMessages = useCallback((key: string) => {
     const cached = messagesCache.get(key);
     if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
       return { data: cached.data, hasMore: cached.hasMore };
@@ -42,12 +44,11 @@ export const useWhatsAppChatMessages = (
     return null;
   }, []);
 
-  // Salvar no cache
   const setCachedMessages = useCallback((key: string, data: Message[], hasMore: boolean) => {
     messagesCache.set(key, { data, timestamp: Date.now(), hasMore });
   }, []);
 
-  // Conversão otimizada de mensagem do banco para interface
+  // Conversão otimizada
   const convertMessage = useCallback((msg: any): Message => {
     let status: "sent" | "delivered" | "read" = "sent";
     if (msg.status === 'delivered') status = "delivered";
@@ -74,7 +75,7 @@ export const useWhatsAppChatMessages = (
     };
   }, []);
 
-  // FETCH CORRIGIDO - Mensagens mais recentes primeiro
+  // FETCH CORRIGIDO - Sem dependências circulares
   const fetchMessagesStable = useCallback(async (forceRefresh = false, loadMore = false): Promise<void> => {
     const currentContact = selectedContactRef.current;
     const currentInstance = activeInstanceRef.current;
@@ -85,10 +86,9 @@ export const useWhatsAppChatMessages = (
       return;
     }
 
-    // Cache key e verificação de cache
     const cacheKey = `${currentContact.id}-${currentInstance.id}`;
     
-    // Verificar cache primeiro (se não forçar refresh e não for load more)
+    // Verificar cache primeiro
     if (!forceRefresh && !loadMore) {
       const cachedData = getCachedMessages(cacheKey);
       if (cachedData) {
@@ -99,12 +99,13 @@ export const useWhatsAppChatMessages = (
       }
     }
 
-    // Throttling rigoroso para evitar spam
-    if (now - lastFetchTimeRef.current < 1000 && !loadMore) {
+    // Throttling rigoroso - AUMENTADO para evitar spam
+    if (now - lastFetchTimeRef.current < 2000 && !loadMore) {
+      console.log('[WhatsApp Messages] ⚠️ Throttling: muito rápido, ignorando');
       return;
     }
 
-    // Debouncing apenas para fetch inicial
+    // Debouncing otimizado
     if (!loadMore && debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
     }
@@ -121,18 +122,17 @@ export const useWhatsAppChatMessages = (
         
         lastFetchTimeRef.current = now;
 
-        // CORRIGIDO: Lógica de paginação para mensagens mais recentes primeiro
         const limit = loadMore ? PAGE_SIZE : INITIAL_LOAD_LIMIT;
         let query = supabase
           .from('messages')
           .select('*')
           .eq('lead_id', currentContact.id)
           .eq('whatsapp_number_id', currentInstance.id)
-          .order('timestamp', { ascending: false }); // Mais recentes primeiro
+          .order('timestamp', { ascending: false });
 
+        // Paginação corrigida
         if (loadMore && messages.length > 0) {
-          // Para carregar mensagens mais antigas, usar timestamp da mensagem mais antiga
-          const oldestMessage = messages[0]; // Primeira mensagem é a mais antiga exibida
+          const oldestMessage = messages[0];
           query = query.lt('timestamp', oldestMessage.timestamp);
         }
 
@@ -144,22 +144,17 @@ export const useWhatsAppChatMessages = (
         }
 
         const newMessages: Message[] = (messagesData || []).map(convertMessage);
-
-        // Determinar se há mais mensagens
         const hasMore = (messagesData?.length || 0) === limit;
 
         if (loadMore) {
-          // Adicionar mensagens mais antigas ao início da lista
-          const updatedMessages = [...newMessages, ...messages];
-          setMessages(updatedMessages);
-          setCachedMessages(cacheKey, updatedMessages, hasMore);
+          // CORRIGIDO: Evitar mutação do estado durante o setState
+          setMessages(prevMessages => [...newMessages, ...prevMessages]);
         } else {
-          // Substituir todas as mensagens (carregar inicial ou refresh)
           setMessages(newMessages);
-          setCachedMessages(cacheKey, newMessages, hasMore);
         }
         
         setHasMoreMessages(hasMore);
+        setCachedMessages(cacheKey, loadMore ? [...newMessages, ...messages] : newMessages, hasMore);
         
       } catch (error) {
         console.error('[WhatsApp Messages] Fetch error:', error);
@@ -171,42 +166,44 @@ export const useWhatsAppChatMessages = (
     };
 
     if (loadMore) {
-      // Execute imediatamente para load more
       await executeQuery();
     } else {
-      // Debounce apenas para fetch inicial
-      debounceTimeoutRef.current = setTimeout(executeQuery, 300);
+      debounceTimeoutRef.current = setTimeout(executeQuery, 500);
     }
-  }, [getCachedMessages, setCachedMessages, convertMessage, messages]);
+  }, [getCachedMessages, setCachedMessages, convertMessage]); // REMOVIDO 'messages' das dependências
 
-  // Load more messages (mensagens mais antigas)
+  // Load more sem dependências problemáticas
   const loadMoreMessages = useCallback(async () => {
     if (!hasMoreMessages || isLoadingMore || isLoadingMessages) return;
     await fetchMessagesStable(false, true);
   }, [hasMoreMessages, isLoadingMore, isLoadingMessages, fetchMessagesStable]);
 
-  // Effect para mudança de contato
+  // Effect para mudança de contato - OTIMIZADO
   useEffect(() => {
-    if (selectedContact && activeInstance) {
-      // Reset estado
-      setHasMoreMessages(true);
+    const newCacheKey = selectedContact && activeInstance 
+      ? `${selectedContact.id}-${activeInstance.id}` 
+      : '';
       
-      // Verificar cache primeiro
-      const cacheKey = `${selectedContact.id}-${activeInstance.id}`;
-      const cached = getCachedMessages(cacheKey);
+    // Só fetch se mudou de contato
+    if (newCacheKey !== currentCacheKeyRef.current) {
+      currentCacheKeyRef.current = newCacheKey;
       
-      if (cached) {
-        setMessages(cached.data);
-        setHasMoreMessages(cached.hasMore);
-        setIsLoadingMessages(false);
+      if (selectedContact && activeInstance) {
+        setHasMoreMessages(true);
+        
+        const cached = getCachedMessages(newCacheKey);
+        if (cached) {
+          setMessages(cached.data);
+          setHasMoreMessages(cached.hasMore);
+          setIsLoadingMessages(false);
+        } else {
+          fetchMessagesStable(false);
+        }
       } else {
-        // Só fetch se não houver cache
-        fetchMessagesStable(false);
+        setMessages([]);
+        setHasMoreMessages(true);
+        setIsLoadingMessages(false);
       }
-    } else {
-      setMessages([]);
-      setHasMoreMessages(true);
-      setIsLoadingMessages(false);
     }
 
     return () => {
@@ -218,17 +215,20 @@ export const useWhatsAppChatMessages = (
 
   // Send message otimizado
   const sendMessage = useCallback(async (text: string): Promise<boolean> => {
-    if (!selectedContact || !activeInstance) return false;
+    const currentContact = selectedContactRef.current;
+    const currentInstance = activeInstanceRef.current;
+    
+    if (!currentContact || !currentInstance) return false;
 
     setIsSending(true);
     try {
-      const success = await MessageService.sendMessage(selectedContact, activeInstance, text);
+      const success = await MessageService.sendMessage(currentContact, currentInstance, text);
       if (success) {
-        // Invalidar cache e refetch após delay
-        const cacheKey = `${selectedContact.id}-${activeInstance.id}`;
+        const cacheKey = `${currentContact.id}-${currentInstance.id}`;
         messagesCache.delete(cacheKey);
         
-        setTimeout(() => fetchMessagesStable(true), 500);
+        // Delay menor para melhor UX
+        setTimeout(() => fetchMessagesStable(true), 300);
       }
       return success;
     } catch (error) {
@@ -237,26 +237,37 @@ export const useWhatsAppChatMessages = (
     } finally {
       setIsSending(false);
     }
-  }, [selectedContact, activeInstance, fetchMessagesStable]);
+  }, [fetchMessagesStable]);
 
-  // REALTIME REATIVADO com callback inteligente
+  // Callback do realtime ESTABILIZADO
   const handleRealtimeUpdate = useCallback(() => {
-    if (selectedContactRef.current && activeInstanceRef.current) {
-      console.log('[WhatsApp Messages] 🔄 Nova mensagem recebida em tempo real');
-      const cacheKey = `${selectedContactRef.current.id}-${activeInstanceRef.current.id}`;
+    const currentContact = selectedContactRef.current;
+    const currentInstance = activeInstanceRef.current;
+    
+    if (currentContact && currentInstance) {
+      console.log('[WhatsApp Messages] 🔄 Realtime update triggered');
+      const cacheKey = `${currentContact.id}-${currentInstance.id}`;
       messagesCache.delete(cacheKey);
-      fetchMessagesStable(true);
+      
+      // Debounce para evitar múltiplas chamadas
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+      
+      debounceTimeoutRef.current = setTimeout(() => {
+        fetchMessagesStable(true);
+      }, 1000);
     }
   }, [fetchMessagesStable]);
 
-  // REALTIME ATIVADO
+  // Realtime ativado
   useMessageRealtime({
     selectedContact,
     activeInstance,
     onMessageUpdate: handleRealtimeUpdate
   });
 
-  // Cleanup geral
+  // Cleanup final
   useEffect(() => {
     return () => {
       if (debounceTimeoutRef.current) {

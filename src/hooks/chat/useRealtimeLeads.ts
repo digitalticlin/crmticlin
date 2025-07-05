@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useCallback } from 'react';
 import { useRealtimeManager } from '../realtime/useRealtimeManager';
 import { Contact } from '@/types/chat';
@@ -19,48 +20,62 @@ export const useRealtimeLeads = ({
 }: UseRealtimeLeadsProps) => {
   const { registerCallback, unregisterCallback } = useRealtimeManager();
   const hookId = useRef(`realtime-leads-${Date.now()}`).current;
+  const throttleTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Estabilizar callbacks com useRef para evitar dependency hell
-  const fetchContactsRef = useRef(fetchContacts);
-  const fetchMessagesRef = useRef(fetchMessages);
-  const receiveNewLeadRef = useRef(receiveNewLead);
-  
-  fetchContactsRef.current = fetchContacts;
-  fetchMessagesRef.current = fetchMessages;
-  receiveNewLeadRef.current = receiveNewLead;
-
-  // Callbacks estáveis para evitar re-registros
+  // Callbacks estáveis com throttling rigoroso
   const handleLeadInsert = useCallback((payload: any) => {
     console.log('[Realtime Leads] New lead received:', payload);
-    const newLead = payload.new as any;
-    receiveNewLeadRef.current(newLead);
-    fetchContactsRef.current();
-  }, []);
+    
+    // Throttling para evitar spam
+    if (throttleTimerRef.current) {
+      clearTimeout(throttleTimerRef.current);
+    }
+    
+    throttleTimerRef.current = setTimeout(() => {
+      const newLead = payload.new as any;
+      receiveNewLead(newLead);
+      fetchContacts();
+    }, 2000); // 2 segundos de throttling
+  }, [receiveNewLead, fetchContacts]);
 
   const handleLeadUpdate = useCallback((payload: any) => {
     console.log('[Realtime Leads] Lead updated:', payload);
-    fetchContactsRef.current();
-  }, []);
+    
+    if (throttleTimerRef.current) {
+      clearTimeout(throttleTimerRef.current);
+    }
+    
+    throttleTimerRef.current = setTimeout(() => {
+      fetchContacts();
+    }, 2000);
+  }, [fetchContacts]);
 
   const handleMessageInsert = useCallback((payload: any) => {
     console.log('[Realtime Leads] New message received:', payload);
     const newMessage = payload.new as any;
     
-    if (selectedContact && newMessage.lead_id === selectedContact.id) {
-      console.log('[Realtime Leads] Message for selected contact, updating messages');
-      if (fetchMessagesRef.current) {
-        fetchMessagesRef.current();
-      }
+    // Throttling mais rigoroso para mensagens
+    if (throttleTimerRef.current) {
+      clearTimeout(throttleTimerRef.current);
     }
     
-    console.log('[Realtime Leads] Updating contact list');
-    fetchContactsRef.current();
-  }, [selectedContact?.id]); // Apenas selectedContact.id como dependência
+    throttleTimerRef.current = setTimeout(() => {
+      if (selectedContact && newMessage.lead_id === selectedContact.id) {
+        console.log('[Realtime Leads] Message for selected contact, updating messages');
+        if (fetchMessages) {
+          fetchMessages();
+        }
+      }
+      
+      console.log('[Realtime Leads] Updating contact list');
+      fetchContacts();
+    }, 1500); // 1.5 segundos para mensagens
+  }, [selectedContact?.id, fetchContacts, fetchMessages]);
 
   useEffect(() => {
     console.log('[Realtime Leads] Registering callbacks with hookId:', hookId);
 
-    // Register callbacks
+    // Register callbacks com IDs únicos
     registerCallback(`${hookId}-lead-insert`, 'leadInsert', handleLeadInsert);
     registerCallback(`${hookId}-lead-update`, 'leadUpdate', handleLeadUpdate);
     registerCallback(`${hookId}-message-insert`, 'messageInsert', handleMessageInsert, {
@@ -72,6 +87,21 @@ export const useRealtimeLeads = ({
       unregisterCallback(`${hookId}-lead-insert`);
       unregisterCallback(`${hookId}-lead-update`);
       unregisterCallback(`${hookId}-message-insert`);
+      
+      if (throttleTimerRef.current) {
+        clearTimeout(throttleTimerRef.current);
+        throttleTimerRef.current = null;
+      }
     };
   }, [activeInstanceId, registerCallback, unregisterCallback, hookId, handleLeadInsert, handleLeadUpdate, handleMessageInsert]);
+
+  // Cleanup no unmount
+  useEffect(() => {
+    return () => {
+      if (throttleTimerRef.current) {
+        clearTimeout(throttleTimerRef.current);
+        throttleTimerRef.current = null;
+      }
+    };
+  }, []);
 };

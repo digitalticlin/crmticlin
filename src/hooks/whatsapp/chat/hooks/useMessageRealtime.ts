@@ -18,6 +18,8 @@ export const useMessageRealtime = ({
 }: UseMessageRealtimeProps) => {
   const channelRef = useRef<any>(null);
   const lastContactIdRef = useRef<string | null>(null);
+  const isSubscribedRef = useRef(false);
+  const updateThrottleRef = useRef<NodeJS.Timeout | null>(null);
   
   // Hook de notificação
   const { notify } = useMessageNotification({
@@ -25,11 +27,10 @@ export const useMessageRealtime = ({
     enabled: !!selectedContact
   });
   
-  // Callback otimizado com debouncing inteligente
+  // Callback otimizado com throttling rigoroso
   const handleMessageUpdate = useCallback((payload: any) => {
     const newMessage = payload.new;
     
-    // Validar se a mensagem é relevante
     if (!selectedContact || !activeInstance) {
       return;
     }
@@ -44,15 +45,19 @@ export const useMessageRealtime = ({
         fromMe: newMessage.from_me
       });
       
-      // Notificar apenas mensagens recebidas (não enviadas)
+      // Notificar apenas mensagens recebidas
       if (!newMessage.from_me && newMessage.text) {
         notify(newMessage.text);
       }
       
-      // Trigger update imediato para mensagens novas
-      setTimeout(() => {
+      // Throttling rigoroso para evitar spam
+      if (updateThrottleRef.current) {
+        clearTimeout(updateThrottleRef.current);
+      }
+      
+      updateThrottleRef.current = setTimeout(() => {
         onMessageUpdate();
-      }, 100); // Delay mínimo para garantir que a mensagem foi salva
+      }, 1500); // Aumentado para 1.5s para evitar spam
     }
   }, [selectedContact?.id, activeInstance?.id, onMessageUpdate, notify]);
 
@@ -62,19 +67,21 @@ export const useMessageRealtime = ({
       console.log('[Message Realtime] 🧹 Limpando canal anterior');
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
+      isSubscribedRef.current = false;
     }
 
-    if (!selectedContact || !activeInstance) {
+    if (!selectedContact || !activeInstance || isSubscribedRef.current) {
       return;
     }
 
     // Criar novo channel para o contato específico
-    const channelId = `message-realtime-${selectedContact.id}-${activeInstance.id}`;
+    const channelId = `message-realtime-${selectedContact.id}-${activeInstance.id}-${Date.now()}`;
     
     console.log('[Message Realtime] 🚀 Iniciando realtime para:', {
       contactId: selectedContact.id,
       contactName: selectedContact.name,
-      instanceId: activeInstance.id
+      instanceId: activeInstance.id,
+      channelId
     });
     
     const channel = supabase
@@ -93,9 +100,14 @@ export const useMessageRealtime = ({
       }, handleMessageUpdate)
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('[Message Realtime] ✅ Realtime ativo para contato:', selectedContact.name);
+          console.log('[Message Realtime] ✅ Realtime ativo para:', selectedContact.name);
+          isSubscribedRef.current = true;
         } else if (status === 'CHANNEL_ERROR') {
           console.error('[Message Realtime] ❌ Erro no canal realtime');
+          isSubscribedRef.current = false;
+        } else if (status === 'CLOSED') {
+          console.log('[Message Realtime] 🔒 Canal fechado');
+          isSubscribedRef.current = false;
         }
       });
     
@@ -108,6 +120,12 @@ export const useMessageRealtime = ({
         console.log('[Message Realtime] 🛑 Desconectando realtime');
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
+        isSubscribedRef.current = false;
+      }
+      
+      if (updateThrottleRef.current) {
+        clearTimeout(updateThrottleRef.current);
+        updateThrottleRef.current = null;
       }
     };
   }, [selectedContact?.id, activeInstance?.id, handleMessageUpdate]);
@@ -118,6 +136,12 @@ export const useMessageRealtime = ({
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
+        isSubscribedRef.current = false;
+      }
+      
+      if (updateThrottleRef.current) {
+        clearTimeout(updateThrottleRef.current);
+        updateThrottleRef.current = null;
       }
     };
   }, []);
