@@ -1,12 +1,13 @@
 
 import { useState } from "react";
 import { Contact } from "@/types/chat";
+import { KanbanTag } from "@/types/kanban";
 import { formatCurrency } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { DealHistory } from "@/components/chat/DealHistory";
+import { TagBadge } from "@/components/ui/tag-badge";
 import { 
   CheckCircle, XCircle, User, Mail, Phone, 
   Tag, StickyNote, MessageSquare, Plus, X, DollarSign 
@@ -42,19 +43,24 @@ export function ContactInfoPanel({
     console.log("Saving contact data:", contactData);
   };
 
-  const handleAddTag = (tag: string) => {
-    if (tag && !contactData.tags.includes(tag)) {
+  const handleAddTag = (tagName: string) => {
+    if (tagName && !contactData.tags.some(tag => tag.name === tagName)) {
+      const newTag: KanbanTag = {
+        id: `temp-${Date.now()}`,
+        name: tagName,
+        color: '#3b82f6'
+      };
       setContactData({
         ...contactData,
-        tags: [...contactData.tags, tag]
+        tags: [...contactData.tags, newTag]
       });
     }
   };
 
-  const handleRemoveTag = (tag: string) => {
+  const handleRemoveTag = (tagToRemove: KanbanTag) => {
     setContactData({
       ...contactData,
-      tags: contactData.tags.filter(t => t !== tag)
+      tags: contactData.tags.filter(tag => tag.id !== tagToRemove.id)
     });
   };
 
@@ -154,14 +160,14 @@ interface ContactInfoFieldsProps {
     name: string;
     email: string;
     phone: string;
-    tags: string[];
+    tags: KanbanTag[];
     notes: string;
     purchaseValue: number;
     assignedUser: string;
   };
   onInputChange: (field: string, value: any) => void;
   onAddTag: (tag: string) => void;
-  onRemoveTag: (tag: string) => void;
+  onRemoveTag: (tag: KanbanTag) => void;
 }
 
 function ContactInfoFields({ 
@@ -235,16 +241,13 @@ function ContactInfoFields({
           <Tag className="h-4 w-4 mr-1" /> Etiquetas
         </label>
         <div className="flex flex-wrap gap-1 mb-2">
-          {contactData.tags.map((tag, index) => (
-            <Badge key={index} variant="secondary" className="flex items-center gap-1">
-              {tag}
-              <button 
-                onClick={() => onRemoveTag(tag)}
-                className="ml-1 hover:text-destructive"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
+          {contactData.tags.map((tag) => (
+            <TagBadge 
+              key={tag.id} 
+              tag={tag} 
+              onClick={() => onRemoveTag(tag)}
+              showRemoveIcon
+            />
           ))}
         </div>
         <div className="flex gap-1">

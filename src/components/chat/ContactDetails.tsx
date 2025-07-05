@@ -2,7 +2,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Drawer,
@@ -13,6 +12,7 @@ import {
   DrawerFooter,
 } from "@/components/ui/drawer";
 import { Contact } from "@/types/chat";
+import { TagBadge } from "@/components/ui/tag-badge";
 
 interface ContactDetailsProps {
   contact: Contact;
@@ -78,8 +78,8 @@ export const ContactDetails = ({
                 <div>
                   <h4 className="text-sm font-medium mb-1">Etiquetas</h4>
                   <div className="flex flex-wrap gap-1">
-                    {contact.tags.map((tag, index) => (
-                      <Badge key={index} variant="secondary">{tag}</Badge>
+                    {contact.tags.map((tag) => (
+                      <TagBadge key={tag.id} tag={tag} />
                     ))}
                   </div>
                 </div>

@@ -1,32 +1,21 @@
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import { unifiedTags } from "@/data/unifiedFakeData";
-import { getTagStyleClasses } from "@/utils/tagColors";
+import { KanbanTag } from "@/types/kanban";
+import { TagBadge } from "@/components/ui/tag-badge";
 
 interface TagsPopoverProps {
-  contactName: string;
-  tags: string[];
-  children: React.ReactNode;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  contactId: string;
+  currentTags: KanbanTag[];
+  onTagsChange: (contactId: string) => void;
 }
 
-export const TagsPopover = ({ contactName, tags, children, open, onOpenChange }: TagsPopoverProps) => {
-  // Função para obter cor da tag sincronizada com o funil
-  const getTagColor = (tagName: string) => {
-    const unifiedTag = unifiedTags.find(tag => tag.name === tagName);
-    if (unifiedTag) {
-      return getTagStyleClasses(unifiedTag.color);
-    }
-    return getTagStyleClasses('bg-gray-400');
-  };
-
+export const TagsPopover = ({ contactId, currentTags, onTagsChange }: TagsPopoverProps) => {
   return (
-    <Popover open={open} onOpenChange={onOpenChange}>
+    <Popover>
       <PopoverTrigger asChild>
-        {children}
+        <button className="text-xs text-gray-500 hover:text-gray-700 px-1">
+          Tags
+        </button>
       </PopoverTrigger>
       <PopoverContent 
         className="w-72 bg-white border border-gray-200 shadow-lg rounded-lg p-4"
@@ -36,22 +25,16 @@ export const TagsPopover = ({ contactName, tags, children, open, onOpenChange }:
       >
         <div className="space-y-3">
           <h4 className="text-sm font-semibold text-gray-900">
-            Etiquetas - {contactName}
+            Etiquetas
           </h4>
           
-          {tags.length > 0 ? (
+          {currentTags.length > 0 ? (
             <div className="flex flex-wrap gap-2">
-              {tags.map((tag, index) => (
-                <Badge 
-                  key={index}
-                  variant="outline" 
-                  className={cn(
-                    "text-sm font-semibold",
-                    getTagColor(tag)
-                  )}
-                >
-                  {tag}
-                </Badge>
+              {currentTags.map((tag) => (
+                <TagBadge 
+                  key={tag.id}
+                  tag={tag}
+                />
               ))}
             </div>
           ) : (

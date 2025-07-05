@@ -1,4 +1,3 @@
-
 import { KanbanLead, KanbanTag, FIXED_COLUMN_IDS } from "@/types/kanban";
 import { Contact } from "@/types/chat";
 
@@ -193,7 +192,7 @@ export const convertLeadToContact = (lead: KanbanLead): Contact => {
     address: "",
     company: getCompanyFromTags(lead.tags),
     notes: lead.notes || "",
-    tags: lead.tags.map(tag => tag.name),
+    tags: lead.tags,
     lastMessage: lead.lastMessage,
     lastMessageTime: lead.lastMessageTime,
     unreadCount: getUnreadCount(lead.id),
@@ -212,11 +211,7 @@ export const convertContactToLead = (contact: Contact): KanbanLead => {
     phone: contact.phone.startsWith("+") ? contact.phone : `+${contact.phone}`,
     lastMessage: contact.lastMessage || "",
     lastMessageTime: contact.lastMessageTime || "",
-    tags: (contact.tags || []).map((tagName, index) => ({
-      id: `tag-${index + 1}`,
-      name: tagName,
-      color: getTagColorByName(tagName)
-    })),
+    tags: contact.tags,
     notes: contact.notes,
     columnId: FIXED_COLUMN_IDS.NEW_LEAD,
     purchaseValue: contact.purchaseValue,

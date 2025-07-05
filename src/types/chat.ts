@@ -1,4 +1,3 @@
-import { KanbanTag } from "./kanban";
 
 export interface Contact {
   id: string;
@@ -7,43 +6,30 @@ export interface Contact {
   email?: string;
   address?: string;
   company?: string;
-  documentId?: string;
   notes?: string;
-  tags?: KanbanTag[];
+  tags: KanbanTag[]; // Mudança: agora usa KanbanTag[] ao invés de string[]
   lastMessage?: string;
   lastMessageTime?: string;
   unreadCount?: number;
   avatar?: string;
-  profilePicUrl?: string; // Nova propriedade para foto de perfil do WhatsApp
   isOnline?: boolean;
-  createdAt?: string;
-  assignedUser?: string;
-  purchaseValue?: number;
-  deals?: Deal[];
-  // Novos campos para melhor integração com leads
   funnelStage?: string;
-  priority?: 'low' | 'medium' | 'high';
-  lastMessageStatus?: 'sent' | 'delivered' | 'read';
-  leadId?: string;
-}
-
-export interface Deal {
-  id: string;
-  status: "won" | "lost";
-  value: number;
-  date: string;
-  note?: string;
+  purchaseValue?: number;
+  assignedUser?: string;
+  profilePicUrl?: string;
 }
 
 export interface Message {
   id: string;
   text: string;
-  fromMe: boolean;
-  timestamp?: string;
-  time?: string;
-  status: "sent" | "delivered" | "read";
-  mediaType?: "text" | "image" | "video" | "audio" | "document";
-  mediaUrl?: string;
-  sender?: "user" | "contact";
+  sender: 'user' | 'contact';
+  time: string;
+  status?: 'sent' | 'delivered' | 'read';
   isIncoming?: boolean;
+  fromMe?: boolean;
+  timestamp?: string;
+  mediaType?: 'text' | 'image' | 'video' | 'audio' | 'document';
+  mediaUrl?: string;
 }
+
+import { KanbanTag } from "./kanban";
