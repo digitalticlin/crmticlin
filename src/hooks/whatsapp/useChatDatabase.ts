@@ -22,6 +22,7 @@ export const useChatDatabase = () => {
       assignedUser: lead.owner_id,
       purchaseValue: lead.purchase_value,
       deals: [],
+      tags: [],
       // ATUALIZADO: Usar nome formatado para avatar quando não há nome
       avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(lead.name || formatPhoneDisplay(lead.phone))}&background=10b981&color=fff`
     };

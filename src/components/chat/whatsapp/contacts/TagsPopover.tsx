@@ -4,12 +4,11 @@ import { KanbanTag } from "@/types/kanban";
 import { TagBadge } from "@/components/ui/tag-badge";
 
 interface TagsPopoverProps {
-  contactId: string;
   currentTags: KanbanTag[];
-  onTagsChange: (contactId: string) => void;
+  onTagsChange: () => void;
 }
 
-export const TagsPopover = ({ contactId, currentTags, onTagsChange }: TagsPopoverProps) => {
+export const TagsPopover = ({ currentTags, onTagsChange }: TagsPopoverProps) => {
   return (
     <Popover>
       <PopoverTrigger asChild>

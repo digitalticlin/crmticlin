@@ -69,15 +69,13 @@ export const ContactItem = memo(({
           
           <div className="flex items-center gap-1.5">
             <TagsPopover 
-              contactId={contact.id}
               currentTags={contact.tags || []}
-              onTagsChange={onTagsChange}
+              onTagsChange={() => onTagsChange(contact.id)}
             />
             
             <StageDropdownMenu
-              contactId={contact.id}
-              currentStage={contact.funnelStage || ''}
-              onStageChange={onStageChange}
+              contact={contact}
+              onStageChange={(newStage) => onStageChange(contact.id, newStage)}
             />
           </div>
         </div>

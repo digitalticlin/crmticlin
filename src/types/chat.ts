@@ -1,13 +1,13 @@
 
 export interface Contact {
   id: string;
-  name: string;
+  name?: string;
   phone: string;
   email?: string;
   address?: string;
   company?: string;
   notes?: string;
-  tags: KanbanTag[]; // Mudança: agora usa KanbanTag[] ao invés de string[]
+  tags: KanbanTag[];
   lastMessage?: string;
   lastMessageTime?: string;
   unreadCount?: number;
@@ -17,6 +17,19 @@ export interface Contact {
   purchaseValue?: number;
   assignedUser?: string;
   profilePicUrl?: string;
+  // Adding missing properties
+  documentId?: string;
+  leadId?: string;
+  createdAt?: string;
+  deals?: Deal[];
+}
+
+export interface Deal {
+  id: string;
+  status: 'won' | 'lost';
+  value: number;
+  date: string;
+  note?: string;
 }
 
 export interface Message {
