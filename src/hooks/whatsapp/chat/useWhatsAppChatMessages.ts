@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Contact, Message } from '@/types/chat';
 import { WhatsAppWebInstance } from '@/types/whatsapp';
@@ -8,7 +7,7 @@ import { useMessageRealtime } from './hooks/useMessageRealtime';
 
 // Cache global otimizado com timestamps
 const messagesCache = new Map<string, { data: Message[]; timestamp: number; hasMore: boolean; }>();
-const CACHE_DURATION = 3 * 60 * 1000; // 3 minutos
+const CACHE_DURATION = 30 * 1000; // 30 segundos - reduzido para melhor responsividade
 const INITIAL_LOAD_LIMIT = 30;
 const PAGE_SIZE = 20;
 
@@ -99,8 +98,8 @@ export const useWhatsAppChatMessages = (
       }
     }
 
-    // Throttling rigoroso - AUMENTADO para evitar spam
-    if (now - lastFetchTimeRef.current < 2000 && !loadMore) {
+    // Throttling otimizado para melhor responsividade
+    if (now - lastFetchTimeRef.current < 500 && !loadMore) {
       console.log('[WhatsApp Messages] ⚠️ Throttling: muito rápido, ignorando');
       return;
     }
@@ -239,13 +238,36 @@ export const useWhatsAppChatMessages = (
     }
   }, [fetchMessagesStable]);
 
-  // Callback do realtime ESTABILIZADO
-  const handleRealtimeUpdate = useCallback(() => {
+  // Callback do realtime ESTABILIZADO com updates otimistas
+  const handleRealtimeUpdate = useCallback((newMessage?: any) => {
     const currentContact = selectedContactRef.current;
     const currentInstance = activeInstanceRef.current;
     
     if (currentContact && currentInstance) {
       console.log('[WhatsApp Messages] 🔄 Realtime update triggered');
+      
+      // Update otimista: adicionar mensagem imediatamente se fornecida
+      if (newMessage && newMessage.lead_id === currentContact.id) {
+        const optimisticMessage: Message = {
+          id: newMessage.id,
+          text: newMessage.text || '',
+          sender: newMessage.from_me ? 'user' : 'contact',
+          time: new Date(newMessage.timestamp).toLocaleTimeString('pt-BR', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          status: newMessage.status || 'sent',
+          isIncoming: !newMessage.from_me,
+          fromMe: newMessage.from_me || false,
+          timestamp: new Date(newMessage.timestamp).toISOString(),
+          mediaType: newMessage.media_type || 'text',
+          mediaUrl: newMessage.media_url
+        };
+        
+        // Adicionar mensagem imediatamente para melhor UX
+        setMessages(prevMessages => [...prevMessages, optimisticMessage]);
+      }
+      
       const cacheKey = `${currentContact.id}-${currentInstance.id}`;
       messagesCache.delete(cacheKey);
       
@@ -256,7 +278,7 @@ export const useWhatsAppChatMessages = (
       
       debounceTimeoutRef.current = setTimeout(() => {
         fetchMessagesStable(true);
-      }, 1000);
+      }, 300); // Reduzido para 300ms
     }
   }, [fetchMessagesStable]);
 

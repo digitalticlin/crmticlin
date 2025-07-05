@@ -22,10 +22,10 @@ class RealtimeManager {
   private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
   private isInitialized = false;
   
-  // Configurações MAIS rigorosas para evitar spam
-  private readonly DEBOUNCE_TIME = 1000; // Aumentado para 1s
-  private readonly MIN_UPDATE_INTERVAL = 3000; // Aumentado para 3s
-  private readonly MAX_CALLBACKS_PER_EVENT = 3; // Reduzido para 3
+  // Configurações otimizadas para melhor responsividade
+  private readonly DEBOUNCE_TIME = 300; // Otimizado para 300ms
+  private readonly MIN_UPDATE_INTERVAL = 1000; // Otimizado para 1s
+  private readonly MAX_CALLBACKS_PER_EVENT = 5; // Aumentado para 5
 
   static getInstance(): RealtimeManager {
     if (!RealtimeManager.instance) {

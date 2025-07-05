@@ -49,12 +49,6 @@ export const WhatsAppChatLayout = ({
   onRefreshContacts
 }: WhatsAppChatLayoutProps) => {
   const [isDetailsSidebarOpen, setIsDetailsSidebarOpen] = useState(false);
-  const [updatedContacts, setUpdatedContacts] = useState<Contact[]>(contacts);
-
-  // Update contacts when props change
-  React.useEffect(() => {
-    setUpdatedContacts(contacts);
-  }, [contacts]);
 
   const handleUpdateContact = (updates: Partial<Contact>) => {
     if (!selectedContact) return;
@@ -62,14 +56,6 @@ export const WhatsAppChatLayout = ({
     // Update the selected contact
     const updatedSelected = { ...selectedContact, ...updates };
     onSelectContact(updatedSelected);
-
-    // Update the contacts list
-    const newContacts = updatedContacts.map(contact => 
-      contact.id === selectedContact.id 
-        ? { ...contact, ...updates }
-        : contact
-    );
-    setUpdatedContacts(newContacts);
 
     // Refresh contacts list to get updated tags
     if (onRefreshContacts) {
@@ -88,7 +74,7 @@ export const WhatsAppChatLayout = ({
         {!selectedContact ? (
           <div className="w-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
             <WhatsAppContactsList
-              contacts={updatedContacts}
+              contacts={contacts}
               selectedContact={selectedContact}
               onSelectContact={onSelectContact}
               isLoading={isLoadingContacts}
@@ -132,7 +118,7 @@ export const WhatsAppChatLayout = ({
           >
             <div className="h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
               <WhatsAppContactsList
-                contacts={updatedContacts}
+                contacts={contacts}
                 selectedContact={selectedContact}
                 onSelectContact={onSelectContact}
                 isLoading={isLoadingContacts}

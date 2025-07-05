@@ -6,9 +6,11 @@ import { WhatsAppWebInstance } from '@/types/whatsapp';
 import { useWhatsAppDatabase } from '@/hooks/whatsapp/useWhatsAppDatabase';
 import { useWhatsAppContacts } from '@/hooks/whatsapp/useWhatsAppContacts';
 import { useWhatsAppChatMessages } from '@/hooks/whatsapp/chat/useWhatsAppChatMessages';
+import { useRealtimeLeads } from '@/hooks/chat/useRealtimeLeads';
 import { useCompanyData } from '@/hooks/useCompanyData';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface WhatsAppChatContextType {
   // Contatos com paginação
@@ -127,6 +129,66 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     loadMoreMessages,
     fetchMessages
   } = useWhatsAppChatMessages(selectedContact, webActiveInstance);
+
+  // Hook para realtime de contatos e mensagens
+  // TEMPORARIAMENTE DESABILITADO PARA TESTE
+  /*
+  useRealtimeLeads({
+    selectedContact,
+    fetchContacts,
+    fetchMessages,
+    receiveNewLead: (lead) => {
+      console.log('[WhatsApp Chat] 📨 Novo lead recebido:', lead);
+      moveContactToTop(lead.id);
+    },
+    activeInstanceId: webActiveInstance?.id || null
+  });
+  */
+
+  // Subscription direto para atualização imediata da lista de contatos
+  useEffect(() => {
+    if (!webActiveInstance?.id || !user?.id) return;
+
+    console.log('[WhatsApp Chat] 🔄 Configurando subscription para mensagens');
+
+    const channel = supabase
+      .channel(`chat-messages-${webActiveInstance.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `whatsapp_number_id=eq.${webActiveInstance.id}`
+        },
+        (payload) => {
+          console.log('[WhatsApp Chat] 📨 Nova mensagem recebida:', payload.new);
+          
+          const leadId = payload.new?.lead_id;
+          const messageText = payload.new?.text || payload.new?.body || '';
+          
+          if (leadId) {
+            console.log('[WhatsApp Chat] 🔄 Movendo contato para topo:', leadId);
+            
+            // Mover contato para topo imediatamente
+            moveContactToTop(leadId, messageText);
+            
+            // Atualizar lista de contatos após um pequeno delay
+            setTimeout(() => {
+              fetchContacts(true);
+            }, 100);
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log('[WhatsApp Chat] 📡 Subscription status:', status);
+      });
+
+    return () => {
+      console.log('[WhatsApp Chat] 🔌 Removendo subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [webActiveInstance?.id, user?.id, moveContactToTop, fetchContacts]);
 
   // Função memoizada para selecionar contato e marcar como lido
   const handleSelectContact = useCallback((contact: Contact | null) => {

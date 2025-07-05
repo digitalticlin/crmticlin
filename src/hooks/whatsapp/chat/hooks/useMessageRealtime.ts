@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useCallback } from 'react';
 import { Contact } from '@/types/chat';
 import { WhatsAppWebInstance } from '@/types/whatsapp';
@@ -8,7 +7,7 @@ import { useMessageNotification } from './useMessageNotification';
 interface UseMessageRealtimeProps {
   selectedContact: Contact | null;
   activeInstance: WhatsAppWebInstance | null;
-  onMessageUpdate: () => void;
+  onMessageUpdate: (newMessage?: any) => void;
 }
 
 export const useMessageRealtime = ({
@@ -50,14 +49,14 @@ export const useMessageRealtime = ({
         notify(newMessage.text);
       }
       
-      // Throttling rigoroso para evitar spam
+      // Throttling otimizado para melhor responsividade
       if (updateThrottleRef.current) {
         clearTimeout(updateThrottleRef.current);
       }
       
       updateThrottleRef.current = setTimeout(() => {
-        onMessageUpdate();
-      }, 1500); // Aumentado para 1.5s para evitar spam
+        onMessageUpdate(newMessage);
+      }, 300); // Reduzido para 300ms para melhor UX
     }
   }, [selectedContact?.id, activeInstance?.id, onMessageUpdate, notify]);
 

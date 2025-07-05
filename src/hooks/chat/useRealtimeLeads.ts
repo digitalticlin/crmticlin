@@ -35,7 +35,7 @@ export const useRealtimeLeads = ({
       const newLead = payload.new as any;
       receiveNewLead(newLead);
       fetchContacts();
-    }, 2000); // 2 segundos de throttling
+    }, 500); // Reduzido para 500ms
   }, [receiveNewLead, fetchContacts]);
 
   const handleLeadUpdate = useCallback((payload: any) => {
@@ -47,7 +47,7 @@ export const useRealtimeLeads = ({
     
     throttleTimerRef.current = setTimeout(() => {
       fetchContacts();
-    }, 2000);
+    }, 500); // Reduzido para 500ms
   }, [fetchContacts]);
 
   const handleMessageInsert = useCallback((payload: any) => {
@@ -69,7 +69,7 @@ export const useRealtimeLeads = ({
       
       console.log('[Realtime Leads] Updating contact list');
       fetchContacts();
-    }, 1500); // 1.5 segundos para mensagens
+    }, 300); // Reduzido para 300ms para mensagens
   }, [selectedContact?.id, fetchContacts, fetchMessages]);
 
   useEffect(() => {

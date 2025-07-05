@@ -5,11 +5,11 @@ import { Contact } from '@/types/chat';
 import { WhatsAppWebInstance } from '@/types/whatsapp';
 import { useLeadSorting } from './chat/useLeadSorting';
 
-// Cache global otimizado com paginação
+// Cache otimizado para contatos
 const contactsCache = new Map<string, { data: Contact[]; timestamp: number; hasMore: boolean; }>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
+const CACHE_DURATION = 30 * 1000; // 30 segundos - reduzido para melhor responsividade
 const INITIAL_CONTACTS_LIMIT = 20; // Carregar apenas 20 contatos inicialmente
-const CONTACTS_PAGE_SIZE = 15; // Carregar 15 contatos por vez ao fazer scroll
+const CONTACTS_PAGE_SIZE = 10; // Carregar 10 contatos por vez ao fazer scroll
 
 // SISTEMA DE PAGINAÇÃO VIRTUAL PARA CONTATOS
 export const useWhatsAppContacts = (
@@ -53,13 +53,34 @@ export const useWhatsAppContacts = (
   }, []);
 
   // Função para mover contato para o topo com animação fluida
-  const moveContactToTop = useCallback((contactId: string) => {
+  const moveContactToTop = useCallback((contactId: string, newMessage?: string) => {
+    console.log('[WhatsApp Contacts] 🔄 moveContactToTop chamado para:', contactId, 'mensagem:', newMessage);
+    
     setContacts(prevContacts => {
       const contactIndex = prevContacts.findIndex(c => c.id === contactId);
-      if (contactIndex === -1 || contactIndex === 0) return prevContacts;
+      if (contactIndex === -1) {
+        console.log('[WhatsApp Contacts] ⚠️ Contato não encontrado na lista:', contactId);
+        return prevContacts;
+      }
+      
+      if (contactIndex === 0) {
+        // Contato já está no topo, apenas atualizar dados
+        const updatedContact = {
+          ...prevContacts[contactIndex],
+          lastMessage: newMessage || prevContacts[contactIndex].lastMessage,
+          lastMessageTime: new Date().toISOString(),
+          unreadCount: (prevContacts[contactIndex].unreadCount || 0) + 1
+        };
+        
+        const newContacts = [...prevContacts];
+        newContacts[0] = updatedContact;
+        console.log('[WhatsApp Contacts] ✅ Contato atualizado no topo');
+        return newContacts;
+      }
       
       const updatedContact = {
         ...prevContacts[contactIndex],
+        lastMessage: newMessage || prevContacts[contactIndex].lastMessage,
         lastMessageTime: new Date().toISOString(),
         unreadCount: (prevContacts[contactIndex].unreadCount || 0) + 1
       };
@@ -68,6 +89,7 @@ export const useWhatsAppContacts = (
       newContacts.splice(contactIndex, 1);
       newContacts.unshift(updatedContact);
       
+      console.log('[WhatsApp Contacts] ✅ Contato movido para o topo');
       return newContacts;
     });
   }, []);
@@ -217,12 +239,14 @@ export const useWhatsAppContacts = (
     }
   }, [contacts, cacheKey, activeInstance?.id, userId, setCachedContacts, getCachedContacts]);
 
-  // Configurar subscription para mudanças nas tags
+  // Configurar subscription para mudanças nas tags e mensagens
   useEffect(() => {
     if (!activeInstance?.id || !userId) return;
 
+    console.log('[WhatsApp Contacts] 🔄 Inicializando subscription para instância:', activeInstance.id);
+
     const channel = supabase
-      .channel('lead-tags-changes')
+      .channel(`lead-changes-${activeInstance.id}`)
       .on(
         'postgres_changes',
         {
@@ -236,16 +260,68 @@ export const useWhatsAppContacts = (
           fetchContacts(true);
         }
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages'
+          // Removendo filtro temporariamente para teste
+        },
+        (payload) => {
+          console.log('[WhatsApp Contacts] 📨 PAYLOAD COMPLETO recebido:', JSON.stringify(payload, null, 2));
+          
+          // Verificar se a mensagem é da instância ativa
+          if (payload.new?.whatsapp_number_id !== activeInstance.id) {
+            console.log('[WhatsApp Contacts] ⚠️ Mensagem de outra instância, ignorando');
+            return;
+          }
+          
+          // Mover contato para topo quando nova mensagem chegar
+          const leadId = payload.new?.lead_id;
+          const messageText = payload.new?.text || payload.new?.body || '';
+          
+          if (leadId) {
+            console.log('[WhatsApp Contacts] 📨 Nova mensagem recebida:', {
+              leadId,
+              messageText,
+              timestamp: new Date().toISOString()
+            });
+            
+            // Mover contato para topo com a nova mensagem
+            moveContactToTop(leadId, messageText);
+          } else {
+            console.log('[WhatsApp Contacts] ⚠️ Mensagem sem lead_id:', payload.new);
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'leads',
+          filter: `whatsapp_number_id=eq.${activeInstance.id}`
+        },
+        () => {
+          // Atualizar lista quando leads forem modificados
+          console.log('[WhatsApp Contacts] Lead atualizado, refrescando lista');
+          fetchContacts(true);
+        }
+      )
+      .subscribe((status) => {
+        console.log('[WhatsApp Contacts] 📡 Subscription status:', status);
+      });
 
     realtimeChannelRef.current = channel;
 
     return () => {
+      console.log('[WhatsApp Contacts] 🔌 Removendo subscription');
       if (realtimeChannelRef.current) {
         supabase.removeChannel(realtimeChannelRef.current);
       }
     };
-  }, [activeInstance?.id, userId, fetchContacts]);
+  }, [activeInstance?.id, userId, fetchContacts, moveContactToTop]);
 
   // Carregar contatos iniciais
   useEffect(() => {
