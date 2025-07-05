@@ -1,3 +1,4 @@
+
 import { FunnelTabButton } from "./controls/FunnelTabButton";
 import { WonLostTabButton } from "./controls/WonLostTabButton";
 import { Funnel } from "@/types/funnel";
