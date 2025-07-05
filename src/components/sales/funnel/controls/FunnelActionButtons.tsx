@@ -43,6 +43,11 @@ export const FunnelActionButtons = ({ isAdmin }: FunnelActionButtonsProps) => {
     }
   };
 
+  const handleTagsChange = async () => {
+    // Refresh tags or perform any necessary action after tag changes
+    refetchLeads();
+  };
+
   return (
     <>
       <div className="flex items-center gap-3">
@@ -85,6 +90,7 @@ export const FunnelActionButtons = ({ isAdmin }: FunnelActionButtonsProps) => {
       <TagManagementModal
         isOpen={isTagModalOpen}
         onClose={() => setIsTagModalOpen(false)}
+        onTagsChange={handleTagsChange}
       />
 
       <RealClientDetails
