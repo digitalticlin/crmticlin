@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { Contact, Message } from '@/types/chat';
 import { WhatsAppWebInstance } from '@/types/whatsapp';
@@ -238,21 +239,22 @@ export const useWhatsAppChatMessages = (
     }
   }, [selectedContact, activeInstance, fetchMessagesStable]);
 
-  // DESABILITAR REALTIME para evitar loops e travamentos
-  // const handleRealtimeUpdate = useCallback(() => {
-  //   if (selectedContactRef.current && activeInstanceRef.current) {
-  //     const cacheKey = `${selectedContactRef.current.id}-${activeInstanceRef.current.id}`;
-  //     messagesCache.delete(cacheKey);
-  //     fetchMessagesStable(true);
-  //   }
-  // }, [fetchMessagesStable]);
+  // REALTIME REATIVADO com callback inteligente
+  const handleRealtimeUpdate = useCallback(() => {
+    if (selectedContactRef.current && activeInstanceRef.current) {
+      console.log('[WhatsApp Messages] 🔄 Nova mensagem recebida em tempo real');
+      const cacheKey = `${selectedContactRef.current.id}-${activeInstanceRef.current.id}`;
+      messagesCache.delete(cacheKey);
+      fetchMessagesStable(true);
+    }
+  }, [fetchMessagesStable]);
 
-  // REALTIME DESABILITADO TEMPORARIAMENTE
-  // useMessageRealtime({
-  //   selectedContact,
-  //   activeInstance,
-  //   onMessageUpdate: handleRealtimeUpdate
-  // });
+  // REALTIME ATIVADO
+  useMessageRealtime({
+    selectedContact,
+    activeInstance,
+    onMessageUpdate: handleRealtimeUpdate
+  });
 
   // Cleanup geral
   useEffect(() => {
@@ -275,4 +277,3 @@ export const useWhatsAppChatMessages = (
     setMessages
   };
 };
-
