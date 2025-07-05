@@ -1,4 +1,5 @@
 
+
 export interface Contact {
   id: string;
   name?: string;
@@ -7,7 +8,7 @@ export interface Contact {
   address?: string;
   company?: string;
   notes?: string;
-  tags: KanbanTag[];
+  tags?: KanbanTag[]; // Make this optional
   lastMessage?: string;
   lastMessageTime?: string;
   unreadCount?: number;

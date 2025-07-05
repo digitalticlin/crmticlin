@@ -1,6 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { Contact } from "@/types/chat";
+import { KanbanTag } from "@/types/kanban";
 import { v4 as uuidv4 } from "uuid";
 import { toast } from "sonner";
 
@@ -21,7 +21,10 @@ export function useClientManagement() {
         name: "João Silva",
         phone: "+55 11 98765-4321",
         email: "joao.silva@email.com",
-        tags: ["Cliente VIP", "Proposta Enviada"],
+        tags: [
+          { id: "tag1", name: "Cliente VIP", color: "#3b82f6" },
+          { id: "tag2", name: "Proposta Enviada", color: "#10b981" }
+        ],
         notes: "Cliente interessado no plano premium. Agendar demonstração.",
         purchaseValue: 1500,
         assignedUser: "Ana Costa",
@@ -42,7 +45,7 @@ export function useClientManagement() {
         name: "Maria Oliveira",
         phone: "+55 11 91234-5678",
         email: "maria.oliveira@email.com",
-        tags: ["Potencial Cliente"],
+        tags: [{ id: "tag3", name: "Potencial Cliente", color: "#f59e0b" }],
         address: "Av. Paulista, 1000 - São Paulo, SP",
         createdAt: "15/03/2025",
         company: "Oliveira Consultoria"
@@ -52,6 +55,7 @@ export function useClientManagement() {
         name: "Pedro Almeida",
         phone: "+55 11 97777-8888",
         email: "pedro.almeida@email.com",
+        tags: [],
         purchaseValue: 750,
         createdAt: "22/02/2025",
         company: "Tech Solutions Ltda."
@@ -60,7 +64,7 @@ export function useClientManagement() {
         id: "4",
         name: "Ana Santos",
         phone: "+55 11 96666-5555",
-        tags: ["Aguardando Proposta"],
+        tags: [{ id: "tag4", name: "Aguardando Proposta", color: "#8b5cf6" }],
         assignedUser: "Carlos Ferreira",
         createdAt: "05/01/2025",
         company: "Construções Santos"
@@ -70,6 +74,7 @@ export function useClientManagement() {
         name: "Carlos Mendes",
         phone: "+55 11 95555-4444",
         email: "carlos.mendes@email.com",
+        tags: [],
         notes: "Cliente indicado pelo João Silva",
         createdAt: "30/04/2025"
       },

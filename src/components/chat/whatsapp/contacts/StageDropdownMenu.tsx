@@ -16,9 +16,10 @@ import { cn } from '@/lib/utils';
 interface StageDropdownMenuProps {
   contact: Contact;
   currentStageId?: string | null;
+  onStageChange: (newStage: string) => void;
 }
 
-export const StageDropdownMenu = ({ contact, currentStageId }: StageDropdownMenuProps) => {
+export const StageDropdownMenu = ({ contact, currentStageId, onStageChange }: StageDropdownMenuProps) => {
   const {
     stagesByFunnel,
     currentStage,
@@ -32,6 +33,7 @@ export const StageDropdownMenu = ({ contact, currentStageId }: StageDropdownMenu
   const handleStageChange = (stageId: string, stageName: string) => {
     if (stageId === currentStageId) return;
     changeStage({ stageId, stageName });
+    onStageChange(stageId);
   };
 
   if (isLoading) {
