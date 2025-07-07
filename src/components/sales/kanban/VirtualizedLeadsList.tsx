@@ -1,3 +1,4 @@
+
 import React, { useMemo } from "react";
 import { FixedSizeList as List } from "react-window";
 import { Draggable } from "react-beautiful-dnd";
@@ -17,7 +18,7 @@ interface VirtualizedLeadsListProps {
   maxHeight?: number;
 }
 
-const ITEM_HEIGHT = 120; // Altura estimada de cada card
+const ITEM_HEIGHT = 100; // Altura reduzida dos cards (era 120)
 const MAX_VISIBLE_ITEMS = 50; // Limite de itens visíveis para performance
 
 export const VirtualizedLeadsList: React.FC<VirtualizedLeadsListProps> = React.memo(({
@@ -90,7 +91,7 @@ export const VirtualizedLeadsList: React.FC<VirtualizedLeadsListProps> = React.m
         ))}
       </>
     );
-  }
+  };
 
   // Para muitos leads, usar virtualização
   return (

@@ -26,8 +26,8 @@ export const LeadCardHeader = ({ lead, isWonLostView = false }: LeadCardHeaderPr
   const hasUnreadMessages = unreadCount !== undefined && unreadCount !== null && unreadCount > 0;
 
   // Aumentar limite do nome já que não temos mais o horário
-  const truncatedName = displayName.length > 25 
-    ? `${displayName.substring(0, 25)}...` 
+  const truncatedName = displayName.length > 28 
+    ? `${displayName.substring(0, 28)}...` 
     : displayName;
 
   console.log('[LeadCardHeader] Debug unread messages:', {
@@ -39,16 +39,16 @@ export const LeadCardHeader = ({ lead, isWonLostView = false }: LeadCardHeaderPr
   });
 
   return (
-    <div className="flex items-center gap-3 mb-3">
-      {/* Avatar */}
-      <Avatar className="h-8 w-8 flex-shrink-0">
+    <div className="flex items-center gap-2 mb-2">
+      {/* Avatar - tamanho reduzido */}
+      <Avatar className="h-7 w-7 flex-shrink-0">
         <AvatarImage src={lead.avatar} alt={displayName} />
         <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xs">
-          <User className="h-4 w-4" />
+          <User className="h-3 w-3" />
         </AvatarFallback>
       </Avatar>
 
-      {/* Name/Phone and Unread Indicator - Agora com mais espaço */}
+      {/* Name/Phone and Unread Indicator - compacto */}
       <div className="flex items-center gap-2 flex-1 min-w-0">
         <h4 className={cn(
           "font-inter font-bold text-sm leading-tight truncate",
@@ -63,10 +63,10 @@ export const LeadCardHeader = ({ lead, isWonLostView = false }: LeadCardHeaderPr
           </Badge>
         )}
         
-        {/* CORREÇÃO: Badge de mensagens não lidas com condição melhorada */}
+        {/* Badge de mensagens não lidas - compacto */}
         {hasUnreadMessages && (
-          <div className="flex items-center gap-1 bg-red-500 text-white rounded-full px-2 py-1 text-xs flex-shrink-0">
-            <MessageCircle className="h-3 w-3" />
+          <div className="flex items-center gap-1 bg-red-500 text-white rounded-full px-1.5 py-0.5 text-xs flex-shrink-0">
+            <MessageCircle className="h-2.5 w-2.5" />
             <span>{unreadCount}</span>
           </div>
         )}
