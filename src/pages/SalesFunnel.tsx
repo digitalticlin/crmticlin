@@ -1,3 +1,4 @@
+
 import { PageLayout } from "@/components/layout/PageLayout";
 import { SalesFunnelContextProvider } from "@/components/sales/funnel/SalesFunnelContextProvider";
 import { SalesFunnelContent } from "@/components/sales/funnel/SalesFunnelContent";
@@ -12,14 +13,16 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 export default function SalesFunnel() {
-  console.log('[SalesFunnel] 🚀 Inicializando página do funil de vendas');
+  console.log('[SalesFunnel] 🚀 Inicializando página do funil de vendas - Layout Otimizado');
 
   return (
-    <PageLayout className="kanban-page">
+    <PageLayout className="kanban-page h-screen overflow-hidden">
       <ErrorBoundary>
         <SalesFunnelContextProvider>
           <ErrorBoundary>
-            <SalesFunnelContent />
+            <div className="h-full">
+              <SalesFunnelContent />
+            </div>
           </ErrorBoundary>
         </SalesFunnelContextProvider>
       </ErrorBoundary>

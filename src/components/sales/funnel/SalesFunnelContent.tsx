@@ -3,8 +3,9 @@ import { useSalesFunnelContext } from "./SalesFunnelProvider";
 import { KanbanBoard } from "../KanbanBoard";
 import { FunnelLoadingState } from "./FunnelLoadingState";
 import { FunnelEmptyState } from "./FunnelEmptyState";
-import { ModernFunnelHeader } from "./ModernFunnelHeader";
-import { ModernFunnelControlBar } from "./ModernFunnelControlBar";
+import { ModernCompactHeader } from "./ModernCompactHeader";
+import { ModernSlimControlBar } from "./ModernSlimControlBar";
+import { OptimizedLayout } from "./OptimizedLayout";
 import { SalesFunnelModals } from "./SalesFunnelModals";
 import { TagManagementModal } from "./modals/TagManagementModal";
 import { FunnelConfigModal } from "./modals/FunnelConfigModal";
@@ -216,18 +217,18 @@ export function SalesFunnelContent() {
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <ModernFunnelHeader 
-        selectedFunnel={selectedFunnel}
-        totalLeads={stats.totalLeads}
-        wonLeads={stats.wonLeads}
-        lostLeads={stats.lostLeads}
-        activeTab={activeTab}
-      />
-      
-      {/* Card de Controle com Abas e Botões - com espaçamento adequado */}
-      <div className="px-6 pb-4 pt-6">
-        <ModernFunnelControlBar
+    <OptimizedLayout
+      header={
+        <ModernCompactHeader 
+          selectedFunnel={selectedFunnel}
+          totalLeads={stats.totalLeads}
+          wonLeads={stats.wonLeads}
+          lostLeads={stats.lostLeads}
+          activeTab={activeTab}
+        />
+      }
+      controlBar={
+        <ModernSlimControlBar
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           onAddColumn={handleAddColumn}
@@ -240,89 +241,87 @@ export function SalesFunnelContent() {
           onCreateFunnel={createFunnel}
           isAdmin={isAdmin}
         />
-      </div>
-      
-      <div className="flex-1 overflow-hidden px-6">
-        {activeTab === "funnel" ? (
-          <KanbanBoard
-            columns={columns}
-            onColumnsChange={setColumns}
-            onOpenLeadDetail={openLeadDetail}
-            onMoveToWonLost={handleMoveToWonLost}
-            wonStageId={wonStageId}
-            lostStageId={lostStageId}
-          />
-        ) : (
-          <div className="space-y-4">
-            {/* Filtros para Ganhos e Perdidos */}
-            <WonLostFilters
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              selectedTags={selectedTags}
-              setSelectedTags={setSelectedTags}
-              selectedUser={selectedUser}
-              setSelectedUser={setSelectedUser}
-              availableTags={availableTags}
-              availableUsers={[]} // TODO: Implementar usuários
-              onClearFilters={() => {
-                setSearchTerm("");
-                setSelectedTags([]);
-                setSelectedUser("");
-              }}
-              resultsCount={leads.filter(l => l.columnId === wonStageId || l.columnId === lostStageId).length}
-            />
-            
-            {/* Board otimizado para Ganhos e Perdidos */}
-            <WonLostBoard
-              stages={stages}
-              leads={leads}
+      }
+      content={
+        <div className="h-full overflow-hidden">
+          {activeTab === "funnel" ? (
+            <KanbanBoard
+              columns={columns}
+              onColumnsChange={setColumns}
               onOpenLeadDetail={openLeadDetail}
-              onReturnToFunnel={handleReturnToFunnel}
+              onMoveToWonLost={handleMoveToWonLost}
               wonStageId={wonStageId}
               lostStageId={lostStageId}
-              searchTerm={searchTerm}
-              selectedTags={selectedTags}
-              selectedUser={selectedUser}
             />
-          </div>
-        )}
-      </div>
+          ) : (
+            <div className="space-y-4 h-full">
+              <WonLostFilters
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                selectedTags={selectedTags}
+                setSelectedTags={setSelectedTags}
+                selectedUser={selectedUser}
+                setSelectedUser={setSelectedUser}
+                availableTags={availableTags}
+                availableUsers={[]}
+                onClearFilters={() => {
+                  setSearchTerm("");
+                  setSelectedTags([]);
+                  setSelectedUser("");
+                }}
+                resultsCount={leads.filter(l => l.columnId === wonStageId || l.columnId === lostStageId).length}
+              />
+              
+              <WonLostBoard
+                stages={stages}
+                leads={leads}
+                onOpenLeadDetail={openLeadDetail}
+                onReturnToFunnel={handleReturnToFunnel}
+                wonStageId={wonStageId}
+                lostStageId={lostStageId}
+                searchTerm={searchTerm}
+                selectedTags={selectedTags}
+                selectedUser={selectedUser}
+              />
+            </div>
+          )}
 
-      {/* Modais */}
-      <RealClientDetails
-        client={null}
-        isOpen={isCreateClientModalOpen}
-        isCreateMode={true}
-        onOpenChange={setIsCreateClientModalOpen}
-        onCreateClient={handleCreateLead}
-      />
+          {/* Modais */}
+          <RealClientDetails
+            client={null}
+            isOpen={isCreateClientModalOpen}
+            isCreateMode={true}
+            onOpenChange={setIsCreateClientModalOpen}
+            onCreateClient={handleCreateLead}
+          />
 
-      <TagManagementModal
-        isOpen={isTagManagementModalOpen}
-        onClose={() => setIsTagManagementModalOpen(false)}
-        availableTags={availableTags}
-        onTagsChange={fetchAvailableTags}
-      />
+          <TagManagementModal
+            isOpen={isTagManagementModalOpen}
+            onClose={() => setIsTagManagementModalOpen(false)}
+            availableTags={availableTags}
+            onTagsChange={fetchAvailableTags}
+          />
 
-      <FunnelConfigModal
-        isOpen={isFunnelConfigModalOpen}
-        onClose={() => setIsFunnelConfigModalOpen(false)}
-      />
+          <FunnelConfigModal
+            isOpen={isFunnelConfigModalOpen}
+            onClose={() => setIsFunnelConfigModalOpen(false)}
+          />
 
-      {/* Modais principais do lead */}
-      <SalesFunnelModals
-        selectedLead={selectedLead}
-        isLeadDetailOpen={isLeadDetailOpen}
-        setIsLeadDetailOpen={setIsLeadDetailOpen}
-        onUpdateNotes={updateLeadNotes}
-        onUpdatePurchaseValue={updateLeadPurchaseValue}
-        onUpdateAssignedUser={updateLeadAssignedUser}
-        onUpdateName={updateLeadName}
-        onToggleTag={(tagId: string) => selectedLead && toggleTagOnLead(selectedLead.id, tagId)}
-        refetchLeads={refetchLeads}
-        refetchStages={refetchStages}
-        availableTags={availableTags}
-      />
-    </div>
+          <SalesFunnelModals
+            selectedLead={selectedLead}
+            isLeadDetailOpen={isLeadDetailOpen}
+            setIsLeadDetailOpen={setIsLeadDetailOpen}
+            onUpdateNotes={updateLeadNotes}
+            onUpdatePurchaseValue={updateLeadPurchaseValue}
+            onUpdateAssignedUser={updateLeadAssignedUser}
+            onUpdateName={updateLeadName}
+            onToggleTag={(tagId: string) => selectedLead && toggleTagOnLead(selectedLead.id, tagId)}
+            refetchLeads={refetchLeads}
+            refetchStages={refetchStages}
+            availableTags={availableTags}
+          />
+        </div>
+      }
+    />
   );
 }
