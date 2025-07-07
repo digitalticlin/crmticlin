@@ -1,4 +1,3 @@
-
 import { KanbanLead, FIXED_COLUMN_IDS } from "@/types/kanban";
 import { cn } from "@/lib/utils";
 import { DraggableProvided } from "react-beautiful-dnd";
@@ -54,8 +53,8 @@ export const LeadCard = ({
       {...provided.draggableProps}
       {...provided.dragHandleProps}
       className={cn(
-        // Base do card - design glassmórfico com altura reduzida
-        "bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass-lg mb-3 rounded-xl p-3 cursor-pointer group",
+        // Base do card - design glassmórfico
+        "bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass-lg mb-4 rounded-xl p-4 cursor-pointer group",
         "w-[98.5%] max-w-[380px] mx-auto",
         
         // Estados normais - hover e transições
@@ -78,7 +77,7 @@ export const LeadCard = ({
         <LeadCardContent lead={lead} isWonLostView={isWonLostView} lostStageId={lostStageId} />
         
         {/* Tags and Actions Footer */}
-        <div className="flex justify-between items-center mt-2 pt-2 border-t border-white/30">
+        <div className="flex justify-between items-center mt-3 pt-2 border-t border-white/30">
           <div className="flex-1 min-w-0 mr-2 max-w-[70%]">
             <LeadCardTags tags={lead.tags} />
           </div>

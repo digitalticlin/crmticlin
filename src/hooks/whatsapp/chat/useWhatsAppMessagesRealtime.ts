@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { supabase } from '../../../integrations/supabase/client';
 import { Message } from '../../../types/chat';
@@ -32,13 +31,7 @@ export const useWhatsAppMessagesRealtime = (
             status: payload.new.status || 'sent',
             mediaType: payload.new.media_type || 'text',
             mediaUrl: payload.new.media_url,
-            isIncoming: !payload.new.from_me,
-            // Adicionar propriedades obrigatórias que estavam faltando
-            sender: payload.new.from_me ? 'user' : 'contact',
-            time: new Date(payload.new.timestamp).toLocaleTimeString('pt-BR', {
-              hour: '2-digit',
-              minute: '2-digit'
-            })
+            isIncoming: !payload.new.from_me
           };
           onNewMessage(newMessage);
         }

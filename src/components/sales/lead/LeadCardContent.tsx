@@ -45,22 +45,22 @@ export const LeadCardContent = ({ lead, isWonLostView = false, lostStageId }: Le
 
   return (
     <>
-      {/* Header with Avatar, Name, Unread Count */}
+      {/* Header with Avatar, Name, Unread Count, and Time */}
       <LeadCardHeader lead={lead} isWonLostView={isWonLostView} />
 
-      {/* Phone Number Row - compacto */}
+      {/* Phone Number Row */}
       {lead.phone && (
-        <div className="flex items-center gap-1.5 mb-1.5">
+        <div className="flex items-center gap-2 mb-2">
           <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" />
-          <span className="text-xs text-muted-foreground font-medium truncate">
+          <span className="text-xs text-muted-foreground font-medium">
             {lead.phone}
           </span>
         </div>
       )}
 
-      {/* Message and Value Row - espaçamento reduzido */}
-      <div className="flex justify-between items-start mb-2 gap-2">
-        <p className="text-sm text-muted-foreground line-clamp-2 flex-1 min-w-0 leading-tight">
+      {/* Message and Value Row */}
+      <div className="flex justify-between items-start mb-3 gap-2">
+        <p className="text-sm text-muted-foreground line-clamp-2 flex-1 min-w-0">
           {lead.lastMessage || lead.last_message || "Sem mensagem"}
         </p>
         
@@ -74,7 +74,7 @@ export const LeadCardContent = ({ lead, isWonLostView = false, lostStageId }: Le
         )}
       </div>
 
-      {/* Assigned User Row - compacto */}
+      {/* Assigned User Row */}
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-1 min-w-0 flex-1">
           {responsibleUser ? (
