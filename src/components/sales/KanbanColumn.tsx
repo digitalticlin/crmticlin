@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Droppable, Draggable } from "react-beautiful-dnd";
 import { MoreVertical, Edit, Trash2, Plus, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -44,8 +43,56 @@ export function KanbanColumn({
 }: KanbanColumnProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(column.title);
+  
+  // Estados para scroll infinito
+  const [visibleLeadsCount, setVisibleLeadsCount] = useState(25); // Começar com 25
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const isFixedStage = column.title === "GANHO" || column.title === "PERDIDO" || column.title === "Entrada de Leads" || column.isFixed;
+
+  // Leads visíveis baseado no scroll infinito
+  const visibleLeads = column.leads.slice(0, visibleLeadsCount);
+  const hasMoreLeads = column.leads.length > visibleLeadsCount;
+
+  console.log('[KanbanColumn] 📊 Estado:', {
+    columnTitle: column.title,
+    totalLeads: column.leads.length,
+    visibleLeads: visibleLeads.length,
+    hasMoreLeads
+  });
+
+  // Função para carregar mais leads
+  const loadMoreLeads = useCallback(() => {
+    if (isLoadingMore || !hasMoreLeads) return;
+    
+    setIsLoadingMore(true);
+    console.log('[KanbanColumn] 📥 Carregando mais leads para:', column.title);
+    
+    // Simular um pequeno delay para UX melhor
+    setTimeout(() => {
+      setVisibleLeadsCount(prev => Math.min(prev + 25, column.leads.length));
+      setIsLoadingMore(false);
+    }, 300);
+  }, [isLoadingMore, hasMoreLeads, column.leads.length, column.title]);
+
+  // Detectar scroll para carregar mais leads
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const element = e.currentTarget;
+    const { scrollTop, scrollHeight, clientHeight } = element;
+    
+    // Carregar quando estiver próximo do final (80% do scroll)
+    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
+    
+    if (scrollPercentage > 0.8 && hasMoreLeads && !isLoadingMore) {
+      loadMoreLeads();
+    }
+  }, [hasMoreLeads, isLoadingMore, loadMoreLeads]);
+
+  // Resetar contagem quando a coluna mudar
+  useEffect(() => {
+    setVisibleLeadsCount(25);
+  }, [column.id, column.leads.length]);
 
   const handleSaveTitle = async () => {
     if (editTitle.trim() && editTitle !== column.title && onUpdateColumn) {
@@ -144,7 +191,7 @@ export function KanbanColumn({
         style={{ backgroundColor: column.color || "#e0e0e0" }}
       />
 
-      {/* Droppable otimizado para RBD */}
+      {/* Droppable otimizado para RBD com scroll infinito */}
       <Droppable droppableId={column.id} type="lead">
         {(provided, snapshot) => (
           <div
@@ -158,9 +205,10 @@ export function KanbanColumn({
               minHeight: "400px",
               maxHeight: "calc(100vh - 200px)"
             }}
+            onScroll={handleScroll}
           >
-            {/* Renderização otimizada com limite */}
-            {column.leads.slice(0, 50).map((lead, leadIndex) => (
+            {/* Renderizar leads visíveis */}
+            {visibleLeads.map((lead, leadIndex) => (
               <Draggable key={lead.id} draggableId={lead.id} index={leadIndex}>
                 {(provided, snapshot) => (
                   <LeadCard
@@ -181,10 +229,27 @@ export function KanbanColumn({
             ))}
             {provided.placeholder}
             
-            {/* Aviso se há mais leads que o limite */}
-            {column.leads.length > 50 && (
-              <div className="p-2 text-center text-xs text-gray-500 bg-yellow-50 border border-yellow-200 rounded mx-1 mb-2">
-                Mostrando 50 de {column.leads.length} leads
+            {/* Indicador de carregamento */}
+            {isLoadingMore && (
+              <div className="p-3 text-center text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded mx-1 mb-2">
+                <div className="animate-spin inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
+                Carregando mais leads...
+              </div>
+            )}
+            
+            {/* Status quando há mais leads */}
+            {hasMoreLeads && !isLoadingMore && (
+              <div className="p-2 text-center text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded mx-1 mb-2">
+                Mostrando {visibleLeads.length} de {column.leads.length} leads
+                <br />
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={loadMoreLeads}
+                  className="text-xs mt-1 h-6"
+                >
+                  Carregar mais
+                </Button>
               </div>
             )}
             

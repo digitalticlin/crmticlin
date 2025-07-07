@@ -60,7 +60,7 @@ export function useSalesFunnelOptimized() {
     queryFn: async () => {
       if (!selectedFunnel?.id) return [];
       
-      // Buscar apenas leads essenciais com limite
+      // Buscar TODOS os leads essenciais sem limite para carregamento completo
       const { data, error } = await supabase
         .from('leads')
         .select(`
@@ -78,15 +78,23 @@ export function useSalesFunnelOptimized() {
           )
         `)
         .eq('funnel_id', selectedFunnel.id)
-        .order('updated_at', { ascending: false })
-        .limit(200);
+        .order('updated_at', { ascending: false });
       
       if (error) throw error;
+      
+      console.log('[useSalesFunnelOptimized] 📊 Leads carregados:', {
+        count: data?.length || 0,
+        funnelId: selectedFunnel.id,
+        timestamp: new Date().toISOString()
+      });
+      
       return data || [];
     },
     enabled: !!selectedFunnel?.id,
-    staleTime: 5000, // 5 segundos para leads
-    gcTime: CACHE_TIME
+    staleTime: 1000, // 1 segundo para dados mais frescos
+    gcTime: CACHE_TIME,
+    refetchOnWindowFocus: true, // Refetch quando a janela receber foco
+    refetchOnMount: true // Sempre refetch ao montar
   });
 
   const { tags: availableTags } = useTagDatabase();
@@ -334,13 +342,46 @@ export function useSalesFunnelOptimized() {
           }
         )
         .subscribe((status) => {
-          console.log('[useSalesFunnelOptimized] 📡 Status da inscrição:', status);
+          console.log('[useSalesFunnelOptimized] 📡 Status da inscrição tags:', status);
+        });
+
+      // 🚀 NOVA SUBSCRIPTION: Escutar mudanças no unread_count dos leads
+      const leadsUnreadChannel = supabase
+        .channel('leads-unread-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'leads',
+            filter: `id=in.(${leadIds.join(',')})`
+          },
+          (payload) => {
+            console.log('[useSalesFunnelOptimized] 📨 Mudança detectada em lead (unread_count):', {
+              leadId: payload.new?.id,
+              oldUnreadCount: payload.old?.unread_count,
+              newUnreadCount: payload.new?.unread_count,
+              leadName: payload.new?.name
+            });
+            
+            // Invalidar o cache e forçar um refetch quando unread_count mudar
+            if (payload.old?.unread_count !== payload.new?.unread_count) {
+              console.log('[useSalesFunnelOptimized] 🔄 Unread count alterado - atualizando funil');
+              queryClient.invalidateQueries({
+                queryKey: ['leads-optimized', selectedFunnel.id]
+              });
+            }
+          }
+        )
+        .subscribe((status) => {
+          console.log('[useSalesFunnelOptimized] 📡 Status da inscrição unread:', status);
         });
 
       // Cleanup
       return () => {
-        console.log('[useSalesFunnelOptimized] 🧹 Limpando inscrição de tags');
+        console.log('[useSalesFunnelOptimized] 🧹 Limpando inscrições');
         leadTagsChannel.unsubscribe();
+        leadsUnreadChannel.unsubscribe();
       };
     };
 

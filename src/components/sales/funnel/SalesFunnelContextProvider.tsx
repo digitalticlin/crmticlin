@@ -1,14 +1,17 @@
-
 import { ReactNode, useEffect, useState } from "react";
 import { SalesFunnelProvider } from "./SalesFunnelProvider";
 import { useSalesFunnelOptimized } from "@/hooks/salesFunnel/useSalesFunnelOptimized";
 import { useUserRole } from "@/hooks/useUserRole";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 interface SalesFunnelContextProviderProps {
   children: ReactNode;
 }
 
 export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProviderProps) => {
+  const { user } = useAuth();
   const salesFunnelData = useSalesFunnelOptimized();
   const { isAdmin } = useUserRole();
   const [isInitialized, setIsInitialized] = useState(false);
@@ -45,15 +48,160 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     isInitialized
   ]);
 
-  // Wrapper functions para compatibilidade com interface existente
-  const addColumnWrapper = (title: string) => {
-    console.log('[SalesFunnelContextProvider] ➕ Adicionando coluna:', title);
-    // Por agora apenas log - pode implementar depois
+  // 🚀 IMPLEMENTAÇÃO REAL: Adicionar nova etapa no banco de dados
+  const addColumnWrapper = async (title: string, color: string = "#3b82f6") => {
+    console.log('[SalesFunnelContextProvider] ➕ Criando nova etapa:', { title, color });
+    
+    if (!user?.id || !salesFunnelData.selectedFunnel?.id) {
+      toast.error("Usuário ou funil não selecionado");
+      return;
+    }
+
+    try {
+      // Calcular próxima posição (maior posição + 1)
+      const maxPosition = Math.max(
+        ...(salesFunnelData.stages?.map(s => s.order_position || 0) || [0])
+      );
+      const nextPosition = maxPosition + 1;
+
+      // Inserir nova etapa no banco
+      const { data: newStage, error } = await supabase
+        .from('kanban_stages')
+        .insert([{
+          title: title.trim(),
+          color: color,
+          order_position: nextPosition,
+          funnel_id: salesFunnelData.selectedFunnel.id,
+          created_by_user_id: user.id,
+          is_fixed: false,
+          is_won: false,
+          is_lost: false
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('[SalesFunnelContextProvider] ✅ Etapa criada:', newStage);
+      
+      toast.success(`Etapa "${title}" criada com sucesso!`, {
+        description: "A nova etapa já está disponível no funil"
+      });
+
+      // Refrescar dados
+      if (salesFunnelData.refetchStages) {
+        await salesFunnelData.refetchStages();
+      }
+
+      return newStage;
+    } catch (error: any) {
+      console.error('[SalesFunnelContextProvider] ❌ Erro ao criar etapa:', error);
+      toast.error("Erro ao criar etapa", {
+        description: error.message || "Tente novamente"
+      });
+      throw error;
+    }
   };
 
-  const updateColumnWrapper = (column: any) => {
-    console.log('[SalesFunnelContextProvider] ✏️ Atualizando coluna:', column.title);
-    // Por agora apenas log - pode implementar depois
+  // 🚀 IMPLEMENTAÇÃO REAL: Atualizar etapa existente no banco de dados
+  const updateColumnWrapper = async (column: any) => {
+    console.log('[SalesFunnelContextProvider] ✏️ Atualizando etapa:', { 
+      id: column.id,
+      title: column.title, 
+      color: column.color 
+    });
+    
+    if (!user?.id) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
+
+    try {
+      // Atualizar etapa no banco
+      const { error } = await supabase
+        .from('kanban_stages')
+        .update({
+          title: column.title.trim(),
+          color: column.color,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', column.id)
+        .eq('created_by_user_id', user.id); // Segurança adicional
+
+      if (error) throw error;
+
+      console.log('[SalesFunnelContextProvider] ✅ Etapa atualizada:', column.title);
+      
+      toast.success(`Etapa "${column.title}" atualizada com sucesso!`, {
+        description: "As alterações foram salvas"
+      });
+
+      // Refrescar dados
+      if (salesFunnelData.refetchStages) {
+        await salesFunnelData.refetchStages();
+      }
+
+    } catch (error: any) {
+      console.error('[SalesFunnelContextProvider] ❌ Erro ao atualizar etapa:', error);
+      toast.error("Erro ao atualizar etapa", {
+        description: error.message || "Tente novamente"
+      });
+      throw error;
+    }
+  };
+
+  // 🚀 IMPLEMENTAÇÃO REAL: Excluir etapa do banco de dados
+  const deleteColumnWrapper = async (columnId: string) => {
+    console.log('[SalesFunnelContextProvider] 🗑️ Excluindo etapa:', columnId);
+    
+    if (!user?.id) {
+      toast.error("Usuário não autenticado");
+      return;
+    }
+
+    try {
+      // Verificar se a etapa tem leads associados
+      const { data: leadsCount, error: countError } = await supabase
+        .from('leads')
+        .select('id', { count: 'exact' })
+        .eq('kanban_stage_id', columnId);
+
+      if (countError) throw countError;
+
+      if (leadsCount && leadsCount.length > 0) {
+        toast.error("Não é possível excluir etapa com leads", {
+          description: `Esta etapa possui ${leadsCount.length} lead(s). Mova-os primeiro.`
+        });
+        return;
+      }
+
+      // Excluir etapa do banco
+      const { error } = await supabase
+        .from('kanban_stages')
+        .delete()
+        .eq('id', columnId)
+        .eq('created_by_user_id', user.id); // Segurança adicional
+
+      if (error) throw error;
+
+      console.log('[SalesFunnelContextProvider] ✅ Etapa excluída:', columnId);
+      
+      toast.success("Etapa excluída com sucesso!", {
+        description: "A etapa foi removida do funil"
+      });
+
+      // Refrescar dados
+      if (salesFunnelData.refetchStages) {
+        await salesFunnelData.refetchStages();
+      }
+
+    } catch (error: any) {
+      console.error('[SalesFunnelContextProvider] ❌ Erro ao excluir etapa:', error);
+      toast.error("Erro ao excluir etapa", {
+        description: error.message || "Tente novamente"
+      });
+      throw error;
+    }
   };
 
   const createTagWrapper = (name: string, color: string) => {
@@ -114,7 +262,7 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     // Ações sempre disponíveis
     addColumn: addColumnWrapper,
     updateColumn: updateColumnWrapper,
-    deleteColumn: salesFunnelData.deleteColumn || (() => {}),
+    deleteColumn: deleteColumnWrapper,
     openLeadDetail: salesFunnelData.openLeadDetail || (() => {}),
     toggleTagOnLead: salesFunnelData.toggleTagOnLead || (() => {}),
     createTag: createTagWrapper,

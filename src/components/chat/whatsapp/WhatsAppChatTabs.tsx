@@ -9,10 +9,17 @@ export const WhatsAppChatTabs = () => {
     messages,
     sendMessage,
     isLoadingContacts,
+    isLoadingMoreContacts,
+    hasMoreContacts,
+    loadMoreContacts,
     isLoadingMessages,
+    isLoadingMore,
+    hasMoreMessages,
+    loadMoreMessages,
     isSending,
     fetchMessages,
-    fetchContacts
+    fetchContacts,
+    totalContactsAvailable
   } = useWhatsAppChatContext();
 
   // Wrapper to handle the sendMessage signature difference
@@ -47,16 +54,17 @@ export const WhatsAppChatTabs = () => {
         messages={messages}
         onSendMessage={handleSendMessage}
         isLoadingContacts={isLoadingContacts}
-        isLoadingMoreContacts={false}
-        hasMoreContacts={false}
-        onLoadMoreContacts={async () => {}}
+        isLoadingMoreContacts={isLoadingMoreContacts}
+        hasMoreContacts={hasMoreContacts}
+        onLoadMoreContacts={loadMoreContacts}
         isLoadingMessages={isLoadingMessages}
-        isLoadingMore={false}
-        hasMoreMessages={false}
-        onLoadMoreMessages={async () => {}}
+        isLoadingMore={isLoadingMore}
+        hasMoreMessages={hasMoreMessages}
+        onLoadMoreMessages={loadMoreMessages}
         isSending={isSending}
         onRefreshMessages={handleRefreshMessages}
         onRefreshContacts={handleRefreshContacts}
+        totalContactsAvailable={totalContactsAvailable}
       />
     </div>
   );

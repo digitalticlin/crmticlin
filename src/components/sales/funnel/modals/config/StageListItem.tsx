@@ -1,6 +1,5 @@
-
 import { useState } from "react";
-import { Trash2, Edit2, Save, X, Lock } from "lucide-react";
+import { Trash2, Edit2, Save, X, Lock, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -11,9 +10,13 @@ interface StageListItemProps {
   stage: KanbanColumn;
   onUpdate: (stage: KanbanColumn) => Promise<void>;
   onDelete: (stageId: string) => Promise<void>;
+  onMoveUp?: (stageId: string) => Promise<void>;
+  onMoveDown?: (stageId: string) => Promise<void>;
+  isFirst?: boolean;
+  isLast?: boolean;
 }
 
-export const StageListItem = ({ stage, onUpdate, onDelete }: StageListItemProps) => {
+export const StageListItem = ({ stage, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst, isLast }: StageListItemProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(stage.title);
   const [editColor, setEditColor] = useState(stage.color || "#e0e0e0");
@@ -138,6 +141,32 @@ export const StageListItem = ({ stage, onUpdate, onDelete }: StageListItemProps)
           <>
             {!isFixedStage && (
               <>
+                {/* Botões de reordenação */}
+                {onMoveUp && !isFirst && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onMoveUp(stage.id)}
+                    className="h-8 w-8 p-0 text-gray-600 hover:text-gray-700"
+                    disabled={isLoading}
+                    title="Mover para cima"
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </Button>
+                )}
+                {onMoveDown && !isLast && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onMoveDown(stage.id)}
+                    className="h-8 w-8 p-0 text-gray-600 hover:text-gray-700"
+                    disabled={isLoading}
+                    title="Mover para baixo"
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                )}
+                
                 <Button
                   size="sm"
                   variant="ghost"

@@ -1,4 +1,3 @@
-
 import { createContext, useContext, ReactNode } from "react";
 import { KanbanColumn, KanbanLead } from "@/types/kanban";
 import { Funnel, KanbanStage } from "@/types/funnel";
@@ -29,9 +28,9 @@ interface SalesFunnelContextValue {
   lostStageId?: string;
 
   // Actions
-  addColumn: (title: string) => void;
-  updateColumn: (column: KanbanColumn) => void;
-  deleteColumn: (columnId: string) => void;
+  addColumn: (title: string, color?: string) => Promise<void>;
+  updateColumn: (column: KanbanColumn) => Promise<void>;
+  deleteColumn: (columnId: string) => Promise<void>;
   openLeadDetail: (lead: KanbanLead) => void;
   toggleTagOnLead: (leadId: string, tagId: string) => void;
   createTag: (name: string, color: string) => void;

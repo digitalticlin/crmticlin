@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Search, RefreshCw } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -16,6 +15,7 @@ interface WhatsAppContactsListProps {
   hasMoreContacts?: boolean;
   onLoadMoreContacts?: () => Promise<void>;
   onRefreshContacts?: () => void;
+  totalContactsAvailable?: number;
 }
 
 export const WhatsAppContactsList = React.memo(({
@@ -26,7 +26,8 @@ export const WhatsAppContactsList = React.memo(({
   isLoadingMore = false,
   hasMoreContacts = false,
   onLoadMoreContacts,
-  onRefreshContacts
+  onRefreshContacts,
+  totalContactsAvailable = 0
 }: WhatsAppContactsListProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
@@ -95,7 +96,7 @@ export const WhatsAppContactsList = React.memo(({
           {/* Filtros com melhor contraste */}
           <div className="flex space-x-2">
             {[
-              { key: "all", label: "Todas", count: contacts.length },
+              { key: "all", label: "Todas", count: totalContactsAvailable || contacts.length },
               { key: "unread", label: "Não lidas", count: contacts.filter(c => c.unreadCount && c.unreadCount > 0).length },
               { key: "recent", label: "Recentes", count: contacts.filter(c => c.lastMessageTime).length }
             ].map((filter) => (

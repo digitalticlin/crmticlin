@@ -1,4 +1,3 @@
-
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useSalesFunnelContext } from "../SalesFunnelProvider";
 import { StagesList } from "./config/StagesList";
@@ -10,7 +9,7 @@ interface FunnelConfigModalProps {
 }
 
 export const FunnelConfigModal = ({ isOpen, onClose }: FunnelConfigModalProps) => {
-  const { columns, updateColumn, deleteColumn, addColumn } = useSalesFunnelContext();
+  const { columns, updateColumn, deleteColumn, addColumn, refetchStages } = useSalesFunnelContext();
 
   // Wrapper functions to ensure proper async handling
   const handleUpdateStage = async (stage: any) => {
@@ -21,8 +20,8 @@ export const FunnelConfigModal = ({ isOpen, onClose }: FunnelConfigModalProps) =
     await deleteColumn(stageId);
   };
 
-  const handleCreateStage = async (title: string) => {
-    await addColumn(title);
+  const handleCreateStage = async (title: string, color?: string) => {
+    await addColumn(title, color || "#3b82f6");
   };
 
   return (
@@ -39,6 +38,7 @@ export const FunnelConfigModal = ({ isOpen, onClose }: FunnelConfigModalProps) =
             stages={columns}
             onUpdateStage={handleUpdateStage}
             onDeleteStage={handleDeleteStage}
+            onRefreshStages={refetchStages}
           />
 
           <CreateStageForm onCreateStage={handleCreateStage} />

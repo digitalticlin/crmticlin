@@ -21,6 +21,7 @@ interface WhatsAppChatContextType {
   loadMoreContacts: () => Promise<void>;
   moveContactToTop: (contactId: string) => void;
   markAsRead: (contactId: string) => void;
+  totalContactsAvailable: number;
   
   // Mensagens com paginação
   messages: Message[];
@@ -115,7 +116,8 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     fetchContacts,
     loadMoreContacts,
     moveContactToTop,
-    markAsRead
+    markAsRead,
+    totalContactsAvailable
   } = useWhatsAppContacts(webActiveInstance, user?.id || null);
 
   // Hook específico para mensagens com paginação
@@ -191,12 +193,23 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
   }, [webActiveInstance?.id, user?.id, moveContactToTop, fetchContacts]);
 
   // Função memoizada para selecionar contato e marcar como lido
-  const handleSelectContact = useCallback((contact: Contact | null) => {
-    if (contact && contact.unreadCount) {
-      markAsRead(contact.id);
+  const handleSelectContact = useCallback(async (contact: Contact | null) => {
+    if (contact && contact.unreadCount && contact.unreadCount > 0) {
+      console.log('[WhatsApp Chat Provider] 🔄 Marcando como lida para contato:', contact.name, 'unreadCount:', contact.unreadCount);
+      try {
+        await markAsRead(contact.id);
+        console.log('[WhatsApp Chat Provider] ✅ Contato marcado como lido com sucesso');
+        
+        // Força um refresh dos contatos após um delay para garantir sincronização
+        setTimeout(() => {
+          fetchContacts(true);
+        }, 500);
+      } catch (error) {
+        console.error('[WhatsApp Chat Provider] ❌ Erro ao marcar como lido:', error);
+      }
     }
     setSelectedContact(contact);
-  }, [markAsRead]);
+  }, [markAsRead, fetchContacts]);
 
   // Memoizar saúde da instância para evitar re-cálculos
   const instanceHealth = useMemo(() => ({
@@ -245,6 +258,7 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     loadMoreContacts,
     moveContactToTop,
     markAsRead,
+    totalContactsAvailable,
     
     // Mensagens com paginação
     messages,
@@ -289,7 +303,8 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     fetchContacts,
     fetchMessages,
     companyLoading,
-    instanceHealth
+    instanceHealth,
+    totalContactsAvailable
   ]);
 
   return (

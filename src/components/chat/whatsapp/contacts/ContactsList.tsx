@@ -1,5 +1,4 @@
-
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { cn } from "@/lib/utils";
 import { Contact } from "@/types/chat";
 import { formatPhoneDisplay } from "@/utils/phoneFormatter";
@@ -42,6 +41,11 @@ export const ContactsList = React.memo(({
 }: ContactsListProps) => {
   const { user } = useAuth();
   const [highlightedContacts, setHighlightedContacts] = useState<Set<string>>(new Set());
+  
+  // 🚀 REFS PARA SCROLL INFINITO
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
+  const isLoadingRef = useRef(false);
 
   // Usar o hook de sincronização de tags
   useTagsSync(user?.id || null, () => {
@@ -49,6 +53,84 @@ export const ContactsList = React.memo(({
       onRefreshContacts();
     }
   });
+
+  // 🚀 FUNÇÃO OTIMIZADA PARA CARREGAR MAIS CONTATOS
+  const handleLoadMore = useCallback(async () => {
+    if (!onLoadMoreContacts || !hasMoreContacts || isLoadingRef.current || isLoadingMore) {
+      return;
+    }
+
+    console.log('[ContactsList] 🔄 Carregando mais contatos via scroll infinito...');
+    
+    try {
+      isLoadingRef.current = true;
+      await onLoadMoreContacts();
+      console.log('[ContactsList] ✅ Mais contatos carregados com sucesso');
+    } catch (error) {
+      console.error('[ContactsList] ❌ Erro ao carregar mais contatos:', error);
+    } finally {
+      isLoadingRef.current = false;
+    }
+  }, [onLoadMoreContacts, hasMoreContacts, isLoadingMore]);
+
+  // 🚀 INTERSECTION OBSERVER PARA SCROLL INFINITO
+  useEffect(() => {
+    const trigger = loadMoreTriggerRef.current;
+    if (!trigger || !hasMoreContacts || !onLoadMoreContacts) {
+      console.log('[ContactsList] 🚫 Observer não configurado:', {
+        hasTrigger: !!trigger,
+        hasMoreContacts,
+        hasLoadFunction: !!onLoadMoreContacts
+      });
+      return;
+    }
+
+    console.log('[ContactsList] 👁️ Configurando Intersection Observer...');
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        console.log('[ContactsList] 👁️ Observer ativado:', {
+          isIntersecting: entry.isIntersecting,
+          hasMoreContacts,
+          isLoading: isLoadingRef.current,
+          intersectionRatio: entry.intersectionRatio
+        });
+        
+        if (entry.isIntersecting && hasMoreContacts && !isLoadingRef.current) {
+          console.log('[ContactsList] 🚀 Trigger visível - carregando mais contatos...');
+          handleLoadMore();
+        }
+      },
+      {
+        root: scrollContainerRef.current,
+        rootMargin: '100px', // Carregar quando estiver 100px antes do fim
+        threshold: 0.1
+      }
+    );
+
+    observer.observe(trigger);
+    console.log('[ContactsList] ✅ Observer configurado com sucesso');
+
+    return () => {
+      console.log('[ContactsList] 🧹 Removendo Observer');
+      observer.disconnect();
+    };
+  }, [hasMoreContacts, handleLoadMore, onLoadMoreContacts]);
+
+  // 🚀 DETECTAR SCROLL MANUAL COMO FALLBACK
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const container = e.currentTarget;
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    
+    // Verificar se está próximo do final (90% do scroll)
+    const isNearEnd = (scrollTop + clientHeight) / scrollHeight > 0.9;
+    
+    if (isNearEnd && hasMoreContacts && !isLoadingRef.current && !isLoadingMore && onLoadMoreContacts) {
+      console.log('[ContactsList] 📜 Scroll manual detectado - carregando mais...');
+      handleLoadMore();
+    }
+  }, [hasMoreContacts, isLoadingMore, onLoadMoreContacts, handleLoadMore]);
 
   // Função para marcar mensagens como lidas ao selecionar contato
   const handleSelectContact = async (contact: Contact) => {
@@ -164,24 +246,59 @@ export const ContactsList = React.memo(({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div 
+      className="flex-1 overflow-y-auto"
+      ref={scrollContainerRef}
+      onScroll={handleScroll}
+    >
       <div className="divide-y divide-gray-200/20">
         {renderedContacts}
         
-        {/* Indicador de carregamento mais contatos */}
-        {isLoadingMore && (
-          <div className="flex justify-center py-4">
-            <div className="flex items-center space-x-2 text-xs text-gray-500">
-              <div className="animate-spin rounded-full h-4 w-4 border-b border-gray-400"></div>
-              <span>Carregando mais contatos...</span>
-            </div>
+        {/* 🚀 TRIGGER PARA INTERSECTION OBSERVER */}
+        {hasMoreContacts && (
+          <div
+            ref={loadMoreTriggerRef}
+            className="h-20 flex items-center justify-center"
+          >
+            {isLoadingMore ? (
+              <div className="flex flex-col items-center space-y-2 text-sm text-gray-500">
+                <div className="flex items-center space-x-2">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+                  <span>Carregando mais contatos...</span>
+                </div>
+                <div className="text-xs text-gray-400">
+                  {contacts.length} contatos carregados • Buscando todos os disponíveis
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center space-y-1 text-xs text-gray-400 py-2">
+                <span>🔄 Role para baixo para carregar mais contatos</span>
+                <span>{contacts.length} de ? contatos carregados</span>
+              </div>
+            )}
           </div>
         )}
         
-        {/* Indicador de fim dos contatos */}
-        {!hasMoreContacts && contacts.length >= 20 && (
-          <div className="flex justify-center py-3">
-            <span className="text-xs text-gray-400">• • • Todos os contatos carregados • • •</span>
+        {/* 🚀 INDICADOR DE FIM DOS CONTATOS MELHORADO */}
+        {!hasMoreContacts && contacts.length > 0 && (
+          <div className="flex flex-col items-center py-6 space-y-2">
+            <div className="flex items-center space-x-2 text-xs text-gray-400">
+              <div className="h-px bg-gray-300 w-8"></div>
+              <span>✅ Todos os {contacts.length} contatos carregados</span>
+              <div className="h-px bg-gray-300 w-8"></div>
+            </div>
+            <div className="text-xs text-gray-400">
+              💡 Use a busca para encontrar contatos específicos
+            </div>
+          </div>
+        )}
+
+        {/* 🚀 INDICADOR QUANDO NÃO HÁ CONTATOS */}
+        {!hasMoreContacts && contacts.length === 0 && (
+          <div className="flex justify-center py-4">
+            <span className="text-xs text-gray-400">
+              Nenhum contato encontrado nesta instância
+            </span>
           </div>
         )}
       </div>

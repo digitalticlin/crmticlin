@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useSalesFunnelContext } from "./SalesFunnelProvider";
 import { KanbanBoard } from "../KanbanBoard";
 import { FunnelLoadingState } from "./FunnelLoadingState";
@@ -20,6 +21,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 export function SalesFunnelContent() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const {
     loading,
     error,
@@ -190,6 +192,22 @@ export function SalesFunnelContent() {
     }
   }, [stages, refetchLeads, refetchStages]);
 
+  // 🚀 NOVA FUNÇÃO: Navegar para o WhatsApp Chat com o lead específico
+  const handleOpenChat = useCallback((lead: KanbanLead) => {
+    console.log('[SalesFunnelContent] 💬 Abrindo chat do WhatsApp para lead:', {
+      leadId: lead.id,
+      leadName: lead.name,
+      leadPhone: lead.phone
+    });
+
+    // Navegar para WhatsApp Chat com o leadId na URL
+    navigate(`/whatsapp-chat?leadId=${lead.id}`);
+    
+    toast.success(`Abrindo chat com ${lead.name}`, {
+      description: "Redirecionando para o WhatsApp..."
+    });
+  }, [navigate]);
+
   // Renderização condicional com base no loading e error
   if (loading) {
     return <FunnelLoadingState />;
@@ -248,6 +266,7 @@ export function SalesFunnelContent() {
             columns={columns}
             onColumnsChange={setColumns}
             onOpenLeadDetail={openLeadDetail}
+            onOpenChat={handleOpenChat}
             onMoveToWonLost={handleMoveToWonLost}
             wonStageId={wonStageId}
             lostStageId={lostStageId}
@@ -278,6 +297,7 @@ export function SalesFunnelContent() {
               leads={leads}
               onOpenLeadDetail={openLeadDetail}
               onReturnToFunnel={handleReturnToFunnel}
+              onOpenChat={handleOpenChat}
               wonStageId={wonStageId}
               lostStageId={lostStageId}
               searchTerm={searchTerm}

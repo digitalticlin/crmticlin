@@ -7,6 +7,7 @@ interface WonLostBoardProps {
   stages: KanbanStage[];
   leads: KanbanLead[];
   onOpenLeadDetail: (lead: KanbanLead) => void;
+  onOpenChat?: (lead: KanbanLead) => void;
   onReturnToFunnel: (lead: KanbanLead) => void;
   wonStageId?: string;
   lostStageId?: string;
@@ -19,6 +20,7 @@ export const WonLostBoard = ({
   stages,
   leads,
   onOpenLeadDetail,
+  onOpenChat,
   onReturnToFunnel,
   wonStageId,
   lostStageId,
