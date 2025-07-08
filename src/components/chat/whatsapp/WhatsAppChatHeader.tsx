@@ -1,9 +1,11 @@
+
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Phone, Edit, RefreshCw } from "lucide-react";
 import { Contact } from "@/types/chat";
 import { formatPhoneDisplay } from "@/utils/phoneFormatter";
 import { TiclinAvatar } from "@/components/ui/ticlin-avatar";
 import { ChatHeaderTags } from "../ChatHeaderTags";
+import { StageSelector } from "../StageSelector";
 import { useLeadTags } from "@/hooks/salesFunnel/useLeadTags";
 import { useEffect } from "react";
 
@@ -95,15 +97,30 @@ export const WhatsAppChatHeader = ({
         </div>
       </div>
 
-      {/* Seção de Tags */}
+      {/* Seção de Tags e Controle de Etapa */}
       {selectedContact.leadId && (
-        <ChatHeaderTags
-          leadTags={leadTags}
-          availableTags={availableTags}
-          onAddTag={addTag}
-          onRemoveTag={removeTag}
-          isLoading={loading}
-        />
+        <div className="px-4 pb-3 flex items-center gap-3">
+          {/* Controle de Etapa */}
+          <StageSelector 
+            leadId={selectedContact.leadId}
+            currentStageId={selectedContact.stageId || null}
+            className="shrink-0"
+          />
+          
+          {/* Divisor visual */}
+          <div className="w-px h-6 bg-white/20" />
+          
+          {/* Tags */}
+          <div className="flex-1">
+            <ChatHeaderTags
+              leadTags={leadTags}
+              availableTags={availableTags}
+              onAddTag={addTag}
+              onRemoveTag={removeTag}
+              isLoading={loading}
+            />
+          </div>
+        </div>
       )}
     </div>
   );

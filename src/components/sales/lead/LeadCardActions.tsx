@@ -89,7 +89,7 @@ export const LeadCardActions = ({
     );
   }
 
-  // In funnel view, show won/lost buttons only if not already in those stages
+  // In funnel view, only show won/lost actions (stage control removed from here)
   return (
     <div className="flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
       {onMoveToWon && !isInWonStage && !isInLostStage && (
