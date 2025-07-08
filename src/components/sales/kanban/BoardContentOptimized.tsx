@@ -1,4 +1,3 @@
-
 import React, { useMemo } from "react";
 import { KanbanColumn, KanbanLead } from "@/types/kanban";
 import { KanbanColumnMemo } from "../KanbanColumnMemo";
@@ -63,28 +62,26 @@ export const BoardContentOptimized = React.memo<BoardContentOptimizedProps>(({
   }
 
   return (
-    <div className="flex-1 h-full overflow-hidden">
-      <div 
-        className="flex h-full min-w-max gap-6 p-6 overflow-x-auto kanban-scrollbar" 
-        style={containerStyles}
-      >
-        {validatedColumns.map((column, index) => (
-          <KanbanColumnMemo
-            key={column.id}
-            column={column}
-            index={index}
-            onOpenLeadDetail={onOpenLeadDetail}
-            onUpdateColumn={onColumnUpdate}
-            onDeleteColumn={onColumnDelete}
-            onOpenChat={onOpenChat}
-            onMoveToWonLost={onMoveToWonLost}
-            onReturnToFunnel={onReturnToFunnel}
-            isWonLostView={isWonLostView}
-            wonStageId={wonStageId}
-            lostStageId={lostStageId}
-          />
-        ))}
-      </div>
+    <div 
+      className="flex h-full min-w-max gap-6 p-6 overflow-x-auto kanban-scrollbar" 
+      style={containerStyles}
+    >
+      {validatedColumns.map((column, index) => (
+        <KanbanColumnMemo
+          key={column.id}
+          column={column}
+          index={index}
+          onOpenLeadDetail={onOpenLeadDetail}
+          onUpdateColumn={onColumnUpdate}
+          onDeleteColumn={onColumnDelete}
+          onOpenChat={onOpenChat}
+          onMoveToWonLost={onMoveToWonLost}
+          onReturnToFunnel={onReturnToFunnel}
+          isWonLostView={isWonLostView}
+          wonStageId={wonStageId}
+          lostStageId={lostStageId}
+        />
+      ))}
     </div>
   );
 }, (prevProps, nextProps) => {

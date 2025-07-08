@@ -4,6 +4,7 @@ import { Contact } from "@/types/chat";
 import { formatPhoneDisplay } from "@/utils/phoneFormatter";
 import { MessageCircle, Clock, TrendingUp } from "lucide-react";
 import { ContactTags } from "./ContactTags";
+import { StageDropdownMenu } from "./StageDropdownMenu";
 import { useTagsSync } from "@/hooks/whatsapp/useTagsSync";
 import { useAuth } from "@/contexts/AuthContext";
 import { UnreadMessagesService } from "@/services/whatsapp/unreadMessagesService";
@@ -18,6 +19,7 @@ interface ContactsListProps {
   hasMoreContacts?: boolean;
   onLoadMoreContacts?: () => Promise<void>;
   onRefreshContacts?: () => void;
+  totalContactsAvailable?: number;
 }
 
 // Função para determinar se deve mostrar nome ou telefone (estilo WhatsApp)
@@ -37,7 +39,8 @@ export const ContactsList = React.memo(({
   isLoadingMore = false,
   hasMoreContacts = false,
   onLoadMoreContacts,
-  onRefreshContacts
+  onRefreshContacts,
+  totalContactsAvailable
 }: ContactsListProps) => {
   const { user } = useAuth();
   const [highlightedContacts, setHighlightedContacts] = useState<Set<string>>(new Set());
@@ -150,6 +153,42 @@ export const ContactsList = React.memo(({
     onSelectContact(contact);
   };
 
+  // Função para alterar etapa do lead
+  const handleStageChange = useCallback(async (contactId: string, newStageId: string) => {
+    console.log(`[ContactsList] 🔄 Alterando etapa do contato ${contactId} para etapa ${newStageId}`);
+    
+    try {
+      // Encontrar o contato na lista
+      const contact = contacts.find(c => c.id === contactId);
+      if (!contact?.leadId) {
+        console.warn('[ContactsList] ⚠️ Lead ID não encontrado para o contato');
+        return;
+      }
+
+      // Atualizar no banco via Supabase
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { error } = await supabase
+        .from('leads')
+        .update({ kanban_stage_id: newStageId })
+        .eq('id', contact.leadId);
+
+      if (error) {
+        throw error;
+      }
+
+      console.log(`[ContactsList] ✅ Etapa alterada com sucesso para lead ${contact.leadId}`);
+      
+      // Atualizar lista de contatos
+      if (onRefreshContacts) {
+        setTimeout(() => {
+          onRefreshContacts();
+        }, 500);
+      }
+    } catch (error) {
+      console.error('[ContactsList] ❌ Erro ao alterar etapa:', error);
+    }
+  }, [contacts, onRefreshContacts]);
+
   // Renderização dos contatos
   const renderedContacts = useMemo(() => {
     return contacts.map((contact, index) => {
@@ -161,12 +200,11 @@ export const ContactsList = React.memo(({
         <div
           key={contact.id}
           className={cn(
-            "p-4 hover:bg-white/20 cursor-pointer transition-all duration-300 border-b border-white/10",
+            "p-4 hover:bg-white/20 cursor-pointer transition-all duration-300 border-b border-white/10 group",
             isSelected && "bg-white/30 border-r-2 border-blue-500"
           )}
-          onClick={() => handleSelectContact(contact)}
         >
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-3" onClick={() => handleSelectContact(contact)}>
             {/* Avatar com padrão preto e T amarelo */}
             <div className="relative">
               <div className="h-12 w-12 rounded-full bg-black flex items-center justify-center ring-2 ring-white/10">
@@ -192,15 +230,31 @@ export const ContactsList = React.memo(({
                   {displayName}
                 </h3>
                 
-                {/* Horário da última mensagem */}
-                {contact.lastMessageTime && (
-                  <span className="text-xs text-gray-500 whitespace-nowrap ml-2">
-                    {new Date(contact.lastMessageTime).toLocaleTimeString('pt-BR', {
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </span>
-                )}
+                <div className="flex items-center gap-2 ml-2">
+                  {/* Horário da última mensagem */}
+                  {contact.lastMessageTime && (
+                    <span className="text-xs text-gray-500 whitespace-nowrap">
+                      {new Date(contact.lastMessageTime).toLocaleTimeString('pt-BR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  )}
+                  
+                  {/* Dropdown para alterar etapa do funil */}
+                  {contact.leadId && (
+                    <div 
+                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                      onClick={(e) => e.stopPropagation()} // Evitar que o clique selecione o contato
+                    >
+                      <StageDropdownMenu
+                        contact={contact}
+                        currentStageId={contact.stageId}
+                        onStageChange={(newStageId) => handleStageChange(contact.id, newStageId)}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
               
               <p className={cn(
@@ -217,7 +271,7 @@ export const ContactsList = React.memo(({
         </div>
       );
     });
-  }, [contacts, selectedContact, handleSelectContact]);
+  }, [contacts, selectedContact, handleSelectContact, handleStageChange]);
 
   if (contacts.length === 0) {
     return (
@@ -267,13 +321,18 @@ export const ContactsList = React.memo(({
                   <span>Carregando mais contatos...</span>
                 </div>
                 <div className="text-xs text-gray-400">
-                  {contacts.length} contatos carregados • Buscando todos os disponíveis
+                  {contacts.length} de {totalContactsAvailable || '?'} contatos carregados
+                  {totalContactsAvailable && (
+                    <span className="ml-2">
+                      ({Math.round((contacts.length / totalContactsAvailable) * 100)}%)
+                    </span>
+                  )}
                 </div>
               </div>
             ) : (
               <div className="flex flex-col items-center space-y-1 text-xs text-gray-400 py-2">
                 <span>🔄 Role para baixo para carregar mais contatos</span>
-                <span>{contacts.length} de ? contatos carregados</span>
+                <span>{contacts.length} de {totalContactsAvailable} contatos carregados</span>
               </div>
             )}
           </div>
@@ -284,7 +343,7 @@ export const ContactsList = React.memo(({
           <div className="flex flex-col items-center py-6 space-y-2">
             <div className="flex items-center space-x-2 text-xs text-gray-400">
               <div className="h-px bg-gray-300 w-8"></div>
-              <span>✅ Todos os {contacts.length} contatos carregados</span>
+              <span>✅ Todos os {totalContactsAvailable || contacts.length} contatos carregados</span>
               <div className="h-px bg-gray-300 w-8"></div>
             </div>
             <div className="text-xs text-gray-400">

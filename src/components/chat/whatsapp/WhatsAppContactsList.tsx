@@ -128,6 +128,7 @@ export const WhatsAppContactsList = React.memo(({
         hasMoreContacts={hasMoreContacts}
         onLoadMoreContacts={onLoadMoreContacts}
         onRefreshContacts={onRefreshContacts}
+        totalContactsAvailable={totalContactsAvailable}
       />
 
       {/* Loading indicator */}

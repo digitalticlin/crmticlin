@@ -7,12 +7,10 @@ import {
   LayoutDashboard, 
   MessageSquare, 
   Users, 
-  CreditCard, 
   Bot, 
   Settings,
   Kanban,
   ListPlus,
-  Cable,
   Menu,
   X
 } from "lucide-react";
@@ -67,12 +65,6 @@ export default function ResponsiveSidebar() {
       comingSoon: false
     },
     {
-      icon: Cable,
-      label: "Integração",
-      href: "/integration",
-      comingSoon: false
-    },
-    {
       icon: Bot,
       label: "Agentes IA",
       href: "/ai-agents",
@@ -81,12 +73,6 @@ export default function ResponsiveSidebar() {
   ];
 
   const systemNavItems = [
-    {
-      icon: CreditCard,
-      label: "Planos",
-      href: "/plans",
-      comingSoon: false
-    },
     {
       icon: Settings,
       label: "Configurações",

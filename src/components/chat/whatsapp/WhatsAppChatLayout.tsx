@@ -129,6 +129,7 @@ export const WhatsAppChatLayout = ({
                 hasMoreContacts={hasMoreContacts}
                 onLoadMoreContacts={onLoadMoreContacts}
                 onRefreshContacts={onRefreshContacts}
+                totalContactsAvailable={totalContactsAvailable}
               />
             </div>
           </ResizablePanel>

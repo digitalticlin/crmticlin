@@ -144,18 +144,7 @@ export const ModernFunnelControlBar = ({
               </Button>
             )}
 
-            {/* Botão Adicionar Etapa */}
-            {isAdmin && (
-              <Button
-                onClick={onAddColumn}
-                variant="outline"
-                size="sm"
-                className="bg-white/30 backdrop-blur-sm border-white/40 hover:bg-white/50 text-gray-800 hover:text-gray-900 shadow-sm"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Etapa
-              </Button>
-            )}
+
 
             {/* Botão Editar Funil (Engrenagem) */}
             {isAdmin && (

@@ -4,19 +4,48 @@ import { supabase } from "@/integrations/supabase/client";
 import { Contact } from '@/types/chat';
 import { WhatsAppWebInstance } from '@/types/whatsapp';
 import { useLeadSorting } from './chat/useLeadSorting';
+import { useAuth } from '@/contexts/AuthContext'; // 🚀 IMPORTAR CONTEXTO DE AUTH
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 
 // Cache otimizado para contatos com limpeza automática
 const contactsCache = new Map<string, { data: Contact[]; timestamp: number; hasMore: boolean; }>();
 const CACHE_DURATION = 60 * 1000; // 🚀 AUMENTADO: 60 segundos para melhor cache com mais dados
 const MAX_CACHE_SIZE = 10; // 🚀 ADICIONADO: Máximo 10 caches para evitar vazamentos de memória
-const INITIAL_CONTACTS_LIMIT = 50; // 🚀 AUMENTADO: Carregar 50 contatos inicialmente para melhor UX
-const CONTACTS_PAGE_SIZE = 25; // 🚀 AUMENTADO: Carregar 25 contatos por vez ao fazer scroll
+
+// 🚀 OTIMIZAÇÃO ESPECÍFICA PARA USUÁRIOS COM MUITOS CONTATOS
+const PRIORITY_USERS = [
+  'contatoluizantoniooliveira@gmail.com',
+  // Adicionar outros usuários conforme necessário
+];
+
+// Função para determinar limites baseados no usuário
+const getContactLimits = (userEmail: string | null) => {
+  const isPriorityUser = userEmail && PRIORITY_USERS.includes(userEmail.toLowerCase());
+  
+  if (isPriorityUser) {
+    console.log(`[WhatsApp Contacts] 🚀 Usuário prioritário detectado: ${userEmail} - Aplicando limites otimizados`);
+    return {
+      INITIAL_CONTACTS_LIMIT: 500, // 🚀 MUITO MAIOR para usuários específicos
+      CONTACTS_PAGE_SIZE: 200,     // 🚀 CARREGAMENTO MAIS AGRESSIVO
+      CACHE_DURATION: 120 * 1000   // 🚀 CACHE MAIS LONGO (2 minutos)
+    };
+  }
+  
+  return {
+    INITIAL_CONTACTS_LIMIT: 200,  // 🚀 PADRÃO para outros usuários
+    CONTACTS_PAGE_SIZE: 100,      // 🚀 PADRÃO para outros usuários
+    CACHE_DURATION: 60 * 1000     // 🚀 PADRÃO para outros usuários
+  };
+};
 
 // SISTEMA DE PAGINAÇÃO VIRTUAL PARA CONTATOS
 export const useWhatsAppContacts = (
   activeInstance: WhatsAppWebInstance | null,
   userId: string | null
 ) => {
+  // 🚀 OBTER DADOS DO USUÁRIO VIA CONTEXTO DE AUTH
+  const { user } = useAuth();
+  
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
   const [isLoadingMoreContacts, setIsLoadingMoreContacts] = useState(false);
@@ -33,6 +62,10 @@ export const useWhatsAppContacts = (
   // Hook de ordenação otimizada
   const { sortLeadsByRecentMessage } = useLeadSorting();
 
+  // 🚀 DETERMINAR LIMITES BASEADOS NO EMAIL DO USUÁRIO LOGADO
+  const userEmail = user?.email || null;
+  const limits = useMemo(() => getContactLimits(userEmail), [userEmail]);
+
   // Memoizar parâmetros para cache
   const cacheKey = useMemo(() => {
     if (!activeInstance?.id || !userId) return '';
@@ -42,12 +75,12 @@ export const useWhatsAppContacts = (
   // Verificar cache válido
   const getCachedContacts = useCallback((key: string): { data: Contact[]; hasMore: boolean; } | null => {
     const cached = contactsCache.get(key);
-    if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
+    if (cached && (Date.now() - cached.timestamp) < limits.CACHE_DURATION) {
       return { data: cached.data, hasMore: cached.hasMore };
     }
     contactsCache.delete(key);
     return null;
-  }, []);
+  }, [limits.CACHE_DURATION]);
 
   // Salvar no cache
   const setCachedContacts = useCallback((key: string, data: Contact[], hasMore: boolean) => {
@@ -177,8 +210,11 @@ export const useWhatsAppContacts = (
       }
     }
 
-    // 🚀 LOG INICIAL PARA DEBUG
+    // 🚀 LOG INICIAL PARA DEBUG COM OTIMIZAÇÃO ESPECÍFICA
     console.log('[WhatsApp Contacts] 🚀 Iniciando fetch:', {
+      userEmail,
+      isPriorityUser: userEmail && PRIORITY_USERS.includes(userEmail.toLowerCase()),
+      limits,
       forceRefresh,
       loadMore,
       activeInstanceId: activeInstance?.id,
@@ -222,7 +258,7 @@ export const useWhatsAppContacts = (
         }
 
         // Determinar parâmetros de paginação
-        const limit = loadMore ? CONTACTS_PAGE_SIZE : INITIAL_CONTACTS_LIMIT;
+        const limit = loadMore ? limits.CONTACTS_PAGE_SIZE : limits.INITIAL_CONTACTS_LIMIT;
         const offset = loadMore ? contacts.length : 0;
 
         // QUERY OTIMIZADA: Com paginação - sem nullsLast
@@ -244,41 +280,32 @@ export const useWhatsAppContacts = (
 
         if (error) throw error;
 
-        // 🚀 QUERY ADICIONAL PARA VERIFICAR SE HÁ MAIS CONTATOS
+        // 🚀 VERIFICAÇÃO MELHORADA PARA GARANTIR CARREGAMENTO COMPLETO
         let hasMore = false;
-        if (leads && leads.length === limit) {
-          // Só verificar se há mais se retornou o limite completo
-          console.log('[WhatsApp Contacts] 🔍 Verificando se há mais contatos...', {
-            leadsRetornados: leads.length,
-            limit,
-            proximaVerificacaoOffset: offset + limit
+        
+        // Calcular total já carregado
+        const totalCarregados = loadMore ? contacts.length + (leads?.length || 0) : (leads?.length || 0);
+        
+        console.log('[WhatsApp Contacts] 📊 Análise de carregamento:', {
+          leadesRetornados: leads?.length || 0,
+          totalCarregados,
+          totalDisponivel: totalContacts,
+          limit,
+          offset
+        });
+
+        // Verificar se ainda há mais contatos para carregar
+        if (totalContacts && totalCarregados < totalContacts) {
+          hasMore = true;
+          console.log('[WhatsApp Contacts] ✅ Ainda há contatos para carregar:', {
+            restantes: totalContacts - totalCarregados
           });
-
-          const { data: nextBatch, error: nextError } = await supabase
-            .from('leads')
-            .select('id')  // Só precisamos do ID para verificar existência
-            .eq('whatsapp_number_id', activeInstance!.id)
-            .eq('created_by_user_id', userId!)
-            .order('last_message_time', { ascending: false, nullsFirst: false })
-            .order('unread_count', { ascending: false, nullsFirst: false })
-            .order('created_at', { ascending: false })
-            .range(offset + limit, offset + limit); // Verificar se existe o próximo item
-
-          console.log('[WhatsApp Contacts] 🔍 Resultado da verificação:', {
-            nextBatch: nextBatch?.length || 0,
-            nextError,
-            proximoItemExiste: nextBatch && nextBatch.length > 0
-          });
-
-          if (!nextError && nextBatch && nextBatch.length > 0) {
-            hasMore = true;
-          }
+        } else if (leads && leads.length === limit && !totalContacts) {
+          // Fallback: se não temos o total, verificar se retornou o limite completo
+          hasMore = true;
+          console.log('[WhatsApp Contacts] 🔄 Verificação por limite - pode haver mais contatos');
         } else {
-          console.log('[WhatsApp Contacts] ⏹️ Não verificando próxima página:', {
-            leadsRetornados: leads?.length || 0,
-            limitEsperado: limit,
-            motivoParada: 'Retornou menos que o limite - fim dos dados'
-          });
+          console.log('[WhatsApp Contacts] ⏹️ Todos os contatos foram carregados');
         }
 
         console.log('[WhatsApp Contacts] 📊 Resultado da query:', {
@@ -348,7 +375,7 @@ export const useWhatsAppContacts = (
     } else {
       executeQuery();
     }
-  }, [contacts, cacheKey, activeInstance?.id, userId, setCachedContacts, getCachedContacts]);
+  }, [contacts, cacheKey, activeInstance?.id, userId, setCachedContacts, getCachedContacts, limits]);
 
   // Configurar subscription para mudanças nas tags e mensagens
   useEffect(() => {
