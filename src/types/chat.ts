@@ -1,5 +1,4 @@
 
-
 export interface Contact {
   id: string;
   name?: string;
@@ -23,6 +22,7 @@ export interface Contact {
   leadId?: string;
   createdAt?: string;
   deals?: Deal[];
+  stageId?: string; // Added missing stageId property
 }
 
 export interface Deal {

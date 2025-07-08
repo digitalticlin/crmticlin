@@ -1,3 +1,4 @@
+
 import { useEffect } from 'react';
 import { supabase } from '../../../integrations/supabase/client';
 import { Message } from '../../../types/chat';
@@ -22,10 +23,12 @@ export const useWhatsAppMessagesRealtime = (
           filter: `instance_id=eq.${instanceId} AND remote_jid=eq.${contactJid}`
         },
         (payload) => {
-          // Converter o payload para o formato Message
+          // Converter o payload para o formato Message com todas as propriedades obrigatórias
           const newMessage: Message = {
             id: payload.new.id,
             text: payload.new.message,
+            sender: payload.new.from_me ? 'user' : 'contact', // Added required sender property
+            time: new Date(payload.new.timestamp).toLocaleTimeString(), // Added required time property
             fromMe: payload.new.from_me,
             timestamp: payload.new.timestamp,
             status: payload.new.status || 'sent',

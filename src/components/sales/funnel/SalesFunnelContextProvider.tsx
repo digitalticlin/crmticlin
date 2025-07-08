@@ -1,3 +1,4 @@
+
 import { ReactNode, useEffect, useState } from "react";
 import { SalesFunnelProvider } from "./SalesFunnelProvider";
 import { useSalesFunnelOptimized } from "@/hooks/salesFunnel/useSalesFunnelOptimized";
@@ -49,7 +50,7 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
   ]);
 
   // 🚀 IMPLEMENTAÇÃO REAL: Adicionar nova etapa no banco de dados
-  const addColumnWrapper = async (title: string, color: string = "#3b82f6") => {
+  const addColumnWrapper = async (title: string, color: string = "#3b82f6"): Promise<void> => {
     console.log('[SalesFunnelContextProvider] ➕ Criando nova etapa:', { title, color });
     
     if (!user?.id || !salesFunnelData.selectedFunnel?.id) {
@@ -93,7 +94,6 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
         await salesFunnelData.refetchStages();
       }
 
-      return newStage;
     } catch (error: any) {
       console.error('[SalesFunnelContextProvider] ❌ Erro ao criar etapa:', error);
       toast.error("Erro ao criar etapa", {
@@ -104,7 +104,7 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
   };
 
   // 🚀 IMPLEMENTAÇÃO REAL: Atualizar etapa existente no banco de dados
-  const updateColumnWrapper = async (column: any) => {
+  const updateColumnWrapper = async (column: any): Promise<void> => {
     console.log('[SalesFunnelContextProvider] ✏️ Atualizando etapa:', { 
       id: column.id,
       title: column.title, 
@@ -151,7 +151,7 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
   };
 
   // 🚀 IMPLEMENTAÇÃO REAL: Excluir etapa do banco de dados
-  const deleteColumnWrapper = async (columnId: string) => {
+  const deleteColumnWrapper = async (columnId: string): Promise<void> => {
     console.log('[SalesFunnelContextProvider] 🗑️ Excluindo etapa:', columnId);
     
     if (!user?.id) {
@@ -259,7 +259,7 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
       owner_id: lead.owner_id || undefined
     })),
     
-    // Ações sempre disponíveis
+    // Ações sempre disponíveis (com retorno Promise<void> correto)
     addColumn: addColumnWrapper,
     updateColumn: updateColumnWrapper,
     deleteColumn: deleteColumnWrapper,
