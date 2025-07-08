@@ -46,11 +46,25 @@ export const ChatHeaderTags = ({
   const [newTagName, setNewTagName] = useState("");
   const [newTagColor, setNewTagColor] = useState(PRESET_COLORS[0]);
   const [localAvailableTags, setLocalAvailableTags] = useState<KanbanTag[]>(availableTags);
+  
+  // 🎯 ESTADO PARA SELEÇÃO EM LOTE - sem refresh automático
+  const [selectedTagIds, setSelectedTagIds] = useState<Set<string>>(new Set());
+  const [pendingChanges, setPendingChanges] = useState(false);
 
   // 🔄 Sincronizar tags disponíveis
   useEffect(() => {
     setLocalAvailableTags(availableTags);
   }, [availableTags]);
+
+  // 🔄 Inicializar tags selecionadas quando modal abrir
+  useEffect(() => {
+    if (isModalOpen) {
+      const currentTagIds = new Set(leadTags.map(tag => tag.id));
+      setSelectedTagIds(currentTagIds);
+      setPendingChanges(false);
+      console.log('[ChatHeaderTags] 🔄 Modal aberto, tags atuais:', Array.from(currentTagIds));
+    }
+  }, [isModalOpen, leadTags]);
 
   // 🆕 Função para criar nova tag
   const handleCreateTag = async () => {
@@ -78,19 +92,16 @@ export const ChatHeaderTags = ({
       // Atualizar lista local
       setLocalAvailableTags(prev => [...prev, newTag]);
 
-      // Adicionar a tag ao lead automaticamente
-      onAddTag(newTag.id);
+      // Adicionar a tag à seleção local (sem aplicar ainda)
+      setSelectedTagIds(prev => new Set([...prev, newTag.id]));
+      setPendingChanges(true);
 
       // Reset form
       setNewTagName("");
       setNewTagColor(PRESET_COLORS[0]);
       setIsCreatingTag(false);
 
-      // Disparar eventos de sincronização
-      window.dispatchEvent(new CustomEvent('refreshWhatsAppContacts'));
-      window.dispatchEvent(new CustomEvent('refreshLeadTags'));
-
-      toast.success("Tag criada e adicionada com sucesso!");
+      toast.success("Tag criada! Feche o modal para aplicar as mudanças.");
 
     } catch (error: any) {
       console.error('[ChatHeaderTags] ❌ Erro ao criar tag:', error);
@@ -98,30 +109,81 @@ export const ChatHeaderTags = ({
     }
   };
 
-  // 🎯 Verificar se tag está selecionada
+  // 🎯 Verificar se tag está selecionada localmente
   const isTagSelected = (tagId: string) => {
-    return leadTags.some(tag => tag.id === tagId);
+    return selectedTagIds.has(tagId);
   };
 
-  // 🔄 Toggle tag (adicionar/remover)
+  // 🔄 Toggle tag local (sem refresh)
   const handleToggleTag = (tagId: string) => {
-    if (isTagSelected(tagId)) {
-      onRemoveTag(tagId);
-    } else {
-      onAddTag(tagId);
-    }
+    setSelectedTagIds(prev => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(tagId)) {
+        newSelection.delete(tagId);
+      } else {
+        newSelection.add(tagId);
+      }
+      
+      // Verificar se há mudanças pendentes
+      const originalTagIds = new Set(leadTags.map(tag => tag.id));
+      const hasChanges = newSelection.size !== originalTagIds.size || 
+        [...newSelection].some(id => !originalTagIds.has(id)) ||
+        [...originalTagIds].some(id => !newSelection.has(id));
+      
+      setPendingChanges(hasChanges);
+      
+      console.log('[ChatHeaderTags] 🎯 Tag toggle local:', {
+        tagId,
+        selected: newSelection.has(tagId),
+        totalSelected: newSelection.size,
+        hasChanges
+      });
+      
+      return newSelection;
+    });
   };
 
-  // 🔄 Fechar modal e disparar eventos
-  const handleCloseModal = () => {
+  // 🔄 Aplicar mudanças ao fechar modal
+  const handleCloseModal = async () => {
+    if (pendingChanges) {
+      console.log('[ChatHeaderTags] 💾 Aplicando mudanças pendentes...');
+      
+      const originalTagIds = new Set(leadTags.map(tag => tag.id));
+      const currentTagIds = selectedTagIds;
+      
+      // Tags para adicionar
+      const tagsToAdd = [...currentTagIds].filter(id => !originalTagIds.has(id));
+      // Tags para remover
+      const tagsToRemove = [...originalTagIds].filter(id => !currentTagIds.has(id));
+      
+      console.log('[ChatHeaderTags] 📊 Mudanças:', {
+        toAdd: tagsToAdd.length,
+        toRemove: tagsToRemove.length
+      });
+      
+      // Aplicar mudanças sequencialmente
+      for (const tagId of tagsToAdd) {
+        onAddTag(tagId);
+      }
+      
+      for (const tagId of tagsToRemove) {
+        onRemoveTag(tagId);
+      }
+      
+      // Disparar eventos de sincronização apenas uma vez
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('refreshWhatsAppContacts'));
+        window.dispatchEvent(new CustomEvent('refreshLeadTags'));
+      }, 100);
+      
+      toast.success(`Mudanças aplicadas! ${tagsToAdd.length} adicionadas, ${tagsToRemove.length} removidas.`);
+    }
+    
     setIsModalOpen(false);
     setIsCreatingTag(false);
     setNewTagName("");
     setNewTagColor(PRESET_COLORS[0]);
-    
-    // Disparar eventos de sincronização
-    window.dispatchEvent(new CustomEvent('refreshWhatsAppContacts'));
-    window.dispatchEvent(new CustomEvent('refreshLeadTags'));
+    setPendingChanges(false);
   };
 
   if (isLoading) {
@@ -169,11 +231,11 @@ export const ChatHeaderTags = ({
         </Button>
       </div>
 
-      {/* Modal de Seleção de Tags - Estilo da imagem */}
-      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-md bg-gray-900/95 backdrop-blur-xl border border-gray-700/50 text-white">
+      {/* Modal de Seleção de Tags - Design Branco com Glassmorphism */}
+      <Dialog open={isModalOpen} onOpenChange={handleCloseModal}>
+        <DialogContent className="sm:max-w-md bg-white/90 backdrop-blur-xl border border-gray-200/50 shadow-2xl text-gray-900">
           <DialogHeader className="pb-4">
-            <DialogTitle className="text-lg font-bold text-white flex items-center gap-2">
+            <DialogTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
               🏷️ Suas Etiquetas
             </DialogTitle>
           </DialogHeader>
@@ -181,8 +243,13 @@ export const ChatHeaderTags = ({
           <div className="space-y-4">
             {/* Tags Existentes */}
             <div>
-              <h3 className="text-sm font-medium text-white/80 mb-3">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">
                 Etiquetas ({localAvailableTags.length})
+                {pendingChanges && (
+                  <span className="ml-2 text-xs text-blue-600 font-semibold">
+                    • Mudanças pendentes
+                  </span>
+                )}
               </h3>
               
               {localAvailableTags.length > 0 ? (
@@ -193,14 +260,14 @@ export const ChatHeaderTags = ({
                       onClick={() => handleToggleTag(tag.id)}
                       className={cn(
                         "relative px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200",
-                        "hover:scale-105 cursor-pointer border",
+                        "hover:scale-105 cursor-pointer border shadow-sm",
                         isTagSelected(tag.id)
-                          ? "bg-white/20 border-white/40 text-white shadow-lg"
-                          : "bg-white/10 border-white/20 text-white/70 hover:bg-white/15"
+                          ? "bg-gray-100/80 border-gray-300 text-gray-900 shadow-md"
+                          : "bg-white/60 border-gray-200 text-gray-700 hover:bg-gray-50/80"
                       )}
                       style={{ 
-                        backgroundColor: isTagSelected(tag.id) ? tag.color + "40" : tag.color + "20",
-                        borderColor: tag.color + "60"
+                        backgroundColor: isTagSelected(tag.id) ? tag.color + "20" : "rgba(255,255,255,0.6)",
+                        borderColor: isTagSelected(tag.id) ? tag.color + "60" : "rgba(229,231,235,1)"
                       }}
                     >
                       {tag.name}
@@ -211,18 +278,18 @@ export const ChatHeaderTags = ({
                   ))}
                 </div>
               ) : (
-                <p className="text-white/60 text-sm">Nenhuma etiqueta disponível</p>
+                <p className="text-gray-500 text-sm">Nenhuma etiqueta disponível</p>
               )}
             </div>
 
             {/* Seção Nova Etiqueta */}
-            <div className="border-t border-white/20 pt-4">
-              <h3 className="text-sm font-medium text-white/80 mb-3">Nova Etiqueta</h3>
+            <div className="border-t border-gray-200/50 pt-4">
+              <h3 className="text-sm font-medium text-gray-700 mb-3">Nova Etiqueta</h3>
               
               {!isCreatingTag ? (
                 <button
                   onClick={() => setIsCreatingTag(true)}
-                  className="w-full py-2 border-2 border-dashed border-white/30 rounded-lg text-white/60 hover:text-white hover:border-white/50 transition-all duration-200 text-sm font-medium"
+                  className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:text-gray-900 hover:border-gray-400 transition-all duration-200 text-sm font-medium bg-white/40 hover:bg-white/60"
                 >
                   + Nova Etiqueta
                 </button>
@@ -233,7 +300,7 @@ export const ChatHeaderTags = ({
                     placeholder="Nome da etiqueta"
                     value={newTagName}
                     onChange={(e) => setNewTagName(e.target.value)}
-                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:bg-white/15"
+                    className="bg-white/70 border-gray-300 text-gray-900 placeholder:text-gray-500 focus:bg-white/90 focus:border-gray-400"
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         handleCreateTag();
@@ -252,8 +319,8 @@ export const ChatHeaderTags = ({
                         key={color}
                         onClick={() => setNewTagColor(color)}
                         className={cn(
-                          "w-6 h-6 rounded-full border-2 transition-all duration-200 hover:scale-110",
-                          newTagColor === color ? "border-white scale-110" : "border-white/30"
+                          "w-6 h-6 rounded-full border-2 transition-all duration-200 hover:scale-110 shadow-sm",
+                          newTagColor === color ? "border-gray-600 scale-110 shadow-md" : "border-gray-300"
                         )}
                         style={{ backgroundColor: color }}
                       />
@@ -263,13 +330,13 @@ export const ChatHeaderTags = ({
                   {/* Preview */}
                   {newTagName && (
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-white/60">Preview:</span>
+                      <span className="text-xs text-gray-600">Preview:</span>
                       <div
-                        className="px-2 py-1 rounded-full text-xs font-medium"
+                        className="px-2 py-1 rounded-full text-xs font-medium border shadow-sm"
                         style={{ 
-                          backgroundColor: newTagColor + "40", 
-                          color: "white",
-                          border: `1px solid ${newTagColor}60`
+                          backgroundColor: newTagColor + "20", 
+                          color: "#374151",
+                          borderColor: newTagColor + "60"
                         }}
                       >
                         {newTagName}
@@ -283,7 +350,7 @@ export const ChatHeaderTags = ({
                       onClick={handleCreateTag}
                       disabled={!newTagName.trim()}
                       size="sm"
-                      className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white shadow-sm"
                     >
                       Criar
                     </Button>
@@ -294,7 +361,7 @@ export const ChatHeaderTags = ({
                       }}
                       size="sm"
                       variant="outline"
-                      className="border-white/20 text-white/70 hover:bg-white/10"
+                      className="border-gray-300 text-gray-700 hover:bg-gray-50 bg-white/60"
                     >
                       Cancelar
                     </Button>
@@ -305,10 +372,15 @@ export const ChatHeaderTags = ({
           </div>
 
           {/* Footer */}
-          <div className="pt-4 border-t border-white/20">
-            <p className="text-xs text-white/50 text-center">
-              💡 Dica: Clique em uma etiqueta para adicioná-la ou removê-la
+          <div className="pt-4 border-t border-gray-200/50">
+            <p className="text-xs text-gray-500 text-center">
+              💡 Dica: Selecione quantas etiquetas precisar e feche o modal para aplicar
             </p>
+            {pendingChanges && (
+              <p className="text-xs text-blue-600 text-center mt-1 font-medium">
+                ⚡ Mudanças serão aplicadas ao fechar o modal
+              </p>
+            )}
           </div>
         </DialogContent>
       </Dialog>
