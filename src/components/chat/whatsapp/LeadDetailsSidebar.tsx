@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Contact } from "@/types/chat";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,59 +30,111 @@ export const LeadDetailsSidebar = ({
   const [editedContact, setEditedContact] = useState<Partial<Contact>>({});
   const [isLoading, setIsLoading] = useState(false);
 
-  const { data: deals = [] } = useLeadDeals(selectedContact?.id);
-  const { leadTags, availableTags, loading: loadingTags, addTag, removeTag, fetchTags } = useLeadTags(selectedContact?.id || '');
+  const { data: deals = [], refetch: refetchDeals } = useLeadDeals(selectedContact?.leadId);
+  const { leadTags, availableTags, loading: loadingTags, addTag, removeTag, fetchTags } = useLeadTags(selectedContact?.leadId || '');
+
+  // Reset edited contact when selectedContact changes
+  useEffect(() => {
+    if (selectedContact) {
+      setEditedContact({});
+      setIsEditing(false);
+    }
+  }, [selectedContact?.id]);
 
   if (!selectedContact || !isOpen) return null;
 
-  const handleSave = async () => {
-    if (!selectedContact.id) return;
+  // Função para atualizar informações básicas no banco
+  const handleUpdateBasicInfo = async (field: string, value: string) => {
+    if (!selectedContact.leadId) {
+      toast.error('ID do lead não encontrado');
+      return;
+    }
 
     setIsLoading(true);
     try {
-      const updates = {
-        ...editedContact,
-        id: selectedContact.id
+      // Mapear campos do Contact para campos do banco de dados
+      const fieldMappings: Record<string, string> = {
+        name: 'name',
+        email: 'email',
+        company: 'company',
+        documentId: 'document_id',
+        address: 'address'
       };
 
+      const dbField = fieldMappings[field] || field;
+      
       const { error } = await supabase
         .from('leads')
-        .update({
-          name: updates.name,
-          email: updates.email,
-          address: updates.address,
-          company: updates.company,
-          document_id: updates.documentId,
-          notes: updates.notes
-        })
-        .eq('id', selectedContact.id);
+        .update({ [dbField]: value })
+        .eq('id', selectedContact.leadId);
 
       if (error) throw error;
 
-      onUpdateContact(updates);
-      setIsEditing(false);
-      setEditedContact({});
-      toast.success('Contato atualizado com sucesso!');
+      // Atualizar estado local
+      const updates = { [field]: value };
+      onUpdateContact({ ...selectedContact, ...updates });
+      
+      toast.success('Informação atualizada com sucesso!');
     } catch (error) {
-      console.error('Error updating contact:', error);
-      toast.error('Erro ao atualizar contato');
+      console.error('Error updating basic info:', error);
+      toast.error('Erro ao atualizar informação');
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Função para salvar todas as alterações de uma vez
+  const handleSave = async () => {
+    if (!selectedContact.leadId || Object.keys(editedContact).length === 0) return;
+
+    setIsLoading(true);
+    try {
+      // Mapear campos do Contact para campos do banco de dados
+      const dbUpdates: Record<string, any> = {};
+      
+      if (editedContact.name !== undefined) dbUpdates.name = editedContact.name;
+      if (editedContact.email !== undefined) dbUpdates.email = editedContact.email;
+      if (editedContact.company !== undefined) dbUpdates.company = editedContact.company;
+      if (editedContact.documentId !== undefined) dbUpdates.document_id = editedContact.documentId;
+      if (editedContact.address !== undefined) dbUpdates.address = editedContact.address;
+      if (editedContact.notes !== undefined) dbUpdates.notes = editedContact.notes;
+
+      const { error } = await supabase
+        .from('leads')
+        .update(dbUpdates)
+        .eq('id', selectedContact.leadId);
+
+      if (error) throw error;
+
+      // Atualizar estado local
+      onUpdateContact({ ...selectedContact, ...editedContact });
+      setIsEditing(false);
+      setEditedContact({});
+      toast.success('Todas as alterações foram salvas!');
+    } catch (error) {
+      console.error('Error updating contact:', error);
+      toast.error('Erro ao salvar alterações');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Função para atualizar valor de negociação
   const handleUpdatePurchaseValue = async (value: number | undefined) => {
-    if (!selectedContact.id) return;
+    if (!selectedContact.leadId) {
+      toast.error('ID do lead não encontrado');
+      return;
+    }
 
     try {
       const { error } = await supabase
         .from('leads')
         .update({ purchase_value: value })
-        .eq('id', selectedContact.id);
+        .eq('id', selectedContact.leadId);
 
       if (error) throw error;
 
-      // Update local contact data
+      // Atualizar estado local
       onUpdateContact({ 
         ...selectedContact, 
         purchaseValue: value 
@@ -91,6 +144,34 @@ export const LeadDetailsSidebar = ({
     } catch (error) {
       console.error('Error updating purchase value:', error);
       toast.error('Erro ao atualizar valor de negociação');
+    }
+  };
+
+  // Função para atualizar notas
+  const handleUpdateNotes = async (notes: string) => {
+    if (!selectedContact.leadId) {
+      toast.error('ID do lead não encontrado');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({ notes })
+        .eq('id', selectedContact.leadId);
+
+      if (error) throw error;
+
+      // Atualizar estado local
+      onUpdateContact({ 
+        ...selectedContact, 
+        notes 
+      });
+
+      toast.success('Notas atualizadas com sucesso!');
+    } catch (error) {
+      console.error('Error updating notes:', error);
+      toast.error('Erro ao atualizar notas');
     }
   };
 
@@ -109,6 +190,7 @@ export const LeadDetailsSidebar = ({
               setEditedContact={setEditedContact}
               onSave={handleSave}
               isLoading={isLoading}
+              onUpdateBasicInfo={handleUpdateBasicInfo}
             />
 
             <TagsSection
@@ -129,7 +211,8 @@ export const LeadDetailsSidebar = ({
               selectedContact={selectedContact}
               editedContact={editedContact}
               setEditedContact={setEditedContact}
-              onSave={handleSave}
+              onSave={handleUpdateNotes}
+              onUpdateNotes={handleUpdateNotes}
             />
 
             <SalesHistorySection deals={deals} />
