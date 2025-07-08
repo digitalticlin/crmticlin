@@ -71,7 +71,7 @@ export function useTagDatabase() {
 
       const { data, error } = await supabase
         .from("tags")
-        .update({ name, color })
+        .update({ name, color, updated_at: new Date().toISOString() })
         .eq("id", id)
         .eq("created_by_user_id", user.id)
         .select()
