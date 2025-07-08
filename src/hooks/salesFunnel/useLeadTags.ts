@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { KanbanTag } from '@/types/kanban';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -13,6 +13,7 @@ export const useLeadTags = (leadId: string) => {
   const fetchTags = useCallback(async () => {
     try {
       setLoading(true);
+      console.log('[useLeadTags] 🔄 Buscando tags para lead:', leadId);
       
       // Buscar tags do lead
       const { data: leadTagsData, error: leadTagsError } = await supabase
@@ -32,16 +33,37 @@ export const useLeadTags = (leadId: string) => {
 
       // Formatar tags do lead
       const formattedLeadTags = leadTagsData.map(lt => lt.tags) as KanbanTag[];
+      
+      console.log('[useLeadTags] ✅ Tags carregadas:', {
+        leadTags: formattedLeadTags.length,
+        availableTags: allTags.length,
+        leadId
+      });
+      
       setLeadTags(formattedLeadTags);
       setAvailableTags(allTags);
 
     } catch (error: any) {
-      console.error('Erro ao buscar tags:', error);
+      console.error('[useLeadTags] ❌ Erro ao buscar tags:', error);
       toast.error('Erro ao carregar tags');
     } finally {
       setLoading(false);
     }
   }, [leadId]);
+
+  // 🚀 LISTENER PARA EVENTOS DE REFRESH
+  useEffect(() => {
+    const handleRefreshTags = () => {
+      console.log('[useLeadTags] 🔄 Evento de refresh recebido - atualizando tags...');
+      fetchTags();
+    };
+
+    window.addEventListener('refreshLeadTags', handleRefreshTags);
+
+    return () => {
+      window.removeEventListener('refreshLeadTags', handleRefreshTags);
+    };
+  }, [fetchTags]);
 
   const addTag = useCallback(async (tagId: string) => {
     if (!user?.id) {
@@ -50,6 +72,8 @@ export const useLeadTags = (leadId: string) => {
     }
 
     try {
+      console.log('[useLeadTags] ➕ Adicionando tag:', { leadId, tagId });
+      
       const { error } = await supabase
         .from('lead_tags')
         .insert([{ 
@@ -62,15 +86,23 @@ export const useLeadTags = (leadId: string) => {
       if (error) throw error;
 
       await fetchTags();
+      
+      // Disparar eventos para sincronizar outras partes da aplicação
+      window.dispatchEvent(new CustomEvent('refreshWhatsAppContacts'));
+      
       toast.success('Tag adicionada com sucesso');
+      
+      console.log('[useLeadTags] ✅ Tag adicionada e interface sincronizada');
     } catch (error: any) {
-      console.error('Erro ao adicionar tag:', error);
+      console.error('[useLeadTags] ❌ Erro ao adicionar tag:', error);
       toast.error('Erro ao adicionar tag');
     }
   }, [leadId, fetchTags, user?.id]);
 
   const removeTag = useCallback(async (tagId: string) => {
     try {
+      console.log('[useLeadTags] 🗑️ Removendo tag:', { leadId, tagId });
+      
       const { error } = await supabase
         .from('lead_tags')
         .delete()
@@ -80,9 +112,15 @@ export const useLeadTags = (leadId: string) => {
       if (error) throw error;
 
       await fetchTags();
+      
+      // Disparar eventos para sincronizar outras partes da aplicação
+      window.dispatchEvent(new CustomEvent('refreshWhatsAppContacts'));
+      
       toast.success('Tag removida com sucesso');
+      
+      console.log('[useLeadTags] ✅ Tag removida e interface sincronizada');
     } catch (error: any) {
-      console.error('Erro ao remover tag:', error);
+      console.error('[useLeadTags] ❌ Erro ao remover tag:', error);
       toast.error('Erro ao remover tag');
     }
   }, [leadId, fetchTags]);

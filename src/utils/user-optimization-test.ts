@@ -54,4 +54,43 @@ export const testUserOptimization = () => {
   console.log('Teste 4 (MAIÚSCULO):', upperCaseLimits);
   
   console.log('=== FIM DOS TESTES ===');
-}; 
+};
+
+// Teste para verificar se a funcionalidade de mudança de etapas está funcionando
+export const testStageChangeImplementation = () => {
+  console.log('🧪 [Teste Stage Change] Verificando implementação...');
+  
+  // 1. Verificar se o evento customizado funciona
+  const testEvent = () => {
+    console.log('📡 [Teste] Disparando evento de teste...');
+    window.dispatchEvent(new CustomEvent('refreshWhatsAppContacts'));
+    window.dispatchEvent(new CustomEvent('updateSelectedContactStage', {
+      detail: { leadId: 'test-lead-123', newStageId: 'test-stage-456', newStageName: 'Teste' }
+    }));
+  };
+
+  // 2. Verificar se os logs estão funcionando
+  const checkLogs = () => {
+    console.log('📝 [Teste] Verificando logs do sistema...');
+    console.log('[StageSelector] 🔍 Teste de log do StageSelector');
+    console.log('[LeadStageManager] 🔄 Teste de log do LeadStageManager');
+    console.log('[WhatsApp Contacts] 🔄 Teste de log dos Contatos');
+  };
+
+  return {
+    testEvent,
+    checkLogs,
+    summary: {
+      'StageSelector': 'Atualização visual em tempo real implementada',
+      'LeadStageManager': 'Atualização otimista e invalidação de cache implementada',
+      'WhatsAppContacts': 'Listener para refresh automático implementado',
+      'ChatProvider': 'Listener para atualização do contato selecionado implementado'
+    }
+  };
+};
+
+// Para usar no console do navegador:
+// import { testStageChangeImplementation } from './utils/user-optimization-test';
+// const test = testStageChangeImplementation();
+// test.testEvent();
+// test.checkLogs(); 

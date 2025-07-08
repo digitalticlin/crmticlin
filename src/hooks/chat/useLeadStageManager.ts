@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,6 +19,12 @@ export const useLeadStageManager = (leadId: string | null, currentStageId: strin
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
+  const [localCurrentStageId, setLocalCurrentStageId] = useState(currentStageId);
+
+  // Sincronizar localCurrentStageId quando currentStageId muda
+  if (localCurrentStageId !== currentStageId) {
+    setLocalCurrentStageId(currentStageId);
+  }
 
   // Buscar todas as etapas disponíveis para o usuário
   const { data: stages = [], isLoading } = useQuery({
@@ -67,24 +72,71 @@ export const useLeadStageManager = (leadId: string | null, currentStageId: strin
     mutationFn: async ({ stageId, stageName }: { stageId: string; stageName: string }) => {
       if (!leadId) throw new Error('Lead não selecionado');
 
+      console.log('[LeadStageManager] 🔄 Alterando etapa do lead:', {
+        leadId,
+        stageId,
+        stageName,
+        currentStageId: localCurrentStageId
+      });
+
       const { error } = await supabase
         .from('leads')
-        .update({ kanban_stage_id: stageId })
+        .update({ 
+          kanban_stage_id: stageId,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', leadId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('[LeadStageManager] ❌ Erro na mutação:', error);
+        throw error;
+      }
 
+      console.log('[LeadStageManager] ✅ Etapa alterada com sucesso no banco');
       return { stageId, stageName };
     },
-    onSuccess: ({ stageName }) => {
+    onMutate: async ({ stageId, stageName }) => {
+      // 🚀 ATUALIZAÇÃO OTIMISTA - Atualizar UI imediatamente
+      console.log('[LeadStageManager] ⚡ Atualizando UI otimisticamente:', { stageId, stageName });
+      setLocalCurrentStageId(stageId);
+      
+      // Cancelar queries em andamento para evitar conflitos
+      await queryClient.cancelQueries({ queryKey: ['whatsapp-contacts'] });
+      
+      return { previousStageId: localCurrentStageId };
+    },
+    onSuccess: ({ stageName, stageId }) => {
+      console.log('[LeadStageManager] 🔄 Invalidando caches após sucesso...');
+      
+      // Invalidar todas as queries relevantes para buscar dados atualizados
       queryClient.invalidateQueries({ queryKey: ['kanban-leads'] });
       queryClient.invalidateQueries({ queryKey: ['leads'] });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
+      queryClient.invalidateQueries({ queryKey: ['whatsapp-contacts'] });
+      queryClient.invalidateQueries({ queryKey: ['lead-stages'] });
+      
+      // Refetch específico para garantir sincronização
+      queryClient.refetchQueries({ queryKey: ['whatsapp-contacts'] });
+      
+      // Forçar refresh dos contatos do WhatsApp
+      window.dispatchEvent(new CustomEvent('refreshWhatsAppContacts'));
+      
+      // 🚀 NOVO: Disparar evento específico para atualizar o contato selecionado
+      window.dispatchEvent(new CustomEvent('updateSelectedContactStage', {
+        detail: { leadId, newStageId: stageId, newStageName: stageName }
+      }));
+      
       toast.success(`Lead movido para: ${stageName}`);
       setIsOpen(false);
+      
+      console.log('[LeadStageManager] ✅ Caches invalidados e UI atualizada');
     },
-    onError: (error: any) => {
-      console.error('Erro ao mover lead:', error);
+    onError: (error: any, variables, context) => {
+      // 🔄 REVERTER MUDANÇA OTIMISTA EM CASO DE ERRO
+      console.error('[LeadStageManager] ❌ Erro ao mover lead, revertendo:', error);
+      if (context?.previousStageId) {
+        setLocalCurrentStageId(context.previousStageId);
+      }
       toast.error('Erro ao mover lead de etapa');
     }
   });
@@ -99,7 +151,8 @@ export const useLeadStageManager = (leadId: string | null, currentStageId: strin
     return acc;
   }, {} as Record<string, StageOption[]>);
 
-  const currentStage = stages.find(stage => stage.id === currentStageId);
+  // Usar localCurrentStageId em vez de currentStageId para ter atualizações em tempo real
+  const currentStage = stages.find(stage => stage.id === localCurrentStageId);
 
   return {
     stages,

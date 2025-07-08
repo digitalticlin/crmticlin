@@ -327,7 +327,7 @@ export const useWhatsAppContacts = (
             color: lt.tags?.color
           })).filter(Boolean) || [];
           
-          return {
+          const mappedContact = {
             id: lead.id,
             name: lead.name || `+${lead.phone}`,
             phone: lead.phone,
@@ -344,8 +344,27 @@ export const useWhatsAppContacts = (
             avatar: '',
             profilePicUrl: leadWithProfilePic.profile_pic_url || '',
             isOnline: Math.random() > 0.7, // Fake status
-            leadId: lead.id // Adicionar leadId
+            leadId: lead.id, // Adicionar leadId
+            stageId: lead.kanban_stage_id // 🚀 CORREÇÃO: Adicionar stageId do banco
           };
+
+          // 🔍 LOG DETALHADO PARA DEBUG
+          if (lead.kanban_stage_id) {
+            console.log('[WhatsApp Contacts] ✅ Lead com etapa mapeado:', {
+              leadId: lead.id,
+              name: lead.name,
+              stageId: lead.kanban_stage_id,
+              mappedStageId: mappedContact.stageId
+            });
+          } else {
+            console.log('[WhatsApp Contacts] ⚠️ Lead SEM etapa:', {
+              leadId: lead.id,
+              name: lead.name,
+              kanban_stage_id: lead.kanban_stage_id
+            });
+          }
+
+          return mappedContact;
         });
 
         if (loadMore) {
@@ -467,6 +486,20 @@ export const useWhatsAppContacts = (
       fetchContacts();
     }
   }, [cacheKey, fetchContacts]);
+
+  // 🚀 LISTENER PARA REFRESH FORÇADO APÓS MUDANÇA DE ETAPA
+  useEffect(() => {
+    const handleRefreshContacts = () => {
+      console.log('[WhatsApp Contacts] 🔄 Evento de refresh recebido - atualizando contatos...');
+      fetchContacts(true); // forceRefresh = true
+    };
+
+    window.addEventListener('refreshWhatsAppContacts', handleRefreshContacts);
+
+    return () => {
+      window.removeEventListener('refreshWhatsAppContacts', handleRefreshContacts);
+    };
+  }, [fetchContacts]);
 
   // 🚀 FUNÇÃO PARA LIMPEZA AUTOMÁTICA DO CACHE
   const cleanupCache = () => {

@@ -4,7 +4,6 @@ import { Contact } from "@/types/chat";
 import { formatPhoneDisplay } from "@/utils/phoneFormatter";
 import { MessageCircle, Clock, TrendingUp } from "lucide-react";
 import { ContactTags } from "./ContactTags";
-import { StageDropdownMenu } from "./StageDropdownMenu";
 import { useTagsSync } from "@/hooks/whatsapp/useTagsSync";
 import { useAuth } from "@/contexts/AuthContext";
 import { UnreadMessagesService } from "@/services/whatsapp/unreadMessagesService";
@@ -153,42 +152,6 @@ export const ContactsList = React.memo(({
     onSelectContact(contact);
   };
 
-  // Função para alterar etapa do lead
-  const handleStageChange = useCallback(async (contactId: string, newStageId: string) => {
-    console.log(`[ContactsList] 🔄 Alterando etapa do contato ${contactId} para etapa ${newStageId}`);
-    
-    try {
-      // Encontrar o contato na lista
-      const contact = contacts.find(c => c.id === contactId);
-      if (!contact?.leadId) {
-        console.warn('[ContactsList] ⚠️ Lead ID não encontrado para o contato');
-        return;
-      }
-
-      // Atualizar no banco via Supabase
-      const { supabase } = await import('@/integrations/supabase/client');
-      const { error } = await supabase
-        .from('leads')
-        .update({ kanban_stage_id: newStageId })
-        .eq('id', contact.leadId);
-
-      if (error) {
-        throw error;
-      }
-
-      console.log(`[ContactsList] ✅ Etapa alterada com sucesso para lead ${contact.leadId}`);
-      
-      // Atualizar lista de contatos
-      if (onRefreshContacts) {
-        setTimeout(() => {
-          onRefreshContacts();
-        }, 500);
-      }
-    } catch (error) {
-      console.error('[ContactsList] ❌ Erro ao alterar etapa:', error);
-    }
-  }, [contacts, onRefreshContacts]);
-
   // Renderização dos contatos
   const renderedContacts = useMemo(() => {
     return contacts.map((contact, index) => {
@@ -241,19 +204,7 @@ export const ContactsList = React.memo(({
                     </span>
                   )}
                   
-                  {/* Dropdown para alterar etapa do funil */}
-                  {contact.leadId && (
-                    <div 
-                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                      onClick={(e) => e.stopPropagation()} // Evitar que o clique selecione o contato
-                    >
-                      <StageDropdownMenu
-                        contact={contact}
-                        currentStageId={contact.stageId}
-                        onStageChange={(newStageId) => handleStageChange(contact.id, newStageId)}
-                      />
-                    </div>
-                  )}
+
                 </div>
               </div>
               
@@ -271,7 +222,7 @@ export const ContactsList = React.memo(({
         </div>
       );
     });
-  }, [contacts, selectedContact, handleSelectContact, handleStageChange]);
+  }, [contacts, selectedContact, handleSelectContact]);
 
   if (contacts.length === 0) {
     return (

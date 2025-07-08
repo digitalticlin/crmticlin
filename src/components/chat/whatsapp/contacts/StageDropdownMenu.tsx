@@ -28,7 +28,7 @@ export const StageDropdownMenu = ({ contact, currentStageId, onStageChange }: St
     isOpen,
     setIsOpen,
     changeStage
-  } = useLeadStageManager(contact.id, currentStageId);
+  } = useLeadStageManager(contact.leadId || contact.id, currentStageId);
 
   const handleStageChange = (stageId: string, stageName: string) => {
     if (stageId === currentStageId) return;

@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
@@ -10,7 +9,7 @@ import {
   DropdownMenuSeparator, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { ChevronDown, Loader2, CheckCircle2 } from "lucide-react";
 import { useLeadStageManager } from "@/hooks/chat/useLeadStageManager";
 import { cn } from "@/lib/utils";
 
@@ -30,8 +29,41 @@ export const StageSelector = ({ leadId, currentStageId, className }: StageSelect
   } = useLeadStageManager(leadId, currentStageId);
 
   const [isOpen, setIsOpen] = useState(false);
+  const [justChanged, setJustChanged] = useState(false);
+
+  // 🔍 LOG DETALHADO PARA DEBUG
+  console.log('[StageSelector] 🔍 Props recebidas:', {
+    leadId,
+    currentStageId,
+    hasCurrentStage: !!currentStage,
+    currentStageTitle: currentStage?.title,
+    stagesCount: Object.keys(stagesByFunnel).length,
+    isLoading,
+    isChanging
+  });
+
+  // Efeito para mostrar feedback visual após mudança
+  useEffect(() => {
+    if (!isChanging && justChanged) {
+      // Mostrar feedback de sucesso por 2 segundos
+      const timer = setTimeout(() => {
+        setJustChanged(false);
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isChanging, justChanged]);
 
   const handleStageChange = (stageId: string, stageName: string) => {
+    console.log('[StageSelector] 🔄 Iniciando mudança de etapa:', {
+      leadId,
+      fromStageId: currentStageId,
+      fromStageName: currentStage?.title,
+      toStageId: stageId,
+      toStageName: stageName
+    });
+    
+    setJustChanged(true);
     changeStage({ stageId, stageName });
     setIsOpen(false);
   };
@@ -45,6 +77,15 @@ export const StageSelector = ({ leadId, currentStageId, className }: StageSelect
   const getCurrentStageColor = () => {
     if (!currentStage) return "#6b7280";
     return currentStage.color;
+  };
+
+  const getButtonClasses = () => {
+    const baseClasses = "h-8 px-3 py-1 text-sm font-medium transition-all duration-200 hover:bg-white/20 rounded-full flex items-center gap-2";
+    
+    if (isChanging) return `${baseClasses} opacity-60 cursor-not-allowed`;
+    if (justChanged && !isChanging) return `${baseClasses} bg-green-100/80 border border-green-300`;
+    
+    return baseClasses;
   };
 
   if (isLoading) {
@@ -61,13 +102,7 @@ export const StageSelector = ({ leadId, currentStageId, className }: StageSelect
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          className={cn(
-            "h-8 px-3 py-1 text-sm font-medium transition-all duration-200",
-            "hover:bg-white/20 rounded-full",
-            "flex items-center gap-2",
-            isChanging && "opacity-60 cursor-not-allowed",
-            className
-          )}
+          className={cn(getButtonClasses(), className)}
           disabled={isChanging}
         >
           <div 
@@ -79,6 +114,8 @@ export const StageSelector = ({ leadId, currentStageId, className }: StageSelect
           </span>
           {isChanging ? (
             <Loader2 className="h-3 w-3 animate-spin" />
+          ) : justChanged && !isChanging ? (
+            <CheckCircle2 className="h-3 w-3 text-green-600" />
           ) : (
             <ChevronDown className="h-3 w-3" />
           )}
@@ -109,6 +146,7 @@ export const StageSelector = ({ leadId, currentStageId, className }: StageSelect
                   "hover:bg-white/50 transition-colors",
                   currentStage?.id === stage.id && "bg-blue-50/80"
                 )}
+                disabled={isChanging}
               >
                 <div 
                   className="w-3 h-3 rounded-full border border-gray-300"

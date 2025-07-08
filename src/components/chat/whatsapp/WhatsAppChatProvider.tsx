@@ -248,6 +248,47 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     }
   }, [leadId, contacts, selectedContact, handleSelectContact]);
 
+  // 🚀 LISTENER PARA ATUALIZAR ETAPA DO CONTATO SELECIONADO EM TEMPO REAL
+  useEffect(() => {
+    const handleStageUpdate = (event: CustomEvent) => {
+      const { leadId: updatedLeadId, newStageId, newStageName } = event.detail;
+      
+      console.log('[WhatsApp Chat] 🔄 Recebido evento de atualização de etapa:', {
+        updatedLeadId,
+        newStageId,
+        newStageName,
+        selectedContactId: selectedContact?.id,
+        selectedContactLeadId: selectedContact?.leadId
+      });
+      
+      // Verificar se é o contato selecionado que foi atualizado
+      if (selectedContact && selectedContact.leadId === updatedLeadId) {
+        console.log('[WhatsApp Chat] ⚡ Atualizando etapa do contato selecionado...');
+        
+        // Atualizar o contato selecionado com a nova etapa
+        const updatedContact = {
+          ...selectedContact,
+          stageId: newStageId
+        };
+        
+        setSelectedContact(updatedContact);
+        
+        console.log('[WhatsApp Chat] ✅ Contato selecionado atualizado com nova etapa:', {
+          contactName: updatedContact.name,
+          newStageId: updatedContact.stageId
+        });
+      }
+    };
+
+    // Adicionar o listener
+    window.addEventListener('updateSelectedContactStage', handleStageUpdate as EventListener);
+
+    return () => {
+      // Remover o listener na limpeza
+      window.removeEventListener('updateSelectedContactStage', handleStageUpdate as EventListener);
+    };
+  }, [selectedContact]);
+
   // Memoizar valor do contexto para evitar re-renderizações
   const value = useMemo((): WhatsAppChatContextType => ({
     // Contatos com paginação
