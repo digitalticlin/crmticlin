@@ -3,10 +3,11 @@ import { useState, ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link } from "react-router-dom";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, CheckCircle } from "lucide-react";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 // Import schema
 import { registerSchema, RegisterFormValues } from "./register/registerSchema";
@@ -20,6 +21,7 @@ import { PasswordFields } from "./register/PasswordFields";
 
 export default function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const { signUp } = useAuth();
   
   const form = useForm<RegisterFormValues>({
@@ -46,7 +48,10 @@ export default function RegisterForm() {
   };
 
   async function onSubmit(data: RegisterFormValues) {
+    if (isLoading) return;
+    
     setIsLoading(true);
+    console.log('[RegisterForm] Iniciando registro para:', data.email);
     
     try {
       // Preparar os dados do usuário para o Supabase com role definido como admin
@@ -58,15 +63,56 @@ export default function RegisterForm() {
         role: "admin" // Definindo explicitamente o papel como admin
       };
       
+      console.log('[RegisterForm] Dados do usuário:', userData);
+      
       // Registrar o usuário usando o AuthContext
       await signUp(data.email, data.password, userData);
-      // Redirecionamento é feito pelo AuthContext após o registro
-    } catch (error) {
-      // Erros são tratados no AuthContext
-      console.error("Erro de registro:", error);
+      
+      // Mostrar sucesso visual
+      setRegistrationSuccess(true);
+      
+      // Reset form após sucesso
+      form.reset();
+      
+      console.log('[RegisterForm] Registro concluído com sucesso');
+      
+    } catch (error: any) {
+      console.error('[RegisterForm] Erro no registro:', error);
+      setRegistrationSuccess(false);
+      
+      // Toast de erro já é mostrado no AuthContext, mas vamos adicionar feedback visual
+      form.setError("root", { 
+        message: "Erro ao criar conta. Tente novamente." 
+      });
     } finally {
       setIsLoading(false);
     }
+  }
+
+  // Se o registro foi bem-sucedido, mostrar feedback positivo
+  if (registrationSuccess) {
+    return (
+      <div className="w-full rounded-3xl bg-white/30 backdrop-blur-lg border border-white/20 shadow-2xl p-8 space-y-8 text-center">
+        <div className="space-y-4 animate-scale-in">
+          <div className="flex justify-center">
+            <CheckCircle className="h-16 w-16 text-green-500" />
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+            Conta criada com sucesso!
+          </h1>
+          <p className="text-sm text-gray-700 font-medium">
+            Você será redirecionado em instantes...
+          </p>
+        </div>
+        
+        <div className="text-center text-sm text-gray-700">
+          Já tem uma conta?{" "}
+          <Link to="/" className="text-gray-800 font-medium hover:text-ticlin-600 transition-colors duration-200 underline-offset-4 hover:underline">
+            Entrar
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -88,6 +134,13 @@ export default function RegisterForm() {
           <UsernameField form={form} />
           <ContactInfoFields form={form} />
           <PasswordFields form={form} />
+          
+          {/* Mostrar erro geral se existir */}
+          {form.formState.errors.root && (
+            <div className="text-red-500 text-sm text-center bg-red-50 p-3 rounded-lg">
+              {form.formState.errors.root.message}
+            </div>
+          )}
           
           <Button
             type="submit"
