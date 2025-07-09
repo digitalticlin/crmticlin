@@ -10,7 +10,6 @@ interface NotesSectionProps {
   selectedContact: Contact;
   editedContact: Partial<Contact>;
   setEditedContact: (contact: Partial<Contact>) => void;
-  onSave?: () => void;
   onUpdateNotes: (notes: string) => void;
 }
 
@@ -18,7 +17,6 @@ export const NotesSection = ({
   selectedContact,
   editedContact,
   setEditedContact,
-  onSave,
   onUpdateNotes
 }: NotesSectionProps) => {
   const [isEditingNotes, setIsEditingNotes] = useState(false);

@@ -211,7 +211,6 @@ export const LeadDetailsSidebar = ({
               selectedContact={selectedContact}
               editedContact={editedContact}
               setEditedContact={setEditedContact}
-              onSave={handleUpdateNotes}
               onUpdateNotes={handleUpdateNotes}
             />
 
