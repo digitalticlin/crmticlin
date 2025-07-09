@@ -48,6 +48,7 @@ export const ContactsList = React.memo(({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loadMoreTriggerRef = useRef<HTMLDivElement>(null);
   const isLoadingRef = useRef(false);
+  const lastLoadTimeRef = useRef(0); // 🚀 NOVO: Para throttling
 
   // Usar o hook de sincronização de tags
   useTagsSync(user?.id || null, () => {
@@ -56,9 +57,27 @@ export const ContactsList = React.memo(({
     }
   });
 
-  // 🚀 FUNÇÃO OTIMIZADA PARA CARREGAR MAIS CONTATOS
+  // 🚀 FUNÇÃO OTIMIZADA PARA CARREGAR MAIS CONTATOS COM DEBOUNCE
   const handleLoadMore = useCallback(async () => {
+    const now = Date.now();
+    
+    // ✅ PROTEÇÃO: Verificações múltiplas para evitar loops
     if (!onLoadMoreContacts || !hasMoreContacts || isLoadingRef.current || isLoadingMore) {
+      console.log('[ContactsList] 🚫 LoadMore bloqueado:', {
+        hasFunction: !!onLoadMoreContacts,
+        hasMoreContacts,
+        isLoadingRef: isLoadingRef.current,
+        isLoadingMore
+      });
+      return;
+    }
+
+    // ✅ DEBOUNCE: Evitar múltiplas chamadas muito rápidas
+    const timeSinceLastLoad = now - lastLoadTimeRef.current;
+    if (timeSinceLastLoad < 1000) { // 1 segundo entre carregamentos
+      console.log('[ContactsList] ⏳ Debounce ativo - aguardando...', {
+        timeSinceLastLoad
+      });
       return;
     }
 
@@ -66,12 +85,16 @@ export const ContactsList = React.memo(({
     
     try {
       isLoadingRef.current = true;
+      lastLoadTimeRef.current = now;
       await onLoadMoreContacts();
       console.log('[ContactsList] ✅ Mais contatos carregados com sucesso');
     } catch (error) {
       console.error('[ContactsList] ❌ Erro ao carregar mais contatos:', error);
     } finally {
-      isLoadingRef.current = false;
+      // Pequeno delay antes de permitir novos carregamentos
+      setTimeout(() => {
+        isLoadingRef.current = false;
+      }, 500);
     }
   }, [onLoadMoreContacts, hasMoreContacts, isLoadingMore]);
 
@@ -99,15 +122,20 @@ export const ContactsList = React.memo(({
           intersectionRatio: entry.intersectionRatio
         });
         
-        if (entry.isIntersecting && hasMoreContacts && !isLoadingRef.current) {
+        // ✅ CONDIÇÃO MAIS RIGOROSA: Só disparar se ratio for significativo
+        if (entry.isIntersecting && 
+            entry.intersectionRatio > 0.5 && // Mais da metade deve estar visível
+            hasMoreContacts && 
+            !isLoadingRef.current && 
+            !isLoadingMore) {
           console.log('[ContactsList] 🚀 Trigger visível - carregando mais contatos...');
           handleLoadMore();
         }
       },
       {
         root: scrollContainerRef.current,
-        rootMargin: '100px', // Carregar quando estiver 100px antes do fim
-        threshold: 0.1
+        rootMargin: '50px', // Reduzido de 100px para 50px
+        threshold: 0.5 // Aumentado de 0.1 para 0.5
       }
     );
 
@@ -134,19 +162,14 @@ export const ContactsList = React.memo(({
     }
   }, [hasMoreContacts, isLoadingMore, onLoadMoreContacts, handleLoadMore]);
 
-  // Função para marcar mensagens como lidas ao selecionar contato
+  // 🚀 FUNÇÃO OTIMIZADA: Marcar como lida sem resetar lista
   const handleSelectContact = async (contact: Contact) => {
     // Marcar mensagens como lidas se o contato tem mensagens não lidas
     if (contact.unreadCount && contact.unreadCount > 0 && contact.leadId) {
       await UnreadMessagesService.markAsRead(contact.leadId);
-      console.log(`[ContactsList] Marcando mensagens como lidas para: ${contact.name}`);
-      
-      // Atualizar lista de contatos após marcar como lida
-      if (onRefreshContacts) {
-        setTimeout(() => {
-          onRefreshContacts();
-        }, 500);
-      }
+      console.log(`[ContactsList] ✅ Mensagens marcadas como lidas para: ${contact.name}`);
+      // ✅ CORREÇÃO CRÍTICA: Não chamar refresh que reseta paginação!
+      // A atualização já acontece via subscription no hook useWhatsAppContacts
     }
     
     onSelectContact(contact);
@@ -259,32 +282,21 @@ export const ContactsList = React.memo(({
       <div className="divide-y divide-gray-200/20">
         {renderedContacts}
         
-        {/* 🚀 TRIGGER PARA INTERSECTION OBSERVER */}
+        {/* 🚀 TRIGGER PARA INTERSECTION OBSERVER - ELEMENTO PEQUENO */}
         {hasMoreContacts && (
           <div
             ref={loadMoreTriggerRef}
-            className="h-20 flex items-center justify-center"
+            className="h-8 flex items-center justify-center"
           >
             {isLoadingMore ? (
-              <div className="flex flex-col items-center space-y-2 text-sm text-gray-500">
+              <div className="flex flex-col items-center space-y-1 text-sm text-gray-500">
                 <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-                  <span>Carregando mais contatos...</span>
-                </div>
-                <div className="text-xs text-gray-400">
-                  {contacts.length} de {totalContactsAvailable || '?'} contatos carregados
-                  {totalContactsAvailable && (
-                    <span className="ml-2">
-                      ({Math.round((contacts.length / totalContactsAvailable) * 100)}%)
-                    </span>
-                  )}
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                  <span className="text-xs">Carregando...</span>
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center space-y-1 text-xs text-gray-400 py-2">
-                <span>🔄 Role para baixo para carregar mais contatos</span>
-                <span>{contacts.length} de {totalContactsAvailable} contatos carregados</span>
-              </div>
+              <div className="h-2 w-full bg-transparent"></div>
             )}
           </div>
         )}
@@ -309,6 +321,26 @@ export const ContactsList = React.memo(({
             <span className="text-xs text-gray-400">
               Nenhum contato encontrado nesta instância
             </span>
+          </div>
+        )}
+
+        {/* 🚀 INDICADOR DE PROGRESSO MELHORADO */}
+        {hasMoreContacts && (
+          <div className="flex flex-col items-center py-3 space-y-2 bg-gray-50/50 mx-2 rounded-lg">
+            <div className="text-xs text-gray-500">
+              {contacts.length} de {totalContactsAvailable || '?'} contatos carregados
+              {totalContactsAvailable && (
+                <span className="ml-2 font-medium">
+                  ({Math.round((contacts.length / totalContactsAvailable) * 100)}%)
+                </span>
+              )}
+            </div>
+            {isLoadingMore && (
+              <div className="flex items-center space-x-2 text-xs text-gray-500">
+                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500"></div>
+                <span>Carregando mais contatos...</span>
+              </div>
+            )}
           </div>
         )}
       </div>

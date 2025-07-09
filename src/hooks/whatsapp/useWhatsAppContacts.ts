@@ -9,33 +9,13 @@ import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 
 // Cache otimizado para contatos com limpeza automática
 const contactsCache = new Map<string, { data: Contact[]; timestamp: number; hasMore: boolean; }>();
-const CACHE_DURATION = 60 * 1000; // 🚀 AUMENTADO: 60 segundos para melhor cache com mais dados
-const MAX_CACHE_SIZE = 10; // 🚀 ADICIONADO: Máximo 10 caches para evitar vazamentos de memória
+const MAX_CACHE_SIZE = 10; // Máximo 10 caches para evitar vazamentos de memória
 
-// 🚀 OTIMIZAÇÃO ESPECÍFICA PARA USUÁRIOS COM MUITOS CONTATOS
-const PRIORITY_USERS = [
-  'contatoluizantoniooliveira@gmail.com',
-  // Adicionar outros usuários conforme necessário
-];
-
-// Função para determinar limites baseados no usuário
-const getContactLimits = (userEmail: string | null) => {
-  const isPriorityUser = userEmail && PRIORITY_USERS.includes(userEmail.toLowerCase());
-  
-  if (isPriorityUser) {
-    console.log(`[WhatsApp Contacts] 🚀 Usuário prioritário detectado: ${userEmail} - Aplicando limites otimizados`);
-    return {
-      INITIAL_CONTACTS_LIMIT: 500, // 🚀 MUITO MAIOR para usuários específicos
-      CONTACTS_PAGE_SIZE: 200,     // 🚀 CARREGAMENTO MAIS AGRESSIVO
-      CACHE_DURATION: 120 * 1000   // 🚀 CACHE MAIS LONGO (2 minutos)
-    };
-  }
-  
-  return {
-    INITIAL_CONTACTS_LIMIT: 200,  // 🚀 PADRÃO para outros usuários
-    CONTACTS_PAGE_SIZE: 100,      // 🚀 PADRÃO para outros usuários
-    CACHE_DURATION: 60 * 1000     // 🚀 PADRÃO para outros usuários
-  };
+// 🚀 CONFIGURAÇÃO BALANCEADA PARA MULTI-TENANT
+const CONTACT_LIMITS = {
+  INITIAL_CONTACTS_LIMIT: 50,  // 🚀 REDUZIDO: Carregamento inicial leve para multi-tenant
+  CONTACTS_PAGE_SIZE: 50,      // 🚀 REDUZIDO: Paginação moderada para performance
+  CACHE_DURATION: 120 * 1000   // 🚀 MANTIDO: Cache de 2 minutos
 };
 
 // SISTEMA DE PAGINAÇÃO VIRTUAL PARA CONTATOS
@@ -58,29 +38,35 @@ export const useWhatsAppContacts = (
   const syncDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const lastFetchParamsRef = useRef<string>('');
   const realtimeChannelRef = useRef<any>(null);
+  const lastLoadMoreTimeRef = useRef(0); // 🚀 NOVO: Para evitar loads muito frequentes
+  const contactsCountRef = useRef(0); // 🚀 NOVO: Para manter count atualizado
   
   // Hook de ordenação otimizada
   const { sortLeadsByRecentMessage } = useLeadSorting();
 
-  // 🚀 DETERMINAR LIMITES BASEADOS NO EMAIL DO USUÁRIO LOGADO
+  // 🚀 EMAIL DO USUÁRIO PARA LOGS (apenas informativo)
   const userEmail = user?.email || null;
-  const limits = useMemo(() => getContactLimits(userEmail), [userEmail]);
 
-  // Memoizar parâmetros para cache
+  // 🚀 MANTER REF SINCRONIZADA COM ESTADO DOS CONTATOS
+  useEffect(() => {
+    contactsCountRef.current = contacts.length;
+  }, [contacts.length]);
+
+  // 🚀 CACHE KEY ESTÁVEL: Removido connection_status para evitar resets frequentes
   const cacheKey = useMemo(() => {
     if (!activeInstance?.id || !userId) return '';
-    return `${activeInstance.id}-${userId}-${activeInstance.connection_status}`;
-  }, [activeInstance?.id, userId, activeInstance?.connection_status]);
+    return `${activeInstance.id}-${userId}`;
+  }, [activeInstance?.id, userId]);
 
   // Verificar cache válido
   const getCachedContacts = useCallback((key: string): { data: Contact[]; hasMore: boolean; } | null => {
     const cached = contactsCache.get(key);
-    if (cached && (Date.now() - cached.timestamp) < limits.CACHE_DURATION) {
+    if (cached && (Date.now() - cached.timestamp) < CONTACT_LIMITS.CACHE_DURATION) {
       return { data: cached.data, hasMore: cached.hasMore };
     }
     contactsCache.delete(key);
     return null;
-  }, [limits.CACHE_DURATION]);
+  }, []);
 
   // Salvar no cache
   const setCachedContacts = useCallback((key: string, data: Contact[], hasMore: boolean) => {
@@ -93,6 +79,12 @@ export const useWhatsAppContacts = (
   // Função para mover contato para o topo com animação fluida
   const moveContactToTop = useCallback((contactId: string, newMessage?: string) => {
     console.log('[WhatsApp Contacts] 🔄 moveContactToTop chamado para:', contactId, 'mensagem:', newMessage);
+    
+    // 🚀 EVITAR RACE CONDITION: Não mover contatos durante carregamento
+    if (isLoadingRef.current) {
+      console.log('[WhatsApp Contacts] ⚠️ Pulando moveContactToTop - carregamento em andamento');
+      return;
+    }
     
     setContacts(prevContacts => {
       const contactIndex = prevContacts.findIndex(c => c.id === contactId);
@@ -174,7 +166,7 @@ export const useWhatsAppContacts = (
           console.log('[WhatsApp Contacts] ✅ Banco atualizado com sucesso');
           
           // Invalidar cache para garantir sincronização
-          const currentCacheKey = `${activeInstance.id}-${userId}-${activeInstance.connection_status}`;
+          const currentCacheKey = `${activeInstance.id}-${userId}`;
           contactsCache.delete(currentCacheKey);
           console.log('[WhatsApp Contacts] 🗑️ Cache invalidado');
         }
@@ -213,8 +205,7 @@ export const useWhatsAppContacts = (
     // 🚀 LOG INICIAL PARA DEBUG COM OTIMIZAÇÃO ESPECÍFICA
     console.log('[WhatsApp Contacts] 🚀 Iniciando fetch:', {
       userEmail,
-      isPriorityUser: userEmail && PRIORITY_USERS.includes(userEmail.toLowerCase()),
-      limits,
+      limits: CONTACT_LIMITS,
       forceRefresh,
       loadMore,
       activeInstanceId: activeInstance?.id,
@@ -257,11 +248,24 @@ export const useWhatsAppContacts = (
           setTotalContactsAvailable(totalContacts);
         }
 
-        // Determinar parâmetros de paginação
-        const limit = loadMore ? limits.CONTACTS_PAGE_SIZE : limits.INITIAL_CONTACTS_LIMIT;
-        const offset = loadMore ? contacts.length : 0;
+        // Determinar parâmetros de paginação usando ref atualizado
+        const currentContactsCount = loadMore ? contactsCountRef.current : 0;
+        const limit = loadMore ? CONTACT_LIMITS.CONTACTS_PAGE_SIZE : CONTACT_LIMITS.INITIAL_CONTACTS_LIMIT;
+        const offset = currentContactsCount;
 
-        // QUERY OTIMIZADA: Com paginação - sem nullsLast
+        console.log('[WhatsApp Contacts] 🔍 DEBUG ESPECÍFICO - Parâmetros da query:', {
+          loadMore,
+          limit,
+          offset,
+          rangeStart: offset,
+          rangeEnd: offset + limit - 1,
+          totalContatosJaCarregados: currentContactsCount,
+          instanceId: activeInstance!.id,
+          userId: userId!,
+          queryRange: `${offset} até ${offset + limit - 1}`
+        });
+
+        // QUERY OTIMIZADA: Simplificada para evitar problemas de paginação
         const { data: leads, error } = await supabase
           .from('leads')
           .select(`
@@ -274,48 +278,75 @@ export const useWhatsAppContacts = (
           .eq('whatsapp_number_id', activeInstance!.id)
           .eq('created_by_user_id', userId!)
           .order('last_message_time', { ascending: false, nullsFirst: false })
-          .order('unread_count', { ascending: false, nullsFirst: false })
           .order('created_at', { ascending: false })
           .range(offset, offset + limit - 1);
 
         if (error) throw error;
 
-        // 🚀 VERIFICAÇÃO MELHORADA PARA GARANTIR CARREGAMENTO COMPLETO
+        // ✅ LÓGICA SIMPLIFICADA PARA hasMore
         let hasMore = false;
-        
-        // Calcular total já carregado
-        const totalCarregados = loadMore ? contacts.length + (leads?.length || 0) : (leads?.length || 0);
+        const leadesRetornados = leads?.length || 0;
         
         console.log('[WhatsApp Contacts] 📊 Análise de carregamento:', {
-          leadesRetornados: leads?.length || 0,
-          totalCarregados,
-          totalDisponivel: totalContacts,
+          leadesRetornados,
           limit,
-          offset
+          offset,
+          loadMore,
+          contatosJaCarregados: currentContactsCount,
+          totalDisponivel: totalContacts
         });
 
-        // Verificar se ainda há mais contatos para carregar
-        if (totalContacts && totalCarregados < totalContacts) {
+        // ✅ LÓGICA PRINCIPAL: Se retornou dados
+        if (leadesRetornados > 0) {
+          // Se retornou menos que o limite solicitado = fim da lista
+          if (leadesRetornados < limit) {
+            hasMore = false;
+            console.log('[WhatsApp Contacts] ⏹️ FIM - Retornou menos que o limite:', {
+              retornou: leadesRetornados,
+              limite: limit
+            });
+          } else {
+            // Retornou o limite completo = provavelmente há mais
           hasMore = true;
-          console.log('[WhatsApp Contacts] ✅ Ainda há contatos para carregar:', {
-            restantes: totalContacts - totalCarregados
+            console.log('[WhatsApp Contacts] ✅ Retornou limite completo - há mais contatos:', {
+              retornou: leadesRetornados,
+              limite: limit
           });
-        } else if (leads && leads.length === limit && !totalContacts) {
-          // Fallback: se não temos o total, verificar se retornou o limite completo
-          hasMore = true;
-          console.log('[WhatsApp Contacts] 🔄 Verificação por limite - pode haver mais contatos');
+          }
         } else {
-          console.log('[WhatsApp Contacts] ⏹️ Todos os contatos foram carregados');
+          // Não retornou nenhum dado = fim
+          hasMore = false;
+          console.log('[WhatsApp Contacts] ⏹️ FIM - Nenhum dado retornado');
         }
 
+        // 🚀 LOG SUPER DETALHADO PARA DETECTAR PROBLEMA ESPECÍFICO
+        const contatosJaCarregadosParaLog = loadMore ? currentContactsCount + leadesRetornados : leadesRetornados;
+        console.log('[WhatsApp Contacts] 🔍 ANÁLISE DETALHADA DO HASMORE:', {
+          hasMoreCalculado: hasMore,
+          cenarios: {
+            'leadesRetornados > 0': leadesRetornados > 0,
+            'totalContacts existe': !!(totalContacts && totalContacts > 0),
+            'contatosJaCarregados >= totalContacts': contatosJaCarregadosParaLog >= totalContacts,
+            'leadesRetornados < limit': leadesRetornados < limit,
+            'leadesRetornados === limit': leadesRetornados === limit
+          },
+          valores: {
+            leadesRetornados,
+            limit,
+            contatosJaCarregadosParaLog,
+            totalContacts,
+            loadMore,
+            contatosListaAtual: currentContactsCount
+          }
+        });
+
         console.log('[WhatsApp Contacts] 📊 Resultado da query:', {
-          leadesRetornados: leads?.length || 0,
+          leadesRetornados,
           offset,
           limit,
           hasMore,
-          totalCarregados: loadMore ? contacts.length + (leads?.length || 0) : leads?.length || 0,
-          totalDisponivel: totalContacts,
-          progressoPorcentagem: totalContacts ? Math.round(((loadMore ? contacts.length + (leads?.length || 0) : leads?.length || 0) / totalContacts) * 100) : 0
+          totalCarregadosAgora: loadMore ? currentContactsCount + leadesRetornados : leadesRetornados,
+          totalDisponivel: totalContacts
         });
 
         // MAPEAMENTO OTIMIZADO
@@ -368,10 +399,40 @@ export const useWhatsAppContacts = (
         });
 
         if (loadMore) {
-          // Adicionar novos contatos à lista existente
-          const updatedContacts = [...contacts, ...mappedContacts];
-          setContacts(updatedContacts);
+          // Adicionar novos contatos à lista existente usando callback para garantir estado atualizado
+          setContacts(prevContacts => {
+            // 🚀 USAR PREVCONTACTS.LENGTH CORRETO PARA DEBUG
+            console.log('[WhatsApp Contacts] 🔍 Verificação de duplicatas:', {
+              contatosExistentes: prevContacts.length,
+              novosMapeados: mappedContacts.length,
+              offsetUsadoNaQuery: offset,
+              offsetCorretoDeveriaSer: prevContacts.length
+            });
+            
+            // 🚀 VERIFICAÇÃO: Se offset estava errado, significa que a query trouxe dados duplicados
+            if (offset !== prevContacts.length) {
+              console.warn('[WhatsApp Contacts] ⚠️ OFFSET INCORRETO! Query usou offset desatualizado:', {
+                offsetUsado: offset,
+                offsetCorreto: prevContacts.length,
+                diferenca: Math.abs(offset - prevContacts.length)
+              });
+            }
+            
+            // 🚀 FILTRAR DUPLICATAS: Remover contatos que já existem na lista
+            const existingContactIds = new Set(prevContacts.map(contact => contact.id));
+            const newContactsOnly = mappedContacts.filter(contact => !existingContactIds.has(contact.id));
+            
+            console.log('[WhatsApp Contacts] 🔍 Resultado da filtragem:', {
+              contatosExistentes: prevContacts.length,
+              novosMapeados: mappedContacts.length,
+              novosUnicos: newContactsOnly.length,
+              duplicatasRemovidas: mappedContacts.length - newContactsOnly.length
+            });
+            
+            const updatedContacts = [...prevContacts, ...newContactsOnly];
           setCachedContacts(cacheKey, updatedContacts, hasMore);
+            return updatedContacts;
+          });
         } else {
           // Substituir todos os contatos
           setContacts(mappedContacts);
@@ -394,7 +455,7 @@ export const useWhatsAppContacts = (
     } else {
       executeQuery();
     }
-  }, [contacts, cacheKey, activeInstance?.id, userId, setCachedContacts, getCachedContacts, limits]);
+  }, [cacheKey, activeInstance?.id, userId, setCachedContacts, getCachedContacts]); // 🚀 REMOVIDO 'contacts' das dependências para evitar loops
 
   // Configurar subscription para mudanças nas tags e mensagens
   useEffect(() => {
@@ -412,9 +473,25 @@ export const useWhatsAppContacts = (
           table: 'lead_tags',
           filter: `created_by_user_id=eq.${userId}`
         },
-        () => {
-          // Forçar atualização dos contatos quando houver mudança nas tags
-          fetchContacts(true);
+        (payload) => {
+          // ✅ CORREÇÃO CRÍTICA: Não resetar lista - mudanças em tags não justificam reset completo
+          console.log('[WhatsApp Contacts] Tag alterada - mantendo paginação:', payload);
+          
+          // 🚀 ESTRATÉGIA: Tags não afetam a ordem da lista, apenas invalidar cache específico se necessário
+          const affectedLeadId = (payload.new as any)?.lead_id || (payload.old as any)?.lead_id;
+          if (affectedLeadId) {
+            console.log('[WhatsApp Contacts] ✅ Tag alterada para lead:', affectedLeadId, '- paginação preservada');
+            
+            // Apenas invalidar cache específico se necessário, sem resetar lista
+            const currentCacheKey = `${activeInstance.id}-${userId}`;
+            if (contactsCache.has(currentCacheKey)) {
+              const cacheEntry = contactsCache.get(currentCacheKey);
+              if (cacheEntry) {
+                // Manter dados mas marcar para refresh próximo se necessário
+                cacheEntry.timestamp = Date.now() - (CONTACT_LIMITS.CACHE_DURATION * 0.8); // 80% do cache duration
+              }
+            }
+          }
         }
       )
       .on(
@@ -460,10 +537,32 @@ export const useWhatsAppContacts = (
           table: 'leads',
           filter: `whatsapp_number_id=eq.${activeInstance.id}`
         },
-        () => {
-          // Atualizar lista quando leads forem modificados
-          console.log('[WhatsApp Contacts] Lead atualizado, refrescando lista');
-          fetchContacts(true);
+        (payload) => {
+          // ✅ CORREÇÃO CRÍTICA: Não resetar lista - atualizar contato específico
+          console.log('[WhatsApp Contacts] Lead atualizado - atualizando contato específico:', payload.new?.id);
+          
+          const leadId = payload.new?.id;
+          if (leadId) {
+            // 🚀 PRESERVAR PAGINAÇÃO: Apenas atualizar contato específico sem resetar lista
+            setContacts(prevContacts => {
+              const updatedContacts = prevContacts.map(contact => {
+                if (contact.id === leadId || contact.leadId === leadId) {
+                  return {
+                    ...contact,
+                    // Atualizar campos específicos que podem ter mudado
+                    name: payload.new?.name || contact.name,
+                    stageId: payload.new?.stage_id || contact.stageId,
+                    lastMessage: payload.new?.last_message || contact.lastMessage,
+                    lastMessageTime: payload.new?.last_message_time || contact.lastMessageTime
+                  };
+                }
+                return contact;
+              });
+              
+              console.log('[WhatsApp Contacts] ✅ Contato atualizado sem resetar paginação');
+              return updatedContacts;
+            });
+          }
         }
       )
       .subscribe((status) => {
@@ -480,26 +579,54 @@ export const useWhatsAppContacts = (
     };
   }, [activeInstance?.id, userId, fetchContacts, moveContactToTop]);
 
-  // Carregar contatos iniciais
+  // 🚀 CARREGAMENTO INICIAL INTELIGENTE: Apenas se lista estiver vazia
   useEffect(() => {
-    if (cacheKey) {
+    if (cacheKey && contacts.length === 0) {
+      console.log('[WhatsApp Contacts] 🚀 Lista vazia - fazendo carregamento inicial');
       fetchContacts();
     }
-  }, [cacheKey, fetchContacts]);
+  }, [cacheKey, fetchContacts, contacts.length]);
 
-  // 🚀 LISTENER PARA REFRESH FORÇADO APÓS MUDANÇA DE ETAPA
+  // 🚀 LISTENER PARA REFRESH FORÇADO APÓS MUDANÇA DE ETAPA - COM DEBOUNCE INTELIGENTE
   useEffect(() => {
+    let debounceTimeout: NodeJS.Timeout | null = null;
+    
     const handleRefreshContacts = () => {
-      console.log('[WhatsApp Contacts] 🔄 Evento de refresh recebido - atualizando contatos...');
-      fetchContacts(true); // forceRefresh = true
+      console.log('[WhatsApp Contacts] 🔄 Evento de refresh recebido - aplicando debounce inteligente...');
+      
+      // 🚀 DEBOUNCE: Evitar múltiplos refreshes em sequência
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout);
+      }
+      
+      debounceTimeout = setTimeout(() => {
+        console.log('[WhatsApp Contacts] ⚡ Executando refresh após debounce');
+        
+        // 🚀 ESTRATÉGIA INTELIGENTE: Apenas invalidar cache em vez de reset completo
+        if (cacheKey) {
+          console.log('[WhatsApp Contacts] 🗑️ Invalidando cache para refresh suave');
+          contactsCache.delete(cacheKey);
+          
+          // Se lista estiver vazia, fazer fetch completo
+          if (contacts.length === 0) {
+            console.log('[WhatsApp Contacts] 📥 Lista vazia - fazendo fetch inicial');
+            fetchContacts(true);
+          } else {
+            console.log('[WhatsApp Contacts] ✅ Lista preservada - cache invalidado para próximo refresh');
+          }
+        }
+      }, 2000); // 2 segundos de debounce para agrupar múltiplos eventos
     };
 
     window.addEventListener('refreshWhatsAppContacts', handleRefreshContacts);
 
     return () => {
       window.removeEventListener('refreshWhatsAppContacts', handleRefreshContacts);
+      if (debounceTimeout) {
+        clearTimeout(debounceTimeout);
+      }
     };
-  }, [fetchContacts]);
+  }, [fetchContacts, cacheKey, contacts.length]);
 
   // 🚀 FUNÇÃO PARA LIMPEZA AUTOMÁTICA DO CACHE
   const cleanupCache = () => {
@@ -516,6 +643,39 @@ export const useWhatsAppContacts = (
     }
   };
 
+  // 🚀 FUNÇÃO LOADMORE SIMPLIFICADA - DEPENDÊNCIAS CORRIGIDAS
+  const loadMoreContacts = useCallback(async () => {
+    console.log('[WhatsApp Contacts] 🔄 LoadMore chamado:', {
+      hasMoreContacts,
+      isLoadingContacts,
+      isLoadingMoreContacts,
+      totalContacts: contacts.length
+    });
+
+    // ✅ PROTEÇÕES BÁSICAS
+    if (!hasMoreContacts) {
+      console.log('[WhatsApp Contacts] 🚫 LoadMore bloqueado - hasMore = false');
+      return;
+    }
+
+    if (isLoadingContacts || isLoadingMoreContacts) {
+      console.log('[WhatsApp Contacts] 🚫 LoadMore bloqueado - já carregando');
+      return;
+    }
+
+    // ✅ THROTTLING SIMPLES
+    const now = Date.now();
+    const timeSinceLastLoad = now - lastLoadMoreTimeRef.current;
+    if (timeSinceLastLoad < 500) { // Reduzido para 500ms
+      console.log('[WhatsApp Contacts] 🚫 LoadMore bloqueado - throttling');
+      return;
+    }
+
+    lastLoadMoreTimeRef.current = now;
+    console.log('[WhatsApp Contacts] ✅ LoadMore executando fetchContacts...');
+    await fetchContacts(false, true);
+  }, [hasMoreContacts, isLoadingContacts, isLoadingMoreContacts, fetchContacts]); // 🚀 REMOVIDO contacts.length que causava loop infinito!
+
   return {
     contacts,
     isLoadingContacts,
@@ -526,7 +686,7 @@ export const useWhatsAppContacts = (
     moveContactToTop,
     markAsRead,
     fetchContacts,
-    loadMoreContacts: () => fetchContacts(false, true),
+    loadMoreContacts,
     totalContactsAvailable
   };
 };

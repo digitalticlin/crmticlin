@@ -170,9 +170,9 @@ export const ChatHeaderTags = ({
         onRemoveTag(tagId);
       }
       
-      // Disparar eventos de sincronização apenas uma vez
+      // 🚀 CORREÇÃO: Tags não afetam ordem da lista de contatos - não resetar
       setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('refreshWhatsAppContacts'));
+        console.log('[ChatHeaderTags] ℹ️ Tags alteradas - não é necessário resetar lista de contatos');
         window.dispatchEvent(new CustomEvent('refreshLeadTags'));
       }, 100);
       

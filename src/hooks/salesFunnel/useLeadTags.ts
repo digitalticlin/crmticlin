@@ -87,8 +87,8 @@ export const useLeadTags = (leadId: string) => {
 
       await fetchTags();
       
-      // Disparar eventos para sincronizar outras partes da aplicação
-      window.dispatchEvent(new CustomEvent('refreshWhatsAppContacts'));
+      // 🚀 CORREÇÃO: Tags não afetam ordem da lista de contatos - não resetar
+      console.log('[useLeadTags] ℹ️ Tag adicionada - não é necessário resetar lista de contatos');
       
       toast.success('Tag adicionada com sucesso');
       
@@ -113,8 +113,8 @@ export const useLeadTags = (leadId: string) => {
 
       await fetchTags();
       
-      // Disparar eventos para sincronizar outras partes da aplicação
-      window.dispatchEvent(new CustomEvent('refreshWhatsAppContacts'));
+      // 🚀 CORREÇÃO: Tags não afetam ordem da lista de contatos - não resetar
+      console.log('[useLeadTags] ℹ️ Tag removida - não é necessário resetar lista de contatos');
       
       toast.success('Tag removida com sucesso');
       

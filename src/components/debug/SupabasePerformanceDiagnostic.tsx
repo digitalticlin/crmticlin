@@ -410,8 +410,8 @@ export const SupabasePerformanceDiagnostic: React.FC = () => {
       if (success) {
         toast.success(`✅ Teste concluído! Lead "${testLead.name}" movido para "${newStage.title}"`);
         
-        // Disparar evento de refresh
-        window.dispatchEvent(new CustomEvent('refreshWhatsAppContacts'));
+        // 🚀 CORREÇÃO: Teste de etapa não precisa resetar lista de contatos
+        console.log('[Teste Etapa] ℹ️ Teste concluído - não é necessário resetar lista de contatos');
       } else {
         toast.error('❌ Falha no teste - mudança não foi persistida');
       }

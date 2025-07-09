@@ -118,8 +118,9 @@ export const useLeadStageManager = (leadId: string | null, currentStageId: strin
       // Refetch específico para garantir sincronização
       queryClient.refetchQueries({ queryKey: ['whatsapp-contacts'] });
       
-      // Forçar refresh dos contatos do WhatsApp
-      window.dispatchEvent(new CustomEvent('refreshWhatsAppContacts'));
+      // 🚀 CORREÇÃO: Só fazer refresh de contatos se realmente necessário
+      // Mudanças de etapa não afetam a ordem da lista de contatos
+      console.log('[LeadStageManager] ℹ️ Etapa alterada - não é necessário resetar lista de contatos');
       
       // 🚀 NOVO: Disparar evento específico para atualizar o contato selecionado
       window.dispatchEvent(new CustomEvent('updateSelectedContactStage', {

@@ -52,6 +52,7 @@ export const WhatsAppChatLayout = ({
 }: WhatsAppChatLayoutProps) => {
   const [isDetailsSidebarOpen, setIsDetailsSidebarOpen] = useState(false);
 
+  // 🚀 ATUALIZAÇÃO OTIMIZADA: Atualizar contato sem resetar lista
   const handleUpdateContact = (updates: Partial<Contact>) => {
     if (!selectedContact) return;
 
@@ -59,10 +60,8 @@ export const WhatsAppChatLayout = ({
     const updatedSelected = { ...selectedContact, ...updates };
     onSelectContact(updatedSelected);
 
-    // Refresh contacts list to get updated tags
-    if (onRefreshContacts) {
-      onRefreshContacts();
-    }
+    // ✅ CORREÇÃO CRÍTICA: Não resetar lista - subscription já atualiza automaticamente
+    console.log('[WhatsAppChatLayout] ✅ Contato atualizado sem reset da lista');
   };
 
   const handleEditLead = () => {

@@ -172,13 +172,11 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
           if (leadId) {
             console.log('[WhatsApp Chat] 🔄 Movendo contato para topo:', leadId);
             
-            // Mover contato para topo imediatamente
+            // ✅ CORREÇÃO: Apenas mover contato para topo SEM resetar lista
             moveContactToTop(leadId, messageText);
             
-            // Atualizar lista de contatos após um pequeno delay
-            setTimeout(() => {
-              fetchContacts(true);
-            }, 100);
+            // ❌ REMOVIDO: fetchContacts(true) que reseta a paginação
+            // ✅ O moveContactToTop já atualiza o contato específico
           }
         }
       )
@@ -190,7 +188,7 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
       console.log('[WhatsApp Chat] 🔌 Removendo subscription');
       supabase.removeChannel(channel);
     };
-  }, [webActiveInstance?.id, user?.id, moveContactToTop, fetchContacts]);
+  }, [webActiveInstance?.id, user?.id, moveContactToTop]);
 
   // Função memoizada para selecionar contato e marcar como lido
   const handleSelectContact = useCallback(async (contact: Contact | null) => {
@@ -200,16 +198,14 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
         await markAsRead(contact.id);
         console.log('[WhatsApp Chat Provider] ✅ Contato marcado como lido com sucesso');
         
-        // Força um refresh dos contatos após um delay para garantir sincronização
-        setTimeout(() => {
-          fetchContacts(true);
-        }, 500);
+        // ❌ REMOVIDO: fetchContacts(true) que reseta a paginação
+        // ✅ O markAsRead já atualiza o contador específico do contato
       } catch (error) {
         console.error('[WhatsApp Chat Provider] ❌ Erro ao marcar como lido:', error);
       }
     }
     setSelectedContact(contact);
-  }, [markAsRead, fetchContacts]);
+  }, [markAsRead]);
 
   // Memoizar saúde da instância para evitar re-cálculos
   const instanceHealth = useMemo(() => ({
