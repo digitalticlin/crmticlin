@@ -1,19 +1,10 @@
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ImageMessage } from './renderers/ImageMessage';
 import { VideoMessage } from './renderers/VideoMessage';
 import { AudioMessage } from './renderers/AudioMessage';
 import { DocumentMessage } from './renderers/DocumentMessage';
-
-interface MediaCache {
-  id: string;
-  message_id: string;
-  cached_url: string | null;
-  base64_data: string | null;
-  media_type: string;
-  file_size: number | null;
-}
 
 interface MessageMediaProps {
   messageId: string;
@@ -22,81 +13,85 @@ interface MessageMediaProps {
   fileName?: string;
 }
 
-// CACHE GLOBAL ULTRA OTIMIZADO com batch loading
-const globalMediaCache = new Map<string, MediaCache | null>();
-const pendingRequests = new Set<string>();
-const cacheTimestamps = new Map<string, number>();
-const batchQueue = new Set<string>();
-let batchTimeout: NodeJS.Timeout | null = null;
-
-// Função de batch loading para múltiplas mídias
-const processBatchRequests = async () => {
-  if (batchQueue.size === 0) return;
-  
-  const messageIds = Array.from(batchQueue);
-  batchQueue.clear();
-  
-  try {
-    // Query em lote para múltiplas mídias
-    const { data, error } = await supabase
-      .from('media_cache')
-      .select('*')
-      .in('message_id', messageIds);
-
-    if (error) {
-      console.error('[MediaCache] Batch query error:', error);
-      // Marcar todos como sem cache
-      messageIds.forEach(id => {
-        globalMediaCache.set(id, null);
-        cacheTimestamps.set(id, Date.now());
-        pendingRequests.delete(id);
-      });
-      return;
-    }
-
-    // Processar resultados
-    const foundCaches = new Set<string>();
-    
-    (data || []).forEach((cache: MediaCache) => {
-      globalMediaCache.set(cache.message_id, cache);
-      cacheTimestamps.set(cache.message_id, Date.now());
-      foundCaches.add(cache.message_id);
-      pendingRequests.delete(cache.message_id);
-    });
-
-    // Marcar não encontrados como sem cache
-    messageIds.forEach(id => {
-      if (!foundCaches.has(id)) {
-        globalMediaCache.set(id, null);
-        cacheTimestamps.set(id, Date.now());
-        pendingRequests.delete(id);
-      }
-    });
-
-  } catch (error) {
-    console.error('[MediaCache] Batch error:', error);
-    // Marcar todos como sem cache em caso de erro
-    messageIds.forEach(id => {
-      globalMediaCache.set(id, null);
-      cacheTimestamps.set(id, Date.now());
-      pendingRequests.delete(id);
-    });
-  }
-};
-
 export const MessageMedia: React.FC<MessageMediaProps> = React.memo(({
   messageId,
   mediaType,
   mediaUrl,
   fileName
 }) => {
-  const [cachedMedia, setCachedMedia] = useState<MediaCache | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [cacheChecked, setCacheChecked] = useState(false);
-  const mountedRef = useRef(true);
+  const [finalUrl, setFinalUrl] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Função auxiliar ANTES do useMemo
-  const getDataUrlPrefix = (type: string) => {
+  useEffect(() => {
+    const loadMedia = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        // 1. Primeiro, verificar se há cache no banco
+        const { data: cacheData } = await supabase
+          .from('media_cache')
+          .select('cached_url, base64_data')
+          .eq('message_id', messageId)
+          .maybeSingle();
+
+        if (cacheData) {
+          // Priorizar base64 se disponível
+          if (cacheData.base64_data) {
+            const mimeType = getMimeType(mediaType);
+            setFinalUrl(`data:${mimeType};base64,${cacheData.base64_data}`);
+            setIsLoading(false);
+            return;
+          }
+
+          // Usar URL cached se disponível
+          if (cacheData.cached_url) {
+            setFinalUrl(cacheData.cached_url);
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        // 2. Se não há cache, usar URL original ou tentar buscar do storage
+        if (mediaUrl) {
+          // Verificar se é URL do Supabase Storage
+          if (mediaUrl.includes('supabase.co/storage/v1/object/public/whatsapp-media/')) {
+            setFinalUrl(mediaUrl);
+          } else {
+            // Tentar buscar no storage do Supabase por nome de arquivo
+            const fileName = `${messageId}.${getFileExtension(mediaType)}`;
+            const { data } = supabase.storage
+              .from('whatsapp-media')
+              .getPublicUrl(fileName);
+            
+            if (data.publicUrl) {
+              setFinalUrl(data.publicUrl);
+            } else {
+              setFinalUrl(mediaUrl); // Fallback para URL original
+            }
+          }
+        } else {
+          setError('URL de mídia não encontrada');
+        }
+      } catch (err) {
+        console.error('Erro ao carregar mídia:', err);
+        setError('Erro ao carregar mídia');
+        
+        // Fallback para URL original se houver
+        if (mediaUrl) {
+          setFinalUrl(mediaUrl);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadMedia();
+  }, [messageId, mediaUrl, mediaType]);
+
+  // Função para determinar MIME type
+  const getMimeType = (type: string) => {
     switch (type) {
       case 'image': return 'image/jpeg';
       case 'video': return 'video/mp4';
@@ -106,126 +101,43 @@ export const MessageMedia: React.FC<MessageMediaProps> = React.memo(({
     }
   };
 
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; };
-  }, []);
-
-  useEffect(() => {
-    // Se já verificamos cache para esta mensagem
-    if (cacheChecked) return;
-
-    // Verificar cache global primeiro
-    if (globalMediaCache.has(messageId)) {
-      const cached = globalMediaCache.get(messageId);
-      const cacheTime = cacheTimestamps.get(messageId) || 0;
-      const isRecentCache = Date.now() - cacheTime < 300000; // 5 minutos
-
-      if (isRecentCache) {
-        setCachedMedia(cached);
-        setCacheChecked(true);
-        setIsLoading(false);
-        return;
-      } else {
-        // Cache expirado - remover
-        globalMediaCache.delete(messageId);
-        cacheTimestamps.delete(messageId);
-      }
+  // Função para extensão de arquivo
+  const getFileExtension = (type: string) => {
+    switch (type) {
+      case 'image': return 'jpg';
+      case 'video': return 'mp4';
+      case 'audio': return 'ogg';
+      case 'document': return 'pdf';
+      default: return 'bin';
     }
+  };
 
-    // Se já está sendo processado, aguardar
-    if (pendingRequests.has(messageId)) {
-      // Aguardar resultado do batch
-      const checkPending = () => {
-        if (!mountedRef.current) return;
-        
-        if (globalMediaCache.has(messageId)) {
-          const cached = globalMediaCache.get(messageId);
-          setCachedMedia(cached);
-          setCacheChecked(true);
-          setIsLoading(false);
-        } else {
-          // Tentar novamente em breve
-          setTimeout(checkPending, 100);
-        }
-      };
-      setTimeout(checkPending, 50);
-      return;
-    }
-
-    // Adicionar ao batch queue
-    setIsLoading(true);
-    pendingRequests.add(messageId);
-    batchQueue.add(messageId);
-
-    // Processar batch após pequeno delay para agrupar requests
-    if (batchTimeout) clearTimeout(batchTimeout);
-    batchTimeout = setTimeout(async () => {
-      await processBatchRequests();
-      
-      // Verificar resultado após batch
-      if (!mountedRef.current) return;
-      
-      if (globalMediaCache.has(messageId)) {
-        const cached = globalMediaCache.get(messageId);
-        setCachedMedia(cached);
-        setCacheChecked(true);
-        setIsLoading(false);
-      }
-    }, 50); // 50ms para agrupar requests
-
-  }, [messageId, cacheChecked]);
-
-  // Memoizar URL final com fallback inteligente
-  const finalUrl = useMemo(() => {
-    // Se ainda carregando, não retornar URL
-    if (isLoading) {
-      return null;
-    }
-
-    // Prioridade 1: Cache Base64 (permanente)
-    if (cachedMedia?.base64_data) {
-      return `data:${getDataUrlPrefix(mediaType)};base64,${cachedMedia.base64_data}`;
-    }
-    
-    // Prioridade 2: Cache URL (permanente)
-    if (cachedMedia?.cached_url) {
-      return cachedMedia.cached_url;
-    }
-    
-    // Prioridade 3: URL original (temporário, pode estar expirado)
-    if (mediaUrl) {
-      return mediaUrl;
-    }
-    
-    // Sem URL disponível
-    return null;
-  }, [cachedMedia, mediaType, mediaUrl, isLoading]);
-
-  // Renderização otimizada - Loading state minimalista
+  // Loading state
   if (isLoading) {
     return (
-      <div className="flex items-center space-x-2 p-2 bg-gray-50 rounded-lg text-xs">
-        <div className="animate-pulse w-2 h-2 bg-gray-400 rounded-full"></div>
-        <span className="text-gray-500">Verificando...</span>
+      <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
+        <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-400 border-t-transparent"></div>
+        <span className="text-sm text-gray-600">Carregando mídia...</span>
       </div>
     );
   }
 
-  // Se não tem URL, mostrar placeholder simples
-  if (!finalUrl) {
+  // Error state
+  if (error || !finalUrl) {
     return (
-      <div className="p-2 bg-gray-50 rounded-lg text-xs text-gray-500">
-        📎 Mídia indisponível
+      <div className="p-3 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+        <span className="text-sm text-gray-500">
+          📎 {error || 'Mídia indisponível'}
+        </span>
       </div>
     );
   }
 
-  // Renderizar componente específico com loading=false (cache resolvido)
+  // Renderizar componente específico
   const mediaProps = {
     messageId,
     url: finalUrl,
-    isLoading: false, // Cache já resolvido
+    isLoading: false,
     isIncoming: true
   };
 
@@ -243,8 +155,10 @@ export const MessageMedia: React.FC<MessageMediaProps> = React.memo(({
       />;
     default:
       return (
-        <div className="p-2 bg-gray-50 rounded-lg text-xs text-gray-500">
-          📎 Tipo não suportado: {mediaType}
+        <div className="p-3 bg-gray-50 rounded-lg">
+          <span className="text-sm text-gray-500">
+            📎 Tipo não suportado: {mediaType}
+          </span>
         </div>
       );
   }

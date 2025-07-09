@@ -1,6 +1,6 @@
+
 import React, { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
 
 interface ImageMessageProps {
   messageId: string;
@@ -19,24 +19,13 @@ export const ImageMessage = React.memo(({ messageId, url, caption, isIncoming, i
   }, []);
 
   const handleImageError = useCallback(() => {
+    console.error('Erro ao carregar imagem:', url);
     setImageError(true);
-  }, []);
+  }, [url]);
 
   const handleImageClick = useCallback(() => {
     window.open(url, '_blank');
   }, [url]);
-
-  // Mostrar loader enquanto está processando cache
-  if (isLoading) {
-    return (
-      <div className="w-48 h-32 bg-gray-50 rounded-lg flex items-center justify-center">
-        <div className="flex items-center space-x-2 text-xs text-gray-500">
-          <Loader2 className="w-3 h-3 animate-spin" />
-          <span>Carregando...</span>
-        </div>
-      </div>
-    );
-  }
 
   if (imageError) {
     return (
@@ -47,10 +36,10 @@ export const ImageMessage = React.memo(({ messageId, url, caption, isIncoming, i
   }
 
   return (
-    <div className="space-y-1 max-w-xs">
-      <div className="relative overflow-hidden rounded-lg">
+    <div className="space-y-2 max-w-xs">
+      <div className="relative overflow-hidden rounded-lg bg-gray-100">
         {!imageLoaded && (
-          <div className="absolute inset-0 w-48 h-32 bg-gray-50 flex items-center justify-center">
+          <div className="absolute inset-0 w-48 h-32 bg-gray-100 flex items-center justify-center">
             <div className="animate-pulse w-3 h-3 bg-gray-300 rounded-full"></div>
           </div>
         )}
@@ -58,7 +47,7 @@ export const ImageMessage = React.memo(({ messageId, url, caption, isIncoming, i
           src={url} 
           alt="Imagem compartilhada"
           className={cn(
-            "max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity duration-200",
+            "max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity duration-200 rounded-lg",
             !imageLoaded && "opacity-0"
           )}
           onClick={handleImageClick}
@@ -66,17 +55,18 @@ export const ImageMessage = React.memo(({ messageId, url, caption, isIncoming, i
           onError={handleImageError}
           loading="lazy"
           style={{ 
-            maxWidth: '192px', 
-            maxHeight: '128px',
-            objectFit: 'cover'
+            maxWidth: '250px', 
+            maxHeight: '200px',
+            objectFit: 'cover',
+            minHeight: imageLoaded ? 'auto' : '128px'
           }}
         />
       </div>
       {caption && caption !== '[Imagem]' && (
-        <p className="text-xs text-gray-600 leading-relaxed">{caption}</p>
+        <p className="text-sm text-gray-700 leading-relaxed">{caption}</p>
       )}
     </div>
   );
 });
 
-ImageMessage.displayName = 'ImageMessage'; 
+ImageMessage.displayName = 'ImageMessage';

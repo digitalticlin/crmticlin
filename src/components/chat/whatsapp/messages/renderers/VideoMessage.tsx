@@ -1,6 +1,6 @@
+
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { Play } from 'lucide-react';
 
 interface VideoMessageProps {
   messageId: string;
@@ -10,11 +10,12 @@ interface VideoMessageProps {
   isLoading?: boolean;
 }
 
-export const VideoMessage = ({ messageId, url, caption, isIncoming, isLoading: cacheLoading = false }: VideoMessageProps) => {
+export const VideoMessage = ({ messageId, url, caption, isIncoming, isLoading = false }: VideoMessageProps) => {
   const [videoError, setVideoError] = useState(false);
   const [videoLoading, setVideoLoading] = useState(true);
 
   const handleVideoError = () => {
+    console.error('Erro ao carregar vídeo:', url);
     setVideoError(true);
     setVideoLoading(false);
   };
@@ -22,26 +23,6 @@ export const VideoMessage = ({ messageId, url, caption, isIncoming, isLoading: c
   const handleVideoLoad = () => {
     setVideoLoading(false);
   };
-
-  // Mostrar loader enquanto está processando cache
-  if (cacheLoading) {
-    return (
-      <div className="space-y-2">
-        <div className={cn(
-          "flex items-center justify-center p-4 rounded-lg",
-          isIncoming ? "bg-gray-100" : "bg-white/20"
-        )}>
-          <div className="flex items-center space-x-2">
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-400 border-t-transparent"></div>
-            <span className="text-sm opacity-70">Carregando vídeo...</span>
-          </div>
-        </div>
-        {caption && caption !== '[Vídeo]' && (
-          <p className="break-words leading-relaxed whitespace-pre-wrap text-sm">{caption}</p>
-        )}
-      </div>
-    );
-  }
 
   if (videoError) {
     return (
@@ -76,13 +57,13 @@ export const VideoMessage = ({ messageId, url, caption, isIncoming, isLoading: c
         <video 
           controls 
           className={cn(
-            "w-full rounded-lg shadow-sm",
+            "w-full rounded-lg shadow-sm max-w-xs",
             videoLoading && "opacity-0"
           )}
+          style={{ maxHeight: '300px' }}
           preload="metadata"
           onLoadedMetadata={handleVideoLoad}
           onError={handleVideoError}
-          poster={undefined}
         >
           <source src={url} type="video/mp4" />
           <source src={url} type="video/webm" />
@@ -95,4 +76,4 @@ export const VideoMessage = ({ messageId, url, caption, isIncoming, isLoading: c
       )}
     </div>
   );
-}; 
+};
