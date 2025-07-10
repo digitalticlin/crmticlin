@@ -21,11 +21,12 @@ export const AIToggleSwitch = ({
   className
 }: AIToggleSwitchProps) => {
   const iconSize = size === "sm" ? "h-3 w-3" : "h-4 w-4";
+  const textSize = size === "sm" ? "text-xs" : "text-sm";
   
   return (
     <div className={cn(
-      "flex items-center gap-2",
-      size === "sm" ? "text-xs" : "text-sm",
+      "flex items-center gap-1.5",
+      textSize,
       className
     )}>
       {showIcon && (
@@ -46,7 +47,7 @@ export const AIToggleSwitch = ({
       />
       
       <span className={cn(
-        "font-medium",
+        "font-medium whitespace-nowrap",
         enabled ? "text-green-700" : "text-gray-500"
       )}>
         IA {enabled ? "ON" : "OFF"}

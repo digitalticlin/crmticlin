@@ -156,7 +156,7 @@ export function KanbanColumn({
 
   return (
     <div className="bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-2xl px-1.5 py-3 min-w-[300px] max-w-[300px] flex flex-col h-full transition-all duration-300 hover:bg-white/25 hover:shadow-glass-lg">
-      {/* Header */}
+      {/* Header com IA Toggle no canto direito */}
       <div className="flex items-center justify-between mb-4 px-1">
         <div className="flex items-center gap-2 flex-1">
           {isFixedStage && <Lock className="h-4 w-4 text-gray-500" />}
@@ -185,44 +185,46 @@ export function KanbanColumn({
           </span>
         </div>
 
-        {/* Actions */}
-        {!isFixedStage && !isWonLostView && (onUpdateColumn || onDeleteColumn) && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              {onUpdateColumn && (
-                <DropdownMenuItem onClick={() => setIsEditing(true)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Editar
-                </DropdownMenuItem>
-              )}
-              {onDeleteColumn && (
-                <DropdownMenuItem onClick={handleDelete} className="text-red-600">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Excluir
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
-      </div>
+        {/* Área direita com IA Toggle e Menu de Ações */}
+        <div className="flex items-center gap-2">
+          {/* Toggle da IA - sempre visível para etapas não fixas */}
+          {!isFixedStage && !isWonLostView && (
+            <AIToggleSwitch
+              enabled={aiEnabled}
+              onToggle={handleAIToggle}
+              isLoading={isTogglingAI}
+              size="sm"
+              showIcon={false}
+              className="flex-shrink-0"
+            />
+          )}
 
-      {/* Controle de IA - sempre visível para etapas não fixas */}
-      {!isFixedStage && !isWonLostView && (
-        <div className="px-1 mb-3">
-          <AIToggleSwitch
-            enabled={aiEnabled}
-            onToggle={handleAIToggle}
-            isLoading={isTogglingAI}
-            size="sm"
-            className="justify-center"
-          />
+          {/* Menu de ações */}
+          {!isFixedStage && !isWonLostView && (onUpdateColumn || onDeleteColumn) && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {onUpdateColumn && (
+                  <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Editar
+                  </DropdownMenuItem>
+                )}
+                {onDeleteColumn && (
+                  <DropdownMenuItem onClick={handleDelete} className="text-red-600">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Excluir
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Color bar */}
       <div
