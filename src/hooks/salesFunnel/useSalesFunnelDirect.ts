@@ -138,7 +138,8 @@ export function useSalesFunnelDirect() {
         leads: stageLeads,
         color: stage.color || "#e0e0e0",
         isFixed: stage.is_fixed || false,
-        isHidden: false
+        isHidden: false,
+        ai_enabled: stage.ai_enabled !== false // Nova propriedade
       };
     });
 

@@ -1,4 +1,3 @@
-
 import { ReactNode, useEffect, useState } from "react";
 import { SalesFunnelProvider } from "./SalesFunnelProvider";
 import { useSalesFunnelOptimized } from "@/hooks/salesFunnel/useSalesFunnelOptimized";
@@ -228,7 +227,10 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     funnelLoading: salesFunnelData.loading || false,
     
     // Dados com fallbacks seguros - Transform raw database leads to KanbanLead format
-    columns: salesFunnelData.columns || [],
+    columns: (salesFunnelData.columns || []).map(column => ({
+      ...column,
+      ai_enabled: column.ai_enabled !== false // Garantir que ai_enabled está presente
+    })),
     setColumns: salesFunnelData.setColumns || (() => {}),
     selectedLead: salesFunnelData.selectedLead || null,
     isLeadDetailOpen: salesFunnelData.isLeadDetailOpen || false,

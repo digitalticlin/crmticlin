@@ -182,6 +182,7 @@ export type Database = {
       }
       kanban_stages: {
         Row: {
+          ai_enabled: boolean
           color: string | null
           created_at: string | null
           created_by_user_id: string
@@ -195,6 +196,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          ai_enabled?: boolean
           color?: string | null
           created_at?: string | null
           created_by_user_id: string
@@ -208,6 +210,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          ai_enabled?: boolean
           color?: string | null
           created_at?: string | null
           created_by_user_id?: string
@@ -721,6 +724,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      save_sent_message: {
+        Args: {
+          p_instance_id: string
+          p_phone: string
+          p_message: string
+          p_user_id: string
+          p_message_id?: string
+        }
+        Returns: string
+      }
       sync_whatsapp_instances: {
         Args: Record<PropertyKey, never>
         Returns: string

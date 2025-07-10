@@ -12,6 +12,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { LeadCard } from "./LeadCard";
 import { KanbanColumn as KanbanColumnType, KanbanLead } from "@/types/kanban";
+import { AIToggleSwitch } from "./ai/AIToggleSwitch";
+import { useAIStageControl } from "@/hooks/salesFunnel/useAIStageControl";
 import { toast } from "sonner";
 
 interface KanbanColumnProps {
@@ -45,11 +47,17 @@ export function KanbanColumn({
   const [editTitle, setEditTitle] = useState(column.title);
   
   // Estados para scroll infinito
-  const [visibleLeadsCount, setVisibleLeadsCount] = useState(25); // Começar com 25
+  const [visibleLeadsCount, setVisibleLeadsCount] = useState(25);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Hook para controle de IA
+  const { toggleAI, isLoading: isTogglingAI } = useAIStageControl();
+
   const isFixedStage = column.title === "GANHO" || column.title === "PERDIDO" || column.title === "Entrada de Leads" || column.isFixed;
+  
+  // Assumir que ai_enabled está disponível na coluna (será adicionado via tipos)
+  const aiEnabled = (column as any).ai_enabled !== false; // Default true se não definido
 
   // Leads visíveis baseado no scroll infinito
   const visibleLeads = column.leads.slice(0, visibleLeadsCount);
@@ -128,6 +136,10 @@ export function KanbanColumn({
     }
   };
 
+  const handleAIToggle = (enabled: boolean) => {
+    toggleAI(column.id, !enabled);
+  };
+
   return (
     <div className="bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-2xl px-1.5 py-3 min-w-[300px] max-w-[300px] flex flex-col h-full transition-all duration-300 hover:bg-white/25 hover:shadow-glass-lg">
       {/* Header */}
@@ -184,6 +196,19 @@ export function KanbanColumn({
           </DropdownMenu>
         )}
       </div>
+
+      {/* Controle de IA - apenas para etapas não fixas */}
+      {!isFixedStage && !isWonLostView && (
+        <div className="px-1 mb-3">
+          <AIToggleSwitch
+            enabled={aiEnabled}
+            onToggle={handleAIToggle}
+            isLoading={isTogglingAI}
+            size="sm"
+            className="justify-center"
+          />
+        </div>
+      )}
 
       {/* Color bar */}
       <div

@@ -1,10 +1,12 @@
 
-import { Contact } from "./chat";
-
-export interface KanbanTag {
+export interface KanbanColumn {
   id: string;
-  name: string;
-  color: string;
+  title: string;
+  leads: KanbanLead[];
+  color?: string;
+  isFixed?: boolean;
+  isHidden?: boolean;
+  ai_enabled?: boolean; // Nova propriedade para controle de IA
 }
 
 export interface KanbanLead {
@@ -13,50 +15,26 @@ export interface KanbanLead {
   phone: string;
   email?: string;
   company?: string;
-  documentId?: string;
-  document_type?: 'cpf' | 'cnpj';
-  address?: string;
-  city?: string;
-  state?: string;
-  country?: string;
-  zip_code?: string;
   lastMessage: string;
-  last_message?: string;
   lastMessageTime: string;
-  last_message_time?: string;
   tags: KanbanTag[];
   notes?: string;
   columnId?: string;
   purchaseValue?: number;
-  purchase_value?: number;
   assignedUser?: string;
+  unreadCount: number;
   avatar?: string;
-  unreadCount?: number;
-  unread_count?: number;
-  
-  // Sistema e relacionamentos
-  created_at?: string;
+  created_at: string;
   updated_at?: string;
   company_id?: string;
   whatsapp_number_id?: string;
-  funnel_id?: string;
+  funnel_id: string;
   kanban_stage_id?: string;
   owner_id?: string;
 }
 
-export interface KanbanColumn {
+export interface KanbanTag {
   id: string;
-  title: string;
-  leads: KanbanLead[];
-  isFixed?: boolean;
-  isHidden?: boolean;
-  color?: string;
+  name: string;
+  color: string;
 }
-
-export type ColumnType = "new_lead" | "won" | "lost" | "custom";
-
-export const FIXED_COLUMN_IDS = {
-  NEW_LEAD: "column-new-lead",
-  WON: "column-won",
-  LOST: "column-lost"
-};
