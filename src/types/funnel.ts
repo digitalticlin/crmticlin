@@ -17,4 +17,5 @@ export interface KanbanStage {
   order_position: number;
   funnel_id: string;
   created_by_user_id: string;
+  ai_enabled?: boolean; // Adicionar propriedade ai_enabled
 }

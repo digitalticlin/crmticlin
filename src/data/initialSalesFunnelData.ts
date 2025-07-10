@@ -36,7 +36,10 @@ export const initialColumns: KanbanColumn[] = [
           { id: "tag-7", name: "2ª Compra", color: "bg-emerald-400" },
         ],
         columnId: FIXED_COLUMN_IDS.WON,
-        purchaseValue: 8500
+        purchaseValue: 8500,
+        unreadCount: 0,
+        created_at: new Date().toISOString(),
+        funnel_id: "default-funnel"
       }
     ],
   },
@@ -56,7 +59,10 @@ export const initialColumns: KanbanColumn[] = [
           { id: "tag-8", name: "Preço Alto", color: "bg-orange-400" },
         ],
         columnId: FIXED_COLUMN_IDS.LOST,
-        notes: "Cliente achou o valor acima do orçamento, talvez retornar com promoção futura."
+        notes: "Cliente achou o valor acima do orçamento, talvez retornar com promoção futura.",
+        unreadCount: 0,
+        created_at: new Date().toISOString(),
+        funnel_id: "default-funnel"
       }
     ],
   },

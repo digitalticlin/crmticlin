@@ -42,7 +42,10 @@ export const unifiedLeads: KanbanLead[] = [
     ],
     columnId: FIXED_COLUMN_IDS.NEW_LEAD,
     notes: "Cliente interessado em planos corporativos",
-    purchaseValue: 2500
+    purchaseValue: 2500,
+    unreadCount: 3,
+    created_at: new Date().toISOString(),
+    funnel_id: "default-funnel"
   },
   {
     id: "lead-2", 
@@ -56,7 +59,10 @@ export const unifiedLeads: KanbanLead[] = [
     ],
     columnId: FIXED_COLUMN_IDS.NEW_LEAD,
     notes: "Cliente interessado no plano básico, enviar proposta",
-    purchaseValue: 800
+    purchaseValue: 800,
+    unreadCount: 1,
+    created_at: new Date().toISOString(),
+    funnel_id: "default-funnel"
   },
   {
     id: "lead-3",
@@ -73,7 +79,10 @@ export const unifiedLeads: KanbanLead[] = [
     ],
     columnId: FIXED_COLUMN_IDS.NEW_LEAD,
     notes: "Interessada em planos premium para empresa",
-    purchaseValue: 5000
+    purchaseValue: 5000,
+    unreadCount: 3,
+    created_at: new Date().toISOString(),
+    funnel_id: "default-funnel"
   },
   {
     id: "lead-4",
@@ -87,7 +96,10 @@ export const unifiedLeads: KanbanLead[] = [
     ],
     columnId: FIXED_COLUMN_IDS.NEW_LEAD,
     notes: "Quer agendar reunião para próxima semana",
-    purchaseValue: 1200
+    purchaseValue: 1200,
+    unreadCount: 1,
+    created_at: new Date().toISOString(),
+    funnel_id: "default-funnel"
   },
 
   // EM CONTATO - 3 leads
@@ -102,7 +114,10 @@ export const unifiedLeads: KanbanLead[] = [
     ],
     columnId: "column-2",
     notes: "Proposta enviada ontem, aguardando retorno",
-    purchaseValue: 3500
+    purchaseValue: 3500,
+    unreadCount: 0,
+    created_at: new Date().toISOString(),
+    funnel_id: "default-funnel"
   },
   {
     id: "lead-6", 
@@ -117,7 +132,10 @@ export const unifiedLeads: KanbanLead[] = [
     ],
     columnId: "column-2",
     notes: "Cliente VIP, segunda compra este ano",
-    purchaseValue: 7500
+    purchaseValue: 7500,
+    unreadCount: 0,
+    created_at: new Date().toISOString(),
+    funnel_id: "default-funnel"
   },
   {
     id: "lead-7",
@@ -131,7 +149,10 @@ export const unifiedLeads: KanbanLead[] = [
     ],
     columnId: "column-2",
     notes: "Empresa grande, proposta para 50 licenças",
-    purchaseValue: 15000
+    purchaseValue: 15000,
+    unreadCount: 2,
+    created_at: new Date().toISOString(),
+    funnel_id: "default-funnel"
   },
 
   // NEGOCIAÇÃO - 3 leads  
@@ -148,7 +169,10 @@ export const unifiedLeads: KanbanLead[] = [
     ],
     columnId: "column-3",
     notes: "Negociando desconto, reunião agendada",
-    purchaseValue: 4200
+    purchaseValue: 4200,
+    unreadCount: 0,
+    created_at: new Date().toISOString(),
+    funnel_id: "default-funnel"
   },
   {
     id: "lead-9", 
@@ -164,7 +188,10 @@ export const unifiedLeads: KanbanLead[] = [
     ],
     columnId: "column-3", 
     notes: "E-commerce, precisa implementar rapidamente",
-    purchaseValue: 6800
+    purchaseValue: 6800,
+    unreadCount: 5,
+    created_at: new Date().toISOString(),
+    funnel_id: "default-funnel"
   },
   {
     id: "lead-10",
@@ -178,7 +205,10 @@ export const unifiedLeads: KanbanLead[] = [
     ],
     columnId: "column-3",
     notes: "Freelancer, negociando desconto especial",
-    purchaseValue: 980
+    purchaseValue: 980,
+    unreadCount: 0,
+    created_at: new Date().toISOString(),
+    funnel_id: "default-funnel"
   }
 ];
 
@@ -195,7 +225,7 @@ export const convertLeadToContact = (lead: KanbanLead): Contact => {
     tags: lead.tags,
     lastMessage: lead.lastMessage,
     lastMessageTime: lead.lastMessageTime,
-    unreadCount: getUnreadCount(lead.id),
+    unreadCount: lead.unreadCount || 0,
     avatar: "",
     isOnline: Math.random() > 0.5,
     purchaseValue: lead.purchaseValue,
@@ -215,7 +245,10 @@ export const convertContactToLead = (contact: Contact): KanbanLead => {
     notes: contact.notes,
     columnId: FIXED_COLUMN_IDS.NEW_LEAD,
     purchaseValue: contact.purchaseValue,
-    assignedUser: contact.assignedUser
+    assignedUser: contact.assignedUser,
+    unreadCount: contact.unreadCount || 0,
+    created_at: new Date().toISOString(),
+    funnel_id: "default-funnel"
   };
 };
 
