@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Droppable, Draggable } from "react-beautiful-dnd";
 import { MoreVertical, Edit, Trash2, Plus, Lock } from "lucide-react";
@@ -56,8 +57,15 @@ export function KanbanColumn({
 
   const isFixedStage = column.title === "GANHO" || column.title === "PERDIDO" || column.title === "Entrada de Leads" || column.isFixed;
   
-  // Assumir que ai_enabled está disponível na coluna (será adicionado via tipos)
-  const aiEnabled = (column as any).ai_enabled !== false; // Default true se não definido
+  // Verificar se a IA está habilitada (padrão OFF)
+  const aiEnabled = column.ai_enabled === true;
+
+  console.log('[KanbanColumn] 🔍 Status da IA:', {
+    columnTitle: column.title,
+    aiEnabled,
+    columnAiEnabled: column.ai_enabled,
+    isFixedStage
+  });
 
   // Leads visíveis baseado no scroll infinito
   const visibleLeads = column.leads.slice(0, visibleLeadsCount);
@@ -137,7 +145,13 @@ export function KanbanColumn({
   };
 
   const handleAIToggle = (enabled: boolean) => {
-    toggleAI(column.id, !enabled);
+    console.log('[KanbanColumn] 🎛️ Toggle AI clicado:', {
+      columnId: column.id,
+      columnTitle: column.title,
+      currentEnabled: aiEnabled,
+      newEnabled: enabled
+    });
+    toggleAI(column.id, aiEnabled);
   };
 
   return (
@@ -197,7 +211,7 @@ export function KanbanColumn({
         )}
       </div>
 
-      {/* Controle de IA - apenas para etapas não fixas */}
+      {/* Controle de IA - sempre visível para etapas não fixas */}
       {!isFixedStage && !isWonLostView && (
         <div className="px-1 mb-3">
           <AIToggleSwitch

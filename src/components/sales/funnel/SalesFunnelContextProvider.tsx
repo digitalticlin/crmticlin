@@ -1,3 +1,4 @@
+
 import { ReactNode, useEffect, useState } from "react";
 import { SalesFunnelProvider } from "./SalesFunnelProvider";
 import { useSalesFunnelOptimized } from "@/hooks/salesFunnel/useSalesFunnelOptimized";
@@ -64,7 +65,7 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
       );
       const nextPosition = maxPosition + 1;
 
-      // Inserir nova etapa no banco
+      // Inserir nova etapa no banco COM IA DESABILITADA POR PADRÃO
       const { data: newStage, error } = await supabase
         .from('kanban_stages')
         .insert([{
@@ -75,7 +76,8 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
           created_by_user_id: user.id,
           is_fixed: false,
           is_won: false,
-          is_lost: false
+          is_lost: false,
+          ai_enabled: false // PADRÃO OFF
         }])
         .select()
         .single();
@@ -85,7 +87,7 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
       console.log('[SalesFunnelContextProvider] ✅ Etapa criada:', newStage);
       
       toast.success(`Etapa "${title}" criada com sucesso!`, {
-        description: "A nova etapa já está disponível no funil"
+        description: "A nova etapa já está disponível no funil (IA desabilitada por padrão)"
       });
 
       // Refrescar dados
@@ -229,7 +231,7 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
     // Dados com fallbacks seguros - Transform raw database leads to KanbanLead format
     columns: (salesFunnelData.columns || []).map(column => ({
       ...column,
-      ai_enabled: column.ai_enabled !== false // Garantir que ai_enabled está presente
+      ai_enabled: column.ai_enabled === true // Garantir que ai_enabled é false por padrão
     })),
     setColumns: salesFunnelData.setColumns || (() => {}),
     selectedLead: salesFunnelData.selectedLead || null,
@@ -258,7 +260,17 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
       whatsapp_number_id: lead.whatsapp_number_id || undefined,
       funnel_id: lead.funnel_id,
       kanban_stage_id: lead.kanban_stage_id || undefined,
-      owner_id: lead.owner_id || undefined
+      owner_id: lead.owner_id || undefined,
+      // Propriedades do banco para compatibilidade
+      last_message: lead.last_message,
+      purchase_value: lead.purchase_value,
+      unread_count: lead.unread_count,
+      documentId: lead.document_id,
+      address: lead.address,
+      city: undefined,
+      state: undefined,
+      country: undefined,
+      zip_code: undefined
     })),
     
     // Ações sempre disponíveis (com retorno Promise<void> correto)

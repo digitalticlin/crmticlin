@@ -13,7 +13,12 @@ export const useKanbanColumns = (stages: KanbanStage[], leads: any[], funnelId?:
 
     console.log('[useKanbanColumns] 🔍 Processando stages:', {
       totalStages: stages.length,
-      stages: stages.map(s => ({ title: s.title, isWon: s.is_won, isLost: s.is_lost }))
+      stages: stages.map(s => ({ 
+        title: s.title, 
+        isWon: s.is_won, 
+        isLost: s.is_lost,
+        aiEnabled: s.ai_enabled 
+      }))
     });
 
     // Filtrar para mostrar apenas etapas do funil principal (não GANHO nem PERDIDO)
@@ -30,7 +35,8 @@ export const useKanbanColumns = (stages: KanbanStage[], leads: any[], funnelId?:
       console.log('[useKanbanColumns] 📋 Criando coluna:', {
         stageId: stage.id,
         stageTitle: stage.title,
-        leadsCount: stageLeads.length
+        leadsCount: stageLeads.length,
+        aiEnabled: stage.ai_enabled
       });
       
       return {
@@ -39,13 +45,19 @@ export const useKanbanColumns = (stages: KanbanStage[], leads: any[], funnelId?:
         leads: stageLeads,
         color: stage.color || "#e0e0e0",
         isFixed: stage.is_fixed || false,
-        isHidden: false
+        isHidden: false,
+        ai_enabled: stage.ai_enabled === true // Garantir boolean correto, padrão false
       };
     });
 
     console.log('[useKanbanColumns] ✅ Colunas criadas:', {
       columnsCount: newColumns.length,
-      columns: newColumns.map(c => ({ id: c.id, title: c.title, leadsCount: c.leads.length }))
+      columns: newColumns.map(c => ({ 
+        id: c.id, 
+        title: c.title, 
+        leadsCount: c.leads.length,
+        aiEnabled: c.ai_enabled 
+      }))
     });
 
     return newColumns;

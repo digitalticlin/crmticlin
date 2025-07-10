@@ -31,6 +31,16 @@ export interface KanbanLead {
   funnel_id: string;
   kanban_stage_id?: string;
   owner_id?: string;
+  // Propriedades do banco que podem ser acessadas via raw data
+  last_message?: string;
+  purchase_value?: number;
+  unread_count?: number;
+  documentId?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  zip_code?: string;
 }
 
 export interface KanbanTag {
@@ -38,3 +48,10 @@ export interface KanbanTag {
   name: string;
   color: string;
 }
+
+// Constantes para IDs de colunas fixas
+export const FIXED_COLUMN_IDS = {
+  NEW_LEAD: 'new-lead',
+  WON: 'won',
+  LOST: 'lost'
+} as const;
