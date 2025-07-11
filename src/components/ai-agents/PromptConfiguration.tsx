@@ -1,13 +1,13 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AIAgent, AIAgentPrompt } from "@/types/aiAgent";
 import { useAIAgentPrompts } from "@/hooks/useAIAgentPrompts";
 import { ObjectivesList } from "./ObjectivesList";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { MessageSquare, Building2, Package, ShieldX, Target } from "lucide-react";
 
 interface PromptConfigurationProps {
   agent?: AIAgent | null;
@@ -84,8 +84,12 @@ export const PromptConfiguration = ({ agent, onSave, onCancel, focusObjectives =
 
   if (!agent) {
     return (
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">Selecione um agente para configurar o prompt.</p>
+      <div className="text-center py-12">
+        <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+          <MessageSquare className="h-8 w-8 text-gray-400" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">Agente não selecionado</h3>
+        <p className="text-gray-600">Primeiro configure as informações básicas do agente.</p>
       </div>
     );
   }
@@ -93,14 +97,20 @@ export const PromptConfiguration = ({ agent, onSave, onCancel, focusObjectives =
   if (focusObjectives) {
     return (
       <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Objetivos do Agente</CardTitle>
-            <CardDescription>
-              Configure os passos que o agente deve seguir para atingir seus objetivos
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-6 rounded-xl border border-purple-100">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="p-2 bg-purple-500 rounded-lg text-white">
+              <Target className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-800">Objetivos do Agente</h3>
+              <p className="text-gray-600">Configure os passos que o agente deve seguir para atingir seus objetivos</p>
+            </div>
+          </div>
+        </div>
+
+        <Card className="border-2 border-gray-100">
+          <CardContent className="p-6">
             <ObjectivesList 
               objectives={formData.objectives}
               onChange={handleObjectivesChange}
@@ -108,14 +118,19 @@ export const PromptConfiguration = ({ agent, onSave, onCancel, focusObjectives =
           </CardContent>
         </Card>
 
-        <div className="flex justify-end space-x-2">
-          <Button type="button" variant="outline" onClick={onCancel}>
+        <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onCancel}
+            className="px-6 h-11 border-2 border-gray-300 hover:bg-gray-50 rounded-xl"
+          >
             Cancelar
           </Button>
           <Button 
             onClick={() => handleSubmit(new Event('submit') as any)}
             disabled={isLoading} 
-            className="bg-ticlin hover:bg-ticlin/90 text-black"
+            className="px-8 h-11 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
           >
             {isLoading ? "Salvando..." : "Salvar Objetivos"}
           </Button>
@@ -126,78 +141,170 @@ export const PromptConfiguration = ({ agent, onSave, onCancel, focusObjectives =
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-4">
-        <div>
-          <Label htmlFor="agent_function">Função do Agente *</Label>
-          <Textarea
-            id="agent_function"
-            value={formData.agent_function}
-            onChange={(e) => setFormData({ ...formData, agent_function: e.target.value })}
-            placeholder="Ex: Você é um vendedor especializado em produtos de tecnologia..."
-            required
-            rows={3}
-          />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Função do Agente */}
+        <div className="lg:col-span-2">
+          <Card className="border-2 border-green-100 bg-green-50/30">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-green-800">
+                <MessageSquare className="h-5 w-5" />
+                Função do Agente *
+              </CardTitle>
+              <CardDescription className="text-green-700">
+                Descreva qual é o papel principal do seu agente
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                id="agent_function"
+                value={formData.agent_function}
+                onChange={(e) => setFormData({ ...formData, agent_function: e.target.value })}
+                placeholder="Ex: Você é um vendedor especializado em produtos de tecnologia, responsável por identificar necessidades dos clientes e apresentar soluções adequadas..."
+                required
+                rows={4}
+                className="resize-none border-2 border-gray-200 focus:border-green-500 rounded-xl"
+              />
+            </CardContent>
+          </Card>
         </div>
 
-        <div>
-          <Label htmlFor="communication_style">Estilo de Comunicação *</Label>
-          <Textarea
-            id="communication_style"
-            value={formData.communication_style}
-            onChange={(e) => setFormData({ ...formData, communication_style: e.target.value })}
-            placeholder="Ex: Comunicação amigável, profissional e direta..."
-            required
-            rows={3}
-          />
+        {/* Estilo de Comunicação */}
+        <div className="lg:col-span-2">
+          <Card className="border-2 border-blue-100 bg-blue-50/30">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-blue-800">
+                <MessageSquare className="h-5 w-5" />
+                Estilo de Comunicação *
+              </CardTitle>
+              <CardDescription className="text-blue-700">
+                Defina como o agente deve se comunicar com os clientes
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                id="communication_style"
+                value={formData.communication_style}
+                onChange={(e) => setFormData({ ...formData, communication_style: e.target.value })}
+                placeholder="Ex: Use uma comunicação amigável, profissional e direta. Seja empático e sempre responda de forma clara e objetiva..."
+                required
+                rows={4}
+                className="resize-none border-2 border-gray-200 focus:border-blue-500 rounded-xl"
+              />
+            </CardContent>
+          </Card>
         </div>
 
+        {/* Informações da Empresa */}
         <div>
-          <Label htmlFor="company_info">Informações sobre a Empresa</Label>
-          <Textarea
-            id="company_info"
-            value={formData.company_info}
-            onChange={(e) => setFormData({ ...formData, company_info: e.target.value })}
-            placeholder="Descreva sua empresa, missão, valores..."
-            rows={3}
-          />
+          <Card className="border-2 border-purple-100 bg-purple-50/30 h-full">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-purple-800">
+                <Building2 className="h-5 w-5" />
+                Informações da Empresa
+              </CardTitle>
+              <CardDescription className="text-purple-700">
+                Contexto sobre sua empresa
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                id="company_info"
+                value={formData.company_info}
+                onChange={(e) => setFormData({ ...formData, company_info: e.target.value })}
+                placeholder="Descreva sua empresa, missão, valores, história..."
+                rows={5}
+                className="resize-none border-2 border-gray-200 focus:border-purple-500 rounded-xl"
+              />
+            </CardContent>
+          </Card>
         </div>
 
+        {/* Informações sobre Produto/Serviço */}
         <div>
-          <Label htmlFor="product_service_info">Informações sobre Produto/Serviço</Label>
-          <Textarea
-            id="product_service_info"
-            value={formData.product_service_info}
-            onChange={(e) => setFormData({ ...formData, product_service_info: e.target.value })}
-            placeholder="Descreva os produtos/serviços oferecidos..."
-            rows={3}
-          />
+          <Card className="border-2 border-orange-100 bg-orange-50/30 h-full">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-orange-800">
+                <Package className="h-5 w-5" />
+                Produtos/Serviços
+              </CardTitle>
+              <CardDescription className="text-orange-700">
+                Detalhes dos produtos oferecidos
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                id="product_service_info"
+                value={formData.product_service_info}
+                onChange={(e) => setFormData({ ...formData, product_service_info: e.target.value })}
+                placeholder="Descreva os produtos/serviços oferecidos, preços, benefícios..."
+                rows={5}
+                className="resize-none border-2 border-gray-200 focus:border-orange-500 rounded-xl"
+              />
+            </CardContent>
+          </Card>
         </div>
 
-        <div>
-          <Label htmlFor="prohibitions">Proibições do Agente</Label>
-          <Textarea
-            id="prohibitions"
-            value={formData.prohibitions}
-            onChange={(e) => setFormData({ ...formData, prohibitions: e.target.value })}
-            placeholder="O que o agente NÃO deve fazer ou falar..."
-            rows={3}
-          />
+        {/* Proibições */}
+        <div className="lg:col-span-2">
+          <Card className="border-2 border-red-100 bg-red-50/30">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-red-800">
+                <ShieldX className="h-5 w-5" />
+                Proibições do Agente
+              </CardTitle>
+              <CardDescription className="text-red-700">
+                Defina o que o agente NÃO deve fazer ou falar
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                id="prohibitions"
+                value={formData.prohibitions}
+                onChange={(e) => setFormData({ ...formData, prohibitions: e.target.value })}
+                placeholder="Ex: Nunca forneça informações de preços sem antes qualificar o cliente. Não prometa descontos sem autorização..."
+                rows={3}
+                className="resize-none border-2 border-gray-200 focus:border-red-500 rounded-xl"
+              />
+            </CardContent>
+          </Card>
         </div>
 
-        <div>
-          <Label>Objetivos do Agente</Label>
-          <ObjectivesList 
-            objectives={formData.objectives}
-            onChange={handleObjectivesChange}
-          />
+        {/* Objetivos */}
+        <div className="lg:col-span-2">
+          <Card className="border-2 border-indigo-100 bg-indigo-50/30">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-indigo-800">
+                <Target className="h-5 w-5" />
+                Objetivos do Agente
+              </CardTitle>
+              <CardDescription className="text-indigo-700">
+                Configure os passos que o agente deve seguir
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ObjectivesList 
+                objectives={formData.objectives}
+                onChange={handleObjectivesChange}
+              />
+            </CardContent>
+          </Card>
         </div>
       </div>
 
-      <div className="flex justify-end space-x-2">
-        <Button type="button" variant="outline" onClick={onCancel}>
+      <div className="flex justify-end gap-3 pt-6 border-t border-gray-100">
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={onCancel}
+          className="px-6 h-11 border-2 border-gray-300 hover:bg-gray-50 rounded-xl"
+        >
           Cancelar
         </Button>
-        <Button type="submit" disabled={isLoading} className="bg-ticlin hover:bg-ticlin/90 text-black">
+        <Button 
+          type="submit" 
+          disabled={isLoading} 
+          className="px-8 h-11 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+        >
           {isLoading ? "Salvando..." : "Salvar Configuração"}
         </Button>
       </div>
