@@ -44,7 +44,9 @@ export function useLeadsDatabase(funnelId?: string) {
         sample: data?.slice(0, 2).map(l => ({ 
           id: l.id, 
           name: l.name, 
-          kanban_stage_id: l.kanban_stage_id 
+          kanban_stage_id: l.kanban_stage_id,
+          document_id: l.document_id,
+          address: l.address
         }))
       });
 

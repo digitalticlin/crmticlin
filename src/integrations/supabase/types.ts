@@ -124,62 +124,6 @@ export type Database = {
         }
         Relationships: []
       }
-      instances_puppeteer: {
-        Row: {
-          completed_at: string | null
-          created_at: string | null
-          error_message: string | null
-          id: string
-          instance_id: string
-          progress: number | null
-          qr_code: string | null
-          session_id: string
-          status: string | null
-          total_contacts: number | null
-          total_messages: number | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          completed_at?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          instance_id: string
-          progress?: number | null
-          qr_code?: string | null
-          session_id: string
-          status?: string | null
-          total_contacts?: number | null
-          total_messages?: number | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          completed_at?: string | null
-          created_at?: string | null
-          error_message?: string | null
-          id?: string
-          instance_id?: string
-          progress?: number | null
-          qr_code?: string | null
-          session_id?: string
-          status?: string | null
-          total_contacts?: number | null
-          total_messages?: number | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "instances_puppeteer_instance_id_fkey"
-            columns: ["instance_id"]
-            isOneToOne: false
-            referencedRelation: "whatsapp_instances"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       kanban_stages: {
         Row: {
           ai_enabled: boolean
@@ -518,6 +462,30 @@ export type Database = {
           updated_at?: string | null
           username?: string | null
           whatsapp?: string | null
+        }
+        Relationships: []
+      }
+      storage_deletion_queue: {
+        Row: {
+          deleted_at: string
+          file_path: string
+          id: number
+          processed: boolean
+          processed_at: string | null
+        }
+        Insert: {
+          deleted_at?: string
+          file_path: string
+          id?: never
+          processed?: boolean
+          processed_at?: string | null
+        }
+        Update: {
+          deleted_at?: string
+          file_path?: string
+          id?: never
+          processed?: boolean
+          processed_at?: string | null
         }
         Relationships: []
       }
