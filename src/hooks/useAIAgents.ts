@@ -16,7 +16,15 @@ export const useAIAgents = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setAgents(data || []);
+      
+      // Convert database records to typed AIAgent objects
+      const typedAgents: AIAgent[] = (data || []).map(agent => ({
+        ...agent,
+        type: agent.type as 'attendance' | 'sales' | 'support' | 'custom',
+        status: agent.status as 'active' | 'inactive'
+      }));
+      
+      setAgents(typedAgents);
     } catch (error) {
       console.error('Error fetching AI agents:', error);
       toast.error('Erro ao carregar agentes de IA');
@@ -41,9 +49,16 @@ export const useAIAgents = () => {
 
       if (error) throw error;
       
+      // Convert database record to typed AIAgent object
+      const typedAgent: AIAgent = {
+        ...agent,
+        type: agent.type as 'attendance' | 'sales' | 'support' | 'custom',
+        status: agent.status as 'active' | 'inactive'
+      };
+      
       await fetchAgents();
       toast.success('Agente criado com sucesso');
-      return agent;
+      return typedAgent;
     } catch (error) {
       console.error('Error creating AI agent:', error);
       toast.error('Erro ao criar agente');

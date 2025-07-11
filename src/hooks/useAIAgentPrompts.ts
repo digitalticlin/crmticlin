@@ -20,7 +20,14 @@ export const useAIAgentPrompts = (agentId?: string) => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPrompts(data || []);
+      
+      // Convert database records to typed AIAgentPrompt objects
+      const typedPrompts: AIAgentPrompt[] = (data || []).map(prompt => ({
+        ...prompt,
+        objectives: Array.isArray(prompt.objectives) ? prompt.objectives as string[] : []
+      }));
+      
+      setPrompts(typedPrompts);
     } catch (error) {
       console.error('Error fetching AI agent prompts:', error);
       toast.error('Erro ao carregar prompts do agente');
@@ -45,9 +52,15 @@ export const useAIAgentPrompts = (agentId?: string) => {
 
       if (error) throw error;
       
+      // Convert database record to typed AIAgentPrompt object
+      const typedPrompt: AIAgentPrompt = {
+        ...prompt,
+        objectives: Array.isArray(prompt.objectives) ? prompt.objectives as string[] : []
+      };
+      
       await fetchPrompts(data.agent_id);
       toast.success('Prompt criado com sucesso');
-      return prompt;
+      return typedPrompt;
     } catch (error) {
       console.error('Error creating AI agent prompt:', error);
       toast.error('Erro ao criar prompt');
@@ -83,7 +96,16 @@ export const useAIAgentPrompts = (agentId?: string) => {
         .single();
 
       if (error && error.code !== 'PGRST116') throw error;
-      return data || null;
+      
+      if (!data) return null;
+      
+      // Convert database record to typed AIAgentPrompt object
+      const typedPrompt: AIAgentPrompt = {
+        ...data,
+        objectives: Array.isArray(data.objectives) ? data.objectives as string[] : []
+      };
+      
+      return typedPrompt;
     } catch (error) {
       console.error('Error fetching prompt by agent ID:', error);
       return null;
