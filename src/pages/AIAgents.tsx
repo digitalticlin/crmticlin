@@ -25,47 +25,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-
-interface AIAgent {
-  id: string;
-  name: string;
-  type: "attendance" | "sales" | "support" | "custom";
-  status: "active" | "inactive";
-  whatsappNumbers: string[];
-  messagesCount: number;
-  createdAt: string;
-}
+import { AIAgentModal } from "@/components/ai-agents/AIAgentModal";
+import { useAIAgents } from "@/hooks/useAIAgents";
+import { AIAgent } from "@/types/aiAgent";
 
 export default function AIAgents() {
-  const [agents, setAgents] = useState<AIAgent[]>([
-    {
-      id: "1",
-      name: "Assistente de Vendas",
-      type: "sales",
-      status: "active",
-      whatsappNumbers: ["Vendas"],
-      messagesCount: 1243,
-      createdAt: "2023-05-10"
-    },
-    {
-      id: "2",
-      name: "Suporte Técnico IA",
-      type: "support",
-      status: "inactive",
-      whatsappNumbers: ["Suporte"],
-      messagesCount: 567,
-      createdAt: "2023-06-15"
-    },
-    {
-      id: "3",
-      name: "Atendente Virtual",
-      type: "attendance",
-      status: "active",
-      whatsappNumbers: ["Atendimento Principal"],
-      messagesCount: 2891,
-      createdAt: "2023-04-22"
-    }
-  ]);
+  const { agents, isLoading, deleteAgent, toggleAgentStatus, refetch } = useAIAgents();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingAgent, setEditingAgent] = useState<AIAgent | null>(null);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -113,20 +80,57 @@ export default function AIAgents() {
     }
   };
 
-  const toggleAgentStatus = (id: string) => {
-    setAgents(agents.map(agent => 
-      agent.id === id 
-        ? { ...agent, status: agent.status === "active" ? "inactive" : "active" } 
-        : agent
-    ));
+  const handleCreateAgent = () => {
+    setEditingAgent(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditAgent = (agent: AIAgent) => {
+    setEditingAgent(agent);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteAgent = async (id: string) => {
+    if (window.confirm('Tem certeza que deseja remover este agente?')) {
+      await deleteAgent(id);
+    }
+  };
+
+  const handleToggleStatus = async (id: string) => {
+    await toggleAgentStatus(id);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setEditingAgent(null);
+  };
+
+  const handleModalSave = () => {
+    refetch();
+    handleModalClose();
   };
 
   const createAgentAction = (
-    <Button className="bg-ticlin hover:bg-ticlin/90 text-black">
+    <Button className="bg-ticlin hover:bg-ticlin/90 text-black" onClick={handleCreateAgent}>
       <Plus className="h-4 w-4 mr-2" />
       Criar Novo Agente
     </Button>
   );
+
+  if (isLoading) {
+    return (
+      <PageLayout>
+        <PageHeader 
+          title="Agentes IA" 
+          description="Configure e gerencie seus assistentes virtuais de IA"
+          action={createAgentAction}
+        />
+        <div className="flex items-center justify-center py-8">
+          <p>Carregando agentes...</p>
+        </div>
+      </PageLayout>
+    );
+  }
 
   return (
     <PageLayout>
@@ -164,28 +168,24 @@ export default function AIAgents() {
                         <div>
                           <div className="font-medium">{agent.name}</div>
                           <div className="text-xs text-muted-foreground">
-                            Criado em {new Date(agent.createdAt).toLocaleDateString()}
+                            Criado em {new Date(agent.created_at).toLocaleDateString()}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td className="py-4">{getTypeBadge(agent.type)}</td>
                     <td className="py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {agent.whatsappNumbers.map((number, i) => (
-                          <Badge key={i} variant="outline" className="bg-gray-100 dark:bg-gray-800">
-                            {number}
-                          </Badge>
-                        ))}
-                      </div>
+                      <Badge variant="outline" className="bg-gray-100 dark:bg-gray-800">
+                        {agent.whatsapp_number_id ? "Configurado" : "Não configurado"}
+                      </Badge>
                     </td>
                     <td className="py-4">
-                      <span className="font-medium">{agent.messagesCount.toLocaleString()}</span>
+                      <span className="font-medium">{agent.messages_count.toLocaleString()}</span>
                     </td>
                     <td className="py-4">
                       <Switch 
                         checked={agent.status === "active"} 
-                        onCheckedChange={() => toggleAgentStatus(agent.id)}
+                        onCheckedChange={() => handleToggleStatus(agent.id)}
                       />
                     </td>
                     <td className="py-4 text-right">
@@ -198,14 +198,17 @@ export default function AIAgents() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Ações</DropdownMenuLabel>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleEditAgent(agent)}>
                             <Pencil className="mr-2 h-4 w-4" /> Editar configuração
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleToggleStatus(agent.id)}>
                             <Power className="mr-2 h-4 w-4" /> {agent.status === "active" ? "Desativar" : "Ativar"}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-red-600">
+                          <DropdownMenuItem 
+                            className="text-red-600"
+                            onClick={() => handleDeleteAgent(agent.id)}
+                          >
                             <Trash2 className="mr-2 h-4 w-4" /> Remover agente
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -279,6 +282,13 @@ export default function AIAgents() {
           </div>
         </ChartCard>
       </div>
+
+      <AIAgentModal
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        agent={editingAgent}
+        onSave={handleModalSave}
+      />
     </PageLayout>
   );
 }

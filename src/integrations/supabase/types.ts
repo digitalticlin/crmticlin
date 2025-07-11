@@ -14,6 +14,110 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_agent_prompts: {
+        Row: {
+          agent_function: string
+          agent_id: string
+          communication_style: string
+          company_info: string | null
+          created_at: string
+          created_by_user_id: string
+          id: string
+          objectives: Json
+          product_service_info: string | null
+          prohibitions: string | null
+          updated_at: string
+        }
+        Insert: {
+          agent_function: string
+          agent_id: string
+          communication_style: string
+          company_info?: string | null
+          created_at?: string
+          created_by_user_id: string
+          id?: string
+          objectives?: Json
+          product_service_info?: string | null
+          prohibitions?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agent_function?: string
+          agent_id?: string
+          communication_style?: string
+          company_info?: string | null
+          created_at?: string
+          created_by_user_id?: string
+          id?: string
+          objectives?: Json
+          product_service_info?: string | null
+          prohibitions?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agent_prompts_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_agents: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          funnel_id: string | null
+          id: string
+          messages_count: number
+          name: string
+          status: string
+          type: string
+          updated_at: string
+          whatsapp_number_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          funnel_id?: string | null
+          id?: string
+          messages_count?: number
+          name: string
+          status?: string
+          type: string
+          updated_at?: string
+          whatsapp_number_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          funnel_id?: string | null
+          id?: string
+          messages_count?: number
+          name?: string
+          status?: string
+          type?: string
+          updated_at?: string
+          whatsapp_number_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_agents_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "funnels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_agents_whatsapp_number_id_fkey"
+            columns: ["whatsapp_number_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auto_sync_logs: {
         Row: {
           created_at: string | null
