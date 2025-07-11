@@ -137,7 +137,7 @@ export const SalesFunnelContextProvider = ({ children }: SalesFunnelContextProvi
         description: "As alterações foram salvas"
       });
 
-      // Refrescar dados
+      // Refreshar dados
       if (salesFunnelData.refetchStages) {
         await salesFunnelData.refetchStages();
       }
