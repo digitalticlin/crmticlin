@@ -68,14 +68,14 @@ const useColumnOperations = (user: any, salesFunnelData: any) => {
       // Buscar próxima posição
       const { data: existingStages, error: fetchError } = await supabase
         .from('kanban_stages')
-        .select('position')
+        .select('order_position')
         .eq('created_by_user_id', user.id)
-        .order('position', { ascending: false })
+        .order('order_position', { ascending: false })
         .limit(1);
 
       if (fetchError) throw fetchError;
 
-      const nextPosition = (existingStages?.[0]?.position || 0) + 1;
+      const nextPosition = (existingStages?.[0]?.order_position || 0) + 1;
 
       // Criar nova etapa
       const { data: newStage, error } = await supabase
@@ -83,7 +83,7 @@ const useColumnOperations = (user: any, salesFunnelData: any) => {
         .insert({
           title: title.trim(),
           color: color,
-          position: nextPosition,
+          order_position: nextPosition,
           created_by_user_id: user.id,
           ai_enabled: false // Padrão OFF para IA
         })
