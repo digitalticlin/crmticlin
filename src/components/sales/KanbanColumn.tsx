@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Droppable, Draggable } from "react-beautiful-dnd";
 import { MoreVertical, Edit, Trash2, Plus, Lock } from "lucide-react";
@@ -13,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { LeadCard } from "./LeadCard";
 import { KanbanColumn as KanbanColumnType, KanbanLead } from "@/types/kanban";
-import { AIToggleSwitch } from "./ai/AIToggleSwitch";
+import { AIToggleSwitchEnhanced } from "./ai/AIToggleSwitchEnhanced";
 import { useAIStageControl } from "@/hooks/salesFunnel/useAIStageControl";
 import { toast } from "sonner";
 
@@ -133,69 +132,78 @@ const ColumnHeader = ({
   onEdit,
   onDelete,
   titleEditor
-}: ColumnHeaderProps) => (
-  <div className="flex items-center justify-between mb-4 px-1">
-    <div className="flex items-center gap-2 flex-1">
-      {isFixedStage && <Lock className="h-4 w-4 text-gray-500" />}
-      {titleEditor.isEditing ? (
-        <Input
-          value={titleEditor.editTitle}
-          onChange={(e) => titleEditor.setEditTitle(e.target.value)}
-          onBlur={titleEditor.handleSave}
-          onKeyDown={titleEditor.handleKeyPress}
-          className="text-sm font-medium bg-white"
-          autoFocus
-        />
-      ) : (
-        <h3 
-          className={cn(
-            "text-sm font-medium text-gray-900 truncate",
-            isFixedStage && "text-gray-600"
-          )}
-          style={{ color: column.color }}
-        >
-          {column.title}
-        </h3>
-      )}
-      <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
-        {column.leads.length}
-      </span>
-    </div>
+}: ColumnHeaderProps) => {
+  // Verificar se é etapa GANHO ou PERDIDO (essas não devem ter controle de IA)
+  const isWonLostStage = column.title === "GANHO" || column.title === "PERDIDO";
+  
+  return (
+    <div className="flex items-center justify-between mb-4 px-1">
+      <div className="flex items-center gap-2 flex-1">
+        {isFixedStage && <Lock className="h-4 w-4 text-gray-500" />}
+        {titleEditor.isEditing ? (
+          <Input
+            value={titleEditor.editTitle}
+            onChange={(e) => titleEditor.setEditTitle(e.target.value)}
+            onBlur={titleEditor.handleSave}
+            onKeyDown={titleEditor.handleKeyPress}
+            className="text-sm font-medium bg-white"
+            autoFocus
+          />
+        ) : (
+          <h3 
+            className={cn(
+              "text-sm font-medium text-gray-900 truncate",
+              isFixedStage && "text-gray-600"
+            )}
+            style={{ color: column.color }}
+          >
+            {column.title}
+          </h3>
+        )}
+        <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
+          {column.leads.length}
+        </span>
+      </div>
 
-    <div className="flex items-center gap-2">
-      {!isFixedStage && !isWonLostView && (
-        <AIToggleSwitch
-          enabled={aiEnabled}
-          onToggle={onToggleAI}
-          isLoading={isTogglingAI}
-          size="sm"
-          showIcon={false}
-          className="flex-shrink-0"
-        />
-      )}
+      <div className="flex items-center gap-2">
+        {/* Controle de IA - Aparece em todas as etapas EXCETO GANHO e PERDIDO */}
+        {!isWonLostStage && !isWonLostView && (
+          <AIToggleSwitchEnhanced
+            enabled={aiEnabled}
+            onToggle={onToggleAI}
+            isLoading={isTogglingAI}
+            size="sm"
+            variant="prominent"
+            showLabel={false}
+            className="flex-shrink-0"
+            label="IA"
+          />
+        )}
 
-      {!isFixedStage && !isWonLostView && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onEdit}>
-              <Edit className="h-4 w-4 mr-2" />
-              Editar
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={onDelete} className="text-red-600">
-              <Trash2 className="h-4 w-4 mr-2" />
-              Excluir
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      )}
+        {/* Menu de ações - Só aparece para etapas não fixas e não em visão GANHO/PERDIDO */}
+        {!isFixedStage && !isWonLostView && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onEdit}>
+                <Edit className="h-4 w-4 mr-2" />
+                Editar
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onDelete} className="text-red-600">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Excluir
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // Componente para indicadores de scroll
 interface ScrollIndicatorsProps {
@@ -275,7 +283,7 @@ export function KanbanColumn({
     handleScroll
   } = useInfiniteScroll(column.leads.length);
 
-  // Memoização de valores computados
+  // Memoização de valores computados - ATUALIZADA para incluir controle de IA em "Entrada de Leads"
   const isFixedStage = useMemo(() => 
     column.title === "GANHO" || 
     column.title === "PERDIDO" || 
@@ -312,29 +320,38 @@ export function KanbanColumn({
     }
   }, [column.id, onDeleteColumn]);
 
-  // Handler para toggle AI
+  // Handler para toggle AI - ATUALIZADO para funcionar em todas as etapas
   const handleAIToggle = useCallback((enabled: boolean) => {
     console.log('[KanbanColumn] 🎛️ Toggle AI:', {
       columnId: column.id,
       columnTitle: column.title,
       currentEnabled: aiEnabled,
-      newEnabled: enabled
+      newEnabled: enabled,
+      isFixedStage,
+      isWonLostView
     });
-    toggleAI(column.id, aiEnabled);
-  }, [column.id, column.title, aiEnabled, toggleAI]);
+    
+    // Permitir controle de IA em todas as etapas, exceto GANHO e PERDIDO
+    const isWonLostStage = column.title === "GANHO" || column.title === "PERDIDO";
+    if (!isWonLostStage) {
+      toggleAI(column.id, aiEnabled);
+    }
+  }, [column.id, column.title, aiEnabled, isFixedStage, isWonLostView, toggleAI]);
 
   // Logging otimizado
-  console.log('[KanbanColumn] 📊 Renderização:', {
+  console.log('[KanbanColumn] 📊 Renderização com controle de IA aprimorado:', {
     columnTitle: column.title,
     totalLeads: column.leads.length,
     visibleLeads: visibleLeads.length,
     hasMore,
-    aiEnabled
+    aiEnabled,
+    isFixedStage,
+    canControlAI: column.title !== "GANHO" && column.title !== "PERDIDO"
   });
 
   return (
     <div className="bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-2xl px-1.5 py-3 min-w-[300px] max-w-[300px] flex flex-col h-full transition-all duration-300 hover:bg-white/25 hover:shadow-glass-lg">
-      {/* Header */}
+      {/* Header com controle de IA aprimorado */}
       <ColumnHeader
         column={column}
         isFixedStage={isFixedStage}

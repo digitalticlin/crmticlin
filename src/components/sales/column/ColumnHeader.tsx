@@ -20,6 +20,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { AIToggleSwitchEnhanced } from "../ai/AIToggleSwitchEnhanced";
+import { useAIStageControl } from "@/hooks/salesFunnel/useAIStageControl";
 
 interface ColumnHeaderProps {
   column: KanbanColumn;
@@ -37,6 +39,7 @@ export const ColumnHeader = ({
   onDelete
 }: ColumnHeaderProps) => {
   const [editingColumn, setEditingColumn] = useState<KanbanColumn | null>(null);
+  const { toggleAI, isLoading: isTogglingAI } = useAIStageControl();
   
   const updateColumn = () => {
     if (!editingColumn || !editingColumn.title.trim()) return;
@@ -49,12 +52,48 @@ export const ColumnHeader = ({
   
   const isFixed = column.isFixed === true;
   const displayTitle = column.id === FIXED_COLUMN_IDS.NEW_LEAD ? "Entrada de leads" : column.title;
+  
+  // Verificar se é etapa GANHO ou PERDIDO (não devem ter controle de IA)
+  const isWonLostStage = column.title === "GANHO" || column.title === "PERDIDO";
+  const aiEnabled = column.ai_enabled === true;
+
+  // Handler para toggle AI
+  const handleAIToggle = (enabled: boolean) => {
+    console.log('[ColumnHeader] 🎛️ Toggle AI:', {
+      columnId: column.id,
+      columnTitle: column.title,
+      currentEnabled: aiEnabled,
+      newEnabled: enabled
+    });
+    
+    if (!isWonLostStage) {
+      toggleAI(column.id, aiEnabled);
+    }
+  };
 
   return (
     <div className="p-4 flex items-center justify-between border-b border-slate-200/15 bg-transparent">
-      <h3 className="font-semibold font-inter text-lg truncate text-gray-900">{displayTitle}</h3>
-      <div className="flex items-center gap-2">
-        <span className="bg-gray-100 text-gray-800 font-bold rounded-xl px-3 py-0.5 text-xs border border-gray-300">{column.leads.length}</span>
+      <div className="flex items-center gap-3">
+        <h3 className="font-semibold font-inter text-lg truncate text-gray-900">{displayTitle}</h3>
+        <span className="bg-gray-100 text-gray-800 font-bold rounded-xl px-3 py-0.5 text-xs border border-gray-300">
+          {column.leads.length}
+        </span>
+      </div>
+      
+      <div className="flex items-center gap-3">
+        {/* Controle de IA aprimorado - Aparece em todas as etapas EXCETO GANHO e PERDIDO */}
+        {!isWonLostStage && (
+          <AIToggleSwitchEnhanced
+            enabled={aiEnabled}
+            onToggle={handleAIToggle}
+            isLoading={isTogglingAI}
+            size="md"
+            variant="prominent"
+            showLabel={true}
+            className="flex-shrink-0"
+          />
+        )}
+
         {canEdit && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
