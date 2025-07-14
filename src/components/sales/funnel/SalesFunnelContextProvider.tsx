@@ -1,4 +1,3 @@
-
 import { ReactNode, useMemo, useCallback } from 'react';
 import { SalesFunnelProvider } from './SalesFunnelProvider';
 import { useSalesFunnelDirect } from '@/hooks/salesFunnel/useSalesFunnelDirect';
@@ -64,12 +63,19 @@ const useColumnOperations = (user: any, salesFunnelData: any) => {
       return;
     }
 
+    // Verificar se há um funil selecionado
+    if (!salesFunnelData.selectedFunnel?.id) {
+      toast.error("Nenhum funil selecionado");
+      return;
+    }
+
     try {
       // Buscar próxima posição
       const { data: existingStages, error: fetchError } = await supabase
         .from('kanban_stages')
         .select('order_position')
         .eq('created_by_user_id', user.id)
+        .eq('funnel_id', salesFunnelData.selectedFunnel.id)
         .order('order_position', { ascending: false })
         .limit(1);
 
@@ -84,6 +90,7 @@ const useColumnOperations = (user: any, salesFunnelData: any) => {
           title: title.trim(),
           color: color,
           order_position: nextPosition,
+          funnel_id: salesFunnelData.selectedFunnel.id,
           created_by_user_id: user.id,
           ai_enabled: false // Padrão OFF para IA
         })
@@ -110,7 +117,7 @@ const useColumnOperations = (user: any, salesFunnelData: any) => {
       });
       throw error;
     }
-  }, [user?.id, salesFunnelData.refetchStages]);
+  }, [user?.id, salesFunnelData.selectedFunnel?.id, salesFunnelData.refetchStages]);
 
   // Função para atualizar coluna existente
   const updateColumn = useCallback(async (column: any): Promise<void> => {
