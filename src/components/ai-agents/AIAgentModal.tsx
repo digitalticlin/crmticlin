@@ -37,10 +37,10 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden bg-white border-2 border-gray-200 shadow-2xl">
-        <DialogHeader className="border-b border-gray-100 pb-6">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden bg-white/80 backdrop-blur-md border border-white/20 shadow-2xl rounded-2xl">
+        <DialogHeader className="border-b border-white/10 pb-6">
           <DialogTitle className="flex items-center gap-3 text-2xl font-bold text-gray-800">
-            <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl text-white">
+            <div className="p-2 bg-gradient-to-br from-blue-500/20 to-purple-600/20 backdrop-blur-sm rounded-xl text-blue-600 border border-white/20">
               <Bot className="h-6 w-6" />
             </div>
             {agent ? "Editar Agente de IA" : "Criar Novo Agente de IA"}
@@ -52,10 +52,10 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
 
         <div className="overflow-y-auto max-h-[calc(90vh-140px)]">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6 bg-gray-50 p-1 rounded-xl h-14">
+            <TabsList className="grid w-full grid-cols-3 mb-6 bg-white/20 backdrop-blur-sm p-1 rounded-xl h-14 border border-white/20">
               <TabsTrigger 
                 value="basic" 
-                className="flex items-center gap-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg py-3"
+                className="flex items-center gap-2 text-sm font-medium data-[state=active]:bg-white/60 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-sm rounded-lg py-3 transition-all duration-200"
               >
                 <Bot className="h-4 w-4" />
                 <span className="hidden sm:inline">Informações Básicas</span>
@@ -63,7 +63,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
               </TabsTrigger>
               <TabsTrigger 
                 value="prompt" 
-                className="flex items-center gap-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg py-3"
+                className="flex items-center gap-2 text-sm font-medium data-[state=active]:bg-white/60 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-sm rounded-lg py-3 transition-all duration-200"
                 disabled={!currentAgent && !agent}
               >
                 <MessageSquare className="h-4 w-4" />
@@ -72,7 +72,7 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
               </TabsTrigger>
               <TabsTrigger 
                 value="objectives" 
-                className="flex items-center gap-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg py-3"
+                className="flex items-center gap-2 text-sm font-medium data-[state=active]:bg-white/60 data-[state=active]:backdrop-blur-sm data-[state=active]:shadow-sm rounded-lg py-3 transition-all duration-200"
                 disabled={!currentAgent && !agent}
               >
                 <Target className="h-4 w-4" />
@@ -82,8 +82,8 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
             </TabsList>
 
             <TabsContent value="basic" className="mt-0">
-              <Card className="border-2 border-gray-100 shadow-sm">
-                <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-100">
+              <Card className="bg-white/60 backdrop-blur-sm border border-white/20 shadow-lg rounded-xl">
+                <CardHeader className="bg-gradient-to-r from-blue-50/50 to-purple-50/50 backdrop-blur-sm border-b border-white/10 rounded-t-xl">
                   <CardTitle className="flex items-center gap-2 text-xl text-gray-800">
                     <Sparkles className="h-5 w-5 text-blue-600" />
                     Informações Básicas do Agente
@@ -103,8 +103,8 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
             </TabsContent>
 
             <TabsContent value="prompt" className="mt-0">
-              <Card className="border-2 border-gray-100 shadow-sm">
-                <CardHeader className="bg-gradient-to-r from-green-50 to-blue-50 border-b border-gray-100">
+              <Card className="bg-white/60 backdrop-blur-sm border border-white/20 shadow-lg rounded-xl">
+                <CardHeader className="bg-gradient-to-r from-green-50/50 to-blue-50/50 backdrop-blur-sm border-b border-white/10 rounded-t-xl">
                   <CardTitle className="flex items-center gap-2 text-xl text-gray-800">
                     <MessageSquare className="h-5 w-5 text-green-600" />
                     Configuração do Prompt
@@ -124,8 +124,8 @@ export const AIAgentModal = ({ isOpen, onClose, agent, onSave }: AIAgentModalPro
             </TabsContent>
 
             <TabsContent value="objectives" className="mt-0">
-              <Card className="border-2 border-gray-100 shadow-sm">
-                <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-gray-100">
+              <Card className="bg-white/60 backdrop-blur-sm border border-white/20 shadow-lg rounded-xl">
+                <CardHeader className="bg-gradient-to-r from-purple-50/50 to-pink-50/50 backdrop-blur-sm border-b border-white/10 rounded-t-xl">
                   <CardTitle className="flex items-center gap-2 text-xl text-gray-800">
                     <Target className="h-5 w-5 text-purple-600" />
                     Objetivos do Agente

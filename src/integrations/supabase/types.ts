@@ -482,7 +482,7 @@ export type Database = {
           status: Database["public"]["Enums"]["message_status"] | null
           text: string | null
           timestamp: string | null
-          whatsapp_number_id: string
+          whatsapp_number_id: string | null
         }
         Insert: {
           content_hash?: string | null
@@ -498,7 +498,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["message_status"] | null
           text?: string | null
           timestamp?: string | null
-          whatsapp_number_id: string
+          whatsapp_number_id?: string | null
         }
         Update: {
           content_hash?: string | null
@@ -514,7 +514,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["message_status"] | null
           text?: string | null
           timestamp?: string | null
-          whatsapp_number_id?: string
+          whatsapp_number_id?: string | null
         }
         Relationships: [
           {
