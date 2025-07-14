@@ -1,11 +1,10 @@
-
 import { useState } from "react";
 import { Trash2, Edit2, Save, X, Lock, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { KanbanColumn } from "@/types/kanban";
-import { AIToggleSwitchEnhanced } from "../../ai/AIToggleSwitchEnhanced";
+import { AIToggleSwitchEnhanced } from "../../../ai/AIToggleSwitchEnhanced";
 import { useAIStageControl } from "@/hooks/salesFunnel/useAIStageControl";
 import { toast } from "sonner";
 
