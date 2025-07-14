@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Droppable, Draggable } from "react-beautiful-dnd";
 import { MoreVertical, Edit, Trash2, Plus, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,227 @@ import { KanbanColumn as KanbanColumnType, KanbanLead } from "@/types/kanban";
 import { AIToggleSwitch } from "./ai/AIToggleSwitch";
 import { useAIStageControl } from "@/hooks/salesFunnel/useAIStageControl";
 import { toast } from "sonner";
+
+// Hook customizado para gerenciar scroll infinito
+const useInfiniteScroll = (totalItems: number, initialCount: number = 25) => {
+  const [visibleCount, setVisibleCount] = useState(initialCount);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const hasMore = totalItems > visibleCount;
+  
+  const loadMore = useCallback(() => {
+    if (isLoading || !hasMore) return;
+    
+    setIsLoading(true);
+    setTimeout(() => {
+      setVisibleCount(prev => Math.min(prev + 25, totalItems));
+      setIsLoading(false);
+    }, 300);
+  }, [isLoading, hasMore, totalItems]);
+
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const element = e.currentTarget;
+    const { scrollTop, scrollHeight, clientHeight } = element;
+    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
+    
+    if (scrollPercentage > 0.8 && hasMore && !isLoading) {
+      loadMore();
+    }
+  }, [hasMore, isLoading, loadMore]);
+
+  useEffect(() => {
+    setVisibleCount(initialCount);
+  }, [totalItems, initialCount]);
+
+  return {
+    visibleCount,
+    isLoading,
+    hasMore,
+    loadMore,
+    handleScroll
+  };
+};
+
+// Hook customizado para edição de título
+const useTitleEditor = (
+  initialTitle: string,
+  onSave: (title: string) => Promise<void>
+) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(initialTitle);
+
+  const handleSave = useCallback(async () => {
+    if (editTitle.trim() && editTitle !== initialTitle) {
+      try {
+        await onSave(editTitle.trim());
+        setIsEditing(false);
+      } catch (error: any) {
+        toast.error(error.message || "Erro ao atualizar estágio");
+        setEditTitle(initialTitle);
+      }
+    } else {
+      setIsEditing(false);
+      setEditTitle(initialTitle);
+    }
+  }, [editTitle, initialTitle, onSave]);
+
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSave();
+    } else if (e.key === "Escape") {
+      setIsEditing(false);
+      setEditTitle(initialTitle);
+    }
+  }, [handleSave, initialTitle]);
+
+  const startEditing = useCallback(() => {
+    setIsEditing(true);
+    setEditTitle(initialTitle);
+  }, [initialTitle]);
+
+  return {
+    isEditing,
+    editTitle,
+    setEditTitle,
+    handleSave,
+    handleKeyPress,
+    startEditing
+  };
+};
+
+// Componente para o header da coluna
+interface ColumnHeaderProps {
+  column: KanbanColumnType;
+  isFixedStage: boolean;
+  aiEnabled: boolean;
+  isWonLostView: boolean;
+  isTogglingAI: boolean;
+  onToggleAI: (enabled: boolean) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  titleEditor: {
+    isEditing: boolean;
+    editTitle: string;
+    setEditTitle: (title: string) => void;
+    handleSave: () => void;
+    handleKeyPress: (e: React.KeyboardEvent) => void;
+  };
+}
+
+const ColumnHeader = ({
+  column,
+  isFixedStage,
+  aiEnabled,
+  isWonLostView,
+  isTogglingAI,
+  onToggleAI,
+  onEdit,
+  onDelete,
+  titleEditor
+}: ColumnHeaderProps) => (
+  <div className="flex items-center justify-between mb-4 px-1">
+    <div className="flex items-center gap-2 flex-1">
+      {isFixedStage && <Lock className="h-4 w-4 text-gray-500" />}
+      {titleEditor.isEditing ? (
+        <Input
+          value={titleEditor.editTitle}
+          onChange={(e) => titleEditor.setEditTitle(e.target.value)}
+          onBlur={titleEditor.handleSave}
+          onKeyDown={titleEditor.handleKeyPress}
+          className="text-sm font-medium bg-white"
+          autoFocus
+        />
+      ) : (
+        <h3 
+          className={cn(
+            "text-sm font-medium text-gray-900 truncate",
+            isFixedStage && "text-gray-600"
+          )}
+          style={{ color: column.color }}
+        >
+          {column.title}
+        </h3>
+      )}
+      <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
+        {column.leads.length}
+      </span>
+    </div>
+
+    <div className="flex items-center gap-2">
+      {!isFixedStage && !isWonLostView && (
+        <AIToggleSwitch
+          enabled={aiEnabled}
+          onToggle={onToggleAI}
+          isLoading={isTogglingAI}
+          size="sm"
+          showIcon={false}
+          className="flex-shrink-0"
+        />
+      )}
+
+      {!isFixedStage && !isWonLostView && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={onEdit}>
+              <Edit className="h-4 w-4 mr-2" />
+              Editar
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onDelete} className="text-red-600">
+              <Trash2 className="h-4 w-4 mr-2" />
+              Excluir
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+    </div>
+  </div>
+);
+
+// Componente para indicadores de scroll
+interface ScrollIndicatorsProps {
+  isLoading: boolean;
+  hasMore: boolean;
+  visibleCount: number;
+  totalCount: number;
+  onLoadMore: () => void;
+}
+
+const ScrollIndicators = ({ 
+  isLoading, 
+  hasMore, 
+  visibleCount, 
+  totalCount, 
+  onLoadMore 
+}: ScrollIndicatorsProps) => (
+  <>
+    {isLoading && (
+      <div className="p-3 text-center text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded mx-1 mb-2">
+        <div className="animate-spin inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
+        Carregando mais leads...
+      </div>
+    )}
+    
+    {hasMore && !isLoading && (
+      <div className="p-2 text-center text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded mx-1 mb-2">
+        Mostrando {visibleCount} de {totalCount} leads
+        <br />
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={onLoadMore}
+          className="text-xs mt-1 h-6"
+        >
+          Carregar mais
+        </Button>
+      </div>
+    )}
+  </>
+);
 
 interface KanbanColumnProps {
   column: KanbanColumnType;
@@ -44,88 +265,44 @@ export function KanbanColumn({
   wonStageId,
   lostStageId
 }: KanbanColumnProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editTitle, setEditTitle] = useState(column.title);
-  
-  // Estados para scroll infinito
-  const [visibleLeadsCount, setVisibleLeadsCount] = useState(25);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  // Hook para controle de IA
+  // Hooks customizados
   const { toggleAI, isLoading: isTogglingAI } = useAIStageControl();
+  const {
+    visibleCount,
+    isLoading: isLoadingMore,
+    hasMore,
+    loadMore,
+    handleScroll
+  } = useInfiniteScroll(column.leads.length);
 
-  const isFixedStage = column.title === "GANHO" || column.title === "PERDIDO" || column.title === "Entrada de Leads" || column.isFixed;
+  // Memoização de valores computados
+  const isFixedStage = useMemo(() => 
+    column.title === "GANHO" || 
+    column.title === "PERDIDO" || 
+    column.title === "Entrada de Leads" || 
+    column.isFixed,
+    [column.title, column.isFixed]
+  );
+
+  const aiEnabled = useMemo(() => column.ai_enabled === true, [column.ai_enabled]);
   
-  // Verificar se a IA está habilitada (padrão OFF)
-  const aiEnabled = column.ai_enabled === true;
+  const visibleLeads = useMemo(() => 
+    column.leads.slice(0, visibleCount),
+    [column.leads, visibleCount]
+  );
 
-  console.log('[KanbanColumn] 🔍 Status da IA:', {
-    columnTitle: column.title,
-    aiEnabled,
-    columnAiEnabled: column.ai_enabled,
-    isFixedStage
-  });
-
-  // Leads visíveis baseado no scroll infinito
-  const visibleLeads = column.leads.slice(0, visibleLeadsCount);
-  const hasMoreLeads = column.leads.length > visibleLeadsCount;
-
-  console.log('[KanbanColumn] 📊 Estado:', {
-    columnTitle: column.title,
-    totalLeads: column.leads.length,
-    visibleLeads: visibleLeads.length,
-    hasMoreLeads
-  });
-
-  // Função para carregar mais leads
-  const loadMoreLeads = useCallback(() => {
-    if (isLoadingMore || !hasMoreLeads) return;
-    
-    setIsLoadingMore(true);
-    console.log('[KanbanColumn] 📥 Carregando mais leads para:', column.title);
-    
-    // Simular um pequeno delay para UX melhor
-    setTimeout(() => {
-      setVisibleLeadsCount(prev => Math.min(prev + 25, column.leads.length));
-      setIsLoadingMore(false);
-    }, 300);
-  }, [isLoadingMore, hasMoreLeads, column.leads.length, column.title]);
-
-  // Detectar scroll para carregar mais leads
-  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
-    const element = e.currentTarget;
-    const { scrollTop, scrollHeight, clientHeight } = element;
-    
-    // Carregar quando estiver próximo do final (80% do scroll)
-    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
-    
-    if (scrollPercentage > 0.8 && hasMoreLeads && !isLoadingMore) {
-      loadMoreLeads();
+  // Handler para salvar título
+  const handleSaveTitle = useCallback(async (newTitle: string) => {
+    if (onUpdateColumn) {
+      await onUpdateColumn({ ...column, title: newTitle });
     }
-  }, [hasMoreLeads, isLoadingMore, loadMoreLeads]);
+  }, [column, onUpdateColumn]);
 
-  // Resetar contagem quando a coluna mudar
-  useEffect(() => {
-    setVisibleLeadsCount(25);
-  }, [column.id, column.leads.length]);
+  // Hook para edição de título
+  const titleEditor = useTitleEditor(column.title, handleSaveTitle);
 
-  const handleSaveTitle = async () => {
-    if (editTitle.trim() && editTitle !== column.title && onUpdateColumn) {
-      try {
-        await onUpdateColumn({ ...column, title: editTitle.trim() });
-        setIsEditing(false);
-      } catch (error: any) {
-        toast.error(error.message || "Erro ao atualizar estágio");
-        setEditTitle(column.title);
-      }
-    } else {
-      setIsEditing(false);
-      setEditTitle(column.title);
-    }
-  };
-
-  const handleDelete = async () => {
+  // Handler para deletar coluna
+  const handleDelete = useCallback(async () => {
     if (onDeleteColumn) {
       try {
         await onDeleteColumn(column.id);
@@ -133,98 +310,42 @@ export function KanbanColumn({
         toast.error(error.message || "Erro ao deletar estágio");
       }
     }
-  };
+  }, [column.id, onDeleteColumn]);
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleSaveTitle();
-    } else if (e.key === "Escape") {
-      setIsEditing(false);
-      setEditTitle(column.title);
-    }
-  };
-
-  const handleAIToggle = (enabled: boolean) => {
-    console.log('[KanbanColumn] 🎛️ Toggle AI clicado:', {
+  // Handler para toggle AI
+  const handleAIToggle = useCallback((enabled: boolean) => {
+    console.log('[KanbanColumn] 🎛️ Toggle AI:', {
       columnId: column.id,
       columnTitle: column.title,
       currentEnabled: aiEnabled,
       newEnabled: enabled
     });
     toggleAI(column.id, aiEnabled);
-  };
+  }, [column.id, column.title, aiEnabled, toggleAI]);
+
+  // Logging otimizado
+  console.log('[KanbanColumn] 📊 Renderização:', {
+    columnTitle: column.title,
+    totalLeads: column.leads.length,
+    visibleLeads: visibleLeads.length,
+    hasMore,
+    aiEnabled
+  });
 
   return (
     <div className="bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-2xl px-1.5 py-3 min-w-[300px] max-w-[300px] flex flex-col h-full transition-all duration-300 hover:bg-white/25 hover:shadow-glass-lg">
-      {/* Header com IA Toggle no canto direito */}
-      <div className="flex items-center justify-between mb-4 px-1">
-        <div className="flex items-center gap-2 flex-1">
-          {isFixedStage && <Lock className="h-4 w-4 text-gray-500" />}
-          {isEditing ? (
-            <Input
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-              onBlur={handleSaveTitle}
-              onKeyDown={handleKeyPress}
-              className="text-sm font-medium bg-white"
-              autoFocus
-            />
-          ) : (
-            <h3 
-              className={cn(
-                "text-sm font-medium text-gray-900 truncate",
-                isFixedStage && "text-gray-600"
-              )}
-              style={{ color: column.color }}
-            >
-              {column.title}
-            </h3>
-          )}
-          <span className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded-full">
-            {column.leads.length}
-          </span>
-        </div>
-
-        {/* Área direita com IA Toggle e Menu de Ações */}
-        <div className="flex items-center gap-2">
-          {/* Toggle da IA - sempre visível para etapas não fixas */}
-          {!isFixedStage && !isWonLostView && (
-            <AIToggleSwitch
-              enabled={aiEnabled}
-              onToggle={handleAIToggle}
-              isLoading={isTogglingAI}
-              size="sm"
-              showIcon={false}
-              className="flex-shrink-0"
-            />
-          )}
-
-          {/* Menu de ações */}
-          {!isFixedStage && !isWonLostView && (onUpdateColumn || onDeleteColumn) && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {onUpdateColumn && (
-                  <DropdownMenuItem onClick={() => setIsEditing(true)}>
-                    <Edit className="h-4 w-4 mr-2" />
-                    Editar
-                  </DropdownMenuItem>
-                )}
-                {onDeleteColumn && (
-                  <DropdownMenuItem onClick={handleDelete} className="text-red-600">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Excluir
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-      </div>
+      {/* Header */}
+      <ColumnHeader
+        column={column}
+        isFixedStage={isFixedStage}
+        aiEnabled={aiEnabled}
+        isWonLostView={isWonLostView}
+        isTogglingAI={isTogglingAI}
+        onToggleAI={handleAIToggle}
+        onEdit={titleEditor.startEditing}
+        onDelete={handleDelete}
+        titleEditor={titleEditor}
+      />
 
       {/* Color bar */}
       <div
@@ -232,7 +353,7 @@ export function KanbanColumn({
         style={{ backgroundColor: column.color || "#e0e0e0" }}
       />
 
-      {/* Droppable otimizado para RBD com scroll infinito */}
+      {/* Droppable com scroll infinito otimizado */}
       <Droppable droppableId={column.id} type="lead">
         {(provided, snapshot) => (
           <div
@@ -270,29 +391,14 @@ export function KanbanColumn({
             ))}
             {provided.placeholder}
             
-            {/* Indicador de carregamento */}
-            {isLoadingMore && (
-              <div className="p-3 text-center text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded mx-1 mb-2">
-                <div className="animate-spin inline-block w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full mr-2"></div>
-                Carregando mais leads...
-              </div>
-            )}
-            
-            {/* Status quando há mais leads */}
-            {hasMoreLeads && !isLoadingMore && (
-              <div className="p-2 text-center text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded mx-1 mb-2">
-                Mostrando {visibleLeads.length} de {column.leads.length} leads
-                <br />
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={loadMoreLeads}
-                  className="text-xs mt-1 h-6"
-                >
-                  Carregar mais
-                </Button>
-              </div>
-            )}
+            {/* Indicadores de scroll */}
+            <ScrollIndicators
+              isLoading={isLoadingMore}
+              hasMore={hasMore}
+              visibleCount={visibleLeads.length}
+              totalCount={column.leads.length}
+              onLoadMore={loadMore}
+            />
             
             {/* Indicador de drop otimizado */}
             {snapshot.isDraggingOver && column.leads.length === 0 && (

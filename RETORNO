@@ -1,0 +1,192 @@
+root@srv848330:~/whatsapp-server#
+root@srv848330:~/whatsapp-server# # 1. ANÁLISE DO CÓDIGO - VERIFICAR CONFIGURAÇÃO makeWASocket
+grep -A 30 -B 5 "makeWASocket" /root/whatsapp-server/server.js
+
+# 2. VERIFICAR CONFIGURAÇÃO DE AUTH STATE
+grep -A 10 -B 5 "useMultiFileAuthState" /root/whatsapp-server/server.js
+
+# 3. TESTAR CONFIGURAÇÃO MÍNIMA BAILEYS (ISOLADO)
+node -e "
+const { makeWASocket, useMultiFileAuthState, DisconnectReason } = require('baileys');
+const fs = require('fs');
+
+async function testMinimal() {
+    try {
+        console.log('🔍 Testando configuração mínima...');
+
+        // Criar diretório de teste
+        const authDir = './test_auth_minimal';
+        if (!fs.existsSync(authDir)) fs.mkdirSync(authDir);
+
+        const { state, saveCreds } = await useMultiFileAuthState(authDir);
+
+        console.log('✅ Auth state criado');
+
+        const sock = makeWASocket({
+            auth: state,
+            printQRInTerminal: true,
+            logger: require('pino')({ level: 'debug' }),
+            browser: ['Test', 'Chrome', '1.0.0']
+        });
+
+pm2 logs whatsapp-server --lines 20 & \ance/create \rver.jsvidorsconnect?.error);;
+const express = require('express');
+const { makeWASocket, DisconnectReason, useMultiFileAuthState, Browsers } = require('baileys');
+const QRCode = require('qrcode');
+const redis = require('redis');
+const cors = require('cors');
+const axios = require('axios');
+
+const app = express();
+const PORT = process.env.PORT || 3002;
+
+// Configuração do Redis
+const redisClient = redis.createClient({
+    host: 'localhost',
+    port: 6379,
+    retry_strategy: (options) => {
+        if (options.error && options.error.code === 'ECONNREFUSED') {
+            console.log('Redis connection refused');
+        }
+        if (options.total_retry_time > 1000 * 60 * 60) {
+            return new Error('Retry time exhausted');
+        }
+        if (options.attempt > 10) {
+            return undefined;
+        }
+        return Math.min(options.attempt * 100, 3000);
+    }
+});
+
+redisClient.on('error', (err) => {
+    console.log('Redis Error:', err);
+});
+
+--
+    try {
+        console.log(`[${instanceId}] Criando instância...`);
+
+        const { state, saveCreds } = await useMultiFileAuthState(`./sessions/${instanceId}`);
+
+        const sock = makeWASocket({
+            auth: state,
+            printQRInTerminal: false,
+            browser: Browsers.baileys(),
+            logger: {
+                level: 'silent',
+                child: () => ({
+                    level: 'silent',
+                    info: () => {},
+                    error: () => {},
+                    warn: () => {},
+                    debug: () => {},
+                    trace: () => {}
+                }),
+                info: () => {},
+                error: () => {},
+                warn: () => {},
+                debug: () => {},
+                trace: () => {}
+            }
+        });
+
+        instances.set(instanceId, {
+            sock,
+            qr: null,
+            status: 'connecting',
+            webhookUrl,
+            lastSeen: new Date(),
+            messageCount: 0
+        });
+
+const express = require('express');
+const { makeWASocket, DisconnectReason, useMultiFileAuthState, Browsers } = require('baileys');
+const QRCode = require('qrcode');
+const redis = require('redis');
+const cors = require('cors');
+const axios = require('axios');
+
+const app = express();
+const PORT = process.env.PORT || 3002;
+
+// Configuração do Redis
+const redisClient = redis.createClient({
+--
+// Função para criar instância WhatsApp
+async function createWhatsAppInstance(instanceId, webhookUrl = null) {
+    try {
+        console.log(`[${instanceId}] Criando instância...`);
+
+        const { state, saveCreds } = await useMultiFileAuthState(`./sessions/${instanceId}`);
+
+        const sock = makeWASocket({
+            auth: state,
+            printQRInTerminal: false,
+            browser: Browsers.baileys(),
+            logger: {
+                level: 'silent',
+                child: () => ({
+                    level: 'silent',
+                    info: () => {},
+-bash: !fs.existsSync: event not found
+🔍 Testando configuração mínima...
+✅ Auth state criado
+⚠️ The printQRInTerminal option has been deprecated. You will no longer receive QR codes in the terminal automatically. Please listen to the connection.update event yourself and handle the QR your way. You can remove this message by removing this opttion. This message will be removed in a future version.
+✅ Socket criado
+📡 Connection update: {
+  "connection": "connecting",
+  "receivedPendingNotifications": false
+}
+{"level":30,"time":1752426959954,"pid":219054,"hostname":"srv848330","browser":["Test","Chrome","1.0.0"],"helloMsg":{"clientHello":{"ephemeral":"ONp1CCsenFZfHrTrp4SyQ20cAyjsoiW09YDPp+I40Fw="}},"msg":"connected to WA"}
+{"level":30,"time":1752426960122,"pid":219054,"hostname":"srv848330","node":{"passive":false,"userAgent":{"platform":"WEB","appVersion":{"primary":2,"secondary":3000,"tertiary":1023223821},"mcc":"000","mnc":"000","osVersion":"0.1","device":"Desktop","osBuildNumber":"0.1","releaseChannel":"RELEASE","localeLanguageIso6391":"en","localeCountryIso31661Alpha2":"US"},"webInfo":{"webSubPlatform":"WEB_BROWSER"},"connectType":"WIFI_UNKNOWN","connectReason":"USER_ACTIVATED","devicePairingData":{"eRegid":"AAAAYw==","eKeytype":"BQ==","eIdent":"DX5Fnh425OEiP3jUKWyJRBa3NXiMzbvih1g3VnYEdVI=","eSkeyId":"AAAB","eSkeyVal":"IJZI/VeCi3YEXgzuX35NQSSwy89Oq1lXr2bh+83YJhU=","eSkeySig":"zzrxtD8Eq1BFvNgVkX1bAYqQ/Or1UhYUoo0iynQUrENiHlxk0uuERQu2vtpgQKwZGwFmZ+SsZLh3cZFbIY41BQ==","buildHash":"c9lQeUMlTdrMrIi/+YcPiA==","deviceProps":"CgRUZXN0GAEgAA=="},"pull":false},"msg":"not logged in, attempting registration..."}
+📡 Connection update: {
+  "qr": "2@+wmJK8jKieGOTvMF9/yxHphdeG2NHV2ZFOwxLuvklOleHBfA64Q+pa8vFoxmeAPDXZhpUsAfXTp9Ng==,M2P6sc+j6wGIilymJ9kiIP7lKKol3Mw1Xvx3Pma+E0Q=,DX5Fnh425OEiP3jUKWyJRBa3NXiMzbvih1g3VnYEdVI=,Azc9IHwCJBdsyMD0PwohUWq97PuTseQTr4nU9qDSyCs="
+}
+⏰ Timeout - encerrando teste
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [whatsapp-server](ids: [ 0 ])
+[PM2] [whatsapp-server](0) ✓
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ whatsapp-server    │ fork     │ 2    │ online    │ 0%       │ 20.8mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+[1] 219081
+curl: (7) Failed to connect to localhost port 3002 after 0 ms: Couldn't connect to server
+[TAILING] Tailing last 20 lines for [whatsapp-server] process (change the value with --lines option)
+/root/.pm2/logs/whatsapp-server-error.log last 20 lines:
+/root/.pm2/logs/whatsapp-server-out.log last 20 lines:
+0|whatsapp | [teste_baileys_limpo] Connection update: connecting
+0|whatsapp | [teste_baileys_limpo] Connection update: close
+0|whatsapp | [teste_baileys_limpo] Conexão fechada. Reconectando: true
+0|whatsapp | [teste_baileys_limpo] Tentativa de reconexão 3/5
+0|whatsapp | [teste_baileys_limpo] Criando instância...
+0|whatsapp | [teste_baileys_limpo] Connection update: connecting
+0|whatsapp | [teste_baileys_limpo] Connection update: close
+0|whatsapp | [teste_baileys_limpo] Conexão fechada. Reconectando: true
+0|whatsapp | [teste_baileys_limpo] Tentativa de reconexão 4/5
+0|whatsapp | [teste_baileys_limpo] Criando instância...
+0|whatsapp | [teste_baileys_limpo] Connection update: connecting
+0|whatsapp | [teste_baileys_limpo] Connection update: close
+0|whatsapp | [teste_baileys_limpo] Conexão fechada. Reconectando: true
+0|whatsapp | [teste_baileys_limpo] Tentativa de reconexão 5/5
+0|whatsapp | [teste_baileys_limpo] Criando instância...
+0|whatsapp | [teste_baileys_limpo] Connection update: connecting
+0|whatsapp | [teste_baileys_limpo] Connection update: close
+0|whatsapp | [teste_baileys_limpo] Conexão fechada. Reconectando: true
+0|whatsapp | [teste_baileys_limpo] Máximo de tentativas de reconexão atingido
+0|whatsapp | 🛑 Recebido SIGINT, fechando servidor...
+
+0|whatsapp-server  | 🚀 Servidor WhatsApp rodando na porta 3002
+0|whatsapp-server  | 📊 Webhooks configurados: [
+0|whatsapp-server  |   'QR_RECEIVER',
+0|whatsapp-server  |   'CONNECTION_SYNC',
+0|whatsapp-server  |   'BACKEND_MESSAGES',
+0|whatsapp-server  |   'N8N_MESSAGES'
+0|whatsapp-server  | ]
+0|whatsapp-server  | 🔧 Recursos ativos: Redis, QR Base64, Filtro de Grupos, Auto-reconexão
+0|whatsapp-server  | Redis conectado
+0|whatsapp-server  | ✅ Redis conectado com sucesso
+^C
+[1]+  Exit 7                  curl -X POST http://localhost:3002/instance/create -H "Content-Type: application/json" -d '{"instanceId": "debug_test"}'
+root@srv848330:~/whatsapp-server#

@@ -12,10 +12,8 @@ export class InstanceApi {
         EDGE_FUNCTION_CONFIG.name,
         {
           body: {
-            action: EDGE_FUNCTION_CONFIG.actions.createInstance,
-            instanceName: params.instanceName,
-            userEmail: params.userEmail,
-            companyId: params.companyId
+            action: 'create_instance',
+            instanceName: params.instanceName || 'whatsapp_instance'
           }
         }
       );

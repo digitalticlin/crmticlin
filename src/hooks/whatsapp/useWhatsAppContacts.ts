@@ -265,7 +265,8 @@ export const useWhatsAppContacts = (
           queryRange: `${offset} até ${offset + limit - 1}`
         });
 
-        // QUERY OTIMIZADA: Simplificada para evitar problemas de paginação
+        // QUERY OTIMIZADA: Evitar leads duplicados por telefone
+        // Prioriza lead com whatsapp_number_id válido, mas agrega dados de leads duplicados
         const { data: leads, error } = await supabase
           .from('leads')
           .select(`

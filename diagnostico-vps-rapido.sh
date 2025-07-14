@@ -1,30 +1,38 @@
 #!/bin/bash
-echo "🔬 DIAGNÓSTICO VPS - CIRÚRGICO"
-echo "=============================="
 
-echo ""
-echo "=== 1. LOGS PM2 (Últimas 30 linhas) ==="
-pm2 logs whatsapp-server --lines 30
+echo "=== DIAGNÓSTICO RÁPIDO VPS ==="
+echo "Verificando se VPS está em loop ou com problemas..."
+echo
 
-echo ""
-echo "=== 2. STATUS PM2 ==="
-pm2 status
+# Teste básico de conectividade
+echo "1. TESTE DE CONECTIVIDADE:"
+ping -c 3 31.97.24.222 2>/dev/null && echo "✅ VPS responde ao ping" || echo "❌ VPS não responde ao ping"
+echo
 
-echo ""
-echo "=== 3. PORTA 3002 ==="
-netstat -tulpn | grep 3002
-lsof -i :3002
+# Teste de porta HTTP
+echo "2. TESTE DE PORTA 3002:"
+timeout 5 curl -s http://31.97.24.222:3002/health 2>/dev/null && echo "✅ Porta 3002 responde" || echo "❌ Porta 3002 não responde"
+echo
 
-echo ""
-echo "=== 4. SINTAXE SERVER.JS ==="
-cd /root/whatsapp-server 2>/dev/null || cd /root/webhook-server-3002 2>/dev/null || echo "Diretório não encontrado"
-node -c server.js && echo "✅ Sintaxe OK" || echo "❌ ERRO DE SINTAXE"
+# Teste de criação de instância (timeout curto)
+echo "3. TESTE RÁPIDO DE API:"
+timeout 10 curl -s -X POST http://31.97.24.222:3002/instance/create \
+  -H "Content-Type: application/json" \
+  -d '{"instanceId": "test_diagnostico"}' 2>/dev/null && echo "✅ API responde" || echo "❌ API não responde ou timeout"
+echo
 
-echo ""
-echo "=== 5. DEPENDÊNCIAS ==="
-[ -d "node_modules" ] && echo "✅ node_modules OK" || echo "❌ node_modules FALTANDO"
+# Teste de SSH (sem tentar conectar, só verificar se porta está aberta)
+echo "4. TESTE DE PORTA SSH (22):"
+timeout 3 nc -z 31.97.24.222 22 2>/dev/null && echo "✅ SSH porta aberta" || echo "❌ SSH porta fechada ou timeout"
+echo
 
-echo ""
-echo "=== 6. PRIMEIRO TESTE: LOGS EM TEMPO REAL ==="
-echo "Execute: pm2 logs whatsapp-server --lines 0 -f"
-echo "Pressione Ctrl+C após 10 segundos para ver os erros" 
+echo "=== POSSÍVEIS PROBLEMAS ==="
+echo "Se SSH não responde: Servidor pode estar em loop de CPU alta"
+echo "Se API não responde: Processo PM2 pode estar crashando"
+echo "Se ping não responde: Problema de rede ou servidor down"
+echo
+
+echo "=== SOLUÇÕES SUGERIDAS ==="
+echo "1. Aguardar 2-3 minutos para CPU normalizar"
+echo "2. Tentar SSH novamente com timeout maior"
+echo "3. Se persistir, contatar provedor (Hostinger)" 

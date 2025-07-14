@@ -496,16 +496,61 @@ async function handleMessageReceived(supabase: any, payload: any, instanceId: st
 
     console.log(`[${requestId}] 📞 Mensagem ${fromMe ? 'ENVIADA PARA' : 'RECEBIDA DE'}: ${phone} | Tipo: ${mediaType} | Texto: ${messageText.substring(0, 50)}...`);
 
-    // Buscar ou criar lead
-    let { data: lead, error: leadError } = await supabase
+    // MIGRAÇÃO INTELIGENTE DE LEADS - NUNCA DUPLICAR
+    // 1. Buscar lead existente por telefone + usuário (ÚNICO)
+    let { data: existingLead, error: leadSearchError } = await supabase
       .from('leads')
       .select('*')
       .eq('phone', phone)
-      .eq('whatsapp_number_id', instance.id)
       .eq('created_by_user_id', instance.created_by_user_id)
-      .single();
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (leadError || !lead) {
+    if (leadSearchError) {
+      console.error(`[${requestId}] ❌ Erro ao buscar lead:`, leadSearchError);
+      throw leadSearchError;
+    }
+
+    let lead;
+    let migrationInfo = {
+      action: 'none',
+      lead_updated: false,
+      was_orphan: false
+    };
+
+    if (existingLead) {
+      // 2. LEAD EXISTE - SEMPRE ATUALIZAR COM NOVA INSTÂNCIA
+      console.log(`[${requestId}] 👤 Lead existente encontrado: ${existingLead.id}`);
+      
+      const wasOrphan = !existingLead.whatsapp_number_id;
+      
+      // SEMPRE atualizar lead para nova instância (resolve leads órfãos)
+      const { error: updateLeadError } = await supabase
+        .from('leads')
+        .update({
+          whatsapp_number_id: instance.id,  // ← SEMPRE atualizar
+          last_message: messageText,
+          last_message_time: new Date().toISOString(),
+          unread_count: fromMe ? existingLead.unread_count : (existingLead.unread_count || 0) + 1
+        })
+        .eq('id', existingLead.id);
+
+      if (updateLeadError) {
+        console.error(`[${requestId}] ❌ Erro ao atualizar lead:`, updateLeadError);
+        throw updateLeadError;
+      }
+
+      lead = { ...existingLead, whatsapp_number_id: instance.id };
+      migrationInfo = {
+        action: 'updated_existing',
+        lead_updated: true,
+        was_orphan: wasOrphan
+      };
+      
+      console.log(`[${requestId}] ✅ Lead atualizado${wasOrphan ? ' (era órfão)' : ''}: ${lead.id}`);
+    } else {
+      // 3. LEAD NÃO EXISTE - Criar novo
       console.log(`[${requestId}] 👤 Criando novo lead para: ${phone}`);
       
       // Buscar funil padrão
@@ -526,7 +571,7 @@ async function handleMessageReceived(supabase: any, payload: any, instanceId: st
           funnel_id: defaultFunnel?.id,
           last_message: messageText,
           last_message_time: new Date().toISOString(),
-          unread_count: fromMe ? 0 : 1 // ✅ Se é outgoing, não conta como não lida
+          unread_count: fromMe ? 0 : 1
         })
         .select()
         .single();
@@ -537,25 +582,8 @@ async function handleMessageReceived(supabase: any, payload: any, instanceId: st
       }
       
       lead = newLead;
+      migrationInfo.action = 'created_new';
       console.log(`[${requestId}] ✅ Lead criado: ${lead.id}`);
-    } else {
-      // Atualizar lead existente
-      const updateData: any = {
-        last_message: messageText,
-        last_message_time: new Date().toISOString(),
-      };
-
-      // ✅ Se é incoming (não from_me), incrementar contador de não lidas
-      if (!fromMe) {
-        updateData.unread_count = (lead.unread_count || 0) + 1;
-      }
-
-      await supabase
-        .from('leads')
-        .update(updateData)
-        .eq('id', lead.id);
-      
-      console.log(`[${requestId}] ✅ Lead atualizado: ${lead.id}`);
     }
 
     // ✅ SALVAR MENSAGEM COMPLETA COM BILATERAL + MÍDIA
@@ -583,6 +611,7 @@ async function handleMessageReceived(supabase: any, payload: any, instanceId: st
     }
 
     console.log(`[${requestId}] ✅ Mensagem ${fromMe ? 'OUTGOING' : 'INCOMING'} ${mediaType.toUpperCase()} salva com sucesso`);
+    console.log(`[${requestId}] 🔄 Migração aplicada:`, migrationInfo);
 
     // ✅ PROCESSAMENTO AUTOMÁTICO DE MÍDIA PARA CACHE
     console.error(`[${requestId}] 🔍 DEBUG MÍDIA - tipo: "${mediaType}", url: "${mediaUrl}"`);
@@ -606,12 +635,13 @@ async function handleMessageReceived(supabase: any, payload: any, instanceId: st
     
     return new Response(JSON.stringify({ 
       success: true, 
-      message: 'Message processed and saved',
+      message: 'Message processed with smart lead migration',
       phone,
       fromMe,
       mediaType,
       leadId: lead.id,
       instanceId: instance.id,
+      migration: migrationInfo,
       requestId
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

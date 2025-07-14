@@ -56,24 +56,27 @@ serve(async (req: Request) => {
 
     console.log(`🌐 [QR Manager] Solicitando QR Code para VPS: ${instance.instance_name}`);
 
-    // CORREÇÃO: Usar URL correta na porta 3002
+    // CORREÇÃO: Usar URL correta na porta 3002 e endpoint correto
     const vpsUrl = "http://31.97.24.222:3002";
-    const response = await fetch(`${vpsUrl}/instance/qrcode/${instance.instance_name}`, {
+    const vpsToken = Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
+    const response = await fetch(`${vpsUrl}/instance/${instance.instance_name}/qr`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${vpsToken}`,
       }
     });
 
     const vpsResult = await response.json();
     console.log(`📱 [QR Manager] Resposta da VPS:`, vpsResult);
 
-    if (response.ok && vpsResult.qrcode) {
+    if (response.ok && (vpsResult.qr || vpsResult.qrcode)) {
+      const qrCode = vpsResult.qr || vpsResult.qrcode;
       // Atualizar instância com QR Code
       const { error: updateError } = await supabase
         .from('whatsapp_instances')
         .update({
-          qr_code: vpsResult.qrcode,
+          qr_code: qrCode,
           connection_status: 'waiting_qr',
           web_status: 'qr_ready',
           updated_at: new Date().toISOString()
@@ -95,7 +98,7 @@ serve(async (req: Request) => {
 
       return new Response(JSON.stringify({
         success: true,
-        qrCode: vpsResult.qrcode,
+        qrCode: qrCode,
         message: "QR Code obtido com sucesso"
       }), { headers: corsHeaders });
     }

@@ -10,7 +10,8 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// CORREÇÃO: Adicionar token VPS para autenticação
+// Configuração VPS
+const VPS_SERVER_URL = 'http://31.97.24.222:3002';
 const VPS_AUTH_TOKEN = '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
 
 serve(async (req: Request) => {
@@ -22,7 +23,9 @@ serve(async (req: Request) => {
     return new Response("Method Not Allowed", { status: 405, headers: corsHeaders });
   }
 
-  // CORREÇÃO RLS: Service role key deve bypass RLS automaticamente
+  const executionId = `delete_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+  console.log(`🗑️ [${executionId}] WHATSAPP INSTANCE DELETE - Iniciando`);
+
   const supabase = createClient(supabaseUrl, supabaseKey, {
     auth: {
       autoRefreshToken: false,
@@ -31,98 +34,168 @@ serve(async (req: Request) => {
   });
 
   try {
-    const { instanceId } = await req.json();
-    console.log(`🗑️ [Instance Delete] Deletando instância: ${instanceId}`);
+    const { instanceId, vpsInstanceId } = await req.json();
+    console.log(`🗑️ [${executionId}] Parâmetros recebidos:`, { instanceId, vpsInstanceId });
 
-    if (!instanceId) {
+    if (!instanceId && !vpsInstanceId) {
       return new Response(JSON.stringify({ 
         success: false, 
-        error: "ID da instância é obrigatório" 
+        error: "ID da instância (instanceId ou vpsInstanceId) é obrigatório",
+        executionId 
       }), { 
         headers: corsHeaders, 
         status: 400 
       });
     }
 
-    // PRIMEIRO: Buscar instância para logs (com service_role deve funcionar)
-    console.log(`🔍 [Instance Delete] Buscando instância para logs...`);
+    // Buscar instância no banco para obter dados completos
+    console.log(`🔍 [${executionId}] Buscando instância no banco...`);
+    let instance = null;
     
-    const { data: instance, error: fetchError } = await supabase
-      .from('whatsapp_instances')
-      .select('id, instance_name, vps_instance_id, created_by_user_id')
-      .eq('id', instanceId)
-      .single();
+    if (instanceId) {
+      const { data, error } = await supabase
+        .from('whatsapp_instances')
+        .select('*')
+        .eq('id', instanceId)
+        .single();
+      
+      if (error) {
+        console.error(`❌ [${executionId}] Erro ao buscar por instanceId:`, error);
+      } else {
+        instance = data;
+      }
+    }
+    
+    // Se não encontrou por instanceId, tentar por vpsInstanceId
+    if (!instance && vpsInstanceId) {
+      const { data, error } = await supabase
+        .from('whatsapp_instances')
+        .select('*')
+        .eq('vps_instance_id', vpsInstanceId)
+        .single();
+      
+      if (error) {
+        console.error(`❌ [${executionId}] Erro ao buscar por vpsInstanceId:`, error);
+      } else {
+        instance = data;
+      }
+    }
 
-    if (fetchError) {
-      console.error("⚠️ [Instance Delete] Erro ao buscar (continuando):", fetchError);
-    } else if (instance) {
-      console.log(`🔍 [Instance Delete] Instância encontrada:`, {
+    if (instance) {
+      console.log(`🔍 [${executionId}] Instância encontrada:`, {
         id: instance.id,
         instance_name: instance.instance_name,
         vps_instance_id: instance.vps_instance_id,
-        created_by_user_id: instance.created_by_user_id
+        connection_status: instance.connection_status
       });
+    } else {
+      console.log(`⚠️ [${executionId}] Instância não encontrada no banco`);
     }
 
-    // PULAR VPS TEMPORARIAMENTE
-    console.log(`⚠️ [Instance Delete] TESTE: PULANDO VPS temporariamente`);
-
-    // CORRET RLS: Usar SQL direto para bypass
-    console.log(`🔓 [Instance Delete] Usando SQL direto para bypass RLS com service_role`);
+    // 1. DELETAR DA VPS (se tiver vps_instance_id)
+    const vpsId = instance?.vps_instance_id || vpsInstanceId;
+    let vpsDeleteSuccess = false;
     
-    const { data: deleteResult, error: deleteError } = await supabase
-      .from('whatsapp_instances')
-      .delete()
-      .eq('id', instanceId)
-      .select('id'); // Retorna o que foi deletado
+    if (vpsId) {
+      console.log(`🚀 [${executionId}] Deletando da VPS: ${vpsId}`);
+      
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-    console.log(`📊 [Instance Delete] Resultado do delete:`, {
-      deleteResult,
-      deleteError,
-      hasError: !!deleteError,
-      deletedCount: deleteResult?.length || 0
+        const vpsResponse = await fetch(`${VPS_SERVER_URL}/instance/delete`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${VPS_AUTH_TOKEN}`,
+            'X-API-Token': VPS_AUTH_TOKEN
+          },
+          body: JSON.stringify({
+            instanceId: vpsId
+          }),
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (vpsResponse.ok) {
+          const vpsData = await vpsResponse.json();
+          console.log(`✅ [${executionId}] VPS delete success:`, vpsData);
+          vpsDeleteSuccess = true;
+        } else {
+          const errorText = await vpsResponse.text();
+          console.error(`❌ [${executionId}] VPS delete failed:`, {
+            status: vpsResponse.status,
+            error: errorText
+          });
+        }
+      } catch (error) {
+        console.error(`❌ [${executionId}] VPS delete error:`, error);
+      }
+    } else {
+      console.log(`⚠️ [${executionId}] Sem vps_instance_id, pulando delete da VPS`);
+    }
+
+    // 2. DELETAR DO BANCO (se tiver instance)
+    let dbDeleteSuccess = false;
+    
+    if (instance) {
+      console.log(`🗄️ [${executionId}] Deletando do banco: ${instance.id}`);
+      
+      const { data: deleteResult, error: deleteError } = await supabase
+        .from('whatsapp_instances')
+        .delete()
+        .eq('id', instance.id)
+        .select('id');
+
+      if (deleteError) {
+        console.error(`❌ [${executionId}] Erro ao deletar do banco:`, deleteError);
+      } else if (deleteResult && deleteResult.length > 0) {
+        console.log(`✅ [${executionId}] Banco delete success:`, deleteResult);
+        dbDeleteSuccess = true;
+      } else {
+        console.error(`❌ [${executionId}] Nenhuma linha deletada do banco`);
+      }
+    } else {
+      console.log(`⚠️ [${executionId}] Sem instância no banco, pulando delete do banco`);
+    }
+
+    // 3. RESULTADO FINAL
+    const overallSuccess = (vpsId ? vpsDeleteSuccess : true) && (instance ? dbDeleteSuccess : true);
+    
+    console.log(`📊 [${executionId}] Resultado final:`, {
+      overallSuccess,
+      vpsDeleteSuccess,
+      dbDeleteSuccess,
+      hadVpsId: !!vpsId,
+      hadInstance: !!instance
     });
 
-    if (deleteError) {
-      console.error("❌ [Instance Delete] Erro específico:", {
-        message: deleteError.message,
-        details: deleteError.details,
-        hint: deleteError.hint,
-        code: deleteError.code
-      });
-      
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: `Delete failed: ${deleteError.message}`,
-        details: deleteError.details,
-        hint: deleteError.hint
-      }), { 
-        headers: corsHeaders, 
-        status: 500 
-      });
-    }
-
-    if (!deleteResult || deleteResult.length === 0) {
-      console.error("❌ [Instance Delete] Nenhuma linha foi deletada - instância não encontrada");
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: "Instância não encontrada ou já foi deletada" 
-      }), { 
-        headers: corsHeaders, 
-        status: 404 
-      });
-    }
-
-    console.log(`✅ [Instance Delete] Instância deletada com sucesso: ${instanceId}`);
-
     return new Response(JSON.stringify({
-      success: true,
-      message: "Instância deletada com sucesso (sem VPS, service_role bypass)",
-      deletedId: deleteResult[0]?.id
-    }), { headers: corsHeaders });
+      success: overallSuccess,
+      message: overallSuccess ? 
+        "Instância deletada com sucesso" : 
+        "Falha parcial na deleção",
+      details: {
+        vps: {
+          attempted: !!vpsId,
+          success: vpsDeleteSuccess,
+          instanceId: vpsId
+        },
+        database: {
+          attempted: !!instance,
+          success: dbDeleteSuccess,
+          instanceId: instance?.id
+        }
+      },
+      executionId
+    }), { 
+      headers: corsHeaders,
+      status: overallSuccess ? 200 : 500
+    });
 
   } catch (error: any) {
-    console.error("❌ [Instance Delete] Erro geral:", {
+    console.error(`❌ [${executionId}] Erro geral:`, {
       message: error.message,
       stack: error.stack,
       name: error.name
@@ -131,7 +204,8 @@ serve(async (req: Request) => {
     return new Response(JSON.stringify({ 
       success: false, 
       error: error.message || "Erro interno do servidor",
-      type: error.name || "UnknownError"
+      type: error.name || "UnknownError",
+      executionId
     }), { 
       headers: corsHeaders, 
       status: 500 

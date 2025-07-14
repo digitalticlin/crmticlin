@@ -3,19 +3,29 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { WhatsAppWebInstance, WhatsAppConnectionStatus } from '@/types/whatsapp';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useWhatsAppWebInstances = () => {
   const [instances, setInstances] = useState<WhatsAppWebInstance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
 
   const loadInstances = useCallback(async () => {
     try {
       console.log('[WhatsApp Web Instances] 🔄 Carregando instâncias...');
       
+      if (!user?.id) {
+        console.log('[WhatsApp Web Instances] ⚠️ Usuário não autenticado');
+        setInstances([]);
+        setIsLoading(false);
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('whatsapp_instances')
         .select('*')
         .eq('connection_type', 'web')
+        .eq('created_by_user_id', user.id) // 🔒 FILTRO MULTI-TENANT ADICIONADO
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -23,7 +33,7 @@ export const useWhatsAppWebInstances = () => {
         throw error;
       }
 
-      console.log(`[WhatsApp Web Instances] ✅ ${data?.length || 0} instâncias carregadas`);
+      console.log(`[WhatsApp Web Instances] ✅ ${data?.length || 0} instâncias carregadas para usuário: ${user.email}`);
       
       // Converter os dados do banco para o tipo correto
       const typedInstances: WhatsAppWebInstance[] = (data || []).map(instance => ({
@@ -39,7 +49,7 @@ export const useWhatsAppWebInstances = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [user?.id]);
 
   const deleteInstance = useCallback(async (instanceId: string) => {
     try {

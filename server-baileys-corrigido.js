@@ -9,9 +9,21 @@ const app = express();
 const PORT = process.env.PORT || 3002;
 
 // Configuração do Redis
-// Configuração do Redis v5.6.0
 const redisClient = redis.createClient({
-    url: 'redis://localhost:6379'
+    host: 'localhost',
+    port: 6379,
+    retry_strategy: (options) => {
+        if (options.error && options.error.code === 'ECONNREFUSED') {
+            console.log('Redis connection refused');
+        }
+        if (options.total_retry_time > 1000 * 60 * 60) {
+            return new Error('Retry time exhausted');
+        }
+        if (options.attempt > 10) {
+            return undefined;
+        }
+        return Math.min(options.attempt * 100, 3000);
+    }
 });
 
 redisClient.on('error', (err) => {
@@ -170,7 +182,7 @@ async function createWhatsAppInstance(instanceId, webhookUrl = null) {
 
             if (qr) {
                 console.log(`[${instanceId}] QR Code gerado`);
-
+                
                 const qrBase64 = await QRCode.toDataURL(qr);
 
                 // Salvar QR no Redis
@@ -212,38 +224,13 @@ async function createWhatsAppInstance(instanceId, webhookUrl = null) {
                 // Remover QR do Redis
                 await redisClient.del(`qr:${instanceId}`);
 
-                // Obter dados do WhatsApp da instância conectada
-                let phone = null;
-                let profile_name = null;
-                let profile_pic_url = null;
-
-                try {
-                    const user = sock.user;
-                    if (user) {
-                        phone = user.id?.split('@')[0] || user.id;
-                        profile_name = user.name || user.pushname;
-
-                        // Obter foto de perfil
-                        if (phone) {
-                            profile_pic_url = await getProfilePicture(sock, phone + '@s.whatsapp.net');
-                        }
-                    }
-                } catch (error) {
-                    console.log(`[${instanceId}] Erro ao obter dados do usuário:`, error.message);
-                }
-
-                // Enviar webhook de conexão com dados completos
+                // Enviar webhook de conexão
                 const connectionData = {
                     instanceId,
                     status: 'connected',
-                    phone,
-                    profile_name,
-                    profile_pic_url,
                     timestamp: new Date().toISOString(),
                     event: 'connection_established'
                 };
-
-                console.log(`[${instanceId}] Enviando webhook com dados:`, connectionData);
 
                 await sendWebhook(WEBHOOKS.CONNECTION_SYNC, connectionData);
                 if (webhookUrl) {
@@ -291,12 +278,6 @@ async function createWhatsAppInstance(instanceId, webhookUrl = null) {
             }
 
             console.log(`[${instanceId}] Nova mensagem recebida`);
-
-            // Filtrar mensagens de status@broadcast
-            if (message.key.remoteJid === "status@broadcast") {
-                console.log(`[${instanceId}] Mensagem de status@broadcast ignorada`);
-                return;
-            }
 
             // Obter foto de perfil
             const profilePic = await getProfilePicture(sock, message.key.remoteJid);
@@ -417,43 +398,13 @@ app.get('/status', (req, res) => {
 // Listar instâncias
 app.get('/instances', async (req, res) => {
     try {
-        const instanceList = await Promise.all(
-            Array.from(instances.entries()).map(async ([id, instance]) => {
-                let phone = null;
-                let profile_name = null;
-                let profile_pic_url = null;
-
-                // Obter dados do WhatsApp se conectado
-                if (instance.status === 'connected' && instance.sock) {
-                    try {
-                        const user = instance.sock.user;
-                        if (user) {
-                            phone = user.id?.split('@')[0] || user.id;
-                            profile_name = user.name || user.pushname;
-                        }
-
-                        // Tentar obter foto de perfil própria
-                        if (phone) {
-                            profile_pic_url = await getProfilePicture(instance.sock, phone + '@s.whatsapp.net');
-                        }
-                    } catch (error) {
-                        console.log(`[${id}] Erro ao obter dados do usuário:`, error.message);
-                    }
-                }
-
-                return {
-                    id,
-                    name: id,
-                    status: instance.status,
-                    phone,
-                    profile_name,
-                    profile_pic_url,
-                    lastSeen: instance.lastSeen,
-                    messageCount: instance.messageCount,
-                    hasQR: !!instance.qr
-                };
-            })
-        );
+        const instanceList = Array.from(instances.entries()).map(([id, instance]) => ({
+            id,
+            status: instance.status,
+            lastSeen: instance.lastSeen,
+            messageCount: instance.messageCount,
+            hasQR: !!instance.qr
+        }));
 
         res.json({
             instances: instanceList,

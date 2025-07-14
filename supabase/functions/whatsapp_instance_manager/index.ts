@@ -23,11 +23,15 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       {
         global: {
           headers: { Authorization: authHeader },
         },
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
       }
     );
 
@@ -231,8 +235,7 @@ async function attemptVPSCreation(instanceId: string, executionId: string) {
       },
       body: JSON.stringify({
         instanceId,
-        sessionName: instanceId,
-        webhookUrl: 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_qr_receiver'
+        webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web'
       }),
       signal: controller.signal
     });
@@ -287,16 +290,20 @@ async function generateIntelligentName(supabase: any, user: any, baseInstanceNam
 }
 
 async function saveInstanceToDatabase(supabase: any, user: any, instanceName: string, status: string, vpsData?: any) {
+  console.log(`[saveInstanceToDatabase] Iniciando salvamento para usuário: ${user.id}`);
+  
   const instanceData = {
     instance_name: instanceName,
     connection_type: 'web',
     server_url: 'http://31.97.24.222:3002',
     vps_instance_id: instanceName,
     web_status: status === 'pending' ? 'pending' : 'fallback_created',
-    connection_status: status, // CORREÇÃO: usar "pending" ao invés de "connected"
+    connection_status: status,
     created_by_user_id: user.id,
     qr_code: vpsData?.qrCode || null
   };
+
+  console.log(`[saveInstanceToDatabase] Dados da instância:`, JSON.stringify(instanceData, null, 2));
 
   const { data: instance, error } = await supabase
     .from('whatsapp_instances')
@@ -305,9 +312,11 @@ async function saveInstanceToDatabase(supabase: any, user: any, instanceName: st
     .single();
 
   if (error) {
-    throw new Error(`Erro ao salvar no banco: ${error.message}`);
+    console.error(`[saveInstanceToDatabase] Erro detalhado:`, error);
+    throw new Error(`Erro ao salvar no banco: ${error.message} - Code: ${error.code} - Details: ${error.details}`);
   }
 
+  console.log(`[saveInstanceToDatabase] Instância salva com sucesso:`, instance.id);
   return instance;
 }
 

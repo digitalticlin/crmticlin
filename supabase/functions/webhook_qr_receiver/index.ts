@@ -103,7 +103,7 @@ serve(async (req: Request) => {
       return new Response(JSON.stringify({
         success: true,
         message: "QR Code atualizado com sucesso",
-        instanceId: instance.id,
+        instanceId: finalInstance.id,
         requestId
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
@@ -150,7 +150,7 @@ serve(async (req: Request) => {
       const { error: updateError } = await supabase
         .from('whatsapp_instances')
         .update(updateData)
-        .eq('id', instance.id);
+        .eq('id', finalInstance.id);
 
       if (updateError) {
         console.error(`[${requestId}] ❌ Erro ao atualizar status:`, updateError);
@@ -163,7 +163,7 @@ serve(async (req: Request) => {
         success: true,
         message: "Status de conexão atualizado",
         status: connectionStatus,
-        instanceId: instance.id,
+        instanceId: finalInstance.id,
         requestId
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }

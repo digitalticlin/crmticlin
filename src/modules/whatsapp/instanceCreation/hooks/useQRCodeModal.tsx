@@ -14,6 +14,7 @@ interface QRCodeModalContextProps {
   openModal: (instanceId: string) => void;
   closeModal: () => void;
   refreshQRCode: () => void;
+  generateQRCode: () => void;
 }
 
 // Criando o contexto
@@ -91,11 +92,45 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
     }
   });
 
-  // CORREÇÃO: Polling simplificado
-  const startPolling = useCallback((id: string) => {
-    console.log('[useQRCodeModal] 🔍 Iniciando polling simplificado para:', id);
+  // NOVO: Função para gerar QR Code manualmente
+  const generateQRCode = useCallback(async (id: string) => {
+    console.log('[useQRCodeModal] 🔄 Gerando QR Code manualmente para:', id);
+    setIsLoading(true);
+    setError(undefined);
     
-    const poll = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('whatsapp_qr_manager', {
+        body: { instanceId: id }
+      });
+
+      if (error) {
+        console.error('[useQRCodeModal] ❌ Erro ao gerar QR:', error);
+        setError('Erro ao gerar QR Code. Tente novamente.');
+        setIsLoading(false);
+        return;
+      }
+
+      if (data?.success && data?.qrCode) {
+        console.log('[useQRCodeModal] ✅ QR Code gerado com sucesso!');
+        setQrCode(data.qrCode);
+        setIsLoading(false);
+        toast.success('QR Code gerado! Escaneie com seu WhatsApp.');
+      } else {
+        console.log('[useQRCodeModal] ⚠️ QR Code ainda não disponível');
+        setError('QR Code ainda não está disponível. Aguarde alguns segundos.');
+        setIsLoading(false);
+      }
+    } catch (err: any) {
+      console.error('[useQRCodeModal] ❌ Erro inesperado:', err);
+      setError(`Erro: ${err.message}`);
+      setIsLoading(false);
+    }
+  }, []);
+
+  // CORREÇÃO: Verificação inicial de dados
+  const checkInitialData = useCallback(async (id: string) => {
+    console.log('[useQRCodeModal] 🔍 Verificando dados iniciais para:', id);
+    
       try {
         const { data, error } = await supabase
           .from('whatsapp_instances')
@@ -104,69 +139,48 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
           .single();
 
         if (error || !data) {
-          console.error('[useQRCodeModal] ❌ Erro no polling:', error);
+        console.error('[useQRCodeModal] ❌ Erro ao verificar dados iniciais:', error);
+        setError('Instância não encontrada.');
+        setIsLoading(false);
           return;
         }
 
-        console.log('[useQRCodeModal] 📊 Dados do polling:', {
-          id: id,
+      console.log('[useQRCodeModal] 📊 Dados iniciais:', {
           connection_status: data.connection_status,
           instance_name: data.instance_name,
-          has_qr_code: !!data.qr_code,
-          qr_length: data.qr_code?.length || 0
+        has_qr_code: !!data.qr_code
         });
 
-        // Verificar se foi conectado
+      setInstanceName(data.instance_name);
+
+      // Se já está conectado
         if (data.connection_status === 'connected') {
-          console.log('[useQRCodeModal] 🎉 Instância conectada via polling!');
-          toast.success('WhatsApp conectado com sucesso!');
+        console.log('[useQRCodeModal] 🎉 Instância já conectada!');
           setQrCode(null);
           setIsLoading(false);
-          setError('WhatsApp conectado com sucesso! Você pode fechar esta janela.');
-          cleanup();
+        setError('WhatsApp já está conectado!');
           return;
         }
 
-        // Verificar QR code
+      // Se já tem QR code
         if (data.qr_code && isValidQRCode(data.qr_code)) {
-          console.log('[useQRCodeModal] ✅ QR code válido encontrado!');
+        console.log('[useQRCodeModal] ✅ QR code já disponível!');
           setQrCode(data.qr_code);
-          setInstanceName(data.instance_name);
           setIsLoading(false);
-          setError(undefined);
-          toast.success('QR code carregado! Escaneie com seu WhatsApp.');
-          cleanup(); // Parar polling quando QR code for obtido
           return;
         }
 
-        // Incrementar tentativas
-        pollingAttemptRef.current += 1;
-        console.log('[useQRCodeModal] 🔄 Tentativa de polling:', pollingAttemptRef.current);
-
-        // Parar após muitas tentativas
-        if (pollingAttemptRef.current >= 15) {
-          console.log('[useQRCodeModal] ⏰ Timeout do polling após 15 tentativas');
+      // Se não tem QR code, aguardar ou permitir geração manual
+      console.log('[useQRCodeModal] ⏳ QR code não disponível, aguardando...');
           setIsLoading(false);
-          setError('QR code não disponível. Tente gerar novamente.');
-          cleanup();
-        }
+      setError('QR Code será carregado automaticamente ou clique em "Gerar QR Code"');
 
       } catch (err: any) {
-        console.error('[useQRCodeModal] ❌ Erro inesperado no polling:', err);
-        pollingAttemptRef.current += 1;
-        
-        if (pollingAttemptRef.current >= 15) {
+      console.error('[useQRCodeModal] ❌ Erro inesperado na verificação inicial:', err);
+      setError(`Erro: ${err.message}`);
           setIsLoading(false);
-          setError(`Erro ao obter QR code: ${err.message}`);
-          cleanup();
-        }
-      }
-    };
-
-    // Iniciar polling imediato e depois a cada 2 segundos
-    poll();
-    pollingIntervalRef.current = window.setInterval(poll, 2000);
-  }, [cleanup]);
+    }
+  }, []);
 
   // CORREÇÃO: Realtime simplificado
   const setupRealtime = useCallback((id: string) => {
@@ -250,9 +264,9 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
     
     // Configurar sistemas
     setupRealtime(id);
-    startPolling(id);
+    checkInitialData(id);
     
-  }, [cleanup, setupRealtime, startPolling]);
+  }, [cleanup, setupRealtime, checkInitialData]);
 
   // CORREÇÃO: Função para forçar atualização
   const refreshQRCode = useCallback(async () => {
@@ -344,15 +358,15 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
         setIsLoading(false);
         toast.error(`Erro ao gerar novo QR Code: ${error.message}`);
         
-        // FALLBACK: tentar polling tradicional
-        console.log('[useQRCodeModal] ⚠️ Tentando fallback com polling...');
+        // FALLBACK: tentar verificação de dados
+        console.log('[useQRCodeModal] ⚠️ Tentando fallback com verificação...');
         setupRealtime(instanceId);
-        startPolling(instanceId);
+        checkInitialData(instanceId);
       }
     } else {
       console.error('[useQRCodeModal] ⚠️ Tentativa de refresh sem instanceId');
     }
-  }, [instanceId, instanceName, setupRealtime, startPolling]);
+  }, [instanceId, instanceName, setupRealtime, checkInitialData]);
 
   // CORREÇÃO: Função para fechar o modal
   const closeModal = useCallback(() => {
@@ -376,6 +390,13 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
     };
   }, [cleanup]);
 
+  // Wrapper para generateQRCode
+  const handleGenerateQRCode = useCallback(() => {
+    if (instanceId) {
+      generateQRCode(instanceId);
+    }
+  }, [instanceId, generateQRCode]);
+
   // Valor do contexto
   const contextValue: QRCodeModalContextProps = {
     isOpen,
@@ -386,7 +407,8 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
     error,
     openModal,
     closeModal,
-    refreshQRCode
+    refreshQRCode,
+    generateQRCode: handleGenerateQRCode
   };
 
   return (

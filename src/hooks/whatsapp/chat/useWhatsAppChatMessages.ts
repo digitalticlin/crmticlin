@@ -159,6 +159,8 @@ export const useWhatsAppChatMessages = (
           }
         });
         
+        // QUERY CORRIGIDA: Buscar mensagens por lead específico e instância
+        // A migração inteligente será feita no webhook
         let query = supabase
           .from('messages')
           .select('*')

@@ -2,6 +2,7 @@
 // CORREÇÃO FINAL: Implementar todos os métodos faltantes e usar estrutura modular
 
 import { InstanceApi } from "@/modules/whatsapp/instanceCreation/api/instanceApi";
+import { supabase } from "@/integrations/supabase/client";
 
 export class WhatsAppWebService {
   static async createInstance(userEmail?: string): Promise<any> {
@@ -34,26 +35,55 @@ export class WhatsAppWebService {
 
   static async sendMessage(instanceId: string, phone: string, message: string): Promise<any> {
     try {
-      // Implementação temporária - pode ser melhorada futuramente
-      console.log('[WhatsApp Service] 📤 Simulando envio de mensagem');
-      
-      // Simular delay de envio
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      return { 
-        success: true, 
-        message: 'Mensagem enviada com sucesso',
-        data: {
+      console.log('[WhatsApp Service] 📤 Enviando mensagem via Edge Function:', {
+        instanceId,
+        phone: phone.substring(0, 4) + '****',
+        messageLength: message.length
+      });
+
+      // Obter token de autenticação
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Usuário não autenticado');
+      }
+
+      // Chamar Edge Function whatsapp_messaging_service
+      const { data, error } = await supabase.functions.invoke('whatsapp_messaging_service', {
+        body: {
+          action: 'send_message',
           instanceId,
           phone,
-          text: message,
-          timestamp: new Date().toISOString()
+          message
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
         }
+      });
+
+      if (error) {
+        console.error('[WhatsApp Service] ❌ Erro na Edge Function:', error);
+        throw new Error(error.message || 'Erro ao enviar mensagem');
+      }
+
+      if (!data?.success) {
+        console.error('[WhatsApp Service] ❌ Resposta de erro:', data);
+        throw new Error(data?.error || 'Falha no envio da mensagem');
+      }
+
+      console.log('[WhatsApp Service] ✅ Mensagem enviada com sucesso:', data);
+      
+      return {
+        success: true,
+        message: 'Mensagem enviada com sucesso',
+        data: data.data,
+        method: 'EDGE_FUNCTION_MESSAGING'
       };
+
     } catch (error: any) {
-      return { 
-        success: false, 
-        error: error.message || 'Erro ao enviar mensagem' 
+      console.error('[WhatsApp Service] ❌ Erro ao enviar mensagem:', error);
+      return {
+        success: false,
+        error: error.message || 'Erro desconhecido ao enviar mensagem'
       };
     }
   }

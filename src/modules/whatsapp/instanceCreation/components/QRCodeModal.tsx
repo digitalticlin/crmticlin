@@ -146,7 +146,8 @@ export const QRCodeModal = () => {
     isLoading, 
     error, 
     closeModal, 
-    refreshQRCode 
+    refreshQRCode,
+    generateQRCode 
   } = useQRCodeModal();
   
   const [refreshing, setRefreshing] = useState(false);
@@ -253,15 +254,35 @@ export const QRCodeModal = () => {
                 </div>
               </div>
               
+              <div className="flex gap-3">
+                <Button 
+                  onClick={() => generateQRCode()}
+                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg px-6 py-3 rounded-xl font-semibold"
+                  disabled={refreshing}
+                >
+                  {refreshing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Gerando...
+                    </>
+                  ) : (
+                    <>
+                      <QrCode className="h-4 w-4 mr-2" />
+                      Gerar QR Code
+                    </>
+                  )}
+                </Button>
+              
               <Button 
                 onClick={handleRefresh}
-                className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg px-8 py-3 rounded-xl font-semibold"
+                  variant="outline"
+                  className="border-red-300 text-red-700 hover:bg-red-50 px-6 py-3 rounded-xl font-semibold"
                 disabled={refreshing}
               >
                 {refreshing ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Tentando novamente...
+                      Tentando...
                   </>
                 ) : (
                   <>
@@ -270,6 +291,7 @@ export const QRCodeModal = () => {
                   </>
                 )}
               </Button>
+              </div>
             </div>
           )}
 
@@ -292,20 +314,19 @@ export const QRCodeModal = () => {
               </div>
               
               <Button 
-                onClick={handleRefresh}
-                variant="outline"
-                className="border-yellow-300 text-yellow-700 hover:bg-yellow-50 px-6 py-2 rounded-xl"
+                onClick={() => generateQRCode()}
+                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg px-6 py-2 rounded-xl"
                 disabled={refreshing}
               >
                 {refreshing ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Preparando...
+                    Gerando...
                   </>
                 ) : (
                   <>
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Gerar código
+                    <QrCode className="h-4 w-4 mr-2" />
+                    Gerar QR Code
                   </>
                 )}
               </Button>
