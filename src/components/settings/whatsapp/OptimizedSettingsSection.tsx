@@ -13,7 +13,7 @@ import { AddNewConnectionCard } from "./connection/AddNewConnectionCard";
 export const OptimizedSettingsSection = () => {
   console.log('[Optimized Settings] 🎯 Interface Grid Glassmorphism para WhatsApp Web.js - LAYOUT REORGANIZADO');
 
-  const { instances, isLoading, loadInstances } = useWhatsAppWebInstances();
+  const { instances, isLoading, loadInstances, deleteInstance } = useWhatsAppWebInstances();
   const { openModal } = useQRCodeModal();
 
   // CORREÇÃO: Usar hook de criação de instância para card "Nova Conexão"
@@ -44,9 +44,9 @@ export const OptimizedSettingsSection = () => {
     loadInstances();
   };
 
-  const handleInstanceDeleted = () => {
-    console.log('[Optimized Settings] 🗑️ Instância deletada, atualizando lista automaticamente');
-    loadInstances();
+  const handleInstanceDeleted = async (instanceId: string) => {
+    console.log('[Optimized Settings] 🗑️ Instância deletada, removendo da lista automaticamente');
+    await deleteInstance(instanceId);
   };
 
   const handleCreateInstance = async () => {

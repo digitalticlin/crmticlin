@@ -1,20 +1,21 @@
-
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
+};
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, {
+      headers: corsHeaders
+    });
   }
 
   const executionId = `exec_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
   console.log(`🚀 [${executionId}] ESTRUTURA MODULAR - EDGE FUNCTION INICIADA`);
-  
+
   try {
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -26,7 +27,9 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       {
         global: {
-          headers: { Authorization: authHeader },
+          headers: {
+            Authorization: authHeader
+          }
         },
         auth: {
           autoRefreshToken: false,
@@ -48,34 +51,28 @@ Deno.serve(async (req) => {
     switch (action) {
       case 'create_instance':
         return await createInstanceModular(supabase, user, instanceName, executionId);
-      
-      case 'get_qr_code':
-        return await getQRCodeModular(supabase, user, instanceId, executionId);
-      
       case 'health_check':
         return await healthCheckModular(executionId);
-      
       default:
-        throw new Error(`Action não suportada: ${action}`);
+        throw new Error(`Action não suportada: ${action}. Esta Edge Function é exclusiva para criar instâncias.`);
     }
-
-  } catch (error: any) {
+  } catch (error) {
     console.error(`❌ [${executionId}] Erro na Edge Function:`, error.message);
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message,
-        executionId 
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message,
+      executionId
+    }), {
+      status: 500,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
       }
-    );
+    });
   }
 });
 
-async function createInstanceModular(supabase: any, user: any, instanceName: string, executionId: string) {
+async function createInstanceModular(supabase, user, instanceName, executionId) {
   try {
     console.log(`[${executionId}] 🚀 Criando instância modular: ${instanceName}`);
     
@@ -97,85 +94,17 @@ async function createInstanceModular(supabase: any, user: any, instanceName: str
       const instance = await saveInstanceToDatabase(supabase, user, intelligentName, 'pending');
       return createSuccessResponse(instance, vpsResult, intelligentName, user.email, true, executionId);
     }
-
-  } catch (error: any) {
+  } catch (error) {
     console.error(`[${executionId}] ❌ Erro na criação:`, error.message);
     throw error;
   }
 }
 
-async function getQRCodeModular(supabase: any, user: any, instanceId: string, executionId: string) {
+// Função getQRCodeModular removida - usar whatsapp_qr_manager para obter QR Code
+
+async function healthCheckModular(executionId) {
   try {
-    console.log(`[${executionId}] 📱 Obtendo QR Code para: ${instanceId}`);
-    
-    // Buscar instância do usuário
-    const { data: instance, error } = await supabase
-      .from('whatsapp_instances')
-      .select('*')
-      .eq('id', instanceId)
-      .eq('created_by_user_id', user.id)
-      .single();
-
-    if (error || !instance) {
-      throw new Error('Instância não encontrada');
-    }
-
-    const vpsUrl = Deno.env.get('VPS_SERVER_URL') || 'http://31.97.24.222:3002';
-    const vpsToken = Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    const response = await fetch(`${vpsUrl}/instance/${instance.vps_instance_id}/qr`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${vpsToken}`,
-      },
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`VPS HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    
-    return new Response(
-      JSON.stringify({
-        success: data.success || false,
-        qrCode: data.qrCode || null,
-        waiting: !data.success,
-        error: data.error || null,
-        executionId
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
-
-  } catch (error: any) {
-    console.error(`[${executionId}] ❌ Erro ao obter QR:`, error.message);
-    return new Response(
-      JSON.stringify({
-        success: false,
-        waiting: false,
-        error: error.message,
-        executionId
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
-  }
-}
-
-async function healthCheckModular(executionId: string) {
-  try {
-    const vpsUrl = Deno.env.get('VPS_SERVER_URL') || 'http://31.97.24.222:3002';
+    const vpsUrl = Deno.env.get('VPS_SERVER_URL') || 'http://31.97.163.57:3001';
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -186,44 +115,42 @@ async function healthCheckModular(executionId: string) {
     });
 
     clearTimeout(timeoutId);
-
     const isHealthy = response.ok;
-    
-    return new Response(
-      JSON.stringify({
-        success: isHealthy,
-        message: isHealthy ? 'VPS online' : 'VPS offline',
-        executionId
-      }),
-      {
-        status: isHealthy ? 200 : 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
 
-  } catch (error: any) {
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: `Health check falhou: ${error.message}`,
-        executionId
-      }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    return new Response(JSON.stringify({
+      success: isHealthy,
+      message: isHealthy ? 'VPS online' : 'VPS offline',
+      executionId
+    }), {
+      status: isHealthy ? 200 : 500,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
       }
-    );
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: `Health check falhou: ${error.message}`,
+      executionId
+    }), {
+      status: 500,
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'application/json'
+      }
+    });
   }
 }
 
-async function attemptVPSCreation(instanceId: string, executionId: string) {
+async function attemptVPSCreation(instanceId, executionId) {
   try {
     console.log(`[${executionId}] 🌐 Criando na VPS: ${instanceId}`);
     
-    // CORREÇÃO: Usar URL correta na porta 3002
-    const vpsUrl = 'http://31.97.24.222:3002';
-    const vpsToken = Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
-    
+    // CORREÇÃO: Usar URL correta na porta 3001
+    const vpsUrl = 'http://31.97.163.57:3001';
+    const vpsToken = Deno.env.get('VPS_API_TOKEN') || 'bJyn3eUPFTRFNCxxLNd8KH5bI4Zg7bpUk7ADO6kXf49026a1';
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
 
@@ -235,7 +162,7 @@ async function attemptVPSCreation(instanceId: string, executionId: string) {
       },
       body: JSON.stringify({
         instanceId,
-        webhookUrl: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web'
+        webhookUrl: 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_whatsapp_web'
       }),
       signal: controller.signal
     });
@@ -248,19 +175,21 @@ async function attemptVPSCreation(instanceId: string, executionId: string) {
 
     const data = await response.json();
     console.log(`[${executionId}] ✅ VPS criada com sucesso`);
-    
-    return { success: true, data };
 
-  } catch (error: any) {
+    return {
+      success: true,
+      data
+    };
+  } catch (error) {
     console.log(`[${executionId}] ❌ VPS falhou: ${error.message}`);
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: `VPS_ERROR: ${error.message}`
     };
   }
 }
 
-async function generateIntelligentName(supabase: any, user: any, baseInstanceName?: string): Promise<string> {
+async function generateIntelligentName(supabase, user, baseInstanceName) {
   try {
     const baseName = baseInstanceName || user.email.split('@')[0].toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
     
@@ -270,8 +199,8 @@ async function generateIntelligentName(supabase: any, user: any, baseInstanceNam
       .eq('created_by_user_id', user.id)
       .eq('connection_type', 'web');
 
-    const existingNames = existingInstances?.map((i: any) => i.instance_name) || [];
-    
+    const existingNames = existingInstances?.map((i) => i.instance_name) || [];
+
     if (!existingNames.includes(baseName)) {
       return baseName;
     }
@@ -289,13 +218,13 @@ async function generateIntelligentName(supabase: any, user: any, baseInstanceNam
   }
 }
 
-async function saveInstanceToDatabase(supabase: any, user: any, instanceName: string, status: string, vpsData?: any) {
+async function saveInstanceToDatabase(supabase, user, instanceName, status, vpsData) {
   console.log(`[saveInstanceToDatabase] Iniciando salvamento para usuário: ${user.id}`);
   
   const instanceData = {
     instance_name: instanceName,
     connection_type: 'web',
-    server_url: 'http://31.97.24.222:3002',
+    server_url: 'http://31.97.163.57:3001',
     vps_instance_id: instanceName,
     web_status: status === 'pending' ? 'pending' : 'fallback_created',
     connection_status: status,
@@ -320,30 +249,30 @@ async function saveInstanceToDatabase(supabase: any, user: any, instanceName: st
   return instance;
 }
 
-function createSuccessResponse(instance: any, vpsResult: any, intelligentName: string, userEmail: string, fallbackUsed: boolean, executionId: string) {
-  return new Response(
-    JSON.stringify({
-      success: true,
-      instance,
-      vps_response: {
-        success: vpsResult.success,
-        instanceId: intelligentName,
-        fallback: fallbackUsed,
-        vpsError: vpsResult.error || null,
-        mode: fallbackUsed ? 'database_only' : 'vps_connected'
-      },
-      user_id: instance.created_by_user_id,
-      intelligent_name: intelligentName,
-      user_email: userEmail,
-      vps_success: vpsResult.success,
-      fallback_used: fallbackUsed,
-      mode: fallbackUsed ? 'database_only' : 'vps_connected',
-      message: fallbackUsed ? 'Instância criada em modo fallback' : 'Instância criada com sucesso',
-      executionId
-    }),
-    {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+function createSuccessResponse(instance, vpsResult, intelligentName, userEmail, fallbackUsed, executionId) {
+  return new Response(JSON.stringify({
+    success: true,
+    instance,
+    vps_response: {
+      success: vpsResult.success,
+      instanceId: intelligentName,
+      fallback: fallbackUsed,
+      vpsError: vpsResult.error || null,
+      mode: fallbackUsed ? 'database_only' : 'vps_connected'
+    },
+    user_id: instance.created_by_user_id,
+    intelligent_name: intelligentName,
+    user_email: userEmail,
+    vps_success: vpsResult.success,
+    fallback_used: fallbackUsed,
+    mode: fallbackUsed ? 'database_only' : 'vps_connected',
+    message: fallbackUsed ? 'Instância criada em modo fallback' : 'Instância criada com sucesso',
+    executionId
+  }), {
+    status: 200,
+    headers: {
+      ...corsHeaders,
+      'Content-Type': 'application/json'
     }
-  );
-}
+  });
+} 

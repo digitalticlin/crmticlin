@@ -1,6 +1,6 @@
 
 // CONNECTION MANAGER - GERENCIAMENTO ISOLADO DE CONEXÕES
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('baileys');
 const QRCode = require('qrcode');
 const fs = require('fs');
 const path = require('path');
@@ -11,6 +11,7 @@ class ConnectionManager {
     this.authDir = authDir;
     this.webhookManager = webhookManager;
     this.connectionAttempts = new Map();
+    this.sentMessagesCache = new Map(); // Cache para rastrear mensagens enviadas via API
     
     console.log('🔌 ConnectionManager inicializado');
   }
@@ -149,6 +150,9 @@ class ConnectionManager {
         instance.connected = false;
         instance.qrCode = null;
 
+        // Notificar desconexão via webhook
+        await this.webhookManager.notifyConnection(instanceId, instance.phone, instance.profileName, 'disconnected');
+
         if (shouldReconnect && currentAttempts < 3) {
           this.connectionAttempts.set(instanceId, currentAttempts + 1);
           instance.attempts = currentAttempts + 1;
@@ -192,31 +196,50 @@ class ConnectionManager {
         instance.attempts = 0;
 
         // Notificar conexão via webhook
-        await this.webhookManager.notifyConnection(instanceId, phone, profileName);
+        console.log(`${logPrefix} 📡 Enviando webhook de conexão para auto_whatsapp_sync`);
+        await this.webhookManager.notifyConnection(instanceId, phone, profileName, 'connected');
       }
     });
 
     // Gerenciar mensagens recebidas
     socket.ev.on('messages.upsert', async (m) => {
       const message = m.messages[0];
-      if (!message?.key?.fromMe && message?.message) {
-        console.log(`${logPrefix} 📨 Nova mensagem de: ${message.key.remoteJid}`);
+      if (!message?.key || !message?.message) return;
 
-        const messageData = {
-          messageId: message.key.id,
-          body: message.message.conversation || 
-                message.message.extendedTextMessage?.text || 
-                message.message.imageMessage?.caption ||
-                '[Mídia]',
-          from: message.key.remoteJid,
-          timestamp: message.messageTimestamp
-        };
+      const remoteJid = message.key.remoteJid;
+      const messageId = message.key.id;
+      const fromMe = message.key.fromMe;
 
-        // Notificar mensagem via webhook (com throttling)
-        setTimeout(async () => {
-          await this.webhookManager.notifyMessage(instanceId, messageData, instance.createdByUserId);
-        }, 1000); // Delay de 1 segundo para evitar spam
+      // FILTRO 1: Ignorar grupos e broadcast
+      if (remoteJid.includes('@g.us') || remoteJid.includes('@broadcast')) {
+        console.log(`${logPrefix} 🚫 Mensagem de grupo/broadcast ignorada: ${remoteJid}`);
+        return;
       }
+
+      // FILTRO 2: Se fromMe=true, verificar se foi enviada via API
+      if (fromMe) {
+        if (this.wasMessageSentViaAPI(instanceId, messageId)) {
+          console.log(`${logPrefix} 🔄 Mensagem enviada via API ignorada: ${messageId}`);
+          return;
+        }
+      }
+
+      console.log(`${logPrefix} 📨 Nova mensagem de: ${remoteJid} (fromMe: ${fromMe})`);
+
+      // Extrair conteúdo da mensagem (suporte a todos os tipos)
+      const messageData = {
+        messageId: messageId,
+        body: this.extractMessageContent(message.message),
+        from: remoteJid,
+        fromMe: fromMe,
+        timestamp: message.messageTimestamp,
+        messageType: this.getMessageType(message.message)
+      };
+
+      // Notificar mensagem via webhook (com throttling)
+      setTimeout(async () => {
+        await this.webhookManager.notifyMessage(instanceId, messageData, instance.createdByUserId);
+      }, 1000); // Delay de 1 segundo para evitar spam
     });
 
     // Tratar erros de socket
@@ -225,6 +248,107 @@ class ConnectionManager {
       instance.error = error.message;
       instance.lastUpdate = new Date();
     });
+  }
+
+  // Adicionar mensagem ao cache (enviada via API)
+  addSentMessageToCache(instanceId, messageId, phone) {
+    const cacheKey = `${instanceId}:${messageId}`;
+    this.sentMessagesCache.set(cacheKey, {
+      instanceId,
+      messageId,
+      phone,
+      timestamp: Date.now(),
+      sentViaAPI: true
+    });
+    
+    // Limpar cache após 5 minutos
+    setTimeout(() => {
+      this.sentMessagesCache.delete(cacheKey);
+    }, 5 * 60 * 1000);
+  }
+
+  // Verificar se mensagem foi enviada via API
+  wasMessageSentViaAPI(instanceId, messageId) {
+    const cacheKey = `${instanceId}:${messageId}`;
+    return this.sentMessagesCache.has(cacheKey);
+  }
+
+  // Extrair conteúdo da mensagem (suporte a todos os tipos)
+  extractMessageContent(messageObj) {
+    if (messageObj.conversation) {
+      return messageObj.conversation;
+    }
+    
+    if (messageObj.extendedTextMessage?.text) {
+      return messageObj.extendedTextMessage.text;
+    }
+    
+    if (messageObj.imageMessage?.caption) {
+      return messageObj.imageMessage.caption || '[Imagem]';
+    }
+    
+    if (messageObj.videoMessage?.caption) {
+      return messageObj.videoMessage.caption || '[Vídeo]';
+    }
+    
+    if (messageObj.audioMessage) {
+      return '[Áudio]';
+    }
+    
+    if (messageObj.documentMessage) {
+      return `[Documento: ${messageObj.documentMessage.fileName || 'arquivo'}]`;
+    }
+    
+    if (messageObj.stickerMessage) {
+      return '[Sticker]';
+    }
+    
+    if (messageObj.locationMessage) {
+      return '[Localização]';
+    }
+    
+    if (messageObj.contactMessage) {
+      return '[Contato]';
+    }
+    
+    return '[Mensagem não suportada]';
+  }
+
+  // Identificar tipo da mensagem
+  getMessageType(messageObj) {
+    if (messageObj.conversation || messageObj.extendedTextMessage) {
+      return 'text';
+    }
+    
+    if (messageObj.imageMessage) {
+      return 'image';
+    }
+    
+    if (messageObj.videoMessage) {
+      return 'video';
+    }
+    
+    if (messageObj.audioMessage) {
+      return 'audio';
+    }
+    
+    if (messageObj.documentMessage) {
+      return 'document';
+    }
+    
+    if (messageObj.stickerMessage) {
+      return 'sticker';
+    }
+    
+    if (messageObj.locationMessage) {
+      return 'location';
+    }
+    
+    if (messageObj.contactMessage) {
+      return 'contact';
+    }
+    
+    return 'unknown';
   }
 
   // Deletar instância completamente

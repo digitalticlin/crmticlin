@@ -16,7 +16,7 @@ import { GenerateQRButton } from "@/modules/whatsapp/qrCodeManagement/components
 interface SimpleInstanceCardProps {
   instance: WhatsAppWebInstance;
   onGenerateQR: (instanceId: string, instanceName: string) => void;
-  onDelete: () => void;
+  onDelete: (instanceId: string) => void;
 }
 
 export const SimpleInstanceCard = ({ 
@@ -142,7 +142,7 @@ export const SimpleInstanceCard = ({
           <DeleteInstanceButton
             instanceId={instance.id}
             instanceName={instance.instance_name}
-            onSuccess={onDelete}
+            onSuccess={() => onDelete(instance.id)}
             variant="outline"
             className="text-red-600 hover:text-red-700 hover:bg-red-50/60 backdrop-blur-sm border-white/20"
           />

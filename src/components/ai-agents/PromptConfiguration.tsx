@@ -77,24 +77,27 @@ export const PromptConfiguration = ({ agent, onSave, onCancel, focusObjectives =
 
   if (focusObjectives) {
     return (
-      <Card className="bg-white/40 backdrop-blur-sm border border-white/20 shadow-sm rounded-xl">
+      <div className="space-y-6">
+        <Card className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-xl transition-all duration-300 hover:bg-white/50">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-lg text-gray-800">
-            <Target className="h-5 w-5 text-purple-600" />
+            <CardTitle className="flex items-center gap-2 text-xl font-bold text-gray-800">
+              <Target className="h-6 w-6 text-yellow-500" />
             Objetivos do Agente
           </CardTitle>
-          <CardDescription className="text-gray-600">
+            <CardDescription className="text-gray-700 font-medium">
             Configure os passos específicos que o agente deve seguir
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
             <ObjectivesList 
               objectives={formData.objectives}
               onChange={handleObjectivesChange}
             />
+          </CardContent>
+        </Card>
             
-            <div className="flex justify-end gap-3 pt-6 border-t border-white/10">
+        <form onSubmit={handleSubmit}>
+          <div className="flex justify-end gap-3 pt-6 border-t border-white/30">
               <Button 
                 type="button" 
                 variant="outline" 
@@ -106,28 +109,25 @@ export const PromptConfiguration = ({ agent, onSave, onCancel, focusObjectives =
               <Button 
                 type="submit" 
                 disabled={isLoading} 
-                className="px-8 h-11 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+              className="px-8 h-11 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-xl shadow-glass hover:shadow-glass-lg transition-all duration-200"
               >
                 {isLoading ? "Salvando..." : "Salvar Objetivos"}
               </Button>
             </div>
           </form>
-        </CardContent>
-      </Card>
+      </div>
     );
   }
 
   return (
-    <Card className="bg-white/40 backdrop-blur-sm border border-white/20 shadow-sm rounded-xl">
-      <CardContent className="p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Função do Agente */}
             <div className="md:col-span-2">
-              <Card className="bg-white/30 backdrop-blur-sm border border-white/20 rounded-xl">
+              <Card className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-xl transition-all duration-300 hover:bg-white/50">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base text-gray-800">
-                    <User className="h-4 w-4 text-blue-600" />
+                  <CardTitle className="flex items-center gap-2 text-lg font-bold text-gray-800">
+                    <User className="h-5 w-5 text-yellow-500" />
                     Função do Agente
                   </CardTitle>
                 </CardHeader>
@@ -136,7 +136,7 @@ export const PromptConfiguration = ({ agent, onSave, onCancel, focusObjectives =
                     value={formData.agent_function}
                     onChange={(e) => setFormData({ ...formData, agent_function: e.target.value })}
                     placeholder="Ex: Você é um assistente de vendas especializado em produtos tecnológicos..."
-                    className="min-h-20 bg-white/60 backdrop-blur-sm border border-white/30 rounded-lg"
+                    className="min-h-20 bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500 rounded-lg"
                     required
                   />
                 </CardContent>
@@ -145,10 +145,10 @@ export const PromptConfiguration = ({ agent, onSave, onCancel, focusObjectives =
 
             {/* Estilo de Comunicação */}
             <div className="md:col-span-2">
-              <Card className="bg-white/30 backdrop-blur-sm border border-white/20 rounded-xl">
+              <Card className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-xl transition-all duration-300 hover:bg-white/50">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base text-gray-800">
-                    <MessageSquare className="h-4 w-4 text-green-600" />
+                  <CardTitle className="flex items-center gap-2 text-lg font-bold text-gray-800">
+                    <MessageSquare className="h-5 w-5 text-yellow-500" />
                     Estilo de Comunicação
                   </CardTitle>
                 </CardHeader>
@@ -157,7 +157,7 @@ export const PromptConfiguration = ({ agent, onSave, onCancel, focusObjectives =
                     value={formData.communication_style}
                     onChange={(e) => setFormData({ ...formData, communication_style: e.target.value })}
                     placeholder="Ex: Comunicação amigável, profissional, com linguagem clara e objetiva..."
-                    className="min-h-20 bg-white/60 backdrop-blur-sm border border-white/30 rounded-lg"
+                    className="min-h-20 bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500 rounded-lg"
                     required
                   />
                 </CardContent>
@@ -166,10 +166,10 @@ export const PromptConfiguration = ({ agent, onSave, onCancel, focusObjectives =
 
             {/* Informações da Empresa */}
             <div>
-              <Card className="bg-white/30 backdrop-blur-sm border border-white/20 rounded-xl h-full">
+              <Card className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-xl h-full transition-all duration-300 hover:bg-white/50">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base text-gray-800">
-                    <Building className="h-4 w-4 text-orange-600" />
+                  <CardTitle className="flex items-center gap-2 text-lg font-bold text-gray-800">
+                    <Building className="h-5 w-5 text-yellow-500" />
                     Informações da Empresa
                   </CardTitle>
                 </CardHeader>
@@ -178,7 +178,7 @@ export const PromptConfiguration = ({ agent, onSave, onCancel, focusObjectives =
                     value={formData.company_info}
                     onChange={(e) => setFormData({ ...formData, company_info: e.target.value })}
                     placeholder="Informações sobre sua empresa, história, valores..."
-                    className="min-h-24 bg-white/60 backdrop-blur-sm border border-white/30 rounded-lg"
+                    className="min-h-24 bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500 rounded-lg"
                   />
                 </CardContent>
               </Card>
@@ -186,10 +186,10 @@ export const PromptConfiguration = ({ agent, onSave, onCancel, focusObjectives =
 
             {/* Produtos/Serviços */}
             <div>
-              <Card className="bg-white/30 backdrop-blur-sm border border-white/20 rounded-xl h-full">
+              <Card className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-xl h-full transition-all duration-300 hover:bg-white/50">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base text-gray-800">
-                    <Package className="h-4 w-4 text-purple-600" />
+                  <CardTitle className="flex items-center gap-2 text-lg font-bold text-gray-800">
+                    <Package className="h-5 w-5 text-yellow-500" />
                     Produtos/Serviços
                   </CardTitle>
                 </CardHeader>
@@ -198,7 +198,7 @@ export const PromptConfiguration = ({ agent, onSave, onCancel, focusObjectives =
                     value={formData.product_service_info}
                     onChange={(e) => setFormData({ ...formData, product_service_info: e.target.value })}
                     placeholder="Descrição detalhada dos produtos ou serviços oferecidos..."
-                    className="min-h-24 bg-white/60 backdrop-blur-sm border border-white/30 rounded-lg"
+                    className="min-h-24 bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500 rounded-lg"
                   />
                 </CardContent>
               </Card>
@@ -206,10 +206,10 @@ export const PromptConfiguration = ({ agent, onSave, onCancel, focusObjectives =
 
             {/* Proibições */}
             <div className="md:col-span-2">
-              <Card className="bg-white/30 backdrop-blur-sm border border-white/20 rounded-xl">
+              <Card className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-xl transition-all duration-300 hover:bg-white/50">
                 <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base text-gray-800">
-                    <AlertTriangle className="h-4 w-4 text-red-600" />
+                  <CardTitle className="flex items-center gap-2 text-lg font-bold text-gray-800">
+                    <AlertTriangle className="h-5 w-5 text-yellow-500" />
                     Proibições e Limitações
                   </CardTitle>
                 </CardHeader>
@@ -218,14 +218,14 @@ export const PromptConfiguration = ({ agent, onSave, onCancel, focusObjectives =
                     value={formData.prohibitions}
                     onChange={(e) => setFormData({ ...formData, prohibitions: e.target.value })}
                     placeholder="Ex: Não forneça informações sobre preços sem consultar um vendedor, não faça promessas de desconto..."
-                    className="min-h-20 bg-white/60 backdrop-blur-sm border border-white/30 rounded-lg"
+                    className="min-h-20 bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500 rounded-lg"
                   />
                 </CardContent>
               </Card>
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-6 border-t border-white/10">
+      <div className="flex justify-end gap-3 pt-6 border-t border-white/30">
             <Button 
               type="button" 
               variant="outline" 
@@ -237,13 +237,11 @@ export const PromptConfiguration = ({ agent, onSave, onCancel, focusObjectives =
             <Button 
               type="submit" 
               disabled={isLoading} 
-              className="px-8 h-11 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+          className="px-8 h-11 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-xl shadow-glass hover:shadow-glass-lg transition-all duration-200"
             >
               {isLoading ? "Salvando..." : "Salvar Configuração"}
             </Button>
           </div>
         </form>
-      </CardContent>
-    </Card>
   );
 };

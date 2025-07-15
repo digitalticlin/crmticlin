@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useRef } from "react";
-import { Loader2, Users, UserPlus, Crown, Settings } from "lucide-react";
+import { Loader2, Users, UserPlus, Crown, Settings, Shield } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTeamManagement } from "@/hooks/useTeamManagement";
 import { useTeamAuxiliaryData } from "@/hooks/settings/useTeamAuxiliaryData";
@@ -47,10 +47,10 @@ export default function TeamSettings() {
       <div className="min-h-[500px] flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="relative mx-auto w-12 h-12">
-            <div className="absolute inset-0 rounded-full border-2 border-[#D3D800]/30"></div>
-            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#D3D800] animate-spin"></div>
+            <div className="absolute inset-0 rounded-full border-2 border-yellow-500/30"></div>
+            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-yellow-500 animate-spin"></div>
           </div>
-          <p className="text-sm text-gray-700">Verificando permissões...</p>
+          <p className="text-sm text-gray-700 font-medium">Verificando permissões...</p>
         </div>
       </div>
     );
@@ -59,10 +59,17 @@ export default function TeamSettings() {
   if (!permissions.canManageTeam) {
     return (
       <div className="min-h-[500px] flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Settings className="h-16 w-16 text-gray-400 mx-auto" />
-          <h3 className="text-lg font-semibold text-gray-800">Acesso Restrito</h3>
-          <p className="text-gray-600">Apenas administradores podem gerenciar a equipe.</p>
+        <div className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-2xl p-8 transition-all duration-300 hover:bg-white/50">
+          <div className="text-center space-y-4">
+            <Shield className="h-16 w-16 text-yellow-500 mx-auto" />
+            <h3 className="text-xl font-bold text-gray-800">Acesso Restrito</h3>
+            <p className="text-gray-700 font-medium">Apenas administradores podem gerenciar a equipe.</p>
+            <div className="bg-yellow-50/60 backdrop-blur-sm border border-yellow-200/60 rounded-xl p-4 mt-4">
+              <p className="text-sm text-yellow-700">
+                Seu nível atual: <strong>{permissions.role?.toUpperCase()}</strong>
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -73,10 +80,10 @@ export default function TeamSettings() {
       <div className="min-h-[500px] flex items-center justify-center">
         <div className="text-center space-y-4">
           <div className="relative mx-auto w-12 h-12">
-            <div className="absolute inset-0 rounded-full border-2 border-[#D3D800]/30"></div>
-            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-[#D3D800] animate-spin"></div>
+            <div className="absolute inset-0 rounded-full border-2 border-yellow-500/30"></div>
+            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-yellow-500 animate-spin"></div>
           </div>
-          <p className="text-sm text-gray-700">Carregando equipe...</p>
+          <p className="text-sm text-gray-700 font-medium">Carregando equipe...</p>
         </div>
       </div>
     );
@@ -96,9 +103,12 @@ export default function TeamSettings() {
       await createTeamMember.mutateAsync({
         fullName: data.full_name,
         username: data.email.split('@')[0], // Extract username from email
-        role: data.role === "manager" ? "admin" : "operational",
+        email: data.email,
+        password: data.password,
+        role: data.role === "manager" ? "manager" : "operational",
         whatsappAccess: data.assignedWhatsAppIds,
         funnelAccess: data.assignedFunnelIds,
+        whatsappPersonal: data.whatsapp_personal,
       });
       return true;
     } catch (error) {
@@ -110,51 +120,51 @@ export default function TeamSettings() {
   return (
     <div className="space-y-8">
       {/* 1º Card: Visão Geral da Equipe */}
-      <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in">
+      <div className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-2xl p-8 transition-all duration-300 hover:bg-white/50 animate-fade-in">
         <div className="flex items-center space-x-4 mb-6">
-          <div className="p-3 bg-gradient-to-r from-blue-500/20 to-blue-400/10 rounded-2xl">
-            <Users className="h-6 w-6 text-blue-400" />
+          <div className="p-3 bg-white/30 backdrop-blur-sm rounded-xl border border-white/40 shadow-glass">
+            <Users className="h-6 w-6 text-yellow-500" />
           </div>
           <div>
-            <h3 className="text-xl font-semibold text-gray-800">Visão Geral da Equipe</h3>
-            <p className="text-gray-700">Estatísticas e informações gerais</p>
+            <h3 className="text-xl font-bold text-gray-800">Visão Geral da Equipe</h3>
+            <p className="text-gray-700 font-medium">Estatísticas e informações gerais</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white/20 rounded-2xl p-6 border border-white/20">
+          <div className="bg-white/30 backdrop-blur-sm border border-white/30 shadow-glass rounded-xl p-6 transition-all duration-300 hover:bg-white/40">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-green-500/20 rounded-lg">
-                <Users className="h-5 w-5 text-green-400" />
+                <Users className="h-5 w-5 text-green-500" />
               </div>
               <div>
-                <p className="text-sm text-gray-700">Total de Membros</p>
+                <p className="text-sm text-gray-700 font-medium">Total de Membros</p>
                 <p className="text-2xl font-bold text-gray-800">{teamMembersFiltered.length}</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white/20 rounded-2xl p-6 border border-white/20">
+          <div className="bg-white/30 backdrop-blur-sm border border-white/30 shadow-glass rounded-xl p-6 transition-all duration-300 hover:bg-white/40">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-purple-500/20 rounded-lg">
-                <Crown className="h-5 w-5 text-purple-400" />
+                <Crown className="h-5 w-5 text-purple-500" />
               </div>
               <div>
-                <p className="text-sm text-gray-700">Gestores</p>
+                <p className="text-sm text-gray-700 font-medium">Gestores</p>
                 <p className="text-2xl font-bold text-gray-800">
-                  {teamMembersFiltered.filter(m => m.role === 'admin').length}
+                  {teamMembersFiltered.filter(m => m.role === 'manager').length}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white/20 rounded-2xl p-6 border border-white/20">
+          <div className="bg-white/30 backdrop-blur-sm border border-white/30 shadow-glass rounded-xl p-6 transition-all duration-300 hover:bg-white/40">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-blue-500/20 rounded-lg">
-                <Settings className="h-5 w-5 text-blue-400" />
+                <Settings className="h-5 w-5 text-blue-500" />
               </div>
               <div>
-                <p className="text-sm text-gray-700">Operacionais</p>
+                <p className="text-sm text-gray-700 font-medium">Operacionais</p>
                 <p className="text-2xl font-bold text-gray-800">
                   {teamMembersFiltered.filter(m => m.role === 'operational').length}
                 </p>
@@ -165,15 +175,26 @@ export default function TeamSettings() {
       </div>
 
       {/* 2º Card: Lista de Membros da Equipe */}
-      <div className="bg-white/35 backdrop-blur-xl rounded-3xl border border-white/30 shadow-2xl p-8 animate-fade-in" style={{ animationDelay: "100ms" }}>
-        <div className="flex items-center space-x-4 mb-6">
-          <div className="p-3 bg-gradient-to-r from-green-500/20 to-green-400/10 rounded-2xl">
-            <Users className="h-6 w-6 text-green-400" />
+      <div className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-2xl p-8 transition-all duration-300 hover:bg-white/50 animate-fade-in" style={{ animationDelay: "100ms" }}>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-4">
+            <div className="p-3 bg-white/30 backdrop-blur-sm rounded-xl border border-white/40 shadow-glass">
+              <Users className="h-6 w-6 text-yellow-500" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-800">Membros da Equipe</h3>
+              <p className="text-gray-700 font-medium">Gerencie permissões e configurações dos membros</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-xl font-semibold text-gray-800">Membros da Equipe</h3>
-            <p className="text-gray-700">Gerencie permissões e configurações dos membros</p>
-          </div>
+          
+          {/* Botão de Adicionar Membro */}
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold px-6 py-3 rounded-xl shadow-glass hover:shadow-glass-lg transition-all duration-200 flex items-center gap-2"
+          >
+            <UserPlus className="h-5 w-5" />
+            Adicionar Membro
+          </button>
         </div>
 
         <TeamMembersList 
@@ -181,9 +202,6 @@ export default function TeamSettings() {
           onRemoveMember={removeMember.mutateAsync}
         />
       </div>
-
-      {/* Botão para Adicionar Membro */}
-      <AddMemberButton onClick={() => setIsAddModalOpen(true)} />
 
       {/* Modal de Adicionar Membro */}
       <AddMemberModal 

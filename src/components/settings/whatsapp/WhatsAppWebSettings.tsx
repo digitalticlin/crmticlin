@@ -1,19 +1,16 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Shield, AlertTriangle, Activity, CheckCircle } from "lucide-react";
-import { useWhatsAppWebInstances } from "@/hooks/whatsapp/useWhatsAppWebInstances";
-import { WhatsAppWebLoadingState } from "./WhatsAppWebLoadingState";
-import { WhatsAppWebEmptyState } from "./WhatsAppWebEmptyState";
-import { WhatsAppWebInstancesGrid } from "./WhatsAppWebInstancesGrid";
-import { CreateInstanceButton } from "@/modules/whatsapp/instanceCreation/components/CreateInstanceButton";
-import { CleanupOrphanedInstancesButton } from "./CleanupOrphanedInstancesButton";
-import { OrphanInstanceManager } from "./OrphanInstanceManager";
-import { QRCodeModal } from "@/modules/whatsapp/instanceCreation/components/QRCodeModal";
-import { VPSHealthService } from "@/services/whatsapp/vpsHealthService";
-import { WhatsAppCleanupService } from "@/services/whatsapp/cleanupService";
-import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useInstanceCreation } from "@/modules/whatsapp/instanceCreation/hooks/useInstanceCreation";
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { MessageSquare, Activity, CheckCircle, Plus, Loader2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useWhatsAppWebInstances } from '@/hooks/whatsapp/useWhatsAppWebInstances';
+import { useIntegratedInstanceCreation } from '@/hooks/whatsapp/useIntegratedInstanceCreation';
+import { AutoQRModal } from './AutoQRModal';
+import { WhatsAppWebInstancesGrid } from './WhatsAppWebInstancesGrid';
+import { WhatsAppWebEmptyState } from './WhatsAppWebEmptyState';
+import { VPSHealthService } from '@/services/whatsapp/vpsHealthService';
+import { WhatsAppCleanupService } from '@/services/whatsapp/cleanupService';
 
 export const WhatsAppWebSettings = () => {
   const [vpsHealth, setVpsHealth] = useState<{ online: boolean; responseTime?: number } | null>(null);
@@ -28,9 +25,20 @@ export const WhatsAppWebSettings = () => {
     loadInstances
   } = useWhatsAppWebInstances();
 
-  const { createInstance, isCreating } = useInstanceCreation(loadInstances);
+  // Usar o novo hook integrado
+  const {
+    isCreating,
+    creationStage,
+    showModal,
+    instanceId,
+    instanceName,
+    error: creationError,
+    createInstanceWithAutoModal,
+    closeModal,
+    resetState
+  } = useIntegratedInstanceCreation();
 
-  // FASE 2: Monitoramento otimizado da VPS
+  // Monitoramento da VPS
   useEffect(() => {
     const checkVPSHealth = async () => {
       const health = await VPSHealthService.checkVPSHealth();
@@ -56,15 +64,26 @@ export const WhatsAppWebSettings = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const handleConnect = async () => {
+  // Handler para conectar WhatsApp com modal automático
+  const handleConnectWhatsApp = async () => {
     if (!user?.email) {
       console.error('[WhatsApp Settings] ❌ Email do usuário não disponível');
       return;
     }
 
     try {
-      console.log('[WhatsApp Settings] 🎯 Criando instância para usuário autenticado:', user.id);
-      await createInstance();
+      console.log('[WhatsApp Settings] 🎯 Criando instância integrada para usuário:', user.id);
+      
+      await createInstanceWithAutoModal({
+        onSuccess: (instanceId, instanceName) => {
+          console.log('[WhatsApp Settings] ✅ Instância criada com sucesso:', { instanceId, instanceName });
+          // Recarregar lista de instâncias
+          loadInstances();
+        },
+        onError: (error) => {
+          console.error('[WhatsApp Settings] ❌ Erro na criação:', error);
+        }
+      });
     } catch (error: any) {
       console.error('[WhatsApp Settings] ❌ Erro ao conectar:', error);
     }
@@ -72,33 +91,27 @@ export const WhatsAppWebSettings = () => {
 
   const handleShowQR = (instance: any) => {
     console.log('[WhatsApp Settings] 📱 Mostrando QR Code para:', instance.id);
+    // Implementar lógica para mostrar QR de instância existente
   };
 
-  const handleRefreshQRCodeWrapper = async (instanceId: string): Promise<{ qrCode?: string } | null> => {
-    try {
-      const result = await refreshQRCode(instanceId);
-      if (result?.success && result.qrCode) {
-        return { qrCode: result.qrCode };
-      }
-      return null;
-    } catch (error: any) {
-      console.error('[WhatsApp Settings] ❌ Erro ao atualizar QR Code:', error);
-      return null;
-    }
-  };
+  const connectedInstances = instances.filter(instance => 
+    instance.connection_status === 'connected' || 
+    instance.connection_status === 'ready'
+  ).length;
 
   if (isLoading) {
-    return <WhatsAppWebLoadingState />;
+    return (
+      <div className="text-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+        <p className="text-gray-600 mt-4">Carregando instâncias...</p>
+      </div>
+    );
   }
-
-  // Contar instâncias por status
-  const connectedInstances = instances.filter(i => 
-    i.connection_status === 'connected' || i.connection_status === 'ready'
-  ).length;
 
   return (
     <div className="space-y-6">
-      <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+      {/* Header Card */}
+      <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -106,9 +119,9 @@ export const WhatsAppWebSettings = () => {
                 <MessageSquare className="h-6 w-6 text-green-600" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-green-800">WhatsApp Modular</h2>
+                <h2 className="text-xl font-semibold text-green-800">WhatsApp Web Integrado</h2>
                 <p className="text-sm text-green-600">
-                  Sistema modular ativo (Usuário: {user?.email})
+                  Sistema com modal automático (Usuário: {user?.email})
                 </p>
               </div>
             </div>
@@ -117,6 +130,12 @@ export const WhatsAppWebSettings = () => {
                 <Activity className="h-3 w-3 mr-1" />
                 VPS {vpsHealth?.online ? 'Online' : 'Offline'}
               </Badge>
+              
+              {vpsHealth?.responseTime && (
+                <Badge variant="outline" className="border-blue-300">
+                  {vpsHealth.responseTime}ms
+                </Badge>
+              )}
               
               {connectedInstances > 0 && (
                 <Badge variant="default" className="bg-green-600">
@@ -129,19 +148,35 @@ export const WhatsAppWebSettings = () => {
         </CardHeader>
       </Card>
 
-      <OrphanInstanceManager />
-
+      {/* Botão de Criar Instância */}
       <div className="flex gap-3">
-        <CreateInstanceButton 
-          onSuccess={loadInstances}
-          variant="whatsapp"
+        <Button 
+          onClick={handleConnectWhatsApp}
+          disabled={isCreating}
+          className="bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
           size="lg"
-        />
-        <CleanupOrphanedInstancesButton 
-          onCleanupComplete={loadInstances}
-        />
+        >
+          {isCreating ? (
+            <>
+              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+              {creationStage || 'Criando...'}
+            </>
+          ) : (
+            <>
+              <Plus className="h-5 w-5 mr-2" />
+              Conectar WhatsApp (Automático)
+            </>
+          )}
+        </Button>
+        
+        {creationError && (
+          <div className="flex items-center text-red-600 text-sm">
+            <span>Erro: {creationError}</span>
+          </div>
+        )}
       </div>
 
+      {/* Lista de Instâncias ou Estado Vazio */}
       {instances.length > 0 ? (
         <WhatsAppWebInstancesGrid
           instances={instances}
@@ -151,13 +186,18 @@ export const WhatsAppWebSettings = () => {
         />
       ) : (
         <WhatsAppWebEmptyState
-          onConnect={handleConnect}
+          onConnect={handleConnectWhatsApp}
           isConnecting={isCreating}
         />
       )}
 
-      {/* Modal QR unificado */}
-      <QRCodeModal />
+      {/* Modal QR Automático */}
+      <AutoQRModal
+        isOpen={showModal}
+        onClose={closeModal}
+        instanceId={instanceId}
+        instanceName={instanceName}
+      />
     </div>
   );
 };

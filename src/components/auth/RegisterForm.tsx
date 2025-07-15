@@ -21,7 +21,6 @@ import { PasswordFields } from "./register/PasswordFields";
 
 export default function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
-  const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const { signUp } = useAuth();
   
   const form = useForm<RegisterFormValues>({
@@ -68,9 +67,6 @@ export default function RegisterForm() {
       // Registrar o usuário usando o AuthContext
       await signUp(data.email, data.password, userData);
       
-      // Mostrar sucesso visual
-      setRegistrationSuccess(true);
-      
       // Reset form após sucesso
       form.reset();
       
@@ -78,7 +74,6 @@ export default function RegisterForm() {
       
     } catch (error: any) {
       console.error('[RegisterForm] Erro no registro:', error);
-      setRegistrationSuccess(false);
       
       // Toast de erro já é mostrado no AuthContext, mas vamos adicionar feedback visual
       form.setError("root", { 
@@ -87,32 +82,6 @@ export default function RegisterForm() {
     } finally {
       setIsLoading(false);
     }
-  }
-
-  // Se o registro foi bem-sucedido, mostrar feedback positivo
-  if (registrationSuccess) {
-    return (
-      <div className="w-full rounded-3xl bg-white/30 backdrop-blur-lg border border-white/20 shadow-2xl p-8 space-y-8 text-center">
-        <div className="space-y-4 animate-scale-in">
-          <div className="flex justify-center">
-            <CheckCircle className="h-16 w-16 text-green-500" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-            Conta criada com sucesso!
-          </h1>
-          <p className="text-sm text-gray-700 font-medium">
-            Você será redirecionado em instantes...
-          </p>
-        </div>
-        
-        <div className="text-center text-sm text-gray-700">
-          Já tem uma conta?{" "}
-          <Link to="/" className="text-gray-800 font-medium hover:text-ticlin-600 transition-colors duration-200 underline-offset-4 hover:underline">
-            Entrar
-          </Link>
-        </div>
-      </div>
-    );
   }
 
   return (

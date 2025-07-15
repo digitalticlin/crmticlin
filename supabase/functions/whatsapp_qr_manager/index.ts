@@ -56,10 +56,10 @@ serve(async (req: Request) => {
 
     console.log(`🌐 [QR Manager] Solicitando QR Code para VPS: ${instance.instance_name}`);
 
-    // CORREÇÃO: Usar URL correta na porta 3002 e endpoint correto
-    const vpsUrl = "http://31.97.24.222:3002";
-    const vpsToken = Deno.env.get('VPS_API_TOKEN') || '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
-    const response = await fetch(`${vpsUrl}/instance/${instance.instance_name}/qr`, {
+    // CORREÇÃO: Usar URL correta da nova VPS
+    const vpsUrl = "http://31.97.163.57:3001";
+    const vpsToken = Deno.env.get('VPS_API_TOKEN') || 'bJyn3eUPFTRFNCxxLNd8KH5bI4Zg7bpUk7ADO6kXf49026a1';
+    const response = await fetch(`${vpsUrl}/instance/${instance.vps_instance_id}/qr`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

@@ -42,7 +42,7 @@ const LoginForm = () => {
     
     try {
       await signIn(values.email, values.password);
-      navigate("/dashboard");
+      // Redirecionamento será feito automaticamente pelo AuthContext
     } catch (error) {
       console.error("Erro de login:", error);
     } finally {

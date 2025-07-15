@@ -66,18 +66,18 @@ class WebhookManager {
     return await this.sendWebhook('QR_RECEIVER', data, 'QR');
   }
 
-  async notifyConnection(instanceId, phone, profileName) {
+  async notifyConnection(instanceId, phone, profileName, status = 'connected') {
     const data = {
-      event: 'connection_established',
       instanceId,
-      instanceName: instanceId,
-      status: 'connected',
+      status: status === 'connected' ? 'connected' : 'disconnected',
+      event: status === 'connected' ? 'ready' : 'close',
       phone,
-      profileName,
+      profile_name: profileName,
       timestamp: new Date().toISOString()
     };
     
-    return await this.sendWebhook('AUTO_WHATSAPP_SYNC', data, 'Connection');
+    console.log(`[Webhook Connection] 📡 Enviando status: ${status} para auto_whatsapp_sync`);
+    return await this.sendWebhook('CONNECTION_SYNC', data, 'Connection');
   }
 
   async notifyMessage(instanceId, messageData, createdByUserId = null) {
@@ -86,6 +86,8 @@ class WebhookManager {
       instanceId,
       instanceName: instanceId,
       from: messageData.from,
+      fromMe: messageData.fromMe || false,
+      messageType: messageData.messageType || 'text',
       message: {
         text: messageData.body
       },
@@ -94,7 +96,15 @@ class WebhookManager {
       data: messageData
     };
     
-    return await this.sendWebhook('MESSAGE_RECEIVER', data, 'Message');
+    // Enviar para ambos os webhooks simultaneamente
+    const backendPromise = this.sendWebhook('BACKEND_MESSAGES', data, 'Backend');
+    const n8nPromise = this.sendWebhook('N8N_MESSAGES', data, 'N8N');
+    
+    const [backendResult, n8nResult] = await Promise.all([backendPromise, n8nPromise]);
+    
+    console.log(`[Webhook Message] 📤 Backend: ${backendResult ? '✅' : '❌'} | N8N: ${n8nResult ? '✅' : '❌'} | Type: ${messageData.messageType} | FromMe: ${messageData.fromMe}`);
+    
+    return backendResult || n8nResult; // Retorna true se pelo menos um webhook funcionou
   }
 
   // Obter estatísticas dos webhooks

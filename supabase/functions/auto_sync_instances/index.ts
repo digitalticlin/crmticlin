@@ -7,9 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Configuração VPS corrigida
-const VPS_SERVER_URL = 'http://31.97.24.222:3002';
-const VPS_AUTH_TOKEN = '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
+// Configuração VPS atualizada para nova VPS
+const VPS_SERVER_URL = 'http://31.97.163.57:3001';
+const VPS_AUTH_TOKEN = 'bJyn3eUPFTRFNCxxLNd8KH5bI4Zg7bpUk7ADO6kXf49026a1';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {

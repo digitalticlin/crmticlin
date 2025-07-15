@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 // CONFIGURAÇÃO: Servidor Webhook na porta 3002
-const WEBHOOK_SERVER_URL = 'http://31.97.24.222:3002';
+const WEBHOOK_SERVER_URL = 'http://31.97.163.57:3001';
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {

@@ -2,7 +2,7 @@
 // SERVIDOR WHATSAPP COMPLETO - IMPLEMENTAÇÃO ROBUSTA CORRIGIDA
 const express = require('express');
 const crypto = require('crypto');
-const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('@whiskeysockets/baileys');
+const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } = require('baileys');
 const QRCode = require('qrcode');
 const axios = require('axios');
 const fs = require('fs');
@@ -17,17 +17,20 @@ const ConnectionManager = require('./connection-manager');
 global.crypto = crypto;
 
 const app = express();
-const PORT = 3002;
+const PORT = 3001; // NOVA VPS PORTA
 
 // CONFIGURAÇÃO CORRIGIDA - Supabase Service Key para autenticação
 const SUPABASE_PROJECT = 'rhjgagzstjzynvrakdyj';
 const SUPABASE_SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJoamdhZ3pzdGp6eW52cmFrZHlqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDUxMzEwMCwiZXhwIjoyMDY2MDg5MTAwfQ.48XYhDq4XdVTqNhIHdskd6iMcJem38aHzk6U1psfRRM';
 
+// TOKEN DE AUTENTICAÇÃO VPS
+const VPS_AUTH_TOKEN = process.env.VPS_API_TOKEN || 'bJyn3eUPFTRFNCxxLNd8KH5bI4Zg7bpUk7ADO6kXf49026a1';
+
 const SUPABASE_WEBHOOKS = {
-  QR_RECEIVER: `https://${SUPABASE_PROJECT}.supabase.co/functions/v1/webhook_qr_receiver`,
-  AUTO_SYNC_INSTANCES: `https://${SUPABASE_PROJECT}.supabase.co/functions/v1/auto_sync_instances`,
-  AUTO_WHATSAPP_SYNC: `https://${SUPABASE_PROJECT}.supabase.co/functions/v1/auto_whatsapp_sync`,
-  MESSAGE_RECEIVER: `https://${SUPABASE_PROJECT}.supabase.co/functions/v1/whatsapp_message_service`
+  QR_RECEIVER: process.env.QR_RECEIVER_WEBHOOK || 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_qr_receiver',
+  CONNECTION_SYNC: process.env.CONNECTION_SYNC_WEBHOOK || 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/auto_whatsapp_sync',
+  BACKEND_MESSAGES: process.env.BACKEND_MESSAGES_WEBHOOK || 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_whatsapp_web',
+  N8N_MESSAGES: process.env.N8N_MESSAGES_WEBHOOK || 'https://novo-ticlin-n8n.eirfpl.easypanel.host/webhook/ticlingeral'
 };
 
 // Armazenamento global de instâncias
@@ -53,6 +56,29 @@ app.use((req, res, next) => {
   
   next();
 });
+
+// Middleware de autenticação
+function authenticateToken(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const apiTokenHeader = req.headers['x-api-token'];
+  
+  const token = authHeader?.split(' ')[1] || apiTokenHeader;
+  
+  // Permitir acesso livre ao health check
+  if (req.path === '/health' || req.path === '/status') {
+    return next();
+  }
+  
+  if (!token || token !== VPS_AUTH_TOKEN) {
+    return res.status(401).json({
+      success: false,
+      error: 'Token de autenticação inválido ou ausente',
+      timestamp: new Date().toISOString()
+    });
+  }
+  
+  next();
+}
 
 // Inicializar gerenciadores modulares
 const webhookManager = new WebhookManager(SUPABASE_WEBHOOKS, SUPABASE_SERVICE_KEY);
@@ -141,7 +167,7 @@ app.get('/status', (req, res) => {
 });
 
 // Listar Instâncias
-app.get('/instances', (req, res) => {
+app.get('/instances', authenticateToken, (req, res) => {
   const instancesList = Object.values(instances).map(inst => ({
     instanceId: inst.instanceId,
     instanceName: inst.instanceName,
@@ -166,7 +192,7 @@ app.get('/instances', (req, res) => {
 });
 
 // Criar Instância com Recovery
-app.post('/instance/create', async (req, res) => {
+app.post('/instance/create', authenticateToken, async (req, res) => {
   const { instanceId, createdByUserId } = req.body;
 
   if (!instanceId) {
@@ -409,6 +435,73 @@ app.delete('/instance/:instanceId', async (req, res) => {
   }
 });
 
+// Enviar Mensagem
+app.post('/send', authenticateToken, async (req, res) => {
+  const { instanceId, phone, message } = req.body;
+
+  if (!instanceId || !phone || !message) {
+    return res.status(400).json({
+      success: false,
+      error: 'instanceId, phone e message são obrigatórios',
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  const instance = instances[instanceId];
+  if (!instance) {
+    return res.status(404).json({
+      success: false,
+      error: 'Instância não encontrada',
+      instanceId,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  if (!instance.connected || !instance.socket) {
+    return res.status(400).json({
+      success: false,
+      error: 'Instância não está conectada',
+      status: instance.status,
+      instanceId,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  try {
+    console.log(`📤 Enviando mensagem via ${instanceId} para ${phone}: ${message.substring(0, 50)}...`);
+    
+    // Formatar número de telefone
+    const formattedPhone = phone.includes('@') ? phone : `${phone}@s.whatsapp.net`;
+    
+    // Enviar mensagem via Baileys
+    const messageResult = await instance.socket.sendMessage(formattedPhone, { text: message });
+    
+    // Adicionar ao cache para evitar reenvio de webhook
+    connectionManager.addSentMessageToCache(instanceId, messageResult.key.id, formattedPhone);
+    
+    console.log(`✅ Mensagem enviada com sucesso via ${instanceId}`);
+    
+    res.json({
+      success: true,
+      messageId: messageResult.key.id,
+      instanceId,
+      phone: formattedPhone,
+      message: message,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error(`❌ Erro ao enviar mensagem via ${instanceId}:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao enviar mensagem',
+      message: error.message,
+      instanceId,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // Recuperação Automática de Instâncias na Inicialização
 async function recoverExistingInstances() {
   console.log('🔄 Verificando instâncias persistentes...');
@@ -472,7 +565,7 @@ function startPeriodicSync() {
         instances: instancesData,
         total: instancesData.length,
         vps_info: {
-          ip: '31.97.24.222',
+          ip: '31.97.163.57',
           port: PORT,
           uptime: process.uptime(),
           version: '7.0.0-ROBUST-COMPLETE'
@@ -531,7 +624,7 @@ async function startServer() {
     const server = app.listen(PORT, '0.0.0.0', () => {
       console.log('✅ SERVIDOR WHATSAPP ROBUSTO IMPLEMENTADO!');
       console.log(`🚀 Servidor rodando na porta ${PORT}`);
-      console.log(`🌐 Acesso: http://31.97.24.222:${PORT}`);
+      console.log(`🌐 Acesso: http://31.97.163.57:${PORT}`);
       console.log(`📡 Supabase Webhooks configurados`);
       console.log(`🔧 Versão: 7.0.0-ROBUST-COMPLETE`);
       console.log(`📋 Endpoints disponíveis:`);
@@ -545,6 +638,7 @@ async function startServer() {
       console.log(`   POST /instance/:id/import-history-robust - Importação robusta`);
       console.log(`   GET  /instance/:id - Detalhes da instância`);
       console.log(`   DELETE /instance/:id - Deletar instância`);
+      console.log(`   POST /send - Enviar mensagem`);
     });
 
     server.timeout = 60000;
@@ -570,12 +664,12 @@ async function startServer() {
           timestamp: new Date().toISOString(),
           instances: instancesData,
           total: instancesData.length,
-          vps_info: {
-            ip: '31.97.24.222',
-            port: PORT,
-            uptime: process.uptime(),
-            version: '7.0.0-ROBUST-COMPLETE'
-          }
+                  vps_info: {
+          ip: '31.97.163.57',
+          port: PORT,
+          uptime: process.uptime(),
+          version: '7.0.0-ROBUST-COMPLETE'
+        }
         };
         
         await webhookManager.sendWebhook('AUTO_SYNC_INSTANCES', data, 'Startup');

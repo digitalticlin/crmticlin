@@ -10,9 +10,9 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// Configuração VPS
-const VPS_SERVER_URL = 'http://31.97.24.222:3002';
-const VPS_AUTH_TOKEN = '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3';
+// CONFIGURAÇÃO VPS NOVA - PORTA 3001
+const VPS_SERVER_URL = 'http://31.97.163.57:3001';
+const VPS_AUTH_TOKEN = 'bJyn3eUPFTRFNCxxLNd8KH5bI4Zg7bpUk7ADO6kXf49026a1';
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -24,7 +24,7 @@ serve(async (req: Request) => {
   }
 
   const executionId = `delete_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-  console.log(`🗑️ [${executionId}] WHATSAPP INSTANCE DELETE - Iniciando`);
+  console.log(`🗑️ [${executionId}] WHATSAPP INSTANCE DELETE - Nova VPS 3001`);
 
   const supabase = createClient(supabaseUrl, supabaseKey, {
     auth: {
@@ -34,13 +34,13 @@ serve(async (req: Request) => {
   });
 
   try {
-    const { instanceId, vpsInstanceId } = await req.json();
-    console.log(`🗑️ [${executionId}] Parâmetros recebidos:`, { instanceId, vpsInstanceId });
+    const { instanceId } = await req.json();
+    console.log(`🗑️ [${executionId}] Deletando instância: ${instanceId}`);
 
-    if (!instanceId && !vpsInstanceId) {
+    if (!instanceId) {
       return new Response(JSON.stringify({ 
         success: false, 
-        error: "ID da instância (instanceId ou vpsInstanceId) é obrigatório",
+        error: "instanceId é obrigatório",
         executionId 
       }), { 
         headers: corsHeaders, 
@@ -48,71 +48,49 @@ serve(async (req: Request) => {
       });
     }
 
-    // Buscar instância no banco para obter dados completos
+    // 1. BUSCAR INSTÂNCIA NO BANCO
     console.log(`🔍 [${executionId}] Buscando instância no banco...`);
-    let instance = null;
-    
-    if (instanceId) {
-      const { data, error } = await supabase
-        .from('whatsapp_instances')
-        .select('*')
-        .eq('id', instanceId)
-        .single();
-      
-      if (error) {
-        console.error(`❌ [${executionId}] Erro ao buscar por instanceId:`, error);
-      } else {
-        instance = data;
-      }
-    }
-    
-    // Se não encontrou por instanceId, tentar por vpsInstanceId
-    if (!instance && vpsInstanceId) {
-      const { data, error } = await supabase
-        .from('whatsapp_instances')
-        .select('*')
-        .eq('vps_instance_id', vpsInstanceId)
-        .single();
-      
-      if (error) {
-        console.error(`❌ [${executionId}] Erro ao buscar por vpsInstanceId:`, error);
-      } else {
-        instance = data;
-      }
-    }
+    const { data: instance, error: fetchError } = await supabase
+      .from('whatsapp_instances')
+      .select('*')
+      .eq('id', instanceId)
+      .single();
 
-    if (instance) {
-      console.log(`🔍 [${executionId}] Instância encontrada:`, {
-        id: instance.id,
-        instance_name: instance.instance_name,
-        vps_instance_id: instance.vps_instance_id,
-        connection_status: instance.connection_status
+    if (fetchError || !instance) {
+      console.error(`❌ [${executionId}] Instância não encontrada:`, fetchError);
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: "Instância não encontrada",
+        executionId 
+      }), { 
+        headers: corsHeaders, 
+        status: 404 
       });
-    } else {
-      console.log(`⚠️ [${executionId}] Instância não encontrada no banco`);
     }
 
-    // 1. DELETAR DA VPS (se tiver vps_instance_id)
-    const vpsId = instance?.vps_instance_id || vpsInstanceId;
+    console.log(`✅ [${executionId}] Instância encontrada:`, {
+      id: instance.id,
+      name: instance.instance_name,
+      vps_instance_id: instance.vps_instance_id
+    });
+
+    // 2. DELETAR DA VPS (se tiver vps_instance_id)
     let vpsDeleteSuccess = false;
     
-    if (vpsId) {
-      console.log(`🚀 [${executionId}] Deletando da VPS: ${vpsId}`);
+    if (instance.vps_instance_id) {
+      console.log(`🌐 [${executionId}] Deletando da VPS: ${instance.vps_instance_id}`);
       
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-        const vpsResponse = await fetch(`${VPS_SERVER_URL}/instance/delete`, {
-          method: 'POST',
+        // ENDPOINT CORRETO PARA NOVA VPS
+        const vpsResponse = await fetch(`${VPS_SERVER_URL}/instance/${instance.vps_instance_id}`, {
+          method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${VPS_AUTH_TOKEN}`,
-            'X-API-Token': VPS_AUTH_TOKEN
+            'Authorization': `Bearer ${VPS_AUTH_TOKEN}`
           },
-          body: JSON.stringify({
-            instanceId: vpsId
-          }),
           signal: controller.signal
         });
 
@@ -128,70 +106,62 @@ serve(async (req: Request) => {
             status: vpsResponse.status,
             error: errorText
           });
+          // Continuar mesmo se VPS falhar
         }
       } catch (error) {
         console.error(`❌ [${executionId}] VPS delete error:`, error);
+        // Continuar mesmo se VPS falhar
       }
     } else {
-      console.log(`⚠️ [${executionId}] Sem vps_instance_id, pulando delete da VPS`);
+      console.log(`⚠️ [${executionId}] Sem vps_instance_id, pulando VPS`);
+      vpsDeleteSuccess = true; // Considerar sucesso se não há ID da VPS
     }
 
-    // 2. DELETAR DO BANCO (se tiver instance)
-    let dbDeleteSuccess = false;
+    // 3. DELETAR DO BANCO
+    console.log(`🗄️ [${executionId}] Deletando do banco...`);
     
-    if (instance) {
-      console.log(`🗄️ [${executionId}] Deletando do banco: ${instance.id}`);
-      
-      const { data: deleteResult, error: deleteError } = await supabase
-        .from('whatsapp_instances')
-        .delete()
-        .eq('id', instance.id)
-        .select('id');
+    const { error: deleteError } = await supabase
+      .from('whatsapp_instances')
+      .delete()
+      .eq('id', instanceId);
 
-      if (deleteError) {
-        console.error(`❌ [${executionId}] Erro ao deletar do banco:`, deleteError);
-      } else if (deleteResult && deleteResult.length > 0) {
-        console.log(`✅ [${executionId}] Banco delete success:`, deleteResult);
-        dbDeleteSuccess = true;
-      } else {
-        console.error(`❌ [${executionId}] Nenhuma linha deletada do banco`);
-      }
-    } else {
-      console.log(`⚠️ [${executionId}] Sem instância no banco, pulando delete do banco`);
+    if (deleteError) {
+      console.error(`❌ [${executionId}] Erro ao deletar do banco:`, deleteError);
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: `Erro ao deletar do banco: ${deleteError.message}`,
+        executionId 
+      }), { 
+        headers: corsHeaders, 
+        status: 500 
+      });
     }
 
-    // 3. RESULTADO FINAL
-    const overallSuccess = (vpsId ? vpsDeleteSuccess : true) && (instance ? dbDeleteSuccess : true);
+    console.log(`✅ [${executionId}] Instância deletada com sucesso do banco`);
+
+    // 4. RESULTADO FINAL
+    const success = true; // Sucesso se deletou do banco (VPS é opcional)
     
-    console.log(`📊 [${executionId}] Resultado final:`, {
-      overallSuccess,
+    console.log(`🎉 [${executionId}] Deleção concluída:`, {
+      success,
       vpsDeleteSuccess,
-      dbDeleteSuccess,
-      hadVpsId: !!vpsId,
-      hadInstance: !!instance
+      instanceId,
+      instanceName: instance.instance_name
     });
 
     return new Response(JSON.stringify({
-      success: overallSuccess,
-      message: overallSuccess ? 
-        "Instância deletada com sucesso" : 
-        "Falha parcial na deleção",
+      success: true,
+      message: "Instância deletada com sucesso",
       details: {
-        vps: {
-          attempted: !!vpsId,
-          success: vpsDeleteSuccess,
-          instanceId: vpsId
-        },
-        database: {
-          attempted: !!instance,
-          success: dbDeleteSuccess,
-          instanceId: instance?.id
-        }
+        instanceId,
+        instanceName: instance.instance_name,
+        vpsDeleted: vpsDeleteSuccess,
+        databaseDeleted: true
       },
       executionId
     }), { 
       headers: corsHeaders,
-      status: overallSuccess ? 200 : 500
+      status: 200
     });
 
   } catch (error: any) {

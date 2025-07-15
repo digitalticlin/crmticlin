@@ -45,10 +45,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         // Redirect on successful authentication
         if (event === 'SIGNED_IN' && session?.user) {
-          console.log('[Auth] Usuário logado, redirecionando...');
-          setTimeout(() => {
+          console.log('[Auth] Usuário logado, redirecionando para dashboard...');
+          // Redirecionamento imediato para o dashboard
             navigate('/dashboard', { replace: true });
-          }, 1000);
         }
       }
     );
@@ -125,10 +124,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // Check if email confirmation is required
       if (data.user && !data.session) {
-        toast.success('Conta criada! Verifique seu email para confirmar.');
+        // Email confirmation required
+        console.log('[Auth] Confirmação de email necessária');
+        toast.success('Conta criada! Verifique seu email para confirmar e depois faça login.');
+        // Redirect to login page after showing success message
+        setTimeout(() => {
+          navigate('/login', { replace: true });
+        }, 2000);
       } else if (data.session) {
+        // User is automatically logged in
+        console.log('[Auth] Usuário logado automaticamente após registro');
         toast.success('Conta criada e login realizado com sucesso!');
-        // User is automatically logged in, redirect will happen via onAuthStateChange
+        // Redirect will happen via onAuthStateChange
       }
       
     } catch (error: any) {

@@ -64,18 +64,17 @@ export const useWhatsAppWebInstances = () => {
 
       if (error) throw error;
 
-      if (data?.success) {
-        console.log(`[WhatsApp Web Instances] ✅ Instância deletada: ${instanceId}`);
+      if (data?.success && data?.vpsDeleteSuccess) {
+        console.log(`[WhatsApp Web Instances] ✅ Instância deletada completamente: ${instanceId}`);
         toast.success('Instância deletada com sucesso!');
-        // Recarregar para garantir consistência
-        await loadInstances();
+        // NÃO recarregar - já foi removida otimisticamente e confirmada pela VPS
       } else {
-        throw new Error(data?.error || 'Erro desconhecido ao deletar');
+        throw new Error(data?.error || 'Erro na deleção da VPS ou banco');
       }
     } catch (error: any) {
       console.error(`[WhatsApp Web Instances] ❌ Erro ao deletar:`, error);
       toast.error(`Erro ao deletar instância: ${error.message}`);
-      // Recarregar em caso de erro para restaurar estado
+      // Recarregar apenas em caso de erro para restaurar estado
       await loadInstances();
     }
   }, [loadInstances]);

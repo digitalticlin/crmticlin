@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Shield, User, Crown, Users, Phone, TrendingUp } from "lucide-react";
+import { Trash2, Shield, User, Crown, Users, Phone, TrendingUp, Edit } from "lucide-react";
 import { TeamMember } from "@/hooks/useTeamManagement";
 import {
   AlertDialog,
@@ -36,47 +36,68 @@ export const ModernTeamMembersList = ({
         return {
           label: "ADMINISTRADOR",
           icon: Crown,
-          color: "bg-purple-100 text-purple-800 border-purple-200",
-          description: "Acesso total ao sistema"
+          color: "bg-yellow-100/80 text-yellow-800 border-yellow-300/60",
+          bgColor: "bg-yellow-50/60",
+          description: "Acesso total ao sistema, incluindo gestão de equipe"
         };
-      case "user":
+      case "manager":
         return {
-          label: "USUÁRIO",
+          label: "GESTOR",
           icon: TrendingUp,
-          color: "bg-blue-100 text-blue-800 border-blue-200",
+          color: "bg-purple-100/80 text-purple-800 border-purple-300/60",
+          bgColor: "bg-purple-50/60",
           description: "Acesso completo exceto gestão de equipe"
         };
       case "operational":
         return {
           label: "OPERACIONAL",
           icon: User,
-          color: "bg-green-100 text-green-800 border-green-200",
+          color: "bg-blue-100/80 text-blue-800 border-blue-300/60",
+          bgColor: "bg-blue-50/60",
           description: "Acesso limitado aos recursos vinculados"
         };
       default:
         return {
           label: "DESCONHECIDO",
           icon: Shield,
-          color: "bg-gray-100 text-gray-800 border-gray-200",
+          color: "bg-gray-100/80 text-gray-800 border-gray-300/60",
+          bgColor: "bg-gray-50/60",
           description: "Função não definida"
         };
     }
   };
 
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#D3D800]"></div>
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center space-y-4">
+          <div className="relative mx-auto w-12 h-12">
+            <div className="absolute inset-0 rounded-full border-2 border-yellow-500/30"></div>
+            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-yellow-500 animate-spin"></div>
+          </div>
+          <p className="text-sm text-gray-700 font-medium">Carregando membros da equipe...</p>
+        </div>
       </div>
     );
   }
 
   if (members.length === 0) {
     return (
-      <div className="text-center py-8">
-        <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-        <p className="text-gray-600 text-lg">Nenhum membro da equipe encontrado</p>
-        <p className="text-gray-500 text-sm">Adicione o primeiro membro usando o formulário acima</p>
+      <div className="text-center py-12">
+        <div className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-2xl p-8 transition-all duration-300 hover:bg-white/50">
+          <Users className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-gray-800 mb-2">Nenhum membro da equipe</h3>
+          <p className="text-gray-600 font-medium">Adicione o primeiro membro usando o botão acima</p>
+        </div>
       </div>
     );
   }
@@ -85,113 +106,140 @@ export const ModernTeamMembersList = ({
     <div className="space-y-4">
       {members.map((member) => {
         const roleInfo = getRoleInfo(member.role);
-        const RoleIcon = roleInfo.icon;
-        
+        const initials = getInitials(member.full_name);
+
         return (
           <div
             key={member.id}
-            className="bg-white/20 backdrop-blur-sm rounded-2xl p-6 border border-white/30 hover:border-white/50 transition-all duration-200"
+            className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-2xl p-6 transition-all duration-300 hover:bg-white/50 hover:shadow-glass-lg"
           >
             <div className="flex items-start justify-between">
-              <div className="flex items-start space-x-4 flex-1">
-                <Avatar className="h-12 w-12">
-                  <AvatarFallback className="bg-gradient-to-br from-[#D3D800]/20 to-[#D3D800]/10 text-[#D3D800] font-semibold">
-                    {member.full_name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+              {/* Informações do Membro */}
+              <div className="flex items-start gap-4 flex-1">
+                {/* Avatar */}
+                <div className="flex-shrink-0">
+                  <Avatar className="h-12 w-12 border-2 border-white/40 shadow-glass">
+                    <AvatarFallback className="bg-yellow-500/20 text-yellow-700 font-bold text-sm">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
 
+                {/* Detalhes */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-semibold text-gray-800 truncate">
+                    <h4 className="text-lg font-bold text-gray-900 truncate">
                       {member.full_name}
-                    </h3>
-                    <Badge className={`${roleInfo.color} flex items-center gap-1 px-3 py-1`}>
-                      <RoleIcon className="h-3 w-3" />
+                    </h4>
+                    <Badge className={`${roleInfo.color} backdrop-blur-sm font-medium`}>
+                      <roleInfo.icon className="h-3 w-3 mr-1" />
                       {roleInfo.label}
                     </Badge>
                   </div>
 
-                  <p className="text-gray-600 text-sm mb-3">{member.email || `${member.username}@domain.com`}</p>
-                  <p className="text-gray-500 text-xs mb-4">{roleInfo.description}</p>
+                  <div className="space-y-2">
+                    {member.email && (
+                      <p className="text-sm text-gray-700 font-medium">
+                        📧 {member.email}
+                      </p>
+                    )}
+                    
+                    {member.whatsapp && (
+                      <p className="text-sm text-gray-700 font-medium flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {member.whatsapp}
+                      </p>
+                    )}
 
-                  {/* Permissões específicas para operacional */}
-                  {member.role === "operational" && (
-                    <div className="space-y-3">
-                      {member.whatsapp_access && member.whatsapp_access.length > 0 && (
-                        <div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <Phone className="h-4 w-4 text-green-600" />
-                            <span className="text-sm font-medium text-gray-700">WhatsApp Permitidos:</span>
+                    <p className="text-xs text-gray-600">
+                      {roleInfo.description}
+                    </p>
+
+                    {/* Acessos - Apenas para Operacionais */}
+                    {member.role === "operational" && (
+                      <div className="mt-3 space-y-2">
+                        {member.funnel_access.length > 0 && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-gray-700">Funis:</span>
+                            <span className="text-xs bg-white/40 px-2 py-1 rounded-lg border border-white/30">
+                              {member.funnel_access.length} atribuído(s)
+                            </span>
                           </div>
-                          <div className="flex flex-wrap gap-2">
-                            {member.whatsapp_access.map((whatsappId) => (
-                              <Badge key={whatsappId} variant="outline" className="text-xs">
-                                WhatsApp {whatsappId.slice(0, 8)}
-                              </Badge>
-                            ))}
+                        )}
+                        
+                        {member.whatsapp_access.length > 0 && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-medium text-gray-700">WhatsApp:</span>
+                            <span className="text-xs bg-white/40 px-2 py-1 rounded-lg border border-white/30">
+                              {member.whatsapp_access.length} instância(s)
+                            </span>
                           </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Nota para Gestores */}
+                    {(member.role === "admin" || member.role === "manager") && (
+                      <div className="mt-3">
+                        <div className={`${roleInfo.bgColor} backdrop-blur-sm border border-white/30 rounded-lg p-2`}>
+                          <p className="text-xs font-medium text-gray-700">
+                            {member.role === "admin" 
+                              ? "Acesso total incluindo gestão de equipe" 
+                              : "Acesso total exceto gestão de equipe"
+                            }
+                          </p>
                         </div>
-                      )}
-
-                      {member.funnel_access && member.funnel_access.length > 0 && (
-                        <div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <TrendingUp className="h-4 w-4 text-blue-600" />
-                            <span className="text-sm font-medium text-gray-700">Funis Permitidos:</span>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {member.funnel_access.map((funnelId) => (
-                              <Badge key={funnelId} variant="outline" className="text-xs">
-                                Funil {funnelId.slice(0, 8)}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {(!member.whatsapp_access || member.whatsapp_access.length === 0) && 
-                       (!member.funnel_access || member.funnel_access.length === 0) && (
-                        <p className="text-amber-600 text-sm bg-amber-50 p-2 rounded-lg">
-                          ⚠️ Usuário sem permissões específicas definidas
-                        </p>
-                      )}
-                    </div>
-                  )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Só mostrar botão de deletar se não for admin */}
-              {member.role !== "admin" && (
+              {/* Ações */}
+              <div className="flex items-center gap-2 ml-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-white/40 backdrop-blur-sm border border-white/30 hover:bg-white/60 rounded-xl text-gray-700"
+                >
+                  <Edit className="h-4 w-4" />
+                </Button>
+
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      variant="outline"
+                      size="sm"
+                      className="bg-red-50/60 backdrop-blur-sm border border-red-200/60 hover:bg-red-100/60 rounded-xl text-red-600"
+                      onClick={() => setMemberToDelete(member)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent>
+                  <AlertDialogContent className="bg-white/20 backdrop-blur-md border border-white/30 shadow-glass rounded-2xl">
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Remover Membro</AlertDialogTitle>
-                      <AlertDialogDescription>
+                      <AlertDialogTitle className="text-gray-900 font-bold">
+                        Remover Membro da Equipe
+                      </AlertDialogTitle>
+                      <AlertDialogDescription className="text-gray-700 font-medium">
                         Tem certeza que deseja remover <strong>{member.full_name}</strong> da equipe?
-                        Esta ação não pode ser desfeita e o usuário perderá acesso ao sistema.
+                        Esta ação não pode ser desfeita.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogCancel className="bg-white/40 backdrop-blur-sm border border-white/30 hover:bg-white/60 rounded-xl">
+                        Cancelar
+                      </AlertDialogCancel>
                       <AlertDialogAction
                         onClick={() => onRemoveMember(member.id)}
-                        className="bg-red-600 hover:bg-red-700"
+                        className="bg-red-500 hover:bg-red-600 text-white rounded-xl shadow-glass"
                       >
                         Remover
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
-              )}
+              </div>
             </div>
           </div>
         );

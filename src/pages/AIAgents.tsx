@@ -228,60 +228,6 @@ export default function AIAgents() {
         </div>
       </ChartCard>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <ChartCard 
-          title="Limites do Plano" 
-          description="Seu plano atual permite até 3 agentes de IA"
-        >
-          <div className="mt-4">
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-              <div 
-                className="bg-ticlin h-2.5 rounded-full" 
-                style={{ width: `${Math.min((agents.length / 3) * 100, 100)}%` }}
-              ></div>
-            </div>
-            <div className="flex justify-between mt-2 text-sm">
-              <span>{agents.length} de 3 agentes utilizados</span>
-              <span>{3 - agents.length} restantes</span>
-            </div>
-          </div>
-        </ChartCard>
-        
-        <ChartCard 
-          title="Desempenho dos Agentes" 
-          description="Métricas de utilização dos seus agentes de IA"
-        >
-          <div className="mt-4 space-y-3">
-            <div>
-              <div className="flex justify-between mb-1 text-sm">
-                <span>Taxa de resolução média</span>
-                <span className="font-medium">87%</span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div className="bg-green-500 h-2 rounded-full" style={{ width: "87%" }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between mb-1 text-sm">
-                <span>Satisfação do cliente</span>
-                <span className="font-medium">92%</span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div className="bg-ticlin h-2 rounded-full" style={{ width: "92%" }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between mb-1 text-sm">
-                <span>Tempo médio de resposta</span>
-                <span className="font-medium">5s</span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div className="bg-blue-500 h-2 rounded-full" style={{ width: "95%" }}></div>
-              </div>
-            </div>
-          </div>
-        </ChartCard>
-      </div>
 
       <AIAgentModal
         isOpen={isModalOpen}

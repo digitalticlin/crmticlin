@@ -70,44 +70,41 @@ export const AIAgentForm = ({ agent, onSave, onCancel }: AIAgentFormProps) => {
   };
 
   return (
-    <Card className="bg-white/40 backdrop-blur-sm border border-white/20 shadow-sm rounded-xl">
+    <div className="space-y-6">
+      {/* Nome do Agente */}
+      <Card className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-xl transition-all duration-300 hover:bg-white/50">
       <CardContent className="p-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 gap-6">
-            {/* Nome do Agente */}
-            <div>
-              <Label htmlFor="name" className="text-base font-semibold text-gray-700 mb-2 block">
+          <Label htmlFor="name" className="text-base font-semibold text-gray-800 mb-3 flex items-center gap-2">
+            <Bot className="h-5 w-5 text-yellow-500" />
                 Nome do Agente *
               </Label>
-              <div className="relative">
-                <Bot className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="name"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Ex: Assistente de Vendas Premium"
-                  className="pl-10 h-12 bg-white/60 backdrop-blur-sm border border-white/30 focus:border-blue-500 rounded-xl"
+            className="h-12 bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500 rounded-xl"
                   required
                 />
-              </div>
-              <p className="text-sm text-gray-500 mt-1">Escolha um nome descritivo para seu agente</p>
-            </div>
+          <p className="text-sm text-gray-600 mt-2 font-medium">Escolha um nome descritivo para seu agente</p>
+        </CardContent>
+      </Card>
 
             {/* Funil */}
-            <div>
-              <Label htmlFor="funnel" className="text-base font-semibold text-gray-700 mb-2 block">
+      <Card className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-xl transition-all duration-300 hover:bg-white/50">
+        <CardContent className="p-6">
+          <Label htmlFor="funnel" className="text-base font-semibold text-gray-800 mb-3 flex items-center gap-2">
+            <Link className="h-5 w-5 text-yellow-500" />
                 Funil (Opcional)
               </Label>
-              <div className="relative">
-                <Link className="absolute left-3 top-3 h-4 w-4 text-gray-400 z-10" />
                 <Select
                   value={formData.funnel_id}
                   onValueChange={(value) => setFormData({ ...formData, funnel_id: value })}
                 >
-                  <SelectTrigger className="pl-10 h-12 bg-white/60 backdrop-blur-sm border border-white/30 focus:border-blue-500 rounded-xl">
+            <SelectTrigger className="h-12 bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500 rounded-xl">
                     <SelectValue placeholder="Selecione um funil" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white/90 backdrop-blur-md border border-white/20 rounded-xl">
+            <SelectContent className="bg-white/90 backdrop-blur-md border border-white/30 rounded-xl shadow-glass">
                     {funnels.map((funnel) => (
                       <SelectItem key={funnel.id} value={funnel.id}>
                         {funnel.name}
@@ -115,25 +112,25 @@ export const AIAgentForm = ({ agent, onSave, onCancel }: AIAgentFormProps) => {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <p className="text-sm text-gray-500 mt-1">Conecte o agente a um funil específico</p>
-            </div>
+          <p className="text-sm text-gray-600 mt-2 font-medium">Conecte o agente a um funil específico</p>
+        </CardContent>
+      </Card>
 
             {/* Instância WhatsApp */}
-            <div>
-              <Label htmlFor="whatsapp" className="text-base font-semibold text-gray-700 mb-2 block">
+      <Card className="bg-white/40 backdrop-blur-lg border border-white/30 shadow-glass rounded-xl transition-all duration-300 hover:bg-white/50">
+        <CardContent className="p-6">
+          <Label htmlFor="whatsapp" className="text-base font-semibold text-gray-800 mb-3 flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-yellow-500" />
                 Instância WhatsApp (Opcional)
               </Label>
-              <div className="relative">
-                <MessageCircle className="absolute left-3 top-3 h-4 w-4 text-gray-400 z-10" />
                 <Select
                   value={formData.whatsapp_number_id}
                   onValueChange={(value) => setFormData({ ...formData, whatsapp_number_id: value })}
                 >
-                  <SelectTrigger className="pl-10 h-12 bg-white/60 backdrop-blur-sm border border-white/30 focus:border-blue-500 rounded-xl">
+            <SelectTrigger className="h-12 bg-white/40 backdrop-blur-sm border border-white/30 focus:border-yellow-500 rounded-xl">
                     <SelectValue placeholder="Selecione uma instância" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white/90 backdrop-blur-md border border-white/20 rounded-xl">
+            <SelectContent className="bg-white/90 backdrop-blur-md border border-white/30 rounded-xl shadow-glass">
                     {whatsappInstances.map((instance) => (
                       <SelectItem key={instance.id} value={instance.id}>
                         {instance.profile_name || instance.instance_name}
@@ -141,12 +138,12 @@ export const AIAgentForm = ({ agent, onSave, onCancel }: AIAgentFormProps) => {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <p className="text-sm text-gray-500 mt-1">Conecte o agente a uma instância do WhatsApp</p>
-            </div>
-          </div>
+          <p className="text-sm text-gray-600 mt-2 font-medium">Conecte o agente a uma instância do WhatsApp</p>
+        </CardContent>
+      </Card>
 
-          <div className="flex justify-end gap-3 pt-6 border-t border-white/10">
+      <form onSubmit={handleSubmit}>
+        <div className="flex justify-end gap-3 pt-6 border-t border-white/30">
             <Button 
               type="button" 
               variant="outline" 
@@ -158,13 +155,12 @@ export const AIAgentForm = ({ agent, onSave, onCancel }: AIAgentFormProps) => {
             <Button 
               type="submit" 
               disabled={isLoading} 
-              className="px-8 h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+            className="px-8 h-11 bg-yellow-500 hover:bg-yellow-600 text-black font-semibold rounded-xl shadow-glass hover:shadow-glass-lg transition-all duration-200"
             >
               {isLoading ? "Salvando..." : agent ? "Atualizar Agente" : "Criar Agente"}
             </Button>
           </div>
         </form>
-      </CardContent>
-    </Card>
+    </div>
   );
 };

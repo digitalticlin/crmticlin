@@ -3,7 +3,7 @@
 # Script para atualizar webhooks no servidor VPS
 # Baseado no arquivo server-corrigido-final.js
 
-VPS_IP="31.97.24.222"
+VPS_IP="31.97.163.57"
 SERVER_PATH="/root/whatsapp-server/server.js"
 BACKUP_PATH="/root/whatsapp-server/server.js.backup"
 
