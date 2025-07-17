@@ -2,6 +2,8 @@
 import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useSmartPollingManager } from './useSmartPollingManager';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface InstanceCreationState {
   isCreating: boolean;
@@ -26,6 +28,8 @@ export const useInstanceCreationRealtime = () => {
 
   const pollingRef = useRef<NodeJS.Timeout>();
   const isMountedRef = useRef(true);
+  const { user } = useAuth();
+  const { registerCreation, markAsConnected, shouldActivatePolling } = useSmartPollingManager(user?.id);
 
   // Criar instância usando whatsapp_instance_manager
   const createInstance = useCallback(async (instanceName: string): Promise<boolean> => {
@@ -61,6 +65,9 @@ export const useInstanceCreationRealtime = () => {
         status: 'created'
       }));
 
+      // Registrar criação no sistema inteligente
+      registerCreation(instanceId, instanceName);
+
       // Iniciar polling para status
       startStatusPolling(instanceId);
 
@@ -93,6 +100,12 @@ export const useInstanceCreationRealtime = () => {
       if (!isMountedRef.current || attempts >= maxAttempts) {
         console.log('[Instance Creation] ⏹️ Polling finalizado');
         if (pollingRef.current) clearInterval(pollingRef.current);
+        return;
+      }
+
+      // OTIMIZAÇÃO: Só fazer polling se necessário
+      if (!shouldActivatePolling('status')) {
+        console.log('[Instance Creation] 💤 Polling pausado - nenhuma criação ativa');
         return;
       }
 
@@ -139,6 +152,9 @@ export const useInstanceCreationRealtime = () => {
             console.log('[Instance Creation] ✅ Instância conectada!');
             toast.success('WhatsApp conectado com sucesso!');
             
+            // Marcar como conectada no sistema inteligente (para polling)
+            markAsConnected(instanceId);
+            
             if (pollingRef.current) {
               clearInterval(pollingRef.current);
               pollingRef.current = undefined;
@@ -157,8 +173,8 @@ export const useInstanceCreationRealtime = () => {
       }
     };
 
-    // Polling a cada 5 segundos
-    pollingRef.current = setInterval(pollStatus, 5000);
+    // Polling a cada 15 segundos (reduzido de 5s para evitar quota exceeded)
+    pollingRef.current = setInterval(pollStatus, 10000); // OTIMIZADO: 10s durante criação - para automaticamente quando conecta
     
     // Primeira verificação imediata
     pollStatus();

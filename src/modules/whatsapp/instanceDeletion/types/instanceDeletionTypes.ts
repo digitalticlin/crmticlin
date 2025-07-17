@@ -6,4 +6,5 @@ export interface DeleteInstanceParams {
 export interface DeleteInstanceResult {
   success: boolean;
   error?: string;
+  details?: any;
 }

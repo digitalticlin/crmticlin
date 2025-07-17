@@ -7,6 +7,7 @@ import { useWhatsAppDatabase } from '@/hooks/whatsapp/useWhatsAppDatabase';
 import { useWhatsAppContacts } from '@/hooks/whatsapp/useWhatsAppContacts';
 import { useWhatsAppChatMessages } from '@/hooks/whatsapp/chat/useWhatsAppChatMessages';
 import { useRealtimeLeads } from '@/hooks/chat/useRealtimeLeads';
+import { useChatsRealtime, useMessagesRealtime } from '@/hooks/whatsapp/realtime';
 import { useCompanyData } from '@/hooks/useCompanyData';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -47,6 +48,16 @@ interface WhatsAppChatContextType {
     isHealthy: boolean;
     connectedInstances: number;
     totalInstances: number;
+  };
+  
+  // 🚀 ESTATÍSTICAS DO SISTEMA MODULAR DE REALTIME
+  realtimeStats: {
+    chatsConnected: boolean;
+    messagesConnected: boolean;
+    totalChatsEvents: number;
+    totalMessagesEvents: number;
+    lastChatsUpdate: number | null;
+    lastMessagesUpdate: number | null;
   };
 }
 
@@ -132,22 +143,57 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     fetchMessages
   } = useWhatsAppChatMessages(selectedContact, webActiveInstance);
 
-  // Hook para realtime de contatos e mensagens
-  // TEMPORARIAMENTE DESABILITADO PARA TESTE
-  /*
-  useRealtimeLeads({
-    selectedContact,
-    fetchContacts,
-    fetchMessages,
-    receiveNewLead: (lead) => {
-      console.log('[WhatsApp Chat] 📨 Novo lead recebido:', lead);
-      moveContactToTop(lead.id);
+  // 🚀 NOVO SISTEMA MODULAR DE REALTIME - ISOLADO E OTIMIZADO
+  
+  // 👥 REALTIME PARA CHATS/CONTATOS
+  const chatsRealtimeStats = useChatsRealtime({
+    userId: user?.id || null,
+    activeInstanceId: webActiveInstance?.id || null,
+    onContactUpdate: (contactId: string, messageText?: string) => {
+      console.log('[WhatsApp Chat] 🔝 Movendo contato para topo:', contactId);
+      moveContactToTop(contactId);
     },
-    activeInstanceId: webActiveInstance?.id || null
+    onNewContact: (contact) => {
+      console.log('[WhatsApp Chat] 👤 Novo contato recebido:', contact.name);
+      // moveContactToTop já é chamado via onContactUpdate
+    },
+    onContactsRefresh: () => {
+      console.log('[WhatsApp Chat] 🔄 Refresh suave de contatos');
+      fetchContacts(); // Refresh sem resetar paginação
+    }
   });
-  */
 
-  // Subscription direto para atualização imediata da lista de contatos
+  // 💬 REALTIME PARA MENSAGENS
+  const messagesRealtimeStats = useMessagesRealtime({
+    selectedContactId: selectedContact?.id || null,
+    activeInstanceId: webActiveInstance?.id || null,
+    onMessageUpdate: (message) => {
+      console.log('[WhatsApp Chat] 📨 Mensagem atualizada:', message.id);
+      // fetchMessages já atualiza a lista automaticamente
+    },
+    onNewMessage: (message) => {
+      console.log('[WhatsApp Chat] 📨 Nova mensagem recebida:', message.id);
+      fetchMessages(); // Carregar mensagem na lista
+    },
+    onMessagesRefresh: () => {
+      console.log('[WhatsApp Chat] 🔄 Refresh de mensagens');
+      fetchMessages();
+    }
+  });
+
+  // ❌ DESABILITADO TEMPORARIAMENTE: Sistema conflitante
+  // useRealtimeLeads({
+  //   selectedContact,
+  //   fetchContacts,
+  //   fetchMessages,
+  //   receiveNewLead: (lead) => {
+  //     console.log('[WhatsApp Chat] ⚠️ useRealtimeLeads depreciado - migrando para sistema modular');
+  //   },
+  //   activeInstanceId: webActiveInstance?.id || null
+  // });
+
+  // ❌ REMOVIDO: Subscription duplicada que estava causando conflito
+  /*
   useEffect(() => {
     if (!webActiveInstance?.id || !user?.id) return;
 
@@ -189,6 +235,7 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
       supabase.removeChannel(channel);
     };
   }, [webActiveInstance?.id, user?.id, moveContactToTop]);
+  */
 
   // Função memoizada para selecionar contato e marcar como lido
   const handleSelectContact = useCallback(async (contact: Contact | null) => {
@@ -285,6 +332,23 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     };
   }, [selectedContact]);
 
+  // Memoizar estatísticas do realtime para evitar re-cálculos
+  const realtimeStats = useMemo(() => ({
+    chatsConnected: chatsRealtimeStats.isConnected,
+    messagesConnected: messagesRealtimeStats.isConnected,
+    totalChatsEvents: chatsRealtimeStats.totalEvents,
+    totalMessagesEvents: messagesRealtimeStats.totalEvents,
+    lastChatsUpdate: chatsRealtimeStats.lastUpdate,
+    lastMessagesUpdate: messagesRealtimeStats.lastUpdate
+  }), [
+    chatsRealtimeStats.isConnected,
+    chatsRealtimeStats.totalEvents,
+    chatsRealtimeStats.lastUpdate,
+    messagesRealtimeStats.isConnected,
+    messagesRealtimeStats.totalEvents,
+    messagesRealtimeStats.lastUpdate
+  ]);
+
   // Memoizar valor do contexto para evitar re-renderizações
   const value = useMemo((): WhatsAppChatContextType => ({
     // Contatos com paginação
@@ -316,7 +380,10 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     
     // Estado geral
     companyLoading,
-    instanceHealth
+    instanceHealth,
+    
+    // 🚀 ESTATÍSTICAS DO REALTIME MODULAR
+    realtimeStats
   }), [
     contacts,
     isLoadingContacts,
@@ -341,7 +408,8 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     fetchMessages,
     companyLoading,
     instanceHealth,
-    totalContactsAvailable
+    totalContactsAvailable,
+    realtimeStats
   ]);
 
   return (

@@ -65,7 +65,7 @@ export class DualCreationService {
     const instanceData = {
       instance_name: intelligentName,
       connection_type: 'web',
-      server_url: 'http://31.97.24.222:3002',
+      server_url: 'http://31.97.163.57:3001', // CORREÇÃO: VPS correta
       vps_instance_id: intelligentName,
       web_status: 'creating',
       connection_status: 'pending',

@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useAuthContext } from '../../contexts/AuthContext';
 
 const VPS_PRIMARY = 'http://31.97.163.57:3001';
-const VPS_FALLBACK = 'http://31.97.24.222:3002';
+const VPS_FALLBACK = 'http://31.97.163.57:3001'; // CORREÇÃO: Mesmo IP, sem fallback
 const AUTH_TOKEN = '8bb0c4f8a89d254783d693050ecd7ff4878534f46a87ece12b24f506548ce430';
 
 interface PuppeteerSession {

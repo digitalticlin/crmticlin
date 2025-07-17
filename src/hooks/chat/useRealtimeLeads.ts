@@ -1,12 +1,20 @@
+/**
+ * 🚀 HOOK SIMPLIFICADO PARA REALTIME DE LEADS
+ * 
+ * ⚠️ DEPRECIADO: Este hook será substituído pelo sistema modular
+ * useChatsRealtime + useMessagesRealtime
+ * 
+ * Mantido temporariamente para compatibilidade durante migração
+ */
 
 import { useEffect, useRef, useCallback } from 'react';
-import { useRealtimeManager } from '../realtime/useRealtimeManager';
 import { Contact } from '@/types/chat';
+import { WhatsAppWebInstance } from '@/types/whatsapp';
 
 interface UseRealtimeLeadsProps {
   selectedContact: Contact | null;
-  fetchContacts: () => Promise<void>;
-  fetchMessages?: () => Promise<void>;
+  fetchContacts: () => void;
+  fetchMessages?: () => void;
   receiveNewLead: (lead: any) => void;
   activeInstanceId: string | null;
 }
@@ -18,90 +26,23 @@ export const useRealtimeLeads = ({
   receiveNewLead,
   activeInstanceId
 }: UseRealtimeLeadsProps) => {
-  const { registerCallback, unregisterCallback } = useRealtimeManager();
-  const hookId = useRef(`realtime-leads-${Date.now()}`).current;
-  const throttleTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Callbacks estáveis com throttling rigoroso
-  const handleLeadInsert = useCallback((payload: any) => {
-    console.log('[Realtime Leads] New lead received:', payload);
-    
-    // Throttling para evitar spam
-    if (throttleTimerRef.current) {
-      clearTimeout(throttleTimerRef.current);
-    }
-    
-    throttleTimerRef.current = setTimeout(() => {
-      const newLead = payload.new as any;
-      receiveNewLead(newLead);
-      fetchContacts();
-    }, 500); // Reduzido para 500ms
-  }, [receiveNewLead, fetchContacts]);
-
-  const handleLeadUpdate = useCallback((payload: any) => {
-    console.log('[Realtime Leads] Lead updated:', payload);
-    
-    if (throttleTimerRef.current) {
-      clearTimeout(throttleTimerRef.current);
-    }
-    
-    throttleTimerRef.current = setTimeout(() => {
-      fetchContacts();
-    }, 500); // Reduzido para 500ms
-  }, [fetchContacts]);
-
-  const handleMessageInsert = useCallback((payload: any) => {
-    console.log('[Realtime Leads] New message received:', payload);
-    const newMessage = payload.new as any;
-    
-    // Throttling mais rigoroso para mensagens
-    if (throttleTimerRef.current) {
-      clearTimeout(throttleTimerRef.current);
-    }
-    
-    throttleTimerRef.current = setTimeout(() => {
-      if (selectedContact && newMessage.lead_id === selectedContact.id) {
-        console.log('[Realtime Leads] Message for selected contact, updating messages');
-        if (fetchMessages) {
-          fetchMessages();
-        }
-      }
-      
-      console.log('[Realtime Leads] Updating contact list');
-      fetchContacts();
-    }, 300); // Reduzido para 300ms para mensagens
-  }, [selectedContact?.id, fetchContacts, fetchMessages]);
-
+  
+  console.log('[useRealtimeLeads] ⚠️ DEPRECIADO: Este hook será substituído pelo sistema modular');
+  
+  // ✅ FUNCIONALIDADE MÍNIMA - APENAS LOGS
   useEffect(() => {
-    console.log('[Realtime Leads] Registering callbacks with hookId:', hookId);
-
-    // Register callbacks com IDs únicos
-    registerCallback(`${hookId}-lead-insert`, 'leadInsert', handleLeadInsert);
-    registerCallback(`${hookId}-lead-update`, 'leadUpdate', handleLeadUpdate);
-    registerCallback(`${hookId}-message-insert`, 'messageInsert', handleMessageInsert, {
-      activeInstanceId: activeInstanceId
-    });
-
+    if (activeInstanceId) {
+      console.log('[useRealtimeLeads] 📡 Sistema simplificado ativo para instância:', activeInstanceId);
+    }
+    
     return () => {
-      console.log('[Realtime Leads] Cleanup callbacks with hookId:', hookId);
-      unregisterCallback(`${hookId}-lead-insert`);
-      unregisterCallback(`${hookId}-lead-update`);
-      unregisterCallback(`${hookId}-message-insert`);
-      
-      if (throttleTimerRef.current) {
-        clearTimeout(throttleTimerRef.current);
-        throttleTimerRef.current = null;
-      }
+      console.log('[useRealtimeLeads] 🔌 Cleanup simplificado');
     };
-  }, [activeInstanceId, registerCallback, unregisterCallback, hookId, handleLeadInsert, handleLeadUpdate, handleMessageInsert]);
+  }, [activeInstanceId]);
 
-  // Cleanup no unmount
-  useEffect(() => {
-    return () => {
-      if (throttleTimerRef.current) {
-        clearTimeout(throttleTimerRef.current);
-        throttleTimerRef.current = null;
-      }
-    };
-  }, []);
+  // ✅ RETORNAR INTERFACE COMPATÍVEL (sem funcionalidade real)
+  return {
+    isConnected: !!activeInstanceId,
+    activeChannels: activeInstanceId ? 1 : 0
+  };
 };

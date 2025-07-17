@@ -56,27 +56,32 @@ export const useMessageRealtime = ({
       
       updateThrottleRef.current = setTimeout(() => {
         onMessageUpdate(newMessage);
-      }, 300); // Reduzido para 300ms para melhor UX
+      }, 50); // CORREÇÃO CRÍTICA: 50ms para tempo real
     }
   }, [selectedContact?.id, activeInstance?.id, onMessageUpdate, notify]);
 
   useEffect(() => {
     // Cleanup channel anterior se contato mudou
     if (channelRef.current && lastContactIdRef.current !== selectedContact?.id) {
-      console.log('[Message Realtime] 🧹 Limpando canal anterior');
+      console.log('[Message Realtime] 🧹 Limpando canal anterior para contato:', lastContactIdRef.current);
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
       isSubscribedRef.current = false;
     }
 
     if (!selectedContact || !activeInstance || isSubscribedRef.current) {
+      console.log('[Message Realtime] ⚠️ Não configurando realtime:', {
+        temContato: !!selectedContact,
+        temInstancia: !!activeInstance,
+        jaInscrito: isSubscribedRef.current
+      });
       return;
     }
 
     // Criar novo channel para o contato específico
     const channelId = `message-realtime-${selectedContact.id}-${activeInstance.id}-${Date.now()}`;
     
-    console.log('[Message Realtime] 🚀 Iniciando realtime para:', {
+    console.log('[Message Realtime] 🚀 INICIANDO REALTIME para mensagens:', {
       contactId: selectedContact.id,
       contactName: selectedContact.name,
       instanceId: activeInstance.id,
@@ -90,14 +95,21 @@ export const useMessageRealtime = ({
         schema: 'public',
         table: 'messages',
         filter: `lead_id=eq.${selectedContact.id}`
-      }, handleMessageUpdate)
+      }, (payload) => {
+        console.log('[Message Realtime] 📨 INSERT recebido:', payload);
+        handleMessageUpdate(payload);
+      })
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
         table: 'messages',
         filter: `lead_id=eq.${selectedContact.id}`
-      }, handleMessageUpdate)
+      }, (payload) => {
+        console.log('[Message Realtime] 🔄 UPDATE recebido:', payload);
+        handleMessageUpdate(payload);
+      })
       .subscribe((status) => {
+        console.log('[Message Realtime] 📡 Status da subscription mudou:', status);
         if (status === 'SUBSCRIBED') {
           console.log('[Message Realtime] ✅ Realtime ativo para:', selectedContact.name);
           isSubscribedRef.current = true;
@@ -116,7 +128,7 @@ export const useMessageRealtime = ({
     // Cleanup ao desmontar ou mudar dependências
     return () => {
       if (channelRef.current) {
-        console.log('[Message Realtime] 🛑 Desconectando realtime');
+        console.log('[Message Realtime] 🛑 Desconectando realtime para:', selectedContact?.name);
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
         isSubscribedRef.current = false;

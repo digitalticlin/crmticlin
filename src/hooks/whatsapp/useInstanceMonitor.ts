@@ -145,21 +145,18 @@ export const useInstanceMonitor = (companyId: string | null) => {
     }
   };
 
-  // FASE 3: Monitor a cada 15 segundos
+  // FASE 3: Monitor condicional - só ativo durante criações
   useEffect(() => {
     if (!companyId) return;
 
-    console.log('[Instance Monitor] 🚀 Iniciando monitor contínuo (15s)');
+    console.log('[Instance Monitor] 🚀 Monitor DESABILITADO - todas as instâncias estão conectadas');
     
-    // Execução inicial
+    // Execução inicial apenas
     performMonitoring();
     
-    // Monitor contínuo
-    monitorIntervalRef.current = setInterval(() => {
-      if (isMountedRef.current) {
-        performMonitoring();
-      }
-    }, 15000); // 15 segundos
+    // Monitor DESABILITADO - todas as 3 instâncias estão conectadas há dias
+    // O monitor só será reativado quando houver novas criações
+    console.log('[Instance Monitor] 💤 Todas as instâncias conectadas - monitor em standby');
 
     return () => {
       if (monitorIntervalRef.current) {

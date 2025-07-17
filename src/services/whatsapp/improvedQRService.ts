@@ -87,7 +87,7 @@ export class ImprovedQRService {
     try {
       console.log('[Improved QR Service] 🧪 Testando conexão com VPS corrigida...');
       
-      const response = await fetch('http://31.97.24.222:3002/health');
+      const response = await fetch('http://31.97.163.57:3001/health'); // CORREÇÃO: VPS correta
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);

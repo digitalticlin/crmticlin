@@ -1,6 +1,8 @@
 
 import { useState, useRef } from "react";
 import { WhatsAppWebService } from "@/services/whatsapp/whatsappWebService";
+import { useSmartPollingManager } from './useSmartPollingManager';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface QRModalState {
   isOpen: boolean;
@@ -26,6 +28,8 @@ export const useAutoQRModal = () => {
   });
 
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const { user } = useAuth();
+  const { shouldActivatePolling } = useSmartPollingManager(user?.id);
 
   const openQRModal = (instanceId: string, instanceName: string) => {
     console.log('[Auto QR Modal] 📱 CORREÇÃO FINAL: Abrindo modal para:', { instanceId, instanceName });
@@ -52,9 +56,16 @@ export const useAutoQRModal = () => {
   };
 
   const startQRPolling = (instanceId: string) => {
-    console.log('[Auto QR Modal] 🔄 CORREÇÃO FINAL: Iniciando polling via whatsapp_qr_service corrigido');
+    console.log('[Auto QR Modal] 🔄 OTIMIZADO: Iniciando polling inteligente (só quando necessário)');
     
+    // CORREÇÃO: Polling otimizado - intervalo maior e condições de parada
     pollingRef.current = setInterval(async () => {
+      // OTIMIZAÇÃO: Só fazer polling se necessário
+      if (!shouldActivatePolling('qr')) {
+        console.log('[Auto QR Modal] 💤 Polling pausado - nenhuma criação ativa');
+        return;
+      }
+
       try {
         setModalState(prev => ({
           ...prev,
@@ -62,7 +73,7 @@ export const useAutoQRModal = () => {
           isLoading: true
         }));
 
-        console.log(`[Auto QR Modal] 🔍 CORREÇÃO FINAL: Polling tentativa ${modalState.attempt + 1}/${modalState.maxAttempts}`);
+        console.log(`[Auto QR Modal] 🔍 OTIMIZADO: Polling tentativa ${modalState.attempt + 1}/${modalState.maxAttempts}`);
 
         // CORREÇÃO FINAL: Usar WhatsAppWebService.getQRCode (que agora usa whatsapp_qr_service corrigido)
         const result = await WhatsAppWebService.getQRCode(instanceId);
@@ -124,7 +135,7 @@ export const useAutoQRModal = () => {
           error: error.message
         }));
       }
-    }, 2000); // Polling a cada 2 segundos
+    }, 5000); // OTIMIZADO: 5s durante criação para UX rápida - para automaticamente quando QR obtido
   };
 
   const retryQRCode = async () => {

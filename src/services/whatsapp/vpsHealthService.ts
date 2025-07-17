@@ -10,7 +10,7 @@ interface VPSHealthResponse {
 }
 
 export class VPSHealthService {
-  private static readonly VPS_BASE_URL = 'http://31.97.24.222:3002';
+  private static readonly VPS_BASE_URL = 'http://31.97.163.57:3001'; // CORREÇÃO: VPS correta
   private static readonly HEALTH_TIMEOUT = 5000; // 5 segundos
 
   static async checkVPSHealth(): Promise<VPSHealthResponse> {

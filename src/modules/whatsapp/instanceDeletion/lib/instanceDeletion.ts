@@ -12,25 +12,55 @@ export class InstanceDeletionService {
         }
       });
 
+      // CORREÇÃO: Melhorar tratamento de erro do Supabase
       if (error) {
         console.error('[InstanceDeletion] ❌ Erro do Supabase:', error);
-        throw new Error(error.message);
+        throw new Error(`Erro na Edge Function: ${error.message || JSON.stringify(error)}`);
       }
 
-      if (!data?.success) {
-        console.error('[InstanceDeletion] ❌ Falha na deleção:', data?.error);
-        throw new Error(data?.error || 'Falha ao deletar instância');
+      // CORREÇÃO: Verificar se data existe e tem estrutura esperada
+      if (!data) {
+        console.error('[InstanceDeletion] ❌ Resposta vazia da Edge Function');
+        throw new Error('Resposta vazia da Edge Function');
       }
 
-      console.log('[InstanceDeletion] ✅ Instância deletada com sucesso via Edge Function (cascade)');
+      // CORREÇÃO CRÍTICA: Verificar corretamente se foi sucesso
+      // A Edge Function retorna { success: true } quando funciona
+      if (data.success !== true) {
+        const errorMessage = data.error || data.message || 'Falha desconhecida na deleção';
+        console.error('[InstanceDeletion] ❌ Falha na deleção:', {
+          error: errorMessage,
+          data: JSON.stringify(data),
+          executionId: data.executionId
+        });
+        throw new Error(errorMessage);
+      }
+
+      // SUCESSO: A Edge Function confirmou que deletou
+      console.log('[InstanceDeletion] ✅ Instância deletada com sucesso via Edge Function:', {
+        instanceId: params.instanceId,
+        details: data.details,
+        executionId: data.executionId,
+        message: data.message
+      });
       
-      return { success: true };
+      return { 
+        success: true,
+        details: data.details 
+      };
 
     } catch (error: any) {
-      console.error('[InstanceDeletion] ❌ Erro ao deletar instância:', error);
+      const errorMessage = error.message || 'Erro desconhecido ao deletar instância';
+      console.error('[InstanceDeletion] ❌ Erro ao deletar instância:', {
+        instanceId: params.instanceId,
+        error: errorMessage,
+        stack: error.stack,
+        originalError: error
+      });
+      
       return {
         success: false,
-        error: error.message
+        error: errorMessage
       };
     }
   }

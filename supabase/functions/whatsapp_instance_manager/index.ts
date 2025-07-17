@@ -1,8 +1,20 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
+};
+
+// Configuração VPS corrigida
+const VPS_CONFIG = {
+  baseUrl: 'http://31.97.163.57:3001',
+  endpoints: {
+    createInstance: '/instance/create',  // CORREÇÃO: Endpoint correto conforme server.js
+    instanceInfo: '/instance/info',
+    generateQR: '/instance/:instanceId/qr',
+    deleteInstance: '/instance/logout'
+  },
+  webhookUrl: 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_qr_receiver'
 };
 
 Deno.serve(async (req) => {
@@ -14,7 +26,7 @@ Deno.serve(async (req) => {
   }
 
   const executionId = `exec_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-  console.log(`🚀 [${executionId}] ESTRUTURA MODULAR - EDGE FUNCTION INICIADA`);
+  console.log(`🚀 [${executionId}] WhatsApp Instance Manager iniciado`);
 
   try {
     const authHeader = req.headers.get('Authorization');
@@ -43,20 +55,281 @@ Deno.serve(async (req) => {
       throw new Error('Usuário não autenticado');
     }
 
-    const body = await req.json();
-    const { action, instanceName, instanceId } = body;
-
+    const { action, instanceName, instanceId } = await req.json();
     console.log(`[${executionId}] Processando ação: ${action} para usuário: ${user.email}`);
 
+    const vpsToken = Deno.env.get('VPS_API_TOKEN') || 'bJyn3eUPFTRFNCxxLNd8KH5bI4Zg7bpUk7ADO6kXf49026a1';
+
     switch (action) {
-      case 'create_instance':
-        return await createInstanceModular(supabase, user, instanceName, executionId);
-      case 'health_check':
-        return await healthCheckModular(executionId);
+      case 'create_instance': {
+        console.log(`[${executionId}] 🚀 Criando instância com parâmetros:`, { instanceName, action });
+
+        // CORREÇÃO: Determinar nome base - usar instanceName fornecido ou gerar baseado no email
+        let baseInstanceName: string;
+        
+        if (instanceName && instanceName.trim()) {
+          // Se nome foi fornecido, usar como base
+          baseInstanceName = instanceName.toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
+          console.log(`[${executionId}] 📝 Usando nome fornecido como base: ${baseInstanceName}`);
+        } else {
+          // Se não foi fornecido, gerar baseado no email do usuário
+          baseInstanceName = user.email?.split('@')[0]?.toLowerCase()?.replace(/[^a-zA-Z0-9]/g, '') || 'user';
+          console.log(`[${executionId}] 🔄 Gerando nome baseado no email: ${baseInstanceName}`);
+        }
+        
+        // Verificar instâncias existentes para gerar numeração sequencial
+        const { data: existingInstances } = await supabase
+          .from('whatsapp_instances')
+          .select('instance_name')
+          .eq('created_by_user_id', user.id)
+          .ilike('instance_name', `${baseInstanceName}%`);
+
+        const existingNames = existingInstances?.map(i => i.instance_name) || [];
+        console.log(`[${executionId}] 📋 Instâncias existentes encontradas: ${existingNames.length}`);
+        
+        // Gerar nome sequencial (baseInstanceName, baseInstanceName1, baseInstanceName2...)
+        let intelligentName = baseInstanceName;
+        let counter = 1;
+        while (existingNames.includes(intelligentName)) {
+          intelligentName = `${baseInstanceName}${counter}`;
+          counter++;
+          console.log(`[${executionId}] 🔄 Tentando: ${intelligentName}`);
+        }
+
+        console.log(`[${executionId}] 🎯 Nome final determinado: ${intelligentName}`);
+
+        // ETAPA 1: Salvar no banco de dados PRIMEIRO
+        const instanceRecord = {
+          instance_name: intelligentName,  // CORREÇÃO: Usar nome inteligente
+          vps_instance_id: intelligentName,  // CORREÇÃO: Usar mesmo nome para VPS
+          created_by_user_id: user.id,
+          connection_type: 'web',
+          server_url: VPS_CONFIG.baseUrl,
+          web_status: 'connecting',
+          connection_status: 'connecting',
+          qr_code: null,
+          created_at: new Date().toISOString()
+        };
+
+        console.log(`[${executionId}] 💾 Salvando no banco de dados...`);
+        const { data: savedInstance, error: saveError } = await supabase
+          .from('whatsapp_instances')
+          .insert(instanceRecord)
+          .select()
+          .single();
+
+        if (saveError) {
+          console.error(`[${executionId}] ❌ Erro ao salvar:`, saveError);
+          throw new Error(`Erro ao salvar instância: ${saveError.message}`);
+        }
+
+        console.log(`[${executionId}] ✅ Instância salva no banco: ${savedInstance.id}`);
+
+        // ETAPA 2: Criar na VPS - CORREÇÃO: Usar payload correto conforme server.js
+        const vpsPayload = {
+          instanceId: intelligentName,  // CORREÇÃO: Campo correto esperado pela VPS
+          createdByUserId: user.id      // CORREÇÃO: Campo opcional mas útil
+        };
+
+        console.log(`[${executionId}] 🌐 Criando na VPS:`, vpsPayload);
+
+        try {
+          const vpsResponse = await fetch(`${VPS_CONFIG.baseUrl}${VPS_CONFIG.endpoints.createInstance}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${vpsToken}`
+            },
+            body: JSON.stringify(vpsPayload),
+            signal: AbortSignal.timeout(30000)  // 30s timeout
+          });
+
+          if (!vpsResponse.ok) {
+            const errorText = await vpsResponse.text();
+            console.error(`[${executionId}] ❌ VPS falhou:`, errorText);
+            
+            // Marcar como erro mas manter no banco
+            await supabase
+              .from('whatsapp_instances')
+              .update({
+                web_status: 'vps_error',
+                connection_status: 'disconnected'
+              })
+              .eq('id', savedInstance.id);
+
+            throw new Error(`Falha ao criar instância na VPS: HTTP ${vpsResponse.status} - ${errorText}`);
+          }
+
+          const vpsData = await vpsResponse.json();
+          console.log(`[${executionId}] ✅ VPS criou instância:`, vpsData);
+
+          // Atualizar status após sucesso na VPS
+          const { data: updatedInstance } = await supabase
+            .from('whatsapp_instances')
+            .update({
+              web_status: 'waiting_scan',
+              connection_status: 'connecting',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', savedInstance.id)
+            .select()
+            .single();
+
+          return new Response(JSON.stringify({
+            success: true,
+            instance: updatedInstance || savedInstance,
+            vpsInstanceId: intelligentName,
+            intelligentName: intelligentName,
+            message: 'Instância criada com sucesso no banco e VPS',
+            executionId
+          }), {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json'
+            }
+          });
+
+        } catch (vpsError: any) {
+          console.error(`[${executionId}] ❌ Erro na VPS:`, vpsError.message);
+          
+          // Marcar como erro mas manter no banco
+          await supabase
+            .from('whatsapp_instances')
+            .update({
+              web_status: 'vps_error',
+              connection_status: 'disconnected'
+            })
+            .eq('id', savedInstance.id);
+
+          // Retornar sucesso parcial (banco OK, VPS falhou)
+          return new Response(JSON.stringify({
+            success: true,
+            instance: savedInstance,
+            vpsInstanceId: intelligentName,
+            intelligentName: intelligentName,
+            message: 'Instância criada no banco, mas VPS falhou',
+            vpsError: vpsError.message,
+            executionId
+          }), {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json'
+            }
+          });
+        }
+      }
+
+      case 'get_instance_info': {
+        if (!instanceId) {
+          throw new Error('instanceId é obrigatório');
+        }
+
+        const { data: instance, error: instanceError } = await supabase
+          .from('whatsapp_instances')
+          .select('*')
+          .eq('id', instanceId)
+          .single();
+
+        if (instanceError || !instance) {
+          throw new Error('Instância não encontrada');
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          instance: instance,
+          executionId
+        }), {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          }
+        });
+      }
+
+      case 'health_check': {
+        console.log(`[${executionId}] 🏥 Testando conectividade VPS`);
+
+        try {
+          const healthResponse = await fetch(`${VPS_CONFIG.baseUrl}/health`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${vpsToken}`
+            },
+            signal: AbortSignal.timeout(10000)  // 10s timeout para health check
+          });
+
+          if (!healthResponse.ok) {
+            const errorText = await healthResponse.text();
+            console.error(`[${executionId}] ❌ VPS health check falhou:`, {
+              status: healthResponse.status,
+              error: errorText
+            });
+            
+            return new Response(JSON.stringify({
+              success: false,
+              error: `VPS não está respondendo: HTTP ${healthResponse.status}`,
+              details: {
+                url: `${VPS_CONFIG.baseUrl}/health`,
+                status: healthResponse.status,
+                response: errorText
+              },
+              executionId
+            }), {
+              headers: {
+                ...corsHeaders,
+                'Content-Type': 'application/json'
+              }
+            });
+          }
+
+          const healthData = await healthResponse.json();
+          console.log(`[${executionId}] ✅ VPS health check OK:`, healthData);
+
+          return new Response(JSON.stringify({
+            success: true,
+            message: 'VPS está respondendo corretamente',
+            healthData: healthData,
+            vpsConfig: {
+              baseUrl: VPS_CONFIG.baseUrl,
+              endpoint: '/health'
+            },
+            executionId
+          }), {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json'
+            }
+          });
+
+        } catch (healthError: any) {
+          console.error(`[${executionId}] ❌ Erro no health check:`, {
+            message: healthError.message,
+            name: healthError.name
+          });
+          
+          return new Response(JSON.stringify({
+            success: false,
+            error: `Erro ao conectar com VPS: ${healthError.message}`,
+            details: {
+              url: `${VPS_CONFIG.baseUrl}/health`,
+              errorType: healthError.name,
+              errorMessage: healthError.message
+            },
+            executionId
+          }), {
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json'
+            }
+          });
+        }
+      }
+
       default:
-        throw new Error(`Action não suportada: ${action}. Esta Edge Function é exclusiva para criar instâncias.`);
+        throw new Error(`Ação não suportada: ${action}`);
     }
-  } catch (error) {
+
+  } catch (error: any) {
     console.error(`❌ [${executionId}] Erro na Edge Function:`, error.message);
     return new Response(JSON.stringify({
       success: false,
@@ -70,209 +343,4 @@ Deno.serve(async (req) => {
       }
     });
   }
-});
-
-async function createInstanceModular(supabase, user, instanceName, executionId) {
-  try {
-    console.log(`[${executionId}] 🚀 Criando instância modular: ${instanceName}`);
-    
-    // Gerar nome inteligente
-    const intelligentName = await generateIntelligentName(supabase, user, instanceName);
-    console.log(`[${executionId}] 🎯 Nome inteligente: ${intelligentName}`);
-
-    // Tentar VPS
-    const vpsResult = await attemptVPSCreation(intelligentName, executionId);
-    
-    if (vpsResult.success) {
-      console.log(`[${executionId}] ✅ VPS Success`);
-      // CORREÇÃO: Salvar com status "pending" ao invés de "connected"
-      const instance = await saveInstanceToDatabase(supabase, user, intelligentName, 'pending', vpsResult.data);
-      return createSuccessResponse(instance, vpsResult, intelligentName, user.email, false, executionId);
-    } else {
-      console.log(`[${executionId}] 🚨 VPS Fallback: ${vpsResult.error}`);
-      // Criar instância apenas no banco (fallback)
-      const instance = await saveInstanceToDatabase(supabase, user, intelligentName, 'pending');
-      return createSuccessResponse(instance, vpsResult, intelligentName, user.email, true, executionId);
-    }
-  } catch (error) {
-    console.error(`[${executionId}] ❌ Erro na criação:`, error.message);
-    throw error;
-  }
-}
-
-// Função getQRCodeModular removida - usar whatsapp_qr_manager para obter QR Code
-
-async function healthCheckModular(executionId) {
-  try {
-    const vpsUrl = Deno.env.get('VPS_SERVER_URL') || 'http://31.97.163.57:3001';
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-    const response = await fetch(`${vpsUrl}/health`, {
-      method: 'GET',
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-    const isHealthy = response.ok;
-
-    return new Response(JSON.stringify({
-      success: isHealthy,
-      message: isHealthy ? 'VPS online' : 'VPS offline',
-      executionId
-    }), {
-      status: isHealthy ? 200 : 500,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      }
-    });
-  } catch (error) {
-    return new Response(JSON.stringify({
-      success: false,
-      error: `Health check falhou: ${error.message}`,
-      executionId
-    }), {
-      status: 500,
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'application/json'
-      }
-    });
-  }
-}
-
-async function attemptVPSCreation(instanceId, executionId) {
-  try {
-    console.log(`[${executionId}] 🌐 Criando na VPS: ${instanceId}`);
-    
-    // CORREÇÃO: Usar URL correta na porta 3001
-    const vpsUrl = 'http://31.97.163.57:3001';
-    const vpsToken = Deno.env.get('VPS_API_TOKEN') || 'bJyn3eUPFTRFNCxxLNd8KH5bI4Zg7bpUk7ADO6kXf49026a1';
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-
-    const response = await fetch(`${vpsUrl}/instance/create`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${vpsToken}`,
-      },
-      body: JSON.stringify({
-        instanceId,
-        webhookUrl: 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_whatsapp_web'
-      }),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`VPS HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    console.log(`[${executionId}] ✅ VPS criada com sucesso`);
-
-    return {
-      success: true,
-      data
-    };
-  } catch (error) {
-    console.log(`[${executionId}] ❌ VPS falhou: ${error.message}`);
-    return {
-      success: false,
-      error: `VPS_ERROR: ${error.message}`
-    };
-  }
-}
-
-async function generateIntelligentName(supabase, user, baseInstanceName) {
-  try {
-    const baseName = baseInstanceName || user.email.split('@')[0].toLowerCase().replace(/[^a-zA-Z0-9]/g, '');
-    
-    const { data: existingInstances } = await supabase
-      .from('whatsapp_instances')
-      .select('instance_name')
-      .eq('created_by_user_id', user.id)
-      .eq('connection_type', 'web');
-
-    const existingNames = existingInstances?.map((i) => i.instance_name) || [];
-
-    if (!existingNames.includes(baseName)) {
-      return baseName;
-    }
-
-    let counter = 1;
-    let candidateName = `${baseName}${counter}`;
-    while (existingNames.includes(candidateName)) {
-      counter++;
-      candidateName = `${baseName}${counter}`;
-    }
-
-    return candidateName;
-  } catch (error) {
-    return `whatsapp_${Date.now()}`;
-  }
-}
-
-async function saveInstanceToDatabase(supabase, user, instanceName, status, vpsData) {
-  console.log(`[saveInstanceToDatabase] Iniciando salvamento para usuário: ${user.id}`);
-  
-  const instanceData = {
-    instance_name: instanceName,
-    connection_type: 'web',
-    server_url: 'http://31.97.163.57:3001',
-    vps_instance_id: instanceName,
-    web_status: status === 'pending' ? 'pending' : 'fallback_created',
-    connection_status: status,
-    created_by_user_id: user.id,
-    qr_code: vpsData?.qrCode || null
-  };
-
-  console.log(`[saveInstanceToDatabase] Dados da instância:`, JSON.stringify(instanceData, null, 2));
-
-  const { data: instance, error } = await supabase
-    .from('whatsapp_instances')
-    .insert(instanceData)
-    .select()
-    .single();
-
-  if (error) {
-    console.error(`[saveInstanceToDatabase] Erro detalhado:`, error);
-    throw new Error(`Erro ao salvar no banco: ${error.message} - Code: ${error.code} - Details: ${error.details}`);
-  }
-
-  console.log(`[saveInstanceToDatabase] Instância salva com sucesso:`, instance.id);
-  return instance;
-}
-
-function createSuccessResponse(instance, vpsResult, intelligentName, userEmail, fallbackUsed, executionId) {
-  return new Response(JSON.stringify({
-    success: true,
-    instance,
-    vps_response: {
-      success: vpsResult.success,
-      instanceId: intelligentName,
-      fallback: fallbackUsed,
-      vpsError: vpsResult.error || null,
-      mode: fallbackUsed ? 'database_only' : 'vps_connected'
-    },
-    user_id: instance.created_by_user_id,
-    intelligent_name: intelligentName,
-    user_email: userEmail,
-    vps_success: vpsResult.success,
-    fallback_used: fallbackUsed,
-    mode: fallbackUsed ? 'database_only' : 'vps_connected',
-    message: fallbackUsed ? 'Instância criada em modo fallback' : 'Instância criada com sucesso',
-    executionId
-  }), {
-    status: 200,
-    headers: {
-      ...corsHeaders,
-      'Content-Type': 'application/json'
-    }
-  });
-} 
+}); 

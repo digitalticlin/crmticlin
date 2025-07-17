@@ -28,15 +28,24 @@ export const useWhatsAppRealtime = () => {
               console.log('[WhatsApp Realtime] Status change:', { 
                 instance: newRecord.instance_name,
                 oldStatus, 
-                newStatus
+                newStatus,
+                phone: newRecord.phone,
+                profileName: newRecord.profile_name
               });
               
-              if (oldStatus === 'connecting' && isConnected) {
+              // CORREÇÃO: Detectar conexão com múltiplos status
+              const wasDisconnected = !['ready', 'connected', 'open'].includes(oldStatus);
+              const isNowConnected = ['ready', 'connected', 'open'].includes(newStatus);
+              
+              if (wasDisconnected && isNowConnected) {
+                const phoneInfo = newRecord.phone ? ` 📱 ${newRecord.phone}` : '';
+                const profileInfo = newRecord.profile_name ? ` (${newRecord.profile_name})` : '';
+                
                 toast.success(`WhatsApp conectado`, {
-                  description: `${newRecord.instance_name} está pronto`,
+                  description: `${newRecord.instance_name} está pronto${phoneInfo}${profileInfo}`,
                   duration: 5000
                 });
-              } else if (isConnected && newStatus === 'disconnected') {
+              } else if (['ready', 'connected', 'open'].includes(oldStatus) && newStatus === 'disconnected') {
                 toast.warning(`WhatsApp desconectado`, {
                   description: `${newRecord.instance_name} foi desconectada`,
                   duration: 5000

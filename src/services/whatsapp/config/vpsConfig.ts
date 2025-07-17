@@ -1,8 +1,8 @@
 
-// VPS Configuration - CORREÇÃO FINAL: Apenas porta 3002
+// VPS Configuration - CORREÇÃO FINAL: VPS correta unificada
 export const VPS_CONFIG = {
-  baseUrl: 'http://31.97.24.222:3002', // CORREÇÃO: URL base fixa com porta 3002
-  authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
+  baseUrl: 'http://31.97.163.57:3001', // CORREÇÃO: VPS correta unificada
+  authToken: 'bJyn3eUPFTRFNCxxLNd8KH5bI4Zg7bpUk7ADO6kXf49026a1', // Token correto
   
   endpoints: {
     health: '/health',
@@ -18,10 +18,10 @@ export const VPS_CONFIG = {
     webhookInstance: '/instance/{instanceId}/webhook'
   },
   
-  // CORREÇÃO FINAL: HTTP direto apenas porta 3002
+  // CORREÇÃO FINAL: HTTP direto apenas porta 3001
   httpDirect: {
     enabled: true,
-    port: 3002, // FIXO: apenas 3002
+    port: 3001, // CORREÇÃO: porta correta
     timeout: 15000,
     maxRetries: 3
   },
@@ -42,18 +42,18 @@ export const VPS_CONFIG = {
     backoffMultiplier: 2
   },
 
-  // CORREÇÃO FINAL: HTTP Mode apenas porta 3002
+  // CORREÇÃO FINAL: HTTP Mode apenas porta 3001
   connection: {
     mode: 'http_direct',
-    host: '31.97.24.222',
-    port: 3002, // FIXO
+    host: '31.97.163.57', // CORREÇÃO: IP correto
+    port: 3001, // CORREÇÃO: porta correta
     timeout: 15000
   },
 
   // CONFIGURAÇÃO: Webhook automático
   webhook: {
     enabled: true,
-    url: 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web',
+    url: 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_whatsapp_web',
     events: ['qr.update', 'messages.upsert', 'connection.update'],
     automatic: true
   }

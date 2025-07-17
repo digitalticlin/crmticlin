@@ -22,10 +22,10 @@ class RealtimeManager {
   private debounceTimers: Map<string, NodeJS.Timeout> = new Map();
   private isInitialized = false;
   
-  // Configurações otimizadas para melhor responsividade
-  private readonly DEBOUNCE_TIME = 300; // Otimizado para 300ms
-  private readonly MIN_UPDATE_INTERVAL = 1000; // Otimizado para 1s
-  private readonly MAX_CALLBACKS_PER_EVENT = 5; // Aumentado para 5
+  // CORREÇÃO CRÍTICA: Configurações ultra-responsivas
+  private readonly DEBOUNCE_TIME = 50; // REDUZIDO: 50ms para tempo real
+  private readonly MIN_UPDATE_INTERVAL = 100; // REDUZIDO: 100ms para responsividade
+  private readonly MAX_CALLBACKS_PER_EVENT = 10; // AUMENTADO: Mais callbacks permitidos
 
   static getInstance(): RealtimeManager {
     if (!RealtimeManager.instance) {
@@ -86,6 +86,15 @@ class RealtimeManager {
             table: 'messages'
           },
           (payload) => this.handleCallbackWithFilter('messageInsert', payload)
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'messages'
+          },
+          (payload) => this.handleCallbackWithFilter('messageUpdate', payload)
         )
         .on(
           'postgres_changes',

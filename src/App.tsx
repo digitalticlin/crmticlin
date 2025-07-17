@@ -1,10 +1,12 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import { SidebarProvider } from './contexts/SidebarContext';
 import { QRCodeModalProvider } from './modules/whatsapp/instanceCreation/hooks/useQRCodeModal';
+import { BigQueryOptimizer } from './utils/immediate-bigquery-fix';
+import './utils/debug-messages-test'; // 🔧 IMPORTAR SCRIPTS DE DEBUG
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Index';
@@ -24,6 +26,26 @@ const queryClient = new QueryClient();
 
 function App() {
   console.log('[App] 🚀 Inicializando aplicação');
+  
+  // OTIMIZAÇÃO: Sistema inteligente de BigQuery (não executa automaticamente)
+  useEffect(() => {
+    console.log('[App] ✅ BigQuery Optimizer carregado - ativará apenas se necessário');
+    
+    // Listener global para erros BigQuery
+    const handleGlobalError = (event: ErrorEvent) => {
+      if (event.error?.message?.includes('quota') || event.error?.message?.includes('exceeded')) {
+        console.log('[App] 🚨 Erro BigQuery detectado - ativando modo economia');
+        BigQueryOptimizer.handleError(event.error);
+      }
+    };
+    
+    window.addEventListener('error', handleGlobalError);
+    
+    return () => {
+      window.removeEventListener('error', handleGlobalError);
+    };
+  }, []);
+  
   return (
     <QueryClientProvider client={queryClient}>
       <Router>

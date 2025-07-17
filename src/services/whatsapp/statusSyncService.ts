@@ -19,8 +19,8 @@ interface StatusSyncResult {
 
 export class StatusSyncService {
   private static VPS_CONFIG = {
-    baseUrl: 'http://31.97.24.222:3001',
-    authToken: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3'
+    baseUrl: 'http://31.97.163.57:3001', // CORREÇÃO: VPS correta
+    authToken: 'bJyn3eUPFTRFNCxxLNd8KH5bI4Zg7bpUk7ADO6kXf49026a1' // CORREÇÃO: Token correto
   };
 
   static async getVPSInstanceStatus(vpsInstanceId: string): Promise<VPSInstanceStatus | null> {

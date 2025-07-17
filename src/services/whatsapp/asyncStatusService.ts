@@ -177,7 +177,7 @@ export class AsyncStatusService {
     }
   }
 
-  static async schedulePeriodicSync(intervalMs: number = 30000): Promise<() => void> {
+  static async schedulePeriodicSync(intervalMs: number = 120000): Promise<() => void> {
     console.log(`[Async Status] ⏰ Agendando sincronização periódica a cada ${intervalMs}ms`);
     
     const intervalId = setInterval(async () => {

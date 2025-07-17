@@ -1,10 +1,10 @@
 
 export const HOSTINGER_CONFIG = {
-  // URLs primária e fallback para VPS sem porta explícita (HTTP usa 80 por padrão)
-  PRIMARY_VPS_URL: 'http://31.97.24.222',
-  FALLBACK_VPS_URL: 'http://srv848330.hstgr.cloud',
-  VPS_HOST: '31.97.24.222',
-  VPS_PORT: 80,
+  // URLs primária e fallback para VPS correta
+  PRIMARY_VPS_URL: 'http://31.97.163.57',  // CORREÇÃO: VPS correta
+  FALLBACK_VPS_URL: 'http://31.97.163.57', // CORREÇÃO: VPS correta
+  VPS_HOST: '31.97.163.57', // CORREÇÃO: IP correto
+  VPS_PORT: 3001, // CORREÇÃO: Porta correta
   
   // Configurações de timeout otimizadas
   REQUEST_TIMEOUT: 8000, // 8 segundos para testes rápidos

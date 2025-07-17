@@ -23,6 +23,12 @@ export interface Contact {
   createdAt?: string;
   deals?: Deal[];
   stageId?: string; // Added missing stageId property
+  // Admin instance info
+  instanceInfo?: {
+    name: string;
+    status: string;
+    phone: string;
+  };
 }
 
 export interface Deal {

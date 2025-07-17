@@ -153,7 +153,7 @@ export const useGlobalVPSInstances = () => {
       if (!isLoading) {
         fetchInstances();
       }
-    }, 30000); // 30 segundos
+    }, 1800000); // EMERGÊNCIA: 30 minutos - mínimo absoluto para resolver quota exceeded
 
     return () => clearInterval(interval);
   }, [autoRefresh, isLoading, fetchInstances]);

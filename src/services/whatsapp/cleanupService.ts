@@ -52,7 +52,7 @@ export class WhatsAppCleanupService {
               const controller = new AbortController();
               const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-              await fetch(`http://31.97.24.222:3002/instance/${instance.vps_instance_id}`, {
+              await fetch(`http://31.97.163.57:3001/instance/${instance.vps_instance_id}`, { // CORREÇÃO: VPS correta
                 method: 'DELETE',
                 signal: controller.signal
               });

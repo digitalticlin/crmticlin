@@ -22,10 +22,20 @@ export const OptimizedSettingsSection = () => {
     loadInstances(); // Atualizar lista
   });
 
-  // NOVO: Configurar Connection Status Sync para atualizar lista automaticamente
+  // CORREÇÃO: Connection Status Sync para atualizar lista automaticamente
   useConnectionStatusSync({
     onConnectionDetected: (data) => {
       console.log('[Optimized Settings] 🎉 Nova conexão detectada, atualizando lista:', data);
+      
+      // Mostrar toast com informações da conexão
+      const phoneInfo = data.phone ? ` 📱 ${data.phone}` : '';
+      const profileInfo = data.profileName ? ` (${data.profileName})` : '';
+      
+      toast.success(`${data.instanceName} conectado!${phoneInfo}${profileInfo}`, {
+        duration: 6000
+      });
+      
+      // Atualizar lista
       loadInstances();
     },
     onInstanceUpdate: () => {

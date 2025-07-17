@@ -64,12 +64,13 @@ export const useWhatsAppWebInstances = () => {
 
       if (error) throw error;
 
-      if (data?.success && data?.vpsDeleteSuccess) {
+      if (data?.success) {
         console.log(`[WhatsApp Web Instances] ✅ Instância deletada completamente: ${instanceId}`);
+        console.log(`[WhatsApp Web Instances] 📊 Detalhes da deleção:`, data.details);
         toast.success('Instância deletada com sucesso!');
-        // NÃO recarregar - já foi removida otimisticamente e confirmada pela VPS
+        // NÃO recarregar - já foi removida otimisticamente e confirmada pelo banco
       } else {
-        throw new Error(data?.error || 'Erro na deleção da VPS ou banco');
+        throw new Error(data?.error || 'Erro na deleção');
       }
     } catch (error: any) {
       console.error(`[WhatsApp Web Instances] ❌ Erro ao deletar:`, error);
@@ -108,6 +109,57 @@ export const useWhatsAppWebInstances = () => {
   useEffect(() => {
     loadInstances();
   }, [loadInstances]);
+
+  // CORREÇÃO: Adicionar realtime para atualização automática dos cards
+  useEffect(() => {
+    if (!user?.id) return;
+
+    console.log('[WhatsApp Web Instances] 📡 Configurando realtime para usuário:', user.id);
+
+    const channel = supabase
+      .channel(`whatsapp-instances-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'whatsapp_instances',
+          filter: `created_by_user_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('[WhatsApp Web Instances] 📱 Realtime update:', payload);
+          
+          // Recarregar instâncias quando houver mudanças
+          loadInstances();
+          
+          // CORREÇÃO: Mostrar toast quando instância conectar
+          if (payload.eventType === 'UPDATE' && payload.new && payload.old) {
+            const newStatus = payload.new.connection_status;
+            const oldStatus = payload.old.connection_status;
+            const instanceName = payload.new.instance_name;
+            
+            // Detectar conexão com múltiplos status
+            const wasDisconnected = !['ready', 'connected', 'open'].includes(oldStatus);
+            const isNowConnected = ['ready', 'connected', 'open'].includes(newStatus);
+            
+            if (wasDisconnected && isNowConnected) {
+              const phoneInfo = payload.new.phone ? ` 📱 ${payload.new.phone}` : '';
+              const profileInfo = payload.new.profile_name ? ` (${payload.new.profile_name})` : '';
+              
+              toast.success(`${instanceName} conectado!${phoneInfo}${profileInfo}`, {
+                duration: 6000
+              });
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('[WhatsApp Web Instances] 🔌 Removendo realtime');
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, loadInstances]);
 
   return {
     instances,

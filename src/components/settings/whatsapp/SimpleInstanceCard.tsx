@@ -7,10 +7,22 @@ import {
   CheckCircle,
   AlertTriangle,
   QrCode,
-  Loader2
+  Loader2,
+  Trash2
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { WhatsAppWebInstance } from "@/types/whatsapp";
-import { DeleteInstanceButton } from "@/modules/whatsapp/instanceDeletion";
+
 import { GenerateQRButton } from "@/modules/whatsapp/qrCodeManagement/components/GenerateQRButton";
 
 interface SimpleInstanceCardProps {
@@ -139,13 +151,41 @@ export const SimpleInstanceCard = ({
             />
           )}
           
-          <DeleteInstanceButton
-            instanceId={instance.id}
-            instanceName={instance.instance_name}
-            onSuccess={() => onDelete(instance.id)}
-            variant="outline"
-            className="text-red-600 hover:text-red-700 hover:bg-red-50/60 backdrop-blur-sm border-white/20"
-          />
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50/60 backdrop-blur-sm border-white/20"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Tem certeza que deseja deletar a instância <strong>{instance.instance_name}</strong>? 
+                  Esta ação não pode ser desfeita e removerá permanentemente:
+                  <br />
+                  • Conexão WhatsApp
+                  • Histórico de conversas
+                  • Configurações da instância
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => onDelete(instance.id)}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  Sim, deletar instância
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
     </Card>

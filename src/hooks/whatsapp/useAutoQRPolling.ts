@@ -114,9 +114,14 @@ export const useAutoQRPolling = (options: QRPollingOptions = {}) => {
             toast.success('QR Code gerado com sucesso!');
           }
           
-          // Check if connected (stop polling)
-          if (newData.connection_status === 'connected') {
-            console.log('[AutoQRPolling] 🎉 Instância conectada!');
+          // CORREÇÃO: Check if connected (stop polling) com múltiplos status
+          const connectedStatuses = ['connected', 'ready', 'open'];
+          if (connectedStatuses.includes(newData.connection_status?.toLowerCase())) {
+            console.log('[AutoQRPolling] 🎉 Instância conectada!', {
+              status: newData.connection_status,
+              phone: newData.phone,
+              profileName: newData.profile_name
+            });
             
             setState(prev => ({
               ...prev,
@@ -126,8 +131,11 @@ export const useAutoQRPolling = (options: QRPollingOptions = {}) => {
             }));
             
             cleanup();
-            onConnected?.(); // NOVO: Chamar callback de conexão
-            toast.success('WhatsApp conectado com sucesso!');
+            onConnected?.(); // CORREÇÃO: Chamar callback de conexão
+            
+            const phoneInfo = newData.phone ? ` 📱 ${newData.phone}` : '';
+            const profileInfo = newData.profile_name ? ` (${newData.profile_name})` : '';
+            toast.success(`WhatsApp conectado com sucesso!${phoneInfo}${profileInfo}`);
           }
         }
       )
@@ -145,7 +153,7 @@ export const useAutoQRPolling = (options: QRPollingOptions = {}) => {
       
       const { data, error } = await supabase
         .from('whatsapp_instances')
-        .select('qr_code, connection_status, instance_name')
+        .select('qr_code, connection_status, instance_name, phone, profile_name')
         .eq('id', instanceId)
         .single();
 
@@ -165,9 +173,14 @@ export const useAutoQRPolling = (options: QRPollingOptions = {}) => {
         instanceName: data.instance_name
       });
 
-      // Check if already connected
-      if (data.connection_status === 'connected') {
-        console.log('[AutoQRPolling] 🎉 Instância já conectada!');
+      // CORREÇÃO: Check if already connected com múltiplos status
+      const connectedStatuses = ['connected', 'ready', 'open'];
+      if (connectedStatuses.includes(data.connection_status?.toLowerCase())) {
+        console.log('[AutoQRPolling] 🎉 Instância já conectada!', {
+          status: data.connection_status,
+          phone: data.phone,
+          profileName: data.profile_name
+        });
         
         setState(prev => ({
           ...prev,
@@ -177,8 +190,11 @@ export const useAutoQRPolling = (options: QRPollingOptions = {}) => {
         }));
         
         cleanup();
-        onConnected?.(); // NOVO: Chamar callback de conexão
-        toast.success('WhatsApp já está conectado!');
+        onConnected?.(); // CORREÇÃO: Chamar callback de conexão
+        
+        const phoneInfo = data.phone ? ` 📱 ${data.phone}` : '';
+        const profileInfo = data.profile_name ? ` (${data.profile_name})` : '';
+        toast.success(`WhatsApp já está conectado!${phoneInfo}${profileInfo}`);
         return;
       }
 

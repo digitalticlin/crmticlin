@@ -12,6 +12,41 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
+// Estilos CSS customizados para as animações
+const customStyles = `
+  @keyframes scan {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(500%); }
+  }
+  
+  @keyframes orbit {
+    0% { transform: rotate(0deg) translateX(40px) rotate(0deg); }
+    100% { transform: rotate(360deg) translateX(40px) rotate(-360deg); }
+  }
+  
+  @keyframes shine {
+    0% { transform: translateX(-100%) skewX(-25deg); }
+    100% { transform: translateX(200%) skewX(-25deg); }
+  }
+  
+  @keyframes glow {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.2); }
+  }
+  
+  .qr-animation-container {
+    position: relative;
+  }
+`;
+
+// Injetar estilos no documento
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement('style');
+  styleSheet.type = 'text/css';
+  styleSheet.innerText = customStyles;
+  document.head.appendChild(styleSheet);
+}
+
 // CORREÇÃO: Componente para renderizar QR Code simplificado
 const QRCodeDisplay = ({ qrCode }: { qrCode: string | null }) => {
   const [hasError, setHasError] = useState(false);
@@ -211,27 +246,100 @@ export const QRCodeModal = () => {
         </DialogHeader>
 
         <div className="flex flex-col items-center justify-center py-6">
-          {/* Estado: Carregando */}
+          {/* Estado: Carregando com animação melhorada */}
           {isLoading && (
             <div className="flex flex-col items-center space-y-6">
               <div className="w-72 h-72 bg-gradient-to-br from-blue-50/80 to-purple-50/80 backdrop-blur-sm rounded-3xl border border-white/30 flex flex-col items-center justify-center p-8">
+                
+                {/* Animação de QR Code sendo gerado */}
                 <div className="relative">
-                  <Clock className="h-16 w-16 text-blue-500 animate-spin" />
-                  <div className="absolute inset-0 h-16 w-16 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
+                  {/* QR Code base */}
+                  <div className="w-20 h-20 bg-white/80 rounded-lg border-2 border-blue-300/50 flex items-center justify-center">
+                    <div className="grid grid-cols-4 gap-1">
+                      {[...Array(16)].map((_, i) => (
+                        <div 
+                          key={i}
+                          className="w-2 h-2 bg-blue-500 rounded-sm animate-pulse"
+                          style={{
+                            animationDelay: `${i * 100}ms`,
+                            animationDuration: '1.5s'
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Efeito de scanning */}
+                  <div className="absolute inset-0 overflow-hidden rounded-lg">
+                    <div className="w-full h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent animate-pulse"></div>
+                    <div 
+                      className="absolute w-full h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent"
+                      style={{
+                        animation: 'scan 2s linear infinite',
+                      }}
+                    ></div>
+                  </div>
+                  
+                  {/* Partículas orbitando */}
+                  <div className="absolute inset-0 -m-4">
+                    <div className="w-2 h-2 bg-blue-400 rounded-full absolute animate-spin" 
+                         style={{ 
+                           animation: 'orbit 3s linear infinite',
+                           transformOrigin: '60px 60px'
+                         }}>
+                    </div>
+                    <div className="w-1.5 h-1.5 bg-green-400 rounded-full absolute animate-spin" 
+                         style={{ 
+                           animation: 'orbit 3s linear infinite reverse',
+                           animationDelay: '1s',
+                           transformOrigin: '60px 60px'
+                         }}>
+                    </div>
+                  </div>
                 </div>
+                
                 <div className="text-center mt-6 space-y-2">
                   <p className="text-lg font-semibold text-blue-900">
-                    Preparando conexão...
+                    🔄 Gerando QR Code...
                   </p>
                   <p className="text-sm text-blue-700">
-                    Aguarde enquanto configuramos tudo para você
+                    {loadingTime < 5 
+                      ? 'Conectando com WhatsApp Web...' 
+                      : loadingTime < 10 
+                        ? 'Configurando autenticação...'
+                        : loadingTime < 15
+                          ? 'Preparando código QR...'
+                          : 'Finalizando configuração...'
+                    }
                   </p>
                   {loadingTime > 0 && (
-                    <p className="text-xs text-blue-600">
+                    <div className="flex items-center justify-center space-x-2 mt-3">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <span className="text-xs text-blue-600 ml-2 font-mono">
                       {loadingTime}s
-                    </p>
+                      </span>
+                    </div>
                   )}
+                  
+                  {/* Barra de progresso visual */}
+                  <div className="w-full bg-blue-100 rounded-full h-2 mt-4">
+                    <div 
+                      className="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-1000"
+                      style={{ 
+                        width: `${Math.min(100, (loadingTime / 20) * 100)}%` 
+                      }}
+                    ></div>
+                  </div>
                 </div>
+              </div>
+              
+              {/* Dicas para o usuário */}
+              <div className="bg-blue-50/50 backdrop-blur-sm rounded-xl p-4 border border-blue-200/30 max-w-md">
+                <p className="text-xs text-blue-700 text-center">
+                  💡 <strong>Dica:</strong> Mantenha o WhatsApp aberto no seu celular para uma conexão mais rápida
+                </p>
               </div>
             </div>
           )}
@@ -298,24 +406,62 @@ export const QRCodeModal = () => {
           {/* Estado: QR Code disponível */}
           {qrCode && <QRCodeDisplay qrCode={qrCode} />}
           
-          {/* Estado: Aguardando */}
+          {/* Estado: Aguardando com animação melhorada */}
           {isOpen && !isLoading && !qrCode && !error && (
             <div className="flex flex-col items-center space-y-6">
               <div className="w-72 h-72 bg-gradient-to-br from-yellow-50/80 to-orange-50/80 backdrop-blur-sm rounded-3xl border border-yellow-200/30 flex flex-col items-center justify-center p-8">
-                <QrCode className="h-16 w-16 text-yellow-500 mb-4 animate-pulse" />
+                
+                {/* Animação de QR Code quase pronto */}
+                <div className="relative">
+                  {/* QR Code em preparação */}
+                  <div className="w-20 h-20 bg-white/90 rounded-lg border-2 border-yellow-300/50 flex items-center justify-center">
+                    <QrCode className="h-12 w-12 text-yellow-600 animate-pulse" />
+                  </div>
+                  
+                  {/* Efeito de brilho */}
+                  <div className="absolute inset-0 rounded-lg overflow-hidden">
+                    <div 
+                      className="absolute w-full h-full bg-gradient-to-r from-transparent via-yellow-300/30 to-transparent"
+                      style={{
+                        animation: 'shine 2s ease-in-out infinite',
+                        transform: 'skewX(-25deg)',
+                      }}
+                    ></div>
+                  </div>
+                  
+                  {/* Indicadores de progresso */}
+                  <div className="absolute -inset-6">
+                    {[...Array(8)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="absolute w-2 h-2 bg-yellow-400 rounded-full opacity-60"
+                        style={{
+                          animation: `glow 1.5s ease-in-out infinite`,
+                          animationDelay: `${i * 0.2}s`,
+                          transform: `rotate(${i * 45}deg) translateY(-30px)`,
+                          transformOrigin: '0 30px'
+                        }}
+                      />
+                    ))}
+                  </div>
+                </div>
+                
                 <div className="text-center space-y-3">
                   <p className="text-lg font-semibold text-yellow-900">
-                    Quase pronto!
+                    ⚡ Quase pronto!
                   </p>
                   <p className="text-sm text-yellow-700">
-                    O código QR está sendo preparado
+                    A instância foi criada na VPS
+                  </p>
+                  <p className="text-xs text-yellow-600 bg-yellow-100/50 px-3 py-1 rounded-full">
+                    Aguardando geração do QR Code...
                   </p>
                 </div>
               </div>
               
               <Button 
                 onClick={() => generateQRCode()}
-                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg px-6 py-2 rounded-xl"
+                className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white shadow-lg px-6 py-2 rounded-xl transition-all duration-300 transform hover:scale-105"
                 disabled={refreshing}
               >
                 {refreshing ? (
@@ -330,6 +476,13 @@ export const QRCodeModal = () => {
                   </>
                 )}
               </Button>
+              
+              {/* Informação adicional */}
+              <div className="bg-yellow-50/50 backdrop-blur-sm rounded-xl p-4 border border-yellow-200/30 max-w-md">
+                <p className="text-xs text-yellow-700 text-center">
+                  🔔 <strong>O que está acontecendo:</strong> Sua instância WhatsApp foi criada com sucesso na VPS e está aguardando a geração do código QR para conexão.
+                </p>
+              </div>
             </div>
           )}
         </div>

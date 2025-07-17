@@ -1,14 +1,15 @@
 export const VPS_CONFIG = {
-  baseUrl: 'http://31.97.24.222:3002',
-  token: '3oOb0an43kLEO6cy3bP8LteKCTxshH8eytEV9QR314dcf0b3',
+  baseUrl: 'http://31.97.163.57:3001',  // CORREÇÃO: VPS correta unificada
+  token: 'bJyn3eUPFTRFNCxxLNd8KH5bI4Zg7bpUk7ADO6kXf49026a1',  // CORREÇÃO: Token unificado
   endpoints: {
-    createInstance: '/instance/create',
+    createInstance: '/instances',  // CORREÇÃO: Endpoint correto
     getQRCode: '/instance/:id/qr',
     getStatus: '/instance/:id/status'
   }
 } as const;
 
-export const WEBHOOK_URL = 'https://kigyebrhfoljnydfipcr.supabase.co/functions/v1/webhook_whatsapp_web';
+// CORREÇÃO: URL correta do webhook
+export const WEBHOOK_URL = 'https://rhjgagzstjzynvrakdyj.supabase.co/functions/v1/webhook_qr_receiver';
 
 export const EDGE_FUNCTION_CONFIG = {
   name: 'whatsapp_instance_manager',

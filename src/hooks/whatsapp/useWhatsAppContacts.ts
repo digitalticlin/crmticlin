@@ -5,6 +5,7 @@ import { Contact } from '@/types/chat';
 import { WhatsAppWebInstance } from '@/types/whatsapp';
 import { useLeadSorting } from './chat/useLeadSorting';
 import { useAuth } from '@/contexts/AuthContext'; // 🚀 IMPORTAR CONTEXTO DE AUTH
+import { useUserPermissions } from '@/hooks/useUserPermissions'; // 🚀 ADMIN: Import permissões
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 
 // Cache otimizado para contatos com limpeza automática
@@ -25,6 +26,10 @@ export const useWhatsAppContacts = (
 ) => {
   // 🚀 OBTER DADOS DO USUÁRIO VIA CONTEXTO DE AUTH
   const { user } = useAuth();
+  
+  // 🚀 ADMIN: Verificar permissões de usuário
+  const { permissions } = useUserPermissions();
+  const isAdmin = permissions.canViewAllData;
   
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [isLoadingContacts, setIsLoadingContacts] = useState(false);
@@ -52,11 +57,15 @@ export const useWhatsAppContacts = (
     contactsCountRef.current = contacts.length;
   }, [contacts.length]);
 
-  // 🚀 CACHE KEY ESTÁVEL: Removido connection_status para evitar resets frequentes
+  // 🚀 CACHE KEY ESTÁVEL: Admin usa key diferente para ver todos os dados
   const cacheKey = useMemo(() => {
-    if (!activeInstance?.id || !userId) return '';
+    if (!userId) return '';
+    if (isAdmin) {
+      return `admin-all-${userId}`; // Admin vê todos os contatos
+    }
+    if (!activeInstance?.id) return '';
     return `${activeInstance.id}-${userId}`;
-  }, [activeInstance?.id, userId]);
+  }, [activeInstance?.id, userId, isAdmin]);
 
   // Verificar cache válido
   const getCachedContacts = useCallback((key: string): { data: Contact[]; hasMore: boolean; } | null => {
@@ -205,6 +214,8 @@ export const useWhatsAppContacts = (
     // 🚀 LOG INICIAL PARA DEBUG COM OTIMIZAÇÃO ESPECÍFICA
     console.log('[WhatsApp Contacts] 🚀 Iniciando fetch:', {
       userEmail,
+      isAdmin,
+      adminMode: isAdmin ? 'VER TODOS OS DADOS (TODAS INSTÂNCIAS)' : 'MODO NORMAL (INSTÂNCIA ESPECÍFICA)',
       limits: CONTACT_LIMITS,
       forceRefresh,
       loadMore,
@@ -229,24 +240,9 @@ export const useWhatsAppContacts = (
           setIsLoadingContacts(true);
         }
 
-        // 🚀 CONTAR TOTAL DE CONTATOS DISPONÍVEIS PARA DEBUG
-        const { count: totalContacts, error: countError } = await supabase
-          .from('leads')
-          .select('*', { count: 'exact', head: true })
-          .eq('whatsapp_number_id', activeInstance!.id)
-          .eq('created_by_user_id', userId!);
-
-        console.log('[WhatsApp Contacts] 📊 Total de contatos disponíveis na instância:', {
-          totalNaTabela: totalContacts,
-          erroContagem: countError,
-          instanceId: activeInstance!.id,
-          userId: userId!
-        });
-
-        // 🚀 SALVAR TOTAL NO ESTADO
-        if (totalContacts !== null && !countError) {
-          setTotalContactsAvailable(totalContacts);
-        }
+        // ✅ CONTAGEM REMOVIDA: Query count() é muito custosa no BigQuery
+        // A paginação será baseada na quantidade retornada, não no total
+        console.log('[WhatsApp Contacts] ⚡ Carregamento otimizado sem contagem total');
 
         // Determinar parâmetros de paginação usando ref atualizado
         const currentContactsCount = loadMore ? contactsCountRef.current : 0;
@@ -265,22 +261,31 @@ export const useWhatsAppContacts = (
           queryRange: `${offset} até ${offset + limit - 1}`
         });
 
-        // QUERY OTIMIZADA: Evitar leads duplicados por telefone
-        // Prioriza lead com whatsapp_number_id válido, mas agrega dados de leads duplicados
-        const { data: leads, error } = await supabase
+        // QUERY OTIMIZADA: Admin vê todos os leads, usuário normal filtra por instância
+        let query = supabase
           .from('leads')
           .select(`
             *,
             lead_tags(
               tag_id,
               tags(name, color)
+            ),
+            whatsapp_instances(
+              instance_name,
+              connection_status,
+              phone
             )
           `)
-          .eq('whatsapp_number_id', activeInstance!.id)
           .eq('created_by_user_id', userId!)
           .order('last_message_time', { ascending: false, nullsFirst: false })
-          .order('created_at', { ascending: false })
-          .range(offset, offset + limit - 1);
+          .order('created_at', { ascending: false });
+
+        // 🚀 ADMIN: Admin vê todos os leads, usuário normal apenas da instância ativa
+        if (!isAdmin && activeInstance?.id) {
+          query = query.eq('whatsapp_number_id', activeInstance.id);
+        }
+
+        const { data: leads, error } = await query.range(offset, offset + limit - 1);
 
         if (error) throw error;
 
@@ -293,8 +298,7 @@ export const useWhatsAppContacts = (
           limit,
           offset,
           loadMore,
-          contatosJaCarregados: currentContactsCount,
-          totalDisponivel: totalContacts
+          contatosJaCarregados: currentContactsCount
         });
 
         // ✅ LÓGICA PRINCIPAL: Se retornou dados
@@ -320,25 +324,13 @@ export const useWhatsAppContacts = (
           console.log('[WhatsApp Contacts] ⏹️ FIM - Nenhum dado retornado');
         }
 
-        // 🚀 LOG SUPER DETALHADO PARA DETECTAR PROBLEMA ESPECÍFICO
-        const contatosJaCarregadosParaLog = loadMore ? currentContactsCount + leadesRetornados : leadesRetornados;
-        console.log('[WhatsApp Contacts] 🔍 ANÁLISE DETALHADA DO HASMORE:', {
+        // ✅ LOG OTIMIZADO - removidas referências à contagem total
+        console.log('[WhatsApp Contacts] 🔍 ANÁLISE DO HASMORE (otimizada):', {
           hasMoreCalculado: hasMore,
-          cenarios: {
-            'leadesRetornados > 0': leadesRetornados > 0,
-            'totalContacts existe': !!(totalContacts && totalContacts > 0),
-            'contatosJaCarregados >= totalContacts': contatosJaCarregadosParaLog >= totalContacts,
-            'leadesRetornados < limit': leadesRetornados < limit,
-            'leadesRetornados === limit': leadesRetornados === limit
-          },
-          valores: {
-            leadesRetornados,
-            limit,
-            contatosJaCarregadosParaLog,
-            totalContacts,
-            loadMore,
-            contatosListaAtual: currentContactsCount
-          }
+          leadesRetornados,
+          limit,
+          loadMore,
+          contatosListaAtual: currentContactsCount
         });
 
         console.log('[WhatsApp Contacts] 📊 Resultado da query:', {
@@ -346,11 +338,10 @@ export const useWhatsAppContacts = (
           offset,
           limit,
           hasMore,
-          totalCarregadosAgora: loadMore ? currentContactsCount + leadesRetornados : leadesRetornados,
-          totalDisponivel: totalContacts
+          totalCarregadosAgora: loadMore ? currentContactsCount + leadesRetornados : leadesRetornados
         });
 
-        // MAPEAMENTO OTIMIZADO
+        // MAPEAMENTO OTIMIZADO COM INFORMAÇÕES DE INSTÂNCIA PARA ADMIN
         const mappedContacts: Contact[] = (leads || []).map(lead => {
           const leadWithProfilePic = lead as any;
           const leadTags = lead.lead_tags?.map((lt: any) => ({
@@ -358,6 +349,9 @@ export const useWhatsAppContacts = (
             name: lt.tags?.name,
             color: lt.tags?.color
           })).filter(Boolean) || [];
+          
+          // 🚀 ADMIN: Incluir informações da instância WhatsApp
+          const instanceInfo = lead.whatsapp_instances || null;
           
           const mappedContact = {
             id: lead.id,
@@ -377,7 +371,13 @@ export const useWhatsAppContacts = (
             profilePicUrl: leadWithProfilePic.profile_pic_url || '',
             isOnline: Math.random() > 0.7, // Fake status
             leadId: lead.id, // Adicionar leadId
-            stageId: lead.kanban_stage_id // 🚀 CORREÇÃO: Adicionar stageId do banco
+            stageId: lead.kanban_stage_id, // 🚀 CORREÇÃO: Adicionar stageId do banco
+            // 🚀 ADMIN: Informações da instância
+            instanceInfo: isAdmin ? {
+              name: instanceInfo?.instance_name || 'Instância excluída',
+              status: instanceInfo?.connection_status || 'disconnected',
+              phone: instanceInfo?.phone || ''
+            } : undefined
           };
 
           // 🔍 LOG DETALHADO PARA DEBUG
@@ -458,8 +458,11 @@ export const useWhatsAppContacts = (
     }
   }, [cacheKey, activeInstance?.id, userId, setCachedContacts, getCachedContacts]); // 🚀 REMOVIDO 'contacts' das dependências para evitar loops
 
-  // Configurar subscription para mudanças nas tags e mensagens
+  // ❌ SUBSCRIPTION TEMPORARIAMENTE DESABILITADA - Evitar conflito com useRealtimeLeads
   useEffect(() => {
+    // DESABILITADO: Conflito com subscription centralizada no useRealtimeLeads
+    return () => {};
+    
     if (!activeInstance?.id || !userId) return;
 
     console.log('[WhatsApp Contacts] 🔄 Inicializando subscription para instância:', activeInstance.id);
@@ -500,31 +503,28 @@ export const useWhatsAppContacts = (
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'messages'
-          // Removendo filtro temporariamente para teste
+          table: 'messages',
+          filter: `whatsapp_number_id=eq.${activeInstance.id}` // ✅ FILTRO RESTAURADO
         },
         (payload) => {
-          console.log('[WhatsApp Contacts] 📨 PAYLOAD COMPLETO recebido:', JSON.stringify(payload, null, 2));
-          
-          // Verificar se a mensagem é da instância ativa
-          if (payload.new?.whatsapp_number_id !== activeInstance.id) {
-            console.log('[WhatsApp Contacts] ⚠️ Mensagem de outra instância, ignorando');
-            return;
-          }
+          console.log('[WhatsApp Contacts] 📨 Nova mensagem recebida:', {
+            leadId: payload.new?.lead_id,
+            messageText: payload.new?.text,
+            instanceId: payload.new?.whatsapp_number_id,
+            shouldMoveToTop: !!payload.new?.lead_id
+          });
           
           // Mover contato para topo quando nova mensagem chegar
           const leadId = payload.new?.lead_id;
           const messageText = payload.new?.text || payload.new?.body || '';
           
           if (leadId) {
-            console.log('[WhatsApp Contacts] 📨 Nova mensagem recebida:', {
-              leadId,
-              messageText,
-              timestamp: new Date().toISOString()
-            });
+            console.log('[WhatsApp Contacts] 🔄 Executando moveContactToTop para:', leadId);
             
-            // Mover contato para topo com a nova mensagem
+            // ✅ CORREÇÃO CRÍTICA: Garantir que moveContactToTop seja executado
             moveContactToTop(leadId, messageText);
+            
+            console.log('[WhatsApp Contacts] ✅ moveContactToTop executado com sucesso');
           } else {
             console.log('[WhatsApp Contacts] ⚠️ Mensagem sem lead_id:', payload.new);
           }

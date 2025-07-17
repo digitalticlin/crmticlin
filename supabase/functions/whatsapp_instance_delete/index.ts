@@ -10,7 +10,7 @@ const corsHeaders = {
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-// CONFIGURAÇÃO VPS NOVA - PORTA 3001
+// CONFIGURAÇÃO VPS CORRIGIDA - PORTA 3001
 const VPS_SERVER_URL = 'http://31.97.163.57:3001';
 const VPS_AUTH_TOKEN = 'bJyn3eUPFTRFNCxxLNd8KH5bI4Zg7bpUk7ADO6kXf49026a1';
 
@@ -24,7 +24,7 @@ serve(async (req: Request) => {
   }
 
   const executionId = `delete_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-  console.log(`🗑️ [${executionId}] WHATSAPP INSTANCE DELETE - Nova VPS 3001`);
+  console.log(`🗑️ [${executionId}] WHATSAPP INSTANCE DELETE - VPS 3001 CORRIGIDA`);
 
   const supabase = createClient(supabaseUrl, supabaseKey, {
     auth: {
@@ -84,8 +84,11 @@ serve(async (req: Request) => {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-        // ENDPOINT CORRETO PARA NOVA VPS
-        const vpsResponse = await fetch(`${VPS_SERVER_URL}/instance/${instance.vps_instance_id}`, {
+        // CORREÇÃO: Endpoint correto conforme server.js
+        const vpsEndpoint = `${VPS_SERVER_URL}/instance/${instance.vps_instance_id}`;
+        console.log(`🎯 [${executionId}] Endpoint VPS: ${vpsEndpoint}`);
+        
+        const vpsResponse = await fetch(vpsEndpoint, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -104,20 +107,25 @@ serve(async (req: Request) => {
           const errorText = await vpsResponse.text();
           console.error(`❌ [${executionId}] VPS delete failed:`, {
             status: vpsResponse.status,
-            error: errorText
+            error: errorText,
+            endpoint: vpsEndpoint
           });
-          // Continuar mesmo se VPS falhar
+          // Continuar mesmo se VPS falhar - não é crítico
         }
-      } catch (error) {
-        console.error(`❌ [${executionId}] VPS delete error:`, error);
-        // Continuar mesmo se VPS falhar
+      } catch (error: any) {
+        console.error(`❌ [${executionId}] VPS delete error:`, {
+          message: error.message,
+          name: error.name,
+          endpoint: `${VPS_SERVER_URL}/instance/${instance.vps_instance_id}`
+        });
+        // Continuar mesmo se VPS falhar - não é crítico
       }
     } else {
       console.log(`⚠️ [${executionId}] Sem vps_instance_id, pulando VPS`);
       vpsDeleteSuccess = true; // Considerar sucesso se não há ID da VPS
     }
 
-    // 3. DELETAR DO BANCO
+    // 3. DELETAR DO BANCO (sempre executar)
     console.log(`🗄️ [${executionId}] Deletando do banco...`);
     
     const { error: deleteError } = await supabase
@@ -139,11 +147,9 @@ serve(async (req: Request) => {
 
     console.log(`✅ [${executionId}] Instância deletada com sucesso do banco`);
 
-    // 4. RESULTADO FINAL
-    const success = true; // Sucesso se deletou do banco (VPS é opcional)
-    
+    // 4. RESULTADO FINAL - SEMPRE SUCESSO SE DELETOU DO BANCO
     console.log(`🎉 [${executionId}] Deleção concluída:`, {
-      success,
+      success: true,
       vpsDeleteSuccess,
       instanceId,
       instanceName: instance.instance_name

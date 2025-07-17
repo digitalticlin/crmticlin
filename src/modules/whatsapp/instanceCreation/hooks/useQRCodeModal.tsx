@@ -208,14 +208,26 @@ export const QRCodeModalProvider = ({ children }: { children: React.ReactNode })
             
             const newData = payload.new;
             
-            // Verificar conexão
-            if (newData.connection_status === 'connected') {
-              console.log('[useQRCodeModal] 🎉 Conectado via realtime!');
-              toast.success('WhatsApp conectado com sucesso!');
+            // CORREÇÃO: Verificar conexão com múltiplos status
+            const connectedStatuses = ['connected', 'ready', 'open'];
+            if (connectedStatuses.includes(newData.connection_status?.toLowerCase())) {
+              console.log('[useQRCodeModal] 🎉 Conectado via realtime!', {
+                status: newData.connection_status,
+                phone: newData.phone,
+                profileName: newData.profile_name
+              });
+              
+              const phoneInfo = newData.phone ? ` 📱 ${newData.phone}` : '';
+              const profileInfo = newData.profile_name ? ` (${newData.profile_name})` : '';
+              
+              toast.success(`WhatsApp conectado com sucesso!${phoneInfo}${profileInfo}`);
+              
+              // Fechar modal automaticamente
+              console.log('[useQRCodeModal] 🚪 Fechando modal automaticamente após conexão');
               setQrCode(null);
               setIsLoading(false);
               setError('WhatsApp conectado com sucesso!');
-              cleanup();
+              closeModal(); // CORREÇÃO: Chamar closeModal para fechar completamente
               return;
             }
             

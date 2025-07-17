@@ -12,8 +12,7 @@ import {
   Kanban,
   ListPlus,
   Menu,
-  X,
-  UserCog
+  X
 } from "lucide-react";
 import SidebarLogo from "./SidebarLogo";
 import SidebarNavGroup from "./SidebarNavGroup";
@@ -93,13 +92,6 @@ export default function ResponsiveSidebar() {
       href: "/settings",
       comingSoon: false,
       requiredPermission: 'canAccessSettings' // Apenas gestores e admins
-    },
-    {
-      icon: UserCog,
-      label: "Equipe",
-      href: "/team",
-      comingSoon: false,
-      requiredPermission: 'canManageTeam' // Apenas admins
     }
   ];
 
