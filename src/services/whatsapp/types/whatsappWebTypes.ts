@@ -83,6 +83,7 @@ export interface ServerHealthResponse {
     permanentMode?: boolean;
     active_instances?: number;
     activeInstances?: number;
+    timestamp?: string;
   };
 }
 
