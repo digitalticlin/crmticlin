@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -128,7 +129,7 @@ export const RealtimeDebugger = () => {
         return;
       }
 
-      // Inserir mensagem de teste
+      // Inserir mensagem de teste - usando apenas campos que existem na tabela
       const { data, error } = await supabase
         .from('messages')
         .insert({
@@ -137,8 +138,8 @@ export const RealtimeDebugger = () => {
           timestamp: new Date().toISOString(),
           lead_id: leads[0].id,
           whatsapp_number_id: instances[0].id,
-          phone: '5511999999999',
-          status: 'received'
+          status: 'received',
+          created_by_user_id: user?.id
         });
 
       if (error) {

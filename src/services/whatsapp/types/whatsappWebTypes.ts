@@ -1,71 +1,79 @@
 
-// WhatsApp Web.js Service Types
 export interface WhatsAppWebInstance {
   id: string;
   instance_name: string;
-  connection_type: 'web';
-  server_url: string;
-  vps_instance_id: string;
-  web_status: string;
-  connection_status: string;
-  qr_code?: string;
+  vps_instance_id?: string;
+  connection_status: WhatsAppConnectionStatus;
+  web_status?: string;
   phone?: string;
   profile_name?: string;
-  company_id: string;
+  profile_pic_url?: string;
+  qr_code?: string;
+  session_data?: any;
+  date_connected?: string;
+  date_disconnected?: string;
+  server_url?: string;
+  n8n_webhook_url?: string;
+  connection_type: string;
+  created_by_user_id: string;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface ServiceResponse {
+export type WhatsAppConnectionStatus = 
+  | 'disconnected' 
+  | 'connecting' 
+  | 'connected' 
+  | 'ready' 
+  | 'open'
+  | 'close'
+  | 'error';
+
+export interface MessageSendResponse {
   success: boolean;
   error?: string;
-  data?: any;
-}
-
-export interface InstanceResponse extends ServiceResponse {
-  instance?: WhatsAppWebInstance;
-}
-
-export interface QRCodeResponse extends ServiceResponse {
-  qrCode?: string;
-}
-
-export interface ServerHealthResponse extends ServiceResponse {
-  status?: string;
-  uptime?: string;
-  activeInstances?: number;
-  timestamp?: string;
-}
-
-// CORREÇÃO: Interface para resposta de envio de mensagem
-export interface MessageSendResponse extends ServiceResponse {
   messageId?: string;
   timestamp?: string;
   leadId?: string;
 }
 
-// CORREÇÃO: Interface para resposta de sincronização
-export interface SyncResponse extends ServiceResponse {
+export interface SyncResponse {
+  success: boolean;
+  error?: string;
   data?: {
-    summary?: {
+    summary: {
       updated: number;
       preserved: number;
       adopted: number;
       errors: number;
     };
-    instances?: any[];
+    instances: WhatsAppWebInstance[];
   };
 }
 
-// VPS Server Communication Types
-export interface VPSCreateInstanceRequest {
-  instanceId: string;
-  sessionName: string;
-  webhookUrl?: string;
+export interface ServerHealthResponse {
+  success: boolean;
+  error?: string;
+  data?: {
+    status: string;
+    server?: string;
+    version?: string;
+    port?: number;
+    dockerRunning?: boolean;
+    pm2Running?: boolean;
+    latency?: number;
+  };
 }
 
-export interface VPSDeleteInstanceRequest {
-  instanceId: string;
+export interface QRCodeResponse {
+  success: boolean;
+  error?: string;
+  qrCode?: string;
+  waiting?: boolean;
 }
 
-export interface VPSInstanceStatusRequest {
-  instanceId: string;
+export interface InstanceCreationResponse {
+  success: boolean;
+  error?: string;
+  instance?: WhatsAppWebInstance;
 }

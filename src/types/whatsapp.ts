@@ -1,73 +1,29 @@
 
 export type WhatsAppConnectionStatus = 
-  | "disconnected" 
-  | "connecting" 
-  | "connected" 
-  | "error" 
-  | "qr_ready" 
-  | "authenticating"
-  | "ready"
-  | "open"
-  | "waiting_scan"
-  | "waiting_qr"
-  | "database_only"
-  | "vps_error";
-
-export interface WhatsAppWebResult {
-  success: boolean;
-  instanceId?: string;
-  qrCode?: string;
-  sessionData?: any;
-  error?: string;
-  [key: string]: any; // Index signature for Json compatibility
-}
+  | 'disconnected' 
+  | 'connecting' 
+  | 'connected' 
+  | 'ready' 
+  | 'open'
+  | 'close'
+  | 'error';
 
 export interface WhatsAppWebInstance {
   id: string;
   instance_name: string;
-  phone?: string;
-  created_by_user_id: string;
-  connection_status: WhatsAppConnectionStatus;
-  connection_type: string;
-  server_url?: string;
   vps_instance_id?: string;
+  connection_status: WhatsAppConnectionStatus;
   web_status?: string;
-  qr_code?: string;
-  session_data?: any;
+  phone?: string;
   profile_name?: string;
   profile_pic_url?: string;
+  qr_code?: string;
+  session_data?: any;
   date_connected?: string;
   date_disconnected?: string;
-  created_at: string;
-  updated_at: string;
+  server_url?: string;
   n8n_webhook_url?: string;
-  history_imported?: boolean;
-}
-
-export interface WhatsAppMessage {
-  id: string;
-  text?: string;
-  from_me: boolean;
-  timestamp: string;
-  status: "sent" | "delivered" | "read" | "failed";
-  media_type?: "text" | "image" | "video" | "audio" | "document";
-  media_url?: string;
-  whatsapp_number_id: string;
-  lead_id?: string;
-  created_by_user_id: string;
-  created_at: string;
-  external_id?: string;
-}
-
-export interface WhatsAppContact {
-  id: string;
-  name: string;
-  phone: string;
-  profile_pic_url?: string;
-  last_message?: string;
-  last_message_time?: string;
-  unread_count: number;
-  whatsapp_number_id: string;
+  connection_type: string;
   created_by_user_id: string;
   created_at: string;
   updated_at: string;

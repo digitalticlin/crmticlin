@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessageSquare } from "lucide-react";
@@ -9,6 +10,7 @@ import { useQRCodeModal } from "@/modules/whatsapp/instanceCreation/hooks/useQRC
 import { useConnectionStatusSync } from "@/modules/whatsapp/connectionStatusSync";
 import { useInstanceCreation } from "@/modules/whatsapp/instanceCreation/hooks/useInstanceCreation";
 import { AddNewConnectionCard } from "./connection/AddNewConnectionCard";
+import { toast } from "sonner";
 
 export const OptimizedSettingsSection = () => {
   console.log('[Optimized Settings] 🎯 Interface Grid Glassmorphism para WhatsApp Web.js - LAYOUT REORGANIZADO');
