@@ -6,6 +6,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { SidebarProvider } from './contexts/SidebarContext';
 import { QRCodeModalProvider } from './modules/whatsapp/instanceCreation/hooks/useQRCodeModal';
 import { BigQueryOptimizer } from './utils/immediate-bigquery-fix';
+import { supabase } from './integrations/supabase/client'; // 🚀 IMPORTAR SUPABASE
 import './utils/debug-messages-test'; // 🔧 IMPORTAR SCRIPTS DE DEBUG
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
@@ -22,10 +23,38 @@ import AutomationPage from './pages/Automation';
 import AIAgentsPage from './pages/AIAgents';
 import PlansPage from './pages/Plans';
 
+// 🚀 DECLARAÇÃO GLOBAL PARA TYPESCRIPT
+declare global {
+  interface Window {
+    supabase: typeof supabase;
+  }
+}
+
 const queryClient = new QueryClient();
 
 function App() {
   console.log('[App] 🚀 Inicializando aplicação');
+  
+  // 🚀 CORREÇÃO CRÍTICA: Expor Supabase globalmente para debug
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.supabase = supabase;
+      console.log('[App] ✅ Supabase exposto globalmente para debug');
+      
+      // Teste único de autenticação (evitar loops)
+      if (!window.authTestExecuted) {
+        supabase.auth.getSession().then(({ data: { session }, error }) => {
+          console.log('[App] 🔐 Estado inicial de autenticação:', {
+            hasSession: !!session,
+            userId: session?.user?.id,
+            userEmail: session?.user?.email,
+            error: error?.message
+          });
+        });
+        window.authTestExecuted = true;
+      }
+    }
+  }, []);
   
   // OTIMIZAÇÃO: Sistema inteligente de BigQuery (não executa automaticamente)
   useEffect(() => {

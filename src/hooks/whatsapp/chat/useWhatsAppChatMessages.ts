@@ -6,6 +6,7 @@ import { MessagingService } from '@/modules/whatsapp/messaging/services/messagin
 // ❌ REMOVIDO: import { useMessageRealtime } from './hooks/useMessageRealtime'; - Sistema antigo conflitante
 import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useWhatsAppDatabase } from '@/hooks/whatsapp/useWhatsAppDatabase'; // 🚀 IMPORTAR HOOK CORRIGIDO
+import { useAuth } from '@/contexts/AuthContext'; // 🚀 DEBUG: Para logs detalhados
 import { toast } from 'sonner';
 
 // Cache global otimizado com timestamps
@@ -18,6 +19,20 @@ export const useWhatsAppChatMessages = (
   selectedContact: Contact | null,
   activeInstance: WhatsAppWebInstance | null // 🚀 DEPRECADO: Será substituído por lógica específica
 ) => {
+  // 🚀 DEBUG CRÍTICO: Verificar se hook está sendo executado
+  console.log('[WhatsApp Messages] 🚀 HOOK EXECUTADO:', {
+    selectedContact: selectedContact ? {
+      id: selectedContact.id,
+      name: selectedContact.name,
+      phone: selectedContact.phone
+    } : null,
+    activeInstance: activeInstance ? {
+      id: activeInstance.id,
+      name: activeInstance.instance_name
+    } : null,
+    timestamp: new Date().toISOString()
+  });
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -30,6 +45,9 @@ export const useWhatsAppChatMessages = (
 
   // 🚀 CORREÇÃO CRÍTICA: Usar hook multi-tenant corrigido
   const { getInstanceForLead } = useWhatsAppDatabase();
+  
+  // 🚀 DEBUG: Para logs detalhados
+  const { user } = useAuth();
 
   // Refs para controle de estado e evitar loops
   const selectedContactRef = useRef(selectedContact);
@@ -104,16 +122,39 @@ export const useWhatsAppChatMessages = (
       if (cachedData) {
         console.log('[WhatsApp Messages] 💾 Usando cache:', {
           contactName: currentContact.name,
-          mensagens: cachedData.data.length
+          mensagens: cachedData.data.length,
+          cacheKey,
+          timestampCache: cachedData.timestamp,
+          ageSec: (Date.now() - cachedData.timestamp) / 1000
         });
         setMessages(cachedData.data);
         setHasMoreMessages(cachedData.hasMore);
         setIsLoadingMessages(false);
         return;
+      } else {
+        console.log('[WhatsApp Messages] 🚫 Cache não encontrado ou expirado:', {
+          cacheKey,
+          forceRefresh,
+          loadMore
+        });
       }
+    } else {
+      console.log('[WhatsApp Messages] ⚡ Bypass cache:', {
+        forceRefresh,
+        loadMore,
+        cacheKey
+      });
     }
 
     // Throttling para evitar chamadas muito frequentes
+    console.log('[WhatsApp Messages] 🕒 Verificando throttling:', {
+      now,
+      lastFetch: lastFetchTimeRef.current,
+      diffMs: now - lastFetchTimeRef.current,
+      isLoadMore: loadMore,
+      willBlock: (now - lastFetchTimeRef.current < 500 && !loadMore)
+    });
+    
     if (now - lastFetchTimeRef.current < 500 && !loadMore) {
       console.log('[WhatsApp Messages] ⚠️ Throttling ativo, ignorando');
       return;
@@ -124,8 +165,24 @@ export const useWhatsAppChatMessages = (
       clearTimeout(debounceTimeoutRef.current);
     }
 
+    console.log('[WhatsApp Messages] 🎯 EXECUÇÃO FINAL:', {
+      loadMore,
+      willUseDebounce: !loadMore,
+      action: loadMore ? 'executeQuery() direto' : 'executeQuery() SEM debounce (teste)'
+    });
+
     const executeQuery = async () => {
       try {
+        // 🚀 VERIFICAÇÃO SIMPLES: Autenticação necessária para RLS (sem logs excessivos)
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (!session?.user) {
+          console.error('[WhatsApp Messages] ❌ Usuário não autenticado - RLS bloqueará query');
+          setIsLoadingMessages(false);
+          setIsLoadingMore(false);
+          return;
+        }
+
         isLoadingRef.current = true;
         
         if (loadMore) {
@@ -151,18 +208,35 @@ export const useWhatsAppChatMessages = (
           userId: activeInstanceRef.current?.created_by_user_id
         });
         
-        // Query adaptada para Admin vs usuário normal
+
+        
+        // 🚀 CORREÇÃO: Usar mesma abordagem do card que funciona
+        // Card usa tabela leads com created_by_user_id = userId
+        // Área de conversa usa tabela messages que precisa de filtro por instância
+        
         let query = supabase
           .from('messages')
           .select('*')
-          .eq('lead_id', currentContact.id)
-          .order('timestamp', { ascending: false })
-          .range(offset, offset + limit - 1);
+          .eq('lead_id', currentContact.id);
 
-        // Admin vê todas as mensagens, usuário normal apenas da instância ativa
+        // 🚀 ADMIN: Admin vê mensagens de todas as instâncias, usuário normal apenas da ativa
         if (!isAdmin && currentInstance?.id) {
           query = query.eq('whatsapp_number_id', currentInstance.id);
+          console.log('[WhatsApp Messages] 🔍 Query usuário normal (com filtro instância):', {
+            leadId: currentContact.id,
+            instanceId: currentInstance.id,
+            note: 'Filtrando por instância específica como no card'
+          });
+        } else if (isAdmin) {
+          console.log('[WhatsApp Messages] 🔍 Query admin (sem filtro instância):', {
+            leadId: currentContact.id,
+            note: 'Admin vê mensagens de todas as instâncias'
+          });
         }
+
+        query = query
+          .order('timestamp', { ascending: false })
+          .range(offset, offset + limit - 1);
 
         const { data: messagesData, error } = await query;
 
@@ -236,14 +310,11 @@ export const useWhatsAppChatMessages = (
       }
     };
 
-    if (!loadMore && debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
-
     if (loadMore) {
       executeQuery();
     } else {
-      debounceTimeoutRef.current = setTimeout(executeQuery, 100);
+      // 🚀 TESTE: Remover debounce temporariamente
+      executeQuery(); // Era: debounceTimeoutRef.current = setTimeout(executeQuery, 100);
     }
   }, [getCachedMessages, setCachedMessages, messages.length, isAdmin]);
 
@@ -299,6 +370,32 @@ export const useWhatsAppChatMessages = (
     setIsSending(true);
     
     try {
+      // 🚀 DEBUG CRÍTICO: Verificar estado de autenticação
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log('[WhatsApp Messages] 🔐 Estado de autenticação:', {
+        hasSession: !!session,
+        userId: session?.user?.id,
+        userEmail: session?.user?.email,
+        sessionError: sessionError?.message,
+        contextUserId: user?.id,
+        contextUserEmail: user?.email
+      });
+
+      if (!session?.user) {
+        console.error('[WhatsApp Messages] ❌ Usuário não autenticado - RLS irá bloquear query');
+        setIsLoadingMessages(false);
+        return;
+      }
+
+      // 🚀 CORREÇÃO CRÍTICA: Verificar se instância é necessária
+      const instanceNeeded = await getInstanceForLead(currentContact.id);
+      console.log('[WhatsApp Messages] 🏭 Instância necessária:', {
+        leadId: currentContact.id,
+        instanceId: instanceNeeded?.id,
+        instanceName: instanceNeeded?.instance_name
+      });
+
+      setIsLoadingMessages(true);
       // ✅ USAR MESSAGING SERVICE LIMPO COM INSTÂNCIA CORRETA
       const result = await MessagingService.sendMessage({
         instanceId: correctInstance.id,
@@ -335,13 +432,34 @@ export const useWhatsAppChatMessages = (
 
   // Efeito para carregar mensagens quando contato ou instância mudarem
   useEffect(() => {
+    console.log('[WhatsApp Messages] 🔄 useEffect DISPARADO:', {
+      selectedContactId: selectedContact?.id,
+      selectedContactName: selectedContact?.name,
+      hasSelectedContact: !!selectedContact,
+      dependency: 'selectedContact?.id mudou'
+    });
+    
     if (selectedContact) {
       console.log('[WhatsApp Messages] 📱 Carregando mensagens para novo contato:', {
         contactId: selectedContact.id,
-        contactName: selectedContact.name
+        contactName: selectedContact.name,
+        instanceId: activeInstance?.id,
+        isAdmin,
+        userId: user?.id
       });
-      fetchMessagesStable();
+      
+      // 🚀 DEBUG: Forçar carregamento e verificar resultado
+      fetchMessagesStable().then(() => {
+        console.log('[WhatsApp Messages] ✅ fetchMessagesStable concluído:', {
+          mensagensCarregadas: messages.length,
+          isLoading: isLoadingMessages,
+          hasMore: hasMoreMessages
+        });
+      }).catch(error => {
+        console.error('[WhatsApp Messages] ❌ Erro em fetchMessagesStable:', error);
+      });
     } else {
+      console.log('[WhatsApp Messages] 🔄 Limpando mensagens - nenhum contato selecionado');
       setMessages([]);
       setHasMoreMessages(true);
     }

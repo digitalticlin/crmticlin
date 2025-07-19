@@ -72,6 +72,9 @@ export const useWhatsAppChatContext = () => {
 };
 
 export const WhatsAppChatProvider = React.memo(({ children }: { children: React.ReactNode }) => {
+  // 🚨 DEBUG CRÍTICO: Verificar se provider está sendo executado
+  console.log('🚨 [PROVIDER DEBUG] WhatsAppChatProvider INICIADO:', new Date().toISOString());
+  
   const { user } = useAuth();
   const { userId, loading: companyLoading } = useCompanyData();
   const [searchParams] = useSearchParams();
@@ -132,16 +135,49 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
   } = useWhatsAppContacts(webActiveInstance, user?.id || null);
 
   // Hook específico para mensagens com paginação
-  const {
-    messages,
+  console.log('🚨 [PROVIDER DEBUG] Antes de chamar useWhatsAppChatMessages');
+  
+  let messages, isLoadingMessages, isLoadingMore, hasMoreMessages, isSending, sendMessage, loadMoreMessages, fetchMessages;
+  
+  try {
+    const messagesHook = useWhatsAppChatMessages(selectedContact, webActiveInstance);
+    messages = messagesHook.messages;
+    isLoadingMessages = messagesHook.isLoadingMessages;
+    isLoadingMore = messagesHook.isLoadingMore;
+    hasMoreMessages = messagesHook.hasMoreMessages;
+    isSending = messagesHook.isSending;
+    sendMessage = messagesHook.sendMessage;
+    loadMoreMessages = messagesHook.loadMoreMessages;
+    fetchMessages = messagesHook.fetchMessages;
+    
+    console.log('🚨 [PROVIDER DEBUG] useWhatsAppChatMessages executado com sucesso');
+  } catch (error) {
+    console.error('🚨 [PROVIDER DEBUG] ERRO em useWhatsAppChatMessages:', error);
+    // Fallback values
+    messages = [];
+    isLoadingMessages = false;
+    isLoadingMore = false;
+    hasMoreMessages = false;
+    isSending = false;
+    sendMessage = async () => false;
+    loadMoreMessages = async () => {};
+    fetchMessages = () => {};
+  }
+
+  // 🚀 DEBUG CRÍTICO: Verificar se hook está sendo chamado
+  console.log('[WhatsApp Chat Provider] 🔍 Hook useWhatsAppChatMessages chamado:', {
+    selectedContact: selectedContact ? {
+      id: selectedContact.id,
+      name: selectedContact.name
+    } : null,
+    webActiveInstance: webActiveInstance ? {
+      id: webActiveInstance.id,
+      name: webActiveInstance.instance_name
+    } : null,
+    messagesLength: messages.length,
     isLoadingMessages,
-    isLoadingMore,
-    hasMoreMessages,
-    isSending,
-    sendMessage,
-    loadMoreMessages,
-    fetchMessages
-  } = useWhatsAppChatMessages(selectedContact, webActiveInstance);
+    timestamp: new Date().toISOString()
+  });
 
   // 🚀 NOVO SISTEMA MODULAR DE REALTIME - ISOLADO E OTIMIZADO
   
@@ -239,20 +275,42 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
 
   // Função memoizada para selecionar contato e marcar como lido
   const handleSelectContact = useCallback(async (contact: Contact | null) => {
+    // 🚀 DEBUG CRÍTICO: Verificar se função está sendo chamada
+    console.log('[WhatsApp Chat Provider] 🎯 handleSelectContact EXECUTADO:', {
+      contactId: contact?.id,
+      contactName: contact?.name,
+      hasContact: !!contact,
+      previousSelectedId: selectedContact?.id,
+      timestamp: new Date().toISOString()
+    });
+    
     if (contact && contact.unreadCount && contact.unreadCount > 0) {
       console.log('[WhatsApp Chat Provider] 🔄 Marcando como lida para contato:', contact.name, 'unreadCount:', contact.unreadCount);
       try {
         await markAsRead(contact.id);
-        console.log('[WhatsApp Chat Provider] ✅ Contato marcado como lido com sucesso');
-        
-        // ❌ REMOVIDO: fetchContacts(true) que reseta a paginação
-        // ✅ O markAsRead já atualiza o contador específico do contato
+        console.log('[WhatsApp Chat Provider] ✅ Mensagens marcadas como lidas');
       } catch (error) {
-        console.error('[WhatsApp Chat Provider] ❌ Erro ao marcar como lido:', error);
+        console.error('[WhatsApp Chat Provider] ❌ Erro ao marcar como lida:', error);
       }
     }
+
+    console.log('[WhatsApp Chat Provider] 📝 Definindo selectedContact:', {
+      from: selectedContact?.id,
+      to: contact?.id
+    });
+    
     setSelectedContact(contact);
-  }, [markAsRead]);
+    
+    // 🚀 CORREÇÃO CRÍTICA: Forçar carregamento mesmo se for o mesmo contato
+    if (contact) {
+      console.log('[WhatsApp Chat Provider] 🔄 Forçando carregamento de mensagens para:', contact.name);
+      
+      // Usar setTimeout para garantir que selectedContact já foi atualizado
+      setTimeout(() => {
+        fetchMessages(true); // forceRefresh = true
+      }, 50);
+    }
+  }, [selectedContact?.id, markAsRead, fetchMessages]);
 
   // Memoizar saúde da instância para evitar re-cálculos
   const instanceHealth = useMemo(() => ({
