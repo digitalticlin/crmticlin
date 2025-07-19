@@ -39,7 +39,7 @@ function setCachedData<T>(cache: Map<string, CacheEntry<T>>, key: string, data: 
 serve(async (req) => {
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
   
-  console.log(`[${requestId}] 🚀 WEBHOOK INICIANDO - VERSÃO CORRIGIDA`);
+  console.log(`[${requestId}] 🚀 WEBHOOK INICIANDO - VERSÃO COM CORREÇÃO DE SCHEMA`);
   
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -54,7 +54,7 @@ serve(async (req) => {
   }
 
   try {
-    // FASE 1: Configuração robusta do cliente Supabase
+    // FASE 1: Configuração robusta do cliente Supabase com schema explícito
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
@@ -67,17 +67,22 @@ serve(async (req) => {
         headers: {
           'apikey': supabaseServiceKey,
           'authorization': `Bearer ${supabaseServiceKey}`,
-          'x-client-info': 'webhook-whatsapp-web-corrected'
+          'x-client-info': 'webhook-whatsapp-web-schema-corrected'
         }
       }
     });
 
-    // Teste de conectividade
-    const { error: connectionTest } = await supabase.from('whatsapp_instances').select('id').limit(1);
+    // CORREÇÃO CRÍTICA: Teste de conectividade com schema explícito
+    console.log(`[${requestId}] 🔍 Testando conectividade com schema público...`);
+    const { error: connectionTest } = await supabase.from('public.whatsapp_instances').select('id').limit(1);
     if (connectionTest) {
-      console.error(`[${requestId}] ❌ Erro de conectividade:`, connectionTest);
+      console.error(`[${requestId}] ❌ Erro de conectividade com schema público:`, connectionTest);
       throw new Error(`Database connection failed: ${connectionTest.message}`);
     }
+    console.log(`[${requestId}] ✅ Conectividade com schema público confirmada`);
+
+    // CORREÇÃO CRÍTICA: Verificar existência das tabelas essenciais
+    await verifySchemaIntegrity(supabase, requestId);
 
     const payload = await req.json();
     console.log(`[${requestId}] 📥 Payload recebido:`, JSON.stringify(payload, null, 2));
@@ -130,16 +135,50 @@ serve(async (req) => {
   }
 });
 
+// NOVA FUNÇÃO: Verificar integridade do schema
+async function verifySchemaIntegrity(supabase: any, requestId: string) {
+  console.log(`[${requestId}] 🔍 Verificando integridade do schema...`);
+  
+  try {
+    // Verificar tabela leads
+    const { error: leadsError } = await supabase
+      .from('public.leads')
+      .select('id')
+      .limit(1);
+    
+    if (leadsError) {
+      console.error(`[${requestId}] ❌ Erro ao acessar public.leads:`, leadsError);
+      throw new Error(`Tabela public.leads não acessível: ${leadsError.message}`);
+    }
+
+    // Verificar tabela messages
+    const { error: messagesError } = await supabase
+      .from('public.messages')
+      .select('id')
+      .limit(1);
+    
+    if (messagesError) {
+      console.error(`[${requestId}] ❌ Erro ao acessar public.messages:`, messagesError);
+      throw new Error(`Tabela public.messages não acessível: ${messagesError.message}`);
+    }
+
+    console.log(`[${requestId}] ✅ Schema público verificado com sucesso`);
+  } catch (error) {
+    console.error(`[${requestId}] ❌ Falha na verificação do schema:`, error);
+    throw new Error(`Schema verification failed: ${error.message}`);
+  }
+}
+
 async function processMessage(supabase: any, payload: any, instanceId: string, requestId: string) {
   try {
     console.log(`[${requestId}] 🔍 Buscando instância: ${instanceId}`);
     
-    // FASE 4: Usar cache para instâncias
+    // FASE 4: Usar cache para instâncias com schema explícito
     let instance = getCachedData(instanceCache, instanceId);
     
     if (!instance) {
       const { data: instances, error: instanceError } = await supabase
-        .from('whatsapp_instances')
+        .from('public.whatsapp_instances')
         .select('id, created_by_user_id, instance_name, vps_instance_id')
         .eq('vps_instance_id', instanceId);
 
@@ -193,14 +232,14 @@ async function processMessage(supabase: any, payload: any, instanceId: string, r
       textLength: messageData.text?.length || 0
     });
 
-    // FASE 1: Gestão robusta de leads
+    // FASE 1: Gestão robusta de leads com schema explícito
     const lead = await findOrCreateLead(supabase, messageData.phone, instance, requestId);
     
     if (!lead) {
       throw new Error('Falha ao criar/encontrar lead');
     }
 
-    // FASE 1: Salvar mensagem com retry logic
+    // CORREÇÃO CRÍTICA: Salvar mensagem com schema explícito
     const message = await saveMessageWithRetry(supabase, {
       lead_id: lead.id,
       whatsapp_number_id: instance.id,
@@ -368,14 +407,14 @@ function extractPhoneFromMessage(messageData: any): string | null {
   return phoneMatch ? phoneMatch[1] : null;
 }
 
-// FASE 1: Buscar ou criar lead com lógica simplificada
+// CORREÇÃO CRÍTICA: Buscar ou criar lead com schema explícito
 async function findOrCreateLead(supabase: any, phone: string, instance: any, requestId: string) {
   console.log(`[${requestId}] 👤 Buscando lead para telefone: ${phone}`);
   
   try {
-    // Buscar lead existente
+    // CORREÇÃO: Buscar lead existente com schema explícito
     const { data: existingLead, error: searchError } = await supabase
-      .from('leads')
+      .from('public.leads')
       .select('*')
       .eq('phone', phone)
       .eq('created_by_user_id', instance.created_by_user_id)
@@ -391,9 +430,9 @@ async function findOrCreateLead(supabase: any, phone: string, instance: any, req
     if (existingLead) {
       console.log(`[${requestId}] 👤 Lead encontrado: ${existingLead.id}`);
       
-      // Atualizar informações do lead
+      // CORREÇÃO: Atualizar informações do lead com schema explícito
       const { error: updateError } = await supabase
-        .from('leads')
+        .from('public.leads')
         .update({
           whatsapp_number_id: instance.id,
           last_message_time: new Date().toISOString(),
@@ -418,7 +457,7 @@ async function findOrCreateLead(supabase: any, phone: string, instance: any, req
     
     if (!defaultFunnel) {
       const { data: funnel } = await supabase
-        .from('funnels')
+        .from('public.funnels')
         .select('id')
         .eq('created_by_user_id', instance.created_by_user_id)
         .limit(1)
@@ -430,8 +469,9 @@ async function findOrCreateLead(supabase: any, phone: string, instance: any, req
       }
     }
 
+    // CORREÇÃO: Criar novo lead com schema explícito
     const { data: newLead, error: createError } = await supabase
-      .from('leads')
+      .from('public.leads')
       .insert({
         phone: phone,
         name: `Contato ${phone}`,
@@ -457,22 +497,23 @@ async function findOrCreateLead(supabase: any, phone: string, instance: any, req
   }
 }
 
-// FASE 3: Salvar mensagem com retry logic
+// CORREÇÃO CRÍTICA: Salvar mensagem com schema explícito e retry logic
 async function saveMessageWithRetry(supabase: any, messageData: any, requestId: string, maxRetries: number = 3) {
-  console.log(`[${requestId}] 💾 Salvando mensagem...`);
+  console.log(`[${requestId}] 💾 Salvando mensagem com schema explícito...`);
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`[${requestId}] 📝 Tentativa ${attempt}/${maxRetries}`);
+      console.log(`[${requestId}] 📝 Tentativa ${attempt}/${maxRetries} - Inserindo em public.messages`);
       
+      // CORREÇÃO CRÍTICA: Forçar schema público explicitamente
       const { data: savedMessage, error: messageError } = await supabase
-        .from('messages')
+        .from('public.messages')
         .insert(messageData)
         .select('id')
         .single();
 
       if (messageError) {
-        console.error(`[${requestId}] ❌ Erro na tentativa ${attempt}:`, messageError);
+        console.error(`[${requestId}] ❌ Erro na tentativa ${attempt} (public.messages):`, messageError);
         
         if (attempt === maxRetries) {
           throw new Error(`Falha ao salvar mensagem após ${maxRetries} tentativas: ${messageError.message}`);
@@ -483,7 +524,7 @@ async function saveMessageWithRetry(supabase: any, messageData: any, requestId: 
         continue;
       }
 
-      console.log(`[${requestId}] ✅ Mensagem salva na tentativa ${attempt}`);
+      console.log(`[${requestId}] ✅ Mensagem salva em public.messages na tentativa ${attempt}`);
       return savedMessage;
 
     } catch (error) {
