@@ -6,7 +6,11 @@ export type WhatsAppConnectionStatus =
   | 'ready' 
   | 'open'
   | 'close'
-  | 'error';
+  | 'error'
+  | 'waiting_qr'
+  | 'database_only'
+  | 'vps_error'
+  | 'qr_ready';
 
 export interface WhatsAppWebInstance {
   id: string;
@@ -27,4 +31,14 @@ export interface WhatsAppWebInstance {
   created_by_user_id: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface WhatsAppWebResult {
+  instance: {
+    instanceId: string;
+    instanceName: string;
+    [key: string]: any;
+  };
+  qrCode?: string;
+  [key: string]: any;
 }

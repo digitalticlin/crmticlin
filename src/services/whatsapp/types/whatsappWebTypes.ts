@@ -1,4 +1,17 @@
 
+export type WhatsAppConnectionStatus = 
+  | 'disconnected' 
+  | 'connecting' 
+  | 'connected' 
+  | 'ready' 
+  | 'open'
+  | 'close'
+  | 'error'
+  | 'waiting_qr'
+  | 'database_only'
+  | 'vps_error'
+  | 'qr_ready';
+
 export interface WhatsAppWebInstance {
   id: string;
   instance_name: string;
@@ -20,14 +33,17 @@ export interface WhatsAppWebInstance {
   updated_at: string;
 }
 
-export type WhatsAppConnectionStatus = 
-  | 'disconnected' 
-  | 'connecting' 
-  | 'connected' 
-  | 'ready' 
-  | 'open'
-  | 'close'
-  | 'error';
+export interface ServiceResponse {
+  success: boolean;
+  error?: string;
+  data?: any;
+}
+
+export interface InstanceResponse {
+  success: boolean;
+  error?: string;
+  instance?: WhatsAppWebInstance;
+}
 
 export interface MessageSendResponse {
   success: boolean;
@@ -62,6 +78,11 @@ export interface ServerHealthResponse {
     dockerRunning?: boolean;
     pm2Running?: boolean;
     latency?: number;
+    uptime?: number;
+    permanent_mode?: boolean;
+    permanentMode?: boolean;
+    active_instances?: number;
+    activeInstances?: number;
   };
 }
 
@@ -70,10 +91,4 @@ export interface QRCodeResponse {
   error?: string;
   qrCode?: string;
   waiting?: boolean;
-}
-
-export interface InstanceCreationResponse {
-  success: boolean;
-  error?: string;
-  instance?: WhatsAppWebInstance;
 }

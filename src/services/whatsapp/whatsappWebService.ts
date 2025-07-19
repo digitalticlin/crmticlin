@@ -6,7 +6,7 @@ import {
   SyncResponse, 
   ServerHealthResponse, 
   QRCodeResponse, 
-  InstanceCreationResponse,
+  InstanceResponse,
   WhatsAppConnectionStatus
 } from "./types/whatsappWebTypes";
 
@@ -31,7 +31,7 @@ export class WhatsAppWebService {
     }
   }
 
-  static async createInstance(instanceName: string): Promise<InstanceCreationResponse> {
+  static async createInstance(instanceName: string): Promise<InstanceResponse> {
     try {
       const { data, error } = await supabase.functions.invoke('whatsapp_instance_create', {
         body: { instanceName }
@@ -85,6 +85,27 @@ export class WhatsAppWebService {
       return {
         success: false,
         error: error.message || 'Erro ao obter QR Code'
+      };
+    }
+  }
+
+  static async refreshQRCode(instanceId: string): Promise<QRCodeResponse> {
+    try {
+      const { data, error } = await supabase.functions.invoke('whatsapp_instance_qr', {
+        body: { instanceId, refresh: true }
+      });
+
+      if (error) throw error;
+
+      return {
+        success: true,
+        qrCode: data?.qrCode,
+        waiting: data?.waiting
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Erro ao atualizar QR Code'
       };
     }
   }
