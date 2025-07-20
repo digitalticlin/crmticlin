@@ -810,6 +810,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      user_has_whatsapp_number: {
+        Args: { number_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       media_type: "text" | "image" | "video" | "audio" | "document"
