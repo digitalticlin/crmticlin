@@ -1,3 +1,4 @@
+
 -- Migração para adicionar políticas RLS para service_role
 -- Necessário para webhooks funcionarem corretamente
 
