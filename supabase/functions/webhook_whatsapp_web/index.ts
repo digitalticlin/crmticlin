@@ -197,208 +197,20 @@ class PayloadNormalizer {
 }
 
 // ========================================
-// MEDIA PROCESSOR
-// ========================================
-class MediaProcessor {
-  private supabase: any;
-
-  constructor(supabase: any) {
-    this.supabase = supabase;
-  }
-
-  async processMedia(message: NormalizedMessage): Promise<string | null> {
-    if (message.mediaType === 'text' || (!message.mediaUrl && !message.mediaData)) {
-      return null;
-    }
-
-    const startTime = Date.now();
-    console.log(`[Media] 📁 Processando mídia:`, {
-      type: message.mediaType,
-      hasUrl: !!message.mediaUrl,
-      hasData: !!message.mediaData,
-      messageId: message.messageId
-    });
-
-    try {
-      const cached = await this.checkMediaCache(message.messageId);
-      if (cached) {
-        console.log(`[Media] ⚡ Cache hit para: ${message.messageId}`);
-        return cached;
-      }
-
-      let finalUrl: string | null = null;
-
-      if (message.mediaData) {
-        finalUrl = await this.uploadBase64Media(message.mediaData, message.messageId, message.mediaType);
-      } else if (message.mediaUrl) {
-        finalUrl = await this.downloadAndUploadMedia(message.mediaUrl, message.messageId, message.mediaType);
-      }
-
-      if (finalUrl) {
-        await this.saveMediaCache(message.messageId, message.mediaUrl, finalUrl, message.mediaData, message.mediaType);
-      }
-
-      console.log(`[Media] ⏱️ Mídia processada em: ${Date.now() - startTime}ms`);
-      return finalUrl;
-
-    } catch (error) {
-      console.error(`[Media] ❌ Erro no processamento:`, error);
-      return null;
-    }
-  }
-
-  private async checkMediaCache(messageId: string): Promise<string | null> {
-    try {
-      const { data, error } = await this.supabase
-        .from('media_cache')
-        .select('cached_url')
-        .eq('message_id', messageId)
-        .maybeSingle();
-
-      if (error) {
-        console.warn(`[Media] Cache check error:`, error);
-        return null;
-      }
-
-      return data?.cached_url || null;
-    } catch (error) {
-      console.warn(`[Media] Cache check failed:`, error);
-      return null;
-    }
-  }
-
-  private async uploadBase64Media(base64Data: string, messageId: string, mediaType: string): Promise<string | null> {
-    try {
-      const byteCharacters = atob(base64Data);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      
-      const mimeType = this.getMimeType(mediaType);
-      const blob = new Blob([byteArray], { type: mimeType });
-      
-      const fileExtension = this.getFileExtension(mediaType);
-      const fileName = `${messageId}.${fileExtension}`;
-      
-      const { data, error } = await this.supabase.storage
-        .from('whatsapp-media')
-        .upload(fileName, blob, {
-          cacheControl: '3600',
-          upsert: true
-        });
-
-      if (error) {
-        console.error(`[Media] Upload error:`, error);
-        return null;
-      }
-
-      const { data: publicUrlData } = this.supabase.storage
-        .from('whatsapp-media')
-        .getPublicUrl(fileName);
-
-      return publicUrlData.publicUrl;
-    } catch (error) {
-      console.error(`[Media] Base64 upload error:`, error);
-      return null;
-    }
-  }
-
-  private async downloadAndUploadMedia(url: string, messageId: string, mediaType: string): Promise<string | null> {
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to download: ${response.status}`);
-      }
-
-      const blob = await response.blob();
-      const fileExtension = this.getFileExtension(mediaType);
-      const fileName = `${messageId}.${fileExtension}`;
-
-      const { data, error } = await this.supabase.storage
-        .from('whatsapp-media')
-        .upload(fileName, blob, {
-          cacheControl: '3600',
-          upsert: true
-        });
-
-      if (error) {
-        console.error(`[Media] Download upload error:`, error);
-        return null;
-      }
-
-      const { data: publicUrlData } = this.supabase.storage
-        .from('whatsapp-media')
-        .getPublicUrl(fileName);
-
-      return publicUrlData.publicUrl;
-    } catch (error) {
-      console.error(`[Media] Download and upload error:`, error);
-      return null;
-    }
-  }
-
-  private async saveMediaCache(messageId: string, originalUrl: string | undefined, cachedUrl: string, base64Data: string | undefined, mediaType: string) {
-    try {
-      const { error } = await this.supabase
-        .from('media_cache')
-        .upsert({
-          message_id: messageId,
-          original_url: originalUrl,
-          cached_url: cachedUrl,
-          base64_data: base64Data,
-          media_type: mediaType,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
-
-      if (error) {
-        console.warn(`[Media] Cache save error:`, error);
-      }
-    } catch (error) {
-      console.warn(`[Media] Cache save failed:`, error);
-    }
-  }
-
-  private getMimeType(mediaType: string): string {
-    const mapping: Record<string, string> = {
-      'image': 'image/jpeg',
-      'video': 'video/mp4',
-      'audio': 'audio/ogg',
-      'document': 'application/pdf'
-    };
-    return mapping[mediaType] || 'application/octet-stream';
-  }
-
-  private getFileExtension(mediaType: string): string {
-    const mapping: Record<string, string> = {
-      'image': 'jpg',
-      'video': 'mp4',
-      'audio': 'ogg',
-      'document': 'pdf'
-    };
-    return mapping[mediaType] || 'bin';
-  }
-}
-
-// ========================================
-// WEBHOOK PROCESSOR PRINCIPAL - VERSÃO CORRIGIDA
+// WEBHOOK PROCESSOR PRINCIPAL - VERSÃO CORRIGIDA V4
 // ========================================
 class WebhookProcessor {
   private supabase: any;
-  private mediaProcessor: MediaProcessor;
 
   constructor() {
     this.supabase = createClient(supabaseUrl!, supabaseServiceKey!, {
       auth: { autoRefreshToken: false, persistSession: false }
     });
-    this.mediaProcessor = new MediaProcessor(this.supabase);
   }
 
   async processWebhook(payload: any, requestId: string): Promise<ProcessingResult> {
     const startTime = Date.now();
-    console.log(`[Processor] 🚀 Iniciando processamento [${requestId}]`);
+    console.log(`[Processor] 🚀 Iniciando processamento V4 [${requestId}]`);
 
     try {
       // 1. Normalizar payload
@@ -417,71 +229,28 @@ class WebhookProcessor {
         textLength: normalizedMessage.text.length
       });
 
-      // 2. Tentar usar a função SQL otimizada primeiro
-      console.log(`[Processor] 🔄 Tentando função SQL otimizada...`);
-      let messageResult;
-      
-      try {
-        messageResult = await this.supabase.rpc('process_whatsapp_message', {
-          p_vps_instance_id: payload.instanceId || payload.instanceName,
-          p_phone: normalizedMessage.phone,
-          p_message_text: normalizedMessage.text,
-          p_from_me: normalizedMessage.fromMe,
-          p_media_type: normalizedMessage.mediaType,
-          p_media_url: null,
-          p_external_message_id: normalizedMessage.messageId,
-          p_contact_name: normalizedMessage.contactName
-        });
+      // 2. Usar método direto com as novas políticas RLS
+      const result = await this.processMessageDirect(payload, normalizedMessage);
 
-        console.log(`[Processor] 🎯 Resultado da função SQL:`, {
-          success: messageResult.data?.success,
-          error: messageResult.error,
-          data: messageResult.data?.data
-        });
-
-        // Se a função SQL falhou, usar método direto
-        if (!messageResult.data?.success || messageResult.error) {
-          console.log(`[Processor] ⚠️ Função SQL falhou, usando método direto...`);
-          messageResult = await this.processMessageDirect(payload, normalizedMessage);
-        }
-
-      } catch (rpcError) {
-        console.error(`[Processor] ❌ RPC Error:`, rpcError);
-        console.log(`[Processor] 🔄 Fallback para método direto...`);
-        messageResult = await this.processMessageDirect(payload, normalizedMessage);
-      }
-
-      if (!messageResult.success) {
+      if (!result.success) {
         return {
           success: false,
-          error: messageResult.error || 'Database processing failed'
+          error: result.error || 'Database processing failed'
         };
       }
 
-      // 3. Processar mídia em paralelo
-      const mediaProcessingPromise = normalizedMessage.mediaType !== 'text' 
-        ? this.mediaProcessor.processMedia(normalizedMessage)
-        : Promise.resolve(null);
-
-      // 4. Aguardar processamento de mídia e atualizar se necessário
-      const mediaUrl = await mediaProcessingPromise;
-      if (mediaUrl && messageResult.data?.message_id) {
-        await this.updateMessageMediaUrl(messageResult.data.message_id, mediaUrl);
-      }
-
       const processingTime = Date.now() - startTime;
-      console.log(`[Processor] ✅ Processamento concluído em: ${processingTime}ms`);
+      console.log(`[Processor] ✅ Processamento V4 concluído em: ${processingTime}ms`);
 
       return {
         success: true,
-        messageId: messageResult.data?.message_id,
-        leadId: messageResult.data?.lead_id,
-        processingTime,
-        mediaProcessed: !!mediaUrl
+        messageId: result.data?.message_id,
+        leadId: result.data?.lead_id,
+        processingTime
       };
 
     } catch (error) {
-      console.error(`[Processor] ❌ Erro no processamento:`, error);
+      console.error(`[Processor] ❌ Erro no processamento V4:`, error);
       return {
         success: false,
         error: error.message,
@@ -490,9 +259,8 @@ class WebhookProcessor {
     }
   }
 
-  // MÉTODO DIRETO COMO FALLBACK
   private async processMessageDirect(payload: any, normalizedMessage: NormalizedMessage): Promise<any> {
-    console.log(`[Processor] 🔧 Processamento direto iniciado`);
+    console.log(`[Processor] 🔧 Processamento direto V4 iniciado`);
     
     try {
       // 1. Buscar instância
@@ -517,19 +285,53 @@ class WebhookProcessor {
       const formattedPhone = this.formatPhone(normalizedMessage.phone);
       const formattedName = normalizedMessage.contactName || `Contato ${formattedPhone}`;
 
-      // 3. Buscar ou criar lead
-      const { data: existingLead } = await this.supabase
+      console.log(`[Processor] 📞 Telefone formatado: ${formattedPhone.substring(0, 8)}****`);
+
+      // 3. UPSERT do lead (buscar ou criar sem duplicação)  
+      let leadId: string;
+      
+      const { data: existingLead, error: leadSearchError } = await this.supabase
         .from('leads')
         .select('id')
         .eq('phone', formattedPhone)
         .eq('created_by_user_id', instance.created_by_user_id)
         .maybeSingle();
 
-      let leadId = existingLead?.id;
+      if (leadSearchError) {
+        console.error(`[Processor] ❌ Erro ao buscar lead:`, leadSearchError);
+        return {
+          success: false,
+          error: 'Lead search failed'
+        };
+      }
 
-      if (!leadId) {
-        // Buscar funil padrão
-        const { data: funnel } = await this.supabase
+      if (existingLead) {
+        // Lead existe - apenas atualizar
+        leadId = existingLead.id;
+        console.log(`[Processor] 🔄 Lead existente encontrado: ${leadId}`);
+        
+        const { error: updateError } = await this.supabase
+          .from('leads')
+          .update({
+            whatsapp_number_id: instance.id,
+            last_message_time: new Date().toISOString(),
+            last_message: normalizedMessage.text,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', leadId);
+
+        if (updateError) {
+          console.error(`[Processor] ❌ Erro ao atualizar lead:`, updateError);
+          return {
+            success: false,
+            error: 'Lead update failed'
+          };
+        }
+
+        console.log(`[Processor] ✅ Lead atualizado: ${leadId}`);
+      } else {
+        // Lead não existe - criar novo
+        const { data: funnelData } = await this.supabase
           .from('funnels')
           .select('id')
           .eq('created_by_user_id', instance.created_by_user_id)
@@ -537,16 +339,14 @@ class WebhookProcessor {
           .limit(1)
           .maybeSingle();
 
-        // Buscar primeiro estágio
-        const { data: stage } = await this.supabase
+        const { data: stageData } = await this.supabase
           .from('kanban_stages')
           .select('id')
-          .eq('funnel_id', funnel?.id)
+          .eq('funnel_id', funnelData?.id)
           .order('order_position', { ascending: true })
           .limit(1)
           .maybeSingle();
 
-        // Criar novo lead
         const { data: newLead, error: leadError } = await this.supabase
           .from('leads')
           .insert({
@@ -554,9 +354,10 @@ class WebhookProcessor {
             name: formattedName,
             whatsapp_number_id: instance.id,
             created_by_user_id: instance.created_by_user_id,
-            funnel_id: funnel?.id,
-            kanban_stage_id: stage?.id,
+            funnel_id: funnelData?.id,
+            kanban_stage_id: stageData?.id,
             last_message_time: new Date().toISOString(),
+            last_message: normalizedMessage.text,
             import_source: 'realtime'
           })
           .select('id')
@@ -566,24 +367,12 @@ class WebhookProcessor {
           console.error(`[Processor] ❌ Erro ao criar lead:`, leadError);
           return {
             success: false,
-            error: 'Failed to create lead'
+            error: 'Lead creation failed'
           };
         }
 
         leadId = newLead.id;
-        console.log(`[Processor] ✅ Lead criado:`, leadId);
-      } else {
-        // Atualizar lead existente
-        await this.supabase
-          .from('leads')
-          .update({
-            whatsapp_number_id: instance.id,
-            last_message_time: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', leadId);
-
-        console.log(`[Processor] ✅ Lead atualizado:`, leadId);
+        console.log(`[Processor] ✅ Lead criado: ${leadId}`);
       }
 
       // 4. Inserir mensagem
@@ -608,19 +397,20 @@ class WebhookProcessor {
         console.error(`[Processor] ❌ Erro ao inserir mensagem:`, messageError);
         return {
           success: false,
-          error: 'Failed to insert message'
+          error: 'Message insertion failed'
         };
       }
 
-      console.log(`[Processor] ✅ Mensagem inserida:`, message.id);
+      console.log(`[Processor] ✅ Mensagem inserida: ${message.id}`);
 
-      // 5. Atualizar contador de não lidas
+      // 5. Atualizar contador de não lidas (apenas para recebidas)
       if (!normalizedMessage.fromMe) {
         await this.supabase
           .from('leads')
           .update({
-            unread_count: this.supabase.rpc('increment_unread_count', { lead_id: leadId }),
-            last_message: normalizedMessage.text
+            unread_count: this.supabase.rpc('coalesce', [
+              this.supabase.rpc('leads', { unread_count: 0 }), 0
+            ]) + 1
           })
           .eq('id', leadId);
       }
@@ -636,7 +426,7 @@ class WebhookProcessor {
       };
 
     } catch (error) {
-      console.error(`[Processor] ❌ Erro no processamento direto:`, error);
+      console.error(`[Processor] ❌ Erro no processamento direto V4:`, error);
       return {
         success: false,
         error: error.message
@@ -663,23 +453,6 @@ class WebhookProcessor {
     
     return `+55 ${cleanPhone}`;
   }
-
-  private async updateMessageMediaUrl(messageId: string, mediaUrl: string): Promise<void> {
-    try {
-      const { error } = await this.supabase
-        .from('messages')
-        .update({ media_url: mediaUrl })
-        .eq('id', messageId);
-
-      if (error) {
-        console.warn(`[Processor] Failed to update media URL:`, error);
-      } else {
-        console.log(`[Processor] ✅ Media URL updated for message: ${messageId}`);
-      }
-    } catch (error) {
-      console.warn(`[Processor] Media URL update error:`, error);
-    }
-  }
 }
 
 // ========================================
@@ -688,7 +461,7 @@ class WebhookProcessor {
 serve(async (req) => {
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
   
-  console.log(`[Main] 🚀 WEBHOOK V3.0 - CORRIGIDO [${requestId}]`);
+  console.log(`[Main] 🚀 WEBHOOK V4.0 - SERVICE ROLE CORRIGIDO [${requestId}]`);
   
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -746,14 +519,13 @@ serve(async (req) => {
     const result = await processor.processWebhook(payload, requestId);
 
     if (result.success) {
-      console.log(`[Main] ✅ Sucesso [${requestId}]:`, {
+      console.log(`[Main] ✅ Sucesso V4 [${requestId}]:`, {
         messageId: result.messageId,
         leadId: result.leadId,
-        processingTime: result.processingTime,
-        mediaProcessed: result.mediaProcessed
+        processingTime: result.processingTime
       });
     } else {
-      console.error(`[Main] ❌ Falha [${requestId}]:`, result.error);
+      console.error(`[Main] ❌ Falha V4 [${requestId}]:`, result.error);
     }
 
     return new Response(JSON.stringify({ 
@@ -765,7 +537,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error(`[Main] ❌ ERRO FATAL [${requestId}]:`, error);
+    console.error(`[Main] ❌ ERRO FATAL V4 [${requestId}]:`, error);
     return new Response(JSON.stringify({ 
       success: false, 
       error: error.message,
