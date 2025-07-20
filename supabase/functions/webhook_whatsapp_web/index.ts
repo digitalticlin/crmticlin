@@ -13,7 +13,7 @@ const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 serve(async (req) => {
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
   
-  console.log(`[${requestId}] 🚀 WEBHOOK INICIANDO - VERSÃO SCHEMA CORRIGIDA`);
+  console.log(`[${requestId}] 🚀 WEBHOOK V78 - SOLUÇÃO SCHEMA PUBLIC EXPLÍCITO`);
   
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -47,19 +47,19 @@ serve(async (req) => {
 
     const payload = await req.json();
     console.log(`[${requestId}] 📥 Payload recebido:`, JSON.stringify(payload, null, 2));
-
+    
     const eventType = payload.event || payload.type;
     const instanceId = payload.instanceId || payload.instance || payload.instanceName;
     
     if (!instanceId) {
       console.error(`[${requestId}] ❌ instanceId não fornecido`);
-      return new Response(JSON.stringify({
-        success: false,
+      return new Response(JSON.stringify({ 
+        success: false, 
         error: 'instanceId é obrigatório',
         requestId
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
     }
 
@@ -73,24 +73,24 @@ serve(async (req) => {
 
     // Ignorar outros eventos
     console.log(`[${requestId}] ⏭️ Evento ignorado: ${eventType}`);
-    return new Response(JSON.stringify({
-      success: true,
+    return new Response(JSON.stringify({ 
+      success: true, 
       message: 'Evento ignorado',
       event: eventType,
       requestId
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    }), { 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
     });
 
   } catch (error) {
     console.error(`[${requestId}] ❌ ERRO FATAL:`, error);
-    return new Response(JSON.stringify({
-      success: false,
+    return new Response(JSON.stringify({ 
+      success: false, 
       error: error.message,
       requestId
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    }), { 
+      status: 500, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
     });
   }
 });
@@ -99,8 +99,9 @@ async function processMessage(supabase: any, payload: any, instanceId: string, r
   try {
     console.log(`[${requestId}] 🔍 Buscando instância: ${instanceId}`);
     
-    // CORREÇÃO: Buscar instância sem forçar schema
+    // CORREÇÃO: Buscar instância especificando schema public explicitamente
     const { data: instances, error: instanceError } = await supabase
+      .schema('public')
       .from('whatsapp_instances')
       .select('id, created_by_user_id, instance_name, vps_instance_id')
       .eq('vps_instance_id', instanceId);
@@ -112,14 +113,14 @@ async function processMessage(supabase: any, payload: any, instanceId: string, r
 
     if (!instances || instances.length === 0) {
       console.error(`[${requestId}] ❌ Instância não encontrada: ${instanceId}`);
-      return new Response(JSON.stringify({
-        success: false,
+      return new Response(JSON.stringify({ 
+        success: false, 
         error: 'Instância não encontrada',
         instanceId,
         requestId
-      }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }), { 
+        status: 404, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
     }
 
@@ -135,13 +136,13 @@ async function processMessage(supabase: any, payload: any, instanceId: string, r
     
     if (!messageData) {
       console.error(`[${requestId}] ❌ Dados da mensagem inválidos`);
-      return new Response(JSON.stringify({
-        success: false,
+      return new Response(JSON.stringify({ 
+        success: false, 
         error: 'Dados da mensagem inválidos',
         requestId
-      }), {
+      }), { 
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
     }
 
@@ -159,7 +160,7 @@ async function processMessage(supabase: any, payload: any, instanceId: string, r
       throw new Error('Falha ao criar/encontrar lead');
     }
 
-    // CORREÇÃO: Salvar mensagem sem forçar schema
+    // CORREÇÃO CRÍTICA: Salvar mensagem especificando schema public para evitar conflito com realtime.messages
     const message = await saveMessage(supabase, {
       lead_id: lead.id,
       whatsapp_number_id: instance.id,
@@ -176,8 +177,8 @@ async function processMessage(supabase: any, payload: any, instanceId: string, r
 
     console.log(`[${requestId}] ✅ MENSAGEM SALVA COM SUCESSO! ID: ${message.id}`);
 
-    return new Response(JSON.stringify({
-      success: true,
+    return new Response(JSON.stringify({ 
+      success: true, 
       message: 'Mensagem processada com sucesso',
       data: {
         phone: messageData.phone,
@@ -194,13 +195,13 @@ async function processMessage(supabase: any, payload: any, instanceId: string, r
 
   } catch (error) {
     console.error(`[${requestId}] ❌ Erro no processamento:`, error);
-    return new Response(JSON.stringify({
-      success: false,
+    return new Response(JSON.stringify({ 
+      success: false, 
       error: error.message,
       requestId
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    }), { 
+      status: 500, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
     });
   }
 }
@@ -208,23 +209,23 @@ async function processMessage(supabase: any, payload: any, instanceId: string, r
 function extractMessageData(payload: any, requestId: string) {
   console.log(`[${requestId}] 🔍 Extraindo dados da mensagem...`);
   
-  let messageText = '';
-  let mediaType = 'text';
-  let mediaUrl = null;
-  let fromMe = false;
-  let phone = '';
+    let messageText = '';
+    let mediaType = 'text';
+    let mediaUrl = null;
+    let fromMe = false;
+    let phone = '';
   let messageId = '';
 
-  const messageData = payload.data || payload.message || payload;
-
+    const messageData = payload.data || payload.message || payload;
+    
   // Detectar direção da mensagem
   fromMe = messageData?.fromMe !== undefined ? messageData.fromMe : 
            payload.fromMe !== undefined ? payload.fromMe : false;
 
   // Extrair telefone
-  phone = extractPhoneFromMessage(messageData) || 
-          extractPhoneFromMessage(payload) || 
-          payload.from?.replace('@s.whatsapp.net', '') || 
+    phone = extractPhoneFromMessage(messageData) || 
+            extractPhoneFromMessage(payload) ||
+            payload.from?.replace('@s.whatsapp.net', '') ||
           payload.phone || '';
 
   if (!phone) {
@@ -243,31 +244,31 @@ function extractMessageData(payload: any, requestId: string) {
     const msg = messageData.message;
     
     if (msg.conversation) {
-      messageText = msg.conversation;
-      mediaType = 'text';
+        messageText = msg.conversation;
+        mediaType = 'text';
     }
     else if (msg.extendedTextMessage?.text) {
-      messageText = msg.extendedTextMessage.text;
-      mediaType = 'text';
+        messageText = msg.extendedTextMessage.text;
+        mediaType = 'text';
     }
     else if (msg.imageMessage) {
-      messageText = msg.imageMessage.caption || '[Imagem]';
-      mediaType = 'image';
+        messageText = msg.imageMessage.caption || '[Imagem]';
+        mediaType = 'image';
       mediaUrl = msg.imageMessage.url || null;
     }
     else if (msg.videoMessage) {
-      messageText = msg.videoMessage.caption || '[Vídeo]';
-      mediaType = 'video';
+        messageText = msg.videoMessage.caption || '[Vídeo]';
+        mediaType = 'video';
       mediaUrl = msg.videoMessage.url || null;
     }
     else if (msg.audioMessage) {
-      messageText = '[Áudio]';
-      mediaType = 'audio';
+        messageText = '[Áudio]';
+        mediaType = 'audio';
       mediaUrl = msg.audioMessage.url || null;
     }
     else if (msg.documentMessage) {
       messageText = msg.documentMessage.title || msg.documentMessage.fileName || '[Documento]';
-      mediaType = 'document';
+        mediaType = 'document';
       mediaUrl = msg.documentMessage.url || null;
     }
     else if (msg.stickerMessage) {
@@ -277,11 +278,11 @@ function extractMessageData(payload: any, requestId: string) {
     }
   }
   else {
-    messageText = messageData.body || 
-                  messageData.text || 
-                  payload.message?.text || 
-                  payload.text || 
-                  payload.body || 
+      messageText = messageData.body || 
+                   messageData.text || 
+                   payload.message?.text ||
+                   payload.text ||
+                   payload.body ||
                   '[Mensagem sem texto]';
     
     if (payload.messageType) {
@@ -316,13 +317,14 @@ function extractPhoneFromMessage(messageData: any): string | null {
   return phoneMatch ? phoneMatch[1] : null;
 }
 
-// CORREÇÃO: Buscar ou criar lead sem forçar schema
+// CORREÇÃO: Buscar ou criar lead especificando schema public explicitamente
 async function findOrCreateLead(supabase: any, phone: string, instance: any, requestId: string) {
   console.log(`[${requestId}] 👤 Buscando lead para telefone: ${phone}`);
   
   try {
-    // Buscar lead existente
+    // Buscar lead existente - CORREÇÃO: Especificar schema public
     const { data: existingLead, error: searchError } = await supabase
+      .schema('public')
       .from('leads')
       .select('*')
       .eq('phone', phone)
@@ -339,8 +341,9 @@ async function findOrCreateLead(supabase: any, phone: string, instance: any, req
     if (existingLead) {
       console.log(`[${requestId}] 👤 Lead encontrado: ${existingLead.id}`);
       
-      // Atualizar informações do lead
+      // Atualizar informações do lead - CORREÇÃO: Especificar schema public
       const { error: updateError } = await supabase
+        .schema('public')
         .from('leads')
         .update({
           whatsapp_number_id: instance.id,
@@ -360,31 +363,33 @@ async function findOrCreateLead(supabase: any, phone: string, instance: any, req
 
     // Criar novo lead
     console.log(`[${requestId}] 🆕 Criando NOVO lead`);
-    
-    // Buscar funil padrão
+      
+      // Buscar funil padrão - CORREÇÃO: Especificar schema public
     const { data: funnel } = await supabase
-      .from('funnels')
-      .select('id')
-      .eq('created_by_user_id', instance.created_by_user_id)
-      .limit(1)
+        .schema('public')
+        .from('funnels')
+        .select('id')
+        .eq('created_by_user_id', instance.created_by_user_id)
+        .limit(1)
       .maybeSingle();
 
-    // Criar novo lead
-    const { data: newLead, error: createError } = await supabase
-      .from('leads')
-      .insert({
-        phone: phone,
-        name: `Contato ${phone}`,
-        whatsapp_number_id: instance.id,
-        created_by_user_id: instance.created_by_user_id,
+    // Criar novo lead - CORREÇÃO: Especificar schema public
+      const { data: newLead, error: createError } = await supabase
+        .schema('public')
+        .from('leads')
+        .insert({
+          phone: phone,
+          name: `Contato ${phone}`,
+          whatsapp_number_id: instance.id,
+          created_by_user_id: instance.created_by_user_id,
         funnel_id: funnel?.id,
         last_message_time: new Date().toISOString()
-      })
-      .select()
-      .single();
+        })
+        .select()
+        .single();
 
-    if (createError) {
-      console.error(`[${requestId}] ❌ Erro ao criar lead:`, createError);
+      if (createError) {
+        console.error(`[${requestId}] ❌ Erro ao criar lead:`, createError);
       throw new Error(`Erro ao criar lead: ${createError.message}`);
     }
 
@@ -397,12 +402,14 @@ async function findOrCreateLead(supabase: any, phone: string, instance: any, req
   }
 }
 
-// CORREÇÃO: Salvar mensagem sem forçar schema
+// CORREÇÃO: Salvar mensagem especificando schema public explicitamente
 async function saveMessage(supabase: any, messageData: any, requestId: string) {
-  console.log(`[${requestId}] 💾 Salvando mensagem...`);
+  console.log(`[${requestId}] 💾 SALVANDO MENSAGEM - Schema public especificado`);
   
   try {
+    // CORREÇÃO CRÍTICA: Especificar schema public explicitamente para evitar conflito com realtime.messages
     const { data: savedMessage, error: messageError } = await supabase
+      .schema('public')
       .from('messages')
       .insert(messageData)
       .select('id')
@@ -413,7 +420,7 @@ async function saveMessage(supabase: any, messageData: any, requestId: string) {
       throw new Error(`Falha ao salvar mensagem: ${messageError.message}`);
     }
 
-    console.log(`[${requestId}] ✅ Mensagem salva com sucesso`);
+    console.log(`[${requestId}] ✅ Mensagem salva com sucesso no schema public`);
     return savedMessage;
 
   } catch (error) {
