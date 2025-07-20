@@ -1,4 +1,5 @@
 
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -197,7 +198,73 @@ class PayloadNormalizer {
 }
 
 // ========================================
-// WEBHOOK PROCESSOR V4 - CONFIGURAÇÃO ANTERIOR FUNCIONAL
+// VALIDADOR DE TELEFONES
+// ========================================
+class PhoneValidator {
+  static isValidPhone(phone: string): boolean {
+    if (!phone) return false;
+    
+    // Remover caracteres não numéricos
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    
+    // Verificações específicas para filtrar grupos e IDs inválidos
+    
+    // 1. Muito longo (IDs de grupo podem ter 15+ dígitos)
+    if (cleanPhone.length > 15) {
+      console.log(`[PhoneValidator] ❌ Telefone muito longo: ${cleanPhone.length} dígitos`);
+      return false;
+    }
+    
+    // 2. Muito curto
+    if (cleanPhone.length < 10) {
+      console.log(`[PhoneValidator] ❌ Telefone muito curto: ${cleanPhone.length} dígitos`);
+      return false;
+    }
+    
+    // 3. Padrões específicos de grupos (começam com números específicos)
+    if (cleanPhone.startsWith('120') && cleanPhone.length > 13) {
+      console.log(`[PhoneValidator] ❌ Identificador de grupo detectado: ${cleanPhone.substring(0, 6)}...`);
+      return false;
+    }
+    
+    // 4. Apenas dígitos repetidos (IDs inválidos)
+    if (/^(\d)\1+$/.test(cleanPhone)) {
+      console.log(`[PhoneValidator] ❌ Número com dígitos repetidos: ${cleanPhone}`);
+      return false;
+    }
+    
+    // 5. Padrões brasileiros válidos
+    if (cleanPhone.startsWith('55')) {
+      // Formato brasileiro: 55 + DDD + número
+      return cleanPhone.length >= 12 && cleanPhone.length <= 13;
+    }
+    
+    // 6. Números internacionais válidos (10-14 dígitos)
+    return cleanPhone.length >= 10 && cleanPhone.length <= 14;
+  }
+  
+  static getPhoneInfo(phone: string): { clean: string; valid: boolean; type: string } {
+    const clean = phone.replace(/[^0-9]/g, '');
+    const valid = this.isValidPhone(phone);
+    
+    let type = 'unknown';
+    
+    if (!valid) {
+      if (clean.startsWith('120')) type = 'group';
+      else if (clean.length > 15) type = 'invalid_long';
+      else if (clean.length < 10) type = 'invalid_short';
+      else type = 'invalid_pattern';
+    } else {
+      if (clean.startsWith('55')) type = 'brazil';
+      else type = 'international';
+    }
+    
+    return { clean, valid, type };
+  }
+}
+
+// ========================================
+// WEBHOOK PROCESSOR V4.1 - COM VALIDAÇÃO DE TELEFONE E CORREÇÃO DE CONTEXTO
 // ========================================
 class WebhookProcessor {
   private supabase: any;
@@ -210,7 +277,7 @@ class WebhookProcessor {
 
   async processWebhook(payload: any, requestId: string): Promise<ProcessingResult> {
     const startTime = Date.now();
-    console.log(`[Processor] 🚀 Iniciando processamento V4 [${requestId}]`);
+    console.log(`[Processor] 🚀 Iniciando processamento V4.1 [${requestId}] - COM VALIDAÇÃO DE TELEFONE`);
 
     try {
       // 1. Normalizar payload
@@ -222,21 +289,40 @@ class WebhookProcessor {
         };
       }
 
-      console.log(`[Processor] 📝 Mensagem normalizada:`, {
-        phone: `${normalizedMessage.phone.substring(0, 4)}****`,
-        fromMe: normalizedMessage.fromMe,
-        mediaType: normalizedMessage.mediaType,
-        textLength: normalizedMessage.text.length
+      // 2. NOVA VALIDAÇÃO: Verificar se é um telefone válido
+      const phoneInfo = PhoneValidator.getPhoneInfo(normalizedMessage.phone);
+      
+      console.log(`[Processor] 📞 Análise do telefone:`, {
+        original: normalizedMessage.phone.substring(0, 6) + '****',
+        clean: phoneInfo.clean.substring(0, 6) + '****',
+        valid: phoneInfo.valid,
+        type: phoneInfo.type,
+        length: phoneInfo.clean.length
       });
 
-      // 2. Processamento direto V4
-      console.log(`[Processor] 🔧 Processamento direto V4 iniciado`);
+      if (!phoneInfo.valid) {
+        console.log(`[Processor] ⏭️ Ignorando mensagem de telefone inválido:`, {
+          type: phoneInfo.type,
+          reason: phoneInfo.type === 'group' ? 'Grupo do WhatsApp' : 'Formato inválido'
+        });
+        
+        return {
+          success: true,
+          error: `Ignored: ${phoneInfo.type}`,
+          processingTime: Date.now() - startTime
+        };
+      }
+
+      console.log(`[Processor] ✅ Telefone válido confirmado: ${phoneInfo.type}`);
+
+      // 3. Processamento direto V4.1 com correções
+      console.log(`[Processor] 🔧 Processamento direto V4.1 iniciado`);
       
       const instanceId = payload.instanceId || payload.instanceName;
-      const result = await this.processDirectV4(instanceId, normalizedMessage);
+      const result = await this.processDirectV41(instanceId, normalizedMessage);
 
       const processingTime = Date.now() - startTime;
-      console.log(`[Processor] ✅ Processamento V4 concluído em: ${processingTime}ms`);
+      console.log(`[Processor] ✅ Processamento V4.1 concluído em: ${processingTime}ms`);
 
       return {
         success: result.success,
@@ -247,7 +333,7 @@ class WebhookProcessor {
       };
 
     } catch (error) {
-      console.error(`[Processor] ❌ Erro no processamento V4:`, error);
+      console.error(`[Processor] ❌ Erro no processamento V4.1:`, error);
       return {
         success: false,
         error: error.message,
@@ -256,7 +342,7 @@ class WebhookProcessor {
     }
   }
 
-  private async processDirectV4(instanceId: string, message: NormalizedMessage) {
+  private async processDirectV41(instanceId: string, message: NormalizedMessage) {
     try {
       // 1. Buscar instância
       const { data: instance, error: instanceError } = await this.supabase
@@ -308,54 +394,43 @@ class WebhookProcessor {
         leadId = existingLead.id;
         console.log(`[Processor] ✅ Lead atualizado: ${leadId}`);
       } else {
-        // Lead não existe - criar novo
-        console.log(`[Processor] ➕ Criando novo lead`);
+        // Lead não existe - criar através da função SQL com contexto corrigido
+        console.log(`[Processor] ➕ Criando novo lead via função SQL segura`);
         
-        // Buscar funil padrão
-        const { data: funnel } = await this.supabase
-          .from('funnels')
-          .select('id')
-          .eq('created_by_user_id', instance.created_by_user_id)
-          .order('created_at', { ascending: true })
-          .limit(1)
-          .single();
+        const { data: functionResult, error: functionError } = await this.supabase
+          .rpc('insert_whatsapp_message_safe', {
+            p_vps_instance_id: instanceId,
+            p_phone: message.phone,
+            p_message_text: message.text,
+            p_from_me: message.fromMe,
+            p_media_type: message.mediaType,
+            p_media_url: message.mediaUrl,
+            p_external_message_id: message.messageId,
+            p_contact_name: message.contactName
+          });
 
-        // Buscar primeiro estágio
-        const { data: stage } = await this.supabase
-          .from('kanban_stages')
-          .select('id')
-          .eq('funnel_id', funnel?.id)
-          .order('order_position', { ascending: true })
-          .limit(1)
-          .single();
-
-        const { data: newLead, error: createError } = await this.supabase
-          .from('leads')
-          .insert({
-            phone: formattedPhone,
-            name: message.contactName || `Contato ${formattedPhone}`,
-            whatsapp_number_id: instance.id,
-            created_by_user_id: instance.created_by_user_id,
-            funnel_id: funnel?.id,
-            kanban_stage_id: stage?.id,
-            last_message_time: new Date().toISOString(),
-            last_message: message.text,
-            import_source: 'realtime'
-          })
-          .select('id')
-          .single();
-
-        if (createError || !newLead) {
-          console.error(`[Processor] ❌ Erro ao criar lead:`, createError);
-          return { success: false, error: 'Failed to create lead' };
+        if (functionError || !functionResult?.success) {
+          console.error(`[Processor] ❌ Erro na função SQL:`, functionError || functionResult);
+          return { 
+            success: false, 
+            error: functionResult?.error || functionError?.message || 'SQL function failed' 
+          };
         }
 
-        leadId = newLead.id;
-        console.log(`[Processor] ✅ Novo lead criado: ${leadId}`);
+        console.log(`[Processor] ✅ Lead e mensagem criados via função SQL:`, {
+          leadId: functionResult.data.lead_id,
+          messageId: functionResult.data.message_id
+        });
+
+        return {
+          success: true,
+          messageId: functionResult.data.message_id,
+          leadId: functionResult.data.lead_id
+        };
       }
 
-      // 4. Inserir mensagem
-      console.log(`[Processor] 💬 Inserindo mensagem para lead: ${leadId}`);
+      // 4. Inserir mensagem para lead existente
+      console.log(`[Processor] 💬 Inserindo mensagem para lead existente: ${leadId}`);
       
       const { data: messageData, error: messageError } = await this.supabase
         .from('messages')
@@ -435,7 +510,7 @@ class WebhookProcessor {
 serve(async (req) => {
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
   
-  console.log(`[Main] 🚀 WEBHOOK V4.0 - SERVICE ROLE CORRIGIDO [${requestId}]`);
+  console.log(`[Main] 🚀 WEBHOOK V4.1 - VALIDAÇÃO DE TELEFONE + CORREÇÃO DE CONTEXTO [${requestId}]`);
   
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -493,31 +568,31 @@ serve(async (req) => {
     const result = await processor.processWebhook(payload, requestId);
 
     if (result.success) {
-      console.log(`[Main] ✅ Sucesso V4 [${requestId}]:`, {
+      console.log(`[Main] ✅ Sucesso V4.1 [${requestId}]:`, {
         messageId: result.messageId,
         leadId: result.leadId,
         processingTime: result.processingTime
       });
     } else {
-      console.error(`[Main] ❌ Falha V4 [${requestId}]:`, result.error);
+      console.error(`[Main] ❌ Falha V4.1 [${requestId}]:`, result.error);
     }
 
     return new Response(JSON.stringify({ 
       ...result,
       requestId,
-      version: 'V4.0-SERVICE-ROLE'
+      version: 'V4.1-PHONE-VALIDATION-CONTEXT-FIX'
     }), {
       status: result.success ? 200 : 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.error(`[Main] ❌ ERRO FATAL V4 [${requestId}]:`, error);
+    console.error(`[Main] ❌ ERRO FATAL V4.1 [${requestId}]:`, error);
     return new Response(JSON.stringify({ 
       success: false, 
       error: error.message,
       requestId,
-      version: 'V4.0-SERVICE-ROLE'
+      version: 'V4.1-PHONE-VALIDATION-CONTEXT-FIX'
     }), { 
       status: 500, 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
