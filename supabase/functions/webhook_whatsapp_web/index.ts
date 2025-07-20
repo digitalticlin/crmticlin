@@ -23,7 +23,7 @@ interface NormalizedMessage {
   fromMe: boolean;
   mediaType: 'text' | 'image' | 'video' | 'audio' | 'document';
   mediaUrl?: string;
-  mediaData?: string; // base64
+  mediaData?: string;
   timestamp: number;
   contactName?: string;
 }
@@ -124,7 +124,6 @@ class PayloadNormalizer {
   private static extractPhone(identifier: string): string {
     if (!identifier) return '';
     
-    // Remover sufixos do WhatsApp
     const cleanPhone = identifier
       .replace(/@s\.whatsapp\.net$/, '')
       .replace(/@c\.us$/, '')
@@ -137,7 +136,6 @@ class PayloadNormalizer {
   private static extractText(message: any): string {
     if (!message) return '[Mensagem]';
 
-    // Ordem de prioridade para extrair texto
     return message.conversation ||
            message.extendedTextMessage?.text ||
            message.imageMessage?.caption ||
@@ -181,7 +179,6 @@ class PayloadNormalizer {
   }
 
   private static extractMediaData(message: any): string | undefined {
-    // Para base64 ou dados binários da mídia
     if (message.imageMessage?.jpegThumbnail) return message.imageMessage.jpegThumbnail;
     if (message.videoMessage?.jpegThumbnail) return message.videoMessage.jpegThumbnail;
     
@@ -223,7 +220,6 @@ class MediaProcessor {
     });
 
     try {
-      // Verificar cache primeiro
       const cached = await this.checkMediaCache(message.messageId);
       if (cached) {
         console.log(`[Media] ⚡ Cache hit para: ${message.messageId}`);
@@ -232,14 +228,12 @@ class MediaProcessor {
 
       let finalUrl: string | null = null;
 
-      // Processar baseado na fonte
       if (message.mediaData) {
         finalUrl = await this.uploadBase64Media(message.mediaData, message.messageId, message.mediaType);
       } else if (message.mediaUrl) {
         finalUrl = await this.downloadAndUploadMedia(message.mediaUrl, message.messageId, message.mediaType);
       }
 
-      // Salvar no cache
       if (finalUrl) {
         await this.saveMediaCache(message.messageId, message.mediaUrl, finalUrl, message.mediaData, message.mediaType);
       }
@@ -389,7 +383,7 @@ class MediaProcessor {
 }
 
 // ========================================
-// WEBHOOK PROCESSOR PRINCIPAL
+// WEBHOOK PROCESSOR PRINCIPAL - VERSÃO CORRIGIDA
 // ========================================
 class WebhookProcessor {
   private supabase: any;
@@ -423,34 +417,56 @@ class WebhookProcessor {
         textLength: normalizedMessage.text.length
       });
 
-      // 2. Processar mídia em paralelo (se necessário)
+      // 2. Tentar usar a função SQL otimizada primeiro
+      console.log(`[Processor] 🔄 Tentando função SQL otimizada...`);
+      let messageResult;
+      
+      try {
+        messageResult = await this.supabase.rpc('process_whatsapp_message', {
+          p_vps_instance_id: payload.instanceId || payload.instanceName,
+          p_phone: normalizedMessage.phone,
+          p_message_text: normalizedMessage.text,
+          p_from_me: normalizedMessage.fromMe,
+          p_media_type: normalizedMessage.mediaType,
+          p_media_url: null,
+          p_external_message_id: normalizedMessage.messageId,
+          p_contact_name: normalizedMessage.contactName
+        });
+
+        console.log(`[Processor] 🎯 Resultado da função SQL:`, {
+          success: messageResult.data?.success,
+          error: messageResult.error,
+          data: messageResult.data?.data
+        });
+
+        // Se a função SQL falhou, usar método direto
+        if (!messageResult.data?.success || messageResult.error) {
+          console.log(`[Processor] ⚠️ Função SQL falhou, usando método direto...`);
+          messageResult = await this.processMessageDirect(payload, normalizedMessage);
+        }
+
+      } catch (rpcError) {
+        console.error(`[Processor] ❌ RPC Error:`, rpcError);
+        console.log(`[Processor] 🔄 Fallback para método direto...`);
+        messageResult = await this.processMessageDirect(payload, normalizedMessage);
+      }
+
+      if (!messageResult.success) {
+        return {
+          success: false,
+          error: messageResult.error || 'Database processing failed'
+        };
+      }
+
+      // 3. Processar mídia em paralelo
       const mediaProcessingPromise = normalizedMessage.mediaType !== 'text' 
         ? this.mediaProcessor.processMedia(normalizedMessage)
         : Promise.resolve(null);
 
-      // 3. Processar mensagem via função SQL otimizada
-      const messageResult = await this.supabase.rpc('process_whatsapp_message', {
-        p_vps_instance_id: payload.instanceId || payload.instanceName,
-        p_phone: normalizedMessage.phone,
-        p_message_text: normalizedMessage.text,
-        p_from_me: normalizedMessage.fromMe,
-        p_media_type: normalizedMessage.mediaType,
-        p_media_url: null, // Will be updated after media processing
-        p_external_message_id: normalizedMessage.messageId,
-        p_contact_name: normalizedMessage.contactName
-      });
-
-      if (!messageResult.data?.success) {
-        return {
-          success: false,
-          error: messageResult.data?.error || 'Database processing failed'
-        };
-      }
-
       // 4. Aguardar processamento de mídia e atualizar se necessário
       const mediaUrl = await mediaProcessingPromise;
-      if (mediaUrl && messageResult.data.data.message_id) {
-        await this.updateMessageMediaUrl(messageResult.data.data.message_id, mediaUrl);
+      if (mediaUrl && messageResult.data?.message_id) {
+        await this.updateMessageMediaUrl(messageResult.data.message_id, mediaUrl);
       }
 
       const processingTime = Date.now() - startTime;
@@ -458,8 +474,8 @@ class WebhookProcessor {
 
       return {
         success: true,
-        messageId: messageResult.data.data.message_id,
-        leadId: messageResult.data.data.lead_id,
+        messageId: messageResult.data?.message_id,
+        leadId: messageResult.data?.lead_id,
         processingTime,
         mediaProcessed: !!mediaUrl
       };
@@ -472,6 +488,180 @@ class WebhookProcessor {
         processingTime: Date.now() - startTime
       };
     }
+  }
+
+  // MÉTODO DIRETO COMO FALLBACK
+  private async processMessageDirect(payload: any, normalizedMessage: NormalizedMessage): Promise<any> {
+    console.log(`[Processor] 🔧 Processamento direto iniciado`);
+    
+    try {
+      // 1. Buscar instância
+      const instanceId = payload.instanceId || payload.instanceName;
+      const { data: instance, error: instanceError } = await this.supabase
+        .from('whatsapp_instances')
+        .select('id, created_by_user_id')
+        .eq('vps_instance_id', instanceId)
+        .maybeSingle();
+
+      if (instanceError || !instance) {
+        console.error(`[Processor] ❌ Instância não encontrada:`, instanceError);
+        return {
+          success: false,
+          error: 'Instance not found'
+        };
+      }
+
+      console.log(`[Processor] ✅ Instância encontrada:`, instance.id);
+
+      // 2. Formatar telefone
+      const formattedPhone = this.formatPhone(normalizedMessage.phone);
+      const formattedName = normalizedMessage.contactName || `Contato ${formattedPhone}`;
+
+      // 3. Buscar ou criar lead
+      const { data: existingLead } = await this.supabase
+        .from('leads')
+        .select('id')
+        .eq('phone', formattedPhone)
+        .eq('created_by_user_id', instance.created_by_user_id)
+        .maybeSingle();
+
+      let leadId = existingLead?.id;
+
+      if (!leadId) {
+        // Buscar funil padrão
+        const { data: funnel } = await this.supabase
+          .from('funnels')
+          .select('id')
+          .eq('created_by_user_id', instance.created_by_user_id)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        // Buscar primeiro estágio
+        const { data: stage } = await this.supabase
+          .from('kanban_stages')
+          .select('id')
+          .eq('funnel_id', funnel?.id)
+          .order('order_position', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        // Criar novo lead
+        const { data: newLead, error: leadError } = await this.supabase
+          .from('leads')
+          .insert({
+            phone: formattedPhone,
+            name: formattedName,
+            whatsapp_number_id: instance.id,
+            created_by_user_id: instance.created_by_user_id,
+            funnel_id: funnel?.id,
+            kanban_stage_id: stage?.id,
+            last_message_time: new Date().toISOString(),
+            import_source: 'realtime'
+          })
+          .select('id')
+          .single();
+
+        if (leadError) {
+          console.error(`[Processor] ❌ Erro ao criar lead:`, leadError);
+          return {
+            success: false,
+            error: 'Failed to create lead'
+          };
+        }
+
+        leadId = newLead.id;
+        console.log(`[Processor] ✅ Lead criado:`, leadId);
+      } else {
+        // Atualizar lead existente
+        await this.supabase
+          .from('leads')
+          .update({
+            whatsapp_number_id: instance.id,
+            last_message_time: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', leadId);
+
+        console.log(`[Processor] ✅ Lead atualizado:`, leadId);
+      }
+
+      // 4. Inserir mensagem
+      const { data: message, error: messageError } = await this.supabase
+        .from('messages')
+        .insert({
+          lead_id: leadId,
+          whatsapp_number_id: instance.id,
+          text: normalizedMessage.text,
+          from_me: normalizedMessage.fromMe,
+          timestamp: new Date().toISOString(),
+          status: normalizedMessage.fromMe ? 'sent' : 'received',
+          created_by_user_id: instance.created_by_user_id,
+          media_type: normalizedMessage.mediaType,
+          import_source: 'realtime',
+          external_message_id: normalizedMessage.messageId
+        })
+        .select('id')
+        .single();
+
+      if (messageError) {
+        console.error(`[Processor] ❌ Erro ao inserir mensagem:`, messageError);
+        return {
+          success: false,
+          error: 'Failed to insert message'
+        };
+      }
+
+      console.log(`[Processor] ✅ Mensagem inserida:`, message.id);
+
+      // 5. Atualizar contador de não lidas
+      if (!normalizedMessage.fromMe) {
+        await this.supabase
+          .from('leads')
+          .update({
+            unread_count: this.supabase.rpc('increment_unread_count', { lead_id: leadId }),
+            last_message: normalizedMessage.text
+          })
+          .eq('id', leadId);
+      }
+
+      return {
+        success: true,
+        data: {
+          message_id: message.id,
+          lead_id: leadId,
+          instance_id: instance.id,
+          user_id: instance.created_by_user_id
+        }
+      };
+
+    } catch (error) {
+      console.error(`[Processor] ❌ Erro no processamento direto:`, error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  private formatPhone(phone: string): string {
+    const cleanPhone = phone.replace(/[^0-9]/g, '');
+    
+    if (cleanPhone.startsWith('55') && cleanPhone.length === 13) {
+      const ddd = cleanPhone.substring(2, 4);
+      const number = cleanPhone.substring(4);
+      return `+55 (${ddd}) ${number.substring(0, 5)}-${number.substring(5)}`;
+    } else if (cleanPhone.length === 11) {
+      const ddd = cleanPhone.substring(0, 2);
+      const number = cleanPhone.substring(2);
+      return `+55 (${ddd}) ${number.substring(0, 5)}-${number.substring(5)}`;
+    } else if (cleanPhone.length === 10) {
+      const ddd = cleanPhone.substring(0, 2);
+      const number = cleanPhone.substring(2);
+      return `+55 (${ddd}) 9${number.substring(0, 4)}-${number.substring(4)}`;
+    }
+    
+    return `+55 ${cleanPhone}`;
   }
 
   private async updateMessageMediaUrl(messageId: string, mediaUrl: string): Promise<void> {
@@ -498,7 +688,7 @@ class WebhookProcessor {
 serve(async (req) => {
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
   
-  console.log(`[Main] 🚀 WEBHOOK V2.0 - OTIMIZADO [${requestId}]`);
+  console.log(`[Main] 🚀 WEBHOOK V3.0 - CORRIGIDO [${requestId}]`);
   
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
