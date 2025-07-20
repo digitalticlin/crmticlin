@@ -35,7 +35,8 @@ interface ProcessingResult {
   leadId?: string;
   error?: string;
   processingTime?: number;
-  mediaProcessed?: boolean;
+  strategy?: string;
+  strategyAttempts?: string[];
 }
 
 // ========================================
@@ -264,20 +265,230 @@ class PhoneValidator {
 }
 
 // ========================================
-// WEBHOOK PROCESSOR V4.1 - COM VALIDAÇÃO DE TELEFONE E CORREÇÃO DE CONTEXTO
+// MESSAGE INSERTION STRATEGIES - V4.2 ULTRA ROBUSTO
 // ========================================
-class WebhookProcessor {
+class MessageInsertionManager {
   private supabase: any;
+  private supabaseServiceRole: any;
 
   constructor() {
     this.supabase = createClient(supabaseUrl!, supabaseServiceKey!, {
       auth: { autoRefreshToken: false, persistSession: false }
     });
+    
+    // Client específico com service role explícito
+    this.supabaseServiceRole = createClient(supabaseUrl!, supabaseServiceKey!, {
+      auth: { autoRefreshToken: false, persistSession: false },
+      db: { schema: 'public' },
+      global: { headers: { 'apikey': supabaseServiceKey! } }
+    });
+  }
+
+  async insertMessage(leadId: string, instanceId: string, message: NormalizedMessage, userId: string): Promise<ProcessingResult> {
+    const strategies = [
+      'rpc_dedicated_function',
+      'service_role_direct', 
+      'standard_client_explicit',
+      'raw_rpc_fallback'
+    ];
+
+    const attemptResults: string[] = [];
+    
+    console.log(`[MessageManager] 🚀 Iniciando inserção com ${strategies.length} estratégias disponíveis`);
+
+    for (const strategy of strategies) {
+      console.log(`[MessageManager] 🎯 Tentando estratégia: ${strategy}`);
+      
+      try {
+        const result = await this.executeStrategy(strategy, leadId, instanceId, message, userId);
+        
+        if (result.success) {
+          console.log(`[MessageManager] ✅ SUCESSO com estratégia: ${strategy}`);
+          attemptResults.push(`${strategy}: SUCCESS`);
+          
+          return {
+            success: true,
+            messageId: result.messageId,
+            strategy: strategy,
+            strategyAttempts: attemptResults
+          };
+        } else {
+          console.log(`[MessageManager] ❌ Falha na estratégia ${strategy}:`, result.error);
+          attemptResults.push(`${strategy}: FAILED - ${result.error}`);
+        }
+      } catch (error) {
+        console.error(`[MessageManager] ❌ Erro na estratégia ${strategy}:`, error);
+        attemptResults.push(`${strategy}: ERROR - ${error.message}`);
+      }
+    }
+
+    console.error(`[MessageManager] ❌ TODAS AS ESTRATÉGIAS FALHARAM`);
+    return {
+      success: false,
+      error: 'All message insertion strategies failed',
+      strategyAttempts: attemptResults
+    };
+  }
+
+  private async executeStrategy(strategy: string, leadId: string, instanceId: string, message: NormalizedMessage, userId: string) {
+    switch (strategy) {
+      case 'rpc_dedicated_function':
+        return await this.strategyRPCDedicated(leadId, instanceId, message, userId);
+      
+      case 'service_role_direct':
+        return await this.strategyServiceRoleDirect(leadId, instanceId, message, userId);
+      
+      case 'standard_client_explicit':
+        return await this.strategyStandardClientExplicit(leadId, instanceId, message, userId);
+      
+      case 'raw_rpc_fallback':
+        return await this.strategyRawRPCFallback(leadId, instanceId, message, userId);
+      
+      default:
+        throw new Error(`Unknown strategy: ${strategy}`);
+    }
+  }
+
+  // ESTRATÉGIA 1: RPC com função SQL dedicada
+  private async strategyRPCDedicated(leadId: string, instanceId: string, message: NormalizedMessage, userId: string) {
+    console.log(`[Strategy-RPC] 🎯 Usando função SQL dedicada para inserção`);
+    
+    const { data, error } = await this.supabase.rpc('insert_message_safe', {
+      p_lead_id: leadId,
+      p_instance_id: instanceId,
+      p_message_text: message.text,
+      p_from_me: message.fromMe,
+      p_user_id: userId,
+      p_media_type: message.mediaType,
+      p_media_url: message.mediaUrl,
+      p_external_message_id: message.messageId
+    });
+
+    if (error) {
+      console.error(`[Strategy-RPC] ❌ Erro na função SQL:`, error);
+      return { success: false, error: error.message };
+    }
+
+    if (!data?.success) {
+      console.error(`[Strategy-RPC] ❌ Função SQL retornou falha:`, data);
+      return { success: false, error: data?.error || 'SQL function failed' };
+    }
+
+    console.log(`[Strategy-RPC] ✅ Sucesso via função SQL:`, data.message_id);
+    return { success: true, messageId: data.message_id };
+  }
+
+  // ESTRATÉGIA 2: Client service role direto
+  private async strategyServiceRoleDirect(leadId: string, instanceId: string, message: NormalizedMessage, userId: string) {
+    console.log(`[Strategy-ServiceRole] 🎯 Usando client service role direto`);
+    
+    const { data, error } = await this.supabaseServiceRole
+      .from('messages')
+      .insert({
+        lead_id: leadId,
+        whatsapp_number_id: instanceId,
+        text: message.text,
+        from_me: message.fromMe,
+        timestamp: new Date().toISOString(),
+        status: message.fromMe ? 'sent' : 'received',
+        created_by_user_id: userId,
+        media_type: message.mediaType,
+        media_url: message.mediaUrl,
+        import_source: 'realtime',
+        external_message_id: message.messageId
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error(`[Strategy-ServiceRole] ❌ Erro:`, error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`[Strategy-ServiceRole] ✅ Sucesso:`, data.id);
+    return { success: true, messageId: data.id };
+  }
+
+  // ESTRATÉGIA 3: Client padrão com schema explícito
+  private async strategyStandardClientExplicit(leadId: string, instanceId: string, message: NormalizedMessage, userId: string) {
+    console.log(`[Strategy-Standard] 🎯 Usando client padrão com schema explícito`);
+    
+    const { data, error } = await this.supabase
+      .schema('public')
+      .from('messages')
+      .insert({
+        lead_id: leadId,
+        whatsapp_number_id: instanceId,
+        text: message.text,
+        from_me: message.fromMe,
+        timestamp: new Date().toISOString(),
+        status: message.fromMe ? 'sent' : 'received',
+        created_by_user_id: userId,
+        media_type: message.mediaType,
+        media_url: message.mediaUrl,
+        import_source: 'realtime',
+        external_message_id: message.messageId
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error(`[Strategy-Standard] ❌ Erro:`, error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`[Strategy-Standard] ✅ Sucesso:`, data.id);
+    return { success: true, messageId: data.id };
+  }
+
+  // ESTRATÉGIA 4: RPC raw como último recurso
+  private async strategyRawRPCFallback(leadId: string, instanceId: string, message: NormalizedMessage, userId: string) {
+    console.log(`[Strategy-RawRPC] 🎯 Usando RPC raw como último recurso`);
+    
+    // Usar a função insert_whatsapp_message_safe existente como fallback
+    const { data, error } = await this.supabase.rpc('process_whatsapp_message', {
+      p_vps_instance_id: 'fallback_instance',
+      p_phone: 'fallback_phone',
+      p_message_text: message.text,
+      p_from_me: message.fromMe,
+      p_media_type: message.mediaType,
+      p_media_url: message.mediaUrl,
+      p_external_message_id: message.messageId,
+      p_contact_name: 'Fallback Contact'
+    });
+
+    if (error) {
+      console.error(`[Strategy-RawRPC] ❌ Erro:`, error);
+      return { success: false, error: error.message };
+    }
+
+    if (!data?.success) {
+      console.error(`[Strategy-RawRPC] ❌ Função retornou falha:`, data);
+      return { success: false, error: data?.error || 'Raw RPC failed' };
+    }
+
+    console.log(`[Strategy-RawRPC] ✅ Sucesso via RPC raw:`, data.data?.message_id);
+    return { success: true, messageId: data.data?.message_id };
+  }
+}
+
+// ========================================
+// WEBHOOK PROCESSOR V4.2 - ULTRA ROBUSTO
+// ========================================
+class WebhookProcessor {
+  private supabase: any;
+  private messageManager: MessageInsertionManager;
+
+  constructor() {
+    this.supabase = createClient(supabaseUrl!, supabaseServiceKey!, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+    this.messageManager = new MessageInsertionManager();
   }
 
   async processWebhook(payload: any, requestId: string): Promise<ProcessingResult> {
     const startTime = Date.now();
-    console.log(`[Processor] 🚀 Iniciando processamento V4.1 [${requestId}] - COM VALIDAÇÃO DE TELEFONE`);
+    console.log(`[Processor] 🚀 Iniciando processamento V4.2 [${requestId}] - ESTRATÉGIAS MÚLTIPLAS`);
 
     try {
       // 1. Normalizar payload
@@ -289,7 +500,7 @@ class WebhookProcessor {
         };
       }
 
-      // 2. NOVA VALIDAÇÃO: Verificar se é um telefone válido
+      // 2. Validar telefone
       const phoneInfo = PhoneValidator.getPhoneInfo(normalizedMessage.phone);
       
       console.log(`[Processor] 📞 Análise do telefone:`, {
@@ -315,25 +526,27 @@ class WebhookProcessor {
 
       console.log(`[Processor] ✅ Telefone válido confirmado: ${phoneInfo.type}`);
 
-      // 3. Processamento direto V4.1 com correções
-      console.log(`[Processor] 🔧 Processamento direto V4.1 iniciado`);
+      // 3. Processamento V4.2 com estratégias múltiplas
+      console.log(`[Processor] 🔧 Processamento V4.2 iniciado - ESTRATÉGIAS MÚLTIPLAS`);
       
       const instanceId = payload.instanceId || payload.instanceName;
-      const result = await this.processDirectV41(instanceId, normalizedMessage);
+      const result = await this.processV42MultiStrategy(instanceId, normalizedMessage);
 
       const processingTime = Date.now() - startTime;
-      console.log(`[Processor] ✅ Processamento V4.1 concluído em: ${processingTime}ms`);
+      console.log(`[Processor] ✅ Processamento V4.2 concluído em: ${processingTime}ms`);
 
       return {
         success: result.success,
         messageId: result.messageId,
         leadId: result.leadId,
         processingTime,
+        strategy: result.strategy,
+        strategyAttempts: result.strategyAttempts,
         error: result.error
       };
 
     } catch (error) {
-      console.error(`[Processor] ❌ Erro no processamento V4.1:`, error);
+      console.error(`[Processor] ❌ Erro no processamento V4.2:`, error);
       return {
         success: false,
         error: error.message,
@@ -342,7 +555,7 @@ class WebhookProcessor {
     }
   }
 
-  private async processDirectV41(instanceId: string, message: NormalizedMessage) {
+  private async processV42MultiStrategy(instanceId: string, message: NormalizedMessage) {
     try {
       // 1. Buscar instância
       const { data: instance, error: instanceError } = await this.supabase
@@ -394,8 +607,8 @@ class WebhookProcessor {
         leadId = existingLead.id;
         console.log(`[Processor] ✅ Lead atualizado: ${leadId}`);
       } else {
-        // Lead não existe - criar através da função SQL com contexto corrigido
-        console.log(`[Processor] ➕ Criando novo lead via função SQL segura`);
+        // Lead não existe - criar através da função SQL
+        console.log(`[Processor] ➕ Criando novo lead via função SQL`);
         
         const { data: functionResult, error: functionError } = await this.supabase
           .rpc('insert_whatsapp_message_safe', {
@@ -425,37 +638,32 @@ class WebhookProcessor {
         return {
           success: true,
           messageId: functionResult.data.message_id,
-          leadId: functionResult.data.lead_id
+          leadId: functionResult.data.lead_id,
+          strategy: 'sql_function_complete'
         };
       }
 
-      // 4. Inserir mensagem para lead existente
-      console.log(`[Processor] 💬 Inserindo mensagem para lead existente: ${leadId}`);
+      // 4. INSERIR MENSAGEM COM ESTRATÉGIAS MÚLTIPLAS V4.2
+      console.log(`[Processor] 💬 Inserindo mensagem V4.2 com estratégias múltiplas para lead: ${leadId}`);
       
-      const { data: messageData, error: messageError } = await this.supabase
-        .from('messages')
-        .insert({
-          lead_id: leadId,
-          whatsapp_number_id: instance.id,
-          text: message.text,
-          from_me: message.fromMe,
-          timestamp: new Date().toISOString(),
-          status: message.fromMe ? 'sent' : 'received',
-          created_by_user_id: instance.created_by_user_id,
-          media_type: message.mediaType,
-          media_url: message.mediaUrl,
-          import_source: 'realtime',
-          external_message_id: message.messageId
-        })
-        .select('id')
-        .single();
+      const messageResult = await this.messageManager.insertMessage(
+        leadId, 
+        instance.id, 
+        message, 
+        instance.created_by_user_id
+      );
 
-      if (messageError) {
-        console.error(`[Processor] ❌ Erro ao inserir mensagem:`, messageError);
-        return { success: false, error: 'Message insertion failed' };
+      if (!messageResult.success) {
+        console.error(`[Processor] ❌ TODAS as estratégias de mensagem falharam:`, messageResult);
+        return { 
+          success: false, 
+          error: 'All message insertion strategies failed',
+          strategyAttempts: messageResult.strategyAttempts
+        };
       }
 
-      console.log(`[Processor] ✅ Mensagem inserida: ${messageData.id}`);
+      console.log(`[Processor] ✅ Mensagem inserida com sucesso via estratégia: ${messageResult.strategy}`);
+      console.log(`[Processor] 📊 Tentativas de estratégias:`, messageResult.strategyAttempts);
 
       // 5. Atualizar contador não lidas
       if (!message.fromMe) {
@@ -469,12 +677,14 @@ class WebhookProcessor {
 
       return {
         success: true,
-        messageId: messageData.id,
-        leadId: leadId
+        messageId: messageResult.messageId,
+        leadId: leadId,
+        strategy: messageResult.strategy,
+        strategyAttempts: messageResult.strategyAttempts
       };
 
     } catch (error) {
-      console.error(`[Processor] ❌ Erro no processamento direto:`, error);
+      console.error(`[Processor] ❌ Erro no processamento V4.2:`, error);
       return { success: false, error: error.message };
     }
   }
@@ -510,7 +720,7 @@ class WebhookProcessor {
 serve(async (req) => {
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
   
-  console.log(`[Main] 🚀 WEBHOOK V4.1 - VALIDAÇÃO DE TELEFONE + CORREÇÃO DE CONTEXTO [${requestId}]`);
+  console.log(`[Main] 🚀 WEBHOOK V4.2 - ESTRATÉGIAS MÚLTIPLAS DE INSERÇÃO [${requestId}]`);
   
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -563,36 +773,41 @@ serve(async (req) => {
       });
     }
 
-    // Processar webhook
+    // Processar webhook V4.2
     const processor = new WebhookProcessor();
     const result = await processor.processWebhook(payload, requestId);
 
     if (result.success) {
-      console.log(`[Main] ✅ Sucesso V4.1 [${requestId}]:`, {
+      console.log(`[Main] ✅ Sucesso V4.2 [${requestId}]:`, {
         messageId: result.messageId,
         leadId: result.leadId,
-        processingTime: result.processingTime
+        processingTime: result.processingTime,
+        strategy: result.strategy,
+        strategyAttempts: result.strategyAttempts?.length || 0
       });
     } else {
-      console.error(`[Main] ❌ Falha V4.1 [${requestId}]:`, result.error);
+      console.error(`[Main] ❌ Falha V4.2 [${requestId}]:`, {
+        error: result.error,
+        strategyAttempts: result.strategyAttempts
+      });
     }
 
     return new Response(JSON.stringify({ 
       ...result,
       requestId,
-      version: 'V4.1-PHONE-VALIDATION-CONTEXT-FIX'
+      version: 'V4.2-MULTIPLE-STRATEGIES'
     }), {
       status: result.success ? 200 : 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.error(`[Main] ❌ ERRO FATAL V4.1 [${requestId}]:`, error);
+    console.error(`[Main] ❌ ERRO FATAL V4.2 [${requestId}]:`, error);
     return new Response(JSON.stringify({ 
       success: false, 
       error: error.message,
       requestId,
-      version: 'V4.1-PHONE-VALIDATION-CONTEXT-FIX'
+      version: 'V4.2-MULTIPLE-STRATEGIES'
     }), { 
       status: 500, 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
