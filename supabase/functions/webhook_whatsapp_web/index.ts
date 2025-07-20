@@ -197,7 +197,7 @@ class PayloadNormalizer {
 }
 
 // ========================================
-// WEBHOOK PROCESSOR V5 - APENAS RPC CALLS
+// WEBHOOK PROCESSOR V4 - CONFIGURAÇÃO ANTERIOR FUNCIONAL
 // ========================================
 class WebhookProcessor {
   private supabase: any;
@@ -210,7 +210,7 @@ class WebhookProcessor {
 
   async processWebhook(payload: any, requestId: string): Promise<ProcessingResult> {
     const startTime = Date.now();
-    console.log(`[Processor] 🚀 Iniciando processamento V5 [${requestId}] - APENAS RPC`);
+    console.log(`[Processor] 🚀 Iniciando processamento V4 [${requestId}]`);
 
     try {
       // 1. Normalizar payload
@@ -229,61 +229,203 @@ class WebhookProcessor {
         textLength: normalizedMessage.text.length
       });
 
-      // 2. Usar APENAS função SQL segura via RPC
+      // 2. Processamento direto V4
+      console.log(`[Processor] 🔧 Processamento direto V4 iniciado`);
+      
       const instanceId = payload.instanceId || payload.instanceName;
-      
-      console.log(`[Processor] 🔧 Chamando função SQL via RPC para instância: ${instanceId}`);
-      
-      const { data: sqlResult, error: sqlError } = await this.supabase.rpc('insert_whatsapp_message_safe', {
-        p_vps_instance_id: instanceId,
-        p_phone: normalizedMessage.phone,
-        p_message_text: normalizedMessage.text,
-        p_from_me: normalizedMessage.fromMe,
-        p_media_type: normalizedMessage.mediaType,
-        p_media_url: normalizedMessage.mediaUrl || null,
-        p_external_message_id: normalizedMessage.messageId,
-        p_contact_name: normalizedMessage.contactName || null
-      });
-
-      if (sqlError) {
-        console.error(`[Processor] ❌ Erro na função SQL:`, sqlError);
-        return {
-          success: false,
-          error: `SQL Function Error: ${sqlError.message}`
-        };
-      }
-
-      if (!sqlResult?.success) {
-        console.error(`[Processor] ❌ Função SQL retornou erro:`, sqlResult);
-        return {
-          success: false,
-          error: sqlResult?.error || 'SQL function returned error'
-        };
-      }
+      const result = await this.processDirectV4(instanceId, normalizedMessage);
 
       const processingTime = Date.now() - startTime;
-      console.log(`[Processor] ✅ Processamento V5 concluído em: ${processingTime}ms`);
-      console.log(`[Processor] 🎯 Resultado:`, {
-        messageId: sqlResult.data?.message_id,
-        leadId: sqlResult.data?.lead_id,
-        wasExistingLead: sqlResult.data?.was_existing_lead
-      });
+      console.log(`[Processor] ✅ Processamento V4 concluído em: ${processingTime}ms`);
 
       return {
-        success: true,
-        messageId: sqlResult.data?.message_id,
-        leadId: sqlResult.data?.lead_id,
-        processingTime
+        success: result.success,
+        messageId: result.messageId,
+        leadId: result.leadId,
+        processingTime,
+        error: result.error
       };
 
     } catch (error) {
-      console.error(`[Processor] ❌ Erro no processamento V5:`, error);
+      console.error(`[Processor] ❌ Erro no processamento V4:`, error);
       return {
         success: false,
         error: error.message,
         processingTime: Date.now() - startTime
       };
     }
+  }
+
+  private async processDirectV4(instanceId: string, message: NormalizedMessage) {
+    try {
+      // 1. Buscar instância
+      const { data: instance, error: instanceError } = await this.supabase
+        .from('whatsapp_instances')
+        .select('id, created_by_user_id')
+        .eq('vps_instance_id', instanceId)
+        .single();
+
+      if (instanceError || !instance) {
+        console.error(`[Processor] ❌ Instância não encontrada:`, instanceError);
+        return { success: false, error: 'Instance not found' };
+      }
+
+      console.log(`[Processor] ✅ Instância encontrada: ${instance.id}`);
+
+      // 2. Formatar telefone
+      const formattedPhone = this.formatBrazilianPhone(message.phone);
+      console.log(`[Processor] 📞 Telefone formatado: ${formattedPhone.substring(0, 8)}****`);
+
+      // 3. Buscar lead existente
+      const { data: existingLead, error: leadError } = await this.supabase
+        .from('leads')
+        .select('id')
+        .eq('phone', formattedPhone)
+        .eq('created_by_user_id', instance.created_by_user_id)
+        .single();
+
+      let leadId: string;
+
+      if (existingLead && !leadError) {
+        // Lead existe - atualizar
+        console.log(`[Processor] 🔄 Lead existente encontrado: ${existingLead.id}`);
+        
+        const { error: updateError } = await this.supabase
+          .from('leads')
+          .update({
+            whatsapp_number_id: instance.id,
+            last_message_time: new Date().toISOString(),
+            last_message: message.text,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingLead.id);
+
+        if (updateError) {
+          console.error(`[Processor] ❌ Erro ao atualizar lead:`, updateError);
+          return { success: false, error: 'Failed to update lead' };
+        }
+
+        leadId = existingLead.id;
+        console.log(`[Processor] ✅ Lead atualizado: ${leadId}`);
+      } else {
+        // Lead não existe - criar novo
+        console.log(`[Processor] ➕ Criando novo lead`);
+        
+        // Buscar funil padrão
+        const { data: funnel } = await this.supabase
+          .from('funnels')
+          .select('id')
+          .eq('created_by_user_id', instance.created_by_user_id)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .single();
+
+        // Buscar primeiro estágio
+        const { data: stage } = await this.supabase
+          .from('kanban_stages')
+          .select('id')
+          .eq('funnel_id', funnel?.id)
+          .order('order_position', { ascending: true })
+          .limit(1)
+          .single();
+
+        const { data: newLead, error: createError } = await this.supabase
+          .from('leads')
+          .insert({
+            phone: formattedPhone,
+            name: message.contactName || `Contato ${formattedPhone}`,
+            whatsapp_number_id: instance.id,
+            created_by_user_id: instance.created_by_user_id,
+            funnel_id: funnel?.id,
+            kanban_stage_id: stage?.id,
+            last_message_time: new Date().toISOString(),
+            last_message: message.text,
+            import_source: 'realtime'
+          })
+          .select('id')
+          .single();
+
+        if (createError || !newLead) {
+          console.error(`[Processor] ❌ Erro ao criar lead:`, createError);
+          return { success: false, error: 'Failed to create lead' };
+        }
+
+        leadId = newLead.id;
+        console.log(`[Processor] ✅ Novo lead criado: ${leadId}`);
+      }
+
+      // 4. Inserir mensagem
+      console.log(`[Processor] 💬 Inserindo mensagem para lead: ${leadId}`);
+      
+      const { data: messageData, error: messageError } = await this.supabase
+        .from('messages')
+        .insert({
+          lead_id: leadId,
+          whatsapp_number_id: instance.id,
+          text: message.text,
+          from_me: message.fromMe,
+          timestamp: new Date().toISOString(),
+          status: message.fromMe ? 'sent' : 'received',
+          created_by_user_id: instance.created_by_user_id,
+          media_type: message.mediaType,
+          media_url: message.mediaUrl,
+          import_source: 'realtime',
+          external_message_id: message.messageId
+        })
+        .select('id')
+        .single();
+
+      if (messageError) {
+        console.error(`[Processor] ❌ Erro ao inserir mensagem:`, messageError);
+        return { success: false, error: 'Message insertion failed' };
+      }
+
+      console.log(`[Processor] ✅ Mensagem inserida: ${messageData.id}`);
+
+      // 5. Atualizar contador não lidas
+      if (!message.fromMe) {
+        await this.supabase
+          .from('leads')
+          .update({
+            unread_count: this.supabase.sql`COALESCE(unread_count, 0) + 1`
+          })
+          .eq('id', leadId);
+      }
+
+      return {
+        success: true,
+        messageId: messageData.id,
+        leadId: leadId
+      };
+
+    } catch (error) {
+      console.error(`[Processor] ❌ Erro no processamento direto:`, error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  private formatBrazilianPhone(phone: string): string {
+    if (!phone) return '';
+    
+    // Se já tem +55, manter
+    if (phone.startsWith('+55')) return phone;
+    
+    const digitsOnly = phone.replace(/[^0-9]/g, '');
+    
+    // Diferentes formatos baseados na quantidade de dígitos
+    switch (digitsOnly.length) {
+      case 13: // 5511999999999
+        if (digitsOnly.startsWith('55')) {
+          return `+55 (${digitsOnly.substring(2, 4)}) ${digitsOnly.substring(4, 9)}-${digitsOnly.substring(9)}`;
+        }
+        break;
+      case 11: // 11999999999  
+        return `+55 (${digitsOnly.substring(0, 2)}) ${digitsOnly.substring(2, 7)}-${digitsOnly.substring(7)}`;
+      case 10: // 1199999999 (adicionar 9)
+        return `+55 (${digitsOnly.substring(0, 2)}) 9${digitsOnly.substring(2, 6)}-${digitsOnly.substring(6)}`;
+    }
+    
+    return `+55 ${digitsOnly}`;
   }
 }
 
@@ -293,7 +435,7 @@ class WebhookProcessor {
 serve(async (req) => {
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
   
-  console.log(`[Main] 🚀 WEBHOOK V5.0 - APENAS RPC CALLS [${requestId}]`);
+  console.log(`[Main] 🚀 WEBHOOK V4.0 - SERVICE ROLE CORRIGIDO [${requestId}]`);
   
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -351,31 +493,31 @@ serve(async (req) => {
     const result = await processor.processWebhook(payload, requestId);
 
     if (result.success) {
-      console.log(`[Main] ✅ Sucesso V5 [${requestId}]:`, {
+      console.log(`[Main] ✅ Sucesso V4 [${requestId}]:`, {
         messageId: result.messageId,
         leadId: result.leadId,
         processingTime: result.processingTime
       });
     } else {
-      console.error(`[Main] ❌ Falha V5 [${requestId}]:`, result.error);
+      console.error(`[Main] ❌ Falha V4 [${requestId}]:`, result.error);
     }
 
     return new Response(JSON.stringify({ 
       ...result,
       requestId,
-      version: 'V5.0-RPC-ONLY'
+      version: 'V4.0-SERVICE-ROLE'
     }), {
       status: result.success ? 200 : 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.error(`[Main] ❌ ERRO FATAL V5 [${requestId}]:`, error);
+    console.error(`[Main] ❌ ERRO FATAL V4 [${requestId}]:`, error);
     return new Response(JSON.stringify({ 
       success: false, 
       error: error.message,
       requestId,
-      version: 'V5.0-RPC-ONLY'
+      version: 'V4.0-SERVICE-ROLE'
     }), { 
       status: 500, 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
