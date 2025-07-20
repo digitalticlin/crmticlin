@@ -328,7 +328,7 @@ export type Database = {
           created_by_user_id: string
           document_id: string | null
           email: string | null
-          funnel_id: string
+          funnel_id: string | null
           id: string
           import_source: string | null
           kanban_stage_id: string | null
@@ -351,7 +351,7 @@ export type Database = {
           created_by_user_id: string
           document_id?: string | null
           email?: string | null
-          funnel_id: string
+          funnel_id?: string | null
           id?: string
           import_source?: string | null
           kanban_stage_id?: string | null
@@ -374,7 +374,7 @@ export type Database = {
           created_by_user_id?: string
           document_id?: string | null
           email?: string | null
-          funnel_id?: string
+          funnel_id?: string | null
           id?: string
           import_source?: string | null
           kanban_stage_id?: string | null
@@ -796,6 +796,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_orphan_references: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       insert_message_safe: {
         Args: {
           p_lead_id: string
