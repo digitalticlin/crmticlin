@@ -13,7 +13,7 @@ const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 serve(async (req) => {
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
   
-  console.log(`[${requestId}] 🚀 WEBHOOK V78 - SOLUÇÃO SCHEMA PUBLIC EXPLÍCITO`);
+  console.log(`[${requestId}] 🚀 WEBHOOK V80 - SERVICE ROLE + POLÍTICAS RLS ANÁLISE`);
   
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -28,7 +28,7 @@ serve(async (req) => {
   }
 
   try {
-    // CORREÇÃO CRÍTICA: Cliente Supabase sem forçar schema
+    // CORREÇÃO CRÍTICA: Cliente Supabase usando service role
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
@@ -99,9 +99,8 @@ async function processMessage(supabase: any, payload: any, instanceId: string, r
   try {
     console.log(`[${requestId}] 🔍 Buscando instância: ${instanceId}`);
     
-    // CORREÇÃO: Buscar instância especificando schema public explicitamente
+    // CORREÇÃO: Buscar instância usando RLS
     const { data: instances, error: instanceError } = await supabase
-      .schema('public')
       .from('whatsapp_instances')
       .select('id, created_by_user_id, instance_name, vps_instance_id')
       .eq('vps_instance_id', instanceId);
@@ -317,14 +316,13 @@ function extractPhoneFromMessage(messageData: any): string | null {
   return phoneMatch ? phoneMatch[1] : null;
 }
 
-// CORREÇÃO: Buscar ou criar lead especificando schema public explicitamente
+// CORREÇÃO: Buscar ou criar lead usando RLS
 async function findOrCreateLead(supabase: any, phone: string, instance: any, requestId: string) {
   console.log(`[${requestId}] 👤 Buscando lead para telefone: ${phone}`);
   
   try {
-    // Buscar lead existente - CORREÇÃO: Especificar schema public
+    // Buscar lead existente usando RLS
     const { data: existingLead, error: searchError } = await supabase
-      .schema('public')
       .from('leads')
       .select('*')
       .eq('phone', phone)
@@ -341,9 +339,8 @@ async function findOrCreateLead(supabase: any, phone: string, instance: any, req
     if (existingLead) {
       console.log(`[${requestId}] 👤 Lead encontrado: ${existingLead.id}`);
       
-      // Atualizar informações do lead - CORREÇÃO: Especificar schema public
+      // Atualizar informações do lead usando RLS
       const { error: updateError } = await supabase
-        .schema('public')
         .from('leads')
         .update({
           whatsapp_number_id: instance.id,
@@ -364,18 +361,16 @@ async function findOrCreateLead(supabase: any, phone: string, instance: any, req
     // Criar novo lead
     console.log(`[${requestId}] 🆕 Criando NOVO lead`);
       
-      // Buscar funil padrão - CORREÇÃO: Especificar schema public
+      // Buscar funil padrão usando RLS
     const { data: funnel } = await supabase
-        .schema('public')
         .from('funnels')
         .select('id')
         .eq('created_by_user_id', instance.created_by_user_id)
         .limit(1)
       .maybeSingle();
 
-    // Criar novo lead - CORREÇÃO: Especificar schema public
+    // Criar novo lead usando RLS
       const { data: newLead, error: createError } = await supabase
-        .schema('public')
         .from('leads')
         .insert({
           phone: phone,
@@ -402,14 +397,12 @@ async function findOrCreateLead(supabase: any, phone: string, instance: any, req
   }
 }
 
-// CORREÇÃO: Salvar mensagem especificando schema public explicitamente
+// CORREÇÃO: Salvar mensagem usando service role - deve ignorar RLS
 async function saveMessage(supabase: any, messageData: any, requestId: string) {
-  console.log(`[${requestId}] 💾 SALVANDO MENSAGEM - Schema public especificado`);
+  console.log(`[${requestId}] 💾 SALVANDO MENSAGEM - Service role deve ignorar RLS`);
   
   try {
-    // CORREÇÃO CRÍTICA: Especificar schema public explicitamente para evitar conflito com realtime.messages
     const { data: savedMessage, error: messageError } = await supabase
-      .schema('public')
       .from('messages')
       .insert(messageData)
       .select('id')
@@ -417,10 +410,11 @@ async function saveMessage(supabase: any, messageData: any, requestId: string) {
 
     if (messageError) {
       console.error(`[${requestId}] ❌ Erro ao salvar mensagem:`, messageError);
+      console.error(`[${requestId}] 📋 Detalhes do erro:`, JSON.stringify(messageError, null, 2));
       throw new Error(`Falha ao salvar mensagem: ${messageError.message}`);
     }
 
-    console.log(`[${requestId}] ✅ Mensagem salva com sucesso no schema public`);
+    console.log(`[${requestId}] ✅ Mensagem salva com sucesso`);
     return savedMessage;
 
   } catch (error) {
