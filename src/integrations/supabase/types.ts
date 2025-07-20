@@ -800,9 +800,26 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      diagnose_permissions: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       increment_unread_count: {
         Args: { p_lead_id: string }
         Returns: undefined
+      }
+      insert_message_only: {
+        Args: {
+          p_instance_id: string
+          p_phone: string
+          p_message_text: string
+          p_from_me: boolean
+          p_user_id: string
+          p_media_type?: string
+          p_media_url?: string
+          p_external_message_id?: string
+        }
+        Returns: Json
       }
       insert_message_optimized: {
         Args: {
