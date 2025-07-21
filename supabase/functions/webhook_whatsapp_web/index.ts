@@ -16,7 +16,7 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    console.log(`[Main] 🚀 WEBHOOK CORRIGIDO - SEM RLS [${requestId}]`);
+    console.log(`[Main] 🚀 WEBHOOK COM RLS ATIVO - VERSÃO SEGURA [${requestId}]`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -73,7 +73,8 @@ serve(async (req) => {
     cleanPhone = cleanPhone
       .replace(/@c\.us$/, '')
       .replace(/@s\.whatsapp\.net$/, '')
-      .replace(/@g\.us$/, '');
+      .replace(/@g\.us$/, '')
+      .replace(/@newsletter$/, ''); // Adicionar filtro para newsletter
     
     // Remover todos os caracteres não numéricos
     cleanPhone = cleanPhone.replace(/[^0-9]/g, '');
@@ -83,6 +84,20 @@ serve(async (req) => {
       afterSuffixRemoval: cleanPhone,
       length: cleanPhone.length
     });
+
+    // FILTRO PARA NÚMEROS DE NEWSLETTER (muito longos)
+    if (cleanPhone.length > 13) {
+      console.warn(`[Main] 🚫 Número de newsletter ignorado: ${from} -> ${cleanPhone} (${cleanPhone.length} dígitos)`);
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Número de newsletter ignorado',
+        phone: from,
+        cleanPhone: cleanPhone,
+        reason: 'newsletter_number'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
     // VALIDAÇÃO DO TELEFONE LIMPO
     const phoneValid = cleanPhone.length >= 10 && cleanPhone.length <= 13;
@@ -119,10 +134,10 @@ serve(async (req) => {
       cleanPhone
     });
 
-    // CHAMAR FUNÇÃO SQL ATUALIZADA
-    console.log(`[Main] 🎯 Chamando função SQL corrigida: save_whatsapp_message_corrected`);
+    // CHAMAR FUNÇÃO SQL COM RLS ATIVO
+    console.log(`[Main] 🔐 Chamando função SQL com RLS ATIVO: save_whatsapp_message_simple`);
     
-    const { data: result, error } = await supabaseAdmin.rpc('save_whatsapp_message_corrected', {
+    const { data: result, error } = await supabaseAdmin.rpc('save_whatsapp_message_simple', {
       p_vps_instance_id: instanceId,
       p_phone: cleanPhone,
       p_message_text: messageText,
@@ -165,13 +180,14 @@ serve(async (req) => {
       });
     }
 
-    console.log(`[Main] ✅ SUCESSO TOTAL: Mensagem processada com sucesso:`, {
+    console.log(`[Main] ✅ SUCESSO COM RLS ATIVO: Mensagem processada com sucesso:`, {
       messageId: result.data?.message_id,
       leadId: result.data?.lead_id,
       instanceId: result.data?.instance_id,
       userId: result.data?.user_id,
       phone: result.data?.formatted_phone,
-      fromMe: result.data?.from_me
+      fromMe: result.data?.from_me,
+      rlsStatus: result.data?.rls_status
     });
 
     const totalTime = Date.now() - startTime;
@@ -180,8 +196,8 @@ serve(async (req) => {
       success: true,
       data: result.data,
       processing_time: totalTime,
-      method: 'corrected_no_rls',
-      version: 'FIXED_RLS_V1'
+      method: 'rls_active_secure',
+      version: 'RLS_ACTIVE_V2'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
@@ -194,7 +210,7 @@ serve(async (req) => {
       success: false,
       error: error.message || 'Erro crítico interno do servidor',
       processing_time: totalTime,
-      version: 'FIXED_RLS_V1'
+      version: 'RLS_ACTIVE_V2'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
