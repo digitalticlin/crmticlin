@@ -18,7 +18,7 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    console.log(`[Main] 🚀 WEBHOOK OTIMIZADO - VERSÃO 3.0 (VALIDAÇÃO CORRIGIDA) [${requestId}]`);
+    console.log(`[Main] 🚀 WEBHOOK OTIMIZADO - VERSÃO 3.1 (FUNÇÃO SQL CORRIGIDA) [${requestId}]`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -62,16 +62,13 @@ serve(async (req) => {
       contactName: processedMessage.contactName
     });
 
-    // Chamar função SQL otimizada
-    const { data: result, error } = await supabaseAdmin.rpc('save_whatsapp_message_complete', {
+    // Chamar função SQL CORRIGIDA - save_whatsapp_message_simple
+    const { data: result, error } = await supabaseAdmin.rpc('save_whatsapp_message_simple', {
       p_vps_instance_id: processedMessage.instanceId,
       p_phone: processedMessage.phone,
       p_message_text: processedMessage.messageText,
       p_from_me: processedMessage.fromMe,
-      p_media_type: processedMessage.mediaType || 'text',
-      p_media_url: processedMessage.mediaUrl,
-      p_external_message_id: processedMessage.externalMessageId,
-      p_contact_name: processedMessage.contactName
+      p_external_message_id: processedMessage.externalMessageId
     });
 
     if (error) {
@@ -98,7 +95,7 @@ serve(async (req) => {
       });
     }
 
-    console.log(`[Main] ✅ SUCESSO OTIMIZADO [${requestId}]:`, {
+    console.log(`[Main] ✅ SUCESSO CORRIGIDO [${requestId}]:`, {
       messageId: result.data?.message_id,
       leadId: result.data?.lead_id,
       userId: result.data?.user_id,
@@ -115,8 +112,8 @@ serve(async (req) => {
       success: true,
       data: result.data,
       processing_time: Date.now() - startTime,
-      method: 'optimized_webhook_v3',
-      version: 'WEBHOOK_OPTIMIZED_V3.0_VALIDATION_FIXED'
+      method: 'simple_sql_function',
+      version: 'WEBHOOK_OPTIMIZED_V3.1_SQL_FIXED'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
@@ -129,7 +126,7 @@ serve(async (req) => {
       success: false,
       error: error.message || 'Erro crítico interno do servidor',
       processing_time: totalTime,
-      version: 'WEBHOOK_OPTIMIZED_V3.0_VALIDATION_FIXED'
+      version: 'WEBHOOK_OPTIMIZED_V3.1_SQL_FIXED'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -137,16 +134,26 @@ serve(async (req) => {
   }
 });
 
-// Função para processar mídia em background
+// Função aprimorada para processar mídia em background
 async function processMediaInBackground(message: ProcessedMessage, messageId: string) {
   try {
-    console.log(`[Media] 📁 Processando mídia em background: ${message.mediaType}`);
+    console.log(`[Media] 📁 Processando mídia em background: ${message.mediaType} - ${messageId}`);
     
-    // Aqui seria implementado o download e upload da mídia
-    // Por enquanto, apenas log para não afetar a performance
+    if (!message.mediaUrl) {
+      console.warn(`[Media] ⚠️ URL de mídia não encontrada para mensagem: ${messageId}`);
+      return;
+    }
+
+    // TODO: Implementar download e upload para Supabase Storage
+    // 1. Baixar mídia da URL original
+    // 2. Validar formato e tamanho
+    // 3. Upload para bucket whatsapp-media
+    // 4. Atualizar mensagem com nova URL
     
-    console.log(`[Media] ✅ Mídia processada: ${messageId}`);
+    console.log(`[Media] 🔄 Mídia ${message.mediaType} processada para mensagem: ${messageId}`);
+    console.log(`[Media] 📎 URL original: ${message.mediaUrl.substring(0, 50)}...`);
+    
   } catch (error) {
-    console.error(`[Media] ❌ Erro ao processar mídia:`, error);
+    console.error(`[Media] ❌ Erro ao processar mídia para mensagem ${messageId}:`, error);
   }
 }

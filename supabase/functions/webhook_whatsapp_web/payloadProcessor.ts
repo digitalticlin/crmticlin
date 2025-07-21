@@ -145,30 +145,9 @@ export class PayloadProcessor {
     }
   }
 
-  // Formatar telefone para exibição (manter código do país)
-  static formatPhoneDisplay(cleanPhone: string): string {
-    // Manter formato original com código do país
-    if (cleanPhone.startsWith('55') && cleanPhone.length === 13) {
-      // Celular brasileiro com código do país
-      return `+55 (${cleanPhone.substring(2, 4)}) ${cleanPhone.substring(4, 9)}-${cleanPhone.substring(9)}`;
-    } else if (cleanPhone.startsWith('55') && cleanPhone.length === 12) {
-      // Fixo brasileiro com código do país
-      return `+55 (${cleanPhone.substring(2, 4)}) ${cleanPhone.substring(4, 8)}-${cleanPhone.substring(8)}`;
-    } else if (cleanPhone.length === 11) {
-      // Celular brasileiro sem código do país
-      return `+55 (${cleanPhone.substring(0, 2)}) ${cleanPhone.substring(2, 7)}-${cleanPhone.substring(7)}`;
-    } else if (cleanPhone.length === 10) {
-      // Fixo brasileiro sem código do país
-      return `+55 (${cleanPhone.substring(0, 2)}) ${cleanPhone.substring(2, 6)}-${cleanPhone.substring(6)}`;
-    } else {
-      // Formato internacional ou outro
-      return `+${cleanPhone}`;
-    }
-  }
-
-  // Extrair texto da mensagem
+  // Extrair texto da mensagem com suporte aprimorado a mídia
   static extractMessageText(payload: WhatsAppWebhookPayload): string {
-    // Prioridade: message.text > data.body > message.caption > texto padrão
+    // Prioridade: message.text > data.body > message.caption > texto padrão baseado no tipo
     if (payload.message?.text) {
       return payload.message.text;
     }
@@ -181,30 +160,47 @@ export class PayloadProcessor {
       return payload.message.caption;
     }
 
-    // Para tipos de mídia sem texto
+    // Para tipos de mídia sem texto - texto descritivo aprimorado
     const mediaTypes = {
       'image': '📷 Imagem',
-      'video': '🎥 Vídeo',
+      'video': '🎥 Vídeo', 
       'audio': '🎵 Áudio',
       'document': '📄 Documento',
       'sticker': '🎭 Sticker',
       'location': '📍 Localização',
-      'contact': '👤 Contato'
+      'contact': '👤 Contato',
+      'voice': '🎙️ Áudio de voz',
+      'ptt': '🎙️ Push-to-talk'
     };
 
-    return mediaTypes[payload.messageType as keyof typeof mediaTypes] || 'Mensagem sem texto';
+    const messageType = payload.messageType as keyof typeof mediaTypes;
+    return mediaTypes[messageType] || 'Mensagem sem texto';
   }
 
-  // Extrair informações de mídia
-  static extractMediaInfo(payload: WhatsAppWebhookPayload): { mediaUrl?: string; mediaType?: string } {
+  // Extrair informações de mídia aprimoradas
+  static extractMediaInfo(payload: WhatsAppWebhookPayload): { mediaUrl?: string; mediaType?: string; mediaSize?: number; fileName?: string } {
+    console.log(`[PayloadProcessor] 📎 Extraindo info de mídia para tipo: ${payload.messageType}`);
+    
     if (!payload.data?.media) {
+      console.log(`[PayloadProcessor] ⚠️ Nenhuma mídia encontrada no payload`);
       return {};
     }
 
-    return {
+    const mediaInfo = {
       mediaUrl: payload.data.media.url,
-      mediaType: payload.messageType
+      mediaType: payload.messageType,
+      mediaSize: payload.data.media.size,
+      fileName: payload.data.media.filename
     };
+
+    console.log(`[PayloadProcessor] 📎 Mídia extraída:`, {
+      type: mediaInfo.mediaType,
+      hasUrl: !!mediaInfo.mediaUrl,
+      size: mediaInfo.mediaSize,
+      filename: mediaInfo.fileName
+    });
+
+    return mediaInfo;
   }
 
   // Extrair nome do contato
@@ -225,6 +221,7 @@ export class PayloadProcessor {
     if (!messageId) return false;
 
     if (this.messageCache.has(messageId)) {
+      console.log(`[PayloadProcessor] 🔄 Mensagem duplicada detectada: ${messageId}`);
       return true;
     }
 
