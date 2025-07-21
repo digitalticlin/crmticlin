@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { ImageIcon, RefreshCw } from 'lucide-react';
+import { ImageIcon, RefreshCw, ZoomIn } from 'lucide-react';
 
 interface ImageMessageProps {
   messageId: string;
@@ -27,18 +27,13 @@ export const ImageMessage = React.memo(({
     console.log(`[ImageMessage] ✅ Imagem carregada: ${messageId}`);
     setImageLoaded(true);
     setImageError(false);
-    setRetryCount(0);
   }, [messageId]);
 
   const handleImageError = useCallback(() => {
-    console.error(`[ImageMessage] ❌ Erro ao carregar imagem: ${messageId}`, {
-      url: url?.substring(0, 50) + '...',
-      isBase64: url?.startsWith('data:'),
-      retryCount
-    });
+    console.error(`[ImageMessage] ❌ Erro ao carregar imagem: ${messageId}`);
     setImageError(true);
     setImageLoaded(false);
-  }, [messageId, url, retryCount]);
+  }, [messageId]);
 
   const handleRetry = useCallback(() => {
     console.log(`[ImageMessage] 🔄 Tentando novamente: ${messageId} (tentativa ${retryCount + 1})`);
@@ -53,36 +48,34 @@ export const ImageMessage = React.memo(({
     }
   }, [imageLoaded, imageError]);
 
-  const handleCloseFullscreen = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsFullscreen(false);
-  }, []);
-
-  // Estado de loading
+  // Loading state
   if (isLoading) {
     return (
-      <div className="w-48 h-32 bg-gray-100 rounded-lg flex items-center justify-center animate-pulse">
-        <div className="flex items-center space-x-2">
-          <div className="w-3 h-3 bg-gray-300 rounded-full animate-bounce"></div>
-          <span className="text-xs text-gray-500">Carregando imagem...</span>
+      <div className="relative w-64 h-40 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg overflow-hidden">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="flex flex-col items-center space-y-2">
+            <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-xs text-gray-500">Carregando...</span>
+          </div>
         </div>
+        <div className="absolute inset-0 bg-gray-200 animate-pulse"></div>
       </div>
     );
   }
 
-  // Estado de erro
+  // Error state
   if (imageError || !url) {
     return (
-      <div className="w-48 h-32 bg-gray-50 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-200">
-        <div className="text-center">
-          <ImageIcon className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-          <span className="text-xs text-gray-500 block mb-2">Imagem indisponível</span>
+      <div className="w-64 h-40 bg-gray-50 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-200">
+        <div className="text-center p-4">
+          <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+          <span className="text-sm text-gray-500 block mb-3">Imagem não disponível</span>
           {retryCount < 3 && (
             <button
               onClick={handleRetry}
-              className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1 mx-auto"
+              className="inline-flex items-center gap-2 text-sm text-blue-500 hover:text-blue-700 transition-colors"
             >
-              <RefreshCw className="w-3 h-3" />
+              <RefreshCw className="w-4 h-4" />
               Tentar novamente
             </button>
           )}
@@ -94,14 +87,22 @@ export const ImageMessage = React.memo(({
   return (
     <>
       <div className="space-y-2 max-w-xs">
-        <div className="relative overflow-hidden rounded-lg bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity">
-          {/* Loading placeholder */}
+        <div className="relative overflow-hidden rounded-lg bg-gray-100 group cursor-pointer hover:opacity-95 transition-all duration-200">
+          {/* Loading placeholder overlay */}
           {!imageLoaded && (
-            <div className="absolute inset-0 w-48 h-32 bg-gray-100 flex items-center justify-center z-10">
+            <div className="absolute inset-0 w-64 h-40 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center z-10">
               <div className="animate-pulse flex items-center space-x-2">
                 <div className="w-3 h-3 bg-gray-300 rounded-full animate-bounce"></div>
-                <span className="text-xs text-gray-500">Carregando...</span>
+                <div className="w-3 h-3 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                <div className="w-3 h-3 bg-gray-300 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
               </div>
+            </div>
+          )}
+          
+          {/* Zoom overlay */}
+          {imageLoaded && (
+            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 z-20">
+              <ZoomIn className="w-8 h-8 text-white" />
             </div>
           )}
           
@@ -118,11 +119,11 @@ export const ImageMessage = React.memo(({
             onError={handleImageError}
             loading="lazy"
             style={{ 
-              maxWidth: '250px', 
-              maxHeight: '200px',
-              minHeight: imageLoaded ? 'auto' : '128px'
+              maxWidth: '300px', 
+              maxHeight: '250px',
+              minHeight: imageLoaded ? 'auto' : '160px'
             }}
-            key={`${messageId}-${retryCount}`} // Force re-render on retry
+            key={`${messageId}-${retryCount}`}
           />
         </div>
         
@@ -136,7 +137,7 @@ export const ImageMessage = React.memo(({
       {isFullscreen && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-95 flex items-center justify-center z-50 p-4"
-          onClick={handleCloseFullscreen}
+          onClick={() => setIsFullscreen(false)}
         >
           <div className="relative max-w-full max-h-full">
             <img 
@@ -145,8 +146,8 @@ export const ImageMessage = React.memo(({
               className="max-w-full max-h-full object-contain"
             />
             <button
-              onClick={handleCloseFullscreen}
-              className="absolute top-4 right-4 text-white text-3xl hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full w-10 h-10 flex items-center justify-center"
+              onClick={() => setIsFullscreen(false)}
+              className="absolute top-4 right-4 text-white text-3xl hover:text-gray-300 transition-colors bg-black bg-opacity-50 rounded-full w-12 h-12 flex items-center justify-center"
             >
               ×
             </button>

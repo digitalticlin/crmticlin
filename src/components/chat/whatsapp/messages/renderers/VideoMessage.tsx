@@ -25,20 +25,15 @@ export const VideoMessage = React.memo(({
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleVideoError = useCallback(() => {
-    console.error(`[VideoMessage] ❌ Erro ao carregar vídeo: ${messageId}`, {
-      url: url?.substring(0, 50) + '...',
-      isBase64: url?.startsWith('data:'),
-      retryCount
-    });
+    console.error(`[VideoMessage] ❌ Erro ao carregar vídeo: ${messageId}`);
     setVideoError(true);
     setVideoLoading(false);
-  }, [messageId, url, retryCount]);
+  }, [messageId]);
 
   const handleVideoLoad = useCallback(() => {
     console.log(`[VideoMessage] ✅ Vídeo carregado: ${messageId}`);
     setVideoLoading(false);
     setVideoError(false);
-    setRetryCount(0);
   }, [messageId]);
 
   const handleRetry = useCallback(() => {
@@ -47,14 +42,6 @@ export const VideoMessage = React.memo(({
     setVideoError(false);
     setVideoLoading(true);
   }, [messageId, retryCount]);
-
-  const handlePlay = useCallback(() => {
-    setIsPlaying(true);
-  }, []);
-
-  const handlePause = useCallback(() => {
-    setIsPlaying(false);
-  }, []);
 
   const handlePlayPause = useCallback(() => {
     if (videoRef.current) {
@@ -66,13 +53,13 @@ export const VideoMessage = React.memo(({
     }
   }, [isPlaying]);
 
-  // Estado de loading
+  // Loading state
   if (isLoading) {
     return (
       <div className="space-y-2">
-        <div className="w-64 h-36 bg-gray-100 rounded-lg flex items-center justify-center animate-pulse">
-          <div className="flex items-center space-x-2">
-            <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+        <div className="w-80 h-48 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center animate-pulse">
+          <div className="flex flex-col items-center space-y-3">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
             <span className="text-sm text-gray-500">Carregando vídeo...</span>
           </div>
         </div>
@@ -80,23 +67,23 @@ export const VideoMessage = React.memo(({
     );
   }
 
-  // Estado de erro
+  // Error state
   if (videoError || !url) {
     return (
       <div className="space-y-2">
         <div className={cn(
-          "flex items-center justify-center p-4 rounded-lg border-2 border-dashed max-w-xs",
+          "flex items-center justify-center p-6 rounded-lg border-2 border-dashed max-w-xs h-48",
           isIncoming ? "border-gray-300 bg-gray-50" : "border-white/30 bg-white/10"
         )}>
           <div className="text-center">
-            <VideoIcon className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-            <span className="text-sm opacity-70 block mb-2">Vídeo não disponível</span>
+            <VideoIcon className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+            <span className="text-sm opacity-70 block mb-3">Vídeo não disponível</span>
             {retryCount < 3 && (
               <button
                 onClick={handleRetry}
-                className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1 mx-auto"
+                className="inline-flex items-center gap-2 text-sm text-blue-500 hover:text-blue-700 transition-colors"
               >
-                <RefreshCw className="w-3 h-3" />
+                <RefreshCw className="w-4 h-4" />
                 Tentar novamente
               </button>
             )}
@@ -111,15 +98,15 @@ export const VideoMessage = React.memo(({
 
   return (
     <div className="space-y-2">
-      <div className="relative max-w-xs">
-        {/* Loading state */}
+      <div className="relative max-w-sm">
+        {/* Loading overlay */}
         {videoLoading && (
           <div className={cn(
             "absolute inset-0 flex items-center justify-center rounded-lg z-10",
             isIncoming ? "bg-gray-100" : "bg-white/20"
           )}>
-            <div className="flex items-center space-x-2">
-              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+            <div className="flex flex-col items-center space-y-2">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
               <span className="text-sm opacity-70">Carregando vídeo...</span>
             </div>
           </div>
@@ -131,17 +118,17 @@ export const VideoMessage = React.memo(({
             ref={videoRef}
             controls 
             className={cn(
-              "w-full rounded-lg shadow-sm max-w-xs",
+              "w-full rounded-lg shadow-sm max-w-sm",
               videoLoading && "opacity-0"
             )}
-            style={{ maxHeight: '300px' }}
+            style={{ maxHeight: '350px' }}
             preload="metadata"
             onLoadedMetadata={handleVideoLoad}
             onError={handleVideoError}
-            onPlay={handlePlay}
-            onPause={handlePause}
-            poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Cpath d='M40 30l20 15-20 15z' fill='%236b7280'/%3E%3C/svg%3E"
-            key={`${messageId}-${retryCount}`} // Force re-render on retry
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+            poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Cpath d='M35 25l30 20-30 20z' fill='%236b7280'/%3E%3C/svg%3E"
+            key={`${messageId}-${retryCount}`}
           >
             <source src={url} type="video/mp4" />
             <source src={url} type="video/webm" />
@@ -149,14 +136,14 @@ export const VideoMessage = React.memo(({
             Seu navegador não suporta reprodução de vídeo.
           </video>
           
-          {/* Play button overlay (quando pausado) */}
+          {/* Play button overlay */}
           {!isPlaying && !videoLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 rounded-lg">
               <button
                 onClick={handlePlayPause}
-                className="w-12 h-12 bg-white bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all shadow-lg"
+                className="w-16 h-16 bg-white bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all shadow-lg"
               >
-                <PlayIcon className="w-6 h-6 text-gray-800 ml-1" />
+                <PlayIcon className="w-8 h-8 text-gray-800 ml-1" />
               </button>
             </div>
           )}

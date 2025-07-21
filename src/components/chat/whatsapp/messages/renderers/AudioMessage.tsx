@@ -26,20 +26,15 @@ export const AudioMessage = React.memo(({
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const handleAudioError = useCallback(() => {
-    console.error(`[AudioMessage] ❌ Erro ao carregar áudio: ${messageId}`, {
-      url: url?.substring(0, 50) + '...',
-      isBase64: url?.startsWith('data:'),
-      retryCount
-    });
+    console.error(`[AudioMessage] ❌ Erro ao carregar áudio: ${messageId}`);
     setAudioError(true);
     setAudioLoading(false);
-  }, [messageId, url, retryCount]);
+  }, [messageId]);
 
   const handleAudioLoad = useCallback(() => {
     console.log(`[AudioMessage] ✅ Áudio carregado: ${messageId}`);
     setAudioLoading(false);
     setAudioError(false);
-    setRetryCount(0);
     if (audioRef.current) {
       setDuration(audioRef.current.duration || 0);
     }
@@ -74,20 +69,6 @@ export const AudioMessage = React.memo(({
     }
   }, []);
 
-  const handlePlay = useCallback(() => {
-    setIsPlaying(true);
-  }, []);
-
-  const handlePause = useCallback(() => {
-    setIsPlaying(false);
-  }, []);
-
-  const handleEnded = useCallback(() => {
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setProgress(0);
-  }, []);
-
   const handleSeek = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (audioRef.current && duration > 0) {
       const rect = e.currentTarget.getBoundingClientRect();
@@ -107,31 +88,36 @@ export const AudioMessage = React.memo(({
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  // Estado de loading
+  // Loading state
   if (isLoading) {
     return (
-      <div className="flex items-center space-x-3 min-w-[200px] max-w-xs p-3 bg-gray-50 rounded-lg">
+      <div className="flex items-center space-x-3 min-w-[250px] max-w-xs p-3 bg-gray-50 rounded-lg">
         <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-          <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
+          <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
         </div>
-        <span className="text-sm text-gray-500">Carregando áudio...</span>
+        <div className="flex-1">
+          <div className="h-1 bg-gray-200 rounded-full mb-2">
+            <div className="h-full bg-gray-300 rounded-full animate-pulse w-2/3"></div>
+          </div>
+          <span className="text-xs text-gray-500">Carregando áudio...</span>
+        </div>
       </div>
     );
   }
 
-  // Estado de erro
+  // Error state
   if (audioError || !url) {
     return (
-      <div className="flex items-center space-x-3 min-w-[180px] p-3 bg-gray-50 rounded-lg">
-        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-          <VolumeX className="w-4 h-4 text-gray-400" />
+      <div className="flex items-center space-x-3 min-w-[200px] p-3 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+        <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
+          <VolumeX className="w-5 h-5 text-gray-400" />
         </div>
         <div className="flex-1">
-          <span className="text-xs text-gray-500 block">Áudio indisponível</span>
+          <span className="text-sm text-gray-500 block">Áudio não disponível</span>
           {retryCount < 3 && (
             <button
               onClick={handleRetry}
-              className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1 mt-1"
+              className="inline-flex items-center gap-1 mt-1 text-xs text-blue-500 hover:text-blue-700 transition-colors"
             >
               <RefreshCw className="w-3 h-3" />
               Tentar novamente
@@ -143,50 +129,48 @@ export const AudioMessage = React.memo(({
   }
 
   return (
-    <div className="flex items-center space-x-3 min-w-[220px] max-w-xs p-3 bg-gray-50 rounded-lg">
+    <div className="flex items-center space-x-3 min-w-[280px] max-w-xs p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
       {/* Play/Pause button */}
       <button
         onClick={handlePlayPause}
         disabled={audioLoading}
-        className="w-10 h-10 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-12 h-12 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
       >
         {audioLoading ? (
-          <Loader2 className="w-4 h-4 text-white animate-spin" />
+          <Loader2 className="w-5 h-5 text-white animate-spin" />
         ) : isPlaying ? (
-          <Pause className="w-4 h-4 text-white" />
+          <Pause className="w-5 h-5 text-white" />
         ) : (
-          <Play className="w-4 h-4 text-white ml-0.5" />
+          <Play className="w-5 h-5 text-white ml-0.5" />
         )}
       </button>
 
       {/* Waveform e controles */}
-      <div className="flex-1 flex items-center space-x-2">
+      <div className="flex-1 flex flex-col space-y-2">
         {/* Barra de progresso */}
         <div 
-          className="flex-1 h-8 flex items-center cursor-pointer"
+          className="h-8 flex items-center cursor-pointer"
           onClick={handleSeek}
         >
-          <div className="w-full h-1 bg-gray-300 rounded-full overflow-hidden">
+          <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-blue-500 transition-all duration-100"
+              className="h-full bg-blue-500 transition-all duration-100 rounded-full"
               style={{ width: `${progress}%` }}
             />
           </div>
         </div>
 
         {/* Tempo */}
-        <span className="text-xs text-gray-600 font-mono min-w-[35px]">
-          {formatTime(currentTime)}
-        </span>
-        
-        {duration > 0 && (
-          <>
-            <span className="text-xs text-gray-400">/</span>
-            <span className="text-xs text-gray-600 font-mono min-w-[35px]">
+        <div className="flex justify-between items-center">
+          <span className="text-xs text-gray-600 font-mono">
+            {formatTime(currentTime)}
+          </span>
+          {duration > 0 && (
+            <span className="text-xs text-gray-400 font-mono">
               {formatTime(duration)}
             </span>
-          </>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Audio element */}
@@ -196,11 +180,15 @@ export const AudioMessage = React.memo(({
         onLoadedMetadata={handleAudioLoad}
         onError={handleAudioError}
         onTimeUpdate={handleTimeUpdate}
-        onPlay={handlePlay}
-        onPause={handlePause}
-        onEnded={handleEnded}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+        onEnded={() => {
+          setIsPlaying(false);
+          setCurrentTime(0);
+          setProgress(0);
+        }}
         preload="metadata"
-        key={`${messageId}-${retryCount}`} // Force re-render on retry
+        key={`${messageId}-${retryCount}`}
       />
     </div>
   );
