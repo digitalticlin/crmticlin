@@ -15,6 +15,17 @@ interface MessageStats {
   instancesActive: number;
 }
 
+interface MessageRow {
+  id: string;
+  timestamp: string | null;
+  created_at: string;
+}
+
+interface InstanceRow {
+  id: string;
+  instance_name: string;
+}
+
 export const MessageHistoryAnalyzer = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -23,8 +34,8 @@ export const MessageHistoryAnalyzer = () => {
   const analyzeMessageHistory = async () => {
     setLoading(true);
     try {
-      // Buscar estatísticas das mensagens
-      const { data: messages, error: messagesError } = await supabase
+      // Buscar estatísticas das mensagens com tipos explícitos
+      const { data: messagesData, error: messagesError } = await supabase
         .from('messages')
         .select('id, timestamp, created_at')
         .order('timestamp', { ascending: false })
@@ -34,6 +45,7 @@ export const MessageHistoryAnalyzer = () => {
         throw messagesError;
       }
 
+      const messages = messagesData as MessageRow[];
       const now = new Date();
       const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -46,16 +58,17 @@ export const MessageHistoryAnalyzer = () => {
         new Date(m.timestamp || m.created_at) > weekAgo
       ).length || 0;
 
-      // Buscar instâncias ativas
-      const { data: instances, error: instancesError } = await supabase
+      // Buscar instâncias ativas com tipo explícito
+      const { data: instancesData, error: instancesError } = await supabase
         .from('whatsapp_instances')
         .select('id, instance_name')
-        .eq('status', 'connected');
+        .eq('connection_status', 'connected');
 
       if (instancesError) {
         throw instancesError;
       }
 
+      const instances = instancesData as InstanceRow[];
       const lastMessage = messages && messages.length > 0 ? messages[0] : null;
 
       setStats({
