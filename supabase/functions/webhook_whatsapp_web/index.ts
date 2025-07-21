@@ -16,7 +16,7 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    console.log(`[Main] 🚀 WEBHOOK SIMPLIFICADO - VERSÃO ROBUSTA [${requestId}]`);
+    console.log(`[Main] 🚀 WEBHOOK CORRIGIDO - SEM RLS [${requestId}]`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -66,23 +66,34 @@ serve(async (req) => {
       });
     }
 
-    // VALIDAÇÃO DO TELEFONE
-    const phoneClean = from.replace(/[^0-9]/g, '');
-    const phoneValid = phoneClean.length >= 10 && phoneClean.length <= 13;
-
-    console.log(`[Main] 📞 Análise do telefone:`, {
+    // LIMPEZA AVANÇADA DO TELEFONE - REMOVER SUFIXOS WHATSAPP
+    let cleanPhone = from;
+    
+    // Remover sufixos WhatsApp
+    cleanPhone = cleanPhone
+      .replace(/@c\.us$/, '')
+      .replace(/@s\.whatsapp\.net$/, '')
+      .replace(/@g\.us$/, '');
+    
+    // Remover todos os caracteres não numéricos
+    cleanPhone = cleanPhone.replace(/[^0-9]/g, '');
+    
+    console.log(`[Main] 🧹 Limpeza do telefone:`, {
       original: from,
-      clean: phoneClean,
-      valid: phoneValid,
-      length: phoneClean.length
+      afterSuffixRemoval: cleanPhone,
+      length: cleanPhone.length
     });
 
+    // VALIDAÇÃO DO TELEFONE LIMPO
+    const phoneValid = cleanPhone.length >= 10 && cleanPhone.length <= 13;
+
     if (!phoneValid) {
-      console.warn(`[Main] ⚠️ Telefone inválido ignorado: ${from}`);
+      console.warn(`[Main] ⚠️ Telefone inválido ignorado: ${from} -> ${cleanPhone}`);
       return new Response(JSON.stringify({
         success: true,
         message: 'Telefone inválido - mensagem ignorada',
-        phone: from
+        phone: from,
+        cleanPhone: cleanPhone
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -104,15 +115,16 @@ serve(async (req) => {
       text: messageText.substring(0, 50) + '...',
       fromMe,
       messageId,
-      instanceId
+      instanceId,
+      cleanPhone
     });
 
-    // CHAMAR FUNÇÃO SQL SIMPLIFICADA
-    console.log(`[Main] 🎯 Chamando função SQL simplificada: save_whatsapp_message_simple`);
+    // CHAMAR FUNÇÃO SQL ATUALIZADA
+    console.log(`[Main] 🎯 Chamando função SQL corrigida: save_whatsapp_message_corrected`);
     
-    const { data: result, error } = await supabaseAdmin.rpc('save_whatsapp_message_simple', {
+    const { data: result, error } = await supabaseAdmin.rpc('save_whatsapp_message_corrected', {
       p_vps_instance_id: instanceId,
-      p_phone: from,
+      p_phone: cleanPhone,
       p_message_text: messageText,
       p_from_me: fromMe,
       p_external_message_id: messageId
@@ -153,7 +165,7 @@ serve(async (req) => {
       });
     }
 
-    console.log(`[Main] ✅ SUCESSO: Mensagem processada com sucesso:`, {
+    console.log(`[Main] ✅ SUCESSO TOTAL: Mensagem processada com sucesso:`, {
       messageId: result.data?.message_id,
       leadId: result.data?.lead_id,
       instanceId: result.data?.instance_id,
@@ -168,8 +180,8 @@ serve(async (req) => {
       success: true,
       data: result.data,
       processing_time: totalTime,
-      method: 'simplified_sql_function',
-      version: 'ROBUST_SIMPLE_V1'
+      method: 'corrected_no_rls',
+      version: 'FIXED_RLS_V1'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
@@ -182,7 +194,7 @@ serve(async (req) => {
       success: false,
       error: error.message || 'Erro crítico interno do servidor',
       processing_time: totalTime,
-      version: 'ROBUST_SIMPLE_V1'
+      version: 'FIXED_RLS_V1'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
