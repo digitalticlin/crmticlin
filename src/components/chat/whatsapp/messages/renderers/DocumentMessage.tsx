@@ -77,11 +77,10 @@ export const DocumentMessage = React.memo(({
     }
   }, []);
 
-  const getFileSize = useCallback((filename: string) => {
-    // Tentar extrair tamanho do nome do arquivo ou URL
-    // Esta é uma implementação básica, pode ser expandida
-    return 'Tamanho desconhecido';
-  }, []);
+  // Mover cleanFilename para antes dos handlers
+  const cleanFilename = getCleanFilename(filename);
+  const fileIcon = getFileIcon(cleanFilename);
+  const isPdfOrImage = /\.(pdf|jpg|jpeg|png|gif|webp)$/i.test(cleanFilename);
 
   const handleDownload = useCallback(async () => {
     if (!url || downloadLoading) return;
@@ -116,10 +115,6 @@ export const DocumentMessage = React.memo(({
     console.log(`[DocumentMessage] 👁️ Abrindo preview: ${messageId}`);
     window.open(url, '_blank', 'noopener,noreferrer');
   }, [url, messageId]);
-
-  const cleanFilename = getCleanFilename(filename);
-  const fileIcon = getFileIcon(cleanFilename);
-  const isPdfOrImage = /\.(pdf|jpg|jpeg|png|gif|webp)$/i.test(cleanFilename);
 
   // Estado de loading
   if (isLoading) {
