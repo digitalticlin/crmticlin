@@ -48,7 +48,7 @@ export const ContactItem = memo(({
           </AvatarFallback>
         </Avatar>
         
-        {/* Indicador de nova mensagem */}
+        {/* Indicador de nova mensagem - só aparece se houver mensagens não lidas */}
         {hasUnread && (
           <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
             <Badge variant="secondary" className="bg-green-500 text-white text-xs px-1.5 py-0.5 min-w-0 h-auto">
