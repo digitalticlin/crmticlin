@@ -582,11 +582,22 @@ export const useWhatsAppContacts = (
 
   // 🚀 CARREGAMENTO INICIAL INTELIGENTE: Apenas se lista estiver vazia
   useEffect(() => {
+    console.log('[WhatsApp Contacts] 🔍 Verificando carregamento inicial:', {
+      cacheKey,
+      cacheKeyExists: !!cacheKey,
+      contactsLength: contacts.length,
+      userId,
+      activeInstanceId: activeInstance?.id,
+      isAdmin
+    });
+    
     if (cacheKey && contacts.length === 0) {
       console.log('[WhatsApp Contacts] 🚀 Lista vazia - fazendo carregamento inicial');
       fetchContacts();
+    } else if (!cacheKey) {
+      console.log('[WhatsApp Contacts] ⚠️ CacheKey vazio - não é possível carregar contatos');
     }
-  }, [cacheKey, fetchContacts, contacts.length]);
+  }, [cacheKey, fetchContacts, contacts.length, userId, activeInstance?.id, isAdmin]);
 
   // 🚀 LISTENER PARA REFRESH FORÇADO APÓS MUDANÇA DE ETAPA - COM DEBOUNCE INTELIGENTE
   useEffect(() => {

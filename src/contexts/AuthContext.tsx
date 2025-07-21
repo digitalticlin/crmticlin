@@ -43,11 +43,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Redirect on successful authentication
+        // Redirect on successful authentication ONLY for actual login, not page refresh
         if (event === 'SIGNED_IN' && session?.user) {
-          console.log('[Auth] Usuário logado, redirecionando para dashboard...');
-          // Redirecionamento imediato para o dashboard
+          console.log('[Auth] Usuário logado, verificando se precisa redirecionar...');
+          
+          // 🚀 CORREÇÃO: Só redirecionar se estivermos em página de auth ou raiz
+          const currentPath = window.location.pathname;
+          const isAuthPage = currentPath === '/login' || currentPath === '/register' || currentPath === '/';
+          
+          if (isAuthPage) {
+            console.log('[Auth] Redirecionando para dashboard - estava em página de auth');
             navigate('/dashboard', { replace: true });
+          } else {
+            console.log('[Auth] Usuário já estava em página protegida, mantendo localização:', currentPath);
+            // Não redirecionar - usuário pode estar trabalhando em outra página
+          }
         }
       }
     );
