@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -10,549 +11,199 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 serve(async (req) => {
-  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
-  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   if (req.method !== 'POST') {
-    console.log(`[${requestId}] ❌ Método não permitido: ${req.method}`);
-    return new Response('Method not allowed', { status: 405, headers: corsHeaders });
+    return new Response('Method not allowed', { 
+      status: 405, 
+      headers: corsHeaders 
+    });
   }
 
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const payload = await req.json();
+    const body = await req.json();
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    console.log(`[${requestId}] 🚀 WhatsApp Web Webhook - VERSÃO FUNCIONAL RECUPERADA:`, JSON.stringify(payload, null, 2));
+    console.log(`[${requestId}] 🚀 WhatsApp Web Webhook - VERSÃO FUNCIONAL RECUPERADA:`, JSON.stringify(body, null, 2));
 
-    // Extrair dados padronizados
-    const eventType = payload.event || payload.type;
-    const instanceId = payload.instanceId || payload.instance || payload.instanceName;
-    
-    if (!instanceId) {
-      console.error(`[${requestId}] ❌ Instance ID não encontrado`);
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'Instance ID required',
-        requestId
-      }), { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    const { event, instanceId, data } = body;
+
+    if (event !== 'message_received') {
+      return new Response(JSON.stringify({ success: true, message: 'Event not processed' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    console.log(`[${requestId}] 🔄 Processando evento: ${eventType} para instância: ${instanceId}`);
+    console.log(`[${requestId}] 🔄 Processando evento: ${event} para instância: ${instanceId}`);
 
-    // CASO 1: QR Code gerado
-    if (eventType === 'qr.update' || eventType === 'qr_update' || payload.qrCode) {
-      return await handleQRCodeUpdate(supabase, payload, instanceId, requestId);
+    // 1. BUSCAR INSTÂNCIA
+    console.log(`[${requestId}] 🔍 BUSCANDO INSTÂNCIA: ${instanceId}`);
+    
+    const { data: instance, error: instanceError } = await supabase
+      .from('whatsapp_instances')
+      .select('id, created_by_user_id')
+      .eq('vps_instance_id', instanceId)
+      .single();
+
+    if (instanceError || !instance) {
+      console.log(`[${requestId}] ❌ Instância não encontrada: ${instanceId}`);
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Instance not found',
+        instanceId 
+      }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
-    // CASO 2: Status de conexão atualizado
-    if (eventType === 'connection.update' || eventType === 'status_update') {
-      return await handleConnectionUpdate(supabase, payload, instanceId, requestId);
+    console.log(`[${requestId}] 💬 Processando mensagem com CONVERSÃO DE MÍDIA para: ${instanceId}`);
+
+    // 2. EXTRAIR DADOS DA MENSAGEM
+    const messageType = data.messageType || body.messageType || 'text';
+    const messageText = data.body || body.message?.text || '[Mensagem não suportada]';
+    const fromPhone = data.from?.replace('@s.whatsapp.net', '') || body.from?.replace('@s.whatsapp.net', '');
+    const messageId = data.messageId || body.data?.messageId;
+    
+    // 3. DETECTAR E PROCESSAR MÍDIA
+    let mediaUrl = null;
+    let processedMediaData = null;
+    
+    if (messageType !== 'text' && messageType !== 'chat') {
+      console.log(`[${requestId}] 🎬 MÍDIA DETECTADA: ${messageType}`);
+      
+      // Extrair URL da mídia do payload
+      const potentialUrls = [
+        data.mediaUrl,
+        data.media?.url,
+        body.mediaUrl,
+        body.media?.url,
+        data.url,
+        body.url
+      ].filter(Boolean);
+      
+      if (potentialUrls.length > 0) {
+        mediaUrl = potentialUrls[0];
+        console.log(`[${requestId}] 📎 URL da mídia encontrada: ${mediaUrl.substring(0, 50)}...`);
+        
+        // PROCESSAR MÍDIA IMEDIATAMENTE
+        try {
+          processedMediaData = await processMediaToBase64(supabase, messageId, mediaUrl, messageType, requestId);
+          console.log(`[${requestId}] ✅ Mídia processada com sucesso`);
+        } catch (mediaError) {
+          console.log(`[${requestId}] ⚠️ Erro ao processar mídia: ${mediaError.message}`);
+          // Continua sem mídia processada
+        }
+      } else {
+        console.log(`[${requestId}] ⚠️ Mídia detectada mas URL não encontrada no payload`);
+      }
     }
 
-    // CASO 3: Nova mensagem recebida
-    if (eventType === 'messages.upsert' || eventType === 'message_received') {
-      return await handleMessageReceived(supabase, payload, instanceId, requestId);
+    console.log(`[${requestId}] 📱 Mensagem RECEBIDA DE: ${fromPhone} | Tipo: ${messageType} | Texto: ${messageText.substring(0, 50)}...`);
+
+    // 4. SALVAR MENSAGEM USANDO FUNÇÃO SIMPLES
+    console.log(`[${requestId}] 💾 Salvando mensagem usando função simples`);
+    
+    const { data: saveResult, error: saveError } = await supabase
+      .rpc('save_whatsapp_message_service_role', {
+        p_vps_instance_id: instanceId,
+        p_phone: fromPhone,
+        p_message_text: messageText,
+        p_from_me: false,
+        p_media_type: messageType,
+        p_media_url: mediaUrl,
+        p_external_message_id: messageId,
+        p_contact_name: body.contactName || null
+      });
+
+    if (saveError) {
+      console.log(`[${requestId}] ❌ Erro ao salvar mensagem: ${saveError.message}`);
+      throw new Error(`Erro ao salvar mensagem: ${saveError.message}`);
     }
 
-    console.log(`[${requestId}] ⚠️ Evento não processado:`, eventType);
-    return new Response(JSON.stringify({ 
-      success: true, 
-      message: 'Event not processed',
-      event: eventType,
+    if (!saveResult?.success) {
+      console.log(`[${requestId}] ❌ Função retornou erro: ${saveResult?.error}`);
+      throw new Error(`Erro na função: ${saveResult?.error}`);
+    }
+
+    const messageDbId = saveResult.data?.message_id;
+    const leadId = saveResult.data?.lead_id;
+    const instanceDbId = saveResult.data?.instance_id;
+
+    console.log(`[${requestId}] ✅ Mensagem ${messageType.toUpperCase()} salva com sucesso! ID: ${messageDbId}`);
+
+    // 5. ATUALIZAR LEAD
+    if (leadId && instanceDbId) {
+      const { error: leadUpdateError } = await supabase
+        .from('leads')
+        .update({
+          last_message: messageText,
+          last_message_time: new Date().toISOString(),
+          unread_count: supabase.raw('COALESCE(unread_count, 0) + 1'),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', leadId);
+
+      if (leadUpdateError) {
+        console.log(`[${requestId}] ⚠️ Erro ao atualizar lead: ${leadUpdateError.message}`);
+      } else {
+        console.log(`[${requestId}] ✅ Lead atualizado: ${leadId} | Instância: ${instanceDbId} | Direção: INCOMING`);
+      }
+    }
+
+    // 6. SE MÍDIA FOI PROCESSADA, ASSOCIAR À MENSAGEM
+    if (processedMediaData && messageDbId) {
+      console.log(`[${requestId}] 🔗 Associando mídia processada à mensagem: ${messageDbId}`);
+      
+      const { error: updateCacheError } = await supabase
+        .from('media_cache')
+        .update({ message_id: messageDbId })
+        .eq('id', processedMediaData.cacheId);
+
+      if (updateCacheError) {
+        console.log(`[${requestId}] ⚠️ Erro ao associar mídia: ${updateCacheError.message}`);
+      } else {
+        console.log(`[${requestId}] ✅ Mídia associada com sucesso`);
+      }
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      messageId: messageDbId,
+      leadId: leadId,
+      mediaProcessed: !!processedMediaData,
       requestId
-    }), { 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    console.error(`[${requestId}] ❌ Erro geral:`, error);
-    return new Response(JSON.stringify({ 
-      success: false, 
-      error: error.message,
-      requestId
-    }), { 
-      status: 500, 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    console.error('❌ Erro geral no webhook:', error);
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });
 
-async function handleQRCodeUpdate(supabase: any, payload: any, instanceId: string, requestId: string) {
-  console.log(`[${requestId}] 📱 Processando QR Code update para: ${instanceId}`);
+// FUNÇÃO PARA PROCESSAR MÍDIA PARA BASE64
+async function processMediaToBase64(supabase: any, messageId: string, mediaUrl: string, mediaType: string, requestId: string) {
+  console.log(`[${requestId}] 🔄 Iniciando conversão de mídia para Base64: ${messageId}`);
   
   try {
-    const qrCode = payload.qrCode || payload.qr_code || payload.data?.qrCode;
+    // 1. BAIXAR MÍDIA
+    console.log(`[${requestId}] 📥 Baixando mídia: ${mediaUrl.substring(0, 50)}...`);
     
-    if (!qrCode) {
-      console.error(`[${requestId}] ❌ QR Code não encontrado no payload`);
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'QR Code not found',
-        requestId
-      }), { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
-    }
-
-    // Normalizar QR Code para base64
-    let normalizedQR = qrCode;
-    if (!qrCode.startsWith('data:image/')) {
-      normalizedQR = `data:image/png;base64,${qrCode}`;
-    }
-
-    // Buscar e atualizar instância
-    const { data: instances, error: fetchError } = await supabase
-      .from('whatsapp_instances')
-      .select('id')
-      .eq('vps_instance_id', instanceId);
-
-    if (fetchError || !instances?.length) {
-      console.error(`[${requestId}] ❌ Instância não encontrada:`, fetchError);
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'Instance not found',
-        instanceId,
-        requestId
-      }), { 
-        status: 404, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
-    }
-
-    const { error: updateError } = await supabase
-      .from('whatsapp_instances')
-      .update({
-        qr_code: normalizedQR,
-        web_status: 'waiting_scan',
-        connection_status: 'connecting',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', instances[0].id);
-
-    if (updateError) {
-      console.error(`[${requestId}] ❌ Erro ao atualizar QR Code:`, updateError);
-      throw updateError;
-    }
-
-    console.log(`[${requestId}] ✅ QR Code atualizado com sucesso`);
-    
-    return new Response(JSON.stringify({ 
-      success: true, 
-      message: 'QR Code updated',
-      instanceId: instances[0].id,
-      requestId
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-
-  } catch (error) {
-    console.error(`[${requestId}] ❌ Erro no QR Code update:`, error);
-    return new Response(JSON.stringify({ 
-      success: false, 
-      error: error.message,
-      requestId
-    }), { 
-      status: 500, 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-    });
-  }
-}
-
-async function handleConnectionUpdate(supabase: any, payload: any, instanceId: string, requestId: string) {
-  console.log(`[${requestId}] 🔗 Processando connection update para: ${instanceId}`);
-  
-  try {
-    const status = payload.status || payload.connection_status || payload.data?.status;
-    const phone = payload.phone || payload.number || payload.data?.phone;
-    const profileName = payload.profileName || payload.profile_name || payload.data?.profileName;
-    
-    console.log(`[${requestId}] 📊 Status recebido:`, { status, phone, profileName });
-
-    // Mapear status
-    const statusMapping: Record<string, string> = {
-      'open': 'connected',
-      'ready': 'connected', 
-      'connected': 'connected',
-      'connecting': 'connecting',
-      'disconnected': 'disconnected',
-      'error': 'error',
-      'waiting_qr': 'waiting_qr'
-    };
-
-    const connectionStatus = statusMapping[status] || 'disconnected';
-    const webStatus = status;
-
-    // Buscar instância
-    const { data: instances, error: fetchError } = await supabase
-      .from('whatsapp_instances')
-      .select('id')
-      .eq('vps_instance_id', instanceId);
-
-    if (fetchError || !instances?.length) {
-      console.error(`[${requestId}] ❌ Instância não encontrada:`, fetchError);
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'Instance not found',
-        instanceId,
-        requestId
-      }), { 
-        status: 404, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
-    }
-
-    // Preparar dados de atualização
-    const updateData: any = {
-      connection_status: connectionStatus,
-      web_status: webStatus,
-      updated_at: new Date().toISOString()
-    };
-
-    // Se conectado com sucesso
-    if (connectionStatus === 'connected') {
-      updateData.date_connected = new Date().toISOString();
-      updateData.qr_code = null; // Limpar QR Code quando conectar
-      
-      if (phone) updateData.phone = phone;
-      if (profileName) updateData.profile_name = profileName;
-    }
-
-    // Se desconectado
-    if (connectionStatus === 'disconnected') {
-      updateData.date_disconnected = new Date().toISOString();
-    }
-
-    // Atualizar instância
-    const { error: updateError } = await supabase
-      .from('whatsapp_instances')
-      .update(updateData)
-      .eq('id', instances[0].id);
-
-    if (updateError) {
-      console.error(`[${requestId}] ❌ Erro ao atualizar status:`, updateError);
-      throw updateError;
-    }
-
-    console.log(`[${requestId}] ✅ Status atualizado: ${connectionStatus}`);
-
-    return new Response(JSON.stringify({ 
-      success: true, 
-      message: 'Connection status updated',
-      status: connectionStatus,
-      instanceId: instances[0].id,
-      requestId
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-
-  } catch (error) {
-    console.error(`[${requestId}] ❌ Erro no connection update:`, error);
-    return new Response(JSON.stringify({ 
-      success: false, 
-      error: error.message,
-      requestId
-    }), { 
-      status: 500, 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-    });
-  }
-}
-
-async function handleMessageReceived(supabase: any, payload: any, instanceId: string, requestId: string) {
-  console.log(`[${requestId}] 💬 Processando mensagem com CONVERSÃO DE MÍDIA para: ${instanceId}`);
-  
-  try {
-    // Buscar instância
-    console.log(`[${requestId}] 🔍 BUSCANDO INSTÂNCIA: ${instanceId}`);
-    const { data: instances, error: instanceError } = await supabase
-      .from('whatsapp_instances')
-      .select('id, created_by_user_id')
-      .eq('vps_instance_id', instanceId);
-
-    if (instanceError || !instances?.length) {
-      console.error(`[${requestId}] ❌ Instância não encontrada:`, instanceError);
-      return new Response(JSON.stringify({ 
-        success: false, 
-        error: 'Instance not found',
-        instanceId,
-        requestId
-      }), { 
-        status: 404, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
-    }
-
-    const instance = instances[0];
-
-    // ✅ EXTRAÇÃO CORRETA DE DADOS DA MENSAGEM
-    let messageText = '';
-    let mediaType = 'text';
-    let mediaUrl = null;
-    let fromMe = false;
-    let phone = '';
-
-    // ✅ DETECTAR DIREÇÃO DA MENSAGEM (BILATERAL) - Múltiplas fontes
-    const messageData = payload.data || payload.message || payload;
-    
-    if (messageData?.fromMe !== undefined) {
-      fromMe = messageData.fromMe;
-    } else if (messageData?.key?.fromMe !== undefined) {
-      fromMe = messageData.key.fromMe;
-    } else if (payload.fromMe !== undefined) {
-      fromMe = payload.fromMe;
-    } else if (payload.data?.key?.fromMe !== undefined) {
-      fromMe = payload.data.key.fromMe;
-    }
-
-    // ✅ EXTRAIR NÚMERO DE TELEFONE - Múltiplas fontes
-    phone = extractPhoneFromMessage(messageData) || 
-            extractPhoneFromMessage(payload) ||
-            payload.from?.replace('@s.whatsapp.net', '') ||
-            payload.phone ||
-            '';
-
-    // ✅ EXTRAÇÃO COMPLETA DE MÍDIA POR TIPO
-    if (messageData.messages && Array.isArray(messageData.messages)) {
-      const firstMessage = messageData.messages[0];
-      const msg = firstMessage?.message;
-      
-      if (msg?.conversation) {
-        messageText = msg.conversation;
-        mediaType = 'text';
-      } else if (msg?.extendedTextMessage?.text) {
-        messageText = msg.extendedTextMessage.text;
-        mediaType = 'text';
-      } else if (msg?.imageMessage) {
-        messageText = msg.imageMessage.caption || '[Imagem]';
-        mediaType = 'image';
-        mediaUrl = msg.imageMessage.url || msg.imageMessage.directPath;
-      } else if (msg?.videoMessage) {
-        messageText = msg.videoMessage.caption || '[Vídeo]';
-        mediaType = 'video';
-        mediaUrl = msg.videoMessage.url || msg.videoMessage.directPath;
-      } else if (msg?.audioMessage) {
-        messageText = '[Áudio]';
-        mediaType = 'audio';
-        mediaUrl = msg.audioMessage.url || msg.audioMessage.directPath;
-      } else if (msg?.documentMessage) {
-        messageText = msg.documentMessage.caption || msg.documentMessage.fileName || '[Documento]';
-        mediaType = 'document';
-        mediaUrl = msg.documentMessage.url || msg.documentMessage.directPath;
-      } else {
-        messageText = '[Mensagem de mídia]';
-        mediaType = 'text';
-      }
-    } else {
-      // ✅ FORMATO ALTERNATIVO DE PAYLOAD - Múltiplas fontes
-      messageText = messageData.body || 
-                   messageData.text || 
-                   messageData.message?.text || 
-                   messageData.message?.conversation ||
-                   payload.message?.text ||
-                   payload.text ||
-                   payload.body ||
-                   '[Mídia]';
-      
-      // Detectar tipo por propriedades do payload
-      if (messageData.messageType || messageData.mediaType) {
-        const detectedType = messageData.messageType || messageData.mediaType;
-        switch (detectedType) {
-          case 'imageMessage':
-          case 'image':
-            mediaType = 'image';
-            messageText = messageText === '[Mídia]' ? '[Imagem]' : messageText;
-            break;
-          case 'videoMessage':
-          case 'video':
-            mediaType = 'video';
-            messageText = messageText === '[Mídia]' ? '[Vídeo]' : messageText;
-            break;
-          case 'audioMessage':
-          case 'audio':
-            mediaType = 'audio';
-            messageText = messageText === '[Mídia]' ? '[Áudio]' : messageText;
-            break;
-          case 'documentMessage':
-          case 'document':
-            mediaType = 'document';
-            messageText = messageText === '[Mídia]' ? '[Documento]' : messageText;
-            break;
-          default:
-            mediaType = 'text';
-        }
-      }
-      
-      mediaUrl = messageData.mediaUrl || messageData.media_url || payload.mediaUrl || payload.media_url;
-    }
-
-    if (!phone) {
-      console.log(`[${requestId}] ⚠️ Mensagem ignorada - sem telefone válido`);
-      return new Response(JSON.stringify({ 
-        success: true, 
-        message: 'Message ignored - no phone',
-        requestId
-      }), { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
-    }
-
-    console.log(`[${requestId}] 📱 Mensagem ${fromMe ? 'ENVIADA PARA' : 'RECEBIDA DE'}: ${phone} | Tipo: ${mediaType} | Texto: ${messageText.substring(0, 50)}...`);
-
-    // ✅ BUSCAR LEAD POR TELEFONE E USUÁRIO (NÃO POR INSTÂNCIA) - EVITAR DUPLICAÇÃO
-    let { data: lead, error: leadError } = await supabase
-      .from('leads')
-      .select('*')
-      .eq('phone', phone)
-      .eq('created_by_user_id', instance.created_by_user_id)
-      .single();
-
-    if (leadError || !lead) {
-      console.log(`[${requestId}] 🆕 Criando novo lead para: ${phone}`);
-      
-      // Buscar funil padrão
-      const { data: defaultFunnel } = await supabase
-        .from('funnels')
-        .select('id')
-        .eq('created_by_user_id', instance.created_by_user_id)
-        .limit(1)
-        .single();
-
-      const { data: newLead, error: createError } = await supabase
-        .from('leads')
-        .insert({
-          phone: phone,
-          name: `Contato ${phone}`,
-          whatsapp_number_id: instance.id,
-          created_by_user_id: instance.created_by_user_id,
-          funnel_id: defaultFunnel?.id,
-          last_message: messageText,
-          last_message_time: new Date().toISOString(),
-          unread_count: fromMe ? 0 : 1 // ✅ Se é outgoing, não conta como não lida
-        })
-        .select()
-        .single();
-
-      if (createError) {
-        console.error(`[${requestId}] ❌ Erro ao criar lead:`, createError);
-        throw createError;
-      }
-      
-      lead = newLead;
-      console.log(`[${requestId}] ✅ Lead criado: ${lead.id}`);
-    } else {
-      // ✅ ATUALIZAR LEAD EXISTENTE + GARANTIR INSTÂNCIA CORRETA
-      const updateData: any = {
-        last_message: messageText,
-        last_message_time: new Date().toISOString(),
-        whatsapp_number_id: instance.id  // ✅ SEMPRE ATUALIZAR INSTÂNCIA ATUAL
-      };
-
-      // ✅ Se é incoming (não from_me), incrementar contador de não lidas
-      if (!fromMe) {
-        updateData.unread_count = (lead.unread_count || 0) + 1;
-      }
-
-      await supabase
-        .from('leads')
-        .update(updateData)
-        .eq('id', lead.id);
-      
-      console.log(`[${requestId}] ✅ Lead atualizado: ${lead.id} | Instância: ${instance.id} | Direção: ${fromMe ? 'OUTGOING' : 'INCOMING'}`);
-    }
-
-    // 🆕 NOVO: PROCESSAR MÍDIA SE EXISTIR
-    let processedMediaUrl = mediaUrl;
-    if (mediaUrl && mediaType !== 'text') {
-      console.log(`[${requestId}] 🎬 PROCESSANDO MÍDIA: Tipo=${mediaType}, URL=${mediaUrl.substring(0, 50)}...`);
-      
-      try {
-        const mediaResult = await processAndCacheMedia(supabase, mediaUrl, mediaType, requestId);
-        if (mediaResult.success) {
-          console.log(`[${requestId}] ✅ Mídia processada com sucesso: ${mediaResult.cacheId}`);
-          // Manter a URL original para compatibilidade, mas mídia estará no cache
-        } else {
-          console.warn(`[${requestId}] ⚠️ Falha ao processar mídia: ${mediaResult.error}`);
-        }
-      } catch (mediaError) {
-        console.error(`[${requestId}] ❌ Erro ao processar mídia:`, mediaError);
-        // Continua sem parar o fluxo principal
-      }
-    }
-
-    // ✅ SALVAR MENSAGEM USANDO FUNÇÃO SIMPLES
-    console.log(`[${requestId}] 💾 Salvando mensagem usando função simples`);
-    
-    const { data: savedMessageId, error: messageError } = await supabase
-      .rpc('save_message_simple', {
-        lead_id_param: lead.id,
-        instance_id_param: instance.id,
-        text_param: messageText,
-        from_me_param: fromMe,
-        user_id_param: instance.created_by_user_id
-      });
-
-    if (messageError) {
-      console.error(`[${requestId}] ❌ Erro ao salvar mensagem:`, messageError);
-      throw messageError;
-    }
-
-    // 🆕 APÓS SALVAR MENSAGEM: ASSOCIAR MÍDIA AO MESSAGE_ID SE PROCESSADA
-    if (mediaUrl && mediaType !== 'text' && savedMessageId) {
-      try {
-        await associateMediaToMessage(supabase, savedMessageId, mediaUrl, requestId);
-      } catch (associateError) {
-        console.warn(`[${requestId}] ⚠️ Erro ao associar mídia à mensagem:`, associateError);
-      }
-    }
-
-    console.log(`[${requestId}] ✅ Mensagem ${fromMe ? 'OUTGOING' : 'INCOMING'} ${mediaType.toUpperCase()} salva com sucesso! ID: ${savedMessageId}`);
-    
-    return new Response(JSON.stringify({ 
-      success: true, 
-      message: 'Message processed and saved with media conversion',
-      phone,
-      fromMe,
-      mediaType,
-      leadId: lead.id,
-      instanceId: instance.id,
-      messageId: savedMessageId,
-      hasMedia: mediaUrl && mediaType !== 'text',
-      requestId,
-      method: 'ENHANCED_WITH_MEDIA_PROCESSING'
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
-
-  } catch (error) {
-    console.error(`[${requestId}] ❌ Erro ao processar mensagem:`, error);
-    return new Response(JSON.stringify({ 
-      success: false, 
-      error: error.message,
-      requestId
-    }), { 
-      status: 500, 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-    });
-  }
-}
-
-// 🆕 NOVA FUNÇÃO: Processar e cachear mídia
-async function processAndCacheMedia(supabase: any, mediaUrl: string, mediaType: string, requestId: string) {
-  try {
-    console.log(`[${requestId}] 🔄 Baixando mídia: ${mediaUrl.substring(0, 50)}...`);
-    
-    // Baixar a mídia da URL temporária do WhatsApp
     const response = await fetch(mediaUrl, {
       method: 'GET',
       headers: {
-        'User-Agent': 'WhatsApp-Media-Downloader/1.0'
+        'User-Agent': 'WhatsApp-Media-Converter/1.0'
       }
     });
 
@@ -560,7 +211,7 @@ async function processAndCacheMedia(supabase: any, mediaUrl: string, mediaType: 
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    // Converter para ArrayBuffer e depois para Base64
+    // 2. CONVERTER PARA BASE64
     const arrayBuffer = await response.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
     const base64 = btoa(String.fromCharCode(...uint8Array));
@@ -568,9 +219,9 @@ async function processAndCacheMedia(supabase: any, mediaUrl: string, mediaType: 
     const fileSizeBytes = arrayBuffer.byteLength;
     const fileSizeMB = (fileSizeBytes / (1024 * 1024)).toFixed(2);
     
-    console.log(`[${requestId}] 📦 Mídia baixada: ${fileSizeMB}MB, convertendo para Base64...`);
+    console.log(`[${requestId}] 💾 Mídia convertida: ${fileSizeMB}MB -> Base64`);
 
-    // Salvar no media_cache
+    // 3. SALVAR NO CACHE
     const { data: cacheData, error: cacheError } = await supabase
       .from('media_cache')
       .insert({
@@ -588,61 +239,37 @@ async function processAndCacheMedia(supabase: any, mediaUrl: string, mediaType: 
       throw new Error(`Erro ao salvar no cache: ${cacheError.message}`);
     }
 
-    console.log(`[${requestId}] ✅ Mídia salva no cache com ID: ${cacheData.id}`);
-    
+    console.log(`[${requestId}] ✅ Mídia salva no cache: ${cacheData.id}`);
+
     return {
-      success: true,
       cacheId: cacheData.id,
+      base64Data: base64,
       fileSizeBytes,
-      base64Length: base64.length
+      fileSizeMB: parseFloat(fileSizeMB)
     };
 
   } catch (error) {
     console.error(`[${requestId}] ❌ Erro ao processar mídia:`, error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-}
-
-// 🆕 NOVA FUNÇÃO: Associar mídia à mensagem
-async function associateMediaToMessage(supabase: any, messageId: string, originalUrl: string, requestId: string) {
-  try {
-    // Buscar o cache pela URL original
-    const { data: cacheData, error: cacheError } = await supabase
-      .from('media_cache')
-      .select('id')
-      .eq('original_url', originalUrl)
-      .single();
-
-    if (cacheError || !cacheData) {
-      console.warn(`[${requestId}] ⚠️ Cache não encontrado para URL: ${originalUrl.substring(0, 50)}`);
-      return;
+    
+    // Salvar entrada de falha no cache
+    try {
+      const { data: failureCache } = await supabase
+        .from('media_cache')
+        .insert({
+          original_url: mediaUrl,
+          media_type: mediaType,
+          base64_data: null,
+          created_at: new Date().toISOString(),
+          expires_at: null
+        })
+        .select('id')
+        .single();
+      
+      console.log(`[${requestId}] 📝 Falha registrada no cache: ${failureCache?.id}`);
+    } catch (cacheError) {
+      console.error(`[${requestId}] ❌ Erro ao registrar falha no cache:`, cacheError);
     }
-
-    // Atualizar o cache com o message_id
-    const { error: updateError } = await supabase
-      .from('media_cache')
-      .update({ message_id: messageId })
-      .eq('id', cacheData.id);
-
-    if (updateError) {
-      throw new Error(`Erro ao associar mídia: ${updateError.message}`);
-    }
-
-    console.log(`[${requestId}] 🔗 Mídia associada à mensagem: ${messageId} -> Cache: ${cacheData.id}`);
-
-  } catch (error) {
-    console.error(`[${requestId}] ❌ Erro ao associar mídia:`, error);
+    
     throw error;
   }
-}
-
-function extractPhoneFromMessage(messageData: any): string | null {
-  const remoteJid = messageData.key?.remoteJid || messageData.from || messageData.remoteJid;
-  if (!remoteJid) return null;
-  
-  const phoneMatch = remoteJid.match(/(\d+)@/);
-  return phoneMatch ? phoneMatch[1] : null;
 }

@@ -53,7 +53,7 @@ export const useMediaLoader = ({
 
   useEffect(() => {
     const loadMedia = async () => {
-      console.log(`[MediaLoader] 🔍 Carregando mídia OTIMIZADA para ${messageId} (${mediaType})`);
+      console.log(`[MediaLoader] 🔍 Carregando mídia para ${messageId} (${mediaType})`);
       setIsLoading(true);
       setError(null);
 
@@ -67,8 +67,8 @@ export const useMediaLoader = ({
           return;
         }
 
-        // PRIORIDADE 2: Base64 do media_cache (MAIS ALTA PRIORIDADE)
-        console.log(`[MediaLoader] 📦 Buscando Base64 do banco para ${messageId}`);
+        // PRIORIDADE 2: Buscar na media_cache (MAIS IMPORTANTE)
+        console.log(`[MediaLoader] 📦 Buscando Base64 na media_cache para ${messageId}`);
         const { data: cacheData, error: cacheError } = await supabase
           .from('media_cache')
           .select('base64_data, cached_url, file_name, media_type')
@@ -112,27 +112,29 @@ export const useMediaLoader = ({
           }
         }
 
-        // PRIORIDADE 3: Tentar construir URL do Storage
-        try {
-          const fileExtension = getFileExtension(mediaType);
-          const fileName = `${messageId}.${fileExtension}`;
-          
-          const { data: storageData } = supabase.storage
-            .from('whatsapp-media')
-            .getPublicUrl(fileName);
-          
-          if (storageData?.publicUrl) {
-            const response = await fetch(storageData.publicUrl, { method: 'HEAD' });
-            if (response.ok) {
-              console.log(`[MediaLoader] ✅ Arquivo encontrado no Storage: ${messageId}`);
-              setFinalUrl(storageData.publicUrl);
-              setCachedUrl(messageId, storageData.publicUrl);
-              setIsLoading(false);
-              return;
+        // PRIORIDADE 3: Tentar construir URL do Storage se não houver cache
+        if (!cacheData) {
+          try {
+            const fileExtension = getFileExtension(mediaType);
+            const fileName = `${messageId}.${fileExtension}`;
+            
+            const { data: storageData } = supabase.storage
+              .from('whatsapp-media')
+              .getPublicUrl(fileName);
+            
+            if (storageData?.publicUrl) {
+              const response = await fetch(storageData.publicUrl, { method: 'HEAD' });
+              if (response.ok) {
+                console.log(`[MediaLoader] ✅ Arquivo encontrado no Storage: ${messageId}`);
+                setFinalUrl(storageData.publicUrl);
+                setCachedUrl(messageId, storageData.publicUrl);
+                setIsLoading(false);
+                return;
+              }
             }
+          } catch (storageError) {
+            console.warn(`[MediaLoader] ⚠️ Erro ao acessar Storage: ${storageError}`);
           }
-        } catch (storageError) {
-          console.warn(`[MediaLoader] ⚠️ Erro ao acessar Storage: ${storageError}`);
         }
 
         // PRIORIDADE 4: Se mídia não foi encontrada em lugar nenhum
@@ -161,7 +163,7 @@ export const useMediaLoader = ({
   return { finalUrl, isLoading, error };
 };
 
-// Funções auxiliares otimizadas
+// Funções auxiliares
 const getMimeType = (type: string): string => {
   switch (type) {
     case 'image': return 'image/jpeg';

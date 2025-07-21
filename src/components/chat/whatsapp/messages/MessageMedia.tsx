@@ -10,14 +10,24 @@ interface MessageMediaProps {
   mediaType: 'image' | 'video' | 'audio' | 'document';
   mediaUrl?: string;
   fileName?: string;
+  isIncoming?: boolean;
 }
 
 export const MessageMedia: React.FC<MessageMediaProps> = React.memo(({
   messageId,
   mediaType,
   mediaUrl,
-  fileName
+  fileName,
+  isIncoming = true
 }) => {
+  console.log(`[MessageMedia] 🎬 Renderizando mídia:`, {
+    messageId,
+    mediaType,
+    hasMediaUrl: !!mediaUrl,
+    fileName,
+    isIncoming
+  });
+
   const { finalUrl, isLoading, error } = useMediaLoader({
     messageId,
     mediaType,
@@ -26,22 +36,25 @@ export const MessageMedia: React.FC<MessageMediaProps> = React.memo(({
 
   // Loading state
   if (isLoading) {
-    return <MediaLoadingState />;
+    console.log(`[MessageMedia] ⏳ Estado de carregamento para ${messageId}`);
+    return <MediaLoadingState mediaType={mediaType} />;
   }
 
   // Error state
   if (error || !finalUrl) {
-    return <MediaErrorState error={error} />;
+    console.log(`[MessageMedia] ❌ Estado de erro para ${messageId}:`, error);
+    return <MediaErrorState error={error} mediaType={mediaType} />;
   }
 
-  // Render media component
+  // Success - render media component
+  console.log(`[MessageMedia] ✅ Renderizando mídia com sucesso para ${messageId}`);
   return (
     <MediaRenderer
       mediaType={mediaType}
       messageId={messageId}
       url={finalUrl}
       fileName={fileName}
-      isIncoming={true}
+      isIncoming={isIncoming}
     />
   );
 });
