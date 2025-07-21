@@ -25,61 +25,98 @@ export const useMediaLoader = ({
 
   useEffect(() => {
     const loadMedia = async () => {
+      console.log(`[MediaLoader] 🔍 Iniciando carregamento para ${messageId} (${mediaType})`);
       setIsLoading(true);
       setError(null);
 
       try {
-        // 1. Primeiro, verificar se há cache no banco
-        const { data: cacheData } = await supabase
+        // PRIORIDADE 1: Verificar cache no banco (base64 ou URL cached)
+        const { data: cacheData, error: cacheError } = await supabase
           .from('media_cache')
-          .select('cached_url, base64_data')
+          .select('cached_url, base64_data, file_name')
           .eq('message_id', messageId)
           .maybeSingle();
 
+        if (cacheError) {
+          console.warn(`[MediaLoader] ⚠️ Erro ao buscar cache: ${cacheError.message}`);
+        }
+
         if (cacheData) {
-          // Priorizar base64 se disponível
+          console.log(`[MediaLoader] 📦 Cache encontrado para ${messageId}:`, {
+            hasCachedUrl: !!cacheData.cached_url,
+            hasBase64: !!cacheData.base64_data,
+            fileName: cacheData.file_name
+          });
+
+          // PRIORIDADE 1A: Base64 data (melhor performance)
           if (cacheData.base64_data) {
             const mimeType = getMimeType(mediaType);
-            setFinalUrl(`data:${mimeType};base64,${cacheData.base64_data}`);
+            const dataUrl = `data:${mimeType};base64,${cacheData.base64_data}`;
+            console.log(`[MediaLoader] ✅ Usando base64 para ${messageId}`);
+            setFinalUrl(dataUrl);
             setIsLoading(false);
             return;
           }
 
-          // Usar URL cached se disponível
+          // PRIORIDADE 1B: URL cached (segundo melhor)
           if (cacheData.cached_url) {
+            console.log(`[MediaLoader] ✅ Usando cached URL para ${messageId}`);
             setFinalUrl(cacheData.cached_url);
             setIsLoading(false);
             return;
           }
         }
 
-        // 2. Se não há cache, usar URL original ou tentar buscar do storage
+        // PRIORIDADE 2: Buscar no Storage do Supabase
         if (mediaUrl) {
-          // Verificar se é URL do Supabase Storage
+          console.log(`[MediaLoader] 🔍 Tentando Storage do Supabase para ${messageId}`);
+          
+          // Verificar se já é uma URL do Supabase Storage
           if (mediaUrl.includes('supabase.co/storage/v1/object/public/whatsapp-media/')) {
+            console.log(`[MediaLoader] ✅ URL já é do Supabase Storage: ${messageId}`);
             setFinalUrl(mediaUrl);
-          } else {
-            // Tentar buscar no storage do Supabase por nome de arquivo
-            const fileName = `${messageId}.${getFileExtension(mediaType)}`;
-            const { data } = supabase.storage
+            setIsLoading(false);
+            return;
+          }
+
+          // Tentar buscar arquivo por nome no storage
+          const fileName = `${messageId}.${getFileExtension(mediaType)}`;
+          try {
+            const { data: storageData } = supabase.storage
               .from('whatsapp-media')
               .getPublicUrl(fileName);
             
-            if (data.publicUrl) {
-              setFinalUrl(data.publicUrl);
-            } else {
-              setFinalUrl(mediaUrl); // Fallback para URL original
+            if (storageData?.publicUrl) {
+              console.log(`[MediaLoader] ✅ Encontrado no Storage: ${messageId}`);
+              setFinalUrl(storageData.publicUrl);
+              setIsLoading(false);
+              return;
             }
+          } catch (storageError) {
+            console.warn(`[MediaLoader] ⚠️ Erro no Storage: ${storageError}`);
           }
-        } else {
-          setError('URL de mídia não encontrada');
         }
+
+        // PRIORIDADE 3: Fallback para URL original (se ainda válida)
+        if (mediaUrl && !mediaUrl.includes('mmg.whatsapp.net')) {
+          console.log(`[MediaLoader] 🔄 Usando URL original como fallback: ${messageId}`);
+          setFinalUrl(mediaUrl);
+          setIsLoading(false);
+          return;
+        }
+
+        // PRIORIDADE 4: Nenhuma fonte disponível
+        console.error(`[MediaLoader] ❌ Nenhuma fonte válida encontrada para ${messageId}`);
+        setError('Mídia não encontrada ou expirada');
+        setFinalUrl(null);
+
       } catch (err) {
-        console.error('Erro ao carregar mídia:', err);
+        console.error(`[MediaLoader] ❌ Erro geral no carregamento:`, err);
         setError('Erro ao carregar mídia');
         
-        // Fallback para URL original se houver
+        // Último fallback: tentar URL original mesmo com erro
         if (mediaUrl) {
+          console.log(`[MediaLoader] 🚨 Fallback de emergência para ${messageId}`);
           setFinalUrl(mediaUrl);
         }
       } finally {
@@ -93,8 +130,8 @@ export const useMediaLoader = ({
   return { finalUrl, isLoading, error };
 };
 
-// Função para determinar MIME type
-const getMimeType = (type: string) => {
+// Função para determinar MIME type correto
+const getMimeType = (type: string): string => {
   switch (type) {
     case 'image': return 'image/jpeg';
     case 'video': return 'video/mp4';
@@ -105,7 +142,7 @@ const getMimeType = (type: string) => {
 };
 
 // Função para extensão de arquivo
-const getFileExtension = (type: string) => {
+const getFileExtension = (type: string): string => {
   switch (type) {
     case 'image': return 'jpg';
     case 'video': return 'mp4';

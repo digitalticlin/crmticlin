@@ -11,6 +11,7 @@ interface MediaRendererProps {
   url: string;
   fileName?: string;
   isIncoming?: boolean;
+  isLoading?: boolean;
 }
 
 export const MediaRenderer: React.FC<MediaRendererProps> = ({
@@ -18,30 +19,59 @@ export const MediaRenderer: React.FC<MediaRendererProps> = ({
   messageId,
   url,
   fileName,
-  isIncoming = true
+  isIncoming = true,
+  isLoading = false
 }) => {
-  const mediaProps = {
+  console.log(`[MediaRenderer] 🎬 Renderizando ${mediaType} para ${messageId}:`, {
+    url: url?.substring(0, 50) + '...',
+    fileName,
+    isIncoming,
+    isLoading
+  });
+
+  const commonProps = {
     messageId,
     url,
-    isLoading: false,
-    isIncoming
+    isIncoming,
+    isLoading
   };
 
   switch (mediaType) {
     case 'image':
-      return <ImageMessage {...mediaProps} />;
-    case 'video':
-      return <VideoMessage {...mediaProps} caption="" />;
-    case 'audio':
-      return <AudioMessage {...mediaProps} />;
-    case 'document':
-      return <DocumentMessage 
-        {...mediaProps} 
-        filename={fileName || 'Documento'} 
-      />;
-    default:
       return (
-        <div className="p-3 bg-gray-50 rounded-lg">
+        <ImageMessage 
+          {...commonProps}
+          caption={fileName}
+        />
+      );
+      
+    case 'video':
+      return (
+        <VideoMessage 
+          {...commonProps}
+          caption={fileName || '[Vídeo]'}
+        />
+      );
+      
+    case 'audio':
+      return (
+        <AudioMessage 
+          {...commonProps}
+        />
+      );
+      
+    case 'document':
+      return (
+        <DocumentMessage 
+          {...commonProps}
+          filename={fileName || 'Documento'}
+        />
+      );
+      
+    default:
+      console.warn(`[MediaRenderer] ⚠️ Tipo de mídia não suportado: ${mediaType}`);
+      return (
+        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
           <span className="text-sm text-gray-500">
             📎 Tipo não suportado: {mediaType}
           </span>

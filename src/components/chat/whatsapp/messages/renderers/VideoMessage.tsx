@@ -1,7 +1,7 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { PlayIcon, VideoIcon } from 'lucide-react';
+import { PlayIcon, VideoIcon, Loader2 } from 'lucide-react';
 
 interface VideoMessageProps {
   messageId: string;
@@ -21,23 +21,54 @@ export const VideoMessage = React.memo(({
   const [videoError, setVideoError] = useState(false);
   const [videoLoading, setVideoLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleVideoError = useCallback(() => {
-    console.error('Erro ao carregar vídeo:', url);
+    console.error(`[VideoMessage] ❌ Erro ao carregar vídeo: ${messageId}`, url);
     setVideoError(true);
     setVideoLoading(false);
-  }, [url]);
+  }, [messageId, url]);
 
   const handleVideoLoad = useCallback(() => {
+    console.log(`[VideoMessage] ✅ Vídeo carregado: ${messageId}`);
     setVideoLoading(false);
+    setVideoError(false);
+  }, [messageId]);
+
+  const handlePlay = useCallback(() => {
+    setIsPlaying(true);
+  }, []);
+
+  const handlePause = useCallback(() => {
+    setIsPlaying(false);
   }, []);
 
   const handlePlayPause = useCallback(() => {
-    setIsPlaying(!isPlaying);
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+    }
   }, [isPlaying]);
 
+  // Estado de loading
+  if (isLoading) {
+    return (
+      <div className="space-y-2">
+        <div className="w-64 h-36 bg-gray-100 rounded-lg flex items-center justify-center animate-pulse">
+          <div className="flex items-center space-x-2">
+            <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+            <span className="text-sm text-gray-500">Carregando vídeo...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Estado de erro
-  if (videoError) {
+  if (videoError || !url) {
     return (
       <div className="space-y-2">
         <div className={cn(
@@ -66,7 +97,7 @@ export const VideoMessage = React.memo(({
             isIncoming ? "bg-gray-100" : "bg-white/20"
           )}>
             <div className="flex items-center space-x-2">
-              <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-400 border-t-transparent"></div>
+              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
               <span className="text-sm opacity-70">Carregando vídeo...</span>
             </div>
           </div>
@@ -75,6 +106,7 @@ export const VideoMessage = React.memo(({
         {/* Video player */}
         <div className="relative">
           <video 
+            ref={videoRef}
             controls 
             className={cn(
               "w-full rounded-lg shadow-sm max-w-xs",
@@ -84,6 +116,8 @@ export const VideoMessage = React.memo(({
             preload="metadata"
             onLoadedMetadata={handleVideoLoad}
             onError={handleVideoError}
+            onPlay={handlePlay}
+            onPause={handlePause}
             poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Cpath d='M40 30l20 15-20 15z' fill='%236b7280'/%3E%3C/svg%3E"
           >
             <source src={url} type="video/mp4" />
@@ -92,12 +126,12 @@ export const VideoMessage = React.memo(({
             Seu navegador não suporta reprodução de vídeo.
           </video>
           
-          {/* Play button overlay (when paused) */}
+          {/* Play button overlay (quando pausado) */}
           {!isPlaying && !videoLoading && (
             <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 rounded-lg">
               <button
                 onClick={handlePlayPause}
-                className="w-12 h-12 bg-white bg-opacity-80 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all"
+                className="w-12 h-12 bg-white bg-opacity-90 rounded-full flex items-center justify-center hover:bg-opacity-100 transition-all shadow-lg"
               >
                 <PlayIcon className="w-6 h-6 text-gray-800 ml-1" />
               </button>
