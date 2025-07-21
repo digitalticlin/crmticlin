@@ -8,13 +8,23 @@ interface WhatsAppContactsListProps {
   selectedContact: Contact | null;
   onSelectContact: (contact: Contact) => void;
   isLoading: boolean;
+  isLoadingMore?: boolean;
+  hasMoreContacts?: boolean;
+  onLoadMoreContacts?: () => Promise<void>;
+  onRefreshContacts?: () => void;
+  totalContactsAvailable?: number;
 }
 
 export const WhatsAppContactsList = React.memo(({
   contacts,
   selectedContact,
   onSelectContact,
-  isLoading
+  isLoading,
+  isLoadingMore = false,
+  hasMoreContacts = false,
+  onLoadMoreContacts,
+  onRefreshContacts,
+  totalContactsAvailable = 0
 }: WhatsAppContactsListProps) => {
   if (isLoading && contacts.length === 0) {
     return (
