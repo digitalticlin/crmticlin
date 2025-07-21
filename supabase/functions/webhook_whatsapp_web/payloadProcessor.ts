@@ -41,58 +41,129 @@ export class PayloadProcessor {
     return result;
   }
 
-  // Limpeza avançada do telefone brasileiro
-  static cleanBrazilianPhone(phone: string): { cleanPhone: string; isValid: boolean; type: string } {
-    if (!phone) return { cleanPhone: '', isValid: false, type: 'invalid' };
+  // Validação otimizada de telefone WhatsApp (internacional)
+  static validateWhatsAppPhone(phone: string): { cleanPhone: string; isValid: boolean; type: string; reason?: string } {
+    if (!phone) return { cleanPhone: '', isValid: false, type: 'invalid', reason: 'Telefone vazio' };
 
+    const originalPhone = phone;
     let cleanPhone = phone;
     
-    // Remover sufixos WhatsApp
-    cleanPhone = cleanPhone
-      .replace(/@c\.us$/, '')
-      .replace(/@s\.whatsapp\.net$/, '')
-      .replace(/@g\.us$/, '')
-      .replace(/@newsletter$/, '');
+    console.log(`[PayloadProcessor] 📱 Analisando telefone: ${originalPhone}`);
+
+    // Detectar e processar sufixos WhatsApp
+    let suffix = '';
+    let messageType = 'unknown';
     
-    // Remover todos os caracteres não numéricos
+    if (cleanPhone.includes('@s.whatsapp.net')) {
+      suffix = '@s.whatsapp.net';
+      messageType = 'direct_message';
+      cleanPhone = cleanPhone.replace('@s.whatsapp.net', '');
+    } else if (cleanPhone.includes('@c.us')) {
+      suffix = '@c.us';
+      messageType = 'contact_direct';
+      cleanPhone = cleanPhone.replace('@c.us', '');
+    } else if (cleanPhone.includes('@g.us')) {
+      suffix = '@g.us';
+      messageType = 'group';
+      cleanPhone = cleanPhone.replace('@g.us', '');
+    } else if (cleanPhone.includes('@broadcast')) {
+      suffix = '@broadcast';
+      messageType = 'broadcast';
+      cleanPhone = cleanPhone.replace('@broadcast', '');
+    } else if (cleanPhone.includes('@newsletter')) {
+      suffix = '@newsletter';
+      messageType = 'newsletter';
+      cleanPhone = cleanPhone.replace('@newsletter', '');
+    }
+
+    console.log(`[PayloadProcessor] 🔍 Sufixo detectado: ${suffix} | Tipo: ${messageType}`);
+
+    // Remover todos os caracteres não numéricos (manter apenas dígitos)
     cleanPhone = cleanPhone.replace(/[^0-9]/g, '');
     
-    // Detectar tipo de número
-    if (cleanPhone.length > 15) {
-      return { cleanPhone, isValid: false, type: 'newsletter' };
-    }
-    
-    if (cleanPhone.length < 10) {
-      return { cleanPhone, isValid: false, type: 'too_short' };
-    }
+    console.log(`[PayloadProcessor] 🧹 Telefone limpo: ${cleanPhone} (${cleanPhone.length} dígitos)`);
 
-    // Normalizar para formato brasileiro
-    if (cleanPhone.startsWith('55') && cleanPhone.length === 13) {
-      // Remover código do país
-      cleanPhone = cleanPhone.substring(2);
+    // Validar por tipo de mensagem (baseado no sufixo)
+    switch (messageType) {
+      case 'direct_message':
+      case 'contact_direct':
+        // Mensagens diretas são sempre válidas
+        console.log(`[PayloadProcessor] ✅ Mensagem direta aceita: ${cleanPhone}`);
+        return { 
+          cleanPhone, 
+          isValid: true, 
+          type: messageType,
+          reason: `Mensagem direta válida (${suffix})`
+        };
+      
+      case 'group':
+        console.log(`[PayloadProcessor] ❌ Mensagem de grupo rejeitada: ${cleanPhone}`);
+        return { 
+          cleanPhone, 
+          isValid: false, 
+          type: 'group',
+          reason: 'Mensagem de grupo rejeitada (@g.us)'
+        };
+      
+      case 'broadcast':
+        console.log(`[PayloadProcessor] ❌ Mensagem de broadcast rejeitada: ${cleanPhone}`);
+        return { 
+          cleanPhone, 
+          isValid: false, 
+          type: 'broadcast',
+          reason: 'Mensagem de broadcast rejeitada (@broadcast)'
+        };
+      
+      case 'newsletter':
+        console.log(`[PayloadProcessor] ❌ Mensagem de newsletter rejeitada: ${cleanPhone}`);
+        return { 
+          cleanPhone, 
+          isValid: false, 
+          type: 'newsletter',
+          reason: 'Mensagem de newsletter rejeitada (@newsletter)'
+        };
+      
+      default:
+        // Sem sufixo WhatsApp - assumir válido se tem dígitos razoáveis
+        if (cleanPhone.length >= 8 && cleanPhone.length <= 15) {
+          console.log(`[PayloadProcessor] ⚠️ Telefone sem sufixo WhatsApp, mas aceito: ${cleanPhone}`);
+          return { 
+            cleanPhone, 
+            isValid: true, 
+            type: 'no_suffix',
+            reason: 'Telefone sem sufixo WhatsApp, mas com formato válido'
+          };
+        } else {
+          console.log(`[PayloadProcessor] ❌ Telefone inválido (formato): ${cleanPhone}`);
+          return { 
+            cleanPhone, 
+            isValid: false, 
+            type: 'invalid_format',
+            reason: `Formato inválido: ${cleanPhone.length} dígitos`
+          };
+        }
     }
-
-    // Adicionar 9 para celulares sem o dígito
-    if (cleanPhone.length === 10 && !cleanPhone.startsWith('11')) {
-      cleanPhone = cleanPhone.substring(0, 2) + '9' + cleanPhone.substring(2);
-    }
-
-    // Validar formato final
-    const isValid = cleanPhone.length === 11 || cleanPhone.length === 10;
-    const type = cleanPhone.length === 11 ? 'mobile' : 'landline';
-
-    return { cleanPhone, isValid, type };
   }
 
-  // Formatar telefone para exibição
+  // Formatar telefone para exibição (manter código do país)
   static formatPhoneDisplay(cleanPhone: string): string {
-    if (cleanPhone.length === 11) {
+    // Manter formato original com código do país
+    if (cleanPhone.startsWith('55') && cleanPhone.length === 13) {
+      // Celular brasileiro com código do país
+      return `+55 (${cleanPhone.substring(2, 4)}) ${cleanPhone.substring(4, 9)}-${cleanPhone.substring(9)}`;
+    } else if (cleanPhone.startsWith('55') && cleanPhone.length === 12) {
+      // Fixo brasileiro com código do país
+      return `+55 (${cleanPhone.substring(2, 4)}) ${cleanPhone.substring(4, 8)}-${cleanPhone.substring(8)}`;
+    } else if (cleanPhone.length === 11) {
+      // Celular brasileiro sem código do país
       return `+55 (${cleanPhone.substring(0, 2)}) ${cleanPhone.substring(2, 7)}-${cleanPhone.substring(7)}`;
-    }
-    if (cleanPhone.length === 10) {
+    } else if (cleanPhone.length === 10) {
+      // Fixo brasileiro sem código do país
       return `+55 (${cleanPhone.substring(0, 2)}) ${cleanPhone.substring(2, 6)}-${cleanPhone.substring(6)}`;
+    } else {
+      // Formato internacional ou outro
+      return `+${cleanPhone}`;
     }
-    return `+55 ${cleanPhone}`;
   }
 
   // Extrair texto da mensagem
@@ -169,29 +240,41 @@ export class PayloadProcessor {
 
   // Processar payload completo
   static processPayload(payload: any): ProcessedMessage | null {
+    console.log('[PayloadProcessor] 🚀 Iniciando processamento do payload');
+    
     const validation = this.validatePayload(payload);
     
     if (!validation.isValid) {
-      console.error('[PayloadProcessor] Payload inválido:', validation.errors);
+      console.error('[PayloadProcessor] ❌ Payload inválido:', validation.errors);
       return null;
     }
 
     // Log warnings
     if (validation.warnings.length > 0) {
-      console.warn('[PayloadProcessor] Warnings:', validation.warnings);
+      console.warn('[PayloadProcessor] ⚠️ Warnings:', validation.warnings);
     }
 
     const instanceId = payload.instanceId || payload.instanceName || payload.instance;
-    const phoneInfo = this.cleanBrazilianPhone(payload.from);
+    
+    console.log('[PayloadProcessor] 📱 Validando telefone WhatsApp...');
+    const phoneInfo = this.validateWhatsAppPhone(payload.from);
     
     if (!phoneInfo.isValid) {
-      console.warn('[PayloadProcessor] Telefone inválido:', {
+      console.warn('[PayloadProcessor] ❌ Telefone rejeitado:', {
         original: payload.from,
         cleaned: phoneInfo.cleanPhone,
-        type: phoneInfo.type
+        type: phoneInfo.type,
+        reason: phoneInfo.reason
       });
       return null;
     }
+
+    console.log('[PayloadProcessor] ✅ Telefone aceito:', {
+      original: payload.from,
+      cleaned: phoneInfo.cleanPhone,
+      type: phoneInfo.type,
+      reason: phoneInfo.reason
+    });
 
     const messageText = this.extractMessageText(payload);
     const mediaInfo = this.extractMediaInfo(payload);
@@ -200,11 +283,11 @@ export class PayloadProcessor {
 
     // Verificar duplicação
     if (externalMessageId && this.isDuplicateMessage(externalMessageId)) {
-      console.warn('[PayloadProcessor] Mensagem duplicada ignorada:', externalMessageId);
+      console.warn('[PayloadProcessor] ⚠️ Mensagem duplicada ignorada:', externalMessageId);
       return null;
     }
 
-    return {
+    const processedMessage = {
       instanceId,
       phone: phoneInfo.cleanPhone,
       messageText,
@@ -215,5 +298,16 @@ export class PayloadProcessor {
       externalMessageId,
       contactName
     };
+
+    console.log('[PayloadProcessor] ✅ Mensagem processada com sucesso:', {
+      instanceId,
+      phone: phoneInfo.cleanPhone.substring(0, 4) + '****',
+      messageType: processedMessage.messageType,
+      fromMe: processedMessage.fromMe,
+      hasMedia: !!processedMessage.mediaUrl,
+      contactName: processedMessage.contactName
+    });
+
+    return processedMessage;
   }
 }

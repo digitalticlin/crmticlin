@@ -18,7 +18,7 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    console.log(`[Main] 🚀 WEBHOOK OTIMIZADO - VERSÃO 2.0 [${requestId}]`);
+    console.log(`[Main] 🚀 WEBHOOK OTIMIZADO - VERSÃO 3.0 (VALIDAÇÃO CORRIGIDA) [${requestId}]`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -38,15 +38,15 @@ serve(async (req) => {
       messageType: payload.messageType
     });
 
-    // Processar payload com validação avançada
+    // Processar payload com validação corrigida
     const processedMessage = PayloadProcessor.processPayload(payload);
     
     if (!processedMessage) {
-      console.warn(`[Main] ⚠️ Mensagem ignorada ou inválida [${requestId}]`);
+      console.warn(`[Main] ⚠️ Mensagem ignorada (grupo/broadcast/newsletter ou inválida) [${requestId}]`);
       return new Response(JSON.stringify({
         success: true,
         message: 'Mensagem ignorada',
-        reason: 'invalid_or_duplicate',
+        reason: 'rejected_by_validation',
         processing_time: Date.now() - startTime
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -57,6 +57,7 @@ serve(async (req) => {
       instanceId: processedMessage.instanceId,
       phone: processedMessage.phone.substring(0, 4) + '****',
       messageType: processedMessage.messageType,
+      fromMe: processedMessage.fromMe,
       hasMedia: !!processedMessage.mediaUrl,
       contactName: processedMessage.contactName
     });
@@ -114,8 +115,8 @@ serve(async (req) => {
       success: true,
       data: result.data,
       processing_time: Date.now() - startTime,
-      method: 'optimized_webhook_v2',
-      version: 'WEBHOOK_OPTIMIZED_V2.0'
+      method: 'optimized_webhook_v3',
+      version: 'WEBHOOK_OPTIMIZED_V3.0_VALIDATION_FIXED'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
@@ -128,7 +129,7 @@ serve(async (req) => {
       success: false,
       error: error.message || 'Erro crítico interno do servidor',
       processing_time: totalTime,
-      version: 'WEBHOOK_OPTIMIZED_V2.0'
+      version: 'WEBHOOK_OPTIMIZED_V3.0_VALIDATION_FIXED'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
