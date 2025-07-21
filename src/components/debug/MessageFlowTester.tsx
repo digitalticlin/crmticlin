@@ -21,7 +21,7 @@ export const MessageFlowTester = () => {
   const { user } = useAuth();
   const { instances: webInstances } = useWhatsAppWebInstances();
   const activeInstance = webInstances.find(i => i.connection_status === 'ready' || i.connection_status === 'connected');
-  const { contacts } = useWhatsAppContacts(activeInstance, user?.id || null);
+  const { contacts } = useWhatsAppContacts(activeInstance?.id);
   
   const [testSteps, setTestSteps] = useState<TestStep[]>([]);
   const [isRunning, setIsRunning] = useState(false);
@@ -349,4 +349,4 @@ export const MessageFlowTester = () => {
       )}
     </div>
   );
-}; 
+};

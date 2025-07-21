@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Contact, Message } from '@/types/chat';
@@ -121,18 +122,31 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     };
   }, [activeInstance]);
 
-  // Hook específico para contatos com paginação (CORRIGIDO: userId)
-  const {
-    contacts,
-    isLoadingContacts,
-    isLoadingMoreContacts,
-    hasMoreContacts,
-    fetchContacts,
-    loadMoreContacts,
-    moveContactToTop,
-    markAsRead,
-    totalContactsAvailable
-  } = useWhatsAppContacts(webActiveInstance, user?.id || null);
+  // Hook específico para contatos com paginação
+  const contactsHook = useWhatsAppContacts(webActiveInstance?.id);
+  
+  // Implementar funções que não existem mais no hook
+  const moveContactToTop = useCallback((contactId: string) => {
+    console.log('[WhatsApp Chat] 🔝 Movendo contato para topo:', contactId);
+    // Implementar lógica para mover contato para topo
+    // Por enquanto, apenas refresh
+    contactsHook.refreshContacts();
+  }, [contactsHook]);
+
+  const markAsRead = useCallback(async (contactId: string) => {
+    console.log('[WhatsApp Chat] 📖 Marcando como lida:', contactId);
+    try {
+      await supabase
+        .from('leads')
+        .update({ unread_count: 0 })
+        .eq('id', contactId);
+      
+      // Refresh contatos após marcar como lida
+      contactsHook.refreshContacts();
+    } catch (error) {
+      console.error('[WhatsApp Chat] ❌ Erro ao marcar como lida:', error);
+    }
+  }, [contactsHook]);
 
   // Hook específico para mensagens com paginação
   console.log('🚨 [PROVIDER DEBUG] Antes de chamar useWhatsAppChatMessages');
@@ -195,7 +209,7 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     },
     onContactsRefresh: () => {
       console.log('[WhatsApp Chat] 🔄 Refresh suave de contatos');
-      fetchContacts(); // Refresh sem resetar paginação
+      contactsHook.refreshContacts(); // Usar refreshContacts ao invés de fetchContacts
     }
   });
 
@@ -216,62 +230,6 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
       fetchMessages();
     }
   });
-
-  // ❌ DESABILITADO TEMPORARIAMENTE: Sistema conflitante
-  // useRealtimeLeads({
-  //   selectedContact,
-  //   fetchContacts,
-  //   fetchMessages,
-  //   receiveNewLead: (lead) => {
-  //     console.log('[WhatsApp Chat] ⚠️ useRealtimeLeads depreciado - migrando para sistema modular');
-  //   },
-  //   activeInstanceId: webActiveInstance?.id || null
-  // });
-
-  // ❌ REMOVIDO: Subscription duplicada que estava causando conflito
-  /*
-  useEffect(() => {
-    if (!webActiveInstance?.id || !user?.id) return;
-
-    console.log('[WhatsApp Chat] 🔄 Configurando subscription para mensagens');
-
-    const channel = supabase
-      .channel(`chat-messages-${webActiveInstance.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `whatsapp_number_id=eq.${webActiveInstance.id}`
-        },
-        (payload) => {
-          console.log('[WhatsApp Chat] 📨 Nova mensagem recebida:', payload.new);
-          
-          const leadId = payload.new?.lead_id;
-          const messageText = payload.new?.text || payload.new?.body || '';
-          
-          if (leadId) {
-            console.log('[WhatsApp Chat] 🔄 Movendo contato para topo:', leadId);
-            
-            // ✅ CORREÇÃO: Apenas mover contato para topo SEM resetar lista
-            moveContactToTop(leadId, messageText);
-            
-            // ❌ REMOVIDO: fetchContacts(true) que reseta a paginação
-            // ✅ O moveContactToTop já atualiza o contato específico
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('[WhatsApp Chat] 📡 Subscription status:', status);
-      });
-
-    return () => {
-      console.log('[WhatsApp Chat] 🔌 Removendo subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [webActiveInstance?.id, user?.id, moveContactToTop]);
-  */
 
   // Função memoizada para selecionar contato e marcar como lido
   const handleSelectContact = useCallback(async (contact: Contact | null) => {
@@ -307,7 +265,7 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
       
       // Usar setTimeout para garantir que selectedContact já foi atualizado
       setTimeout(() => {
-        fetchMessages(true); // forceRefresh = true
+        fetchMessages(); // Sem forceRefresh para manter compatibilidade
       }, 50);
     }
   }, [selectedContact?.id, markAsRead, fetchMessages]);
@@ -341,13 +299,13 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
 
   // Auto-selecionar contato quando leadId for fornecido via URL
   useEffect(() => {
-    if (leadId && contacts.length > 0 && !selectedContact) {
-      const targetContact = contacts.find(contact => contact.id === leadId);
+    if (leadId && contactsHook.contacts.length > 0 && !selectedContact) {
+      const targetContact = contactsHook.contacts.find(contact => contact.id === leadId);
       if (targetContact) {
         handleSelectContact(targetContact);
       }
     }
-  }, [leadId, contacts, selectedContact, handleSelectContact]);
+  }, [leadId, contactsHook.contacts, selectedContact, handleSelectContact]);
 
   // 🚀 LISTENER PARA ATUALIZAR ETAPA DO CONTATO SELECIONADO EM TEMPO REAL
   useEffect(() => {
@@ -409,15 +367,15 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
 
   // Memoizar valor do contexto para evitar re-renderizações
   const value = useMemo((): WhatsAppChatContextType => ({
-    // Contatos com paginação
-    contacts,
-    isLoadingContacts,
-    isLoadingMoreContacts,
-    hasMoreContacts,
-    loadMoreContacts,
+    // Contatos com paginação - mapear propriedades corretas
+    contacts: contactsHook.contacts,
+    isLoadingContacts: contactsHook.isLoading,
+    isLoadingMoreContacts: contactsHook.isLoadingMore,
+    hasMoreContacts: contactsHook.hasMoreContacts,
+    loadMoreContacts: contactsHook.loadMoreContacts,
     moveContactToTop,
     markAsRead,
-    totalContactsAvailable,
+    totalContactsAvailable: contactsHook.totalContactsAvailable,
     
     // Mensagens com paginação
     messages,
@@ -432,8 +390,8 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     selectedContact,
     setSelectedContact: handleSelectContact,
     
-    // Refresh manual
-    fetchContacts,
+    // Refresh manual - mapear para refreshContacts
+    fetchContacts: contactsHook.refreshContacts,
     fetchMessages,
     
     // Estado geral
@@ -443,14 +401,13 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     // 🚀 ESTATÍSTICAS DO REALTIME MODULAR
     realtimeStats
   }), [
-    contacts,
-    isLoadingContacts,
-    isLoadingMoreContacts,
-    hasMoreContacts,
-    loadMoreContacts,
-    isLoadingMoreContacts,
-    hasMoreContacts,
-    loadMoreContacts,
+    contactsHook.contacts,
+    contactsHook.isLoading,
+    contactsHook.isLoadingMore,
+    contactsHook.hasMoreContacts,
+    contactsHook.loadMoreContacts,
+    contactsHook.totalContactsAvailable,
+    contactsHook.refreshContacts,
     moveContactToTop,
     markAsRead,
     messages,
@@ -462,11 +419,9 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     loadMoreMessages,
     selectedContact,
     handleSelectContact,
-    fetchContacts,
     fetchMessages,
     companyLoading,
     instanceHealth,
-    totalContactsAvailable,
     realtimeStats
   ]);
 
