@@ -844,6 +844,19 @@ export type Database = {
         }
         Returns: string
       }
+      save_whatsapp_message_service_role: {
+        Args: {
+          p_vps_instance_id: string
+          p_phone: string
+          p_message_text: string
+          p_from_me: boolean
+          p_media_type?: string
+          p_media_url?: string
+          p_external_message_id?: string
+          p_contact_name?: string
+        }
+        Returns: Json
+      }
       save_whatsapp_message_simple: {
         Args: {
           p_vps_instance_id: string
