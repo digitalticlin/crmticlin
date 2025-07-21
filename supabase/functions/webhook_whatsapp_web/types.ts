@@ -1,12 +1,12 @@
 
-// Tipos para payload do WhatsApp Web
 export interface WhatsAppWebhookPayload {
   event: string;
   instanceId?: string;
   instanceName?: string;
+  instance?: string;
   from: string;
-  fromMe: boolean;
-  messageType: 'text' | 'image' | 'video' | 'audio' | 'document' | 'sticker' | 'location' | 'contact';
+  fromMe?: boolean;
+  messageType?: string;
   message?: {
     text?: string;
     caption?: string;
@@ -14,20 +14,17 @@ export interface WhatsAppWebhookPayload {
   data?: {
     body?: string;
     messageId?: string;
-    timestamp?: number;
-    quotedMessage?: any;
     media?: {
       url?: string;
-      mimetype?: string;
-      filename?: string;
       size?: number;
+      filename?: string;
     };
   };
   contact?: {
     name?: string;
     pushname?: string;
-    isMyContact?: boolean;
   };
+  messageId?: string;
 }
 
 export interface ProcessedMessage {
