@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -267,7 +266,7 @@ async function handleConnectionUpdate(supabase: any, payload: any, instanceId: s
 }
 
 async function handleMessageReceived(supabase: any, payload: any, instanceId: string, requestId: string) {
-  console.log(`[${requestId}] 💬 Processando mensagem DIRETAMENTE NO BANCO para: ${instanceId}`);
+  console.log(`[${requestId}] 💬 Processando mensagem com CONVERSÃO DE MÍDIA para: ${instanceId}`);
   
   try {
     // Buscar instância
@@ -468,6 +467,25 @@ async function handleMessageReceived(supabase: any, payload: any, instanceId: st
       console.log(`[${requestId}] ✅ Lead atualizado: ${lead.id} | Instância: ${instance.id} | Direção: ${fromMe ? 'OUTGOING' : 'INCOMING'}`);
     }
 
+    // 🆕 NOVO: PROCESSAR MÍDIA SE EXISTIR
+    let processedMediaUrl = mediaUrl;
+    if (mediaUrl && mediaType !== 'text') {
+      console.log(`[${requestId}] 🎬 PROCESSANDO MÍDIA: Tipo=${mediaType}, URL=${mediaUrl.substring(0, 50)}...`);
+      
+      try {
+        const mediaResult = await processAndCacheMedia(supabase, mediaUrl, mediaType, requestId);
+        if (mediaResult.success) {
+          console.log(`[${requestId}] ✅ Mídia processada com sucesso: ${mediaResult.cacheId}`);
+          // Manter a URL original para compatibilidade, mas mídia estará no cache
+        } else {
+          console.warn(`[${requestId}] ⚠️ Falha ao processar mídia: ${mediaResult.error}`);
+        }
+      } catch (mediaError) {
+        console.error(`[${requestId}] ❌ Erro ao processar mídia:`, mediaError);
+        // Continua sem parar o fluxo principal
+      }
+    }
+
     // ✅ SALVAR MENSAGEM USANDO FUNÇÃO SIMPLES
     console.log(`[${requestId}] 💾 Salvando mensagem usando função simples`);
     
@@ -485,18 +503,29 @@ async function handleMessageReceived(supabase: any, payload: any, instanceId: st
       throw messageError;
     }
 
-    console.log(`[${requestId}] ✅ Mensagem ${fromMe ? 'OUTGOING' : 'INCOMING'} ${mediaType.toUpperCase()} salva com sucesso - FUNÇÃO SIMPLES FUNCIONOU! ID: ${savedMessageId}`);
+    // 🆕 APÓS SALVAR MENSAGEM: ASSOCIAR MÍDIA AO MESSAGE_ID SE PROCESSADA
+    if (mediaUrl && mediaType !== 'text' && savedMessageId) {
+      try {
+        await associateMediaToMessage(supabase, savedMessageId, mediaUrl, requestId);
+      } catch (associateError) {
+        console.warn(`[${requestId}] ⚠️ Erro ao associar mídia à mensagem:`, associateError);
+      }
+    }
+
+    console.log(`[${requestId}] ✅ Mensagem ${fromMe ? 'OUTGOING' : 'INCOMING'} ${mediaType.toUpperCase()} salva com sucesso! ID: ${savedMessageId}`);
     
     return new Response(JSON.stringify({ 
       success: true, 
-      message: 'Message processed and saved',
+      message: 'Message processed and saved with media conversion',
       phone,
       fromMe,
       mediaType,
       leadId: lead.id,
       instanceId: instance.id,
+      messageId: savedMessageId,
+      hasMedia: mediaUrl && mediaType !== 'text',
       requestId,
-      method: 'DIRECT_INSERT_WITHOUT_SQL_FUNCTION'
+      method: 'ENHANCED_WITH_MEDIA_PROCESSING'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
@@ -511,6 +540,102 @@ async function handleMessageReceived(supabase: any, payload: any, instanceId: st
       status: 500, 
       headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
     });
+  }
+}
+
+// 🆕 NOVA FUNÇÃO: Processar e cachear mídia
+async function processAndCacheMedia(supabase: any, mediaUrl: string, mediaType: string, requestId: string) {
+  try {
+    console.log(`[${requestId}] 🔄 Baixando mídia: ${mediaUrl.substring(0, 50)}...`);
+    
+    // Baixar a mídia da URL temporária do WhatsApp
+    const response = await fetch(mediaUrl, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'WhatsApp-Media-Downloader/1.0'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    // Converter para ArrayBuffer e depois para Base64
+    const arrayBuffer = await response.arrayBuffer();
+    const uint8Array = new Uint8Array(arrayBuffer);
+    const base64 = btoa(String.fromCharCode(...uint8Array));
+    
+    const fileSizeBytes = arrayBuffer.byteLength;
+    const fileSizeMB = (fileSizeBytes / (1024 * 1024)).toFixed(2);
+    
+    console.log(`[${requestId}] 📦 Mídia baixada: ${fileSizeMB}MB, convertendo para Base64...`);
+
+    // Salvar no media_cache
+    const { data: cacheData, error: cacheError } = await supabase
+      .from('media_cache')
+      .insert({
+        original_url: mediaUrl,
+        media_type: mediaType,
+        base64_data: base64,
+        file_size: fileSizeBytes,
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + (30 * 24 * 60 * 60 * 1000)).toISOString() // 30 dias
+      })
+      .select('id')
+      .single();
+
+    if (cacheError) {
+      throw new Error(`Erro ao salvar no cache: ${cacheError.message}`);
+    }
+
+    console.log(`[${requestId}] ✅ Mídia salva no cache com ID: ${cacheData.id}`);
+    
+    return {
+      success: true,
+      cacheId: cacheData.id,
+      fileSizeBytes,
+      base64Length: base64.length
+    };
+
+  } catch (error) {
+    console.error(`[${requestId}] ❌ Erro ao processar mídia:`, error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// 🆕 NOVA FUNÇÃO: Associar mídia à mensagem
+async function associateMediaToMessage(supabase: any, messageId: string, originalUrl: string, requestId: string) {
+  try {
+    // Buscar o cache pela URL original
+    const { data: cacheData, error: cacheError } = await supabase
+      .from('media_cache')
+      .select('id')
+      .eq('original_url', originalUrl)
+      .single();
+
+    if (cacheError || !cacheData) {
+      console.warn(`[${requestId}] ⚠️ Cache não encontrado para URL: ${originalUrl.substring(0, 50)}`);
+      return;
+    }
+
+    // Atualizar o cache com o message_id
+    const { error: updateError } = await supabase
+      .from('media_cache')
+      .update({ message_id: messageId })
+      .eq('id', cacheData.id);
+
+    if (updateError) {
+      throw new Error(`Erro ao associar mídia: ${updateError.message}`);
+    }
+
+    console.log(`[${requestId}] 🔗 Mídia associada à mensagem: ${messageId} -> Cache: ${cacheData.id}`);
+
+  } catch (error) {
+    console.error(`[${requestId}] ❌ Erro ao associar mídia:`, error);
+    throw error;
   }
 }
 
