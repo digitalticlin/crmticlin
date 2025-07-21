@@ -392,6 +392,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_leads_whatsapp_number_id"
+            columns: ["whatsapp_number_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "leads_funnel_id_fkey"
             columns: ["funnel_id"]
             isOneToOne: false
@@ -517,6 +524,20 @@ export type Database = {
           whatsapp_number_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_messages_lead_id"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_messages_whatsapp_number_id"
+            columns: ["whatsapp_number_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_instances"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "messages_lead_id_fkey"
             columns: ["lead_id"]
@@ -800,6 +821,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      debug_context_full: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       diagnose_permissions: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -807,6 +832,24 @@ export type Database = {
       increment_unread_count: {
         Args: { p_lead_id: string }
         Returns: undefined
+      }
+      insert_lead_direct: {
+        Args: { p_phone: string; p_name: string; p_user_id: string }
+        Returns: Json
+      }
+      insert_message_bypass_rls: {
+        Args: {
+          p_lead_id: string
+          p_whatsapp_number_id: string
+          p_text: string
+          p_from_me: boolean
+          p_timestamp: string
+          p_status: string
+          p_created_by_user_id: string
+          p_media_type?: string
+          p_media_url?: string
+        }
+        Returns: string
       }
       insert_message_optimized: {
         Args: {
@@ -833,6 +876,16 @@ export type Database = {
           p_external_message_id?: string
         }
         Returns: Json
+      }
+      save_message_simple: {
+        Args: {
+          lead_id_param: string
+          instance_id_param: string
+          text_param: string
+          from_me_param: boolean
+          user_id_param: string
+        }
+        Returns: string
       }
       save_sent_message: {
         Args: {
@@ -871,9 +924,43 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      test_leads_access: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      test_leads_exists: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       user_has_whatsapp_number: {
         Args: { number_id: string }
         Returns: boolean
+      }
+      webhook_insert_message: {
+        Args: {
+          p_whatsapp_number_id: string
+          p_contact_phone: string
+          p_contact_name: string
+          p_message_content: string
+          p_message_type: string
+          p_media_url?: string
+        }
+        Returns: Json
+      }
+      webhook_insert_message_debug: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      webhook_insert_message_radical: {
+        Args: {
+          p_whatsapp_number_id: string
+          p_contact_phone: string
+          p_contact_name: string
+          p_message_content: string
+          p_message_type: string
+          p_media_url?: string
+        }
+        Returns: Json
       }
     }
     Enums: {
