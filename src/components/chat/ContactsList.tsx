@@ -46,9 +46,7 @@ export const ContactsList = ({
       <ScrollArea className="flex-1">
         <div className="divide-y divide-gray-200 dark:divide-gray-700">
           {filteredContacts.map((contact) => {
-            // CORREÇÃO: Verificar se há mensagens não lidas de forma mais rigorosa
             const hasUnreadMessages = contact.unreadCount && contact.unreadCount > 0;
-            // ATUALIZADO: Usar telefone formatado quando nome não disponível
             const displayName = contact.name || formatPhoneDisplay(contact.phone);
             
             return (
@@ -61,34 +59,46 @@ export const ContactsList = ({
                 onClick={() => onSelectContact(contact)}
               >
                 <div className="flex items-start gap-3">
-                  <Avatar className="h-10 w-10 relative">
-                    <AvatarFallback>
-                      {displayName.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                    <AvatarImage src={contact.avatar} alt={displayName} />
+                  <div className="relative">
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="bg-gray-100 text-gray-600 text-sm">
+                        {displayName.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                      </AvatarFallback>
+                      <AvatarImage src={contact.avatar} alt={displayName} />
+                    </Avatar>
                     {contact.isOnline && (
                       <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white dark:border-gray-900" />
                     )}
-                  </Avatar>
+                  </div>
                   
                   <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center">
-                      <h3 className="font-medium truncate">{displayName}</h3>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    <div className="flex justify-between items-start">
+                      <h3 className={cn(
+                        "font-medium truncate text-sm",
+                        hasUnreadMessages ? "text-gray-900 dark:text-gray-100" : "text-gray-700 dark:text-gray-300"
+                      )}>
+                        {displayName}
+                      </h3>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-2">
                         {contact.lastMessageTime}
                       </span>
                     </div>
-                    <p className="text-sm text-muted-foreground truncate">
-                      {contact.lastMessage}
-                    </p>
-                  </div>
-                  
-                  {/* CORREÇÃO: Só mostrar badge se realmente houver mensagens não lidas */}
-                  {hasUnreadMessages && (
-                    <div className="bg-ticlin text-black rounded-full h-5 min-w-[20px] flex items-center justify-center text-xs font-medium">
-                      {contact.unreadCount}
+                    
+                    <div className="flex justify-between items-center mt-1">
+                      <p className={cn(
+                        "text-xs truncate",
+                        hasUnreadMessages ? "text-gray-700 dark:text-gray-300 font-medium" : "text-gray-500 dark:text-gray-400"
+                      )}>
+                        {contact.lastMessage || 'Nenhuma mensagem'}
+                      </p>
+                      
+                      {hasUnreadMessages && (
+                        <div className="bg-ticlin text-black rounded-full h-5 min-w-[20px] flex items-center justify-center text-xs font-medium ml-2">
+                          {contact.unreadCount}
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
             );
