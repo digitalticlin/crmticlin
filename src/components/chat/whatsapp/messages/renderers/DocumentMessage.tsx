@@ -1,7 +1,7 @@
 
 import React, { useCallback, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { FileText, Download, File, FileImage, FileVideo, FileAudio, ExternalLink, Loader2 } from 'lucide-react';
+import { FileText, Download, File, FileImage, FileVideo, FileAudio, ExternalLink, Loader2, RefreshCw } from 'lucide-react';
 
 interface DocumentMessageProps {
   messageId: string;
@@ -19,10 +19,12 @@ export const DocumentMessage = React.memo(({
   isLoading = false 
 }: DocumentMessageProps) => {
   const [downloadLoading, setDownloadLoading] = useState(false);
+  const [downloadError, setDownloadError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Função para extrair nome do arquivo limpo
   const getCleanFilename = useCallback((filename: string) => {
-    if (filename === '[Documento]' || !filename || filename.trim() === '') {
+    if (filename === '[Documento]' || filename === '[Mensagem não suportada]' || !filename || filename.trim() === '') {
       try {
         const urlParts = url.split('/');
         const urlFilename = urlParts[urlParts.length - 1];
@@ -86,10 +88,17 @@ export const DocumentMessage = React.memo(({
     if (!url || downloadLoading) return;
 
     setDownloadLoading(true);
+    setDownloadError(false);
     
     try {
       console.log(`[DocumentMessage] 📥 Iniciando download: ${messageId}`);
       
+      // Verificar se a URL é válida primeiro
+      const response = await fetch(url, { method: 'HEAD' });
+      if (!response.ok) {
+        throw new Error(`Arquivo não encontrado (${response.status})`);
+      }
+
       // Criar link para download
       const link = document.createElement('a');
       link.href = url;
@@ -104,17 +113,36 @@ export const DocumentMessage = React.memo(({
       console.log(`[DocumentMessage] ✅ Download iniciado: ${messageId}`);
     } catch (error) {
       console.error(`[DocumentMessage] ❌ Erro no download: ${messageId}`, error);
+      setDownloadError(true);
     } finally {
       setDownloadLoading(false);
     }
   }, [url, cleanFilename, messageId, downloadLoading]);
 
-  const handlePreview = useCallback(() => {
+  const handlePreview = useCallback(async () => {
     if (!url) return;
     
-    console.log(`[DocumentMessage] 👁️ Abrindo preview: ${messageId}`);
-    window.open(url, '_blank', 'noopener,noreferrer');
+    try {
+      console.log(`[DocumentMessage] 👁️ Abrindo preview: ${messageId}`);
+      
+      // Verificar se a URL é válida
+      const response = await fetch(url, { method: 'HEAD' });
+      if (!response.ok) {
+        throw new Error(`Arquivo não encontrado (${response.status})`);
+      }
+      
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      console.error(`[DocumentMessage] ❌ Erro ao abrir preview: ${messageId}`, error);
+      setDownloadError(true);
+    }
   }, [url, messageId]);
+
+  const handleRetry = useCallback(() => {
+    console.log(`[DocumentMessage] 🔄 Tentando novamente: ${messageId} (tentativa ${retryCount + 1})`);
+    setRetryCount(prev => prev + 1);
+    setDownloadError(false);
+  }, [messageId, retryCount]);
 
   // Estado de loading
   if (isLoading) {
@@ -139,6 +167,15 @@ export const DocumentMessage = React.memo(({
         <File className="w-8 h-8 text-gray-400" />
         <div className="flex-1">
           <p className="text-sm text-gray-500">Documento indisponível</p>
+          {retryCount < 3 && (
+            <button
+              onClick={handleRetry}
+              className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1 mt-1"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Tentar novamente
+            </button>
+          )}
         </div>
       </div>
     );
@@ -168,13 +205,13 @@ export const DocumentMessage = React.memo(({
           "text-xs opacity-70",
           isIncoming ? "text-gray-600" : "text-white"
         )}>
-          {isPdfOrImage ? 'Clique para visualizar' : 'Clique para baixar'}
+          {downloadError ? 'Erro ao carregar' : (isPdfOrImage ? 'Clique para visualizar' : 'Clique para baixar')}
         </p>
       </div>
 
       {/* Botões de ação */}
       <div className="flex-shrink-0 flex space-x-1">
-        {isPdfOrImage && (
+        {isPdfOrImage && !downloadError && (
           <button
             onClick={handlePreview}
             className={cn(
@@ -188,16 +225,18 @@ export const DocumentMessage = React.memo(({
         )}
         
         <button
-          onClick={handleDownload}
+          onClick={downloadError ? handleRetry : handleDownload}
           disabled={downloadLoading}
           className={cn(
             "p-2 rounded hover:bg-gray-100 transition-colors disabled:opacity-50",
             isIncoming ? "text-gray-600 hover:text-gray-800" : "text-white hover:bg-white/20"
           )}
-          title="Baixar"
+          title={downloadError ? "Tentar novamente" : "Baixar"}
         >
           {downloadLoading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
+          ) : downloadError ? (
+            <RefreshCw className="w-4 h-4" />
           ) : (
             <Download className="w-4 h-4" />
           )}

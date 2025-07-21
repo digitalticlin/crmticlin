@@ -30,7 +30,7 @@ export const useMediaLoader = ({
       setError(null);
 
       try {
-        // PRIORIDADE 1: Verificar cache no banco (base64 ou URL cached)
+        // PRIORIDADE 1: Verificar cache no banco (base64 primeiro)
         const { data: cacheData, error: cacheError } = await supabase
           .from('media_cache')
           .select('cached_url, base64_data, file_name')
@@ -48,64 +48,104 @@ export const useMediaLoader = ({
             fileName: cacheData.file_name
           });
 
-          // PRIORIDADE 1A: Base64 data (melhor performance)
+          // PRIORIDADE 1A: Base64 data (melhor performance e sempre funciona)
           if (cacheData.base64_data) {
-            const mimeType = getMimeType(mediaType);
-            const dataUrl = `data:${mimeType};base64,${cacheData.base64_data}`;
-            console.log(`[MediaLoader] ✅ Usando base64 para ${messageId}`);
-            setFinalUrl(dataUrl);
-            setIsLoading(false);
-            return;
+            try {
+              const mimeType = getMimeType(mediaType);
+              const dataUrl = `data:${mimeType};base64,${cacheData.base64_data}`;
+              console.log(`[MediaLoader] ✅ Usando base64 para ${messageId} (${dataUrl.length} chars)`);
+              setFinalUrl(dataUrl);
+              setIsLoading(false);
+              return;
+            } catch (base64Error) {
+              console.warn(`[MediaLoader] ⚠️ Erro ao processar base64: ${base64Error}`);
+            }
           }
 
-          // PRIORIDADE 1B: URL cached (segundo melhor)
+          // PRIORIDADE 1B: URL cached do Supabase Storage
           if (cacheData.cached_url) {
-            console.log(`[MediaLoader] ✅ Usando cached URL para ${messageId}`);
-            setFinalUrl(cacheData.cached_url);
-            setIsLoading(false);
-            return;
+            try {
+              // Verificar se a URL é válida fazendo uma requisição HEAD
+              const response = await fetch(cacheData.cached_url, { method: 'HEAD' });
+              if (response.ok) {
+                console.log(`[MediaLoader] ✅ Usando cached URL válida para ${messageId}`);
+                setFinalUrl(cacheData.cached_url);
+                setIsLoading(false);
+                return;
+              } else {
+                console.warn(`[MediaLoader] ⚠️ Cached URL inválida (${response.status}): ${cacheData.cached_url}`);
+              }
+            } catch (urlError) {
+              console.warn(`[MediaLoader] ⚠️ Erro ao validar cached URL: ${urlError}`);
+            }
           }
         }
 
-        // PRIORIDADE 2: Buscar no Storage do Supabase
+        // PRIORIDADE 2: Tentar buscar no Storage do Supabase
         if (mediaUrl) {
           console.log(`[MediaLoader] 🔍 Tentando Storage do Supabase para ${messageId}`);
           
-          // Verificar se já é uma URL do Supabase Storage
+          // Se já é uma URL do Supabase Storage, validar se ainda existe
           if (mediaUrl.includes('supabase.co/storage/v1/object/public/whatsapp-media/')) {
-            console.log(`[MediaLoader] ✅ URL já é do Supabase Storage: ${messageId}`);
-            setFinalUrl(mediaUrl);
-            setIsLoading(false);
-            return;
+            try {
+              const response = await fetch(mediaUrl, { method: 'HEAD' });
+              if (response.ok) {
+                console.log(`[MediaLoader] ✅ URL do Supabase Storage válida: ${messageId}`);
+                setFinalUrl(mediaUrl);
+                setIsLoading(false);
+                return;
+              } else {
+                console.warn(`[MediaLoader] ⚠️ URL do Supabase Storage inválida (${response.status})`);
+              }
+            } catch (storageError) {
+              console.warn(`[MediaLoader] ⚠️ Erro ao validar URL do Storage: ${storageError}`);
+            }
           }
 
-          // Tentar buscar arquivo por nome no storage
-          const fileName = `${messageId}.${getFileExtension(mediaType)}`;
+          // Tentar construir URL do Storage baseada no messageId
           try {
+            const fileExtension = getFileExtension(mediaType);
+            const fileName = `${messageId}.${fileExtension}`;
+            
             const { data: storageData } = supabase.storage
               .from('whatsapp-media')
               .getPublicUrl(fileName);
             
             if (storageData?.publicUrl) {
-              console.log(`[MediaLoader] ✅ Encontrado no Storage: ${messageId}`);
-              setFinalUrl(storageData.publicUrl);
-              setIsLoading(false);
-              return;
+              // Validar se o arquivo existe no storage
+              const response = await fetch(storageData.publicUrl, { method: 'HEAD' });
+              if (response.ok) {
+                console.log(`[MediaLoader] ✅ Arquivo encontrado no Storage: ${messageId}`);
+                setFinalUrl(storageData.publicUrl);
+                setIsLoading(false);
+                return;
+              } else {
+                console.warn(`[MediaLoader] ⚠️ Arquivo não encontrado no Storage (${response.status})`);
+              }
             }
           } catch (storageError) {
-            console.warn(`[MediaLoader] ⚠️ Erro no Storage: ${storageError}`);
+            console.warn(`[MediaLoader] ⚠️ Erro ao acessar Storage: ${storageError}`);
           }
         }
 
-        // PRIORIDADE 3: Fallback para URL original (se ainda válida)
-        if (mediaUrl && !mediaUrl.includes('mmg.whatsapp.net')) {
-          console.log(`[MediaLoader] 🔄 Usando URL original como fallback: ${messageId}`);
-          setFinalUrl(mediaUrl);
-          setIsLoading(false);
-          return;
+        // PRIORIDADE 3: Fallback para URL original (apenas se não for do WhatsApp)
+        if (mediaUrl && !mediaUrl.includes('mmg.whatsapp.net') && !mediaUrl.includes('pps.whatsapp.net')) {
+          console.log(`[MediaLoader] 🔄 Tentando URL original como fallback: ${messageId}`);
+          try {
+            const response = await fetch(mediaUrl, { method: 'HEAD' });
+            if (response.ok) {
+              setFinalUrl(mediaUrl);
+              setIsLoading(false);
+              return;
+            } else {
+              console.warn(`[MediaLoader] ⚠️ URL original inválida (${response.status})`);
+            }
+          } catch (originalUrlError) {
+            console.warn(`[MediaLoader] ⚠️ Erro ao validar URL original: ${originalUrlError}`);
+          }
         }
 
-        // PRIORIDADE 4: Nenhuma fonte disponível
+        // PRIORIDADE 4: Nenhuma fonte válida encontrada
         console.error(`[MediaLoader] ❌ Nenhuma fonte válida encontrada para ${messageId}`);
         setError('Mídia não encontrada ou expirada');
         setFinalUrl(null);
@@ -113,12 +153,7 @@ export const useMediaLoader = ({
       } catch (err) {
         console.error(`[MediaLoader] ❌ Erro geral no carregamento:`, err);
         setError('Erro ao carregar mídia');
-        
-        // Último fallback: tentar URL original mesmo com erro
-        if (mediaUrl) {
-          console.log(`[MediaLoader] 🚨 Fallback de emergência para ${messageId}`);
-          setFinalUrl(mediaUrl);
-        }
+        setFinalUrl(null);
       } finally {
         setIsLoading(false);
       }

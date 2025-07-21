@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { PlayIcon, VideoIcon, Loader2 } from 'lucide-react';
+import { PlayIcon, VideoIcon, Loader2, RefreshCw } from 'lucide-react';
 
 interface VideoMessageProps {
   messageId: string;
@@ -21,19 +21,32 @@ export const VideoMessage = React.memo(({
   const [videoError, setVideoError] = useState(false);
   const [videoLoading, setVideoLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handleVideoError = useCallback(() => {
-    console.error(`[VideoMessage] ❌ Erro ao carregar vídeo: ${messageId}`, url);
+    console.error(`[VideoMessage] ❌ Erro ao carregar vídeo: ${messageId}`, {
+      url: url?.substring(0, 50) + '...',
+      isBase64: url?.startsWith('data:'),
+      retryCount
+    });
     setVideoError(true);
     setVideoLoading(false);
-  }, [messageId, url]);
+  }, [messageId, url, retryCount]);
 
   const handleVideoLoad = useCallback(() => {
     console.log(`[VideoMessage] ✅ Vídeo carregado: ${messageId}`);
     setVideoLoading(false);
     setVideoError(false);
+    setRetryCount(0);
   }, [messageId]);
+
+  const handleRetry = useCallback(() => {
+    console.log(`[VideoMessage] 🔄 Tentando novamente: ${messageId} (tentativa ${retryCount + 1})`);
+    setRetryCount(prev => prev + 1);
+    setVideoError(false);
+    setVideoLoading(true);
+  }, [messageId, retryCount]);
 
   const handlePlay = useCallback(() => {
     setIsPlaying(true);
@@ -77,10 +90,19 @@ export const VideoMessage = React.memo(({
         )}>
           <div className="text-center">
             <VideoIcon className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-            <span className="text-sm opacity-70">Vídeo não disponível</span>
+            <span className="text-sm opacity-70 block mb-2">Vídeo não disponível</span>
+            {retryCount < 3 && (
+              <button
+                onClick={handleRetry}
+                className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1 mx-auto"
+              >
+                <RefreshCw className="w-3 h-3" />
+                Tentar novamente
+              </button>
+            )}
           </div>
         </div>
-        {caption && caption !== '[Vídeo]' && (
+        {caption && caption !== '[Vídeo]' && caption !== '[Mensagem não suportada]' && (
           <p className="break-words leading-relaxed whitespace-pre-wrap text-sm">{caption}</p>
         )}
       </div>
@@ -119,6 +141,7 @@ export const VideoMessage = React.memo(({
             onPlay={handlePlay}
             onPause={handlePause}
             poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f3f4f6'/%3E%3Cpath d='M40 30l20 15-20 15z' fill='%236b7280'/%3E%3C/svg%3E"
+            key={`${messageId}-${retryCount}`} // Force re-render on retry
           >
             <source src={url} type="video/mp4" />
             <source src={url} type="video/webm" />
@@ -141,7 +164,7 @@ export const VideoMessage = React.memo(({
       </div>
       
       {/* Caption */}
-      {caption && caption !== '[Vídeo]' && (
+      {caption && caption !== '[Vídeo]' && caption !== '[Mensagem não suportada]' && (
         <p className="break-words leading-relaxed whitespace-pre-wrap text-sm">{caption}</p>
       )}
     </div>

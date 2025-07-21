@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { ImageIcon } from 'lucide-react';
+import { ImageIcon, RefreshCw } from 'lucide-react';
 
 interface ImageMessageProps {
   messageId: string;
@@ -21,18 +21,31 @@ export const ImageMessage = React.memo(({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   const handleImageLoad = useCallback(() => {
     console.log(`[ImageMessage] ✅ Imagem carregada: ${messageId}`);
     setImageLoaded(true);
     setImageError(false);
+    setRetryCount(0);
   }, [messageId]);
 
   const handleImageError = useCallback(() => {
-    console.error(`[ImageMessage] ❌ Erro ao carregar imagem: ${messageId}`, url);
+    console.error(`[ImageMessage] ❌ Erro ao carregar imagem: ${messageId}`, {
+      url: url?.substring(0, 50) + '...',
+      isBase64: url?.startsWith('data:'),
+      retryCount
+    });
     setImageError(true);
     setImageLoaded(false);
-  }, [messageId, url]);
+  }, [messageId, url, retryCount]);
+
+  const handleRetry = useCallback(() => {
+    console.log(`[ImageMessage] 🔄 Tentando novamente: ${messageId} (tentativa ${retryCount + 1})`);
+    setRetryCount(prev => prev + 1);
+    setImageError(false);
+    setImageLoaded(false);
+  }, [messageId, retryCount]);
 
   const handleImageClick = useCallback(() => {
     if (imageLoaded && !imageError) {
@@ -63,7 +76,16 @@ export const ImageMessage = React.memo(({
       <div className="w-48 h-32 bg-gray-50 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-200">
         <div className="text-center">
           <ImageIcon className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-          <span className="text-xs text-gray-500">Imagem indisponível</span>
+          <span className="text-xs text-gray-500 block mb-2">Imagem indisponível</span>
+          {retryCount < 3 && (
+            <button
+              onClick={handleRetry}
+              className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1 mx-auto"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Tentar novamente
+            </button>
+          )}
         </div>
       </div>
     );
@@ -75,7 +97,7 @@ export const ImageMessage = React.memo(({
         <div className="relative overflow-hidden rounded-lg bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity">
           {/* Loading placeholder */}
           {!imageLoaded && (
-            <div className="absolute inset-0 w-48 h-32 bg-gray-100 flex items-center justify-center">
+            <div className="absolute inset-0 w-48 h-32 bg-gray-100 flex items-center justify-center z-10">
               <div className="animate-pulse flex items-center space-x-2">
                 <div className="w-3 h-3 bg-gray-300 rounded-full animate-bounce"></div>
                 <span className="text-xs text-gray-500">Carregando...</span>
@@ -100,11 +122,12 @@ export const ImageMessage = React.memo(({
               maxHeight: '200px',
               minHeight: imageLoaded ? 'auto' : '128px'
             }}
+            key={`${messageId}-${retryCount}`} // Force re-render on retry
           />
         </div>
         
         {/* Caption */}
-        {caption && caption !== '[Imagem]' && (
+        {caption && caption !== '[Imagem]' && caption !== '[Mensagem não suportada]' && (
           <p className="text-sm text-gray-700 leading-relaxed break-words">{caption}</p>
         )}
       </div>

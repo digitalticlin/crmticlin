@@ -1,7 +1,7 @@
 
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { Volume2, VolumeX, Play, Pause, Loader2 } from 'lucide-react';
+import { Volume2, VolumeX, Play, Pause, Loader2, RefreshCw } from 'lucide-react';
 
 interface AudioMessageProps {
   messageId: string;
@@ -22,22 +22,35 @@ export const AudioMessage = React.memo(({
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [retryCount, setRetryCount] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const handleAudioError = useCallback(() => {
-    console.error(`[AudioMessage] ❌ Erro ao carregar áudio: ${messageId}`, url);
+    console.error(`[AudioMessage] ❌ Erro ao carregar áudio: ${messageId}`, {
+      url: url?.substring(0, 50) + '...',
+      isBase64: url?.startsWith('data:'),
+      retryCount
+    });
     setAudioError(true);
     setAudioLoading(false);
-  }, [messageId, url]);
+  }, [messageId, url, retryCount]);
 
   const handleAudioLoad = useCallback(() => {
     console.log(`[AudioMessage] ✅ Áudio carregado: ${messageId}`);
     setAudioLoading(false);
     setAudioError(false);
+    setRetryCount(0);
     if (audioRef.current) {
       setDuration(audioRef.current.duration || 0);
     }
   }, [messageId]);
+
+  const handleRetry = useCallback(() => {
+    console.log(`[AudioMessage] 🔄 Tentando novamente: ${messageId} (tentativa ${retryCount + 1})`);
+    setRetryCount(prev => prev + 1);
+    setAudioError(false);
+    setAudioLoading(true);
+  }, [messageId, retryCount]);
 
   const handlePlayPause = useCallback(() => {
     if (audioRef.current) {
@@ -113,7 +126,18 @@ export const AudioMessage = React.memo(({
         <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
           <VolumeX className="w-4 h-4 text-gray-400" />
         </div>
-        <span className="text-xs text-gray-500">Áudio indisponível</span>
+        <div className="flex-1">
+          <span className="text-xs text-gray-500 block">Áudio indisponível</span>
+          {retryCount < 3 && (
+            <button
+              onClick={handleRetry}
+              className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1 mt-1"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Tentar novamente
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -176,6 +200,7 @@ export const AudioMessage = React.memo(({
         onPause={handlePause}
         onEnded={handleEnded}
         preload="metadata"
+        key={`${messageId}-${retryCount}`} // Force re-render on retry
       />
     </div>
   );
