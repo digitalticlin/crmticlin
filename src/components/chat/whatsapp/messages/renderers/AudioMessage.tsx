@@ -1,7 +1,7 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { Volume2, VolumeX } from 'lucide-react';
+import { Volume2, VolumeX, Play, Pause } from 'lucide-react';
 
 interface AudioMessageProps {
   messageId: string;
@@ -10,9 +10,18 @@ interface AudioMessageProps {
   isLoading?: boolean;
 }
 
-export const AudioMessage = React.memo(({ messageId, url, isIncoming, isLoading = false }: AudioMessageProps) => {
+export const AudioMessage = React.memo(({ 
+  messageId, 
+  url, 
+  isIncoming, 
+  isLoading = false 
+}: AudioMessageProps) => {
   const [audioError, setAudioError] = useState(false);
   const [audioLoading, setAudioLoading] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [duration, setDuration] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   const handleAudioError = useCallback(() => {
     console.error('Erro ao carregar áudio:', url);
@@ -22,8 +31,40 @@ export const AudioMessage = React.memo(({ messageId, url, isIncoming, isLoading 
 
   const handleAudioLoad = useCallback(() => {
     setAudioLoading(false);
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration);
+    }
   }, []);
 
+  const handlePlayPause = useCallback(() => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  }, [isPlaying]);
+
+  const handleTimeUpdate = useCallback(() => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  }, []);
+
+  const handleEnded = useCallback(() => {
+    setIsPlaying(false);
+    setCurrentTime(0);
+  }, []);
+
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // Estado de erro
   if (audioError) {
     return (
       <div className="flex items-center space-x-2 min-w-[180px] p-2 bg-gray-50 rounded-lg">
@@ -36,30 +77,57 @@ export const AudioMessage = React.memo(({ messageId, url, isIncoming, isLoading 
   }
 
   return (
-    <div className="flex items-center space-x-2 min-w-[180px] max-w-xs">
-      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+    <div className="flex items-center space-x-3 min-w-[200px] max-w-xs p-2 bg-gray-50 rounded-lg">
+      {/* Play/Pause button */}
+      <button
+        onClick={handlePlayPause}
+        disabled={audioLoading}
+        className="w-10 h-10 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center transition-colors disabled:opacity-50"
+      >
         {audioLoading ? (
-          <div className="animate-pulse w-2 h-2 bg-blue-400 rounded-full"></div>
+          <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+        ) : isPlaying ? (
+          <Pause className="w-4 h-4 text-white" />
         ) : (
-          <Volume2 className="w-4 h-4 text-blue-600" />
+          <Play className="w-4 h-4 text-white ml-0.5" />
         )}
+      </button>
+
+      {/* Waveform placeholder e tempo */}
+      <div className="flex-1 flex items-center space-x-2">
+        {/* Waveform visual simples */}
+        <div className="flex-1 h-8 flex items-center space-x-1">
+          {[...Array(15)].map((_, i) => (
+            <div
+              key={i}
+              className={cn(
+                "w-1 bg-gray-300 rounded-full transition-all duration-100",
+                i < (currentTime / duration) * 15 ? "bg-blue-500" : "bg-gray-300"
+              )}
+              style={{ 
+                height: `${Math.random() * 16 + 8}px`,
+                opacity: audioLoading ? 0.5 : 1
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Tempo */}
+        <span className="text-xs text-gray-600 font-mono min-w-[35px]">
+          {audioLoading ? "0:00" : formatTime(currentTime)}
+        </span>
       </div>
-      <div className="flex-1">
-        <audio 
-          controls 
-          className="w-full h-8"
-          style={{ minWidth: '140px' }}
-          preload="metadata"
-          onLoadedMetadata={handleAudioLoad}
-          onError={handleAudioError}
-        >
-          <source src={url} type="audio/ogg" />
-          <source src={url} type="audio/mpeg" />
-          <source src={url} type="audio/mp3" />
-          <source src={url} type="audio/wav" />
-          Seu navegador não suporta reprodução de áudio.
-        </audio>
-      </div>
+
+      {/* Audio element oculto */}
+      <audio
+        ref={audioRef}
+        src={url}
+        onLoadedMetadata={handleAudioLoad}
+        onError={handleAudioError}
+        onTimeUpdate={handleTimeUpdate}
+        onEnded={handleEnded}
+        preload="metadata"
+      />
     </div>
   );
 });

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Search, RefreshCw } from 'lucide-react';
 import { Button } from "@/components/ui/button";
@@ -44,7 +45,7 @@ export const WhatsAppContactsList = React.memo(({
     );
   }, [contacts, searchQuery]);
 
-  // Filtrar por tipo (all, unread, etc.)
+  // Filtrar por tipo
   const finalContacts = useMemo(() => {
     switch (activeFilter) {
       case "unread":
@@ -65,11 +66,23 @@ export const WhatsAppContactsList = React.memo(({
       {/* Header com busca */}
       <div className="p-4 border-b border-white/20 backdrop-blur-sm bg-gradient-to-r from-white/10 to-white/5">
         <div className="space-y-3">
-          {/* Título com melhor contraste */}
+          {/* Título */}
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-800 drop-shadow-sm">
               Conversas ({finalContacts.length})
             </h2>
+            
+            {onRefreshContacts && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onRefreshContacts}
+                disabled={isLoading}
+                className="text-gray-600 hover:text-gray-800"
+              >
+                <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+              </Button>
+            )}
           </div>
 
           {/* Barra de busca */}
@@ -93,7 +106,7 @@ export const WhatsAppContactsList = React.memo(({
             )}
           </div>
 
-          {/* Filtros com melhor contraste */}
+          {/* Filtros */}
           <div className="flex space-x-2">
             {[
               { key: "all", label: "Todas", count: totalContactsAvailable || contacts.length },
@@ -117,7 +130,7 @@ export const WhatsAppContactsList = React.memo(({
         </div>
       </div>
 
-      {/* Lista de contatos com paginação */}
+      {/* Lista de contatos */}
       <ContactsList
         contacts={finalContacts}
         selectedContact={selectedContact}
@@ -143,3 +156,5 @@ export const WhatsAppContactsList = React.memo(({
     </div>
   );
 });
+
+WhatsAppContactsList.displayName = 'WhatsAppContactsList';

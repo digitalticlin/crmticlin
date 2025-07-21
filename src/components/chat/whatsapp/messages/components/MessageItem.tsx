@@ -6,26 +6,36 @@ import { MessageMedia } from '../MessageMedia';
 
 interface MessageItemProps {
   message: Message;
-  isNewMessage: boolean;
+  isNewMessage?: boolean;
 }
 
 export const MessageItem = memo(({ 
   message, 
-  isNewMessage 
+  isNewMessage = false 
 }: MessageItemProps) => {
   const isFromMe = message.fromMe || message.sender === "user";
   
-  // Renderização de conteúdo otimizada
-  const messageContent = useMemo(() => {
-    const isRealMedia = message.mediaType && 
-      message.mediaType !== 'text' && 
-      ['image', 'video', 'audio', 'document'].includes(message.mediaType) &&
-      message.mediaUrl;
+  // Determinar se é mídia real
+  const isRealMedia = useMemo(() => {
+    return message.mediaType && 
+           message.mediaType !== 'text' && 
+           ['image', 'video', 'audio', 'document'].includes(message.mediaType) &&
+           message.mediaUrl;
+  }, [message.mediaType, message.mediaUrl]);
 
-    if (!isRealMedia) {
+  // Renderização do conteúdo
+  const messageContent = useMemo(() => {
+    if (isRealMedia) {
       return (
-        <div className="space-y-1">
-          {message.text && (
+        <div className="space-y-2">
+          <MessageMedia
+            messageId={message.id}
+            mediaType={message.mediaType as 'image' | 'video' | 'audio' | 'document'}
+            mediaUrl={message.mediaUrl}
+            fileName={message.text || undefined}
+          />
+          {message.text && 
+           !['[Mensagem de mídia]', '[Áudio]', '[Imagem]', '[Vídeo]', '[Documento]'].includes(message.text) && (
             <p className={cn(
               "text-sm leading-relaxed whitespace-pre-wrap break-words",
               isFromMe ? "text-white" : "text-gray-800"
@@ -37,16 +47,10 @@ export const MessageItem = memo(({
       );
     }
 
-    // Render mídia com componentes otimizados
+    // Texto simples
     return (
-      <div className="space-y-2">
-        <MessageMedia
-          messageId={message.id}
-          mediaType={message.mediaType as any}
-          mediaUrl={message.mediaUrl}
-          fileName={message.text || undefined}
-        />
-        {message.text && message.text !== '[Mensagem de mídia]' && message.text !== '[Áudio]' && (
+      <div className="space-y-1">
+        {message.text && (
           <p className={cn(
             "text-sm leading-relaxed whitespace-pre-wrap break-words",
             isFromMe ? "text-white" : "text-gray-800"
@@ -56,7 +60,7 @@ export const MessageItem = memo(({
         )}
       </div>
     );
-  }, [message.id, message.mediaType, message.mediaUrl, message.text, isFromMe]);
+  }, [message.id, message.mediaType, message.mediaUrl, message.text, isFromMe, isRealMedia]);
 
   return (
     <div className={cn(
@@ -71,17 +75,18 @@ export const MessageItem = memo(({
           : "bg-white text-gray-800 rounded-bl-md border border-gray-100"
       )}>
         {messageContent}
+        
+        {/* Timestamp e status */}
         <div className={cn(
           "text-xs mt-1 flex items-center justify-end space-x-1",
           isFromMe ? "text-blue-100" : "text-gray-500"
         )}>
           <span>{message.time}</span>
           {isFromMe && message.status && (
-            <span className={cn(
-              "material-icons text-xs",
-              message.status === 'read' ? 'text-blue-200' : 'text-blue-300'
-            )}>
-              {message.status === 'read' ? '✓✓' : message.status === 'delivered' ? '✓' : '⏱'}
+            <span className="text-xs">
+              {message.status === 'read' && '✓✓'}
+              {message.status === 'delivered' && '✓'}
+              {message.status === 'sent' && '⏱'}
             </span>
           )}
         </div>
