@@ -1,15 +1,19 @@
-
 /**
- * 🚀 EXPORT BARREL PARA HOOKS DE REALTIME
+ * 🚀 EXPORTS CENTRALIZADOS - SISTEMA DE REALTIME MODULAR
  * 
- * Centraliza exports dos hooks de realtime isolados
+ * Este arquivo centraliza todos os exports do sistema de realtime modular,
+ * facilitando importações e manutenção.
  */
 
+// 🎯 HOOKS PRINCIPAIS
 export { useChatsRealtime } from './useChatsRealtime';
 export { useMessagesRealtime } from './useMessagesRealtime';
-export type { 
-  ChatsRealtimeConfig, 
-  MessagesRealtimeConfig, 
-  RealtimeStats, 
-  RealtimeConnectionStatus 
-} from './types';
+
+// 📝 TIPOS
+export type {
+  ChatsRealtimeConfig,
+  MessagesRealtimeConfig,
+  SupabaseRealtimePayload,
+  RealtimeStats,
+  RealtimeConnectionStatus
+} from './types'; 

@@ -1,76 +1,107 @@
 
 import React, { memo } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Contact } from '@/types/chat';
-import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { formatPhoneDisplay } from '@/utils/phoneFormatter';
+import { ContactTags } from './ContactTags';
+import { StageDropdownMenu } from './StageDropdownMenu';
+import { TagsPopover } from './TagsPopover';
+import { cn } from '@/lib/utils';
 
 interface ContactItemProps {
   contact: Contact;
   isSelected: boolean;
-  onClick: () => void;
-  className?: string;
+  onSelect: (contact: Contact) => void;
+  onStageChange: (contactId: string, newStage: string) => void;
+  onTagsChange: (contactId: string) => void;
 }
 
-export const ContactItem: React.FC<ContactItemProps> = memo(({
+export const ContactItem = memo(({
   contact,
   isSelected,
-  onClick,
-  className
-}) => {
+  onSelect,
+  onStageChange,
+  onTagsChange
+}: ContactItemProps) => {
   const displayName = contact.name || formatPhoneDisplay(contact.phone);
-  const hasUnreadMessages = contact.unreadCount && contact.unreadCount > 0;
+  const hasUnread = contact.unreadCount && contact.unreadCount > 0;
 
   return (
     <div
       className={cn(
-        "p-3 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800",
-        isSelected && "bg-gray-100 dark:bg-gray-800",
-        className
+        "flex items-center gap-3 p-3.5 border-b border-gray-100 cursor-pointer transition-all duration-200",
+        "hover:bg-blue-50/30 hover:border-blue-200/50",
+        isSelected && "bg-blue-50 border-blue-200 shadow-sm",
+        hasUnread && !isSelected && "bg-green-50/30 border-green-200/50" // Nova mensagem
       )}
-      onClick={onClick}
+      onClick={() => onSelect(contact)}
     >
-      <div className="flex items-start gap-3">
-        <div className="relative">
-          <Avatar className="h-10 w-10">
-            <AvatarFallback className="bg-gray-100 text-gray-600 text-sm">
-              {displayName.split(' ').map(n => n[0]).join('').slice(0, 2)}
-            </AvatarFallback>
-            <AvatarImage src={contact.avatar} alt={displayName} />
-          </Avatar>
-          {contact.isOnline && (
-            <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white dark:border-gray-900" />
-          )}
-        </div>
+      <div className="relative">
+        <Avatar className="h-12 w-12">
+          <AvatarImage 
+            src={contact.profilePicUrl || contact.avatar} 
+            alt={displayName}
+          />
+          <AvatarFallback className="bg-gradient-to-br from-blue-100 to-purple-100 text-blue-700 font-medium">
+            {displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
         
-        <div className="flex-1 min-w-0">
-          <div className="flex justify-between items-start">
-            <h3 className={cn(
-              "font-medium truncate text-sm",
-              hasUnreadMessages ? "text-gray-900 dark:text-gray-100" : "text-gray-700 dark:text-gray-300"
-            )}>
-              {displayName}
-            </h3>
-            <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-2">
-              {contact.lastMessageTime}
-            </span>
+        {/* Indicador de nova mensagem */}
+        {hasUnread && (
+          <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
+            <Badge variant="secondary" className="bg-green-500 text-white text-xs px-1.5 py-0.5 min-w-0 h-auto">
+              {contact.unreadCount > 99 ? '99+' : contact.unreadCount}
+            </Badge>
           </div>
+        )}
+      </div>
+
+      <div className="flex-1 min-w-0 space-y-1">
+        <div className="flex items-center justify-between">
+          <h4 className={cn(
+            "text-sm truncate max-w-[140px]",
+            hasUnread ? "font-bold text-gray-900" : "font-medium text-gray-700"
+          )}>
+            {displayName}
+          </h4>
           
-          <div className="flex justify-between items-center mt-1">
-            <p className={cn(
-              "text-xs truncate",
-              hasUnreadMessages ? "text-gray-700 dark:text-gray-300 font-medium" : "text-gray-500 dark:text-gray-400"
-            )}>
-              {contact.lastMessage || 'Nenhuma mensagem'}
-            </p>
+          <div className="flex items-center gap-1.5">
+            <TagsPopover 
+              currentTags={contact.tags || []}
+              onTagsChange={() => onTagsChange(contact.id)}
+            />
             
-            {hasUnreadMessages && (
-              <div className="bg-ticlin text-black rounded-full h-5 min-w-[20px] flex items-center justify-center text-xs font-medium ml-2">
-                {contact.unreadCount}
-              </div>
-            )}
+            <StageDropdownMenu
+              contact={contact}
+              onStageChange={(newStage) => onStageChange(contact.id, newStage)}
+            />
           </div>
         </div>
+
+        {/* Última mensagem */}
+        {contact.lastMessage && (
+          <p className={cn(
+            "text-xs truncate max-w-[200px]",
+            hasUnread ? "text-gray-800 font-medium" : "text-gray-500"
+          )}>
+            {contact.lastMessage}
+          </p>
+        )}
+
+        {/* Horário da última mensagem */}
+        {contact.lastMessageTime && (
+          <p className="text-xs text-gray-400">
+            {new Date(contact.lastMessageTime).toLocaleTimeString('pt-BR', {
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
+          </p>
+        )}
+
+        {/* Tags do contato */}
+        <ContactTags tags={contact.tags || []} />
       </div>
     </div>
   );
