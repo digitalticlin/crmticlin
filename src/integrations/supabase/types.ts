@@ -808,19 +808,6 @@ export type Database = {
         Args: { p_lead_id: string }
         Returns: undefined
       }
-      insert_message_only: {
-        Args: {
-          p_instance_id: string
-          p_phone: string
-          p_message_text: string
-          p_from_me: boolean
-          p_user_id: string
-          p_media_type?: string
-          p_media_url?: string
-          p_external_message_id?: string
-        }
-        Returns: Json
-      }
       insert_message_optimized: {
         Args: {
           p_lead_id: string
@@ -847,32 +834,6 @@ export type Database = {
         }
         Returns: Json
       }
-      insert_whatsapp_message_safe: {
-        Args: {
-          p_vps_instance_id: string
-          p_phone: string
-          p_message_text: string
-          p_from_me: boolean
-          p_media_type?: string
-          p_media_url?: string
-          p_external_message_id?: string
-          p_contact_name?: string
-        }
-        Returns: Json
-      }
-      process_whatsapp_message: {
-        Args: {
-          p_vps_instance_id: string
-          p_phone: string
-          p_message_text: string
-          p_from_me: boolean
-          p_media_type?: string
-          p_media_url?: string
-          p_external_message_id?: string
-          p_contact_name?: string
-        }
-        Returns: Json
-      }
       save_sent_message: {
         Args: {
           p_instance_id: string
@@ -882,6 +843,16 @@ export type Database = {
           p_message_id?: string
         }
         Returns: string
+      }
+      save_whatsapp_message_simple: {
+        Args: {
+          p_vps_instance_id: string
+          p_phone: string
+          p_message_text: string
+          p_from_me: boolean
+          p_external_message_id?: string
+        }
+        Returns: Json
       }
       sync_whatsapp_instances: {
         Args: Record<PropertyKey, never>

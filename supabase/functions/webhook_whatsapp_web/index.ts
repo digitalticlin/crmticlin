@@ -16,7 +16,7 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    console.log(`[Main] 🚀 WEBHOOK ROBUSTO - ESTRATÉGIA DUPLA [${requestId}]`);
+    console.log(`[Main] 🚀 WEBHOOK SIMPLIFICADO - VERSÃO ROBUSTA [${requestId}]`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -25,16 +25,7 @@ serve(async (req) => {
       auth: { persistSession: false }
     });
 
-    // FASE 1: DIAGNÓSTICO INICIAL
-    console.log(`[Main] 🔍 Executando diagnóstico de permissões...`);
-    const { data: diagData, error: diagError } = await supabaseAdmin.rpc('diagnose_permissions');
-    
-    if (diagError) {
-      console.error(`[Main] ❌ Erro no diagnóstico:`, diagError);
-    } else {
-      console.log(`[Main] 📊 Diagnóstico:`, diagData);
-    }
-
+    // Parsear payload
     const payload = await req.json();
     
     console.log(`[Main] 📥 PAYLOAD RECEBIDO [${requestId}]:`, {
@@ -45,20 +36,21 @@ serve(async (req) => {
       messageType: payload.messageType
     });
 
-    // Extrair dados básicos da mensagem
+    // Extrair dados essenciais
     const instanceId = payload.instanceId || payload.instanceName || payload.instance;
     const from = payload.from;
     const fromMe = payload.fromMe || false;
-    const messageText = payload.message?.text || payload.data?.body || 'Mensagem sem texto';
+    const messageText = payload.message?.text || payload.data?.body || payload.text || 'Mensagem sem texto';
     const messageId = payload.data?.messageId || payload.messageId;
 
-    // Validar se temos dados mínimos
+    // VALIDAÇÃO BÁSICA
     if (!instanceId) {
       console.error(`[Main] ❌ instanceId não encontrado no payload`);
       return new Response(JSON.stringify({
         success: false,
         error: 'instanceId não encontrado'
       }), {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
@@ -69,11 +61,12 @@ serve(async (req) => {
         success: false,
         error: 'Campo from não encontrado'
       }), {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Análise do telefone
+    // VALIDAÇÃO DO TELEFONE
     const phoneClean = from.replace(/[^0-9]/g, '');
     const phoneValid = phoneClean.length >= 10 && phoneClean.length <= 13;
 
@@ -84,7 +77,6 @@ serve(async (req) => {
       length: phoneClean.length
     });
 
-    // Se telefone inválido, pular processamento
     if (!phoneValid) {
       console.warn(`[Main] ⚠️ Telefone inválido ignorado: ${from}`);
       return new Response(JSON.stringify({
@@ -96,113 +88,93 @@ serve(async (req) => {
       });
     }
 
+    // VALIDAÇÃO DA MENSAGEM
+    if (!messageText || messageText.trim().length === 0) {
+      console.warn(`[Main] ⚠️ Mensagem vazia ignorada`);
+      return new Response(JSON.stringify({
+        success: true,
+        message: 'Mensagem vazia - ignorada',
+        phone: from
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     console.log(`[Main] 💬 Processando mensagem:`, {
       text: messageText.substring(0, 50) + '...',
       fromMe,
-      messageId
+      messageId,
+      instanceId
     });
 
-    // ESTRATÉGIA DUPLA: Tentar função completa primeiro, depois fallback
+    // CHAMAR FUNÇÃO SQL SIMPLIFICADA
+    console.log(`[Main] 🎯 Chamando função SQL simplificada: save_whatsapp_message_simple`);
     
-    // TENTATIVA 1: Função completa com leads
-    console.log(`[Main] 🎯 TENTATIVA 1: Função completa (process_whatsapp_message)`);
-    const { data: fullResult, error: fullError } = await supabaseAdmin.rpc('process_whatsapp_message', {
+    const { data: result, error } = await supabaseAdmin.rpc('save_whatsapp_message_simple', {
       p_vps_instance_id: instanceId,
       p_phone: from,
       p_message_text: messageText,
       p_from_me: fromMe,
-      p_media_type: 'text',
-      p_media_url: null,
-      p_external_message_id: messageId,
-      p_contact_name: null
-    });
-
-    if (!fullError && fullResult?.success) {
-      console.log(`[Main] ✅ SUCESSO: Função completa processou a mensagem`);
-      
-      const totalTime = Date.now() - startTime;
-      return new Response(JSON.stringify({
-        success: true,
-        data: fullResult.data,
-        processing_time: totalTime,
-        method: 'full_function',
-        version: 'ROBUST_V1'
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Se chegou aqui, função completa falhou
-    console.warn(`[Main] ⚠️ Função completa falhou:`, fullError || fullResult);
-
-    // TENTATIVA 2: Função simplificada (fallback)
-    console.log(`[Main] 🆘 TENTATIVA 2: Função simplificada (insert_message_only)`);
-    
-    // Primeiro, buscar a instância e usuário para o fallback
-    const { data: instanceData, error: instanceError } = await supabaseAdmin
-      .from('whatsapp_instances')
-      .select('id, created_by_user_id')
-      .eq('vps_instance_id', instanceId)
-      .single();
-
-    if (instanceError || !instanceData) {
-      console.error(`[Main] ❌ Instância não encontrada para fallback:`, instanceError);
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'Instance not found for fallback',
-        original_error: fullError || fullResult,
-        instance_error: instanceError
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    const { data: fallbackResult, error: fallbackError } = await supabaseAdmin.rpc('insert_message_only', {
-      p_instance_id: instanceData.id,
-      p_phone: from,
-      p_message_text: messageText,
-      p_from_me: fromMe,
-      p_user_id: instanceData.created_by_user_id,
-      p_media_type: 'text',
-      p_media_url: null,
       p_external_message_id: messageId
     });
 
-    if (fallbackError || !fallbackResult?.success) {
-      console.error(`[Main] ❌ FALHA TOTAL: Ambas as funções falharam`);
-      console.error(`[Main] Função completa:`, fullError || fullResult);
-      console.error(`[Main] Função fallback:`, fallbackError || fallbackResult);
-      
+    if (error) {
+      console.error(`[Main] ❌ Erro na função SQL:`, error);
       return new Response(JSON.stringify({
         success: false,
-        error: 'Both functions failed',
-        full_function_error: fullError || fullResult,
-        fallback_error: fallbackError || fallbackResult,
-        diagnostic: diagData
+        error: error.message || 'Erro na função SQL',
+        details: error
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    console.log(`[Main] ✅ SUCESSO: Função fallback salvou a mensagem`);
-    console.warn(`[Main] ⚠️ ATENÇÃO: Mensagem salva sem lead - requer processamento posterior`);
+    if (!result) {
+      console.error(`[Main] ❌ Resultado vazio da função SQL`);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Resultado vazio da função SQL'
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (!result.success) {
+      console.error(`[Main] ❌ Função SQL retornou erro:`, result);
+      return new Response(JSON.stringify({
+        success: false,
+        error: result.error || 'Erro na função SQL',
+        details: result
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    console.log(`[Main] ✅ SUCESSO: Mensagem processada com sucesso:`, {
+      messageId: result.data?.message_id,
+      leadId: result.data?.lead_id,
+      instanceId: result.data?.instance_id,
+      userId: result.data?.user_id,
+      phone: result.data?.formatted_phone,
+      fromMe: result.data?.from_me
+    });
 
     const totalTime = Date.now() - startTime;
+    
     return new Response(JSON.stringify({
       success: true,
-      data: fallbackResult,
+      data: result.data,
       processing_time: totalTime,
-      method: 'fallback_function',
-      warning: 'Message saved without lead - requires post-processing',
-      original_error: fullError || fullResult,
-      version: 'ROBUST_V1'
+      method: 'simplified_sql_function',
+      version: 'ROBUST_SIMPLE_V1'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     const totalTime = Date.now() - startTime;
     console.error(`[Main] ❌ Erro crítico [${requestId}]:`, error);
     
@@ -210,7 +182,7 @@ serve(async (req) => {
       success: false,
       error: error.message || 'Erro crítico interno do servidor',
       processing_time: totalTime,
-      version: 'ROBUST_V1'
+      version: 'ROBUST_SIMPLE_V1'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
