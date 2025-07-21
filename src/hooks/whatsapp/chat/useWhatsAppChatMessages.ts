@@ -5,6 +5,7 @@ import { Contact, Message } from '@/types/chat';
 import { WhatsAppWebInstance } from '@/types/whatsapp';
 import { useMessageRealtime } from './hooks/useMessageRealtime';
 import { useChatDatabase } from '../useChatDatabase';
+import { useCompanyResolver } from '../useCompanyResolver';
 import { toast } from 'sonner';
 
 const MESSAGES_LIMIT = 50;
@@ -21,6 +22,7 @@ export const useWhatsAppChatMessages = (
   const [currentOffset, setCurrentOffset] = useState(0);
   
   const { mapDbMessageToMessage } = useChatDatabase();
+  const { companyId } = useCompanyResolver();
   const lastContactIdRef = useRef<string | null>(null);
   const lastInstanceIdRef = useRef<string | null>(null);
   
@@ -95,7 +97,7 @@ export const useWhatsAppChatMessages = (
 
   // Função para enviar mensagem
   const sendMessage = useCallback(async (text: string): Promise<boolean> => {
-    if (!selectedContact || !activeInstance || !text.trim()) {
+    if (!selectedContact || !activeInstance || !text.trim() || !companyId) {
       return false;
     }
 
@@ -118,7 +120,8 @@ export const useWhatsAppChatMessages = (
           timestamp: new Date().toISOString(),
           status: 'sent',
           media_type: 'text',
-          import_source: 'realtime'
+          import_source: 'realtime',
+          created_by_user_id: companyId
         });
 
       if (error) {
@@ -139,7 +142,7 @@ export const useWhatsAppChatMessages = (
     } finally {
       setIsSending(false);
     }
-  }, [selectedContact?.id, activeInstance?.id, fetchMessages]);
+  }, [selectedContact?.id, activeInstance?.id, companyId, fetchMessages]);
 
   // Callback para atualizar mensagens via realtime
   const handleMessageUpdate = useCallback((newMessage?: Message) => {
