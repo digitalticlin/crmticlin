@@ -37,6 +37,36 @@ export const useWhatsAppContacts = (
     return `user-${userId}-${activeInstance?.id || 'no-instance'}`;
   }, [isAdmin, userId, activeInstance?.id]);
 
+  // Função para ordenar contatos por mensagem mais recente
+  const sortContactsByRecentMessage = useCallback((contactsList: Contact[]): Contact[] => {
+    return [...contactsList].sort((a, b) => {
+      // 1º PRIORIDADE: Mensagens não lidas (mais urgente no topo)
+      const aHasUnread = a.unreadCount && a.unreadCount > 0;
+      const bHasUnread = b.unreadCount && b.unreadCount > 0;
+      
+      if (aHasUnread && !bHasUnread) return -1;
+      if (!aHasUnread && bHasUnread) return 1;
+      
+      // 2º PRIORIDADE: Última mensagem mais recente
+      if (a.lastMessageTime && b.lastMessageTime) {
+        // Converter para timestamp para comparação precisa
+        const timeA = new Date(a.lastMessageTime).getTime();
+        const timeB = new Date(b.lastMessageTime).getTime();
+        
+        if (!isNaN(timeA) && !isNaN(timeB)) {
+          return timeB - timeA; // Mais recente primeiro (ordem DESC)
+        }
+      }
+      
+      // 3º PRIORIDADE: Quem tem data de mensagem sobe
+      if (a.lastMessageTime && !b.lastMessageTime) return -1;
+      if (!a.lastMessageTime && b.lastMessageTime) return 1;
+      
+      // 4º PRIORIDADE: Ordenação alfabética
+      return a.name.localeCompare(b.name);
+    });
+  }, []);
+
   // Função para buscar contatos com RLS bypass correto
   const fetchContactsCore = useCallback(async (loadMore = false): Promise<void> => {
     if (!userId) {
@@ -56,7 +86,8 @@ export const useWhatsAppContacts = (
       const cached = contactsCache.get(cacheKey);
       if (cached && now - cached.timestamp < CONTACTS_CACHE_DURATION) {
         console.log('[WhatsApp Contacts] 💾 Usando cache:', cached.data.length);
-        setContacts(cached.data);
+        const sortedCached = sortContactsByRecentMessage(cached.data);
+        setContacts(sortedCached);
         setTotalContactsAvailable(cached.totalCount);
         setHasMoreContacts(cached.data.length < cached.totalCount);
         return;
@@ -148,20 +179,22 @@ export const useWhatsAppContacts = (
 
       if (loadMore) {
         const updatedContacts = [...contacts, ...contactsData];
-        setContacts(updatedContacts);
+        const sortedContacts = sortContactsByRecentMessage(updatedContacts);
+        setContacts(sortedContacts);
         
         // Atualizar cache
         contactsCache.set(cacheKey, {
-          data: updatedContacts,
+          data: sortedContacts,
           timestamp: now,
           totalCount: count || 0
         });
       } else {
-        setContacts(contactsData);
+        const sortedContacts = sortContactsByRecentMessage(contactsData);
+        setContacts(sortedContacts);
         
         // Atualizar cache
         contactsCache.set(cacheKey, {
-          data: contactsData,
+          data: sortedContacts,
           timestamp: now,
           totalCount: count || 0
         });
@@ -208,7 +241,7 @@ export const useWhatsAppContacts = (
       setIsLoadingContacts(false);
       setIsLoadingMoreContacts(false);
     }
-  }, [userId, isAdmin, activeInstance?.id, cacheKey, contacts.length]);
+  }, [userId, isAdmin, activeInstance?.id, cacheKey, contacts.length, sortContactsByRecentMessage]);
 
   // Função para carregar mais contatos
   const loadMoreContacts = useCallback(async (): Promise<void> => {
@@ -243,20 +276,20 @@ export const useWhatsAppContacts = (
         contact.unreadCount = (contact.unreadCount || 0) + 1;
       }
 
-      // Remover da posição atual e adicionar no topo
-      updatedContacts.splice(contactIndex, 1);
-      updatedContacts.unshift(contact);
+      // Aplicar ordenação automática
+      updatedContacts[contactIndex] = contact;
+      const sortedContacts = sortContactsByRecentMessage(updatedContacts);
 
       // Atualizar cache
       contactsCache.set(cacheKey, {
-        data: updatedContacts,
+        data: sortedContacts,
         timestamp: Date.now(),
         totalCount: totalContactsAvailable
       });
 
-      return updatedContacts;
+      return sortedContacts;
     });
-  }, [cacheKey, totalContactsAvailable]);
+  }, [cacheKey, totalContactsAvailable, sortContactsByRecentMessage]);
 
   // Função para marcar como lido
   const markAsRead = useCallback(async (contactId: string) => {
@@ -268,19 +301,22 @@ export const useWhatsAppContacts = (
         .eq('created_by_user_id', userId);
 
       // Atualizar estado local
-      setContacts(prevContacts => 
-        prevContacts.map(contact => 
+      setContacts(prevContacts => {
+        const updatedContacts = prevContacts.map(contact => 
           contact.id === contactId 
             ? { ...contact, unreadCount: 0 }
             : contact
-        )
-      );
+        );
+        
+        // Reordenar após marcar como lida
+        return sortContactsByRecentMessage(updatedContacts);
+      });
 
       console.log('[WhatsApp Contacts] ✅ Marcado como lido:', contactId);
     } catch (error) {
       console.error('[WhatsApp Contacts] ❌ Erro ao marcar como lido:', error);
     }
-  }, [userId]);
+  }, [userId, sortContactsByRecentMessage]);
 
   // Carregar contatos quando deps mudarem
   useEffect(() => {

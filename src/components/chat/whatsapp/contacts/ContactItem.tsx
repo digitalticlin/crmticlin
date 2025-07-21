@@ -24,8 +24,8 @@ export const ContactItem: React.FC<ContactItemProps> = memo(({
   return (
     <div
       className={cn(
-        "p-3 cursor-pointer transition-colors hover:bg-gray-50",
-        isSelected && "bg-blue-50 border-l-4 border-l-blue-500",
+        "p-3 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800",
+        isSelected && "bg-gray-100 dark:bg-gray-800",
         className
       )}
       onClick={onClick}
@@ -39,7 +39,7 @@ export const ContactItem: React.FC<ContactItemProps> = memo(({
             <AvatarImage src={contact.avatar} alt={displayName} />
           </Avatar>
           {contact.isOnline && (
-            <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white" />
+            <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white dark:border-gray-900" />
           )}
         </div>
         
@@ -47,11 +47,11 @@ export const ContactItem: React.FC<ContactItemProps> = memo(({
           <div className="flex justify-between items-start">
             <h3 className={cn(
               "font-medium truncate text-sm",
-              hasUnreadMessages ? "text-gray-900" : "text-gray-700"
+              hasUnreadMessages ? "text-gray-900 dark:text-gray-100" : "text-gray-700 dark:text-gray-300"
             )}>
               {displayName}
             </h3>
-            <span className="text-xs text-gray-500 whitespace-nowrap ml-2">
+            <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap ml-2">
               {contact.lastMessageTime}
             </span>
           </div>
@@ -59,13 +59,13 @@ export const ContactItem: React.FC<ContactItemProps> = memo(({
           <div className="flex justify-between items-center mt-1">
             <p className={cn(
               "text-xs truncate",
-              hasUnreadMessages ? "text-gray-700 font-medium" : "text-gray-500"
+              hasUnreadMessages ? "text-gray-700 dark:text-gray-300 font-medium" : "text-gray-500 dark:text-gray-400"
             )}>
               {contact.lastMessage || 'Nenhuma mensagem'}
             </p>
             
             {hasUnreadMessages && (
-              <div className="bg-blue-500 text-white rounded-full h-5 min-w-[20px] flex items-center justify-center text-xs font-medium ml-2">
+              <div className="bg-ticlin text-black rounded-full h-5 min-w-[20px] flex items-center justify-center text-xs font-medium ml-2">
                 {contact.unreadCount}
               </div>
             )}
