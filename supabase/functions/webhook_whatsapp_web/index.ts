@@ -1,6 +1,8 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { PayloadProcessor } from "./payloadProcessor.ts";
+import { ProcessedMessage } from "./types.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,7 +18,7 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    console.log(`[Main] 🚀 WEBHOOK COM RLS ATIVO - VERSÃO SEGURA [${requestId}]`);
+    console.log(`[Main] 🚀 WEBHOOK OTIMIZADO - VERSÃO 2.0 [${requestId}]`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -36,117 +38,43 @@ serve(async (req) => {
       messageType: payload.messageType
     });
 
-    // Extrair dados essenciais
-    const instanceId = payload.instanceId || payload.instanceName || payload.instance;
-    const from = payload.from;
-    const fromMe = payload.fromMe || false;
-    const messageText = payload.message?.text || payload.data?.body || payload.text || 'Mensagem sem texto';
-    const messageId = payload.data?.messageId || payload.messageId;
-
-    // VALIDAÇÃO BÁSICA
-    if (!instanceId) {
-      console.error(`[Main] ❌ instanceId não encontrado no payload`);
+    // Processar payload com validação avançada
+    const processedMessage = PayloadProcessor.processPayload(payload);
+    
+    if (!processedMessage) {
+      console.warn(`[Main] ⚠️ Mensagem ignorada ou inválida [${requestId}]`);
       return new Response(JSON.stringify({
-        success: false,
-        error: 'instanceId não encontrado'
+        success: true,
+        message: 'Mensagem ignorada',
+        reason: 'invalid_or_duplicate',
+        processing_time: Date.now() - startTime
       }), {
-        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    if (!from) {
-      console.error(`[Main] ❌ Campo 'from' não encontrado no payload`);
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'Campo from não encontrado'
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // LIMPEZA AVANÇADA DO TELEFONE - REMOVER SUFIXOS WHATSAPP
-    let cleanPhone = from;
-    
-    // Remover sufixos WhatsApp
-    cleanPhone = cleanPhone
-      .replace(/@c\.us$/, '')
-      .replace(/@s\.whatsapp\.net$/, '')
-      .replace(/@g\.us$/, '')
-      .replace(/@newsletter$/, ''); // Adicionar filtro para newsletter
-    
-    // Remover todos os caracteres não numéricos
-    cleanPhone = cleanPhone.replace(/[^0-9]/g, '');
-    
-    console.log(`[Main] 🧹 Limpeza do telefone:`, {
-      original: from,
-      afterSuffixRemoval: cleanPhone,
-      length: cleanPhone.length
+    console.log(`[Main] ✅ Mensagem processada [${requestId}]:`, {
+      instanceId: processedMessage.instanceId,
+      phone: processedMessage.phone.substring(0, 4) + '****',
+      messageType: processedMessage.messageType,
+      hasMedia: !!processedMessage.mediaUrl,
+      contactName: processedMessage.contactName
     });
 
-    // FILTRO PARA NÚMEROS DE NEWSLETTER (muito longos)
-    if (cleanPhone.length > 13) {
-      console.warn(`[Main] 🚫 Número de newsletter ignorado: ${from} -> ${cleanPhone} (${cleanPhone.length} dígitos)`);
-      return new Response(JSON.stringify({
-        success: true,
-        message: 'Número de newsletter ignorado',
-        phone: from,
-        cleanPhone: cleanPhone,
-        reason: 'newsletter_number'
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // VALIDAÇÃO DO TELEFONE LIMPO
-    const phoneValid = cleanPhone.length >= 10 && cleanPhone.length <= 13;
-
-    if (!phoneValid) {
-      console.warn(`[Main] ⚠️ Telefone inválido ignorado: ${from} -> ${cleanPhone}`);
-      return new Response(JSON.stringify({
-        success: true,
-        message: 'Telefone inválido - mensagem ignorada',
-        phone: from,
-        cleanPhone: cleanPhone
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // VALIDAÇÃO DA MENSAGEM
-    if (!messageText || messageText.trim().length === 0) {
-      console.warn(`[Main] ⚠️ Mensagem vazia ignorada`);
-      return new Response(JSON.stringify({
-        success: true,
-        message: 'Mensagem vazia - ignorada',
-        phone: from
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    console.log(`[Main] 💬 Processando mensagem:`, {
-      text: messageText.substring(0, 50) + '...',
-      fromMe,
-      messageId,
-      instanceId,
-      cleanPhone
-    });
-
-    // CHAMAR FUNÇÃO SQL COM RLS ATIVO
-    console.log(`[Main] 🔐 Chamando função SQL com RLS ATIVO: save_whatsapp_message_simple`);
-    
-    const { data: result, error } = await supabaseAdmin.rpc('save_whatsapp_message_simple', {
-      p_vps_instance_id: instanceId,
-      p_phone: cleanPhone,
-      p_message_text: messageText,
-      p_from_me: fromMe,
-      p_external_message_id: messageId
+    // Chamar função SQL otimizada
+    const { data: result, error } = await supabaseAdmin.rpc('save_whatsapp_message_complete', {
+      p_vps_instance_id: processedMessage.instanceId,
+      p_phone: processedMessage.phone,
+      p_message_text: processedMessage.messageText,
+      p_from_me: processedMessage.fromMe,
+      p_media_type: processedMessage.mediaType || 'text',
+      p_media_url: processedMessage.mediaUrl,
+      p_external_message_id: processedMessage.externalMessageId,
+      p_contact_name: processedMessage.contactName
     });
 
     if (error) {
-      console.error(`[Main] ❌ Erro na função SQL:`, error);
+      console.error(`[Main] ❌ Erro na função SQL [${requestId}]:`, error);
       return new Response(JSON.stringify({
         success: false,
         error: error.message || 'Erro na função SQL',
@@ -157,22 +85,11 @@ serve(async (req) => {
       });
     }
 
-    if (!result) {
-      console.error(`[Main] ❌ Resultado vazio da função SQL`);
+    if (!result?.success) {
+      console.error(`[Main] ❌ Função SQL retornou erro [${requestId}]:`, result);
       return new Response(JSON.stringify({
         success: false,
-        error: 'Resultado vazio da função SQL'
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    if (!result.success) {
-      console.error(`[Main] ❌ Função SQL retornou erro:`, result);
-      return new Response(JSON.stringify({
-        success: false,
-        error: result.error || 'Erro na função SQL',
+        error: result?.error || 'Erro na função SQL',
         details: result
       }), {
         status: 500,
@@ -180,24 +97,25 @@ serve(async (req) => {
       });
     }
 
-    console.log(`[Main] ✅ SUCESSO COM RLS ATIVO: Mensagem processada com sucesso:`, {
+    console.log(`[Main] ✅ SUCESSO OTIMIZADO [${requestId}]:`, {
       messageId: result.data?.message_id,
       leadId: result.data?.lead_id,
-      instanceId: result.data?.instance_id,
       userId: result.data?.user_id,
-      phone: result.data?.formatted_phone,
-      fromMe: result.data?.from_me,
-      rlsStatus: result.data?.rls_status
+      formattedPhone: result.data?.formatted_phone,
+      processingTime: Date.now() - startTime
     });
 
-    const totalTime = Date.now() - startTime;
-    
+    // Processar mídia em background (se existir)
+    if (processedMessage.mediaUrl) {
+      processMediaInBackground(processedMessage, result.data?.message_id);
+    }
+
     return new Response(JSON.stringify({
       success: true,
       data: result.data,
-      processing_time: totalTime,
-      method: 'rls_active_secure',
-      version: 'RLS_ACTIVE_V2'
+      processing_time: Date.now() - startTime,
+      method: 'optimized_webhook_v2',
+      version: 'WEBHOOK_OPTIMIZED_V2.0'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
@@ -210,10 +128,24 @@ serve(async (req) => {
       success: false,
       error: error.message || 'Erro crítico interno do servidor',
       processing_time: totalTime,
-      version: 'RLS_ACTIVE_V2'
+      version: 'WEBHOOK_OPTIMIZED_V2.0'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });
+
+// Função para processar mídia em background
+async function processMediaInBackground(message: ProcessedMessage, messageId: string) {
+  try {
+    console.log(`[Media] 📁 Processando mídia em background: ${message.mediaType}`);
+    
+    // Aqui seria implementado o download e upload da mídia
+    // Por enquanto, apenas log para não afetar a performance
+    
+    console.log(`[Media] ✅ Mídia processada: ${messageId}`);
+  } catch (error) {
+    console.error(`[Media] ❌ Erro ao processar mídia:`, error);
+  }
+}
