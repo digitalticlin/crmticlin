@@ -1,18 +1,18 @@
+
 /**
- * 🚀 HOOK DE REALTIME PARA MENSAGENS - ISOLADO
+ * 🚀 HOOK DE REALTIME PARA MENSAGENS INDIVIDUAIS - ISOLADO
  * 
- * Responsabilidade ÚNICA: Gerenciar updates em tempo real das mensagens
- * - Novas mensagens do contato selecionado
- * - Atualizações de status de mensagens (entregue, lida, etc.)
- * - Adicionar mensagens à lista em tempo real
+ * Responsabilidade ÚNICA: Gerenciar updates em tempo real de mensagens específicas
+ * - Novas mensagens em conversas abertas
+ * - Atualização de status de mensagens (lida, entregue, etc.)
+ * - Sincronização de mídia
  * 
- * ❌ NÃO mexe com: lista de contatos, contadores gerais
+ * ❌ NÃO mexe com: lista de contatos, contadores globais
  */
 
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { MessagesRealtimeConfig, RealtimeConnectionStatus } from './types';
-import { Message } from '@/types/chat';
 import { BigQueryOptimizer } from '@/utils/immediate-bigquery-fix';
 
 export const useMessagesRealtime = ({
@@ -28,7 +28,6 @@ export const useMessagesRealtime = ({
   const lastContactIdRef = useRef<string | null>(null);
   const lastInstanceIdRef = useRef<string | null>(null);
   const isSubscribedRef = useRef(false);
-  const throttleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const statsRef = useRef({
     totalEvents: 0,
     lastUpdate: null as number | null,
@@ -44,30 +43,9 @@ export const useMessagesRealtime = ({
       isSubscribedRef.current = false;
       statsRef.current.connectionStatus = 'disconnected';
     }
-    
-    if (throttleTimerRef.current) {
-      clearTimeout(throttleTimerRef.current);
-      throttleTimerRef.current = null;
-    }
   }, []);
 
-  // 💬 CONVERTER PAYLOAD PARA FORMATO MESSAGE
-  const convertToMessage = useCallback((messageData: any): Message => {
-    return {
-      id: messageData.id,
-      text: messageData.text || messageData.body || '',
-      sender: messageData.from_me ? 'user' : 'contact',
-      time: new Date(messageData.created_at || messageData.timestamp).toLocaleTimeString(),
-      fromMe: messageData.from_me || false,
-      timestamp: messageData.created_at || messageData.timestamp,
-      status: messageData.status || 'sent',
-      mediaType: messageData.media_type || 'text',
-      mediaUrl: messageData.media_url,
-      isIncoming: !messageData.from_me
-    };
-  }, []);
-
-  // 📨 HANDLER PARA NOVAS MENSAGENS
+  // 💬 HANDLER PARA NOVAS MENSAGENS
   const handleNewMessage = useCallback((payload: any) => {
     try {
       const newMessage = payload.new;
@@ -80,113 +58,61 @@ export const useMessagesRealtime = ({
         instanceId: newMessage?.whatsapp_number_id
       });
 
-      // 🔍 FILTROS RIGOROSOS
-      // 1. Verificar instância ativa
-      if (!activeInstanceId || newMessage?.whatsapp_number_id !== activeInstanceId) {
-        console.log('[Messages Realtime] 🚫 Mensagem de instância diferente ignorada');
-        return;
-      }
+      // Verificar se é da conversa ativa e instância correta
+      if (selectedContactId && 
+          activeInstanceId && 
+          newMessage?.lead_id === selectedContactId &&
+          newMessage?.whatsapp_number_id === activeInstanceId) {
+        
+        statsRef.current.totalEvents++;
+        statsRef.current.lastUpdate = Date.now();
 
-      // 2. Verificar se é do contato selecionado
-      if (!selectedContactId || newMessage?.lead_id !== selectedContactId) {
-        console.log('[Messages Realtime] 🚫 Mensagem de contato diferente ignorada');
-        return;
-      }
-
-      // ✅ MENSAGEM VÁLIDA - PROCESSAR
-      statsRef.current.totalEvents++;
-      statsRef.current.lastUpdate = Date.now();
-
-      // Converter para formato Message
-      const message = convertToMessage(newMessage);
-
-      console.log('[Messages Realtime] ✅ Processando nova mensagem:', {
-        messageId: message.id,
-        fromMe: message.fromMe,
-        text: message.text.substring(0, 50) + '...'
-      });
-
-      // Throttling para evitar spam de atualizações
-      if (throttleTimerRef.current) {
-        clearTimeout(throttleTimerRef.current);
-      }
-
-      throttleTimerRef.current = setTimeout(() => {
-        // Callback para nova mensagem
+        // Notificar nova mensagem
         if (onNewMessage) {
-          onNewMessage(message);
+          onNewMessage(newMessage);
         }
 
-        // Callback genérico de atualização
-        if (onMessageUpdate) {
-          onMessageUpdate(message);
+        // Refresh da lista se necessário
+        if (onMessagesRefresh) {
+          setTimeout(() => onMessagesRefresh(), 100);
         }
-
-        throttleTimerRef.current = null;
-      }, 50); // 50ms para responsividade em tempo real
-
+      }
     } catch (error) {
       console.error('[Messages Realtime] ❌ Erro processando nova mensagem:', error);
       BigQueryOptimizer.handleError(error);
     }
-  }, [selectedContactId, activeInstanceId, convertToMessage, onNewMessage, onMessageUpdate]);
+  }, [selectedContactId, activeInstanceId, onNewMessage, onMessagesRefresh]);
 
-  // 🔄 HANDLER PARA ATUALIZAÇÕES DE MENSAGENS
+  // 📝 HANDLER PARA ATUALIZAÇÃO DE MENSAGENS
   const handleMessageUpdate = useCallback((payload: any) => {
     try {
       const updatedMessage = payload.new;
       
-      console.log('[Messages Realtime] 🔄 Mensagem atualizada:', {
+      console.log('[Messages Realtime] 📝 Mensagem atualizada:', {
         messageId: updatedMessage?.id,
         leadId: updatedMessage?.lead_id,
-        status: updatedMessage?.status,
-        instanceId: updatedMessage?.whatsapp_number_id
+        status: updatedMessage?.status
       });
 
-      // 🔍 FILTROS RIGOROSOS
-      // 1. Verificar instância ativa
-      if (!activeInstanceId || updatedMessage?.whatsapp_number_id !== activeInstanceId) {
-        console.log('[Messages Realtime] 🚫 Update de instância diferente ignorado');
-        return;
-      }
+      // Verificar se é da conversa ativa e instância correta
+      if (selectedContactId && 
+          activeInstanceId && 
+          updatedMessage?.lead_id === selectedContactId &&
+          updatedMessage?.whatsapp_number_id === activeInstanceId) {
+        
+        statsRef.current.totalEvents++;
+        statsRef.current.lastUpdate = Date.now();
 
-      // 2. Verificar se é do contato selecionado
-      if (!selectedContactId || updatedMessage?.lead_id !== selectedContactId) {
-        console.log('[Messages Realtime] 🚫 Update de contato diferente ignorado');
-        return;
-      }
-
-      // ✅ UPDATE VÁLIDO - PROCESSAR
-      statsRef.current.totalEvents++;
-      statsRef.current.lastUpdate = Date.now();
-
-      // Converter para formato Message
-      const message = convertToMessage(updatedMessage);
-
-      console.log('[Messages Realtime] ✅ Processando atualização de mensagem:', {
-        messageId: message.id,
-        status: message.status
-      });
-
-      // Throttling para atualizações
-      if (throttleTimerRef.current) {
-        clearTimeout(throttleTimerRef.current);
-      }
-
-      throttleTimerRef.current = setTimeout(() => {
-        // Callback de atualização
+        // Notificar atualização
         if (onMessageUpdate) {
-          onMessageUpdate(message);
+          onMessageUpdate(updatedMessage);
         }
-
-        throttleTimerRef.current = null;
-      }, 100); // 100ms para updates (menos críticos que inserções)
-
+      }
     } catch (error) {
       console.error('[Messages Realtime] ❌ Erro processando atualização de mensagem:', error);
       BigQueryOptimizer.handleError(error);
     }
-  }, [selectedContactId, activeInstanceId, convertToMessage, onMessageUpdate]);
+  }, [selectedContactId, activeInstanceId, onMessageUpdate]);
 
   // 🚀 CONFIGURAR SUBSCRIPTION QUANDO NECESSÁRIO
   useEffect(() => {
@@ -230,7 +156,7 @@ export const useMessagesRealtime = ({
     const channel = supabase
       .channel(channelId)
       
-      // 📨 SUBSCRIPTION PARA NOVAS MENSAGENS
+      // 💬 SUBSCRIPTION PARA NOVAS MENSAGENS
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -238,7 +164,7 @@ export const useMessagesRealtime = ({
         filter: `lead_id=eq.${selectedContactId}`
       }, handleNewMessage)
       
-      // 🔄 SUBSCRIPTION PARA ATUALIZAÇÕES DE MENSAGENS
+      // 📝 SUBSCRIPTION PARA ATUALIZAÇÕES DE MENSAGENS
       .on('postgres_changes', {
         event: 'UPDATE',
         schema: 'public',
@@ -250,7 +176,7 @@ export const useMessagesRealtime = ({
         console.log('[Messages Realtime] 📡 Status da subscription de mensagens:', status);
         
         if (status === 'SUBSCRIBED') {
-          console.log('[Messages Realtime] ✅ Realtime de mensagens ativo para contato:', selectedContactId);
+          console.log('[Messages Realtime] ✅ Realtime de mensagens ativo');
           isSubscribedRef.current = true;
           statsRef.current.connectionStatus = 'connected';
         } else if (status === 'CHANNEL_ERROR') {
@@ -284,4 +210,4 @@ export const useMessagesRealtime = ({
     lastUpdate: statsRef.current.lastUpdate,
     forceDisconnect: cleanup
   };
-}; 
+};
