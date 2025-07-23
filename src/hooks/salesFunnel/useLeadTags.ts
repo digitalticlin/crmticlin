@@ -90,6 +90,9 @@ export const useLeadTags = (leadId: string) => {
       // 🚀 CORREÇÃO: Tags não afetam ordem da lista de contatos - não resetar
       console.log('[useLeadTags] ℹ️ Tag adicionada - não é necessário resetar lista de contatos');
       
+      // ✅ DISPARAR EVENTO PARA REFRESH DE TAGS NOS CONTATOS
+      window.dispatchEvent(new CustomEvent('refreshLeadTags'));
+      
       toast.success('Tag adicionada com sucesso');
       
       console.log('[useLeadTags] ✅ Tag adicionada e interface sincronizada');
@@ -115,6 +118,9 @@ export const useLeadTags = (leadId: string) => {
       
       // 🚀 CORREÇÃO: Tags não afetam ordem da lista de contatos - não resetar
       console.log('[useLeadTags] ℹ️ Tag removida - não é necessário resetar lista de contatos');
+      
+      // ✅ DISPARAR EVENTO PARA REFRESH DE TAGS NOS CONTATOS
+      window.dispatchEvent(new CustomEvent('refreshLeadTags'));
       
       toast.success('Tag removida com sucesso');
       

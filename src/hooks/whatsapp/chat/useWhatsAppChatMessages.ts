@@ -7,8 +7,9 @@ import { useMessageRealtime } from './hooks/useMessageRealtime';
 import { useChatDatabase } from '../useChatDatabase';
 import { useCompanyResolver } from '../useCompanyResolver';
 import { toast } from 'sonner';
+import { normalizeStatus } from './helpers/messageHelpers';
 
-const MESSAGES_LIMIT = 50;
+const MESSAGES_LIMIT = 20; // Reduzido para 20 mensagens por página
 
 export const useWhatsAppChatMessages = (
   selectedContact: Contact | null,
@@ -22,14 +23,40 @@ export const useWhatsAppChatMessages = (
   const [currentOffset, setCurrentOffset] = useState(0);
   
   const { mapDbMessageToMessage } = useChatDatabase();
-  const { companyId } = useCompanyResolver();
   const lastContactIdRef = useRef<string | null>(null);
   const lastInstanceIdRef = useRef<string | null>(null);
+  const mountedRef = useRef(true);
   
-  // Função para buscar mensagens
+  // 🚀 REFS PARA VALORES ATUAIS: Solução para closure sem dependências
+  const selectedContactRef = useRef(selectedContact);
+  const activeInstanceRef = useRef(activeInstance);
+  const mapDbMessageToMessageRef = useRef(mapDbMessageToMessage);
+
+  // Atualizar refs com valores atuais
+  useEffect(() => {
+    selectedContactRef.current = selectedContact;
+    activeInstanceRef.current = activeInstance;
+    mapDbMessageToMessageRef.current = mapDbMessageToMessage;
+  });
+
+  // Cleanup na desmontagem
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+  
+  // 🚀 FUNÇÃO ESTÁVEL: Acessa valores via refs, sem dependências instáveis
   const fetchMessages = useCallback(async (offset = 0, forceRefresh = false) => {
-    if (!selectedContact || !activeInstance) {
-      console.log('[WhatsApp Messages] ⚠️ No contact or instance selected');
+    // 🚀 ACESSAR VALORES ATUAIS VIA REFS
+    const currentContact = selectedContactRef.current;
+    const currentInstance = activeInstanceRef.current;
+    const currentMapper = mapDbMessageToMessageRef.current;
+    
+    // 🚀 SÓ CARREGA SE TEM CONTATO SELECIONADO
+    if (!currentContact || !currentInstance) {
+      console.log('[WhatsApp Messages] ⚠️ Aguardando contato/instância ser selecionado');
       return;
     }
 
@@ -40,145 +67,254 @@ export const useWhatsAppChatMessages = (
         setIsLoadingMore(true);
       }
 
-      console.log('[WhatsApp Messages] 🔍 Fetching messages:', {
-        contactId: selectedContact.id,
-        instanceId: activeInstance.id,
+      console.log('[WhatsApp Messages] 🔍 Carregando mensagens:', {
+        contactId: currentContact.id,
+        contactName: currentContact.name,
+        instanceId: currentInstance.id,
         offset,
-        forceRefresh
+        limit: MESSAGES_LIMIT
       });
 
       const { data: messagesData, error } = await supabase
         .from('messages')
         .select('*')
-        .eq('lead_id', selectedContact.id)
-        .eq('whatsapp_number_id', activeInstance.id)
-        .order('timestamp', { ascending: false })
+        .eq('lead_id', currentContact.id)
+        .eq('whatsapp_number_id', currentInstance.id)
+        .order('created_at', { ascending: false })
         .range(offset, offset + MESSAGES_LIMIT - 1);
 
+      if (!mountedRef.current) return;
+
       if (error) {
-        console.error('[WhatsApp Messages] ❌ Error fetching messages:', error);
-        throw error;
+        console.error('[WhatsApp Messages] ❌ Erro ao buscar mensagens:', error);
+        toast.error('Erro ao carregar mensagens');
+        return;
       }
 
-      const fetchedMessages = (messagesData || []).map(mapDbMessageToMessage);
-      
-      console.log('[WhatsApp Messages] 📨 Messages fetched:', {
-        count: fetchedMessages.length,
-        hasMore: fetchedMessages.length === MESSAGES_LIMIT
+      console.log('[WhatsApp Messages] ✅ Mensagens carregadas:', {
+        total: messagesData?.length || 0,
+        offset,
+        contactName: currentContact.name
       });
 
-      // Reverter a ordem para exibir do mais antigo para o mais novo
-      const sortedMessages = fetchedMessages.reverse();
+      const convertedMessages = (messagesData || []).map(currentMapper);
 
       if (offset === 0) {
-        setMessages(sortedMessages);
-        setCurrentOffset(sortedMessages.length);
+        setMessages(convertedMessages);
+        setCurrentOffset(MESSAGES_LIMIT);
       } else {
-        setMessages(prev => [...sortedMessages, ...prev]);
-        setCurrentOffset(prev => prev + sortedMessages.length);
+        setMessages(prev => [...prev, ...convertedMessages]);
+        setCurrentOffset(prev => prev + MESSAGES_LIMIT);
       }
 
-      setHasMoreMessages(fetchedMessages.length === MESSAGES_LIMIT);
+      setHasMoreMessages((messagesData?.length || 0) === MESSAGES_LIMIT);
 
-    } catch (error: any) {
-      console.error('[WhatsApp Messages] ❌ Error fetching messages:', error);
+    } catch (error) {
+      if (!mountedRef.current) return;
+      console.error('[WhatsApp Messages] ❌ Erro geral ao buscar mensagens:', error);
       toast.error('Erro ao carregar mensagens');
     } finally {
+      if (!mountedRef.current) return;
       setIsLoadingMessages(false);
       setIsLoadingMore(false);
     }
-  }, [selectedContact?.id, activeInstance?.id, mapDbMessageToMessage]);
+  }, []); // 🚀 SEM DEPENDÊNCIAS mas usando refs para valores atuais
 
-  // Função para carregar mais mensagens
+  // Carregar mais mensagens
   const loadMoreMessages = useCallback(async () => {
-    if (!hasMoreMessages || isLoadingMore) return;
+    const currentContact = selectedContactRef.current;
+    if (!currentContact || !hasMoreMessages || isLoadingMore) return;
     await fetchMessages(currentOffset);
-  }, [hasMoreMessages, isLoadingMore, currentOffset, fetchMessages]);
+  }, [currentOffset, hasMoreMessages, isLoadingMore, fetchMessages]);
 
-  // Função para enviar mensagem
-  const sendMessage = useCallback(async (text: string): Promise<boolean> => {
-    if (!selectedContact || !activeInstance || !text.trim() || !companyId) {
+  // Enviar mensagem
+  const sendMessage = useCallback(async (
+    text: string, 
+    mediaType?: 'text' | 'image' | 'video' | 'audio' | 'document',
+    mediaUrl?: string
+  ): Promise<boolean> => {
+    const currentContact = selectedContactRef.current;
+    const currentInstance = activeInstanceRef.current;
+    
+    if (!currentContact || !currentInstance || !text.trim()) {
       return false;
     }
 
-    setIsSending(true);
-    
     try {
-      console.log('[WhatsApp Messages] 📤 Sending message:', {
-        contactId: selectedContact.id,
-        instanceId: activeInstance.id,
-        text: text.substring(0, 50) + '...'
+      setIsSending(true);
+
+      console.log('[WhatsApp Messages] 📤 Enviando mensagem:', {
+        contactId: currentContact.id,
+        contactName: currentContact.name,
+        instanceId: currentInstance.id,
+        phone: currentContact.phone,
+        mediaType: mediaType || 'text',
+        hasMediaUrl: !!mediaUrl
       });
 
-      const { error } = await supabase
-        .from('messages')
-        .insert({
-          lead_id: selectedContact.id,
-          whatsapp_number_id: activeInstance.id,
-          text: text.trim(),
-          from_me: true,
-          timestamp: new Date().toISOString(),
-          status: 'sent',
-          media_type: 'text',
-          import_source: 'realtime',
-          created_by_user_id: companyId
-        });
+      // 🚀 CORREÇÃO: Usar parâmetros corretos da edge function com mídia
+      const { data, error } = await supabase.functions.invoke('whatsapp_messaging_service', {
+        body: {
+          action: 'send_message', // ✅ CORRIGIDO: era 'send'
+          instanceId: currentInstance.id,
+          phone: currentContact.phone,
+          message: text,
+          mediaType: mediaType || 'text', // ✅ NOVO: TIPO DE MÍDIA
+          mediaUrl: mediaUrl || null      // ✅ NOVO: URL DE MÍDIA
+        }
+      });
 
       if (error) {
-        console.error('[WhatsApp Messages] ❌ Error sending message:', error);
-        throw error;
+        console.error('[WhatsApp Messages] ❌ Erro ao enviar mensagem:', error);
+        toast.error('Erro ao enviar mensagem');
+        return false;
       }
 
-      // Atualizar lista de mensagens
-      await fetchMessages(0, true);
-      
-      console.log('[WhatsApp Messages] ✅ Message sent successfully');
+      console.log('[WhatsApp Messages] ✅ Mensagem enviada com sucesso:', data);
+
+      // Recarregar mensagens após envio
+      setTimeout(() => {
+        fetchMessages(0, true);
+      }, 500);
+
       return true;
 
-    } catch (error: any) {
-      console.error('[WhatsApp Messages] ❌ Error sending message:', error);
+    } catch (error) {
+      console.error('[WhatsApp Messages] ❌ Erro geral ao enviar mensagem:', error);
       toast.error('Erro ao enviar mensagem');
       return false;
     } finally {
       setIsSending(false);
     }
-  }, [selectedContact?.id, activeInstance?.id, companyId, fetchMessages]);
-
-  // Callback para atualizar mensagens via realtime
-  const handleMessageUpdate = useCallback((newMessage?: Message) => {
-    console.log('[WhatsApp Messages] 🔄 Message update received:', newMessage?.id);
-    
-    // Recarregar mensagens para garantir consistência
-    fetchMessages(0, true);
   }, [fetchMessages]);
+
+  // 🚀 NOVA: Função para adicionar nova mensagem sem resetar lista
+  const addNewMessage = useCallback((newMessage: Message) => {
+    console.log('[WhatsApp Messages] 🚀 Tentando adicionar mensagem:', newMessage.id);
+    
+    // A verificação do contato será feita pelo realtime hook antes de chamar esta função
+    setMessages(prevMessages => {
+      // Verificar se a mensagem já existe (evitar duplicatas)
+      const messageExists = prevMessages.some(msg => msg.id === newMessage.id);
+      if (messageExists) {
+        console.log('[WhatsApp Messages] ⚠️ Mensagem duplicada ignorada:', newMessage.id);
+        return prevMessages;
+      }
+
+      console.log('[WhatsApp Messages] ➕ ✅ ADICIONANDO nova mensagem:', {
+        messageId: newMessage.id,
+        fromMe: newMessage.fromMe,
+        text: newMessage.text?.substring(0, 50)
+      });
+
+      // Adicionar mensagem no final (mensagens mais recentes ficam no final)
+      return [...prevMessages, newMessage];
+    });
+
+    // 🎯 SCROLL INTELIGENTE: Apenas para mensagens próprias ou se usuário está no final
+    if (newMessage.fromMe) {
+      console.log('[WhatsApp Messages] 📱 Scroll automático: mensagem própria');
+      // O componente useMessagesList já cuida do scroll para mensagens próprias
+    } else {
+      console.log('[WhatsApp Messages] 💬 Nova mensagem recebida: sem scroll forçado');
+      // Para mensagens recebidas, não forçar scroll - deixar usuário decidir
+    }
+  }, []);
+
+  // 🚀 NOVA: Função para atualizar status de mensagem
+  const updateMessageStatus = useCallback((messageId: string, newStatus: 'sent' | 'delivered' | 'read') => {
+    setMessages(prevMessages => 
+      prevMessages.map(message => 
+        message.id === messageId 
+          ? { ...message, status: newStatus }
+          : message
+      )
+    );
+    
+    console.log('[WhatsApp Messages] 🔄 Status atualizado:', { messageId, newStatus });
+  }, []);
 
   // Hook de realtime para mensagens
   useMessageRealtime({
     selectedContact,
     activeInstance,
-    onMessageUpdate: handleMessageUpdate
+    onMessageUpdate: useCallback((newMessage) => {
+      console.log('[WhatsApp Messages] 🔄 Realtime trigger recebido:', {
+        messageId: newMessage?.id,
+        text: newMessage?.text?.substring(0, 30)
+      });
+
+      // 🚀 CORREÇÃO: Usar addNewMessage diretamente sem verificações de refs
+      if (newMessage && newMessage.id) {
+        // Converter payload da mensagem para formato Message
+        const messageForUI = {
+          id: newMessage.id,
+          text: newMessage.text || '',
+          fromMe: newMessage.from_me || false,
+          timestamp: newMessage.created_at || newMessage.timestamp,
+          status: newMessage.status || 'sent',
+          mediaType: newMessage.media_type || 'text',
+          mediaUrl: newMessage.media_url,
+          sender: newMessage.from_me ? 'user' as const : 'contact' as const,
+          time: new Date(newMessage.created_at || newMessage.timestamp).toLocaleTimeString('pt-BR', {
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          isIncoming: !newMessage.from_me
+        };
+
+        console.log('[WhatsApp Messages] ➕ ✅ ADICIONANDO mensagem via realtime:', {
+          messageId: messageForUI.id,
+          fromMe: messageForUI.fromMe,
+          text: messageForUI.text?.substring(0, 50)
+        });
+
+        addNewMessage(messageForUI);
+      } else {
+        // Fallback para refresh completo apenas se não conseguir processar a mensagem
+        console.log('[WhatsApp Messages] 🔄 Fallback: refresh completo');
+        fetchMessages(0, true);
+      }
+    }, [addNewMessage, fetchMessages])
   });
 
-  // Efeito para carregar mensagens quando contato/instância mudar
+  // 🚀 CARREGAR MENSAGENS APENAS QUANDO IDs MUDAREM (evitar loops)
   useEffect(() => {
-    const contactChanged = lastContactIdRef.current !== selectedContact?.id;
-    const instanceChanged = lastInstanceIdRef.current !== activeInstance?.id;
+    const newContactId = selectedContact?.id || null;
+    const newInstanceId = activeInstance?.id || null;
     
-    if (contactChanged || instanceChanged) {
-      console.log('[WhatsApp Messages] 🔄 Contact or instance changed, reloading messages');
-      
-      lastContactIdRef.current = selectedContact?.id || null;
-      lastInstanceIdRef.current = activeInstance?.id || null;
-      
+    const contactChanged = newContactId !== lastContactIdRef.current;
+    const instanceChanged = newInstanceId !== lastInstanceIdRef.current;
+    
+    // 🚀 EVITAR LOOPS: Só executar se realmente mudou
+    if (!contactChanged && !instanceChanged) {
+      return;
+    }
+
+    console.log('[WhatsApp Messages] 🔄 Mudança detectada:', {
+      newContactId,
+      newInstanceId,
+        previousContactId: lastContactIdRef.current,
+        previousInstanceId: lastInstanceIdRef.current
+      });
+
+    // Reset estado
       setMessages([]);
       setCurrentOffset(0);
       setHasMoreMessages(true);
-      
+      setIsLoadingMessages(false);
+      setIsLoadingMore(false);
+
+    // Atualizar refs ANTES de carregar
+    lastContactIdRef.current = newContactId;
+    lastInstanceIdRef.current = newInstanceId;
+
+    // Carregar mensagens se há contato selecionado
       if (selectedContact && activeInstance) {
+      console.log('[WhatsApp Messages] 🚀 Carregando mensagens do contato:', selectedContact.name);
         fetchMessages(0, true);
-      }
     }
-  }, [selectedContact?.id, activeInstance?.id, fetchMessages]);
+  }, [selectedContact?.id, activeInstance?.id]); // 🚀 APENAS IDs como dependências
 
   return {
     messages,
@@ -188,6 +324,8 @@ export const useWhatsAppChatMessages = (
     isSending,
     sendMessage,
     loadMoreMessages,
-    fetchMessages: () => fetchMessages(0, true)
+    fetchMessages,
+    addNewMessage,
+    updateMessageStatus
   };
 };

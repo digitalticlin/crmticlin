@@ -31,14 +31,26 @@ export const useMessageRealtime = ({
     const newMessage = payload.new;
     
     if (!selectedContact || !activeInstance) {
+      console.log('[Message Realtime] ⚠️ Sem contato ou instância ativa');
       return;
     }
     
-    // Verificar se é mensagem do contato atual
-    if (newMessage?.lead_id === selectedContact.id && 
-        newMessage?.whatsapp_number_id === activeInstance.id) {
+    // 🚀 CORREÇÃO: Verificação mais robusta
+    const messageLeadId = newMessage?.lead_id;
+    const messageInstanceId = newMessage?.whatsapp_number_id;
+    
+    console.log('[Message Realtime] 🔍 Verificando mensagem:', {
+      messageLeadId,
+      selectedContactId: selectedContact.id,
+      messageInstanceId, 
+      activeInstanceId: activeInstance.id,
+      match: messageLeadId === selectedContact.id
+    });
+    
+    // Verificar se é mensagem do contato atual (instância será verificada pelo filtro do supabase)
+    if (messageLeadId === selectedContact.id) {
       
-      console.log('[Message Realtime] 📨 Nova mensagem detectada:', {
+      console.log('[Message Realtime] 📨 ✅ Nova mensagem CONFIRMADA:', {
         leadId: newMessage.lead_id,
         text: newMessage.text?.substring(0, 50) + '...',
         fromMe: newMessage.from_me
@@ -55,8 +67,11 @@ export const useMessageRealtime = ({
       }
       
       updateThrottleRef.current = setTimeout(() => {
+        console.log('[Message Realtime] 🚀 Enviando mensagem para UI:', newMessage.id);
         onMessageUpdate(newMessage);
       }, 50); // CORREÇÃO CRÍTICA: 50ms para tempo real
+    } else {
+      console.log('[Message Realtime] ❌ Mensagem ignorada - contato diferente');
     }
   }, [selectedContact?.id, activeInstance?.id, onMessageUpdate, notify]);
 
@@ -69,12 +84,15 @@ export const useMessageRealtime = ({
       isSubscribedRef.current = false;
     }
 
-    if (!selectedContact || !activeInstance || isSubscribedRef.current) {
-      console.log('[Message Realtime] ⚠️ Não configurando realtime:', {
-        temContato: !!selectedContact,
-        temInstancia: !!activeInstance,
-        jaInscrito: isSubscribedRef.current
-      });
+    // 🚀 CORREÇÃO: Verificação separada - não bloquear se já subscrito para mesmo contato
+    if (!selectedContact || !activeInstance) {
+      console.log('[Message Realtime] ⚠️ Não configurando realtime: sem contato ou instância');
+      return;
+    }
+
+    // Se já está subscrito para o mesmo contato, não fazer nada
+    if (isSubscribedRef.current && lastContactIdRef.current === selectedContact.id) {
+      console.log('[Message Realtime] ✅ Já subscrito para este contato:', selectedContact.name);
       return;
     }
 
@@ -94,7 +112,7 @@ export const useMessageRealtime = ({
         event: 'INSERT',
         schema: 'public',
         table: 'messages',
-        filter: `lead_id=eq.${selectedContact.id}`
+        filter: `lead_id=eq.${selectedContact.id} AND whatsapp_number_id=eq.${activeInstance.id}`
       }, (payload) => {
         console.log('[Message Realtime] 📨 INSERT recebido:', payload);
         handleMessageUpdate(payload);
@@ -103,7 +121,7 @@ export const useMessageRealtime = ({
         event: 'UPDATE',
         schema: 'public',
         table: 'messages',
-        filter: `lead_id=eq.${selectedContact.id}`
+        filter: `lead_id=eq.${selectedContact.id} AND whatsapp_number_id=eq.${activeInstance.id}`
       }, (payload) => {
         console.log('[Message Realtime] 🔄 UPDATE recebido:', payload);
         handleMessageUpdate(payload);

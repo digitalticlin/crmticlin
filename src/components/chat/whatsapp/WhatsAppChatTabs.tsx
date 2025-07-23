@@ -23,10 +23,11 @@ export const WhatsAppChatTabs = () => {
   } = useWhatsAppChatContext();
 
   // Wrapper to handle the sendMessage signature difference
-  const handleSendMessage = (message: string) => {
+  const handleSendMessage = async (message: string, mediaType?: string, mediaUrl?: string): Promise<boolean> => {
     if (selectedContact) {
-      sendMessage(message);
+      return await sendMessage(message, mediaType, mediaUrl);
     }
+    return false;
   };
 
   // Force refresh messages (bypass cache)

@@ -7,7 +7,7 @@
 
 // 🎯 HOOKS PRINCIPAIS
 export { useChatsRealtime } from './useChatsRealtime';
-export { useMessagesRealtime } from './useMessagesRealtime';
+export { useMessageRealtime } from './useMessagesRealtime';
 
 // 📝 TIPOS
 export type {

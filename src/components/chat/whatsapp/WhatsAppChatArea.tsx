@@ -6,7 +6,7 @@ import { Contact, Message } from "@/types/chat";
 interface WhatsAppChatAreaProps {
   selectedContact: Contact;
   messages: Message[];
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, mediaType?: string, mediaUrl?: string) => Promise<boolean>;
   onBack: () => void;
   isLoadingMessages: boolean;
   isLoadingMore: boolean;

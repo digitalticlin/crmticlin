@@ -9,8 +9,12 @@ interface RealClientsLayoutProps {
   isDetailsOpen: boolean;
   isCreateMode?: boolean;
   isLoading?: boolean;
+  isLoadingMore?: boolean;
+  hasMoreClients?: boolean;
+  totalClientsCount?: number;
   onSelectClient: (client: ClientData) => void;
   onDeleteClient: (clientId: string) => void;
+  onLoadMoreClients?: () => Promise<void>;
   onUpdateNotes?: (notes: string) => void;
   onUpdatePurchaseValue?: (value: number | undefined) => void;
   onUpdateBasicInfo?: (data: { name: string; email: string; company: string }) => void;
@@ -32,8 +36,12 @@ export function RealClientsLayout({
   isDetailsOpen,
   isCreateMode = false,
   isLoading,
+  isLoadingMore,
+  hasMoreClients,
+  totalClientsCount,
   onSelectClient,
   onDeleteClient,
+  onLoadMoreClients,
   onUpdateNotes,
   onUpdatePurchaseValue,
   onUpdateBasicInfo,
@@ -50,6 +58,10 @@ export function RealClientsLayout({
         onEditClient={onSelectClient}
         onDeleteClient={onDeleteClient}
         isLoading={isLoading}
+        isLoadingMore={isLoadingMore}
+        hasMoreClients={hasMoreClients}
+        onLoadMoreClients={onLoadMoreClients}
+        totalClientsCount={totalClientsCount}
       />
       
       <RealClientDetails

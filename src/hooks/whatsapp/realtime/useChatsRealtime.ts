@@ -1,5 +1,5 @@
 /**
- * 🚀 HOOK DE REALTIME PARA CHATS/CONTATOS - ISOLADO
+ * 🚀 HOOK DE REALTIME PARA CHATS/CONTATOS - ISOLADO E ANTI-LOOP
  * 
  * Responsabilidade ÚNICA: Gerenciar updates em tempo real da lista de contatos
  * - Novos contatos (leads)
@@ -19,8 +19,16 @@ export const useChatsRealtime = ({
   activeInstanceId,
   onContactUpdate,
   onNewContact,
-  onContactsRefresh
+  onContactsRefresh,
+  onMoveContactToTop,
+  onUpdateUnreadCount,
+  onAddNewContact
 }: ChatsRealtimeConfig) => {
+  
+  // 🚀 PROTEÇÃO ANTI-LOOP
+  const executionCountRef = useRef(0);
+  const lastParamsRef = useRef<string>('');
+  const lastExecutionTimeRef = useRef(0);
   
   // 🔧 REFS PARA GERENCIAMENTO DE ESTADO
   const channelRef = useRef<any>(null);
@@ -36,7 +44,9 @@ export const useChatsRealtime = ({
   // 🧹 CLEANUP OTIMIZADO
   const cleanup = useCallback(() => {
     if (channelRef.current) {
+      if (process.env.NODE_ENV === 'development') {
       console.log('[Chats Realtime] 🧹 Removendo canal de chats');
+      }
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
       isSubscribedRef.current = false;
@@ -44,82 +54,128 @@ export const useChatsRealtime = ({
     }
   }, []);
 
-  // 📨 HANDLER PARA NOVOS LEADS
+  // 👤 HANDLER PARA NOVOS LEADS
   const handleNewLead = useCallback((payload: any) => {
     try {
       const newLead = payload.new;
       
-      console.log('[Chats Realtime] 👤 Novo lead recebido:', {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Chats Realtime] 👤 Novo lead detectado:', {
         leadId: newLead?.id,
         name: newLead?.name,
+          phone: newLead?.phone,
         instanceId: newLead?.whatsapp_number_id
       });
+      }
 
       // Verificar se é da instância ativa
       if (activeInstanceId && newLead?.whatsapp_number_id === activeInstanceId) {
         statsRef.current.totalEvents++;
         statsRef.current.lastUpdate = Date.now();
 
-        // Notificar novo contato se callback fornecido
-        if (onNewContact && newLead) {
-          // Converter para formato Contact se necessário
-          const contactData = {
+        // 🚀 PRIORIZAR: Callback granular para adicionar novo contato
+        if (onAddNewContact) {
+          const newContactData = {
             id: newLead.id,
-            name: newLead.name || 'Sem nome',
-            phone: newLead.phone || '',
             leadId: newLead.id,
-            // Outros campos serão preenchidos pelo refresh
+            name: newLead.name || 'Novo Contato',
+            phone: newLead.phone,
+            email: newLead.email,
+            lastMessage: 'Nova conversa iniciada',
+            lastMessageTime: newLead.created_at || new Date().toISOString(),
+            unreadCount: 1,
+            stageId: newLead.kanban_stage_id || null,
+            createdAt: newLead.created_at
           };
-          onNewContact(contactData as any);
+          
+          console.log('[Chats Realtime] ➕ Adicionando novo contato via callback granular');
+          onAddNewContact(newContactData);
+          return; // ✅ EVITAR refresh se callback granular existe
         }
 
-        // Refresh suave da lista de contatos (sem resetar paginação)
-        if (onContactsRefresh) {
-          setTimeout(() => onContactsRefresh(), 300);
+        // Fallback: Callbacks legados
+        if (onNewContact) {
+          const contact = {
+            id: newLead.id,
+            name: newLead.name || newLead.phone || 'Contato',
+            phone: newLead.phone
+          };
+          onNewContact(contact);
+        }
+
+        // Último recurso: Refresh completo
+        if (onContactsRefresh && !onAddNewContact) {
+          console.log('[Chats Realtime] 🔄 Fallback: refresh completo para novo lead');
+          onContactsRefresh();
         }
       }
     } catch (error) {
       console.error('[Chats Realtime] ❌ Erro processando novo lead:', error);
       BigQueryOptimizer.handleError(error);
     }
-  }, [activeInstanceId, onNewContact, onContactsRefresh]);
+  }, [activeInstanceId, onNewContact, onContactsRefresh, onAddNewContact]);
 
-  // 📝 HANDLER PARA ATUALIZAÇÃO DE LEADS
+  // 📝 HANDLER PARA ATUALIZAÇÕES DE LEADS
   const handleLeadUpdate = useCallback((payload: any) => {
     try {
       const updatedLead = payload.new;
+      const oldLead = payload.old;
       
+      if (process.env.NODE_ENV === 'development') {
       console.log('[Chats Realtime] 📝 Lead atualizado:', {
         leadId: updatedLead?.id,
         name: updatedLead?.name,
+          oldUnreadCount: oldLead?.unread_count,
+          newUnreadCount: updatedLead?.unread_count,
         instanceId: updatedLead?.whatsapp_number_id
       });
+      }
 
       // Verificar se é da instância ativa
       if (activeInstanceId && updatedLead?.whatsapp_number_id === activeInstanceId) {
         statsRef.current.totalEvents++;
         statsRef.current.lastUpdate = Date.now();
 
-        // Updates de leads são menos críticos que novas mensagens
-        // Apenas log para debug - refresh manual se necessário
+        // 🚀 PRIORIZAR: Callback granular para contador de não lidas
+        if (oldLead?.unread_count !== updatedLead?.unread_count) {
+          if (onUpdateUnreadCount) {
+            const increment = (updatedLead?.unread_count || 0) > (oldLead?.unread_count || 0);
+            console.log('[Chats Realtime] 🔢 Atualizando contador via callback granular:', {
+              leadId: updatedLead.id,
+              increment,
+              oldCount: oldLead?.unread_count,
+              newCount: updatedLead?.unread_count
+            });
+            onUpdateUnreadCount(updatedLead.id, increment);
+            return; // ✅ EVITAR refresh se callback granular existe
+          }
+        }
+
+        // Fallback: Refresh completo apenas se não há callback granular
+        if (onContactsRefresh && !onUpdateUnreadCount) {
+          console.log('[Chats Realtime] 🔄 Fallback: refresh completo para atualização de lead');
+          onContactsRefresh();
+        }
       }
     } catch (error) {
       console.error('[Chats Realtime] ❌ Erro processando atualização de lead:', error);
       BigQueryOptimizer.handleError(error);
     }
-  }, [activeInstanceId]);
+  }, [activeInstanceId, onContactsRefresh, onUpdateUnreadCount]);
 
   // 💬 HANDLER PARA NOVAS MENSAGENS (move contato para topo)
   const handleNewMessage = useCallback((payload: any) => {
     try {
       const newMessage = payload.new;
       
+      if (process.env.NODE_ENV === 'development') {
       console.log('[Chats Realtime] 💬 Nova mensagem (mover contato):', {
         leadId: newMessage?.lead_id,
         fromMe: newMessage?.from_me,
         text: newMessage?.text?.substring(0, 30) + '...',
         instanceId: newMessage?.whatsapp_number_id
       });
+      }
 
       // Verificar se é da instância ativa
       if (activeInstanceId && newMessage?.whatsapp_number_id === activeInstanceId) {
@@ -128,21 +184,72 @@ export const useChatsRealtime = ({
 
         const leadId = newMessage.lead_id;
         const messageText = newMessage.text || newMessage.body || '';
+        const messageTimestamp = newMessage.created_at || newMessage.timestamp || new Date().toISOString();
 
-        // Mover contato para topo (apenas se não for mensagem enviada por nós)
-        if (leadId && !newMessage.from_me && onContactUpdate) {
-          console.log('[Chats Realtime] 🔝 Movendo contato para topo:', leadId);
+        // Apenas processar mensagens recebidas (não enviadas por nós)
+        if (leadId && !newMessage.from_me) {
+          
+          // 🚀 PRIORIZAR: Callback granular para mover contato
+          if (onMoveContactToTop) {
+            console.log('[Chats Realtime] 🔝 Movendo contato via callback granular:', leadId);
+            onMoveContactToTop(leadId, {
+              text: messageText,
+              timestamp: messageTimestamp,
+              unreadCount: undefined // Deixar que o hook calcule o incremento
+            });
+            return; // ✅ EVITAR outras ações se callback granular existe
+          }
+
+          // Fallback: Callbacks legados
+          if (onContactUpdate) {
+            console.log('[Chats Realtime] 🔄 Fallback: callback legado para mover contato');
           onContactUpdate(leadId, messageText);
+          }
         }
       }
     } catch (error) {
       console.error('[Chats Realtime] ❌ Erro processando nova mensagem:', error);
       BigQueryOptimizer.handleError(error);
     }
-  }, [activeInstanceId, onContactUpdate]);
+  }, [activeInstanceId, onContactUpdate, onMoveContactToTop]);
 
   // 🚀 CONFIGURAR SUBSCRIPTION QUANDO NECESSÁRIO
   useEffect(() => {
+    // 🚀 LAZY LOADING: Verificar se deve ativar
+    const shouldActivate = !!userId && !!activeInstanceId;
+    
+    if (!shouldActivate) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Chats Realtime] ⚠️ Lazy loading: aguardando userId e activeInstanceId');
+      }
+      // Cleanup se estava ativo antes
+      cleanup();
+      return;
+    }
+
+    // 🚀 PROTEÇÃO ANTI-LOOP: Verificar parâmetros e timing
+    const currentParams = `${userId}-${activeInstanceId}`;
+    const now = Date.now();
+    const timeSinceLastExecution = now - lastExecutionTimeRef.current;
+    
+    // Se mesmos parâmetros e executou há menos de 1 segundo = possível loop
+    if (currentParams === lastParamsRef.current && timeSinceLastExecution < 1000) {
+      executionCountRef.current++;
+      if (executionCountRef.current > 3) {
+        console.error('[Chats Realtime] 🚨 LOOP INFINITO DETECTADO!', {
+          executionCount: executionCountRef.current,
+          timeSinceLastExecution
+        });
+        return;
+      }
+    } else {
+      // Reset contador se parâmetros mudaram ou tempo suficiente passou
+      executionCountRef.current = 1;
+    }
+    
+    lastParamsRef.current = currentParams;
+    lastExecutionTimeRef.current = now;
+
     // Verificar se precisa reconfigurar
     const needsReconfigure = 
       lastUserIdRef.current !== userId ||
@@ -156,15 +263,6 @@ export const useChatsRealtime = ({
     // Cleanup anterior
     cleanup();
 
-    // Verificar pré-requisitos
-    if (!userId || !activeInstanceId) {
-      console.log('[Chats Realtime] ⚠️ Pré-requisitos não atendidos:', {
-        userId: !!userId,
-        activeInstanceId: !!activeInstanceId
-      });
-      return;
-    }
-
     // Atualizar refs
     lastUserIdRef.current = userId;
     lastInstanceIdRef.current = activeInstanceId;
@@ -172,11 +270,13 @@ export const useChatsRealtime = ({
     // Criar novo canal
     const channelId = `chats-realtime-${userId}-${activeInstanceId}-${Date.now()}`;
     
+    if (process.env.NODE_ENV === 'development') {
     console.log('[Chats Realtime] 🚀 Configurando subscription para chats:', {
       userId,
       activeInstanceId,
       channelId
     });
+    }
 
     statsRef.current.connectionStatus = 'connecting';
 
@@ -208,10 +308,14 @@ export const useChatsRealtime = ({
       }, handleNewMessage)
       
       .subscribe((status) => {
+        if (process.env.NODE_ENV === 'development') {
         console.log('[Chats Realtime] 📡 Status da subscription de chats:', status);
+        }
         
         if (status === 'SUBSCRIBED') {
+          if (process.env.NODE_ENV === 'development') {
           console.log('[Chats Realtime] ✅ Realtime de chats ativo');
+          }
           isSubscribedRef.current = true;
           statsRef.current.connectionStatus = 'connected';
         } else if (status === 'CHANNEL_ERROR') {
@@ -219,7 +323,9 @@ export const useChatsRealtime = ({
           isSubscribedRef.current = false;
           statsRef.current.connectionStatus = 'error';
         } else if (status === 'CLOSED') {
+          if (process.env.NODE_ENV === 'development') {
           console.log('[Chats Realtime] 🔒 Canal de chats fechado');
+          }
           isSubscribedRef.current = false;
           statsRef.current.connectionStatus = 'disconnected';
         }
@@ -232,7 +338,9 @@ export const useChatsRealtime = ({
   // 🧹 CLEANUP GERAL
   useEffect(() => {
     return () => {
+      if (process.env.NODE_ENV === 'development') {
       console.log('[Chats Realtime] 🔌 Cleanup geral');
+      }
       cleanup();
     };
   }, [cleanup]);

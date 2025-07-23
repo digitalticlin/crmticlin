@@ -16,7 +16,7 @@ interface WhatsAppChatLayoutProps {
   selectedContact: Contact | null;
   onSelectContact: (contact: Contact) => void;
   messages: Message[];
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, mediaType?: string, mediaUrl?: string) => Promise<boolean>;
   isLoadingContacts: boolean;
   isLoadingMoreContacts: boolean;
   hasMoreContacts: boolean;

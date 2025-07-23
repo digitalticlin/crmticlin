@@ -1,4 +1,3 @@
-
 // SERVIDOR WHATSAPP COMPLETO - IMPLEMENTAÇÃO ROBUSTA CORRIGIDA
 const express = require('express');
 const crypto = require('crypto');
@@ -685,3 +684,54 @@ async function startServer() {
 startServer();
 
 module.exports = { app, instances, webhookManager, connectionManager, diagnosticsManager, importManagerRobust };
+
+// CORREÇÃO: Função de limpeza periódica para evitar acúmulo
+function cleanupFailedInstances() {
+  const now = Date.now();
+  const CLEANUP_INTERVAL = 300000; // 5 minutos
+
+  for (const [instanceId, instance] of Object.entries(instances)) {
+    const timeSinceLastUpdate = now - new Date(instance.lastUpdate).getTime();
+
+    // Remover instâncias que falharam há mais de 5 minutos
+    if (instance.status === 'failed' && timeSinceLastUpdate > CLEANUP_INTERVAL) {
+      console.log(`[Cleanup] 🧹 Removendo instância expirada: ${instanceId}`);
+      delete instances[instanceId];
+    }
+
+    // Remover instâncias órfãs sem socket
+    if (!instance.socket && timeSinceLastUpdate > CLEANUP_INTERVAL) {
+      console.log(`[Cleanup] 🧹 Removendo instância órfã: ${instanceId}`);
+      delete instances[instanceId];
+    }
+  }
+}
+
+// Executar limpeza a cada 5 minutos
+setInterval(cleanupFailedInstances, 300000);
+
+// CORREÇÃO: Função de limpeza periódica para evitar acúmulo
+function cleanupFailedInstances() {
+  const now = Date.now();
+  const CLEANUP_INTERVAL = 300000; // 5 minutos
+
+  for (const [instanceId, instance] of Object.entries(instances)) {
+    const timeSinceLastUpdate = now - new Date(instance.lastUpdate).getTime();
+
+    // Remover instâncias que falharam há mais de 5 minutos
+    if (instance.status === 'failed' && timeSinceLastUpdate > CLEANUP_INTERVAL) {
+      console.log(`[Cleanup] 🧹 Removendo instância expirada: ${instanceId}`);
+      delete instances[instanceId];
+    }
+
+    // Remover instâncias órfãs sem socket
+    if (!instance.socket && timeSinceLastUpdate > CLEANUP_INTERVAL) {
+      console.log(`[Cleanup] 🧹 Removendo instância órfã: ${instanceId}`);
+      delete instances[instanceId];
+    }
+  }
+}
+
+// Executar limpeza a cada 5 minutos
+setInterval(cleanupFailedInstances, 300000);
+root@srv863619:~/whatsapp-server#

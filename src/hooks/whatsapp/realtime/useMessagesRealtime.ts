@@ -10,18 +10,25 @@
  */
 
 import { useEffect, useRef, useCallback } from 'react';
+import { Contact } from '@/types/chat';
+import { WhatsAppWebInstance } from '@/types/whatsapp';
 import { supabase } from '@/integrations/supabase/client';
+import { useMessageNotification } from '../chat/hooks/useMessageNotification';
 import { MessagesRealtimeConfig, RealtimeConnectionStatus } from './types';
 import { Message } from '@/types/chat';
 import { BigQueryOptimizer } from '@/utils/immediate-bigquery-fix';
 
-export const useMessagesRealtime = ({
-  selectedContactId,
-  activeInstanceId,
-  onMessageUpdate,
-  onNewMessage,
-  onMessagesRefresh
-}: MessagesRealtimeConfig) => {
+interface UseMessageRealtimeProps {
+  selectedContact: Contact | null;
+  activeInstance: WhatsAppWebInstance | null;
+  onMessageUpdate: (newMessage?: any) => void;
+}
+
+export const useMessageRealtime = ({
+  selectedContact,
+  activeInstance,
+  onMessageUpdate
+}: UseMessageRealtimeProps) => {
   
   // 🔧 REFS PARA GERENCIAMENTO DE ESTADO
   const channelRef = useRef<any>(null);
@@ -82,13 +89,13 @@ export const useMessagesRealtime = ({
 
       // 🔍 FILTROS RIGOROSOS
       // 1. Verificar instância ativa
-      if (!activeInstanceId || newMessage?.whatsapp_number_id !== activeInstanceId) {
+      if (!activeInstance || newMessage?.whatsapp_number_id !== activeInstance.id) {
         console.log('[Messages Realtime] 🚫 Mensagem de instância diferente ignorada');
         return;
       }
 
       // 2. Verificar se é do contato selecionado
-      if (!selectedContactId || newMessage?.lead_id !== selectedContactId) {
+      if (!selectedContact || newMessage?.lead_id !== selectedContact.id) {
         console.log('[Messages Realtime] 🚫 Mensagem de contato diferente ignorada');
         return;
       }
@@ -113,11 +120,6 @@ export const useMessagesRealtime = ({
 
       throttleTimerRef.current = setTimeout(() => {
         // Callback para nova mensagem
-        if (onNewMessage) {
-          onNewMessage(message);
-        }
-
-        // Callback genérico de atualização
         if (onMessageUpdate) {
           onMessageUpdate(message);
         }
@@ -129,7 +131,7 @@ export const useMessagesRealtime = ({
       console.error('[Messages Realtime] ❌ Erro processando nova mensagem:', error);
       BigQueryOptimizer.handleError(error);
     }
-  }, [selectedContactId, activeInstanceId, convertToMessage, onNewMessage, onMessageUpdate]);
+  }, [selectedContact, activeInstance, convertToMessage, onMessageUpdate]);
 
   // 🔄 HANDLER PARA ATUALIZAÇÕES DE MENSAGENS
   const handleMessageUpdate = useCallback((payload: any) => {
@@ -145,13 +147,13 @@ export const useMessagesRealtime = ({
 
       // 🔍 FILTROS RIGOROSOS
       // 1. Verificar instância ativa
-      if (!activeInstanceId || updatedMessage?.whatsapp_number_id !== activeInstanceId) {
+      if (!activeInstance || updatedMessage?.whatsapp_number_id !== activeInstance.id) {
         console.log('[Messages Realtime] 🚫 Update de instância diferente ignorado');
         return;
       }
 
       // 2. Verificar se é do contato selecionado
-      if (!selectedContactId || updatedMessage?.lead_id !== selectedContactId) {
+      if (!selectedContact || updatedMessage?.lead_id !== selectedContact.id) {
         console.log('[Messages Realtime] 🚫 Update de contato diferente ignorado');
         return;
       }
@@ -186,14 +188,26 @@ export const useMessagesRealtime = ({
       console.error('[Messages Realtime] ❌ Erro processando atualização de mensagem:', error);
       BigQueryOptimizer.handleError(error);
     }
-  }, [selectedContactId, activeInstanceId, convertToMessage, onMessageUpdate]);
+  }, [selectedContact, activeInstance, convertToMessage, onMessageUpdate]);
 
   // 🚀 CONFIGURAR SUBSCRIPTION QUANDO NECESSÁRIO
   useEffect(() => {
+    // 🚀 LAZY LOADING: Verificar se deve ativar
+    const shouldActivate = !!selectedContact && !!activeInstance;
+    
+    if (!shouldActivate) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Messages Realtime] ⚠️ Lazy loading: aguardando selectedContact e activeInstance');
+      }
+      // Cleanup se estava ativo antes
+      cleanup();
+      return;
+    }
+
     // Verificar se precisa reconfigurar
     const needsReconfigure = 
-      lastContactIdRef.current !== selectedContactId ||
-      lastInstanceIdRef.current !== activeInstanceId ||
+      lastContactIdRef.current !== selectedContact?.id ||
+      lastInstanceIdRef.current !== activeInstance?.id ||
       !isSubscribedRef.current;
 
     if (!needsReconfigure) {
@@ -203,27 +217,20 @@ export const useMessagesRealtime = ({
     // Cleanup anterior
     cleanup();
 
-    // Verificar pré-requisitos
-    if (!selectedContactId || !activeInstanceId) {
-      console.log('[Messages Realtime] ⚠️ Pré-requisitos não atendidos:', {
-        selectedContactId: !!selectedContactId,
-        activeInstanceId: !!activeInstanceId
-      });
-      return;
-    }
-
     // Atualizar refs
-    lastContactIdRef.current = selectedContactId;
-    lastInstanceIdRef.current = activeInstanceId;
+    lastContactIdRef.current = selectedContact?.id;
+    lastInstanceIdRef.current = activeInstance?.id;
 
     // Criar novo canal
-    const channelId = `messages-realtime-${selectedContactId}-${activeInstanceId}-${Date.now()}`;
+    const channelId = `messages-realtime-${selectedContact?.id}-${activeInstance?.id}-${Date.now()}`;
     
-    console.log('[Messages Realtime] 🚀 Configurando subscription para mensagens:', {
-      selectedContactId,
-      activeInstanceId,
-      channelId
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Messages Realtime] 🚀 Configurando subscription para mensagens:', {
+        selectedContactId: selectedContact?.id,
+        activeInstanceId: activeInstance?.id,
+        channelId
+      });
+    }
 
     statsRef.current.connectionStatus = 'connecting';
 
@@ -235,7 +242,7 @@ export const useMessagesRealtime = ({
         event: 'INSERT',
         schema: 'public',
         table: 'messages',
-        filter: `lead_id=eq.${selectedContactId}`
+        filter: `lead_id=eq.${selectedContact?.id}`
       }, handleNewMessage)
       
       // 🔄 SUBSCRIPTION PARA ATUALIZAÇÕES DE MENSAGENS
@@ -243,14 +250,18 @@ export const useMessagesRealtime = ({
         event: 'UPDATE',
         schema: 'public',
         table: 'messages',
-        filter: `lead_id=eq.${selectedContactId}`
+        filter: `lead_id=eq.${selectedContact?.id}`
       }, handleMessageUpdate)
       
       .subscribe((status) => {
-        console.log('[Messages Realtime] 📡 Status da subscription de mensagens:', status);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[Messages Realtime] 📡 Status da subscription de mensagens:', status);
+        }
         
         if (status === 'SUBSCRIBED') {
-          console.log('[Messages Realtime] ✅ Realtime de mensagens ativo para contato:', selectedContactId);
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[Messages Realtime] ✅ Realtime de mensagens ativo para contato:', selectedContact?.id);
+          }
           isSubscribedRef.current = true;
           statsRef.current.connectionStatus = 'connected';
         } else if (status === 'CHANNEL_ERROR') {
@@ -258,7 +269,9 @@ export const useMessagesRealtime = ({
           isSubscribedRef.current = false;
           statsRef.current.connectionStatus = 'error';
         } else if (status === 'CLOSED') {
-          console.log('[Messages Realtime] 🔒 Canal de mensagens fechado');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('[Messages Realtime] 🔒 Canal de mensagens fechado');
+          }
           isSubscribedRef.current = false;
           statsRef.current.connectionStatus = 'disconnected';
         }
@@ -266,7 +279,7 @@ export const useMessagesRealtime = ({
 
     channelRef.current = channel;
 
-  }, [selectedContactId, activeInstanceId, handleNewMessage, handleMessageUpdate, cleanup]);
+  }, [selectedContact, activeInstance, handleNewMessage, handleMessageUpdate, cleanup]);
 
   // 🧹 CLEANUP GERAL
   useEffect(() => {

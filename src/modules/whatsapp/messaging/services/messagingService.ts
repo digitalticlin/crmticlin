@@ -21,7 +21,9 @@ export class MessagingService {
       console.log('[Messaging Service] 📤 Iniciando envio de mensagem:', {
         instanceId: params.instanceId,
         phone: params.phone?.substring(0, 4) + '****',
-        messageLength: params.message?.length
+        messageLength: params.message?.length,
+        mediaType: params.mediaType || 'text',
+        hasMediaUrl: !!params.mediaUrl
       });
 
       // ✅ VALIDAÇÃO RÁPIDA DE PARÂMETROS
@@ -54,10 +56,11 @@ export class MessagingService {
         edgeFunction: this.config.edgeFunctionName,
         instanceId: params.instanceId,
         phone: cleanPhone.substring(0, 4) + '****',
-        messageLength: cleanMessage.length
+        messageLength: cleanMessage.length,
+        mediaType: params.mediaType || 'text'
       });
 
-      // ✅ CHAMAR EDGE FUNCTION COM TIMEOUT
+      // ✅ CHAMAR EDGE FUNCTION COM TIMEOUT E MÍDIA
       const { data, error } = await supabase.functions.invoke(
         this.config.edgeFunctionName, 
         {
@@ -65,7 +68,9 @@ export class MessagingService {
             action: 'send_message',
             instanceId: params.instanceId,
             phone: cleanPhone,
-            message: cleanMessage
+            message: cleanMessage,
+            mediaType: params.mediaType || 'text',  // ✅ NOVO: TIPO DE MÍDIA
+            mediaUrl: params.mediaUrl || null       // ✅ NOVO: URL DE MÍDIA
           }
         }
       );

@@ -14,6 +14,10 @@ export interface ChatsRealtimeConfig {
   onContactUpdate?: (contactId: string, messageText?: string) => void;
   onNewContact?: (contact: Contact) => void;
   onContactsRefresh?: () => void;
+  // 🚀 NOVAS CALLBACKS GRANULARES
+  onMoveContactToTop?: (contactId: string, newMessage?: { text: string; timestamp: string; unreadCount?: number }) => void;
+  onUpdateUnreadCount?: (contactId: string, increment?: boolean) => void;
+  onAddNewContact?: (newContactData: Partial<Contact>) => void;
 }
 
 // 💬 TIPOS PARA REALTIME DE MENSAGENS  
@@ -23,6 +27,9 @@ export interface MessagesRealtimeConfig {
   onMessageUpdate?: (message: Message) => void;
   onNewMessage?: (message: Message) => void;
   onMessagesRefresh?: () => void;
+  // 🚀 NOVAS CALLBACKS GRANULARES
+  onAddNewMessage?: (message: Message) => void;
+  onUpdateMessageStatus?: (messageId: string, newStatus: 'sent' | 'delivered' | 'read') => void;
 }
 
 // 🔧 TIPOS DE PAYLOADS DO SUPABASE

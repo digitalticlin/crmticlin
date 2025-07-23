@@ -54,7 +54,17 @@ export function useSalesFunnelDirect() {
       
       const { data, error } = await supabase
         .from('leads')
-        .select('*')
+        .select(`
+          *,
+          lead_tags(
+            tag_id,
+            tags:tag_id(
+              id,
+              name,
+              color
+            )
+          )
+        `)
         .eq('funnel_id', selectedFunnel.id)
         .order('created_at', { ascending: false });
       
@@ -116,7 +126,7 @@ export function useSalesFunnelDirect() {
           company: lead.company || undefined,
           lastMessage: lead.last_message || "Sem mensagens",
           lastMessageTime: lead.last_message_time ? new Date(lead.last_message_time).toISOString() : new Date().toISOString(),
-          tags: [], // Always provide empty array for tags
+          tags: lead.lead_tags?.map(lt => lt.tags) || [], // Mapear tags do lead
           notes: lead.notes || undefined,
           columnId: stage.id,
           purchaseValue: lead.purchase_value ? Number(lead.purchase_value) : undefined,

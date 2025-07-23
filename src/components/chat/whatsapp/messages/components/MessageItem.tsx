@@ -3,6 +3,7 @@ import React, { memo, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { Message } from '@/types/chat';
 import { MessageMedia } from '../MessageMedia';
+import { Check, CheckCheck, Clock } from "lucide-react";
 
 interface MessageItemProps {
   message: Message;
@@ -22,6 +23,26 @@ export const MessageItem = memo(({
            ['image', 'video', 'audio', 'document'].includes(message.mediaType) &&
            message.mediaUrl;
   }, [message.mediaType, message.mediaUrl]);
+
+  // Renderizar ícone de status como no WhatsApp
+  const renderStatusIcon = useMemo(() => {
+    if (!isFromMe || !message.status) return null;
+
+    switch (message.status) {
+      case 'sent':
+        // Um check cinza - mensagem enviada
+        return <Check className="h-3 w-3 text-white/60" />;
+      case 'delivered':
+        // Dois checks cinzas - mensagem entregue
+        return <CheckCheck className="h-3 w-3 text-white/60" />;
+      case 'read':
+        // Dois checks azuis - mensagem lida
+        return <CheckCheck className="h-3 w-3 text-blue-300" />;
+      default:
+        // Relógio para mensagens pendentes
+        return <Clock className="h-3 w-3 text-white/40" />;
+    }
+  }, [isFromMe, message.status]);
 
   // Renderização do conteúdo
   const messageContent = useMemo(() => {
@@ -76,19 +97,13 @@ export const MessageItem = memo(({
       )}>
         {messageContent}
         
-        {/* Timestamp e status */}
+        {/* Timestamp e status - Estilo WhatsApp */}
         <div className={cn(
-          "text-xs mt-1 flex items-center justify-end space-x-1",
+          "text-xs mt-2 flex items-center justify-end gap-1",
           isFromMe ? "text-blue-100" : "text-gray-500"
         )}>
           <span>{message.time}</span>
-          {isFromMe && message.status && (
-            <span className="text-xs">
-              {message.status === 'read' && '✓✓'}
-              {message.status === 'delivered' && '✓'}
-              {message.status === 'sent' && '⏱'}
-            </span>
-          )}
+          {renderStatusIcon}
         </div>
       </div>
     </div>

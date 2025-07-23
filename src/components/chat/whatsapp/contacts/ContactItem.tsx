@@ -25,6 +25,7 @@ export const ContactItem = memo(({
   onTagsChange
 }: ContactItemProps) => {
   const displayName = contact.name || formatPhoneDisplay(contact.phone);
+  // ✅ CORREÇÃO: Condição mais rigorosa para evitar mostrar "0"
   const hasUnread = contact.unreadCount && contact.unreadCount > 0;
 
   return (
@@ -48,8 +49,8 @@ export const ContactItem = memo(({
           </AvatarFallback>
         </Avatar>
         
-        {/* Indicador de nova mensagem - só aparece se houver mensagens não lidas */}
-        {hasUnread && (
+        {/* ✅ CORREÇÃO: Indicador de nova mensagem - só aparece se houver mensagens não lidas */}
+        {hasUnread && contact.unreadCount > 0 && (
           <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center animate-pulse">
             <Badge variant="secondary" className="bg-green-500 text-white text-xs px-1.5 py-0.5 min-w-0 h-auto">
               {contact.unreadCount > 99 ? '99+' : contact.unreadCount}
@@ -70,11 +71,13 @@ export const ContactItem = memo(({
           <div className="flex items-center gap-1.5">
             <TagsPopover 
               currentTags={contact.tags || []}
+              leadId={contact.leadId} // ✅ PASSAR leadId
               onTagsChange={() => onTagsChange(contact.id)}
             />
             
             <StageDropdownMenu
               contact={contact}
+              currentStageId={contact.stageId || null} // ✅ CORREÇÃO SEGURA: Garantir que seja null se undefined
               onStageChange={(newStage) => onStageChange(contact.id, newStage)}
             />
           </div>

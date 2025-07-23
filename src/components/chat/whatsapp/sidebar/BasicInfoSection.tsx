@@ -42,6 +42,25 @@ export const BasicInfoSection = ({
   const saveField = async (field: string) => {
     if (onUpdateBasicInfo && tempValue !== (currentContact[field as keyof Contact] || '')) {
       await onUpdateBasicInfo(field, tempValue);
+      
+      // ✅ SINCRONIZAÇÃO EM TEMPO REAL: Disparar evento quando nome é alterado
+      if (field === 'name' && selectedContact.leadId) {
+        console.log('[BasicInfoSection] 📡 Disparando evento de atualização de nome:', {
+          leadId: selectedContact.leadId,
+          oldName: currentContact[field as keyof Contact] || '',
+          newName: tempValue
+        });
+        
+        // Disparar evento customizado para sincronizar nome em todos os componentes
+        window.dispatchEvent(new CustomEvent('contactNameUpdated', {
+          detail: {
+            leadId: selectedContact.leadId,
+            contactId: selectedContact.id,
+            newName: tempValue,
+            oldName: currentContact[field as keyof Contact] || ''
+          }
+        }));
+      }
     }
     setLocalEditing(null);
     setTempValue('');

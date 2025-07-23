@@ -4,6 +4,8 @@ export interface SendMessageParams {
   instanceId: string;
   phone: string;
   message: string;
+  mediaType?: 'text' | 'image' | 'video' | 'audio' | 'document'; // ✅ NOVO: TIPO DE MÍDIA
+  mediaUrl?: string; // ✅ NOVO: URL DE MÍDIA
   options?: MessageSendingOptions;
 }
 

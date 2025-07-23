@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Settings, Database, Globe, TestTube, Wrench, Link, Activity, BarChart3, Cog } from "lucide-react";
+import { Shield, Settings, Database, Globe, TestTube, Wrench, Link, Activity, BarChart3, Cog, Image } from "lucide-react";
 import { OrphanInstanceManager } from "@/components/admin/OrphanInstanceManager";
 import { VPSInstanceCorrection } from "@/components/admin/VPSInstanceCorrection";
 import { WhatsAppDiagnostic } from "@/components/settings/whatsapp/WhatsAppDiagnostic";
@@ -13,6 +13,7 @@ import { OrphanInstanceLinker } from "@/components/admin/OrphanInstanceLinker";
 import { AutoSyncMonitor } from "@/components/admin/AutoSyncMonitor";
 import { AutoSyncConfigManager } from "@/components/admin/AutoSyncConfigManager";
 import { GlobalWebhookManager } from "@/components/admin/GlobalWebhookManager";
+import { MediaRecoveryPanel } from "@/components/admin/MediaRecoveryPanel";
 
 export const UnifiedWhatsAppPanel = () => {
   return (
@@ -75,6 +76,10 @@ export const UnifiedWhatsAppPanel = () => {
                 <Shield className="h-4 w-4" />
                 Diagnóstico
               </TabsTrigger>
+              <TabsTrigger value="media" className="gap-2">
+                <Image className="h-4 w-4" />
+                Recuperação de Mídias
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="dashboard" className="mt-6">
@@ -119,6 +124,10 @@ export const UnifiedWhatsAppPanel = () => {
 
             <TabsContent value="diagnostic" className="mt-6">
               <WhatsAppDiagnostic />
+            </TabsContent>
+
+            <TabsContent value="media" className="mt-6">
+              <MediaRecoveryPanel />
             </TabsContent>
           </Tabs>
         </CardContent>

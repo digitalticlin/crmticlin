@@ -21,6 +21,7 @@ export const useChatDatabase = () => {
       createdAt: lead.created_at,
       assignedUser: lead.owner_id,
       purchaseValue: lead.purchase_value,
+      stageId: lead.kanban_stage_id || null, // ✅ CORREÇÃO SEGURA: Garantir que seja null se não houver
       deals: [],
       tags: [],
       // ATUALIZADO: Usar nome formatado para avatar quando não há nome

@@ -178,6 +178,7 @@ export const ContactsList = React.memo(({
   // Renderização dos contatos
   const renderedContacts = useMemo(() => {
     return contacts.map((contact, index) => {
+      // ✅ CORREÇÃO: Condição mais rigorosa para evitar mostrar "0"
       const hasUnreadMessages = contact.unreadCount && contact.unreadCount > 0;
       const displayName = getDisplayName(contact);
       const isSelected = selectedContact?.id === contact.id;
@@ -199,8 +200,8 @@ export const ContactsList = React.memo(({
                 </span>
               </div>
               
-              {/* Badge de mensagens não lidas */}
-              {hasUnreadMessages && (
+              {/* ✅ CORREÇÃO: Badge de mensagens não lidas - APENAS quando há mensagens não lidas */}
+              {hasUnreadMessages && contact.unreadCount > 0 && (
                 <div className="absolute -top-1 -right-1 bg-green-500 text-white rounded-full h-6 min-w-[24px] flex items-center justify-center text-xs font-bold animate-pulse">
                   {contact.unreadCount > 99 ? '99+' : contact.unreadCount}
                 </div>
@@ -226,8 +227,6 @@ export const ContactsList = React.memo(({
                       })}
                     </span>
                   )}
-                  
-
                 </div>
               </div>
               

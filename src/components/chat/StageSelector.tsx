@@ -32,15 +32,21 @@ export const StageSelector = ({ leadId, currentStageId, className }: StageSelect
   const [justChanged, setJustChanged] = useState(false);
 
   // 🔍 LOG DETALHADO PARA DEBUG
+  try {
   console.log('[StageSelector] 🔍 Props recebidas:', {
     leadId,
     currentStageId,
     hasCurrentStage: !!currentStage,
     currentStageTitle: currentStage?.title,
+      currentStageColor: currentStage?.color,
     stagesCount: Object.keys(stagesByFunnel).length,
+      totalStages: stages?.length || 0, // ✅ CORREÇÃO: Usar contagem simples
     isLoading,
     isChanging
   });
+  } catch (logError) {
+    console.warn('[StageSelector] ⚠️ Erro no log de debug:', logError);
+  }
 
   // Efeito para mostrar feedback visual após mudança
   useEffect(() => {

@@ -13,6 +13,10 @@ export default function Clients() {
     isDetailsOpen,
     isCreateMode,
     isLoading,
+    isLoadingMore,
+    hasMoreClients,
+    totalClientsCount,
+    loadMoreClients,
     setIsDetailsOpen,
     handleSelectClient,
     handleCreateClient,
@@ -62,8 +66,12 @@ export default function Clients() {
         isDetailsOpen={isDetailsOpen}
         isCreateMode={isCreateMode}
         isLoading={isLoading}
+        isLoadingMore={isLoadingMore}
+        hasMoreClients={hasMoreClients}
+        totalClientsCount={totalClientsCount}
         onSelectClient={handleSelectClient}
         onDeleteClient={handleDeleteClient}
+        onLoadMoreClients={loadMoreClients}
         onUpdateNotes={handleUpdateNotes}
         onUpdatePurchaseValue={handleUpdatePurchaseValue}
         onUpdateBasicInfo={handleUpdateBasicInfo}
