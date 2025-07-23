@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface UseMediaLoaderProps {
@@ -168,22 +168,16 @@ export const useMediaLoader = ({
           }
         }
 
-        // PRIORIDADE 6: URL cached do Supabase Storage válida
-        if (cacheData?.cached_url && cacheData.cached_url.includes('supabase.co/storage')) {
-          try {
-            const response = await fetch(cacheData.cached_url, { method: 'HEAD' });
-            if (response.ok) {
-              console.log(`[MediaLoader] ✅ URL do Storage válida para ${messageId}`);
-              setFinalUrl(cacheData.cached_url);
-              setCachedUrl(messageId, cacheData.cached_url);
-              setIsLoading(false);
-              return;
-            } else {
-              console.warn(`[MediaLoader] ⚠️ URL do Storage inválida (${response.status})`);
-            }
-          } catch (urlError) {
-            console.warn(`[MediaLoader] ⚠️ Erro ao validar URL do Storage: ${urlError}`);
-          }
+        // ✅ PRIORIDADE 6: URL do Supabase Storage (CORRIGIDO!)
+        const storageUrl = cacheData?.original_url || cacheData?.cached_url;
+        if (storageUrl && storageUrl.includes('supabase.co/storage')) {
+          console.log(`[MediaLoader] 🗄️ Usando URL do Storage para ${messageId}: ${storageUrl.substring(0, 80)}...`);
+          // Para Storage do Supabase, usar diretamente - são URLs públicas confiáveis
+          console.log(`[MediaLoader] ✅ Storage URL configurada com sucesso para ${messageId}`);
+          setFinalUrl(storageUrl);
+          setCachedUrl(messageId, storageUrl);
+          setIsLoading(false);
+          return;
         }
 
         // PRIORIDADE 7: Tentar URL original do WhatsApp (pode ainda estar válida)
@@ -266,7 +260,7 @@ export const useMediaLoader = ({
     finalUrl,
     isLoading,
     error,
-    // 🆕 NOVAS PROPRIEDADES
+    // 🆕 NOVOS RETORNOS
     shouldShowDownloadButton,
     originalUrl,
     isLargeMedia

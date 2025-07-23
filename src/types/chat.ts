@@ -39,6 +39,15 @@ export interface Deal {
   note?: string;
 }
 
+// ✅ NOVO: Interface para media_cache
+export interface MediaCache {
+  id: string;
+  base64_data?: string | null;
+  original_url?: string | null;
+  file_size?: number | null;
+  media_type?: string | null;
+}
+
 export interface Message {
   id: string;
   text: string;
@@ -50,6 +59,8 @@ export interface Message {
   timestamp?: string;
   mediaType?: 'text' | 'image' | 'video' | 'audio' | 'document';
   mediaUrl?: string;
+  // ✅ NOVO: Incluir media_cache
+  media_cache?: MediaCache | null;
 }
 
 import { KanbanTag } from "./kanban";

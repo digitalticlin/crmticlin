@@ -30,6 +30,18 @@ export const useChatDatabase = () => {
   };
 
   const mapDbMessageToMessage = (dbMessage: any): Message => {
+    // ✅ CORRIGIDO: Incluir media_cache no mapeamento
+    const mediaCacheData = dbMessage.media_cache && dbMessage.media_cache.length > 0 
+      ? dbMessage.media_cache[0] 
+      : null;
+
+    console.log(`[mapDbMessageToMessage] 🔄 Mapeando mensagem ${dbMessage.id}:`, {
+      mediaType: dbMessage.media_type,
+      hasMediaUrl: !!dbMessage.media_url,
+      hasMediaCache: !!mediaCacheData,
+      mediaCacheKeys: mediaCacheData ? Object.keys(mediaCacheData) : []
+    });
+
     return {
       id: dbMessage.id,
       text: dbMessage.text || '',
@@ -38,6 +50,14 @@ export const useChatDatabase = () => {
       status: normalizeStatus(dbMessage.status),
       mediaType: normalizeMediaType(dbMessage.media_type),
       mediaUrl: dbMessage.media_url,
+      // ✅ NOVO: Incluir media_cache no objeto Message
+      media_cache: mediaCacheData ? {
+        id: mediaCacheData.id,
+        base64_data: mediaCacheData.base64_data,
+        original_url: mediaCacheData.original_url,
+        file_size: mediaCacheData.file_size,
+        media_type: mediaCacheData.media_type
+      } : null,
       // Compatibility fields for UI components
       sender: dbMessage.from_me ? 'user' : 'contact',
       time: new Date(dbMessage.timestamp).toLocaleTimeString('pt-BR', {

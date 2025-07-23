@@ -75,9 +75,19 @@ export const useWhatsAppChatMessages = (
         limit: MESSAGES_LIMIT
       });
 
+      // ✅ CORRIGIDO: Incluir media_cache na query
       const { data: messagesData, error } = await supabase
         .from('messages')
-        .select('*')
+        .select(`
+          *,
+          media_cache (
+            id,
+            base64_data,
+            original_url,
+            file_size,
+            media_type
+          )
+        `)
         .eq('lead_id', currentContact.id)
         .eq('whatsapp_number_id', currentInstance.id)
         .order('created_at', { ascending: false })
@@ -94,7 +104,9 @@ export const useWhatsAppChatMessages = (
       console.log('[WhatsApp Messages] ✅ Mensagens carregadas:', {
         total: messagesData?.length || 0,
         offset,
-        contactName: currentContact.name
+        contactName: currentContact.name,
+        // ✅ LOG ADICIONAL: Verificar se media_cache foi incluído
+        withMediaCache: messagesData?.filter(m => m.media_cache && m.media_cache.length > 0).length || 0
       });
 
       const convertedMessages = (messagesData || []).map(currentMapper);
