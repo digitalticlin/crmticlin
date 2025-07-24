@@ -1,22 +1,14 @@
-import { KanbanTag } from "@/types/kanban";
-import { TagBadge } from "@/components/ui/tag-badge";
-
+import React, { memo } from 'react';
+import { KanbanTag } from '@/types/kanban';
+import { TagBadge } from '@/components/sales/tags/TagBadge';
 
 interface ContactTagsProps {
   tags: KanbanTag[];
 }
 
-export const ContactTags = ({ tags }: ContactTagsProps) => {
-  // 🐛 DEBUG: Log temporário para verificar re-renderização
-  console.log('[ContactTags] 🏷️ Re-renderizando com tags:', {
-    count: tags?.length || 0,
-    tags: tags?.map(tag => ({ id: tag.id, name: tag.name })) || [],
-    timestamp: new Date().toISOString(),
-    tagsArray: tags
-  });
-
+// ✅ OTIMIZAÇÃO: Memoização para evitar re-renders desnecessários
+export const ContactTags = memo(({ tags }: ContactTagsProps) => {
   if (!tags || tags.length === 0) {
-    console.log('[ContactTags] ❌ Nenhuma tag para exibir');
     return null;
   }
 
@@ -40,4 +32,26 @@ export const ContactTags = ({ tags }: ContactTagsProps) => {
       )}
     </div>
   );
-}; 
+}, (prevProps, nextProps) => {
+  // ✅ OTIMIZAÇÃO: Comparação inteligente de arrays de tags
+  const prevTags = prevProps.tags || [];
+  const nextTags = nextProps.tags || [];
+  
+  // Se o tamanho mudou, precisa re-renderizar
+  if (prevTags.length !== nextTags.length) {
+    return false;
+  }
+  
+  // Comparar apenas os campos relevantes para UI (id, name, color)
+  const tagsEqual = prevTags.every((prevTag, index) => {
+    const nextTag = nextTags[index];
+    return nextTag && 
+           prevTag.id === nextTag.id && 
+           prevTag.name === nextTag.name && 
+           prevTag.color === nextTag.color;
+  });
+  
+  return tagsEqual; // true = não re-renderizar, false = re-renderizar
+});
+
+ContactTags.displayName = 'ContactTags'; 

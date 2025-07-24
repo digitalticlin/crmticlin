@@ -6,6 +6,7 @@ import { WhatsAppChatProvider, useWhatsAppChatContext } from "./WhatsAppChatProv
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { cn } from "@/lib/utils";
+import PerformanceMonitor from "@/components/debug/PerformanceMonitor";
 
 const WhatsAppChatContent = () => {
   const { companyLoading } = useWhatsAppChatContext();
@@ -117,6 +118,7 @@ export const WhatsAppChatPage = () => {
   return (
     <WhatsAppChatProvider>
       <WhatsAppChatContent />
+      <PerformanceMonitor />
     </WhatsAppChatProvider>
   );
 };

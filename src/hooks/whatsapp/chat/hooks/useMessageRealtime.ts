@@ -61,6 +61,21 @@ export const useMessageRealtime = ({
         notify(newMessage.text);
       }
       
+      // 🚀 NOVO: Mover contato para topo quando receber mensagem
+      if (!newMessage.from_me && selectedContact) {
+        // Disparar evento customizado para mover contato para topo
+        window.dispatchEvent(new CustomEvent('moveContactToTop', {
+          detail: {
+            contactId: selectedContact.id,
+            newMessage: {
+              text: newMessage.text || '',
+              timestamp: newMessage.created_at || new Date().toISOString(),
+              unreadCount: 1
+            }
+          }
+        }));
+      }
+      
       // Throttling otimizado para melhor responsividade
       if (updateThrottleRef.current) {
         clearTimeout(updateThrottleRef.current);

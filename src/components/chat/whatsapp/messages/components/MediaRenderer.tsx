@@ -14,7 +14,7 @@ interface MediaRendererProps {
   isLoading?: boolean;
 }
 
-export const MediaRenderer: React.FC<MediaRendererProps> = ({
+export const MediaRenderer: React.FC<MediaRendererProps> = React.memo(({
   mediaType,
   messageId,
   url,
@@ -22,12 +22,15 @@ export const MediaRenderer: React.FC<MediaRendererProps> = ({
   isIncoming = true,
   isLoading = false
 }) => {
-  console.log(`[MediaRenderer] 🎬 Renderizando ${mediaType} para ${messageId}:`, {
-    url: url?.substring(0, 50) + '...',
-    fileName,
-    isIncoming,
-    isLoading
-  });
+  // ✅ OTIMIZAÇÃO: Log condicionado em desenvolvimento
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`[MediaRenderer] 🎬 Renderizando ${mediaType} para ${messageId.substring(0, 8)}:`, {
+      url: url?.substring(0, 50) + '...',
+      fileName: fileName?.substring(0, 20) + (fileName?.length > 20 ? '...' : ''),
+      isIncoming,
+      isLoading
+    });
+  }
 
   const commonProps = {
     messageId,
@@ -78,4 +81,4 @@ export const MediaRenderer: React.FC<MediaRendererProps> = ({
         </div>
       );
   }
-};
+});

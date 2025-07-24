@@ -323,27 +323,9 @@ export function useSalesFunnelOptimized() {
 
       console.log('[useSalesFunnelOptimized] 🔄 Configurando inscrição para', leadIds.length, 'leads');
 
-      const leadTagsChannel = supabase
-        .channel('lead-tags-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*', // INSERT, UPDATE, DELETE
-            schema: 'public',
-            table: 'lead_tags',
-            filter: `lead_id=in.(${leadIds.join(',')})`
-          },
-          (payload) => {
-            console.log('[useSalesFunnelOptimized] 🏷️ Mudança detectada em tags:', payload);
-            // Invalidar o cache e forçar um refetch
-            queryClient.invalidateQueries({
-              queryKey: ['leads-optimized', selectedFunnel.id]
-            });
-          }
-        )
-        .subscribe((status) => {
-          console.log('[useSalesFunnelOptimized] 📡 Status da inscrição tags:', status);
-        });
+      // ❌ REMOVIDO: SUBSCRIPTION PARA LEAD_TAGS
+      // Motivo: useLeadTags + eventos customizados já fazem isso
+      // Esta subscription duplicava o trabalho desnecessariamente
 
       // 🚀 NOVA SUBSCRIPTION: Escutar mudanças no unread_count dos leads
       const leadsUnreadChannel = supabase
@@ -380,7 +362,6 @@ export function useSalesFunnelOptimized() {
       // Cleanup
       return () => {
         console.log('[useSalesFunnelOptimized] 🧹 Limpando inscrições');
-        leadTagsChannel.unsubscribe();
         leadsUnreadChannel.unsubscribe();
       };
     };

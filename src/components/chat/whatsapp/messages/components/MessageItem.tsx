@@ -54,6 +54,7 @@ export const MessageItem = memo(({
             mediaType={message.mediaType as 'image' | 'video' | 'audio' | 'document'}
             mediaUrl={message.mediaUrl}
             fileName={message.text || undefined}
+            mediaCache={message.media_cache}
           />
           {message.text && 
            !['[Mensagem de mídia]', '[Áudio]', '[Imagem]', '[Vídeo]', '[Documento]'].includes(message.text) && (

@@ -26,18 +26,28 @@ export const useMessagesList = ({ messages, isLoadingMore }: UseMessagesListProp
     prevMessagesLengthRef.current = messages.length;
     prevLastMessageIdRef.current = currentLastMessage?.id || null;
 
-    // ✅ CORREÇÃO: Para carregamento inicial, ir INSTANTANEAMENTE para o final
+    // ✅ CORREÇÃO CRÍTICA: Para carregamento inicial, scroll IMEDIATO e múltiplo para garantir
     if (wasInitialLoad && messagesEndRef.current) {
-      console.log('[useMessagesList] 🚀 Carregamento inicial - ir direto para o final');
+      console.log('[useMessagesList] 🚀 Carregamento inicial - scroll INSTANTÂNEO para última mensagem');
+      
+      // Scroll imediato
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: 'instant',
+        block: 'end',
+        inline: 'nearest'
+      });
+      
+      // Backup com delay pequeno para garantir que DOM está pronto
       setTimeout(() => {
         if (messagesEndRef.current) {
           messagesEndRef.current.scrollIntoView({ 
-            behavior: 'instant', // SEMPRE instantâneo para carregamento inicial
+            behavior: 'instant',
             block: 'end',
             inline: 'nearest'
           });
+          console.log('[useMessagesList] ✅ Scroll inicial garantido com backup');
         }
-      }, 0); // Imediato
+      }, 100);
       
       isInitialLoadRef.current = false;
       return; // Sair aqui para não fazer scroll duplo
@@ -78,14 +88,17 @@ export const useMessagesList = ({ messages, isLoadingMore }: UseMessagesListProp
     }
   }, []); // Só executa na montagem
 
-  // Memoizar lista de mensagens (ORDEM CORRETA: antigas no topo, recentes no final)
+  // Memoizar lista de mensagens (ORDEM JÁ CORRETA do hook principal)
   const messagesList = useMemo(() => {
-    // Mensagens já vêm na ordem correta do hook (mais antigas primeiro para exibição)
-    const sortedMessages = [...messages].sort((a, b) => 
-      new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime()
-    );
+    // ✅ OTIMIZAÇÃO: Não reordenar, mensagens já vêm na ordem correta do useWhatsAppChatMessages
+    // O hook principal já faz: busca desc + inversão para exibição (antigas no topo, recentes no final)
+    console.log('[useMessagesList] 📋 Processando mensagens:', {
+      total: messages.length,
+      primeira: messages[0]?.id?.substring(0, 8),
+      ultima: messages[messages.length - 1]?.id?.substring(0, 8)
+    });
 
-    return sortedMessages;
+    return messages; // Usar diretamente sem re-ordenação
   }, [messages]);
 
   return {

@@ -1,38 +1,30 @@
 
-import React from 'react';
-import { Contact } from '@/types/chat';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { formatPhoneDisplay } from '@/utils/phoneFormatter';
-import { ContactTags } from './ContactTags';
-import { StageDropdownMenu } from './StageDropdownMenu';
-import { TagsPopover } from './TagsPopover';
-import { cn } from '@/lib/utils';
+import React, { memo } from "react";
+import { cn } from "@/lib/utils";
+import { Contact } from "@/types/chat";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { formatPhoneDisplay } from "@/utils/phoneFormatter";
+import { TagsPopover } from "./TagsPopover";
+import { StageDropdownMenu } from "../../sales/funnel/StageDropdownMenu";
+import { ContactTags } from "./ContactTags";
 
 interface ContactItemProps {
   contact: Contact;
   isSelected: boolean;
   onSelect: (contact: Contact) => void;
-  onStageChange: (contactId: string, newStage: string) => void;
-  onTagsChange: (contactId: string) => void;
+  onStageChange?: (contactId: string, newStage: any) => void;
+  onTagsChange?: (contactId: string) => void;
 }
 
-export const ContactItem = ({
+// ✅ OTIMIZAÇÃO: Memoização otimizada com comparação profunda apenas para campos relevantes
+export const ContactItem = memo(({
   contact,
   isSelected,
   onSelect,
   onStageChange,
   onTagsChange
 }: ContactItemProps) => {
-  // 🐛 DEBUG: Log para verificar re-renderização do item
-  console.log('[ContactItem] 🔄 Re-renderizando contato:', {
-    id: contact.id,
-    name: contact.name,
-    leadId: contact.leadId,
-    tagsCount: contact.tags?.length || 0,
-    tags: contact.tags?.map(t => ({ id: t.id, name: t.name })) || [],
-    timestamp: new Date().toISOString()
-  });
   const displayName = contact.name || formatPhoneDisplay(contact.phone);
   // ✅ CORREÇÃO: Condição mais rigorosa para evitar mostrar "0"
   const hasUnread = contact.unreadCount && contact.unreadCount > 0;
@@ -81,13 +73,13 @@ export const ContactItem = ({
             <TagsPopover 
               currentTags={contact.tags || []}
               leadId={contact.leadId} // ✅ PASSAR leadId
-              onTagsChange={() => onTagsChange(contact.id)}
+              onTagsChange={() => onTagsChange?.(contact.id)}
             />
             
             <StageDropdownMenu
               contact={contact}
               currentStageId={contact.stageId || null} // ✅ CORREÇÃO SEGURA: Garantir que seja null se undefined
-              onStageChange={(newStage) => onStageChange(contact.id, newStage)}
+              onStageChange={(newStage) => onStageChange?.(contact.id, newStage)}
             />
           </div>
         </div>
@@ -117,6 +109,37 @@ export const ContactItem = ({
       </div>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // ✅ OTIMIZAÇÃO CRÍTICA: Comparação otimizada para evitar re-renders desnecessários
+  const contactChanged = 
+    prevProps.contact.id !== nextProps.contact.id ||
+    prevProps.contact.name !== nextProps.contact.name ||
+    prevProps.contact.lastMessage !== nextProps.contact.lastMessage ||
+    prevProps.contact.lastMessageTime !== nextProps.contact.lastMessageTime ||
+    prevProps.contact.unreadCount !== nextProps.contact.unreadCount ||
+    prevProps.contact.stageId !== nextProps.contact.stageId;
+
+  const selectionChanged = prevProps.isSelected !== nextProps.isSelected;
+
+  // ✅ OTIMIZAÇÃO: Comparação inteligente de tags (apenas se contacto não mudou)
+  let tagsChanged = false;
+  if (!contactChanged) {
+    const prevTags = prevProps.contact.tags || [];
+    const nextTags = nextProps.contact.tags || [];
+    
+    tagsChanged = prevTags.length !== nextTags.length ||
+      prevTags.some((tag, index) => 
+        !nextTags[index] || 
+        tag.id !== nextTags[index].id || 
+        tag.name !== nextTags[index].name ||
+        tag.color !== nextTags[index].color
+      );
+  }
+
+  // ✅ RETORNAR: true = não re-renderizar, false = re-renderizar
+  const shouldNotRerender = !contactChanged && !selectionChanged && !tagsChanged;
+  
+  return shouldNotRerender;
+});
 
 ContactItem.displayName = 'ContactItem';

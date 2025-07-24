@@ -13,6 +13,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatsRealtimeConfig, RealtimeConnectionStatus } from './types';
 import { BigQueryOptimizer } from '@/utils/immediate-bigquery-fix';
+import { realtimeLogger } from '@/utils/logger';
 
 export const useChatsRealtime = ({
   userId,
@@ -44,9 +45,7 @@ export const useChatsRealtime = ({
   // 🧹 CLEANUP OTIMIZADO
   const cleanup = useCallback(() => {
     if (channelRef.current) {
-      if (process.env.NODE_ENV === 'development') {
-      console.log('[Chats Realtime] 🧹 Removendo canal de chats');
-      }
+      realtimeLogger.log('🧹 Removendo canal de chats');
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
       isSubscribedRef.current = false;
@@ -163,59 +162,13 @@ export const useChatsRealtime = ({
     }
   }, [activeInstanceId, onContactsRefresh, onUpdateUnreadCount]);
 
-  // 💬 HANDLER PARA NOVAS MENSAGENS (move contato para topo)
-  const handleNewMessage = useCallback((payload: any) => {
-    try {
-      const newMessage = payload.new;
-      
-      if (process.env.NODE_ENV === 'development') {
-      console.log('[Chats Realtime] 💬 Nova mensagem (mover contato):', {
-        leadId: newMessage?.lead_id,
-        fromMe: newMessage?.from_me,
-        text: newMessage?.text?.substring(0, 30) + '...',
-        instanceId: newMessage?.whatsapp_number_id
-      });
-      }
+  // ❌ REMOVIDO: handleNewMessage 
+  // Motivo: useMessageRealtime agora é responsável por mover contatos para o topo
+  // Esta função duplicava responsabilidades e criava subscriptions desnecessárias
 
-      // Verificar se é da instância ativa
-      if (activeInstanceId && newMessage?.whatsapp_number_id === activeInstanceId) {
-        statsRef.current.totalEvents++;
-        statsRef.current.lastUpdate = Date.now();
-
-        const leadId = newMessage.lead_id;
-        const messageText = newMessage.text || newMessage.body || '';
-        const messageTimestamp = newMessage.created_at || newMessage.timestamp || new Date().toISOString();
-
-        // Apenas processar mensagens recebidas (não enviadas por nós)
-        if (leadId && !newMessage.from_me) {
-          
-          // 🚀 PRIORIZAR: Callback granular para mover contato
-          if (onMoveContactToTop) {
-            console.log('[Chats Realtime] 🔝 Movendo contato via callback granular:', leadId);
-            onMoveContactToTop(leadId, {
-              text: messageText,
-              timestamp: messageTimestamp,
-              unreadCount: undefined // Deixar que o hook calcule o incremento
-            });
-            return; // ✅ EVITAR outras ações se callback granular existe
-          }
-
-          // Fallback: Callbacks legados
-          if (onContactUpdate) {
-            console.log('[Chats Realtime] 🔄 Fallback: callback legado para mover contato');
-          onContactUpdate(leadId, messageText);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('[Chats Realtime] ❌ Erro processando nova mensagem:', error);
-      BigQueryOptimizer.handleError(error);
-    }
-  }, [activeInstanceId, onContactUpdate, onMoveContactToTop]);
-
-  // 🚀 CONFIGURAR SUBSCRIPTION QUANDO NECESSÁRIO
+  // 🚀 CONFIGURAR SUBSCRIPTION QUANDO NECESSÁRIO (LAZY LOADING)
   useEffect(() => {
-    // 🚀 LAZY LOADING: Verificar se deve ativar
+    // 🚀 LAZY LOADING OTIMIZADO: Só ativar se realmente tem dados para monitorar
     const shouldActivate = !!userId && !!activeInstanceId;
     
     if (!shouldActivate) {
@@ -223,6 +176,14 @@ export const useChatsRealtime = ({
         console.log('[Chats Realtime] ⚠️ Lazy loading: aguardando userId e activeInstanceId');
       }
       // Cleanup se estava ativo antes
+      cleanup();
+      return;
+    }
+    
+    // 🚀 PERFORMANCE: Só ativar se há callbacks granulares configurados
+    const hasGranularCallbacks = !!(onMoveContactToTop || onUpdateUnreadCount || onAddNewContact);
+    if (!hasGranularCallbacks && process.env.NODE_ENV === 'development') {
+      console.log('[Chats Realtime] ⚡ Performance: aguardando callbacks granulares serem configurados');
       cleanup();
       return;
     }
@@ -299,13 +260,9 @@ export const useChatsRealtime = ({
         filter: `whatsapp_number_id=eq.${activeInstanceId}`
       }, handleLeadUpdate)
       
-      // 💬 SUBSCRIPTION PARA NOVAS MENSAGENS (move contato para topo)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
-        filter: `whatsapp_number_id=eq.${activeInstanceId}`
-      }, handleNewMessage)
+      // ❌ REMOVIDO: SUBSCRIPTION PARA MENSAGENS 
+      // Motivo: useMessageRealtime já faz isso de forma mais eficiente
+      // Esta subscription escutava TODAS as mensagens da instância desnecessariamente
       
       .subscribe((status) => {
         if (process.env.NODE_ENV === 'development') {
@@ -333,7 +290,7 @@ export const useChatsRealtime = ({
 
     channelRef.current = channel;
 
-  }, [userId, activeInstanceId, handleNewLead, handleLeadUpdate, handleNewMessage, cleanup]);
+  }, [userId, activeInstanceId, handleNewLead, handleLeadUpdate, cleanup]);
 
   // 🧹 CLEANUP GERAL
   useEffect(() => {

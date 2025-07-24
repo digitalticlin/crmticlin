@@ -6,6 +6,14 @@ interface UseMediaLoaderProps {
   messageId: string;
   mediaType: 'image' | 'video' | 'audio' | 'document';
   mediaUrl?: string;
+  // ✅ NOVO: Receber media_cache diretamente da mensagem
+  mediaCache?: {
+    id: string;
+    base64_data?: string | null;
+    original_url?: string | null;
+    file_size?: number | null;
+    media_type?: string | null;
+  } | null;
 }
 
 interface UseMediaLoaderReturn {
@@ -70,7 +78,8 @@ const isLargeMediaType = (mediaType: string, fileSize?: number): boolean => {
 export const useMediaLoader = ({ 
   messageId, 
   mediaType, 
-  mediaUrl 
+  mediaUrl,
+  mediaCache 
 }: UseMediaLoaderProps): UseMediaLoaderReturn => {
   const [finalUrl, setFinalUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -82,27 +91,34 @@ export const useMediaLoader = ({
 
   useEffect(() => {
     const loadMedia = async () => {
-      console.log(`[MediaLoader] 🔍 Carregando mídia para ${messageId} (${mediaType})`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[MediaLoader] 🔍 Carregando mídia para ${messageId.substring(0, 8)} (${mediaType})`);
+      }
       setIsLoading(true);
       setError(null);
       setShouldShowDownloadButton(false);
       setOriginalUrl(mediaUrl || null);
 
       try {
-        // PRIORIDADE 1: Cache local válido
+        // ✅ PRIORIDADE 1: Cache local válido
         const cachedUrl = getCachedUrl(messageId);
         if (cachedUrl) {
-          console.log(`[MediaLoader] 💾 Cache local encontrado para ${messageId}`);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`[MediaLoader] 💾 Cache local encontrado para ${messageId.substring(0, 8)}`);
+          }
           setFinalUrl(cachedUrl);
           setIsLoading(false);
           return;
         }
 
-        // PRIORIDADE 2: SEMPRE buscar por original_url PRIMEIRO (edge function salva assim)
+        // ✅ PRIORIDADE 2: Media cache já disponível (da query principal)
         let cacheData = null;
-        
-        if (mediaUrl) {
-          console.log(`[MediaLoader] 🎯 Buscando Base64 por original_url (PRIORIDADE): ${mediaUrl.substring(0, 80)}...`);
+        if (mediaCache) {
+          console.log(`[MediaLoader] 🚀 Usando cache da mensagem para ${messageId}`);
+          cacheData = mediaCache;
+        } else if (mediaUrl) {
+          // Fallback: buscar por original_url apenas se não temos cache
+          console.log(`[MediaLoader] 🔄 Fallback: Buscando cache por URL: ${mediaUrl.substring(0, 80)}...`);
           
           const { data: cacheByUrl, error: cacheByUrlError } = await supabase
             .from('media_cache')
@@ -115,24 +131,6 @@ export const useMediaLoader = ({
           } else if (cacheByUrl) {
             console.log(`[MediaLoader] ✅ Cache encontrado por URL para ${messageId}`);
             cacheData = cacheByUrl;
-          }
-        }
-
-        // PRIORIDADE 3: Fallback para message_id apenas se não encontrou por URL
-        if (!cacheData) {
-          console.log(`[MediaLoader] 🔄 Fallback: Buscando por message_id: ${messageId}`);
-          
-          const { data: cacheById, error: cacheByIdError } = await supabase
-          .from('media_cache')
-            .select('base64_data, cached_url, file_name, media_type, original_url, message_id, file_size')
-          .eq('message_id', messageId)
-          .single();
-
-          if (cacheByIdError && cacheByIdError.code !== 'PGRST116') {
-            console.warn(`[MediaLoader] ⚠️ Erro ao buscar cache por message_id: ${cacheByIdError.message}`);
-          } else if (cacheById) {
-            console.log(`[MediaLoader] ✅ Cache encontrado por message_id para ${messageId}`);
-            cacheData = cacheById;
           }
         }
 
@@ -254,7 +252,7 @@ export const useMediaLoader = ({
     };
 
     loadMedia();
-  }, [messageId, mediaType, mediaUrl]);
+  }, [messageId, mediaType, mediaUrl, mediaCache]);
 
   return {
     finalUrl,

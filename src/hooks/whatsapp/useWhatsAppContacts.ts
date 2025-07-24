@@ -6,6 +6,8 @@ import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { useWhatsAppDatabase } from '@/hooks/whatsapp/useWhatsAppDatabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { whatsappLogger } from '@/utils/logger';
+import { windowEventManager } from '@/utils/eventManager';
 
 const CONTACTS_LIMIT = 50;
 const CACHE_DURATION = 60 * 1000; // 1 minuto
@@ -36,7 +38,7 @@ export const useWhatsAppContacts = (activeInstanceId?: string) => {
     
     const currentInstance = activeInstanceId || getActiveInstance()?.id;
     
-    console.log('[WhatsApp Contacts] 🔍 Fetching contacts:', {
+    whatsappLogger.log('🔍 Fetching contacts:', {
       offset,
       forceRefresh,
       currentInstance,
@@ -45,7 +47,7 @@ export const useWhatsAppContacts = (activeInstanceId?: string) => {
     });
 
     if (!currentInstance && !isAdmin) {
-      console.log('[WhatsApp Contacts] ⚠️ No active instance for regular user');
+      whatsappLogger.warn('⚠️ No active instance for regular user');
       setContacts([]);
       return;
     }
@@ -377,8 +379,10 @@ export const useWhatsAppContacts = (activeInstanceId?: string) => {
 
   // ✅ LISTENER PARA REFRESH DE TAGS E ATUALIZAÇÕES DE LEADS
   useEffect(() => {
+    const eventSubscriptionIds: string[] = [];
+    
     const handleRefreshTags = () => {
-      console.log('[WhatsApp Contacts] 🏷️ Tags alteradas, fazendo refresh suave...');
+      whatsappLogger.log('🏷️ Tags alteradas, fazendo refresh suave...');
       refreshContacts();
     };
 
@@ -588,16 +592,32 @@ export const useWhatsAppContacts = (activeInstanceId?: string) => {
       }
     };
 
-    window.addEventListener('refreshLeadTags', handleRefreshTags);
-    window.addEventListener('leadTagsUpdated', handleTagsUpdate);
-    window.addEventListener('contactNameUpdated', handleContactNameUpdate);
-    window.addEventListener('leadUpdated', handleLeadUpdate);
+    // ✅ NOVO LISTENER: Mover contato para topo quando receber mensagem  
+    const handleMoveContactToTop = (event: CustomEvent) => {
+      const { contactId, newMessage } = event.detail;
+      
+      console.log('[WhatsApp Contacts] 🔝 Movendo contato para topo:', {
+        contactId,
+        messageText: newMessage?.text?.substring(0, 30),
+        timestamp: newMessage?.timestamp
+      });
+      
+      moveContactToTop(contactId, newMessage);
+    };
+
+    // ✅ USAR EVENT MANAGER PARA PREVENIR MEMORY LEAKS
+    eventSubscriptionIds.push(
+      windowEventManager.addEventListener('refreshLeadTags', handleRefreshTags),
+      windowEventManager.addEventListener('leadTagsUpdated', handleTagsUpdate),
+      windowEventManager.addEventListener('contactNameUpdated', handleContactNameUpdate),
+      windowEventManager.addEventListener('leadUpdated', handleLeadUpdate),
+      windowEventManager.addEventListener('moveContactToTop', handleMoveContactToTop)
+    );
 
     return () => {
-      window.removeEventListener('refreshLeadTags', handleRefreshTags);
-      window.removeEventListener('leadTagsUpdated', handleTagsUpdate);
-      window.removeEventListener('contactNameUpdated', handleContactNameUpdate);
-      window.removeEventListener('leadUpdated', handleLeadUpdate);
+      // ✅ CLEANUP AUTOMÁTICO ANTI-MEMORY LEAK
+      eventSubscriptionIds.forEach(id => windowEventManager.removeEventListener(id));
+      whatsappLogger.debug('🧹 Event listeners removidos do useWhatsAppContacts');
     };
   }, [refreshContacts, activeInstanceId, getActiveInstance, isAdmin, user?.id]);
 

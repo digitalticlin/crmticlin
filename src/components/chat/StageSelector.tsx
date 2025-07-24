@@ -33,17 +33,20 @@ export const StageSelector = ({ leadId, currentStageId, className }: StageSelect
 
   // 🔍 LOG DETALHADO PARA DEBUG
   try {
-  console.log('[StageSelector] 🔍 Props recebidas:', {
-    leadId,
-    currentStageId,
-    hasCurrentStage: !!currentStage,
-    currentStageTitle: currentStage?.title,
+    // Calcular total de stages a partir de stagesByFunnel
+    const totalStages = Object.values(stagesByFunnel).reduce((acc, stages) => acc + stages.length, 0);
+    
+    console.log('[StageSelector] 🔍 Props recebidas:', {
+      leadId,
+      currentStageId,
+      hasCurrentStage: !!currentStage,
+      currentStageTitle: currentStage?.title,
       currentStageColor: currentStage?.color,
-    stagesCount: Object.keys(stagesByFunnel).length,
-      totalStages: stages?.length || 0, // ✅ CORREÇÃO: Usar contagem simples
-    isLoading,
-    isChanging
-  });
+      stagesCount: Object.keys(stagesByFunnel).length,
+      totalStages, // ✅ CORREÇÃO: Calcular a partir de stagesByFunnel
+      isLoading,
+      isChanging
+    });
   } catch (logError) {
     console.warn('[StageSelector] ⚠️ Erro no log de debug:', logError);
   }
