@@ -1,5 +1,5 @@
 
-import React, { memo } from 'react';
+import React from 'react';
 import { Contact } from '@/types/chat';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -17,13 +17,22 @@ interface ContactItemProps {
   onTagsChange: (contactId: string) => void;
 }
 
-export const ContactItem = memo(({
+export const ContactItem = ({
   contact,
   isSelected,
   onSelect,
   onStageChange,
   onTagsChange
 }: ContactItemProps) => {
+  // 🐛 DEBUG: Log para verificar re-renderização do item
+  console.log('[ContactItem] 🔄 Re-renderizando contato:', {
+    id: contact.id,
+    name: contact.name,
+    leadId: contact.leadId,
+    tagsCount: contact.tags?.length || 0,
+    tags: contact.tags?.map(t => ({ id: t.id, name: t.name })) || [],
+    timestamp: new Date().toISOString()
+  });
   const displayName = contact.name || formatPhoneDisplay(contact.phone);
   // ✅ CORREÇÃO: Condição mais rigorosa para evitar mostrar "0"
   const hasUnread = contact.unreadCount && contact.unreadCount > 0;
@@ -108,6 +117,6 @@ export const ContactItem = memo(({
       </div>
     </div>
   );
-});
+};
 
 ContactItem.displayName = 'ContactItem';

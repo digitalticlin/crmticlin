@@ -39,7 +39,7 @@ export const WhatsAppContactsList = React.memo(({
     
     const query = searchQuery.toLowerCase();
     return contacts.filter(contact => 
-      contact.name.toLowerCase().includes(query) ||
+      contact.name?.toLowerCase().includes(query) ||
       contact.phone.includes(query) ||
       (contact.lastMessage && contact.lastMessage.toLowerCase().includes(query))
     );

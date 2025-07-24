@@ -7,7 +7,7 @@ import { TiclinAvatar } from "@/components/ui/ticlin-avatar";
 import { ChatHeaderTags } from "../ChatHeaderTags";
 import { StageSelector } from "../StageSelector";
 import { useLeadTags } from "@/hooks/salesFunnel/useLeadTags";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface WhatsAppChatHeaderProps {
   selectedContact: Contact;
@@ -34,14 +34,76 @@ export const WhatsAppChatHeader = ({
   onRefreshMessages,
   isRefreshing = false,
 }: WhatsAppChatHeaderProps) => {
-  const displayName = getDisplayName(selectedContact);
-  const { leadTags, availableTags, loading, fetchTags, addTag, removeTag } = useLeadTags(selectedContact.leadId || '');
+  // ✅ NOVO: Estado local para sincronização em tempo real
+  const [localContact, setLocalContact] = useState<Contact>(selectedContact);
+  const displayName = getDisplayName(localContact);
+  const { leadTags, availableTags, loading, fetchTags, addTag, removeTag } = useLeadTags(localContact.leadId || '');
+
+  // ✅ NOVO: Atualizar estado local quando selectedContact muda
+  useEffect(() => {
+    setLocalContact(selectedContact);
+  }, [selectedContact.id]);
+
+  // ✅ NOVO: Listener para atualizações em tempo real
+  useEffect(() => {
+    const handleContactUpdate = (event: CustomEvent) => {
+      const { leadId, updatedContact } = event.detail;
+      
+      if (leadId === localContact.leadId || leadId === localContact.id) {
+        console.log('[WhatsAppChatHeader] 🔄 Atualizando contato no header:', {
+          leadId,
+          newName: updatedContact.name,
+          oldName: localContact.name
+        });
+        
+        setLocalContact(prev => ({
+          ...prev,
+          ...updatedContact
+        }));
+      }
+    };
+
+    const handleContactNameUpdate = (event: CustomEvent) => {
+      const { leadId, contactId, newName } = event.detail;
+      
+      if (leadId === localContact.leadId || contactId === localContact.id) {
+        console.log('[WhatsAppChatHeader] 📝 Atualizando nome no header:', {
+          leadId,
+          contactId,
+          newName,
+          oldName: localContact.name
+        });
+        
+        setLocalContact(prev => ({
+          ...prev,
+          name: newName
+        }));
+      }
+    };
+
+    const handleTagsRefresh = () => {
+      if (localContact.leadId) {
+        console.log('[WhatsAppChatHeader] 🏷️ Atualizando tags no header');
+        fetchTags();
+      }
+    };
+
+    window.addEventListener('leadUpdated', handleContactUpdate);
+    window.addEventListener('contactNameUpdated', handleContactNameUpdate);
+    window.addEventListener('refreshLeadTags', handleTagsRefresh);
+
+    return () => {
+      window.removeEventListener('leadUpdated', handleContactUpdate);
+      window.removeEventListener('contactNameUpdated', handleContactNameUpdate);
+      window.removeEventListener('refreshLeadTags', handleTagsRefresh);
+    };
+  }, [localContact.leadId, localContact.id, fetchTags]);
 
   useEffect(() => {
-    if (selectedContact.leadId) {
+    if (localContact.leadId) {
       fetchTags();
     }
-  }, [selectedContact.leadId, fetchTags]);
+  }, [localContact.leadId, fetchTags]);
 
   return (
     <div className="flex flex-col bg-white/10 backdrop-blur-md border-b border-white/20">
@@ -58,12 +120,12 @@ export const WhatsAppChatHeader = ({
         <div className="flex items-center gap-3 flex-1 cursor-pointer hover:bg-white/20 rounded-lg p-2 -m-2 transition-colors">
           <div className="relative">
             <TiclinAvatar 
-              profilePicUrl={selectedContact.profilePicUrl}
-              customAvatar={selectedContact.avatar}
+              profilePicUrl={localContact.profilePicUrl}
+              customAvatar={localContact.avatar}
               name={displayName}
               size="md"
             />
-            {selectedContact.isOnline && (
+            {localContact.isOnline && (
               <div className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-green-500 border-2 border-white" />
             )}
           </div>
@@ -71,7 +133,7 @@ export const WhatsAppChatHeader = ({
           <div className="flex-1">
             <h3 className="font-medium text-gray-900">{displayName}</h3>
             <p className="text-xs text-gray-600">
-              {selectedContact.isOnline ? "online" : "visto por último hoje às " + selectedContact.lastMessageTime}
+              {localContact.isOnline ? "online" : "visto por último hoje às " + localContact.lastMessageTime}
             </p>
           </div>
         </div>
@@ -98,12 +160,12 @@ export const WhatsAppChatHeader = ({
       </div>
 
       {/* Seção de Tags e Controle de Etapa */}
-      {selectedContact.leadId && (
+      {localContact.leadId && (
         <div className="px-4 pb-3 flex items-center gap-3">
           {/* Controle de Etapa */}
           <StageSelector 
-            leadId={selectedContact.leadId}
-            currentStageId={selectedContact.stageId || null}
+            leadId={localContact.leadId}
+            currentStageId={localContact.stageId || null}
             className="shrink-0"
           />
           

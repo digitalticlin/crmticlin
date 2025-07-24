@@ -170,11 +170,8 @@ export const ChatHeaderTags = ({
         onRemoveTag(tagId);
       }
       
-      // 🚀 CORREÇÃO: Tags não afetam ordem da lista de contatos - não resetar
-      setTimeout(() => {
-        console.log('[ChatHeaderTags] ℹ️ Tags alteradas - não é necessário resetar lista de contatos');
-        window.dispatchEvent(new CustomEvent('refreshLeadTags'));
-      }, 100);
+      // ✅ EVENTOS JÁ DISPARADOS: onAddTag e onRemoveTag (useLeadTags) já disparam os eventos necessários
+      // Não é necessário disparar eventos adicionais aqui pois useLeadTags já faz isso
       
       toast.success(`Mudanças aplicadas! ${tagsToAdd.length} adicionadas, ${tagsToRemove.length} removidas.`);
     }

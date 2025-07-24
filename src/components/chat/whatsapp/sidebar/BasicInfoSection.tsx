@@ -72,7 +72,7 @@ export const BasicInfoSection = ({
     setTempValue('');
   };
 
-  // Componente para renderizar um campo editável
+  // ✅ CORREÇÃO: Componente para renderizar um campo editável
   const EditableField = ({ 
     label, 
     field, 
@@ -89,7 +89,7 @@ export const BasicInfoSection = ({
     type?: string;
   }) => {
     const value = currentContact[field] as string || '';
-    const isEditing = localEditing === field;
+    const isEditingThisField = localEditing === field;
 
     return (
       <div className="space-y-1">
@@ -100,7 +100,7 @@ export const BasicInfoSection = ({
         
         {readOnly ? (
           <p className="text-gray-700 bg-gray-50/60 p-2 rounded-lg text-sm break-all">{value}</p>
-        ) : isEditing ? (
+        ) : isEditingThisField ? (
           <div className="space-y-2">
             <Input
               type={type}

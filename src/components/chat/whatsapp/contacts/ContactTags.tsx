@@ -1,12 +1,24 @@
 import { KanbanTag } from "@/types/kanban";
 import { TagBadge } from "@/components/ui/tag-badge";
 
+
 interface ContactTagsProps {
   tags: KanbanTag[];
 }
 
 export const ContactTags = ({ tags }: ContactTagsProps) => {
-  if (!tags || tags.length === 0) return null;
+  // 🐛 DEBUG: Log temporário para verificar re-renderização
+  console.log('[ContactTags] 🏷️ Re-renderizando com tags:', {
+    count: tags?.length || 0,
+    tags: tags?.map(tag => ({ id: tag.id, name: tag.name })) || [],
+    timestamp: new Date().toISOString(),
+    tagsArray: tags
+  });
+
+  if (!tags || tags.length === 0) {
+    console.log('[ContactTags] ❌ Nenhuma tag para exibir');
+    return null;
+  }
 
   // Mostrar apenas 2 tags + contador
   const visibleTags = tags.slice(0, 2);

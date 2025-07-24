@@ -23,6 +23,7 @@ export interface Contact {
   createdAt?: string;
   deals?: Deal[];
   stageId?: string; // Added missing stageId property
+  ownerId?: string; // ✅ NOVO: Campo para responsável do lead
   // Admin instance info
   instanceInfo?: {
     name: string;

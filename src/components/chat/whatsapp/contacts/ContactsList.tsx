@@ -29,7 +29,7 @@ const getDisplayName = (contact: Contact): string => {
   return formatPhoneDisplay(contact.phone);
 };
 
-export const ContactsList = React.memo(({
+export const ContactsList = ({
   contacts,
   selectedContact,
   onSelectContact,
@@ -345,7 +345,7 @@ export const ContactsList = React.memo(({
       </div>
     </div>
   );
-});
+};
 
 ContactsList.displayName = 'ContactsList';
 

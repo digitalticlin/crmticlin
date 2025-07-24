@@ -70,7 +70,7 @@ export const useWhatsAppContacts = (activeInstanceId?: string) => {
         setIsLoadingMore(true);
       }
 
-      // 🚀 CORREÇÃO: Query simplificada sem junção problemática
+      // ✅ CORREÇÃO: Query completa com todos os campos necessários
         let query = supabase
           .from('leads')
           .select(`
@@ -78,6 +78,12 @@ export const useWhatsAppContacts = (activeInstanceId?: string) => {
           name,
           phone,
           email,
+          address,
+          company,
+          document_id,
+          notes,
+          purchase_value,
+          owner_id,
           last_message,
           last_message_time,
           unread_count,
@@ -135,20 +141,68 @@ export const useWhatsAppContacts = (activeInstanceId?: string) => {
         } : null
       });
 
-      // 🚀 CORREÇÃO: Conversão simplificada sem dependência de junção
+      // ✅ NOVO: Buscar tags para todos os leads em uma única query
+      let tagsMap: Record<string, any[]> = {};
+      if (leadsData && leadsData.length > 0) {
+        const leadIds = leadsData.map(lead => lead.id);
+        
+        console.log('[WhatsApp Contacts] 🏷️ Buscando tags para leads:', leadIds.length);
+        
+        const { data: tagsData, error: tagsError } = await supabase
+          .from('lead_tags')
+          .select(`
+            lead_id,
+            tags!inner (
+              id,
+              name,
+              color,
+              created_by_user_id
+            )
+          `)
+          .in('lead_id', leadIds)
+          .eq('tags.created_by_user_id', user?.id);
+
+        if (tagsError) {
+          console.error('[WhatsApp Contacts] ❌ Erro ao buscar tags:', tagsError);
+          // Não fazer throw, apenas logar
+        } else {
+          // Organizar tags por lead_id
+          (tagsData || []).forEach(tagRelation => {
+            if (!tagsMap[tagRelation.lead_id]) {
+              tagsMap[tagRelation.lead_id] = [];
+            }
+            if (tagRelation.tags) {
+              tagsMap[tagRelation.lead_id].push(tagRelation.tags);
+            }
+          });
+          
+          console.log('[WhatsApp Contacts] 🏷️ Tags carregadas:', {
+            totalTagRelations: tagsData?.length || 0,
+            leadsWithTags: Object.keys(tagsMap).length
+          });
+        }
+      }
+
+      // ✅ CORREÇÃO: Conversão completa com todos os campos INCLUINDO TAGS
       const fetchedContacts: Contact[] = (leadsData || []).map(lead => ({
-            id: lead.id,
-        name: lead.name || 'Contato sem nome',
+        id: lead.id,
+        name: lead.name || null,
         phone: lead.phone || '',
         email: lead.email,
+        address: lead.address,
+        company: lead.company,
+        documentId: lead.document_id,
+        notes: lead.notes,
+        purchaseValue: lead.purchase_value,
+        assignedUser: lead.owner_id, // ✅ CORREÇÃO: Mapear owner_id para assignedUser
         lastMessage: lead.last_message,
         lastMessageTime: lead.last_message_time,
         unreadCount: lead.unread_count && lead.unread_count > 0 ? lead.unread_count : undefined,
         leadId: lead.id,
         stageId: lead.kanban_stage_id || null,
         createdAt: lead.created_at,
-        tags: [], // 🚀 SIMPLIFICADO: Tags serão carregadas separadamente se necessário
-        instanceInfo: undefined // 🚀 SIMPLIFICADO: Info da instância não é crítica
+        tags: tagsMap[lead.id] || [], // ✅ NOVO: Tags carregadas do banco
+        instanceInfo: undefined
       }));
 
       console.log('[WhatsApp Contacts] ✅ Contacts converted:', {
@@ -292,11 +346,12 @@ export const useWhatsAppContacts = (activeInstanceId?: string) => {
       
       if (existingIndex !== -1) {
         console.log('[WhatsApp Contacts] ⚠️ Contato já existe, movendo para topo');
-        return moveContactToTop(newContact.id, {
+        moveContactToTop(newContact.id, {
           text: newContact.lastMessage || '',
           timestamp: newContact.lastMessageTime,
           unreadCount: newContact.unreadCount
         });
+        return prevContacts; // Retornar estado atual pois moveContactToTop já atualizou
       }
       
       console.log('[WhatsApp Contacts] ➕ Adicionando novo contato ao topo:', newContact.name);
@@ -320,11 +375,118 @@ export const useWhatsAppContacts = (activeInstanceId?: string) => {
     }
   }, [user?.id, fetchContacts]);
 
-  // ✅ LISTENER PARA REFRESH DE TAGS
+  // ✅ LISTENER PARA REFRESH DE TAGS E ATUALIZAÇÕES DE LEADS
   useEffect(() => {
     const handleRefreshTags = () => {
       console.log('[WhatsApp Contacts] 🏷️ Tags alteradas, fazendo refresh suave...');
       refreshContacts();
+    };
+
+    // ✅ NOVO LISTENER: Atualizar tags específicas de um lead
+    const handleTagsUpdate = async (event: CustomEvent) => {
+      const { leadId } = event.detail;
+      
+      if (!leadId || !user?.id) return;
+      
+      console.log('[WhatsApp Contacts] 🏷️ EVENTO RECEBIDO - Atualizando tags do lead:', {
+        eventLeadId: leadId,
+        userId: user.id
+      });
+      
+      try {
+        // Buscar tags atualizadas para este lead específico
+        const { data: tagsData, error } = await supabase
+          .from('lead_tags')
+          .select(`
+            lead_id,
+            tags!inner (
+              id,
+              name,
+              color,
+              created_by_user_id
+            )
+          `)
+          .eq('lead_id', leadId)
+          .eq('tags.created_by_user_id', user.id);
+
+        if (error) {
+          console.error('[WhatsApp Contacts] ❌ Erro ao buscar tags atualizadas:', error);
+          return;
+        }
+
+        const updatedTags = (tagsData || []).map(tagRelation => tagRelation.tags).filter(Boolean);
+        
+        console.log('[WhatsApp Contacts] 🎯 Tags encontradas no Supabase:', {
+          leadId,
+          tagsCount: updatedTags.length,
+          tags: updatedTags.map(tag => ({ id: tag.id, name: tag.name }))
+        });
+        
+        // Atualizar contato com novas tags
+        setContacts(prevContacts => {
+          console.log('[WhatsApp Contacts] 🔍 Procurando contato para atualizar:', {
+            leadId,
+            contactsToCheck: prevContacts.map(c => ({ 
+              id: c.id, 
+              leadId: c.leadId, 
+              name: c.name,
+              currentTagsCount: c.tags?.length || 0
+            }))
+          });
+          
+          const updatedContacts = prevContacts.map(contact => {
+            // ✅ CORREÇÃO: Verificação mais robusta do leadId
+            const contactLeadId = contact.leadId || contact.id;
+            const isMatch = contactLeadId === leadId;
+            
+            console.log('[WhatsApp Contacts] 🔍 Verificando match para contato:', {
+              contactId: contact.id,
+              contactLeadId: contact.leadId,
+              contactName: contact.name,
+              eventLeadId: leadId,
+              isMatch,
+              contactTags: contact.tags?.length || 0
+            });
+            
+            if (isMatch) {
+              console.log('[WhatsApp Contacts] ✅ CONTATO ENCONTRADO - Atualizando tags:', {
+                contactId: contact.id,
+                contactLeadId: contact.leadId,
+                contactName: contact.name,
+                oldTagsCount: contact.tags?.length || 0,
+                newTagsCount: updatedTags.length,
+                oldTags: contact.tags?.map(tag => ({ id: tag.id, name: tag.name })) || [],
+                newTags: updatedTags.map(tag => ({ id: tag.id, name: tag.name }))
+              });
+              
+              // ✅ FORÇAR: Nova referência do objeto para garantir re-render
+              const updatedContact = { 
+                ...contact, 
+                tags: [...updatedTags] // Nova array para forçar re-render
+              };
+              
+              console.log('[WhatsApp Contacts] 🚀 CONTATO ATUALIZADO:', {
+                id: updatedContact.id,
+                name: updatedContact.name,
+                tagsCount: updatedContact.tags?.length || 0,
+                tagNames: updatedContact.tags?.map(t => t.name) || []
+              });
+              
+              return updatedContact;
+            }
+            return contact;
+          });
+          
+          console.log('[WhatsApp Contacts] 📊 RESULTADO FINAL DA ATUALIZAÇÃO:', {
+            totalContacts: updatedContacts.length,
+            contactsWithTags: updatedContacts.filter(c => c.tags && c.tags.length > 0).length
+          });
+          
+          return updatedContacts;
+        });
+      } catch (error) {
+        console.error('[WhatsApp Contacts] ❌ Erro ao atualizar tags:', error);
+      }
     };
 
     // ✅ NOVO LISTENER: Atualizar nome do contato no cache local
@@ -372,12 +534,70 @@ export const useWhatsAppContacts = (activeInstanceId?: string) => {
       }
     };
 
+    // ✅ NOVO LISTENER: Atualizar contato completo
+    const handleLeadUpdate = (event: CustomEvent) => {
+      const { leadId, updatedContact } = event.detail;
+      
+      console.log('[WhatsApp Contacts] 🔄 Lead atualizado via evento:', {
+        leadId,
+        updatedContact: {
+          name: updatedContact.name,
+          email: updatedContact.email,
+          company: updatedContact.company,
+          assignedUser: updatedContact.assignedUser,
+          purchaseValue: updatedContact.purchaseValue,
+          tags: updatedContact.tags?.length || 0
+        }
+      });
+      
+      // Atualizar o contato no estado local imediatamente
+      setContacts(prevContacts => 
+        prevContacts.map(contact => {
+          if (contact.leadId === leadId || contact.id === leadId) {
+            const changes = Object.keys(updatedContact).filter(key => 
+              contact[key as keyof Contact] !== updatedContact[key as keyof Contact]
+            );
+            console.log('[WhatsApp Contacts] ⚡ Atualizando contato local completo:', {
+              contactId: contact.id,
+              changes,
+              newTags: updatedContact.tags?.length || 0,
+              oldTags: contact.tags?.length || 0
+            });
+            return { ...contact, ...updatedContact };
+          }
+          return contact;
+        })
+      );
+      
+      // Atualizar cache também
+      const currentInstance = activeInstanceId || getActiveInstance()?.id;
+      const cacheKey = isAdmin ? `admin-${user?.id}` : `${currentInstance}-${user?.id}`;
+      const cached = contactsCache.get(cacheKey);
+      if (cached) {
+        const updatedData = cached.data.map(contact => {
+          if (contact.leadId === leadId || contact.id === leadId) {
+            return { ...contact, ...updatedContact };
+          }
+          return contact;
+        });
+        contactsCache.set(cacheKey, {
+          data: updatedData,
+          timestamp: cached.timestamp
+        });
+        console.log('[WhatsApp Contacts] 💾 Cache atualizado com contato completo');
+      }
+    };
+
     window.addEventListener('refreshLeadTags', handleRefreshTags);
+    window.addEventListener('leadTagsUpdated', handleTagsUpdate);
     window.addEventListener('contactNameUpdated', handleContactNameUpdate);
+    window.addEventListener('leadUpdated', handleLeadUpdate);
 
     return () => {
       window.removeEventListener('refreshLeadTags', handleRefreshTags);
+      window.removeEventListener('leadTagsUpdated', handleTagsUpdate);
       window.removeEventListener('contactNameUpdated', handleContactNameUpdate);
+      window.removeEventListener('leadUpdated', handleLeadUpdate);
     };
   }, [refreshContacts, activeInstanceId, getActiveInstance, isAdmin, user?.id]);
 

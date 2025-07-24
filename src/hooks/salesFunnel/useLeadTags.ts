@@ -15,128 +15,160 @@ export const useLeadTags = (leadId: string) => {
       setLoading(true);
       console.log('[useLeadTags] 🔄 Buscando tags para lead:', leadId);
       
-      // Buscar tags do lead
+      if (!leadId || !user?.id) {
+        console.log('[useLeadTags] ⚠️ LeadId ou userId não fornecido');
+        setLeadTags([]);
+        setAvailableTags([]);
+        setLoading(false);
+        return;
+      }
+
+      // ✅ CORREÇÃO: Buscar tags do lead com filtro de usuário
       const { data: leadTagsData, error: leadTagsError } = await supabase
         .from('lead_tags')
-        .select('tag_id, tags:tag_id(*)')
-        .eq('lead_id', leadId);
+        .select(`
+          tag_id,
+          tags!inner (
+            id,
+            name,
+            color,
+            created_by_user_id
+          )
+        `)
+        .eq('lead_id', leadId)
+        .eq('tags.created_by_user_id', user.id);
 
-      if (leadTagsError) throw leadTagsError;
+      if (leadTagsError) {
+        console.error('[useLeadTags] ❌ Erro ao buscar tags do lead:', leadTagsError);
+        // Não fazer throw, apenas logar e continuar
+      }
 
-      // Buscar todas as tags disponíveis
+      // ✅ CORREÇÃO: Buscar todas as tags disponíveis para o usuário
       const { data: allTags, error: allTagsError } = await supabase
         .from('tags')
         .select('*')
+        .eq('created_by_user_id', user.id)
         .order('name');
 
-      if (allTagsError) throw allTagsError;
+      if (allTagsError) {
+        console.error('[useLeadTags] ❌ Erro ao buscar tags disponíveis:', allTagsError);
+        throw allTagsError;
+      }
 
-      // Formatar tags do lead
-      const formattedLeadTags = leadTagsData.map(lt => lt.tags) as KanbanTag[];
+      // ✅ CORREÇÃO: Extrair tags do lead com verificação de segurança
+      const formattedLeadTags = (leadTagsData || [])
+        .map(lt => lt.tags)
+        .filter(tag => tag !== null && tag !== undefined) as KanbanTag[];
       
       console.log('[useLeadTags] ✅ Tags carregadas:', {
         leadTags: formattedLeadTags.length,
-        availableTags: allTags.length,
-        leadId
+        availableTags: allTags?.length || 0,
+        leadId,
+        userId: user.id
       });
       
       setLeadTags(formattedLeadTags);
-      setAvailableTags(allTags);
+      setAvailableTags(allTags || []);
 
     } catch (error: any) {
       console.error('[useLeadTags] ❌ Erro ao buscar tags:', error);
       toast.error('Erro ao carregar tags');
+      // ✅ CORREÇÃO: Definir arrays vazios em caso de erro
+      setLeadTags([]);
+      setAvailableTags([]);
     } finally {
       setLoading(false);
     }
-  }, [leadId]);
-
-  // 🚀 LISTENER PARA EVENTOS DE REFRESH
-  useEffect(() => {
-    const handleRefreshTags = () => {
-      console.log('[useLeadTags] 🔄 Evento de refresh recebido - atualizando tags...');
-      fetchTags();
-    };
-
-    window.addEventListener('refreshLeadTags', handleRefreshTags);
-
-    return () => {
-      window.removeEventListener('refreshLeadTags', handleRefreshTags);
-    };
-  }, [fetchTags]);
+  }, [leadId, user?.id]);
 
   const addTag = useCallback(async (tagId: string) => {
-    if (!user?.id) {
-      toast.error('Usuário não autenticado');
+    if (!leadId || !user?.id) {
+      toast.error('Dados insuficientes para adicionar tag');
       return;
     }
 
     try {
-      console.log('[useLeadTags] ➕ Adicionando tag:', { leadId, tagId });
-      
+      console.log('[useLeadTags] ➕ Adicionando tag:', { tagId, leadId });
+
       const { error } = await supabase
         .from('lead_tags')
-        .insert([{ 
-          lead_id: leadId, 
+        .insert({
+          lead_id: leadId,
           tag_id: tagId,
-          created_by_user_id: user.id,
-          created_at: new Date().toISOString()
-        }]);
+          created_by_user_id: user.id
+        });
 
       if (error) throw error;
 
+      // ✅ CORREÇÃO: Recarregar tags após adicionar
       await fetchTags();
       
-      // 🚀 CORREÇÃO: Tags não afetam ordem da lista de contatos - não resetar
-      console.log('[useLeadTags] ℹ️ Tag adicionada - não é necessário resetar lista de contatos');
+      // ✅ NOVO: Disparar evento para atualizar lista de contatos
+      console.log('[useLeadTags] 📡 Disparando evento leadTagsUpdated:', { leadId, action: 'addTag', tagId });
+      window.dispatchEvent(new CustomEvent('leadTagsUpdated', {
+        detail: { leadId }
+      }));
       
-      // ✅ DISPARAR EVENTO PARA REFRESH DE TAGS NOS CONTATOS
-      window.dispatchEvent(new CustomEvent('refreshLeadTags'));
-      
-      toast.success('Tag adicionada com sucesso');
-      
-      console.log('[useLeadTags] ✅ Tag adicionada e interface sincronizada');
+      toast.success('Tag adicionada com sucesso!');
+
     } catch (error: any) {
       console.error('[useLeadTags] ❌ Erro ao adicionar tag:', error);
       toast.error('Erro ao adicionar tag');
     }
-  }, [leadId, fetchTags, user?.id]);
+  }, [leadId, user?.id, fetchTags]);
 
   const removeTag = useCallback(async (tagId: string) => {
+    if (!leadId || !user?.id) {
+      toast.error('Dados insuficientes para remover tag');
+      return;
+    }
+
     try {
-      console.log('[useLeadTags] 🗑️ Removendo tag:', { leadId, tagId });
-      
+      console.log('[useLeadTags] ➖ Removendo tag:', { tagId, leadId });
+
       const { error } = await supabase
         .from('lead_tags')
         .delete()
         .eq('lead_id', leadId)
-        .eq('tag_id', tagId);
+        .eq('tag_id', tagId)
+        .eq('created_by_user_id', user.id);
 
       if (error) throw error;
 
+      // ✅ CORREÇÃO: Recarregar tags após remover
       await fetchTags();
       
-      // 🚀 CORREÇÃO: Tags não afetam ordem da lista de contatos - não resetar
-      console.log('[useLeadTags] ℹ️ Tag removida - não é necessário resetar lista de contatos');
+      // ✅ NOVO: Disparar evento para atualizar lista de contatos
+      console.log('[useLeadTags] 📡 Disparando evento leadTagsUpdated:', { leadId, action: 'removeTag', tagId });
+      window.dispatchEvent(new CustomEvent('leadTagsUpdated', {
+        detail: { leadId }
+      }));
       
-      // ✅ DISPARAR EVENTO PARA REFRESH DE TAGS NOS CONTATOS
-      window.dispatchEvent(new CustomEvent('refreshLeadTags'));
-      
-      toast.success('Tag removida com sucesso');
-      
-      console.log('[useLeadTags] ✅ Tag removida e interface sincronizada');
+      toast.success('Tag removida com sucesso!');
+
     } catch (error: any) {
       console.error('[useLeadTags] ❌ Erro ao remover tag:', error);
       toast.error('Erro ao remover tag');
     }
-  }, [leadId, fetchTags]);
+  }, [leadId, user?.id, fetchTags]);
+
+  // ✅ CORREÇÃO: Carregar tags apenas quando leadId e user.id estiverem disponíveis
+  useEffect(() => {
+    if (leadId && user?.id) {
+      fetchTags();
+    } else {
+      setLoading(false);
+      setLeadTags([]);
+      setAvailableTags([]);
+    }
+  }, [leadId, user?.id, fetchTags]);
 
   return {
     leadTags,
     availableTags,
     loading,
-    fetchTags,
     addTag,
-    removeTag
+    removeTag,
+    fetchTags
   };
 }; 

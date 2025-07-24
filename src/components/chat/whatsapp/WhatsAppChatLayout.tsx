@@ -52,16 +52,33 @@ export const WhatsAppChatLayout = ({
 }: WhatsAppChatLayoutProps) => {
   const [isDetailsSidebarOpen, setIsDetailsSidebarOpen] = useState(false);
 
-  // 🚀 ATUALIZAÇÃO OTIMIZADA: Atualizar contato sem resetar lista
-  const handleUpdateContact = (updates: Partial<Contact>) => {
-    if (!selectedContact) return;
+  // ✅ CORREÇÃO: Atualizar contato completo e propagação para lista
+  const handleUpdateContact = (updatedContact: Contact) => {
+    console.log('[WhatsAppChatLayout] 🔄 Atualizando contato selecionado:', {
+      contactId: updatedContact.id,
+      changes: {
+        name: updatedContact.name,
+        email: updatedContact.email,
+        company: updatedContact.company,
+        purchaseValue: updatedContact.purchaseValue,
+        assignedUser: updatedContact.assignedUser
+      }
+    });
 
-    // Update the selected contact
-    const updatedSelected = { ...selectedContact, ...updates };
-    onSelectContact(updatedSelected);
+    // ✅ ATUALIZAR: Contato selecionado
+    onSelectContact(updatedContact);
 
-    // ✅ CORREÇÃO CRÍTICA: Não resetar lista - subscription já atualiza automaticamente
-    console.log('[WhatsAppChatLayout] ✅ Contato atualizado sem reset da lista');
+    // ✅ PROPAGAR: Atualização para a lista de contatos via evento customizado
+    if (updatedContact.leadId || updatedContact.id) {
+      window.dispatchEvent(new CustomEvent('leadUpdated', {
+        detail: {
+          leadId: updatedContact.leadId || updatedContact.id,
+          updatedContact
+        }
+      }));
+      
+      console.log('[WhatsAppChatLayout] 📡 Evento de atualização de lead disparado');
+    }
   };
 
   const handleEditLead = () => {
