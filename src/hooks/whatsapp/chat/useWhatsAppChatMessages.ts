@@ -112,10 +112,12 @@ export const useWhatsAppChatMessages = (
       const convertedMessages = (messagesData || []).map(currentMapper);
 
       if (offset === 0) {
-        setMessages(convertedMessages);
+        // ✅ CORREÇÃO: Inverter ordem para exibição (mais antigas primeiro, recentes no final)
+        setMessages(convertedMessages.reverse());
         setCurrentOffset(MESSAGES_LIMIT);
       } else {
-        setMessages(prev => [...prev, ...convertedMessages]);
+        // ✅ CORREÇÃO: Para paginação, adicionar as mensagens antigas no INÍCIO
+        setMessages(prev => [...convertedMessages.reverse(), ...prev]);
         setCurrentOffset(prev => prev + MESSAGES_LIMIT);
       }
 

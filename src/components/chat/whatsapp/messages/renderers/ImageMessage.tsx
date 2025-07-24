@@ -24,19 +24,46 @@ export const ImageMessage = React.memo(({
   const [retryCount, setRetryCount] = useState(0);
 
   const handleImageLoad = useCallback(() => {
-    console.log(`[ImageMessage] ✅ Imagem carregada: ${messageId}`);
+    // ✅ OTIMIZAÇÃO: Log condicionado para desenvolvimento
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[ImageMessage] ✅ Imagem carregada: ${messageId.substring(0, 8)}`);
+    }
     setImageLoaded(true);
     setImageError(false);
   }, [messageId]);
 
-  const handleImageError = useCallback(() => {
-    console.error(`[ImageMessage] ❌ Erro ao carregar imagem: ${messageId}`);
+  const handleImageError = useCallback((event: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const target = event.target as HTMLImageElement;
+    const errorDetails = {
+      messageId: messageId.substring(0, 8),
+      url: url?.substring(0, 80) + '...',
+      naturalWidth: target.naturalWidth,
+      naturalHeight: target.naturalHeight,
+      retryCount
+    };
+    
+    // ✅ MELHOR TRATAMENTO: Log mais detalhado apenas em desenvolvimento
+    if (process.env.NODE_ENV === 'development') {
+      console.error(`[ImageMessage] ❌ Erro ao carregar imagem:`, errorDetails);
+    }
+    
     setImageError(true);
     setImageLoaded(false);
-  }, [messageId]);
+  }, [messageId, url, retryCount]);
 
   const handleRetry = useCallback(() => {
-    console.log(`[ImageMessage] 🔄 Tentando novamente: ${messageId} (tentativa ${retryCount + 1})`);
+    if (retryCount >= 3) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`[ImageMessage] ⚠️ Limite de tentativas atingido para: ${messageId.substring(0, 8)}`);
+      }
+      return;
+    }
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[ImageMessage] 🔄 Tentando novamente: ${messageId.substring(0, 8)} (tentativa ${retryCount + 1})`);
+    }
+    
+    // ✅ SIMPLES E EFICAZ: React cuida do reload via key change
     setRetryCount(prev => prev + 1);
     setImageError(false);
     setImageLoaded(false);
@@ -63,21 +90,48 @@ export const ImageMessage = React.memo(({
     );
   }
 
-  // Error state
+  // Error state com melhor UX
   if (imageError || !url) {
+    const isUrlError = !url;
+    const isPermanentError = retryCount >= 3;
+    
     return (
-      <div className="w-64 h-40 bg-gray-50 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-200">
+      <div className="w-64 h-40 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-200">
         <div className="text-center p-4">
           <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-          <span className="text-sm text-gray-500 block mb-3">Imagem não disponível</span>
-          {retryCount < 3 && (
+          
+          <span className="text-sm text-gray-600 block mb-2 font-medium">
+            {isUrlError ? 'Imagem indisponível' : 'Erro ao carregar'}
+          </span>
+          
+          <span className="text-xs text-gray-500 block mb-3">
+            {isUrlError 
+              ? 'Link da imagem não foi encontrado' 
+              : isPermanentError 
+                ? 'Imagem pode ter expirado ou estar corrompida'
+                : 'Tente carregar novamente'
+            }
+          </span>
+          
+          {!isUrlError && !isPermanentError && (
             <button
               onClick={handleRetry}
-              className="inline-flex items-center gap-2 text-sm text-blue-500 hover:text-blue-700 transition-colors"
+              className="inline-flex items-center gap-2 text-sm text-blue-500 hover:text-blue-700 transition-colors bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-md"
             >
               <RefreshCw className="w-4 h-4" />
-              Tentar novamente
+              Tentar novamente ({3 - retryCount} tentativas)
             </button>
+          )}
+          
+          {isPermanentError && url && (
+            <a 
+              href={url} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors underline"
+            >
+              Ver link original
+            </a>
           )}
         </div>
       </div>
@@ -108,7 +162,7 @@ export const ImageMessage = React.memo(({
           
           {/* Imagem principal */}
           <img 
-            src={url} 
+            src={retryCount > 0 ? `${url}?retry=${retryCount}&t=${Date.now()}` : url}
             alt="Imagem compartilhada"
             className={cn(
               "max-w-full h-auto rounded-lg object-cover transition-opacity duration-300",
@@ -124,13 +178,12 @@ export const ImageMessage = React.memo(({
               minHeight: imageLoaded ? 'auto' : '160px'
             }}
             key={`${messageId}-${retryCount}`}
+            data-message-id={messageId}
+            referrerPolicy="no-referrer"
           />
         </div>
         
-        {/* Caption */}
-        {caption && caption !== '[Imagem]' && caption !== '[Mensagem não suportada]' && (
-          <p className="text-sm text-gray-700 leading-relaxed break-words">{caption}</p>
-        )}
+                 {/* Caption removido conforme solicitado */}
       </div>
 
       {/* Modal fullscreen */}
