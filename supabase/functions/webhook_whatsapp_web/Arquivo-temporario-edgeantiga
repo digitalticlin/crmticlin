@@ -1,0 +1,353 @@
+{url: 'data:audio/ogg;base64,m862G5DBxi7zOSgK9sOX9DYXKV6r...', fileName: '[Áudio]', isIncoming: true, isLoading: false}
+suppressDragDropWarnings.ts:34 [Realtime] Pools não saudáveis detectadas: {totalPools: 2, totalHandlers: 2, activePools: 0, poolDetails: Array(2)}
+console.warn @ suppressDragDropWarnings.ts:34
+warn @ logger.ts:55
+healthCheck @ realtimePool.ts:198
+(anonymous) @ PerformanceMonitor.tsx:77
+setInterval
+(anonymous) @ PerformanceMonitor.tsx:76
+commitHookEffectListMount @ chunk-UPELNCPK.js?v=8e573394:16915
+commitPassiveMountOnFiber @ chunk-UPELNCPK.js?v=8e573394:18156
+commitPassiveMountEffects_complete @ chunk-UPELNCPK.js?v=8e573394:18129
+commitPassiveMountEffects_begin @ chunk-UPELNCPK.js?v=8e573394:18119
+commitPassiveMountEffects @ chunk-UPELNCPK.js?v=8e573394:18109
+flushPassiveEffectsImpl @ chunk-UPELNCPK.js?v=8e573394:19490
+flushPassiveEffects @ chunk-UPELNCPK.js?v=8e573394:19447
+performSyncWorkOnRoot @ chunk-UPELNCPK.js?v=8e573394:18868
+flushSyncCallbacks @ chunk-UPELNCPK.js?v=8e573394:9119
+commitRootImpl @ chunk-UPELNCPK.js?v=8e573394:19432
+commitRoot @ chunk-UPELNCPK.js?v=8e573394:19277
+finishConcurrentRender @ chunk-UPELNCPK.js?v=8e573394:18805
+performConcurrentWorkOnRoot @ chunk-UPELNCPK.js?v=8e573394:18718
+workLoop @ chunk-UPELNCPK.js?v=8e573394:197
+flushWork @ chunk-UPELNCPK.js?v=8e573394:176
+performWorkUntilDeadline @ chunk-UPELNCPK.js?v=8e573394:384Understand this warning
+PerformanceMonitor.tsx:79 🚨 Conexões realtime não saudáveis detectadas!
+(anonymous) @ PerformanceMonitor.tsx:79
+setInterval
+(anonymous) @ PerformanceMonitor.tsx:76
+commitHookEffectListMount @ chunk-UPELNCPK.js?v=8e573394:16915
+commitPassiveMountOnFiber @ chunk-UPELNCPK.js?v=8e573394:18156
+commitPassiveMountEffects_complete @ chunk-UPELNCPK.js?v=8e573394:18129
+commitPassiveMountEffects_begin @ chunk-UPELNCPK.js?v=8e573394:18119
+commitPassiveMountEffects @ chunk-UPELNCPK.js?v=8e573394:18109
+flushPassiveEffectsImpl @ chunk-UPELNCPK.js?v=8e573394:19490
+flushPassiveEffects @ chunk-UPELNCPK.js?v=8e573394:19447
+performSyncWorkOnRoot @ chunk-UPELNCPK.js?v=8e573394:18868
+flushSyncCallbacks @ chunk-UPELNCPK.js?v=8e573394:9119
+commitRootImpl @ chunk-UPELNCPK.js?v=8e573394:19432
+commitRoot @ chunk-UPELNCPK.js?v=8e573394:19277
+finishConcurrentRender @ chunk-UPELNCPK.js?v=8e573394:18805
+performConcurrentWorkOnRoot @ chunk-UPELNCPK.js?v=8e573394:18718
+workLoop @ chunk-UPELNCPK.js?v=8e573394:197
+flushWork @ chunk-UPELNCPK.js?v=8e573394:176
+performWorkUntilDeadline @ chunk-UPELNCPK.js?v=8e573394:384Understand this error
+useMessagesList.ts:48 [useMessagesList] ✅ Scroll inicial garantido com backup
+logger.ts:53 [Realtime] Pool tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4 status: SUBSCRIBED
+logger.ts:53 [Realtime] Pool lead_tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4 status: SUBSCRIBED
+useMessagesList.ts:48 [useMessagesList] ✅ Scroll inicial garantido com backup
+AudioMessage.tsx:29 [AudioMessage] ❌ Erro ao carregar áudio: 85bcb0e8-36b2-43a6-bc49-83f5a3085d42
+(anonymous) @ AudioMessage.tsx:29
+callCallback2 @ chunk-UPELNCPK.js?v=8e573394:3674
+invokeGuardedCallbackDev @ chunk-UPELNCPK.js?v=8e573394:3699
+invokeGuardedCallback @ chunk-UPELNCPK.js?v=8e573394:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UPELNCPK.js?v=8e573394:3736
+executeDispatch @ chunk-UPELNCPK.js?v=8e573394:7014
+processDispatchQueueItemsInOrder @ chunk-UPELNCPK.js?v=8e573394:7034
+processDispatchQueue @ chunk-UPELNCPK.js?v=8e573394:7043
+dispatchEventsForPlugins @ chunk-UPELNCPK.js?v=8e573394:7051
+(anonymous) @ chunk-UPELNCPK.js?v=8e573394:7174
+batchedUpdates$1 @ chunk-UPELNCPK.js?v=8e573394:18913
+batchedUpdates @ chunk-UPELNCPK.js?v=8e573394:3579
+dispatchEventForPluginEventSystem @ chunk-UPELNCPK.js?v=8e573394:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UPELNCPK.js?v=8e573394:5478
+dispatchEvent @ chunk-UPELNCPK.js?v=8e573394:5472Understand this error
+VideoMessage.tsx:28 [VideoMessage] ❌ Erro ao carregar vídeo: a51b89dd-3480-4f43-ab56-e7f9646a9243
+(anonymous) @ VideoMessage.tsx:28
+callCallback2 @ chunk-UPELNCPK.js?v=8e573394:3674
+invokeGuardedCallbackDev @ chunk-UPELNCPK.js?v=8e573394:3699
+invokeGuardedCallback @ chunk-UPELNCPK.js?v=8e573394:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UPELNCPK.js?v=8e573394:3736
+executeDispatch @ chunk-UPELNCPK.js?v=8e573394:7014
+processDispatchQueueItemsInOrder @ chunk-UPELNCPK.js?v=8e573394:7034
+processDispatchQueue @ chunk-UPELNCPK.js?v=8e573394:7043
+dispatchEventsForPlugins @ chunk-UPELNCPK.js?v=8e573394:7051
+(anonymous) @ chunk-UPELNCPK.js?v=8e573394:7174
+batchedUpdates$1 @ chunk-UPELNCPK.js?v=8e573394:18913
+batchedUpdates @ chunk-UPELNCPK.js?v=8e573394:3579
+dispatchEventForPluginEventSystem @ chunk-UPELNCPK.js?v=8e573394:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UPELNCPK.js?v=8e573394:5478
+dispatchEvent @ chunk-UPELNCPK.js?v=8e573394:5472Understand this error
+VideoMessage.tsx:28 [VideoMessage] ❌ Erro ao carregar vídeo: 4fbde44d-227f-4711-b0f5-6d4021fcb3d8
+(anonymous) @ VideoMessage.tsx:28
+callCallback2 @ chunk-UPELNCPK.js?v=8e573394:3674
+invokeGuardedCallbackDev @ chunk-UPELNCPK.js?v=8e573394:3699
+invokeGuardedCallback @ chunk-UPELNCPK.js?v=8e573394:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UPELNCPK.js?v=8e573394:3736
+executeDispatch @ chunk-UPELNCPK.js?v=8e573394:7014
+processDispatchQueueItemsInOrder @ chunk-UPELNCPK.js?v=8e573394:7034
+processDispatchQueue @ chunk-UPELNCPK.js?v=8e573394:7043
+dispatchEventsForPlugins @ chunk-UPELNCPK.js?v=8e573394:7051
+(anonymous) @ chunk-UPELNCPK.js?v=8e573394:7174
+batchedUpdates$1 @ chunk-UPELNCPK.js?v=8e573394:18913
+batchedUpdates @ chunk-UPELNCPK.js?v=8e573394:3579
+dispatchEventForPluginEventSystem @ chunk-UPELNCPK.js?v=8e573394:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UPELNCPK.js?v=8e573394:5478
+dispatchEvent @ chunk-UPELNCPK.js?v=8e573394:5472Understand this error
+AudioMessage.tsx:29 [AudioMessage] ❌ Erro ao carregar áudio: 5dc5715a-6a97-4f6e-834a-81cc32582cdc
+(anonymous) @ AudioMessage.tsx:29
+callCallback2 @ chunk-UPELNCPK.js?v=8e573394:3674
+invokeGuardedCallbackDev @ chunk-UPELNCPK.js?v=8e573394:3699
+invokeGuardedCallback @ chunk-UPELNCPK.js?v=8e573394:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UPELNCPK.js?v=8e573394:3736
+executeDispatch @ chunk-UPELNCPK.js?v=8e573394:7014
+processDispatchQueueItemsInOrder @ chunk-UPELNCPK.js?v=8e573394:7034
+processDispatchQueue @ chunk-UPELNCPK.js?v=8e573394:7043
+dispatchEventsForPlugins @ chunk-UPELNCPK.js?v=8e573394:7051
+(anonymous) @ chunk-UPELNCPK.js?v=8e573394:7174
+batchedUpdates$1 @ chunk-UPELNCPK.js?v=8e573394:18913
+batchedUpdates @ chunk-UPELNCPK.js?v=8e573394:3579
+dispatchEventForPluginEventSystem @ chunk-UPELNCPK.js?v=8e573394:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UPELNCPK.js?v=8e573394:5478
+dispatchEvent @ chunk-UPELNCPK.js?v=8e573394:5472Understand this error
+AudioMessage.tsx:29 [AudioMessage] ❌ Erro ao carregar áudio: 85bcb0e8-36b2-43a6-bc49-83f5a3085d42
+(anonymous) @ AudioMessage.tsx:29
+callCallback2 @ chunk-UPELNCPK.js?v=8e573394:3674
+invokeGuardedCallbackDev @ chunk-UPELNCPK.js?v=8e573394:3699
+invokeGuardedCallback @ chunk-UPELNCPK.js?v=8e573394:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UPELNCPK.js?v=8e573394:3736
+executeDispatch @ chunk-UPELNCPK.js?v=8e573394:7014
+processDispatchQueueItemsInOrder @ chunk-UPELNCPK.js?v=8e573394:7034
+processDispatchQueue @ chunk-UPELNCPK.js?v=8e573394:7043
+dispatchEventsForPlugins @ chunk-UPELNCPK.js?v=8e573394:7051
+(anonymous) @ chunk-UPELNCPK.js?v=8e573394:7174
+batchedUpdates$1 @ chunk-UPELNCPK.js?v=8e573394:18913
+batchedUpdates @ chunk-UPELNCPK.js?v=8e573394:3579
+dispatchEventForPluginEventSystem @ chunk-UPELNCPK.js?v=8e573394:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UPELNCPK.js?v=8e573394:5478
+dispatchEvent @ chunk-UPELNCPK.js?v=8e573394:5472Understand this error
+VideoMessage.tsx:28 [VideoMessage] ❌ Erro ao carregar vídeo: a51b89dd-3480-4f43-ab56-e7f9646a9243
+(anonymous) @ VideoMessage.tsx:28
+callCallback2 @ chunk-UPELNCPK.js?v=8e573394:3674
+invokeGuardedCallbackDev @ chunk-UPELNCPK.js?v=8e573394:3699
+invokeGuardedCallback @ chunk-UPELNCPK.js?v=8e573394:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UPELNCPK.js?v=8e573394:3736
+executeDispatch @ chunk-UPELNCPK.js?v=8e573394:7014
+processDispatchQueueItemsInOrder @ chunk-UPELNCPK.js?v=8e573394:7034
+processDispatchQueue @ chunk-UPELNCPK.js?v=8e573394:7043
+dispatchEventsForPlugins @ chunk-UPELNCPK.js?v=8e573394:7051
+(anonymous) @ chunk-UPELNCPK.js?v=8e573394:7174
+batchedUpdates$1 @ chunk-UPELNCPK.js?v=8e573394:18913
+batchedUpdates @ chunk-UPELNCPK.js?v=8e573394:3579
+dispatchEventForPluginEventSystem @ chunk-UPELNCPK.js?v=8e573394:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UPELNCPK.js?v=8e573394:5478
+dispatchEvent @ chunk-UPELNCPK.js?v=8e573394:5472Understand this error
+VideoMessage.tsx:28 [VideoMessage] ❌ Erro ao carregar vídeo: 4fbde44d-227f-4711-b0f5-6d4021fcb3d8
+(anonymous) @ VideoMessage.tsx:28
+callCallback2 @ chunk-UPELNCPK.js?v=8e573394:3674
+invokeGuardedCallbackDev @ chunk-UPELNCPK.js?v=8e573394:3699
+invokeGuardedCallback @ chunk-UPELNCPK.js?v=8e573394:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UPELNCPK.js?v=8e573394:3736
+executeDispatch @ chunk-UPELNCPK.js?v=8e573394:7014
+processDispatchQueueItemsInOrder @ chunk-UPELNCPK.js?v=8e573394:7034
+processDispatchQueue @ chunk-UPELNCPK.js?v=8e573394:7043
+dispatchEventsForPlugins @ chunk-UPELNCPK.js?v=8e573394:7051
+(anonymous) @ chunk-UPELNCPK.js?v=8e573394:7174
+batchedUpdates$1 @ chunk-UPELNCPK.js?v=8e573394:18913
+batchedUpdates @ chunk-UPELNCPK.js?v=8e573394:3579
+dispatchEventForPluginEventSystem @ chunk-UPELNCPK.js?v=8e573394:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UPELNCPK.js?v=8e573394:5478
+dispatchEvent @ chunk-UPELNCPK.js?v=8e573394:5472Understand this error
+AudioMessage.tsx:29 [AudioMessage] ❌ Erro ao carregar áudio: 5dc5715a-6a97-4f6e-834a-81cc32582cdc
+(anonymous) @ AudioMessage.tsx:29
+callCallback2 @ chunk-UPELNCPK.js?v=8e573394:3674
+invokeGuardedCallbackDev @ chunk-UPELNCPK.js?v=8e573394:3699
+invokeGuardedCallback @ chunk-UPELNCPK.js?v=8e573394:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UPELNCPK.js?v=8e573394:3736
+executeDispatch @ chunk-UPELNCPK.js?v=8e573394:7014
+processDispatchQueueItemsInOrder @ chunk-UPELNCPK.js?v=8e573394:7034
+processDispatchQueue @ chunk-UPELNCPK.js?v=8e573394:7043
+dispatchEventsForPlugins @ chunk-UPELNCPK.js?v=8e573394:7051
+(anonymous) @ chunk-UPELNCPK.js?v=8e573394:7174
+batchedUpdates$1 @ chunk-UPELNCPK.js?v=8e573394:18913
+batchedUpdates @ chunk-UPELNCPK.js?v=8e573394:3579
+dispatchEventForPluginEventSystem @ chunk-UPELNCPK.js?v=8e573394:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UPELNCPK.js?v=8e573394:5478
+dispatchEvent @ chunk-UPELNCPK.js?v=8e573394:5472Understand this error
+ImageMessage.tsx:47 [ImageMessage] ❌ Erro ao carregar imagem: {messageId: '69d0f866', url: 'data:application/octet-stream;base64,5j/mp/jZ1DOIiJrQGi39E3RJ6bE3D3pLI6BcRvZ3zyC...', naturalWidth: 0, naturalHeight: 0, retryCount: 0}
+(anonymous) @ ImageMessage.tsx:47
+callCallback2 @ chunk-UPELNCPK.js?v=8e573394:3674
+invokeGuardedCallbackDev @ chunk-UPELNCPK.js?v=8e573394:3699
+invokeGuardedCallback @ chunk-UPELNCPK.js?v=8e573394:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UPELNCPK.js?v=8e573394:3736
+executeDispatch @ chunk-UPELNCPK.js?v=8e573394:7014
+processDispatchQueueItemsInOrder @ chunk-UPELNCPK.js?v=8e573394:7034
+processDispatchQueue @ chunk-UPELNCPK.js?v=8e573394:7043
+dispatchEventsForPlugins @ chunk-UPELNCPK.js?v=8e573394:7051
+(anonymous) @ chunk-UPELNCPK.js?v=8e573394:7174
+batchedUpdates$1 @ chunk-UPELNCPK.js?v=8e573394:18913
+batchedUpdates @ chunk-UPELNCPK.js?v=8e573394:3579
+dispatchEventForPluginEventSystem @ chunk-UPELNCPK.js?v=8e573394:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UPELNCPK.js?v=8e573394:5478
+dispatchEvent @ chunk-UPELNCPK.js?v=8e573394:5472Understand this error
+ImageMessage.tsx:47 [ImageMessage] ❌ Erro ao carregar imagem: {messageId: '69d0f866', url: 'data:application/octet-stream;base64,5j/mp/jZ1DOIiJrQGi39E3RJ6bE3D3pLI6BcRvZ3zyC...', naturalWidth: 0, naturalHeight: 0, retryCount: 0}
+(anonymous) @ ImageMessage.tsx:47
+callCallback2 @ chunk-UPELNCPK.js?v=8e573394:3674
+invokeGuardedCallbackDev @ chunk-UPELNCPK.js?v=8e573394:3699
+invokeGuardedCallback @ chunk-UPELNCPK.js?v=8e573394:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UPELNCPK.js?v=8e573394:3736
+executeDispatch @ chunk-UPELNCPK.js?v=8e573394:7014
+processDispatchQueueItemsInOrder @ chunk-UPELNCPK.js?v=8e573394:7034
+processDispatchQueue @ chunk-UPELNCPK.js?v=8e573394:7043
+dispatchEventsForPlugins @ chunk-UPELNCPK.js?v=8e573394:7051
+(anonymous) @ chunk-UPELNCPK.js?v=8e573394:7174
+batchedUpdates$1 @ chunk-UPELNCPK.js?v=8e573394:18913
+batchedUpdates @ chunk-UPELNCPK.js?v=8e573394:3579
+dispatchEventForPluginEventSystem @ chunk-UPELNCPK.js?v=8e573394:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UPELNCPK.js?v=8e573394:5478
+dispatchEvent @ chunk-UPELNCPK.js?v=8e573394:5472Understand this error
+ImageMessage.tsx:47 [ImageMessage] ❌ Erro ao carregar imagem: {messageId: 'aad77df0', url: 'data:application/octet-stream;base64,5j/mp/jZ1DOIiJrQGi39E3RJ6bE3D3pLI6BcRvZ3zyC...', naturalWidth: 0, naturalHeight: 0, retryCount: 0}
+(anonymous) @ ImageMessage.tsx:47
+callCallback2 @ chunk-UPELNCPK.js?v=8e573394:3674
+invokeGuardedCallbackDev @ chunk-UPELNCPK.js?v=8e573394:3699
+invokeGuardedCallback @ chunk-UPELNCPK.js?v=8e573394:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UPELNCPK.js?v=8e573394:3736
+executeDispatch @ chunk-UPELNCPK.js?v=8e573394:7014
+processDispatchQueueItemsInOrder @ chunk-UPELNCPK.js?v=8e573394:7034
+processDispatchQueue @ chunk-UPELNCPK.js?v=8e573394:7043
+dispatchEventsForPlugins @ chunk-UPELNCPK.js?v=8e573394:7051
+(anonymous) @ chunk-UPELNCPK.js?v=8e573394:7174
+batchedUpdates$1 @ chunk-UPELNCPK.js?v=8e573394:18913
+batchedUpdates @ chunk-UPELNCPK.js?v=8e573394:3579
+dispatchEventForPluginEventSystem @ chunk-UPELNCPK.js?v=8e573394:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UPELNCPK.js?v=8e573394:5478
+dispatchEvent @ chunk-UPELNCPK.js?v=8e573394:5472Understand this error
+ImageMessage.tsx:47 [ImageMessage] ❌ Erro ao carregar imagem: {messageId: 'aad77df0', url: 'data:application/octet-stream;base64,5j/mp/jZ1DOIiJrQGi39E3RJ6bE3D3pLI6BcRvZ3zyC...', naturalWidth: 0, naturalHeight: 0, retryCount: 0}
+(anonymous) @ ImageMessage.tsx:47
+callCallback2 @ chunk-UPELNCPK.js?v=8e573394:3674
+invokeGuardedCallbackDev @ chunk-UPELNCPK.js?v=8e573394:3699
+invokeGuardedCallback @ chunk-UPELNCPK.js?v=8e573394:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UPELNCPK.js?v=8e573394:3736
+executeDispatch @ chunk-UPELNCPK.js?v=8e573394:7014
+processDispatchQueueItemsInOrder @ chunk-UPELNCPK.js?v=8e573394:7034
+processDispatchQueue @ chunk-UPELNCPK.js?v=8e573394:7043
+dispatchEventsForPlugins @ chunk-UPELNCPK.js?v=8e573394:7051
+(anonymous) @ chunk-UPELNCPK.js?v=8e573394:7174
+batchedUpdates$1 @ chunk-UPELNCPK.js?v=8e573394:18913
+batchedUpdates @ chunk-UPELNCPK.js?v=8e573394:3579
+dispatchEventForPluginEventSystem @ chunk-UPELNCPK.js?v=8e573394:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UPELNCPK.js?v=8e573394:5478
+dispatchEvent @ chunk-UPELNCPK.js?v=8e573394:5472Understand this error
+ImageMessage.tsx:47 [ImageMessage] ❌ Erro ao carregar imagem: {messageId: 'ce5919d4', url: 'data:image/jpeg;base64,5j/mp/jZ1DOIiJrQGi39E3RJ6bE3D3pLI6BcRvZ3zyCh2Bb0TI/5aH3X9...', naturalWidth: 0, naturalHeight: 0, retryCount: 0}
+(anonymous) @ ImageMessage.tsx:47
+callCallback2 @ chunk-UPELNCPK.js?v=8e573394:3674
+invokeGuardedCallbackDev @ chunk-UPELNCPK.js?v=8e573394:3699
+invokeGuardedCallback @ chunk-UPELNCPK.js?v=8e573394:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UPELNCPK.js?v=8e573394:3736
+executeDispatch @ chunk-UPELNCPK.js?v=8e573394:7014
+processDispatchQueueItemsInOrder @ chunk-UPELNCPK.js?v=8e573394:7034
+processDispatchQueue @ chunk-UPELNCPK.js?v=8e573394:7043
+dispatchEventsForPlugins @ chunk-UPELNCPK.js?v=8e573394:7051
+(anonymous) @ chunk-UPELNCPK.js?v=8e573394:7174
+batchedUpdates$1 @ chunk-UPELNCPK.js?v=8e573394:18913
+batchedUpdates @ chunk-UPELNCPK.js?v=8e573394:3579
+dispatchEventForPluginEventSystem @ chunk-UPELNCPK.js?v=8e573394:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UPELNCPK.js?v=8e573394:5478
+dispatchEvent @ chunk-UPELNCPK.js?v=8e573394:5472Understand this error
+ImageMessage.tsx:47 [ImageMessage] ❌ Erro ao carregar imagem: {messageId: '094c46b6', url: 'data:image/jpeg;base64,5j/mp/jZ1DOIiJrQGi39E3RJ6bE3D3pLI6BcRvZ3zyCh2Bb0TI/5aH3X9...', naturalWidth: 0, naturalHeight: 0, retryCount: 0}
+(anonymous) @ ImageMessage.tsx:47
+callCallback2 @ chunk-UPELNCPK.js?v=8e573394:3674
+invokeGuardedCallbackDev @ chunk-UPELNCPK.js?v=8e573394:3699
+invokeGuardedCallback @ chunk-UPELNCPK.js?v=8e573394:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UPELNCPK.js?v=8e573394:3736
+executeDispatch @ chunk-UPELNCPK.js?v=8e573394:7014
+processDispatchQueueItemsInOrder @ chunk-UPELNCPK.js?v=8e573394:7034
+processDispatchQueue @ chunk-UPELNCPK.js?v=8e573394:7043
+dispatchEventsForPlugins @ chunk-UPELNCPK.js?v=8e573394:7051
+(anonymous) @ chunk-UPELNCPK.js?v=8e573394:7174
+batchedUpdates$1 @ chunk-UPELNCPK.js?v=8e573394:18913
+batchedUpdates @ chunk-UPELNCPK.js?v=8e573394:3579
+dispatchEventForPluginEventSystem @ chunk-UPELNCPK.js?v=8e573394:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UPELNCPK.js?v=8e573394:5478
+dispatchEvent @ chunk-UPELNCPK.js?v=8e573394:5472Understand this error
+ImageMessage.tsx:47 [ImageMessage] ❌ Erro ao carregar imagem: {messageId: 'ce5919d4', url: 'data:image/jpeg;base64,5j/mp/jZ1DOIiJrQGi39E3RJ6bE3D3pLI6BcRvZ3zyCh2Bb0TI/5aH3X9...', naturalWidth: 0, naturalHeight: 0, retryCount: 0}
+(anonymous) @ ImageMessage.tsx:47
+callCallback2 @ chunk-UPELNCPK.js?v=8e573394:3674
+invokeGuardedCallbackDev @ chunk-UPELNCPK.js?v=8e573394:3699
+invokeGuardedCallback @ chunk-UPELNCPK.js?v=8e573394:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UPELNCPK.js?v=8e573394:3736
+executeDispatch @ chunk-UPELNCPK.js?v=8e573394:7014
+processDispatchQueueItemsInOrder @ chunk-UPELNCPK.js?v=8e573394:7034
+processDispatchQueue @ chunk-UPELNCPK.js?v=8e573394:7043
+dispatchEventsForPlugins @ chunk-UPELNCPK.js?v=8e573394:7051
+(anonymous) @ chunk-UPELNCPK.js?v=8e573394:7174
+batchedUpdates$1 @ chunk-UPELNCPK.js?v=8e573394:18913
+batchedUpdates @ chunk-UPELNCPK.js?v=8e573394:3579
+dispatchEventForPluginEventSystem @ chunk-UPELNCPK.js?v=8e573394:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UPELNCPK.js?v=8e573394:5478
+dispatchEvent @ chunk-UPELNCPK.js?v=8e573394:5472Understand this error
+ImageMessage.tsx:47 [ImageMessage] ❌ Erro ao carregar imagem: {messageId: '094c46b6', url: 'data:image/jpeg;base64,5j/mp/jZ1DOIiJrQGi39E3RJ6bE3D3pLI6BcRvZ3zyCh2Bb0TI/5aH3X9...', naturalWidth: 0, naturalHeight: 0, retryCount: 0}
+(anonymous) @ ImageMessage.tsx:47
+callCallback2 @ chunk-UPELNCPK.js?v=8e573394:3674
+invokeGuardedCallbackDev @ chunk-UPELNCPK.js?v=8e573394:3699
+invokeGuardedCallback @ chunk-UPELNCPK.js?v=8e573394:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UPELNCPK.js?v=8e573394:3736
+executeDispatch @ chunk-UPELNCPK.js?v=8e573394:7014
+processDispatchQueueItemsInOrder @ chunk-UPELNCPK.js?v=8e573394:7034
+processDispatchQueue @ chunk-UPELNCPK.js?v=8e573394:7043
+dispatchEventsForPlugins @ chunk-UPELNCPK.js?v=8e573394:7051
+(anonymous) @ chunk-UPELNCPK.js?v=8e573394:7174
+batchedUpdates$1 @ chunk-UPELNCPK.js?v=8e573394:18913
+batchedUpdates @ chunk-UPELNCPK.js?v=8e573394:3579
+dispatchEventForPluginEventSystem @ chunk-UPELNCPK.js?v=8e573394:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UPELNCPK.js?v=8e573394:5478
+dispatchEvent @ chunk-UPELNCPK.js?v=8e573394:5472Understand this error
+AudioMessage.tsx:29 [AudioMessage] ❌ Erro ao carregar áudio: 49e6e233-f794-4cd6-b91b-57ca6eb755f9
+(anonymous) @ AudioMessage.tsx:29
+callCallback2 @ chunk-UPELNCPK.js?v=8e573394:3674
+invokeGuardedCallbackDev @ chunk-UPELNCPK.js?v=8e573394:3699
+invokeGuardedCallback @ chunk-UPELNCPK.js?v=8e573394:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UPELNCPK.js?v=8e573394:3736
+executeDispatch @ chunk-UPELNCPK.js?v=8e573394:7014
+processDispatchQueueItemsInOrder @ chunk-UPELNCPK.js?v=8e573394:7034
+processDispatchQueue @ chunk-UPELNCPK.js?v=8e573394:7043
+dispatchEventsForPlugins @ chunk-UPELNCPK.js?v=8e573394:7051
+(anonymous) @ chunk-UPELNCPK.js?v=8e573394:7174
+batchedUpdates$1 @ chunk-UPELNCPK.js?v=8e573394:18913
+batchedUpdates @ chunk-UPELNCPK.js?v=8e573394:3579
+dispatchEventForPluginEventSystem @ chunk-UPELNCPK.js?v=8e573394:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UPELNCPK.js?v=8e573394:5478
+dispatchEvent @ chunk-UPELNCPK.js?v=8e573394:5472Understand this error
+AudioMessage.tsx:29 [AudioMessage] ❌ Erro ao carregar áudio: c58f8bc9-093f-43b6-a3e6-8f0865d38440
+(anonymous) @ AudioMessage.tsx:29
+callCallback2 @ chunk-UPELNCPK.js?v=8e573394:3674
+invokeGuardedCallbackDev @ chunk-UPELNCPK.js?v=8e573394:3699
+invokeGuardedCallback @ chunk-UPELNCPK.js?v=8e573394:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UPELNCPK.js?v=8e573394:3736
+executeDispatch @ chunk-UPELNCPK.js?v=8e573394:7014
+processDispatchQueueItemsInOrder @ chunk-UPELNCPK.js?v=8e573394:7034
+processDispatchQueue @ chunk-UPELNCPK.js?v=8e573394:7043
+dispatchEventsForPlugins @ chunk-UPELNCPK.js?v=8e573394:7051
+(anonymous) @ chunk-UPELNCPK.js?v=8e573394:7174
+batchedUpdates$1 @ chunk-UPELNCPK.js?v=8e573394:18913
+batchedUpdates @ chunk-UPELNCPK.js?v=8e573394:3579
+dispatchEventForPluginEventSystem @ chunk-UPELNCPK.js?v=8e573394:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UPELNCPK.js?v=8e573394:5478
+dispatchEvent @ chunk-UPELNCPK.js?v=8e573394:5472Understand this error
+AudioMessage.tsx:29 [AudioMessage] ❌ Erro ao carregar áudio: 49e6e233-f794-4cd6-b91b-57ca6eb755f9
+(anonymous) @ AudioMessage.tsx:29
+callCallback2 @ chunk-UPELNCPK.js?v=8e573394:3674
+invokeGuardedCallbackDev @ chunk-UPELNCPK.js?v=8e573394:3699
+invokeGuardedCallback @ chunk-UPELNCPK.js?v=8e573394:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-UPELNCPK.js?v=8e573394:3736
+executeDispatch @ chunk-UPELNCPK.js?v=8e573394:7014
+processDispatchQueueItemsInOrder @ chunk-UPELNCPK.js?v=8e573394:7034
+processDispatchQueue @ chunk-UPELNCPK.js?v=8e573394:7043
+dispatchEventsForPlugins @ chunk-UPELNCPK.js?v=8e573394:7051
+(anonymous) @ chunk-UPELNCPK.js?v=8e573394:7174
+batchedUpdates$1 @ chunk-UPELNCPK.js?v=8e573394:18913
+batchedUpdates @ chunk-UPELNCPK.js?v=8e573394:3579
+dispatchEventForPluginEventSystem @ chunk-UPELNCPK.js?v=8e573394:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-UPELNCPK.js?v=8e573394:5478
+dispatchEvent @ chunk-UPELNCPK.js?v=8e573394:5472Understand this error
+AudioMessage.tsx:29 [AudioMessage] ❌ Erro ao carregar áudio: c58f8bc9-093f-43b6-a3e6-8f0865d38440

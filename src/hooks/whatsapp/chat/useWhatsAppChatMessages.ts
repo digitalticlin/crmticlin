@@ -75,7 +75,7 @@ export const useWhatsAppChatMessages = (
         limit: MESSAGES_LIMIT
       });
 
-      // ✅ CORRIGIDO: Incluir media_cache na query
+      // ✅ CORRIGIDO: Incluir media_cache na query com todos os campos necessários
       const { data: messagesData, error } = await supabase
         .from('messages')
         .select(`
@@ -84,8 +84,10 @@ export const useWhatsAppChatMessages = (
             id,
             base64_data,
             original_url,
+            cached_url,
             file_size,
-            media_type
+            media_type,
+            file_name
           )
         `)
         .eq('lead_id', currentContact.id)
@@ -329,6 +331,8 @@ export const useWhatsAppChatMessages = (
         fetchMessages(0, true);
     }
   }, [selectedContact?.id, activeInstance?.id]); // 🚀 APENAS IDs como dependências
+
+
 
   return {
     messages,

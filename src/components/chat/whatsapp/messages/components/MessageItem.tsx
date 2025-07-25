@@ -21,8 +21,8 @@ export const MessageItem = memo(({
     return message.mediaType && 
            message.mediaType !== 'text' && 
            ['image', 'video', 'audio', 'document'].includes(message.mediaType) &&
-           message.mediaUrl;
-  }, [message.mediaType, message.mediaUrl]);
+           (message.mediaUrl || message.media_cache);
+  }, [message.mediaType, message.mediaUrl, message.media_cache]);
 
   // Renderizar ícone de status como no WhatsApp
   const renderStatusIcon = useMemo(() => {

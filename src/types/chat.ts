@@ -62,6 +62,9 @@ export interface Message {
   mediaUrl?: string;
   // ✅ NOVO: Incluir media_cache
   media_cache?: MediaCache | null;
+  // ✅ DEBUGGING: Campos para debugging de mídia
+  hasMediaCache?: boolean;
+  mediaCacheId?: string;
 }
 
 import { KanbanTag } from "./kanban";

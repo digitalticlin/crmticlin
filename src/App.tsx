@@ -12,16 +12,15 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Index';
 import Register from './pages/Register';
-import AdminPanel from './pages/Admin';
 import WhatsAppIntegration from './pages/Integration';
 import FunnelsPage from './pages/SalesFunnel';
 import LeadsPage from './pages/Clients';
 import SettingsPage from './pages/Settings';
 import WhatsAppWebPage from './pages/WhatsAppChat';
-import GlobalAdmin from './pages/GlobalAdmin';
 import AutomationPage from './pages/Automation';
 import AIAgentsPage from './pages/AIAgents';
 import PlansPage from './pages/Plans';
+import MediaDebug from './pages/MediaDebug';
 
 // 🚀 DECLARAÇÃO GLOBAL PARA TYPESCRIPT
 declare global {
@@ -193,14 +192,6 @@ function App() {
                     } 
                   />
                   <Route 
-                    path="/admin" 
-                    element={
-                      <ProtectedRoute>
-                        <AdminPanel />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
                     path="/whatsapp-web" 
                     element={
                       <ProtectedRoute>
@@ -209,10 +200,10 @@ function App() {
                     } 
                   />
                   <Route 
-                    path="/global-admin/*" 
+                    path="/debug/media" 
                     element={
                       <ProtectedRoute>
-                        <GlobalAdmin />
+                        <MediaDebug />
                       </ProtectedRoute>
                     } 
                   />

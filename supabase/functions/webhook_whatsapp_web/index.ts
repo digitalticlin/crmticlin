@@ -5,6 +5,225 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // Declarações de tipo para resolver erros
 declare const Deno: any;
 
+// ✅ PROCESSADOR DE MÍDIA INTEGRADO
+interface MediaProcessorOptions {
+  messageId: string;
+  mediaUrl: string;
+  mediaType: string;
+  externalMessageId?: string;
+}
+
+interface ProcessedMediaResult {
+  success: boolean;
+  cacheId?: string;
+  base64Data?: string;
+  fileSize?: number;
+  error?: string;
+}
+
+class MediaProcessor {
+  private static supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  );
+
+  /**
+   * ✅ PROCESSO COMPLETO: Baixar mídia e criar cache com Base64
+   */
+  static async processMediaForMessage(options: MediaProcessorOptions): Promise<ProcessedMediaResult> {
+    const { messageId, mediaUrl, mediaType, externalMessageId } = options;
+    
+    try {
+      console.log(`[MediaProcessor] 🚀 Processando mídia: ${messageId} (${mediaType})`);
+      
+      // ETAPA 1: Baixar mídia da URL original
+      const mediaData = await this.downloadMedia(mediaUrl);
+      if (!mediaData.success) {
+        return { success: false, error: mediaData.error };
+      }
+
+             // ETAPA 2: Verificar tamanho antes de processar Base64
+       const fileSize = mediaData.buffer!.byteLength;
+       const shouldSaveBase64 = this.shouldSaveAsBase64(mediaType, fileSize);
+       
+       // ETAPA 3: Converter para Base64 APENAS se necessário (otimização)
+       let base64Data = '';
+       if (shouldSaveBase64) {
+         console.log(`[MediaProcessor] 🔄 Convertendo para Base64 (arquivo pequeno: ${(fileSize/1024).toFixed(1)}KB)`);
+         base64Data = await this.convertToBase64(mediaData.buffer!);
+       } else {
+         console.log(`[MediaProcessor] ⚡ Pulando Base64 (arquivo grande: ${(fileSize/1024).toFixed(1)}KB) - apenas Storage`);
+       }
+      
+      console.log(`[MediaProcessor] 📊 Arquivo ${mediaType}: ${(fileSize / 1024).toFixed(1)}KB - Base64: ${shouldSaveBase64 ? 'SIM' : 'NÃO'}`);
+
+      // ETAPA 4: Salvar no Storage (sempre)
+      const storageResult = await this.saveToStorage(messageId, mediaData.buffer!, mediaType);
+      
+      // ETAPA 5: Criar/Atualizar media_cache
+      const { data: cacheData, error: cacheError } = await this.supabase
+        .from('media_cache')
+        .upsert({
+          message_id: messageId,
+          external_message_id: externalMessageId,
+          original_url: mediaUrl,
+          cached_url: storageResult.publicUrl,
+          base64_data: shouldSaveBase64 ? base64Data : null,
+          file_size: fileSize,
+          media_type: mediaType,
+          file_name: this.generateFileName(externalMessageId, mediaType),
+          created_at: new Date().toISOString()
+        }, {
+          onConflict: 'message_id',
+          ignoreDuplicates: false
+        })
+        .select('id')
+        .single();
+
+      if (cacheError) {
+        console.error(`[MediaProcessor] ❌ Erro ao salvar cache: ${cacheError.message}`);
+        return { success: false, error: cacheError.message };
+      }
+
+      console.log(`[MediaProcessor] ✅ Mídia processada com sucesso: ${cacheData.id}`);
+      
+      return {
+        success: true,
+        cacheId: cacheData.id,
+        base64Data: shouldSaveBase64 ? base64Data : undefined,
+        fileSize
+      };
+
+    } catch (error) {
+      console.error(`[MediaProcessor] ❌ Erro geral: ${error.message}`);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Baixar mídia da URL
+   */
+  private static async downloadMedia(url: string): Promise<{ success: boolean; buffer?: ArrayBuffer; error?: string }> {
+    try {
+      console.log(`[MediaProcessor] 📥 Baixando mídia: ${url.substring(0, 80)}...`);
+      
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'WhatsApp/2.23.20.0',
+          'Accept': '*/*'
+        }
+      });
+
+      if (!response.ok) {
+        return { success: false, error: `HTTP ${response.status}: ${response.statusText}` };
+      }
+
+      const buffer = await response.arrayBuffer();
+      console.log(`[MediaProcessor] ✅ Mídia baixada: ${(buffer.byteLength / 1024).toFixed(1)}KB`);
+      
+      return { success: true, buffer };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Converter ArrayBuffer para Base64 com processamento seguro para dados binários
+   */
+  private static async convertToBase64(buffer: ArrayBuffer): Promise<string> {
+    // ✅ CORREÇÃO CRÍTICA: Usar método nativo do Deno para dados binários
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    
+    // ✅ MÉTODO CORRETO: Converter byte por byte para evitar corrupção
+    for (let i = 0; i < bytes.length; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    
+    return btoa(binary);
+  }
+
+  /**
+   * Decidir se deve salvar como Base64 (arquivos pequenos) ou só metadados
+   * ✅ LIMITES SEGUROS PARA EVITAR MEMORY OVERFLOW
+   */
+  private static shouldSaveAsBase64(mediaType: string, fileSize: number): boolean {
+    // ✅ LIMITES OTIMIZADOS PARA WHATSAPP (BALANCEAMENTO PERFORMANCE/UX)
+    const maxSizeForBase64 = {
+      'image': 800 * 1024,      // 800KB para imagens (suporta fotos WhatsApp típicas)
+      'audio': 150 * 1024,      // 150KB para áudios (aumentado para melhor UX)
+      'video': 0,               // Nunca salvar vídeos como Base64 (sempre Storage)
+      'document': 100 * 1024    // 100KB para documentos (PDFs pequenos)
+    };
+
+    const limit = maxSizeForBase64[mediaType as keyof typeof maxSizeForBase64] || 0;
+    const shouldSave = fileSize <= limit;
+    
+    console.log(`[MediaProcessor] 📊 Base64 check: ${mediaType} ${(fileSize/1024).toFixed(1)}KB - Limite: ${(limit/1024).toFixed(1)}KB - Resultado: ${shouldSave ? 'SALVAR' : 'STORAGE ONLY'}`);
+    
+    return shouldSave;
+  }
+
+  /**
+   * Salvar no Supabase Storage
+   */
+  private static async saveToStorage(messageId: string, buffer: ArrayBuffer, mediaType: string): Promise<{ publicUrl: string }> {
+    const fileExtension = this.getFileExtension(mediaType);
+    const fileName = `${messageId}_${Date.now()}.${fileExtension}`;
+    
+    const { data: uploadData, error: uploadError } = await this.supabase.storage
+      .from('whatsapp-media')
+      .upload(fileName, buffer, {
+        contentType: this.getMimeType(mediaType),
+        upsert: true
+      });
+
+    if (uploadError) {
+      throw new Error(`Erro ao fazer upload: ${uploadError.message}`);
+    }
+
+    const { data: urlData } = this.supabase.storage
+      .from('whatsapp-media')
+      .getPublicUrl(fileName);
+
+    return { publicUrl: urlData.publicUrl };
+  }
+
+  /**
+   * Gerar nome do arquivo
+   */
+  private static generateFileName(externalId?: string, mediaType?: string): string {
+    const prefix = externalId ? externalId.substring(0, 20) : 'unknown';
+    return `${prefix}_${mediaType || 'media'}`;
+  }
+
+  /**
+   * Obter extensão do arquivo baseado no tipo
+   */
+  private static getFileExtension(mediaType: string): string {
+    switch (mediaType) {
+      case 'image': return 'jpg';
+      case 'video': return 'mp4';
+      case 'audio': return 'ogg';
+      case 'document': return 'pdf';
+      default: return 'bin';
+    }
+  }
+
+  /**
+   * Obter MIME type
+   */
+  private static getMimeType(mediaType: string): string {
+    switch (mediaType) {
+      case 'image': return 'image/jpeg';
+      case 'video': return 'video/mp4';
+      case 'audio': return 'audio/ogg';
+      case 'document': return 'application/pdf';
+      default: return 'application/octet-stream';
+    }
+  }
+}
+
 // ✅ TIPOS OTIMIZADOS PARA PROCESSAMENTO DE MÍDIA
 interface ProcessedMediaData {
   cacheId: string;
@@ -87,7 +306,14 @@ serve(async (req) => {
     console.log(`[${requestId}] 💬 Processando mensagem com MÍDIA OTIMIZADA para: ${instanceId}`);
 
     // 2. EXTRAIR DADOS DA MENSAGEM
-    const messageType = data.messageType || body.messageType || 'text';
+    let messageType = data.messageType || body.messageType || 'text';
+    
+    // ✅ CORREÇÃO: Mapear tipos não suportados para 'text'
+    const validMediaTypes = ['text', 'image', 'video', 'audio', 'document'];
+    if (!validMediaTypes.includes(messageType)) {
+      console.log(`[${requestId}] ⚠️ Tipo não suportado '${messageType}', convertendo para 'text'`);
+      messageType = 'text';
+    }
     const messageText = data.body || body.message?.text || '[Mensagem não suportada]';
     const fromPhone = data.from?.replace('@s.whatsapp.net', '') || body.from?.replace('@s.whatsapp.net', '') || '';
     const messageId = data.messageId || body.data?.messageId;
@@ -96,24 +322,39 @@ serve(async (req) => {
     
     console.log(`[${requestId}] 📱 Telefone processado: ${fromPhone}`);
     
-    // ✅ FORMATAÇÃO DO NOME PARA PADRÃO WHATSAPP
+    // ✅ FORMATAÇÃO DO NOME PARA PADRÃO WHATSAPP (CORRIGIDO - SEM DUPLICAR +55)
     let formattedContactName = body.contactName || null;
     
     if (!formattedContactName) {
-      if (fromPhone && fromPhone.length >= 12 && fromPhone.startsWith('55')) {
-        const countryCode = fromPhone.substring(0, 2);
-        const areaCode = fromPhone.substring(2, 4);
-        const number = fromPhone.substring(4);
-        
-        if (number.length === 9) {
-          formattedContactName = `+${countryCode} ${areaCode} ${number.substring(0, 5)}-${number.substring(5)}`;
-        } else if (number.length === 8) {
-          formattedContactName = `+${countryCode} ${areaCode} ${number.substring(0, 4)}-${number.substring(4)}`;
+      if (fromPhone && fromPhone.length >= 11) {
+        // ✅ CORREÇÃO: Verificar se já tem código do país brasileiro (55)
+        if (fromPhone.startsWith('55') && fromPhone.length >= 12) {
+          // ✅ JÁ TEM CÓDIGO DO PAÍS - não duplicar
+          const areaCode = fromPhone.substring(2, 4);
+          const number = fromPhone.substring(4);
+          
+          if (number.length === 9) {
+            formattedContactName = `+55 (${areaCode}) ${number.substring(0, 5)}-${number.substring(5)}`;
+          } else if (number.length === 8) {
+            formattedContactName = `+55 (${areaCode}) ${number.substring(0, 4)}-${number.substring(4)}`;
+          } else {
+            formattedContactName = `+55 (${areaCode}) ${number}`;
+          }
         } else {
-          formattedContactName = `+${countryCode} ${areaCode} ${number}`;
+          // ✅ NÃO TEM CÓDIGO DO PAÍS - assumir Brasil e adicionar 55
+          const areaCode = fromPhone.substring(0, 2);
+          const number = fromPhone.substring(2);
+          
+          if (number.length === 9) {
+            formattedContactName = `+55 (${areaCode}) ${number.substring(0, 5)}-${number.substring(5)}`;
+          } else if (number.length === 8) {
+            formattedContactName = `+55 (${areaCode}) ${number.substring(0, 4)}-${number.substring(4)}`;
+          } else {
+            formattedContactName = `+55 (${areaCode}) ${number}`;
+          }
         }
       } else {
-        formattedContactName = `+${fromPhone}`;
+        formattedContactName = `+55 ${fromPhone}`;
       }
     }
 
@@ -130,7 +371,7 @@ serve(async (req) => {
         p_message_text: messageText,
         p_from_me: isFromMe,
         p_media_type: messageType,
-        p_media_url: null, // ✅ Será atualizado após processamento
+                 p_media_url: undefined, // ✅ Será atualizado após processamento
         p_external_message_id: messageId,
         p_contact_name: formattedContactName
       }
@@ -147,7 +388,25 @@ serve(async (req) => {
       });
     }
 
-    const { lead_id: leadId, message_id: messageDbId } = messageResult;
+    // ✅ DEBUG: Ver o que a função está retornando
+    console.log(`[${requestId}] 🔍 DEBUG messageResult:`, JSON.stringify(messageResult, null, 2));
+    
+    // ✅ VERIFICAÇÃO DE SEGURANÇA: Se função falhou, parar o processamento
+    if (!messageResult.success || !messageResult.data) {
+      console.log(`[${requestId}] ❌ Falha na função PostgreSQL: ${messageResult.error}`);
+      return new Response(JSON.stringify({ 
+        error: `Falha na função PostgreSQL: ${messageResult.error}`,
+        details: messageResult,
+        requestId
+      }), { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+    
+    // ✅ CORREÇÃO: A função retorna { data: { message_id, lead_id } }
+    const { data: messageData } = messageResult;
+    const { message_id: messageDbId, lead_id: leadId } = messageData;
     console.log(`[${requestId}] ✅ Mensagem salva: ${messageDbId} | Lead: ${leadId}`);
 
     // ✅ 4. DETECTAR E PROCESSAR MÍDIA (AGORA COM message_id DISPONÍVEL)
@@ -176,18 +435,43 @@ serve(async (req) => {
           
           try {
             // ✅ CORRIGIDO: Processar mídia com messageType correto
-            processedMediaData = await processMediaToBase64Optimized(
-              supabase, 
-              messageDbId, // ✅ message_id do banco
-              messageId,   // ✅ external_message_id
-              mediaUrl, 
-              messageType, // ✅ CORRIGIDO: Passar messageType como parâmetro
-              requestId
-            );
+            // ✅ NOVO PROCESSADOR DE MÍDIA
+            const mediaResult = await MediaProcessor.processMediaForMessage({
+              messageId: messageDbId,
+              mediaUrl: mediaUrl,
+              mediaType: messageType,
+              externalMessageId: messageId
+            });
+            
+            if (mediaResult.success) {
+              processedMediaData = {
+                cacheId: mediaResult.cacheId!,
+                base64Data: mediaResult.base64Data || '',
+                fileSizeBytes: mediaResult.fileSize || 0,
+                fileSizeMB: (mediaResult.fileSize || 0) / (1024 * 1024),
+                storageUrl: undefined, // Será definido pelo cache
+                isStorageSaved: true
+              };
+            } else {
+              console.log(`[${requestId}] ⚠️ Falha no processamento: ${mediaResult.error}`);
+            }
             console.log(`[${requestId}] ✅ Mídia processada com sucesso`);
             
-            // ✅ DEFINIR URL FINAL (Storage ou base64)
-            finalMediaUrl = processedMediaData.storageUrl || `data:application/octet-stream;base64,${processedMediaData.base64Data}`;
+                         // ✅ DEFINIR URL FINAL (Storage ou base64 com MIME TYPE CORRETO)
+             if (processedMediaData?.storageUrl) {
+               finalMediaUrl = processedMediaData.storageUrl;
+             } else if (processedMediaData?.base64Data) {
+               // 🔧 MIME TYPES CORRETOS PARA CADA TIPO DE MÍDIA
+               const mimeTypes = {
+                 'image': 'image/jpeg',
+                 'audio': 'audio/ogg',
+                 'video': 'video/mp4',
+                 'document': 'application/pdf'
+               };
+               const mimeType = mimeTypes[messageType as keyof typeof mimeTypes] || 'application/octet-stream';
+               finalMediaUrl = `data:${mimeType};base64,${processedMediaData.base64Data}`;
+               console.log(`[${requestId}] 🎯 Base64 com MIME correto: ${mimeType}`);
+             }
             
           } catch (mediaError) {
             console.log(`[${requestId}] ⚠️ Erro ao processar mídia: ${mediaError.message}`);
@@ -197,19 +481,28 @@ serve(async (req) => {
       }
     }
 
-    // ✅ 5. ATUALIZAR MENSAGEM COM URL FINAL DA MÍDIA
-    if (finalMediaUrl && messageDbId) {
-      console.log(`[${requestId}] 🔄 Atualizando mensagem com URL final da mídia...`);
+    // ✅ 5. ATUALIZAR MENSAGEM COM URL FINAL DA MÍDIA E TIPO
+    if (messageType !== 'text' && messageType !== 'chat' && messageDbId) {
+      console.log(`[${requestId}] 🔄 Atualizando mensagem com dados de mídia...`);
+      
+      const updateData: any = {
+        media_type: messageType
+      };
+      
+      // Se processamos mídia com sucesso, usar URL final
+      if (finalMediaUrl) {
+        updateData.media_url = finalMediaUrl;
+      }
       
       const { error: updateError } = await supabase
         .from('messages')
-        .update({ media_url: finalMediaUrl })
+        .update(updateData)
         .eq('id', messageDbId);
 
       if (updateError) {
-        console.log(`[${requestId}] ⚠️ Erro ao atualizar URL da mídia: ${updateError.message}`);
+        console.log(`[${requestId}] ⚠️ Erro ao atualizar dados de mídia: ${updateError.message}`);
       } else {
-        console.log(`[${requestId}] ✅ URL da mídia atualizada na mensagem`);
+        console.log(`[${requestId}] ✅ Dados de mídia atualizados na mensagem:`, updateData);
       }
     }
 
@@ -218,7 +511,7 @@ serve(async (req) => {
       messageId: messageDbId,
       leadId: leadId,
       mediaProcessed: !!processedMediaData,
-      mediaUrl: finalMediaUrl,
+      mediaUrl: finalMediaUrl || undefined,
       mediaCacheId: processedMediaData?.cacheId,
       requestId,
       version: 'optimized_v2'
@@ -334,8 +627,8 @@ async function processMediaToBase64Optimized(
     const cachePayload = {
       message_id: messageDbId,           // ✅ Relacionar com mensagem
       external_message_id: externalMessageId, // ✅ Para busca do Agente IA
-      original_url: storageUrl || mediaUrl,    // ✅ URL Storage ou original
-      base64_data: isStorageSaved ? null : base64Data, // ✅ Base64 apenas se não tem Storage
+             original_url: storageUrl || mediaUrl,    // ✅ URL Storage ou original
+       base64_data: isStorageSaved ? undefined : base64Data, // ✅ Base64 apenas se não tem Storage
       file_name: `${externalMessageId}_${mediaType}`,
       file_size: fileSizeBytes,
       media_type: mediaType,
