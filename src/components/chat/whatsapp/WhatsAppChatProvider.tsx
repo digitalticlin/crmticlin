@@ -239,6 +239,33 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     }
   }, [totalInstances, connectedInstances]);
 
+  // 🔔 ✅ LISTENER PARA SELEÇÃO DE CONTATO VIA NOTIFICAÇÃO
+  useEffect(() => {
+    const handleSelectContactEvent = (event: CustomEvent) => {
+      const { contactId } = event.detail;
+      
+      // Encontrar contato na lista
+      const targetContact = contactsHook.contacts.find(contact => 
+        contact.id === contactId || contact.leadId === contactId
+      );
+      
+      if (targetContact) {
+        console.log('[WhatsApp Provider] 🎯 Selecionando contato via evento:', targetContact.name);
+        handleSelectContact(targetContact);
+      } else {
+        console.warn('[WhatsApp Provider] ⚠️ Contato não encontrado para seleção:', contactId);
+        // Refetch contacts caso o contato não esteja na lista atual
+        contactsHook.refreshContacts();
+      }
+    };
+
+    window.addEventListener('selectContact', handleSelectContactEvent as EventListener);
+    
+    return () => {
+      window.removeEventListener('selectContact', handleSelectContactEvent as EventListener);
+    };
+  }, [contactsHook.contacts, handleSelectContact, contactsHook.refreshContacts]);
+
   // Valor do contexto
   const value = useMemo((): WhatsAppChatContextType => ({
     // Contatos (sempre carregados)

@@ -259,37 +259,45 @@ export const useWhatsAppContacts = (activeInstanceId?: string) => {
     await fetchContacts(0, true);
   }, [fetchContacts]);
 
-  // 🚀 NOVA: Função para mover contato para topo sem resetar paginação
-  const moveContactToTop = useCallback((contactId: string, newMessage?: { text: string; timestamp: string; unreadCount?: number }) => {
+  // 🔝 FUNÇÃO PARA MOVER CONTATO PARA O TOPO (OTIMIZADA)
+  const moveContactToTop = useCallback((contactId: string, newMessage?: any) => {
+    console.log('[WhatsApp Contacts] 🔝 Movendo contato para topo:', { contactId, hasNewMessage: !!newMessage });
+    
     setContacts(prevContacts => {
-      const contactIndex = prevContacts.findIndex(c => c.id === contactId || c.leadId === contactId);
+      if (!prevContacts || prevContacts.length === 0) return prevContacts;
       
+      const contactIndex = prevContacts.findIndex(contact => contact.id === contactId);
       if (contactIndex === -1) {
         console.log('[WhatsApp Contacts] ⚠️ Contato não encontrado para mover:', contactId);
         return prevContacts;
       }
-
-      const contactToMove = { ...prevContacts[contactIndex] };
       
-      // Atualizar informações da nova mensagem
+      const updatedContacts = [...prevContacts];
+      const [contactToMove] = updatedContacts.splice(contactIndex, 1);
+      
+      // ✅ NOVO: Atualizar última mensagem se fornecida
       if (newMessage) {
-        contactToMove.lastMessage = newMessage.text;
-        contactToMove.lastMessageTime = newMessage.timestamp;
-        contactToMove.unreadCount = newMessage.unreadCount || (contactToMove.unreadCount || 0) + 1;
+        contactToMove.lastMessage = newMessage.text || newMessage.body || '';
+        contactToMove.lastMessageTime = newMessage.created_at || newMessage.timestamp || new Date().toISOString();
+        
+        // ✅ Incrementar unread_count apenas se for mensagem recebida (não enviada)
+        if (!newMessage.from_me && !newMessage.fromMe) {
+          contactToMove.unreadCount = (contactToMove.unreadCount || 0) + 1;
+        }
+        
+        console.log('[WhatsApp Contacts] 📝 Contato atualizado com nova mensagem:', {
+          contactId,
+          lastMessage: contactToMove.lastMessage.substring(0, 30),
+          unreadCount: contactToMove.unreadCount,
+          fromMe: newMessage.from_me || newMessage.fromMe
+        });
       }
       
-      // Remover contato da posição atual e adicionar no topo
-      const newContacts = [...prevContacts];
-      newContacts.splice(contactIndex, 1);
-      newContacts.unshift(contactToMove);
+      // Mover para o topo
+      updatedContacts.unshift(contactToMove);
       
-      console.log('[WhatsApp Contacts] 🔝 Contato movido para topo:', {
-        contactName: contactToMove.name,
-        newMessage: newMessage?.text?.substring(0, 30),
-        unreadCount: contactToMove.unreadCount
-      });
-      
-      return newContacts;
+      console.log('[WhatsApp Contacts] ✅ Contato movido para o topo com sucesso');
+      return updatedContacts;
     });
   }, []);
 

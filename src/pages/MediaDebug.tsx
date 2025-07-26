@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MediaDebugPanel } from '@/components/debug/MediaDebugPanel';
+
 import { useWhatsAppContacts } from '@/hooks/whatsapp/useWhatsAppContacts';
 import { useActiveWhatsAppInstance } from '@/hooks/whatsapp/useActiveWhatsAppInstance';
 import { Contact } from '@/types/chat';
@@ -110,8 +111,8 @@ export default function MediaDebug() {
               para futuras mensagens.
             </div>
           </CardContent>
-        </Card>
-      </div>
+                  </Card>
+        </div>
     </div>
   );
 } 

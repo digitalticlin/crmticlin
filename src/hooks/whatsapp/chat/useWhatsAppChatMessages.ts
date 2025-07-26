@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Contact, Message } from '@/types/chat';
 import { WhatsAppWebInstance } from '@/types/whatsapp';
-import { useMessageRealtime } from './hooks/useMessageRealtime';
+import { useMessagesRealtime } from '../realtime/useMessagesRealtime';
 import { useChatDatabase } from '../useChatDatabase';
 import { useCompanyResolver } from '../useCompanyResolver';
 import { toast } from 'sonner';
@@ -143,67 +143,6 @@ export const useWhatsAppChatMessages = (
     await fetchMessages(currentOffset);
   }, [currentOffset, hasMoreMessages, isLoadingMore, fetchMessages]);
 
-  // Enviar mensagem
-  const sendMessage = useCallback(async (
-    text: string, 
-    mediaType?: 'text' | 'image' | 'video' | 'audio' | 'document',
-    mediaUrl?: string
-  ): Promise<boolean> => {
-    const currentContact = selectedContactRef.current;
-    const currentInstance = activeInstanceRef.current;
-    
-    if (!currentContact || !currentInstance || !text.trim()) {
-      return false;
-    }
-
-    try {
-      setIsSending(true);
-
-      console.log('[WhatsApp Messages] 📤 Enviando mensagem:', {
-        contactId: currentContact.id,
-        contactName: currentContact.name,
-        instanceId: currentInstance.id,
-        phone: currentContact.phone,
-        mediaType: mediaType || 'text',
-        hasMediaUrl: !!mediaUrl
-      });
-
-      // 🚀 CORREÇÃO: Usar parâmetros corretos da edge function com mídia
-      const { data, error } = await supabase.functions.invoke('whatsapp_messaging_service', {
-        body: {
-          action: 'send_message', // ✅ CORRIGIDO: era 'send'
-          instanceId: currentInstance.id,
-          phone: currentContact.phone,
-          message: text,
-          mediaType: mediaType || 'text', // ✅ NOVO: TIPO DE MÍDIA
-          mediaUrl: mediaUrl || null      // ✅ NOVO: URL DE MÍDIA
-        }
-      });
-
-      if (error) {
-        console.error('[WhatsApp Messages] ❌ Erro ao enviar mensagem:', error);
-        toast.error('Erro ao enviar mensagem');
-        return false;
-      }
-
-      console.log('[WhatsApp Messages] ✅ Mensagem enviada com sucesso:', data);
-
-      // Recarregar mensagens após envio
-      setTimeout(() => {
-        fetchMessages(0, true);
-      }, 500);
-
-      return true;
-
-    } catch (error) {
-      console.error('[WhatsApp Messages] ❌ Erro geral ao enviar mensagem:', error);
-      toast.error('Erro ao enviar mensagem');
-      return false;
-    } finally {
-      setIsSending(false);
-    }
-  }, [fetchMessages]);
-
   // 🚀 NOVA: Função para adicionar nova mensagem sem resetar lista
   const addNewMessage = useCallback((newMessage: Message) => {
     console.log('[WhatsApp Messages] 🚀 Tentando adicionar mensagem:', newMessage.id);
@@ -238,7 +177,7 @@ export const useWhatsAppChatMessages = (
   }, []);
 
   // 🚀 NOVA: Função para atualizar status de mensagem
-  const updateMessageStatus = useCallback((messageId: string, newStatus: 'sent' | 'delivered' | 'read') => {
+  const updateMessageStatus = useCallback((messageId: string, newStatus: 'sending' | 'sent' | 'delivered' | 'read' | 'failed') => {
     setMessages(prevMessages => 
       prevMessages.map(message => 
         message.id === messageId 
@@ -250,49 +189,180 @@ export const useWhatsAppChatMessages = (
     console.log('[WhatsApp Messages] 🔄 Status atualizado:', { messageId, newStatus });
   }, []);
 
-  // Hook de realtime para mensagens
-  useMessageRealtime({
-    selectedContact,
-    activeInstance,
-    onMessageUpdate: useCallback((newMessage) => {
-      console.log('[WhatsApp Messages] 🔄 Realtime trigger recebido:', {
-        messageId: newMessage?.id,
-        text: newMessage?.text?.substring(0, 30)
+  // 🚀 NOVA: Função para atualizar mensagem otimista com dados reais
+  const updateOptimisticMessage = useCallback((tempId: string, updates: Partial<Message>) => {
+    setMessages(prevMessages => 
+      prevMessages.map(message => 
+        message.id === tempId 
+          ? { ...message, ...updates }
+          : message
+      )
+    );
+    
+    console.log('[WhatsApp Messages] 🔄 Mensagem otimista atualizada:', { tempId, updates });
+  }, []);
+
+  // 🚀 NOVA: Função para substituir mensagem otimista por confirmação real
+  const replaceOptimisticMessage = useCallback((optimisticId: string, realMessage: Message) => {
+    setMessages(prevMessages => 
+      prevMessages.map(msg => 
+        msg.id === optimisticId 
+          ? realMessage
+          : msg
+      )
+    );
+    
+    console.log('[WhatsApp Messages] 🔄 Mensagem otimista substituída:', { optimisticId, realId: realMessage.id });
+  }, []);
+
+  // 🚀 NOVA: Função para atualizar status de mensagens via realtime
+  const onMessageUpdate = useCallback((message: Message, rawMessage?: any) => {
+    console.log('[WhatsApp Messages] 🔄 Atualizando mensagem via realtime:', {
+      messageId: message.id,
+      status: message.status
+    });
+    
+    updateMessageStatus(message.id, message.status || 'sent');
+  }, [updateMessageStatus]);
+
+  // Enviar mensagem
+  const sendMessage = useCallback(async (
+    text: string, 
+    mediaType?: 'text' | 'image' | 'video' | 'audio' | 'document',
+    mediaUrl?: string
+  ): Promise<boolean> => {
+    const currentContact = selectedContactRef.current;
+    const currentInstance = activeInstanceRef.current;
+    
+    if (!currentContact || !currentInstance || !text.trim()) {
+      return false;
+    }
+
+    // 🚀 UI OTIMISTA: Criar mensagem temporária imediatamente
+    const optimisticMessage = {
+      id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      text: text.trim(),
+      fromMe: true,
+      timestamp: new Date().toISOString(),
+      status: 'sending' as const,
+      mediaType: mediaType || 'text' as const,
+      mediaUrl: mediaUrl || undefined,
+      sender: 'user' as const,
+      time: new Date().toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      isIncoming: false,
+      isOptimistic: true // 🆕 Flag para identificar mensagens otimistas
+    };
+
+    console.log('[WhatsApp Messages] 🚀 UI OTIMISTA: Adicionando mensagem instantaneamente:', {
+      messageId: optimisticMessage.id,
+      text: optimisticMessage.text
+    });
+
+    // ✅ MOSTRAR MENSAGEM IMEDIATAMENTE NA UI
+    addNewMessage(optimisticMessage);
+
+    try {
+      setIsSending(true);
+
+      console.log('[WhatsApp Messages] 📤 Enviando mensagem para API:', {
+        contactId: currentContact.id,
+        contactName: currentContact.name,
+        instanceId: currentInstance.id,
+        phone: currentContact.phone,
+        mediaType: mediaType || 'text',
+        hasMediaUrl: !!mediaUrl
       });
 
-      // 🚀 CORREÇÃO: Usar addNewMessage diretamente sem verificações de refs
-      if (newMessage && newMessage.id) {
-        // Converter payload da mensagem para formato Message
-        const messageForUI = {
-          id: newMessage.id,
-          text: newMessage.text || '',
-          fromMe: newMessage.from_me || false,
-          timestamp: newMessage.created_at || newMessage.timestamp,
-          status: newMessage.status || 'sent',
-          mediaType: newMessage.media_type || 'text',
-          mediaUrl: newMessage.media_url,
-          sender: newMessage.from_me ? 'user' as const : 'contact' as const,
-          time: new Date(newMessage.created_at || newMessage.timestamp).toLocaleTimeString('pt-BR', {
-            hour: '2-digit',
-            minute: '2-digit'
-          }),
-          isIncoming: !newMessage.from_me
-        };
+      // 🚀 ENVIAR PARA API EM PARALELO
+      const { data, error } = await supabase.functions.invoke('whatsapp_messaging_service', {
+        body: {
+          action: 'send_message',
+          instanceId: currentInstance.id,
+          phone: currentContact.phone,
+          message: text,
+          mediaType: mediaType || 'text',
+          mediaUrl: mediaUrl || null
+        }
+      });
 
-        console.log('[WhatsApp Messages] ➕ ✅ ADICIONANDO mensagem via realtime:', {
-          messageId: messageForUI.id,
-          fromMe: messageForUI.fromMe,
-          text: messageForUI.text?.substring(0, 50)
-        });
-
-        addNewMessage(messageForUI);
-      } else {
-        // Fallback para refresh completo apenas se não conseguir processar a mensagem
-        console.log('[WhatsApp Messages] 🔄 Fallback: refresh completo');
-        fetchMessages(0, true);
+      if (error) {
+        console.error('[WhatsApp Messages] ❌ Erro ao enviar mensagem:', error);
+        
+        // 🔄 ATUALIZAR MENSAGEM OTIMISTA PARA FALHA
+        updateMessageStatus(optimisticMessage.id, 'failed');
+        
+        toast.error('Erro ao enviar mensagem');
+        return false;
       }
-    }, [addNewMessage, fetchMessages])
-  });
+
+      console.log('[WhatsApp Messages] ✅ Mensagem enviada com sucesso:', data);
+
+      // ✅ ATUALIZAR MENSAGEM OTIMISTA PARA ENVIADA
+      // Se a API retornou um ID real, usar ele
+      if (data?.data?.messageId) {
+        updateOptimisticMessage(optimisticMessage.id, {
+          id: data.data.messageId,
+          status: 'sent',
+          isOptimistic: false
+        });
+      } else {
+        updateMessageStatus(optimisticMessage.id, 'sent');
+      }
+
+      return true;
+
+    } catch (error) {
+      console.error('[WhatsApp Messages] ❌ Erro geral ao enviar mensagem:', error);
+      
+      // 🔄 ATUALIZAR MENSAGEM OTIMISTA PARA FALHA
+      updateMessageStatus(optimisticMessage.id, 'failed');
+      
+      toast.error('Erro ao enviar mensagem');
+      return false;
+    } finally {
+      setIsSending(false);
+    }
+  }, [addNewMessage, updateMessageStatus, updateOptimisticMessage]);
+
+  // 🚀 NOVA: Função para tentar reenviar mensagem falhada
+  const retryFailedMessage = useCallback(async (messageId: string) => {
+    const message = messages.find(m => m.id === messageId);
+    if (!message || message.status !== 'failed') {
+      console.log('[WhatsApp Messages] ⚠️ Mensagem não encontrada ou não falhada:', messageId);
+      return false;
+    }
+
+    console.log('[WhatsApp Messages] 🔄 Tentando reenviar mensagem falhada:', messageId);
+    
+    // Atualizar status para sending
+    updateMessageStatus(messageId, 'sending');
+    
+    // Tentar enviar novamente
+    const success = await sendMessage(message.text, message.mediaType, message.mediaUrl);
+    
+    if (success) {
+      // Se sucesso, remover mensagem falhada (a nova já foi adicionada)
+      setMessages(prevMessages => prevMessages.filter(m => m.id !== messageId));
+    } else {
+      // Se falhou novamente, manter como failed
+      updateMessageStatus(messageId, 'failed');
+    }
+    
+    return success;
+  }, [messages, updateMessageStatus, sendMessage]);
+
+  // Hook de realtime para mensagens
+  useMessagesRealtime(
+    selectedContact,
+    activeInstance,
+    addNewMessage,
+    onMessageUpdate,
+    messages,  // ✅ NOVO: passar mensagens atuais
+    replaceOptimisticMessage  // ✅ NOVO: callback para substituir mensagens otimistas
+  );
 
   // 🚀 CARREGAR MENSAGENS APENAS QUANDO IDs MUDAREM (evitar loops)
   useEffect(() => {
@@ -310,27 +380,27 @@ export const useWhatsAppChatMessages = (
     console.log('[WhatsApp Messages] 🔄 Mudança detectada:', {
       newContactId,
       newInstanceId,
-        previousContactId: lastContactIdRef.current,
-        previousInstanceId: lastInstanceIdRef.current
-      });
+      previousContactId: lastContactIdRef.current,
+      previousInstanceId: lastInstanceIdRef.current
+    });
 
     // Reset estado
-      setMessages([]);
-      setCurrentOffset(0);
-      setHasMoreMessages(true);
-      setIsLoadingMessages(false);
-      setIsLoadingMore(false);
+    setMessages([]);
+    setCurrentOffset(0);
+    setHasMoreMessages(true);
+    setIsLoadingMessages(false);
+    setIsLoadingMore(false);
 
     // Atualizar refs ANTES de carregar
     lastContactIdRef.current = newContactId;
     lastInstanceIdRef.current = newInstanceId;
 
     // Carregar mensagens se há contato selecionado
-      if (selectedContact && activeInstance) {
+    if (selectedContact && activeInstance) {
       console.log('[WhatsApp Messages] 🚀 Carregando mensagens do contato:', selectedContact.name);
-        fetchMessages(0, true);
+      fetchMessages(0, true);
     }
-  }, [selectedContact?.id, activeInstance?.id]); // 🚀 APENAS IDs como dependências
+  }, [selectedContact?.id, activeInstance?.id, fetchMessages]);
 
 
 
@@ -344,6 +414,7 @@ export const useWhatsAppChatMessages = (
     loadMoreMessages,
     fetchMessages,
     addNewMessage,
-    updateMessageStatus
+    updateMessageStatus,
+    retryFailedMessage
   };
 };

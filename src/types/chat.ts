@@ -54,7 +54,7 @@ export interface Message {
   text: string;
   sender: 'user' | 'contact';
   time: string;
-  status?: 'sent' | 'delivered' | 'read';
+  status?: 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
   isIncoming?: boolean;
   fromMe?: boolean;
   timestamp?: string;
@@ -65,6 +65,8 @@ export interface Message {
   // ✅ DEBUGGING: Campos para debugging de mídia
   hasMediaCache?: boolean;
   mediaCacheId?: string;
+  // ✅ UI OTIMISTA: Flag para identificar mensagens temporárias
+  isOptimistic?: boolean;
 }
 
 import { KanbanTag } from "./kanban";

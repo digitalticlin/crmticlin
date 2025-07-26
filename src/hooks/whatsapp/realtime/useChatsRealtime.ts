@@ -260,9 +260,30 @@ export const useChatsRealtime = ({
         filter: `whatsapp_number_id=eq.${activeInstanceId}`
       }, handleLeadUpdate)
       
-      // ❌ REMOVIDO: SUBSCRIPTION PARA MENSAGENS 
-      // Motivo: useMessageRealtime já faz isso de forma mais eficiente
-      // Esta subscription escutava TODAS as mensagens da instância desnecessariamente
+      // ✅ NOVO: SUBSCRIPTION PARA MENSAGENS (ATUALIZAR LISTA DE CONTATOS)
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `whatsapp_number_id=eq.${activeInstanceId}`
+      }, (payload) => {
+        try {
+          const newMessage = payload.new;
+          console.log('[Chats Realtime] 📨 Nova mensagem para atualizar lista:', {
+            messageId: newMessage?.id,
+            leadId: newMessage?.lead_id,
+            fromMe: newMessage?.from_me,
+            text: newMessage?.text?.substring(0, 30)
+          });
+          
+          // ✅ Mover contato para topo com nova mensagem
+          if (onMoveContactToTop && newMessage?.lead_id) {
+            onMoveContactToTop(newMessage.lead_id, newMessage);
+          }
+        } catch (error) {
+          console.error('[Chats Realtime] ❌ Erro processando nova mensagem para lista:', error);
+        }
+             })
       
       .subscribe((status) => {
         if (process.env.NODE_ENV === 'development') {

@@ -23,17 +23,21 @@ export const WhatsAppMessageInput = ({
 
   const handleSend = async () => {
     const trimmedMessage = message.trim();
-    if (trimmedMessage && !isSending) {
+    if (trimmedMessage) {
       try {
-        await onSendMessage(trimmedMessage);
-      setMessage("");
-      
-      // Reset altura do textarea
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
+        // ✅ LIMPAR CAMPO IMEDIATAMENTE para UX mais rápido
+        setMessage("");
+        
+        // Reset altura do textarea
+        if (textareaRef.current) {
+          textareaRef.current.style.height = 'auto';
         }
+
+        await onSendMessage(trimmedMessage);
       } catch (error) {
         console.error('[WhatsAppMessageInput] Erro ao enviar mensagem:', error);
+        // ✅ Se der erro, restaurar a mensagem
+        setMessage(trimmedMessage);
       }
     }
   };
@@ -65,7 +69,7 @@ export const WhatsAppMessageInput = ({
     }
   };
 
-  const canSend = message.trim().length > 0 && !isSending;
+  const canSend = message.trim().length > 0;
 
   return (
     <div className="relative">
@@ -102,7 +106,6 @@ export const WhatsAppMessageInput = ({
                 "rounded-2xl px-4 py-3",
                 "transition-all duration-200"
               )}
-              disabled={isSending}
             />
             
             {/* Contador de caracteres */}
@@ -127,23 +130,15 @@ export const WhatsAppMessageInput = ({
                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
             )}
           >
-            {isSending ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Send className="h-5 w-5" />
-            )}
+            <Send className="h-5 w-5" />
           </Button>
         </div>
         
-        {/* Indicador de digitação */}
+        {/* Indicador discreto de mensagens sendo enviadas */}
         {isSending && (
-          <div className="flex items-center gap-2 mt-2 text-xs text-gray-600">
-            <div className="flex gap-1">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-            </div>
-            <span>Enviando mensagem...</span>
+          <div className="flex items-center gap-2 mt-1 text-xs text-green-600/70">
+            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+            <span>Enviando...</span>
           </div>
         )}
       </div>

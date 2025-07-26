@@ -55,4 +55,5 @@ export type RealtimeConnectionStatus =
   | 'connecting' 
   | 'connected' 
   | 'disconnected' 
-  | 'error'; 
+  | 'error'
+  | 'failed'; 
