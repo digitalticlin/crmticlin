@@ -1,0 +1,24 @@
+[Realtime] Pool tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4 status: SUBSCRIBED
+logger.ts:53 [Realtime] Pool lead_tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4 status: SUBSCRIBED
+AuthContext.tsx:41 [Auth] Estado mudou: SIGNED_IN digitalticlin@gmail.com
+AuthContext.tsx:48 [Auth] Usuário logado, verificando se precisa redirecionar...
+AuthContext.tsx:58 [Auth] Usuário já estava em página protegida, mantendo localização: /whatsapp-chat
+WhatsAppChatProvider.tsx:78 🚨 [PROVIDER] WhatsAppChatProvider renderizado: 2025-07-27T00:17:25.931Z
+StageSelector.tsx:39 [StageSelector] 🔍 Props recebidas: {leadId: 'df8d7bcf-418e-4c9d-adcd-7caaea70e3d7', currentStageId: 'dcac808a-2595-4d33-9b38-2f04055a4df3', hasCurrentStage: true, currentStageTitle: 'Entrada de Leads', currentStageColor: '#3b82f6', …}
+logger.ts:53 [Realtime] 🧹 Limpando listeners de tags
+logger.ts:53 [Realtime] Handler removido: handler_39_1753575439789 da pool tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4
+logger.ts:53 [Realtime] Removendo pool: tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4
+logger.ts:53 [Realtime] Pool tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4 status: CLOSED
+logger.ts:53 [Realtime] Handler removido: handler_40_1753575439791 da pool lead_tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4
+logger.ts:53 [Realtime] Removendo pool: lead_tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4
+logger.ts:53 [Realtime] Pool lead_tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4 status: CLOSED
+logger.ts:53 [Realtime] 🔄 Configurando listeners de tags para userId: 712e7708-2299-4a00-9128-577c8f113ca4
+logger.ts:53 [Realtime] Criando nova pool: tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4
+logger.ts:53 [Realtime] Handler adicionado à pool tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4: handler_41_1753575445989
+logger.ts:53 [Realtime] Pool stats: 1 handlers ativos
+logger.ts:53 [Realtime] Criando nova pool: lead_tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4
+logger.ts:53 [Realtime] Handler adicionado à pool lead_tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4: handler_42_1753575445991
+logger.ts:53 [Realtime] Pool stats: 1 handlers ativos
+logger.ts:53 [Realtime] Pool tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4 status: SUBSCRIBED
+logger.ts:53 [Realtime] Pool lead_tags_*_created_by_user_id=eq.712e7708-2299-4a00-9128-577c8f113ca4 status: SUBSCRIBED
+DocumentMessage.tsx:176 [DocumentMessage] 👁️ Abrindo preview: df3fe708-7677-4270-a3cd-0286d39f2e2b

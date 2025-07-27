@@ -23,7 +23,27 @@ export const DocumentMessage = React.memo(({
   const [retryCount, setRetryCount] = useState(0);
 
   const getCleanFilename = useCallback((filename: string) => {
-    if (filename === '[Documento]' || filename === '[Mensagem não suportada]' || !filename || filename.trim() === '') {
+    // ✅ FILTRAR LEGENDAS DESNECESSÁRIAS
+    const unnecessaryPrefixes = [
+      '[Documento]',
+      '[Mensagem não suportada]', 
+      '[Documento:',
+      'Documento:'
+    ];
+    
+    let cleanName = filename;
+    
+    // Remover prefixos desnecessários
+    unnecessaryPrefixes.forEach(prefix => {
+      if (cleanName.startsWith(prefix)) {
+        cleanName = cleanName.replace(prefix, '').trim();
+        if (cleanName.endsWith(']')) {
+          cleanName = cleanName.slice(0, -1).trim();
+        }
+      }
+    });
+    
+    if (!cleanName || cleanName.trim() === '') {
       try {
         const urlParts = url.split('/');
         const urlFilename = urlParts[urlParts.length - 1];
@@ -33,7 +53,7 @@ export const DocumentMessage = React.memo(({
         return 'Documento.pdf';
       }
     }
-    return filename;
+    return cleanName;
   }, [url]);
 
   const getFileIcon = useCallback((filename: string) => {
@@ -129,11 +149,11 @@ export const DocumentMessage = React.memo(({
         throw new Error(`Arquivo não encontrado (${response.status})`);
       }
 
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = cleanFilename;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
+             const link = document.createElement('a');
+       link.href = url;
+       link.download = cleanFilename; // ✅ RESTAURAR download para função de baixar
+       link.target = '_blank';
+       link.rel = 'noopener noreferrer';
       
       document.body.appendChild(link);
       link.click();
@@ -148,30 +168,31 @@ export const DocumentMessage = React.memo(({
     }
   }, [url, cleanFilename, messageId, downloadLoading]);
 
-  const handlePreview = useCallback(async () => {
-    if (!url) return;
-    
-    try {
-      console.log(`[DocumentMessage] 👁️ Abrindo preview: ${messageId}`);
-      
-      // Para base64, abrir em nova aba diretamente
-      if (url.startsWith('data:')) {
-        window.open(url, '_blank', 'noopener,noreferrer');
-        return;
-      }
-      
-      // Para URLs normais, verificar se existem primeiro
-      const response = await fetch(url, { method: 'HEAD' });
-      if (!response.ok) {
-        throw new Error(`Arquivo não encontrado (${response.status})`);
-      }
-      
-      window.open(url, '_blank', 'noopener,noreferrer');
-    } catch (error) {
-      console.error(`[DocumentMessage] ❌ Erro ao abrir preview: ${messageId}`, error);
-      setDownloadError(true);
-    }
-  }, [url, messageId]);
+     const handlePreview = useCallback(async () => {
+     if (!url) return;
+     
+     try {
+       console.log(`[DocumentMessage] 👁️ Abrindo preview: ${messageId}`);
+       
+       // ✅ ESTRATÉGIA OTIMIZADA: Abrir diretamente sem verificações pesadas
+       if (url.startsWith('data:')) {
+         // Para base64 grande, mostrar loading e abrir
+         setDownloadLoading(true);
+         setTimeout(() => {
+           window.open(url, '_blank', 'noopener,noreferrer');
+           setDownloadLoading(false);
+         }, 100);
+         return;
+       }
+       
+       // Para URLs do Storage, abrir diretamente (mais rápido)
+       window.open(url, '_blank', 'noopener,noreferrer');
+       
+     } catch (error) {
+       console.error(`[DocumentMessage] ❌ Erro ao abrir preview: ${messageId}`, error);
+       setDownloadError(true);
+     }
+   }, [url, messageId]);
 
   const handleRetry = useCallback(() => {
     console.log(`[DocumentMessage] 🔄 Tentando novamente: ${messageId} (tentativa ${retryCount + 1})`);
@@ -236,55 +257,58 @@ export const DocumentMessage = React.memo(({
         )}>
           {cleanFilename}
         </p>
-        <p className={cn(
-          "text-xs opacity-70",
-          isIncoming ? "text-gray-600" : "text-white"
-        )}>
-          {downloadError ? 'Erro ao carregar' : fileSize}
-        </p>
-        {isPdfOrImage && !downloadError && (
-          <p className={cn(
-            "text-xs opacity-60 mt-1",
-            isIncoming ? "text-blue-600" : "text-white"
-          )}>
-            Clique para visualizar
-          </p>
-        )}
+                 <p className={cn(
+           "text-xs opacity-70",
+           isIncoming ? "text-gray-600" : "text-white"
+         )}>
+           {downloadError ? 'Erro ao carregar' : fileSize}
+         </p>
       </div>
 
-      {/* Botões de ação */}
-      <div className="flex-shrink-0 flex space-x-1">
-        {isPdfOrImage && !downloadError && (
-          <button
-            onClick={handlePreview}
-            className={cn(
-              "p-2 rounded-full hover:bg-gray-100 transition-colors",
-              isIncoming ? "text-gray-600 hover:text-gray-800" : "text-white hover:bg-white/20"
-            )}
-            title="Visualizar"
-          >
-            <ExternalLink className="w-4 h-4" />
-          </button>
-        )}
-        
-        <button
-          onClick={downloadError ? handleRetry : handleDownload}
-          disabled={downloadLoading}
-          className={cn(
-            "p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50",
-            isIncoming ? "text-gray-600 hover:text-gray-800" : "text-white hover:bg-white/20"
-          )}
-          title={downloadError ? "Tentar novamente" : "Baixar"}
-        >
-          {downloadLoading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : downloadError ? (
-            <RefreshCw className="w-4 h-4" />
-          ) : (
-            <Download className="w-4 h-4" />
-          )}
-        </button>
-      </div>
+             {/* Botões de ação */}
+       <div className="flex-shrink-0 flex flex-col space-y-1">
+         {/* Botão principal: Visualizar (mais prominente) */}
+         <button
+           onClick={handlePreview}
+           disabled={downloadLoading}
+           className={cn(
+             "px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 disabled:opacity-50",
+             isIncoming 
+               ? "bg-blue-500 text-white hover:bg-blue-600 disabled:bg-blue-300" 
+               : "bg-white/20 text-white hover:bg-white/30 disabled:bg-white/10"
+           )}
+           title="Abrir documento"
+         >
+           {downloadLoading ? (
+             <div className="flex items-center gap-1">
+               <Loader2 className="w-3 h-3 animate-spin" />
+               <span>Abrindo...</span>
+             </div>
+           ) : (
+             <div className="flex items-center gap-1">
+               <ExternalLink className="w-3 h-3" />
+               <span>Abrir</span>
+             </div>
+           )}
+         </button>
+         
+         {/* Botão secundário: Download (menor) */}
+         <button
+           onClick={downloadError ? handleRetry : handleDownload}
+           disabled={downloadLoading}
+           className={cn(
+             "p-1 rounded-md hover:bg-gray-100 transition-colors disabled:opacity-50",
+             isIncoming ? "text-gray-500 hover:text-gray-700" : "text-white/70 hover:bg-white/10"
+           )}
+           title={downloadError ? "Tentar novamente" : "Baixar arquivo"}
+         >
+           {downloadError ? (
+             <RefreshCw className="w-3 h-3" />
+           ) : (
+             <Download className="w-3 h-3" />
+           )}
+         </button>
+       </div>
     </div>
   );
 });

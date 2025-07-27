@@ -4,8 +4,8 @@ import { useMediaLoader } from './hooks/useMediaLoader';
 import { MediaRenderer } from './components/MediaRenderer';
 import { MediaLoadingState } from './components/MediaLoadingState';
 import { MediaErrorState } from './components/MediaErrorState';
-// 🆕 NOVO COMPONENTE PARA BOTÃO DE DOWNLOAD
-import { MediaDownloadButton } from './components/MediaDownloadButton';
+// 🆕 NOVO COMPONENTE PARA PROCESSAMENTO SOB DEMANDA
+import { MediaProcessButton } from './components/MediaProcessButton';
 
 interface MessageMediaProps {
   messageId: string;
@@ -56,7 +56,9 @@ export const MessageMedia: React.FC<MessageMediaProps> = React.memo(({
     // 🆕 NOVAS PROPRIEDADES
     shouldShowDownloadButton,
     originalUrl,
-    isLargeMedia
+    isLargeMedia,
+    isProcessing,
+    processMedia
   } = useMediaLoader({
     messageId,
     mediaType,
@@ -70,17 +72,15 @@ export const MessageMedia: React.FC<MessageMediaProps> = React.memo(({
     return <MediaLoadingState mediaType={mediaType} />;
   }
 
-  // 🆕 BOTÃO DE DOWNLOAD PARA MÍDIAS GRANDES OU SEM BASE64
-  if (shouldShowDownloadButton && originalUrl) {
-    console.log(`[MessageMedia] 🔽 Renderizando botão de download para ${messageId}`);
+  // 🆕 BOTÃO DE PROCESSAMENTO PARA MÍDIAS GRANDES SEM BASE64
+  if (shouldShowDownloadButton && originalUrl && mediaCache?.id) {
+    console.log(`[MessageMedia] 🔄 Renderizando botão de processamento para ${messageId}`);
     return (
-      <MediaDownloadButton 
-        messageId={messageId}
+      <MediaProcessButton 
+        isProcessing={isProcessing}
+        onProcess={processMedia}
         mediaType={mediaType}
-        originalUrl={originalUrl}
-        fileName={fileName}
-        isIncoming={isIncoming}
-        isLargeMedia={isLargeMedia}
+        disabled={!mediaCache?.id}
       />
     );
   }

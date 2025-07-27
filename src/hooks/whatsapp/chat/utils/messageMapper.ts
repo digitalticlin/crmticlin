@@ -37,6 +37,8 @@ export const mapDbMessageToMessage = (dbMessage: any): Message => {
     status: normalizeStatus(dbMessage.status),
     mediaType: normalizeMediaType(mediaType),
     mediaUrl: mediaUrl,
+    // ✅ CORRIGIDO: Incluir media_cache completo para o frontend
+    media_cache: dbMessage.media_cache?.[0] || null,
     // Campos adicionais para debugging
     hasMediaCache: !!(dbMessage.media_cache && dbMessage.media_cache.length > 0),
     mediaCacheId: dbMessage.media_cache?.[0]?.id,

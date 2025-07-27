@@ -148,12 +148,12 @@ class MediaProcessor {
    * ✅ LIMITES SEGUROS PARA EVITAR MEMORY OVERFLOW
    */
   private static shouldSaveAsBase64(mediaType: string, fileSize: number): boolean {
-    // ✅ LIMITES OTIMIZADOS PARA WHATSAPP (BALANCEAMENTO PERFORMANCE/UX)
+    // ✅ LIMITES OTIMIZADOS PARA RENDERIZAÇÃO INSTANTÂNEA
     const maxSizeForBase64 = {
-      'image': 800 * 1024,      // 800KB para imagens (suporta fotos WhatsApp típicas)
-      'audio': 150 * 1024,      // 150KB para áudios (aumentado para melhor UX)
-      'video': 0,               // Nunca salvar vídeos como Base64 (sempre Storage)
-      'document': 100 * 1024    // 100KB para documentos (PDFs pequenos)
+      'image': 3 * 1024 * 1024,    // 3MB para imagens (fotos alta qualidade)
+      'audio': 2 * 1024 * 1024,    // 2MB para áudios (mensagens longas)
+      'video': 5 * 1024 * 1024,    // 5MB para vídeos (GIFs, clips curtos)
+      'document': 2 * 1024 * 1024  // 2MB para documentos (PDFs médios)
     };
 
     const limit = maxSizeForBase64[mediaType as keyof typeof maxSizeForBase64] || 0;
@@ -314,7 +314,21 @@ serve(async (req) => {
       console.log(`[${requestId}] ⚠️ Tipo não suportado '${messageType}', convertendo para 'text'`);
       messageType = 'text';
     }
-    const messageText = data.body || body.message?.text || '[Mensagem não suportada]';
+    // ✅ FILTRAR TEXTOS PADRÃO INDEVIDOS
+    let messageText = data.body || body.message?.text || '';
+    
+    // 🚫 REMOVER TEXTOS PADRÃO QUE NÃO DEVEM APARECER COMO LEGENDA
+    const invalidTexts = [
+      '[Mensagem não suportada]',
+      'Mensagem não suportada',
+      'Message not supported',
+      'Conteúdo não disponível',
+      'Mídia não disponível'
+    ];
+    
+    if (invalidTexts.includes(messageText)) {
+      messageText = ''; // ✅ Limpar texto indevido
+    }
     const fromPhone = data.from?.replace('@s.whatsapp.net', '') || body.from?.replace('@s.whatsapp.net', '') || '';
     const messageId = data.messageId || body.data?.messageId;
     const isFromMe = data.fromMe || body.fromMe || false;
@@ -416,66 +430,136 @@ serve(async (req) => {
     if (messageType !== 'text' && messageType !== 'chat') {
       console.log(`[${requestId}] 🎬 MÍDIA DETECTADA: ${messageType}`);
       
-      // EXTRAÇÃO EXPANDIDA DE URL DA MÍDIA
-      const potentialUrls = [
-        data?.mediaUrl, data?.media_url, data?.media?.url, data?.url,
-        body?.mediaUrl, body?.media_url, body?.media?.url, body?.url,
-        body?.data?.mediaUrl, body?.data?.media_url, body?.data?.media?.url,
-        body?.data?.image?.url, body?.data?.video?.url, body?.data?.audio?.url, body?.data?.document?.url,
-        body?.message?.image?.url, body?.message?.video?.url, body?.message?.audio?.url, body?.message?.document?.url,
-        body?.image?.url, body?.video?.url, body?.audio?.url, body?.document?.url, body?.sticker?.url
-      ].filter(Boolean);
+      // 🚀 PRIORIDADE 1: VERIFICAR SE VPS JÁ ENVIOU BASE64
+      const vpsBase64 = data?.mediaBase64 || body?.mediaBase64 || body?.data?.mediaBase64;
+      const vpsMediaSize = data?.mediaSize || body?.mediaSize || body?.data?.mediaSize;
+      const instancePhone = data?.instancePhone || body?.instancePhone;
       
-      console.log(`[${requestId}] 📎 URLs potenciais encontradas:`, potentialUrls);
+      console.log(`[${requestId}] 🔍 DEBUG VPS payload:`, {
+        hasMediaBase64: !!vpsBase64,
+        hasInstancePhone: !!instancePhone,
+        dataKeys: Object.keys(data || {}),
+        bodyKeys: Object.keys(body || {})
+      });
       
-      if (potentialUrls.length > 0) {
-        const mediaUrl = potentialUrls[0];
-        if (mediaUrl && typeof mediaUrl === 'string' && (mediaUrl.startsWith('http://') || mediaUrl.startsWith('https://'))) {
-          console.log(`[${requestId}] ✅ URL válida detectada: ${mediaUrl.substring(0, 80)}...`);
-          
-          try {
-            // ✅ CORRIGIDO: Processar mídia com messageType correto
-            // ✅ NOVO PROCESSADOR DE MÍDIA
-            const mediaResult = await MediaProcessor.processMediaForMessage({
-              messageId: messageDbId,
-              mediaUrl: mediaUrl,
-              mediaType: messageType,
-              externalMessageId: messageId
-            });
+      if (vpsBase64 && vpsBase64.startsWith('data:')) {
+        console.log(`[${requestId}] 🎯 BASE64 DA VPS DETECTADO! Tamanho: ${vpsMediaSize || 'N/A'} bytes`);
+        
+        // ✅ CRIAR CACHE DIRETO COM BASE64 DA VPS (SEM DOWNLOAD)
+        // ✅ USAR PLACEHOLDER PEQUENO PARA original_url para evitar limite de índice PostgreSQL (8KB)
+        const placeholderUrl = `base64://${messageId}`;
+        
+        const { data: cacheData, error: cacheError } = await supabase
+          .from('media_cache')
+          .upsert({
+            message_id: messageDbId,
+            external_message_id: messageId,
+            original_url: placeholderUrl, // ✅ PLACEHOLDER pequeno para satisfazer índice
+            cached_url: vpsBase64, // ✅ Base64 vai para cached_url para frontend
+            base64_data: vpsBase64,
+            file_size: vpsMediaSize || 0,
+            media_type: messageType,
+            file_name: MediaProcessor.generateFileName(messageId, messageType),
+            created_at: new Date().toISOString()
+          }, {
+            onConflict: 'message_id',
+            ignoreDuplicates: false
+          })
+          .select('id')
+          .single();
+
+        if (!cacheError && cacheData) {
+          console.log(`[${requestId}] ✅ Cache criado direto da VPS: ${cacheData.id}`);
+          finalMediaUrl = vpsBase64; // ✅ CRUCIAL: Definir Base64 como URL final
+          processedMediaData = {
+            cacheId: cacheData.id,
+            base64Data: vpsBase64,
+            fileSizeBytes: vpsMediaSize || 0,
+            fileSizeMB: (vpsMediaSize || 0) / (1024 * 1024),
+            storageUrl: null,
+            isStorageSaved: false
+          };
+        } else {
+          console.log(`[${requestId}] ❌ Erro ao criar cache VPS: ${cacheError?.message}`);
+        }
+      } else {
+        // 🔄 FALLBACK: PROCESSAR MÍDIA TRADICIONALMENTE
+        console.log(`[${requestId}] 🔄 Sem Base64 da VPS, processando tradicionalmente...`);
+        
+        // EXTRAÇÃO EXPANDIDA DE URL DA MÍDIA
+        const potentialUrls = [
+          data?.mediaUrl, data?.media_url, data?.media?.url, data?.url,
+          body?.mediaUrl, body?.media_url, body?.media?.url, body?.url,
+          body?.data?.mediaUrl, body?.data?.media_url, body?.data?.media?.url,
+          body?.data?.image?.url, body?.data?.video?.url, body?.data?.audio?.url, body?.data?.document?.url,
+          body?.message?.image?.url, body?.message?.video?.url, body?.message?.audio?.url, body?.message?.document?.url,
+          body?.image?.url, body?.video?.url, body?.audio?.url, body?.document?.url, body?.sticker?.url
+        ].filter(Boolean);
+        
+        console.log(`[${requestId}] 📎 URLs potenciais encontradas:`, potentialUrls);
+      
+              if (potentialUrls.length > 0) {
+          const mediaUrl = potentialUrls[0];
+          if (mediaUrl && typeof mediaUrl === 'string' && (mediaUrl.startsWith('http://') || mediaUrl.startsWith('https://'))) {
+            console.log(`[${requestId}] ✅ URL válida detectada: ${mediaUrl.substring(0, 80)}...`);
             
-            if (mediaResult.success) {
-              processedMediaData = {
-                cacheId: mediaResult.cacheId!,
-                base64Data: mediaResult.base64Data || '',
-                fileSizeBytes: mediaResult.fileSize || 0,
-                fileSizeMB: (mediaResult.fileSize || 0) / (1024 * 1024),
-                storageUrl: undefined, // Será definido pelo cache
-                isStorageSaved: true
-              };
-            } else {
-              console.log(`[${requestId}] ⚠️ Falha no processamento: ${mediaResult.error}`);
+            try {
+              // ✅ CORRIGIDO: Processar mídia com messageType correto
+              // ✅ NOVO PROCESSADOR DE MÍDIA
+              const mediaResult = await MediaProcessor.processMediaForMessage({
+                messageId: messageDbId,
+                mediaUrl: mediaUrl,
+                mediaType: messageType,
+                externalMessageId: messageId
+              });
+              
+              if (mediaResult.success) {
+                // ✅ BUSCAR DADOS COMPLETOS DO CACHE CRIADO
+                const { data: cacheData, error: cacheError } = await supabase
+                  .from('media_cache')
+                  .select('cached_url, base64_data, file_size')
+                  .eq('id', mediaResult.cacheId!)
+                  .single();
+
+                processedMediaData = {
+                  cacheId: mediaResult.cacheId!,
+                  base64Data: mediaResult.base64Data || cacheData?.base64_data || '',
+                  fileSizeBytes: mediaResult.fileSize || cacheData?.file_size || 0,
+                  fileSizeMB: (mediaResult.fileSize || cacheData?.file_size || 0) / (1024 * 1024),
+                  storageUrl: cacheData?.cached_url || undefined, // ✅ Storage URL do cache
+                  isStorageSaved: !!(cacheData?.cached_url)
+                };
+                
+                console.log(`[${requestId}] 📊 Mídia processada:`, {
+                  hasBase64: !!processedMediaData.base64Data,
+                  hasStorageUrl: !!processedMediaData.storageUrl,
+                  fileSize: processedMediaData.fileSizeMB.toFixed(1) + 'MB'
+                });
+              } else {
+                console.log(`[${requestId}] ⚠️ Falha no processamento: ${mediaResult.error}`);
+              }
+              console.log(`[${requestId}] ✅ Mídia processada com sucesso`);
+              
+                           // ✅ DEFINIR URL FINAL (Storage ou base64 com MIME TYPE CORRETO)
+               if (processedMediaData?.storageUrl) {
+                 finalMediaUrl = processedMediaData.storageUrl;
+               } else if (processedMediaData?.base64Data) {
+                 // 🔧 MIME TYPES CORRETOS PARA CADA TIPO DE MÍDIA
+                 const mimeTypes = {
+                   'image': 'image/jpeg',
+                   'audio': 'audio/ogg',
+                   'video': 'video/mp4',
+                   'document': 'application/pdf'
+                 };
+                 const mimeType = mimeTypes[messageType as keyof typeof mimeTypes] || 'application/octet-stream';
+                 finalMediaUrl = `data:${mimeType};base64,${processedMediaData.base64Data}`;
+                 console.log(`[${requestId}] 🎯 Base64 com MIME correto: ${mimeType}`);
+               }
+              
+            } catch (mediaError) {
+              console.log(`[${requestId}] ⚠️ Erro ao processar mídia: ${mediaError.message}`);
+              finalMediaUrl = mediaUrl; // Fallback para URL original
             }
-            console.log(`[${requestId}] ✅ Mídia processada com sucesso`);
-            
-                         // ✅ DEFINIR URL FINAL (Storage ou base64 com MIME TYPE CORRETO)
-             if (processedMediaData?.storageUrl) {
-               finalMediaUrl = processedMediaData.storageUrl;
-             } else if (processedMediaData?.base64Data) {
-               // 🔧 MIME TYPES CORRETOS PARA CADA TIPO DE MÍDIA
-               const mimeTypes = {
-                 'image': 'image/jpeg',
-                 'audio': 'audio/ogg',
-                 'video': 'video/mp4',
-                 'document': 'application/pdf'
-               };
-               const mimeType = mimeTypes[messageType as keyof typeof mimeTypes] || 'application/octet-stream';
-               finalMediaUrl = `data:${mimeType};base64,${processedMediaData.base64Data}`;
-               console.log(`[${requestId}] 🎯 Base64 com MIME correto: ${mimeType}`);
-             }
-            
-          } catch (mediaError) {
-            console.log(`[${requestId}] ⚠️ Erro ao processar mídia: ${mediaError.message}`);
-            finalMediaUrl = mediaUrl; // Fallback para URL original
           }
         }
       }

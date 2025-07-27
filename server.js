@@ -436,7 +436,7 @@ app.delete('/instance/:instanceId', async (req, res) => {
 
 // Enviar Mensagem
 app.post('/send', authenticateToken, async (req, res) => {
-  const { instanceId, phone, message } = req.body;
+  const { instanceId, phone, message, mediaType, mediaUrl } = req.body;
 
   if (!instanceId || !phone || !message) {
     return res.status(400).json({
@@ -473,7 +473,113 @@ app.post('/send', authenticateToken, async (req, res) => {
     const formattedPhone = phone.includes('@') ? phone : `${phone}@s.whatsapp.net`;
 
     // Enviar mensagem via Baileys
-    const messageResult = await instance.socket.sendMessage(formattedPhone, { text: message });
+    let messageResult;
+
+    // ✅ SUPORTE COMPLETO A MÍDIA E DATAURL
+    if (mediaType && mediaType !== 'text' && mediaUrl) {
+      console.log(`🎬 Enviando mídia tipo: ${mediaType}`);
+
+      // Detectar tipos especiais
+      const isDataUrl = mediaType.includes('_dataurl');
+      const baseType = mediaType.replace('_dataurl', '');
+
+      if (isDataUrl) {
+        console.log('📱 Detectada DataURL, processando...');
+      }
+
+      switch (baseType.toLowerCase()) {
+        case 'image':
+           if (mediaUrl.startsWith('data:')) {
+             // ✅ DataURL → Buffer (para Baileys)
+             console.log('📱 Convertendo DataURL para Buffer...');
+             const base64Data = mediaUrl.split(',')[1];
+             const buffer = Buffer.from(base64Data, 'base64');
+             messageResult = await instance.socket.sendMessage(formattedPhone, {
+               image: buffer,
+               // caption removida
+             });
+           } else {
+             // URL HTTP normal
+             messageResult = await instance.socket.sendMessage(formattedPhone, {
+               image: { url: mediaUrl },
+               // caption removida
+             });
+           }
+           break;
+
+        case 'video':
+          if (mediaUrl.startsWith('data:')) {
+            // ✅ DataURL → Buffer para vídeos
+            console.log('📹 Convertendo vídeo DataURL para Buffer...');
+            const base64Data = mediaUrl.split(',')[1];
+            const buffer = Buffer.from(base64Data, 'base64');
+            messageResult = await instance.socket.sendMessage(formattedPhone, {
+              video: buffer,
+              fileName: 'video.mp4' // nome fixo
+            });
+          } else {
+            // URL HTTP normal
+            messageResult = await instance.socket.sendMessage(formattedPhone, {
+              video: { url: mediaUrl },
+              // caption removida
+            });
+          }
+          break;
+
+        case 'audio':
+          if (mediaUrl.startsWith('data:')) {
+            // ✅ DataURL → Buffer para áudios
+            console.log('🎵 Convertendo áudio DataURL para Buffer...');
+            const base64Data = mediaUrl.split(',')[1];
+            const buffer = Buffer.from(base64Data, 'base64');
+            messageResult = await instance.socket.sendMessage(formattedPhone, {
+              audio: buffer,
+              fileName: 'audio.mp3', // nome fixo
+              mimetype: 'audio/mpeg'
+            });
+          } else {
+            // URL HTTP normal
+            messageResult = await instance.socket.sendMessage(formattedPhone, {
+              audio: { url: mediaUrl },
+              ptt: true
+            });
+          }
+          break;
+
+        case 'document':
+          if (mediaUrl.startsWith('data:')) {
+            // ✅ DataURL → Buffer para documentos
+            console.log('📄 Convertendo documento DataURL para Buffer...');
+            const base64Data = mediaUrl.split(',')[1];
+            const buffer = Buffer.from(base64Data, 'base64');
+
+            // Detectar MIME type do DataURL
+            const mimeMatch = mediaUrl.match(/data:([^;]+)/);
+            const mimeType = mimeMatch ? mimeMatch[1] : 'application/pdf';
+
+            messageResult = await instance.socket.sendMessage(formattedPhone, {
+              document: buffer,
+              fileName: 'documento.pdf', // nome fixo
+              mimetype: mimeType
+            });
+          } else {
+            // URL HTTP normal
+            messageResult = await instance.socket.sendMessage(formattedPhone, {
+              document: { url: mediaUrl },
+              fileName: 'documento.pdf', // nome fixo
+              mimetype: 'application/pdf'
+            });
+          }
+          break;
+
+        default:
+          console.log('⚠️  Tipo de mídia não reconhecido, enviando como texto');
+          messageResult = await instance.socket.sendMessage(formattedPhone, { text: message });
+      }
+    } else {
+      // Mensagem de texto padrão
+      messageResult = await instance.socket.sendMessage(formattedPhone, { text: message });
+    }
 
     // Adicionar ao cache para evitar reenvio de webhook
     connectionManager.addSentMessageToCache(instanceId, messageResult.key.id, formattedPhone);
@@ -734,4 +840,3 @@ function cleanupFailedInstances() {
 
 // Executar limpeza a cada 5 minutos
 setInterval(cleanupFailedInstances, 300000);
-root@srv863619:~/whatsapp-server#

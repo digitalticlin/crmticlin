@@ -82,7 +82,7 @@ export const MessageItem = memo(({
         )}
       </div>
     );
-  }, [message.id, message.mediaType, message.mediaUrl, message.text, isFromMe, isRealMedia]);
+  }, [message.id, message.mediaType, message.mediaUrl, message.text, isFromMe, isRealMedia, message.media_cache]);
 
   return (
     <div className={cn(

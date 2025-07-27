@@ -20,12 +20,20 @@ export const useScrollDetection = ({
     const container = containerRef.current;
     if (!container || !onLoadMore) return;
 
+    // ✅ OTIMIZAÇÃO: Throttle do scroll para melhor performance
+    let scrollTimer: NodeJS.Timeout | null = null;
+    
     const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = container;
-      const isAtTop = scrollTop <= 100; // 100px do topo
-      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 100; // 100px do final
+      if (scrollTimer) {
+        clearTimeout(scrollTimer);
+      }
+      
+      scrollTimer = setTimeout(() => {
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        const isAtTop = scrollTop <= 100; // 100px do topo
+        const isAtBottom = scrollTop + clientHeight >= scrollHeight - 100; // 100px do final
 
-      setIsNearTop(isAtTop);
+        setIsNearTop(isAtTop);
 
       // Carregar mais mensagens quando scroll está próximo do topo
       if (isAtTop && hasMoreMessages && !isLoadingMore) {
@@ -42,10 +50,16 @@ export const useScrollDetection = ({
           }, 50);
         });
       }
+      }, 16); // ~60fps throttling
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      if (scrollTimer) {
+        clearTimeout(scrollTimer);
+      }
+    };
   }, [onLoadMore, hasMoreMessages, isLoadingMore]);
 
   return { isNearTop };

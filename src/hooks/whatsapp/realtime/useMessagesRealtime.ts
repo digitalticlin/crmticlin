@@ -1,12 +1,13 @@
 /**
- * 🚀 HOOK DE REALTIME PARA MENSAGENS - ISOLADO
+ * 🎯 HOOK ISOLADO: REALTIME PARA ÁREA DE MENSAGENS
  * 
- * Responsabilidade ÚNICA: Gerenciar updates em tempo real das mensagens
- * - Novas mensagens do contato selecionado
- * - Atualizações de status de mensagens (entregue, lida, etc.)
- * - Adicionar mensagens à lista em tempo real
+ * RESPONSABILIDADE ÚNICA: Atualizar mensagens do contato selecionado
+ * ✅ ESCOPO: Apenas mensagens da conversa ativa
+ * ✅ EVENTOS: INSERT/UPDATE em 'messages' do contato atual
  * 
- * ❌ NÃO mexe com: lista de contatos, contadores gerais
+ * ❌ NÃO FAZ: Lista de contatos, cards, contadores, outros sistemas
+ * 
+ * ISOLAMENTO TOTAL: Este hook NÃO interfere com useChatsRealtime
  */
 
 import { useEffect, useRef, useCallback } from 'react';
@@ -85,7 +86,7 @@ export const useMessagesRealtime = (
     try {
       const newMessage = payload.new;
       
-      console.log('[Messages Realtime] 📨 Nova mensagem recebida:', {
+      console.log('[Messages Realtime - AREA] 📨 Nova mensagem recebida para área de chat:', {
         messageId: newMessage?.id,
         leadId: newMessage?.lead_id,
         fromMe: newMessage?.from_me,
@@ -95,13 +96,12 @@ export const useMessagesRealtime = (
 
       // 🔍 FILTRO SIMPLES: Só verificar instância ativa
       if (!activeInstance || newMessage?.whatsapp_number_id !== activeInstance.id) {
-        console.log('[Messages Realtime] 🚫 Mensagem de instância diferente ignorada');
+        console.log('[Messages Realtime - AREA] 🚫 Mensagem de instância diferente ignorada');
         return;
       }
 
-      // ✅ NOVO: Filtrar por contato selecionado APENAS SE NECESSÁRIO
-      // Permitir que TODAS as mensagens da instância sejam processadas
-      // O componente pai decidirá se deve mostrar ou não
+      // 🎯 ISOLAMENTO: Filtrar APENAS mensagens do contato selecionado
+      // Este hook é específico para a área de mensagens, NÃO mexe com lista de contatos
       const isForSelectedContact = selectedContact && newMessage?.lead_id === selectedContact.id;
       
       // ✅ CORREÇÃO: Se não há lead_id, pode ser mensagem sendo processada
@@ -110,8 +110,8 @@ export const useMessagesRealtime = (
                                newMessage?.import_source === 'messaging_service_isolated';
       
       if (!isForSelectedContact && !isSentByFrontend) {
-        console.log('[Messages Realtime] ℹ️ Mensagem de outro contato - não processando para tela atual');
-        // ✅ NÃO BLOQUEAR - pode ser útil para atualizar lista de contatos
+        console.log('[Messages Realtime - AREA] ℹ️ Mensagem de outro contato - ignorando (não é responsabilidade desta área)');
+        // 🎯 ISOLAMENTO: Este hook SÓ cuida da área de mensagens atual
         return;
       }
 
@@ -133,42 +133,80 @@ export const useMessagesRealtime = (
       });
 
       // 🚀 DETECÇÃO DE MENSAGEM OTIMISTA - EVITAR DUPLICAÇÃO
-      // Se é uma mensagem enviada pelo frontend (import_source: messaging_service)
-      // E há mensagens otimistas pendentes, substituir ao invés de duplicar
-      if (newMessage.import_source === 'messaging_service' && newMessage.from_me) {
-        console.log('[Messages Realtime] 🔍 Detectada mensagem de confirmação do frontend');
+      // Se é uma mensagem enviada pelo frontend, SEMPRE tentar substituir otimística
+      if (newMessage.from_me && (newMessage.import_source === 'messaging_service' || newMessage.import_source === 'messaging_service_isolated')) {
+        console.log('[Messages Realtime - AREA] 🔍 Detectada confirmação da VPS - verificando duplicação');
         
-        // Buscar mensagem otimista correspondente pelo texto e timestamp próximo
-        const optimisticMessages = (currentMessages || []).filter(m => 
-          m.isOptimistic && 
-          m.text === newMessage.text &&
-          (m.status === 'sending' || m.status === 'sent')
-        );
+        // 🎯 BUSCA MAIS ABRANGENTE: Por texto, timing ou status otimista
+        const optimisticMessages = (currentMessages || []).filter(m => {
+          // Buscar por texto exato
+          const sameText = m.text === newMessage.text;
+          
+          // Buscar por status otimista/temporário
+          const isOptimisticStatus = m.isOptimistic || m.status === 'sending' || m.id?.startsWith('temp_');
+          
+          // Buscar por timing próximo (últimos 30 segundos)
+          const isRecent = m.timestamp && (Date.now() - new Date(m.timestamp).getTime()) < 30000;
+          
+          return sameText && isOptimisticStatus && isRecent;
+        });
 
         if (optimisticMessages.length > 0) {
           const optimisticMessage = optimisticMessages[0];
-          console.log('[Messages Realtime] 🔄 Substituindo mensagem otimista por confirmação real:', {
+          console.log('[Messages Realtime - AREA] 🔄 SUBSTITUINDO mensagem otimista por confirmação da VPS:', {
             optimisticId: optimisticMessage.id,
-            realId: newMessage.id
+            realId: newMessage.id,
+            text: newMessage.text?.substring(0, 30)
           });
 
-          // ✅ CRIAR MENSAGEM DE SUBSTITUIÇÃO
+          // ✅ CRIAR MENSAGEM REAL COMPLETA
           const replacementMessage = {
-            ...optimisticMessage,
             id: newMessage.id,
+            text: newMessage.text || optimisticMessage.text,
+            fromMe: true,
+            sender: 'user' as const,
+            time: new Date(newMessage.created_at || new Date()).toLocaleTimeString('pt-BR', {
+              hour: '2-digit',
+              minute: '2-digit'
+            }),
+            timestamp: newMessage.created_at || optimisticMessage.timestamp,
             status: 'sent' as const,
-            isOptimistic: false,
-            timestamp: newMessage.created_at,
-            fromMe: true // ✅ FORÇAR TRUE para mensagens enviadas
+            isIncoming: false,
+            mediaType: (newMessage.media_type as any) || optimisticMessage.mediaType || 'text',
+            mediaUrl: newMessage.media_url || optimisticMessage.mediaUrl,
+            media_cache: newMessage.media_cache || null,
+            isOptimistic: false // ✅ NÃO é mais otimística
           };
 
-          // ✅ CALLBACK ESPECIAL PARA SUBSTITUIÇÃO
+          // ✅ SEMPRE SUBSTITUIR - NUNCA DUPLICAR
           if (onReplaceOptimisticMessage) {
             onReplaceOptimisticMessage(optimisticMessage.id, replacementMessage);
-            console.log('[Messages Realtime] ✅ Mensagem otimista substituída com sucesso');
-            return;
+            console.log('[Messages Realtime - AREA] ✅ Mensagem otimista SUBSTITUÍDA com sucesso');
+            return; // ✅ IMPORTANTE: Sair aqui para evitar criação dupla
           }
+        } else {
+          console.log('[Messages Realtime - AREA] ⚠️ Mensagem da VPS mas não encontrou otimística correspondente:', {
+            text: newMessage.text?.substring(0, 30),
+            currentMessagesCount: currentMessages?.length || 0,
+            hasOptimistic: (currentMessages || []).some(m => m.isOptimistic || m.id?.startsWith('temp_'))
+          });
         }
+      }
+
+      // ✅ VERIFICAR SE NÃO É DUPLICATA DE MENSAGEM JÁ EXISTENTE
+      const existingMessage = (currentMessages || []).find(m => 
+        m.id === newMessage.id || 
+        (m.text === newMessage.text && m.fromMe === newMessage.from_me && 
+         Math.abs(new Date(m.timestamp).getTime() - new Date(newMessage.created_at).getTime()) < 5000)
+      );
+
+      if (existingMessage) {
+        console.log('[Messages Realtime - AREA] 🚫 Mensagem já existe - ignorando duplicata:', {
+          existingId: existingMessage.id,
+          newId: newMessage.id,
+          text: newMessage.text?.substring(0, 30)
+        });
+        return;
       }
 
       // ✅ CONVERTER MENSAGEM PARA FORMATO DA UI
@@ -188,9 +226,10 @@ export const useMessagesRealtime = (
         mediaUrl: newMessage.media_url || undefined,
         media_cache: newMessage.media_cache || null,
         hasMediaCache: !!newMessage.media_cache,
-        mediaCacheId: newMessage.media_cache?.id || undefined
+        mediaCacheId: newMessage.media_cache?.id || undefined,
+        isOptimistic: false // ✅ Mensagem real da VPS
       };
-
+      
       // Marcar como processada
       processedMessagesRef.current.add(newMessage.id);
       
@@ -223,8 +262,12 @@ export const useMessagesRealtime = (
         reconnectAttemptsRef.current = 0;
         statsRef.current.reconnectAttempts = 0;
         
-        // Callback para nova mensagem
-        if (onMessageUpdate) {
+        // ✅ CORREÇÃO CRÍTICA: Usar callback correto para novas mensagens
+        if (onMessageInsert) {
+          console.log('[Messages Realtime] ➕ Adicionando nova mensagem via callback correto');
+          onMessageInsert(message);
+        } else if (onMessageUpdate) {
+          console.log('[Messages Realtime] ⚠️ Fallback: usando onMessageUpdate para nova mensagem');
           onMessageUpdate(message);
         }
 
@@ -302,7 +345,12 @@ export const useMessagesRealtime = (
     
     if (!shouldActivate) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('[Messages Realtime] ⚠️ Lazy loading: aguardando selectedContact e activeInstance');
+        console.log('[Messages Realtime] ⚠️ Lazy loading: aguardando selectedContact e activeInstance', {
+          hasSelectedContact: !!selectedContact,
+          selectedContactId: selectedContact?.id,
+          hasActiveInstance: !!activeInstance,
+          activeInstanceId: activeInstance?.id
+        });
       }
       // Cleanup se estava ativo antes
       cleanup();

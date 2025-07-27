@@ -1,12 +1,13 @@
 /**
- * 🚀 HOOK DE REALTIME PARA CHATS/CONTATOS - ISOLADO E ANTI-LOOP
+ * 🎯 HOOK ISOLADO: REALTIME PARA CARDS DE CONTATOS
  * 
- * Responsabilidade ÚNICA: Gerenciar updates em tempo real da lista de contatos
- * - Novos contatos (leads)
- * - Atualização de contadores de mensagens não lidas
- * - Mover contatos para topo quando recebem mensagens
+ * RESPONSABILIDADE ÚNICA: Atualizar lista de contatos em tempo real
+ * ✅ ESCOPO: Apenas cards da lista de contatos
+ * ✅ EVENTOS: INSERT/UPDATE em 'leads' e 'messages' (para mover para topo)
  * 
- * ❌ NÃO mexe com: mensagens individuais, conteúdo de chat
+ * ❌ NÃO FAZ: Mensagens individuais, conteúdo de chat, outros sistemas
+ * 
+ * ISOLAMENTO TOTAL: Este hook NÃO interfere com useMessagesRealtime
  */
 
 import { useEffect, useRef, useCallback } from 'react';
@@ -173,17 +174,24 @@ export const useChatsRealtime = ({
     
     if (!shouldActivate) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('[Chats Realtime] ⚠️ Lazy loading: aguardando userId e activeInstanceId');
+        console.log('[Chats Realtime] ⚠️ Lazy loading: aguardando userId e activeInstanceId', {
+          hasUserId: !!userId,
+          userId,
+          hasActiveInstanceId: !!activeInstanceId,
+          activeInstanceId
+        });
       }
       // Cleanup se estava ativo antes
       cleanup();
       return;
     }
     
-    // 🚀 PERFORMANCE: Só ativar se há callbacks granulares configurados
-    const hasGranularCallbacks = !!(onMoveContactToTop || onUpdateUnreadCount || onAddNewContact);
-    if (!hasGranularCallbacks && process.env.NODE_ENV === 'development') {
-      console.log('[Chats Realtime] ⚡ Performance: aguardando callbacks granulares serem configurados');
+    // ✅ CORREÇÃO CRÍTICA: Sempre ativar se há pelo menos um callback (incluindo fallbacks)
+    const hasAnyCallback = !!(onMoveContactToTop || onUpdateUnreadCount || onAddNewContact || onContactUpdate || onNewContact || onContactsRefresh);
+    if (!hasAnyCallback) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Chats Realtime] ⚠️ Nenhum callback configurado - não ativando realtime');
+      }
       cleanup();
       return;
     }
@@ -260,7 +268,8 @@ export const useChatsRealtime = ({
         filter: `whatsapp_number_id=eq.${activeInstanceId}`
       }, handleLeadUpdate)
       
-      // ✅ NOVO: SUBSCRIPTION PARA MENSAGENS (ATUALIZAR LISTA DE CONTATOS)
+      // 🎯 ISOLAMENTO: SUBSCRIPTION APENAS PARA ATUALIZAR CARDS DE CONTATOS
+      // Esta subscription é específica para mover contatos para topo, SEM interferir na área de mensagens
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -269,21 +278,23 @@ export const useChatsRealtime = ({
       }, (payload) => {
         try {
           const newMessage = payload.new;
-          console.log('[Chats Realtime] 📨 Nova mensagem para atualizar lista:', {
+          
+          // 🎯 RESPONSABILIDADE: Apenas atualizar ordem dos cards
+          console.log('[Chats Realtime - CARDS] 📨 Nova mensagem para atualizar lista de contatos:', {
             messageId: newMessage?.id,
             leadId: newMessage?.lead_id,
-            fromMe: newMessage?.from_me,
-            text: newMessage?.text?.substring(0, 30)
+            fromMe: newMessage?.from_me
           });
           
-          // ✅ Mover contato para topo com nova mensagem
+          // ✅ AÇÃO ESPECÍFICA: Mover contato para topo (SEM tocar nas mensagens)
           if (onMoveContactToTop && newMessage?.lead_id) {
+            console.log('[Chats Realtime - CARDS] 🔝 Movendo contato para topo:', newMessage.lead_id);
             onMoveContactToTop(newMessage.lead_id, newMessage);
           }
         } catch (error) {
-          console.error('[Chats Realtime] ❌ Erro processando nova mensagem para lista:', error);
+          console.error('[Chats Realtime - CARDS] ❌ Erro processando atualização de lista:', error);
         }
-             })
+      })
       
       .subscribe((status) => {
         if (process.env.NODE_ENV === 'development') {

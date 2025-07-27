@@ -1,13 +1,18 @@
 /**
- * 🚀 EXPORTS CENTRALIZADOS - SISTEMA DE REALTIME MODULAR
+ * 🎯 SISTEMA ISOLADO E MODULAR DE REALTIME
  * 
- * Este arquivo centraliza todos os exports do sistema de realtime modular,
- * facilitando importações e manutenção.
+ * APENAS 2 HOOKS ISOLADOS - SEM CONFLITOS OU DUPLICIDADES
+ * 
+ * ✅ useChatsRealtime    → Cards de contatos (lista lateral)
+ * ✅ useMessagesRealtime → Área de mensagens (conversa ativa)
+ * 
+ * ISOLAMENTO TOTAL: Cada hook tem responsabilidade específica
+ * e NÃO interfere com o outro.
  */
 
-// 🎯 HOOKS PRINCIPAIS
-export { useChatsRealtime } from './useChatsRealtime';
-export { useMessagesRealtime } from './useMessagesRealtime';
+// 🎯 HOOKS ISOLADOS
+export { useChatsRealtime } from './useChatsRealtime';      // Cards de contatos
+export { useMessagesRealtime } from './useMessagesRealtime'; // Área de mensagens
 
 // 📝 TIPOS
 export type {

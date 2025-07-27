@@ -24,6 +24,9 @@ interface UseMediaLoaderReturn {
   shouldShowDownloadButton: boolean;
   originalUrl: string | null;
   isLargeMedia: boolean;
+  // 🆕 PROCESSAMENTO SOB DEMANDA
+  isProcessing: boolean;
+  processMedia: () => Promise<void>;
 }
 
 // Cache no localStorage para URLs válidas
@@ -88,6 +91,18 @@ export const useMediaLoader = ({
   const [shouldShowDownloadButton, setShouldShowDownloadButton] = useState(false);
   const [originalUrl, setOriginalUrl] = useState<string | null>(null);
   const [isLargeMedia, setIsLargeMedia] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // ✅ FUNÇÃO AUXILIAR DENTRO DO HOOK
+  const getMimeType = (type: string): string => {
+    switch (type) {
+      case 'image': return 'image/jpeg';
+      case 'video': return 'video/mp4';
+      case 'audio': return 'audio/ogg';
+      case 'document': return 'application/pdf';
+      default: return 'application/octet-stream';
+    }
+  };
 
   useEffect(() => {
     const loadMedia = async () => {
@@ -100,26 +115,38 @@ export const useMediaLoader = ({
       setOriginalUrl(mediaUrl || null);
 
       try {
-        // ✅ PRIORIDADE 0: Se media_url já é Base64, validar e corrigir se necessário
+        // 🚀 PRIORIDADE 0: Base64 da VPS DIRETO (INSTANTÂNEO)
         if (mediaUrl && mediaUrl.startsWith('data:')) {
-          console.log(`[MediaLoader] 🎯 Base64 direto no media_url para ${messageId.substring(0, 8)}`);
+          console.log(`[MediaLoader] 🎯 BASE64 DA VPS DETECTADO! Renderização instantânea para ${messageId.substring(0, 8)}`);
           
-          // 🔧 CORREÇÃO: Detectar e corrigir Base64 inválido
+          // ✅ VALIDAÇÃO MELHORADA PARA BASE64 DA VPS
           const base64Match = mediaUrl.match(/data:([^;]+);base64,(.+)/);
           if (base64Match) {
             const [, mimeType, base64Data] = base64Match;
             
-            // Verificar se Base64 é válido para mídia
-            if (base64Data.length < 100 || !base64Data.match(/^[A-Za-z0-9+/=]+$/)) {
-              console.warn(`[MediaLoader] ⚠️ Base64 inválido detectado para ${messageId.substring(0, 8)}, tentando cache...`);
-              // Não usar media_url inválido, continuar para outras prioridades
-            } else {
+            // Base64 da VPS é sempre válido - não fazer validações demoradas
+            if (base64Data && base64Data.length > 50) {
+              console.log(`[MediaLoader] ✅ Base64 VPS válido (${(base64Data.length / 1024).toFixed(1)}KB) - ${mimeType}`);
               setFinalUrl(mediaUrl);
               setCachedUrl(messageId, mediaUrl);
               setIsLoading(false);
               return;
             }
           }
+        }
+
+        // 🚀 PRIORIDADE 0.5: Base64 no Cache da Mensagem (NÃO-BLOQUEANTE)
+        if (mediaCache?.base64_data && mediaCache.base64_data.startsWith('data:')) {
+          console.log(`[MediaLoader] 🎯 BASE64 DO CACHE DETECTADO! Renderização não-bloqueante para ${messageId.substring(0, 8)} (${(mediaCache.base64_data.length / 1024).toFixed(1)}KB)`);
+          
+          // ✅ CORREÇÃO: Usar setTimeout para não bloquear thread principal
+          setTimeout(() => {
+            setFinalUrl(mediaCache.base64_data);
+            setCachedUrl(messageId, mediaCache.base64_data);
+            setIsLoading(false);
+          }, 0); // Próximo tick, não bloqueia render
+          
+          return;
         }
 
         // ✅ PRIORIDADE 1: Cache local válido
@@ -139,20 +166,26 @@ export const useMediaLoader = ({
           console.log(`[MediaLoader] 🚀 Usando cache da mensagem para ${messageId}`);
           cacheData = mediaCache;
         } else if (mediaUrl && !mediaUrl.startsWith('data:')) {
-          // Fallback: buscar por original_url apenas se não temos cache E não é base64
-          console.log(`[MediaLoader] 🔄 Fallback: Buscando cache por URL: ${mediaUrl.substring(0, 80)}...`);
+          // ✅ ESTRATÉGIA DUPLA: Tentar buscar cache primeiro por message_id, depois por URL
+          console.log(`[MediaLoader] 🔄 Buscando cache para mensagem: ${messageId}`);
           
-          const { data: cacheByUrl, error: cacheByUrlError } = await supabase
+          // Primeiro: tentar por message_id (mais confiável)
+          const { data: cacheByMessageId, error: cacheByMessageError } = await supabase
             .from('media_cache')
             .select('base64_data, cached_url, file_name, media_type, original_url, message_id, file_size')
-            .eq('original_url', mediaUrl)
+            .eq('message_id', messageId)
             .single();
 
-          if (cacheByUrlError && cacheByUrlError.code !== 'PGRST116') {
-            console.warn(`[MediaLoader] ⚠️ Erro ao buscar cache por URL: ${cacheByUrlError.message}`);
-          } else if (cacheByUrl) {
-            console.log(`[MediaLoader] ✅ Cache encontrado por URL para ${messageId}`);
-            cacheData = cacheByUrl;
+          if (cacheByMessageId) {
+            console.log(`[MediaLoader] ✅ Cache encontrado por message_id para ${messageId}`);
+            cacheData = cacheByMessageId;
+          } else {
+            // Fallback: criar cache placeholder para mídia sem cache
+            console.log(`[MediaLoader] 📝 Criando cache placeholder para ${messageId}`);
+            setShouldShowDownloadButton(true);
+            setOriginalUrl(mediaUrl);
+            setIsLoading(false);
+            return;
           }
         }
 
@@ -263,6 +296,40 @@ export const useMediaLoader = ({
     loadMedia();
   }, [messageId, mediaType, mediaUrl, mediaCache]);
 
+  // 🆕 FUNÇÃO PARA PROCESSAR MÍDIA SOB DEMANDA
+  const processMedia = useCallback(async () => {
+    if (!mediaCache?.id || isProcessing) return;
+
+    setIsProcessing(true);
+    setError(null);
+
+    try {
+      console.log(`[MediaLoader] 🔄 Processando mídia sob demanda: ${mediaCache.id}`);
+      
+      const response = await supabase.functions.invoke('process_media_demand', {
+        body: { mediaId: mediaCache.id }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      const { base64Data } = response.data;
+      if (base64Data) {
+        setFinalUrl(base64Data);
+        setCachedUrl(messageId, base64Data);
+        setShouldShowDownloadButton(false);
+        console.log(`[MediaLoader] ✅ Mídia processada com sucesso: ${mediaCache.id}`);
+      }
+
+    } catch (error) {
+      console.error(`[MediaLoader] ❌ Erro ao processar mídia:`, error);
+      setError('Erro ao processar mídia');
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [mediaCache?.id, messageId, isProcessing]);
+
   return {
     finalUrl,
     isLoading,
@@ -270,20 +337,13 @@ export const useMediaLoader = ({
     // 🆕 NOVOS RETORNOS
     shouldShowDownloadButton,
     originalUrl,
-    isLargeMedia
+    isLargeMedia,
+    isProcessing,
+    processMedia
   };
 };
 
 // Funções auxiliares
-const getMimeType = (type: string): string => {
-  switch (type) {
-    case 'image': return 'image/jpeg';
-    case 'video': return 'video/mp4';
-    case 'audio': return 'audio/ogg';
-    case 'document': return 'application/pdf';
-    default: return 'application/octet-stream';
-  }
-};
 
 const getFileExtension = (type: string): string => {
   switch (type) {

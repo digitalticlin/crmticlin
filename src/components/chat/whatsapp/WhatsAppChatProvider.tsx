@@ -7,7 +7,7 @@ import { WhatsAppWebInstance } from '@/types/whatsapp';
 import { useWhatsAppDatabase } from '@/hooks/whatsapp/useWhatsAppDatabase';
 import { useWhatsAppContacts } from '@/hooks/whatsapp/useWhatsAppContacts';
 import { useWhatsAppChatMessages } from '@/hooks/whatsapp/chat/useWhatsAppChatMessages';
-import { useRealtimeLeads } from '@/hooks/chat/useRealtimeLeads';
+
 import { useChatsRealtime } from '@/hooks/whatsapp/realtime';
 import { useCompanyData } from '@/hooks/useCompanyData';
 import { useSearchParams } from 'react-router-dom';

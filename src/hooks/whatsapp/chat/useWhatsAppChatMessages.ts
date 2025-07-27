@@ -9,7 +9,7 @@ import { useCompanyResolver } from '../useCompanyResolver';
 import { toast } from 'sonner';
 import { normalizeStatus } from './helpers/messageHelpers';
 
-const MESSAGES_LIMIT = 20; // Reduzido para 20 mensagens por página
+const MESSAGES_LIMIT = 15; // ✅ OTIMIZADO: 15 mensagens para carregamento mais rápido
 
 export const useWhatsAppChatMessages = (
   selectedContact: Contact | null,
@@ -239,26 +239,30 @@ export const useWhatsAppChatMessages = (
     }
 
     // 🚀 UI OTIMISTA: Criar mensagem temporária imediatamente
+    const optimisticTimestamp = new Date().toISOString();
     const optimisticMessage = {
       id: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       text: text.trim(),
       fromMe: true,
-      timestamp: new Date().toISOString(),
+      timestamp: optimisticTimestamp,
       status: 'sending' as const,
       mediaType: mediaType || 'text' as const,
       mediaUrl: mediaUrl || undefined,
       sender: 'user' as const,
       time: new Date().toLocaleTimeString('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit'
-      }),
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
       isIncoming: false,
-      isOptimistic: true // 🆕 Flag para identificar mensagens otimistas
+      isOptimistic: true, // 🆕 Flag PRINCIPAL para identificar mensagens otimistas
+      optimisticTimestamp: optimisticTimestamp // 🆕 Timestamp específico para matching
     };
 
-    console.log('[WhatsApp Messages] 🚀 UI OTIMISTA: Adicionando mensagem instantaneamente:', {
+    console.log('[WhatsApp Messages] 🚀 UI OTIMISTA: Criando mensagem temporária:', {
       messageId: optimisticMessage.id,
-      text: optimisticMessage.text
+      text: optimisticMessage.text?.substring(0, 30),
+      timestamp: optimisticTimestamp,
+      isOptimistic: true
     });
 
     // ✅ MOSTRAR MENSAGEM IMEDIATAMENTE NA UI
@@ -380,25 +384,25 @@ export const useWhatsAppChatMessages = (
     console.log('[WhatsApp Messages] 🔄 Mudança detectada:', {
       newContactId,
       newInstanceId,
-      previousContactId: lastContactIdRef.current,
-      previousInstanceId: lastInstanceIdRef.current
-    });
+        previousContactId: lastContactIdRef.current,
+        previousInstanceId: lastInstanceIdRef.current
+      });
 
     // Reset estado
-    setMessages([]);
-    setCurrentOffset(0);
-    setHasMoreMessages(true);
-    setIsLoadingMessages(false);
-    setIsLoadingMore(false);
+      setMessages([]);
+      setCurrentOffset(0);
+      setHasMoreMessages(true);
+      setIsLoadingMessages(false);
+      setIsLoadingMore(false);
 
     // Atualizar refs ANTES de carregar
     lastContactIdRef.current = newContactId;
     lastInstanceIdRef.current = newInstanceId;
 
     // Carregar mensagens se há contato selecionado
-    if (selectedContact && activeInstance) {
+      if (selectedContact && activeInstance) {
       console.log('[WhatsApp Messages] 🚀 Carregando mensagens do contato:', selectedContact.name);
-      fetchMessages(0, true);
+        fetchMessages(0, true);
     }
   }, [selectedContact?.id, activeInstance?.id, fetchMessages]);
 

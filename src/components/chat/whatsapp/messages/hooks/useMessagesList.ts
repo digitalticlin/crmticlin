@@ -37,7 +37,7 @@ export const useMessagesList = ({ messages, isLoadingMore }: UseMessagesListProp
         inline: 'nearest'
       });
       
-      // Backup com delay pequeno para garantir que DOM está pronto
+      // ✅ CORREÇÃO: Múltiplos backups mais agressivos para garantir scroll
       setTimeout(() => {
         if (messagesEndRef.current) {
           messagesEndRef.current.scrollIntoView({ 
@@ -45,9 +45,21 @@ export const useMessagesList = ({ messages, isLoadingMore }: UseMessagesListProp
             block: 'end',
             inline: 'nearest'
           });
-          console.log('[useMessagesList] ✅ Scroll inicial garantido com backup');
+          console.log('[useMessagesList] ✅ Scroll inicial garantido com backup 1');
         }
-      }, 100);
+      }, 50);
+      
+      // Backup adicional para casos extremos
+      setTimeout(() => {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ 
+            behavior: 'instant',
+            block: 'end',
+            inline: 'nearest'
+          });
+          console.log('[useMessagesList] ✅ Scroll inicial garantido com backup 2');
+        }
+      }, 200);
       
       isInitialLoadRef.current = false;
       return; // Sair aqui para não fazer scroll duplo
