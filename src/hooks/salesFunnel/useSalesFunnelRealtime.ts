@@ -12,7 +12,8 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { KanbanLead, KanbanStage } from '@/types/kanban';
+import { KanbanLead } from '@/types/kanban';
+import { KanbanStage } from '@/types/funnel';
 import { Funnel } from '@/types/funnel';
 
 interface SalesFunnelRealtimeConfig {
