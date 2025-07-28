@@ -281,7 +281,9 @@ export const useWhatsAppChatMessages = ({
 
     } catch (error: any) {
       console.error('[Chat Messages] ❌ Erro ao enviar:', error);
-      toast.error(`Erro ao enviar mensagem: ${error.message}`);
+      // ✅ CORREÇÃO: Acessar a propriedade 'message' somente se 'error' for um objeto
+      const errorMessage = typeof error === 'string' ? error : (error?.message || 'Erro desconhecido');
+      toast.error(`Erro ao enviar mensagem: ${errorMessage}`);
       return false;
     } finally {
       setIsSendingMessage(false);
