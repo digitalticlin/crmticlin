@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSalesFunnelContext } from "./SalesFunnelProvider";
@@ -192,8 +193,14 @@ export function SalesFunnelContent() {
     }
   }, [stages, refetchLeads, refetchStages]);
 
-  // 🚀 NOVA FUNÇÃO: Navegar para o WhatsApp Chat com o lead específico
-  const handleOpenChat = useCallback((lead: KanbanLead) => {
+  // 🚀 FUNÇÃO CORRIGIDA: Aceitar leadId em vez de lead completo
+  const handleOpenChat = useCallback((leadId: string) => {
+    const lead = leads.find(l => l.id === leadId);
+    if (!lead) {
+      toast.error("Lead não encontrado");
+      return;
+    }
+
     console.log('[SalesFunnelContent] 💬 Abrindo chat do WhatsApp para lead:', {
       leadId: lead.id,
       leadName: lead.name,
@@ -206,7 +213,12 @@ export function SalesFunnelContent() {
     toast.success(`Abrindo chat com ${lead.name}`, {
       description: "Redirecionando para o WhatsApp..."
     });
-  }, [navigate]);
+  }, [navigate, leads]);
+
+  // Função auxiliar para uso em outros componentes que ainda passam KanbanLead
+  const handleOpenChatWithLead = useCallback((lead: KanbanLead) => {
+    handleOpenChat(lead.id);
+  }, [handleOpenChat]);
 
   // Renderização condicional com base no loading e error
   if (loading) {
@@ -266,7 +278,7 @@ export function SalesFunnelContent() {
             columns={columns}
             onColumnsChange={setColumns}
             onOpenLeadDetail={openLeadDetail}
-            onOpenChat={handleOpenChat}
+            onOpenChat={handleOpenChatWithLead}
             onMoveToWonLost={handleMoveToWonLost}
             wonStageId={wonStageId}
             lostStageId={lostStageId}
@@ -297,7 +309,7 @@ export function SalesFunnelContent() {
               leads={leads}
               onOpenLeadDetail={openLeadDetail}
               onReturnToFunnel={handleReturnToFunnel}
-              onOpenChat={handleOpenChat}
+              onOpenChat={handleOpenChatWithLead}
               wonStageId={wonStageId}
               lostStageId={lostStageId}
               searchTerm={searchTerm}
