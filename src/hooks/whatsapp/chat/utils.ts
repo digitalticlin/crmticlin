@@ -16,3 +16,21 @@ export function normalizeMediaType(mediaType: string | undefined): 'text' | 'ima
   
   return 'text';
 }
+
+/**
+ * Normaliza o status da mensagem para garantir compatibilidade
+ * com os tipos esperados pelo sistema
+ */
+export function normalizeStatus(status: string | undefined): 'pending' | 'sent' | 'delivered' | 'read' | 'failed' {
+  if (!status) return 'pending';
+  
+  const statusLower = status.toLowerCase();
+  
+  // Mapear status comuns para os tipos esperados
+  if (statusLower.includes('sent') || statusLower === 'enviada') return 'sent';
+  if (statusLower.includes('delivered') || statusLower === 'entregue') return 'delivered';
+  if (statusLower.includes('read') || statusLower === 'lida') return 'read';
+  if (statusLower.includes('failed') || statusLower === 'erro') return 'failed';
+  
+  return 'pending';
+}
