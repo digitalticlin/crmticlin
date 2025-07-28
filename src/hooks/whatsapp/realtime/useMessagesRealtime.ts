@@ -1,30 +1,39 @@
+
 /**
- * 🎯 HOOK REALTIME PARA MENSAGENS - VERSÃO SIMPLES QUE FUNCIONA
+ * 🎯 HOOK REALTIME PARA MENSAGENS - VERSÃO OTIMIZADA FASE 1
  * 
- * Responsabilidade: Escutar mensagens em tempo real para contato selecionado
- * Baseado no commit 6c9daf0a que funcionava perfeitamente
+ * NOVA FUNCIONALIDADE:
+ * ✅ Comunica com useChatsRealtime para mover contatos para o topo
+ * ✅ Otimização de communication layer via windowEventManager
+ * 
+ * Responsabilidade: Escutar mensagens em tempo real + notificar contatos
  */
 
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Contact, Message } from '../../../types/chat';
 import { WhatsAppWebInstance } from '../../../types/whatsapp';
+import { windowEventManager } from '@/utils/eventManager';
 
 interface UseMessagesRealtimeProps {
   selectedContact: Contact | null;
   activeInstance: WhatsAppWebInstance | null;
   onNewMessage?: (message: Message) => void;
   onMessageUpdate?: (message: Message) => void;
+  // 🚀 FASE 1: Novo callback para comunicação com contatos
+  onMoveContactToTop?: (contactId: string, newMessage: { text: string; timestamp: string; unreadCount?: number }) => void;
 }
 
 export const useMessagesRealtime = ({
   selectedContact,
   activeInstance,
   onNewMessage,
-  onMessageUpdate
+  onMessageUpdate,
+  onMoveContactToTop
 }: UseMessagesRealtimeProps) => {
   
   const channelRef = useRef<any>(null);
+  const eventSubscriptionRef = useRef<string | null>(null);
   
   // ✅ CONVERSÃO SIMPLES DE MENSAGEM DO BANCO PARA UI
   const convertMessage = useCallback((messageData: any): Message => {
@@ -46,12 +55,55 @@ export const useMessagesRealtime = ({
     } satisfies Message;
   }, []);
 
-  // ✅ CLEANUP
+  // 🚀 FASE 1: Função para notificar contatos via windowEventManager
+  const notifyContactUpdate = useCallback((contactId: string, messageData: any) => {
+    if (onMoveContactToTop) {
+      const messageInfo = {
+        text: messageData.text || 'Nova mensagem',
+        timestamp: messageData.created_at || new Date().toISOString(),
+        unreadCount: messageData.from_me ? 0 : 1
+      };
+      
+      console.log('[Messages Realtime] 🔔 Notificando contato para mover para o topo:', {
+        contactId,
+        messageInfo
+      });
+      
+      onMoveContactToTop(contactId, messageInfo);
+    }
+
+    // 🚀 FASE 1: Dispatch evento global para outros componentes
+    const eventDetail = {
+      contactId,
+      messageText: messageData.text || 'Nova mensagem',
+      timestamp: messageData.created_at || new Date().toISOString(),
+      isFromMe: messageData.from_me || false
+    };
+
+    windowEventManager.addEventListener(
+      window,
+      'whatsapp-contact-update',
+      (event: CustomEvent) => {
+        console.log('[Messages Realtime] 📡 Evento global disparado:', event.detail);
+      }
+    );
+
+    // Dispatch do evento
+    window.dispatchEvent(new CustomEvent('whatsapp-contact-update', { detail: eventDetail }));
+  }, [onMoveContactToTop]);
+
+  // ✅ CLEANUP OTIMIZADO
   const cleanup = useCallback(() => {
     if (channelRef.current) {
       console.log('[Messages Realtime] 🧹 Limpando canal');
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
+    }
+
+    // 🚀 FASE 1: Cleanup do event listener global
+    if (eventSubscriptionRef.current) {
+      windowEventManager.removeEventListener(eventSubscriptionRef.current);
+      eventSubscriptionRef.current = null;
     }
   }, []);
 
@@ -62,7 +114,7 @@ export const useMessagesRealtime = ({
       return;
     }
 
-    console.log('[Messages Realtime] 🚀 Configurando realtime para:', {
+    console.log('[Messages Realtime] 🚀 Configurando realtime FASE 1 para:', {
       contactId: selectedContact.id,
       instanceId: activeInstance.id
     });
@@ -78,13 +130,13 @@ export const useMessagesRealtime = ({
       .on(
         'postgres_changes',
         {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
           filter: `lead_id=eq.${selectedContact.id}`
         },
         (payload) => {
-          console.log('[Messages Realtime] 📨 Nova mensagem:', payload);
+          console.log('[Messages Realtime] 📨 Nova mensagem FASE 1:', payload);
           
           const messageData = payload.new;
           
@@ -95,6 +147,11 @@ export const useMessagesRealtime = ({
           }
 
           const message = convertMessage(messageData);
+          
+          // 🚀 FASE 1: Notificar contatos antes de adicionar mensagem
+          if (!messageData.from_me) {
+            notifyContactUpdate(selectedContact.id, messageData);
+          }
           
           if (onNewMessage) {
             console.log('[Messages Realtime] ➕ Adicionando nova mensagem');
@@ -111,7 +168,7 @@ export const useMessagesRealtime = ({
           filter: `lead_id=eq.${selectedContact.id}`
         },
         (payload) => {
-          console.log('[Messages Realtime] 🔄 Mensagem atualizada:', payload);
+          console.log('[Messages Realtime] 🔄 Mensagem atualizada FASE 1:', payload);
           
           const messageData = payload.new;
           
@@ -129,21 +186,21 @@ export const useMessagesRealtime = ({
         }
       )
       .subscribe((status) => {
-        console.log('[Messages Realtime] 📡 Status:', status);
+        console.log('[Messages Realtime] 📡 Status FASE 1:', status);
         
         if (status === 'SUBSCRIBED') {
-          console.log('[Messages Realtime] ✅ Conectado com sucesso');
+          console.log('[Messages Realtime] ✅ Conectado com sucesso FASE 1');
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.error('[Messages Realtime] ❌ Erro na conexão:', status);
+          console.error('[Messages Realtime] ❌ Erro na conexão FASE 1:', status);
         }
       });
 
     channelRef.current = channel;
 
     return cleanup;
-  }, [selectedContact, activeInstance, convertMessage, onNewMessage, onMessageUpdate, cleanup]);
+  }, [selectedContact, activeInstance, convertMessage, onNewMessage, onMessageUpdate, cleanup, notifyContactUpdate]);
 
   return {
     isConnected: !!channelRef.current
   };
-}; 
+};

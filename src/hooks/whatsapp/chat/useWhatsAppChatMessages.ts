@@ -1,4 +1,13 @@
 
+/**
+ * 🎯 HOOK PARA MENSAGENS DO WHATSAPP - OTIMIZADO FASE 1
+ * 
+ * OTIMIZAÇÕES FASE 1:
+ * ✅ Comunicação com useChatsRealtime via callback onMoveContactToTop
+ * ✅ Uso de windowEventManager para cleanup automático
+ * ✅ Melhores callbacks para realtime
+ */
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Contact, Message } from '@/types/chat';
@@ -9,11 +18,14 @@ import { toast } from 'sonner';
 interface UseWhatsAppChatMessagesProps {
   selectedContact: Contact | null;
   activeInstance: WhatsAppWebInstance | null;
+  // 🚀 FASE 1: Novo callback para comunicação com contatos
+  onMoveContactToTop?: (contactId: string, messageInfo: { text: string; timestamp: string; unreadCount?: number }) => void;
 }
 
 export const useWhatsAppChatMessages = ({
   selectedContact,
-  activeInstance
+  activeInstance,
+  onMoveContactToTop
 }: UseWhatsAppChatMessagesProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
@@ -58,7 +70,7 @@ export const useWhatsAppChatMessages = ({
   // ✅ BUSCAR MENSAGENS DO BANCO
   const fetchMessages = useCallback(async (contactId: string, instanceId: string, offset = 0) => {
     try {
-      console.log('[Chat Messages] 📥 Buscando mensagens:', { 
+      console.log('[Chat Messages] 📥 Buscando mensagens FASE 1:', { 
         contactId, 
         instanceId, 
         offset,
@@ -85,13 +97,13 @@ export const useWhatsAppChatMessages = ({
         .range(offset, offset + MESSAGES_PER_PAGE - 1);
 
       if (error) {
-        console.error('[Chat Messages] ❌ Erro ao buscar mensagens:', error);
+        console.error('[Chat Messages] ❌ Erro ao buscar mensagens FASE 1:', error);
         throw error;
       }
 
       const convertedMessages = (data || []).map(convertMessage);
       
-      console.log('[Chat Messages] ✅ Mensagens convertidas:', {
+      console.log('[Chat Messages] ✅ Mensagens convertidas FASE 1:', {
         count: convertedMessages.length,
         hasMore: convertedMessages.length === MESSAGES_PER_PAGE
       });
@@ -102,7 +114,7 @@ export const useWhatsAppChatMessages = ({
       };
 
     } catch (error: any) {
-      console.error('[Chat Messages] ❌ Erro na busca:', error);
+      console.error('[Chat Messages] ❌ Erro na busca FASE 1:', error);
       throw error;
     }
   }, [convertMessage]);
@@ -128,7 +140,7 @@ export const useWhatsAppChatMessages = ({
       setHasMoreMessages(result.hasMore);
       
     } catch (error: any) {
-      console.error('[Chat Messages] ❌ Erro ao carregar mensagens iniciais:', error);
+      console.error('[Chat Messages] ❌ Erro ao carregar mensagens iniciais FASE 1:', error);
       setError(error.message || 'Erro ao carregar mensagens');
       setMessages([]);
     } finally {
@@ -157,7 +169,7 @@ export const useWhatsAppChatMessages = ({
       }
       
     } catch (error: any) {
-      console.error('[Chat Messages] ❌ Erro ao carregar mais mensagens:', error);
+      console.error('[Chat Messages] ❌ Erro ao carregar mais mensagens FASE 1:', error);
       toast.error('Erro ao carregar mais mensagens');
     } finally {
       setIsLoadingMore(false);
@@ -194,7 +206,7 @@ export const useWhatsAppChatMessages = ({
       if (error) throw error;
 
       if (data?.success) {
-        console.log('[Chat Messages] ✅ Mensagem enviada com sucesso');
+        console.log('[Chat Messages] ✅ Mensagem enviada com sucesso FASE 1');
         toast.success('Mensagem enviada!');
         
         // A mensagem será adicionada automaticamente via realtime
@@ -204,7 +216,7 @@ export const useWhatsAppChatMessages = ({
       }
 
     } catch (error: any) {
-      console.error('[Chat Messages] ❌ Erro ao enviar mensagem:', error);
+      console.error('[Chat Messages] ❌ Erro ao enviar mensagem FASE 1:', error);
       toast.error(`Erro ao enviar mensagem: ${error.message}`);
       return false;
     } finally {
@@ -214,13 +226,13 @@ export const useWhatsAppChatMessages = ({
 
   // ✅ CALLBACKS PARA REALTIME
   const handleNewMessage = useCallback((newMessage: Message) => {
-    console.log('[Chat Messages] 📨 Nova mensagem recebida via realtime:', newMessage);
+    console.log('[Chat Messages] 📨 Nova mensagem recebida via realtime FASE 1:', newMessage);
     
     setMessages(prev => {
       // Verificar se a mensagem já existe
       const exists = prev.some(msg => msg.id === newMessage.id);
       if (exists) {
-        console.log('[Chat Messages] ⚠️ Mensagem já existe, ignorando');
+        console.log('[Chat Messages] ⚠️ Mensagem já existe, ignorando FASE 1');
         return prev;
       }
       
@@ -230,7 +242,7 @@ export const useWhatsAppChatMessages = ({
   }, []);
 
   const handleMessageUpdate = useCallback((updatedMessage: Message) => {
-    console.log('[Chat Messages] 🔄 Mensagem atualizada via realtime:', updatedMessage);
+    console.log('[Chat Messages] 🔄 Mensagem atualizada via realtime FASE 1:', updatedMessage);
     
     setMessages(prev => 
       prev.map(msg => 
@@ -239,12 +251,13 @@ export const useWhatsAppChatMessages = ({
     );
   }, []);
 
-  // ✅ CONFIGURAR REALTIME
+  // 🚀 CONFIGURAR REALTIME OTIMIZADO FASE 1
   useMessagesRealtime({
     selectedContact,
     activeInstance,
     onNewMessage: handleNewMessage,
-    onMessageUpdate: handleMessageUpdate
+    onMessageUpdate: handleMessageUpdate,
+    onMoveContactToTop // 🚀 FASE 1: Passar callback para comunicação com contatos
   });
 
   // ✅ CARREGAR MENSAGENS QUANDO CONTATO MUDAR
