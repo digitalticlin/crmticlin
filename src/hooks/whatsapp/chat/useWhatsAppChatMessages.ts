@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Contact, Message } from '@/types/chat';
@@ -6,6 +5,7 @@ import { WhatsAppWebInstance } from '@/types/whatsapp';
 import { useMessagesRealtime } from '../realtime/useMessagesRealtime';
 import { MessageSendingService } from '@/services/whatsapp/services/messageSendingService';
 import { toast } from 'sonner';
+import { normalizeMediaType } from './utils';
 
 interface UseWhatsAppChatMessagesProps {
   selectedContact: Contact | null;
@@ -47,7 +47,7 @@ export const useWhatsAppChatMessages = ({
       fromMe: messageData.from_me || false,
       timestamp: messageData.created_at || new Date().toISOString(),
       status: messageData.status || 'sent',
-      mediaType: messageData.media_type || 'text',
+      mediaType: normalizeMediaType(messageData.media_type),
       mediaUrl: messageData.media_url || undefined,
       sender: messageData.from_me ? 'user' : 'contact',
       time: new Date(messageData.created_at || Date.now()).toLocaleTimeString('pt-BR', {
@@ -236,7 +236,7 @@ export const useWhatsAppChatMessages = ({
     }
   }, [selectedContact, activeInstance, messages.length, hasMoreMessages, isLoadingMore, fetchMessages]);
 
-  // ✅ ENVIAR MENSAGEM COM UI OTIMISTA
+  // ✅ ENVIAR MENSAGEM COM UI OTIMISTA E RETRY
   const sendMessage = useCallback(async (messageText: string, media?: { file: File; type: string }) => {
     if (!selectedContact || !activeInstance) {
       toast.error('Contato ou instância não selecionada');
@@ -256,7 +256,7 @@ export const useWhatsAppChatMessages = ({
       fromMe: true,
       timestamp: new Date().toISOString(),
       status: 'sending',
-      mediaType: media?.type || 'text',
+      mediaType: normalizeMediaType(media?.type || 'text'),
       sender: 'user',
       time: new Date().toLocaleTimeString('pt-BR', {
         hour: '2-digit',
