@@ -31,16 +31,16 @@ const WhatsAppChatContent = () => {
     isLoadingMore,
     hasMoreMessages,
     isSendingMessage,
-    messagesLoaded, // ✅ NOVO
+    messagesLoaded,
     sendMessage,
     loadMoreMessages,
     refreshMessages,
-    loadMessagesOnDemand, // ✅ NOVO
+    loadMessagesOnDemand,
     showContacts,
     toggleContacts
   } = useWhatsAppChat();
 
-  // ✅ PERFORMANCE: Auto-select first instance
+  // Auto-select first instance
   useEffect(() => {
     if (instances.length > 0 && !activeInstance) {
       console.log('[WhatsApp Chat] 🔄 Selecionando primeira instância automaticamente');
@@ -65,9 +65,24 @@ const WhatsAppChatContent = () => {
     }
   };
 
+  // Wrapper to handle the sendMessage signature correctly
+  const handleSendMessage = async (message: string, mediaType?: string, mediaUrl?: string): Promise<boolean> => {
+    if (!selectedContact || !activeInstance) {
+      return false;
+    }
+
+    // Convert old signature to new signature
+    const media = mediaType && mediaUrl ? { 
+      file: new File([], 'media'), 
+      type: mediaType 
+    } : undefined;
+    
+    return await sendMessage(message, media);
+  };
+
   return (
     <div className="h-screen flex bg-gradient-to-br from-blue-50 via-white to-purple-50 overflow-hidden">
-      {/* ✅ SIDEBAR DE CONTATOS - OTIMIZADA */}
+      {/* Sidebar de contatos */}
       <div className={cn(
         "flex flex-col border-r border-gray-200 bg-white/80 backdrop-blur-sm transition-all duration-300 ease-in-out",
         isMobile ? (
@@ -90,7 +105,6 @@ const WhatsAppChatContent = () => {
             )}
           </div>
           
-          {/* ✅ SELETOR DE INSTÂNCIA OTIMIZADO */}
           <div className="mt-3">
             <WhatsAppInstanceSelector
               instances={instances}
@@ -101,7 +115,7 @@ const WhatsAppChatContent = () => {
           </div>
         </div>
 
-        {/* ✅ LISTA DE CONTATOS OTIMIZADA */}
+        {/* Lista de contatos */}
         <WhatsAppContactsList
           contacts={contacts}
           selectedContact={selectedContact}
@@ -115,7 +129,7 @@ const WhatsAppChatContent = () => {
         />
       </div>
 
-      {/* ✅ ÁREA PRINCIPAL - OTIMIZADA */}
+      {/* Área principal */}
       <div className="flex-1 flex">
         {/* Chat Area */}
         <div className={cn(
@@ -126,7 +140,7 @@ const WhatsAppChatContent = () => {
             <WhatsAppChatArea
               selectedContact={selectedContact}
               messages={messages}
-              onSendMessage={sendMessage}
+              onSendMessage={handleSendMessage}
               onBack={handleBackToContacts}
               isLoadingMessages={isLoadingMessages}
               isLoadingMore={isLoadingMore}
@@ -136,11 +150,10 @@ const WhatsAppChatContent = () => {
               onEditLead={handleEditLead}
               onRefreshMessages={refreshMessages}
               leadId={selectedContact.leadId}
-              messagesLoaded={messagesLoaded} // ✅ NOVO
-              onLoadMessagesOnDemand={loadMessagesOnDemand} // ✅ NOVO
+              messagesLoaded={messagesLoaded}
+              onLoadMessagesOnDemand={loadMessagesOnDemand}
             />
           ) : (
-            // ✅ ESTADO VAZIO OTIMIZADO
             <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
               <div className="text-center space-y-4 max-w-md">
                 <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto">
@@ -153,7 +166,6 @@ const WhatsAppChatContent = () => {
                   Escolha uma conversa na barra lateral para começar a trocar mensagens
                 </p>
                 
-                {/* ✅ BOTÃO PARA MOSTRAR CONTATOS NO MOBILE */}
                 {isMobile && (
                   <Button
                     onClick={toggleContacts}
@@ -169,7 +181,7 @@ const WhatsAppChatContent = () => {
           )}
         </div>
 
-        {/* ✅ SIDEBAR DE DETALHES DO LEAD */}
+        {/* Sidebar de detalhes do lead */}
         {showLeadDetails && selectedContact && (
           <div className="w-80 border-l border-gray-200">
             <LeadDetailsSidebar
@@ -181,7 +193,7 @@ const WhatsAppChatContent = () => {
         )}
       </div>
       
-      {/* ✅ BOTÃO FLOATING PARA MOBILE */}
+      {/* Botão floating para mobile */}
       {isMobile && selectedContact && !showContacts && (
         <Button
           onClick={toggleContacts}

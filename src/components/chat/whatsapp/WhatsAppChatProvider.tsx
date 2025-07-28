@@ -30,13 +30,13 @@ interface WhatsAppChatContextType {
   isLoadingMore: boolean;
   hasMoreMessages: boolean;
   isSendingMessage: boolean;
-  messagesLoaded: boolean; // ✅ NOVO
+  messagesLoaded: boolean;
   
   // Actions
   sendMessage: (message: string, media?: { file: File; type: string }) => Promise<boolean>;
   loadMoreMessages: () => Promise<void>;
   refreshMessages: () => void;
-  loadMessagesOnDemand: () => Promise<void>; // ✅ NOVO
+  loadMessagesOnDemand: () => Promise<void>;
   
   // UI State
   isMobile: boolean;
@@ -67,7 +67,6 @@ export const WhatsAppChatProvider: React.FC<WhatsAppChatProviderProps> = ({
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [showContacts, setShowContacts] = useState(!isMobile);
 
-  // ✅ HOOKS OTIMIZADOS
   const { instances, isLoading: isLoadingInstances } = useWhatsAppInstances();
   
   const {
@@ -86,30 +85,33 @@ export const WhatsAppChatProvider: React.FC<WhatsAppChatProviderProps> = ({
     isLoadingMore,
     hasMoreMessages,
     isSendingMessage,
-    messagesLoaded, // ✅ NOVO
+    messagesLoaded,
     sendMessage,
     loadMoreMessages,
     refreshMessages,
-    loadMessagesOnDemand // ✅ NOVO
+    loadMessagesOnDemand
   } = useWhatsAppChatMessages({
     selectedContact,
     activeInstance,
-    onContactUpdate: updateContact
+    onContactUpdate: (contactId: string, updates: Partial<Contact>) => {
+      // Convert new signature to old signature expected by updateContact
+      if (typeof updates === 'object' && updates.lastMessage) {
+        updateContact(contactId, updates.lastMessage, updates.lastMessageTime || new Date().toISOString());
+      }
+    }
   });
 
-  // ✅ REALTIME PARA CHATS (SEMPRE ATIVO)
+  // Realtime for chats (always active)
   useChatsRealtime({
     userId: null,
     activeInstanceId: activeInstance?.id || null,
     onMoveContactToTop: moveContactToTop
   });
 
-  // ✅ CALLBACKS OTIMIZADOS
   const handleSetSelectedContact = useCallback((contact: Contact | null) => {
     console.log('[WhatsApp Chat Provider] 👤 Selecionando contato:', contact?.name);
     setSelectedContact(contact);
     
-    // ✅ FECHAR LISTA DE CONTATOS NO MOBILE
     if (isMobile && contact) {
       setShowContacts(false);
     }
@@ -124,7 +126,6 @@ export const WhatsAppChatProvider: React.FC<WhatsAppChatProviderProps> = ({
     const success = await sendMessage(message, media);
     
     if (success) {
-      // ✅ MOVER CONTATO PARA TOPO APÓS ENVIO
       moveContactToTop(selectedContact.id, {
         text: message,
         timestamp: new Date().toISOString()
@@ -138,7 +139,6 @@ export const WhatsAppChatProvider: React.FC<WhatsAppChatProviderProps> = ({
     setShowContacts(prev => !prev);
   }, []);
 
-  // ✅ MEMOIZED CONTEXT VALUE
   const contextValue = useMemo(() => ({
     // Instances
     instances,
@@ -161,13 +161,13 @@ export const WhatsAppChatProvider: React.FC<WhatsAppChatProviderProps> = ({
     isLoadingMore,
     hasMoreMessages,
     isSendingMessage,
-    messagesLoaded, // ✅ NOVO
+    messagesLoaded,
     
     // Actions
     sendMessage: handleSendMessage,
     loadMoreMessages,
     refreshMessages,
-    loadMessagesOnDemand, // ✅ NOVO
+    loadMessagesOnDemand,
     
     // UI State
     isMobile,
@@ -189,11 +189,11 @@ export const WhatsAppChatProvider: React.FC<WhatsAppChatProviderProps> = ({
     isLoadingMore,
     hasMoreMessages,
     isSendingMessage,
-    messagesLoaded, // ✅ NOVO
+    messagesLoaded,
     handleSendMessage,
     loadMoreMessages,
     refreshMessages,
-    loadMessagesOnDemand, // ✅ NOVO
+    loadMessagesOnDemand,
     isMobile,
     showContacts,
     toggleContacts
