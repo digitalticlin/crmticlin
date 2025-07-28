@@ -144,7 +144,7 @@ export const LeadDetailSidebar = ({
             <div>
               <h2 className="text-xl font-semibold">{lead.name}</h2>
               <p className="text-sm text-muted-foreground">
-                Criado {formatDistanceToNow(new Date(lead.created_at || Date.now()), { addSuffix: true, locale: ptBR })}
+                Criado {formatDistanceToNow(new Date(lead.createdAt || Date.now()), { addSuffix: true, locale: ptBR })}
               </p>
             </div>
           </div>

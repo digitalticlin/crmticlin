@@ -126,25 +126,18 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
   }, [activeInstance]);
 
   // 🚀 SEMPRE: Hook de contatos (50 contatos)
-  const contactsHook = useWhatsAppContacts({
-    activeInstanceId: webActiveInstance?.id || null
-  });
+  const contactsHook = useWhatsAppContacts(webActiveInstance?.id);
   
   // ✅ CALLBACK PARA MOVER CONTATOS: Notificação vinda das mensagens
   const handleContactUpdateFromMessages = useCallback((leadId: string) => {
     console.log('[Provider] 🔝 Recebendo notificação de nova mensagem para mover contato:', { leadId });
-    contactsHook.moveContactToTop(leadId, {
-      text: 'Nova mensagem',
-      timestamp: new Date().toISOString(),
-      unreadCount: 1
-    });
-  }, [contactsHook]);
+    contactsHook.moveContactToTop(leadId);
+  }, []);
 
   // 🚀 SEMPRE: Hook de mensagens (mas só carrega quando selectedContact existe)
   const messagesHook = useWhatsAppChatMessages({
     selectedContact,
-    activeInstance: webActiveInstance,
-    onMoveContactToTop: handleContactUpdateFromMessages
+    activeInstance: webActiveInstance
   });
   
   // 🚀 SEMPRE: Hooks de realtime (mas só ativam quando necessário)
@@ -155,7 +148,7 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
       // Fallback legado - não deveria ser usado se callbacks granulares existem
       console.log('[Provider] 🔄 Fallback: refresh completo por onContactUpdate');
       contactsHook.refreshContacts();
-    }, [contactsHook]),
+    }, []),
     onNewContact: useCallback(() => {
       // Fallback legado - não deveria ser usado se callbacks granulares existem
       console.log('[Provider] 🔄 Fallback: refresh completo por onNewContact');
@@ -164,31 +157,27 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
       // Fallback para casos extremos onde callbacks granulares falharam
       console.log('[Provider] 🔄 Fallback: refresh completo forçado');
       contactsHook.refreshContacts();
-    }, [contactsHook]),
+    }, []),
     // 🚀 NOVAS CALLBACKS GRANULARES - PRIORIDADE MÁXIMA
     onMoveContactToTop: useCallback((contactId: string, newMessage) => {
       console.log('[Provider] 🔝 Movendo contato para topo:', { contactId, newMessage });
       contactsHook.moveContactToTop(contactId, newMessage);
-    }, [contactsHook]),
+    }, []),
     onUpdateUnreadCount: useCallback((contactId: string, increment = true) => {
       console.log('[Provider] 🔢 Atualizando contador:', { contactId, increment });
       contactsHook.updateUnreadCount(contactId, increment);
-    }, [contactsHook]),
+    }, []),
     onAddNewContact: useCallback((newContactData) => {
       console.log('[Provider] ➕ Adicionando novo contato:', newContactData);
       contactsHook.addNewContact(newContactData);
-    }, [contactsHook])
+    }, [])
   });
 
   // Funções auxiliares
   const moveContactToTop = useCallback((contactId: string, newMessage?: any) => {
     // ✅ CORREÇÃO: Usar função suave ao invés de refresh completo
-    contactsHook.moveContactToTop(contactId, newMessage || {
-      text: 'Nova mensagem',
-      timestamp: new Date().toISOString(),
-      unreadCount: 1
-    });
-  }, [contactsHook]);
+    contactsHook.moveContactToTop(contactId, newMessage);
+  }, []);
 
   const markAsRead = useCallback(async (contactId: string) => {
     try {
@@ -201,7 +190,7 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     } catch (error) {
       console.error('[WhatsApp Chat] ❌ Erro ao marcar como lida:', error);
     }
-  }, [contactsHook]);
+  }, []);
 
   // Seleção de contato
   const handleSelectContact = useCallback(async (contact: Contact | null) => {
@@ -351,13 +340,7 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     realtimeStats.chatsConnected,
     realtimeStats.messagesConnected,
     sendMessageWrapper,
-    messagesHook.refreshMessages,
-    moveContactToTop,
-    markAsRead,
-    contactsHook.loadMoreContacts,
-    messagesHook.loadMoreMessages,
-    handleSelectContact,
-    contactsHook.refreshContacts
+    messagesHook.refreshMessages
   ]);
 
   return (

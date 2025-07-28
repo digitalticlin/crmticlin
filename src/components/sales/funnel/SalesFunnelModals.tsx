@@ -33,37 +33,20 @@ export const SalesFunnelModals = ({
   refetchLeads,
   refetchStages
 }: SalesFunnelModalsProps) => {
-  
-  const handleUpdateLead = (leadId: string, updates: Partial<KanbanLead>) => {
-    // Handle lead updates based on the field being updated
-    if (updates.notes !== undefined) {
-      onUpdateNotes(updates.notes);
-    }
-    if (updates.purchaseValue !== undefined) {
-      onUpdatePurchaseValue(updates.purchaseValue);
-    }
-    if (updates.name !== undefined) {
-      onUpdateName(updates.name);
-    }
-    // Add other field handlers as needed
-  };
-
-  const handleOpenChat = (lead: KanbanLead) => {
-    // Handle opening chat with the lead
-    console.log('Opening chat for lead:', lead.id);
-  };
-
   return (
     <>
       {/* Sidebar de Detalhes */}
       <LeadDetailSidebar
-        lead={selectedLead}
         isOpen={isLeadDetailOpen}
-        onClose={() => setIsLeadDetailOpen(false)}
-        onUpdateLead={handleUpdateLead}
-        onOpenChat={handleOpenChat}
+        onOpenChange={setIsLeadDetailOpen}
+        selectedLead={selectedLead}
         availableTags={availableTags}
+        onToggleTag={onToggleTag}
+        onUpdateNotes={onUpdateNotes}
         onCreateTag={onCreateTag}
+        onUpdatePurchaseValue={onUpdatePurchaseValue}
+        onUpdateAssignedUser={onUpdateAssignedUser}
+        onUpdateName={onUpdateName}
       />
     </>
   );

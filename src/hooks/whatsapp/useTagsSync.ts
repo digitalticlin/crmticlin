@@ -1,123 +1,58 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { KanbanTag } from '@/types/kanban';
+import { useEffect, useCallback, useRef } from 'react';
 import { windowEventManager } from '@/utils/eventManager';
-import { useAuth } from '@/contexts/AuthContext';
+import { realtimeLogger } from '@/utils/logger';
 
-export const useTagsSync = (leadId: string | null) => {
-  const [tags, setTags] = useState<KanbanTag[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const { user } = useAuth();
+/**
+ * Hook para sincronizar tags e detectar mudanças
+ * @param userId - ID do usuário para filtrar tags
+ * @param onTagsChanged - Callback executado quando tags são alteradas
+ */
+export const useTagsSync = (userId: string | null, onTagsChanged?: () => void) => {
+  const eventSubscriptionIdsRef = useRef<string[]>([]);
 
-  const fetchTags = useCallback(async () => {
-    if (!leadId) {
-      setTags([]);
+  const handleTagsUpdate = useCallback(() => {
+    realtimeLogger.log('📡 Tags atualizadas, executando callback');
+    if (onTagsChanged) {
+      onTagsChanged();
+    }
+  }, [onTagsChanged]);
+
+  useEffect(() => {
+    if (!userId) {
+      realtimeLogger.warn('⚠️ UserId não fornecido, não configurando listeners');
       return;
     }
 
-    setIsLoading(true);
-    try {
-      // Fix: Use correct table relationship - query tags table directly
-      const { data, error } = await supabase
-        .from('lead_tags')
-        .select(`
-          tag_id,
-          tags:tag_id (
-            id,
-            name,
-            color
-          )
-        `)
-        .eq('lead_id', leadId);
+    realtimeLogger.log('🔄 Configurando listeners de tags para userId:', userId);
 
-      if (error) {
-        console.error('Erro ao buscar tags:', error);
-        return;
-      }
+    // ✅ USAR EVENT MANAGER PARA EVENTOS CUSTOMIZADOS
+    const handleCustomTagUpdate = (event: CustomEvent) => {
+      realtimeLogger.log('📢 Evento customizado de tag recebido:', event.detail);
+      handleTagsUpdate();
+    };
 
-      // Fix: Handle the corrected data structure
-      const fetchedTags = data
-        .filter(item => item.tags) // Filter out null tags
-        .map(item => ({
-          id: item.tags.id,
-          name: item.tags.name,
-          color: item.tags.color,
-        }));
+    const eventIds = [
+      windowEventManager.addEventListener('leadTagsUpdated', handleCustomTagUpdate),
+      windowEventManager.addEventListener('tagsUpdated', handleCustomTagUpdate)
+    ];
 
-      setTags(fetchedTags);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [leadId]);
-
-  useEffect(() => {
-    if (!leadId) return;
-
-    const subscriptionId = windowEventManager.addEventListener(
-      'lead-tags-updated',
-      (data: { leadId: string; tags: KanbanTag[] }) => {
-        if (data.leadId === leadId) {
-          setTags(data.tags);
-        }
-      },
-      {}
-    );
-
-    const globalSubscriptionId = windowEventManager.addEventListener(
-      'tags-global-update',
-      fetchTags,
-      {}
-    );
+    eventSubscriptionIdsRef.current = eventIds;
 
     return () => {
-      windowEventManager.removeEventListener(subscriptionId);
-      windowEventManager.removeEventListener(globalSubscriptionId);
+      realtimeLogger.log('🧹 Limpando listeners de tags');
+      
+      // Cleanup event listeners
+      eventSubscriptionIdsRef.current.forEach(id => {
+        windowEventManager.removeEventListener(id);
+      });
+      
+      eventSubscriptionIdsRef.current = [];
     };
-  }, [leadId, fetchTags]);
+  }, [userId, handleTagsUpdate]);
 
-  const updateTags = useCallback(
-    async (newTags: KanbanTag[]) => {
-      if (!leadId || !user) return;
-
-      setIsLoading(true);
-      try {
-        // Delete existing tags for this lead
-        const { error: deleteError } = await supabase
-          .from('lead_tags')
-          .delete()
-          .eq('lead_id', leadId);
-
-        if (deleteError) {
-          console.error('Erro ao deletar tags antigas:', deleteError);
-          return;
-        }
-
-        // Insert new tags with required fields
-        const leadTags = newTags.map((tag) => ({
-          lead_id: leadId,
-          tag_id: tag.id,
-          created_by_user_id: user.id // Fix: Add required field
-        }));
-
-        const { error: insertError } = await supabase
-          .from('lead_tags')
-          .insert(leadTags);
-
-        if (insertError) {
-          console.error('Erro ao inserir novas tags:', insertError);
-          return;
-        }
-
-        // Update local state and notify other components
-        setTags(newTags);
-        windowEventManager.dispatchEvent('lead-tags-updated', { leadId, tags: newTags });
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [leadId, user]
-  );
-
-  return { tags, isLoading, updateTags };
+  return {
+    // Função para forçar uma atualização manual
+    triggerSync: handleTagsUpdate
+  };
 };

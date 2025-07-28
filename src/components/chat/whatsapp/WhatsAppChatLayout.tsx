@@ -1,8 +1,17 @@
+import { useState } from "react";
+import React from "react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Info } from "lucide-react";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { WhatsAppContactsList } from "./WhatsAppContactsList";
+import { WhatsAppChatArea } from "./WhatsAppChatArea";
+import { WhatsAppEmptyState } from "./WhatsAppEmptyState";
+import { LeadDetailsSidebar } from "./LeadDetailsSidebar";
+import { Contact, Message } from "@/types/chat";
+import { useWhatsAppContacts } from "@/hooks/whatsapp/useWhatsAppContacts";
 
-import React from 'react';
-import { Contact, Message } from '@/types/chat';
-
-export interface WhatsAppChatLayoutProps {
+interface WhatsAppChatLayoutProps {
   contacts: Contact[];
   selectedContact: Contact | null;
   onSelectContact: (contact: Contact) => void;
@@ -19,10 +28,10 @@ export interface WhatsAppChatLayoutProps {
   isSending: boolean;
   onRefreshMessages?: () => void;
   onRefreshContacts?: () => void;
-  totalContactsAvailable: number;
+  totalContactsAvailable?: number;
 }
 
-export const WhatsAppChatLayout = ({ 
+export const WhatsAppChatLayout = ({
   contacts,
   selectedContact,
   onSelectContact,
@@ -39,128 +48,154 @@ export const WhatsAppChatLayout = ({
   isSending,
   onRefreshMessages,
   onRefreshContacts,
-  totalContactsAvailable
+  totalContactsAvailable = 0
 }: WhatsAppChatLayoutProps) => {
-  return (
-    <div className="flex h-full w-full bg-gradient-to-br from-blue-50 to-purple-50">
-      {/* Sidebar - Contacts */}
-      <div className="w-1/3 min-w-[300px] max-w-[400px] border-r border-white/20">
-        <div className="p-4 bg-white/10 backdrop-blur-sm border-b border-white/20">
-          <h2 className="font-semibold text-white">Conversas</h2>
-          <p className="text-sm text-white/60">{totalContactsAvailable} contatos</p>
-        </div>
-        
-        <div className="overflow-y-auto h-full">
-          {contacts.map((contact) => (
-            <div
-              key={contact.id}
-              className={`p-4 cursor-pointer hover:bg-white/10 border-b border-white/10 ${
-                selectedContact?.id === contact.id ? 'bg-white/20' : ''
-              }`}
-              onClick={() => onSelectContact(contact)}
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                  <span className="text-sm font-medium">
-                    {(contact.name || contact.phone).charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-white truncate">
-                      {contact.name || contact.phone}
-                    </h4>
-                    {contact.unreadCount && contact.unreadCount > 0 && (
-                      <span className="bg-green-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
-                        {contact.unreadCount}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-white/60 truncate">
-                    {contact.lastMessage || 'Sem mensagens'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+  const [isDetailsSidebarOpen, setIsDetailsSidebarOpen] = useState(false);
+
+  // ✅ CORREÇÃO: Atualizar contato completo e propagação para lista
+  const handleUpdateContact = (updatedContact: Contact) => {
+    console.log('[WhatsAppChatLayout] 🔄 Atualizando contato selecionado:', {
+      contactId: updatedContact.id,
+      changes: {
+        name: updatedContact.name,
+        email: updatedContact.email,
+        company: updatedContact.company,
+        purchaseValue: updatedContact.purchaseValue,
+        assignedUser: updatedContact.assignedUser
+      }
+    });
+
+    // ✅ ATUALIZAR: Contato selecionado
+    onSelectContact(updatedContact);
+
+    // ✅ PROPAGAR: Atualização para a lista de contatos via evento customizado
+    if (updatedContact.leadId || updatedContact.id) {
+      window.dispatchEvent(new CustomEvent('leadUpdated', {
+        detail: {
+          leadId: updatedContact.leadId || updatedContact.id,
+          updatedContact
+        }
+      }));
       
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {selectedContact ? (
-          <>
-            {/* Header */}
-            <div className="p-4 bg-white/10 backdrop-blur-sm border-b border-white/20">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                  <span className="text-sm font-medium">
-                    {(selectedContact.name || selectedContact.phone).charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <div>
-                  <h3 className="font-medium text-white">
-                    {selectedContact.name || selectedContact.phone}
-                  </h3>
-                  <p className="text-sm text-white/60">Online</p>
-                </div>
-              </div>
-            </div>
-            
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                      message.sender === 'user'
-                        ? 'bg-green-500 text-white'
-                        : 'bg-white text-gray-800'
-                    }`}
-                  >
-                    <p className="text-sm">{message.text}</p>
-                    <p className="text-xs mt-1 opacity-70">{message.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            {/* Input */}
-            <div className="p-4 bg-white/10 backdrop-blur-sm border-t border-white/20">
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  placeholder="Digite uma mensagem..."
-                  className="flex-1 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
-                />
-                <button
-                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                  disabled={isSending}
-                >
-                  {isSending ? 'Enviando...' : 'Enviar'}
-                </button>
-              </div>
-            </div>
-          </>
+      console.log('[WhatsAppChatLayout] 📡 Evento de atualização de lead disparado');
+    }
+  };
+
+  const handleEditLead = () => {
+    setIsDetailsSidebarOpen(true);
+  };
+
+  return (
+    <div className="h-full flex overflow-hidden relative z-10">
+      {/* Mobile layout - comportamento atual */}
+      <div className="lg:hidden w-full">
+        {!selectedContact ? (
+          <div className="w-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
+            <WhatsAppContactsList
+              contacts={contacts}
+              selectedContact={selectedContact}
+              onSelectContact={onSelectContact}
+              isLoading={isLoadingContacts}
+              isLoadingMore={isLoadingMoreContacts}
+              hasMoreContacts={hasMoreContacts}
+              onLoadMoreContacts={onLoadMoreContacts}
+              onRefreshContacts={onRefreshContacts}
+              totalContactsAvailable={totalContactsAvailable}
+            />
+          </div>
         ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-2xl">💬</span>
-              </div>
-              <h3 className="text-lg font-medium text-white mb-2">
-                Selecione uma conversa
-              </h3>
-              <p className="text-white/60">
-                Escolha um contato para começar a conversar
-              </p>
-            </div>
+          <div className="w-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg overflow-hidden relative z-10">
+            <WhatsAppChatArea
+              selectedContact={selectedContact}
+              messages={messages}
+              onSendMessage={onSendMessage}
+              onBack={() => onSelectContact(null)}
+              isLoadingMessages={isLoadingMessages}
+              isLoadingMore={isLoadingMore}
+              hasMoreMessages={hasMoreMessages}
+              onLoadMoreMessages={onLoadMoreMessages}
+              isSending={isSending}
+              onEditLead={handleEditLead}
+              onRefreshMessages={onRefreshMessages}
+            />
           </div>
         )}
       </div>
+
+      {/* Desktop layout - com redimensionamento */}
+      <div className="hidden lg:flex w-full relative">
+        <ResizablePanelGroup 
+          direction="horizontal" 
+          className="w-full"
+        >
+          {/* Painel da Lista de Conversas */}
+          <ResizablePanel 
+            defaultSize={30} 
+            minSize={20} 
+            maxSize={50}
+            className="relative"
+          >
+            <div className="h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg relative z-10">
+              <WhatsAppContactsList
+                contacts={contacts}
+                selectedContact={selectedContact}
+                onSelectContact={onSelectContact}
+                isLoading={isLoadingContacts}
+                isLoadingMore={isLoadingMoreContacts}
+                hasMoreContacts={hasMoreContacts}
+                onLoadMoreContacts={onLoadMoreContacts}
+                onRefreshContacts={onRefreshContacts}
+                totalContactsAvailable={totalContactsAvailable}
+              />
+            </div>
+          </ResizablePanel>
+
+          {/* Handle para redimensionar - SEM ícone */}
+          <ResizableHandle 
+            withHandle={false}
+            className="w-1 bg-transparent hover:bg-white/10 transition-colors duration-200 rounded-full border-0 relative group"
+          />
+
+          {/* Painel da Área de Chat */}
+          <ResizablePanel 
+            defaultSize={70} 
+            minSize={50}
+            className={cn(
+              "relative",
+              isDetailsSidebarOpen && "mr-80"
+            )}
+          >
+            <div className="h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg overflow-hidden relative z-10">
+              {selectedContact ? (
+                <WhatsAppChatArea
+                  selectedContact={selectedContact}
+                  messages={messages}
+                  onSendMessage={onSendMessage}
+                  onBack={() => onSelectContact(null)}
+                  isLoadingMessages={isLoadingMessages}
+                  isLoadingMore={isLoadingMore}
+                  hasMoreMessages={hasMoreMessages}
+                  onLoadMoreMessages={onLoadMoreMessages}
+                  isSending={isSending}
+                  onEditLead={handleEditLead}
+                  onRefreshMessages={onRefreshMessages}
+                  leadId={selectedContact.id}
+                />
+              ) : (
+                <WhatsAppEmptyState />
+              )}
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </div>
+
+      {/* Sidebar de Detalhes do Lead */}
+      <LeadDetailsSidebar
+        selectedContact={selectedContact}
+        isOpen={isDetailsSidebarOpen}
+        onClose={() => setIsDetailsSidebarOpen(false)}
+        onUpdateContact={handleUpdateContact}
+      />
     </div>
   );
 };

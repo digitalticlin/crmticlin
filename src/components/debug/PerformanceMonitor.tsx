@@ -1,72 +1,130 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Activity, Zap, AlertCircle } from 'lucide-react';
-import { windowEventManager } from '@/utils/eventManager';
+/**
+ * ✅ COMPONENTE DE MONITORAMENTO DE PERFORMANCE
+ * Apenas ativo em desenvolvimento para detectar problemas
+ */
 
-export const PerformanceMonitor = () => {
-  const [activeSubscriptions, setActiveSubscriptions] = useState<Record<string, number>>({});
-  const [renderCount, setRenderCount] = useState(0);
+import React, { useEffect, useState } from 'react';
+import { eventManager } from '@/utils/eventManager';
+import { performanceLogger } from '@/utils/logger';
 
-  useEffect(() => {
-    setRenderCount(prev => prev + 1);
+interface PerformanceStats {
+  eventListeners: number;
+  renderCount: number;
+  lastUpdate: string;
+  memoryUsage?: number;
+}
+
+const PerformanceMonitor: React.FC = () => {
+  const [stats, setStats] = useState<PerformanceStats>({
+    eventListeners: 0,
+    renderCount: 0,
+    lastUpdate: new Date().toLocaleTimeString()
   });
 
-  const refreshSubscriptions = () => {
-    const subscriptions = windowEventManager.getActiveSubscriptions();
-    setActiveSubscriptions(subscriptions);
-  };
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    refreshSubscriptions();
-    const interval = setInterval(refreshSubscriptions, 2000);
-    return () => clearInterval(interval);
+    // Só ativar em desenvolvimento
+    if (process.env.NODE_ENV !== 'development') {
+      return;
+    }
+
+    let renderCount = 0;
+    
+    const updateStats = () => {
+      const eventStats = eventManager.getStats();
+      
+      // Obter uso de memória se disponível
+      let memoryUsage;
+      if ('memory' in performance) {
+        const memInfo = (performance as any).memory;
+        memoryUsage = Math.round(memInfo.usedJSHeapSize / 1024 / 1024); // MB
+      }
+
+      setStats({
+        eventListeners: eventStats.totalSubscriptions,
+        renderCount: ++renderCount,
+        lastUpdate: new Date().toLocaleTimeString(),
+        memoryUsage
+      });
+
+      // Log se há problemas de performance
+      if (eventStats.totalSubscriptions > 50) {
+        console.warn('🚨 Muitos event listeners ativos:', eventStats.totalSubscriptions);
+      }
+    };
+
+    // Atualizar stats a cada 2 segundos
+    const interval = setInterval(updateStats, 2000);
+    updateStats(); // Primeira execução
+
+    return () => {
+      clearInterval(interval);
+    };
   }, []);
 
-  const totalSubscriptions = Object.values(activeSubscriptions).reduce((sum, count) => sum + count, 0);
+  // Não renderizar em produção
+  if (process.env.NODE_ENV !== 'development') {
+    return null;
+  }
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Activity className="h-5 w-5" />
-          Performance Monitor
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">Renders:</span>
-          <Badge variant="outline">{renderCount}</Badge>
-        </div>
-        
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">Event Listeners:</span>
-          <Badge variant={totalSubscriptions > 10 ? "destructive" : "default"}>
-            {totalSubscriptions}
-          </Badge>
-        </div>
+    <>
+      {/* Botão para toggle */}
+      <button
+        onClick={() => setIsVisible(!isVisible)}
+        className="fixed bottom-4 left-4 z-50 bg-gray-800 text-white p-2 rounded-full text-xs hover:bg-gray-700 transition-colors"
+        title="Performance Monitor"
+      >
+        📊
+      </button>
 
-        {Object.entries(activeSubscriptions).map(([eventType, count]) => (
-          <div key={eventType} className="flex items-center justify-between text-xs">
-            <span className="text-muted-foreground">{eventType}:</span>
-            <Badge variant="secondary" className="text-xs">{count}</Badge>
+      {/* Monitor */}
+      {isVisible && (
+        <div className="fixed bottom-16 left-4 z-50 bg-black/90 text-white p-4 rounded-lg text-xs max-w-xs">
+          <div className="font-bold mb-2">Performance Monitor</div>
+          
+          <div className="space-y-1">
+            <div>Event Listeners: <span className="text-yellow-400">{stats.eventListeners}</span></div>
+            <div>Renders: <span className="text-purple-400">{stats.renderCount}</span></div>
+            {stats.memoryUsage && (
+              <div>Memory: <span className="text-red-400">{stats.memoryUsage}MB</span></div>
+            )}
+            <div className="text-gray-400 text-[10px] mt-2">
+              Última atualização: {stats.lastUpdate}
+            </div>
           </div>
-        ))}
 
-        <Button size="sm" onClick={refreshSubscriptions} className="w-full">
-          <Zap className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+          {/* Alertas */}
+          {stats.eventListeners > 50 && (
+            <div className="mt-2 p-1 bg-yellow-500/20 border border-yellow-500 rounded text-[10px]">
+              ⚠️ Muitos event listeners
+            </div>
+          )}
 
-        {totalSubscriptions > 15 && (
-          <div className="flex items-center gap-2 text-amber-600 text-xs">
-            <AlertCircle className="h-4 w-4" />
-            <span>Alto número de listeners</span>
+          {stats.memoryUsage && stats.memoryUsage > 100 && (
+            <div className="mt-2 p-1 bg-orange-500/20 border border-orange-500 rounded text-[10px]">
+              ⚠️ Alto uso de memória
+            </div>
+          )}
+
+          {/* Botões de ação */}
+          <div className="mt-3 space-x-2">
+            <button
+              onClick={() => {
+                eventManager.removeAllEventListeners();
+                console.log('🧹 Event listeners limpos');
+              }}
+              className="px-2 py-1 bg-yellow-600 hover:bg-yellow-700 rounded text-[10px]"
+            >
+              Limpar Events
+            </button>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      )}
+    </>
   );
 };
+
+export default PerformanceMonitor;
