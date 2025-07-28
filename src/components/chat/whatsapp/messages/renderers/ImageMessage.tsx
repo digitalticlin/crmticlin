@@ -34,22 +34,36 @@ export const ImageMessage = React.memo(({
 
   const handleImageError = useCallback((event: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const target = event.target as HTMLImageElement;
+    const isSupabaseStorage = url?.includes('supabase.co/storage');
     const errorDetails = {
       messageId: messageId.substring(0, 8),
       url: url?.substring(0, 80) + '...',
       naturalWidth: target.naturalWidth,
       naturalHeight: target.naturalHeight,
       retryCount,
-      // ✅ DEBUG ESPECÍFICO PARA JPEG
-      isJPEG: url?.includes('image/jpeg'),
-      isPNG: url?.includes('image/png'),
+      // ✅ DEBUG ESPECÍFICO PARA FORMATO E ORIGEM
+      isJPEG: url?.includes('image/jpeg') || url?.includes('.jpg') || url?.includes('.jpeg'),
+      isPNG: url?.includes('image/png') || url?.includes('.png'),
+      isSupabaseStorage,
       startsWithData: url?.startsWith('data:'),
-      mimeType: url?.match(/data:([^;]+);base64/)?.[1] || 'unknown'
+      mimeType: url?.match(/data:([^;]+);base64/)?.[1] || 'unknown',
+      isHttps: url?.startsWith('https://'),
+      hasParams: url?.includes('?')
     };
     
     // ✅ MELHOR TRATAMENTO: Log mais detalhado apenas em desenvolvimento
     if (process.env.NODE_ENV === 'development') {
       console.error(`[ImageMessage] ❌ Erro ao carregar imagem:`, errorDetails);
+      
+      // ✅ LOG ESPECÍFICO PARA SUPABASE STORAGE
+      if (isSupabaseStorage) {
+        console.error(`[ImageMessage] 🗄️ SUPABASE STORAGE ERROR:`, {
+          fullUrl: url,
+          messageId,
+          possibleCause: 'CORS, autenticação ou arquivo não existe',
+          suggestion: 'Verificar RLS policies e bucket permissions'
+        });
+      }
       
       // ✅ LOG EXTRA PARA JPEG
       if (errorDetails.isJPEG) {
@@ -194,7 +208,9 @@ export const ImageMessage = React.memo(({
             }}
             key={`${messageId}-${retryCount}`}
             data-message-id={messageId}
+            // ✅ HEADERS ESPECÍFICOS PARA SUPABASE STORAGE
             referrerPolicy="no-referrer"
+            crossOrigin={url?.includes('supabase.co/storage') ? 'anonymous' : undefined}
           />
         </div>
         

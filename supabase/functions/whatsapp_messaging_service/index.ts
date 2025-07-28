@@ -269,292 +269,292 @@ serve(async (req) => {
       // ✅ PROCESSAR DATAURL PARA MÍDIA (CÓDIGO ORIGINAL OTIMIZADO)
       if (mediaUrl && mediaUrl.startsWith('data:')) {
         console.log('[Messaging Service] 🔄 Processando DataURL síncrona...');
-        
-        try {
-          // Extrair tipo MIME da DataURL
-          const mimeMatch = mediaUrl.match(/^data:([^;]+);base64,(.+)$/);
-          if (mimeMatch) {
-            const mimeType = mimeMatch[1];
-            const base64Data = mimeMatch[2];
-            
+      
+      try {
+        // Extrair tipo MIME da DataURL
+        const mimeMatch = mediaUrl.match(/^data:([^;]+);base64,(.+)$/);
+        if (mimeMatch) {
+          const mimeType = mimeMatch[1];
+          const base64Data = mimeMatch[2];
+          
             console.log('[Messaging Service] 📄 Processando mídia síncrona:', {
-              mimeType,
-              dataSize: base64Data.length,
-              totalSize: mediaUrl.length
-            });
-            
-            // Determinar mediaType baseado no MIME
-            if (mimeType.startsWith('image/')) {
-              processedMediaType = 'image';
-            } else if (mimeType.startsWith('video/')) {
-              processedMediaType = 'video';
-            } else if (mimeType.startsWith('audio/')) {
-              processedMediaType = 'audio';
-            } else {
-              processedMediaType = 'document';
-            }
+            mimeType,
+            dataSize: base64Data.length,
+            totalSize: mediaUrl.length
+          });
+          
+          // Determinar mediaType baseado no MIME
+          if (mimeType.startsWith('image/')) {
+            processedMediaType = 'image';
+          } else if (mimeType.startsWith('video/')) {
+            processedMediaType = 'video';
+          } else if (mimeType.startsWith('audio/')) {
+            processedMediaType = 'audio';
+          } else {
+            processedMediaType = 'document';
+          }
 
             // ✅ STORAGE APENAS PARA ARQUIVOS PEQUENOS/MÉDIOS
             console.log('[Messaging Service] 🗄️ Tentando salvar no Storage (síncrono)...');
+          
+          try {
+            // 1. Converter DataURL para bytes
+            const binaryString = atob(base64Data);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+            }
             
-            try {
-              // 1. Converter DataURL para bytes
-              const binaryString = atob(base64Data);
-              const bytes = new Uint8Array(binaryString.length);
-              for (let i = 0; i < binaryString.length; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-              }
-              
-              // 2. Gerar nome único do arquivo
-              const extension = mimeType.split('/')[1] || 'bin';
-              const fileName = `media_${Date.now()}_${Math.random().toString(36).substring(7)}.${extension}`;
-              
-              // 3. Upload para Storage
-              const { data: uploadData, error: uploadError } = await supabaseServiceRole.storage
-                .from('whatsapp-media')
-                .upload(fileName, bytes, {
-                  contentType: mimeType,
-                  cacheControl: '3600', // 1 hora de cache
-                  upsert: false
-                });
-                
-              if (uploadError) {
-                console.log('[Messaging Service] ⚠️ Storage falhou, usando cache tradicional:', uploadError.message);
-                throw uploadError;
-              }
-              
-              // 4. Obter URL pública
-              const { data: urlData } = supabaseServiceRole.storage
-                .from('whatsapp-media')
-                .getPublicUrl(fileName);
-                
-              const storageUrl = urlData.publicUrl;
-              
-              console.log('[Messaging Service] ✅ Arquivo salvo no Storage (síncrono):', {
-                fileName,
-                storageUrl: storageUrl.substring(0, 80) + '...',
-                fileSize: bytes.length
+            // 2. Gerar nome único do arquivo
+            const extension = mimeType.split('/')[1] || 'bin';
+            const fileName = `media_${Date.now()}_${Math.random().toString(36).substring(7)}.${extension}`;
+            
+                         // 3. Upload para Storage
+             const { data: uploadData, error: uploadError } = await supabaseServiceRole.storage
+               .from('whatsapp-media')
+              .upload(fileName, bytes, {
+                contentType: mimeType,
+                cacheControl: '3600', // 1 hora de cache
+                upsert: false
               });
               
+            if (uploadError) {
+                console.log('[Messaging Service] ⚠️ Storage falhou, usando cache tradicional:', uploadError.message);
+              throw uploadError;
+            }
+            
+                         // 4. Obter URL pública
+             const { data: urlData } = supabaseServiceRole.storage
+               .from('whatsapp-media')
+              .getPublicUrl(fileName);
+              
+            const storageUrl = urlData.publicUrl;
+            
+              console.log('[Messaging Service] ✅ Arquivo salvo no Storage (síncrono):', {
+              fileName,
+              storageUrl: storageUrl.substring(0, 80) + '...',
+              fileSize: bytes.length
+            });
+            
               // 5. Cache pequeno apenas com URL do Storage
-              const { data: cacheResult, error: cacheError } = await supabaseServiceRole
-                .from('media_cache')
-                .insert({
+            const { data: cacheResult, error: cacheError } = await supabaseServiceRole
+              .from('media_cache')
+              .insert({
                   message_id: null, // Será atualizado após salvar mensagem
                   external_message_id: null, // Será atualizado após salvar mensagem  
                   original_url: storageUrl,
                   base64_data: null, // Não salvar base64 quando tem Storage
-                  file_name: message.trim() || fileName,
-                  file_size: bytes.length,
-                  media_type: processedMediaType,
+                file_name: message.trim() || fileName,
+                file_size: bytes.length,
+                media_type: processedMediaType,
                   processing_status: 'completed',
-                  created_at: new Date().toISOString()
-                })
-                .select('id, original_url')
-                .single();
+                created_at: new Date().toISOString()
+              })
+              .select('id, original_url')
+              .single();
 
               if (!cacheError) {
                 mediaCacheUrl = cacheResult.original_url;
                 console.log('[Messaging Service] ✅ URL do Storage salva no cache (síncrono)');
               } else {
-                mediaCacheUrl = storageUrl; // Usar Storage URL diretamente
-              }
-              
-            } catch (storageError) {
-              console.log('[Messaging Service] ⚠️ Storage não funcionou, usando método anterior...');
-              
-              // FALLBACK: Método anterior (pequenos arquivos no cache)
-              const maxSizeBytes = 6 * 1024; // 6KB
-              
+              mediaCacheUrl = storageUrl; // Usar Storage URL diretamente
+            }
+            
+          } catch (storageError) {
+            console.log('[Messaging Service] ⚠️ Storage não funcionou, usando método anterior...');
+            
+            // FALLBACK: Método anterior (pequenos arquivos no cache)
+            const maxSizeBytes = 6 * 1024; // 6KB
+            
               if (mediaUrl.length <= maxSizeBytes) {
-                const { data: cacheResult, error: cacheError } = await supabaseServiceRole
-                  .from('media_cache')
-                  .insert({
+              const { data: cacheResult, error: cacheError } = await supabaseServiceRole
+                .from('media_cache')
+                .insert({
                     message_id: null,
                     external_message_id: null,
-                    original_url: mediaUrl,
-                    base64_data: base64Data,
-                    file_name: message.trim() || 'media',
-                    file_size: base64Data.length,
-                    media_type: processedMediaType,
+                  original_url: mediaUrl,
+                  base64_data: base64Data,
+                  file_name: message.trim() || 'media',
+                  file_size: base64Data.length,
+                  media_type: processedMediaType,
                     processing_status: 'completed',
-                    created_at: new Date().toISOString()
-                  })
-                  .select('id, original_url')
-                  .single();
+                  created_at: new Date().toISOString()
+                })
+                .select('id, original_url')
+                .single();
 
                 if (!cacheError) {
-                  mediaCacheUrl = cacheResult.original_url;
+                mediaCacheUrl = cacheResult.original_url;
                   console.log('[Messaging Service] ✅ DataURL salva no cache (fallback síncrono)');
                 }
               }
             }
 
             // Usar DataURL diretamente para VPS
-            processedMediaUrl = mediaUrl;
-            processedMediaType = processedMediaType + '_dataurl'; // Sinalizar para VPS
-            
-          } else {
+          processedMediaUrl = mediaUrl;
+          processedMediaType = processedMediaType + '_dataurl'; // Sinalizar para VPS
+          
+        } else {
             console.log('[Messaging Service] ⚠️ DataURL inválida, usando como texto');
-            processedMediaType = 'text';
-            processedMediaUrl = null;
-          }
-        } catch (error) {
-          console.error('[Messaging Service] ❌ Erro ao processar DataURL síncrona:', error);
           processedMediaType = 'text';
           processedMediaUrl = null;
         }
+      } catch (error) {
+          console.error('[Messaging Service] ❌ Erro ao processar DataURL síncrona:', error);
+        processedMediaType = 'text';
+        processedMediaUrl = null;
       }
+    }
 
-      // ✅ CHAMADA PARA VPS (INALTERADA - FUNCIONA PERFEITAMENTE)
-      const vpsPayload = {
-        instanceId: vpsInstanceId,
-        phone: phone.replace(/\D/g, ''), // Limpar caracteres não numéricos
-        message: message.trim(),
+    // ✅ CHAMADA PARA VPS (INALTERADA - FUNCIONA PERFEITAMENTE)
+    const vpsPayload = {
+      instanceId: vpsInstanceId,
+      phone: phone.replace(/\D/g, ''), // Limpar caracteres não numéricos
+      message: message.trim(),
         mediaType: processedMediaType || 'text',
         mediaUrl: processedMediaUrl || null
-      };
+    };
 
       console.log('[Messaging Service] 📡 Enviando para VPS (síncrono):', {
-        url: `${VPS_CONFIG.baseUrl}/send`,
-        payload: {
-          ...vpsPayload,
-          phone: vpsPayload.phone.substring(0, 4) + '****',
-          mediaUrl: vpsPayload.mediaUrl ? vpsPayload.mediaUrl.substring(0, 50) + '...' : null
-        }
+      url: `${VPS_CONFIG.baseUrl}/send`,
+      payload: {
+        ...vpsPayload,
+        phone: vpsPayload.phone.substring(0, 4) + '****',
+        mediaUrl: vpsPayload.mediaUrl ? vpsPayload.mediaUrl.substring(0, 50) + '...' : null
+      }
+    });
+
+    const vpsResponse = await fetch(`${VPS_CONFIG.baseUrl}/send`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
+        'User-Agent': 'Supabase-Edge-Function/1.0'
+      },
+      body: JSON.stringify(vpsPayload),
+      signal: AbortSignal.timeout(VPS_CONFIG.timeout)
+    });
+
+    // ✅ TRATAMENTO DE RESPOSTA DA VPS (INALTERADO)
+    if (!vpsResponse.ok) {
+      const errorText = await vpsResponse.text();
+      console.error('[Messaging Service] ❌ Erro HTTP da VPS:', {
+        status: vpsResponse.status,
+        statusText: vpsResponse.statusText,
+        errorText: errorText.substring(0, 300),
+        vpsUrl: `${VPS_CONFIG.baseUrl}/send`
       });
-
-      const vpsResponse = await fetch(`${VPS_CONFIG.baseUrl}/send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${VPS_CONFIG.authToken}`,
-          'User-Agent': 'Supabase-Edge-Function/1.0'
-        },
-        body: JSON.stringify(vpsPayload),
-        signal: AbortSignal.timeout(VPS_CONFIG.timeout)
+      
+      return new Response(JSON.stringify({
+        success: false,
+        error: `Erro na VPS (${vpsResponse.status}): ${errorText.substring(0, 100)}`
+      }), {
+        status: 502,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
+    }
 
-      // ✅ TRATAMENTO DE RESPOSTA DA VPS (INALTERADO)
-      if (!vpsResponse.ok) {
-        const errorText = await vpsResponse.text();
-        console.error('[Messaging Service] ❌ Erro HTTP da VPS:', {
-          status: vpsResponse.status,
-          statusText: vpsResponse.statusText,
-          errorText: errorText.substring(0, 300),
-          vpsUrl: `${VPS_CONFIG.baseUrl}/send`
-        });
-        
-        return new Response(JSON.stringify({
-          success: false,
-          error: `Erro na VPS (${vpsResponse.status}): ${errorText.substring(0, 100)}`
-        }), {
-          status: 502,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
+    let vpsData;
+    try {
+      vpsData = await vpsResponse.json();
+    } catch (parseError) {
+      console.error('[Messaging Service] ❌ Erro ao fazer parse da resposta da VPS:', parseError);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Resposta inválida da VPS'
+      }), {
+        status: 502,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
-      let vpsData;
-      try {
-        vpsData = await vpsResponse.json();
-      } catch (parseError) {
-        console.error('[Messaging Service] ❌ Erro ao fazer parse da resposta da VPS:', parseError);
-        return new Response(JSON.stringify({
-          success: false,
-          error: 'Resposta inválida da VPS'
-        }), {
-          status: 502,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      if (!vpsData?.success) {
-        console.error('[Messaging Service] ❌ VPS retornou erro:', vpsData);
-        return new Response(JSON.stringify({
-          success: false,
-          error: vpsData?.error || 'Erro desconhecido na VPS'
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
+    if (!vpsData?.success) {
+      console.error('[Messaging Service] ❌ VPS retornou erro:', vpsData);
+      return new Response(JSON.stringify({
+        success: false,
+        error: vpsData?.error || 'Erro desconhecido na VPS'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
       console.log('[Messaging Service] ✅ Mensagem enviada com sucesso (síncrono):', {
-        success: vpsData.success,
-        messageId: vpsData.messageId || 'N/A',
-        timestamp: vpsData.timestamp,
-        user: user.email,
-        vpsInstanceId,
-        phone: phone.substring(0, 4) + '****'
-      });
-      
-      // ✅ SALVAR MENSAGEM NO BANCO (INALTERADO)
-      console.log('[Messaging Service] 💾 Salvando mensagem enviada no banco com RPC isolada...');
-      
-      try {
-        const { data: saveResult, error: saveError } = await supabaseServiceRole.rpc(
+      success: vpsData.success,
+      messageId: vpsData.messageId || 'N/A',
+      timestamp: vpsData.timestamp,
+      user: user.email,
+      vpsInstanceId,
+      phone: phone.substring(0, 4) + '****'
+    });
+    
+    // ✅ SALVAR MENSAGEM NO BANCO (INALTERADO)
+    console.log('[Messaging Service] 💾 Salvando mensagem enviada no banco com RPC isolada...');
+    
+    try {
+      const { data: saveResult, error: saveError } = await supabaseServiceRole.rpc(
           'save_sent_message_only',
-          {
-            p_vps_instance_id: vpsInstanceId,
-            p_phone: phone.replace(/\D/g, ''),
-            p_message_text: message.trim(),
-            p_external_message_id: vpsData.messageId || null,
+        {
+          p_vps_instance_id: vpsInstanceId,
+          p_phone: phone.replace(/\D/g, ''),
+          p_message_text: message.trim(),
+          p_external_message_id: vpsData.messageId || null,
             p_contact_name: null,
             p_media_type: mediaType || 'text',
             p_media_url: mediaCacheUrl ? mediaCacheUrl.substring(0, 200) : null
-          }
-        );
+        }
+      );
 
-        if (saveError) {
-          console.error('[Messaging Service] ❌ Erro ao salvar mensagem no banco:', saveError);
-        } else if (saveResult?.success) {
+      if (saveError) {
+        console.error('[Messaging Service] ❌ Erro ao salvar mensagem no banco:', saveError);
+      } else if (saveResult?.success) {
           console.log('[Messaging Service] ✅ Mensagem salva no banco via RPC isolada');
-          
-          // ✅ ATUALIZAR MEDIA_CACHE COM OS IDS CORRETOS
-          if (mediaCacheUrl && saveResult.data?.message_id && vpsData.messageId) {
-            try {
-              const { error: updateError } = await supabaseServiceRole
-                .from('media_cache')
-                .update({
+        
+        // ✅ ATUALIZAR MEDIA_CACHE COM OS IDS CORRETOS
+        if (mediaCacheUrl && saveResult.data?.message_id && vpsData.messageId) {
+          try {
+            const { error: updateError } = await supabaseServiceRole
+              .from('media_cache')
+              .update({
                   message_id: saveResult.data.message_id,
                   external_message_id: vpsData.messageId
-                })
-                .or(`original_url.eq.${mediaCacheUrl},original_url.like.%${vpsData.messageId}%`)
-                .eq('media_type', mediaType || 'text');
-                
+              })
+              .or(`original_url.eq.${mediaCacheUrl},original_url.like.%${vpsData.messageId}%`)
+              .eq('media_type', mediaType || 'text');
+              
               if (!updateError) {
                 console.log('[Messaging Service] ✅ Media_cache atualizado com IDs');
-              }
-            } catch (updateError) {
-              console.error('[Messaging Service] ⚠️ Erro na atualização do cache:', updateError);
             }
+          } catch (updateError) {
+            console.error('[Messaging Service] ⚠️ Erro na atualização do cache:', updateError);
           }
         }
-      } catch (saveError) {
-        console.error('[Messaging Service] ❌ Erro ao executar RPC de salvamento:', saveError);
       }
+    } catch (saveError) {
+      console.error('[Messaging Service] ❌ Erro ao executar RPC de salvamento:', saveError);
+    }
 
       // ✅ RESPOSTA DE SUCESSO PADRONIZADA
-      return new Response(JSON.stringify({
-        success: true,
-        message: 'Mensagem enviada com sucesso',
-        data: {
-          messageId: vpsData.messageId,
-          instanceId: instanceData.id,
-          vpsInstanceId,
-          phone: phone.replace(/\D/g, ''),
-          mediaType: mediaType || 'text',
-          timestamp: vpsData.timestamp || new Date().toISOString(),
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Mensagem enviada com sucesso',
+      data: {
+        messageId: vpsData.messageId,
+        instanceId: instanceData.id,
+        vpsInstanceId,
+        phone: phone.replace(/\D/g, ''),
+        mediaType: mediaType || 'text',
+        timestamp: vpsData.timestamp || new Date().toISOString(),
           isAsync: false,
-          user: {
-            id: user.id,
-            email: user.email
-          }
+        user: {
+          id: user.id,
+          email: user.email
         }
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      }
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
     }
 
   } catch (error) {

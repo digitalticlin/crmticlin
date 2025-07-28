@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { KanbanTag } from '@/types/kanban';
-import { TagBadge } from '@/components/sales/tags/TagBadge';
+import { TagBadge } from '@/components/ui/tag-badge';
 
 interface ContactTagsProps {
   tags: KanbanTag[];

@@ -20,12 +20,46 @@ interface MessageMediaProps {
   } | null;
 }
 
-// 🚀 MIMEYPES OTIMIZADOS
-const getMimeType = (mediaType: string, mediaCache?: any): string => {
+// 🚀 MIMEYPES OTIMIZADOS COM DETECÇÃO INTELIGENTE
+const getMimeType = (mediaType: string, mediaCache?: any, mediaUrl?: string): string => {
+  // 🎯 DETECÇÃO INTELIGENTE BASEADA NA URL
+  if (mediaUrl) {
+    // Se é data URL, extrair MIME type da URL
+    if (mediaUrl.startsWith('data:')) {
+      const mimeMatch = mediaUrl.match(/data:([^;]+);/);
+      if (mimeMatch) {
+        console.log(`[MessageMedia] 🔍 MIME detectado da URL: ${mimeMatch[1]}`);
+        return mimeMatch[1];
+      }
+    }
+    
+    // Se é URL de arquivo, detectar pela extensão
+    const urlLower = mediaUrl.toLowerCase();
+    if (urlLower.includes('.jpg') || urlLower.includes('.jpeg')) {
+      return 'image/jpeg';
+    } else if (urlLower.includes('.png')) {
+      return 'image/png';
+    } else if (urlLower.includes('.gif')) {
+      return 'image/gif';
+    } else if (urlLower.includes('.webp')) {
+      return 'image/webp';
+    } else if (urlLower.includes('.mp4')) {
+      return 'video/mp4';
+    } else if (urlLower.includes('.webm')) {
+      return 'video/webm';
+    } else if (urlLower.includes('.ogg')) {
+      return 'audio/ogg';
+    } else if (urlLower.includes('.mp3')) {
+      return 'audio/mp3';
+    } else if (urlLower.includes('.pdf')) {
+      return 'application/pdf';
+    }
+  }
+  
   // Se tem cache com media_type específico, usar
   if (mediaCache?.media_type) {
     const mimeMap: Record<string, string> = {
-      'image': 'image/jpeg',
+      'image': 'image/jpeg', // Fallback para JPEG
       'video': 'video/mp4', 
       'audio': 'audio/ogg',
       'document': 'application/pdf'
@@ -35,7 +69,7 @@ const getMimeType = (mediaType: string, mediaCache?: any): string => {
   
   // Fallback baseado no mediaType
   switch (mediaType) {
-    case 'image': return 'image/jpeg';
+    case 'image': return 'image/jpeg'; // Padrão JPEG para compatibilidade
     case 'video': return 'video/mp4';
     case 'audio': return 'audio/ogg';
     case 'document': return 'application/pdf';
@@ -61,9 +95,9 @@ export const MessageMedia: React.FC<MessageMediaProps> = React.memo(({
     
     // PRIORIDADE 2: Base64 do cache
     if (mediaCache?.base64_data) {
-      const mimeType = getMimeType(mediaType, mediaCache);
+      const mimeType = getMimeType(mediaType, mediaCache, mediaUrl);
       const dataUrl = `data:${mimeType};base64,${mediaCache.base64_data}`;
-      console.log(`[MessageMedia] 💾 Cache convertido para URL: ${messageId.substring(0, 8)}`);
+      console.log(`[MessageMedia] 💾 Cache convertido para URL: ${messageId.substring(0, 8)} (${mimeType})`);
       return dataUrl;
     }
     
