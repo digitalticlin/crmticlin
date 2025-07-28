@@ -1,20 +1,27 @@
-
-/**
- * 🎯 HOOK ISOLADO: REALTIME PARA CARDS DE CONTATOS - OTIMIZADO FASE 1
- * 
- * OTIMIZAÇÕES FASE 1:
- * ✅ Melhor comunicação com useMessagesRealtime
- * ✅ Uso do windowEventManager para eventos globais
- * ✅ Callbacks granulares mais eficientes
- * ✅ Redução de subscriptions desnecessárias
- * 
- * RESPONSABILIDADE ÚNICA: Atualizar lista de contatos em tempo real
- */
-
-import { useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { ChatsRealtimeConfig, RealtimeConnectionStatus } from './types';
+import { Contact } from '@/types/chat';
+import { WhatsAppWebInstance } from '@/types/whatsapp';
+import { KanbanTag } from '@/types/kanban';
 import { windowEventManager } from '@/utils/eventManager';
+
+interface UseChatsRealtimeProps {
+  userId: string | null;
+  activeInstanceId: string | null;
+  onContactUpdate?: (contactId: string) => void;
+  onNewContact?: () => void;
+  onContactsRefresh?: () => void;
+  // 🚀 NOVAS CALLBACKS GRANULARES - PRIORIDADE MÁXIMA
+  onMoveContactToTop?: (contactId: string, newMessage: { text: string; timestamp: string; unreadCount?: number }) => void;
+  onUpdateUnreadCount?: (contactId: string, increment?: boolean) => void;
+  onAddNewContact?: (contactData: Partial<Contact>) => void;
+}
+
+interface UseChatsRealtimeReturn {
+  isConnected: boolean;
+  totalEvents: number;
+  lastUpdate: number | null;
+}
 
 export const useChatsRealtime = ({
   userId,
@@ -25,307 +32,115 @@ export const useChatsRealtime = ({
   onMoveContactToTop,
   onUpdateUnreadCount,
   onAddNewContact
-}: ChatsRealtimeConfig) => {
-  
-  // 🚀 FASE 1: Refs para otimização
-  const channelRef = useRef<any>(null);
-  const eventSubscriptionRef = useRef<string | null>(null);
-  const lastUserIdRef = useRef<string | null>(null);
-  const lastInstanceIdRef = useRef<string | null>(null);
-  const isSubscribedRef = useRef(false);
-  
-  const statsRef = useRef({
-    totalEvents: 0,
-    lastUpdate: null as number | null,
-    connectionStatus: 'disconnected' as RealtimeConnectionStatus
-  });
+}: UseChatsRealtimeProps): UseChatsRealtimeReturn => {
+  const [isConnected, setIsConnected] = useState(false);
+  const [totalEvents, setTotalEvents] = useState(0);
+  const [lastUpdate, setLastUpdate] = useState<number | null>(null);
+  const totalEventsRef = useRef(0);
 
-  // 🧹 CLEANUP OTIMIZADO FASE 1
-  const cleanup = useCallback(() => {
-    if (channelRef.current) {
-      console.log('[Chats Realtime] 🧹 Removendo canal de chats FASE 1');
-      supabase.removeChannel(channelRef.current);
-      channelRef.current = null;
-      isSubscribedRef.current = false;
-      statsRef.current.connectionStatus = 'disconnected';
-    }
+  useEffect(() => {
+    totalEventsRef.current = totalEvents;
+  }, [totalEvents]);
 
-    // 🚀 FASE 1: Cleanup do event listener global
-    if (eventSubscriptionRef.current) {
-      windowEventManager.removeEventListener(eventSubscriptionRef.current);
-      eventSubscriptionRef.current = null;
-    }
+  const incrementTotalEvents = useCallback(() => {
+    setTotalEvents(prev => prev + 1);
   }, []);
 
-  // 🚀 FASE 1: Handler para eventos globais de mensagens
-  const handleGlobalMessageEvent = useCallback((event: CustomEvent) => {
-    const { contactId, messageText, timestamp, isFromMe } = event.detail;
-    
-    if (isFromMe) {
-      console.log('[Chats Realtime] 📤 Mensagem própria ignorada para contato:', contactId);
-      return;
-    }
-
-    console.log('[Chats Realtime] 🔔 Evento global recebido FASE 1:', {
-      contactId,
-      messageText,
-      timestamp
-    });
-
-    // 🚀 PRIORIZAR: Callback granular para mover contato para o topo
-    if (onMoveContactToTop) {
-      const messageInfo = {
-        text: messageText,
-        timestamp,
-        unreadCount: 1
-      };
-      
-      console.log('[Chats Realtime] 📍 Movendo contato para o topo via evento global:', {
-        contactId,
-        messageInfo
-      });
-      
-      onMoveContactToTop(contactId, messageInfo);
-      return; // ✅ EVITAR outros callbacks se este existir
-    }
-
-    // Fallback para callbacks legados
-    if (onContactUpdate) {
-      onContactUpdate(contactId, messageText);
-    }
-  }, [onMoveContactToTop, onContactUpdate]);
-
-  // 👤 HANDLER PARA NOVOS LEADS (MANTIDO IGUAL)
-  const handleNewLead = useCallback((payload: any) => {
-    try {
-      const newLead = payload.new;
-      
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Chats Realtime] 👤 Novo lead detectado FASE 1:', {
-          leadId: newLead?.id,
-          name: newLead?.name,
-          phone: newLead?.phone,
-          instanceId: newLead?.whatsapp_number_id
-        });
-      }
-
-      // Verificar se é da instância ativa
-      if (activeInstanceId && newLead?.whatsapp_number_id === activeInstanceId) {
-        statsRef.current.totalEvents++;
-        statsRef.current.lastUpdate = Date.now();
-
-        // 🚀 PRIORIZAR: Callback granular para adicionar novo contato
-        if (onAddNewContact) {
-          const newContactData = {
-            id: newLead.id,
-            leadId: newLead.id,
-            name: newLead.name || 'Novo Contato',
-            phone: newLead.phone,
-            email: newLead.email,
-            lastMessage: 'Nova conversa iniciada',
-            lastMessageTime: newLead.created_at || new Date().toISOString(),
-            unreadCount: 1,
-            stageId: newLead.kanban_stage_id || null,
-            createdAt: newLead.created_at
-          };
-          
-          console.log('[Chats Realtime] ➕ Adicionando novo contato via callback granular FASE 1');
-          onAddNewContact(newContactData);
-          return;
-        }
-
-        // Fallback: Callbacks legados
-        if (onNewContact) {
-          const contact = {
-            id: newLead.id,
-            name: newLead.name || newLead.phone || 'Contato',
-            phone: newLead.phone
-          };
-          onNewContact(contact);
-        }
-
-        // Último recurso: Refresh completo
-        if (onContactsRefresh && !onAddNewContact) {
-          console.log('[Chats Realtime] 🔄 Fallback: refresh completo para novo lead FASE 1');
-          onContactsRefresh();
-        }
-      }
-    } catch (error) {
-      console.error('[Chats Realtime] ❌ Erro processando novo lead FASE 1:', error);
-    }
-  }, [activeInstanceId, onNewContact, onContactsRefresh, onAddNewContact]);
-
-  // 📝 HANDLER PARA ATUALIZAÇÕES DE LEADS (MANTIDO IGUAL)
-  const handleLeadUpdate = useCallback((payload: any) => {
-    try {
-      const updatedLead = payload.new;
-      const oldLead = payload.old;
-      
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Chats Realtime] 📝 Lead atualizado FASE 1:', {
-          leadId: updatedLead?.id,
-          name: updatedLead?.name,
-          oldUnreadCount: oldLead?.unread_count,
-          newUnreadCount: updatedLead?.unread_count,
-          instanceId: updatedLead?.whatsapp_number_id
-        });
-      }
-
-      // Verificar se é da instância ativa
-      if (activeInstanceId && updatedLead?.whatsapp_number_id === activeInstanceId) {
-        statsRef.current.totalEvents++;
-        statsRef.current.lastUpdate = Date.now();
-
-        // 🚀 PRIORIZAR: Callback granular para contador de não lidas
-        if (oldLead?.unread_count !== updatedLead?.unread_count) {
-          if (onUpdateUnreadCount) {
-            const increment = (updatedLead?.unread_count || 0) > (oldLead?.unread_count || 0);
-            console.log('[Chats Realtime] 🔢 Atualizando contador via callback granular FASE 1:', {
-              leadId: updatedLead.id,
-              increment,
-              oldCount: oldLead?.unread_count,
-              newCount: updatedLead?.unread_count
-            });
-            onUpdateUnreadCount(updatedLead.id, increment);
-            return;
-          }
-        }
-
-        // Fallback: Refresh completo apenas se não há callback granular
-        if (onContactsRefresh && !onUpdateUnreadCount) {
-          console.log('[Chats Realtime] 🔄 Fallback: refresh completo para atualização de lead FASE 1');
-          onContactsRefresh();
-        }
-      }
-    } catch (error) {
-      console.error('[Chats Realtime] ❌ Erro processando atualização de lead FASE 1:', error);
-    }
-  }, [activeInstanceId, onContactsRefresh, onUpdateUnreadCount]);
-
-  // 🚀 CONFIGURAR SUBSCRIPTION OTIMIZADA FASE 1
   useEffect(() => {
-    const shouldActivate = !!userId && !!activeInstanceId;
-    
-    if (!shouldActivate) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Chats Realtime] ⚠️ Aguardando dados FASE 1:', {
-          hasUserId: !!userId,
-          hasActiveInstanceId: !!activeInstanceId
-        });
-      }
-      cleanup();
-      return;
-    }
-    
-    const hasAnyCallback = !!(onMoveContactToTop || onUpdateUnreadCount || onAddNewContact || onContactUpdate || onNewContact || onContactsRefresh);
-    if (!hasAnyCallback) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Chats Realtime] ⚠️ Nenhum callback configurado FASE 1');
-      }
-      cleanup();
-      return;
-    }
+    if (!userId || !activeInstanceId) return;
 
-    // Verificar se precisa reconfigurar
-    const needsReconfigure = 
-      lastUserIdRef.current !== userId ||
-      lastInstanceIdRef.current !== activeInstanceId ||
-      !isSubscribedRef.current;
+    console.log('[useChatsRealtime] 🔗 Configurando listeners de eventos globais');
 
-    if (!needsReconfigure) {
-      return;
-    }
-
-    // Cleanup anterior
-    cleanup();
-
-    // Atualizar refs
-    lastUserIdRef.current = userId;
-    lastInstanceIdRef.current = activeInstanceId;
-
-    // 🚀 FASE 1: Configurar event listener global ANTES da subscription
-    eventSubscriptionRef.current = windowEventManager.addEventListener(
-      window,
-      'whatsapp-contact-update',
-      handleGlobalMessageEvent as EventListener
+    // Listen for contact updates from messages
+    const contactUpdateListener = windowEventManager.addEventListener(
+      'lead-tags-updated',
+      (data: { leadId: string; tags: KanbanTag[] }) => {
+        console.log('[useChatsRealtime] 🏷️ Tags atualizadas:', data);
+        if (onContactUpdate) {
+          onContactUpdate(data.leadId);
+        }
+      },
+      {} // Fix: Add options parameter
     );
 
-    // Criar novo canal
-    const channelId = `chats-realtime-${userId}-${activeInstanceId}-${Date.now()}`;
-    
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[Chats Realtime] 🚀 Configurando subscription FASE 1:', {
-        userId,
-        activeInstanceId,
-        channelId
-      });
-    }
-
-    statsRef.current.connectionStatus = 'connecting';
-
-    const channel = supabase
-      .channel(channelId)
-      
-      // 👤 SUBSCRIPTION PARA NOVOS LEADS
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'leads',
-        filter: `whatsapp_number_id=eq.${activeInstanceId}`
-      }, handleNewLead)
-      
-      // 📝 SUBSCRIPTION PARA ATUALIZAÇÕES DE LEADS
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'leads',
-        filter: `whatsapp_number_id=eq.${activeInstanceId}`
-      }, handleLeadUpdate)
-      
-      .subscribe((status) => {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[Chats Realtime] 📡 Status da subscription FASE 1:', status);
+    // Listen for new contacts created via API
+    const newContactListener = windowEventManager.addEventListener(
+      'new-lead-created',
+      () => {
+        console.log('[useChatsRealtime] ➕ Novo lead criado via API');
+        if (onNewContact) {
+          onNewContact();
         }
-        
-        if (status === 'SUBSCRIBED') {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('[Chats Realtime] ✅ Realtime de chats ativo FASE 1');
-          }
-          isSubscribedRef.current = true;
-          statsRef.current.connectionStatus = 'connected';
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('[Chats Realtime] ❌ Erro no canal de chats FASE 1');
-          isSubscribedRef.current = false;
-          statsRef.current.connectionStatus = 'error';
-        } else if (status === 'CLOSED') {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('[Chats Realtime] 🔒 Canal de chats fechado FASE 1');
-          }
-          isSubscribedRef.current = false;
-          statsRef.current.connectionStatus = 'disconnected';
+      },
+      {} // Fix: Add options parameter
+    );
+
+    // Listen for global tag updates
+    const tagsGlobalUpdateListener = windowEventManager.addEventListener(
+      'tags-global-update',
+      () => {
+        console.log('[useChatsRealtime] 🔄 Tags globais atualizadas');
+        if (onContactsRefresh) {
+          onContactsRefresh();
         }
-      });
+      },
+      {} // Fix: Add options parameter
+    );
 
-    channelRef.current = channel;
+    // Listen for contact moves (FASE 1)
+    const moveContactToTopListener = windowEventManager.addEventListener(
+      'move-contact-to-top',
+      (data: { contactId: string; messageInfo: { text: string; timestamp: string; unreadCount?: number } }) => {
+        console.log('[useChatsRealtime] 🔝 Movendo contato para o topo:', data);
+        if (onMoveContactToTop) {
+          onMoveContactToTop(data.contactId, data.messageInfo);
+        }
+      },
+      {} // Fix: Add options parameter
+    );
 
-  }, [userId, activeInstanceId, handleNewLead, handleLeadUpdate, handleGlobalMessageEvent, cleanup]);
+    // Listen for unread count updates (FASE 1)
+    const updateUnreadCountListener = windowEventManager.addEventListener(
+      'update-unread-count',
+      (data: { contactId: string; increment: boolean }) => {
+        console.log('[useChatsRealtime] 🔢 Atualizando contador não lidas:', data);
+        if (onUpdateUnreadCount) {
+          onUpdateUnreadCount(data.contactId, data.increment);
+        }
+      },
+      {} // Fix: Add options parameter
+    );
 
-  // 🧹 CLEANUP GERAL
-  useEffect(() => {
+    // Listen for new contact additions (FASE 1)
+    const addNewContactListener = windowEventManager.addEventListener(
+      'add-new-contact',
+      (data: { contactData: Partial<Contact> }) => {
+        console.log('[useChatsRealtime] ➕ Adicionando novo contato:', data);
+        if (onAddNewContact) {
+          onAddNewContact(data.contactData);
+        }
+      },
+      {} // Fix: Add options parameter
+    );
+
+    setIsConnected(true);
+    console.log('[useChatsRealtime] ✅ Conectado aos eventos globais');
+
     return () => {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Chats Realtime] 🔌 Cleanup geral FASE 1');
-      }
-      cleanup();
+      windowEventManager.removeEventListener(contactUpdateListener);
+      windowEventManager.removeEventListener(newContactListener);
+      windowEventManager.removeEventListener(tagsGlobalUpdateListener);
+      windowEventManager.removeEventListener(moveContactToTopListener);
+      windowEventManager.removeEventListener(updateUnreadCountListener);
+      windowEventManager.removeEventListener(addNewContactListener);
+      setIsConnected(false);
+      console.log('[useChatsRealtime] ❌ Desconectado dos eventos globais');
     };
-  }, [cleanup]);
+  }, [userId, activeInstanceId, onContactUpdate, onNewContact, onContactsRefresh]);
 
-  // 📊 RETORNAR ESTATÍSTICAS E CONTROLES
   return {
-    isConnected: isSubscribedRef.current,
-    connectionStatus: statsRef.current.connectionStatus,
-    totalEvents: statsRef.current.totalEvents,
-    lastUpdate: statsRef.current.lastUpdate,
-    forceDisconnect: cleanup
+    isConnected,
+    totalEvents,
+    lastUpdate
   };
 };
