@@ -1,101 +1,56 @@
-import { useEffect, useCallback, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { useCompanyData } from "../useCompanyData";
-import { useRealtimeManager } from "../realtime/useRealtimeManager";
-import { toast } from "sonner";
 
-export const useNewLeadIntegration = (selectedFunnelId?: string) => {
-  const { companyId } = useCompanyData();
-  const { registerCallback, unregisterCallback } = useRealtimeManager();
-  const hookId = useRef(`sales-funnel-lead-integration-${Date.now()}`).current;
+import { useEffect, useCallback } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
-  // Estabilizar callback para evitar re-registros
-  const handleNewLead = useCallback(async (payload: any) => {
-    console.log('Novo lead detectado:', payload.new);
+interface UseNewLeadIntegrationProps {
+  funnelId: string;
+  onNewLead: (lead: any) => void;
+}
+
+export const useNewLeadIntegration = ({
+  funnelId,
+  onNewLead
+}: UseNewLeadIntegrationProps) => {
+  const { user } = useAuth();
+
+  const handleNewLead = useCallback((payload: any) => {
+    console.log('[New Lead Integration] 📨 Novo lead recebido:', payload);
     
-    if (!payload.new.kanban_stage_id && selectedFunnelId) {
-      try {
-        const { data: entryStage } = await supabase
-          .from('kanban_stages')
-          .select('id')
-          .eq('funnel_id', selectedFunnelId)
-          .eq('title', 'Entrada de Leads')
-          .single();
-
-        if (entryStage) {
-          await supabase
-            .from('leads')
-            .update({
-              kanban_stage_id: entryStage.id,
-              funnel_id: selectedFunnelId
-            })
-            .eq('id', payload.new.id);
-
-          toast.success(`Novo lead "${payload.new.name || payload.new.phone}" adicionado ao funil!`);
-        }
-      } catch (error) {
-        console.error('Erro ao integrar novo lead:', error);
-      }
+    const lead = payload.new;
+    
+    // Verificar se o lead pertence ao funil correto
+    if (lead.funnel_id === funnelId) {
+      onNewLead(lead);
     }
-  }, [selectedFunnelId]);
+  }, [funnelId, onNewLead]);
 
   useEffect(() => {
-    if (!companyId || !selectedFunnelId) return;
+    if (!user?.id || !funnelId) return;
 
-    console.log('[Sales Funnel] Registering new lead integration for funnel:', selectedFunnelId);
+    console.log('[New Lead Integration] 🔌 Configurando escuta para novos leads');
 
-    registerCallback(
-      `${hookId}-new-lead`,
-      'leadInsert',
-      handleNewLead,
-      {
-        filters: { funnel_id: selectedFunnelId }
-      }
-    );
+    const channel = supabase
+      .channel(`new-leads-${funnelId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'leads',
+          filter: `funnel_id=eq.${funnelId}`
+        },
+        handleNewLead
+      )
+      .subscribe();
 
     return () => {
-      console.log('[Sales Funnel] Cleanup new lead integration for funnel:', selectedFunnelId);
-      unregisterCallback(`${hookId}-new-lead`);
+      console.log('[New Lead Integration] 🧹 Limpando escuta de novos leads');
+      supabase.removeChannel(channel);
     };
-  }, [companyId, selectedFunnelId, registerCallback, unregisterCallback, hookId, handleNewLead]);
-
-  const addExistingLeadToFunnel = async (leadId: string) => {
-    if (!selectedFunnelId) {
-      toast.error("Nenhum funil selecionado");
-      return;
-    }
-
-    try {
-      const { data: entryStage } = await supabase
-        .from('kanban_stages')
-        .select('id')
-        .eq('funnel_id', selectedFunnelId)
-        .eq('title', 'Entrada de Leads')
-        .single();
-
-      if (!entryStage) {
-        toast.error("Estágio de entrada não encontrado");
-        return;
-      }
-
-      const { error } = await supabase
-        .from('leads')
-        .update({
-          kanban_stage_id: entryStage.id,
-          funnel_id: selectedFunnelId
-        })
-        .eq('id', leadId);
-
-      if (error) throw error;
-
-      toast.success("Lead adicionado ao funil com sucesso!");
-    } catch (error) {
-      console.error("Erro ao adicionar lead ao funil:", error);
-      toast.error("Erro ao adicionar lead ao funil");
-    }
-  };
+  }, [user?.id, funnelId, handleNewLead]);
 
   return {
-    addExistingLeadToFunnel
+    // Pode retornar status ou métodos se necessário
   };
 };

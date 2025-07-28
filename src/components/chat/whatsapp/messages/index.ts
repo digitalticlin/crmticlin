@@ -17,7 +17,6 @@ export { useMessagesList } from './hooks/useMessagesList';
 // Componentes auxiliares
 export { MediaLoadingState } from './components/MediaLoadingState';
 export { MediaErrorState } from './components/MediaErrorState';
-export { MediaRenderer } from './components/MediaRenderer';
 export { MessageItem } from './components/MessageItem';
 export { MessagesLoadingIndicator } from './components/MessagesLoadingIndicator';
 export { LoadMoreIndicator } from './components/LoadMoreIndicator';

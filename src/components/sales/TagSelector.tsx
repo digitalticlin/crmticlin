@@ -1,97 +1,135 @@
 
-import { KanbanTag } from "@/types/kanban";
-import { Tags, Plus } from "lucide-react";
-import { 
-  Popover,
-  PopoverContent,
-  PopoverTrigger 
-} from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import { TagBadge } from "./tags/TagBadge";
-import { TagList } from "./tags/TagList";
-import { CreateTagForm } from "./tags/CreateTagForm";
+import React, { useState } from 'react';
+import { Plus, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { KanbanTag } from '@/types/kanban';
+import { TagColorSelector } from './tags/TagColorSelector';
+import { TagBadge } from '@/components/ui/tag-badge';
 
 interface TagSelectorProps {
   availableTags: KanbanTag[];
-  selectedTags: KanbanTag[];
+  selectedTagIds: string[];
   onToggleTag: (tagId: string) => void;
-  onCreateTag?: (name: string, color: string) => void;
+  onCreateTag: (name: string, color: string) => void;
 }
 
 export const TagSelector = ({
   availableTags,
-  selectedTags,
+  selectedTagIds,
   onToggleTag,
-  onCreateTag,
+  onCreateTag
 }: TagSelectorProps) => {
-  const [isCreatingTag, setIsCreatingTag] = useState(false);
-  
-  const handleCreateTag = (name: string, color: string) => {
-    if (onCreateTag) {
-      onCreateTag(name, color);
-      setIsCreatingTag(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [newTagName, setNewTagName] = useState('');
+  const [newTagColor, setNewTagColor] = useState('bg-blue-400');
+
+  const handleCreateTag = () => {
+    if (newTagName.trim()) {
+      onCreateTag(newTagName.trim(), newTagColor);
+      setNewTagName('');
+      setNewTagColor('bg-blue-400');
+      setIsCreating(false);
     }
   };
 
   return (
-    <div>
-      <h3 className="text-sm font-medium mb-2 flex items-center">
-        <Tags className="h-4 w-4 mr-1" /> Etiquetas
-      </h3>
-      
-      <div className="flex flex-wrap gap-1.5 mb-2">
-        {selectedTags.length > 0 ? (
-          selectedTags.map((tag) => (
+    <div className="space-y-2">
+      {/* Tags selecionadas */}
+      <div className="flex flex-wrap gap-1">
+        {availableTags
+          .filter(tag => selectedTagIds.includes(tag.id))
+          .map(tag => (
             <TagBadge
               key={tag.id}
               tag={tag}
-              onClick={() => onToggleTag(tag.id)}
               showRemoveIcon
+              onClick={() => onToggleTag(tag.id)}
             />
-          ))
-        ) : (
-          <span className="text-xs text-muted-foreground">Nenhuma etiqueta selecionada</span>
-        )}
+          ))}
       </div>
-      
+
+      {/* Adicionar nova tag */}
       <Popover>
         <PopoverTrigger asChild>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="mt-1 w-full flex justify-between items-center border-dashed"
-          >
-            <span>Adicionar etiquetas</span>
-            <Tags className="h-3.5 w-3.5 ml-1 opacity-70" />
+          <Button variant="outline" size="sm" className="gap-1">
+            <Plus className="h-3 w-3" />
+            Adicionar Tag
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-64 p-2" align="start">
+        <PopoverContent className="w-80">
           <div className="space-y-3">
-            <h4 className="text-sm font-medium mb-2">Todas as Etiquetas</h4>
+            <h4 className="font-medium text-sm">Gerenciar Tags</h4>
             
-            <TagList
-              tags={availableTags}
-              selectedTags={selectedTags}
-              onToggleTag={onToggleTag}
-            />
-            
-            {isCreatingTag ? (
-              <CreateTagForm
-                onCancel={() => setIsCreatingTag(false)}
-                onCreateTag={handleCreateTag}
-              />
-            ) : (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="w-full border-dashed flex justify-center items-center"
-                onClick={() => setIsCreatingTag(true)}
-              >
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                <span>Nova Etiqueta</span>
-              </Button>
-            )}
+            {/* Lista de tags disponíveis */}
+            <div className="space-y-2">
+              <h5 className="text-xs font-medium text-muted-foreground">
+                Tags disponíveis
+              </h5>
+              <div className="flex flex-wrap gap-1">
+                {availableTags.map(tag => (
+                  <TagBadge
+                    key={tag.id}
+                    tag={tag}
+                    onClick={() => onToggleTag(tag.id)}
+                    className={
+                      selectedTagIds.includes(tag.id) 
+                        ? 'ring-2 ring-blue-500' 
+                        : 'cursor-pointer hover:opacity-80'
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Criar nova tag */}
+            <div className="space-y-2 border-t pt-3">
+              {!isCreating ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsCreating(true)}
+                  className="w-full gap-1"
+                >
+                  <Plus className="h-3 w-3" />
+                  Criar Nova Tag
+                </Button>
+              ) : (
+                <div className="space-y-2">
+                  <Input
+                    placeholder="Nome da tag"
+                    value={newTagName}
+                    onChange={(e) => setNewTagName(e.target.value)}
+                    className="text-sm"
+                  />
+                  <TagColorSelector
+                    selectedColor={newTagColor}
+                    onSelectColor={setNewTagColor}
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={handleCreateTag}
+                      disabled={!newTagName.trim()}
+                    >
+                      Criar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setIsCreating(false);
+                        setNewTagName('');
+                        setNewTagColor('bg-blue-400');
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </PopoverContent>
       </Popover>

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { ModernPageHeader } from '@/components/layout/ModernPageHeader';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -19,7 +20,6 @@ export default function MediaDebug() {
       <ModernPageHeader
         title="Debug de Mídias do WhatsApp"
         description="Ferramenta para diagnosticar problemas com exibição de mídias no chat"
-        icon="🔍"
       />
 
       <div className="space-y-6">
@@ -76,9 +76,9 @@ export default function MediaDebug() {
             <CardContent>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><strong>ID:</strong> {activeInstance.id}</div>
-                <div><strong>Nome:</strong> {activeInstance.name}</div>
-                <div><strong>Status:</strong> {activeInstance.status}</div>
-                <div><strong>Número:</strong> {activeInstance.phone_number}</div>
+                <div><strong>Nome:</strong> {activeInstance.instance_name}</div>
+                <div><strong>Status:</strong> {activeInstance.connection_status}</div>
+                <div><strong>Número:</strong> {activeInstance.phone_number_id}</div>
               </div>
             </CardContent>
           </Card>
@@ -111,8 +111,8 @@ export default function MediaDebug() {
               para futuras mensagens.
             </div>
           </CardContent>
-                  </Card>
-        </div>
+        </Card>
+      </div>
     </div>
   );
-} 
+}
