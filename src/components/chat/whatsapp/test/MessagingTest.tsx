@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { MessagingService } from '@/modules/whatsapp/messaging/services/messagingService';
+import { MessageSendingService } from '@/services/whatsapp/services/messageSendingService';
 import { useWhatsAppDatabase } from '@/hooks/whatsapp/useWhatsAppDatabase';
 
 export const MessagingTest = () => {
@@ -37,11 +38,11 @@ export const MessagingTest = () => {
         messageLength: message.length
       });
 
-      const result = await MessagingService.sendMessage({
-        instanceId: activeInstance.id,
-        phone: phone,
-        message: message
-      });
+      const result = await MessageSendingService.sendMessage(
+        activeInstance.id,
+        phone,
+        message
+      );
 
       setLastResult(result);
 
@@ -126,4 +127,4 @@ export const MessagingTest = () => {
       </CardContent>
     </Card>
   );
-}; 
+};

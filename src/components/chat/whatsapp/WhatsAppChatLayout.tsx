@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import React from "react";
 import { cn } from "@/lib/utils";
@@ -9,7 +10,6 @@ import { WhatsAppChatArea } from "./WhatsAppChatArea";
 import { WhatsAppEmptyState } from "./WhatsAppEmptyState";
 import { LeadDetailsSidebar } from "./LeadDetailsSidebar";
 import { Contact, Message } from "@/types/chat";
-import { useWhatsAppContacts } from "@/hooks/whatsapp/useWhatsAppContacts";
 
 interface WhatsAppChatLayoutProps {
   contacts: Contact[];
@@ -105,19 +105,7 @@ export const WhatsAppChatLayout = ({
           </div>
         ) : (
           <div className="w-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg overflow-hidden relative z-10">
-            <WhatsAppChatArea
-              selectedContact={selectedContact}
-              messages={messages}
-              onSendMessage={onSendMessage}
-              onBack={() => onSelectContact(null)}
-              isLoadingMessages={isLoadingMessages}
-              isLoadingMore={isLoadingMore}
-              hasMoreMessages={hasMoreMessages}
-              onLoadMoreMessages={onLoadMoreMessages}
-              isSending={isSending}
-              onEditLead={handleEditLead}
-              onRefreshMessages={onRefreshMessages}
-            />
+            <WhatsAppChatArea />
           </div>
         )}
       </div>
@@ -167,20 +155,7 @@ export const WhatsAppChatLayout = ({
           >
             <div className="h-full flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-xl shadow-lg overflow-hidden relative z-10">
               {selectedContact ? (
-                <WhatsAppChatArea
-                  selectedContact={selectedContact}
-                  messages={messages}
-                  onSendMessage={onSendMessage}
-                  onBack={() => onSelectContact(null)}
-                  isLoadingMessages={isLoadingMessages}
-                  isLoadingMore={isLoadingMore}
-                  hasMoreMessages={hasMoreMessages}
-                  onLoadMoreMessages={onLoadMoreMessages}
-                  isSending={isSending}
-                  onEditLead={handleEditLead}
-                  onRefreshMessages={onRefreshMessages}
-                  leadId={selectedContact.id}
-                />
+                <WhatsAppChatArea />
               ) : (
                 <WhatsAppEmptyState />
               )}

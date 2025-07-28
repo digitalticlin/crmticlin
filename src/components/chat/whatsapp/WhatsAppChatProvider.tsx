@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Contact, Message } from '@/types/chat';
@@ -59,6 +60,11 @@ interface WhatsAppChatContextType {
     totalMessagesEvents: number;
     lastChatsUpdate: number | null;
     lastMessagesUpdate: number | null;
+    messagesRealtimeStats?: {
+      isConnected: boolean;
+      connectionAttempts: number;
+      maxAttempts: number;
+    };
   };
 }
 
@@ -239,17 +245,13 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     totalMessagesEvents: 0,
     lastChatsUpdate: chatsRealtimeStats.lastUpdate,
     lastMessagesUpdate: null,
-    // ✅ NOVAS ESTATÍSTICAS
-    messagesConnectionAttempts: messagesHook.realtimeStats?.connectionAttempts || 0,
-    messagesMaxAttempts: messagesHook.realtimeStats?.maxAttempts || 3
+    messagesRealtimeStats: messagesHook.realtimeStats
   }), [
     chatsRealtimeStats.isConnected,
     chatsRealtimeStats.totalEvents,
     chatsRealtimeStats.lastUpdate,
     contactsRealtimeStats.isConnected,
-    messagesHook.realtimeStats?.isConnected,
-    messagesHook.realtimeStats?.connectionAttempts,
-    messagesHook.realtimeStats?.maxAttempts
+    messagesHook.realtimeStats
   ]);
 
   // Auto-seleção de contato da URL
@@ -331,10 +333,7 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     // Estado geral
     companyLoading,
     instanceHealth,
-    realtimeStats: {
-      ...realtimeStats,
-      messagesRealtimeStats: messagesHook.realtimeStats
-    }
+    realtimeStats
   }), [
     contactsHook.contacts.length,
     contactsHook.isLoading,
@@ -349,13 +348,10 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     selectedContact?.id,
     companyLoading,
     instanceHealth.score,
-    realtimeStats.chatsConnected,
-    realtimeStats.messagesConnected,
-    realtimeStats.contactsConnected,
+    realtimeStats,
     sendMessageWrapper,
     messagesHook.refreshMessages,
-    contactsHook.refreshContacts,
-    messagesHook.realtimeStats
+    contactsHook.refreshContacts
   ]);
 
   return (
