@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Contact, Message } from '@/types/chat';
@@ -121,7 +120,7 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     };
   }, [activeInstance]);
 
-  // 🚀 SEMPRE: Hook de contatos
+  // ✅ SEMPRE: Hook de contatos
   const contactsHook = useWhatsAppContacts(webActiveInstance?.id);
   
   // ✅ CALLBACK PARA ATUALIZAR CONTATOS
@@ -152,14 +151,14 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     }
   }, [selectedContact, handleContactUpdate, handleMoveContactToTop]);
 
-  // 🚀 SEMPRE: Hook de mensagens
+  // ✅ HOOK DE MENSAGENS COM ESTATÍSTICAS
   const messagesHook = useWhatsAppChatMessages({
     selectedContact,
     activeInstance: webActiveInstance,
     onContactUpdate: handleContactUpdateFromMessage
   });
 
-  // 🚀 REALTIME DE CONTATOS
+  // ✅ REALTIME DE CONTATOS
   const contactsRealtimeStats = useContactsRealtime({
     userId: user?.id || null,
     activeInstanceId: webActiveInstance?.id || null,
@@ -168,7 +167,7 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     enabled: true
   });
   
-  // 🚀 REALTIME DE CHATS (FALLBACK)
+  // ✅ REALTIME DE CHATS (FALLBACK)
   const chatsRealtimeStats = useChatsRealtime({
     userId: user?.id || null,
     activeInstanceId: webActiveInstance?.id || null,
@@ -210,16 +209,17 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     setSelectedContact(contact);
   }, [markAsRead]);
 
-  // ✅ CORREÇÃO: Wrapper para sendMessage
+  // ✅ WRAPPER PARA SENDMESSAGE COM LOGS
   const sendMessageWrapper = useCallback(async (text: string, mediaType?: string, mediaUrl?: string): Promise<boolean> => {
     if (!text.trim()) return false;
     
-    const media = mediaType && mediaUrl ? {
-      file: new File([], mediaUrl.split('/').pop() || 'file'),
-      type: mediaType
-    } : undefined;
+    console.log('[Provider] 📤 Enviando mensagem wrapper:', {
+      textLength: text.length,
+      mediaType: mediaType || 'text',
+      hasMediaUrl: !!mediaUrl
+    });
     
-    return await messagesHook.sendMessage(text, media);
+    return await messagesHook.sendMessage(text, mediaType, mediaUrl);
   }, [messagesHook.sendMessage]);
 
   // Saúde da instância
@@ -230,21 +230,26 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     totalInstances
   }), [healthScore, isHealthy, connectedInstances, totalInstances]);
 
-  // Estatísticas do realtime
+  // ✅ ESTATÍSTICAS COMPLETAS DO REALTIME
   const realtimeStats = useMemo(() => ({
     chatsConnected: chatsRealtimeStats.isConnected,
-    messagesConnected: messagesHook.messages.length > 0, // Indicador baseado em mensagens
+    messagesConnected: messagesHook.realtimeStats?.isConnected || false,
     contactsConnected: contactsRealtimeStats.isConnected,
     totalChatsEvents: chatsRealtimeStats.totalEvents,
-    totalMessagesEvents: 0, // Messages events handled internally
+    totalMessagesEvents: 0,
     lastChatsUpdate: chatsRealtimeStats.lastUpdate,
-    lastMessagesUpdate: null // Messages updates handled internally
+    lastMessagesUpdate: null,
+    // ✅ NOVAS ESTATÍSTICAS
+    messagesConnectionAttempts: messagesHook.realtimeStats?.connectionAttempts || 0,
+    messagesMaxAttempts: messagesHook.realtimeStats?.maxAttempts || 3
   }), [
     chatsRealtimeStats.isConnected,
     chatsRealtimeStats.totalEvents,
     chatsRealtimeStats.lastUpdate,
     contactsRealtimeStats.isConnected,
-    messagesHook.messages.length
+    messagesHook.realtimeStats?.isConnected,
+    messagesHook.realtimeStats?.connectionAttempts,
+    messagesHook.realtimeStats?.maxAttempts
   ]);
 
   // Auto-seleção de contato da URL
@@ -326,7 +331,10 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     // Estado geral
     companyLoading,
     instanceHealth,
-    realtimeStats
+    realtimeStats: {
+      ...realtimeStats,
+      messagesRealtimeStats: messagesHook.realtimeStats
+    }
   }), [
     contactsHook.contacts.length,
     contactsHook.isLoading,
@@ -346,7 +354,8 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     realtimeStats.contactsConnected,
     sendMessageWrapper,
     messagesHook.refreshMessages,
-    contactsHook.refreshContacts
+    contactsHook.refreshContacts,
+    messagesHook.realtimeStats
   ]);
 
   return (

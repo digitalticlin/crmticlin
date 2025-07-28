@@ -1,59 +1,54 @@
-import { WhatsAppChatHeader } from "./WhatsAppChatHeader";
-import { WhatsAppMessagesList } from "./WhatsAppMessagesList";
-import { WhatsAppMessageInput } from "./WhatsAppMessageInput";
-import { Contact, Message } from "@/types/chat";
 
-interface WhatsAppChatAreaProps {
-  selectedContact: Contact;
-  messages: Message[];
-  onSendMessage: (message: string, mediaType?: string, mediaUrl?: string) => Promise<boolean>;
-  onBack: () => void;
-  isLoadingMessages: boolean;
-  isLoadingMore: boolean;
-  hasMoreMessages: boolean;
-  onLoadMoreMessages: () => Promise<void>;
-  isSending: boolean;
-  onEditLead: () => void;
-  onRefreshMessages?: () => void;
-  leadId?: string;
-}
+import React from 'react';
+import { WhatsAppMessagesList } from './WhatsAppMessagesList';
+import { WhatsAppMessageInput } from './WhatsAppMessageInput';
+import { WhatsAppChatHeader } from './WhatsAppChatHeader';
+import { useWhatsAppChatContext } from './WhatsAppChatProvider';
 
-export const WhatsAppChatArea = ({
-  selectedContact,
-  messages,
-  onSendMessage,
-  onBack,
-  isLoadingMessages,
-  isLoadingMore,
-  hasMoreMessages,
-  onLoadMoreMessages,
-  isSending,
-  onEditLead,
-  onRefreshMessages,
-  leadId
-}: WhatsAppChatAreaProps) => {
+export const WhatsAppChatArea = () => {
+  const {
+    selectedContact,
+    messages,
+    isLoadingMessages,
+    isLoadingMore,
+    hasMoreMessages,
+    isSending,
+    sendMessage,
+    loadMoreMessages,
+    realtimeStats
+  } = useWhatsAppChatContext();
+
+  if (!selectedContact) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            Selecione um contato
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Escolha um contato da lista para iniciar uma conversa
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="h-full flex flex-col bg-white/5 backdrop-blur-sm relative z-10">
-      <WhatsAppChatHeader 
-        selectedContact={{
-          ...selectedContact,
-          leadId
-        }}
-        onBack={onBack}
-        onEditLead={onEditLead}
-        onRefreshMessages={onRefreshMessages}
-        isRefreshing={isLoadingMessages}
-      />
-      <WhatsAppMessagesList 
-        messages={messages} 
+    <div className="flex-1 flex flex-col bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+      <WhatsAppChatHeader contact={selectedContact} />
+      
+      <WhatsAppMessagesList
+        messages={messages}
         isLoading={isLoadingMessages}
         isLoadingMore={isLoadingMore}
         hasMoreMessages={hasMoreMessages}
-        onLoadMore={onLoadMoreMessages}
+        onLoadMore={loadMoreMessages}
       />
-      <WhatsAppMessageInput 
-        onSendMessage={onSendMessage} 
+      
+      <WhatsAppMessageInput
+        onSendMessage={sendMessage}
         isSending={isSending}
+        realtimeStats={realtimeStats?.messagesRealtimeStats}
       />
     </div>
   );
