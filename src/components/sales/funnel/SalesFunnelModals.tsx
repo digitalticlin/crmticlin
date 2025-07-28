@@ -1,53 +1,90 @@
 
-import { LeadDetailSidebar } from "../LeadDetailSidebar";
-import { KanbanLead } from "@/types/kanban";
-import { KanbanTag } from "@/types/kanban";
+import React from 'react';
+import { LeadDetailSidebar } from '../LeadDetailSidebar';
+import { KanbanLead, KanbanTag } from '@/types/kanban';
+import { Deal } from '@/types/chat';
 
 interface SalesFunnelModalsProps {
-  // Lead Detail Sidebar
+  isOpen: boolean;
+  onClose: () => void;
   selectedLead: KanbanLead | null;
-  isLeadDetailOpen: boolean;
-  setIsLeadDetailOpen: (open: boolean) => void;
-  availableTags?: KanbanTag[];
-  onToggleTag?: (tagId: string) => void;
+  availableTags: KanbanTag[];
+  onToggleTag: (tagId: string) => void;
   onUpdateNotes: (notes: string) => void;
-  onCreateTag?: (name: string, color: string) => void;
-  onUpdatePurchaseValue: (value: number | undefined) => void;
+  onCreateTag: (name: string, color: string) => void;
+  onUpdatePurchaseValue: (value: number) => void;
   onUpdateAssignedUser: (user: string) => void;
-  onUpdateName: (name: string) => void;
-  refetchLeads: () => Promise<void>;
-  refetchStages: () => Promise<void>;
+  onDeleteLead: () => void;
+  onUpdateEmail: (email: string) => void;
+  onUpdateCompany: (company: string) => void;
+  onUpdateAddress: (address: string) => void;
+  onUpdateDocumentId: (documentId: string) => void;
+  onUpdatePurchaseDate: (date: string) => void;
+  onUpdateOwner: (owner: string) => void;
+  onUpdatePhoneNumber: (phone: string) => void;
+  onUpdateLeadName: (name: string) => void;
+  onUpdateLeadStage: (stageId: string) => void;
+  onCreateDeal: (deal: Omit<Deal, 'id'>) => void;
+  onUpdateDeal: (dealId: string, deal: Partial<Deal>) => void;
+  onDeleteDeal: (dealId: string) => void;
+  onOpenChat: (leadId: string) => void;
+  isUpdating?: boolean;
 }
 
-export const SalesFunnelModals = ({
+export const SalesFunnelModals: React.FC<SalesFunnelModalsProps> = ({
+  isOpen,
+  onClose,
   selectedLead,
-  isLeadDetailOpen,
-  setIsLeadDetailOpen,
-  availableTags = [],
-  onToggleTag = () => {},
+  availableTags,
+  onToggleTag,
   onUpdateNotes,
-  onCreateTag = () => {},
+  onCreateTag,
   onUpdatePurchaseValue,
   onUpdateAssignedUser,
-  onUpdateName,
-  refetchLeads,
-  refetchStages
-}: SalesFunnelModalsProps) => {
+  onDeleteLead,
+  onUpdateEmail,
+  onUpdateCompany,
+  onUpdateAddress,
+  onUpdateDocumentId,
+  onUpdatePurchaseDate,
+  onUpdateOwner,
+  onUpdatePhoneNumber,
+  onUpdateLeadName,
+  onUpdateLeadStage,
+  onCreateDeal,
+  onUpdateDeal,
+  onDeleteDeal,
+  onOpenChat,
+  isUpdating = false
+}) => {
+  if (!selectedLead) return null;
+
   return (
-    <>
-      {/* Sidebar de Detalhes */}
-      <LeadDetailSidebar
-        isOpen={isLeadDetailOpen}
-        onOpenChange={setIsLeadDetailOpen}
-        selectedLead={selectedLead}
-        availableTags={availableTags}
-        onToggleTag={onToggleTag}
-        onUpdateNotes={onUpdateNotes}
-        onCreateTag={onCreateTag}
-        onUpdatePurchaseValue={onUpdatePurchaseValue}
-        onUpdateAssignedUser={onUpdateAssignedUser}
-        onUpdateName={onUpdateName}
-      />
-    </>
+    <LeadDetailSidebar
+      selectedLead={selectedLead}
+      isOpen={isOpen}
+      onClose={onClose}
+      onOpenChat={onOpenChat}
+      availableTags={availableTags}
+      onToggleTag={onToggleTag}
+      onUpdateNotes={onUpdateNotes}
+      onCreateTag={onCreateTag}
+      onUpdatePurchaseValue={onUpdatePurchaseValue}
+      onUpdateAssignedUser={onUpdateAssignedUser}
+      onDeleteLead={onDeleteLead}
+      onUpdateEmail={onUpdateEmail}
+      onUpdateCompany={onUpdateCompany}
+      onUpdateAddress={onUpdateAddress}
+      onUpdateDocumentId={onUpdateDocumentId}
+      onUpdatePurchaseDate={onUpdatePurchaseDate}
+      onUpdateOwner={onUpdateOwner}
+      onUpdatePhoneNumber={onUpdatePhoneNumber}
+      onUpdateLeadName={onUpdateLeadName}
+      onUpdateLeadStage={onUpdateLeadStage}
+      onCreateDeal={onCreateDeal}
+      onUpdateDeal={onUpdateDeal}
+      onDeleteDeal={onDeleteDeal}
+      isUpdating={isUpdating}
+    />
   );
 };

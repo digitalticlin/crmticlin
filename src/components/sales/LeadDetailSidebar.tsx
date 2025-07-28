@@ -1,228 +1,534 @@
-
-import React, { useState } from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { KanbanLead, KanbanTag } from '@/types/kanban';
-import { TagSelector } from '@/components/sales/TagSelector';
-import { LeadDetailFooter } from '@/components/sales/leadDetail/LeadDetailFooter';
-import { NotesField } from '@/components/sales/leadDetail/NotesField';
-import { ChatPreview } from '@/components/sales/leadDetail/ChatPreview';
-import { Separator } from '@/components/ui/separator';
-import { Calendar, DollarSign, MessageSquare, User, Phone, Mail, MapPin, Building, Tag } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import React, { useState, useCallback } from 'react';
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar"
+import { CalendarIcon, CheckCheck, Copy, Plus, Trash2 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { DatePicker } from "@/components/ui/date-picker"
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { toast } from 'sonner';
+import { SalesFunnelService } from "@/services/sales/salesFunnelService";
+import { SalesFunnelDealForm } from "./SalesFunnelDealForm";
+import { formatCurrency } from "@/utils/currencyFormatter";
+import { KanbanLead, KanbanTag } from "@/types/kanban";
+import { Deal } from '@/types/chat';
 
 interface LeadDetailSidebarProps {
-  lead: KanbanLead | null;
+  selectedLead: KanbanLead | null;
   isOpen: boolean;
   onClose: () => void;
-  onUpdateLead: (leadId: string, updates: Partial<KanbanLead>) => void;
-  onOpenChat: (lead: KanbanLead) => void;
+  onOpenChat: (leadId: string) => void;
   availableTags: KanbanTag[];
+  onToggleTag: (tagId: string) => void;
+  onUpdateNotes: (notes: string) => void;
   onCreateTag: (name: string, color: string) => void;
+  onUpdatePurchaseValue: (value: number) => void;
+  onUpdateAssignedUser: (user: string) => void;
+  onDeleteLead: () => void;
+  onUpdateEmail: (email: string) => void;
+  onUpdateCompany: (company: string) => void;
+  onUpdateAddress: (address: string) => void;
+  onUpdateDocumentId: (documentId: string) => void;
+  onUpdatePurchaseDate: (date: string) => void;
+  onUpdateOwner: (owner: string) => void;
+  onUpdatePhoneNumber: (phone: string) => void;
+  onUpdateLeadName: (name: string) => void;
+  onUpdateLeadStage: (stageId: string) => void;
+  onCreateDeal: (deal: Omit<Deal, 'id'>) => void;
+  onUpdateDeal: (dealId: string, deal: Partial<Deal>) => void;
+  onDeleteDeal: (dealId: string) => void;
+  isUpdating?: boolean;
 }
 
 export const LeadDetailSidebar = ({
-  lead,
+  selectedLead,
   isOpen,
   onClose,
-  onUpdateLead,
   onOpenChat,
   availableTags,
-  onCreateTag
+  onToggleTag,
+  onUpdateNotes,
+  onCreateTag,
+  onUpdatePurchaseValue,
+  onUpdateAssignedUser,
+  onDeleteLead,
+  onUpdateEmail,
+  onUpdateCompany,
+  onUpdateAddress,
+  onUpdateDocumentId,
+  onUpdatePurchaseDate,
+  onUpdateOwner,
+  onUpdatePhoneNumber,
+  onUpdateLeadName,
+  onUpdateLeadStage,
+  onCreateDeal,
+  onUpdateDeal,
+  onDeleteDeal,
+  isUpdating = false
 }: LeadDetailSidebarProps) => {
-  const [editingField, setEditingField] = useState<string | null>(null);
-  const [tempValue, setTempValue] = useState<string>('');
+  const [isTagModalOpen, setIsTagModalOpen] = useState(false);
+  const [newTagName, setNewTagName] = useState('');
+  const [newTagColor, setNewTagColor] = useState('#cccccc');
+  const [isDealModalOpen, setIsDealModalOpen] = useState(false);
+  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
 
-  if (!lead) return null;
+  const handleTagToggle = useCallback((tagId: string) => {
+    if (selectedLead) {
+      onToggleTag(tagId);
+    }
+  }, [selectedLead, onToggleTag]);
 
-  const handleFieldEdit = (field: string, currentValue: string) => {
-    setEditingField(field);
-    setTempValue(currentValue || '');
-  };
+  const handleNotesChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (selectedLead) {
+      onUpdateNotes(e.target.value);
+    }
+  }, [selectedLead, onUpdateNotes]);
 
-  const handleFieldSave = (field: string) => {
-    onUpdateLead(lead.id, { [field]: tempValue });
-    setEditingField(null);
-    setTempValue('');
-  };
-
-  const handleFieldCancel = () => {
-    setEditingField(null);
-    setTempValue('');
-  };
-
-  const handleNotesUpdate = (notes: string) => {
-    onUpdateLead(lead.id, { notes });
-  };
-
-  const handleTagToggle = (tagId: string) => {
-    const currentTags = lead.tags || [];
-    const isSelected = currentTags.some(t => t.id === tagId);
-    
-    let newTags;
-    if (isSelected) {
-      newTags = currentTags.filter(t => t.id !== tagId);
-    } else {
-      const tagToAdd = availableTags.find(t => t.id === tagId);
-      if (tagToAdd) {
-        newTags = [...currentTags, tagToAdd];
-      } else {
-        newTags = currentTags;
+  const handlePurchaseValueChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (selectedLead) {
+      const value = parseFloat(e.target.value);
+      if (!isNaN(value)) {
+        onUpdatePurchaseValue(value);
       }
     }
+  }, [selectedLead, onUpdatePurchaseValue]);
+
+  const handleAssignedUserChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (selectedLead) {
+      onUpdateAssignedUser(e.target.value);
+    }
+  }, [selectedLead, onUpdateAssignedUser]);
+
+  const handleDeleteLeadClick = useCallback(async () => {
+    if (selectedLead) {
+      try {
+        await SalesFunnelService.deleteLead(selectedLead.id);
+        toast.success('Lead excluído com sucesso');
+        onClose();
+        onDeleteLead();
+      } catch (error) {
+        console.error('Erro ao excluir lead:', error);
+        toast.error('Erro ao excluir lead');
+      }
+    }
+  }, [selectedLead, onClose, onDeleteLead]);
+
+  const handleCreateTag = useCallback(async () => {
+    if (newTagName.trim() !== '') {
+      await onCreateTag(newTagName, newTagColor);
+      setNewTagName('');
+      setNewTagColor('#cccccc');
+      setIsTagModalOpen(false);
+    }
+  }, [newTagName, newTagColor, onCreateTag]);
+
+  const handleEmailChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (selectedLead) {
+      onUpdateEmail(e.target.value);
+    }
+  }, [selectedLead, onUpdateEmail]);
+
+  const handleCompanyChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (selectedLead) {
+      onUpdateCompany(e.target.value);
+    }
+  }, [selectedLead, onUpdateCompany]);
+
+  const handleAddressChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (selectedLead) {
+      onUpdateAddress(e.target.value);
+    }
+  }, [selectedLead, onUpdateAddress]);
+
+  const handleDocumentIdChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (selectedLead) {
+      onUpdateDocumentId(e.target.value);
+    }
+  }, [selectedLead, onUpdateDocumentId]);
+
+  const handlePurchaseDateChange = useCallback((date: Date | undefined) => {
+    if (selectedLead && date) {
+      const isoDate = date.toISOString();
+      onUpdatePurchaseDate(isoDate);
+    }
+  }, [selectedLead, onUpdatePurchaseDate]);
+
+  const handleOwnerChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (selectedLead) {
+      onUpdateOwner(e.target.value);
+    }
+  }, [selectedLead, onUpdateOwner]);
+
+  const handlePhoneNumberChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (selectedLead) {
+      onUpdatePhoneNumber(e.target.value);
+    }
+  }, [selectedLead, onUpdatePhoneNumber]);
+
+  const handleLeadNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    if (selectedLead) {
+      onUpdateLeadName(e.target.value);
+    }
+  }, [selectedLead, onUpdateLeadName]);
+
+  const handleLeadStageChange = useCallback((stageId: string) => {
+    if (selectedLead) {
+      onUpdateLeadStage(stageId);
+    }
+  }, [selectedLead, onUpdateLeadStage]);
+
+  const handleCreateDeal = useCallback((deal: Omit<Deal, 'id'>) => {
+    if (selectedLead) {
+      onCreateDeal(deal);
+      setIsDealModalOpen(false);
+    }
+  }, [selectedLead, onCreateDeal]);
+
+  const handleUpdateDeal = useCallback((dealId: string, deal: Partial<Deal>) => {
+    if (selectedLead) {
+      onUpdateDeal(dealId, deal);
+      setSelectedDeal(null);
+    }
+  }, [selectedLead, onUpdateDeal]);
+
+  const handleDeleteDeal = useCallback((dealId: string) => {
+    if (selectedLead) {
+      onDeleteDeal(dealId);
+      setSelectedDeal(null);
+    }
+  }, [selectedLead, onDeleteDeal]);
+
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'Não informado';
     
-    onUpdateLead(lead.id, { tags: newTags });
+    try {
+      return new Date(dateString).toLocaleDateString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch (error) {
+      return 'Data inválida';
+    }
   };
 
-  const EditableField = ({ 
-    field, 
-    label, 
-    value, 
-    icon: Icon, 
-    type = 'text' 
-  }: { 
-    field: string; 
-    label: string; 
-    value: string; 
-    icon: any; 
-    type?: string; 
-  }) => (
-    <div className="space-y-2">
-      <Label className="text-sm font-medium flex items-center gap-2">
-        <Icon className="h-4 w-4" />
-        {label}
-      </Label>
-      {editingField === field ? (
-        <div className="flex gap-2">
-          <Input
-            type={type}
-            value={tempValue}
-            onChange={(e) => setTempValue(e.target.value)}
-            className="flex-1"
-          />
-          <Button size="sm" onClick={() => handleFieldSave(field)}>
-            Salvar
-          </Button>
-          <Button size="sm" variant="outline" onClick={handleFieldCancel}>
-            Cancelar
-          </Button>
-        </div>
-      ) : (
-        <div 
-          className="p-2 rounded border bg-gray-50 dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-          onClick={() => handleFieldEdit(field, value)}
-        >
-          {value || `Clique para adicionar ${label.toLowerCase()}`}
-        </div>
-      )}
-    </div>
-  );
-
-  // Convert selectedTags to selectedTagIds
-  const selectedTagIds = (lead.tags || []).map(tag => tag.id);
-
   return (
-    <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="w-[600px] sm:w-[540px] overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            Detalhes do Lead
-          </SheetTitle>
-        </SheetHeader>
-        
-        <div className="mt-6 space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-              {lead.name?.charAt(0) || 'L'}
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold">{lead.name}</h2>
-              <p className="text-sm text-muted-foreground">
-                Criado {formatDistanceToNow(new Date(lead.createdAt || Date.now()), { addSuffix: true, locale: ptBR })}
-              </p>
-            </div>
-          </div>
-
-          <Separator />
-
-          <div className="grid grid-cols-1 gap-4">
-            <EditableField 
-              field="phone" 
-              label="Telefone" 
-              value={lead.phone || ''} 
-              icon={Phone}
-              type="tel"
-            />
-            <EditableField 
-              field="email" 
-              label="E-mail" 
-              value={lead.email || ''} 
-              icon={Mail}
-              type="email"
-            />
-            <EditableField 
-              field="company" 
-              label="Empresa" 
-              value={lead.company || ''} 
-              icon={Building}
-            />
-            <EditableField 
-              field="address" 
-              label="Endereço" 
-              value={lead.address || ''} 
-              icon={MapPin}
-            />
-            <EditableField 
-              field="purchaseValue" 
-              label="Valor do Negócio" 
-              value={lead.purchaseValue?.toString() || ''} 
-              icon={DollarSign}
-              type="number"
-            />
-          </div>
-
-          <Separator />
-
-          <div>
-            <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-              <Tag className="h-4 w-4" />
-              Tags
-            </h3>
-            <TagSelector
-              availableTags={availableTags}
-              selectedTagIds={selectedTagIds}
-              onToggleTag={handleTagToggle}
-              onCreateTag={onCreateTag}
-            />
-          </div>
-
-          <Separator />
-
-          <NotesField 
-            notes={lead.notes}
-            onUpdateNotes={handleNotesUpdate}
-          />
-
-          {(lead.lastMessage || lead.lastMessageTime) && (
-            <>
-              <Separator />
-              <ChatPreview 
-                lastMessage={lead.lastMessage || 'Sem mensagens'}
-                lastMessageTime={lead.lastMessageTime || ''}
-                onOpenChat={() => onOpenChat(lead)}
-              />
-            </>
-          )}
+    <div className={cn(
+      "fixed right-0 top-0 bottom-0 w-80 bg-white border-l border-gray-200 shadow-lg transition-transform duration-300 z-50",
+      isOpen ? "translate-x-0" : "translate-x-full"
+    )}>
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Detalhes do Lead</h2>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x">
+              <path d="M18 6 6 18" />
+              <path d="M6 6 18 18" />
+            </svg>
+          </Button>
         </div>
 
-        <LeadDetailFooter onClose={onClose} />
-      </SheetContent>
-    </Sheet>
+        <div className="space-y-4">
+          {/* Informações do Lead */}
+          <div className="space-y-2">
+            <Label htmlFor="name" className="text-sm font-medium text-gray-700">Nome</Label>
+            <Input
+              type="text"
+              id="name"
+              value={selectedLead?.name || ''}
+              onChange={handleLeadNameChange}
+              className="text-sm"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone" className="text-sm font-medium text-gray-700">Telefone</Label>
+            <div className="flex items-center">
+              <Input
+                type="tel"
+                id="phone"
+                value={selectedLead?.phone || ''}
+                onChange={handlePhoneNumberChange}
+                className="text-sm flex-1 mr-2"
+              />
+              <Button size="sm" onClick={() => {
+                if (selectedLead?.id) {
+                  onOpenChat(selectedLead.id);
+                }
+              }}>
+                <MessageCircle className="mr-2 h-4 w-4" />
+                Chat
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email</Label>
+            <Input
+              type="email"
+              id="email"
+              value={selectedLead?.email || ''}
+              onChange={handleEmailChange}
+              className="text-sm"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="company" className="text-sm font-medium text-gray-700">Empresa</Label>
+            <Input
+              type="text"
+              id="company"
+              value={selectedLead?.company || ''}
+              onChange={handleCompanyChange}
+              className="text-sm"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="address" className="text-sm font-medium text-gray-700">Endereço</Label>
+            <Input
+              type="text"
+              id="address"
+              value={selectedLead?.address || ''}
+              onChange={handleAddressChange}
+              className="text-sm"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="documentId" className="text-sm font-medium text-gray-700">CPF/CNPJ</Label>
+            <Input
+              type="text"
+              id="documentId"
+              value={selectedLead?.documentId || ''}
+              onChange={handleDocumentIdChange}
+              className="text-sm"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="purchaseValue" className="text-sm font-medium text-gray-700">Valor de Compra</Label>
+            <Input
+              type="number"
+              id="purchaseValue"
+              value={selectedLead?.purchaseValue?.toString() || ''}
+              onChange={handlePurchaseValueChange}
+              className="text-sm"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="purchaseDate" className="text-sm font-medium text-gray-700">Data de Compra</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className={cn(
+                    "w-full justify-start text-left font-normal text-sm",
+                    !selectedLead?.purchaseDate && "text-muted-foreground"
+                  )}
+                >
+                  {selectedLead?.purchaseDate ? (
+                    formatDate(selectedLead.purchaseDate)
+                  ) : (
+                    <span>Selecione a data</span>
+                  )}
+                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="center" side="bottom">
+                <DatePicker
+                  mode="single"
+                  selected={selectedLead?.purchaseDate ? new Date(selectedLead.purchaseDate) : undefined}
+                  onSelect={handlePurchaseDateChange}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="owner" className="text-sm font-medium text-gray-700">Responsável</Label>
+            <Input
+              type="text"
+              id="owner"
+              value={selectedLead?.ownerId || ''}
+              onChange={handleOwnerChange}
+              className="text-sm"
+            />
+          </div>
+
+          {/* Informações de Data */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Data de Criação</label>
+            <div className="text-sm text-gray-600">
+              {formatDate(selectedLead?.created_at)}
+            </div>
+          </div>
+
+          {/* Tags */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-gray-700">Tags</Label>
+              <Button variant="ghost" size="sm" onClick={() => setIsTagModalOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Criar Tag
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {availableTags.map(tag => (
+                <Badge
+                  key={tag.id}
+                  variant={selectedLead?.tags?.some(t => t.id === tag.id) ? "default" : "outline"}
+                  onClick={() => handleTagToggle(tag.id)}
+                  className="cursor-pointer text-sm"
+                >
+                  {tag.name}
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          {/* Notas */}
+          <div className="space-y-2">
+            <Label htmlFor="notes" className="text-sm font-medium text-gray-700">Anotações</Label>
+            <Textarea
+              id="notes"
+              value={selectedLead?.notes || ''}
+              onChange={handleNotesChange}
+              className="text-sm"
+            />
+          </div>
+
+          {/* Deals */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm font-medium text-gray-700">Negociações</Label>
+              <Button variant="ghost" size="sm" onClick={() => setIsDealModalOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Criar Negociação
+              </Button>
+            </div>
+
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-left">Status</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead className="text-center">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {selectedLead?.deals?.map(deal => (
+                  <TableRow key={deal.id}>
+                    <TableCell className="font-medium">{deal.status}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(deal.value)}</TableCell>
+                    <TableCell className="text-center">
+                      <Button variant="ghost" size="icon" onClick={() => setSelectedDeal(deal)}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-edit-3">
+                          <path d="M12 20h9" />
+                          <path d="m16.5 3.5 4 4" />
+                          <path d="M3 17v-6.5l8.5-8.5c.9-.9 2.1-.9 3 0l1.5 1.5c.9.9.9 2.1 0 3L6.5 17H3Z" />
+                        </svg>
+                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDeleteDeal(deal.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Ações */}
+          <div className="flex justify-end space-x-2">
+            <Button variant="destructive" size="sm" onClick={handleDeleteLeadClick} disabled={isUpdating}>
+              Excluir Lead
+            </Button>
+            <Button size="sm" disabled={isUpdating}>
+              Salvar
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal de Criação de Tag */}
+      <Dialog open={isTagModalOpen} onOpenChange={setIsTagModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Criar Nova Tag</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                Nome
+              </Label>
+              <Input id="name" value={newTagName} onChange={(e) => setNewTagName(e.target.value)} className="col-span-3" type="text" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="color" className="text-right">
+                Cor
+              </Label>
+              <Input
+                type="color"
+                id="color"
+                value={newTagColor}
+                onChange={(e) => setNewTagColor(e.target.value)}
+                className="col-span-3 h-10"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={handleCreateTag}>Criar Tag</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Criação/Edição de Negociação */}
+      <Dialog open={isDealModalOpen || selectedDeal !== null} onOpenChange={(open) => {
+        setIsDealModalOpen(open);
+        if (!open) setSelectedDeal(null);
+      }}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{selectedDeal ? 'Editar Negociação' : 'Criar Negociação'}</DialogTitle>
+          </DialogHeader>
+          <SalesFunnelDealForm
+            deal={selectedDeal}
+            onCreate={handleCreateDeal}
+            onUpdate={handleUpdateDeal}
+            onClose={() => {
+              setIsDealModalOpen(false);
+              setSelectedDeal(null);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
