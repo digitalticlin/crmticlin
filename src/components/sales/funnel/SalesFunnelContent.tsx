@@ -331,17 +331,68 @@ export function SalesFunnelContent() {
 
       {/* Modais principais do lead */}
       <SalesFunnelModals
+        isOpen={isLeadDetailOpen}
+        onClose={() => setIsLeadDetailOpen(false)}
         selectedLead={selectedLead}
-        isLeadDetailOpen={isLeadDetailOpen}
-        setIsLeadDetailOpen={setIsLeadDetailOpen}
+        availableTags={availableTags}
+        onToggleTag={(tagId: string) => selectedLead && toggleTagOnLead(selectedLead.id, tagId)}
         onUpdateNotes={updateLeadNotes}
+        onCreateTag={(name: string, color: string) => {
+          // TODO: Implement tag creation
+          console.log('Create tag:', name, color);
+        }}
         onUpdatePurchaseValue={updateLeadPurchaseValue}
         onUpdateAssignedUser={updateLeadAssignedUser}
-        onUpdateName={updateLeadName}
-        onToggleTag={(tagId: string) => selectedLead && toggleTagOnLead(selectedLead.id, tagId)}
-        refetchLeads={refetchLeads}
-        refetchStages={refetchStages}
-        availableTags={availableTags}
+        onDeleteLead={() => {
+          // TODO: Implement lead deletion
+          console.log('Delete lead');
+        }}
+        onUpdateEmail={(email: string) => {
+          // TODO: Implement email update
+          console.log('Update email:', email);
+        }}
+        onUpdateCompany={(company: string) => {
+          // TODO: Implement company update
+          console.log('Update company:', company);
+        }}
+        onUpdateAddress={(address: string) => {
+          // TODO: Implement address update
+          console.log('Update address:', address);
+        }}
+        onUpdateDocumentId={(documentId: string) => {
+          // TODO: Implement document ID update
+          console.log('Update document ID:', documentId);
+        }}
+        onUpdatePurchaseDate={(date: string) => {
+          // TODO: Implement purchase date update
+          console.log('Update purchase date:', date);
+        }}
+        onUpdateOwner={(owner: string) => {
+          // TODO: Implement owner update
+          console.log('Update owner:', owner);
+        }}
+        onUpdatePhoneNumber={(phone: string) => {
+          // TODO: Implement phone number update
+          console.log('Update phone number:', phone);
+        }}
+        onUpdateLeadName={updateLeadName}
+        onUpdateLeadStage={(stageId: string) => {
+          // TODO: Implement stage update
+          console.log('Update stage:', stageId);
+        }}
+        onCreateDeal={(deal) => {
+          // TODO: Implement deal creation
+          console.log('Create deal:', deal);
+        }}
+        onUpdateDeal={(dealId: string, deal) => {
+          // TODO: Implement deal update
+          console.log('Update deal:', dealId, deal);
+        }}
+        onDeleteDeal={(dealId: string) => {
+          // TODO: Implement deal deletion
+          console.log('Delete deal:', dealId);
+        }}
+        onOpenChat={handleOpenChat}
       />
     </div>
   );
