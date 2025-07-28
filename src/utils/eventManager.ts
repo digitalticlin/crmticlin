@@ -1,193 +1,62 @@
+
 /**
- * ✅ SISTEMA DE GERENCIAMENTO DE EVENTOS ANTI-MEMORY LEAK
- * Centraliza e facilita o cleanup de event listeners
+ * 🎯 WINDOW EVENT MANAGER - OTIMIZADO FASE 1
+ * 
+ * Gerenciador centralizado de eventos para evitar memory leaks
+ * e melhorar performance de comunicação entre hooks
  */
-
-import { logger } from './logger';
-
-type EventCallback = (...args: any[]) => void;
 
 interface EventSubscription {
   id: string;
-  eventName: string;
-  callback: EventCallback;
-  target: EventTarget;
-  cleanup: () => void;
+  element: EventTarget;
+  event: string;
+  handler: EventListener;
 }
 
-class EventManager {
+class WindowEventManager {
   private subscriptions: Map<string, EventSubscription> = new Map();
-  private subscriptionCounter = 0;
+  private counter = 0;
 
-  // ✅ ADICIONAR EVENT LISTENER COM CLEANUP AUTOMÁTICO
   addEventListener(
-    target: EventTarget, 
-    eventName: string, 
-    callback: EventCallback,
-    options?: AddEventListenerOptions
+    element: EventTarget,
+    event: string,
+    handler: EventListener
   ): string {
-    const id = `event_${++this.subscriptionCounter}`;
+    const id = `event_${++this.counter}`;
     
-    // Wrapper que adiciona logging e controle
-    const wrappedCallback = (...args: any[]) => {
-      try {
-        callback(...args);
-      } catch (error) {
-        logger.error(`Erro no event listener ${eventName}:`, error);
-      }
-    };
+    element.addEventListener(event, handler);
     
-    target.addEventListener(eventName, wrappedCallback, options);
-    
-    const subscription: EventSubscription = {
+    this.subscriptions.set(id, {
       id,
-      eventName,
-      callback: wrappedCallback,
-      target,
-      cleanup: () => {
-        target.removeEventListener(eventName, wrappedCallback);
-        logger.debug(`Event listener removido: ${eventName}`);
-      }
-    };
+      element,
+      event,
+      handler
+    });
     
-    this.subscriptions.set(id, subscription);
-    logger.debug(`Event listener adicionado: ${eventName} (ID: ${id})`);
-    
+    console.log(`[EventManager] ✅ Adicionado listener: ${event} (ID: ${id})`);
     return id;
   }
 
-  // ✅ REMOVER EVENT LISTENER ESPECÍFICO
-  removeEventListener(subscriptionId: string): boolean {
-    const subscription = this.subscriptions.get(subscriptionId);
-    if (!subscription) {
-      logger.warn(`Subscription não encontrada: ${subscriptionId}`);
-      return false;
+  removeEventListener(id: string): void {
+    const subscription = this.subscriptions.get(id);
+    if (subscription) {
+      subscription.element.removeEventListener(subscription.event, subscription.handler);
+      this.subscriptions.delete(id);
+      console.log(`[EventManager] 🗑️ Removido listener: ${subscription.event} (ID: ${id})`);
     }
-
-    subscription.cleanup();
-    this.subscriptions.delete(subscriptionId);
-    return true;
   }
 
-  // ✅ REMOVER TODOS OS LISTENERS DE UM EVENTO
-  removeEventListenersByName(eventName: string): number {
-    let removedCount = 0;
-    
-    for (const [id, subscription] of this.subscriptions.entries()) {
-      if (subscription.eventName === eventName) {
-        subscription.cleanup();
-        this.subscriptions.delete(id);
-        removedCount++;
-      }
-    }
-    
-    if (removedCount > 0) {
-      logger.debug(`Removidos ${removedCount} listeners do evento: ${eventName}`);
-    }
-    
-    return removedCount;
-  }
-
-  // ✅ CLEANUP COMPLETO (para unmount de componentes)
-  removeAllEventListeners(): number {
-    const count = this.subscriptions.size;
-    
-    for (const subscription of this.subscriptions.values()) {
-      subscription.cleanup();
-    }
-    
+  removeAllListeners(): void {
+    this.subscriptions.forEach(subscription => {
+      subscription.element.removeEventListener(subscription.event, subscription.handler);
+    });
     this.subscriptions.clear();
-    
-    if (count > 0) {
-      logger.debug(`Cleanup completo: ${count} event listeners removidos`);
-    }
-    
-    return count;
+    console.log(`[EventManager] 🧹 Todos os listeners removidos`);
   }
 
-  // ✅ ESTATÍSTICAS PARA DEBUG
-  getStats() {
-    const eventCounts: Record<string, number> = {};
-    
-    for (const subscription of this.subscriptions.values()) {
-      eventCounts[subscription.eventName] = (eventCounts[subscription.eventName] || 0) + 1;
-    }
-    
-    return {
-      totalSubscriptions: this.subscriptions.size,
-      eventCounts,
-      subscriptionIds: Array.from(this.subscriptions.keys())
-    };
-  }
-
-  // ✅ VERIFICAÇÃO DE MEMORY LEAKS
-  checkForLeaks(): boolean {
-    const stats = this.getStats();
-    const hasLeaks = stats.totalSubscriptions > 100; // Threshold configável
-    
-    if (hasLeaks) {
-      logger.warn('🚨 Possível memory leak detectado:', stats);
-    }
-    
-    return hasLeaks;
+  getActiveSubscriptions(): number {
+    return this.subscriptions.size;
   }
 }
 
-// ✅ INSTÂNCIA GLOBAL DO EVENT MANAGER
-export const eventManager = new EventManager();
-
-// ✅ HOOK PARA USAR EM COMPONENTES REACT
-export const useEventManager = () => {
-  const subscriptionIds = new Set<string>();
-  
-  const addEventListener = (
-    target: EventTarget,
-    eventName: string,
-    callback: EventCallback,
-    options?: AddEventListenerOptions
-  ): string => {
-    const id = eventManager.addEventListener(target, eventName, callback, options);
-    subscriptionIds.add(id);
-    return id;
-  };
-  
-  const removeEventListener = (id: string): boolean => {
-    subscriptionIds.delete(id);
-    return eventManager.removeEventListener(id);
-  };
-  
-  const cleanup = (): number => {
-    let count = 0;
-    for (const id of subscriptionIds) {
-      if (eventManager.removeEventListener(id)) {
-        count++;
-      }
-    }
-    subscriptionIds.clear();
-    return count;
-  };
-  
-  return {
-    addEventListener,
-    removeEventListener,
-    cleanup,
-    getActiveSubscriptions: () => Array.from(subscriptionIds)
-  };
-};
-
-// ✅ WRAPPER PARA WINDOW EVENTS (MAIS USADO)
-export const windowEventManager = {
-  addEventListener: (eventName: string, callback: EventCallback, options?: AddEventListenerOptions) => 
-    eventManager.addEventListener(window, eventName, callback, options),
-  
-  removeEventListener: (id: string) => 
-    eventManager.removeEventListener(id),
-  
-  removeEventListenersByName: (eventName: string) => 
-    eventManager.removeEventListenersByName(eventName),
-  
-  cleanup: () => 
-    eventManager.removeAllEventListeners()
-};
-
-export default eventManager; 
+export const windowEventManager = new WindowEventManager();

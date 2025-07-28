@@ -14,8 +14,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ChatsRealtimeConfig, RealtimeConnectionStatus } from './types';
-import { BigQueryOptimizer } from '@/utils/immediate-bigquery-fix';
-import { realtimeLogger } from '@/utils/logger';
 import { windowEventManager } from '@/utils/eventManager';
 
 export const useChatsRealtime = ({
@@ -45,7 +43,7 @@ export const useChatsRealtime = ({
   // 🧹 CLEANUP OTIMIZADO FASE 1
   const cleanup = useCallback(() => {
     if (channelRef.current) {
-      realtimeLogger.log('🧹 Removendo canal de chats FASE 1');
+      console.log('[Chats Realtime] 🧹 Removendo canal de chats FASE 1');
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
       isSubscribedRef.current = false;
@@ -154,7 +152,6 @@ export const useChatsRealtime = ({
       }
     } catch (error) {
       console.error('[Chats Realtime] ❌ Erro processando novo lead FASE 1:', error);
-      BigQueryOptimizer.handleError(error);
     }
   }, [activeInstanceId, onNewContact, onContactsRefresh, onAddNewContact]);
 
@@ -202,7 +199,6 @@ export const useChatsRealtime = ({
       }
     } catch (error) {
       console.error('[Chats Realtime] ❌ Erro processando atualização de lead FASE 1:', error);
-      BigQueryOptimizer.handleError(error);
     }
   }, [activeInstanceId, onContactsRefresh, onUpdateUnreadCount]);
 
@@ -251,7 +247,7 @@ export const useChatsRealtime = ({
     eventSubscriptionRef.current = windowEventManager.addEventListener(
       window,
       'whatsapp-contact-update',
-      handleGlobalMessageEvent
+      handleGlobalMessageEvent as EventListener
     );
 
     // Criar novo canal

@@ -19,15 +19,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 interface UseWhatsAppContactsProps {
-  activeInstance: WhatsAppWebInstance | null;
-  selectedContact: Contact | null;
-  onContactSelect?: (contact: Contact) => void;
+  activeInstanceId: string | null;
 }
 
 export const useWhatsAppContacts = ({
-  activeInstance,
-  selectedContact,
-  onContactSelect
+  activeInstanceId
 }: UseWhatsAppContactsProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -40,7 +36,7 @@ export const useWhatsAppContacts = ({
       messageInfo
     });
 
-    queryClient.setQueryData(['whatsapp-contacts', activeInstance?.id], (oldData: Contact[] | undefined) => {
+    queryClient.setQueryData(['whatsapp-contacts', activeInstanceId], (oldData: Contact[] | undefined) => {
       if (!oldData) return oldData;
 
       const contactIndex = oldData.findIndex(c => c.id === contactId);
@@ -63,7 +59,7 @@ export const useWhatsAppContacts = ({
       console.log('[WhatsApp Contacts] ✅ Contato movido para o topo FASE 1:', contactToMove);
       return updatedContacts;
     });
-  }, [queryClient, activeInstance?.id]);
+  }, [queryClient, activeInstanceId]);
 
   // 🚀 FASE 1: Função para atualizar contador de não lidas
   const updateUnreadCount = useCallback((contactId: string, increment: boolean = true) => {
@@ -72,7 +68,7 @@ export const useWhatsAppContacts = ({
       increment
     });
 
-    queryClient.setQueryData(['whatsapp-contacts', activeInstance?.id], (oldData: Contact[] | undefined) => {
+    queryClient.setQueryData(['whatsapp-contacts', activeInstanceId], (oldData: Contact[] | undefined) => {
       if (!oldData) return oldData;
 
       return oldData.map(contact => {
@@ -94,7 +90,7 @@ export const useWhatsAppContacts = ({
         return contact;
       });
     });
-  }, [queryClient, activeInstance?.id]);
+  }, [queryClient, activeInstanceId]);
 
   // 🚀 FASE 1: Função para adicionar novo contato
   const addNewContact = useCallback((contactData: Partial<Contact>) => {
@@ -115,11 +111,10 @@ export const useWhatsAppContacts = ({
       tags: contactData.tags || [],
       notes: contactData.notes,
       profilePicUrl: contactData.profilePicUrl,
-      whatsappNumberId: activeInstance?.id,
       isActive: true
     };
 
-    queryClient.setQueryData(['whatsapp-contacts', activeInstance?.id], (oldData: Contact[] | undefined) => {
+    queryClient.setQueryData(['whatsapp-contacts', activeInstanceId], (oldData: Contact[] | undefined) => {
       if (!oldData) return [newContact];
 
       // Verificar se contato já existe
@@ -134,7 +129,7 @@ export const useWhatsAppContacts = ({
     });
 
     console.log('[WhatsApp Contacts] ✅ Novo contato adicionado FASE 1:', newContact);
-  }, [queryClient, activeInstance?.id]);
+  }, [queryClient, activeInstanceId]);
 
   // 🚀 FASE 1: Query otimizada para buscar contatos
   const {
@@ -143,14 +138,14 @@ export const useWhatsAppContacts = ({
     error,
     refetch
   } = useQuery({
-    queryKey: ['whatsapp-contacts', activeInstance?.id, refreshCounter],
+    queryKey: ['whatsapp-contacts', activeInstanceId, refreshCounter],
     queryFn: async () => {
-      if (!activeInstance || !user) {
+      if (!activeInstanceId || !user) {
         return [];
       }
 
       console.log('[WhatsApp Contacts] 📥 Buscando contatos FASE 1:', {
-        instanceId: activeInstance.id,
+        instanceId: activeInstanceId,
         userId: user.id
       });
 
@@ -162,7 +157,7 @@ export const useWhatsAppContacts = ({
           phone,
           email,
           last_message,
-          last_message_at,
+          last_message_time,
           unread_count,
           kanban_stage_id,
           created_at,
@@ -172,9 +167,9 @@ export const useWhatsAppContacts = ({
           whatsapp_number_id,
           tags
         `)
-        .eq('whatsapp_number_id', activeInstance.id)
+        .eq('whatsapp_number_id', activeInstanceId)
         .eq('created_by_user_id', user.id)
-        .order('last_message_at', { ascending: false, nullsFirst: false })
+        .order('last_message_time', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
         .limit(100);
 
@@ -190,7 +185,7 @@ export const useWhatsAppContacts = ({
         phone: lead.phone || '',
         email: lead.email || undefined,
         lastMessage: lead.last_message || 'Sem mensagens',
-        lastMessageTime: lead.last_message_at || lead.created_at,
+        lastMessageTime: lead.last_message_time || lead.created_at,
         unreadCount: lead.unread_count || 0,
         stageId: lead.kanban_stage_id,
         createdAt: lead.created_at,
@@ -198,18 +193,17 @@ export const useWhatsAppContacts = ({
         tags: lead.tags || [],
         notes: lead.notes,
         profilePicUrl: lead.profile_pic_url,
-        whatsappNumberId: lead.whatsapp_number_id,
         isActive: true
       }));
 
       console.log('[WhatsApp Contacts] ✅ Contatos carregados FASE 1:', {
         count: convertedContacts.length,
-        instanceId: activeInstance.id
+        instanceId: activeInstanceId
       });
 
       return convertedContacts;
     },
-    enabled: !!activeInstance && !!user,
+    enabled: !!activeInstanceId && !!user,
     staleTime: 5 * 60 * 1000, // 5 minutos
     gcTime: 10 * 60 * 1000, // 10 minutos
     refetchOnWindowFocus: false,
@@ -219,7 +213,7 @@ export const useWhatsAppContacts = ({
   // 🚀 FASE 1: Configurar realtime com callbacks granulares
   useChatsRealtime({
     userId: user?.id || null,
-    activeInstanceId: activeInstance?.id || null,
+    activeInstanceId: activeInstanceId || null,
     onMoveContactToTop: moveContactToTop,
     onUpdateUnreadCount: updateUnreadCount,
     onAddNewContact: addNewContact,
@@ -238,14 +232,14 @@ export const useWhatsAppContacts = ({
 
   // 🚀 FASE 1: Função para marcar mensagem como lida
   const markAsRead = useCallback(async (contactId: string) => {
-    if (!activeInstance) return;
+    if (!activeInstanceId) return;
 
     try {
       await supabase
         .from('leads')
         .update({ unread_count: 0 })
         .eq('id', contactId)
-        .eq('whatsapp_number_id', activeInstance.id);
+        .eq('whatsapp_number_id', activeInstanceId);
 
       // Atualizar localmente
       updateUnreadCount(contactId, false);
@@ -254,7 +248,7 @@ export const useWhatsAppContacts = ({
     } catch (error) {
       console.error('[WhatsApp Contacts] ❌ Erro ao marcar como lido FASE 1:', error);
     }
-  }, [activeInstance, updateUnreadCount]);
+  }, [activeInstanceId, updateUnreadCount]);
 
   // 🚀 FASE 1: Estatísticas memoizadas
   const stats = useMemo(() => {
@@ -266,9 +260,9 @@ export const useWhatsAppContacts = ({
       totalContacts,
       unreadContacts,
       totalUnreadMessages,
-      activeInstance: activeInstance?.id || null
+      activeInstance: activeInstanceId || null
     };
-  }, [contacts, activeInstance?.id]);
+  }, [contacts, activeInstanceId]);
 
   return {
     contacts,
@@ -280,6 +274,11 @@ export const useWhatsAppContacts = ({
     // 🚀 FASE 1: Funções granulares expostas
     moveContactToTop,
     updateUnreadCount,
-    addNewContact
+    addNewContact,
+    // 🚀 CORREÇÃO: Adicionar propriedades ausentes
+    isLoadingMore: false,
+    hasMoreContacts: false,
+    loadMoreContacts: async () => {},
+    totalContactsAvailable: contacts.length
   };
 };

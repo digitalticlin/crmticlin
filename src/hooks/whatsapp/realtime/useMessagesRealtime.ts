@@ -21,7 +21,7 @@ interface UseMessagesRealtimeProps {
   onNewMessage?: (message: Message) => void;
   onMessageUpdate?: (message: Message) => void;
   // 🚀 FASE 1: Novo callback para comunicação com contatos
-  onMoveContactToTop?: (contactId: string, newMessage: { text: string; timestamp: string; unreadCount?: number }) => void;
+  onMoveContactToTop?: (contactId: string, messageInfo: { text: string; timestamp: string; unreadCount?: number }) => void;
 }
 
 export const useMessagesRealtime = ({
@@ -79,14 +79,6 @@ export const useMessagesRealtime = ({
       timestamp: messageData.created_at || new Date().toISOString(),
       isFromMe: messageData.from_me || false
     };
-
-    windowEventManager.addEventListener(
-      window,
-      'whatsapp-contact-update',
-      (event: CustomEvent) => {
-        console.log('[Messages Realtime] 📡 Evento global disparado:', event.detail);
-      }
-    );
 
     // Dispatch do evento
     window.dispatchEvent(new CustomEvent('whatsapp-contact-update', { detail: eventDetail }));
