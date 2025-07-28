@@ -174,7 +174,10 @@ export const useWhatsAppChatMessages = ({
       retryCountRef.current = 0;
       
     } catch (error: any) {
-      if (error.message === 'Request cancelled') {
+      // ✅ CORREÇÃO: Verificar se error é string ou objeto
+      const errorMessage = typeof error === 'string' ? error : (error?.message || 'Erro desconhecido');
+      
+      if (errorMessage === 'Request cancelled') {
         console.log('[Chat Messages] ⏹️ Cancelado, não fazendo retry');
         return;
       }
@@ -228,7 +231,10 @@ export const useWhatsAppChatMessages = ({
       }
       
     } catch (error: any) {
-      if (error.message !== 'Request cancelled') {
+      // ✅ CORREÇÃO: Verificar se error é string ou objeto
+      const errorMessage = typeof error === 'string' ? error : (error?.message || 'Erro desconhecido');
+      
+      if (errorMessage !== 'Request cancelled') {
         console.error('[Chat Messages] ❌ Erro ao carregar mais mensagens:', error);
         toast.error('Erro ao carregar mais mensagens');
       }
