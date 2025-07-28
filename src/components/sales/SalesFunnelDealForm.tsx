@@ -28,7 +28,11 @@ export const SalesFunnelDealForm: React.FC<SalesFunnelDealFormProps> = ({
     if (deal) {
       onUpdate(deal.id, { status, value });
     } else {
-      onCreate({ status, value });
+      onCreate({ 
+        status, 
+        value,
+        date: new Date().toISOString()
+      });
     }
   };
 
