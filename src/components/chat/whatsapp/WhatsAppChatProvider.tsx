@@ -93,11 +93,8 @@ export const WhatsAppChatProvider: React.FC<WhatsAppChatProviderProps> = ({
   } = useWhatsAppChatMessages({
     selectedContact,
     activeInstance,
-    onContactUpdate: (contactId: string, updates: Partial<Contact>) => {
-      // Convert new signature to old signature expected by updateContact
-      if (typeof updates === 'object' && updates.lastMessage) {
-        updateContact(contactId, updates.lastMessage, updates.lastMessageTime || new Date().toISOString());
-      }
+    onContactUpdate: (contactId: string, lastMessage: string, timestamp: string) => {
+      updateContact(contactId, lastMessage, timestamp);
     }
   });
 

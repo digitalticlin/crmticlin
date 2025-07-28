@@ -43,12 +43,12 @@ export const WhatsAppInstanceSelector: React.FC<WhatsAppInstanceSelectorProps> =
         {instances.map((instance) => (
           <SelectItem key={instance.id} value={instance.id}>
             <div className="flex items-center gap-2">
-              <span>{instance.name}</span>
+              <span>{instance.instance_name}</span>
               <Badge 
-                variant={instance.status === 'connected' ? 'default' : 'destructive'}
+                variant={instance.connection_status === 'connected' ? 'default' : 'destructive'}
                 className="text-xs"
               >
-                {instance.status}
+                {instance.connection_status}
               </Badge>
             </div>
           </SelectItem>
