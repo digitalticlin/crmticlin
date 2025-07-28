@@ -39,14 +39,14 @@ export const useWhatsAppContacts = (instanceId?: string) => {
       ownerId: lead.owner_id,
       createdAt: lead.created_at,
       instanceInfo: {
-        name: lead.whatsapp_instances?.instance_name || 'Instância',
-        status: lead.whatsapp_instances?.connection_status || 'disconnected',
-        phone: lead.whatsapp_instances?.phone || ''
+        name: lead.instance_name || 'Instância',
+        status: lead.instance_status || 'disconnected',
+        phone: lead.instance_phone || ''
       }
     };
   }, []);
 
-  // ✅ BUSCAR CONTATOS COM RETRY
+  // ✅ BUSCAR CONTATOS COM QUERY CORRIGIDA
   const fetchContacts = useCallback(async (offset = 0) => {
     if (!instanceId) {
       setContacts([]);
@@ -63,8 +63,9 @@ export const useWhatsAppContacts = (instanceId?: string) => {
         limit: CONTACTS_PER_PAGE 
       });
 
-      // Query otimizada
-      const { data, error, count } = await supabase
+      // ✅ QUERY CORRIGIDA: Fazer SELECT separado para instância e depois JOIN manual
+      // Primeiro buscar os leads
+      const { data: leadsData, error: leadsError, count } = await supabase
         .from('leads')
         .select(`
           id,
@@ -80,11 +81,7 @@ export const useWhatsAppContacts = (instanceId?: string) => {
           kanban_stage_id,
           owner_id,
           created_at,
-          whatsapp_instances!inner (
-            instance_name,
-            connection_status,
-            phone
-          )
+          whatsapp_number_id
         `, { count: 'exact' })
         .eq('whatsapp_number_id', instanceId)
         .order('last_message_time', { ascending: false, nullsFirst: false })
@@ -94,12 +91,34 @@ export const useWhatsAppContacts = (instanceId?: string) => {
 
       clearTimeout(timeoutId);
 
-      if (error) {
-        console.error('[WhatsApp Contacts] ❌ Erro ao buscar contatos:', error);
-        throw error;
+      if (leadsError) {
+        console.error('[WhatsApp Contacts] ❌ Erro ao buscar leads:', leadsError);
+        throw leadsError;
       }
 
-      const convertedContacts = (data || []).map(convertLeadToContact);
+      // ✅ BUSCAR DADOS DA INSTÂNCIA SEPARADAMENTE
+      let instanceData = null;
+      if (instanceId) {
+        const { data: instanceInfo, error: instanceError } = await supabase
+          .from('whatsapp_instances')
+          .select('instance_name, connection_status, phone')
+          .eq('id', instanceId)
+          .single();
+
+        if (!instanceError && instanceInfo) {
+          instanceData = instanceInfo;
+        }
+      }
+
+      // ✅ COMBINAR DADOS MANUALMENTE
+      const combinedData = (leadsData || []).map(lead => ({
+        ...lead,
+        instance_name: instanceData?.instance_name || 'Instância',
+        instance_status: instanceData?.connection_status || 'disconnected',
+        instance_phone: instanceData?.phone || ''
+      }));
+
+      const convertedContacts = combinedData.map(convertLeadToContact);
       
       console.log('[WhatsApp Contacts] ✅ Contatos convertidos:', {
         count: convertedContacts.length,
@@ -128,7 +147,7 @@ export const useWhatsAppContacts = (instanceId?: string) => {
     }
   }, [instanceId, convertLeadToContact]);
 
-  // ✅ CARREGAR CONTATOS INICIAIS
+  // ✅ CARREGAR CONTATOS INICIAIS COM RETRY MELHORADO
   const loadInitialContacts = useCallback(async () => {
     if (!instanceId) {
       setContacts([]);
@@ -147,13 +166,21 @@ export const useWhatsAppContacts = (instanceId?: string) => {
       setHasMoreContacts(result.hasMore);
       setTotalContactsAvailable(result.total);
       
+      console.log('[WhatsApp Contacts] ✅ Contatos carregados:', {
+        count: result.contacts.length,
+        total: result.total
+      });
+      
     } catch (error: any) {
       console.error('[WhatsApp Contacts] ❌ Erro ao carregar contatos iniciais:', error);
       
       if (retryCountRef.current < MAX_RETRIES) {
         retryCountRef.current++;
         console.log(`[WhatsApp Contacts] 🔄 Tentativa ${retryCountRef.current}/${MAX_RETRIES}`);
-        setTimeout(() => loadInitialContacts(), 2000 * retryCountRef.current);
+        
+        // Retry com backoff exponencial
+        const delay = Math.min(2000 * Math.pow(2, retryCountRef.current - 1), 10000);
+        setTimeout(() => loadInitialContacts(), delay);
         return;
       }
       
@@ -179,6 +206,11 @@ export const useWhatsAppContacts = (instanceId?: string) => {
       if (result.contacts.length > 0) {
         setContacts(prev => [...prev, ...result.contacts]);
         setHasMoreContacts(result.hasMore);
+        
+        console.log('[WhatsApp Contacts] ✅ Mais contatos carregados:', {
+          newCount: result.contacts.length,
+          totalNow: contacts.length + result.contacts.length
+        });
       } else {
         setHasMoreContacts(false);
       }
@@ -193,6 +225,8 @@ export const useWhatsAppContacts = (instanceId?: string) => {
 
   // ✅ ATUALIZAR CONTATO ESPECÍFICO
   const updateContact = useCallback((contactId: string, updates: Partial<Contact>) => {
+    console.log('[WhatsApp Contacts] 🔄 Atualizando contato:', { contactId, updates });
+    
     setContacts(prev => 
       prev.map(contact => 
         contact.id === contactId 
@@ -204,6 +238,8 @@ export const useWhatsAppContacts = (instanceId?: string) => {
 
   // ✅ MOVER CONTATO PARA TOPO
   const moveContactToTop = useCallback((contactId: string, newMessage?: any) => {
+    console.log('[WhatsApp Contacts] 🔝 Movendo contato para topo:', { contactId, newMessage });
+    
     setContacts(prev => {
       const contactIndex = prev.findIndex(c => c.id === contactId);
       if (contactIndex === -1) return prev;
@@ -227,6 +263,8 @@ export const useWhatsAppContacts = (instanceId?: string) => {
 
   // ✅ ADICIONAR NOVO CONTATO
   const addNewContact = useCallback((newContactData: Partial<Contact>) => {
+    console.log('[WhatsApp Contacts] ➕ Adicionando novo contato:', newContactData);
+    
     const newContact: Contact = {
       id: newContactData.id || '',
       leadId: newContactData.leadId || newContactData.id || '',
@@ -251,6 +289,7 @@ export const useWhatsAppContacts = (instanceId?: string) => {
 
   // ✅ CARREGAR QUANDO INSTÂNCIA MUDAR
   useEffect(() => {
+    console.log('[WhatsApp Contacts] 🔄 Instância mudou, recarregando contatos:', instanceId);
     loadInitialContacts();
   }, [loadInitialContacts]);
 
