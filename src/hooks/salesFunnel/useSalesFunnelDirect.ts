@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { KanbanColumn, KanbanLead } from '@/types/kanban';
+import { KanbanColumn, KanbanLead, KanbanTag } from '@/types/kanban';
 import { KanbanStage, Funnel } from '@/types/funnel';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { useMutation } from '@tanstack/react-query';
 
 interface UseSalesFunnelDirectResult {
   loading: boolean;
@@ -22,7 +23,7 @@ interface UseSalesFunnelDirectResult {
   selectedLead: KanbanLead | null;
   isLeadDetailOpen: boolean;
   setIsLeadDetailOpen: (isOpen: boolean) => void;
-  availableTags: string[];
+  availableTags: KanbanTag[];
   addColumn: (title: string, color: string) => Promise<void>;
   updateColumn: (column: KanbanColumn) => Promise<void>;
   deleteColumn: (columnId: string) => Promise<void>;
@@ -48,7 +49,7 @@ export const useSalesFunnelDirect = (): UseSalesFunnelDirectResult => {
   const [columns, setColumns] = useState<KanbanColumn[]>([]);
   const [selectedLead, setSelectedLead] = useState<KanbanLead | null>(null);
   const [isLeadDetailOpen, setIsLeadDetailOpen] = useState(false);
-  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<KanbanTag[]>([]);
   const { user } = useAuth();
 
   // Buscar IDs de estágios "ganho" e "perdido"
@@ -56,10 +57,8 @@ export const useSalesFunnelDirect = (): UseSalesFunnelDirectResult => {
   const lostStageId = stages.find(stage => stage.is_lost)?.id;
 
   // 🚀 MUTATION PARA ATUALIZAR LEAD
-  const updateLead = useCallback(async (
-    { leadId, fields }: { leadId: string; fields: Partial<KanbanLead> }
-  ) => {
-    try {
+  const updateLead = useMutation({
+    mutationFn: async ({ leadId, fields }: { leadId: string; fields: Partial<KanbanLead> }) => {
       const { data, error } = await supabase
         .from('leads')
         .update(fields)
@@ -73,14 +72,13 @@ export const useSalesFunnelDirect = (): UseSalesFunnelDirectResult => {
       }
 
       console.log('[Sales Funnel Direct] 👤 Lead atualizado:', data);
-      // refetchLeads(); // Realtime vai atualizar
       return data;
-    } catch (err: any) {
+    },
+    onError: (err: any) => {
       console.error('[Sales Funnel Direct] ❌ Erro crítico ao atualizar lead:', err);
       toast.error(`Erro ao atualizar lead: ${err.message}`);
-      throw err; // Rejeitar para tratamento no componente
     }
-  }, []);
+  });
 
   // 🔄 REFRESH FUNCTIONS
   const refetchFunnels = useCallback(async () => {
@@ -89,7 +87,7 @@ export const useSalesFunnelDirect = (): UseSalesFunnelDirectResult => {
       const { data, error } = await supabase
         .from('funnels')
         .select('*')
-        .eq('company_id', user.company_id);
+        .eq('created_by_user_id', user.id);
 
       if (error) {
         console.error('Erro ao buscar funnels:', error);
@@ -113,7 +111,7 @@ export const useSalesFunnelDirect = (): UseSalesFunnelDirectResult => {
         .from('kanban_stages')
         .select('*')
         .eq('funnel_id', selectedFunnel.id)
-        .order('position', { ascending: true });
+        .order('order_position', { ascending: true });
 
       if (error) {
         console.error('Erro ao buscar stages:', error);
@@ -139,7 +137,36 @@ export const useSalesFunnelDirect = (): UseSalesFunnelDirectResult => {
         console.error('Erro ao buscar leads:', error);
         setError(error);
       } else {
-        setLeads(data || []);
+        // Transform database data to KanbanLead format
+        const transformedLeads: KanbanLead[] = (data || []).map(lead => ({
+          id: lead.id,
+          name: lead.name,
+          phone: lead.phone,
+          email: lead.email,
+          company: lead.company,
+          lastMessage: lead.last_message || '',
+          lastMessageTime: lead.last_message_time || new Date().toISOString(),
+          tags: [], // Will be populated from lead_tags if needed
+          notes: lead.notes,
+          columnId: lead.kanban_stage_id,
+          purchaseValue: lead.purchase_value,
+          assignedUser: lead.owner_id,
+          unreadCount: lead.unread_count || 0,
+          created_at: lead.created_at,
+          updated_at: lead.updated_at,
+          whatsapp_number_id: lead.whatsapp_number_id,
+          funnel_id: lead.funnel_id,
+          kanban_stage_id: lead.kanban_stage_id,
+          owner_id: lead.owner_id,
+          last_message: lead.last_message,
+          purchase_value: lead.purchase_value,
+          unread_count: lead.unread_count,
+          documentId: lead.document_id,
+          address: lead.address,
+          import_source: lead.import_source
+        }));
+        
+        setLeads(transformedLeads);
       }
     } catch (error: any) {
       console.error('Erro ao buscar leads:', error);
@@ -153,7 +180,12 @@ export const useSalesFunnelDirect = (): UseSalesFunnelDirectResult => {
       setError(null);
       try {
         await refetchFunnels();
-        setAvailableTags(['Tag 1', 'Tag 2', 'Tag 3']);
+        // Set mock tags for now
+        setAvailableTags([
+          { id: '1', name: 'Prioridade Alta', color: '#ef4444' },
+          { id: '2', name: 'Interessado', color: '#10b981' },
+          { id: '3', name: 'Acompanhar', color: '#f59e0b' }
+        ]);
       } catch (error: any) {
         console.error('Erro ao buscar dados:', error);
         setError(error);
@@ -194,7 +226,7 @@ export const useSalesFunnelDirect = (): UseSalesFunnelDirectResult => {
     try {
       const { data, error } = await supabase
         .from('funnels')
-        .insert([{ name, company_id: user.company_id }])
+        .insert([{ name, created_by_user_id: user.id }])
         .select()
         .single();
 
@@ -219,7 +251,7 @@ export const useSalesFunnelDirect = (): UseSalesFunnelDirectResult => {
 
   // 🏗️ FUNÇÕES DE GERENCIAMENTO DE COLUNAS
   const addColumn = useCallback(async (title: string, color: string): Promise<void> => {
-    if (!selectedFunnel) return;
+    if (!selectedFunnel || !user) return;
 
     try {
       const { data, error } = await supabase
@@ -229,7 +261,8 @@ export const useSalesFunnelDirect = (): UseSalesFunnelDirectResult => {
             title,
             color,
             funnel_id: selectedFunnel.id,
-            position: stages.length,
+            created_by_user_id: user.id,
+            order_position: stages.length,
             is_won: false,
             is_lost: false
           }
@@ -245,7 +278,7 @@ export const useSalesFunnelDirect = (): UseSalesFunnelDirectResult => {
       console.error('[Sales Funnel Direct] ❌ Erro ao adicionar coluna:', error);
       throw error;
     }
-  }, [selectedFunnel, stages.length, refetchStages]);
+  }, [selectedFunnel, user, stages.length, refetchStages]);
 
   const updateColumn = useCallback(async (column: KanbanColumn) => {
     try {
@@ -291,7 +324,6 @@ export const useSalesFunnelDirect = (): UseSalesFunnelDirectResult => {
     }
   }, [stages, columns]);
 
-  // 👤 FUNÇÕES DE GERENCIAMENTO DE LEAD
   const openLeadDetail = useCallback((lead: KanbanLead) => {
     setSelectedLead(lead);
     setIsLeadDetailOpen(true);
@@ -303,7 +335,7 @@ export const useSalesFunnelDirect = (): UseSalesFunnelDirectResult => {
 
   const updateLeadNotes = useCallback(async (leadId: string, notes: string) => {
     try {
-      await updateLead({ leadId, fields: { notes } });
+      await updateLead.mutateAsync({ leadId, fields: { notes } });
       setLeads(leads.map(lead => lead.id === leadId ? { ...lead, notes } : lead));
       if (selectedLead?.id === leadId) {
         setSelectedLead({ ...selectedLead, notes } as KanbanLead);
@@ -316,7 +348,7 @@ export const useSalesFunnelDirect = (): UseSalesFunnelDirectResult => {
 
   const updateLeadPurchaseValue = useCallback(async (leadId: string, purchaseValue: number | undefined) => {
     try {
-      await updateLead({ leadId, fields: { purchase_value: purchaseValue } });
+      await updateLead.mutateAsync({ leadId, fields: { purchase_value: purchaseValue } });
       setLeads(leads.map(lead => lead.id === leadId ? { ...lead, purchaseValue } : lead));
       if (selectedLead?.id === leadId) {
         setSelectedLead({ ...selectedLead, purchaseValue } as KanbanLead);
@@ -329,7 +361,7 @@ export const useSalesFunnelDirect = (): UseSalesFunnelDirectResult => {
 
   const updateLeadAssignedUser = useCallback(async (leadId: string, assignedUser: string | undefined) => {
     try {
-      await updateLead({ leadId, fields: { owner_id: assignedUser } });
+      await updateLead.mutateAsync({ leadId, fields: { owner_id: assignedUser } });
       setLeads(leads.map(lead => lead.id === leadId ? { ...lead, assignedUser } : lead));
       if (selectedLead?.id === leadId) {
         setSelectedLead({ ...selectedLead, assignedUser } as KanbanLead);
@@ -342,7 +374,7 @@ export const useSalesFunnelDirect = (): UseSalesFunnelDirectResult => {
 
   const updateLeadName = useCallback(async (leadId: string, name: string) => {
     try {
-      await updateLead({ leadId, fields: { name } });
+      await updateLead.mutateAsync({ leadId, fields: { name } });
       setLeads(leads.map(lead => lead.id === leadId ? { ...lead, name } : lead));
       if (selectedLead?.id === leadId) {
         setSelectedLead({ ...selectedLead, name } as KanbanLead);
