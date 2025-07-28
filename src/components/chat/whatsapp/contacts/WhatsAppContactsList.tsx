@@ -20,11 +20,8 @@ export const WhatsAppContactsList = () => {
       contacts={contacts}
       selectedContact={selectedContact}
       onContactSelect={setSelectedContact}
+      searchQuery=""
       isLoading={isLoadingContacts}
-      isLoadingMore={isLoadingMoreContacts}
-      hasMore={hasMoreContacts}
-      onLoadMore={loadMoreContacts}
-      totalContactsAvailable={totalContactsAvailable}
     />
   );
 };
