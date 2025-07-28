@@ -7,7 +7,7 @@ import { WhatsAppWebInstance } from '@/types/whatsapp';
 import { useWhatsAppDatabase } from '@/hooks/whatsapp/useWhatsAppDatabase';
 import { useWhatsAppContacts } from '@/hooks/whatsapp/useWhatsAppContacts';
 import { useWhatsAppChatMessages } from '@/hooks/whatsapp/chat/useWhatsAppChatMessages';
-
+import { useContactsRealtime } from '@/hooks/whatsapp/contacts/useContactsRealtime';
 import { useChatsRealtime } from '@/hooks/whatsapp/realtime';
 import { useCompanyData } from '@/hooks/useCompanyData';
 import { useSearchParams } from 'react-router-dom';
@@ -55,6 +55,7 @@ interface WhatsAppChatContextType {
   realtimeStats: {
     chatsConnected: boolean;
     messagesConnected: boolean;
+    contactsConnected: boolean;
     totalChatsEvents: number;
     totalMessagesEvents: number;
     lastChatsUpdate: number | null;
@@ -73,11 +74,6 @@ export const useWhatsAppChatContext = () => {
 };
 
 export const WhatsAppChatProvider = React.memo(({ children }: { children: React.ReactNode }) => {
-  // 🚨 DEBUG: Simples
-  if (process.env.NODE_ENV === 'development') {
-    console.log('🚨 [PROVIDER] WhatsAppChatProvider renderizado:', new Date().toISOString());
-  }
-  
   const { user } = useAuth();
   const { userId, loading: companyLoading } = useCompanyData();
   const [searchParams] = useSearchParams();
@@ -125,59 +121,67 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     };
   }, [activeInstance]);
 
-  // 🚀 SEMPRE: Hook de contatos (50 contatos)
+  // 🚀 SEMPRE: Hook de contatos
   const contactsHook = useWhatsAppContacts(webActiveInstance?.id);
   
-  // ✅ CALLBACK PARA MOVER CONTATOS: Notificação vinda das mensagens
-  const handleContactUpdateFromMessages = useCallback((leadId: string) => {
-    console.log('[Provider] 🔝 Recebendo notificação de nova mensagem para mover contato:', { leadId });
-    contactsHook.moveContactToTop(leadId);
-  }, []);
+  // ✅ CALLBACK PARA ATUALIZAR CONTATOS
+  const handleContactUpdate = useCallback((contactId: string, updates: Partial<Contact>) => {
+    console.log('[Provider] 🔄 Atualizando contato:', { contactId, updates });
+    contactsHook.updateContact(contactId, updates);
+  }, [contactsHook]);
 
-  // 🚀 SEMPRE: Hook de mensagens (mas só carrega quando selectedContact existe)
+  // ✅ CALLBACK PARA MOVER CONTATO PARA TOPO
+  const handleMoveContactToTop = useCallback((contactId: string) => {
+    console.log('[Provider] 🔝 Movendo contato para topo:', { contactId });
+    contactsHook.moveContactToTop(contactId);
+  }, [contactsHook]);
+
+  // ✅ CALLBACK PARA QUANDO NOVA MENSAGEM É ENVIADA/RECEBIDA
+  const handleContactUpdateFromMessage = useCallback((contactId: string, lastMessage: string, timestamp: string) => {
+    console.log('[Provider] 📨 Atualizando contato via mensagem:', { contactId, lastMessage, timestamp });
+    
+    // Atualizar dados do contato
+    handleContactUpdate(contactId, {
+      lastMessage,
+      lastMessageTime: timestamp
+    });
+    
+    // Mover para topo se não for o contato atual
+    if (selectedContact?.id !== contactId) {
+      handleMoveContactToTop(contactId);
+    }
+  }, [selectedContact, handleContactUpdate, handleMoveContactToTop]);
+
+  // 🚀 SEMPRE: Hook de mensagens
   const messagesHook = useWhatsAppChatMessages({
     selectedContact,
-    activeInstance: webActiveInstance
+    activeInstance: webActiveInstance,
+    onContactUpdate: handleContactUpdateFromMessage
+  });
+
+  // 🚀 REALTIME DE CONTATOS
+  const contactsRealtimeStats = useContactsRealtime({
+    userId: user?.id || null,
+    activeInstanceId: webActiveInstance?.id || null,
+    onContactUpdate: handleContactUpdate,
+    onMoveToTop: handleMoveContactToTop,
+    enabled: true
   });
   
-  // 🚀 SEMPRE: Hooks de realtime (mas só ativam quando necessário)
+  // 🚀 REALTIME DE CHATS (FALLBACK)
   const chatsRealtimeStats = useChatsRealtime({
     userId: user?.id || null,
     activeInstanceId: webActiveInstance?.id || null,
-    onContactUpdate: useCallback((contactId: string) => {
-      // Fallback legado - não deveria ser usado se callbacks granulares existem
-      console.log('[Provider] 🔄 Fallback: refresh completo por onContactUpdate');
-      contactsHook.refreshContacts();
-    }, []),
-    onNewContact: useCallback(() => {
-      // Fallback legado - não deveria ser usado se callbacks granulares existem
-      console.log('[Provider] 🔄 Fallback: refresh completo por onNewContact');
-    }, []),
     onContactsRefresh: useCallback(() => {
-      // Fallback para casos extremos onde callbacks granulares falharam
-      console.log('[Provider] 🔄 Fallback: refresh completo forçado');
+      console.log('[Provider] 🔄 Fallback: refresh completo de contatos');
       contactsHook.refreshContacts();
-    }, []),
-    // 🚀 NOVAS CALLBACKS GRANULARES - PRIORIDADE MÁXIMA
-    onMoveContactToTop: useCallback((contactId: string, newMessage) => {
-      console.log('[Provider] 🔝 Movendo contato para topo:', { contactId, newMessage });
-      contactsHook.moveContactToTop(contactId, newMessage);
-    }, []),
-    onUpdateUnreadCount: useCallback((contactId: string, increment = true) => {
-      console.log('[Provider] 🔢 Atualizando contador:', { contactId, increment });
-      contactsHook.updateUnreadCount(contactId, increment);
-    }, []),
-    onAddNewContact: useCallback((newContactData) => {
-      console.log('[Provider] ➕ Adicionando novo contato:', newContactData);
-      contactsHook.addNewContact(newContactData);
-    }, [])
+    }, [contactsHook])
   });
 
   // Funções auxiliares
   const moveContactToTop = useCallback((contactId: string, newMessage?: any) => {
-    // ✅ CORREÇÃO: Usar função suave ao invés de refresh completo
-    contactsHook.moveContactToTop(contactId, newMessage);
-  }, []);
+    handleMoveContactToTop(contactId);
+  }, [handleMoveContactToTop]);
 
   const markAsRead = useCallback(async (contactId: string) => {
     try {
@@ -186,11 +190,12 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
         .update({ unread_count: 0 })
         .eq('id', contactId);
       
-      contactsHook.refreshContacts();
+      // Atualizar localmente
+      handleContactUpdate(contactId, { unreadCount: 0 });
     } catch (error) {
       console.error('[WhatsApp Chat] ❌ Erro ao marcar como lida:', error);
     }
-  }, []);
+  }, [handleContactUpdate]);
 
   // Seleção de contato
   const handleSelectContact = useCallback(async (contact: Contact | null) => {
@@ -205,11 +210,10 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     setSelectedContact(contact);
   }, [markAsRead]);
 
-  // ✅ CORREÇÃO: Wrapper para sendMessage compatível com interface esperada
+  // ✅ CORREÇÃO: Wrapper para sendMessage
   const sendMessageWrapper = useCallback(async (text: string, mediaType?: string, mediaUrl?: string): Promise<boolean> => {
     if (!text.trim()) return false;
     
-    // Converter para formato esperado pelo hook
     const media = mediaType && mediaUrl ? {
       file: new File([], mediaUrl.split('/').pop() || 'file'),
       type: mediaType
@@ -229,15 +233,18 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
   // Estatísticas do realtime
   const realtimeStats = useMemo(() => ({
     chatsConnected: chatsRealtimeStats.isConnected,
-    messagesConnected: false, // Messages realtime is handled internally by useWhatsAppChatMessages
+    messagesConnected: messagesHook.messages.length > 0, // Indicador baseado em mensagens
+    contactsConnected: contactsRealtimeStats.isConnected,
     totalChatsEvents: chatsRealtimeStats.totalEvents,
-    totalMessagesEvents: 0, // Messages events are handled internally
+    totalMessagesEvents: 0, // Messages events handled internally
     lastChatsUpdate: chatsRealtimeStats.lastUpdate,
-    lastMessagesUpdate: null // Messages updates are handled internally
+    lastMessagesUpdate: null // Messages updates handled internally
   }), [
     chatsRealtimeStats.isConnected,
     chatsRealtimeStats.totalEvents,
-    chatsRealtimeStats.lastUpdate
+    chatsRealtimeStats.lastUpdate,
+    contactsRealtimeStats.isConnected,
+    messagesHook.messages.length
   ]);
 
   // Auto-seleção de contato da URL
@@ -262,12 +269,11 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     }
   }, [totalInstances, connectedInstances]);
 
-  // 🔔 ✅ LISTENER PARA SELEÇÃO DE CONTATO VIA NOTIFICAÇÃO
+  // 🔔 LISTENER PARA SELEÇÃO DE CONTATO VIA NOTIFICAÇÃO
   useEffect(() => {
     const handleSelectContactEvent = (event: CustomEvent) => {
       const { contactId } = event.detail;
       
-      // Encontrar contato na lista
       const targetContact = contactsHook.contacts.find(contact => 
         contact.id === contactId || contact.leadId === contactId
       );
@@ -277,7 +283,6 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
         handleSelectContact(targetContact);
       } else {
         console.warn('[WhatsApp Provider] ⚠️ Contato não encontrado para seleção:', contactId);
-        // Refetch contacts caso o contato não esteja na lista atual
         contactsHook.refreshContacts();
       }
     };
@@ -291,7 +296,7 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
 
   // Valor do contexto
   const value = useMemo((): WhatsAppChatContextType => ({
-    // Contatos (sempre carregados)
+    // Contatos
     contacts: contactsHook.contacts,
     isLoadingContacts: contactsHook.isLoading,
     isLoadingMoreContacts: contactsHook.isLoadingMore,
@@ -301,7 +306,7 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     markAsRead,
     totalContactsAvailable: contactsHook.totalContactsAvailable,
     
-    // Mensagens (carregadas apenas quando há contato selecionado)
+    // Mensagens
     messages: messagesHook.messages,
     isLoadingMessages: messagesHook.isLoadingMessages,
     isLoadingMore: messagesHook.isLoadingMore,
@@ -323,7 +328,6 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     instanceHealth,
     realtimeStats
   }), [
-    // 🚀 DEPENDÊNCIAS MÍNIMAS: Apenas valores primitivos e IDs
     contactsHook.contacts.length,
     contactsHook.isLoading,
     contactsHook.isLoadingMore,
@@ -339,8 +343,10 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     instanceHealth.score,
     realtimeStats.chatsConnected,
     realtimeStats.messagesConnected,
+    realtimeStats.contactsConnected,
     sendMessageWrapper,
-    messagesHook.refreshMessages
+    messagesHook.refreshMessages,
+    contactsHook.refreshContacts
   ]);
 
   return (

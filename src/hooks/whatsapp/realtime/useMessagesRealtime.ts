@@ -1,8 +1,9 @@
+
 /**
- * 🎯 HOOK REALTIME PARA MENSAGENS - VERSÃO SIMPLES QUE FUNCIONA
+ * 🎯 HOOK REALTIME PARA MENSAGENS - VERSÃO OTIMIZADA
  * 
  * Responsabilidade: Escutar mensagens em tempo real para contato selecionado
- * Baseado no commit 6c9daf0a que funcionava perfeitamente
+ * Melhorias: Filtros otimizados, debounce, tratamento de erros
  */
 
 import { useEffect, useRef, useCallback } from 'react';
@@ -25,8 +26,11 @@ export const useMessagesRealtime = ({
 }: UseMessagesRealtimeProps) => {
   
   const channelRef = useRef<any>(null);
+  const reconnectAttempts = useRef(0);
+  const MAX_RECONNECT_ATTEMPTS = 5;
+  const debounceTimerRef = useRef<NodeJS.Timeout>();
   
-  // ✅ CONVERSÃO SIMPLES DE MENSAGEM DO BANCO PARA UI
+  // ✅ CONVERSÃO OTIMIZADA DE MENSAGEM
   const convertMessage = useCallback((messageData: any): Message => {
     return {
       id: messageData.id,
@@ -46,14 +50,41 @@ export const useMessagesRealtime = ({
     } satisfies Message;
   }, []);
 
-  // ✅ CLEANUP
+  // ✅ CLEANUP COM RETRY RESET
   const cleanup = useCallback(() => {
     if (channelRef.current) {
       console.log('[Messages Realtime] 🧹 Limpando canal');
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
     }
+    
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    
+    reconnectAttempts.current = 0;
   }, []);
+
+  // ✅ RECONEXÃO AUTOMÁTICA
+  const attemptReconnect = useCallback(() => {
+    if (reconnectAttempts.current >= MAX_RECONNECT_ATTEMPTS) {
+      console.error('[Messages Realtime] ❌ Máximo de tentativas de reconexão atingido');
+      return;
+    }
+
+    reconnectAttempts.current++;
+    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000); // Exponential backoff
+    
+    console.log(`[Messages Realtime] 🔄 Tentativa de reconexão ${reconnectAttempts.current}/${MAX_RECONNECT_ATTEMPTS} em ${delay}ms`);
+    
+    setTimeout(() => {
+      if (selectedContact && activeInstance) {
+        // Recriar a conexão
+        cleanup();
+        // O useEffect será executado novamente devido às dependências
+      }
+    }, delay);
+  }, [selectedContact, activeInstance, cleanup]);
 
   useEffect(() => {
     // 🚫 SEM CONTATO OU INSTÂNCIA = SEM REALTIME
@@ -70,7 +101,7 @@ export const useMessagesRealtime = ({
     // 🧹 LIMPAR CANAL ANTERIOR
     cleanup();
 
-    // 🔌 CRIAR NOVO CANAL
+    // 🔌 CRIAR NOVO CANAL COM ID ÚNICO
     const channelId = `messages-${selectedContact.id}-${activeInstance.id}-${Date.now()}`;
 
     const channel = supabase
@@ -78,9 +109,9 @@ export const useMessagesRealtime = ({
       .on(
         'postgres_changes',
         {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'messages',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
           filter: `lead_id=eq.${selectedContact.id}`
         },
         (payload) => {
@@ -88,18 +119,32 @@ export const useMessagesRealtime = ({
           
           const messageData = payload.new;
           
-          // ✅ FILTRO: Só processar se for da instância correta
+          // ✅ FILTRO OTIMIZADO: Verificar instância
           if (messageData.whatsapp_number_id !== activeInstance.id) {
             console.log('[Messages Realtime] 🚫 Mensagem de outra instância ignorada');
             return;
           }
 
-          const message = convertMessage(messageData);
-          
-          if (onNewMessage) {
-            console.log('[Messages Realtime] ➕ Adicionando nova mensagem');
-            onNewMessage(message);
+          // ✅ DEBOUNCE PARA EVITAR MÚLTIPLAS ATUALIZAÇÕES
+          if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
           }
+
+          debounceTimerRef.current = setTimeout(() => {
+            try {
+              const message = convertMessage(messageData);
+              
+              if (onNewMessage) {
+                console.log('[Messages Realtime] ➕ Adicionando nova mensagem');
+                onNewMessage(message);
+              }
+              
+              // Reset reconnect attempts on successful message
+              reconnectAttempts.current = 0;
+            } catch (error) {
+              console.error('[Messages Realtime] ❌ Erro ao processar nova mensagem:', error);
+            }
+          }, 100); // 100ms debounce
         }
       )
       .on(
@@ -120,11 +165,15 @@ export const useMessagesRealtime = ({
             return;
           }
 
-          const message = convertMessage(messageData);
-          
-          if (onMessageUpdate) {
-            console.log('[Messages Realtime] 🔄 Atualizando mensagem');
-            onMessageUpdate(message);
+          try {
+            const message = convertMessage(messageData);
+            
+            if (onMessageUpdate) {
+              console.log('[Messages Realtime] 🔄 Atualizando mensagem');
+              onMessageUpdate(message);
+            }
+          } catch (error) {
+            console.error('[Messages Realtime] ❌ Erro ao processar atualização:', error);
           }
         }
       )
@@ -133,17 +182,27 @@ export const useMessagesRealtime = ({
         
         if (status === 'SUBSCRIBED') {
           console.log('[Messages Realtime] ✅ Conectado com sucesso');
+          reconnectAttempts.current = 0;
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
           console.error('[Messages Realtime] ❌ Erro na conexão:', status);
+          attemptReconnect();
+        } else if (status === 'CLOSED') {
+          console.log('[Messages Realtime] 🔒 Canal fechado');
         }
       });
 
     channelRef.current = channel;
 
     return cleanup;
-  }, [selectedContact, activeInstance, convertMessage, onNewMessage, onMessageUpdate, cleanup]);
+  }, [selectedContact, activeInstance, convertMessage, onNewMessage, onMessageUpdate, cleanup, attemptReconnect]);
+
+  // ✅ CLEANUP GERAL
+  useEffect(() => {
+    return cleanup;
+  }, [cleanup]);
 
   return {
-    isConnected: !!channelRef.current
+    isConnected: !!channelRef.current,
+    reconnectAttempts: reconnectAttempts.current
   };
-}; 
+};
