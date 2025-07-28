@@ -1,5 +1,5 @@
 
-import React, { memo, useRef } from 'react';
+import React, { memo } from 'react';
 import { Message } from '@/types/chat';
 import { useScrollDetection } from './messages/hooks/useScrollDetection';
 import { useMessagesList } from './messages/hooks/useMessagesList';
@@ -8,6 +8,7 @@ import { MessagesLoadingIndicator } from './messages/components/MessagesLoadingI
 import { LoadMoreIndicator } from './messages/components/LoadMoreIndicator';
 import { EmptyMessagesState } from './messages/components/EmptyMessagesState';
 import { ConversationStartIndicator } from './messages/components/ConversationStartIndicator';
+import { cn } from '@/lib/utils';
 
 interface WhatsAppMessagesListProps {
   messages: Message[];
@@ -24,7 +25,7 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
   hasMoreMessages = false,
   onLoadMore
 }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = React.useRef<HTMLDivElement>(null);
 
   // Hook para detectar scroll e carregar mais mensagens
   const { isNearTop } = useScrollDetection({
@@ -62,9 +63,9 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
         scrollPaddingBottom: '16px'
       }}
     >
-      {/* ✅ LOADING OVERLAY - NÃO SUBSTITUI O CONTEÚDO */}
-      {isLoading && (
-        <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-10 flex items-center justify-center">
+      {/* ✅ SKELETON LOADING - APENAS CARREGAMENTO INICIAL */}
+      {isLoading && messages.length === 0 && (
+        <div className="flex items-center justify-center h-full">
           <MessagesLoadingIndicator />
         </div>
       )}
@@ -82,13 +83,22 @@ export const WhatsAppMessagesList: React.FC<WhatsAppMessagesListProps> = memo(({
       <div className="space-y-2 px-4">
         {messagesList.map((message, index) => {
           const isNewMessage = index === messagesList.length - 1;
+          const isOptimistic = (message as any).isOptimistic;
           
           return (
-            <MessageItem
+            <div
               key={message.id}
-              message={message}
-              isNewMessage={isNewMessage}
-            />
+              className={cn(
+                "transition-all duration-300 ease-in-out",
+                isNewMessage && !isOptimistic && "animate-in slide-in-from-bottom-2",
+                isOptimistic && "opacity-80"
+              )}
+            >
+              <MessageItem
+                message={message}
+                isNewMessage={isNewMessage}
+              />
+            </div>
           );
         })}
       </div>

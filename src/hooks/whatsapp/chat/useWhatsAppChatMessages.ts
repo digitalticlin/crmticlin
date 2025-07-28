@@ -4,12 +4,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { Contact, Message } from '@/types/chat';
 import { WhatsAppWebInstance } from '@/types/whatsapp';
 import { useMessagesRealtime } from '../realtime/useMessagesRealtime';
+import { MessageSendingService } from '@/services/whatsapp/services/messageSendingService';
 import { toast } from 'sonner';
 
 interface UseWhatsAppChatMessagesProps {
   selectedContact: Contact | null;
   activeInstance: WhatsAppWebInstance | null;
   onContactUpdate?: (contactId: string, lastMessage: string, timestamp: string) => void;
+}
+
+interface OptimisticMessage extends Message {
+  isOptimistic: true;
+  tempId: string;
+  sendingAttempt: number;
 }
 
 export const useWhatsAppChatMessages = ({
@@ -25,9 +32,9 @@ export const useWhatsAppChatMessages = ({
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesMapRef = useRef<Map<string, Message>>(new Map());
   const MESSAGES_PER_PAGE = 20;
   const abortControllerRef = useRef<AbortController | null>(null);
-  const loadingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastContactIdRef = useRef<string | null>(null);
   
   // ✅ CONVERSÃO OTIMIZADA DE MENSAGEM
@@ -60,30 +67,8 @@ export const useWhatsAppChatMessages = ({
     } satisfies Message;
   }, []);
 
-  // ✅ TIMEOUT PARA EVITAR LOADING INFINITO
-  const setLoadingWithTimeout = useCallback((loading: boolean) => {
-    setIsLoadingMessages(loading);
-    
-    if (loading) {
-      // Timeout máximo de 15 segundos
-      loadingTimeoutRef.current = setTimeout(() => {
-        console.log('[Chat Messages] ⏰ Timeout: Forçando fim do loading');
-        setIsLoadingMessages(false);
-        setError('Timeout ao carregar mensagens');
-        toast.error('Timeout ao carregar mensagens');
-      }, 15000);
-    } else {
-      // Limpar timeout se loading finalizar antes
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
-        loadingTimeoutRef.current = null;
-      }
-    }
-  }, []);
-
-  // ✅ FUNÇÃO DE BUSCA SIMPLIFICADA
+  // ✅ BUSCA DE MENSAGENS SIMPLIFICADA
   const fetchMessages = useCallback(async (contactId: string, instanceId: string, offset = 0) => {
-    // Cancelar requisição anterior
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -110,7 +95,16 @@ export const useWhatsAppChatMessages = ({
           media_type,
           media_url,
           lead_id,
-          whatsapp_number_id
+          whatsapp_number_id,
+          media_cache (
+            id,
+            base64_data,
+            original_url,
+            cached_url,
+            file_size,
+            media_type,
+            file_name
+          )
         `)
         .eq('lead_id', contactId)
         .eq('whatsapp_number_id', instanceId)
@@ -118,10 +112,7 @@ export const useWhatsAppChatMessages = ({
         .range(offset, offset + MESSAGES_PER_PAGE - 1)
         .abortSignal(controller.signal);
 
-      if (messagesError) {
-        console.error('[Chat Messages] ❌ Erro ao buscar mensagens:', messagesError);
-        throw messagesError;
-      }
+      if (messagesError) throw messagesError;
 
       const convertedMessages = (messagesData || []).map(convertMessage);
       
@@ -152,7 +143,7 @@ export const useWhatsAppChatMessages = ({
       
       try {
         messagesEndRef.current.scrollIntoView({ 
-          behavior: 'instant',
+          behavior: 'smooth',
           block: 'end',
           inline: 'nearest'
         });
@@ -163,23 +154,23 @@ export const useWhatsAppChatMessages = ({
       }
     };
 
-    // Múltiplas tentativas com timings diferentes
     scrollToEnd(0);
     setTimeout(() => scrollToEnd(1), 100);
     setTimeout(() => scrollToEnd(2), 300);
   }, []);
 
-  // ✅ CARREGAR MENSAGENS INICIAIS SIMPLIFICADO
+  // ✅ CARREGAR MENSAGENS INICIAIS
   const loadInitialMessages = useCallback(async () => {
     if (!selectedContact || !activeInstance) {
       setMessages([]);
       setHasMoreMessages(true);
+      messagesMapRef.current.clear();
       return;
     }
 
     console.log('[Chat Messages] 🚀 Carregando mensagens iniciais');
     
-    setLoadingWithTimeout(true);
+    setIsLoadingMessages(true);
     setError(null);
 
     try {
@@ -187,36 +178,34 @@ export const useWhatsAppChatMessages = ({
       
       const sortedMessages = result.messages.reverse();
       
+      // ✅ ATUALIZAR MAP INTERNO
+      messagesMapRef.current.clear();
+      sortedMessages.forEach(msg => {
+        messagesMapRef.current.set(msg.id, msg);
+      });
+      
       setMessages(sortedMessages);
       setHasMoreMessages(result.hasMore);
       
       console.log('[Chat Messages] ✅ Mensagens carregadas com sucesso:', sortedMessages.length);
       
-      // Scroll automático após carregar
-      setTimeout(() => scrollToBottom(), 50);
+      setTimeout(() => scrollToBottom(), 100);
       
     } catch (error: any) {
-      const errorMessage = typeof error === 'string' ? error : (error?.message || 'Erro desconhecido');
-      
-      if (errorMessage === 'Request cancelled') {
-        console.log('[Chat Messages] ⏹️ Cancelado');
-        return;
-      }
+      if (error.message === 'Request cancelled') return;
 
       console.error('[Chat Messages] ❌ Erro ao carregar mensagens:', error);
       setError('Erro ao carregar mensagens');
       setMessages([]);
       toast.error('Falha ao carregar mensagens');
     } finally {
-      setLoadingWithTimeout(false);
+      setIsLoadingMessages(false);
     }
-  }, [selectedContact?.id, activeInstance?.id, fetchMessages, scrollToBottom, setLoadingWithTimeout]);
+  }, [selectedContact?.id, activeInstance?.id, fetchMessages, scrollToBottom]);
 
   // ✅ CARREGAR MAIS MENSAGENS
   const loadMoreMessages = useCallback(async () => {
-    if (!selectedContact || !activeInstance || !hasMoreMessages || isLoadingMore) {
-      return;
-    }
+    if (!selectedContact || !activeInstance || !hasMoreMessages || isLoadingMore) return;
 
     setIsLoadingMore(true);
 
@@ -225,6 +214,12 @@ export const useWhatsAppChatMessages = ({
       
       if (result.messages.length > 0) {
         const sortedNewMessages = result.messages.reverse();
+        
+        // ✅ ATUALIZAR MAP INTERNO
+        sortedNewMessages.forEach(msg => {
+          messagesMapRef.current.set(msg.id, msg);
+        });
+        
         setMessages(prev => [...sortedNewMessages, ...prev]);
         setHasMoreMessages(result.hasMore);
       } else {
@@ -232,9 +227,7 @@ export const useWhatsAppChatMessages = ({
       }
       
     } catch (error: any) {
-      const errorMessage = typeof error === 'string' ? error : (error?.message || 'Erro desconhecido');
-      
-      if (errorMessage !== 'Request cancelled') {
+      if (error.message !== 'Request cancelled') {
         console.error('[Chat Messages] ❌ Erro ao carregar mais mensagens:', error);
         toast.error('Erro ao carregar mais mensagens');
       }
@@ -243,7 +236,7 @@ export const useWhatsAppChatMessages = ({
     }
   }, [selectedContact, activeInstance, messages.length, hasMoreMessages, isLoadingMore, fetchMessages]);
 
-  // ✅ ENVIAR MENSAGEM
+  // ✅ ENVIAR MENSAGEM COM UI OTIMISTA
   const sendMessage = useCallback(async (messageText: string, media?: { file: File; type: string }) => {
     if (!selectedContact || !activeInstance) {
       toast.error('Contato ou instância não selecionada');
@@ -255,26 +248,45 @@ export const useWhatsAppChatMessages = ({
       return false;
     }
 
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMessage: OptimisticMessage = {
+      id: tempId,
+      tempId,
+      text: messageText.trim(),
+      fromMe: true,
+      timestamp: new Date().toISOString(),
+      status: 'sending',
+      mediaType: media?.type || 'text',
+      sender: 'user',
+      time: new Date().toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      isIncoming: false,
+      isOptimistic: true,
+      sendingAttempt: 1
+    };
+
+    // ✅ UI OTIMISTA: Adicionar mensagem imediatamente
+    setMessages(prev => [...prev, optimisticMessage]);
     setIsSendingMessage(true);
     
+    setTimeout(() => scrollToBottom(), 50);
+
     try {
-      const { data, error } = await supabase.functions.invoke('send_whatsapp_message', {
-        body: {
-          instanceId: activeInstance.id,
-          contactId: selectedContact.id,
-          message: messageText.trim(),
-          media: media ? {
-            file: media.file,
-            type: media.type
-          } : undefined
-        }
-      });
+      // ✅ ENVIAR COM RETRY AUTOMÁTICO
+      const result = await MessageSendingService.sendMessageWithRetry(
+        activeInstance.id,
+        selectedContact.id,
+        messageText.trim(),
+        media
+      );
 
-      if (error) throw error;
-
-      if (data?.success) {
-        console.log('[Chat Messages] ✅ Mensagem enviada');
-        toast.success('Mensagem enviada!');
+      if (result.success) {
+        console.log('[Chat Messages] ✅ Mensagem enviada com sucesso');
+        
+        // ✅ REMOVER MENSAGEM OTIMISTA (será substituída pelo realtime)
+        setMessages(prev => prev.filter(msg => msg.id !== tempId));
         
         if (onContactUpdate) {
           onContactUpdate(selectedContact.id, messageText, new Date().toISOString());
@@ -282,47 +294,66 @@ export const useWhatsAppChatMessages = ({
         
         return true;
       } else {
-        throw new Error(data?.error || 'Falha ao enviar mensagem');
+        // ✅ MARCAR COMO FALHA
+        setMessages(prev => prev.map(msg => 
+          msg.id === tempId ? { ...msg, status: 'failed' as const } : msg
+        ));
+        
+        throw new Error(result.error || 'Falha ao enviar mensagem');
       }
 
     } catch (error: any) {
       console.error('[Chat Messages] ❌ Erro ao enviar:', error);
-      const errorMessage = typeof error === 'string' ? error : (error?.message || 'Erro desconhecido');
-      toast.error(`Erro ao enviar mensagem: ${errorMessage}`);
+      
+      // ✅ MARCAR COMO FALHA
+      setMessages(prev => prev.map(msg => 
+        msg.id === tempId ? { ...msg, status: 'failed' as const } : msg
+      ));
+      
+      toast.error(`Erro ao enviar mensagem: ${error.message}`);
       return false;
     } finally {
       setIsSendingMessage(false);
     }
-  }, [selectedContact, activeInstance, onContactUpdate]);
+  }, [selectedContact, activeInstance, onContactUpdate, scrollToBottom]);
 
-  // ✅ CALLBACKS PARA REALTIME
+  // ✅ CALLBACKS PARA REALTIME BASEADO EM EVENTOS
   const handleNewMessage = useCallback((newMessage: Message) => {
-    console.log('[Chat Messages] 📨 Nova mensagem via realtime:', newMessage.id);
+    console.log('[Chat Messages] 📨 Nova mensagem via realtime (INSERT):', newMessage.id);
+    
+    // ✅ VERIFICAR SE JÁ EXISTE (evitar duplicatas)
+    if (messagesMapRef.current.has(newMessage.id)) {
+      console.log('[Chat Messages] ⚠️ Mensagem duplicada ignorada:', newMessage.id);
+      return;
+    }
+    
+    // ✅ ADICIONAR AO MAP
+    messagesMapRef.current.set(newMessage.id, newMessage);
     
     setMessages(prev => {
-      const exists = prev.some(msg => msg.id === newMessage.id);
-      if (exists) {
-        console.log('[Chat Messages] ⚠️ Mensagem duplicada ignorada:', newMessage.id);
-        return prev;
-      }
-      
-      if (onContactUpdate && !newMessage.fromMe) {
-        onContactUpdate(
-          selectedContact?.id || '',
-          newMessage.text,
-          newMessage.timestamp || new Date().toISOString()
-        );
-      }
-      
-      return [...prev, newMessage];
+      // ✅ REMOVER MENSAGEM OTIMISTA SE EXISTIR
+      const filteredMessages = prev.filter(msg => !msg.isOptimistic);
+      return [...filteredMessages, newMessage];
     });
     
-    // Scroll automático para novas mensagens
+    // ✅ ATUALIZAR CONTATO SE MENSAGEM RECEBIDA
+    if (onContactUpdate && !newMessage.fromMe) {
+      onContactUpdate(
+        selectedContact?.id || '',
+        newMessage.text,
+        newMessage.timestamp || new Date().toISOString()
+      );
+    }
+    
+    // ✅ SCROLL AUTOMÁTICO PARA NOVAS MENSAGENS
     setTimeout(() => scrollToBottom(), 100);
   }, [onContactUpdate, selectedContact?.id, scrollToBottom]);
 
   const handleMessageUpdate = useCallback((updatedMessage: Message) => {
-    console.log('[Chat Messages] 🔄 Mensagem atualizada:', updatedMessage.id);
+    console.log('[Chat Messages] 🔄 Mensagem atualizada via realtime (UPDATE):', updatedMessage.id);
+    
+    // ✅ ATUALIZAR MAP
+    messagesMapRef.current.set(updatedMessage.id, updatedMessage);
     
     setMessages(prev => 
       prev.map(msg => 
@@ -339,7 +370,7 @@ export const useWhatsAppChatMessages = ({
     onMessageUpdate: handleMessageUpdate
   });
 
-  // ✅ EFEITO PRINCIPAL - LIMPAR CACHE AO TROCAR CONTATO
+  // ✅ EFEITO PRINCIPAL
   useEffect(() => {
     const currentContactId = selectedContact?.id;
     
@@ -362,9 +393,6 @@ export const useWhatsAppChatMessages = ({
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
-      }
-      if (loadingTimeoutRef.current) {
-        clearTimeout(loadingTimeoutRef.current);
       }
     };
   }, []);
