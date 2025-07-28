@@ -13,6 +13,7 @@ export const useMessagesList = ({ messages, isLoadingMore }: UseMessagesListProp
   const prevLastMessageIdRef = useRef<string | null>(null);
   const isInitialLoadRef = useRef(true);
 
+  // ✅ FUNÇÃO DE SCROLL OTIMIZADA
   const scrollToBottom = useRef(() => {
     if (!messagesEndRef.current) return;
     
@@ -29,19 +30,24 @@ export const useMessagesList = ({ messages, isLoadingMore }: UseMessagesListProp
     }
   }).current;
 
+  // ✅ SCROLL AUTOMÁTICO ROBUSTO
   useEffect(() => {
     const wasNewMessage = messages.length > prevMessagesLengthRef.current;
     const wasInitialLoad = isInitialLoadRef.current && messages.length > 0;
     
+    // Verificar se houve mudança na última mensagem
     const currentLastMessage = messages[messages.length - 1];
     const lastMessageChanged = currentLastMessage?.id !== prevLastMessageIdRef.current;
     
+    // Atualizar refs
     prevMessagesLengthRef.current = messages.length;
     prevLastMessageIdRef.current = currentLastMessage?.id || null;
 
+    // ✅ SCROLL PARA CARREGAMENTO INICIAL
     if (wasInitialLoad) {
       console.log('[useMessagesList] 🚀 Carregamento inicial - scroll instantâneo');
       
+      // Múltiplas tentativas de scroll
       setTimeout(() => scrollToBottom(), 0);
       setTimeout(() => scrollToBottom(), 100);
       setTimeout(() => scrollToBottom(), 300);
@@ -50,6 +56,7 @@ export const useMessagesList = ({ messages, isLoadingMore }: UseMessagesListProp
       return;
     }
 
+    // ✅ SCROLL PARA NOVAS MENSAGENS
     if ((wasNewMessage || lastMessageChanged) && !isLoadingMore) {
       console.log('[useMessagesList] 📨 Nova mensagem - scroll automático');
       
@@ -57,6 +64,7 @@ export const useMessagesList = ({ messages, isLoadingMore }: UseMessagesListProp
     }
   }, [messages.length, isLoadingMore, scrollToBottom]);
 
+  // ✅ MENSAGENS MEMOIZADAS
   const messagesList = useMemo(() => {
     if (messages.length === 0) return [];
     

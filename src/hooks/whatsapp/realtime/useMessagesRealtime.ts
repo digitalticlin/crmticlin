@@ -11,16 +11,14 @@ interface UseMessagesRealtimeProps {
   onMessageUpdate?: (message: Message) => void;
 }
 
-// ✅ SINGLETON OTIMIZADO PARA REALTIME
+// ✅ SINGLETON PARA EVITAR MÚLTIPLOS CANAIS
 const realtimeManager = {
   currentChannel: null as any,
   currentConfig: '',
   setupPromise: null as Promise<void> | null,
   isSettingUp: false,
   lastSetup: 0,
-  cleanupTimeout: null as NodeJS.Timeout | null,
-  connectionAttempts: 0,
-  maxAttempts: 3
+  cleanupTimeout: null as NodeJS.Timeout | null
 };
 
 export const useMessagesRealtime = ({
@@ -33,11 +31,10 @@ export const useMessagesRealtime = ({
   const isConnectedRef = useRef(false);
   const debounceTimerRef = useRef<NodeJS.Timeout>();
   const isMountedRef = useRef(true);
-  const retryTimeoutRef = useRef<NodeJS.Timeout>();
   
-  // ✅ CONVERSÃO OTIMIZADA COM LOGS DETALHADOS
+  // ✅ CONVERSÃO OTIMIZADA DE MENSAGEM - ESTÁVEL
   const convertMessage = useCallback((messageData: any): Message => {
-    const message = {
+    return {
       id: messageData.id,
       text: messageData.text || '',
       fromMe: messageData.from_me || false,
@@ -53,34 +50,20 @@ export const useMessagesRealtime = ({
       isIncoming: !messageData.from_me,
       media_cache: messageData.media_cache || null
     } satisfies Message;
-
-    console.log('[Messages Realtime] 🔄 Mensagem convertida:', {
-      id: message.id,
-      fromMe: message.fromMe,
-      text: message.text.substring(0, 50) + '...',
-      timestamp: message.timestamp
-    });
-
-    return message;
   }, []);
 
-  // ✅ CLEANUP MELHORADO COM RETRY RESET
+  // ✅ CLEANUP CONTROLADO GLOBAL
   const cleanup = useCallback(() => {
     if (realtimeManager.cleanupTimeout) {
       clearTimeout(realtimeManager.cleanupTimeout);
       realtimeManager.cleanupTimeout = null;
     }
     
-    if (retryTimeoutRef.current) {
-      clearTimeout(retryTimeoutRef.current);
-      retryTimeoutRef.current = null;
-    }
-    
     if (realtimeManager.currentChannel) {
-      console.log('[Messages Realtime] 🧹 Limpando canal realtime');
+      console.log('[Messages Realtime] 🧹 Iniciando cleanup');
       try {
         supabase.removeChannel(realtimeManager.currentChannel);
-        console.log('[Messages Realtime] 🔌 Canal removido com sucesso');
+        console.log('[Messages Realtime] 🔌 Canal removido');
       } catch (error) {
         console.warn('[Messages Realtime] ⚠️ Erro ao remover canal:', error);
       } finally {
@@ -88,41 +71,23 @@ export const useMessagesRealtime = ({
         realtimeManager.currentConfig = '';
         realtimeManager.isSettingUp = false;
         realtimeManager.setupPromise = null;
-        realtimeManager.connectionAttempts = 0;
         isConnectedRef.current = false;
+        console.log('[Messages Realtime] ✅ Cleanup concluído');
       }
     }
   }, []);
 
-  // ✅ HANDLER OTIMIZADO COM DEBOUNCE REDUZIDO (50ms)
+  // ✅ HANDLERS ESTÁVEIS
   const handleNewMessage = useCallback((payload: any) => {
-    if (!payload?.new || !selectedContact || !activeInstance || !isMountedRef.current) {
-      console.log('[Messages Realtime] ⚠️ Payload inválido ou contexto perdido');
-      return;
-    }
+    if (!payload?.new || !selectedContact || !activeInstance || !isMountedRef.current) return;
     
     const messageData = payload.new;
     
-    // ✅ FILTROS RIGOROSOS COM LOGS
-    if (messageData.whatsapp_number_id !== activeInstance.id) {
-      console.log('[Messages Realtime] ⚠️ Mensagem de instância diferente ignorada');
-      return;
-    }
-    
-    if (messageData.lead_id !== selectedContact.id) {
-      console.log('[Messages Realtime] ⚠️ Mensagem de contato diferente ignorada');
-      return;
-    }
+    // ✅ FILTROS RIGOROSOS
+    if (messageData.whatsapp_number_id !== activeInstance.id) return;
+    if (messageData.lead_id !== selectedContact.id) return;
 
-    console.log('[Messages Realtime] 📨 Nova mensagem recebida via realtime:', {
-      messageId: messageData.id,
-      leadId: messageData.lead_id,
-      instanceId: messageData.whatsapp_number_id,
-      fromMe: messageData.from_me,
-      text: messageData.text?.substring(0, 30) + '...'
-    });
-
-    // ✅ DEBOUNCE REDUZIDO PARA 50ms (mais responsivo)
+    // ✅ DEBOUNCE MAIS AGRESSIVO
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
@@ -133,13 +98,13 @@ export const useMessagesRealtime = ({
       try {
         const message = convertMessage(messageData);
         if (onNewMessage) {
-          console.log('[Messages Realtime] ✅ Processando nova mensagem:', message.id);
+          console.log('[Messages Realtime] ➕ Nova mensagem processada:', message.id);
           onNewMessage(message);
         }
       } catch (error) {
         console.error('[Messages Realtime] ❌ Erro ao processar mensagem:', error);
       }
-    }, 50); // ✅ REDUZIDO DE 150ms PARA 50ms
+    }, 150); // Debounce de 150ms
   }, [selectedContact?.id, activeInstance?.id, convertMessage, onNewMessage]);
 
   const handleMessageUpdate = useCallback((payload: any) => {
@@ -147,14 +112,14 @@ export const useMessagesRealtime = ({
     
     const messageData = payload.new;
     
+    // ✅ FILTROS RIGOROSOS
     if (messageData.whatsapp_number_id !== activeInstance.id) return;
     if (messageData.lead_id !== selectedContact.id) return;
-
-    console.log('[Messages Realtime] 🔄 Mensagem atualizada via realtime:', messageData.id);
 
     try {
       const message = convertMessage(messageData);
       if (onMessageUpdate) {
+        console.log('[Messages Realtime] 🔄 Mensagem atualizada:', message.id);
         onMessageUpdate(message);
       }
     } catch (error) {
@@ -162,24 +127,7 @@ export const useMessagesRealtime = ({
     }
   }, [selectedContact?.id, activeInstance?.id, convertMessage, onMessageUpdate]);
 
-  // ✅ RETRY AUTOMÁTICO PARA FALHAS DE CONEXÃO
-  const retryConnection = useCallback(() => {
-    if (realtimeManager.connectionAttempts < realtimeManager.maxAttempts) {
-      realtimeManager.connectionAttempts++;
-      console.log(`[Messages Realtime] 🔄 Tentativa de reconexão ${realtimeManager.connectionAttempts}/${realtimeManager.maxAttempts}`);
-      
-      retryTimeoutRef.current = setTimeout(() => {
-        if (isMountedRef.current) {
-          cleanup();
-          setupRealtime();
-        }
-      }, 2000 * realtimeManager.connectionAttempts); // Backoff exponencial
-    } else {
-      console.error('[Messages Realtime] ❌ Máximo de tentativas de reconexão atingido');
-    }
-  }, []);
-
-  // ✅ SETUP OTIMIZADO COM RETRY AUTOMÁTICO
+  // ✅ SETUP OTIMIZADO COM DEBOUNCE
   const setupRealtime = useCallback(async () => {
     if (!selectedContact || !activeInstance) {
       cleanup();
@@ -190,20 +138,20 @@ export const useMessagesRealtime = ({
     const now = Date.now();
     
     // ✅ EVITAR SETUP DESNECESSÁRIO
-    if (realtimeManager.currentConfig === currentConfig && 
-        realtimeManager.currentChannel && 
-        isConnectedRef.current) {
-      console.log('[Messages Realtime] ✅ Canal já ativo para esta configuração');
+    if (realtimeManager.currentConfig === currentConfig && realtimeManager.currentChannel) {
+      console.log('[Messages Realtime] ⚠️ Configuração inalterada, mantendo canal atual');
       return;
     }
     
-    // ✅ DEBOUNCE SETUP REDUZIDO
-    if (now - realtimeManager.lastSetup < 100) {
+    // ✅ DEBOUNCE SETUP
+    if (now - realtimeManager.lastSetup < 200) {
       console.log('[Messages Realtime] ⏳ Aguardando debounce...');
       return;
     }
     
+    // ✅ EVITAR SETUP CONCORRENTE
     if (realtimeManager.isSettingUp) {
+      console.log('[Messages Realtime] ⚠️ Setup em progresso, aguardando...');
       if (realtimeManager.setupPromise) {
         await realtimeManager.setupPromise;
       }
@@ -213,19 +161,19 @@ export const useMessagesRealtime = ({
     realtimeManager.isSettingUp = true;
     realtimeManager.lastSetup = now;
     
-    console.log('[Messages Realtime] 🚀 Configurando realtime otimizado:', {
+    console.log('[Messages Realtime] 🚀 Configurando realtime para:', {
       contactId: selectedContact.id.substring(0, 8),
-      instanceId: activeInstance.id.substring(0, 8),
-      attempt: realtimeManager.connectionAttempts + 1
+      instanceId: activeInstance.id.substring(0, 8)
     });
 
+    // Cleanup anterior
     cleanup();
 
-    // ✅ AUTO-CLEANUP OTIMIZADO
+    // ✅ AUTO-CLEANUP APÓS 5 MINUTOS
     realtimeManager.cleanupTimeout = setTimeout(() => {
       console.log('[Messages Realtime] ⏰ Auto-cleanup por timeout');
       cleanup();
-    }, 300000); // 5 minutos
+    }, 300000);
 
     try {
       const channelId = `messages-${selectedContact.id}-${activeInstance.id}-${now}`;
@@ -253,18 +201,17 @@ export const useMessagesRealtime = ({
           handleMessageUpdate
         )
         .subscribe((status) => {
-          console.log('[Messages Realtime] 📡 Status da conexão:', status);
+          console.log('[Messages Realtime] 📡 Status:', status);
           
           if (status === 'SUBSCRIBED') {
-            console.log('[Messages Realtime] ✅ Conectado com sucesso ao realtime');
+            console.log('[Messages Realtime] ✅ Conectado com sucesso');
             isConnectedRef.current = true;
             realtimeManager.currentChannel = channel;
             realtimeManager.currentConfig = currentConfig;
-            realtimeManager.connectionAttempts = 0; // Reset contador
           } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
             console.error('[Messages Realtime] ❌ Erro na conexão:', status);
             isConnectedRef.current = false;
-            retryConnection();
+            cleanup();
           } else if (status === 'CLOSED') {
             console.log('[Messages Realtime] 🔒 Canal fechado');
             isConnectedRef.current = false;
@@ -272,33 +219,31 @@ export const useMessagesRealtime = ({
         });
 
     } catch (error) {
-      console.error('[Messages Realtime] ❌ Erro crítico ao criar canal:', error);
-      retryConnection();
+      console.error('[Messages Realtime] ❌ Erro ao criar canal:', error);
+      cleanup();
     } finally {
       realtimeManager.isSettingUp = false;
     }
-  }, [selectedContact?.id, activeInstance?.id, handleNewMessage, handleMessageUpdate, cleanup, retryConnection]);
+  }, [selectedContact?.id, activeInstance?.id, handleNewMessage, handleMessageUpdate, cleanup]);
 
-  // ✅ EFEITO PRINCIPAL COM DEBOUNCE REDUZIDO
+  // ✅ EFEITO PRINCIPAL COM DEBOUNCE
   useEffect(() => {
     isMountedRef.current = true;
     
+    // Debounce setup para evitar múltiplas chamadas
     const setupTimer = setTimeout(() => {
       if (isMountedRef.current) {
         setupRealtime();
       }
-    }, 50); // ✅ REDUZIDO DE 100ms PARA 50ms
+    }, 100);
 
     return () => {
       clearTimeout(setupTimer);
       isMountedRef.current = false;
       
+      // Limpar debounce
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
-      }
-      
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
       }
     };
   }, [setupRealtime]);
@@ -310,15 +255,10 @@ export const useMessagesRealtime = ({
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
-      }
     };
   }, []);
 
   return {
-    isConnected: isConnectedRef.current,
-    connectionAttempts: realtimeManager.connectionAttempts,
-    maxAttempts: realtimeManager.maxAttempts
+    isConnected: isConnectedRef.current
   };
 };
