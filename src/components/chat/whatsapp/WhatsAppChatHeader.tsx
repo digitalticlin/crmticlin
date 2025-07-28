@@ -1,56 +1,81 @@
 
 import React from 'react';
-import { useWhatsAppChatContext } from './WhatsAppChatProvider';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Phone, Video, MoreVertical } from 'lucide-react';
+import { Contact } from '@/types/chat';
+import { ArrowLeft, MoreVertical, RefreshCw, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { TiclinAvatar } from '@/components/ui/ticlin-avatar';
 
-export const WhatsAppChatHeader = () => {
-  const { selectedContact, instanceHealth } = useWhatsAppChatContext();
+interface WhatsAppChatHeaderProps {
+  selectedContact?: Contact & { leadId?: string };
+  onBack?: () => void;
+  onEditLead?: () => void;
+  onRefreshMessages?: () => void;
+  isRefreshing?: boolean;
+}
+
+export const WhatsAppChatHeader = ({ 
+  selectedContact, 
+  onBack, 
+  onEditLead, 
+  onRefreshMessages,
+  isRefreshing = false 
+}: WhatsAppChatHeaderProps) => {
+  if (!selectedContact) {
+    return (
+      <div className="flex items-center justify-between p-4 bg-white/10 backdrop-blur-sm border-b border-white/20">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-gray-200 animate-pulse" />
+          <div>
+            <div className="w-24 h-4 bg-gray-200 rounded animate-pulse" />
+            <div className="w-16 h-3 bg-gray-200 rounded animate-pulse mt-1" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex items-center justify-between p-4 border-b bg-white">
+    <div className="flex items-center justify-between p-4 bg-white/10 backdrop-blur-sm border-b border-white/20">
       <div className="flex items-center gap-3">
-        {selectedContact ? (
-          <>
-            <Avatar>
-              <AvatarImage src={selectedContact.avatar} />
-              <AvatarFallback>
-                {selectedContact.name.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h3 className="font-medium">{selectedContact.name}</h3>
-              <p className="text-sm text-gray-500">{selectedContact.phone}</p>
-            </div>
-          </>
-        ) : (
-          <div>
-            <h3 className="font-medium">WhatsApp Chat</h3>
-            <p className="text-sm text-gray-500">Selecione um contato</p>
-          </div>
+        {onBack && (
+          <Button variant="ghost" size="sm" onClick={onBack}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
         )}
+        <TiclinAvatar
+          profilePicUrl={selectedContact.profilePicUrl}
+          name={selectedContact.name || selectedContact.phone}
+          size="sm"
+        />
+        <div>
+          <h3 className="font-medium text-white">
+            {selectedContact.name || selectedContact.phone}
+          </h3>
+          <p className="text-sm text-white/60">
+            {selectedContact.isOnline ? 'Online' : 'Offline'}
+          </p>
+        </div>
       </div>
-
+      
       <div className="flex items-center gap-2">
-        <Badge variant={instanceHealth.isHealthy ? "default" : "destructive"}>
-          {instanceHealth.connectedInstances}/{instanceHealth.totalInstances} conectado
-        </Badge>
-        
-        {selectedContact && (
-          <div className="flex gap-1">
-            <Button variant="ghost" size="sm">
-              <Phone className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="sm">
-              <Video className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="sm">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </div>
+        {onRefreshMessages && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onRefreshMessages}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </Button>
         )}
+        {onEditLead && (
+          <Button variant="ghost" size="sm" onClick={onEditLead}>
+            <Edit className="h-4 w-4" />
+          </Button>
+        )}
+        <Button variant="ghost" size="sm">
+          <MoreVertical className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   );
