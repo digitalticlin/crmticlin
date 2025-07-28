@@ -31,8 +31,8 @@ export const ContactItem = ({
     onSelect(contact);
   };
 
-  const lastMessageTime = contact.last_message_at 
-    ? formatDistanceToNow(new Date(contact.last_message_at), { 
+  const lastMessageTime = contact.lastMessageTime 
+    ? formatDistanceToNow(new Date(contact.lastMessageTime), { 
         addSuffix: true, 
         locale: ptBR 
       })
@@ -48,7 +48,7 @@ export const ContactItem = ({
     >
       <div className="relative">
         <TiclinAvatar
-          profilePicUrl={contact.profile_pic_url}
+          profilePicUrl={contact.profilePicUrl}
           name={contact.name}
           size="md"
         />
@@ -69,7 +69,7 @@ export const ContactItem = ({
         
         <div className="flex items-center justify-between mt-1">
           <p className="text-sm text-white/70 truncate">
-            {contact.last_message || 'Sem mensagens'}
+            {contact.lastMessage || 'Sem mensagens'}
           </p>
           {lastMessageTime && (
             <span className="text-xs text-white/50 ml-2">

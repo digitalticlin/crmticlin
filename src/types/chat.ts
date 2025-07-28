@@ -45,8 +45,10 @@ export interface MediaCache {
   id: string;
   base64_data?: string | null;
   original_url?: string | null;
+  cached_url?: string | null;
   file_size?: number | null;
   media_type?: string | null;
+  file_name?: string | null;
 }
 
 export interface Message {

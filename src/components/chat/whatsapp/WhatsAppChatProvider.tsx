@@ -129,13 +129,16 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
   const contactsHook = useWhatsAppContacts(webActiveInstance?.id);
   
   // ✅ CALLBACK PARA MOVER CONTATOS: Notificação vinda das mensagens
-  const handleContactUpdateFromMessages = useCallback((leadId: string, newMessage: any) => {
-    console.log('[Provider] 🔝 Recebendo notificação de nova mensagem para mover contato:', { leadId, newMessage });
-    contactsHook.moveContactToTop(leadId, newMessage);
+  const handleContactUpdateFromMessages = useCallback((leadId: string) => {
+    console.log('[Provider] 🔝 Recebendo notificação de nova mensagem para mover contato:', { leadId });
+    contactsHook.moveContactToTop(leadId);
   }, []);
 
   // 🚀 SEMPRE: Hook de mensagens (mas só carrega quando selectedContact existe)
-  const messagesHook = useWhatsAppChatMessages(selectedContact, webActiveInstance, handleContactUpdateFromMessages);
+  const messagesHook = useWhatsAppChatMessages({
+    selectedContact,
+    activeInstance: webActiveInstance
+  });
   
   // 🚀 SEMPRE: Hooks de realtime (mas só ativam quando necessário)
   const chatsRealtimeStats = useChatsRealtime({
@@ -201,6 +204,19 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     
     setSelectedContact(contact);
   }, [markAsRead]);
+
+  // ✅ CORREÇÃO: Wrapper para sendMessage compatível com interface esperada
+  const sendMessageWrapper = useCallback(async (text: string, mediaType?: string, mediaUrl?: string): Promise<boolean> => {
+    if (!text.trim()) return false;
+    
+    // Converter para formato esperado pelo hook
+    const media = mediaType && mediaUrl ? {
+      file: new File([], mediaUrl.split('/').pop() || 'file'),
+      type: mediaType
+    } : undefined;
+    
+    return await messagesHook.sendMessage(text, media);
+  }, [messagesHook.sendMessage]);
 
   // Saúde da instância
   const instanceHealth = useMemo(() => ({
@@ -290,8 +306,8 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     isLoadingMessages: messagesHook.isLoadingMessages,
     isLoadingMore: messagesHook.isLoadingMore,
     hasMoreMessages: messagesHook.hasMoreMessages,
-    isSending: messagesHook.isSending,
-    sendMessage: messagesHook.sendMessage,
+    isSending: messagesHook.isSendingMessage,
+    sendMessage: sendMessageWrapper,
     loadMoreMessages: messagesHook.loadMoreMessages,
     
     // Seleção
@@ -300,7 +316,7 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     
     // Refresh
     fetchContacts: contactsHook.refreshContacts,
-    fetchMessages: messagesHook.fetchMessages,
+    fetchMessages: messagesHook.refreshMessages,
     
     // Estado geral
     companyLoading,
@@ -317,12 +333,14 @@ export const WhatsAppChatProvider = React.memo(({ children }: { children: React.
     messagesHook.isLoadingMessages,
     messagesHook.isLoadingMore,
     messagesHook.hasMoreMessages,
-    messagesHook.isSending,
+    messagesHook.isSendingMessage,
     selectedContact?.id,
     companyLoading,
     instanceHealth.score,
     realtimeStats.chatsConnected,
-    realtimeStats.messagesConnected
+    realtimeStats.messagesConnected,
+    sendMessageWrapper,
+    messagesHook.refreshMessages
   ]);
 
   return (
