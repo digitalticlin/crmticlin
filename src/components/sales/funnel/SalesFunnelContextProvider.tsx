@@ -120,7 +120,7 @@ export const SalesFunnelContextProvider: React.FC<SalesFunnelContextProviderProp
   const contextValue = useMemo(() => ({
     // 📊 DADOS PRINCIPAIS
     loading: salesFunnelData.loading,
-    error: salesFunnelData.error,
+    error: salesFunnelData.error?.message || null, // Convert Error to string
     funnels: salesFunnelData.funnels,
     selectedFunnel: salesFunnelData.selectedFunnel,
     setSelectedFunnel: salesFunnelData.setSelectedFunnel,

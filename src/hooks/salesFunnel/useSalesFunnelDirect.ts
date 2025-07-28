@@ -1,4 +1,3 @@
-
 /**
  * 🚀 HOOK PRINCIPAL PARA SALES FUNNEL - CORRIGIDO PARA PHASE 2
  * 
@@ -156,7 +155,6 @@ export const useSalesFunnelDirect = () => {
       avatar: undefined,
       created_at: lead.created_at,
       updated_at: lead.updated_at,
-      company_id: lead.company_id,
       whatsapp_number_id: lead.whatsapp_number_id,
       funnel_id: lead.funnel_id,
       kanban_stage_id: lead.kanban_stage_id,
