@@ -1,47 +1,54 @@
 
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useMemo } from "react";
 
-/**
- * Retorna um relatório resumido por etapa para um funil.
- *
- * Estrutura retornada: [{ kanban_stage_id: string, count: number }]
- */
-export function useFunnelDashboard(funnelId: string) {
-  const [report, setReport] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+interface FunnelReport {
+  kanban_stage_id: string;
+  count: number;
+}
 
-  useEffect(() => {
-    if (funnelId) loadReport();
-    // eslint-disable-next-line
-  }, [funnelId]);
+export const useFunnelDashboard = (funnelId: string) => {
+  const { data: report, isLoading, error } = useQuery({
+    queryKey: ['funnel-dashboard', funnelId],
+    queryFn: async () => {
+      if (!funnelId) return [];
 
-  const loadReport = async () => {
-    setLoading(true);
+      const { data, error } = await supabase
+        .from('leads')
+        .select('kanban_stage_id')
+        .eq('funnel_id', funnelId);
 
-    // Consulta: conta leads por etapa para um funil específico
-    const { data, error } = await supabase
-      .from("leads")
-      .select("kanban_stage_id")
-      .eq("funnel_id", funnelId);
+      if (error) {
+        console.error('Error fetching funnel dashboard:', error);
+        throw error;
+      }
 
-    if (!error && data) {
-      // Conta por etapa manualmente
-      const countByStage: Record<string, number> = {};
-      data.forEach((row: { kanban_stage_id: string }) => {
-        if (row.kanban_stage_id)
-          countByStage[row.kanban_stage_id] = (countByStage[row.kanban_stage_id] || 0) + 1;
-      });
-      const reportArr = Object.entries(countByStage).map(([kanban_stage_id, count]) => ({
+      // Agrupar por estágio
+      const groupedData = data.reduce((acc, lead) => {
+        const stageId = lead.kanban_stage_id;
+        if (stageId) {
+          acc[stageId] = (acc[stageId] || 0) + 1;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+
+      return Object.entries(groupedData).map(([kanban_stage_id, count]) => ({
         kanban_stage_id,
         count
       }));
-      setReport(reportArr);
-    } else {
-      setReport([]);
-    }
-    setLoading(false);
-  };
+    },
+    enabled: !!funnelId,
+    staleTime: 5 * 60 * 1000, // 5 minutos
+    gcTime: 10 * 60 * 1000, // 10 minutos
+  });
 
-  return { report, loading, loadReport };
-}
+  // ✅ CORREÇÃO: Memoizar resultado para evitar re-renders desnecessários
+  const memoizedResult = useMemo(() => ({
+    report: report || [],
+    loading: isLoading,
+    error
+  }), [report, isLoading, error]);
+
+  return memoizedResult;
+};

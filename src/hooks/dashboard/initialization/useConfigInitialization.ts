@@ -13,15 +13,19 @@ export const useConfigInitialization = (
   isMountedRef: React.MutableRefObject<boolean>,
   isInitializedRef: React.MutableRefObject<boolean>
 ) => {
-  // ✅ ANTI-LOOP: Controle de execução
+  // ✅ ANTI-LOOP: Controle de execução melhorado
   const lastInitParams = useRef<string>('');
   const initInProgress = useRef<boolean>(false);
   const initAttempts = useRef<number>(0);
+  const initTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      if (initTimeoutRef.current) {
+        clearTimeout(initTimeoutRef.current);
+      }
     };
   }, [isMountedRef]);
 
@@ -46,7 +50,7 @@ export const useConfigInitialization = (
     }
     
     // ✅ LIMITE DE TENTATIVAS
-    if (initAttempts.current >= 3) {
+    if (initAttempts.current >= 2) {
       console.error("🚨 Dashboard init: muitas tentativas, parando");
       return;
     }
@@ -55,7 +59,9 @@ export const useConfigInitialization = (
     initAttempts.current++;
     
     console.log(`🔄 Loading config for user: ${user.id}, company: ${companyId} (tentativa ${initAttempts.current})`);
-    loadConfig();
+    
+    // ✅ DEBOUNCE: Adicionar pequeno delay para evitar execução imediata
+    initTimeoutRef.current = setTimeout(loadConfig, 100);
   }, [user, companyId]);
 
   const loadConfig = async () => {
