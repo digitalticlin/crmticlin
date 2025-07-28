@@ -1,16 +1,13 @@
 
-import { useState, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Send, Loader2, CheckCircle, XCircle, Wifi, WifiOff } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { QuickMessagesPopover } from "./input/QuickMessagesPopover";
-import { QuickActionsPopover } from "./input/QuickActionsPopover";
-import { QuickMessagesPanel } from "./input/QuickMessagesPanel";
+import React, { useState, useRef, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Send, Paperclip, Loader2, Wifi, WifiOff } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface WhatsAppMessageInputProps {
   onSendMessage: (message: string, mediaType?: string, mediaUrl?: string) => Promise<boolean>;
-  isSending: boolean;
+  isSending?: boolean;
   realtimeStats?: {
     isConnected: boolean;
     connectionAttempts: number;
@@ -18,200 +15,127 @@ interface WhatsAppMessageInputProps {
   };
 }
 
-export const WhatsAppMessageInput = ({ 
-  onSendMessage, 
-  isSending,
+export const WhatsAppMessageInput: React.FC<WhatsAppMessageInputProps> = ({
+  onSendMessage,
+  isSending = false,
   realtimeStats
-}: WhatsAppMessageInputProps) => {
-  const [message, setMessage] = useState("");
-  const [showQuickMessages, setShowQuickMessages] = useState(false);
-  const [lastSendStatus, setLastSendStatus] = useState<'success' | 'error' | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+}) => {
+  const [message, setMessage] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleSend = async () => {
-    const trimmedMessage = message.trim();
-    if (trimmedMessage && !isSending) {
-      try {
-        console.log('[MessageInput] 📤 Enviando mensagem:', {
-          length: trimmedMessage.length,
-          preview: trimmedMessage.substring(0, 30) + '...'
-        });
+  const handleSendMessage = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!message.trim() || isSending) return;
 
-        // ✅ LIMPAR CAMPO IMEDIATAMENTE
-        setMessage("");
-        setLastSendStatus(null);
-        
-        // Reset altura do textarea
-        if (textareaRef.current) {
-          textareaRef.current.style.height = 'auto';
-        }
+    console.log('[WhatsAppMessageInput] 📤 Enviando mensagem:', {
+      messageLength: message.length,
+      isSending
+    });
 
-        const success = await onSendMessage(trimmedMessage);
-        
-        if (success) {
-          setLastSendStatus('success');
-          console.log('[MessageInput] ✅ Mensagem enviada com sucesso');
-          
-          // Limpar status após 2 segundos
-          setTimeout(() => setLastSendStatus(null), 2000);
-        } else {
-          setLastSendStatus('error');
-          // Restaurar mensagem em caso de erro
-          setMessage(trimmedMessage);
-          console.error('[MessageInput] ❌ Falha no envio');
-        }
-      } catch (error) {
-        console.error('[MessageInput] ❌ Erro ao enviar mensagem:', error);
-        setLastSendStatus('error');
-        setMessage(trimmedMessage);
+    setIsTyping(true);
+    const messageToSend = message.trim();
+    setMessage('');
+
+    try {
+      const success = await onSendMessage(messageToSend);
+      
+      if (success) {
+        console.log('[WhatsAppMessageInput] ✅ Mensagem enviada com sucesso');
+        // Manter o foco no input
+        inputRef.current?.focus();
+      } else {
+        console.error('[WhatsAppMessageInput] ❌ Falha ao enviar mensagem');
+        // Restaurar mensagem em caso de falha
+        setMessage(messageToSend);
       }
+    } catch (error) {
+      console.error('[WhatsAppMessageInput] ❌ Erro ao enviar mensagem:', error);
+      // Restaurar mensagem em caso de erro
+      setMessage(messageToSend);
+    } finally {
+      setIsTyping(false);
     }
-  };
+  }, [message, isSending, onSendMessage]);
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      handleSendMessage(e);
     }
-  };
+  }, [handleSendMessage]);
 
-  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setMessage(e.target.value);
-    
-    // Auto-resize textarea
-    const textarea = e.target;
-    textarea.style.height = 'auto';
-    const scrollHeight = textarea.scrollHeight;
-    textarea.style.height = Math.min(scrollHeight, 120) + 'px';
-  };
-
-  const handleQuickMessage = (quickMsg: string) => {
-    setMessage(quickMsg);
-    setShowQuickMessages(false);
-    
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-    }
-  };
-
-  const canSend = message.trim().length > 0 && !isSending;
+  const isDisabled = isSending || isTyping || !message.trim();
 
   return (
-    <div className="relative">
-      {/* Painel de Mensagens Rápidas */}
-      {showQuickMessages && (
-        <QuickMessagesPanel 
-          onQuickMessage={handleQuickMessage}
-          onClose={() => setShowQuickMessages(false)}
-        />
+    <div className="border-t border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
+      {/* Status da conexão realtime */}
+      {realtimeStats && (
+        <div className="flex items-center justify-between px-4 py-1 text-xs">
+          <div className="flex items-center gap-2">
+            {realtimeStats.isConnected ? (
+              <>
+                <Wifi className="w-3 h-3 text-green-500" />
+                <span className="text-green-600 dark:text-green-400">
+                  Conectado
+                </span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="w-3 h-3 text-red-500" />
+                <span className="text-red-600 dark:text-red-400">
+                  Desconectado ({realtimeStats.connectionAttempts}/{realtimeStats.maxAttempts})
+                </span>
+              </>
+            )}
+          </div>
+          <span className="text-gray-500 dark:text-gray-400">
+            🔄 Conectado
+          </span>
+        </div>
       )}
 
-      <div className="p-4 border-t border-white/20 bg-white/10 backdrop-blur-sm">
-        {/* ✅ INDICADOR DE STATUS DO REALTIME */}
-        {realtimeStats && (
-          <div className="mb-2 flex items-center gap-2 text-xs">
-            {realtimeStats.isConnected ? (
-              <div className="flex items-center gap-1 text-green-600">
-                <Wifi className="h-3 w-3" />
-                <span>Conectado</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1 text-orange-600">
-                <WifiOff className="h-3 w-3" />
-                <span>Reconectando... ({realtimeStats.connectionAttempts}/{realtimeStats.maxAttempts})</span>
-              </div>
-            )}
-          </div>
-        )}
+      <form onSubmit={handleSendMessage} className="flex items-center gap-2 p-4">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="flex-shrink-0"
+          disabled={isSending}
+        >
+          <Paperclip className="w-4 h-4" />
+        </Button>
 
-        <div className="flex gap-3 items-end">
-          {/* Botões de Ação Rápida */}
-          <div className="flex gap-1">
-            <QuickActionsPopover onSendMessage={onSendMessage} />
-            <QuickMessagesPopover 
-              onQuickMessage={handleQuickMessage}
-            />
-          </div>
-          
-          <div className="flex-1 relative">
-            <Textarea
-              ref={textareaRef}
-              value={message}
-              onChange={handleTextareaChange}
-              onKeyPress={handleKeyPress}
-              placeholder="Digite uma mensagem..."
-              disabled={isSending}
-              className={cn(
-                "min-h-[44px] max-h-[120px] resize-none",
-                "bg-white/70 backdrop-blur-sm border-white/30 text-gray-900",
-                "focus:bg-white/80 focus:border-green-400/50 focus:ring-green-400/30",
-                "placeholder:text-gray-500",
-                "rounded-2xl px-4 py-3",
-                "transition-all duration-200",
-                isSending && "opacity-50 cursor-not-allowed"
-              )}
-            />
-            
-            {/* Contador de caracteres */}
-            {message.length > 800 && (
-              <div className={cn(
-                "absolute bottom-2 right-3 text-xs",
-                message.length > 1000 ? "text-red-500" : "text-yellow-600"
-              )}>
-                {message.length}/1500
-              </div>
-            )}
-          </div>
-          
-          <Button
-            onClick={handleSend}
-            disabled={!canSend}
-            size="lg"
-            className={cn(
-              "h-[44px] w-[44px] rounded-full p-0 transition-all duration-200",
-              canSend
-                ? "bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg hover:shadow-xl hover:scale-105"
-                : "bg-gray-300 text-gray-500 cursor-not-allowed"
-            )}
-          >
-            {isSending ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : lastSendStatus === 'success' ? (
-              <CheckCircle className="h-5 w-5 text-green-200" />
-            ) : lastSendStatus === 'error' ? (
-              <XCircle className="h-5 w-5 text-red-200" />
-            ) : (
-              <Send className="h-5 w-5" />
-            )}
-          </Button>
-        </div>
-        
-        {/* ✅ FEEDBACK VISUAL MELHORADO */}
-        <div className="mt-2 min-h-[20px] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {isSending && (
-              <div className="flex items-center gap-2 text-xs text-green-600/70">
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                <span>Enviando...</span>
-              </div>
-            )}
-            
-            {lastSendStatus === 'success' && (
-              <div className="flex items-center gap-2 text-xs text-green-600">
-                <CheckCircle className="h-3 w-3" />
-                <span>Mensagem enviada</span>
-              </div>
-            )}
-            
-            {lastSendStatus === 'error' && (
-              <div className="flex items-center gap-2 text-xs text-red-600">
-                <XCircle className="h-3 w-3" />
-                <span>Erro no envio</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+        <Input
+          ref={inputRef}
+          type="text"
+          placeholder="Digite uma mensagem..."
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyDown={handleKeyDown}
+          disabled={isSending}
+          className="flex-1 bg-gray-100 dark:bg-gray-800 border-0 focus:ring-2 focus:ring-green-500 rounded-full px-4 py-2"
+        />
+
+        <Button
+          type="submit"
+          size="sm"
+          disabled={isDisabled}
+          className={cn(
+            "flex-shrink-0 rounded-full w-10 h-10 p-0",
+            isDisabled 
+              ? "bg-gray-400 dark:bg-gray-600" 
+              : "bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700"
+          )}
+        >
+          {isSending || isTyping ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Send className="w-4 h-4" />
+          )}
+        </Button>
+      </form>
     </div>
   );
 };

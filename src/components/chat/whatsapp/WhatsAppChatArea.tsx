@@ -34,7 +34,7 @@ export const WhatsAppChatArea = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+    <div className="flex-1 flex flex-col bg-gradient-to-br from-green-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 h-full">
       <WhatsAppChatHeader contact={selectedContact} />
       
       <WhatsAppMessagesList
