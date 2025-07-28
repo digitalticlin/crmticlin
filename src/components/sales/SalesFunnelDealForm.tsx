@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Deal } from '@/types/chat';
 
 interface SalesFunnelDealFormProps {
@@ -18,7 +19,7 @@ export const SalesFunnelDealForm: React.FC<SalesFunnelDealFormProps> = ({
   onUpdate,
   onClose
 }) => {
-  const [status, setStatus] = useState(deal?.status || 'pending');
+  const [status, setStatus] = useState<"won" | "lost">(deal?.status || 'won');
   const [value, setValue] = useState(deal?.value || 0);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -35,12 +36,15 @@ export const SalesFunnelDealForm: React.FC<SalesFunnelDealFormProps> = ({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="status">Status</Label>
-        <Input
-          id="status"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          placeholder="Status da negociação"
-        />
+        <Select value={status} onValueChange={(value: "won" | "lost") => setStatus(value)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione o status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="won">Ganho</SelectItem>
+            <SelectItem value="lost">Perdido</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       
       <div className="space-y-2">
